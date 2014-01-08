@@ -4,11 +4,15 @@
 
 The Cumulus_feature job tests feature branches after each push to the Github repository.  It uses the *deployCI* target to first clean the org of all Cumulus metadata, then ensures all managed packages are at the correct version, and finally deploys the Cumulus package from the repository running all apex tests.  If any tests fail, the developer who made the last commit in the push is notified by email.  
 
-This job is parameterized and expects the BRANCH and EMAIL parameters to be passed so it knows which branch to build and who to notify if build fails.
+This job is parameterized and expects the `branch` and `email` parameters to be passed so it knows which branch to build and who to notify if build fails.
+
+Since this job is mostly a tool to help developers, the notification email on build failure is sent to the GitHub user who last pushed a commit to the branch.
+
+Another alternative to this approach would be to build individual jobs for each feature branch.  This option was considered but we opted to use a single job to avoid the overhead of ensuring jobs are created and deleted when feature branches are created or deleted.  Also, in the Force.com context, you would either have to create a target org for each feature branch's job or add additional configuraiton to ensure multiple separate jobs don't run against the same target org.
 
 ## Target Org
 
-This job uses an org dedicated to the job.  The org can be a Developer Edition or Partner Developer Edition instance and requires no up front configuration.  Thus, if an issue is encountered with an org, a new one can be created and linked to the job.
+This job uses an org dedicated to the job.  The org can be a Developer Edition or Partner Developer Edition instance and requires no up front configuration.  Thus, if an issue is encountered with an org, a new one can be created and easily linked to the job.
 
 ## Configuration
 
@@ -18,21 +22,31 @@ This job uses an org dedicated to the job.  The org can be a Developer Edition o
 
 ### Parameters
 
+This job expects the `branch` and `email` parameters to be passed by the build trigger.  The trigger is sent by the mrbelvedere app running on Heroku which receives GitHub web hooks whenver a push is made to the repository.  We don't want to use any triggers directly from GitHub in Jenkins since the external app provides the trigger with needed parameters.
+
 ![Jenkins Settings - Location](https://raw.github.com/SalesforceFoundation/CumulusCI/master/docs/jobs/cumulus_feature-params.png)
 
 ### Source Code Management
+
+We use the `branch` parameter to tell the job which branch to checkout from GitHub
 
 ![Jenkins Settings - Location](https://raw.github.com/SalesforceFoundation/CumulusCI/master/docs/jobs/cumulus_feature-scm.png)
 
 ### Build Environment
 
+We use the build-name-setter Jenkins plugin to name the builds after the feature branch
+
 ![Jenkins Settings - Location](https://raw.github.com/SalesforceFoundation/CumulusCI/master/docs/jobs/cumulus_feature-build_environment.png)
 
 ### Triggers
 
+Since this job is triggered by the remote mrbelvedere app running on Heroku, we only want to enable remote triggering of the job.  
+
 ![Jenkins Settings - Location](https://raw.github.com/SalesforceFoundation/CumulusCI/master/docs/jobs/cumulus_feature-triggers.png)
 
 ### Build
+
+We use the default ant version and the deployCI ant target from the checked out branch to control the build.  The -propertyfile ../build.properities.cumulus.feat contains the credentials for the target org dedicated to this job.  The file should be located in the root of the Jenkins workspace or the path adjusted.
 
 ![Jenkins Settings - Location](https://raw.github.com/SalesforceFoundation/CumulusCI/master/docs/jobs/cumulus_feature-build.png)
 
