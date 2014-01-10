@@ -12,28 +12,28 @@ This job runs against the cumulus.rel org which is the package org for Cumulus.
 
 ### Title and Description
 
-![Jenkins Settings - Location](https://raw.github.com/SalesforceFoundation/CumulusCI/master/docs/jobs/cumulus_rel-title.png)
+![Cumulus_rel - Title and Description](https://raw.github.com/SalesforceFoundation/CumulusCI/master/docs/jobs/cumulus_rel-title.png)
 
 ### Parameters
 
-![Jenkins Settings - Location](https://raw.github.com/SalesforceFoundation/CumulusCI/master/docs/jobs/cumulus_rel-params.png)
+![Cumulus_rel - Parameters](https://raw.github.com/SalesforceFoundation/CumulusCI/master/docs/jobs/cumulus_rel-params.png)
 
 ### Source Code Management
 
-![Jenkins Settings - Location](https://raw.github.com/SalesforceFoundation/CumulusCI/master/docs/jobs/cumulus_rel-scm.png)
+![Cumulus_rel - SCM](https://raw.github.com/SalesforceFoundation/CumulusCI/master/docs/jobs/cumulus_rel-scm.png)
 
 ### Build Environment
 
-![Jenkins Settings - Location](https://raw.github.com/SalesforceFoundation/CumulusCI/master/docs/jobs/cumulus_rel-build_environment.png)
+![Cumulus_rel - Build Environment](https://raw.github.com/SalesforceFoundation/CumulusCI/master/docs/jobs/cumulus_rel-build_environment.png)
 
 ### Triggers
 
-![Jenkins Settings - Location](https://raw.github.com/SalesforceFoundation/CumulusCI/master/docs/jobs/cumulus_rel-triggers.png)
+![Cumulus_rel - Triggers](https://raw.github.com/SalesforceFoundation/CumulusCI/master/docs/jobs/cumulus_rel-triggers.png)
 
 ### Build
 
-![Jenkins Settings - Location](https://raw.github.com/SalesforceFoundation/CumulusCI/master/docs/jobs/cumulus_rel-build.png)
+![Cumulus_rel - Build](https://raw.github.com/SalesforceFoundation/CumulusCI/master/docs/jobs/cumulus_rel-build.png)
 
 ### Post Build
 
-![Jenkins Settings - Location](https://raw.github.com/SalesforceFoundation/CumulusCI/master/docs/jobs/cumulus_rel-post_build.png)
+![Cumulus_rel - Post Build](https://raw.github.com/SalesforceFoundation/CumulusCI/master/docs/jobs/cumulus_rel-post_build.png)

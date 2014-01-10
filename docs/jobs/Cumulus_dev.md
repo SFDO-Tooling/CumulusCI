@@ -1,45 +1,37 @@
-# Job: Cumulus_feature
+# Job: Cumulus_dev
 
 ## Overview
 
-The Cumulus_feature job tests feature branches after each push to the Github repository.  It uses the *deployCI* target to first clean the org of all Cumulus metadata, then ensures all managed packages are at the correct version, and finally deploys the Cumulus package from the repository running all apex tests.  If any tests fail, the developer who made the last commit in the push is notified by email.  
-
-This job is parameterized and expects the BRANCH and EMAIL parameters to be passed so it knows which branch to build and who to notify if build fails.
+The Cumulus_dev job runs after each commit to the repository and at scheduled times to ensure the dev branch passes all Apex tests.
 
 ## Target Org
 
-This job uses an org dedicated to the job.  The org can be a Developer Edition or Partner Developer Edition instance and requires no up front configuration.  Thus, if an issue is encountered with an org, a new one can be created and linked to the job.
+This job uses a dedicated target org, cumulus.dev, to 
 
 ## Configuration
 
 ### Title and Description
 
-![Jenkins Settings - Location](https://raw.github.com/SalesforceFoundation/CumulusCI/master/docs/jobs/cumulus_feature-title.png)
-
-### Parameters
-
-![Jenkins Settings - Location](https://raw.github.com/SalesforceFoundation/CumulusCI/master/docs/jobs/cumulus_feature-params.png)
+![Cumulus_dev - Title and Description](https://raw.github.com/SalesforceFoundation/CumulusCI/master/docs/jobs/cumulus_dev-title.png)
 
 ### Source Code Management
 
-![Jenkins Settings - Location](https://raw.github.com/SalesforceFoundation/CumulusCI/master/docs/jobs/cumulus_feature-scm.png)
-
-### Build Environment
-
-![Jenkins Settings - Location](https://raw.github.com/SalesforceFoundation/CumulusCI/master/docs/jobs/cumulus_feature-build_environment.png)
+![Cumulus_dev - SCM](https://raw.github.com/SalesforceFoundation/CumulusCI/master/docs/jobs/cumulus_dev-scm.png)
 
 ### Triggers
 
-![Jenkins Settings - Location](https://raw.github.com/SalesforceFoundation/CumulusCI/master/docs/jobs/cumulus_feature-triggers.png)
+![Cumulus_dev - Triggers](https://raw.github.com/SalesforceFoundation/CumulusCI/master/docs/jobs/cumulus_dev-triggers.png)
 
 ### Build
 
-![Jenkins Settings - Location](https://raw.github.com/SalesforceFoundation/CumulusCI/master/docs/jobs/cumulus_feature-build.png)
+![Cumulus_dev - Build](https://raw.github.com/SalesforceFoundation/CumulusCI/master/docs/jobs/cumulus_dev-build.png)
 
 ### Post Build
+
+If the build passes, we kick off a build of [Cumulus_dev_cinnamon_deploy](https://github.com/SalesforceFoundation/CumulusCI/blob/master/docs/jobs/Cumulus_dev_cinnamon_deploy.md)
 
 The Editable Email Notification post build action is used to send a formatted email to the developer who committed the last commit in the push.
 
 The *Set build status on GitHub commit* post build action flags the GitHub commit with the build status so the Branches list and Pull Requests for the branch show the build status with a link to the build job for more details.
 
-![Jenkins Settings - Location](https://raw.github.com/SalesforceFoundation/CumulusCI/master/docs/jobs/cumulus_feature-post_build.png)
+![Cumulus_dev - Post Build](https://raw.github.com/SalesforceFoundation/CumulusCI/master/docs/jobs/cumulus_dev-post_build.png)

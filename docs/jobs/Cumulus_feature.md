@@ -18,37 +18,37 @@ This job uses an org dedicated to the job.  The org can be a Developer Edition o
 
 ### Title and Description
 
-![Jenkins Settings - Location](https://raw.github.com/SalesforceFoundation/CumulusCI/master/docs/jobs/cumulus_feature-title.png)
+![Cumulus_feature - Title and Description](https://raw.github.com/SalesforceFoundation/CumulusCI/master/docs/jobs/cumulus_feature-title.png)
 
 ### Parameters
 
 This job expects the `branch` and `email` parameters to be passed by the build trigger.  The trigger is sent by the mrbelvedere app running on Heroku which receives GitHub web hooks whenver a push is made to the repository.  We don't want to use any triggers directly from GitHub in Jenkins since the external app provides the trigger with needed parameters.
 
-![Jenkins Settings - Location](https://raw.github.com/SalesforceFoundation/CumulusCI/master/docs/jobs/cumulus_feature-params.png)
+![Cumulus_feature - Parameters](https://raw.github.com/SalesforceFoundation/CumulusCI/master/docs/jobs/cumulus_feature-params.png)
 
 ### Source Code Management
 
 We use the `branch` parameter to tell the job which branch to checkout from GitHub
 
-![Jenkins Settings - Location](https://raw.github.com/SalesforceFoundation/CumulusCI/master/docs/jobs/cumulus_feature-scm.png)
+![Cumulus_feature - SCM](https://raw.github.com/SalesforceFoundation/CumulusCI/master/docs/jobs/cumulus_feature-scm.png)
 
 ### Build Environment
 
 We use the build-name-setter Jenkins plugin to name the builds after the feature branch
 
-![Jenkins Settings - Location](https://raw.github.com/SalesforceFoundation/CumulusCI/master/docs/jobs/cumulus_feature-build_environment.png)
+![Cumulus_feature - Build Environment](https://raw.github.com/SalesforceFoundation/CumulusCI/master/docs/jobs/cumulus_feature-build_environment.png)
 
 ### Triggers
 
 Since this job is triggered by the remote mrbelvedere app running on Heroku, we only want to enable remote triggering of the job.  
 
-![Jenkins Settings - Location](https://raw.github.com/SalesforceFoundation/CumulusCI/master/docs/jobs/cumulus_feature-triggers.png)
+![Cumulus_feature - Triggers](https://raw.github.com/SalesforceFoundation/CumulusCI/master/docs/jobs/cumulus_feature-triggers.png)
 
 ### Build
 
 We use the default ant version and the deployCI ant target from the checked out branch to control the build.  The -propertyfile ../build.properities.cumulus.feat contains the credentials for the target org dedicated to this job.  The file should be located in the root of the Jenkins workspace or the path adjusted.
 
-![Jenkins Settings - Location](https://raw.github.com/SalesforceFoundation/CumulusCI/master/docs/jobs/cumulus_feature-build.png)
+![Cumulus_feature - Build](https://raw.github.com/SalesforceFoundation/CumulusCI/master/docs/jobs/cumulus_feature-build.png)
 
 ### Post Build
 
@@ -56,4 +56,4 @@ The Editable Email Notification post build action is used to send a formatted em
 
 The *Set build status on GitHub commit* post build action flags the GitHub commit with the build status so the Branches list and Pull Requests for the branch show the build status with a link to the build job for more details.
 
-![Jenkins Settings - Location](https://raw.github.com/SalesforceFoundation/CumulusCI/master/docs/jobs/cumulus_feature-post_build.png)
+![Cumulus_feature - Post Build](https://raw.github.com/SalesforceFoundation/CumulusCI/master/docs/jobs/cumulus_feature-post_build.png)

@@ -12,25 +12,25 @@ This job runs a python script which interacts directly with the GitHub API.  Thu
 
 ### Title and Description
 
-![Jenkins Settings - Location](https://raw.github.com/SalesforceFoundation/CumulusCI/master/docs/jobs/cumulus_dev_to_feature-title.png)
+![Cumulus_dev_to_feature - Title and Description](https://raw.github.com/SalesforceFoundation/CumulusCI/master/docs/jobs/cumulus_dev_to_feature-title.png)
 
 ### Source Code Management
 
 This job runs agains the dev branch in the repository.
 
-![Jenkins Settings - Location](https://raw.github.com/SalesforceFoundation/CumulusCI/master/docs/jobs/cumulus_dev_to_feature-scm.png)
+![Cumulus_dev_to_feature - SCM](https://raw.github.com/SalesforceFoundation/CumulusCI/master/docs/jobs/cumulus_dev_to_feature-scm.png)
 
 ### Build Environment
 
 We need to pass the GitHub credentials to the script which we do using environment variables including a masked password field.  This should be the same credentials you created when setting up the GitHub Web Hook section in [CumulusCI - Installation and Setup](https://github.com/SalesforceFoundation/CumulusCI/blob/master/docs/setup/README.md).
 
-![Jenkins Settings - Location](https://raw.github.com/SalesforceFoundation/CumulusCI/master/docs/jobs/cumulus_dev_to_feature-build_environment.png)
+![Cumulus_dev_to_feature - Build Environment](https://raw.github.com/SalesforceFoundation/CumulusCI/master/docs/jobs/cumulus_dev_to_feature-build_environment.png)
 
 ### Triggers
 
 Since merging code into all open feature branches is a fairly intrusive operation, we don't run this job until after all test builds have passed against the branch.
 
-![Jenkins Settings - Location](https://raw.github.com/SalesforceFoundation/CumulusCI/master/docs/jobs/cumulus_dev_to_feature-triggers.png)
+![Cumulus_dev_to_feature - Triggers](https://raw.github.com/SalesforceFoundation/CumulusCI/master/docs/jobs/cumulus_dev_to_feature-triggers.png)
 
 ### Build
 
@@ -38,4 +38,4 @@ The Build uses a custom shell script which activates the python virtual environm
 
 FIXME: Script path should point to CumulusCI/scripts/github/merge_dev_to_feature.py
 
-![Jenkins Settings - Location](https://raw.github.com/SalesforceFoundation/CumulusCI/master/docs/jobs/cumulus_dev_to_feature-build.png)
+![Cumulus_dev_to_feature - Build](https://raw.github.com/SalesforceFoundation/CumulusCI/master/docs/jobs/cumulus_dev_to_feature-build.png)
