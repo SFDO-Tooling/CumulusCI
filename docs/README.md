@@ -23,7 +23,7 @@ While this process was specifically built for the Cumulus project, it should be 
 
 Cumulus is an extension built to upgrade the Non-Profit Starter Pack.  More detail about the project is available through the [Cumulus](https://github.com/SalesforceFoundation/Cumulus) GitHub repository, however there are some details useful to explaining the CumulusCI process:
 
-* Cumulus depends on 5 other managed packages each with a large install base.  Feature branches often require
+* Cumulus depends on 5 other managed packages each with a large install base.  Feature branches often require new versions of one of the underlying package.
 
 ## Repository Workflow
 
