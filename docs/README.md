@@ -46,6 +46,10 @@ The workflow for the internal team uses a single repository owned by the Salesfo
 
 ## Feature Branch Process
 
+* [Cumulus_feature](https://github.com/SalesforceFoundation/CumulusCI/blob/master/docs/jobs/Cumulus_feature.md): Runs a full build against an org dedicated to test feature branches.
+* [Cumulus_dev_to_feature](https://github.com/SalesforceFoundation/CumulusCI/blob/master/docs/jobs/Cumulus_dev_to_feature.md): Pushes all changes from the `dev` branch to all feature branches.  If a merge conflict is encountered, it creates a Pull Request in GitHub to merge dev into the feature branch.  Once the developer manually resolves the merge conflict, the Pull Request is closed automatically.
+* [Cumulus_check_dependent_versions](https://github.com/SalesforceFoundation/CumulusCI/blob/master/docs/jobs/Cumulus_check_dependent_versions.md): Checks to make sure the `scripts/set_dependent_versions.py` script was run after changing the `scripts/cumulus.cfg` file.
+
 All development work for Cumulus is done in feature branches with a naming convention of `feature/123-description-of-feature' where 123 is the GitHub issue number associated with the branch and description-of-feature is a short description of what the branch contains.
 
 Whenever a new feature branch is pushed to the repository in GitHub or when a push is made against an existing feature branch, the [mrbelvedere](https://github.com/SalesforceFoundation/CumulusCI/blob/docs/mrbelvedere) Heroku app triggers the Cumulus_feature job to build the branch and report any build failures to the developer who last committed to the branch.  It also marks build status of the commit via the [GitHub Commit Status API](https://github.com/blog/1227-commit-status-api) so any Pull Requests created from the feature branch are marked with their build status as shown in the two examples below:
@@ -55,6 +59,8 @@ Whenever a new feature branch is pushed to the repository in GitHub or when a pu
 ![GitHub Commit Status Passing](https://raw.github.com/SalesforceFoundation/CumulusCI/master/docs/github-commit_status_pass.png)
 
 Once a feature branch's Pull Request is approved and merged into the `dev` branch, the Dev Branch Process starts to test the merged code.
+
+
 
 ### Keeping feature branches in sync with dev
 
@@ -68,16 +74,20 @@ To handle this use case, we use the Cumulus_dev_to_feature job at the end of the
 
 The `dev` branch is the only persistent branch in the process and should always be passing builds.  We test all feature branches before merge and all feature branches are kept up to date with any changes to the `dev` branch.
 
-There is a 4 step chain of builds involved in the Dev Branch Process:
+There is a 3 step chain of builds involved in the Dev Branch Process:
 
-1. [Cumulus_dev](https://github.com/SalesforceFoundation/CumulusCI): This job triggers after any commit to the `dev` branch and uses the deployCI ant target to clean the cumulus.dev org, upgrade any managed package versions which need upgraded, and deploys the `dev` branch code to the org running all apex tests.  If the build passes, the Cumulus_dev_cinnamon_deploy job is run.  If the build fails, all developers are notified.
-2. Cumulus_dev_cinnamon_deploy: This job deploys the `dev` branch code to the dedicated org (cumulus.dev.cin) for running Cinnamon browser based tests (Selenium + SauceLabs).  This job only deploys the Cumulus code to the org and does not kick off the Cinnamon tests.  If the build passes, the Cumulus_dev_cinnamon_test job is run.
-3. Cumulus_dev_cinnamon_test: This job deploys the [CumulusTesting](https://github.com/SalesforceFoundation/CumulusTesting) repository containing the Cinnamon tests for Cumulus to the cumulus.dev.cin target org and then kicks off the Cinnamon tests.  It parses the test results as a JUnit report so it can show individual test failure trends.  If all tests pass, it then runs the Cumulus_dev_to_feature job
-4. Cumulus_dev_to_feature: This job pushes all changes from the `dev` branch to all feature branches.  If a merge conflict is encountered, it creates a Pull Request in GitHub to merge dev into the feature branch.  Once the developer manually resolves the merge conflict, the Pull Request is closed automatically.
+1. [Cumulus_dev](https://github.com/SalesforceFoundation/CumulusCI/blob/master/docs/jobs/Cumulus_dev.md): This job triggers after any commit to the `dev` branch and uses the deployCI ant target to clean the cumulus.dev org, upgrade any managed package versions which need upgraded, and deploys the `dev` branch code to the org running all apex tests.  If the build passes, the Cumulus_dev_cinnamon_deploy job is run.  If the build fails, all developers are notified.
+2. [Cumulus_dev_cinnamon_deploy](https://github.com/SalesforceFoundation/CumulusCI/blob/master/docs/jobs/Cumulus_dev_cinnamon_deploy.md): This job deploys the `dev` branch code to the dedicated org (cumulus.dev.cin) for running Cinnamon browser based tests (Selenium + SauceLabs).  This job only deploys the Cumulus code to the org and does not kick off the Cinnamon tests.  If the build passes, the Cumulus_dev_cinnamon_test job is run.
+3. [Cumulus_dev_cinnamon_test](https://github.com/SalesforceFoundation/CumulusCI/blob/master/docs/jobs/Cumulus_dev_cinnamon_test.md): This job deploys the [CumulusTesting](https://github.com/SalesforceFoundation/CumulusTesting) repository containing the Cinnamon tests for Cumulus to the cumulus.dev.cin target org and then kicks off the Cinnamon tests.  It parses the test results as a JUnit report so it can show individual test failure trends.  If all tests pass, it then runs the Cumulus_dev_to_feature job
 
 ## UAT Process
 
 The Cumulus team works on a Scrum process with 2 week development iterations.  At the end of each iteration, managed beta package is built for User Acceptance Testing (UAT).  The purpose of the UAT process is to identify issues which prevent the release from going into production.  Changes in functionality which are merely enhancements on the release's functionality should be handled through the normal development process.
+
+1. [Cumulus_uat](https://github.com/SalesforceFoundation/CumulusCI/blob/master/docs/jobs/Cumulus_uat.md)
+2. [Cumulus_uat_cinnamon_deploy](https://github.com/SalesforceFoundation/CumulusCI/blob/master/docs/jobs/Cumulus_uat_cinnamon_deploy.md)
+3. [Cumulus_uat_cinnamon_test](https://github.com/SalesforceFoundation/CumulusCI/blob/master/docs/jobs/Cumulus_uat_cinnamon_test.md)
+4. [Cumulus_uat_managed](https://github.com/SalesforceFoundation/CumulusCI/blob/master/docs/jobs/Cumulus_uat_managed.md)
 
 ### Building a UAT Release
 

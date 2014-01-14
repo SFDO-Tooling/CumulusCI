@@ -1,4 +1,5 @@
 # Job: Cumulus_dev_cinnamon_deploy
+[See it in action](http://ci.salesforcefoundation.org/view/dev)
 
 ## Overview
 
@@ -14,7 +15,7 @@ Since Cinnamon requires the installation of additional managed packages not requ
 
 ### Source Code Management
 
-We store our Cinnamon tests in a dedicated repository so they can be deployed separately and avoid the risk of them getting bundled into the Cumulus package.
+We want to deploy the `dev` branch of the main Cumulus repository.
 
 ### Triggers
 
@@ -22,10 +23,12 @@ This job is triggered by any commit to the `dev` branch
 
 ### Build
 
-We use a shell script to kick off the Cinnamon command line client, ccli
+We use the deployCI target to do a complete clean, update, deploy, and test of Cumulus.
 
 ### Post Build
 
-If there are any failures, send an email.  If build passes, kick off the [Cumulus_dev_to_feature](https://github.com/SalesforceFoundation/CumulusCI/blob/master/docs/jobs/Cumulus_dev_to_feature) job to merge the dev changes back to all feature branches.
+If there are any failures, send an email to the release manager to investigate.  Send another email when a failing build passes again.
+
+If the build succeeds, kick off the [Cumulus_dev_cinnamon_test](https://github.com/SalesforceFoundation/CumulusCI/blob/master/docs/jobs/Cumulus_dev_cinnamon_test.md) job to run the Cinnamon tests.
 
 ![Cumulus_dev_cinnamon_deploy - Config](https://raw.github.com/SalesforceFoundation/CumulusCI/master/docs/jobs/Cumulus_dev_cinnamon_deploy.png)

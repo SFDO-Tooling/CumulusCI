@@ -1,4 +1,5 @@
 # Job: Cumulus_dev_to_feature
+[See it in action](http://ci.salesforcefoundation.org/view/feature)
 
 ## Overview
 
@@ -26,4 +27,8 @@ Once the [Cumulus_dev](https://github.com/SalesforceFoundation/CumulusCI/blob/ma
 
 The Build uses a custom shell script which activates the python virtual environment containing the PyGithub package for talking to GitHub.  Then, we execute the script.
 
-![Cumulus_dev_to_feature - Build](https://raw.github.com/SalesforceFoundation/CumulusCI/master/docs/jobs/cumulus_dev_to_feature-build.png)
+![Cumulus_dev_to_feature - Config](https://raw.github.com/SalesforceFoundation/CumulusCI/master/docs/jobs/Cumulus_dev_to_feature.png)
+
+### Post Build
+
+The Editable Email Notification post build action is used to send a formatted email to the release manager on failure (Failure) and recovery (Fixed).

@@ -1,4 +1,5 @@
 # Job: Cumulus_check_dependent_versions
+[See it in action](http://ci.salesforcefoundation.org/view/feature)
 
 ## Overview
 
@@ -12,11 +13,15 @@ This job just runs a Python script against the repository code so no org is need
 
 ### Source Code Management
 
-### Build Environment
+We want to test the latest commit in the main Cumulus repository.
 
-### Triggers
+### Build Triggers
+
+Build whenever a change is pushed to GitHub.  This triggers after any push to any branch.
 
 ### Build
+
+We use a simple script to active the Python virtualenv and run the script redirecting the output to a file.  Then, we check if the string 'Updating' appears at the beginning of any of the script's output lines.  If found, fail the build.
 
 ### Post Build
 
