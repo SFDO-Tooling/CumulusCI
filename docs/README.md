@@ -6,7 +6,7 @@ This document provides a high level introduction to the Cumulus Continuous Integ
 
 The process integrates GitHub, Jenkins, the Salesforce.com Ant Migration Tool, and a custom web application called mrbelvedere running on Heroku.
 
-The following diagram provides a visual representation of the process flow:
+The following diagram provides a visual representation of the process flow for our internal dev team:
 
 ![CumulusCI Workflow](https://raw.github.com/SalesforceFoundation/CumulusCI/master/docs/cumulus_ci_workflow.png)
 
@@ -21,9 +21,12 @@ While this process was specifically built for the Cumulus project, it should be 
 
 ## About Cumulus
 
-Cumulus is an extension built to upgrade the Non-Profit Starter Pack.  More detail about the project is available through the [Cumulus](https://github.com/SalesforceFoundation/Cumulus) GitHub repository, however there are some details useful to explaining the CumulusCI process:
+Project Cumulus is an update and overhaul of the existing Salesforce.com Foundation Nonprofit Starterpack.  More detail about the project is available through the [Cumulus](https://github.com/SalesforceFoundation/Cumulus) GitHub repository, however there are some details useful to explaining the CumulusCI process:
 
 * Cumulus depends on 5 other managed packages each with a large install base.  Feature branches often require new versions of one of the underlying package.
+* Our team uses a Scrum process where every story has a corresponding issue in GitHub.
+* We need to address the workflow needs of our internal developers while also creating an open and transparent way for external developers to contribute.
+
 
 ## Repository Workflow
 
