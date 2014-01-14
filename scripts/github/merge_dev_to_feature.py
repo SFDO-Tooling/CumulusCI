@@ -65,6 +65,19 @@ for branch in repo.get_branches():
                 )
                 print 'Create pull request %s to resolve merge conflict in %s' % (pull.number, branch.name)
 
+                # Assign pull request to branch committers
+                commits = repo.get_commits(sha = branch.commit.sha)
+                assignee = None
+                # Find the most recent committer who is not the user used by this script
+                # NOTE: This presumes the user being used by this script is a robot user, not a real dev
+                for commit in commits:
+                    if commit.committer.login != USERNAME:
+                        assignee = commit.committer
+                        break
+
+                if assignee:
+                    repo.get_issue(pull.number).edit(assignee = assignee)
+
         else:
             # For other types of failures, store the last exception and raise at the end
             exception = e
