@@ -124,7 +124,7 @@
 
 <p>Deploys the 5 NPSP managed packages plus the latest beta managed package for Cumulus.</p>
 
-<p>Calls out to the <a href="http://salesforcefoundation.github.io/mrbelvedere">mrbelvedere</a> application to get the latest beta managed package version and its corresponding repository tag.  Sets the required versions per the repository tag's version.properties file and then runs <a href="#updatedependentpackages">updateDependentPackages</a> to do the install/uninstall of managed packages so they are the requested version.  Finally, calls (runAllTests)[#runalltests] to kick off all the Apex tests deployed in the org.</p>
+<p>Calls out to the <a href="http://salesforcefoundation.github.io/mrbelvedere">mrbelvedere</a> application to get the latest beta managed package version and its corresponding repository tag.  Sets the required versions per the repository tag's version.properties file and then runs <a href="#updatedependentpackages">updateDependentPackages</a> to do the install/uninstall of managed packages so they are the requested version.  Finally, calls <a href="#runalltests">runAllTests</a> to kick off all the Apex tests deployed in the org.</p>
 
 <h3>
 <a name="uninstallcumulus" class="anchor" href="#uninstallcumulus"><span class="octicon octicon-link"></span></a>uninstallCumulus</h3>
