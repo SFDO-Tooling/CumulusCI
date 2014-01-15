@@ -19,7 +19,7 @@ This job uses an org dedicated to the job.  The org can be a Developer Edition o
 
 ### Parameters
 
-This job expects the `branch` and `email` parameters to be passed by the build trigger.  The trigger is sent by the mrbelvedere app running on Heroku which receives GitHub web hooks whenver a push is made to the repository.  We don't want to use any triggers directly from GitHub in Jenkins since the external app provides the trigger with needed parameters.
+This job expects the `branch` and `email` parameters to be passed by the build trigger.  The trigger is sent by the [mrbelvedere](http://salesforcefoundation.github.io/mrbelvedere/) app running on Heroku which receives GitHub web hooks whenver a push is made to the repository.  We don't want to use any triggers directly from GitHub in Jenkins since the external app provides the trigger with needed parameters.
 
 ### Source Code Management
 
@@ -31,7 +31,7 @@ We use the build-name-setter Jenkins plugin to name the builds after the feature
 
 ### Triggers
 
-Since this job is triggered by the remote mrbelvedere app running on Heroku which uses an authenticated call to the Jenkins API, we don't need to enable any triggers on the job.
+Since this job is triggered by the remote [mrbelvedere](http://salesforcefoundation.github.io/mrbelvedere/) app running on Heroku which uses an authenticated call to the Jenkins API, we don't need to enable any triggers on the job.
 
 ### Build
 

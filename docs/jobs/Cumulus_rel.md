@@ -21,7 +21,7 @@ We want to build the specific tag provided by the `branch` parameter
 
 ### Build Triggers
 
-This build is triggered remotely by the mrbelvedere app using an authenticated call to the Jenkins API.  Since the call is authenticated, we don't need to enable any job triggers.
+This build is triggered remotely by the [mrbelvedere](http://salesforcefoundation.github.io/mrbelvedere/) app using an authenticated call to the Jenkins API.  Since the call is authenticated, we don't need to enable any job triggers.
 
 ### Build Environment
 

@@ -3,7 +3,7 @@
 
 ## Overview
 
-The Cumulus_uat job is the first step in releasing a managed beta version of Cumulus.  The job is triggered by the mrbelvedere application similar to the [Cumulus_feature](https://github.com/SalesforceFoundation/CumulusCI/blob/master/docs/jobs/Cumulus_feature.md).  Whenever a tag is created in the repository starting with `uat/`, a build is triggered to deploy the tag to the cumulus.rel packaging org and run all tests.
+The Cumulus_uat job is the first step in releasing a managed beta version of Cumulus.  The job is triggered by the [mrbelvedere](http://salesforcefoundation.github.io/mrbelvedere/) application similar to the [Cumulus_feature](https://github.com/SalesforceFoundation/CumulusCI/blob/master/docs/jobs/Cumulus_feature.md).  Whenever a tag is created in the repository starting with `uat/`, a build is triggered to deploy the tag to the cumulus.rel packaging org and run all tests.
 
 ## Target Org
 
@@ -21,7 +21,7 @@ We want to build the specific tag provided by the `branch` parameter
 
 ### Build Triggers
 
-This build is triggered remotely by the mrbelvedere app using an authenticated call to the Jenkins API.  Since the call is authenticated, we don't need to enable any job triggers.
+This build is triggered remotely by the [mrbelvedere](http://salesforcefoundation.github.io/mrbelvedere/) app using an authenticated call to the Jenkins API.  Since the call is authenticated, we don't need to enable any job triggers.
 
 ### Build Environment
 

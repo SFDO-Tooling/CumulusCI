@@ -278,3 +278,4 @@ The CumulusCI process currently uses a small python script to handle the cumulus
 At this point, you should have a fully configured server running Jenkins with all the plugins necessary to implement the CumulusCI process.  Next up...
 
 * [Configure Jobs](https://github.com/SalesforceFoundation/CumulusCI/blob/master/docs/jobs/README.md)
+* [Install and Configure mrbelvedere](http://salesforcefoundation.github.io/mrbelvedere/)

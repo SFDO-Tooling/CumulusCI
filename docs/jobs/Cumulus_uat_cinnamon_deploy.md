@@ -21,7 +21,7 @@ We want to build the specific tag provided by the `branch` parameter
 
 ### Build Triggers
 
-This build is triggered remotely by the mrbelvedere app using an authenticated call to the Jenkins API.  Since the call is authenticated, we don't need to enable any job triggers.
+This job is triggered after a successful build of [Cumulus_uat](https://github.com/SalesforceFoundation/CumulusCI/blob/master/docs/jobs/Cumulus_uat.md).
 
 ### Build Environment
 

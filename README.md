@@ -22,7 +22,7 @@
 
 This document provides a high level introduction to the Cumulus Continuous Integration infrastructure (CumulusCI).  CumulusCI is the process used by the Salesforce.com Foundation for the Cumulus project, the next generation of the Non-Profit Starter Pack (NPSP).
 
-The process integrates GitHub, Jenkins, the Salesforce.com Ant Migration Tool, and a custom web application called mrbelvedere running on Heroku (documentation on mrbelvedere coming soon).
+The process integrates GitHub, Jenkins, the Salesforce.com Ant Migration Tool, and a custom web application called [mrbelvedere](http://salesforcefoundation.github.io/mrbelvedere) running on Heroku.
 
 While this process was specifically built for the Cumulus project, it should be useable by other Force.com projects.
 
@@ -75,7 +75,7 @@ NOTE: This is a very destructive operation which is designed to be run against o
 
 Deploys the 5 NPSP managed packages plus the latest beta managed package for Cumulus.
 
-Calls out to the mrbelvedere application to get the latest beta managed package version and its corresponding repository tag.  Sets the required versions per the repository tag's version.properties file and then runs [updateDependentPackages](#updatedependentpackages) to do the install/uninstall of managed packages so they are the requested version.  Finally, calls (runAllTests)[#runalltests] to kick off all the Apex tests deployed in the org.
+Calls out to the [mrbelvedere](http://salesforcefoundation.github.io/mrbelvedere) application to get the latest beta managed package version and its corresponding repository tag.  Sets the required versions per the repository tag's version.properties file and then runs [updateDependentPackages](#updatedependentpackages) to do the install/uninstall of managed packages so they are the requested version.  Finally, calls (runAllTests)[#runalltests] to kick off all the Apex tests deployed in the org.
 
 ### uninstallCumulus
 
@@ -101,7 +101,7 @@ Uses a blank package to deploy and then run all tests in the target org.  This i
 
 All development work for Cumulus is done in feature branches with a naming convention of `feature/123-description-of-feature' where 123 is the GitHub issue number associated with the branch and description-of-feature is a short description of what the branch contains.
 
-Whenever a new feature branch is pushed to the repository in GitHub or when a push is made against an existing feature branch, the [mrbelvedere](https://github.com/SalesforceFoundation/CumulusCI/blob/docs/mrbelvedere) Heroku app triggers the [Cumulus_feature](https://github.com/SalesforceFoundation/CumulusCI/blob/master/docs/jobs/Cumulus_feature.md) job to build the branch and report any build failures to the developer who last committed to the branch.  It also marks build status of the commit via the [GitHub Commit Status API](https://github.com/blog/1227-commit-status-api) so any Pull Requests created from the feature branch are marked with their build status as shown in the two examples below:
+Whenever a new feature branch is pushed to the repository in GitHub or when a push is made against an existing feature branch, the [mrbelvedere](http://salesforcefoundation.github.io/mrbelvedere) Heroku app triggers the [Cumulus_feature](https://github.com/SalesforceFoundation/CumulusCI/blob/master/docs/jobs/Cumulus_feature.md) job to build the branch and report any build failures to the developer who last committed to the branch.  It also marks build status of the commit via the [GitHub Commit Status API](https://github.com/blog/1227-commit-status-api) so any Pull Requests created from the feature branch are marked with their build status as shown in the two examples below:
 
 ![GitHub Commit Status Failing](https://raw.github.com/SalesforceFoundation/CumulusCI/master/docs/github-commit_status_error.png)
 
@@ -152,7 +152,7 @@ UAT releases should have the *This is a pre-release* checkbox checked and should
 
 ![Github - Creating a UAT Release](https://raw.github.com/SalesforceFoundation/CumulusCI/master/docs/github-creating_a_uat_release.png)
 
-Once the release is published, mrbelvedere kicks off the [Cumulus_uat](https://github.com/SalesforceFoundation/CumulusCI/blob/master/docs/jobs/Cumulus_uat.md) job to deploy the tag's code to the packing org (cumulus.rel) so a beta managed package can be created.
+Once the release is published, [mrbelvedere](http://salesforcefoundation.github.io/mrbelvedere) kicks off the [Cumulus_uat](https://github.com/SalesforceFoundation/CumulusCI/blob/master/docs/jobs/Cumulus_uat.md) job to deploy the tag's code to the packing org (cumulus.rel) so a beta managed package can be created.
 
 #### Step 2: Creating the beta managed package
 
@@ -167,11 +167,11 @@ Once the [Cumulus_uat](https://github.com/SalesforceFoundation/CumulusCI/blob/ma
 
 Once the beta managed package is ready, we need to update the body of the GitHub release created in Step 1 to include the install URL for the package.  
 
-The mrbelvedere app looks for an installation URL in the body of the Release when searching for the latest beta release.  This is necessary since the Release's tag must be created in the repository, tested, and finally manually packaged before the package can be installed in an org.  Adding the URL to the body of the Release is essentially a way to flag the release as ready.  GitHub Releases have a draft mode but the draft mode does not create a tag in the repository until it is published and thus does not solve this issue.
+The [mrbelvedere](http://salesforcefoundation.github.io/mrbelvedere) app looks for an installation URL in the body of the Release when searching for the latest beta release.  This is necessary since the Release's tag must be created in the repository, tested, and finally manually packaged before the package can be installed in an org.  Adding the URL to the body of the Release is essentially a way to flag the release as ready.  GitHub Releases have a draft mode but the draft mode does not create a tag in the repository until it is published and thus does not solve this issue.
 
 ### Testing the UAT Release
 
-The [Cumulus_uat_managed](https://github.com/SalesforceFoundation/CumulusCI/blob/master/docs/jobs/Cumulus_uat_managed.md) job in Jenkins monitors the mrbelvedere app for a change in the latest managed beta package version.  When a change is detected, a build is triggered to deploy the managed package to the cumulus.uat org and then kick off all tests in the org.
+The [Cumulus_uat_managed](https://github.com/SalesforceFoundation/CumulusCI/blob/master/docs/jobs/Cumulus_uat_managed.md) job in Jenkins monitors the [mrbelvedere](http://salesforcefoundation.github.io/mrbelvedere) app for a change in the latest managed beta package version.  When a change is detected, a build is triggered to deploy the managed package to the cumulus.uat org and then kick off all tests in the org.
 
 ## Production Release Process
 

@@ -20,7 +20,7 @@ The deployManagedUAT target is branch independent so we just check out the `dev`
 Use two build triggers:
 
 * A daily scheduled build
-* A URLTrigger which polls the mrbelvedere application for a change in the latest Cumulus managed beta release and kicks off the build if a change is found.  Since this is polling based, it can take a few minutes after adding the install url to the Release in GitHub for the trigger to kick in.
+* A URLTrigger which polls the [mrbelvedere](http://salesforcefoundation.github.io/mrbelvedere/) application for a change in the latest Cumulus managed beta release and kicks off the build if a change is found.  Since this is polling based, it can take a few minutes after adding the install url to the Release in GitHub for the trigger to kick in.
 
 ### Build Environment
 
