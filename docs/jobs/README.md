@@ -48,6 +48,7 @@ The job configurations below assume that each org used in the development proces
 * [Cumulus_uat](https://github.com/SalesforceFoundation/CumulusCI/blob/master/docs/jobs/Cumulus_uat.md)
 * [Cumulus_uat_cinnamon_deploy](https://github.com/SalesforceFoundation/CumulusCI/blob/master/docs/jobs/Cumulus_uat_cinnamon_deploy.md)
 * [Cumulus_uat_cinnamon_test](https://github.com/SalesforceFoundation/CumulusCI/blob/master/docs/jobs/Cumulus_uat_cinnamon_test.md)
+* [Cumulus_uat_managed](https://github.com/SalesforceFoundation/CumulusCI/blob/master/docs/jobs/Cumulus_uat_managed.md)
 
 ## Release Jobs
 
