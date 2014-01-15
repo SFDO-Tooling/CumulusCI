@@ -18,7 +18,7 @@
 
 ## Overview
 
-![CumulusCI Workflow](https://raw.github.com/SalesforceFoundation/CumulusCI/master/docs/cumulus_ci_workflow.png)
+[![CumulusCI Workflow](https://raw.github.com/SalesforceFoundation/CumulusCI/master/docs/cumulus_ci_workflow.png)](https://raw.github.com/SalesforceFoundation/CumulusCI/master/docs/cumulus_ci_workflow.png)
 
 This document provides a high level introduction to the Cumulus Continuous Integration infrastructure (CumulusCI).  CumulusCI is the process used by the Salesforce.com Foundation for the Cumulus project, the next generation of the Non-Profit Starter Pack (NPSP).
 
