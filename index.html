@@ -117,7 +117,7 @@
 
 <p>Runs a complete clean, update, build, test cycle.  Starts with the <a href="#uninstallcumulus">uninstallCumulus</a> target to clean unpackaged metadata from the org.  Then runs <a href="#updatedependentpackages">updateDependentPackages</a> to ensure all managed packages match the required versions for the checked out code.  Finally, runs <a href="#deploy">deploy</a> to deploy the code and run all tests.</p>
 
-<p>NOTE: This is a very destructive operation which is designed to be run against organizations dedicated to CI purposes.  Do not run this against an org </p>
+<p>NOTE: This is a very destructive operation which is designed to be run against organizations dedicated to CI purposes.  Do not run this against an org with any metadata you care about keeping.</p>
 
 <h3>
 <a name="deploymanageduat" class="anchor" href="#deploymanageduat"><span class="octicon octicon-link"></span></a>deployManagedUAT</h3>
