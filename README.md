@@ -69,7 +69,7 @@ Runs a simple deployment of the code but does not execute all Apex tests.  This 
 
 Runs a complete clean, update, build, test cycle.  Starts with the [uninstallCumulus](#uninstallcumulus) target to clean unpackaged metadata from the org.  Then runs [updateDependentPackages](#updatedependentpackages) to ensure all managed packages match the required versions for the checked out code.  Finally, runs [deploy](#deploy) to deploy the code and run all tests.
 
-NOTE: This is a very destructive operation which is designed to be run against organizations dedicated to CI purposes.  Do not run this against an org 
+NOTE: This is a very destructive operation which is designed to be run against organizations dedicated to CI purposes.  Do not run this against an org with any metadata you care about keeping.
 
 ### deployManagedUAT
 
