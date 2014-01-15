@@ -1,32 +1,39 @@
 # CumulusCI Introduction
+[See it in action](http://ci.salesforcefoundation.org)
+
+## Contents
+
+* [Overview](#overview)
+* [About Cumulus](#about-cumulus)
+* [Repository Workflow](#repository-workflow)
+  * [Merge vs Rebase](#merge-vs-rebase)
+  * [External Contributions](#external-contributions)
+* [Build Targets](#build-targets)
+* [Feature Branch Process](#feature-branch-process)
+* [Dev Branch Process](#dev-branch-process)
+* [UAT Process](#uat-process)
+* [Production Release Process](#production-release-process)
+* [Installation and Setup](#installation-and-setup)
+
 
 ## Overview
 
-This document provides a high level introduction to the Cumulus Continuous Integration infrastructure (CumulusCI).  CumulusCI is the process used by the Salesforce.com Foundation for the Cumulus project, the next generation of the Non-Profit Starter Pack (NPSP).
-
-The process integrates GitHub, Jenkins, the Salesforce.com Ant Migration Tool, and a custom web application called mrbelvedere running on Heroku.
-
-The following diagram provides a visual representation of the process flow for our internal dev team:
-
 ![CumulusCI Workflow](https://raw.github.com/SalesforceFoundation/CumulusCI/master/docs/cumulus_ci_workflow.png)
 
-The diagram uses multiple colors to represent different sections of the process:
+This document provides a high level introduction to the Cumulus Continuous Integration infrastructure (CumulusCI).  CumulusCI is the process used by the Salesforce.com Foundation for the Cumulus project, the next generation of the Non-Profit Starter Pack (NPSP).
 
-* Feature Branch Process
-* Dev Branch Process
-* UAT Process
-* Production Release Process
+The process integrates GitHub, Jenkins, the Salesforce.com Ant Migration Tool, and a custom web application called mrbelvedere running on Heroku (documentation on mrbelvedere coming soon).
 
-While this process was specifically built for the Cumulus project, it should be useable by other projects as well.
+While this process was specifically built for the Cumulus project, it should be useable by other Force.com projects.
 
 ## About Cumulus
 
 Project Cumulus is an update and overhaul of the existing Salesforce.com Foundation Nonprofit Starterpack.  More detail about the project is available through the [Cumulus](https://github.com/SalesforceFoundation/Cumulus) GitHub repository, however there are some details useful to explaining the CumulusCI process:
 
 * Cumulus depends on 5 other managed packages each with a large install base.  Feature branches often require new versions of one of the underlying package.
+* Cumulus will be released as a managed package.
 * Our team uses a Scrum process where every story has a corresponding issue in GitHub.
 * We need to address the workflow needs of our internal developers while also creating an open and transparent way for external developers to contribute.
-
 
 ## Repository Workflow
 
@@ -43,6 +50,48 @@ Since the process is based heavily around GitHub Pull Requests which use `git me
 ### External Contributions
 
 The workflow for the internal team uses a single repository owned by the SalesforceFoundation organization in GitHub.  The process for external contributors is slightly different.  Since external contributors do not have rights to the repository, they cannot create their own feature branches directly in the repository.  They need to first fork the repository in GitHub and then use the same process used by internal developers to build a feature branch.  Once the branch is ready, the external contribution is submitted as a GitHub Pull Request against the `dev` branch of the SalesforceFoundation/Cumulus repository.
+
+## Build Targets
+
+Cumulus uses a [build.xml](https://github.com/SalesforceFoundation/Cumulus/blob/dev/build.xml) file in the root of the repository to provide a number of useful Ant build targets for working on, deploying, and testing Cumulus.  Even without a deployed Jenkins server, these targets allow anyone to check out the repository and quickly deploy either an unmanaged or managed version of Cumulus to a DE or Partner DE org.
+
+The following build targets are defined in the [build.xml](https://github.com/SalesforceFoundation/Cumulus/blob/dev/build.xml) file:
+
+### deploy
+
+Runs a simple deployment of the code including execution of all Apex tests as part of the deployment.  If any test failures occur, the deployment is rolled back.
+
+### deployWithoutTest
+
+Runs a simple deployment of the code but does not execute all Apex tests.  This is useful if you want to quickly deploy already tested code into an org.
+
+### deployCI
+
+Runs a complete clean, update, build, test cycle.  Starts with the [uninstallCumulus](#uninstallcumulus) target to clean unpackaged metadata from the org.  Then runs [updateDependentPackages](#updatedependentpackages) to ensure all managed packages match the required versions for the checked out code.  Finally, runs [deploy](#deploy) to deploy the code and run all tests.
+
+NOTE: This is a very destructive operation which is designed to be run against organizations dedicated to CI purposes.  Do not run this against an org 
+
+### deployManagedUAT
+
+Deploys the 5 NPSP managed packages plus the latest beta managed package for Cumulus.
+
+Calls out to the mrbelvedere application to get the latest beta managed package version and its corresponding repository tag.  Sets the required versions per the repository tag's version.properties file and then runs [updateDependentPackages](#updatedependentpackages) to do the install/uninstall of managed packages so they are the requested version.  Finally, calls (runAllTests)[#runalltests] to kick off all the Apex tests deployed in the org.
+
+### uninstallCumulus
+
+Uninstalls all unpackaged metadata of types used by Cumulus from a target org.  First, reads all metadata from the org.  Next, builds and deploys a package to reset all ActionOverrides to default on Standard Objects (Account, Contact, Lead, and Opportunity).  Next, builds and deploys a package with a destructiveChanges.xml file to delete all unpackaged metadata which can be deleted.
+
+### updateDependentPackages
+
+Ensures that all 5 original NPSP packages (npe01, npo02, npe03, npe4, and npe5) and the Cumulus managed package (npsp) are installed and at the correct version.  If a package needs to be downgraded, it is first uninstalled.  If a package needs to be upgraded, the upgraded version is installed without first uninstalling the package.
+
+### retrieveUnpackaged
+
+Retrieves all unpackaged metadata from the org.  This target is more a utility for developers than a part of the CI process.
+
+### runAllTests
+
+Uses a blank package to deploy and then run all tests in the target org.  This is useful if the code you want to test is already deployed (i.e. from a managed package) and you just want to kick off the deployed tests.
 
 ## Feature Branch Process
 
@@ -82,10 +131,12 @@ There is a 3 step chain of builds involved in the Dev Branch Process:
 
 The Cumulus team works on a Scrum process with 2 week development iterations.  At the end of each iteration, managed beta package is built for User Acceptance Testing (UAT).  The purpose of the UAT process is to identify issues which prevent the release from going into production.  Changes in functionality which are merely enhancements on the release's functionality should be handled through the normal development process.
 
-1. [Cumulus_uat](https://github.com/SalesforceFoundation/CumulusCI/blob/master/docs/jobs/Cumulus_uat.md)
-2. [Cumulus_uat_cinnamon_deploy](https://github.com/SalesforceFoundation/CumulusCI/blob/master/docs/jobs/Cumulus_uat_cinnamon_deploy.md)
-3. [Cumulus_uat_cinnamon_test](https://github.com/SalesforceFoundation/CumulusCI/blob/master/docs/jobs/Cumulus_uat_cinnamon_test.md)
-4. [Cumulus_uat_managed](https://github.com/SalesforceFoundation/CumulusCI/blob/master/docs/jobs/Cumulus_uat_managed.md)
+The following Jenkins job handle the automation of the UAT Process to the extent currently possible on the Force.com platform.
+
+* [Cumulus_uat](https://github.com/SalesforceFoundation/CumulusCI/blob/master/docs/jobs/Cumulus_uat.md)
+* [Cumulus_uat_cinnamon_deploy](https://github.com/SalesforceFoundation/CumulusCI/blob/master/docs/jobs/Cumulus_uat_cinnamon_deploy.md)
+* [Cumulus_uat_cinnamon_test](https://github.com/SalesforceFoundation/CumulusCI/blob/master/docs/jobs/Cumulus_uat_cinnamon_test.md)
+* [Cumulus_uat_managed](https://github.com/SalesforceFoundation/CumulusCI/blob/master/docs/jobs/Cumulus_uat_managed.md)
 
 ### Building a UAT Release
 
@@ -128,3 +179,6 @@ The [Cumulus_uat_managed](https://github.com/SalesforceFoundation/CumulusCI/blob
 
 More on the Release Process coming soon...
 
+## Installation and Setup
+
+The [Installation and Setup](https://github.com/SalesforceFoundation/CumulusCI/blob/master/docs/setup/README.md) documentation provides details on building out a server with Jenkins and the necessary plugins and configuration needed to run the jobs for CumulusCI.
