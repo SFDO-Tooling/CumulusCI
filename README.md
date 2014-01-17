@@ -69,13 +69,13 @@ Runs a simple deployment of the code but does not execute all Apex tests.  This 
 
 Runs a complete clean, update, build, test cycle.  Starts with the [uninstallCumulus](#uninstallcumulus) target to clean unpackaged metadata from the org.  Then runs [updateDependentPackages](#updatedependentpackages) to ensure all managed packages match the required versions for the checked out code.  Finally, runs [deploy](#deploy) to deploy the code and run all tests.
 
-NOTE: This is a very destructive operation which is designed to be run against organizations dedicated to CI purposes.  Do not run this against an org 
+NOTE: This is a very destructive operation which is designed to be run against organizations dedicated to CI purposes.  Do not run this against an org with any metadata you care about keeping.
 
 ### deployManagedUAT
 
 Deploys the 5 NPSP managed packages plus the latest beta managed package for Cumulus.
 
-Calls out to the [mrbelvedere](http://salesforcefoundation.github.io/mrbelvedere) application to get the latest beta managed package version and its corresponding repository tag.  Sets the required versions per the repository tag's version.properties file and then runs [updateDependentPackages](#updatedependentpackages) to do the install/uninstall of managed packages so they are the requested version.  Finally, calls (runAllTests)[#runalltests] to kick off all the Apex tests deployed in the org.
+Calls out to the [mrbelvedere](http://salesforcefoundation.github.io/mrbelvedere) application to get the latest beta managed package version and its corresponding repository tag.  Sets the required versions per the repository tag's version.properties file and then runs [updateDependentPackages](#updatedependentpackages) to do the install/uninstall of managed packages so they are the requested version.  Finally, calls [runAllTests](#runalltests) to kick off all the Apex tests deployed in the org.
 
 ### uninstallCumulus
 
