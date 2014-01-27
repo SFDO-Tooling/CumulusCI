@@ -51,6 +51,18 @@ Since the process is based heavily around GitHub Pull Requests which use `git me
 
 The workflow for the internal team uses a single repository owned by the SalesforceFoundation organization in GitHub.  The process for external contributors is slightly different.  Since external contributors do not have rights to the repository, they cannot create their own feature branches directly in the repository.  They need to first fork the repository in GitHub and then use the same process used by internal developers to build a feature branch.  Once the branch is ready, the external contribution is submitted as a GitHub Pull Request against the `dev` branch of the SalesforceFoundation/Cumulus repository.
 
+#### Creating an External Contribution
+
+1. Fork the Cumulus repository in GitHub
+2. Create a new branch in your fork using the format feature/123-feature-description where 123 is a valid issue number from the main repository and feature-description is a brief description of the feature.
+3. Make your changes and push to the feature branch in your fork.
+4. Submit a Pull Request to merge your feature branch into the `dev` branch of the main Cumulus repository
+5. If your feature branch is behind `dev`, mrbelvedere will comment on your Pull Request that you need to merge the dev changes back to your branch.  This can be done either with a Pull Request through the GitHub site or via a git merge in a local repository.
+6. When your branch is not behind `dev`, mrbelvedere will ask if one of the admins can approve building the Pull Request.
+7. When an admin approves the build, mrbelvedere will comment with a note that the build is queued along with a link to view the build status on Jenkins
+8. When the build is complete, the Commit Status will be set on the Pull Request and mrbelvedere will comment on the Pull Request with the status so you can receive updates through GitHub.
+9. When your pull request is approved for build, any additional commits you make against the feature branch will automatically trigger a new build allowing you to see the build results on any changes made per review comments.
+
 ## Build Targets
 
 Cumulus uses a [build.xml](https://github.com/SalesforceFoundation/Cumulus/blob/dev/build.xml) file in the root of the repository to provide a number of useful Ant build targets for working on, deploying, and testing Cumulus.  Even without a deployed Jenkins server, these targets allow anyone to check out the repository and quickly deploy either an unmanaged or managed version of Cumulus to a DE or Partner DE org.
