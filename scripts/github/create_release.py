@@ -1,8 +1,7 @@
 import os
 import requests
 import json
-from github import Github
-from github.GithubException import GithubException
+from subprocess import call
 
 ORG_NAME=os.environ.get('ORG_NAME')
 REPO_NAME=os.environ.get('REPO_NAME')
@@ -56,4 +55,8 @@ data = {
 
 rel = call_api(ORG_NAME, REPO_NAME, '/releases', data=data, username=USERNAME, password=PASSWORD)
 
+print 'Release created:'
 print rel
+
+# Now, zip and upload the unpackaged directory
+

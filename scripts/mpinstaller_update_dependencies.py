@@ -10,7 +10,7 @@ VERSION=os.environ.get('VERSION')
 PROPERTIES_PATH=os.environ.get('PROPERTIES_PATH', None)
 
 dependencies_url = '%s/%s/dependencies' % (MPINSTALLER_BASE_URL, NAMESPACE)
-if BETA:
+if BETA in ('True','true'):
     dependencies_url = dependencies_url + '/beta'
 
 current_dependencies = json.loads(requests.get(dependencies_url).content)
