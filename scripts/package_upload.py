@@ -113,7 +113,13 @@ class PackageUpload(object):
         print 'Starting browser'
         sys.stdout.flush()
 
-        driver = self.get_selenium()
+        try:
+            driver = self.get_selenium()
+        except:
+            print "Sleeping 5 more seconds to try again.  Last attempt to connect to Selenium failed"
+            sleep(5)
+            driver = self.get_selenium()
+
         driver.implicitly_wait(90) # seconds
 
         # Load the packages list page
