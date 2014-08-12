@@ -162,7 +162,7 @@ if content['issues']:
     for issue in content['issues']:
         # Get the issue title to include
         gh_issue = call_api('/issues/%s' % issue)
-        f.write('Fixes #%s: %s\r\n' % (issue, gh_issue['title']))
+        f.write('#%s: %s\r\n' % (issue, gh_issue['title']))
 
 f.close()
 
