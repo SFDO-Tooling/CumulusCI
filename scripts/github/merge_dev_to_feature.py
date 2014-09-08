@@ -7,6 +7,7 @@ REPO_NAME=os.environ.get('REPOSITORY')
 MASTER_NAME=os.environ.get('MASTER','dev')
 USERNAME=os.environ.get('USERNAME')
 PASSWORD=os.environ.get('PASSWORD')
+BUILD_COMMIT=os.environ.get('BUILD_COMMIT', None)
 
 g = Github(USERNAME,PASSWORD)
 
@@ -37,7 +38,10 @@ for branch in repo.get_branches():
     # Get a comparison of master vs branch.  compare.ahead_by means master is head of the branch.
     # This orientation is necessary so the compare.files list lists files changed in master but not
     # in the branch.
-    compare = repo.compare(branch.commit.sha, master.commit.sha)
+    if BUILD_COMMIT:
+        compare = repo.compare(branch.commit.sha, BUILD_COMMIT)
+    else:
+        compare = repo.compare(branch.commit.sha, master.commit.sha)
     if not compare.files:
         print 'Skipping branch %s: branch has no files different than %s' % (branch.name, master.name)
         continue
