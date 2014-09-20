@@ -1,0 +1,74 @@
+<project name="cumulus_ci" default="deployWithoutTest" basedir="." xmlns:sf="antlib:com.salesforce">
+
+    <include file="${basedir}/lib/ant-salesforce.xml" />
+
+    <taskdef 
+         resource="net/sf/antcontrib/antlib.xml"
+         classpath="${basedir}/lib/ant-contrib-1.0b2.jar" />
+
+    <!-- If no propertyfile was passed in command line, attempt to load a build.properties if it exists -->
+    <if>
+      <and>
+        <not><isset property="sf:username" /></not>
+        <available file="${basedir}/build.properties" />
+      </and>
+      <then>
+        <loadproperties srcFile="${basedir}/build.properties"/>
+      </then>
+    </if>
+    
+    <!-- Load up cumulusci.properties file with package specific properties -->
+    <loadproperties srcFile="${basedir}/cumulusci.properties"/>
+
+    <!-- deploy: Run a full deployment including running all tests.  Does not attempt to clean target org or ensure dependent package versions are correct -->
+    <target name="deploy">
+      <antcall target="deployWithoutTest" />
+      <antcall target="runAllTests" />
+    </target>
+    
+    <!-- deployWithoutTest: Run a full deployment but don't run all tests.  This is useful if you already know tests will pass from previous runs and just want to deploy faster -->
+    <target name="deployWithoutTest">
+      <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="src" runAllTests="false" maxPoll="${cumulusci.maxPoll.notest}" />
+    </target>
+    
+    <!-- deployUnpackagedPre: Deploy the unpackaged/pre subdirectories containing metadata used in builds but not included in the managed package -->
+    <target name="deployUnpackagedPre">
+      <deployMetadataBundles dir="${basedir}/unpackaged/pre" stagedir="${basedir}/unpackaged_stage" />
+    </target>
+
+    <!-- deployUnpackagedPost: Deploy the unpackaged/post subdirectories containing metadata used in builds but not included in the managed package -->
+    <target name="deployUnpackagedPost">
+      <deployMetadataBundles dir="${basedir}/unpackaged/post" stagedir="${basedir}/unpackaged_stage" />
+    </target>
+    
+    <!-- uninstall: Removes all metadata from the package -->
+    <target name="uninstall">
+      <delete dir="uninstallsrc" />
+      <delete dir="uninstall" />
+      <retrievePackaged dir="uninstallsrc" package="${cumulusci.package.name}" />
+      <buildPackagedDestructiveChanges srcdir="uninstallsrc" dir="uninstall" package="${cumulusci.package.name}" />
+      <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="uninstall" runAllTests="false" purgeOnDelete="true" maxPoll="${cumulusci.maxPoll.notest}" />
+      <delete dir="uninstallsrc" />
+      <delete dir="uninstall" />
+    </target>
+        
+    <!-- uninstall: Removes all non-standard unpackaged metadata from the org -->
+    <target name="uninstallUnpackaged">
+      <delete dir="uninstallsrc" />
+      <delete dir="uninstall" />
+      <retrieveUnpackaged dir="uninstallsrc" />
+      <deleteWhitelistedMetadata dir="uninstallsrc/unpackaged" />
+      <buildUnpackagedDestructiveChanges srcdir="uninstallsrc" dir="uninstall" />
+      <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="uninstall/standard" runAllTests="false" maxPoll="${cumulusci.maxPoll.notest}" />
+      <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="uninstall/unpackaged" runAllTests="false" purgeOnDelete="true" maxPoll="${cumulusci.maxPoll.notest}" />
+      <delete dir="uninstallsrc" />
+      <delete dir="uninstall" />
+    </target>
+    
+    <!-- runAllTests: Uses an empty package manifest to trigger execution of all tests in the target org without deploying any actual code changes -->
+    <target name="runAllTests">
+      <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="lib/empty" runAllTests="true" maxPoll="${cumulusci.maxPoll.test}" />
+    </target>
+        
+</project>
+
