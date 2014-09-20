@@ -241,6 +241,9 @@
             <case value="dashboards">
               <property name="typename" value="Dashboard" />
             </case>
+            <case value="documents">
+              <property name="typename" value="Document" />
+            </case>
             <case value="labels">
               <property name="typename" value="CustomLabel" />
             </case>
@@ -290,7 +293,7 @@
               <for param="file">
                 <path>
                   <!-- exclude xml files and namespaced metadata files as well as any manual excludes -->
-                  <fileset dir="@{typedir}" includes="**/*.*" excludes="*.xml *__*__c.object @{exclude}" />
+                  <fileset dir="@{typedir}" includes="**/*.*" excludes="*.xml *-meta.xml *__*__c.object @{exclude}" />
                 </path>
                 <sequential>
                   <var name="component_file" unset="true" />
@@ -307,7 +310,10 @@
 
                   <!-- If the file is not in the exclude list, add it to the package.xml -->
                   <if>
-                    <not><contains string="@{exclude}" substring="${component_file}" /></not>
+                    <and>
+                      <not><contains string="@{exclude}" substring="${component_file}" /></not>
+                      <not><contains string="${component_file}" substring="-meta.xml" /></not>
+                    </and>
                     <then>
                       <!-- Write the <members/> element -->
                       <if>
@@ -324,7 +330,18 @@
                               <var name="parents_included" value="${parents_included},${component_file_parent}," />
                             </then>
                           </if>
-                          <echo file="@{xmlfile}" append="true">    &lt;members&gt;${component_file_parent}/${component}&lt;/members&gt;${line.separator}</echo>
+                          <!-- Some metadata types, such as Document, require the suffix -->
+                          <if>
+                            <or>
+                              <equals arg1="${typename}" arg2="Document" />
+                            </or>
+                            <then>
+                              <echo file="@{xmlfile}" append="true">    &lt;members&gt;${component_file_parent}/${component_file}&lt;/members&gt;${line.separator}</echo>
+                            </then>
+                            <else>
+                              <echo file="@{xmlfile}" append="true">    &lt;members&gt;${component_file_parent}/${component}&lt;/members&gt;${line.separator}</echo>
+                            </else>
+                          </if>
                         </else>
                       </if> 
                     </then>
