@@ -4,7 +4,7 @@
 
     <taskdef 
          resource="net/sf/antcontrib/antlib.xml"
-         classpath="${basedir}/lib/ant-contrib-1.0b2.jar" />
+         classpath="${basedir}src/ant/jar/ant-contrib-1.0b2.jar" />
 
     <!-- If no propertyfile was passed in command line, attempt to load a build.properties if it exists -->
     <if>
@@ -28,7 +28,7 @@
     
     <!-- deployWithoutTest: Run a full deployment but don't run all tests.  This is useful if you already know tests will pass from previous runs and just want to deploy faster -->
     <target name="deployWithoutTest">
-      <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="src" runAllTests="false" maxPoll="${cumulusci.maxPoll.notest}" />
+      <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="${basedir}/src" runAllTests="false" maxPoll="${cumulusci.maxPoll.notest}" />
     </target>
     
     <!-- deployUnpackagedPre: Deploy the unpackaged/pre subdirectories containing metadata used in builds but not included in the managed package -->
@@ -47,7 +47,7 @@
       <delete dir="uninstall" />
       <retrievePackaged dir="uninstallsrc" package="${cumulusci.package.name}" />
       <buildPackagedDestructiveChanges srcdir="uninstallsrc" dir="uninstall" package="${cumulusci.package.name}" />
-      <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="uninstall" runAllTests="false" purgeOnDelete="true" maxPoll="${cumulusci.maxPoll.notest}" />
+      <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="${basedir}/uninstall" runAllTests="false" purgeOnDelete="true" maxPoll="${cumulusci.maxPoll.notest}" />
       <delete dir="uninstallsrc" />
       <delete dir="uninstall" />
     </target>
@@ -59,15 +59,15 @@
       <retrieveUnpackaged dir="uninstallsrc" />
       <deleteWhitelistedMetadata dir="uninstallsrc/unpackaged" />
       <buildUnpackagedDestructiveChanges srcdir="uninstallsrc" dir="uninstall" />
-      <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="uninstall/standard" runAllTests="false" maxPoll="${cumulusci.maxPoll.notest}" />
-      <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="uninstall/unpackaged" runAllTests="false" purgeOnDelete="true" maxPoll="${cumulusci.maxPoll.notest}" />
+      <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="${basedir}/uninstall/standard" runAllTests="false" maxPoll="${cumulusci.maxPoll.notest}" />
+      <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="${basedir}/uninstall/unpackaged" runAllTests="false" purgeOnDelete="true" maxPoll="${cumulusci.maxPoll.notest}" />
       <delete dir="uninstallsrc" />
       <delete dir="uninstall" />
     </target>
     
     <!-- runAllTests: Uses an empty package manifest to trigger execution of all tests in the target org without deploying any actual code changes -->
     <target name="runAllTests">
-      <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="lib/empty" runAllTests="true" maxPoll="${cumulusci.maxPoll.test}" />
+      <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="${basedir}/src/main/ant/empty" runAllTests="true" maxPoll="${cumulusci.maxPoll.test}" />
     </target>
         
 </project>

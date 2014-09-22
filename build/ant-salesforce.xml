@@ -5,12 +5,12 @@
   <typedef 
       uri="antlib:com.salesforce" 
       resource="com/salesforce/antlib.xml" 
-      classpath="${basedir}/lib/ant-salesforce.jar"/>
+      classpath="${basedir}/src/main/ant/jar/ant-salesforce.jar"/>
       
   <!--   Download from http://sourceforge.net/projects/ant-contrib/files/ant-contrib/1.0b3/ -->
   <taskdef 
       resource="net/sf/antcontrib/antlib.xml" 
-      classpath="${basedir}/lib/ant-contrib-1.0b2.jar"
+      classpath="${basedir}/src/main/ant/jar/ant-contrib-1.0b2.jar"
       />  
 
   <!-- load whitelists -->
