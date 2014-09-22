@@ -155,26 +155,26 @@
       <mkdir dir="@{dir}/unpackaged"/>
       <mkdir dir="@{dir}/standard"/>
 
-      <!-- Retrieve standard objects (uses lib/standard_objects.xml as the manifest) -->
+      <!-- Retrieve standard objects (uses /build/standard_objects.xml as the manifest) -->
       <sf:retrieve 
         username="${sf.username}" 
         password="${sf.password}" 
         serverurl="${sf.serverurl}" 
         retrieveTarget="@{dir}/standard" 
-        unpackaged="lib/standard_objects.xml"/>
+        unpackaged="${cumulus_ci.basedir}/standard_objects.xml"/>
 
-      <!-- Retrieve unpackaged metadata (uses lib/all_metadata_types.xml as the manifest) -->
+      <!-- Retrieve unpackaged metadata (uses /build/all_metadata_types.xml as the manifest) -->
       <sf:retrieve 
         username="${sf.username}" 
         password="${sf.password}" 
         serverurl="${sf.serverurl}" 
         retrieveTarget="@{dir}/unpackaged" 
-        unpackaged="lib/all_meta_types.xml"/>
+        unpackaged="${cumulus_ci.basedir}/all_meta_types.xml"/>
 
     </sequential>
   </macrodef>
 
-  <macrodef name="deleteWhitelistedMetadata" description="Deletes any metadata files from a given directory which are listed in lib/whitelists/metadata.txt">
+  <macrodef name="deleteWhitelistedMetadata" description="Deletes any metadata files from a given directory which are listed in /build/whitelists/metadata.txt">
     <attribute name="dir" description="The directory to delete metadata from" />
     <sequential>
       <!-- Delete whitelisted files which are added to the org by Salesforce.  This includes both components which are always in an org and components which are automatically created by enabling Sites -->
@@ -417,7 +417,7 @@
     <attribute name="suffix" description="The suffix of the metadata file to search in.  For example, object for object files" default="object" />
     <attribute name="xmlfile" description="The path of the target package.xml or destructiveChanges.xml file" />
     <attribute name="typename" description="The type name as would appear in the manifest type's name element" />
-    <attribute name="xslt" description="The path of the xslt transform to extract type components from the standard object file" default="lib/extract_subtype.xsl" />
+    <attribute name="xslt" description="The path of the xslt transform to extract type components from the standard object file" default="${cumulus_ci.basedir}/xsl/extract_subtype.xsl" />
     <attribute name="element" description="The xml element to look for.  This is passed to the xslt to allow easier template reuse" />
     <attribute name="nameelement" description="The xml element whose value should provide the name (used in the package.xml members tag)." default="fullName" />
     <attribute name="parentelement" description="The containing element name in target files.  For example, CustomObject if looking in object files" default="CustomObject" />
@@ -495,7 +495,7 @@
                 <then>
                   <var name="type.extract" value="${line.separator}  ${lt}types>${line.separator}${type.extract}    ${lt}name>@{typename}${lt}/name>${line.separator}  ${lt}/types>" />
                   <replaceregexp file="@{xmlfile}" match="Package(.*)>" replace="Package\1>${type.extract}" />
-                  <xslt in="@{xmlfile}" out="@{xmlfile}.tidy" style="lib/tidy_package_xml.xsl" />
+                  <xslt in="@{xmlfile}" out="@{xmlfile}.tidy" style="${cumulus_ci.basedir}/xsl/tidy_package_xml.xsl" />
                   <move file="@{xmlfile}.tidy" tofile="@{xmlfile}" />
                 </then>
               </if>
@@ -526,7 +526,7 @@
       <!--<addMetadataSubType dir="${basedir}/src" xmlfile="${basedir}/src/package.xml.new" typename="ActionOverride" element="actionOverrides" nameelement="actionName" />-->
       <addMetadataSubType dir="${basedir}/src/objects" xmlfile="${basedir}/src/package.xml.new" typename="BusinessProcess" element="businessProcesses" />
       <addMetadataSubType dir="${basedir}/src/objects" xmlfile="${basedir}/src/package.xml.new" typename="CompactLayout" element="compactLayouts" />
-      <addMetadataSubType dir="${basedir}/src/objects" xmlfile="${basedir}/src/package.xml.new" typename="CustomField" element="fields" xslt="lib/extract_obj_fields.xsl" />
+      <addMetadataSubType dir="${basedir}/src/objects" xmlfile="${basedir}/src/package.xml.new" typename="CustomField" element="fields" xslt="${cumulus_ci.basedir}/xsl/extract_obj_fields.xsl" />
       <addMetadataSubType dir="${basedir}/src/labels" suffix="labels" xmlfile="${basedir}/src/package.xml.new" typename="CustomLabel" element="labels" parentelement="CustomLabels" />
       <addMetadataSubType dir="${basedir}/src/objects" xmlfile="${basedir}/src/package.xml.new" typename="FieldSet" element="fieldSets" />
       <addMetadataSubType dir="${basedir}/src/objects" xmlfile="${basedir}/src/package.xml.new" typename="ListView" element="listViews" />
@@ -547,8 +547,8 @@
     <attribute name="dir" description="Target directory to create the destructiveChanges.xml package" />
     <sequential>
       <!-- Run xslt against package.xml files to generate a text file containing TYPE::MEMBER lines for each member for easier comparison later -->
-      <xslt in="@{srcdir}/package.xml" out="@{srcdir}/package.xml.members" style="lib/diff_package_xml.xsl" />
-      <xslt in="@{commdir}/package.xml" out="@{commdir}/package.xml.members" style="lib/diff_package_xml.xsl" />
+      <xslt in="@{srcdir}/package.xml" out="@{srcdir}/package.xml.members" style="${cumulus_ci.basedir}/xsl/diff_package_xml.xsl" />
+      <xslt in="@{commdir}/package.xml" out="@{commdir}/package.xml.members" style="${cumulus_ci.basedir}/xsl/diff_package_xml.xsl" />
       <loadfile property="src.package.xml.members" srcfile="@{srcdir}/package.xml.members" />
       <loadfile property="comm.package.xml.members" srcfile="@{commdir}/package.xml.members" />
 
@@ -654,7 +654,7 @@
 
       <!-- Add standard object fields to destructiveChanges.xml -->
       <addMetadataSubType dir="@{srcdir}/objects" xmlfile="@{dir}/destructiveChanges.xml" typename="CompactLayout" element="compactLayouts" />
-      <addMetadataSubType dir="@{srcdir}/objects" xmlfile="@{dir}/destructiveChanges.xml" typename="CustomField" element="fields" xslt="lib/extract_obj_fields.xsl" />
+      <addMetadataSubType dir="@{srcdir}/objects" xmlfile="@{dir}/destructiveChanges.xml" typename="CustomField" element="fields" xslt="${cumulus_ci.basedir}/xsl/extract_obj_fields.xsl" />
       <addMetadataSubType dir="@{srcdir}/labels" suffix="labels" xmlfile="@{dir}/destructiveChanges.xml" typename="CustomLabel" element="labels" parentelement="CustomLabels" />
       <addMetadataSubType dir="@{srcdir}/objects" xmlfile="@{dir}/destructiveChanges.xml" typename="FieldSet" element="fieldSets" />
       <addMetadataSubType dir="@{srcdir}/objects" xmlfile="@{dir}/destructiveChanges.xml" typename="ListView" element="listViews" />
@@ -704,7 +704,7 @@
           <basename property="object" file="@{file}" suffix=".object" />
 
           <!-- Rewrite all ActionOverrides to type Default.  This is a special case since we can't delete ActionOverrides via destructiveChanges.xml -->
-          <xslt in="@{file}" out="@{dir}/standard/objects/${obj_file}" style="lib/remove_action_overrides.xsl" />
+          <xslt in="@{file}" out="@{dir}/standard/objects/${obj_file}" style="${cumulus_ci.basedir}/xsl/remove_action_overrides.xsl" />
 
           <!-- Unset properites for basename call in next iteration of loop -->
           <var name="object" unset="true" />
@@ -715,7 +715,7 @@
       <!-- Add sub metadata types which can be deleted to destructiveChanges.xml.  Currently this only handles custom fields and fieldsets. -->
 
       <addMetadataSubType dir="@{srcdir}/standard/objects" xmlfile="@{dir}/unpackaged/destructiveChanges.xml" typename="CompactLayout" element="compactLayout" />
-      <addMetadataSubType dir="@{srcdir}/standard/objects" xmlfile="@{dir}/unpackaged/destructiveChanges.xml" typename="CustomField" element="fields" xslt="lib/extract_obj_fields.xsl" />
+      <addMetadataSubType dir="@{srcdir}/standard/objects" xmlfile="@{dir}/unpackaged/destructiveChanges.xml" typename="CustomField" element="fields" xslt="${cumulus_ci.basedir}/xsl/extract_obj_fields.xsl" />
       <addMetadataSubType dir="@{srcdir}/unpackaged/labels" suffix="labels" xmlfile="@{dir}/unpackaged/destructiveChanges.xml" typename="CustomLabel" element="labels" parentelement="CustomLabels" />
       <addMetadataSubType dir="@{srcdir}/standard/objects" xmlfile="@{dir}/unpackaged/destructiveChanges.xml" typename="FieldSet" element="fieldSets" />
       <addMetadataSubType dir="@{srcdir}/standard/objects" xmlfile="@{dir}/unpackaged/destructiveChanges.xml" typename="ListView" element="listViews" />
@@ -736,9 +736,9 @@
     <attribute name="version" description="The version number (i.e. 2.1)" />
     <sequential>
 
-      <delete file="lib/update_meta_xml.xsl.rendered" />
-      <copy file="lib/update_meta_xml.xsl" tofile="lib/update_meta_xml.xsl.rendered" />
-      <replaceregexp file="lib/update_meta_xml.xsl.rendered" match="___namespace___" replace="@{namespace}" flags="g" />
+      <delete file="${cumulus_ci.basedir}/xsl/update_meta_xml.xsl.rendered" />
+      <copy file="${cumulus_ci.basedir}/xsl/update_meta_xml.xsl" tofile="${cumulus_ci.basedir}/xsl/update_meta_xml.xsl.rendered" />
+      <replaceregexp file="${cumulus_ci.basedir}/xsl/update_meta_xml.xsl.rendered" match="___namespace___" replace="@{namespace}" flags="g" />
 
       <propertyregex property="updatemetaxml.major" override="true" input="${version.@{namespace}}" regexp="(\d+)\.(\d+)" replace="\1" />
       <propertyregex property="updatemetaxml.minor" override="true" input="${version.@{namespace}}" regexp="(\d+)\.(\d+)" replace="\2" />
@@ -748,7 +748,7 @@
           <fileset dir="@{dir}" includes="**/*-meta.xml" />
         </path>
         <sequential>
-          <xslt in="@{file}" out="@{file}.updated" style="lib/update_meta_xml.xsl.rendered">
+          <xslt in="@{file}" out="@{file}.updated" style="${cumulus_ci.basedir}/xsl/update_meta_xml.xsl.rendered">
             <param name="major" expression="${updatemetaxml.major}" />
             <param name="minor" expression="${updatemetaxml.minor}" />
           </xslt>
@@ -762,7 +762,7 @@
           <delete file="@{file}.updated" />
         </sequential>
       </for>
-      <delete file="lib/update_meta_xml.xsl.rendered" />
+      <delete file="${cumulus_ci.basedir}/xsl/update_meta_xml.xsl.rendered" />
     </sequential>
   </macrodef>
 
@@ -776,7 +776,7 @@
           <fileset dir="@{dir}" includes="**/*-meta.xml" />
         </path>
         <sequential>
-          <xslt in="@{file}" out="@{file}.updated" style="lib/update_meta_xml_api.xsl">
+          <xslt in="@{file}" out="@{file}.updated" style="${cumulus_ci.basedir}/xsl/update_meta_xml_api.xsl">
             <param name="apiVersion" expression="@{apiVersion}" />
           </xslt>
           <if>
