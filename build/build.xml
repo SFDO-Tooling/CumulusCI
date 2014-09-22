@@ -1,10 +1,12 @@
 <project name="cumulus_ci" default="deployWithoutTest" basedir="." xmlns:sf="antlib:com.salesforce">
 
-    <include file="${basedir}/lib/ant-salesforce.xml" />
+	<dirname property="cumulus_ci.basedir" file="${ant.file.cumulus_ci}"/>
+	
+    <include file="${cumulus_ci.basedir}/ant-salesforce.xml" />
 
     <taskdef 
          resource="net/sf/antcontrib/antlib.xml"
-         classpath="${basedir}/build/lib/ant-contrib-1.0b2.jar" />
+         classpath="${cumulus_ci.basedir}/lib/ant-contrib-1.0b2.jar" />
 
     <!-- If no propertyfile was passed in command line, attempt to load a build.properties if it exists -->
     <if>
