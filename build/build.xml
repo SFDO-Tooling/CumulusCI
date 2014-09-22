@@ -4,7 +4,7 @@
 
     <taskdef 
          resource="net/sf/antcontrib/antlib.xml"
-         classpath="${basedir}src/ant/jar/ant-contrib-1.0b2.jar" />
+         classpath="${basedir}/build/lib/ant-contrib-1.0b2.jar" />
 
     <!-- If no propertyfile was passed in command line, attempt to load a build.properties if it exists -->
     <if>

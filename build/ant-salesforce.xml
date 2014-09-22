@@ -5,17 +5,17 @@
   <typedef 
       uri="antlib:com.salesforce" 
       resource="com/salesforce/antlib.xml" 
-      classpath="${basedir}/src/main/ant/jar/ant-salesforce.jar"/>
+      classpath="${basedir}/build/lib/ant-salesforce.jar"/>
       
   <!--   Download from http://sourceforge.net/projects/ant-contrib/files/ant-contrib/1.0b3/ -->
   <taskdef 
       resource="net/sf/antcontrib/antlib.xml" 
-      classpath="${basedir}/src/main/ant/jar/ant-contrib-1.0b2.jar"
+      classpath="${basedir}/build/lib/ant-contrib-1.0b2.jar"
       />  
 
   <!-- load whitelists -->
-  <loadproperties srcFile="${basedir}/lib/whitelists/object_subtype.properties"/>
-  <loadfile property="metadata_whitelist" srcfile="lib/whitelists/metadata.txt" />
+  <loadproperties srcFile="${basedir}/build/whitelists/object_subtype.properties"/>
+  <loadfile property="metadata_whitelist" srcfile="${basedir}/build/whitelists/metadata.txt" />
 
   <!-- Ant doesn't like < in replace tokens or values so set a property with < via cdata for reuse later -->
   <property name="lt"><![CDATA[<]]></property>
