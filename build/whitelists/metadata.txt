@@ -8,6 +8,9 @@ SiteLogin.component
 SiteHeader.component
 Global-Global Layout.layout
 Account.object
+Activity.object
+Campaign.object
+Case.object
 Contact.object
 Lead.object
 Opportunity.object
