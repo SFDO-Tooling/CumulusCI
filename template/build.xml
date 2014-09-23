@@ -1,0 +1,94 @@
+<project name="cumulus_ci" default="" basedir="." xmlns:sf="antlib:com.salesforce">
+
+	<!-- Import default ant script. It assumes CumulusCI project will be checked out in the same directory as the project being worked on. -->
+	<import file="../CumulusCI/build/build.xml" />
+	
+	<!-- Add project-specific targets. -->
+	
+	<!-- Sample macro that updates dependent packages.
+	<macrodef name="updateDependentPackages">
+      <sequential>
+        <getPackageVersions />
+
+        <if>
+          <and>
+            <not><equals arg1="${InstalledPackage.npsp.versionNumber}" arg2="Not Installed" /></not>
+            <or>
+              <bool><isgreaterthan arg1="${InstalledPackage.npe01.versionNumber}" arg2="version.npe01" /></bool>
+              <bool><isgreaterthan arg1="${InstalledPackage.npo02.versionNumber}" arg2="version.npo02" /></bool>
+              <bool><isgreaterthan arg1="${InstalledPackage.npe03.versionNumber}" arg2="version.npe03" /></bool>
+              <bool><isgreaterthan arg1="${InstalledPackage.npe4.versionNumber}" arg2="version.npe4" /></bool>
+              <bool><isgreaterthan arg1="${InstalledPackage.npe5.versionNumber}" arg2="version.npe5" /></bool>
+            </or>
+          </and>
+          <then>
+            <echo>Uninstalling npsp ${InstalledPackage.npsp.versionNumber} to allow for downgrade</echo>
+            <uninstallPackage namespace="npsp" username="${sf.username}" password="${sf.password}" />
+
+            #Override the cached installed version of npsp so we don't have to fetch versions again
+            <var name="InstalledPackage.npsp.versionNumber" value="Not Installed" />
+          </then>
+        </if>
+
+        #npo02 depends on npe01 so we have to uninstall npo02 first if npo02 needs downgraded
+        <if>
+          <and>
+            #npo02 is installed
+            <not><equals arg1="${InstalledPackage.npo02.versionNumber}" arg2="Not Installed" /></not>
+            #and npe01 need downgraded
+            <bool><isgreaterthan arg1="${InstalledPackage.npe01.versionNumber}" arg2="${version.npe01}" /></bool>
+          </and>  
+          <then>
+            <echo>Uninstalling npo02 ${InstalledPackage.npe01.versionNumber} to allow for npe01 downgrade</echo>
+            <uninstallPackage namespace="npo02" username="${sf.username}" password="${sf.password}" />
+
+            #Override the cached installed version of npo02 so we don't have to fetch versions again
+            <var name="InstalledPackage.npo02.versionNumber" value="Not Installed" />
+          </then>
+        </if>
+
+        <updatePackageVersion namespace="npe01" version="${version.npe01}" />
+        <updatePackageVersion namespace="npo02" version="${version.npo02}" />
+        <updatePackageVersion namespace="npe03" version="${version.npe03}" />
+        <updatePackageVersion namespace="npe04" version="${version.npe4}" />
+        <updatePackageVersion namespace="npe05" version="${version.npe5}" />
+        <updatePackageVersion namespace="npsp" version="${version.npsp}" />
+
+      </sequential>
+    </macrodef> -->
+	
+	<!-- Sample macro that gets the version of each package installed in the target org.
+	<macrodef name="getPackageVersions" description="Gets the version for all installed packages">
+      <sequential>
+        <delete dir="${basedir}/installedPackages"/>
+        <mkdir dir="${basedir}/installedPackages"/>
+
+        <sf:bulkRetrieve
+            username="${sf.username}"
+            password="${sf.password}"
+            metadataType="InstalledPackage"
+            retrieveTarget="${basedir}/installedPackages"/>
+
+        <getPackageVersion namespace="npe01" refresh="false" />
+        <getPackageVersion namespace="npo02" refresh="false" />
+        <getPackageVersion namespace="npe03" refresh="false" />
+        <getPackageVersion namespace="npe04" refresh="false" />
+        <getPackageVersion namespace="npe05" refresh="false" />
+        <getPackageVersion namespace="npsp" refresh="false" />
+
+        <echo>Dependent Package Versions:
+           npe01: ${InstalledPackage.npe01.versionNumber} (${version.npe01} required)
+           npo02: ${InstalledPackage.npo02.versionNumber} (${version.npo02} required)
+           npe03: ${InstalledPackage.npe03.versionNumber} (${version.npe03} required)
+           npe04: ${InstalledPackage.npe4.versionNumber} (${version.npe4} required)
+           npe05: ${InstalledPackage.npe5.versionNumber} (${version.npe5} required)
+           npsp: ${InstalledPackage.npsp.versionNumber} (${version.npsp} required)
+
+        </echo>
+
+        <delete dir="${basedir}/installedPackages"/>
+
+      </sequential>
+    </macrodef> -->
+
+</project>
