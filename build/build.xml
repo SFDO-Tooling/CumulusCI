@@ -1,76 +1,266 @@
 <project name="cumulus_ci" default="deployWithoutTest" basedir="." xmlns:sf="antlib:com.salesforce">
 
 	<dirname property="cumulus_ci.basedir" file="${ant.file.cumulus_ci}"/>
-	
-    <include file="${cumulus_ci.basedir}/ant-salesforce.xml" />
 
-    <taskdef 
+	<include file="${cumulus_ci.basedir}/ant-salesforce.xml" />
+
+	<taskdef 
          resource="net/sf/antcontrib/antlib.xml"
          classpath="${cumulus_ci.basedir}/lib/ant-contrib-1.0b2.jar" />
 
-    <!-- If no propertyfile was passed in command line, attempt to load a build.properties if it exists -->
-    <if>
-      <and>
-        <not><isset property="sf:username" /></not>
-        <available file="${basedir}/build.properties" />
-      </and>
-      <then>
-        <loadproperties srcFile="${basedir}/build.properties"/>
-      </then>
-    </if>
-    
-    <!-- Load up cumulusci.properties file with package specific properties -->
-    <loadproperties srcFile="${basedir}/cumulusci.properties"/>
+	<!-- If no propertyfile was passed in command line, attempt to load a build.properties if it exists -->
+	<if>
+		<and>
+			<not>
+				<isset property="sf:username" />
+			</not>
+			<available file="${basedir}/build.properties" />
+		</and>
+		<then>
+			<loadproperties srcFile="${basedir}/build.properties"/>
+		</then>
+	</if>
 
-    <!-- deploy: Run a full deployment including running all tests.  Does not attempt to clean target org or ensure dependent package versions are correct -->
-    <target name="deploy">
-      <antcall target="deployWithoutTest" />
-      <antcall target="runAllTests" />
-    </target>
-    
-    <!-- deployWithoutTest: Run a full deployment but don't run all tests.  This is useful if you already know tests will pass from previous runs and just want to deploy faster -->
-    <target name="deployWithoutTest">
-      <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="${basedir}/src" runAllTests="false" maxPoll="${cumulusci.maxPoll.notest}" />
-    </target>
-    
-    <!-- deployUnpackagedPre: Deploy the unpackaged/pre subdirectories containing metadata used in builds but not included in the managed package -->
-    <target name="deployUnpackagedPre">
-      <deployMetadataBundles dir="${basedir}/unpackaged/pre" stagedir="${basedir}/unpackaged_stage" />
-    </target>
+	<!-- Load up cumulusci.properties file with package specific properties -->
+	<loadproperties srcFile="${basedir}/cumulusci.properties"/>
 
-    <!-- deployUnpackagedPost: Deploy the unpackaged/post subdirectories containing metadata used in builds but not included in the managed package -->
-    <target name="deployUnpackagedPost">
-      <deployMetadataBundles dir="${basedir}/unpackaged/post" stagedir="${basedir}/unpackaged_stage" />
-    </target>
-    
-    <!-- uninstall: Removes all metadata from the package -->
-    <target name="uninstall">
-      <delete dir="uninstallsrc" />
-      <delete dir="uninstall" />
-      <retrievePackaged dir="uninstallsrc" package="${cumulusci.package.name}" />
-      <buildPackagedDestructiveChanges srcdir="uninstallsrc" dir="uninstall" package="${cumulusci.package.name}" />
-      <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="${basedir}/uninstall" runAllTests="false" purgeOnDelete="true" maxPoll="${cumulusci.maxPoll.notest}" />
-      <delete dir="uninstallsrc" />
-      <delete dir="uninstall" />
-    </target>
-        
-    <!-- uninstall: Removes all non-standard unpackaged metadata from the org -->
-    <target name="uninstallUnpackaged">
-      <delete dir="uninstallsrc" />
-      <delete dir="uninstall" />
-      <retrieveUnpackaged dir="uninstallsrc" />
-      <deleteWhitelistedMetadata dir="uninstallsrc/unpackaged" />
-      <buildUnpackagedDestructiveChanges srcdir="uninstallsrc" dir="uninstall" />
-      <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="${basedir}/uninstall/standard" runAllTests="false" maxPoll="${cumulusci.maxPoll.notest}" />
-      <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="${basedir}/uninstall/unpackaged" runAllTests="false" purgeOnDelete="true" maxPoll="${cumulusci.maxPoll.notest}" />
-      <delete dir="uninstallsrc" />
-      <delete dir="uninstall" />
-    </target>
-    
-    <!-- runAllTests: Uses an empty package manifest to trigger execution of all tests in the target org without deploying any actual code changes -->
-    <target name="runAllTests">
-      <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="${basedir}/src/main/ant/empty" runAllTests="true" maxPoll="${cumulusci.maxPoll.test}" />
-    </target>
-        
+	<!-- Setup a blank namespace prefix string.  Managed deployments need to override this property before calling deployUnpackagedPost -->
+	<property name="cumulusci.namespace.prefix" value="" />
+	
+	<!-- Primary Build Targets -->
+
+	<!-- deploy: Run a full deployment including running all tests.  Does not attempt to clean target org or ensure dependent package versions are correct -->
+	<target name="deploy">
+		<antcall target="deployWithoutTest" />
+		<antcall target="runAllTests" />
+		<!-- Changed to deploy then test due to suspicion that staging the deployment to run tests was causing a failure with every other build
+	      <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="src" runAllTests="true" maxPoll="${cumulusci.maxPoll.test}" />
+	      -->
+	</target>
+
+	<!-- deployWithoutTest: Run a full deployment but don't run all tests.  This is useful if you already know tests will pass from previous runs and just want to deploy faster -->
+	<target name="deployWithoutTest">
+		<sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="src" runAllTests="false" maxPoll="${cumulusci.maxPoll.notest}" />
+	</target>
+
+	<!-- deployUnpackagedPre: Deploy the unpackaged/pre subdirectories containing metadata used in builds but not included in the managed package -->
+	<target name="deployUnpackagedPre">
+		<deployMetadataBundles dir="${basedir}/unpackaged/pre" stagedir="${basedir}/unpackaged_stage" />
+	</target>
+
+	<!-- deployUnpackagedPost: Deploy the unpackaged/post subdirectories containing metadata used in builds but not included in the managed package -->
+	<target name="deployUnpackagedPost">
+		<deployMetadataBundles dir="${basedir}/unpackaged/post" stagedir="${basedir}/unpackaged_stage" />
+	</target>
+
+	<!-- deployManagedUnpackagedPre: Deploy the unpackaged/pre subdirectories containing metadata used in builds but not included in the managed package.  Use the managed namespace prefix -->
+	<target name="deployManagedUnpackagedPre">
+		<deployMetadataBundles dir="${basedir}/unpackaged/pre" stagedir="${basedir}/unpackaged_stage" nsprefix="${cumulusci.package.namespace}__" />
+	</target>
+
+	<!-- deployManagedUnpackagedPost: Deploy the unpackaged/post subdirectories containing metadata used in builds but not included in the managed package.  Use the managed namespace prefix -->
+	<target name="deployManagedUnpackagedPost">
+		<deployMetadataBundles dir="${basedir}/unpackaged/post" stagedir="${basedir}/unpackaged_stage" nsprefix="${cumulusci.package.namespace}__" />
+	</target>
+
+	<!-- zipUnpackagedBundles: Populates unpackaged/zipped with non-namespaced versions of all pre and post deployment bundles -->
+	<target name="zipUnpackagedBundles">
+		<zipMetadataBundles dir="${basedir}/unpackaged/pre" stagedir="${basedir}/unpackaged_stage" zipdir="unpackaged/zipped" />
+		<zipMetadataBundles dir="${basedir}/unpackaged/post" stagedir="${basedir}/unpackaged_stage" zipdir="unpackaged/zipped" />
+	</target>
+
+	<!-- zipUnpackagedBundles: Populates unpackaged/zipped with namespaced versions of all pre and post deployment bundles -->
+	<target name="zipManagedUnpackagedBundles">
+		<zipMetadataBundles dir="${basedir}/unpackaged/pre" stagedir="${basedir}/unpackaged_stage" zipdir="unpackaged/namespaced_zipped" nsprefix="${cumulusci.package.namespace}__" />
+		<zipMetadataBundles dir="${basedir}/unpackaged/post" stagedir="${basedir}/unpackaged_stage" zipdir="unpackaged/namespaced_zipped" nsprefix="${cumulusci.package.namespace}__" />
+	</target>
+
+
+	<!-- uninstallUnpackagedPre: Uninstall the unpackaged/pre subdirectories containing metadata used in builds but not included in the managed package -->
+	<target name="uninstallUnpackagedPre">
+		<if>
+			<available file="${basedir}/unpackaged/pre/" type="dir" />
+			<then>
+				<for param="dir">
+					<path>
+						<dirset dir="${basedir}/unpackaged/pre/" includes="*" />
+					</path>
+					<sequential>
+						<echo>Uninstalling unpackaged bundle @{dir}</echo>
+						<delete dir="uninstall" />
+						<buildPackagedDestructiveChanges srcdir="@{dir}" dir="uninstall" package="${cumulusci.package.name}" />
+						<sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="uninstall" runAllTests="false" purgeOnDelete="true" ignoreWarnings="true" maxPoll="${cumulusci.maxPoll.notest}" />
+						<delete dir="uninstall" />
+					</sequential>
+				</for>
+			</then>
+		</if>
+	</target>
+
+	<!-- uninstallUnpackagedPost: Uninstall the unpackaged/post subdirectories containing metadata used in builds but not included in the managed package -->
+	<target name="uninstallUnpackagedPost">
+		<if>
+			<available file="${basedir}/unpackaged/post/" type="dir" />
+			<then>
+				<for param="dir">
+					<path>
+						<dirset dir="${basedir}/unpackaged/post/" includes="*" />
+					</path>
+					<sequential>
+						<echo>Deploying unpackaged bundle @{dir}</echo>
+						<echo>Uninstalling unpackaged bundle @{dir}</echo>
+						<delete dir="uninstall" />
+						<buildPackagedDestructiveChanges srcdir="@{dir}" dir="uninstall" package="${cumulusci.package.name}" />
+						<sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="uninstall" runAllTests="false" purgeOnDelete="true" ignoreWarnings="true" maxPoll="${cumulusci.maxPoll.notest}" />
+						<delete dir="uninstall" />
+					</sequential>
+				</for>
+			</then>
+		</if>
+	</target>
+
+	<!-- deployCI: Does a full build including uninstalling previously deployed unpackaged code, updating managed package versions, and then deploying with all tests -->
+	<!-- !!!WARNING!!!: DO NOT run this against a real production org as it will delete everything.  It is designed to clear the target org to ensure a clean build test. -->
+	<target name="deployCI">
+		<!-- First, uninstall all unpackaged code from the target org.  We have to do this first so we can uninstall and reinstall any managed packages not at the right version -->
+		<antcall target="uninstall" />
+
+		<!-- Update any managed packages which are not at the right version -->
+		<antcall target="updateDependentPackages" />
+
+		<!-- Deploy any unpackaged metadata bundles needed before the deployment -->
+		<antcall target="deployUnpackagedPre" />
+
+		<!-- Finally, do a deploy with all tests -->
+		<antcall target="deploy" />
+
+		<!-- Deploy any unpackaged metadata bundles needed after the deployment -->
+		<antcall target="deployUnpackagedPost" />
+
+		<!-- Uninstall unpackaged post bundles since they may reference code in the package -->
+		<antcall target="uninstallUnpackagedPost" />
+	</target>
+
+	<!-- deployCIPackageOrg: Does a full build against the package org.  This differs from deployCI in that it uses destroyStaleMetadata instead of uninstall.
+	         There are a few assumptions.  We never downgrade a dependent managed package in the packaging org.  This removes the need to completely remove
+	         all metadata to allow a package downgrade.  In the package org, we can't delete all metadata once a production managed release is cut so this approach is required -->
+	<target name="deployCIPackageOrg">
+		<!-- Update any managed packages which are not at the right version -->
+		<antcall target="updateDependentPackages" />
+
+		<!-- Deploy any unpackaged metadata bundles needed before the deployment -->
+		<antcall target="deployUnpackagedPre" />
+
+		<!-- Attempt to destroy any stale metadata but continue even if this fails -->
+		<trycatch>
+			<try>
+				<antcall target="destroyStaleMetadata" />
+			</try>
+			<catch>
+				<echo>First run of destroyStaleMetadata failed.  Ignoring for now but it may cause build failures in other targets.</echo>
+			</catch>
+		</trycatch>
+
+		<!-- Update the package.xml to managed package mode, adding install and uninstall script classes -->
+		<antcall target="updatePackageXmlManaged" />
+
+		<!-- Do a deploy skipping tests for now since the upload will run tests -->
+		<antcall target="deploy" />
+
+		<!-- Finally, delete any metadata from the org which is not in the repo -->
+		<antcall target="destroyStaleMetadata" />
+
+		<!-- Deploy any unpackaged metadata bundles needed after the deployment -->
+		<antcall target="deployUnpackagedPost" />
+
+	</target>
+
+	<!-- Utility Build Targets -->
+
+	<target name="destroyStaleMetadata">
+		<delete dir="uninstallsrc" />
+		<delete dir="uninstall" />
+
+		<!-- Fetch all metadata in the  package from target org -->
+		<retrievePackaged dir="uninstallsrc" package="${cumulusci.package.name.managed}" />
+
+		<!-- Build a destructiveChanges.xml pacckage to delete metadata in org but not in repo -->
+		<buildDestroyStaleMetadata srcdir="uninstallsrc" commdir="src" dir="uninstall" />
+
+		<!-- deploy the destructiveChanges.xml package -->
+		<sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="uninstall" runAllTests="false" purgeOnDelete="true" maxPoll="${cumulusci.maxPoll.notest}" />
+
+		<delete dir="uninstallsrc" />
+		<delete dir="uninstall" />
+	</target>
+
+	<!-- uninstall: Removes all metadata from the package -->
+	<target name="uninstall">
+		<antcall target="uninstallUnpackagedPost" />
+		<delete dir="uninstallsrc" />
+		<delete dir="uninstall" />
+		<retrievePackaged dir="uninstallsrc" package="${cumulusci.package.name}" />
+		<buildPackagedDestructiveChanges srcdir="uninstallsrc" dir="uninstall" package="${cumulusci.package.name}" />
+		<sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="uninstall" runAllTests="false" purgeOnDelete="true" maxPoll="${cumulusci.maxPoll.notest}" />
+		<delete dir="uninstallsrc" />
+		<delete dir="uninstall" />
+		<antcall target="uninstallUnpackagedPre" />
+	</target>
+
+	<!-- uninstall: Removes all non-standard unpackaged metadata from the org -->
+	<target name="uninstallUnpackaged">
+		<delete dir="uninstallsrc" />
+		<delete dir="uninstall" />
+		<retrieveUnpackaged dir="uninstallsrc" />
+		<deleteWhitelistedMetadata dir="uninstallsrc/unpackaged" />
+		<buildUnpackagedDestructiveChanges srcdir="uninstallsrc" dir="uninstall" />
+		<sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="uninstall/standard" runAllTests="false" maxPoll="${cumulusci.maxPoll.notest}" />
+		<sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="uninstall/unpackaged" runAllTests="false" purgeOnDelete="true" maxPoll="${cumulusci.maxPoll.notest}" />
+		<delete dir="uninstallsrc" />
+		<delete dir="uninstall" />
+	</target>
+
+	<!-- updateDependendentPackages: Ensures all dependent packages are the correct version -->
+	<target name="updateDependentPackages">
+		<updateDependentPackages />
+	</target>
+
+	<!-- Developer focused build targets -->
+
+	<!-- retrieveUnpackaged: Retrieves all unpackaged metadata from target org into the unpackaged directory -->
+	<target name="retrieveUnpackaged">
+		<retrieveUnpackaged dir="org_unpackaged" />
+	</target>
+
+	<!-- retrievePackaged: Retrieves all metadata from the package in the target org into the packaged directory -->
+	<target name="retrievePackaged">
+		<retrievePackaged dir="packaged" package="${cumulusci.package.name}" />
+	</target>
+
+	<!-- runAllTests: Uses an empty package manifest to trigger execution of all tests in the target org without deploying any actual code changes -->
+	<target name="runAllTests">
+		<sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="lib/empty" runAllTests="true" maxPoll="${cumulusci.maxPoll.test}" />
+	</target>
+
+	<!-- updatePackageXml: Builds a new package.xml based upon the metadata in the src directory -->
+	<target name="updatePackageXml">
+		<buildPackageXml package="${cumulusci.package.name}" version="${cumulusci.package.apiVersion}" />
+	</target>
+
+	<target name="updatePackageXmlManaged">
+		<buildPackageXml package="${cumulusci.package.name.managed}" version="${cumulusci.package.apiVersion}" installClass="${cumulusci.package.installClass}" uninstallClass="${cumulusci.package.uninstallClass}" />
+	</target>
+
+	<target name="testXml">
+		<xmlproperty file="src/package.xml" />
+		<echoproperties />
+	</target>
+
+	<target name="deployPassingTest">
+		<sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="unpackaged/pre/passing_test" runAllTests="false" maxPoll="${cumulusci.maxPoll.test}">
+			<runTest>NPSPAlwaysPassingTest</runTest>
+		</sf:deploy>
+	</target>
+
 </project>
 
