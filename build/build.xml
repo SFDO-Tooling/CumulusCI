@@ -2,7 +2,7 @@
 
 	<dirname property="cumulus_ci.basedir" file="${ant.file.cumulus_ci}"/>
 
-	<include file="${cumulus_ci.basedir}/ant-salesforce.xml" />
+	<include file="${cumulus_ci.basedir}/cumulusci.xml" />
 
 	<taskdef 
          resource="net/sf/antcontrib/antlib.xml"
@@ -126,7 +126,7 @@
 		<antcall target="uninstall" />
 
 		<!-- Update any managed packages which are not at the right version -->
-		<antcall target="updateDependentPackages" />
+		<antcall target="updateRequiredPackages" />
 
 		<!-- Deploy any unpackaged metadata bundles needed before the deployment -->
 		<antcall target="deployUnpackagedPre" />
@@ -146,7 +146,7 @@
 	         all metadata to allow a package downgrade.  In the package org, we can't delete all metadata once a production managed release is cut so this approach is required -->
 	<target name="deployCIPackageOrg">
 		<!-- Update any managed packages which are not at the right version -->
-		<antcall target="updateDependentPackages" />
+		<antcall target="updateRequiredPackages" />
 
 		<!-- Deploy any unpackaged metadata bundles needed before the deployment -->
 		<antcall target="deployUnpackagedPre" />
@@ -174,6 +174,120 @@
 		<antcall target="deployUnpackagedPost" />
 
 	</target>
+
+    <!-- Deploys the latest managed beta release to an org -->
+    <!-- !!!WARNING!!!: DO NOT run this against a real production org as it will delete everything.  It is designed to clear the target org to ensure a clean build test. -->
+    <target name="deployManagedBeta">
+        <property environment="env" />
+
+        <echo>BUILD_COMMIT = ${env.BUILD_COMMIT}</echo>
+        <if>
+            <and>
+                <isset property="env.BUILD_COMMIT" />
+                <not>
+                    <equals arg1="env.BUILD_COMMIT" arg2="" />
+                </not>
+                <isset property="env.PACKAGE_VERSION" />
+                <not>
+                    <equals arg1="env.PACKAGE_VERSION" arg2="" />
+                </not>
+            </and>
+            <then>
+                <!-- If a BUILD_COMMIT and PACKAGE_VERSION are provided in the environment, use them -->
+                <property name="managed_beta_tag" value="${env.BUILD_COMMIT}" />
+                <property name="version.managed.beta" value="${env.PACKAGE_VERSION}" />
+                <echo>Building with environment variables: BUILD_COMMIT=${managed_beta_tag}, PACKAGE_VERSION=${version.managed.beta}</echo>
+            </then>
+            <else>
+                <!-- If no BUILD_COMMIT or PACKAGE_VERSION was provided in environment, call mrbelvedere to fetch latest released version -->
+                <!-- Get the latest beta release tag name -->
+                <get src="${cumulusci.mrbelvedere.url}/mrbelvedere/repo/${cumulusci.mrbelvedere.repo.owner}/${cumulusci.mrbelvedere.repo.name}/version/beta/tag" dest="${basedir}/managed_beta_tag" />
+                <loadfile property="managed_beta_tag" srcfile="${basedir}/managed_beta_tag" />
+                <delete file="${basedir}/managed_beta_tag" />
+
+                <!-- Get the latest beta release version number -->
+                <get src="${cumulusci.mrbelvedere.url}/mrbelvedere/repo/${cumulusci.mrbelvedere.repo.owner}/${cumulusci.mrbelvedere.repo.name}/version/beta" dest="${basedir}/version_beta" />
+                <loadfile property="version.managed.beta" srcfile="${basedir}/version_beta" />
+                <delete file="${basedir}/version_beta" />
+            </else>
+        </if>
+
+        <!-- Fetch the version.properties file for the release from GitHub -->
+        <get src="${cumulusci.github.url.raw}/${managed_beta_tag}/version.properties" dest="${basedir}/version.properties.beta" />
+
+        <!-- Since we want to use the versions required by the tag rather than the currently checked out code, unset all version properties and load the version.properties.beta file -->
+        <var file="${basedir}/version.properties.beta" />
+        <delete file="${basedir}/version.properties.beta" />
+
+        <!-- Update all required packages and uninstall current beta -->
+        <antcall target="updateRequiredPackages" />
+
+        <!-- Deploy any unpackaged metadata bundles needed before the deployment -->
+        <antcall target="deployManagedUnpackagedPre" />
+
+        <!-- Install the beta packages -->
+        <var name="version.managed" value="${version.managed.beta}" />
+        <antcall target="updateRequiredPackages" />
+
+        <!-- Deploy any unpackaged metadata bundles needed after the deployment -->
+        <antcall target="deployManagedUnpackagedPost" />
+
+        <antcall target="uninstallUnpackagedPost" />
+
+    </target>
+
+    <!-- Deploys the latest production managed release to an org -->
+    <!-- !!!WARNING!!!: DO NOT run this against a real production org as it will delete everything.  It is designed to clear the target org to ensure a clean build test. -->
+    <target name="deployManaged">
+        <property environment="env" />
+
+        <echo>BUILD_COMMIT = ${env.BUILD_COMMIT}</echo>
+        <if>
+            <and>
+                <isset property="env.BUILD_COMMIT" />
+                <not>
+                    <equals arg1="env.BUILD_COMMIT" arg2="" />
+                </not>
+                <isset property="env.PACKAGE_VERSION" />
+                <not>
+                    <equals arg1="env.PACKAGE_VERSION" arg2="" />
+                </not>
+            </and>
+            <then>
+                <!-- If a BUILD_COMMIT and PACKAGE_VERSION are provided in the environment, use them -->
+                <property name="managed_prod_tag" value="${env.BUILD_COMMIT}" />
+                <property name="version.managed.prod" value="${env.PACKAGE_VERSION}" />
+                <echo>Building with environment variables: BUILD_COMMIT=${managed_prod_tag}, PACKAGE_VERSION=${version.npsp.managed}</echo>
+            </then>
+            <else>
+                <!-- If no BUILD_COMMIT or PACKAGE_VERSION was provided in environment, call mrbelvedere to fetch latest released version -->
+                <!-- Get the latest production release tag name -->
+                <get src="${cumulusci.mrbelvedere.url}/mrbelvedere/repo/${cumulusci.mrbelvedere.repo.owner}/${cumulusci.mrbelvedere.repo.name}/version/tag" dest="${basedir}/managed_prod_tag" />
+                <loadfile property="managed_prod_tag" srcfile="${basedir}/managed_prod_tag" />
+                <delete file="${basedir}/managed_prod_tag" />
+
+                <!-- Get the latest production release version number -->
+                <get src="${cumulusci.mrbelvedere.url}/mrbelvedere/repo/${cumulusci.mrbelvedere.repo.owner}/${cumulusci.mrbelvedere.repo.name}/version" dest="${basedir}/version_prod" />
+                <loadfile property="version.managed.prod" srcfile="${basedir}/version_prod" />
+                <delete file="${basedir}/version_prod" />
+            </else>
+        </if>
+
+        <!-- Fetch the version.properties file for the release from GitHub -->
+        <get src="${cumulusci.github.url.raw}/${managed_prod_tag}/version.properties" dest="${basedir}/version.properties.prod" />
+
+        <!-- Since we want to use the versions required by the tag rather than the currently checked out code, unset all version properties and load the version.properties.prod file -->
+        <var file="${basedir}/version.properties.prod" />
+        <delete file="${basedir}/version.properties.prod" />
+
+        <!-- Run updateRequiredPackages to install the correct versions of required packages and the main package -->
+        <antcall target="updateRequiredPackages" />
+
+        <!-- Deploy any unpackaged metadata bundles needed for builds -->
+        <antcall target="deployUnpackagedPre" />
+        <antcall target="deployUnpackagedPost" />
+
+    </target>
 
 	<!-- Utility Build Targets -->
 
@@ -220,10 +334,64 @@
 		<delete dir="uninstall" />
 	</target>
 
+    <!-- Get and echo currently installed vs required versions of all required packages -->
+    <macrodef name="getPackageVersions" description="Gets the version for all installed packages">
+        <sequential>
+            <delete dir="${basedir}/installedPackages"/>
+            <mkdir dir="${basedir}/installedPackages"/>
+    
+            <sf:bulkRetrieve
+                username="${sf.username}"
+                password="${sf.password}"
+                metadataType="InstalledPackage"
+                retrieveTarget="${basedir}/installedPackages"/>
+    
+            <echo>Required Package Versions:</echo>
+            <echo>-------------------------------</echo>
+    
+            <for list="${required.packages}" delimiter="," param="packageNamespace">
+                <sequential>
+                    <if>
+                        <equals arg1="@{packageNamespace}" arg2="managed" />
+                        <then>
+                            <getPackageVersion namespace="${cumulusci.package.namespace}" refresh="false" />
+                            <propertycopy property="packageVersionInstalled" from="InstalledPackage.${cumulusci.package.namespace}.versionNumber" />
+                            <echo>${cumulusci.package.namespace}: ${packageVersionInstalled} (${version.@{packageNamespace}} required)</echo>
+                        </then>
+                        <else>
+                            <getPackageVersion namespace="@{packageNamespace}" refresh="false" />
+                            <echo>@{packageNamespace}: ${InstalledPackage.@{packageNamespace}.versionNumber} (${version.@{packageNamespace}} required)</echo>
+                        </else>
+                    </if>
+                </sequential>
+            </for>
+    
+            <delete dir="${basedir}/installedPackages"/>
+        </sequential>
+    </macrodef>
+
+    <!-- Stub target which can be overridden to handle logic for uninstalling packages due to dependencies --> 
+    <target name="preUpdateRequiredPackages">
+    </target>
+
 	<!-- updateDependendentPackages: Ensures all dependent packages are the correct version -->
-	<target name="updateDependentPackages">
-		<updateDependentPackages />
-	</target>
+    <target name="updateRequiredPackages">
+        <getPackageVersions />
+        <antcall target="preUpdateRequiredPackages" />
+        <for list="${required.packages}" delimiter="," param="packageNamespace">
+            <sequential>
+                <if>
+                    <equals arg1="@{packageNamespace}" arg2="managed" />
+                    <then>
+                        <updatePackageVersion namespace="${cumulusci.package.namespace}" version="${version.@{packageNamespace}}" />
+                    </then>
+                    <else>
+                        <updatePackageVersion namespace="@{packageNamespace}" version="${version.@{packageNamespace}}" />
+                    </else>
+                </if>
+            </sequential>
+        </for>
+    </target>
 
 	<!-- Developer focused build targets -->
 
@@ -251,16 +419,19 @@
 		<buildPackageXml package="${cumulusci.package.name.managed}" version="${cumulusci.package.apiVersion}" installClass="${cumulusci.package.installClass}" uninstallClass="${cumulusci.package.uninstallClass}" />
 	</target>
 
-	<target name="testXml">
-		<xmlproperty file="src/package.xml" />
-		<echoproperties />
-	</target>
-
-	<target name="deployPassingTest">
-		<sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="unpackaged/pre/passing_test" runAllTests="false" maxPoll="${cumulusci.maxPoll.test}">
-			<runTest>NPSPAlwaysPassingTest</runTest>
-		</sf:deploy>
-	</target>
+    <target name="updateMetaXml">
+        <for list="${required.packages}" delimiter="," param="packageNamespace">
+            <sequential>
+                <if>
+                    <not><equals arg1="@{packageNamespace}" arg2="managed" /></not>
+                    <then>
+                        <updateMetaXml dir="${basedir}/src" namespace="@{packageNamespace}" version="${version.@{packageNamespace}}" />
+                    </then>
+                </if>
+            </sequential>
+        </for>
+        <updateMetaXmlApi dir="${basedir}/src" apiVersion="${cumulusci.package.apiVersion}" />
+    </target>
 
 	<target name="updateMetaXml">
 		<updateMetaXmlApi dir="${basedir}/src" apiVersion="${cumulusci.package.apiVersion}" />
