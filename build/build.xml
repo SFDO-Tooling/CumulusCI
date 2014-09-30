@@ -2,7 +2,7 @@
 
 	<dirname property="cumulus_ci.basedir" file="${ant.file.cumulus_ci}"/>
 
-	<include file="${cumulus_ci.basedir}/ant-salesforce.xml" />
+	<include file="${cumulus_ci.basedir}/cumulusci.xml" />
 
 	<taskdef 
          resource="net/sf/antcontrib/antlib.xml"
