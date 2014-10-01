@@ -1,7 +1,10 @@
 <project name="cumulus_ci" default="" basedir="." xmlns:sf="antlib:com.salesforce">
 
+	<!-- Define environment, to be able to use environment variables -->
+	<property environment="env" />
+	
 	<!-- Import default ant script. It assumes CumulusCI project will be checked out in the same directory as the project being worked on. -->
-	<import file="${cumulusci.project.path}/build/build.xml" />
+	<import file="${env.CUMULUSCI_PATH}/build/build.xml" />
 	
 	<!-- Add project-specific targets. -->
 	
