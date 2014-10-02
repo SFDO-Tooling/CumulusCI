@@ -433,8 +433,5 @@
         <updateMetaXmlApi dir="${basedir}/src" apiVersion="${cumulusci.package.apiVersion}" />
     </target>
 
-	<target name="updateMetaXml">
-		<updateMetaXmlApi dir="${basedir}/src" apiVersion="${cumulusci.package.apiVersion}" />
-	</target>
 </project>
 
