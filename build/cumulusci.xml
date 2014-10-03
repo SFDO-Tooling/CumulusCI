@@ -650,7 +650,7 @@
 
       <!-- Build the destructiveChanges.xml file by walking the srcdir and adding all metadata -->
       <!-- Exclude CustomLabels.labels so we can use addMetadataSubType on it instead -->
-      <buildPackageXmlFromDir dir="@{srcdir}" xmlfile="@{dir}/destructiveChanges.xml" version="${cumulusci.package.apiVersion}" exclude="${metadata_whitelist} CustomLabels.labels" />
+      <buildPackageXmlFromDir dir="@{srcdir}" xmlfile="@{dir}/destructiveChanges.xml" version="${cumulusci.package.apiVersion}" exclude="${metadata_whitelist} CustomLabels.labels *.workflow" />
 
       <!-- Add standard object fields to destructiveChanges.xml -->
       <addMetadataSubType dir="@{srcdir}/objects" xmlfile="@{dir}/destructiveChanges.xml" typename="CompactLayout" element="compactLayouts" />
@@ -662,8 +662,8 @@
       <!--<addMetadataSubType dir="@{srcdir}" xmlfile="@{dir}/destructiveChanges.xml" typename="RecordType" element="recordTypes" />-->
       <addMetadataSubType dir="@{srcdir}/objects" xmlfile="@{dir}/destructiveChanges.xml" typename="ValidationRule" element="validationRules" />
       <addMetadataSubType dir="@{srcdir}/objects" xmlfile="@{dir}/destructiveChanges.xml" typename="WebLink" element="webLinks" />
-      <addMetadataSubType dir="@{srcdir}/workflows" suffix="workflow" xmlfile="@{dir}/destructiveChanges.xml" typename="WorkflowFieldUpdate" element="fieldUpdates" />
-      <addMetadataSubType dir="@{srcdir}/workflows" suffix="workflow" xmlfile="@{dir}/destructiveChanges.xml" typename="WorkflowRule" element="rules" />
+      <addMetadataSubType dir="@{srcdir}/workflows" suffix="workflow" xmlfile="@{dir}/destructiveChanges.xml" typename="WorkflowFieldUpdate" element="fieldUpdates" parentelement="Workflow" />
+      <addMetadataSubType dir="@{srcdir}/workflows" suffix="workflow" xmlfile="@{dir}/destructiveChanges.xml" typename="WorkflowRule" element="rules" parentelement="Workflow" />
 
     </sequential>
   </macrodef>
