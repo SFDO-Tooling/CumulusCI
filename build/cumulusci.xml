@@ -832,6 +832,7 @@
                 
               <echo>Deploying unpackaged bundle @{subdir}</echo>
               <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="@{stagedir}" runAllTests="false" maxPoll="${cumulusci.maxPoll.notest}" />
+              <delete dir="@{stagedir}" />
             </sequential>
           </for>
         </then>
