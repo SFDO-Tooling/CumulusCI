@@ -21,6 +21,28 @@
 		</then>
 	</if>
 
+    <!-- If there are environment variables set, consider them an override for org credentials -->
+    <property environment="env" />
+
+    <if>
+      <isset property="env.SF_USERNAME" />
+      <then>
+        <var name="sf.username" value="${env.SF_USERNAME}" />
+      </then>
+    </if>
+    <if>
+      <isset property="env.SF_PASSWORD" />
+      <then>
+        <var name="sf.password" value="${env.SF_PASSWORD}" />
+      </then>
+    </if>
+    <if>
+      <isset property="env.SF_SERVERURL" />
+      <then>
+        <var name="sf.serverurl" value="${env.SF_SERVERURL}" />
+      </then>
+    </if>
+
 	<!-- Load up cumulusci.properties file with package specific properties -->
 	<loadproperties srcFile="${basedir}/cumulusci.properties"/>
 
@@ -178,8 +200,6 @@
     <!-- Deploys the latest managed beta release to an org -->
     <!-- !!!WARNING!!!: DO NOT run this against a real production org as it will delete everything.  It is designed to clear the target org to ensure a clean build test. -->
     <target name="deployManagedBeta">
-        <property environment="env" />
-
         <echo>BUILD_COMMIT = ${env.BUILD_COMMIT}</echo>
         <if>
             <and>
@@ -239,8 +259,6 @@
     <!-- Deploys the latest production managed release to an org -->
     <!-- !!!WARNING!!!: DO NOT run this against a real production org as it will delete everything.  It is designed to clear the target org to ensure a clean build test. -->
     <target name="deployManaged">
-        <property environment="env" />
-
         <echo>BUILD_COMMIT = ${env.BUILD_COMMIT}</echo>
         <if>
             <and>
@@ -407,7 +425,7 @@
 
 	<!-- runAllTests: Uses an empty package manifest to trigger execution of all tests in the target org without deploying any actual code changes -->
 	<target name="runAllTests">
-		<sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="lib/empty" runAllTests="true" maxPoll="${cumulusci.maxPoll.test}" />
+		<sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="${cumulus_ci.basedir}/empty" runAllTests="true" maxPoll="${cumulusci.maxPoll.test}" />
 	</target>
 
 	<!-- updatePackageXml: Builds a new package.xml based upon the metadata in the src directory -->
