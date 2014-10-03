@@ -28,3 +28,4 @@ SiteTemplate.page
 StdExceptionTemplate.page
 Unauthorized.page
 SiteSamples.resource
+User.object
