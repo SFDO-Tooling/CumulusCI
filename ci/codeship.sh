@@ -72,7 +72,7 @@ if [ $BUILD_TYPE == "master" ]; then
     export BUILD_COMMIT="$CI_COMMIT_ID"
     pip install --upgrade selenium
     pip install --upgrade requests
-    python lib/package_upload.py
+    python $CUMULUSCI_PATH/ci/package_upload.py
     if [ $? != 0 ]; then exit 1; fi
  
     # Test beta
