@@ -238,6 +238,9 @@
             <case value="components">
               <property name="typename" value="ApexComponent" />
             </case>
+            <case value="connectedApps">
+              <property name="typename" value="ConnectedApp" />
+            </case>
             <case value="dashboards">
               <property name="typename" value="Dashboard" />
             </case>
@@ -253,14 +256,23 @@
             <case value="objects">
               <property name="typename" value="CustomObject" />
             </case>
+            <case value="objectTranslations">
+              <property name="typename" value="CustomObjectTranslation" />
+            </case>
             <case value="pages">
               <property name="typename" value="ApexPage" />
+            </case>
+            <case value="profiles">
+              <property name="typename" value="Profile" />
             </case>
             <case value="quickActions">
               <property name="typename" value="QuickAction" />
             </case>
             <case value="remoteSiteSettings">
               <property name="typename" value="RemoteSiteSetting" />
+            </case>
+            <case value="reportTypes">
+              <property name="typename" value="ReportType" />
             </case>
             <case value="reports">
               <property name="typename" value="Report" />
@@ -270,6 +282,9 @@
             </case>
             <case value="tabs">
               <property name="typename" value="CustomTab" />
+            </case>
+            <case value="translations">
+              <property name="typename" value="Translations" />
             </case>
             <case value="triggers">
               <property name="typename" value="ApexTrigger" />
