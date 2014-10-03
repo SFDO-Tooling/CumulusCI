@@ -36,7 +36,18 @@ fi
 
 echo "Building $CI_BRANCH as a $BUILD_TYPE build"
 
+# Function to filter out unneeded ant output from builds
+function runAntTarget {
+    ant $1 | \
+        grep -v '^  *\[delete\]' | \
+        grep -v '^  *\[copy\]' | \
+        grep -v '^  *\[loadfile\]' | \
+        grep -v '^  *\[xslt\]'
+}
+
+#---------------------------------
 # Run the build for the build type
+#---------------------------------
 
 # Master branch commit, build and test a beta managed package
 if [ $BUILD_TYPE == "master" ]; then
@@ -50,7 +61,8 @@ if [ $BUILD_TYPE == "master" ]; then
     
     # Deploy to packaging org
     echo "Running ant deployCIPackageOrg"
-    ant deployCIPackageOrg
+    runAntTarget deployCIPackageOrg
+    if [ $? != 0 ]; then exit 1; fi
     
     # Upload beta package
     export PACKAGE=`grep cumulusci.package.name.managed cumulusci.properties | sed -e 's/cumulusci.package.name.managed=//g'`
@@ -60,6 +72,7 @@ if [ $BUILD_TYPE == "master" ]; then
     pip install --upgrade selenium
     pip install --upgrade requests
     python lib/package_upload.py
+    if [ $? != 0 ]; then exit 1; fi
  
     # Test beta
         # Retry if package is unavailable
@@ -82,7 +95,8 @@ elif [ $BUILD_TYPE == "feature" ]; then
     
     # Deploy to feature org
     echo "Running ant deployCI"
-    ant deployCI
+    runAntTarget deployCI
+    if [ $? != 0 ]; then exit 1; fi
 
 # Beta tag build, do nothing
 elif [ $BUILD_TYPE == "beta" ]; then
@@ -100,6 +114,7 @@ elif [ $BUILD_TYPE == "release" ]; then
     
     # Deploy to packaging org
     echo "Running ant deployCIPackageOrg"
-    ant deployCIPackageOrg
+    runAntTarget deployCIPackageOrg
+    if [ $? != 0 ]; then exit 1; fi
     
 fi
