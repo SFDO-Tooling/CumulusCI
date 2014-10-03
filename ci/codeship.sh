@@ -38,11 +38,12 @@ echo "Building $CI_BRANCH as a $BUILD_TYPE build"
 
 # Function to filter out unneeded ant output from builds
 function runAntTarget {
-    ant $1 | \
-        grep -v '^  *\[delete\]' | \
-        grep -v '^  *\[copy\]' | \
-        grep -v '^  *\[loadfile\]' | \
-        grep -v '^  *\[xslt\]'
+    ant $1
+    # | \
+    #    grep -v '^  *\[delete\]' | \
+    #    grep -v '^  *\[copy\]' | \
+    #    grep -v '^  *\[loadfile\]' | \
+    #    grep -v '^  *\[xslt\]'
 }
 
 #---------------------------------
