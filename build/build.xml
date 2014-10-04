@@ -422,6 +422,11 @@
 	<target name="retrievePackaged">
 		<retrievePackaged dir="packaged" package="${cumulusci.package.name}" />
 	</target>
+	
+	<!-- retrievePackagedToSrc: Retrieves all metadata from the package in the target org into the src directory --> 
+	<target name="retrievePackagedToSrc"> 
+		<retrievePackaged dir="src" package="${cumulusci.package.name}" mkdir="false" /> 
+	</target>
 
 	<!-- runAllTests: Uses an empty package manifest to trigger execution of all tests in the target org without deploying any actual code changes -->
 	<target name="runAllTests">
