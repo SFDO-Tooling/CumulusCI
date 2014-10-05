@@ -54,7 +54,7 @@ function runAntTarget {
 }
 
 function runAntTargetBackground {
-    ant $1 > "$1.cumulusci.log" &
+    ant $1 > "$1.cumulusci.log" 2>& 1 &
 }
 
 # Function to wait on all background jobs to complete and return exit status
@@ -73,6 +73,11 @@ function waitOnBackgroundJobs {
         echo "-----------------------------------------------------------------"
         echo
         for file in *.cumulusci.log; do
+            echo
+            echo "-----------------------------------------------------------------"
+            echo "BUILD LOG: $file"
+            echo "-----------------------------------------------------------------"
+            echo
             cat $file
         done
         exit 1
@@ -95,7 +100,7 @@ if [ $BUILD_TYPE == "master" ]; then
     # Deploy to packaging org
     echo
     echo "-----------------------------------------------------------------"
-    echo "ant deployCIMasterOrg - Deploy to master org"
+    echo "ant deployCI - Deploy to master org"
     echo "-----------------------------------------------------------------"
     echo
     runAntTargetBackground deployCI
@@ -115,6 +120,12 @@ if [ $BUILD_TYPE == "master" ]; then
 
     runAntTargetBackground deployCI
 
+    
+    echo
+    echo "-----------------------------------------------------------------"
+    echo "Waiting on background jobs to complete"
+    echo "-----------------------------------------------------------------"
+    echo
     waitOnBackgroundJobs
     if [ $? != 0 ]; then exit 1; fi
     
