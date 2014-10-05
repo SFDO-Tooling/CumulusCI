@@ -445,6 +445,11 @@
     <target name="retrievePackaged">
         <retrievePackaged dir="packaged" package="${cumulusci.package.name}" />
     </target>
+    
+    <!-- retrievePackagedToSrc: Retrieves all metadata from the package in the target org into the src directory --> 
+    <target name="retrievePackagedToSrc"> 
+        <retrievePackaged dir="src" package="${cumulusci.package.name}" mkdir="false" /> 
+    </target>
 
     <!-- createUnmanagedPackage: Does an empty deployment into an unmanaged package to create it if it does not exist -->
     <target name="createUnmanagedPackage">
