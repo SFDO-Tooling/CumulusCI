@@ -210,8 +210,8 @@
     <attribute name="version" description="The value for the version element of the package.xml file to set the api version (i.e. ${cumulusci.package.apiVersion})" />
     <attribute name="package" description="If provided, a fullName element will be added to the file so it is deployed into a Package in the target org" default="NOTSET" />
     <attribute name="exclude" description="If provided, a list of filenames to skip." default="" />
-  	<attribute name="installClass" description="If provided, a installClass element will be added to the file to specify a class to run when installing the package." default="NOTSET" />
-  	<attribute name="uninstallClass" description="If provided, a uninstallClass element will be added to the file to specify a class to run when uninstalling the package." default="NOTSET" />
+    <attribute name="installClass" description="If provided, a installClass element will be added to the file to specify a class to run when installing the package." default="NOTSET" />
+    <attribute name="uninstallClass" description="If provided, a uninstallClass element will be added to the file to specify a class to run when uninstalling the package." default="NOTSET" />
     <sequential>
       <!-- Write the header for the destructiveChanges.xml -->
       <echo file="@{xmlfile}">&lt;?xml version="1.0" encoding="UTF-8"?&gt;${line.separator}</echo>
@@ -385,12 +385,12 @@
 
       <!-- Write the install and uninstall scripts -->
       <if>
-      	<not><equals arg1="@{installClass}" arg2="NOTSET" /></not>
-      	<then>
-      	    <echo file="@{xmlfile}" append="true">  &lt;postInstallClass&gt;@{installClass}&lt;/postInstallClass&gt;${line.separator}</echo>
+        <not><equals arg1="@{installClass}" arg2="NOTSET" /></not>
+        <then>
+            <echo file="@{xmlfile}" append="true">  &lt;postInstallClass&gt;@{installClass}&lt;/postInstallClass&gt;${line.separator}</echo>
         </then>
       </if>
-    	
+        
       <if>
         <not><equals arg1="@{uninstallClass}" arg2="NOTSET" /></not>
         <then>
@@ -532,27 +532,29 @@
     <attribute name="package" description="The value for the fullName element in the package.xml" default="NOTSET" />
     <attribute name="installClass" description="If provided, a installClass element will be added to the file to specify a class to run when installing the package." default="NOTSET" />
     <attribute name="uninstallClass" description="If provided, a uninstallClass element will be added to the file to specify a class to run when uninstalling the package." default="NOTSET" />
+    <attribute name="srcDir" description="If provided, the relative path to the source directory from the project root.  Defaults to src" default="src" />
+    
   
     <sequential>
       <!-- Exclude CustomLabels.labels so we can use addMetadataSubType on it instead -->
-      <buildPackageXmlFromDir dir="${basedir}/src" xmlfile="${basedir}/src/package.xml.new" package="@{package}" version="@{version}" exclude="CustomLabels.labels" installClass="@{installClass}" uninstallClass="@{uninstallClass}" />
+      <buildPackageXmlFromDir dir="${basedir}/@{srcDir}" xmlfile="${basedir}/@{srcDir}/package.xml.new" package="@{package}" version="@{version}" exclude="CustomLabels.labels" installClass="@{installClass}" uninstallClass="@{uninstallClass}" />
 
       <!-- Add metadata sub-types of object which need to be explicitly listed in package.xml -->
-      <!--<addMetadataSubType dir="${basedir}/src" xmlfile="${basedir}/src/package.xml.new" typename="ActionOverride" element="actionOverrides" nameelement="actionName" />-->
-      <addMetadataSubType dir="${basedir}/src/objects" xmlfile="${basedir}/src/package.xml.new" typename="BusinessProcess" element="businessProcesses" />
-      <addMetadataSubType dir="${basedir}/src/objects" xmlfile="${basedir}/src/package.xml.new" typename="CompactLayout" element="compactLayouts" />
-      <addMetadataSubType dir="${basedir}/src/objects" xmlfile="${basedir}/src/package.xml.new" typename="CustomField" element="fields" xslt="${cumulus_ci.basedir}/xsl/extract_obj_fields.xsl" />
-      <addMetadataSubType dir="${basedir}/src/labels" suffix="labels" xmlfile="${basedir}/src/package.xml.new" typename="CustomLabel" element="labels" parentelement="CustomLabels" />
-      <addMetadataSubType dir="${basedir}/src/objects" xmlfile="${basedir}/src/package.xml.new" typename="FieldSet" element="fieldSets" />
-      <addMetadataSubType dir="${basedir}/src/objects" xmlfile="${basedir}/src/package.xml.new" typename="ListView" element="listViews" />
-      <addMetadataSubType dir="${basedir}/src/objects" xmlfile="${basedir}/src/package.xml.new" typename="NamedFilter" element="namedFilters" />
-      <addMetadataSubType dir="${basedir}/src/objects" xmlfile="${basedir}/src/package.xml.new" typename="RecordType" element="recordTypes" />
-      <addMetadataSubType dir="${basedir}/src/objects" xmlfile="${basedir}/src/package.xml.new" typename="ValidationRule" element="validationRules" />
-      <addMetadataSubType dir="${basedir}/src/objects" xmlfile="${basedir}/src/package.xml.new" typename="WebLink" element="webLinks" />
-      <addMetadataSubType dir="${basedir}/src/workflows" suffix="workflow" xmlfile="${basedir}/src/package.xml.new" typename="WorkflowFieldUpdate" element="fieldUpdates" parentelement="Workflow" />
-      <addMetadataSubType dir="${basedir}/src/workflows" suffix="workflow" xmlfile="${basedir}/src/package.xml.new" typename="WorkflowRule" element="rules" parentelement="Workflow" />
+      <!--<addMetadataSubType dir="${basedir}/@{srcDir}" xmlfile="${basedir}/@{srcDir}/package.xml.new" typename="ActionOverride" element="actionOverrides" nameelement="actionName" />-->
+      <addMetadataSubType dir="${basedir}/@{srcDir}/objects" xmlfile="${basedir}/@{srcDir}/package.xml.new" typename="BusinessProcess" element="businessProcesses" />
+      <addMetadataSubType dir="${basedir}/@{srcDir}/objects" xmlfile="${basedir}/@{srcDir}/package.xml.new" typename="CompactLayout" element="compactLayouts" />
+      <addMetadataSubType dir="${basedir}/@{srcDir}/objects" xmlfile="${basedir}/@{srcDir}/package.xml.new" typename="CustomField" element="fields" xslt="${cumulus_ci.basedir}/xsl/extract_obj_fields.xsl" />
+      <addMetadataSubType dir="${basedir}/@{srcDir}/labels" suffix="labels" xmlfile="${basedir}/@{srcDir}/package.xml.new" typename="CustomLabel" element="labels" parentelement="CustomLabels" />
+      <addMetadataSubType dir="${basedir}/@{srcDir}/objects" xmlfile="${basedir}/@{srcDir}/package.xml.new" typename="FieldSet" element="fieldSets" />
+      <addMetadataSubType dir="${basedir}/@{srcDir}/objects" xmlfile="${basedir}/@{srcDir}/package.xml.new" typename="ListView" element="listViews" />
+      <addMetadataSubType dir="${basedir}/@{srcDir}/objects" xmlfile="${basedir}/@{srcDir}/package.xml.new" typename="NamedFilter" element="namedFilters" />
+      <addMetadataSubType dir="${basedir}/@{srcDir}/objects" xmlfile="${basedir}/@{srcDir}/package.xml.new" typename="RecordType" element="recordTypes" />
+      <addMetadataSubType dir="${basedir}/@{srcDir}/objects" xmlfile="${basedir}/@{srcDir}/package.xml.new" typename="ValidationRule" element="validationRules" />
+      <addMetadataSubType dir="${basedir}/@{srcDir}/objects" xmlfile="${basedir}/@{srcDir}/package.xml.new" typename="WebLink" element="webLinks" />
+      <addMetadataSubType dir="${basedir}/@{srcDir}/workflows" suffix="workflow" xmlfile="${basedir}/@{srcDir}/package.xml.new" typename="WorkflowFieldUpdate" element="fieldUpdates" parentelement="Workflow" />
+      <addMetadataSubType dir="${basedir}/@{srcDir}/workflows" suffix="workflow" xmlfile="${basedir}/@{srcDir}/package.xml.new" typename="WorkflowRule" element="rules" parentelement="Workflow" />
 
-      <move file="${basedir}/src/package.xml.new" tofile="${basedir}/src/package.xml" />
+      <move file="${basedir}/@{srcDir}/package.xml.new" tofile="${basedir}/@{srcDir}/package.xml" />
     </sequential>
   </macrodef>
 
