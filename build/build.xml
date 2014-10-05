@@ -62,9 +62,9 @@
 
 	<!-- deployWithoutTest: Run a full deployment but don't run all tests.  This is useful if you already know tests will pass from previous runs and just want to deploy faster -->
 	<target name="deployWithoutTest">
-	    <antcall target="preDeployWithoutTest" />
+	    <antcall target="preDeploy" />
 		<sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="src" runAllTests="false" maxPoll="${cumulusci.maxPoll.notest}" />
-	    <antcall target="postDeployWithoutTest" />
+	    <antcall target="postDeploy" />
 	</target>
 
 	<!-- deployUnpackagedPre: Deploy the unpackaged/pre subdirectories containing metadata used in builds but not included in the managed package -->
@@ -474,18 +474,18 @@
     <target name="postUninstall">
     </target>
 
-    <!-- Before updateDependentPackages.  Can be used to uninstall packages in a downgrade scenario if building an extension package -->
+    <!-- Before updateRequiredPackages.  Can be used to uninstall packages in a downgrade scenario if building an extension package -->
     <target name="preUpdateRequiredPackages">
     </target>
-    <!-- After updateDependentPackages. -->
+    <!-- After updateRequiredPackages. -->
     <target name="postUpdateRequiredPackages">
     </target>
 
-    <!-- Before deployWithoutTest -->
-    <target name="preDeployWithoutTest">
+    <!-- Before deploy of src directory -->
+    <target name="preDeploy">
     </target>
-    <!-- After deployWithoutTest. -->
-    <target name="postDeployWithoutTest">
+    <!-- After deploy of src directory -->
+    <target name="postDeploy">
     </target>
 
     <!-- Before deployCI -->
