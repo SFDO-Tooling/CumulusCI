@@ -2,11 +2,11 @@ import os
 from github import Github
 from github.GithubException import GithubException
 
-ORG_NAME=os.environ.get('ORGANIZATION')
-REPO_NAME=os.environ.get('REPOSITORY')
-MASTER_NAME=os.environ.get('MASTER','dev')
-USERNAME=os.environ.get('USERNAME')
-PASSWORD=os.environ.get('PASSWORD')
+ORG_NAME=os.environ.get('GITHUB_ORG_NAME')
+REPO_NAME=os.environ.get('GITHUB_REPO_NAME')
+MASTER_NAME=os.environ.get('MASTER_BRANCH','master')
+USERNAME=os.environ.get('GITHUB_USERNAME')
+PASSWORD=os.environ.get('GITHUB_PASSWORD')
 BUILD_COMMIT=os.environ.get('BUILD_COMMIT', None)
 
 g = Github(USERNAME,PASSWORD)
