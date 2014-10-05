@@ -55,6 +55,7 @@ function runAntTarget {
 
 function runAntTargetBackground {
     ant $1 > "$1.cumulusci.log" &
+}
 
 # Function to wait on all background jobs to complete and return exit status
 function waitOnBackgroundJobs {
