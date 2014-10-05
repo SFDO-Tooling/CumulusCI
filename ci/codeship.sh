@@ -53,6 +53,10 @@ function runAntTarget {
     #    grep -v '^  *\[xslt\]'
 }
 
+function runAntTargetBackground {
+    ant $1 > "$1.cumulusci.log" 2>& 1 &
+}
+
 # Function to wait on all background jobs to complete and return exit status
 function waitOnBackgroundJobs {
     FAIL=0
@@ -62,16 +66,25 @@ function waitOnBackgroundJobs {
         wait $job || let "FAIL+=1"
     done
     
+    echo
+    echo "-----------------------------------------------------------------"
     if [ $FAIL -gt 0 ]; then
-        echo
-        echo "-----------------------------------------------------------------"
         echo "BUILD FAILED: Showing logs from parallel jobs below"
+    else
+        echo "BUILD PASSED: Showing logs from parallel jobs below"
+    fi
+    echo "-----------------------------------------------------------------"
+    echo
+    for file in *.cumulusci.log; do
+        echo
+        echo "-----------------------------------------------------------------"
+        echo "BUILD LOG: $file"
         echo "-----------------------------------------------------------------"
         echo
-        for $file in *.cumulusci.log; do
-            cat $file
-        done
-        
+        cat $file
+    done
+    if [ $FAIL -gt 0 ]; then
+        exit 1
     fi
 }
 
@@ -91,10 +104,15 @@ if [ $BUILD_TYPE == "master" ]; then
     # Deploy to packaging org
     echo
     echo "-----------------------------------------------------------------"
-    echo "ant deployCIMasterOrg - Deploy to master org"
+    echo "ant deployCI - Deploy to master org"
     echo "-----------------------------------------------------------------"
     echo
-    runAntTarget deployCI > deployCI.cumulusci.log &
+    echo "Copying repository to run 2 builds in parallel"
+    cd ..
+    cp -a clone clone2
+    cd clone2
+    runAntTargetBackground deployCI
+    cd ../clone
 
     # Get org credentials from env
     export SF_USERNAME=$SF_USERNAME_PACKAGING
@@ -109,9 +127,16 @@ if [ $BUILD_TYPE == "master" ]; then
     echo "-----------------------------------------------------------------"
     echo
 
-    runAntTarget deployCI > deployCIPackageOrg.cumulusci.log &
+    runAntTargetBackground deployCI
 
+    
+    echo
+    echo "-----------------------------------------------------------------"
+    echo "Waiting on background jobs to complete"
+    echo "-----------------------------------------------------------------"
+    echo
     waitOnBackgroundJobs
+    if [ $? != 0 ]; then exit 1; fi
     
     # Upload beta package
     echo
