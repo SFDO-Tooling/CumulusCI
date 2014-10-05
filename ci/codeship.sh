@@ -34,7 +34,14 @@ if [ "$BUILD_TYPE" == "" ]; then
     exit 1
 fi
 
+# The python scripts expect BUILD_COMMIT
+export BUILD_COMMIT=$CI_COMMIT_ID
+
+echo
+echo "-----------------------------------------------------------------"
 echo "Building $CI_BRANCH as a $BUILD_TYPE build"
+echo "-----------------------------------------------------------------"
+echo
 
 # Function to filter out unneeded ant output from builds
 function runAntTarget {
@@ -57,15 +64,25 @@ if [ $BUILD_TYPE == "master" ]; then
     export SF_USERNAME=$SF_USERNAME_PACKAGING
     export SF_PASSWORD=$SF_PASSWORD_PACKAGING
     export SF_SERVERURL=$SF_SERVERURL_PACKAGING
-    
     echo "Got org credentials for packaging org from env"
     
     # Deploy to packaging org
-    echo "Running ant deployCIPackageOrg"
+    echo
+    echo "-----------------------------------------------------------------"
+    echo "ant deployCIPackageOrg - Deploy to packaging org"
+    echo "-----------------------------------------------------------------"
+    echo
+
     runAntTarget deployCIPackageOrg
     if [ $? != 0 ]; then exit 1; fi
     
     # Upload beta package
+    echo
+    echo "-----------------------------------------------------------------"
+    echo "Uploading beta managed package via Selenium"
+    echo "-----------------------------------------------------------------"
+    echo
+
     export PACKAGE=`grep cumulusci.package.name.managed cumulusci.properties | sed -e 's/cumulusci.package.name.managed *= *//g'`
     export BUILD_NAME="$PACKAGE Build $CI_BUILD_NUMBER"
     export BUILD_WORKSPACE=`pwd`
@@ -76,13 +93,68 @@ if [ $BUILD_TYPE == "master" ]; then
     if [ $? != 0 ]; then exit 1; fi
  
     # Test beta
-        # Retry if package is unavailable
+    echo
+    echo "-----------------------------------------------------------------"
+    echo "ant deployManagedBeta - Install beta and test in beta org"
+    echo "-----------------------------------------------------------------"
+    echo
+    export SF_USERNAME=$SF_USERNAME_BETA
+    export SF_PASSWORD=$SF_PASSWORD_BETA
+    export SF_SERVERURL=$SF_SERVERURL_BETA
+    echo "Got org credentials for beta org from env"
+    export PACKAGE_VERSION=`grep PACKAGE_VERSION package.properties | sed -e 's/PACKAGE_VERSION=//g'`
+    echo "Attempting install of $PACKAGE_VERSION"
+    tries=0
+    ant_status=0
+    while [ $tries -lt 5 ]; do
+        ant deployManagedBeta
+        ant_status=$?
+        tries=$[tries + 1]
+    done
+    if [ $ant_status != 0 ]; then exit 1; fi
        
     # Create GitHub Release
+    echo
+    echo "-----------------------------------------------------------------"
+    echo "Creating GitHub Release $PACKAGE_VERSION"
+    echo "-----------------------------------------------------------------"
+    echo
+    python $CUMULUSCI_PATH/ci/github/create_release.py
 
     # Add release notes
+    echo
+    echo "-----------------------------------------------------------------"
+    echo "Generating Release Notes for $PACKAGE_VERSION"
+    echo "-----------------------------------------------------------------"
+    echo
+    export CURRENT_REL_TAG=`grep CURRENT_REL_TAG release.properties | sed -e 's/CURRENT_REL_TAG=//g'`
+    python $CUMULUSCI_PATH/ci/github/release_notes.py
+    
     
     # Merge master commit to all open feature branches
+    echo
+    echo "-----------------------------------------------------------------"
+    echo "Merge commit to all open feature branches"
+    echo "-----------------------------------------------------------------"
+    echo
+    pip install --upgrade githubpy
+    python $CUMULUSCI_PATH/ci/github/release_notes.py
+
+    # If environment variables are configured for mrbelvedere, publish the beta
+    if [ "$MRBELVEDERE_BASE_URL" != "" && "$MRBELVEDERE_PACKAGE_KEY" ]; then
+        echo
+        echo "-----------------------------------------------------------------"
+        echo "Publishing $PACKAGE_VERSION to mrbelvedere installer"
+        echo "-----------------------------------------------------------------"
+        echo
+        export NAMESPACE=`grep 'cumulusci.package.namespace *=' | sed -e 's/cumulusci\.package\.namespace *= *//g'`
+        export PROPERTIES_PATH='version.properties'
+        export BETA='true'
+        echo "Checking out $CURRENT_REL_TAG"
+        git checkout $CURRENT_REL_TAG
+        python mrbelvedere_update_dependencies.py
+    fi
+    
 
 # Feature branch commit, build and test in local unmanaged package
 elif [ $BUILD_TYPE == "feature" ]; then
@@ -101,11 +173,19 @@ elif [ $BUILD_TYPE == "feature" ]; then
 
 # Beta tag build, do nothing
 elif [ $BUILD_TYPE == "beta" ]; then
+    echo
+    echo "-----------------------------------------------------------------"
     echo "Nothing to do for a beta tag"
+    echo "-----------------------------------------------------------------"
+    echo
 
 # Prod tag build, deploy and test in packaging org
 elif [ $BUILD_TYPE == "release" ]; then
-    
+    echo
+    echo "-----------------------------------------------------------------"
+    echo "ant deployCIPackageOrg: Deploy release tag to packaging org"
+    echo "-----------------------------------------------------------------"
+    echo
     # Get org credentials from env
     export SF_USERNAME=$SF_USERNAME_PACKAGING
     export SF_PASSWORD=$SF_PASSWORD_PACKAGING
@@ -114,8 +194,6 @@ elif [ $BUILD_TYPE == "release" ]; then
     echo "Got org credentials for packaging org from env"
     
     # Deploy to packaging org
-    echo "Running ant deployCIPackageOrg"
     runAntTarget deployCIPackageOrg
     if [ $? != 0 ]; then exit 1; fi
-    
 fi
