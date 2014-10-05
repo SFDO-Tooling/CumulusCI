@@ -110,11 +110,11 @@ if [ $BUILD_TYPE == "master" ]; then
     echo "ant deployCI - Deploy to master org"
     echo "-----------------------------------------------------------------"
     echo
-    echo "Copying repository to `pwd`/clone2 to run 2 builds in parallel"
-    cd /home/rof/ 
-    cp -a clone clone2
-    cd clone2
-    runAntTargetBackground deployCI
+    #echo "Copying repository to `pwd`/clone2 to run 2 builds in parallel"
+    #cd /home/rof/ 
+    #cp -a clone clone2
+    #cd clone2
+    runAntTarget deployCI
 
     # Get org credentials from env
     export SF_USERNAME=$SF_USERNAME_PACKAGING
@@ -129,18 +129,18 @@ if [ $BUILD_TYPE == "master" ]; then
     echo "-----------------------------------------------------------------"
     echo
 
-    echo "Running deployCIPackageOrg from /home/rof/clone"
-    cd /home/rof/clone
-    runAntTargetBackground deployCI
+    #echo "Running deployCIPackageOrg from /home/rof/clone"
+    #cd /home/rof/clone
+    runAntTarget deployCI
 
     
-    echo
-    echo "-----------------------------------------------------------------"
-    echo "Waiting on background jobs to complete"
-    echo "-----------------------------------------------------------------"
-    echo
-    waitOnBackgroundJobs
-    if [ $? != 0 ]; then exit 1; fi
+    #echo
+    #echo "-----------------------------------------------------------------"
+    #echo "Waiting on background jobs to complete"
+    #echo "-----------------------------------------------------------------"
+    #echo
+    #waitOnBackgroundJobs
+    #if [ $? != 0 ]; then exit 1; fi
     
     # Upload beta package
     echo
