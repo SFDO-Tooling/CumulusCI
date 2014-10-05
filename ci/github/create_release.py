@@ -1,14 +1,13 @@
 import os
 import requests
 import json
-from subprocess import call
+#from subprocess import call
 
-ORG_NAME=os.environ.get('ORG_NAME')
-REPO_NAME=os.environ.get('REPO_NAME')
-USERNAME=os.environ.get('USERNAME')
-PASSWORD=os.environ.get('PASSWORD')
+ORG_NAME=os.environ.get('GITHUB_ORG_NAME')
+REPO_NAME=os.environ.get('GITHUB_REPO_NAME')
+USERNAME=os.environ.get('GITHUB_USERNAME')
+PASSWORD=os.environ.get('GITHUB_PASSWORD')
 BUILD_COMMIT=os.environ.get('BUILD_COMMIT')
-INSTALL_URL=os.environ.get('INSTALL_URL')
 PACKAGE_VERSION=os.environ.get('PACKAGE_VERSION')
 
 def call_api(owner, repo, subpath, data=None, username=None, password=None):
@@ -48,7 +47,7 @@ data = {
     'tag_name': 'uat/%s' % tag_name,
     'target_commitish': BUILD_COMMIT,
     'name': PACKAGE_VERSION,
-    'body': INSTALL_URL,
+    'body': '',
     'draft': False,
     'prerelease': True,
 }
