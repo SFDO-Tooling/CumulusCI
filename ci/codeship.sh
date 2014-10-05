@@ -66,20 +66,24 @@ function waitOnBackgroundJobs {
         wait $job || let "FAIL+=1"
     done
     
+    echo
+    echo "-----------------------------------------------------------------"
     if [ $FAIL -gt 0 ]; then
-        echo
-        echo "-----------------------------------------------------------------"
         echo "BUILD FAILED: Showing logs from parallel jobs below"
+    else
+        echo "BUILD PASSED: Showing logs from parallel jobs below"
+    fi
+    echo "-----------------------------------------------------------------"
+    echo
+    for file in *.cumulusci.log; do
+        echo
+        echo "-----------------------------------------------------------------"
+        echo "BUILD LOG: $file"
         echo "-----------------------------------------------------------------"
         echo
-        for file in *.cumulusci.log; do
-            echo
-            echo "-----------------------------------------------------------------"
-            echo "BUILD LOG: $file"
-            echo "-----------------------------------------------------------------"
-            echo
-            cat $file
-        done
+        cat $file
+    done
+    if [ $FAIL -gt 0 ]; then
         exit 1
     fi
 }
