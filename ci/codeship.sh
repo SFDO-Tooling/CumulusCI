@@ -37,6 +37,9 @@ fi
 # The python scripts expect BUILD_COMMIT
 export BUILD_COMMIT=$CI_COMMIT_ID
 
+# Cache the main build directory
+export BUILD_WORKSPACE=`pwd`
+
 echo
 echo "-----------------------------------------------------------------"
 echo "Building $CI_BRANCH as a $BUILD_TYPE build"
@@ -109,10 +112,10 @@ if [ $BUILD_TYPE == "master" ]; then
     echo
     echo "Copying repository to run 2 builds in parallel"
     cd ..
-    cp -a clone clone2
+    cp -a $BUILD_WORKSPACE clone2
     cd clone2
     runAntTargetBackground deployCI
-    cd ../clone
+    cd $BUILD_WORKSPACE
 
     # Get org credentials from env
     export SF_USERNAME=$SF_USERNAME_PACKAGING
