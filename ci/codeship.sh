@@ -37,6 +37,9 @@ fi
 # The python scripts expect BUILD_COMMIT
 export BUILD_COMMIT=$CI_COMMIT_ID
 
+# Cache the main build directory
+export BUILD_WORKSPACE=`pwd`
+
 echo
 echo "-----------------------------------------------------------------"
 echo "Building $CI_BRANCH as a $BUILD_TYPE build"
@@ -107,12 +110,11 @@ if [ $BUILD_TYPE == "master" ]; then
     echo "ant deployCI - Deploy to master org"
     echo "-----------------------------------------------------------------"
     echo
-    echo "Copying repository to run 2 builds in parallel"
-    cd ..
-    cp -a clone clone2
-    cd clone2
-    runAntTargetBackground deployCI
-    cd ../clone
+    #echo "Copying repository to `pwd`/clone2 to run 2 builds in parallel"
+    #cd /home/rof/ 
+    #cp -a clone clone2
+    #cd clone2
+    runAntTarget deployCI
 
     # Get org credentials from env
     export SF_USERNAME=$SF_USERNAME_PACKAGING
@@ -127,16 +129,18 @@ if [ $BUILD_TYPE == "master" ]; then
     echo "-----------------------------------------------------------------"
     echo
 
-    runAntTargetBackground deployCI
+    #echo "Running deployCIPackageOrg from /home/rof/clone"
+    #cd /home/rof/clone
+    runAntTarget deployCI
 
     
-    echo
-    echo "-----------------------------------------------------------------"
-    echo "Waiting on background jobs to complete"
-    echo "-----------------------------------------------------------------"
-    echo
-    waitOnBackgroundJobs
-    if [ $? != 0 ]; then exit 1; fi
+    #echo
+    #echo "-----------------------------------------------------------------"
+    #echo "Waiting on background jobs to complete"
+    #echo "-----------------------------------------------------------------"
+    #echo
+    #waitOnBackgroundJobs
+    #if [ $? != 0 ]; then exit 1; fi
     
     # Upload beta package
     echo
