@@ -2,11 +2,11 @@ import json
 import os
 import requests
 
-MPINSTALLER_BASE_URL=os.environ.get('MPINSTALLER_BASE_URL')
-PACKAGE_KEY=os.environ.get('PACKAGE_KEY')
+MRBELVEDERE_BASE_URL=os.environ.get('MRBELVEDERE_BASE_URL')
+PACKAGE_KEY=os.environ.get('MRBELVEDERE_PACKAGE_KEY')
 NAMESPACE=os.environ.get('NAMESPACE')
 BETA=os.environ.get('BETA', False)
-VERSION=os.environ.get('VERSION')
+VERSION=os.environ.get('PACKAGE_VERSION')
 PROPERTIES_PATH=os.environ.get('PROPERTIES_PATH', None)
 
 dependencies_url = '%s/%s/dependencies' % (MPINSTALLER_BASE_URL, NAMESPACE)

@@ -140,6 +140,22 @@ if [ $BUILD_TYPE == "master" ]; then
     pip install --upgrade githubpy
     python $CUMULUSCI_PATH/ci/github/release_notes.py
 
+    # If environment variables are configured for mrbelvedere, publish the beta
+    if [ "$MRBELVEDERE_BASE_URL" != "" && "$MRBELVEDERE_PACKAGE_KEY" ]; then
+        echo
+        echo "-----------------------------------------------------------------"
+        echo "Publishing $PACKAGE_VERSION to mrbelvedere installer"
+        echo "-----------------------------------------------------------------"
+        echo
+        export NAMESPACE=`grep 'cumulusci.package.namespace *=' | sed -e 's/cumulusci\.package\.namespace *= *//g'`
+        export PROPERTIES_PATH='version.properties'
+        export BETA='true'
+        echo "Checking out $CURRENT_REL_TAG"
+        git checkout $CURRENT_REL_TAG
+        python mrbelvedere_update_dependencies.py
+    fi
+    
+
 # Feature branch commit, build and test in local unmanaged package
 elif [ $BUILD_TYPE == "feature" ]; then
     
