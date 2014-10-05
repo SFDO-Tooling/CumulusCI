@@ -157,11 +157,14 @@
 		<!-- Deploy any unpackaged metadata bundles needed before the deployment -->
 		<antcall target="deployUnpackagedPre" />
 
-		<!-- Finally, do a deploy with all tests -->
-		<antcall target="deploy" />
+		<!-- Deploy the src directory -->
+		<antcall target="deployWithoutTest" />
 
 		<!-- Deploy any unpackaged metadata bundles needed after the deployment -->
 		<antcall target="deployUnpackagedPost" />
+
+        <!-- Run all tests -->
+		<antcall target="runAllTests" />
 
 		<!-- Uninstall unpackaged post bundles since they may reference code in the package -->
 		<antcall target="uninstallUnpackagedPost" />
@@ -194,14 +197,17 @@
 		<!-- Update the package.xml to managed package mode, adding install and uninstall script classes -->
 		<antcall target="updatePackageXmlManaged" />
 
-		<!-- Do a deploy skipping tests for now since the upload will run tests -->
-		<antcall target="deploy" />
+		<!-- Deploy src directory -->
+		<antcall target="deployWithoutTest" />
 
 		<!-- Finally, delete any metadata from the org which is not in the repo -->
 		<antcall target="destroyStaleMetadata" />
 
 		<!-- Deploy any unpackaged metadata bundles needed after the deployment -->
 		<antcall target="deployUnpackagedPost" />
+
+		<!-- Run all tests -->
+		<antcall target="runAllTests" />
 
         <antcall target="postDeployCIPackageOrg" />
 	</target>
