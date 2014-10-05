@@ -111,8 +111,8 @@ if [ $BUILD_TYPE == "master" ]; then
     echo "-----------------------------------------------------------------"
     echo
     echo "Copying repository to `pwd`/clone2 to run 2 builds in parallel"
-    cd ..
-    cp -a $BUILD_WORKSPACE clone2
+    cd /home/rof/ 
+    cp -a clone clone2
     cd clone2
     runAntTargetBackground deployCI
 
@@ -129,8 +129,8 @@ if [ $BUILD_TYPE == "master" ]; then
     echo "-----------------------------------------------------------------"
     echo
 
-    echo "Copying repository to run 2 builds in parallel"
-    cd $BUILD_WORKSPACE
+    echo "Running deployCIPackageOrg from /home/rof/clone"
+    cd /home/rof/clone
     runAntTargetBackground deployCI
 
     
