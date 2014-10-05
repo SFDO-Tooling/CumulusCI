@@ -62,7 +62,9 @@
 
 	<!-- deployWithoutTest: Run a full deployment but don't run all tests.  This is useful if you already know tests will pass from previous runs and just want to deploy faster -->
 	<target name="deployWithoutTest">
+	    <antcall target="preDeployWithoutTest" />
 		<sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="src" runAllTests="false" maxPoll="${cumulusci.maxPoll.notest}" />
+	    <antcall target="postDeployWithoutTest" />
 	</target>
 
 	<!-- deployUnpackagedPre: Deploy the unpackaged/pre subdirectories containing metadata used in builds but not included in the managed package -->
@@ -144,6 +146,8 @@
 	<!-- deployCI: Does a full build including uninstalling previously deployed unpackaged code, updating managed package versions, and then deploying with all tests -->
 	<!-- !!!WARNING!!!: DO NOT run this against a real production org as it will delete everything.  It is designed to clear the target org to ensure a clean build test. -->
 	<target name="deployCI">
+        <antcall target="preDeployCI" />
+
 		<!-- First, uninstall all unpackaged code from the target org.  We have to do this first so we can uninstall and reinstall any managed packages not at the right version -->
 		<antcall target="uninstall" />
 
@@ -161,12 +165,16 @@
 
 		<!-- Uninstall unpackaged post bundles since they may reference code in the package -->
 		<antcall target="uninstallUnpackagedPost" />
+
+        <antcall target="postDeployCI" />
 	</target>
 
 	<!-- deployCIPackageOrg: Does a full build against the package org.  This differs from deployCI in that it uses destroyStaleMetadata instead of uninstall.
 	         There are a few assumptions.  We never downgrade a dependent managed package in the packaging org.  This removes the need to completely remove
 	         all metadata to allow a package downgrade.  In the package org, we can't delete all metadata once a production managed release is cut so this approach is required -->
 	<target name="deployCIPackageOrg">
+        <antcall target="preDeployCIPackageOrg" />
+
 		<!-- Update any managed packages which are not at the right version -->
 		<antcall target="updateRequiredPackages" />
 
@@ -195,11 +203,14 @@
 		<!-- Deploy any unpackaged metadata bundles needed after the deployment -->
 		<antcall target="deployUnpackagedPost" />
 
+        <antcall target="postDeployCIPackageOrg" />
 	</target>
 
     <!-- Deploys the latest managed beta release to an org -->
     <!-- !!!WARNING!!!: DO NOT run this against a real production org as it will delete everything.  It is designed to clear the target org to ensure a clean build test. -->
     <target name="deployManagedBeta">
+        <antcall target="preDeployManagedBeta" />
+
         <echo>BUILD_COMMIT = ${env.BUILD_COMMIT}</echo>
         <if>
             <and>
@@ -254,11 +265,14 @@
 
         <antcall target="uninstallUnpackagedPost" />
 
+        <antcall target="postDeployManagedBeta" />
     </target>
 
     <!-- Deploys the latest production managed release to an org -->
     <!-- !!!WARNING!!!: DO NOT run this against a real production org as it will delete everything.  It is designed to clear the target org to ensure a clean build test. -->
     <target name="deployManaged">
+        <antcall target="preDeployManaged" />
+
         <echo>BUILD_COMMIT = ${env.BUILD_COMMIT}</echo>
         <if>
             <and>
@@ -305,6 +319,7 @@
         <antcall target="deployUnpackagedPre" />
         <antcall target="deployUnpackagedPost" />
 
+        <antcall target="postDeployManaged" />
     </target>
 
 	<!-- Utility Build Targets -->
@@ -328,6 +343,7 @@
 
 	<!-- uninstall: Removes all metadata from the package -->
 	<target name="uninstall">
+		<antcall target="preUninstall" />
 		<antcall target="uninstallUnpackagedPost" />
 		<delete dir="uninstallsrc" />
 		<delete dir="uninstall" />
@@ -337,6 +353,7 @@
 		<delete dir="uninstallsrc" />
 		<delete dir="uninstall" />
 		<antcall target="uninstallUnpackagedPre" />
+		<antcall target="postUninstall" />
 	</target>
 
 	<!-- uninstall: Removes all non-standard unpackaged metadata from the org -->
@@ -388,10 +405,6 @@
         </sequential>
     </macrodef>
 
-    <!-- Stub target which can be overridden to handle logic for uninstalling packages due to dependencies --> 
-    <target name="preUpdateRequiredPackages">
-    </target>
-
 	<!-- updateDependendentPackages: Ensures all dependent packages are the correct version -->
     <target name="updateRequiredPackages">
         <getPackageVersions />
@@ -409,6 +422,7 @@
                 </if>
             </sequential>
         </for>
+        <antcall target="postUpdateRequiredPackages" />
     </target>
 
 	<!-- Developer focused build targets -->
@@ -449,6 +463,57 @@
             </sequential>
         </for>
         <updateMetaXmlApi dir="${basedir}/src" apiVersion="${cumulusci.package.apiVersion}" />
+    </target>
+
+    <!-- Override hook targets: These targets are empty in the core file but exist for allowing projects to hook in their own custom logic without overriding the core targets -->
+
+    <!-- Before uninstall -->
+    <target name="preUninstall">
+    </target>
+    <!-- After uninstall. -->
+    <target name="postUninstall">
+    </target>
+
+    <!-- Before updateDependentPackages.  Can be used to uninstall packages in a downgrade scenario if building an extension package -->
+    <target name="preUpdateRequiredPackages">
+    </target>
+    <!-- After updateDependentPackages. -->
+    <target name="postUpdateRequiredPackages">
+    </target>
+
+    <!-- Before deployWithoutTest -->
+    <target name="preDeployWithoutTest">
+    </target>
+    <!-- After deployWithoutTest. -->
+    <target name="postDeployWithoutTest">
+    </target>
+
+    <!-- Before deployCI -->
+    <target name="preDeployCI">
+    </target>
+    <!-- After deployCI -->
+    <target name="postDeployCI">
+    </target>
+
+    <!-- Before deployCIPackageOrg -->
+    <target name="preDeployCIPackageOrg">
+    </target>
+    <!-- After deployCIPackageOrg -->
+    <target name="postDeployCIPackageOrg">
+    </target>
+
+    <!-- Before deployManaged -->
+    <target name="preDeployManaged">
+    </target>
+    <!-- After deployManaged -->
+    <target name="postDeployManaged">
+    </target>
+
+    <!-- Before deployManagedBeta -->
+    <target name="preDeployManagedBeta">
+    </target>
+    <!-- After deployManagedBeta -->
+    <target name="postDeployManagedBeta">
     </target>
 
 </project>
