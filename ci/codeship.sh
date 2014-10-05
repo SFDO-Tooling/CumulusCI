@@ -53,6 +53,9 @@ function runAntTarget {
     #    grep -v '^  *\[xslt\]'
 }
 
+function runAntTargetBackground {
+    ant $1 > "$1.cumulusci.log" &
+
 # Function to wait on all background jobs to complete and return exit status
 function waitOnBackgroundJobs {
     FAIL=0
@@ -68,10 +71,10 @@ function waitOnBackgroundJobs {
         echo "BUILD FAILED: Showing logs from parallel jobs below"
         echo "-----------------------------------------------------------------"
         echo
-        for $file in *.cumulusci.log; do
+        for file in *.cumulusci.log; do
             cat $file
         done
-        
+        exit 1
     fi
 }
 
@@ -94,7 +97,7 @@ if [ $BUILD_TYPE == "master" ]; then
     echo "ant deployCIMasterOrg - Deploy to master org"
     echo "-----------------------------------------------------------------"
     echo
-    runAntTarget deployCI > deployCI.cumulusci.log &
+    runAntTargetBackground deployCI
 
     # Get org credentials from env
     export SF_USERNAME=$SF_USERNAME_PACKAGING
@@ -109,9 +112,10 @@ if [ $BUILD_TYPE == "master" ]; then
     echo "-----------------------------------------------------------------"
     echo
 
-    runAntTarget deployCI > deployCIPackageOrg.cumulusci.log &
+    runAntTargetBackground deployCI
 
     waitOnBackgroundJobs
+    if [ $? != 0 ]; then exit 1; fi
     
     # Upload beta package
     echo
