@@ -103,7 +103,12 @@ if [ $BUILD_TYPE == "master" ]; then
     echo "ant deployCI - Deploy to master org"
     echo "-----------------------------------------------------------------"
     echo
+    echo "Copying repository to run 2 builds in parallel"
+    cd ..
+    cp -a clone clone2
+    cd clone2
     runAntTargetBackground deployCI
+    cd ../clone
 
     # Get org credentials from env
     export SF_USERNAME=$SF_USERNAME_PACKAGING
