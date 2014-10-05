@@ -66,7 +66,7 @@ if [ $BUILD_TYPE == "master" ]; then
     if [ $? != 0 ]; then exit 1; fi
     
     # Upload beta package
-    export PACKAGE=`grep cumulusci.package.name.managed cumulusci.properties | sed -e 's/cumulusci.package.name.managed=//g'`
+    export PACKAGE=`grep cumulusci.package.name.managed cumulusci.properties | sed -e 's/cumulusci.package.name.managed *= *//g'`
     export BUILD_NAME="$PACKAGE Build $CI_BUILD_NUMBER"
     export BUILD_WORKSPACE=`pwd`
     export BUILD_COMMIT="$CI_COMMIT_ID"
