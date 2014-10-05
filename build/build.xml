@@ -46,6 +46,15 @@
     <!-- Load up cumulusci.properties file with package specific properties -->
     <loadproperties srcFile="${basedir}/cumulusci.properties"/>
 
+    <!-- Set default values for properties not provided in cumulusci.properties -->
+    <property name="cumulusci.package.name.managed" value="${cumulusci.package.name}" />
+    <property name="cumulusci.package.installClass" value="" />
+    <property name="cumulusci.package.uninstallClass" value="" />
+    <property name="cumulusci.package.apiVersion" value="31.0" />
+    <property name="cumulusci.maxPoll.test" value="400" />
+    <property name="cumulusci.maxPoll.notest" value="200" />
+    <property name="cumulusci.maxPoll.managed" value="400" />
+
     <!-- Setup a blank namespace prefix string.  Managed deployments need to override this property before calling deployUnpackagedPost -->
     <property name="cumulusci.namespace.prefix" value="" />
     
