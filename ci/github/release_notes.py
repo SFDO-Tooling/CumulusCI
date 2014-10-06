@@ -39,7 +39,10 @@ def create_release_notes():
     CURRENT_REL_TAG=os.environ.get('CURRENT_REL_TAG')
     
     gh = Github(USERNAME, PASSWORD)
-    org = gh.get_organization(ORG_NAME)
+    try:
+        org = gh.get_organization(ORG_NAME)
+    except:
+        org = gh.get_user(ORG_NAME)
     repo = org.get_repo(REPO_NAME)
     
     # If LAST_REL_TAG was not provided, find the last release tag and set it as LAST_REL_TAG
