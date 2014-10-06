@@ -218,6 +218,10 @@ if [ $BUILD_TYPE == "master" ]; then
         echo "Generating Release Notes for $PACKAGE_VERSION"
         echo "-----------------------------------------------------------------"
         echo
+        # We previously had this script install githubpy instead of PyGithub
+        # cleanup in case githubpy is still around.  FIXME: Remove this
+        pip uninstall -y githubpy
+        pip install --upgrade PyGithub==1.25.1
         export CURRENT_REL_TAG=`grep CURRENT_REL_TAG release.properties | sed -e 's/CURRENT_REL_TAG=//g'`
         python $CUMULUSCI_PATH/ci/github/release_notes.py
     
@@ -228,11 +232,7 @@ if [ $BUILD_TYPE == "master" ]; then
         echo "Merge commit to all open feature branches"
         echo "-----------------------------------------------------------------"
         echo
-        # We previously had this script install githubpy instead of PyGithub
-        # cleanup in case githubpy is still around.  FIXME: Remove this
-        pip uninstall -y githubpy
-        pip install --upgrade PyGithub==1.25.1
-        python $CUMULUSCI_PATH/ci/github/release_notes.py
+        python $CUMULUSCI_PATH/ci/github/merge_master_to_feature.py
     else
         echo
         echo "-----------------------------------------------------------------"
