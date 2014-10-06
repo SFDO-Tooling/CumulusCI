@@ -179,13 +179,22 @@ if [ $BUILD_TYPE == "master" ]; then
         echo "ant deployManagedBeta - Attempt $tries of 5"
         echo "-----------------------------------------------------------------"
         echo
-        ant deployManagedBeta
+        runAntTarget deployManagedBeta
         ant_status=$?
         if [ $ant_status == 0 ]; then
             break
         fi
     done
     if [ $ant_status != 0 ]; then exit 1; fi
+
+    echo
+    echo "-----------------------------------------------------------------"
+    echo "ant runAllTests: Testing $PACKAGE_VERSION in beta org"
+    echo "-----------------------------------------------------------------"
+    echo
+    runAntTarget runAllTests
+    if [ $ant_status != 0 ]; then exit 1; fi
+    
        
     # Create GitHub Release
     echo
