@@ -435,7 +435,19 @@
                         <updatePackageVersion namespace="${cumulusci.package.namespace}" version="${version.@{packageNamespace}}" />
                     </then>
                     <else>
+                        <if>
+                            <available dir="${basedir}/unpackaged/@{packageNamespace}/pre" />
+                            <then>
+                                <deployMetadataBundles dir="${basedir}/unpackaged/pre" stagedir="${basedir}/unpackaged_stage" />
+                            </then>
+                        </if>
                         <updatePackageVersion namespace="@{packageNamespace}" version="${version.@{packageNamespace}}" />
+                        <if>
+                            <available dir="${basedir}/unpackaged/@{packageNamespace}/post" />
+                            <then>
+                                <deployMetadataBundles dir="${basedir}/unpackaged/post" stagedir="${basedir}/unpackaged_stage" />
+                            </then>
+                        </if>
                     </else>
                 </if>
             </sequential>
