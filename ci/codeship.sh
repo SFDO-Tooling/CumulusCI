@@ -98,23 +98,31 @@ function waitOnBackgroundJobs {
 # Master branch commit, build and test a beta managed package
 if [ $BUILD_TYPE == "master" ]; then
 
-    # Get org credentials from env
-    export SF_USERNAME=$SF_USERNAME_MASTER
-    export SF_PASSWORD=$SF_PASSWORD_MASTER
-    export SF_SERVERURL=$SF_SERVERURL_MASTER
-    echo "Got org credentials for master org from env"
-    
-    # Deploy to packaging org
-    echo
-    echo "-----------------------------------------------------------------"
-    echo "ant deployCI - Deploy to master org"
-    echo "-----------------------------------------------------------------"
-    echo
-    #echo "Copying repository to `pwd`/clone2 to run 2 builds in parallel"
-    #cd /home/rof/ 
-    #cp -a clone clone2
-    #cd clone2
-    runAntTarget deployCI
+    if [ "$SF_USERNAME_MASTER" != "" ]; then
+        # Get org credentials from env
+        export SF_USERNAME=$SF_USERNAME_MASTER
+        export SF_PASSWORD=$SF_PASSWORD_MASTER
+        export SF_SERVERURL=$SF_SERVERURL_MASTER
+        echo "Got org credentials for master org from env"
+        
+        # Deploy to packaging org
+        echo
+        echo "-----------------------------------------------------------------"
+        echo "ant deployCI - Deploy to master org"
+        echo "-----------------------------------------------------------------"
+        echo
+        #echo "Copying repository to `pwd`/clone2 to run 2 builds in parallel"
+        #cd /home/rof/ 
+        #cp -a clone clone2
+        #cd clone2
+        runAntTarget deployCI
+    else
+        echo
+        echo "-----------------------------------------------------------------"
+        echo "No master org credentials, skipping master org build"
+        echo "-----------------------------------------------------------------"
+        echo
+    fi
 
     # Get org credentials from env
     export SF_USERNAME=$SF_USERNAME_PACKAGING
@@ -220,6 +228,9 @@ if [ $BUILD_TYPE == "master" ]; then
     echo "Merge commit to all open feature branches"
     echo "-----------------------------------------------------------------"
     echo
+    # We previously had this script install githubpy instead of PyGithub
+    # cleanup in case githubpy is still around.  FIXME: Remove this
+    pip uninstall githubpy
     pip install --upgrade PyGithub==1.25.1
     python $CUMULUSCI_PATH/ci/github/release_notes.py
 
