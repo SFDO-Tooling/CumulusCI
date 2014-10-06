@@ -52,6 +52,9 @@ if __name__ == '__main__':
     try:
         tag_to_tag()
     except:
-        e = sys.exc_info()[0]
-        print e
+        import traceback
+        exc_type, exc_value, exc_traceback = sys.exc_info()
+        print '-'*60
+        traceback.print_exception(exc_type, exc_value, exc_traceback, file=sys.stdout)
+        print '-'*60
         sys.exit(1)

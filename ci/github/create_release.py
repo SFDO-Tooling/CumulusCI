@@ -30,6 +30,7 @@ def create_release():
     PASSWORD=os.environ.get('GITHUB_PASSWORD')
     BUILD_COMMIT=os.environ.get('BUILD_COMMIT')
     PACKAGE_VERSION=os.environ.get('PACKAGE_VERSION')
+    BUILD_WORKSPACE=os.environ.get('BUILD_WORKSPACE')
     
     existing = None
     
@@ -59,12 +60,20 @@ def create_release():
     print 'Release created:'
     print rel
 
+    # Write relevant release properties to output file for use by future jobs against the release
+    f = open('%s/release.properties' % BUILD_WORKSPACE, 'w')
+    f.write('CURRENT_REL_TAG=%s\n' % rel['tag_name'])
+    f.close()
+
     # TODO: Zip and upload the unpackaged/pre and unpackage/post bundles
 
 if __name__ == '__main__':
     try:
         create_release()
     except:
-        e = sys.exc_info()[0]
-        print e
+        import traceback
+        exc_type, exc_value, exc_traceback = sys.exc_info()
+        print '-'*60
+        traceback.print_exception(exc_type, exc_value, exc_traceback, file=sys.stdout)
+        print '-'*60
         sys.exit(1)

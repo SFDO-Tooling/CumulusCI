@@ -64,12 +64,14 @@ def create_release_notes():
         print 'Found last release tag: %s' % LAST_REL_TAG
     
     # Find the start and end date for pull requests by finding the commits from the tags
-    last_rel_ref = call_api('/git/refs/tags/%s' % LAST_REL_TAG)
-    if last_rel_ref['object']['type'] == 'tag':
-        last_rel_tag = call_api('/git/tags/%s' % last_rel_ref['object']['sha'])
-        last_rel_commit = call_api('/git/commits/%s' % last_rel_tag['object']['sha'])
-    else:
-        last_rel_commit = call_api('/git/commits/%s' % last_rel_ref['object']['sha'])
+    last_rel_commit = None
+    if LAST_REL_TAG:
+        last_rel_ref = call_api('/git/refs/tags/%s' % LAST_REL_TAG)
+        if last_rel_ref['object']['type'] == 'tag':
+            last_rel_tag = call_api('/git/tags/%s' % last_rel_ref['object']['sha'])
+            last_rel_commit = call_api('/git/commits/%s' % last_rel_tag['object']['sha'])
+        else:
+            last_rel_commit = call_api('/git/commits/%s' % last_rel_ref['object']['sha'])
     
     current_rel_ref = call_api('/git/refs/tags/%s' % CURRENT_REL_TAG)
     if current_rel_ref['object']['type'] == 'tag':
@@ -78,7 +80,11 @@ def create_release_notes():
     else:
         current_rel_commit = call_api('/git/commits/%s' % current_rel_ref['object']['sha'])
     
-    since_date = datetime.datetime.strptime(last_rel_commit['committer']['date'], "%Y-%m-%dT%H:%M:%SZ")
+    if last_rel_commit:
+        since_date = datetime.datetime.strptime(last_rel_commit['committer']['date'], "%Y-%m-%dT%H:%M:%SZ")
+    else:
+        since_date = datetime.datetime(1999, 1, 1)
+
     until_date = datetime.datetime.strptime(current_rel_commit['committer']['date'], "%Y-%m-%dT%H:%M:%SZ")
     
     # Get the released package version number
@@ -237,6 +243,9 @@ if __name__ == '__main__':
     try:
         create_release_notes()
     except:
-        e = sys.exc_info()[0]
-        print e
+        import traceback
+        exc_type, exc_value, exc_traceback = sys.exc_info()
+        print '-'*60
+        traceback.print_exception(exc_type, exc_value, exc_traceback, file=sys.stdout)
+        print '-'*60
         sys.exit(1)
