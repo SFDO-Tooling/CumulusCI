@@ -63,7 +63,8 @@ def create_release_notes():
                 versions.append(version)
         versions.sort()
         versions.reverse()
-        LAST_REL_TAG = 'rel/%s' % versions[0]
+        if versions:
+            LAST_REL_TAG = 'rel/%s' % versions[0]
         print 'Found last release tag: %s' % LAST_REL_TAG
     
     # Find the start and end date for pull requests by finding the commits from the tags
