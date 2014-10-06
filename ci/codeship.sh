@@ -211,11 +211,11 @@ if [ $BUILD_TYPE == "master" ]; then
     echo "Merge commit to all open feature branches"
     echo "-----------------------------------------------------------------"
     echo
-    pip install --upgrade githubpy
+    pip install --upgrade PyGithub==1.25.1
     python $CUMULUSCI_PATH/ci/github/release_notes.py
 
     # If environment variables are configured for mrbelvedere, publish the beta
-    if [ "$MRBELVEDERE_BASE_URL" != "" && "$MRBELVEDERE_PACKAGE_KEY" ]; then
+    if [ "$MRBELVEDERE_BASE_URL" != "" && "$MRBELVEDERE_PACKAGE_KEY" != "" ]; then
         echo
         echo "-----------------------------------------------------------------"
         echo "Publishing $PACKAGE_VERSION to mrbelvedere installer"
