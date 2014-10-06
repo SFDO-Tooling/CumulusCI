@@ -8,6 +8,14 @@ from github import Github
 from distutils.version import LooseVersion
 from subprocess import call
 
+ORG_NAME=os.environ.get('GITHUB_ORG_NAME')
+REPO_NAME=os.environ.get('GITHUB_REPO_NAME')
+USERNAME=os.environ.get('GITHUB_USERNAME')
+PASSWORD=os.environ.get('GITHUB_PASSWORD')
+MASTER_BRANCH=os.environ.get('MASTER_BRANCH')
+LAST_REL_TAG=os.environ.get('LAST_REL_TAG')
+CURRENT_REL_TAG=os.environ.get('CURRENT_REL_TAG')
+    
 # custom api wrapper for release interaction
 def call_api(subpath, data=None):
     """ Takes a subpath under the repository (ex: /releases) and returns the json data from the api """
@@ -30,14 +38,6 @@ def call_api(subpath, data=None):
 
 
 def create_release_notes():
-    ORG_NAME=os.environ.get('GITHUB_ORG_NAME')
-    REPO_NAME=os.environ.get('GITHUB_REPO_NAME')
-    USERNAME=os.environ.get('GITHUB_USERNAME')
-    PASSWORD=os.environ.get('GITHUB_PASSWORD')
-    MASTER_BRANCH=os.environ.get('MASTER_BRANCH')
-    LAST_REL_TAG=os.environ.get('LAST_REL_TAG')
-    CURRENT_REL_TAG=os.environ.get('CURRENT_REL_TAG')
-    
     gh = Github(USERNAME, PASSWORD)
     try:
         org = gh.get_organization(ORG_NAME)
