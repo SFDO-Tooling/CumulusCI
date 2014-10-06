@@ -12,8 +12,11 @@ def merge_master_to_feature():
     BUILD_COMMIT=os.environ.get('BUILD_COMMIT', None)
     
     g = Github(USERNAME,PASSWORD)
-    
-    org = g.get_organization(ORG_NAME)
+
+    try:
+        org = g.get_organization(ORG_NAME)
+    except:
+        org = g.get_user(ORG_NAME)
     repo = org.get_repo(REPO_NAME)
     
     master = repo.get_branch(MASTER_NAME)
