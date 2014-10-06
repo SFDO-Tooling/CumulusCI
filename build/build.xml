@@ -436,14 +436,14 @@
                     </then>
                     <else>
                         <if>
-                            <available dir="${basedir}/unpackaged/@{packageNamespace}/pre" />
+                            <available file="${basedir}/unpackaged/@{packageNamespace}/pre" type="dir" />
                             <then>
                                 <deployMetadataBundles dir="${basedir}/unpackaged/pre" stagedir="${basedir}/unpackaged_stage" />
                             </then>
                         </if>
                         <updatePackageVersion namespace="@{packageNamespace}" version="${version.@{packageNamespace}}" />
                         <if>
-                            <available dir="${basedir}/unpackaged/@{packageNamespace}/post" />
+                            <available file="${basedir}/unpackaged/@{packageNamespace}/post" type="dir" />
                             <then>
                                 <deployMetadataBundles dir="${basedir}/unpackaged/post" stagedir="${basedir}/unpackaged_stage" />
                             </then>
