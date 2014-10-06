@@ -235,7 +235,7 @@ if [ $BUILD_TYPE == "master" ]; then
     python $CUMULUSCI_PATH/ci/github/release_notes.py
 
     # If environment variables are configured for mrbelvedere, publish the beta
-    if [ "$MRBELVEDERE_BASE_URL" != "" && "$MRBELVEDERE_PACKAGE_KEY" != "" ]; then
+    if [ "$MRBELVEDERE_BASE_URL" != "" ]; then
         echo
         echo "-----------------------------------------------------------------"
         echo "Publishing $PACKAGE_VERSION to mrbelvedere installer"
