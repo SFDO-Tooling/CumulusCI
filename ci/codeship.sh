@@ -203,36 +203,44 @@ if [ $BUILD_TYPE == "master" ]; then
     runAntTarget runAllTests
     if [ $ant_status != 0 ]; then exit 1; fi
     
-       
-    # Create GitHub Release
-    echo
-    echo "-----------------------------------------------------------------"
-    echo "Creating GitHub Release $PACKAGE_VERSION"
-    echo "-----------------------------------------------------------------"
-    echo
-    python $CUMULUSCI_PATH/ci/github/create_release.py
+    if [ "$GITHUB_USERNAME" != "" ]; then   
+        # Create GitHub Release
+        echo
+        echo "-----------------------------------------------------------------"
+        echo "Creating GitHub Release $PACKAGE_VERSION"
+        echo "-----------------------------------------------------------------"
+        echo
+        python $CUMULUSCI_PATH/ci/github/create_release.py
 
-    # Add release notes
-    echo
-    echo "-----------------------------------------------------------------"
-    echo "Generating Release Notes for $PACKAGE_VERSION"
-    echo "-----------------------------------------------------------------"
-    echo
-    export CURRENT_REL_TAG=`grep CURRENT_REL_TAG release.properties | sed -e 's/CURRENT_REL_TAG=//g'`
-    python $CUMULUSCI_PATH/ci/github/release_notes.py
+        # Add release notes
+        echo
+        echo "-----------------------------------------------------------------"
+        echo "Generating Release Notes for $PACKAGE_VERSION"
+        echo "-----------------------------------------------------------------"
+        echo
+        export CURRENT_REL_TAG=`grep CURRENT_REL_TAG release.properties | sed -e 's/CURRENT_REL_TAG=//g'`
+        python $CUMULUSCI_PATH/ci/github/release_notes.py
     
     
-    # Merge master commit to all open feature branches
-    echo
-    echo "-----------------------------------------------------------------"
-    echo "Merge commit to all open feature branches"
-    echo "-----------------------------------------------------------------"
-    echo
-    # We previously had this script install githubpy instead of PyGithub
-    # cleanup in case githubpy is still around.  FIXME: Remove this
-    pip uninstall githubpy
-    pip install --upgrade PyGithub==1.25.1
-    python $CUMULUSCI_PATH/ci/github/release_notes.py
+        # Merge master commit to all open feature branches
+        echo
+        echo "-----------------------------------------------------------------"
+        echo "Merge commit to all open feature branches"
+        echo "-----------------------------------------------------------------"
+        echo
+        # We previously had this script install githubpy instead of PyGithub
+        # cleanup in case githubpy is still around.  FIXME: Remove this
+        pip uninstall githubpy
+        pip install --upgrade PyGithub==1.25.1
+        python $CUMULUSCI_PATH/ci/github/release_notes.py
+    else
+        echo
+        echo "-----------------------------------------------------------------"
+        echo "Skipping GitHub Releaseand master to feature merge because the"
+        echo "environment variable GITHUB_USERNAME is not configured."
+        echo "-----------------------------------------------------------------"
+        echo
+    fi
 
     # If environment variables are configured for mrbelvedere, publish the beta
     if [ "$MRBELVEDERE_BASE_URL" != "" ]; then
