@@ -218,28 +218,37 @@ class PackageUpload(object):
         driver.get(start_url)
         return driver
 
-oauth_client_id = os.environ.get('OAUTH_CLIENT_ID')
-oauth_client_secret = os.environ.get('OAUTH_CLIENT_SECRET')
-oauth_callback_url = os.environ.get('OAUTH_CALLBACK_URL')
-instance_url = os.environ.get('INSTANCE_URL')
-refresh_token = os.environ.get('REFRESH_TOKEN')
-package = os.environ.get('PACKAGE')
-build_name = os.environ.get('BUILD_NAME')
-build_commit = os.environ.get('BUILD_COMMIT')
-build_workspace = os.environ.get('BUILD_WORKSPACE')
+def package_upload():
+    oauth_client_id = os.environ.get('OAUTH_CLIENT_ID')
+    oauth_client_secret = os.environ.get('OAUTH_CLIENT_SECRET')
+    oauth_callback_url = os.environ.get('OAUTH_CALLBACK_URL')
+    instance_url = os.environ.get('INSTANCE_URL')
+    refresh_token = os.environ.get('REFRESH_TOKEN')
+    package = os.environ.get('PACKAGE')
+    build_name = os.environ.get('BUILD_NAME')
+    build_commit = os.environ.get('BUILD_COMMIT')
+    build_workspace = os.environ.get('BUILD_WORKSPACE')
+    
+    uploader = PackageUpload(instance_url, refresh_token, package, oauth_client_id, oauth_client_secret, oauth_callback_url)
+    uploader.build_package(build_name)
+    
+    print 'Build Complete'
+    print '-------------------'
+    print 'Version: %s' % uploader.version
+    print 'Install URL: %s' % uploader.install_url
+    print 'Writing package.properties file'
+    sys.stdout.flush()
+    f = open('%s/package.properties' % build_workspace, 'w')
+    f.write('PACKAGE_VERSION=%s\n' % uploader.version)
+    f.write('INSTALL_URL=%s\n' % uploader.install_url)
+    f.write('BUILD_COMMIT=%s\n' % build_commit)
+    f.close()
 
-uploader = PackageUpload(instance_url, refresh_token, package, oauth_client_id, oauth_client_secret, oauth_callback_url)
-uploader.build_package(build_name)
-
-print 'Build Complete'
-print '-------------------'
-print 'Version: %s' % uploader.version
-print 'Install URL: %s' % uploader.install_url
-print 'Writing package.properties file'
-sys.stdout.flush()
-f = open('%s/package.properties' % build_workspace, 'w')
-f.write('PACKAGE_VERSION=%s\n' % uploader.version)
-f.write('INSTALL_URL=%s\n' % uploader.install_url)
-f.write('BUILD_COMMIT=%s\n' % build_commit)
-f.close()
+if __name__ == '__main__':
+    try:
+        package_upload()
+    except:
+        e = sys.exc_info()[0]
+        print e
+        sys.exit(1)
 

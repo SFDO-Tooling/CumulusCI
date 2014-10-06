@@ -173,9 +173,17 @@ if [ $BUILD_TYPE == "master" ]; then
     tries=0
     ant_status=0
     while [ $tries -lt 5 ]; do
+        tries=$[tries + 1]
+        echo
+        echo "-----------------------------------------------------------------"
+        echo "ant deployManagedBeta - Attempt $tries of 5"
+        echo "-----------------------------------------------------------------"
+        echo
         ant deployManagedBeta
         ant_status=$?
-        tries=$[tries + 1]
+        if [ $ant_status == 0 ]; then
+            break
+        fi
     done
     if [ $ant_status != 0 ]; then exit 1; fi
        
