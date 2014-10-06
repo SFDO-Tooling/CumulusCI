@@ -463,7 +463,7 @@
     <!-- createUnmanagedPackage: Does an empty deployment into an unmanaged package to create it if it does not exist -->
     <target name="createUnmanagedPackage">
         <if>
-            <isset property="${cumulusci.package.name}" />
+            <isset property="cumulusci.package.name" />
             <then>
                 <delete dir="${basedir}/create_package" />
                 <mkdir dir="${basedir}/create_package" />

@@ -98,23 +98,31 @@ function waitOnBackgroundJobs {
 # Master branch commit, build and test a beta managed package
 if [ $BUILD_TYPE == "master" ]; then
 
-    # Get org credentials from env
-    export SF_USERNAME=$SF_USERNAME_MASTER
-    export SF_PASSWORD=$SF_PASSWORD_MASTER
-    export SF_SERVERURL=$SF_SERVERURL_MASTER
-    echo "Got org credentials for master org from env"
-    
-    # Deploy to packaging org
-    echo
-    echo "-----------------------------------------------------------------"
-    echo "ant deployCI - Deploy to master org"
-    echo "-----------------------------------------------------------------"
-    echo
-    #echo "Copying repository to `pwd`/clone2 to run 2 builds in parallel"
-    #cd /home/rof/ 
-    #cp -a clone clone2
-    #cd clone2
-    runAntTarget deployCI
+    if [ "$SF_USERNAME_MASTER" != "" ]; then
+        # Get org credentials from env
+        export SF_USERNAME=$SF_USERNAME_MASTER
+        export SF_PASSWORD=$SF_PASSWORD_MASTER
+        export SF_SERVERURL=$SF_SERVERURL_MASTER
+        echo "Got org credentials for master org from env"
+        
+        # Deploy to packaging org
+        echo
+        echo "-----------------------------------------------------------------"
+        echo "ant deployCI - Deploy to master org"
+        echo "-----------------------------------------------------------------"
+        echo
+        #echo "Copying repository to `pwd`/clone2 to run 2 builds in parallel"
+        #cd /home/rof/ 
+        #cp -a clone clone2
+        #cd clone2
+        runAntTarget deployCI
+    else
+        echo
+        echo "-----------------------------------------------------------------"
+        echo "No master org credentials, skipping master org build"
+        echo "-----------------------------------------------------------------"
+        echo
+    fi
 
     # Get org credentials from env
     export SF_USERNAME=$SF_USERNAME_PACKAGING
@@ -173,41 +181,69 @@ if [ $BUILD_TYPE == "master" ]; then
     tries=0
     ant_status=0
     while [ $tries -lt 5 ]; do
-        ant deployManagedBeta
-        ant_status=$?
         tries=$[tries + 1]
+        echo
+        echo "-----------------------------------------------------------------"
+        echo "ant deployManagedBeta - Attempt $tries of 5"
+        echo "-----------------------------------------------------------------"
+        echo
+        runAntTarget deployManagedBeta
+        ant_status=$?
+        if [ $ant_status == 0 ]; then
+            break
+        fi
     done
     if [ $ant_status != 0 ]; then exit 1; fi
-       
-    # Create GitHub Release
-    echo
-    echo "-----------------------------------------------------------------"
-    echo "Creating GitHub Release $PACKAGE_VERSION"
-    echo "-----------------------------------------------------------------"
-    echo
-    python $CUMULUSCI_PATH/ci/github/create_release.py
 
-    # Add release notes
     echo
     echo "-----------------------------------------------------------------"
-    echo "Generating Release Notes for $PACKAGE_VERSION"
+    echo "ant runAllTests: Testing $PACKAGE_VERSION in beta org"
     echo "-----------------------------------------------------------------"
     echo
-    export CURRENT_REL_TAG=`grep CURRENT_REL_TAG release.properties | sed -e 's/CURRENT_REL_TAG=//g'`
-    python $CUMULUSCI_PATH/ci/github/release_notes.py
+    runAntTarget runAllTests
+    if [ $ant_status != 0 ]; then exit 1; fi
+    
+    if [ "$GITHUB_USERNAME" != "" ]; then   
+        # Create GitHub Release
+        echo
+        echo "-----------------------------------------------------------------"
+        echo "Creating GitHub Release $PACKAGE_VERSION"
+        echo "-----------------------------------------------------------------"
+        echo
+        python $CUMULUSCI_PATH/ci/github/create_release.py
+
+        # Add release notes
+        echo
+        echo "-----------------------------------------------------------------"
+        echo "Generating Release Notes for $PACKAGE_VERSION"
+        echo "-----------------------------------------------------------------"
+        echo
+        # We previously had this script install githubpy instead of PyGithub
+        # cleanup in case githubpy is still around.  FIXME: Remove this
+        pip uninstall -y githubpy
+        pip install --upgrade PyGithub==1.25.1
+        export CURRENT_REL_TAG=`grep CURRENT_REL_TAG release.properties | sed -e 's/CURRENT_REL_TAG=//g'`
+        python $CUMULUSCI_PATH/ci/github/release_notes.py
     
     
-    # Merge master commit to all open feature branches
-    echo
-    echo "-----------------------------------------------------------------"
-    echo "Merge commit to all open feature branches"
-    echo "-----------------------------------------------------------------"
-    echo
-    pip install --upgrade githubpy
-    python $CUMULUSCI_PATH/ci/github/release_notes.py
+        # Merge master commit to all open feature branches
+        echo
+        echo "-----------------------------------------------------------------"
+        echo "Merge commit to all open feature branches"
+        echo "-----------------------------------------------------------------"
+        echo
+        python $CUMULUSCI_PATH/ci/github/merge_master_to_feature.py
+    else
+        echo
+        echo "-----------------------------------------------------------------"
+        echo "Skipping GitHub Releaseand master to feature merge because the"
+        echo "environment variable GITHUB_USERNAME is not configured."
+        echo "-----------------------------------------------------------------"
+        echo
+    fi
 
     # If environment variables are configured for mrbelvedere, publish the beta
-    if [ "$MRBELVEDERE_BASE_URL" != "" && "$MRBELVEDERE_PACKAGE_KEY" ]; then
+    if [ "$MRBELVEDERE_BASE_URL" != "" ]; then
         echo
         echo "-----------------------------------------------------------------"
         echo "Publishing $PACKAGE_VERSION to mrbelvedere installer"

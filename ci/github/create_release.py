@@ -1,14 +1,8 @@
 import os
 import requests
 import json
+import sys
 #from subprocess import call
-
-ORG_NAME=os.environ.get('GITHUB_ORG_NAME')
-REPO_NAME=os.environ.get('GITHUB_REPO_NAME')
-USERNAME=os.environ.get('GITHUB_USERNAME')
-PASSWORD=os.environ.get('GITHUB_PASSWORD')
-BUILD_COMMIT=os.environ.get('BUILD_COMMIT')
-PACKAGE_VERSION=os.environ.get('PACKAGE_VERSION')
 
 def call_api(owner, repo, subpath, data=None, username=None, password=None):
     """ Takes a subpath under the repository (ex: /releases) and returns the json data from the api """
@@ -29,33 +23,57 @@ def call_api(owner, repo, subpath, data=None, username=None, password=None):
     except:
         return resp.status_code
 
-existing = None
+def create_release():
+    ORG_NAME=os.environ.get('GITHUB_ORG_NAME')
+    REPO_NAME=os.environ.get('GITHUB_REPO_NAME')
+    USERNAME=os.environ.get('GITHUB_USERNAME')
+    PASSWORD=os.environ.get('GITHUB_PASSWORD')
+    BUILD_COMMIT=os.environ.get('BUILD_COMMIT')
+    PACKAGE_VERSION=os.environ.get('PACKAGE_VERSION')
+    BUILD_WORKSPACE=os.environ.get('BUILD_WORKSPACE')
+    
+    existing = None
+    
+    releases = call_api(ORG_NAME, REPO_NAME, '/releases', username=USERNAME, password=PASSWORD)
+    for rel in releases:
+        if rel['name'] == PACKAGE_VERSION:
+            existing = rel
+            break
+    
+    if existing:
+        print 'Release for %s already exists' % PACKAGE_VERSION
+        exit()
+    
+    tag_name = PACKAGE_VERSION.replace(' (','-').replace(')','').replace(' ','_')
+    
+    data = {
+        'tag_name': 'uat/%s' % tag_name,
+        'target_commitish': BUILD_COMMIT,
+        'name': PACKAGE_VERSION,
+        'body': '',
+        'draft': False,
+        'prerelease': True,
+    }
+    
+    rel = call_api(ORG_NAME, REPO_NAME, '/releases', data=data, username=USERNAME, password=PASSWORD)
+    
+    print 'Release created:'
+    print rel
 
-releases = call_api(ORG_NAME, REPO_NAME, '/releases', username=USERNAME, password=PASSWORD)
-for rel in releases:
-    if rel['name'] == PACKAGE_VERSION:
-        existing = rel
-        break
+    # Write relevant release properties to output file for use by future jobs against the release
+    f = open('%s/release.properties' % BUILD_WORKSPACE, 'w')
+    f.write('CURRENT_REL_TAG=%s\n' % rel['tag_name'])
+    f.close()
 
-if existing:
-    print 'Release for %s already exists' % PACKAGE_VERSION
-    exit()
+    # TODO: Zip and upload the unpackaged/pre and unpackage/post bundles
 
-tag_name = PACKAGE_VERSION.replace(' (','-').replace(')','').replace(' ','_')
-
-data = {
-    'tag_name': 'uat/%s' % tag_name,
-    'target_commitish': BUILD_COMMIT,
-    'name': PACKAGE_VERSION,
-    'body': '',
-    'draft': False,
-    'prerelease': True,
-}
-
-rel = call_api(ORG_NAME, REPO_NAME, '/releases', data=data, username=USERNAME, password=PASSWORD)
-
-print 'Release created:'
-print rel
-
-# Now, zip and upload the unpackaged directory
-
+if __name__ == '__main__':
+    try:
+        create_release()
+    except:
+        import traceback
+        exc_type, exc_value, exc_traceback = sys.exc_info()
+        print '-'*60
+        traceback.print_exception(exc_type, exc_value, exc_traceback, file=sys.stdout)
+        print '-'*60
+        sys.exit(1)
