@@ -230,7 +230,7 @@ if [ $BUILD_TYPE == "master" ]; then
         echo
         # We previously had this script install githubpy instead of PyGithub
         # cleanup in case githubpy is still around.  FIXME: Remove this
-        pip uninstall githubpy
+        pip uninstall -y githubpy
         pip install --upgrade PyGithub==1.25.1
         python $CUMULUSCI_PATH/ci/github/release_notes.py
     else
