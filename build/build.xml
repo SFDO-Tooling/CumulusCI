@@ -435,18 +435,26 @@
                         <updatePackageVersion namespace="${cumulusci.package.namespace}" version="${version.@{packageNamespace}}" />
                     </then>
                     <else>
+                        <echo>Deploying pre bundles for @{packageNamespace}</echo>
                         <if>
                             <available file="${basedir}/unpackaged/@{packageNamespace}/pre" type="dir" />
                             <then>
                                 <deployMetadataBundles dir="${basedir}/unpackaged/pre" stagedir="${basedir}/unpackaged_stage" />
                             </then>
+                            <else>
+                                <echo>Directory does not exist: "${basedir}/unpackaged/@{packageNamespace}</echo>
+                            </else>
                         </if>
                         <updatePackageVersion namespace="@{packageNamespace}" version="${version.@{packageNamespace}}" />
+                        <echo>Deploying pre bundles for @{packageNamespace}</echo>
                         <if>
                             <available file="${basedir}/unpackaged/@{packageNamespace}/post" type="dir" />
                             <then>
                                 <deployMetadataBundles dir="${basedir}/unpackaged/post" stagedir="${basedir}/unpackaged_stage" />
                             </then>
+                            <else>
+                                <echo>Directory does not exist: "${basedir}/unpackaged/@{packageNamespace}</echo>
+                            </else>
                         </if>
                     </else>
                 </if>
