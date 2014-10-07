@@ -439,21 +439,21 @@
                         <if>
                             <available file="${basedir}/unpackaged/@{packageNamespace}/pre" type="dir" />
                             <then>
-                                <deployMetadataBundles dir="${basedir}/unpackaged/pre" stagedir="${basedir}/unpackaged_stage" />
+                                <deployMetadataBundles dir="${basedir}/unpackaged/@{packageNamespace}/pre" stagedir="${basedir}/unpackaged_stage" />
                             </then>
                             <else>
-                                <echo>Directory does not exist: "${basedir}/unpackaged/@{packageNamespace}</echo>
+                                <echo>No pre bundles found for @{packageNamespace} at ${basedir}/unpackaged/@{packageNamespace}/pre</echo>
                             </else>
                         </if>
-                        <updatePackageVersion namespace="@{packageNamespace}" version="${version.@{packageNamespace}}" />
+                        <!--<updatePackageVersion namespace="@{packageNamespace}" version="${version.@{packageNamespace}}" />-->
                         <echo>Deploying post bundles for @{packageNamespace}</echo>
                         <if>
                             <available file="${basedir}/unpackaged/@{packageNamespace}/post" type="dir" />
                             <then>
-                                <deployMetadataBundles dir="${basedir}/unpackaged/post" stagedir="${basedir}/unpackaged_stage" />
+                                <deployMetadataBundles dir="${basedir}/unpackaged/@{packageNamespace}/post" stagedir="${basedir}/unpackaged_stage" />
                             </then>
                             <else>
-                                <echo>Directory does not exist: "${basedir}/unpackaged/@{packageNamespace}</echo>
+                                <echo>No post bundles found for @{packageNamespace} at ${basedir}/unpackaged/@{packageNamespace}/post</echo>
                             </else>
                         </if>
                     </else>
