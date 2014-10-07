@@ -446,7 +446,7 @@
                             </else>
                         </if>
                         <updatePackageVersion namespace="@{packageNamespace}" version="${version.@{packageNamespace}}" />
-                        <echo>Deploying pre bundles for @{packageNamespace}</echo>
+                        <echo>Deploying post bundles for @{packageNamespace}</echo>
                         <if>
                             <available file="${basedir}/unpackaged/@{packageNamespace}/post" type="dir" />
                             <then>

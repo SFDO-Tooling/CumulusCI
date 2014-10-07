@@ -818,6 +818,7 @@
       <if>
         <available file="@{dir}" type="dir" />
         <then>
+          <echo>Looking for metadata bundles in @{dir}</echo>
           <for param="subdir">
             <path>
               <dirset dir="@{dir}/" includes="*" />
