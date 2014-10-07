@@ -445,7 +445,7 @@
                                 <echo>No pre bundles found for @{packageNamespace} at ${basedir}/unpackaged/@{packageNamespace}/pre</echo>
                             </else>
                         </if>
-                        <!--<updatePackageVersion namespace="@{packageNamespace}" version="${version.@{packageNamespace}}" />-->
+                        <updatePackageVersion namespace="@{packageNamespace}" version="${version.@{packageNamespace}}" />
                         <echo>Deploying post bundles for @{packageNamespace}</echo>
                         <if>
                             <available file="${basedir}/unpackaged/@{packageNamespace}/post" type="dir" />
