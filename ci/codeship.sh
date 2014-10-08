@@ -139,7 +139,7 @@ if [ $BUILD_TYPE == "master" ]; then
 
     #echo "Running deployCIPackageOrg from /home/rof/clone"
     #cd /home/rof/clone
-    runAntTarget deployCI
+    runAntTarget deployCIPackageOrg
 
     
     #echo
