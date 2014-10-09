@@ -14,8 +14,8 @@ fi
 if [ "$PREFIX_BETA" == "" ]; then
     PREFIX_BETA='beta/'
 fi
-if [ "$PREFIX_PROD" == "" ]; then
-    PREFIX_PROD='release/'
+if [ "$PREFIX_RELEASE" == "" ]; then
+    PREFIX_RELEASE='release/'
 fi
 
 # Determine build type and setup Salesforce credentials
@@ -25,7 +25,7 @@ elif [[ $CI_BRANCH == $PREFIX_FEATURE* ]]; then
     BUILD_TYPE='feature'
 elif [[ $CI_BRANCH == $PREFIX_BETA* ]]; then
     BUILD_TYPE='beta'
-elif [[ $CI_BRANCH == $PREFIX_PROD* ]]; then
+elif [[ $CI_BRANCH == $PREFIX_RELEASE* ]]; then
     BUILD_TYPE='release'    
 fi
 

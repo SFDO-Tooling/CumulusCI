@@ -31,6 +31,8 @@ def create_release():
     BUILD_COMMIT=os.environ.get('BUILD_COMMIT')
     PACKAGE_VERSION=os.environ.get('PACKAGE_VERSION')
     BUILD_WORKSPACE=os.environ.get('BUILD_WORKSPACE')
+    BUILD_WORKSPACE=os.environ.get('BUILD_WORKSPACE')
+    PREFIX_BETA=os.environ.get('PREFIX_BETA', 'beta/')
     
     existing = None
     
@@ -47,7 +49,7 @@ def create_release():
     tag_name = PACKAGE_VERSION.replace(' (','-').replace(')','').replace(' ','_')
     
     data = {
-        'tag_name': 'uat/%s' % tag_name,
+        'tag_name': '%s%s' % (BETA_PREFIX, tag_name),
         'target_commitish': BUILD_COMMIT,
         'name': PACKAGE_VERSION,
         'body': '',

@@ -6,7 +6,7 @@ from github.GithubException import GithubException
 def merge_master_to_feature():
     ORG_NAME=os.environ.get('GITHUB_ORG_NAME')
     REPO_NAME=os.environ.get('GITHUB_REPO_NAME')
-    MASTER_NAME=os.environ.get('MASTER_BRANCH','master')
+    MASTER_BRANCH=os.environ.get('MASTER_BRANCH','master')
     USERNAME=os.environ.get('GITHUB_USERNAME')
     PASSWORD=os.environ.get('GITHUB_PASSWORD')
     BUILD_COMMIT=os.environ.get('BUILD_COMMIT', None)
@@ -19,7 +19,7 @@ def merge_master_to_feature():
         org = g.get_user(ORG_NAME)
     repo = org.get_repo(REPO_NAME)
     
-    master = repo.get_branch(MASTER_NAME)
+    master = repo.get_branch(MASTER_BRANCH)
     
     exception = None
     

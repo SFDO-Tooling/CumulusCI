@@ -15,6 +15,8 @@ PASSWORD=os.environ.get('GITHUB_PASSWORD')
 MASTER_BRANCH=os.environ.get('MASTER_BRANCH')
 LAST_REL_TAG=os.environ.get('LAST_REL_TAG', None)
 CURRENT_REL_TAG=os.environ.get('CURRENT_REL_TAG')
+PREFIX_BETA=os.environ.get('PREFIX_BETA', 'beta/')
+PREFIX_RELEASE=os.environ.get('PREFIX_RELEASE', 'release/')
     
 # custom api wrapper for release interaction
 def call_api(subpath, data=None):
@@ -49,6 +51,9 @@ def create_release_notes():
     global MASTER_BRANCH
     global LAST_REL_TAG
     global CURRENT_REL_TAG
+    global PREFIX_BETA
+    global PREFIX_RELEASE
+
     gh = Github(USERNAME, PASSWORD)
     try:
         org = gh.get_organization(ORG_NAME)
@@ -58,16 +63,16 @@ def create_release_notes():
     
     # If LAST_REL_TAG was not provided, find the last release tag and set it as LAST_REL_TAG
     if not LAST_REL_TAG:
-        if CURRENT_REL_TAG.startswith('rel/'):
-            current_version = LooseVersion(CURRENT_REL_TAG.replace('rel/',''))
+        if CURRENT_REL_TAG.startswith(PREFIX_RELEASE):
+            current_version = LooseVersion(CURRENT_REL_TAG.replace(PREFIX_RELEASE,''))
         else:
-            current_version = LooseVersion(CURRENT_REL_TAG.replace('uat/',''))
+            current_version = LooseVersion(CURRENT_REL_TAG.replace(PREFIX_BETA,''))
     
         print 'LAST_REL_TAG not specified, finding last release tag'
         versions = []
         for tag in repo.get_tags():
-            if re.search('rel/[0-9][0-9]*\.[0-9][0-9]*', tag.name):
-                version = LooseVersion(tag.name.replace('rel/',''))
+            if re.search('%s[0-9][0-9]*\.[0-9][0-9]*' % PREFIX_RELEASE, tag.name):
+                version = LooseVersion(tag.name.replace(PREFIX_RELEASE,''))
                 # Skip the CURRENT_REL_TAG and any newer releases
                 if version >= current_version:
                     continue
@@ -75,7 +80,7 @@ def create_release_notes():
         versions.sort()
         versions.reverse()
         if versions:
-            LAST_REL_TAG = 'rel/%s' % versions[0]
+            LAST_REL_TAG = '%s%s' % (PREFIX_RELEASE, versions[0])
         print 'Found last release tag: %s' % LAST_REL_TAG
     
     # Find the start and end date for pull requests by finding the commits from the tags
@@ -103,10 +108,10 @@ def create_release_notes():
     until_date = datetime.datetime.strptime(current_rel_commit['committer']['date'], "%Y-%m-%dT%H:%M:%SZ")
     
     # Get the released package version number
-    if CURRENT_REL_TAG.startswith('rel/'):
-        release_version = CURRENT_REL_TAG.replace('rel/','')
+    if CURRENT_REL_TAG.startswith(PREFIX_RELEASE):
+        release_version = CURRENT_REL_TAG.replace(PREFIX_RELEASE,'')
     else:
-        release_version = '%s)' % CURRENT_REL_TAG.replace('uat/','').replace('-', ' (').replace('Beta_', 'Beta ')
+        release_version = '%s)' % CURRENT_REL_TAG.replace(PREFIX_BETA,'').replace('-', ' (').replace('Beta_', 'Beta ')
     
     # Unfortunately, there is no ability to filter pull requests by date merged so we have to fetch all and loop through them
     pulls = repo.get_pulls(state='closed')
@@ -198,14 +203,14 @@ def create_release_notes():
             gh_issue_comments = call_api('/issues/%s/comments' % issue)
             has_comment = False
             for comment in gh_issue_comments:
-                if CURRENT_REL_TAG.startswith('rel/'):
+                if CURRENT_REL_TAG.startswith(PREFIX_RELEASE):
                     if comment['body'].find('Included in production release') != -1:
                         has_comment = True
                 else:
                     if comment['body'].find('Included in beta release') != -1:
                         has_comment = True
             if not has_comment:
-                if CURRENT_REL_TAG.startswith('rel/'):
+                if CURRENT_REL_TAG.startswith(PREFIX_RELEASE):
                     data = {'body': 'Included in production release version %s' % release_version}
                     print "Adding comment on issue #%s with the production release version" % issue
                 else:
