@@ -158,6 +158,10 @@ if [ $BUILD_TYPE == "master" ]; then
     echo
 
     export PACKAGE=`grep cumulusci.package.name.managed cumulusci.properties | sed -e 's/cumulusci.package.name.managed *= *//g'`
+    # Default to cumulusci.package.name if cumulusci.package.name.managed is not defined
+    if [ "$PACKAGE" == "" ]; then
+        export PACKAGE=`grep cumulusci.package.name cumulusci.properties | sed -e 's/cumulusci.package.name.managed *= *//g'`
+    fi
     export BUILD_NAME="$PACKAGE Build $CI_BUILD_NUMBER"
     export BUILD_WORKSPACE=`pwd`
     export BUILD_COMMIT="$CI_COMMIT_ID"
