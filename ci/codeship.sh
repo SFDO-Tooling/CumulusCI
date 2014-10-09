@@ -162,6 +162,7 @@ if [ $BUILD_TYPE == "master" ]; then
     if [ "$PACKAGE" == "" ]; then
         export PACKAGE=`grep cumulusci.package.name cumulusci.properties | sed -e 's/cumulusci.package.name *= *//g'`
     fi
+    echo "Using package $PACKAGE"
     export BUILD_NAME="$PACKAGE Build $CI_BUILD_NUMBER"
     export BUILD_WORKSPACE=`pwd`
     export BUILD_COMMIT="$CI_COMMIT_ID"
