@@ -49,10 +49,12 @@ echo
 # Function to filter out unneeded ant output from builds
 function runAntTarget {
     target=$1
-    ant $target  | \
-        grep -v '^  *\[delete\]' | \
+    unbuffer ant $target  | \
         grep -v '^  *\[copy\]' | \
+        grep -v '^  *\[delete\]' | \
         grep -v '^  *\[loadfile\]' | \
+        grep -v '^  *\[mkdir\]' | \
+        grep -v '^  *\[move\]' | \
         grep -v '^  *\[xslt\]'
     
     if [ "$PIPESTATUS[0]" != "0" ]; then
