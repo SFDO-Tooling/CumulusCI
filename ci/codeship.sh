@@ -46,13 +46,10 @@ echo "Building $CI_BRANCH as a $BUILD_TYPE build"
 echo "-----------------------------------------------------------------"
 echo
 
-echo "Installing Ubuntu packages needed for build..."
-apt-get install -y unbuffer-dev
-
 # Function to filter out unneeded ant output from builds
 function runAntTarget {
     target=$1
-    unbuffer ant $target  | \
+    stdbuf ant $target  | \
         grep -v '^  *\[copy\]' | \
         grep -v '^  *\[delete\]' | \
         grep -v '^  *\[loadfile\]' | \
