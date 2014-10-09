@@ -30,8 +30,8 @@ elif [[ $CI_BRANCH == $PREFIX_PROD* ]]; then
 fi
 
 if [ "$BUILD_TYPE" == "" ]; then
-    echo "BUILD FAILED: Could not determine BUILD_TYPE for $CI_BRANCH"
-    exit 1
+    echo "BUILD SKIPPED: Could not determine BUILD_TYPE for $CI_BRANCH"
+    exit 0
 fi
 
 # The python scripts expect BUILD_COMMIT
