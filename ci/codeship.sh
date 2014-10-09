@@ -48,12 +48,17 @@ echo
 
 # Function to filter out unneeded ant output from builds
 function runAntTarget {
-    ant $1
-    # | \
-    #    grep -v '^  *\[delete\]' | \
-    #    grep -v '^  *\[copy\]' | \
-    #    grep -v '^  *\[loadfile\]' | \
-    #    grep -v '^  *\[xslt\]'
+    target=$1
+    ant $target  | \
+        grep -v '^  *\[delete\]' | \
+        grep -v '^  *\[copy\]' | \
+        grep -v '^  *\[loadfile\]' | \
+        grep -v '^  *\[xslt\]'
+    
+    if [ "$PIPESTATUS[0]" != "0" ]; then
+        echo "BUILD FAILED on target $target"
+        exit 1
+    fi
 }
 
 function runAntTargetBackground {
