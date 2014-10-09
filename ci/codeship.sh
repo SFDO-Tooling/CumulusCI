@@ -6,16 +6,16 @@
 
 # Setup variables for branch naming conventions using env overrides if set
 if [ "$MASTER_BRANCH" == "" ]; then
-    MASTER_BRANCH='master'
+    export MASTER_BRANCH='master'
 fi
 if [ "$PREFIX_FEATURE" == "" ]; then
-    PREFIX_FEATURE='feature/'
+    export PREFIX_FEATURE='feature/'
 fi
 if [ "$PREFIX_BETA" == "" ]; then
-    PREFIX_BETA='beta/'
+    export PREFIX_BETA='beta/'
 fi
 if [ "$PREFIX_RELEASE" == "" ]; then
-    PREFIX_RELEASE='release/'
+    export PREFIX_RELEASE='release/'
 fi
 
 # Determine build type and setup Salesforce credentials
@@ -241,6 +241,7 @@ if [ $BUILD_TYPE == "master" ]; then
         pip uninstall -y githubpy
         pip install --upgrade PyGithub==1.25.1
         export CURRENT_REL_TAG=`grep CURRENT_REL_TAG release.properties | sed -e 's/CURRENT_REL_TAG=//g'`
+        echo "Generating release notes for tag $CURRENT_REL_TAG"
         python $CUMULUSCI_PATH/ci/github/release_notes.py
     
     
