@@ -127,6 +127,9 @@
                     </sequential>
                 </for>
             </then>
+            <else>
+                <echo>No bundles found in unpackaged/pre</echo>
+            </else>
         </if>
     </target>
 
@@ -149,6 +152,9 @@
                     </sequential>
                 </for>
             </then>
+            <else>
+                <echo>No bundles found in unpackaged/post</echo>
+            </else>
         </if>
     </target>
 
@@ -506,52 +512,65 @@
 
     <!-- Before uninstall -->
     <target name="preUninstall">
+        <echo>Nothing to do for preUninstall</echo>
     </target>
     <!-- After uninstall. -->
     <target name="postUninstall">
+        <echo>Nothing to do for postUninstall</echo>
     </target>
 
     <!-- Before updateRequiredPackages.  Can be used to uninstall packages in a downgrade scenario if building an extension package -->
     <target name="preUpdateRequiredPackages">
+        <echo>Nothing to do for preUpdateRequiredPackages</echo>
     </target>
     <!-- After updateRequiredPackages. -->
     <target name="postUpdateRequiredPackages">
+        <echo>Nothing to do for postUpdateRequiredPackages</echo>
     </target>
 
     <!-- Before deploy of src directory -->
     <target name="preDeploy">
+        <echo>Nothing to do for preDeploy</echo>
     </target>
     <!-- After deploy of src directory -->
     <target name="postDeploy">
+        <echo>Nothing to do for postDeploy</echo>
     </target>
 
     <!-- Before deployCI -->
     <target name="preDeployCI">
+        <echo>Nothing to do for preDeployCI</echo>
     </target>
     <!-- After deployCI -->
     <target name="postDeployCI">
+        <echo>Nothing to do for postDeployCI</echo>
     </target>
 
     <!-- Before deployCIPackageOrg -->
     <target name="preDeployCIPackageOrg">
+        <echo>Nothing to do for preDeployCIPackageOrg</echo>
     </target>
     <!-- After deployCIPackageOrg -->
     <target name="postDeployCIPackageOrg">
+        <echo>Nothing to do for postDeployCIPackageOrg</echo>
     </target>
 
     <!-- Before deployManaged -->
     <target name="preDeployManaged">
+        <echo>Nothing to do for preDeployManaged</echo>
     </target>
     <!-- After deployManaged -->
     <target name="postDeployManaged">
+        <echo>Nothing to do for postDeployManaged</echo>
     </target>
 
     <!-- Before deployManagedBeta -->
     <target name="preDeployManagedBeta">
+        <echo>Nothing to do for preDeployManagedBeta</echo>
     </target>
     <!-- After deployManagedBeta -->
     <target name="postDeployManagedBeta">
+        <echo>Nothing to do for postDeployManagedBeta</echo>
     </target>
 
 </project>
-
