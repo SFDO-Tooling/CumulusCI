@@ -162,6 +162,7 @@ if [ $BUILD_TYPE == "master" ]; then
     echo "-----------------------------------------------------------------"
     echo
 
+    echo "Installing python dependencies"
     export PACKAGE=`grep 'cumulusci.package.name.managed=' cumulusci.properties | sed -e 's/cumulusci.package.name.managed *= *//g'`
     # Default to cumulusci.package.name if cumulusci.package.name.managed is not defined
     if [ "$PACKAGE" == "" ]; then
@@ -173,6 +174,11 @@ if [ $BUILD_TYPE == "master" ]; then
     export BUILD_COMMIT="$CI_COMMIT_ID"
     pip install --upgrade selenium
     pip install --upgrade requests
+
+    echo 
+    echo
+    echo "Running package_upload.py"
+    echo
     python $CUMULUSCI_PATH/ci/package_upload.py
     if [ $? != 0 ]; then exit 1; fi
  
