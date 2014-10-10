@@ -6,16 +6,16 @@
 
 # Setup variables for branch naming conventions using env overrides if set
 if [ "$MASTER_BRANCH" == "" ]; then
-    MASTER_BRANCH='master'
+    export MASTER_BRANCH='master'
 fi
 if [ "$PREFIX_FEATURE" == "" ]; then
-    PREFIX_FEATURE='feature/'
+    export PREFIX_FEATURE='feature/'
 fi
 if [ "$PREFIX_BETA" == "" ]; then
-    PREFIX_BETA='beta/'
+    export PREFIX_BETA='beta/'
 fi
-if [ "$PREFIX_PROD" == "" ]; then
-    PREFIX_PROD='release/'
+if [ "$PREFIX_RELEASE" == "" ]; then
+    export PREFIX_RELEASE='release/'
 fi
 
 # Determine build type and setup Salesforce credentials
@@ -25,13 +25,13 @@ elif [[ $CI_BRANCH == $PREFIX_FEATURE* ]]; then
     BUILD_TYPE='feature'
 elif [[ $CI_BRANCH == $PREFIX_BETA* ]]; then
     BUILD_TYPE='beta'
-elif [[ $CI_BRANCH == $PREFIX_PROD* ]]; then
+elif [[ $CI_BRANCH == $PREFIX_RELEASE* ]]; then
     BUILD_TYPE='release'    
 fi
 
 if [ "$BUILD_TYPE" == "" ]; then
-    echo "BUILD FAILED: Could not determine BUILD_TYPE for $CI_BRANCH"
-    exit 1
+    echo "BUILD SKIPPED: Could not determine BUILD_TYPE for $CI_BRANCH"
+    exit 0
 fi
 
 # The python scripts expect BUILD_COMMIT
@@ -48,12 +48,19 @@ echo
 
 # Function to filter out unneeded ant output from builds
 function runAntTarget {
-    ant $1
-    # | \
-    #    grep -v '^  *\[delete\]' | \
-    #    grep -v '^  *\[copy\]' | \
-    #    grep -v '^  *\[loadfile\]' | \
-    #    grep -v '^  *\[xslt\]'
+    target=$1
+    ant $target  | stdbuf -oL \
+        stdbuf -o L grep -v '^  *\[copy\]' | \
+        stdbuf -o L grep -v '^  *\[delete\]' | \
+        stdbuf -o L grep -v '^  *\[loadfile\]' | \
+        stdbuf -o L grep -v '^  *\[mkdir\]' | \
+        stdbuf -o L grep -v '^  *\[move\]' | \
+        stdbuf -o L grep -v '^  *\[xslt\]'
+    
+    if [ "${PIPESTATUS[0]}" != "0" ]; then
+        echo "BUILD FAILED on target $target"
+        exit 1
+    fi
 }
 
 function runAntTargetBackground {
@@ -139,7 +146,7 @@ if [ $BUILD_TYPE == "master" ]; then
 
     #echo "Running deployCIPackageOrg from /home/rof/clone"
     #cd /home/rof/clone
-    runAntTarget deployCI
+    runAntTarget deployCIPackageOrg
 
     
     #echo
@@ -157,12 +164,23 @@ if [ $BUILD_TYPE == "master" ]; then
     echo "-----------------------------------------------------------------"
     echo
 
-    export PACKAGE=`grep cumulusci.package.name.managed cumulusci.properties | sed -e 's/cumulusci.package.name.managed *= *//g'`
+    echo "Installing python dependencies"
+    export PACKAGE=`grep 'cumulusci.package.name.managed=' cumulusci.properties | sed -e 's/cumulusci.package.name.managed *= *//g'`
+    # Default to cumulusci.package.name if cumulusci.package.name.managed is not defined
+    if [ "$PACKAGE" == "" ]; then
+        export PACKAGE=`grep 'cumulusci.package.name=' cumulusci.properties | sed -e 's/cumulusci.package.name *= *//g'`
+    fi
+    echo "Using package $PACKAGE"
     export BUILD_NAME="$PACKAGE Build $CI_BUILD_NUMBER"
     export BUILD_WORKSPACE=`pwd`
     export BUILD_COMMIT="$CI_COMMIT_ID"
     pip install --upgrade selenium
     pip install --upgrade requests
+
+    echo 
+    echo
+    echo "Running package_upload.py"
+    echo
     python $CUMULUSCI_PATH/ci/package_upload.py
     if [ $? != 0 ]; then exit 1; fi
  
@@ -223,6 +241,7 @@ if [ $BUILD_TYPE == "master" ]; then
         pip uninstall -y githubpy
         pip install --upgrade PyGithub==1.25.1
         export CURRENT_REL_TAG=`grep CURRENT_REL_TAG release.properties | sed -e 's/CURRENT_REL_TAG=//g'`
+        echo "Generating release notes for tag $CURRENT_REL_TAG"
         python $CUMULUSCI_PATH/ci/github/release_notes.py
     
     
