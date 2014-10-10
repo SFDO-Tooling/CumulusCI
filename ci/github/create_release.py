@@ -49,7 +49,7 @@ def create_release():
     tag_name = PACKAGE_VERSION.replace(' (','-').replace(')','').replace(' ','_')
     
     data = {
-        'tag_name': '%s%s' % (BETA_PREFIX, tag_name),
+        'tag_name': '%s%s' % (PREFIX_BETA, tag_name),
         'target_commitish': BUILD_COMMIT,
         'name': PACKAGE_VERSION,
         'body': '',
