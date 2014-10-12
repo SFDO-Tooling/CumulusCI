@@ -1,0 +1,16 @@
+.externalToolBuilders
+.project
+.settings
+build.properties
+salesforce.schema
+Referenced Packages
+/uninstall
+/uninstallsrc
+/installdeploy
+/installedPackages
+unpackaged/*/*/*.zip
+unpackaged/namespaced_zipped
+unpackaged/zipped
+unpackaged_stage
+packaged
+.*.swp
