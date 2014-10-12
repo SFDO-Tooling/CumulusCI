@@ -1,4 +1,4 @@
-<project name="YOUR_REPOSITORY_NAME_HERE" default="deploy" basedir="." xmlns:sf="antlib:com.salesforce">
+<project default="deploy" basedir="." xmlns:sf="antlib:com.salesforce">
     <!-- Load the package requirements from version.properties -->
     <loadproperties srcFile="${basedir}/version.properties"/>
 

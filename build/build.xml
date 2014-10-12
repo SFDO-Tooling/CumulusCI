@@ -80,32 +80,38 @@
 
     <!-- deployUnpackagedPre: Deploy the unpackaged/pre subdirectories containing metadata used in builds but not included in the managed package -->
     <target name="deployUnpackagedPre">
+        <echo>----------------------------------------------------------------------------</echo>
         <deployMetadataBundles dir="${basedir}/unpackaged/pre" stagedir="${basedir}/unpackaged_stage" />
     </target>
 
     <!-- deployUnpackagedPost: Deploy the unpackaged/post subdirectories containing metadata used in builds but not included in the managed package -->
     <target name="deployUnpackagedPost">
+        <echo>----------------------------------------------------------------------------</echo>
         <deployMetadataBundles dir="${basedir}/unpackaged/post" stagedir="${basedir}/unpackaged_stage" />
     </target>
 
     <!-- deployManagedUnpackagedPre: Deploy the unpackaged/pre subdirectories containing metadata used in builds but not included in the managed package.  Use the managed namespace prefix -->
     <target name="deployManagedUnpackagedPre">
+        <echo>----------------------------------------------------------------------------</echo>
         <deployMetadataBundles dir="${basedir}/unpackaged/pre" stagedir="${basedir}/unpackaged_stage" nsprefix="${cumulusci.package.namespace}__" />
     </target>
 
     <!-- deployManagedUnpackagedPost: Deploy the unpackaged/post subdirectories containing metadata used in builds but not included in the managed package.  Use the managed namespace prefix -->
     <target name="deployManagedUnpackagedPost">
+        <echo>----------------------------------------------------------------------------</echo>
         <deployMetadataBundles dir="${basedir}/unpackaged/post" stagedir="${basedir}/unpackaged_stage" nsprefix="${cumulusci.package.namespace}__" />
     </target>
 
     <!-- zipUnpackagedBundles: Populates unpackaged/zipped with non-namespaced versions of all pre and post deployment bundles -->
     <target name="zipUnpackagedBundles">
+        <echo>----------------------------------------------------------------------------</echo>
         <zipMetadataBundles dir="${basedir}/unpackaged/pre" stagedir="${basedir}/unpackaged_stage" zipdir="unpackaged/zipped" />
         <zipMetadataBundles dir="${basedir}/unpackaged/post" stagedir="${basedir}/unpackaged_stage" zipdir="unpackaged/zipped" />
     </target>
 
     <!-- zipUnpackagedBundles: Populates unpackaged/zipped with namespaced versions of all pre and post deployment bundles -->
     <target name="zipManagedUnpackagedBundles">
+        <echo>----------------------------------------------------------------------------</echo>
         <zipMetadataBundles dir="${basedir}/unpackaged/pre" stagedir="${basedir}/unpackaged_stage" zipdir="unpackaged/namespaced_zipped" nsprefix="${cumulusci.package.namespace}__" />
         <zipMetadataBundles dir="${basedir}/unpackaged/post" stagedir="${basedir}/unpackaged_stage" zipdir="unpackaged/namespaced_zipped" nsprefix="${cumulusci.package.namespace}__" />
     </target>
@@ -163,7 +169,7 @@
     <!-- deployCI: Does a full build including uninstalling previously deployed unpackaged code, updating managed package versions, and then deploying with all tests -->
     <!-- !!!WARNING!!!: DO NOT run this against a real production org as it will delete everything.  It is designed to clear the target org to ensure a clean build test. -->
     <target name="deployCI">
-        <echo>----------------------------------------------------------------------------</echo>
+        <echo>============================================================================</echo>
         <antcall target="preDeployCI" />
 
         <!-- Create the unmanaged package if it doesn't already exist -->
@@ -197,7 +203,7 @@
              There are a few assumptions.  We never downgrade a dependent managed package in the packaging org.  This removes the need to completely remove
              all metadata to allow a package downgrade.  In the package org, we can't delete all metadata once a production managed release is cut so this approach is required -->
     <target name="deployCIPackageOrg">
-        <echo>----------------------------------------------------------------------------</echo>
+        <echo>============================================================================</echo>
         <antcall target="preDeployCIPackageOrg" />
 
         <!-- Update any managed packages which are not at the right version -->
@@ -237,7 +243,7 @@
     <!-- Deploys the latest managed beta release to an org -->
     <!-- !!!WARNING!!!: DO NOT run this against a real production org as it will delete everything.  It is designed to clear the target org to ensure a clean build test. -->
     <target name="deployManagedBeta">
-        <echo>----------------------------------------------------------------------------</echo>
+        <echo>============================================================================</echo>
         <antcall target="preDeployManagedBeta" />
 
         <echo>BUILD_COMMIT = ${env.BUILD_COMMIT}</echo>
@@ -300,7 +306,7 @@
     <!-- Deploys the latest production managed release to an org -->
     <!-- !!!WARNING!!!: DO NOT run this against a real production org as it will delete everything.  It is designed to clear the target org to ensure a clean build test. -->
     <target name="deployManaged">
-        <echo>----------------------------------------------------------------------------</echo>
+        <echo>============================================================================</echo>
         <antcall target="preDeployManaged" />
 
         <echo>BUILD_COMMIT = ${env.BUILD_COMMIT}</echo>
@@ -355,6 +361,7 @@
     <!-- Utility Build Targets -->
 
     <target name="destroyStaleMetadata">
+        <echo>----------------------------------------------------------------------------</echo>
         <delete dir="uninstallsrc" />
         <delete dir="uninstall" />
 
@@ -490,6 +497,7 @@
 
     <!-- runAllTests: Uses an empty package manifest to trigger execution of all tests in the target org without deploying any actual code changes -->
     <target name="runAllTests">
+        <echo>----------------------------------------------------------------------------</echo>
         <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="${cumulus_ci.basedir}/empty" runAllTests="true" maxPoll="${cumulusci.maxPoll.test}" />
     </target>
 
