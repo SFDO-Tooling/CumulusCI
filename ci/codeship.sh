@@ -236,9 +236,6 @@ if [ $BUILD_TYPE == "master" ]; then
         echo "Generating Release Notes for $PACKAGE_VERSION"
         echo "-----------------------------------------------------------------"
         echo
-        # We previously had this script install githubpy instead of PyGithub
-        # cleanup in case githubpy is still around.  FIXME: Remove this
-        pip uninstall -y githubpy
         pip install --upgrade PyGithub==1.25.1
         export CURRENT_REL_TAG=`grep CURRENT_REL_TAG release.properties | sed -e 's/CURRENT_REL_TAG=//g'`
         echo "Generating release notes for tag $CURRENT_REL_TAG"
