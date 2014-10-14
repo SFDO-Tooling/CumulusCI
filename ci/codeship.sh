@@ -56,11 +56,13 @@ function runAntTarget {
         stdbuf -o L grep -v '^  *\[mkdir\]' | \
         stdbuf -o L grep -v '^  *\[move\]' | \
         stdbuf -o L grep -v '^  *\[xslt\]'
+
+    exit_status=${PIPESTATUS[0]}
     
-    if [ "${PIPESTATUS[0]}" != "0" ]; then
+    if [ "$exit_status" != "0" ]; then
         echo "BUILD FAILED on target $target"
-        exit 1
     fi
+    return $exit_status
 }
 
 function runAntTargetBackground {
