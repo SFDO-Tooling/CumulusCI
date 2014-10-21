@@ -14,6 +14,7 @@ Case.object
 Contact.object
 Lead.object
 Opportunity.object
+Product2.object
 AnswersHome.page
 BandwidthExceeded.page
 Exception.page
