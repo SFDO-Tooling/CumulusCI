@@ -37,6 +37,7 @@ fi
 # Get the PACKAGE_AVAILABILE_RETRY_COUNT from env or use default
 if [ "$PACKAGE_AVAILABLE_RETRY_COUNT" == "" ]; then
     export PACKAGE_AVAILABLE_RETRY_COUNT=5
+fi
 
 # The python scripts expect BUILD_COMMIT
 export BUILD_COMMIT=$CI_COMMIT_ID
