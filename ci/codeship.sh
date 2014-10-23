@@ -34,6 +34,10 @@ if [ "$BUILD_TYPE" == "" ]; then
     exit 0
 fi
 
+# Get the PACKAGE_AVAILABILE_RETRY_COUNT from env or use default
+if [ "$PACKAGE_AVAILABLE_RETRY_COUNT" == "" ]; then
+    export PACKAGE_AVAILABLE_RETRY_COUNT=5
+
 # The python scripts expect BUILD_COMMIT
 export BUILD_COMMIT=$CI_COMMIT_ID
 
@@ -198,13 +202,14 @@ if [ $BUILD_TYPE == "master" ]; then
     echo "Got org credentials for beta org from env"
     export PACKAGE_VERSION=`grep PACKAGE_VERSION package.properties | sed -e 's/PACKAGE_VERSION=//g'`
     echo "Attempting install of $PACKAGE_VERSION"
+
     tries=0
     ant_status=0
-    while [ $tries -lt 5 ]; do
+    while [ $tries -lt $PACKAGE_AVAILABLE_RETRY_COUNT ]; do
         tries=$[tries + 1]
         echo
         echo "-----------------------------------------------------------------"
-        echo "ant deployManagedBeta - Attempt $tries of 5"
+        echo "ant deployManagedBeta - Attempt $tries of $PACKAGE_AVAILABLE_RETRY_COUNT"
         echo "-----------------------------------------------------------------"
         echo
         runAntTarget deployManagedBeta
