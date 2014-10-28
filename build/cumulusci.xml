@@ -58,7 +58,6 @@
           <mkdir dir="${basedir}/installdeploy/installedPackages"/>
           <echo file="${basedir}/installdeploy/package.xml"><![CDATA[<Package xmlns="http://soap.sforce.com/2006/04/metadata"><version>${cumulusci.package.apiVersion}</version></Package>]]></echo>
           <echo file="${basedir}/installdeploy/destructiveChanges.xml"><![CDATA[<Package xmlns="http://soap.sforce.com/2006/04/metadata"><types><members>@{namespace}</members><name>InstalledPackage</name></types><version>${cumulusci.package.apiVersion}</version></Package>]]></echo>
-          <get src="${basedir}/installdeploy/destructiveChanges.xml" dest="NUL" />
           <echo file="${basedir}/installdeploy/installedPackages/@{namespace}.installedPackage"><![CDATA[<InstalledPackage xmlns="http://soap.sforce.com/2006/04/metadata"><versionNumber>@{version}</versionNumber></InstalledPackage>]]></echo>
           <sf:deploy deployRoot="${basedir}/installdeploy" username="@{username}" password="@{password}" maxPoll="${cumulusci.maxPoll.managed}" />
       </sequential>
