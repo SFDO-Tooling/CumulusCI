@@ -292,6 +292,12 @@
             <case value="workflows">
               <property name="typename" value="Workflow" />
             </case>
+            <case value="email">
+              <property name="typename" value="EmailTemplate" />
+            </case>
+            <case value="letterhead">
+              <property name="typename" value="Letterhead" />
+            </case>
             <default/>
           </switch>
 
