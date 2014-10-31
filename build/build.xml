@@ -51,6 +51,7 @@
     <property name="cumulusci.package.installClass" value="" />
     <property name="cumulusci.package.uninstallClass" value="" />
     <property name="cumulusci.package.apiVersion" value="31.0" />
+    <property name="cumulusci.test.namematch" value="%\_TEST" />
     <property name="cumulusci.maxPoll.test" value="400" />
     <property name="cumulusci.maxPoll.notest" value="200" />
     <property name="cumulusci.maxPoll.managed" value="400" />
@@ -235,7 +236,7 @@
         <antcall target="deployUnpackagedPost" />
 
         <!-- Run all tests -->
-        <antcall target="runAllTests" />
+        <antcall target="runAllTestsManaged" />
 
         <antcall target="postDeployCIPackageOrg" />
     </target>
@@ -495,10 +496,45 @@
         </if>
     </target>
 
-    <!-- runAllTests: Uses an empty package manifest to trigger execution of all tests in the target org without deploying any actual code changes -->
+    <!-- runAllTests: Runs all unmanaged tests -->
     <target name="runAllTests">
         <echo>----------------------------------------------------------------------------</echo>
-        <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="${cumulus_ci.basedir}/empty" runAllTests="true" maxPoll="${cumulusci.maxPoll.test}" />
+        <if>
+            <equals arg1="${env.TEST_MODE}" arg2="parallel" />
+            <then>
+                <exec executable="python" failonerror="true">
+                  <env key="SF_USERNAME" value="${sf.username}" />
+                  <env key="SF_PASSWORD" value="${sf.password}" />
+                  <env key="SF_SERVERURL" value="${sf.serverurl}" />
+                  <env key="APEX_TEST_NAME_MATCH" value="${cumulusci.test.namematch}" />
+                  <arg value="${cumulus_ci.basedir}/../ci/run_apex_tests.py" />
+                </exec>
+            </then>
+            <else>
+                <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="${cumulus_ci.basedir}/empty" runAllTests="true" maxPoll="${cumulusci.maxPoll.test}" />
+            </else>
+        </if>
+    </target>
+
+    <!-- runAllTestsManaged: Runs all managed tests from package's namespace -->
+    <target name="runAllTestsManaged">
+        <echo>----------------------------------------------------------------------------</echo>
+        <if>
+            <equals arg1="${env.TEST_MODE}" arg2="parallel" />
+            <then>
+                <exec executable="python" failonerror="true">
+                  <env key="SF_USERNAME" value="${sf.username}" />
+                  <env key="SF_PASSWORD" value="${sf.password}" />
+                  <env key="SF_SERVERURL" value="${sf.serverurl}" />
+                  <env key="APEX_TEST_NAME_MATCH" value="${cumulusci.test.namematch}" />
+                  <env key="NAMESPACE" value="${cumulusci.package.namespace}" />
+                  <arg value="${cumulus_ci.basedir}/../ci/run_apex_tests.py" />
+                </exec>
+            </then>
+            <else>
+                <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="${cumulus_ci.basedir}/empty" runAllTests="true" maxPoll="${cumulusci.maxPoll.test}" />
+            </else>
+        </if>
     </target>
 
     <!-- updatePackageXml: Builds a new package.xml based upon the metadata in the src directory -->

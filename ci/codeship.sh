@@ -105,6 +105,13 @@ function waitOnBackgroundJobs {
     fi
 }
 
+#-----------------------------------
+# Set up dependencies for async test
+#-----------------------------------
+if [ "$TEST_MODE" == 'parallel' ]; then
+    pip install --upgrade simple-salesforce
+fi
+
 #---------------------------------
 # Run the build for the build type
 #---------------------------------
@@ -226,7 +233,7 @@ if [ $BUILD_TYPE == "master" ]; then
     echo "ant runAllTests: Testing $PACKAGE_VERSION in beta org"
     echo "-----------------------------------------------------------------"
     echo
-    runAntTarget runAllTests
+    runAntTarget runAllTestsManaged
     if [ $ant_status != 0 ]; then exit 1; fi
     
     if [ "$GITHUB_USERNAME" != "" ]; then   
