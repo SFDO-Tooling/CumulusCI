@@ -25,10 +25,19 @@ def run_tests():
     # Change base_url to use the tooling api
     sf.base_url = sf.base_url + 'tooling/'
     
+    # Split test_name_match by commas to allow multiple class name matching options
+    where_name = []
+    for pattern in test_name_match.split(','):
+        where_name.append("Name LIKE '%s'" % pattern)
+   
     # Get all test classes for namespace
-    print "Querying ApexClasses with NamespacePrefix = %s and Name like '%s'" % (namespace, test_name_match)
+    query = "SELECT Id, Name FROM ApexClass WHERE NamespacePrefix = %s and (%s)" % (namespace, ' OR '.join(where_name))
+
+    print "Running Query: %s" % query
     sys.stdout.flush()
-    res = sf.query_all("SELECT Id, Name FROM ApexClass WHERE NamespacePrefix = %s and Name LIKE '%s'" % (namespace, test_name_match))
+
+    res = sf.query_all("SELECT Id, Name FROM ApexClass WHERE NamespacePrefix = %s and (%s)" % (namespace, ' OR '.join(where_name)))
+
     print "Found %s classes" % res['totalSize']
     sys.stdout.flush()
 
