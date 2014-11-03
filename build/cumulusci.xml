@@ -192,9 +192,15 @@
   <macrodef name="retrievePackaged" description="Retrieves all metadata from a given package into the specified dir">
     <attribute name="package" description="The package name" />
     <attribute name="dir" description="The local directory to store the metadata files" />
+  	<attribute name="mkdir" description="Whether to delete and recreate the target dir" default="true" />
     <sequential>
-      <delete dir="@{dir}" />
-      <mkdir dir="@{dir}"/>
+      <if>
+      	<istrue value="@{mkdir}"/>
+      	<then>
+      	    <delete dir="@{dir}" />
+      	    <mkdir dir="@{dir}"/>
+      	</then>
+      </if>
       <sf:retrieve 
         username="${sf.username}" 
         password="${sf.password}" 
