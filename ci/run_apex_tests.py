@@ -203,7 +203,7 @@ def run_tests():
     
     counts = {
         'Pass': 0,
-        'Failed': 0,
+        'Fail': 0,
         'CompileFail': 0,
         'Skip': 0,
     }
@@ -276,13 +276,13 @@ def run_tests():
                         print output.ljust(26) + stat
     
             # Print message and stack trace if failed
-            if result['Outcome'] in ['Failed','CompileFail']:
+            if result['Outcome'] in ['Fail','CompileFail']:
                 print '   Message: %(Message)s' % result
                 print '   StackTrace: %(StackTrace)s' % result
             sys.stdout.flush()
     
     print '-------------------------------------------------------------------------------'
-    print 'Passed: %(Pass)s  Failed: %(Failed)s  Compile Fail: %(CompileFail)s  Skipped: %(Skip)s' % counts
+    print 'Passed: %(Pass)s  Fail: %(Fail)s  Compile Fail: %(CompileFail)s  Skipped: %(Skip)s' % counts
     print '-------------------------------------------------------------------------------'
     sys.stdout.flush()
 
@@ -292,7 +292,7 @@ if __name__ == '__main__':
     try:
         counts = run_tests()
         # Exit with status 1 if test failures occurred
-        if counts['Failed'] or counts['CompileFail'] or counts['Skip']:
+        if counts['Fail'] or counts['CompileFail'] or counts['Skip']:
             sys.exit(1)
             
     except:
