@@ -457,7 +457,27 @@
                         <updatePackageVersion namespace="${cumulusci.package.namespace}" version="${version.@{packageNamespace}}" />
                     </then>
                     <else>
+                        <echo>Deploying pre bundles for @{packageNamespace}</echo>
+                        <if>
+                            <available file="${basedir}/unpackaged/@{packageNamespace}/pre" type="dir" />
+                            <then>
+                                <deployMetadataBundles dir="${basedir}/unpackaged/@{packageNamespace}/pre" stagedir="${basedir}/unpackaged_stage" />
+                            </then>
+                            <else>
+                                <echo>No pre bundles found for @{packageNamespace} at ${basedir}/unpackaged/@{packageNamespace}/pre</echo>
+                            </else>
+                        </if>
                         <updatePackageVersion namespace="@{packageNamespace}" version="${version.@{packageNamespace}}" />
+                        <echo>Deploying post bundles for @{packageNamespace}</echo>
+                        <if>
+                            <available file="${basedir}/unpackaged/@{packageNamespace}/post" type="dir" />
+                            <then>
+                                <deployMetadataBundles dir="${basedir}/unpackaged/@{packageNamespace}/post" stagedir="${basedir}/unpackaged_stage" />
+                            </then>
+                            <else>
+                                <echo>No post bundles found for @{packageNamespace} at ${basedir}/unpackaged/@{packageNamespace}/post</echo>
+                            </else>
+                        </if>
                     </else>
                 </if>
             </sequential>
