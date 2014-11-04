@@ -1,9 +1,90 @@
 import os
+import re
 import sys
 from time import sleep
 import datetime
 import calendar
 from simple_salesforce import Salesforce
+
+def log_time_delta(start, end):
+    """ Returns microsecond difference between two debug log timestamps
+        in the format HH:MM:SS.micro
+    """
+    dummy_date = datetime.date(2001,1,1)
+    dummy_date_next = datetime.date(2001,1,2)
+    
+    # Split out the parts of the start and end string
+    start_parts = re.split(':|\.', start)
+    start_parts = [int(part) for part in start_parts]
+    start_parts[3] = start_parts[3] * 1000
+    t_start = datetime.time(*start_parts)
+
+    end_parts = re.split(':|\.', end)
+    end_parts = [int(part) for part in end_parts]
+    end_parts[3] = end_parts[3] * 1000
+    t_end = datetime.time(*end_parts)
+
+    # Combine with dummy date to do date math
+    d_start = datetime.datetime.combine(dummy_date, t_start)
+    
+    # If end was on the next day, attach to next dummy day
+    if start_parts[0] > end_parts[0]:
+        d_end = datetime.datetime.combine(dummy_date_next, t_end)
+    else:
+        d_end = datetime.datetime.combine(dummy_date, t_end)
+
+    delta = d_end - d_start
+
+    return delta.total_seconds()
+
+def parse_log(log):
+    methods = {}
+    for method, stats in parse_log_by_method(log):
+        methods[method] = stats
+    return methods
+    
+def parse_log_by_method(log):
+    stats = {}
+    in_limits = False
+    for line in log:
+        # Strip newline character
+        line = line.strip()
+
+        if line.find('|CODE_UNIT_STARTED|[EXTERNAL]|01p') != -1:
+            # Parse the method name
+            method = line.split('|')[-1].split('.')[-1]
+            start_timestamp = line.split(' ')[0]
+            continue
+
+        if line.find('|LIMIT_USAGE_FOR_NS|(default)|') != -1:
+            # Parse the start of the limits section
+            in_limits = True
+            continue
+
+        if in_limits and line.find(':') == -1:
+            # Parse the end of the limits section
+            in_limits = False
+            continue
+
+        if in_limits:
+            # Parse the limit name, used, and allowed values
+            limit, value = line.split(': ')
+            used, allowed = value.split(' out of ')
+            stats[limit] = {
+                'used': used,
+                'allowed': allowed,
+            }
+            continue
+
+        if line.find('|CODE_UNIT_FINISHED|') != -1:
+            end_timestamp = line.split(' ')[0]
+            stats['duration'] = log_time_delta(start_timestamp, end_timestamp)
+
+            # Yield the stats for the method
+            yield method, stats
+            stats = {}
+            in_limits = False
+        
 
 def run_tests():
     username = os.environ.get('SF_USERNAME')
@@ -139,16 +220,25 @@ def run_tests():
         res = sf.query_all("SELECT Id, Application, DurationMilliseconds, Location, LogLength, LogUserId, Operation, Request, StartTime, Status from ApexLog where Id in %s" % log_ids)
         for log in res['records']:
             class_id = classes_by_log_id[log['Id']]
+            class_name = classes_by_id[class_id]
             logs_by_class_id[class_id] = log
             # Fetch the debug log file
             body_url = '%ssobjects/ApexLog/%s/Body' % (sf.base_url, log['Id'])
             resp = sf.request.get(body_url, headers=sf.headers)
-            log_file = classes_by_id[class_id] + '.log'
+            log_file = class_name + '.log'
             if debug_logdir:
                 log_file = debug_logdir + os.sep + log_file
             f = open(log_file, 'w')
             f.write(resp.content)
             f.close()
+
+            # Parse stats from the log file
+            f = open(log_file, 'r')
+            method_stats = parse_log(f)
+            
+            # Add method stats to results_by_class_name
+            for method, stats in method_stats.items():
+                results_by_class_name[class_name][method]['stats'] = stats
 
         # Expire the trace flags
         for trace_id in traces_by_class_id.values():
@@ -171,6 +261,19 @@ def run_tests():
     
             # Output result for method
             print '   %(Outcome)s: %(MethodName)s' % result
+
+            if debug:
+                print '     DEBUG LOG INFO:'
+                stat_keys = result['stats'].keys()
+                stat_keys.sort()
+                for stat in stat_keys:
+                    try:
+                        value = result['stats'][stat]
+                        output = '       %s / %s' % (value['used'], value['allowed'])
+                        print output.ljust(26) + stat
+                    except:
+                        output = '       %s' % result['stats'][stat]
+                        print output.ljust(26) + stat
     
             # Print message and stack trace if failed
             if result['Outcome'] in ['Failed','CompileFail']:
