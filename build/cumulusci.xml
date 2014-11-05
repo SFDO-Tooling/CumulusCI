@@ -769,8 +769,8 @@
       <copy file="${cumulus_ci.basedir}/xsl/update_meta_xml.xsl" tofile="${cumulus_ci.basedir}/xsl/update_meta_xml.xsl.rendered" />
       <replaceregexp file="${cumulus_ci.basedir}/xsl/update_meta_xml.xsl.rendered" match="___namespace___" replace="@{namespace}" flags="g" />
 
-      <propertyregex property="updatemetaxml.major" override="true" input="${version.@{namespace}}" regexp="(\d+)\.(\d+)" replace="\1" />
-      <propertyregex property="updatemetaxml.minor" override="true" input="${version.@{namespace}}" regexp="(\d+)\.(\d+)" replace="\2" />
+      <propertyregex property="updatemetaxml.major" override="true" input="${version.@{namespace}}" regexp="(\d+)\.(\d+(\.\d+)?)" replace="\1" />
+      <propertyregex property="updatemetaxml.minor" override="true" input="${version.@{namespace}}" regexp="(\d+)\.(\d+(\.\d+)?)" replace="\2" />
 
       <for param="file">
         <path>
