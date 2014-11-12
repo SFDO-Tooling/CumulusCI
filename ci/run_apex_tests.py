@@ -4,6 +4,8 @@ import sys
 from time import sleep
 import datetime
 import calendar
+import collections
+import json
 from simple_salesforce import Salesforce
 
 def log_time_delta(start, end):
@@ -37,25 +39,36 @@ def log_time_delta(start, end):
 
     return delta.total_seconds()
 
-def parse_log(log):
+def parse_log(class_name, log):
     methods = {}
-    for method, stats in parse_log_by_method(log):
+    for method, stats in parse_log_by_method(class_name, log):
         methods[method] = stats
     return methods
     
-def parse_log_by_method(log):
+def parse_log_by_method(class_name, log):
     stats = {}
     in_limits = False
+    unit = None
+    method = None
     for line in log:
         # Strip newline character
         line = line.strip()
 
         if line.find('|CODE_UNIT_STARTED|[EXTERNAL]|01p') != -1:
             # Parse the method name
-            method = line.split('|')[-1].split('.')[-1]
+            unit = line.split('|')[-1]
+            if not unit.startswith(class_name + '.'):
+                # Skip child code units (i.e. triggers, Global Scheduler, etc)
+                continue
+            method = unit.split('.')[-1]
             start_timestamp = line.split(' ')[0]
             continue
 
+        # NOTE: If we are in a child code unit of the test method, this section
+        # will currently set the limits for the child.  However, they will later
+        # be overwritten by the test method's limits when they are parsed.  Since
+        # nothing is yielded until the end of the test method's code limit, this
+        # should be safe for now but should be refactored soon.
         if line.find('|LIMIT_USAGE_FOR_NS|(default)|') != -1:
             # Parse the start of the limits section
             in_limits = True
@@ -76,7 +89,7 @@ def parse_log_by_method(log):
             }
             continue
 
-        if line.find('|CODE_UNIT_FINISHED|') != -1:
+        if line.find('|CODE_UNIT_FINISHED|%s.%s' % (class_name, method)) != -1:
             end_timestamp = line.split(' ')[0]
             stats['duration'] = log_time_delta(start_timestamp, end_timestamp)
 
@@ -84,6 +97,10 @@ def parse_log_by_method(log):
             yield method, stats
             stats = {}
             in_limits = False
+        
+        # If debug log size limit was reached, fail gracefully
+        if line.find('* MAXIMUM DEBUG LOG SIZE REACHED *') != -1:
+            break
         
 
 def run_tests():
@@ -95,6 +112,7 @@ def run_tests():
     poll_interval = int(os.environ.get('POLL_INTERVAL', 10))
     debug = os.environ.get('DEBUG_TESTS',False) == 'true'
     debug_logdir = os.environ.get('DEBUG_LOGDIR')
+    json_output = os.environ.get('TEST_JSON_OUTPUT', None)
     
     if namespace:
         namespace = "'%s'" % namespace
@@ -127,7 +145,7 @@ def run_tests():
     sys.stdout.flush()
 
     if not res['totalSize']:
-        return {'Pass': 0, 'Failed': 0, 'CompileFail': 0, 'Skip': 0}
+        return {'Pass': 0, 'Fail': 0, 'CompileFail': 0, 'Skip': 0}
     
     classes_by_id = {}
     classes_by_name = {}
@@ -143,25 +161,33 @@ def run_tests():
 
     # If debug is turned on, setup debug traces for all test classes
     if debug:
-        expiration = datetime.datetime.now() + datetime.timedelta(0,3600)
+        # Set up a simple-salesforce sobject for TraceFlag using the tooling api
+        TraceFlag = sf.TraceFlag
+        TraceFlag.base_url = (u'https://{instance}/services/data/v{sf_version}/tooling/sobjects/{object_name}/'
+                     .format(instance=sf.sf_instance,
+                             object_name='TraceFlag',
+                             sf_version=sf.sf_version))
+
+        # First, delete any old trace flags still lying around
+        tf_res = sf.query('Select Id from TraceFlag')
+        if tf_res['totalSize']:
+            for tf in tf_res['records']:
+                TraceFlag.delete(tf['Id'])
+    
+        expiration = datetime.datetime.now() + datetime.timedelta(1)
         for class_id in classes_by_id.keys():
-            TraceFlag = sf.TraceFlag
-            TraceFlag.base_url = (u'https://{instance}/services/data/v{sf_version}/tooling/sobjects/{object_name}/'
-                         .format(instance=sf.sf_instance,
-                                 object_name='TraceFlag',
-                                 sf_version=sf.sf_version))
             res = TraceFlag.create({
-                'ApexCode': 'DEBUG',
-                'ApexProfiling': 'DEBUG',
-                'Callout': 'DEBUG',
-                'Database': 'DEBUG',
+                'ApexCode': 'Error',
+                'ApexProfiling': 'Debug',
+                'Callout': 'Error',
+                'Database': 'Error',
                 'ExpirationDate': expiration.isoformat(),
                 #'ScopeId': class_id,
-                'System': 'DEBUG',
+                'System': 'Error',
                 'TracedEntityId': class_id,
-                'Validation': 'DEBUG',
-                'Visualforce': 'DEBUG',
-                'Workflow': 'DEBUG',
+                'Validation': 'Error',
+                'Visualforce': 'Error',
+                'Workflow': 'Error',
             })
             traces_by_class_id[class_id] = res['id']
     
@@ -199,7 +225,7 @@ def run_tests():
         sleep(poll_interval)
     
     # Get the test results by method
-    res = sf.query_all("SELECT StackTrace,Message, ApexLogId, AsyncApexJobId,MethodName, Outcome, ApexClassId FROM ApexTestResult WHERE AsyncApexJobId = '%s'" % job_id)
+    res = sf.query_all("SELECT StackTrace,Message, ApexLogId, AsyncApexJobId,MethodName, Outcome, ApexClassId, TestTimestamp FROM ApexTestResult WHERE AsyncApexJobId = '%s'" % job_id)
     
     counts = {
         'Pass': 0,
@@ -211,7 +237,7 @@ def run_tests():
         class_name = classes_by_id[result['ApexClassId']]
         results_by_class_name[class_name][result['MethodName']] = result
         counts[result['Outcome']] += 1
-        if debug:
+        if debug and result['ApexLogId']:
             classes_by_log_id[result['ApexLogId']] = result['ApexClassId']
     
     # Fetch debug logs if debug is enabled
@@ -234,46 +260,65 @@ def run_tests():
 
             # Parse stats from the log file
             f = open(log_file, 'r')
-            method_stats = parse_log(f)
+            method_stats = parse_log(class_name, f)
             
             # Add method stats to results_by_class_name
             for method, stats in method_stats.items():
                 results_by_class_name[class_name][method]['stats'] = stats
 
-        # Expire the trace flags
+        # Delete the trace flags
         for trace_id in traces_by_class_id.values():
-            TraceFlag.update(trace_id, {'ExpirationDate': datetime.datetime.now().isoformat()})
+            TraceFlag.delete(trace_id)
+
+    # Build an OrderedDict of results
+    test_results = []
 
     class_names = results_by_class_name.keys()
     class_names.sort()
     for class_name in class_names:
         class_id = classes_by_name[class_name]
-        if debug:
+        duration = None
+        if debug and class_id in logs_by_class_id:
             duration = int(logs_by_class_id[class_id]['DurationMilliseconds']) * .001
             print 'Class: %s (%ss)' % (class_name, duration)
         else:
             print 'Class: %s' % class_name
         sys.stdout.flush()
+
         method_names = results_by_class_name[class_name].keys()
         method_names.sort()
         for method_name in method_names:
             result = results_by_class_name[class_name][method_name]
+
+            test_results.append({
+                'ClassName': class_name,
+                'Method': result['MethodName'],
+                'Message': result['Message'],
+                'Outcome': result['Outcome'],
+                'StackTrace': result['StackTrace'],
+                'Stats': result.get('stats', None),
+                'TestTimestamp': result.get('TestTimestamp', None),
+            })
     
             # Output result for method
             print '   %(Outcome)s: %(MethodName)s' % result
 
             if debug:
                 print '     DEBUG LOG INFO:'
-                stat_keys = result['stats'].keys()
-                stat_keys.sort()
-                for stat in stat_keys:
-                    try:
-                        value = result['stats'][stat]
-                        output = '       %s / %s' % (value['used'], value['allowed'])
-                        print output.ljust(26) + stat
-                    except:
-                        output = '       %s' % result['stats'][stat]
-                        print output.ljust(26) + stat
+                stats = result.get('stats',None)
+                if not stats:
+                    print '       No stats found, likely because of debug log size limit'
+                else:
+                    stat_keys = stats.keys()
+                    stat_keys.sort()
+                    for stat in stat_keys:
+                        try:
+                            value = stats[stat]
+                            output = '       %s / %s' % (value['used'], value['allowed'])
+                            print output.ljust(26) + stat
+                        except:
+                            output = '       %s' % stats[stat]
+                            print output.ljust(26) + stat
     
             # Print message and stack trace if failed
             if result['Outcome'] in ['Fail','CompileFail']:
@@ -286,6 +331,11 @@ def run_tests():
     print '-------------------------------------------------------------------------------'
     sys.stdout.flush()
 
+    if json_output:
+        f = open(json_output, 'w')
+        f.write(json.dumps(test_results))
+        f.close()
+
     return counts
 
 if __name__ == '__main__':
@@ -294,7 +344,8 @@ if __name__ == '__main__':
         # Exit with status 1 if test failures occurred
         if counts['Fail'] or counts['CompileFail'] or counts['Skip']:
             sys.exit(1)
-            
+    except SystemExit:
+        sys.exit(1)            
     except:
         import traceback
         exc_type, exc_value, exc_traceback = sys.exc_info()

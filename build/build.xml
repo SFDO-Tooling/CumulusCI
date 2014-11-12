@@ -51,10 +51,31 @@
     <property name="cumulusci.package.installClass" value="" />
     <property name="cumulusci.package.uninstallClass" value="" />
     <property name="cumulusci.package.apiVersion" value="31.0" />
-    <property name="cumulusci.test.namematch" value="%\_TEST" />
     <property name="cumulusci.maxPoll.test" value="400" />
     <property name="cumulusci.maxPoll.notest" value="200" />
     <property name="cumulusci.maxPoll.managed" value="400" />
+
+    <!-- Allow APEX_TEST_NAME_MATCH environment variable to override cumulusci.test.namematch -->
+    <if>
+      <isset property="env.TEST_JSON_OUTPUT" />
+      <then>
+        <var name="cumulusci.test.jsonoutput" value="${env.TEST_JSON_OUTPUT}" />
+      </then>
+      <else>
+        <property name="cumulusci.test.jsonoutput" value="" />
+      </else>
+    </if>
+
+    <!-- Allow APEX_TEST_NAME_MATCH environment variable to override cumulusci.test.namematch -->
+    <if>
+      <isset property="env.APEX_TEST_NAME_MATCH" />
+      <then>
+        <var name="cumulusci.test.namematch" value="${env.APEX_TEST_NAME_MATCH}" />
+      </then>
+      <else>
+        <property name="cumulusci.test.namematch" value="%\_TEST" />
+      </else>
+    </if>
 
     <!-- Setup a blank namespace prefix string.  Managed deployments need to override this property before calling deployUnpackagedPost -->
     <property name="cumulusci.namespace.prefix" value="" />
@@ -546,6 +567,7 @@
                   <env key="SF_USERNAME" value="${sf.username}" />
                   <env key="SF_PASSWORD" value="${sf.password}" />
                   <env key="SF_SERVERURL" value="${sf.serverurl}" />
+                  <env key="TEST_JSON_OUTPUT" value="${cumulusci.test.jsonoutput}" />
                   <env key="APEX_TEST_NAME_MATCH" value="${cumulusci.test.namematch}" />
                   <env key="NAMESPACE" value="${cumulusci.package.namespace}" />
                   <arg value="${cumulus_ci.basedir}/../ci/run_apex_tests.py" />
