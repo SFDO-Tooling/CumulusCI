@@ -198,7 +198,16 @@
         <antcall target="createUnmanagedPackage" />
 
         <!-- Uninstall all unpackaged code from the target org.  We have to do this first so we can uninstall and reinstall any managed packages not at the right version -->
-        <antcall target="uninstall" />
+        <!-- <antcall target="uninstall" /> -->
+        <!-- Attempt to destroy any stale metadata but continue even if this fails -->
+        <trycatch>
+            <try>
+                <antcall target="destroyStaleMetadata" />
+            </try>
+            <catch>
+                <echo>First run of destroyStaleMetadata failed.  Ignoring for now but it may cause build failures in other targets.</echo>
+            </catch>
+        </trycatch>
 
         <!-- Update any managed packages which are not at the right version -->
         <antcall target="updateRequiredPackages" />
@@ -208,7 +217,10 @@
 
         <!-- Deploy the src directory -->
         <antcall target="deployWithoutTest" />
-
+        
+        <!-- Finally, delete any metadata from the org which is not in the repo -->
+        <antcall target="destroyStaleMetadata" />
+        
         <!-- Deploy any unpackaged metadata bundles needed after the deployment -->
         <antcall target="deployUnpackagedPost" />
 
