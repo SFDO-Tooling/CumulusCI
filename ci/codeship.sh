@@ -137,6 +137,8 @@ if [ $BUILD_TYPE == "master" ]; then
         #cp -a clone clone2
         #cd clone2
         runAntTarget deployCI
+        if [ $ant_status != 0 ]; then exit 1; fi
+
     else
         echo
         echo "-----------------------------------------------------------------"
@@ -161,6 +163,7 @@ if [ $BUILD_TYPE == "master" ]; then
     #echo "Running deployCIPackageOrg from /home/rof/clone"
     #cd /home/rof/clone
     runAntTarget deployCIPackageOrg
+    if [ $ant_status != 0 ]; then exit 1; fi
 
     
     #echo
@@ -221,10 +224,8 @@ if [ $BUILD_TYPE == "master" ]; then
         echo "-----------------------------------------------------------------"
         echo
         runAntTarget deployManagedBeta
-        ant_status=$?
-        if [ $ant_status == 0 ]; then
-            break
-        fi
+    if [ $ant_status == 0 ]; then break; fi
+
     done
     if [ $ant_status != 0 ]; then exit 1; fi
 
