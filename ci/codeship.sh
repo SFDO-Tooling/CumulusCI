@@ -136,7 +136,7 @@ if [ $BUILD_TYPE == "master" ]; then
         #cd /home/rof/ 
         #cp -a clone clone2
         #cd clone2
-        runAntTarget deployCI
+        ant_status=$(runAntTarget deployCI)
        if [[ $ant_status -ne 0 ]]; then exit 1; fi
 
     else
@@ -162,7 +162,7 @@ if [ $BUILD_TYPE == "master" ]; then
 
     #echo "Running deployCIPackageOrg from /home/rof/clone"
     #cd /home/rof/clone
-    runAntTarget deployCIPackageOrg
+    ant_status=$(runAntTarget deployCIPackageOrg)
    if [[ $ant_status -ne 0 ]]; then exit 1; fi
 
     
@@ -223,7 +223,7 @@ if [ $BUILD_TYPE == "master" ]; then
         echo "ant deployManagedBeta - Attempt $tries of $PACKAGE_AVAILABLE_RETRY_COUNT"
         echo "-----------------------------------------------------------------"
         echo
-        runAntTarget deployManagedBeta
+        ant_status=$(runAntTarget deployManagedBeta)
    if [[ $ant_status -eq 0 ]]; then break; fi
 
     done
@@ -234,7 +234,7 @@ if [ $BUILD_TYPE == "master" ]; then
     echo "ant runAllTests: Testing $PACKAGE_VERSION in beta org"
     echo "-----------------------------------------------------------------"
     echo
-    runAntTarget runAllTestsManaged
+    ant_status=$(runAntTarget runAllTestsManaged)
    if [[ $ant_status -ne 0 ]]; then exit 1; fi
     
     if [ "$GITHUB_USERNAME" != "" ]; then   
