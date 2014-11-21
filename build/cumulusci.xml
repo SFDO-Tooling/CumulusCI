@@ -253,6 +253,9 @@
             <case value="documents">
               <property name="typename" value="Document" />
             </case>
+            <case value="homePageComponents">
+              <property name="typename" value="HomePageComponent" />
+            </case>
             <case value="labels">
               <property name="typename" value="CustomLabel" />
             </case>
