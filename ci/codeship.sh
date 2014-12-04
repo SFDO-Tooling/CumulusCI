@@ -137,7 +137,7 @@ if [ $BUILD_TYPE == "master" ]; then
         #cp -a clone clone2
         #cd clone2
         runAntTarget deployCI
-        if [ $ant_status != 0 ]; then exit 1; fi
+       if [[ $ant_status -ne 0 ]]; then exit 1; fi
 
     else
         echo
@@ -163,7 +163,7 @@ if [ $BUILD_TYPE == "master" ]; then
     #echo "Running deployCIPackageOrg from /home/rof/clone"
     #cd /home/rof/clone
     runAntTarget deployCIPackageOrg
-    if [ $ant_status != 0 ]; then exit 1; fi
+   if [[ $ant_status -ne 0 ]]; then exit 1; fi
 
     
     #echo
@@ -224,10 +224,10 @@ if [ $BUILD_TYPE == "master" ]; then
         echo "-----------------------------------------------------------------"
         echo
         runAntTarget deployManagedBeta
-    if [ $ant_status == 0 ]; then break; fi
+   if [[ $ant_status -eq 0 ]]; then break; fi
 
     done
-    if [ $ant_status != 0 ]; then exit 1; fi
+   if [[ $ant_status -ne 0 ]]; then exit 1; fi
 
     echo
     echo "-----------------------------------------------------------------"
@@ -235,7 +235,7 @@ if [ $BUILD_TYPE == "master" ]; then
     echo "-----------------------------------------------------------------"
     echo
     runAntTarget runAllTestsManaged
-    if [ $ant_status != 0 ]; then exit 1; fi
+   if [[ $ant_status -ne 0 ]]; then exit 1; fi
     
     if [ "$GITHUB_USERNAME" != "" ]; then   
         # Create GitHub Release
