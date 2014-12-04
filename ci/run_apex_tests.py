@@ -108,6 +108,7 @@ def run_tests():
     password = os.environ.get('SF_PASSWORD')
     serverurl = os.environ.get('SF_SERVERURL')
     test_name_match = os.environ.get('APEX_TEST_NAME_MATCH', '%_TEST')
+    test_name_exclude = os.environ.get('APEX_TEST_NAME_EXCLUDE', '')
     namespace = os.environ.get('NAMESPACE', None)
     poll_interval = int(os.environ.get('POLL_INTERVAL', 10))
     debug = os.environ.get('DEBUG_TESTS',False) == 'true'
@@ -132,6 +133,10 @@ def run_tests():
     where_name = []
     for pattern in test_name_match.split(','):
         where_name.append("Name LIKE '%s'" % pattern)
+
+    # Add any excludes to the where clause
+    for pattern in test_name_exclude.split(','):
+        where_name.append("NOT Name LIKE '%s'" % pattern)
    
     # Get all test classes for namespace
     query = "SELECT Id, Name FROM ApexClass WHERE NamespacePrefix = %s and (%s)" % (namespace, ' OR '.join(where_name))
