@@ -34,6 +34,9 @@ if [ "$BUILD_TYPE" == "" ]; then
     exit 0
 fi
 
+export APEX_TEST_NAME_MATCH_CUMULUSCI=`grep 'cumulusci.test.namematch *=' cumulusci.properties | sed -e 's/cumulusci.test.namematch *= *//g'`
+export APEX_TEST_NAME_EXCLUDE_CUMULUSCI=`grep 'cumulusci.test.nameexclude *=' cumulusci.properties | sed -e 's/cumulusci.test.nameexclude *= *//g'`
+
 # Get the PACKAGE_AVAILABILE_RETRY_COUNT from env or use default
 if [ "$PACKAGE_AVAILABLE_RETRY_COUNT" == "" ]; then
     export PACKAGE_AVAILABLE_RETRY_COUNT=5
@@ -125,14 +128,14 @@ if [ $BUILD_TYPE == "master" ]; then
     elif [ "$APEX_TEST_NAME_MATCH_GLOBAL" != "" ]; then
         export APEX_TEST_NAME_MATCH=$APEX_TEST_NAME_MATCH_GLOBAL
     else
-        export APEX_TEST_NAME_MATCH=''
+        export APEX_TEST_NAME_MATCH=$APEX_TEST_NAME_MATCH_CUMULUSCI
     fi
     if [ "$APEX_TEST_NAME_EXCLUDE_MASTER" != "" ]; then
         export APEX_TEST_NAME_EXCLUDE=$APEX_TEST_NAME_EXCLUDE_MASTER
     elif [ "$APEX_TEST_NAME_EXCLUDE_GLOBAL" != "" ]; then
         export APEX_TEST_NAME_EXCLUDE=$APEX_TEST_NAME_EXCLUDE_GLOBAL
     else
-        export APEX_TEST_NAME_EXCLUDE=''
+        export APEX_TEST_NAME_EXCLUDE=$APEX_TEST_NAME_EXCLUDE_CUMULUSCI
     fi
 
     if [ "$SF_USERNAME_MASTER" != "" ]; then
@@ -169,14 +172,14 @@ if [ $BUILD_TYPE == "master" ]; then
     elif [ "$APEX_TEST_NAME_MATCH_GLOBAL" != "" ]; then
         export APEX_TEST_NAME_MATCH=$APEX_TEST_NAME_MATCH_GLOBAL
     else
-        export APEX_TEST_NAME_MATCH=''
+        export APEX_TEST_NAME_MATCH=$APEX_TEST_NAME_MATCH_CUMULUSCI
     fi
     if [ "$APEX_TEST_NAME_EXCLUDE_PACKAGING" != "" ]; then
         export APEX_TEST_NAME_EXCLUDE=$APEX_TEST_NAME_EXCLUDE_PACKAGING
     elif [ "$APEX_TEST_NAME_EXCLUDE_GLOBAL" != "" ]; then
         export APEX_TEST_NAME_EXCLUDE=$APEX_TEST_NAME_EXCLUDE_GLOBAL
     else
-        export APEX_TEST_NAME_EXCLUDE=''
+        export APEX_TEST_NAME_EXCLUDE=$APEX_TEST_NAME_EXCLUDE_CUMULUSCI
     fi
 
     # Get org credentials from env
@@ -246,14 +249,14 @@ if [ $BUILD_TYPE == "master" ]; then
     elif [ "$APEX_TEST_NAME_MATCH_GLOBAL" != "" ]; then
         export APEX_TEST_NAME_MATCH=$APEX_TEST_NAME_MATCH_GLOBAL
     else
-        export APEX_TEST_NAME_MATCH=''
+        export APEX_TEST_NAME_MATCH=$APEX_TEST_NAME_MATCH_CUMULUSCI
     fi
     if [ "$APEX_TEST_NAME_EXCLUDE_PACKAGING" != "" ]; then
         export APEX_TEST_NAME_EXCLUDE=$APEX_TEST_NAME_EXCLUDE_PACKAGING
     elif [ "$APEX_TEST_NAME_EXCLUDE_GLOBAL" != "" ]; then
         export APEX_TEST_NAME_EXCLUDE=$APEX_TEST_NAME_EXCLUDE_GLOBAL
     else
-        export APEX_TEST_NAME_EXCLUDE=''
+        export APEX_TEST_NAME_EXCLUDE=$APEX_TEST_NAME_EXCLUDE_CUMULUSCI
     fi
 
     export SF_USERNAME=$SF_USERNAME_BETA
@@ -347,14 +350,14 @@ elif [ $BUILD_TYPE == "feature" ]; then
     elif [ "$APEX_TEST_NAME_MATCH_GLOBAL" != "" ]; then
         export APEX_TEST_NAME_MATCH=$APEX_TEST_NAME_MATCH_GLOBAL
     else
-        export APEX_TEST_NAME_MATCH=''
+        export APEX_TEST_NAME_MATCH=$APEX_TEST_NAME_MATCH_CUMULUSCI
     fi
     if [ "$APEX_TEST_NAME_EXCLUDE_FEATURE" != "" ]; then
         export APEX_TEST_NAME_EXCLUDE=$APEX_TEST_NAME_EXCLUDE_FEATURE
     elif [ "$APEX_TEST_NAME_EXCLUDE_GLOBAL" != "" ]; then
         export APEX_TEST_NAME_EXCLUDE=$APEX_TEST_NAME_EXCLUDE_GLOBAL
     else
-        export APEX_TEST_NAME_EXCLUDE=''
+        export APEX_TEST_NAME_EXCLUDE=$APEX_TEST_NAME_EXCLUDE_CUMULUSCI
     fi
     
     # Get org credentials from env
