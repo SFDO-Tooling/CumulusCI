@@ -151,7 +151,7 @@ def run_tests():
     print "Running Query: %s" % query
     sys.stdout.flush()
 
-    res = sf.query_all("SELECT Id, Name FROM ApexClass WHERE NamespacePrefix = %s and (%s)" % (namespace, ' OR '.join(where_name)))
+    res = sf.query_all(query)
 
     print "Found %s classes" % res['totalSize']
     sys.stdout.flush()
