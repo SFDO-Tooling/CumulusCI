@@ -132,14 +132,21 @@ def run_tests():
     # Split test_name_match by commas to allow multiple class name matching options
     where_name = []
     for pattern in test_name_match.split(','):
-        where_name.append("Name LIKE '%s'" % pattern)
+        if pattern:
+            where_name.append("Name LIKE '%s'" % pattern)
 
     # Add any excludes to the where clause
+    where_exclude = []
     for pattern in test_name_exclude.split(','):
-        where_name.append("NOT Name LIKE '%s'" % pattern)
+        if pattern:
+            where_exclude.append("(NOT Name LIKE '%s')" % pattern)
    
     # Get all test classes for namespace
-    query = "SELECT Id, Name FROM ApexClass WHERE NamespacePrefix = %s and (%s)" % (namespace, ' OR '.join(where_name))
+    query = "SELECT Id, Name FROM ApexClass WHERE NamespacePrefix = %s" % namespace
+    if where_name:
+        query += " AND (%s)" % ' OR '.join(where_name)
+    if where_exclude:
+        query += " AND %s" % ' AND '.join(where_exclude)
 
     print "Running Query: %s" % query
     sys.stdout.flush()
