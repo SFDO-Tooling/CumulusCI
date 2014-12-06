@@ -336,7 +336,24 @@
         </if>
 
         <!-- Fetch the version.properties file for the release from GitHub -->
-        <get src="${cumulusci.github.url.raw}/${managed_beta_tag}/version.properties" dest="${basedir}/version.properties.beta" />
+        <if>
+            <and>
+                <isset property="env.GITHUB_TOKEN" />
+                <not>
+                    <equals arg1="env.GITHUB_TOKEN" arg2="" />
+                </not>
+            </and>
+            <then>
+                <!-- Fetch the version.properties file for the release from GitHub -->
+                <exec executable="curl">
+                    <arg line="-u '${env.GITHUB_TOKEN}' --header 'Accept: application/vnd.github.v3.raw' https://api.github.com/repos/${env.GITHUB_OWNER}/${env.GITHUB_REPO}/contents/version.properties?ref=${managed_beta_tag} -o ${basedir}/version.properties.beta"/>
+                </exec>
+            </then>
+            <else>
+                <!-- Fetch the version.properties file for the release from GitHub -->
+                <get src="${cumulusci.github.url.raw}/${managed_beta_tag}/version.properties" dest="${basedir}/version.properties.beta" />
+            </else>
+        </if>
 
         <!-- Since we want to use the versions required by the tag rather than the currently checked out code, unset all version properties and load the version.properties.beta file -->
         <var file="${basedir}/version.properties.beta" />
