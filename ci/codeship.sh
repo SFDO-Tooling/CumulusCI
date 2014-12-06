@@ -215,7 +215,6 @@ if [ $BUILD_TYPE == "master" ]; then
     echo "Attempting install of $PACKAGE_VERSION"
 
     tries=0
-    ant_status=0
     while [ $tries -lt $PACKAGE_AVAILABLE_RETRY_COUNT ]; do
         tries=$[tries + 1]
         echo
@@ -224,11 +223,9 @@ if [ $BUILD_TYPE == "master" ]; then
         echo "-----------------------------------------------------------------"
         echo
         runAntTarget deployManagedBeta
-        ant_status=$?
-        if [[ $ant_status -eq 0 ]]; then break; fi
+        if [[ $? -eq 0 ]]; then break; fi
     done
-
-    if [[ $ant_status -ne 0 ]]; then exit 1; fi
+    if [[ $? -ne 0 ]]; then exit 1; fi
 
     echo
     echo "-----------------------------------------------------------------"
