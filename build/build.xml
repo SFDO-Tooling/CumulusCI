@@ -269,6 +269,9 @@
         <!-- Deploy any unpackaged metadata bundles needed before the deployment -->
         <antcall target="deployUnpackagedPre" />
 
+        <!-- Update the package.xml to managed package mode, adding install and uninstall script classes -->
+        <antcall target="updatePackageXmlManaged" />
+
         <!-- Attempt to destroy any stale metadata but continue even if this fails -->
         <trycatch>
             <try>
@@ -279,11 +282,14 @@
             </catch>
         </trycatch>
 
-        <!-- Update the package.xml to managed package mode, adding install and uninstall script classes -->
-        <antcall target="updatePackageXmlManaged" />
+        <!-- Prepare the managed version of the src directory -->
+        <antcall target="createManagedSrc" />
 
         <!-- Deploy src directory -->
         <antcall target="deployWithoutTest" />
+
+        <!-- Revert the src directory -->
+        <antcall target="revertManagedSrc" />
 
         <!-- Finally, delete any metadata from the org which is not in the repo -->
         <antcall target="destroyStaleMetadata" />
@@ -652,6 +658,23 @@
             </sequential>
         </for>
         <updateMetaXmlApi dir="${basedir}/src" apiVersion="${cumulusci.package.apiVersion}" />
+    </target>
+
+    <!-- Run stripManagedToken against src for managed deployment -->
+    <target name="createManagedSrc">
+        <delete dir="src.orig" />
+        <copy todir="src.orig" preservelastmodified="true">
+          <fileset dir="src" />
+        </copy>
+        <stripManagedToken dir="src" />
+    </target>
+
+    <!-- Revert the src directory from createManagedSrc -->
+    <target name="revertManagedSrc">
+        <copy todir="src" preservelastmodified="true" overwrite="true">
+          <fileset dir="src.orig" />
+        </copy>
+        <delete dir="src.orig" />
     </target>
 
     <!-- Override hook targets: These targets are empty in the core file but exist for allowing projects to hook in their own custom logic without overriding the core targets -->
