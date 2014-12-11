@@ -55,7 +55,7 @@
     <property name="cumulusci.maxPoll.notest" value="200" />
     <property name="cumulusci.maxPoll.managed" value="400" />
 
-    <!-- Allow APEX_TEST_NAME_MATCH environment variable to override cumulusci.test.namematch -->
+    <!-- Allow TEST_JSON_OUTPUT environment variable to override cumulusci.test.jsonoutput -->
     <if>
       <isset property="env.TEST_JSON_OUTPUT" />
       <then>
