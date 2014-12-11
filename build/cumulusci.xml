@@ -918,4 +918,22 @@
     </sequential>
   </macrodef>
 
+  <macrodef name="stripManagedToken" description="Strips all instances of //cumulusci-managed from all apex code in the target directory">
+    <attribute name="dir" description="A directory containing metadata files to strip the token from" />
+    <sequential>
+      <echo>Removing the string //cumulusci-managed from @{dir}/classes and @{dir}/triggers</echo>
+      <for param="file">
+        <path>
+          <fileset dir="@{dir}"> 
+            <include name="**/classes/*.cls" />
+            <include name="**/triggers/*.trigger" />
+          </fileset>
+        </path>
+        <sequential>
+          <replaceregexp file="@{file}" match="//cumulusci-managed" replace="" flags="g" />
+        </sequential>
+      </for>
+    </sequential>
+  </macrodef>
+
 </project>

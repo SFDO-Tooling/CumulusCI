@@ -156,7 +156,7 @@ if [ $BUILD_TYPE == "master" ]; then
         #cp -a clone clone2
         #cd clone2
         runAntTarget deployCI
-        if [ $ant_status != 0 ]; then exit 1; fi
+        if [[ $? != 0 ]]; then exit 1; fi
 
     else
         echo
@@ -198,7 +198,7 @@ if [ $BUILD_TYPE == "master" ]; then
     #echo "Running deployCIPackageOrg from /home/rof/clone"
     #cd /home/rof/clone
     runAntTarget deployCIPackageOrg
-    if [ $ant_status != 0 ]; then exit 1; fi
+    if [[ $? != 0 ]]; then exit 1; fi
 
     
     #echo
@@ -234,7 +234,7 @@ if [ $BUILD_TYPE == "master" ]; then
     echo "Running package_upload.py"
     echo
     python $CUMULUSCI_PATH/ci/package_upload.py
-    if [ $? != 0 ]; then exit 1; fi
+    if [[ $? -ne 0 ]]; then exit 1; fi
  
     # Test beta
     echo
@@ -267,7 +267,6 @@ if [ $BUILD_TYPE == "master" ]; then
     echo "Attempting install of $PACKAGE_VERSION"
 
     tries=0
-    ant_status=0
     while [ $tries -lt $PACKAGE_AVAILABLE_RETRY_COUNT ]; do
         tries=$[tries + 1]
         echo
@@ -276,10 +275,9 @@ if [ $BUILD_TYPE == "master" ]; then
         echo "-----------------------------------------------------------------"
         echo
         runAntTarget deployManagedBeta
-    if [ $ant_status == 0 ]; then break; fi
-
+        if [[ $? -eq 0 ]]; then break; fi
     done
-    if [ $ant_status != 0 ]; then exit 1; fi
+    if [[ $? -ne 0 ]]; then exit 1; fi
 
     echo
     echo "-----------------------------------------------------------------"
@@ -287,7 +285,7 @@ if [ $BUILD_TYPE == "master" ]; then
     echo "-----------------------------------------------------------------"
     echo
     runAntTarget runAllTestsManaged
-    if [ $ant_status != 0 ]; then exit 1; fi
+    if [[ $? -ne 0 ]]; then exit 1; fi
     
     if [ "$GITHUB_USERNAME" != "" ]; then   
         # Create GitHub Release
@@ -370,7 +368,7 @@ elif [ $BUILD_TYPE == "feature" ]; then
     # Deploy to feature org
     echo "Running ant deployCI"
     runAntTarget deployCI
-    if [ $? != 0 ]; then exit 1; fi
+    if [[ $? != 0 ]]; then exit 1; fi
 
 # Beta tag build, do nothing
 elif [ $BUILD_TYPE == "beta" ]; then
@@ -396,5 +394,5 @@ elif [ $BUILD_TYPE == "release" ]; then
     
     # Deploy to packaging org
     runAntTarget deployCIPackageOrg
-    if [ $? != 0 ]; then exit 1; fi
+    if [[ $? != 0 ]]; then exit 1; fi
 fi
