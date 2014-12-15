@@ -47,6 +47,7 @@
     <loadproperties srcFile="${basedir}/cumulusci.properties"/>
 
     <!-- Set default values for properties not provided in cumulusci.properties -->
+    <property name="cumulusci.apexdoc.url" value="https://github.com/SalesforceFoundation/ApexDoc/releases/download/1.0/apexdoc.jar" />
     <property name="cumulusci.package.name.managed" value="${cumulusci.package.name}" />
     <property name="cumulusci.package.installClass" value="" />
     <property name="cumulusci.package.uninstallClass" value="" />
@@ -54,6 +55,9 @@
     <property name="cumulusci.maxPoll.test" value="400" />
     <property name="cumulusci.maxPoll.notest" value="200" />
     <property name="cumulusci.maxPoll.managed" value="400" />
+    <property name="cumulusci.apexdoc.version" value="1.0" />
+    <property name="cumulusci.apexdoc.scope" value="global;public;private;testmethod;webService" />
+    <property name="cumulusci.apexdoc.branch" value="gh-pages" />
 
     <!-- Allow APEX_TEST_NAME_MATCH environment variable to override cumulusci.test.namematch -->
     <if>
@@ -675,6 +679,101 @@
           <fileset dir="src.orig" />
         </copy>
         <delete dir="src.orig" />
+    </target>
+
+    <!-- Generate developer documentation of src using ApexDoc -->
+    <target name="generateApexDoc">
+
+        <!-- Set up properties needed to clone the src repo for doc generation -->
+        <if>
+            <isset property="env.APEXDOC_TAG" />
+            <then>
+                <property name="apexdoc.src" value="../${cumulusci.package.name}ApexDocSrc" />
+                <property name="apexdoc.github.linkbase" value="${cumulusci.apexdoc.linkbase}/blob/${env.APEXDOC_TAG}/src/classes/" />
+                <property name="apexdoc.src.ref" value="tags/${env.APEXDOC_TAG}" />
+            </then>
+            <else>
+                <if>
+                    <isset property="env.APEXDOC_BRANCH" />
+                    <then>
+                        <property name="apexdoc.src" value="../${cumulusci.package.name}ApexDocSrc" />
+                        <property name="apexdoc.github.linkbase" value="${cumulusci.apexdoc.linkbase}/blob/${env.APEXDOC_BRANCH}/src/classes/" />
+                        <property name="apexdoc.src.ref" value="${env.APEXDOC_BRANCH}" />
+                    </then>
+                    <else>
+                        <fail>ERROR: You must provide an APEXDOC_TAG or APEXDOC_BRANCH environment variable</fail>
+                    </else>
+                </if>
+            </else>
+        </if>
+
+        <!-- Clone the repo and check out to the correct ref as the source for ApexDoc generation -->
+        <delete dir="${apexdoc.src}" />
+        <exec executable="git" failonerror="true">
+            <arg line="clone ${cumulusci.apexdoc.repo} ${apexdoc.src}" />
+        </exec>
+        <exec executable="git" failonerror="true" dir="${apexdoc.src}">
+            <arg line="checkout ${apexdoc.src.ref}" />
+        </exec>
+
+        <!-- Clone the repo, this copy will hold the generated docs -->
+        <delete dir="../${cumulusci.package.name}ApexDoc" />
+        <exec executable="git" failonerror="true">
+            <arg line="clone ${cumulusci.apexdoc.repo} ../${cumulusci.package.name}ApexDoc" />
+        </exec>
+        <exec executable="git" failonerror="true" dir="../${cumulusci.package.name}ApexDoc">
+            <arg line="checkout ${cumulusci.apexdoc.branch}" />
+        </exec>
+            
+        <!-- Download apexdoc.jar -->
+        <delete dir="${cumulus_ci.basedir}/../ci/doc" />
+        <mkdir dir="${cumulus_ci.basedir}/../ci/doc" />
+        <get src="https://github.com/SalesforceFoundation/ApexDoc/releases/download/${cumulusci.apexdoc.version}/apexdoc.jar" dest="${cumulus_ci.basedir}/../ci/doc/apexdoc.jar" />
+
+        <!-- Run ApexDoc -->
+        <echo>
+            java -jar ${cumulus_ci.basedir}/../ci/doc/apexdoc.jar
+                -s ${apexdoc.src}/src/classes
+                -t ../${cumulusci.package.name}ApexDoc
+                -h '${cumulusci.apexdoc.content.homepage}'
+                -a '${cumulusci.apexdoc.content.banner}'
+                -p '${cumulusci.apexdoc.scope}'
+                -g '${apexdoc.github.linkbase}
+        </echo>
+        <java jar="${cumulus_ci.basedir}/../ci/doc/apexdoc.jar" failonerror="true" fork="true">
+            <arg line="-s ${apexdoc.src}/src/classes" />
+            <arg line="-t ../${cumulusci.package.name}ApexDoc" />
+            <arg line="-h '${cumulusci.apexdoc.content.homepage}'" />
+            <arg line="-a '${cumulusci.apexdoc.content.banner}'" />
+            <arg line="-p '${cumulusci.apexdoc.scope}'" />
+            <arg line="-g '${apexdoc.github.linkbase}'" />
+            <!--
+            -->
+        </java>
+
+        <!-- Move files from ApexDocumentation to the root of the target repo -->
+        <move todir="../${cumulusci.package.name}ApexDoc">
+            <fileset dir="../${cumulusci.package.name}ApexDoc/ApexDocumentation">
+              <include name="**/*" />
+            </fileset>
+        </move>
+        <delete dir="../${cumulusci.package.name}ApexDoc/ApexDocumentation" />
+
+        <exec executable="git" failonerror="true" dir="../${cumulusci.package.name}ApexDoc">
+            <arg line="add --all" />
+        </exec>
+        <exec executable="git" dir="../${cumulusci.package.name}ApexDoc">
+            <arg line="commit -m 'Generated docs for ${apexdoc.src.ref}'" />
+        </exec>
+        <exec executable="git" dir="../${cumulusci.package.name}ApexDoc">
+            <arg line="push" />
+        </exec>
+
+        <!-- Delete created files and directories -->
+        <delete dir="${cumulus_ci.basedir}/../ci/doc" />
+        <delete dir="../${cumulusci.package.name}ApexDoc" />
+        <delete dir="${apexdoc.src}" />
+
     </target>
 
     <!-- Override hook targets: These targets are empty in the core file but exist for allowing projects to hook in their own custom logic without overriding the core targets -->
