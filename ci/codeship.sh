@@ -34,6 +34,9 @@ if [ "$BUILD_TYPE" == "" ]; then
     exit 0
 fi
 
+export APEX_TEST_NAME_MATCH_CUMULUSCI=`grep 'cumulusci.test.namematch *=' cumulusci.properties | sed -e 's/cumulusci.test.namematch *= *//g'`
+export APEX_TEST_NAME_EXCLUDE_CUMULUSCI=`grep 'cumulusci.test.nameexclude *=' cumulusci.properties | sed -e 's/cumulusci.test.nameexclude *= *//g'`
+
 # Get the PACKAGE_AVAILABILE_RETRY_COUNT from env or use default
 if [ "$PACKAGE_AVAILABLE_RETRY_COUNT" == "" ]; then
     export PACKAGE_AVAILABLE_RETRY_COUNT=5
@@ -119,6 +122,22 @@ fi
 # Master branch commit, build and test a beta managed package
 if [ $BUILD_TYPE == "master" ]; then
 
+    # Set the APEX_TEST_NAME_* environment variables for the build type
+    if [ "$APEX_TEST_NAME_MATCH_MASTER" != "" ]; then
+        export APEX_TEST_NAME_MATCH=$APEX_TEST_NAME_MATCH_MASTER
+    elif [ "$APEX_TEST_NAME_MATCH_GLOBAL" != "" ]; then
+        export APEX_TEST_NAME_MATCH=$APEX_TEST_NAME_MATCH_GLOBAL
+    else
+        export APEX_TEST_NAME_MATCH=$APEX_TEST_NAME_MATCH_CUMULUSCI
+    fi
+    if [ "$APEX_TEST_NAME_EXCLUDE_MASTER" != "" ]; then
+        export APEX_TEST_NAME_EXCLUDE=$APEX_TEST_NAME_EXCLUDE_MASTER
+    elif [ "$APEX_TEST_NAME_EXCLUDE_GLOBAL" != "" ]; then
+        export APEX_TEST_NAME_EXCLUDE=$APEX_TEST_NAME_EXCLUDE_GLOBAL
+    else
+        export APEX_TEST_NAME_EXCLUDE=$APEX_TEST_NAME_EXCLUDE_CUMULUSCI
+    fi
+
     if [ "$SF_USERNAME_MASTER" != "" ]; then
         # Get org credentials from env
         export SF_USERNAME=$SF_USERNAME_MASTER
@@ -145,6 +164,22 @@ if [ $BUILD_TYPE == "master" ]; then
         echo "No master org credentials, skipping master org build"
         echo "-----------------------------------------------------------------"
         echo
+    fi
+
+    # Set the APEX_TEST_NAME_* environment variables for the build type
+    if [ "$APEX_TEST_NAME_MATCH_PACKAGING" != "" ]; then
+        export APEX_TEST_NAME_MATCH=$APEX_TEST_NAME_MATCH_PACKAGING
+    elif [ "$APEX_TEST_NAME_MATCH_GLOBAL" != "" ]; then
+        export APEX_TEST_NAME_MATCH=$APEX_TEST_NAME_MATCH_GLOBAL
+    else
+        export APEX_TEST_NAME_MATCH=$APEX_TEST_NAME_MATCH_CUMULUSCI
+    fi
+    if [ "$APEX_TEST_NAME_EXCLUDE_PACKAGING" != "" ]; then
+        export APEX_TEST_NAME_EXCLUDE=$APEX_TEST_NAME_EXCLUDE_PACKAGING
+    elif [ "$APEX_TEST_NAME_EXCLUDE_GLOBAL" != "" ]; then
+        export APEX_TEST_NAME_EXCLUDE=$APEX_TEST_NAME_EXCLUDE_GLOBAL
+    else
+        export APEX_TEST_NAME_EXCLUDE=$APEX_TEST_NAME_EXCLUDE_CUMULUSCI
     fi
 
     # Get org credentials from env
@@ -207,6 +242,23 @@ if [ $BUILD_TYPE == "master" ]; then
     echo "ant deployManagedBeta - Install beta and test in beta org"
     echo "-----------------------------------------------------------------"
     echo
+
+    # Set the APEX_TEST_NAME_* environment variables for the build type
+    if [ "$APEX_TEST_NAME_MATCH_PACKAGING" != "" ]; then
+        export APEX_TEST_NAME_MATCH=$APEX_TEST_NAME_MATCH_PACKAGING
+    elif [ "$APEX_TEST_NAME_MATCH_GLOBAL" != "" ]; then
+        export APEX_TEST_NAME_MATCH=$APEX_TEST_NAME_MATCH_GLOBAL
+    else
+        export APEX_TEST_NAME_MATCH=$APEX_TEST_NAME_MATCH_CUMULUSCI
+    fi
+    if [ "$APEX_TEST_NAME_EXCLUDE_PACKAGING" != "" ]; then
+        export APEX_TEST_NAME_EXCLUDE=$APEX_TEST_NAME_EXCLUDE_PACKAGING
+    elif [ "$APEX_TEST_NAME_EXCLUDE_GLOBAL" != "" ]; then
+        export APEX_TEST_NAME_EXCLUDE=$APEX_TEST_NAME_EXCLUDE_GLOBAL
+    else
+        export APEX_TEST_NAME_EXCLUDE=$APEX_TEST_NAME_EXCLUDE_CUMULUSCI
+    fi
+
     export SF_USERNAME=$SF_USERNAME_BETA
     export SF_PASSWORD=$SF_PASSWORD_BETA
     export SF_SERVERURL=$SF_SERVERURL_BETA
@@ -290,6 +342,21 @@ if [ $BUILD_TYPE == "master" ]; then
 
 # Feature branch commit, build and test in local unmanaged package
 elif [ $BUILD_TYPE == "feature" ]; then
+    # Set the APEX_TEST_NAME_* environment variables for the build type
+    if [ "$APEX_TEST_NAME_MATCH_FEATURE" != "" ]; then
+        export APEX_TEST_NAME_MATCH=$APEX_TEST_NAME_MATCH_FEATURE
+    elif [ "$APEX_TEST_NAME_MATCH_GLOBAL" != "" ]; then
+        export APEX_TEST_NAME_MATCH=$APEX_TEST_NAME_MATCH_GLOBAL
+    else
+        export APEX_TEST_NAME_MATCH=$APEX_TEST_NAME_MATCH_CUMULUSCI
+    fi
+    if [ "$APEX_TEST_NAME_EXCLUDE_FEATURE" != "" ]; then
+        export APEX_TEST_NAME_EXCLUDE=$APEX_TEST_NAME_EXCLUDE_FEATURE
+    elif [ "$APEX_TEST_NAME_EXCLUDE_GLOBAL" != "" ]; then
+        export APEX_TEST_NAME_EXCLUDE=$APEX_TEST_NAME_EXCLUDE_GLOBAL
+    else
+        export APEX_TEST_NAME_EXCLUDE=$APEX_TEST_NAME_EXCLUDE_CUMULUSCI
+    fi
     
     # Get org credentials from env
     export SF_USERNAME=$SF_USERNAME_FEATURE

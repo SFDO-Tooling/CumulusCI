@@ -108,6 +108,7 @@ def run_tests():
     password = os.environ.get('SF_PASSWORD')
     serverurl = os.environ.get('SF_SERVERURL')
     test_name_match = os.environ.get('APEX_TEST_NAME_MATCH', '%_TEST')
+    test_name_exclude = os.environ.get('APEX_TEST_NAME_EXCLUDE', '')
     namespace = os.environ.get('NAMESPACE', None)
     poll_interval = int(os.environ.get('POLL_INTERVAL', 10))
     debug = os.environ.get('DEBUG_TESTS',False) == 'true'
@@ -131,15 +132,26 @@ def run_tests():
     # Split test_name_match by commas to allow multiple class name matching options
     where_name = []
     for pattern in test_name_match.split(','):
-        where_name.append("Name LIKE '%s'" % pattern)
+        if pattern:
+            where_name.append("Name LIKE '%s'" % pattern)
+
+    # Add any excludes to the where clause
+    where_exclude = []
+    for pattern in test_name_exclude.split(','):
+        if pattern:
+            where_exclude.append("(NOT Name LIKE '%s')" % pattern)
    
     # Get all test classes for namespace
-    query = "SELECT Id, Name FROM ApexClass WHERE NamespacePrefix = %s and (%s)" % (namespace, ' OR '.join(where_name))
+    query = "SELECT Id, Name FROM ApexClass WHERE NamespacePrefix = %s" % namespace
+    if where_name:
+        query += " AND (%s)" % ' OR '.join(where_name)
+    if where_exclude:
+        query += " AND %s" % ' AND '.join(where_exclude)
 
     print "Running Query: %s" % query
     sys.stdout.flush()
 
-    res = sf.query_all("SELECT Id, Name FROM ApexClass WHERE NamespacePrefix = %s and (%s)" % (namespace, ' OR '.join(where_name)))
+    res = sf.query_all(query)
 
     print "Found %s classes" % res['totalSize']
     sys.stdout.flush()

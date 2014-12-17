@@ -59,7 +59,7 @@
     <property name="cumulusci.apexdoc.scope" value="global;public;private;testmethod;webService" />
     <property name="cumulusci.apexdoc.branch" value="gh-pages" />
 
-    <!-- Allow APEX_TEST_NAME_MATCH environment variable to override cumulusci.test.namematch -->
+    <!-- Allow TEST_JSON_OUTPUT environment variable to override cumulusci.test.jsonoutput -->
     <if>
       <isset property="env.TEST_JSON_OUTPUT" />
       <then>
@@ -81,6 +81,17 @@
       </else>
     </if>
     
+    <!-- Allow APEX_TEST_NAME_EXCLUDE environment variable to override cumulusci.test.nameexclude -->
+    <if>
+      <isset property="env.APEX_TEST_NAME_EXCLUDE" />
+      <then>
+        <var name="cumulusci.test.nameexclude" value="${env.APEX_TEST_NAME_EXCLUDE}" />
+      </then>
+      <else>
+        <property name="cumulusci.test.nameexclude" value="" />
+      </else>
+    </if>
+
     <!-- Allow UNMANAGED_DESTROY_MODE environment variable to override cumulusci.unmanaged.destroy.mode -->
     <if>
       <isset property="env.UNMANAGED_DESTROY_MODE" />
@@ -609,7 +620,9 @@
                   <env key="SF_USERNAME" value="${sf.username}" />
                   <env key="SF_PASSWORD" value="${sf.password}" />
                   <env key="SF_SERVERURL" value="${sf.serverurl}" />
+                  <env key="TEST_JSON_OUTPUT" value="${cumulusci.test.jsonoutput}" />
                   <env key="APEX_TEST_NAME_MATCH" value="${cumulusci.test.namematch}" />
+                  <env key="APEX_TEST_NAME_EXCLUDE" value="${cumulusci.test.nameexclude}" />
                   <arg value="${cumulus_ci.basedir}/../ci/run_apex_tests.py" />
                 </exec>
             </then>
@@ -631,6 +644,7 @@
                   <env key="SF_SERVERURL" value="${sf.serverurl}" />
                   <env key="TEST_JSON_OUTPUT" value="${cumulusci.test.jsonoutput}" />
                   <env key="APEX_TEST_NAME_MATCH" value="${cumulusci.test.namematch}" />
+                  <env key="APEX_TEST_NAME_EXCLUDE" value="${cumulusci.test.nameexclude}" />
                   <env key="NAMESPACE" value="${cumulusci.package.namespace}" />
                   <arg value="${cumulus_ci.basedir}/../ci/run_apex_tests.py" />
                 </exec>
