@@ -766,12 +766,14 @@
         </java>
 
         <!-- Move files from ApexDocumentation to the root of the target repo -->
+        <!-- commented out to keep the subdirectory
         <move todir="../${cumulusci.package.name}ApexDoc">
             <fileset dir="../${cumulusci.package.name}ApexDoc/ApexDocumentation">
               <include name="**/*" />
             </fileset>
         </move>
         <delete dir="../${cumulusci.package.name}ApexDoc/ApexDocumentation" />
+        -->
 
         <exec executable="git" failonerror="true" dir="../${cumulusci.package.name}ApexDoc">
             <arg line="add --all" />
