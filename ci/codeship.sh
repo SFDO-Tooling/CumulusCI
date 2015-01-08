@@ -337,7 +337,7 @@ if [ $BUILD_TYPE == "master" ]; then
         echo "Checking out $CURRENT_REL_TAG"
         git fetch --tags origin
         git checkout $CURRENT_REL_TAG
-        python mrbelvedere_update_dependencies.py
+        python $CUMULUSCI_PATH/ci/mrbelvedere_update_dependencies.py
     fi
     
 
