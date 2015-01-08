@@ -335,6 +335,7 @@ if [ $BUILD_TYPE == "master" ]; then
         export PROPERTIES_PATH='version.properties'
         export BETA='true'
         echo "Checking out $CURRENT_REL_TAG"
+        git fetch --tags origin
         git checkout $CURRENT_REL_TAG
         python mrbelvedere_update_dependencies.py
     fi
