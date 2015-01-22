@@ -331,12 +331,13 @@ if [ $BUILD_TYPE == "master" ]; then
         echo "Publishing $PACKAGE_VERSION to mrbelvedere installer"
         echo "-----------------------------------------------------------------"
         echo
-        export NAMESPACE=`grep 'cumulusci.package.namespace *=' | sed -e 's/cumulusci\.package\.namespace *= *//g'`
+        export NAMESPACE=`grep 'cumulusci.package.namespace *=' cumulusci.properties | sed -e 's/cumulusci\.package\.namespace *= *//g'`
         export PROPERTIES_PATH='version.properties'
         export BETA='true'
         echo "Checking out $CURRENT_REL_TAG"
+        git fetch --tags origin
         git checkout $CURRENT_REL_TAG
-        python mrbelvedere_update_dependencies.py
+        python $CUMULUSCI_PATH/ci/mrbelvedere_update_dependencies.py
     fi
     
 

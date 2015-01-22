@@ -11,7 +11,7 @@ def update_dependencies():
     VERSION=os.environ.get('PACKAGE_VERSION')
     PROPERTIES_PATH=os.environ.get('PROPERTIES_PATH', None)
     
-    dependencies_url = '%s/%s/dependencies' % (MPINSTALLER_BASE_URL, NAMESPACE)
+    dependencies_url = '%s/%s/dependencies' % (MRBELVEDERE_BASE_URL, NAMESPACE)
     if BETA in ('True','true'):
         dependencies_url = dependencies_url + '/beta'
     
