@@ -359,15 +359,15 @@
         <!-- Fetch the version.properties file for the release from GitHub -->
         <if>
             <and>
-                <isset property="env.GITHUB_TOKEN" />
+                <isset property="env.GITHUB_USERNAME" />
                 <not>
-                    <equals arg1="env.GITHUB_TOKEN" arg2="" />
+                    <equals arg1="env.GITHUB_USERNAME" arg2="" />
                 </not>
             </and>
             <then>
                 <!-- Fetch the version.properties file for the release from GitHub -->
                 <exec executable="curl">
-                    <arg line="-u '${env.GITHUB_TOKEN}' --header 'Accept: application/vnd.github.v3.raw' https://api.github.com/repos/${env.GITHUB_OWNER}/${env.GITHUB_REPO}/contents/version.properties?ref=${managed_beta_tag} -o ${basedir}/version.properties.beta"/>
+                    <arg line="-u '${env.GITHUB_USERNAME}:${env.GITHUB_PASSWORD}' --header 'Accept: application/vnd.github.v3.raw' https://api.github.com/repos/${env.GITHUB_ORG_NAME}/${env.GITHUB_REPO_NAME}/contents/version.properties?ref=${managed_beta_tag} -o ${basedir}/version.properties.beta"/>
                 </exec>
             </then>
             <else>
