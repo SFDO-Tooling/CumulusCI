@@ -47,7 +47,6 @@
     <loadproperties srcFile="${basedir}/cumulusci.properties"/>
 
     <!-- Set default values for properties not provided in cumulusci.properties -->
-    <property name="cumulusci.apexdoc.url" value="https://github.com/SalesforceFoundation/ApexDoc/releases/download/1.0/apexdoc.jar" />
     <property name="cumulusci.package.name.managed" value="${cumulusci.package.name}" />
     <property name="cumulusci.package.installClass" value="" />
     <property name="cumulusci.package.uninstallClass" value="" />
@@ -55,7 +54,7 @@
     <property name="cumulusci.maxPoll.test" value="400" />
     <property name="cumulusci.maxPoll.notest" value="200" />
     <property name="cumulusci.maxPoll.managed" value="400" />
-    <property name="cumulusci.apexdoc.version" value="1.0" />
+    <property name="cumulusci.apexdoc.version" value="1.1" />
     <property name="cumulusci.apexdoc.scope" value="global;public;private;testmethod;webService" />
     <property name="cumulusci.apexdoc.branch" value="gh-pages" />
 
