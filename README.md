@@ -11,7 +11,6 @@ If you are already familiar with [Github Flow](http://scottchacon.com/2011/08/31
     ```
 
 4. Set up your CI server (Jenkins, Codeship,…)
-5. Fork CumulusCI
-6. Check out your forked copy in your CI server
-7. Set a CUMULUSCI_PATH environment variable in the CI server that points to your forked copy
-8. Make a commit to a branch to test everything works!
+5. Clone CumulusCI in your CI server
+6. Set a CUMULUSCI_PATH environment variable in the CI server that points to your forked copy
+7. Make a commit to a branch to test everything works!
