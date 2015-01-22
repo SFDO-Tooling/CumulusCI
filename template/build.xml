@@ -5,6 +5,29 @@
     <!-- Load environment variables -->
     <property environment="env" />
 
+    <!-- Check if the CUMULUSCI_PATH environment variable is set -->
+    <fail>
+        <condition>
+            <not><isset property="env.CUMULUSCI_PATH" /></not>
+        </condition>
+        CUMULUSCI_PATH is Required!
+
+        This project uses the CumulusCI build scripts which must be checked out and 
+        referenced in an environment variable before you can run the build scripts.
+
+        To configure the build scripts, do the following:
+
+        1. Clone the CumulusCI GitHub repository to a local folder: 
+            https://github.com/SalesforceFoundation/CumulusCI
+
+        2. Set the CUMULUSCI_PATH environment variable to the path to CumulusCI
+
+        If you are on a unix based system, the following commands should work:
+
+            git clone https://github.com/SalesforceFoundation/CumulusCI ~/CumulusCI
+            export CUMULUSCI_PATH=~/CumulusCI
+    </fail>
+    
     <!-- Load CumulusCI build targets -->
     <import file="${env.CUMULUSCI_PATH}/build/build.xml" />
 

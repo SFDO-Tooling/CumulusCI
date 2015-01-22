@@ -34,6 +34,9 @@ if [ "$BUILD_TYPE" == "" ]; then
     exit 0
 fi
 
+export APEX_TEST_NAME_MATCH_CUMULUSCI=`grep 'cumulusci.test.namematch *=' cumulusci.properties | sed -e 's/cumulusci.test.namematch *= *//g'`
+export APEX_TEST_NAME_EXCLUDE_CUMULUSCI=`grep 'cumulusci.test.nameexclude *=' cumulusci.properties | sed -e 's/cumulusci.test.nameexclude *= *//g'`
+
 # Get the PACKAGE_AVAILABILE_RETRY_COUNT from env or use default
 if [ "$PACKAGE_AVAILABLE_RETRY_COUNT" == "" ]; then
     export PACKAGE_AVAILABLE_RETRY_COUNT=5
@@ -119,6 +122,22 @@ fi
 # Master branch commit, build and test a beta managed package
 if [ $BUILD_TYPE == "master" ]; then
 
+    # Set the APEX_TEST_NAME_* environment variables for the build type
+    if [ "$APEX_TEST_NAME_MATCH_MASTER" != "" ]; then
+        export APEX_TEST_NAME_MATCH=$APEX_TEST_NAME_MATCH_MASTER
+    elif [ "$APEX_TEST_NAME_MATCH_GLOBAL" != "" ]; then
+        export APEX_TEST_NAME_MATCH=$APEX_TEST_NAME_MATCH_GLOBAL
+    else
+        export APEX_TEST_NAME_MATCH=$APEX_TEST_NAME_MATCH_CUMULUSCI
+    fi
+    if [ "$APEX_TEST_NAME_EXCLUDE_MASTER" != "" ]; then
+        export APEX_TEST_NAME_EXCLUDE=$APEX_TEST_NAME_EXCLUDE_MASTER
+    elif [ "$APEX_TEST_NAME_EXCLUDE_GLOBAL" != "" ]; then
+        export APEX_TEST_NAME_EXCLUDE=$APEX_TEST_NAME_EXCLUDE_GLOBAL
+    else
+        export APEX_TEST_NAME_EXCLUDE=$APEX_TEST_NAME_EXCLUDE_CUMULUSCI
+    fi
+
     if [ "$SF_USERNAME_MASTER" != "" ]; then
         # Get org credentials from env
         export SF_USERNAME=$SF_USERNAME_MASTER
@@ -137,12 +156,30 @@ if [ $BUILD_TYPE == "master" ]; then
         #cp -a clone clone2
         #cd clone2
         runAntTarget deployCI
+        if [[ $? != 0 ]]; then exit 1; fi
+
     else
         echo
         echo "-----------------------------------------------------------------"
         echo "No master org credentials, skipping master org build"
         echo "-----------------------------------------------------------------"
         echo
+    fi
+
+    # Set the APEX_TEST_NAME_* environment variables for the build type
+    if [ "$APEX_TEST_NAME_MATCH_PACKAGING" != "" ]; then
+        export APEX_TEST_NAME_MATCH=$APEX_TEST_NAME_MATCH_PACKAGING
+    elif [ "$APEX_TEST_NAME_MATCH_GLOBAL" != "" ]; then
+        export APEX_TEST_NAME_MATCH=$APEX_TEST_NAME_MATCH_GLOBAL
+    else
+        export APEX_TEST_NAME_MATCH=$APEX_TEST_NAME_MATCH_CUMULUSCI
+    fi
+    if [ "$APEX_TEST_NAME_EXCLUDE_PACKAGING" != "" ]; then
+        export APEX_TEST_NAME_EXCLUDE=$APEX_TEST_NAME_EXCLUDE_PACKAGING
+    elif [ "$APEX_TEST_NAME_EXCLUDE_GLOBAL" != "" ]; then
+        export APEX_TEST_NAME_EXCLUDE=$APEX_TEST_NAME_EXCLUDE_GLOBAL
+    else
+        export APEX_TEST_NAME_EXCLUDE=$APEX_TEST_NAME_EXCLUDE_CUMULUSCI
     fi
 
     # Get org credentials from env
@@ -161,6 +198,7 @@ if [ $BUILD_TYPE == "master" ]; then
     #echo "Running deployCIPackageOrg from /home/rof/clone"
     #cd /home/rof/clone
     runAntTarget deployCIPackageOrg
+    if [[ $? != 0 ]]; then exit 1; fi
 
     
     #echo
@@ -196,7 +234,7 @@ if [ $BUILD_TYPE == "master" ]; then
     echo "Running package_upload.py"
     echo
     python $CUMULUSCI_PATH/ci/package_upload.py
-    if [ $? != 0 ]; then exit 1; fi
+    if [[ $? -ne 0 ]]; then exit 1; fi
  
     # Test beta
     echo
@@ -204,6 +242,23 @@ if [ $BUILD_TYPE == "master" ]; then
     echo "ant deployManagedBeta - Install beta and test in beta org"
     echo "-----------------------------------------------------------------"
     echo
+
+    # Set the APEX_TEST_NAME_* environment variables for the build type
+    if [ "$APEX_TEST_NAME_MATCH_PACKAGING" != "" ]; then
+        export APEX_TEST_NAME_MATCH=$APEX_TEST_NAME_MATCH_PACKAGING
+    elif [ "$APEX_TEST_NAME_MATCH_GLOBAL" != "" ]; then
+        export APEX_TEST_NAME_MATCH=$APEX_TEST_NAME_MATCH_GLOBAL
+    else
+        export APEX_TEST_NAME_MATCH=$APEX_TEST_NAME_MATCH_CUMULUSCI
+    fi
+    if [ "$APEX_TEST_NAME_EXCLUDE_PACKAGING" != "" ]; then
+        export APEX_TEST_NAME_EXCLUDE=$APEX_TEST_NAME_EXCLUDE_PACKAGING
+    elif [ "$APEX_TEST_NAME_EXCLUDE_GLOBAL" != "" ]; then
+        export APEX_TEST_NAME_EXCLUDE=$APEX_TEST_NAME_EXCLUDE_GLOBAL
+    else
+        export APEX_TEST_NAME_EXCLUDE=$APEX_TEST_NAME_EXCLUDE_CUMULUSCI
+    fi
+
     export SF_USERNAME=$SF_USERNAME_BETA
     export SF_PASSWORD=$SF_PASSWORD_BETA
     export SF_SERVERURL=$SF_SERVERURL_BETA
@@ -212,7 +267,6 @@ if [ $BUILD_TYPE == "master" ]; then
     echo "Attempting install of $PACKAGE_VERSION"
 
     tries=0
-    ant_status=0
     while [ $tries -lt $PACKAGE_AVAILABLE_RETRY_COUNT ]; do
         tries=$[tries + 1]
         echo
@@ -221,12 +275,9 @@ if [ $BUILD_TYPE == "master" ]; then
         echo "-----------------------------------------------------------------"
         echo
         runAntTarget deployManagedBeta
-        ant_status=$?
-        if [ $ant_status == 0 ]; then
-            break
-        fi
+        if [[ $? -eq 0 ]]; then break; fi
     done
-    if [ $ant_status != 0 ]; then exit 1; fi
+    if [[ $? -ne 0 ]]; then exit 1; fi
 
     echo
     echo "-----------------------------------------------------------------"
@@ -234,7 +285,7 @@ if [ $BUILD_TYPE == "master" ]; then
     echo "-----------------------------------------------------------------"
     echo
     runAntTarget runAllTestsManaged
-    if [ $ant_status != 0 ]; then exit 1; fi
+    if [[ $? -ne 0 ]]; then exit 1; fi
     
     if [ "$GITHUB_USERNAME" != "" ]; then   
         # Create GitHub Release
@@ -291,6 +342,21 @@ if [ $BUILD_TYPE == "master" ]; then
 
 # Feature branch commit, build and test in local unmanaged package
 elif [ $BUILD_TYPE == "feature" ]; then
+    # Set the APEX_TEST_NAME_* environment variables for the build type
+    if [ "$APEX_TEST_NAME_MATCH_FEATURE" != "" ]; then
+        export APEX_TEST_NAME_MATCH=$APEX_TEST_NAME_MATCH_FEATURE
+    elif [ "$APEX_TEST_NAME_MATCH_GLOBAL" != "" ]; then
+        export APEX_TEST_NAME_MATCH=$APEX_TEST_NAME_MATCH_GLOBAL
+    else
+        export APEX_TEST_NAME_MATCH=$APEX_TEST_NAME_MATCH_CUMULUSCI
+    fi
+    if [ "$APEX_TEST_NAME_EXCLUDE_FEATURE" != "" ]; then
+        export APEX_TEST_NAME_EXCLUDE=$APEX_TEST_NAME_EXCLUDE_FEATURE
+    elif [ "$APEX_TEST_NAME_EXCLUDE_GLOBAL" != "" ]; then
+        export APEX_TEST_NAME_EXCLUDE=$APEX_TEST_NAME_EXCLUDE_GLOBAL
+    else
+        export APEX_TEST_NAME_EXCLUDE=$APEX_TEST_NAME_EXCLUDE_CUMULUSCI
+    fi
     
     # Get org credentials from env
     export SF_USERNAME=$SF_USERNAME_FEATURE
@@ -302,7 +368,7 @@ elif [ $BUILD_TYPE == "feature" ]; then
     # Deploy to feature org
     echo "Running ant deployCI"
     runAntTarget deployCI
-    if [ $? != 0 ]; then exit 1; fi
+    if [[ $? != 0 ]]; then exit 1; fi
 
 # Beta tag build, do nothing
 elif [ $BUILD_TYPE == "beta" ]; then
@@ -328,5 +394,5 @@ elif [ $BUILD_TYPE == "release" ]; then
     
     # Deploy to packaging org
     runAntTarget deployCIPackageOrg
-    if [ $? != 0 ]; then exit 1; fi
+    if [[ $? != 0 ]]; then exit 1; fi
 fi

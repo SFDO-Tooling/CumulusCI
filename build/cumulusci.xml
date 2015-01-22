@@ -253,6 +253,9 @@
             <case value="documents">
               <property name="typename" value="Document" />
             </case>
+            <case value="homePageComponents">
+              <property name="typename" value="HomePageComponent" />
+            </case>
             <case value="labels">
               <property name="typename" value="CustomLabel" />
             </case>
@@ -270,6 +273,9 @@
             </case>
             <case value="profiles">
               <property name="typename" value="Profile" />
+            </case>
+            <case value="permissionsets">
+              <property name="typename" value="PermissionSet" />
             </case>
             <case value="quickActions">
               <property name="typename" value="QuickAction" />
@@ -769,8 +775,8 @@
       <copy file="${cumulus_ci.basedir}/xsl/update_meta_xml.xsl" tofile="${cumulus_ci.basedir}/xsl/update_meta_xml.xsl.rendered" />
       <replaceregexp file="${cumulus_ci.basedir}/xsl/update_meta_xml.xsl.rendered" match="___namespace___" replace="@{namespace}" flags="g" />
 
-      <propertyregex property="updatemetaxml.major" override="true" input="${version.@{namespace}}" regexp="(\d+)\.(\d+)" replace="\1" />
-      <propertyregex property="updatemetaxml.minor" override="true" input="${version.@{namespace}}" regexp="(\d+)\.(\d+)" replace="\2" />
+      <propertyregex property="updatemetaxml.major" override="true" input="${version.@{namespace}}" regexp="(\d+)\.(\d+(\.\d+)?)" replace="\1" />
+      <propertyregex property="updatemetaxml.minor" override="true" input="${version.@{namespace}}" regexp="(\d+)\.(\d+(\.\d+)?)" replace="\2" />
 
       <for param="file">
         <path>
@@ -907,6 +913,24 @@
         </path>
         <sequential>
           <replaceregexp file="@{file}" match="%%%NAMESPACE%%%" replace="@{nsprefix}" flags="g" />
+        </sequential>
+      </for>
+    </sequential>
+  </macrodef>
+
+  <macrodef name="stripManagedToken" description="Strips all instances of //cumulusci-managed from all apex code in the target directory">
+    <attribute name="dir" description="A directory containing metadata files to strip the token from" />
+    <sequential>
+      <echo>Removing the string //cumulusci-managed from @{dir}/classes and @{dir}/triggers</echo>
+      <for param="file">
+        <path>
+          <fileset dir="@{dir}"> 
+            <include name="**/classes/*.cls" />
+            <include name="**/triggers/*.trigger" />
+          </fileset>
+        </path>
+        <sequential>
+          <replaceregexp file="@{file}" match="//cumulusci-managed" replace="" flags="g" />
         </sequential>
       </for>
     </sequential>

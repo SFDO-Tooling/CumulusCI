@@ -47,6 +47,7 @@
     <loadproperties srcFile="${basedir}/cumulusci.properties"/>
 
     <!-- Set default values for properties not provided in cumulusci.properties -->
+    <property name="cumulusci.apexdoc.url" value="https://github.com/SalesforceFoundation/ApexDoc/releases/download/1.0/apexdoc.jar" />
     <property name="cumulusci.package.name.managed" value="${cumulusci.package.name}" />
     <property name="cumulusci.package.installClass" value="" />
     <property name="cumulusci.package.uninstallClass" value="" />
@@ -54,8 +55,11 @@
     <property name="cumulusci.maxPoll.test" value="400" />
     <property name="cumulusci.maxPoll.notest" value="200" />
     <property name="cumulusci.maxPoll.managed" value="400" />
+    <property name="cumulusci.apexdoc.version" value="1.0" />
+    <property name="cumulusci.apexdoc.scope" value="global;public;private;testmethod;webService" />
+    <property name="cumulusci.apexdoc.branch" value="gh-pages" />
 
-    <!-- Allow APEX_TEST_NAME_MATCH environment variable to override cumulusci.test.namematch -->
+    <!-- Allow TEST_JSON_OUTPUT environment variable to override cumulusci.test.jsonoutput -->
     <if>
       <isset property="env.TEST_JSON_OUTPUT" />
       <then>
@@ -77,6 +81,17 @@
       </else>
     </if>
     
+    <!-- Allow APEX_TEST_NAME_EXCLUDE environment variable to override cumulusci.test.nameexclude -->
+    <if>
+      <isset property="env.APEX_TEST_NAME_EXCLUDE" />
+      <then>
+        <var name="cumulusci.test.nameexclude" value="${env.APEX_TEST_NAME_EXCLUDE}" />
+      </then>
+      <else>
+        <property name="cumulusci.test.nameexclude" value="" />
+      </else>
+    </if>
+
     <!-- Allow UNMANAGED_DESTROY_MODE environment variable to override cumulusci.unmanaged.destroy.mode -->
     <if>
       <isset property="env.UNMANAGED_DESTROY_MODE" />
@@ -269,6 +284,9 @@
         <!-- Deploy any unpackaged metadata bundles needed before the deployment -->
         <antcall target="deployUnpackagedPre" />
 
+        <!-- Update the package.xml to managed package mode, adding install and uninstall script classes -->
+        <antcall target="updatePackageXmlManaged" />
+
         <!-- Attempt to destroy any stale metadata but continue even if this fails -->
         <trycatch>
             <try>
@@ -279,11 +297,14 @@
             </catch>
         </trycatch>
 
-        <!-- Update the package.xml to managed package mode, adding install and uninstall script classes -->
-        <antcall target="updatePackageXmlManaged" />
+        <!-- Prepare the managed version of the src directory -->
+        <antcall target="createManagedSrc" />
 
         <!-- Deploy src directory -->
         <antcall target="deployWithoutTest" />
+
+        <!-- Revert the src directory -->
+        <antcall target="revertManagedSrc" />
 
         <!-- Finally, delete any metadata from the org which is not in the repo -->
         <antcall target="destroyStaleMetadata" />
@@ -336,7 +357,24 @@
         </if>
 
         <!-- Fetch the version.properties file for the release from GitHub -->
-        <get src="${cumulusci.github.url.raw}/${managed_beta_tag}/version.properties" dest="${basedir}/version.properties.beta" />
+        <if>
+            <and>
+                <isset property="env.GITHUB_TOKEN" />
+                <not>
+                    <equals arg1="env.GITHUB_TOKEN" arg2="" />
+                </not>
+            </and>
+            <then>
+                <!-- Fetch the version.properties file for the release from GitHub -->
+                <exec executable="curl">
+                    <arg line="-u '${env.GITHUB_TOKEN}' --header 'Accept: application/vnd.github.v3.raw' https://api.github.com/repos/${env.GITHUB_OWNER}/${env.GITHUB_REPO}/contents/version.properties?ref=${managed_beta_tag} -o ${basedir}/version.properties.beta"/>
+                </exec>
+            </then>
+            <else>
+                <!-- Fetch the version.properties file for the release from GitHub -->
+                <get src="${cumulusci.github.url.raw}/${managed_beta_tag}/version.properties" dest="${basedir}/version.properties.beta" />
+            </else>
+        </if>
 
         <!-- Since we want to use the versions required by the tag rather than the currently checked out code, unset all version properties and load the version.properties.beta file -->
         <var file="${basedir}/version.properties.beta" />
@@ -582,7 +620,9 @@
                   <env key="SF_USERNAME" value="${sf.username}" />
                   <env key="SF_PASSWORD" value="${sf.password}" />
                   <env key="SF_SERVERURL" value="${sf.serverurl}" />
+                  <env key="TEST_JSON_OUTPUT" value="${cumulusci.test.jsonoutput}" />
                   <env key="APEX_TEST_NAME_MATCH" value="${cumulusci.test.namematch}" />
+                  <env key="APEX_TEST_NAME_EXCLUDE" value="${cumulusci.test.nameexclude}" />
                   <arg value="${cumulus_ci.basedir}/../ci/run_apex_tests.py" />
                 </exec>
             </then>
@@ -604,6 +644,7 @@
                   <env key="SF_SERVERURL" value="${sf.serverurl}" />
                   <env key="TEST_JSON_OUTPUT" value="${cumulusci.test.jsonoutput}" />
                   <env key="APEX_TEST_NAME_MATCH" value="${cumulusci.test.namematch}" />
+                  <env key="APEX_TEST_NAME_EXCLUDE" value="${cumulusci.test.nameexclude}" />
                   <env key="NAMESPACE" value="${cumulusci.package.namespace}" />
                   <arg value="${cumulus_ci.basedir}/../ci/run_apex_tests.py" />
                 </exec>
@@ -635,6 +676,120 @@
             </sequential>
         </for>
         <updateMetaXmlApi dir="${basedir}/src" apiVersion="${cumulusci.package.apiVersion}" />
+    </target>
+
+    <!-- Run stripManagedToken against src for managed deployment -->
+    <target name="createManagedSrc">
+        <delete dir="src.orig" />
+        <copy todir="src.orig" preservelastmodified="true">
+          <fileset dir="src" />
+        </copy>
+        <stripManagedToken dir="src" />
+    </target>
+
+    <!-- Revert the src directory from createManagedSrc -->
+    <target name="revertManagedSrc">
+        <copy todir="src" preservelastmodified="true" overwrite="true">
+          <fileset dir="src.orig" />
+        </copy>
+        <delete dir="src.orig" />
+    </target>
+
+    <!-- Generate developer documentation of src using ApexDoc -->
+    <target name="generateApexDoc">
+
+        <!-- Set up properties needed to clone the src repo for doc generation -->
+        <if>
+            <isset property="env.APEXDOC_TAG" />
+            <then>
+                <property name="apexdoc.src" value="../${cumulusci.package.name}ApexDocSrc" />
+                <property name="apexdoc.github.linkbase" value="${cumulusci.apexdoc.linkbase}/blob/${env.APEXDOC_TAG}/src/classes/" />
+                <property name="apexdoc.src.ref" value="tags/${env.APEXDOC_TAG}" />
+            </then>
+            <else>
+                <if>
+                    <isset property="env.APEXDOC_BRANCH" />
+                    <then>
+                        <property name="apexdoc.src" value="../${cumulusci.package.name}ApexDocSrc" />
+                        <property name="apexdoc.github.linkbase" value="${cumulusci.apexdoc.linkbase}/blob/${env.APEXDOC_BRANCH}/src/classes/" />
+                        <property name="apexdoc.src.ref" value="${env.APEXDOC_BRANCH}" />
+                    </then>
+                    <else>
+                        <fail>ERROR: You must provide an APEXDOC_TAG or APEXDOC_BRANCH environment variable</fail>
+                    </else>
+                </if>
+            </else>
+        </if>
+
+        <!-- Clone the repo and check out to the correct ref as the source for ApexDoc generation -->
+        <delete dir="${apexdoc.src}" />
+        <exec executable="git" failonerror="true">
+            <arg line="clone ${cumulusci.apexdoc.repo} ${apexdoc.src}" />
+        </exec>
+        <exec executable="git" failonerror="true" dir="${apexdoc.src}">
+            <arg line="checkout ${apexdoc.src.ref}" />
+        </exec>
+
+        <!-- Clone the repo, this copy will hold the generated docs -->
+        <delete dir="../${cumulusci.package.name}ApexDoc" />
+        <exec executable="git" failonerror="true">
+            <arg line="clone ${cumulusci.apexdoc.repo} ../${cumulusci.package.name}ApexDoc" />
+        </exec>
+        <exec executable="git" failonerror="true" dir="../${cumulusci.package.name}ApexDoc">
+            <arg line="checkout ${cumulusci.apexdoc.branch}" />
+        </exec>
+            
+        <!-- Download apexdoc.jar -->
+        <delete dir="${cumulus_ci.basedir}/../ci/doc" />
+        <mkdir dir="${cumulus_ci.basedir}/../ci/doc" />
+        <get src="https://github.com/SalesforceFoundation/ApexDoc/releases/download/${cumulusci.apexdoc.version}/apexdoc.jar" dest="${cumulus_ci.basedir}/../ci/doc/apexdoc.jar" />
+
+        <!-- Run ApexDoc -->
+        <echo>
+            java -jar ${cumulus_ci.basedir}/../ci/doc/apexdoc.jar
+                -s ${apexdoc.src}/src/classes
+                -t ../${cumulusci.package.name}ApexDoc
+                -h '${cumulusci.apexdoc.content.homepage}'
+                -a '${cumulusci.apexdoc.content.banner}'
+                -p '${cumulusci.apexdoc.scope}'
+                -g '${apexdoc.github.linkbase}
+        </echo>
+        <java jar="${cumulus_ci.basedir}/../ci/doc/apexdoc.jar" failonerror="true" fork="true">
+            <arg line="-s ${apexdoc.src}/src/classes" />
+            <arg line="-t ../${cumulusci.package.name}ApexDoc" />
+            <arg line="-h '${cumulusci.apexdoc.content.homepage}'" />
+            <arg line="-a '${cumulusci.apexdoc.content.banner}'" />
+            <arg line="-p '${cumulusci.apexdoc.scope}'" />
+            <arg line="-g '${apexdoc.github.linkbase}'" />
+            <!--
+            -->
+        </java>
+
+        <!-- Move files from ApexDocumentation to the root of the target repo -->
+        <!-- commented out to keep the subdirectory
+        <move todir="../${cumulusci.package.name}ApexDoc">
+            <fileset dir="../${cumulusci.package.name}ApexDoc/ApexDocumentation">
+              <include name="**/*" />
+            </fileset>
+        </move>
+        <delete dir="../${cumulusci.package.name}ApexDoc/ApexDocumentation" />
+        -->
+
+        <exec executable="git" failonerror="true" dir="../${cumulusci.package.name}ApexDoc">
+            <arg line="add --all" />
+        </exec>
+        <exec executable="git" dir="../${cumulusci.package.name}ApexDoc">
+            <arg line="commit -m 'Generated docs for ${apexdoc.src.ref}'" />
+        </exec>
+        <exec executable="git" dir="../${cumulusci.package.name}ApexDoc">
+            <arg line="push" />
+        </exec>
+
+        <!-- Delete created files and directories -->
+        <delete dir="${cumulus_ci.basedir}/../ci/doc" />
+        <delete dir="../${cumulusci.package.name}ApexDoc" />
+        <delete dir="${apexdoc.src}" />
+
     </target>
 
     <!-- Override hook targets: These targets are empty in the core file but exist for allowing projects to hook in their own custom logic without overriding the core targets -->
