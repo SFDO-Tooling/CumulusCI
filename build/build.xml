@@ -54,7 +54,7 @@
     <property name="cumulusci.maxPoll.test" value="400" />
     <property name="cumulusci.maxPoll.notest" value="200" />
     <property name="cumulusci.maxPoll.managed" value="400" />
-    <property name="cumulusci.apexdoc.version" value="1.1.3" />
+    <property name="cumulusci.apexdoc.version" value="1.1.4" />
     <property name="cumulusci.apexdoc.scope" value="global;public;private;testmethod;webService" />
     <property name="cumulusci.apexdoc.branch" value="gh-pages" />
 
