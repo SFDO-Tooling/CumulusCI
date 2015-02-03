@@ -383,7 +383,7 @@ def run_tests():
             # Output result for method
             if debug and json_output and result.get('stats') and 'duration' in result['stats']:
                 # If debug is enabled and we're generating the json output, include duration with the test
-                print '   %(Outcome)s: %(MethodName)s (%ss)' % (
+                print '   %s: %s (%ss)' % (
                     result['Outcome'], 
                     result['MethodName'], 
                     result['stats']['duration']
