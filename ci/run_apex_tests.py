@@ -177,9 +177,10 @@ def run_tests():
     test_name_exclude = os.environ.get('APEX_TEST_NAME_EXCLUDE', '')
     namespace = os.environ.get('NAMESPACE', None)
     poll_interval = int(os.environ.get('POLL_INTERVAL', 10))
-    debug = os.environ.get('DEBUG_TESTS',False) == 'true'
+    debug = os.environ.get('DEBUG_TESTS',False) in ['true','True']
     debug_logdir = os.environ.get('DEBUG_LOGDIR')
     json_output = os.environ.get('TEST_JSON_OUTPUT', None)
+    junit_output = os.environ.get('TEST_JUNIT_OUTPUT', None)
     
     if namespace:
         namespace = "'%s'" % namespace
@@ -380,9 +381,17 @@ def run_tests():
             })
     
             # Output result for method
-            print '   %(Outcome)s: %(MethodName)s' % result
+            if debug and json_output and result.get('stats') and 'duration' in result['stats']:
+                # If debug is enabled and we're generating the json output, include duration with the test
+                print '   %(Outcome)s: %(MethodName)s (%ss)' % (
+                    result['Outcome'], 
+                    result['MethodName'], 
+                    result['stats']['duration']
+                )
+            else:
+                print '   %(Outcome)s: %(MethodName)s' % result
 
-            if debug:
+            if debug and not json_output:
                 print '     DEBUG LOG INFO:'
                 stats = result.get('stats',None)
                 if not stats:
@@ -409,11 +418,48 @@ def run_tests():
     print 'Passed: %(Pass)s  Fail: %(Fail)s  Compile Fail: %(CompileFail)s  Skipped: %(Skip)s' % counts
     print '-------------------------------------------------------------------------------'
     sys.stdout.flush()
+    
+    if counts['Fail'] or counts['CompileFail']:
+        print ''
+        print 'Failing Tests'
+        print '-------------'
+        print ''
+        sys.stdout.flush()
+
+        counter = 0
+        for result in test_results:
+            if result['Outcome'] not in ['Fail','CompileFail']:
+                continue
+            counter += 1
+            print '%s: %s.%s - %s' % (counter, result['ClassName'], result['Method'], result['Outcome'])
+            print '  Message: %s' % result['Message']
+            print '  StackTrace: %s' % result['StackTrace']
+            sys.stdout.flush()
 
     if json_output:
         f = open(json_output, 'w')
         f.write(json.dumps(test_results))
         f.close()
+
+    if junit_output:
+        f = open(junit_output, 'w')
+        f.write('<testsuite tests="%s">\n' % len(test_results))
+        for result in test_results:
+            testcase = '  <testcase classname="%s" name="%s"' % (result['ClassName'], result['Method'])
+            if 'Stats' in result and result['Stats'] and 'duration' in result['Stats']:
+                testcase = '%s time="%s"' % (testcase, result['Stats']['duration'])
+            if result['Outcome'] in ['Fail','CompileFail']:
+                testcase = '%s >\n' % testcase
+                testcase = '    <failure type="%s" message="%s" />\n' %  (result['StackTrace'], result['Message'])
+                testcase = '%s  </testcase>\n' % testcase
+            else:
+                testcase = '%s />\n' % testcase
+            
+            f.write(testcase)
+
+        f.write('</testsuite>')
+        f.close()
+        
 
     return counts
 
