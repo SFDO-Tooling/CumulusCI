@@ -449,8 +449,8 @@ def run_tests():
             if 'Stats' in result and result['Stats'] and 'duration' in result['Stats']:
                 testcase = '%s time="%s"' % (testcase, result['Stats']['duration'])
             if result['Outcome'] in ['Fail','CompileFail']:
-                testcase = '%s >\n' % testcase
-                testcase = '    <failure type="%s" message="%s" />\n' %  (result['StackTrace'], result['Message'])
+                testcase = '%s>\n' % testcase
+                testcase = '    <failure type="%s">%s</failure>\n' %  (result['StackTrace'], result['Message'])
                 testcase = '%s  </testcase>\n' % testcase
             else:
                 testcase = '%s />\n' % testcase
