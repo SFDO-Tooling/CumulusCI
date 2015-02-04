@@ -1,6 +1,7 @@
 import os
 import re
 import sys
+import cgi
 from time import sleep
 import datetime
 import calendar
@@ -450,7 +451,11 @@ def run_tests():
                 testcase = '%s time="%s"' % (testcase, result['Stats']['duration'])
             if result['Outcome'] in ['Fail','CompileFail']:
                 testcase = '%s>\n' % testcase
-                testcase = '%s    <failure type="%s">%s</failure>\n' %  (testcase, result['StackTrace'], result['Message'])
+                testcase = '%s    <failure type="%s">%s</failure>\n' %  (
+                    testcase, 
+                    cgi.escape(result['StackTrace']), 
+                    cgi.escape(result['Message']),
+                )
                 testcase = '%s  </testcase>\n' % testcase
             else:
                 testcase = '%s />\n' % testcase
