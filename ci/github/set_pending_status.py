@@ -33,7 +33,7 @@ def set_pending_status():
     
     data = {
         "state": "pending",
-        "context": "continuous-integration/jenkins"
+        "context": "default",
     }
     if BUILD_URL:
         data["target_url"] = BUILD_URL
