@@ -21,15 +21,18 @@
   <property name="lt"><![CDATA[<]]></property>
   <property name="downgrade" value="false" />
 
-  <macrodef name="downgradeCheck" description="Check whether two versions ">
-    <attribute name="installedVersion" description="The version to install (ex. 1.3)." />
-    <attribute name="buildVersion" description="The version to being build (ex. 1.3.1)." />
-    <sequential>
-      <script language="javascript"><![CDATA[var installedVersion = project.getProperty("installedVersion");
-var buildVersion = project.getProperty("buildVersion");
-var vals1 = installedVersion.split('.');
-var vals2 = version.split('.');
+  <scriptdef name="downgradeCheck" language="javascript">
+    <attribute name="installedversion" />
+    <attribute name="buildversion" />
+    <!-- Taken from here: http://stackoverflow.com/questions/6701948/efficient-way-to-compare-version-strings-in-java -->
+    <![CDATA[var installedversion = attributes.get('installedversion')+'';
+var buildversion = attributes.get('buildversion')+'';
+var vals1 = installedversion.split('.');
+var vals2 = buildversion.toString().split('.');
 var i = 0;
+var diff;
+var number;
+var result;
 
 while (i < vals1.length && i < vals2.length && vals1[i] == vals2[i]) {
 i++;
@@ -37,19 +40,17 @@ i++;
 
 if (i < vals1.length && i < vals2.length) {
 diff = vals1[i] < vals2[i] ? vals1[i] - vals2[i] : (vals1[i] > vals2[i] ? vals1[i] - vals2[i] : 0 )
-return diff ? (diff < 0 ? -1 : 1) : 0;
-var result = diff == -1 ? false : true;
+var a = diff ? (diff < 0 ? -1 : 1) : 0;
+result = a <= 0 ? false : true;
 project.setProperty("downgrade", result);
 } else {
-var number = vals1.length - vals2.length
-return number ? (number < 0 ? -1 : 1) : 0;
-var result = diff == -1 ? false : true;
+number = vals1.length - vals2.length
+var b = number ? (number < 0 ? -1 : 1) : 0;
+result = b <= 0 ? false : true;
 project.setProperty("downgrade", result);
 }
 ]]>
-      </script>
-    </sequential>
-  </macrodef>
+  </scriptdef>
 
 
   <macrodef name="installPackage" description="Installs the given managed package">
@@ -153,6 +154,7 @@ project.setProperty("downgrade", result);
               <!-- package needs downgrade or should be Not Installed -->
               <or>
                 <!-- <bool><isgreaterthan arg1="${InstalledPackage.@{namespace}.versionNumber}" arg2="@{version}" /></bool> -->
+                <downgradeCheck installedVersion="${InstalledPackage.@{namespace}.versionNumber}" buildVersion="@{version}" />
                 <bool><ispropertytrue property="${downgrade}"/></bool>
                 <equals arg1="@{version}" arg2="Not Installed" />
               </or>
