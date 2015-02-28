@@ -19,36 +19,49 @@
 
   <!-- Ant doesn't like < in replace tokens or values so set a property with < via cdata for reuse later -->
   <property name="lt"><![CDATA[<]]></property>
-  <property name="downgrade" value="false" />
+  <property name="downgradePackage" value="false" />
 
   <scriptdef name="downgradeCheck" language="javascript">
     <attribute name="installedversion" />
     <attribute name="buildversion" />
     <!-- Taken from here: http://stackoverflow.com/questions/6701948/efficient-way-to-compare-version-strings-in-java -->
-    <![CDATA[var installedversion = attributes.get('installedversion')+'';
-var buildversion = attributes.get('buildversion')+'';
-var vals1 = installedversion.split('.');
-var vals2 = buildversion.toString().split('.');
-var i = 0;
-var diff;
-var number;
+    <![CDATA[var installedVersion;
+var buildVersion;
 var result;
 
-while (i < vals1.length && i < vals2.length && vals1[i] == vals2[i]) {
-i++;
+function versionCompare(installedVersion, buildVersion) {
+    var installedVals = installedVersion.split('.');
+    var buildVals = buildVersion.split('.');
+    var diff;
+    // var signum;
+
+    var i = 0;
+    while (i < installedVals.length && i < buildVals.length && installedVals[i] == buildVals[i]) {
+        i++;
+    }
+
+    if (i < installedVals.length && i < buildVals.length) {
+        diff = installedVals[i] < buildVals[i] ? installedVals[i] - buildVals[i] : (installedVals[i] > buildVals[i] ? installedVals[i] - buildVals[i] : 0)
+        // signum = diff ? (diff < 0 ? -1 : 1) : 0;
+    } else {
+        diff = installedVals.length - buildVals.length
+        // signum = diff ? (diff < 0 ? -1 : 1) : 0;
+    }
+    return diff ? (diff < 0 ? -1 : 1) : 0;
 }
 
-if (i < vals1.length && i < vals2.length) {
-diff = vals1[i] < vals2[i] ? vals1[i] - vals2[i] : (vals1[i] > vals2[i] ? vals1[i] - vals2[i] : 0 )
-var a = diff ? (diff < 0 ? -1 : 1) : 0;
-result = a <= 0 ? false : true;
-project.setProperty("downgrade", result);
-} else {
-number = vals1.length - vals2.length
-var b = number ? (number < 0 ? -1 : 1) : 0;
-result = b <= 0 ? false : true;
-project.setProperty("downgrade", result);
+result           = false;
+installedVersion = attributes.get('installedversion')+'';
+buildVersion     = attributes.get('buildversion')+'';
+
+if (installedVersion == 'Not Installed') {
+    installedVersion = '0.0';
 }
+
+if (buildVersion != 'Not Installed') {
+    result = versionCompare(installedVersion, buildVersion) <= 0 ? false : true;
+}
+project.setProperty("downgradePackage", result);
 ]]>
   </scriptdef>
 
@@ -141,6 +154,7 @@ project.setProperty("downgrade", result);
     <attribute name="namespace" description="Package's name to be installed" />
     <attribute name="version" description="The version to install (ex. 1.3).  Passing Not Installed will ensure the package is uninstalled" />
     <sequential>
+      <downgradeCheck installedVersion="${InstalledPackage.@{namespace}.versionNumber}" buildVersion="@{version}" />
       <if>
         <!-- NOTE: This assumes getPackageVersions was already run -->
         <not><equals arg1="${InstalledPackage.@{namespace}.versionNumber}" arg2="@{version}" /></not>
@@ -153,9 +167,7 @@ project.setProperty("downgrade", result);
             
               <!-- package needs downgrade or should be Not Installed -->
               <or>
-                <!-- <bool><isgreaterthan arg1="${InstalledPackage.@{namespace}.versionNumber}" arg2="@{version}" /></bool> -->
-                <downgradeCheck installedVersion="${InstalledPackage.@{namespace}.versionNumber}" buildVersion="@{version}" />
-                <bool><ispropertytrue property="${downgrade}"/></bool>
+                <bool><equals arg1="${downgradePackage}" arg2="true" /></bool>
                 <equals arg1="@{version}" arg2="Not Installed" />
               </or>
             </and>
