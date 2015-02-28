@@ -30,8 +30,10 @@ var buildVersion;
 var result;
 
 function versionCompare(installedVersion, buildVersion) {
-    var installedVals = installedVersion.split('.');
-    var buildVals = buildVersion.split('.');
+    var installedVersionSting = String(installedVersion);
+    var buildVersionSting = String(buildVersion);
+    var installedVals = installedVersionString.split('.');
+    var buildVals = buildVersionString.split('.');
     var diff;
     // var signum;
 
