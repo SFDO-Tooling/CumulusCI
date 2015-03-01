@@ -700,6 +700,7 @@
       <addMetadataSubType dir="@{srcdir}/objects" xmlfile="@{dir}/destructiveChanges.xml" typename="WebLink" element="webLinks" />
       <addMetadataSubType dir="@{srcdir}/workflows" suffix="workflow" xmlfile="@{dir}/destructiveChanges.xml" typename="WorkflowFieldUpdate" element="fieldUpdates" parentelement="Workflow" />
       <addMetadataSubType dir="@{srcdir}/workflows" suffix="workflow" xmlfile="@{dir}/destructiveChanges.xml" typename="WorkflowRule" element="rules" parentelement="Workflow" />
+      <addMetadataSubType dir="@{srcdir}/workflows" suffix="workflow" xmlfile="@{dir}/destructiveChanges.xml" typename="WorkflowAlert" element="alerts" parentelement="Workflow" />
 
     </sequential>
   </macrodef>
@@ -761,6 +762,7 @@
       <addMetadataSubType dir="@{srcdir}/standard/objects" xmlfile="@{dir}/unpackaged/destructiveChanges.xml" typename="WebLink" element="webLinks" />
       <addMetadataSubType dir="@{srcdir}/unpackaged/workflows" suffix="workflow" xmlfile="@{dir}/unpackaged/destructiveChanges.xml" typename="WorkflowFieldUpdate" element="fieldUpdates" />
       <addMetadataSubType dir="@{srcdir}/unpackaged/workflows" suffix="workflow" xmlfile="@{dir}/unpackaged/destructiveChanges.xml" typename="WorkflowRule" element="rules" />
+      <addMetadataSubType dir="@{srcdir}/unpackaged/workflows" suffix="workflow" xmlfile="@{dir}/unpackaged/destructiveChanges.xml" typename="WorkflowAlert" element="alerts" />
 
     </sequential>
 
