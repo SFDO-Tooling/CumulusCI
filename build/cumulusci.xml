@@ -262,6 +262,9 @@
             <case value="layouts">
               <property name="typename" value="Layout" />
             </case>
+            <case value="matchingRules">
+              <property name="typename" value="MatchingRule" />
+            </case>
             <case value="objects">
               <property name="typename" value="CustomObject" />
             </case>
