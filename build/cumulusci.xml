@@ -323,7 +323,7 @@
               <var name="parents_included" unset="true" />
 
               <!-- Write a new <types/> section for the meta type -->
-              <echo file="@{xmlfile}" append="true">  &lt;types&gt;${line.separator}</echo>
+              <echo file="@{xmlfile}" append="true">    &lt;types&gt;${line.separator}</echo>
 
               <!-- Loop through files in the type's dir and add <members /> element for each file -->
               <for param="file">
@@ -355,14 +355,14 @@
                       <if>
                         <equals arg1="${metatype}" arg2="${component_file_parent}" />
                         <then>
-                          <echo file="@{xmlfile}" append="true">    &lt;members&gt;${component}&lt;/members&gt;${line.separator}</echo>
+                          <echo file="@{xmlfile}" append="true">        &lt;members&gt;${component}&lt;/members&gt;${line.separator}</echo>
                         </then>
                         <else>
                           <!-- This type contains metadata grouped into subdirectories under typedir.  Include the dir once and prefix all files with it -->
                           <if>
                             <not><contains string="${parents_included}" substring=",${component_file_parent}," /></not>
                             <then>
-                              <echo file="@{xmlfile}" append="true">    &lt;members&gt;${component_file_parent}&lt;/members&gt;${line.separator}</echo>
+                              <echo file="@{xmlfile}" append="true">        &lt;members&gt;${component_file_parent}&lt;/members&gt;${line.separator}</echo>
                               <var name="parents_included" value="${parents_included},${component_file_parent}," />
                             </then>
                           </if>
@@ -372,10 +372,10 @@
                               <equals arg1="${typename}" arg2="Document" />
                             </or>
                             <then>
-                              <echo file="@{xmlfile}" append="true">    &lt;members&gt;${component_file_parent}/${component_file}&lt;/members&gt;${line.separator}</echo>
+                              <echo file="@{xmlfile}" append="true">        &lt;members&gt;${component_file_parent}/${component_file}&lt;/members&gt;${line.separator}</echo>
                             </then>
                             <else>
-                              <echo file="@{xmlfile}" append="true">    &lt;members&gt;${component_file_parent}/${component}&lt;/members&gt;${line.separator}</echo>
+                              <echo file="@{xmlfile}" append="true">        &lt;members&gt;${component_file_parent}/${component}&lt;/members&gt;${line.separator}</echo>
                             </else>
                           </if>
                         </else>
@@ -390,8 +390,8 @@
               </for>
 
               <!-- Write the <name/> element and close the <types/> element -->
-              <echo file="@{xmlfile}" append="true">    &lt;name&gt;${typename}&lt;/name&gt;${line.separator}</echo>
-              <echo file="@{xmlfile}" append="true">  &lt;/types&gt;${line.separator}</echo>
+              <echo file="@{xmlfile}" append="true">        &lt;name&gt;${typename}&lt;/name&gt;${line.separator}</echo>
+              <echo file="@{xmlfile}" append="true">    &lt;/types&gt;${line.separator}</echo>
 
             </then>
             <else>
@@ -408,26 +408,26 @@
       <if>
         <not><equals arg1="@{installClass}" arg2="NOTSET" /></not>
         <then>
-            <echo file="@{xmlfile}" append="true">  &lt;postInstallClass&gt;@{installClass}&lt;/postInstallClass&gt;${line.separator}</echo>
+            <echo file="@{xmlfile}" append="true">    &lt;postInstallClass&gt;@{installClass}&lt;/postInstallClass&gt;${line.separator}</echo>
         </then>
       </if>
         
       <if>
         <not><equals arg1="@{uninstallClass}" arg2="NOTSET" /></not>
         <then>
-            <echo file="@{xmlfile}" append="true">  &lt;uninstallClass&gt;@{uninstallClass}&lt;/uninstallClass&gt;${line.separator}</echo>
+            <echo file="@{xmlfile}" append="true">    &lt;uninstallClass&gt;@{uninstallClass}&lt;/uninstallClass&gt;${line.separator}</echo>
         </then>
       </if>
       <!-- If package is provided, add the fullName element -->
       <if>
         <not><equals arg1="@{package}" arg2="NOTSET" /></not>
         <then>
-          <echo file="@{xmlfile}" append="true">  &lt;fullName&gt;@{package}&lt;/fullName&gt;${line.separator}</echo>
+          <echo file="@{xmlfile}" append="true">    &lt;fullName&gt;@{package}&lt;/fullName&gt;${line.separator}</echo>
         </then>
       </if>
 
       <!-- Write the <version/> tag and close <Package/> -->
-      <echo file="@{xmlfile}" append="true">  &lt;version&gt;@{version}&lt;/version&gt;${line.separator}</echo>
+      <echo file="@{xmlfile}" append="true">    &lt;version&gt;@{version}&lt;/version&gt;${line.separator}</echo>
       <echo file="@{xmlfile}" append="true">&lt;/Package&gt;</echo>
     </sequential>
   </macrodef>
@@ -495,6 +495,12 @@
                   <replaceregexp file="@{dir}/${parent_file}.@{typename}" match="members>(.*)./members>" replace="members>${parent}.\1&lt;/members>${line.separator}" flags="g" />
                 </then>
               </if>
+              <if>
+                <equals arg1="@{suffix}" arg2="matchingRule" />
+                <then>
+                  <replaceregexp file="@{dir}/${parent_file}.@{typename}" match="members>(.*)./members>" replace="members>${parent}.\1&lt;/members>${line.separator}" flags="g" />
+                </then>
+              </if>
 
               <!-- Prepend member names with workflow. -->
               <if>
@@ -529,7 +535,7 @@
               <if>
                 <isset property="type.extract" /> 
                 <then>
-                  <var name="type.extract" value="${line.separator}  ${lt}types>${line.separator}${type.extract}    ${lt}name>@{typename}${lt}/name>${line.separator}  ${lt}/types>" />
+                  <var name="type.extract" value="${line.separator}    ${lt}types>${line.separator}${type.extract}        ${lt}name>@{typename}${lt}/name>${line.separator}    ${lt}/types>" />
                   <replaceregexp file="@{xmlfile}" match="Package(.*)>" replace="Package\1>${type.extract}" />
                   <xslt in="@{xmlfile}" out="@{xmlfile}.tidy" style="${cumulus_ci.basedir}/xsl/tidy_package_xml.xsl" />
                   <move file="@{xmlfile}.tidy" tofile="@{xmlfile}" />
@@ -558,7 +564,7 @@
   
     <sequential>
       <!-- Exclude CustomLabels.labels so we can use addMetadataSubType on it instead -->
-      <buildPackageXmlFromDir dir="${basedir}/@{srcDir}" xmlfile="${basedir}/@{srcDir}/package.xml.new" package="@{package}" version="@{version}" exclude="CustomLabels.labels" installClass="@{installClass}" uninstallClass="@{uninstallClass}" />
+      <buildPackageXmlFromDir dir="${basedir}/@{srcDir}" xmlfile="${basedir}/@{srcDir}/package.xml.new" package="@{package}" version="@{version}" exclude="CustomLabels.labels *.matchingRule" installClass="@{installClass}" uninstallClass="@{uninstallClass}" />
 
       <!-- Add metadata sub-types of object which need to be explicitly listed in package.xml -->
       <!--<addMetadataSubType dir="${basedir}/@{srcDir}" xmlfile="${basedir}/@{srcDir}/package.xml.new" typename="ActionOverride" element="actionOverrides" nameelement="actionName" />-->
@@ -568,6 +574,7 @@
       <addMetadataSubType dir="${basedir}/@{srcDir}/labels" suffix="labels" xmlfile="${basedir}/@{srcDir}/package.xml.new" typename="CustomLabel" element="labels" parentelement="CustomLabels" />
       <addMetadataSubType dir="${basedir}/@{srcDir}/objects" xmlfile="${basedir}/@{srcDir}/package.xml.new" typename="FieldSet" element="fieldSets" />
       <addMetadataSubType dir="${basedir}/@{srcDir}/objects" xmlfile="${basedir}/@{srcDir}/package.xml.new" typename="ListView" element="listViews" />
+      <addMetadataSubType dir="${basedir}/@{srcDir}/matchingRules" suffix="matchingRule" xmlfile="${basedir}/@{srcDir}/package.xml.new" typename="MatchingRule" element="matchingRules" parentelement="MatchingRules" />
       <addMetadataSubType dir="${basedir}/@{srcDir}/objects" xmlfile="${basedir}/@{srcDir}/package.xml.new" typename="NamedFilter" element="namedFilters" />
       <addMetadataSubType dir="${basedir}/@{srcDir}/objects" xmlfile="${basedir}/@{srcDir}/package.xml.new" typename="RecordType" element="recordTypes" />
       <addMetadataSubType dir="${basedir}/@{srcDir}/objects" xmlfile="${basedir}/@{srcDir}/package.xml.new" typename="ValidationRule" element="validationRules" />
@@ -688,7 +695,7 @@
 
       <!-- Build the destructiveChanges.xml file by walking the srcdir and adding all metadata -->
       <!-- Exclude CustomLabels.labels so we can use addMetadataSubType on it instead -->
-      <buildPackageXmlFromDir dir="@{srcdir}" xmlfile="@{dir}/destructiveChanges.xml" version="${cumulusci.package.apiVersion}" exclude="${metadata_whitelist} CustomLabels.labels *.workflow" />
+      <buildPackageXmlFromDir dir="@{srcdir}" xmlfile="@{dir}/destructiveChanges.xml" version="${cumulusci.package.apiVersion}" exclude="${metadata_whitelist} CustomLabels.labels *.workflow *.matchingRule" />
 
       <!-- Add standard object fields to destructiveChanges.xml -->
       <addMetadataSubType dir="@{srcdir}/objects" xmlfile="@{dir}/destructiveChanges.xml" typename="CompactLayout" element="compactLayouts" />
@@ -696,6 +703,7 @@
       <addMetadataSubType dir="@{srcdir}/labels" suffix="labels" xmlfile="@{dir}/destructiveChanges.xml" typename="CustomLabel" element="labels" parentelement="CustomLabels" />
       <addMetadataSubType dir="@{srcdir}/objects" xmlfile="@{dir}/destructiveChanges.xml" typename="FieldSet" element="fieldSets" />
       <addMetadataSubType dir="@{srcdir}/objects" xmlfile="@{dir}/destructiveChanges.xml" typename="ListView" element="listViews" />
+      <addMetadataSubType dir="@{srcdir}/matchingRules" suffix="matchingRule" xmlfile="@{dir}/destructiveChanges.xml" typename="MatchingRule" element="matchingRule" parentelement="MatchingRules" />
       <addMetadataSubType dir="@{srcdir}/objects" xmlfile="@{dir}/destructiveChanges.xml" typename="NamedFilter" element="namedFilters" />
       <!--<addMetadataSubType dir="@{srcdir}" xmlfile="@{dir}/destructiveChanges.xml" typename="RecordType" element="recordTypes" />-->
       <addMetadataSubType dir="@{srcdir}/objects" xmlfile="@{dir}/destructiveChanges.xml" typename="ValidationRule" element="validationRules" />
@@ -725,7 +733,7 @@
 
       <!-- Build the destructiveChanges.xml file by walking the unpackaged directory and adding all metadata -->
       <!-- Exclude CustomLabels.labels so we can use addMetadataSubType on it instead -->
-      <buildPackageXmlFromDir dir="@{srcdir}/unpackaged" xmlfile="@{dir}/unpackaged/destructiveChanges.xml" version="${cumulusci.package.apiVersion}" exclude="CustomLabels.labels" />
+      <buildPackageXmlFromDir dir="@{srcdir}/unpackaged" xmlfile="@{dir}/unpackaged/destructiveChanges.xml" version="${cumulusci.package.apiVersion}" exclude="CustomLabels.labels *.matchingRules" />
      
       <!-- Copy the package manifest used to retrieve standard objects into srcdir and create an objects subfolder-->
       <copy file="@{srcdir}/standard/package.xml" todir="@{dir}/standard" />
@@ -757,6 +765,7 @@
       <addMetadataSubType dir="@{srcdir}/unpackaged/labels" suffix="labels" xmlfile="@{dir}/unpackaged/destructiveChanges.xml" typename="CustomLabel" element="labels" parentelement="CustomLabels" />
       <addMetadataSubType dir="@{srcdir}/standard/objects" xmlfile="@{dir}/unpackaged/destructiveChanges.xml" typename="FieldSet" element="fieldSets" />
       <addMetadataSubType dir="@{srcdir}/standard/objects" xmlfile="@{dir}/unpackaged/destructiveChanges.xml" typename="ListView" element="listViews" />
+      <addMetadataSubType dir="@{srcdir}/unpackaged/matchingRules" suffix="matchingRule" xmlfile="@{dir}/unpackaged/destructiveChanges.xml" typename="MatchingRule" element="matchingRules" parentelement="MatchingRules" />
       <addMetadataSubType dir="@{srcdir}/standard/objects" xmlfile="@{dir}/unpackaged/destructiveChanges.xml" typename="NamedFilter" element="namedFilters" />
       <!--<addMetadataSubType dir="@{srcdir}/standard" xmlfile="@{dir}/unpackaged/destructiveChanges.xml" typename="RecordType" element="recordTypes" />-->
       <addMetadataSubType dir="@{srcdir}/standard/objects" xmlfile="@{dir}/unpackaged/destructiveChanges.xml" typename="ValidationRule" element="validationRules" />
