@@ -98,13 +98,14 @@ class SalesforceOAuth2(object):
 
 class PackageUpload(object):
 
-    def __init__(self, instance_url, refresh_token, package, oauth_client_id, oauth_client_secret, oauth_callback_url):
+    def __init__(self, instance_url, refresh_token, package, oauth_client_id, oauth_client_secret, oauth_callback_url, selenium_url):
         self.instance_url = instance_url
         self.refresh_token = refresh_token
         self.package = package
         self.oauth_client_id = oauth_client_id
         self.oauth_client_secret = oauth_client_secret
         self.oauth_callback_url = oauth_callback_url
+        self.selenium_url = selenium_url
 
     def build_package(self, build_name):
         """ Builds a managed package by calling SauceLabs via Selenium to click the Upload button """ 
@@ -235,7 +236,7 @@ def package_upload():
     build_workspace = os.environ.get('BUILD_WORKSPACE')
     selenium_url = os.environ.get('SELENIUM_URL', 'http://127.0.0.1:4444/wd/hub')
     
-    uploader = PackageUpload(instance_url, refresh_token, package, oauth_client_id, oauth_client_secret, oauth_callback_url)
+    uploader = PackageUpload(instance_url, refresh_token, package, oauth_client_id, oauth_client_secret, oauth_callback_url, selenium_url)
     uploader.build_package(build_name)
     
     print 'Build Complete'
