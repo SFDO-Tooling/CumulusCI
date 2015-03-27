@@ -233,6 +233,7 @@ def package_upload():
     build_name = os.environ.get('BUILD_NAME')
     build_commit = os.environ.get('BUILD_COMMIT')
     build_workspace = os.environ.get('BUILD_WORKSPACE')
+    selenium_url = os.environ.get('SELENIUM_URL', 'http://127.0.0.1:4444/wd/hub')
     
     uploader = PackageUpload(instance_url, refresh_token, package, oauth_client_id, oauth_client_secret, oauth_callback_url)
     uploader.build_package(build_name)
