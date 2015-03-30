@@ -80,9 +80,13 @@ def merge_master_to_feature():
                     # Find the most recent committer who is not the user used by this script
                     # NOTE: This presumes the user being used by this script is a robot user, not a real dev
                     for commit in commits:
-                        if commit.committer.login != USERNAME:
-                            assignee = commit.committer
-                            break
+                        try:
+                            # Sometimes commit.committer.login does not exist in the response.  If so, continue 
+                            if commit.committer.login != USERNAME:
+                                assignee = commit.committer
+                                break
+                        except AttributeError:
+                            pass
     
                     if assignee:
                         repo.get_issue(pull.number).edit(assignee = assignee)
