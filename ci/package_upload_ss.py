@@ -263,7 +263,7 @@ if __name__ == '__main__':
         # Try to capture a selenium screenshot
         print 'Attempting to capture screenshot...'
         if hasattr(uploader, 'driver'):
-            uploader.driver.browser.get_screenshot_as_file('error-screenshot.png')
+            uploader.driver.get_screenshot_as_file('error-screenshot.png')
             print 'Created error-screenshot.png'
         else:
             print 'Screenshot failed'
