@@ -114,40 +114,40 @@ class PackageUpload(object):
         sys.stdout.flush()
 
         try:
-            driver = self.get_selenium()
+            self.driver = self.get_selenium()
         except:
             print "Sleeping 5 more seconds to try again.  Last attempt to connect to Selenium failed"
             sleep(5)
-            driver = self.get_selenium()
+            self.driver = self.get_selenium()
 
-        driver.implicitly_wait(90) # seconds
+        self.driver.implicitly_wait(90) # seconds
 
         # Load the packages list page
-        driver.get('%s/0A2' % self.instance_url)
+        self.driver.get('%s/0A2' % self.instance_url)
 
         # Update Status
         print 'Loaded package listing page'
         sys.stdout.flush()
 
         # Click the link to the package
-        driver.find_element_by_xpath("//th[contains(@class,'dataCell')]/a[text()='%s']" % self.package).click()
+        self.driver.find_element_by_xpath("//th[contains(@class,'dataCell')]/a[text()='%s']" % self.package).click()
 
         # Update Status
         print 'Loaded package page'
         sys.stdout.flush()
 
         # Click the Upload button to open the upload form
-        driver.find_element_by_xpath("//input[@class='btn' and @value='Upload']").click()
+        self.driver.find_element_by_xpath("//input[@class='btn' and @value='Upload']").click()
 
         # Update Status
         print 'Loaded Upload form'
         sys.stdout.flush()
 
         # Populate and submit the upload form to create a beta managed package
-        name_input = driver.find_element_by_id('ExportPackagePage:UploadPackageForm:PackageDetailsPageBlock:PackageDetailsBlockSection:VersionInfoSectionItem:VersionText')
+        name_input = self.driver.find_element_by_id('ExportPackagePage:UploadPackageForm:PackageDetailsPageBlock:PackageDetailsBlockSection:VersionInfoSectionItem:VersionText')
         name_input.clear()
         name_input.send_keys(build_name)
-        driver.find_element_by_id('ExportPackagePage:UploadPackageForm:PackageDetailsPageBlock:PackageDetailsPageBlockButtons:bottom:upload').click()
+        self.driver.find_element_by_id('ExportPackagePage:UploadPackageForm:PackageDetailsPageBlock:PackageDetailsPageBlockButtons:bottom:upload').click()
 
         # Update Status
         print 'Upload Submitted'
@@ -158,7 +158,7 @@ class PackageUpload(object):
         last_status = None
         while True:
             try:
-                status_message = driver.find_element_by_css_selector('.messageText').text
+                status_message = self.driver.find_element_by_css_selector('.messageText').text
             except selenium.common.exceptions.StaleElementReferenceException:
                 # These come up, possibly if you catch the page in the middle of updating the text via javascript
                 sleep(1)
@@ -180,8 +180,8 @@ class PackageUpload(object):
                 sys.stdout.flush()
     
                 # Get the version number and install url
-                version = driver.find_element_by_xpath("//th[text()='Version Number']/following-sibling::td/span").text
-                install_url = driver.find_element_by_xpath("//a[contains(@name, ':pkgInstallUrl')]").get_attribute('href')
+                version = self.driver.find_element_by_xpath("//th[text()='Version Number']/following-sibling::td/span").text
+                install_url = self.driver.find_element_by_xpath("//a[contains(@name, ':pkgInstallUrl')]").get_attribute('href')
             
                 self.version = version
                 self.install_url = install_url
@@ -201,7 +201,7 @@ class PackageUpload(object):
 
             sleep(1)
 
-        driver.quit()    
+        self.driver.quit()    
 
 
     def refresh(self):
@@ -224,7 +224,7 @@ class PackageUpload(object):
         driver.get(start_url)
         return driver
 
-def package_upload():
+def package_uploader():
     oauth_client_id = os.environ.get('OAUTH_CLIENT_ID')
     oauth_client_secret = os.environ.get('OAUTH_CLIENT_SECRET')
     oauth_callback_url = os.environ.get('OAUTH_CALLBACK_URL')
@@ -237,6 +237,10 @@ def package_upload():
     selenium_url = os.environ.get('SELENIUM_URL', 'http://127.0.0.1:4444/wd/hub')
     
     uploader = PackageUpload(instance_url, refresh_token, package, oauth_client_id, oauth_client_secret, oauth_callback_url, selenium_url)
+
+    return uploader, build_name
+
+def package_upload(uploader, build_name):
     uploader.build_package(build_name)
     
     print 'Build Complete'
@@ -253,8 +257,18 @@ def package_upload():
 
 if __name__ == '__main__':
     try:
-        package_upload()
+        uploader, build_name = package_uploader()
+        package_upload(uploader, build_name)
     except:
+        # Try to capture a selenium screenshot
+        print 'Attempting to capture screenshot...'
+        if hasattr(uploader, 'driver'):
+            uploader.driver.browser.get_screenshot_as_file('error-screenshot.png')
+            print 'Created error-screenshot.png'
+        else:
+            print 'Screenshot failed'
+       
+        # Print the traceback 
         import traceback
         exc_type, exc_value, exc_traceback = sys.exc_info()
         print '-'*60
