@@ -581,6 +581,7 @@
       <addMetadataSubType dir="${basedir}/@{srcDir}/objects" xmlfile="${basedir}/@{srcDir}/package.xml.new" typename="WebLink" element="webLinks" />
       <addMetadataSubType dir="${basedir}/@{srcDir}/workflows" suffix="workflow" xmlfile="${basedir}/@{srcDir}/package.xml.new" typename="WorkflowFieldUpdate" element="fieldUpdates" parentelement="Workflow" />
       <addMetadataSubType dir="${basedir}/@{srcDir}/workflows" suffix="workflow" xmlfile="${basedir}/@{srcDir}/package.xml.new" typename="WorkflowRule" element="rules" parentelement="Workflow" />
+      <addMetadataSubType dir="${basedir}/@{srcDir}/workflows" suffix="workflow" xmlfile="${basedir}/@{srcDir}/package.xml.new" typename="WorkflowAlert" element="alerts" parentelement="Workflow" />
 
       <move file="${basedir}/@{srcDir}/package.xml.new" tofile="${basedir}/@{srcDir}/package.xml" />
     </sequential>
@@ -710,6 +711,7 @@
       <addMetadataSubType dir="@{srcdir}/objects" xmlfile="@{dir}/destructiveChanges.xml" typename="WebLink" element="webLinks" />
       <addMetadataSubType dir="@{srcdir}/workflows" suffix="workflow" xmlfile="@{dir}/destructiveChanges.xml" typename="WorkflowFieldUpdate" element="fieldUpdates" parentelement="Workflow" />
       <addMetadataSubType dir="@{srcdir}/workflows" suffix="workflow" xmlfile="@{dir}/destructiveChanges.xml" typename="WorkflowRule" element="rules" parentelement="Workflow" />
+      <addMetadataSubType dir="@{srcdir}/workflows" suffix="workflow" xmlfile="@{dir}/destructiveChanges.xml" typename="WorkflowAlert" element="alerts" parentelement="Workflow" />
 
     </sequential>
   </macrodef>
@@ -772,6 +774,7 @@
       <addMetadataSubType dir="@{srcdir}/standard/objects" xmlfile="@{dir}/unpackaged/destructiveChanges.xml" typename="WebLink" element="webLinks" />
       <addMetadataSubType dir="@{srcdir}/unpackaged/workflows" suffix="workflow" xmlfile="@{dir}/unpackaged/destructiveChanges.xml" typename="WorkflowFieldUpdate" element="fieldUpdates" />
       <addMetadataSubType dir="@{srcdir}/unpackaged/workflows" suffix="workflow" xmlfile="@{dir}/unpackaged/destructiveChanges.xml" typename="WorkflowRule" element="rules" />
+      <addMetadataSubType dir="@{srcdir}/unpackaged/workflows" suffix="workflow" xmlfile="@{dir}/unpackaged/destructiveChanges.xml" typename="WorkflowAlert" element="alerts" />
 
     </sequential>
 
