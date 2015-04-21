@@ -19,6 +19,53 @@
 
   <!-- Ant doesn't like < in replace tokens or values so set a property with < via cdata for reuse later -->
   <property name="lt"><![CDATA[<]]></property>
+  <property name="downgradePackage" value="false" />
+
+  <scriptdef name="downgradeCheck" language="javascript">
+    <attribute name="installedversion" />
+    <attribute name="buildversion" />
+    <!-- Taken from here: http://stackoverflow.com/questions/6701948/efficient-way-to-compare-version-strings-in-java -->
+    <![CDATA[var installedVersion;
+var buildVersion;
+var result;
+
+function versionCompare(installedVersion, buildVersion) {
+    var installedVersionString = String(installedVersion);
+    var buildVersionString = String(buildVersion);
+    var installedVals = installedVersionString.split('.');
+    var buildVals = buildVersionString.split('.');
+    var diff;
+    // var signum;
+
+    var i = 0;
+    while (i < installedVals.length && i < buildVals.length && installedVals[i] == buildVals[i]) {
+        i++;
+    }
+
+    if (i < installedVals.length && i < buildVals.length) {
+        diff = installedVals[i] < buildVals[i] ? installedVals[i] - buildVals[i] : (installedVals[i] > buildVals[i] ? installedVals[i] - buildVals[i] : 0)
+        // signum = diff ? (diff < 0 ? -1 : 1) : 0;
+    } else {
+        diff = installedVals.length - buildVals.length
+        // signum = diff ? (diff < 0 ? -1 : 1) : 0;
+    }
+    return diff ? (diff < 0 ? -1 : 1) : 0;
+}
+
+result           = false;
+installedVersion = attributes.get('installedversion')+'';
+buildVersion     = attributes.get('buildversion')+'';
+
+if (installedVersion == 'Not Installed') {
+    installedVersion = '0.0';
+}
+
+if (buildVersion != 'Not Installed') {
+    result = versionCompare(installedVersion, buildVersion) <= 0 ? false : true;
+}
+project.setProperty("downgradePackage", result);
+]]>
+  </scriptdef>
 
 
   <macrodef name="installPackage" description="Installs the given managed package">
@@ -109,6 +156,7 @@
     <attribute name="namespace" description="Package's name to be installed" />
     <attribute name="version" description="The version to install (ex. 1.3).  Passing Not Installed will ensure the package is uninstalled" />
     <sequential>
+      <downgradeCheck installedVersion="${InstalledPackage.@{namespace}.versionNumber}" buildVersion="@{version}" />
       <if>
         <!-- NOTE: This assumes getPackageVersions was already run -->
         <not><equals arg1="${InstalledPackage.@{namespace}.versionNumber}" arg2="@{version}" /></not>
@@ -121,7 +169,7 @@
             
               <!-- package needs downgrade or should be Not Installed -->
               <or>
-                <bool><isgreaterthan arg1="${InstalledPackage.@{namespace}.versionNumber}" arg2="@{version}" /></bool>
+                <bool><equals arg1="${downgradePackage}" arg2="true" /></bool>
                 <equals arg1="@{version}" arg2="Not Installed" />
               </or>
             </and>
@@ -588,6 +636,7 @@
       <addMetadataSubType dir="${basedir}/@{srcDir}/objects" xmlfile="${basedir}/@{srcDir}/package.xml.new" typename="WebLink" element="webLinks" />
       <addMetadataSubType dir="${basedir}/@{srcDir}/workflows" suffix="workflow" xmlfile="${basedir}/@{srcDir}/package.xml.new" typename="WorkflowFieldUpdate" element="fieldUpdates" parentelement="Workflow" />
       <addMetadataSubType dir="${basedir}/@{srcDir}/workflows" suffix="workflow" xmlfile="${basedir}/@{srcDir}/package.xml.new" typename="WorkflowRule" element="rules" parentelement="Workflow" />
+      <addMetadataSubType dir="${basedir}/@{srcDir}/workflows" suffix="workflow" xmlfile="${basedir}/@{srcDir}/package.xml.new" typename="WorkflowAlert" element="alerts" parentelement="Workflow" />
 
       <move file="${basedir}/@{srcDir}/package.xml.new" tofile="${basedir}/@{srcDir}/package.xml" />
     </sequential>
@@ -717,6 +766,7 @@
       <addMetadataSubType dir="@{srcdir}/objects" xmlfile="@{dir}/destructiveChanges.xml" typename="WebLink" element="webLinks" />
       <addMetadataSubType dir="@{srcdir}/workflows" suffix="workflow" xmlfile="@{dir}/destructiveChanges.xml" typename="WorkflowFieldUpdate" element="fieldUpdates" parentelement="Workflow" />
       <addMetadataSubType dir="@{srcdir}/workflows" suffix="workflow" xmlfile="@{dir}/destructiveChanges.xml" typename="WorkflowRule" element="rules" parentelement="Workflow" />
+      <addMetadataSubType dir="@{srcdir}/workflows" suffix="workflow" xmlfile="@{dir}/destructiveChanges.xml" typename="WorkflowAlert" element="alerts" parentelement="Workflow" />
 
     </sequential>
   </macrodef>
@@ -779,6 +829,7 @@
       <addMetadataSubType dir="@{srcdir}/standard/objects" xmlfile="@{dir}/unpackaged/destructiveChanges.xml" typename="WebLink" element="webLinks" />
       <addMetadataSubType dir="@{srcdir}/unpackaged/workflows" suffix="workflow" xmlfile="@{dir}/unpackaged/destructiveChanges.xml" typename="WorkflowFieldUpdate" element="fieldUpdates" />
       <addMetadataSubType dir="@{srcdir}/unpackaged/workflows" suffix="workflow" xmlfile="@{dir}/unpackaged/destructiveChanges.xml" typename="WorkflowRule" element="rules" />
+      <addMetadataSubType dir="@{srcdir}/unpackaged/workflows" suffix="workflow" xmlfile="@{dir}/unpackaged/destructiveChanges.xml" typename="WorkflowAlert" element="alerts" />
 
     </sequential>
 
