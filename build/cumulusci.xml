@@ -292,6 +292,9 @@
             <case value="reports">
               <property name="typename" value="Report" />
             </case>
+            <case value="scontrols">
+              <property name="typename" value="Scontrol" />
+            </case>
             <case value="staticresources">
               <property name="typename" value="StaticResource" />
             </case>
@@ -476,17 +479,21 @@
                    This is to get around xslt's limitations in selecting an element whose name is passed as a parameter.
                    This approach avoids the need to create an xsl file for each metadata subtype
                 -->
-              <copy file="@{xslt}" tofile="@{xslt}.rendered" />
-              <replaceregexp file="@{xslt}.rendered" match="___parentelement___" replace="@{parentelement}" flags="g" />
-              <replaceregexp file="@{xslt}.rendered" match="___element___" replace="@{element}" flags="g" />
-              <replaceregexp file="@{xslt}.rendered" match="___nameelement___" replace="@{nameelement}" flags="g" />
+              <var name="xslt_basename" unset="true" />
+              <basename property="xslt_basename" file="@{xslt}" /> 
+              <var name="xslt_rendered_file" value="${basedir}/${xslt_basename}.rendered" />
+
+              <copy file="@{xslt}" tofile="${xslt_rendered_file}" />
+              <replaceregexp file="${xslt_rendered_file}" match="___parentelement___" replace="@{parentelement}" flags="g" />
+              <replaceregexp file="${xslt_rendered_file}" match="___element___" replace="@{element}" flags="g" />
+              <replaceregexp file="${xslt_rendered_file}" match="___nameelement___" replace="@{nameelement}" flags="g" />
 
               <!-- Run xslt to build a file for each parent containing <members/> elements for components -->
               <getWhitelistForObjectAndType object="${parent}" type="@{typename}" property="obj_type_whitelist" />
-              <xslt in="@{file}" out="@{dir}/${parent_file}.@{typename}" style="@{xslt}.rendered">
+              <xslt in="@{file}" out="@{dir}/${parent_file}.@{typename}" style="${xslt_rendered_file}">
                 <param name="whitelist" expression="${obj_type_whitelist}" />
               </xslt>
-              <delete file="@{xslt}.rendered" />
+              <delete file="${xslt_rendered_file}" />
 
               <!-- Prepend member names with object. -->
               <if>
@@ -783,9 +790,9 @@
     <attribute name="version" description="The version number (i.e. 2.1)" />
     <sequential>
 
-      <delete file="${cumulus_ci.basedir}/xsl/update_meta_xml.xsl.rendered" />
-      <copy file="${cumulus_ci.basedir}/xsl/update_meta_xml.xsl" tofile="${cumulus_ci.basedir}/xsl/update_meta_xml.xsl.rendered" />
-      <replaceregexp file="${cumulus_ci.basedir}/xsl/update_meta_xml.xsl.rendered" match="___namespace___" replace="@{namespace}" flags="g" />
+      <delete file="${basedir}/update_meta_xml.xsl.rendered" />
+      <copy file="${cumulus_ci.basedir}/xsl/update_meta_xml.xsl" tofile="${basedir}/update_meta_xml.xsl.rendered" />
+      <replaceregexp file="${basedir}/update_meta_xml.xsl.rendered" match="___namespace___" replace="@{namespace}" flags="g" />
 
       <propertyregex property="updatemetaxml.major" override="true" input="${version.@{namespace}}" regexp="(\d+)\.(\d+(\.\d+)?)" replace="\1" />
       <propertyregex property="updatemetaxml.minor" override="true" input="${version.@{namespace}}" regexp="(\d+)\.(\d+(\.\d+)?)" replace="\2" />
@@ -795,7 +802,7 @@
           <fileset dir="@{dir}" includes="**/*-meta.xml" />
         </path>
         <sequential>
-          <xslt in="@{file}" out="@{file}.updated" style="${cumulus_ci.basedir}/xsl/update_meta_xml.xsl.rendered">
+          <xslt in="@{file}" out="@{file}.updated" style="${basedir}/update_meta_xml.xsl.rendered">
             <param name="major" expression="${updatemetaxml.major}" />
             <param name="minor" expression="${updatemetaxml.minor}" />
           </xslt>
@@ -809,7 +816,7 @@
           <delete file="@{file}.updated" />
         </sequential>
       </for>
-      <delete file="${cumulus_ci.basedir}/xsl/update_meta_xml.xsl.rendered" />
+      <delete file="${basedir}/update_meta_xml.xsl.rendered" />
     </sequential>
   </macrodef>
 
