@@ -254,6 +254,7 @@ PartnerRole.object
 Period.object
 PermissionSet.object
 PermissionSetAssignment.object
+PersonAccount.object
 Pricebook2.object
 Pricebook2History.object
 PricebookEntry.object
