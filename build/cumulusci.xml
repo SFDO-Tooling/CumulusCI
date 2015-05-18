@@ -355,6 +355,9 @@ project.setProperty("downgradePackage", result);
             <case value="triggers">
               <property name="typename" value="ApexTrigger" />
             </case>
+            <case value="weblinks">
+              <property name="typename" value="CustomPageWebLink" />
+            </case>
             <case value="workflows">
               <property name="typename" value="Workflow" />
             </case>
@@ -680,6 +683,8 @@ project.setProperty("downgradePackage", result);
                   <not><contains string="${comm.package.xml.members}" substring="@{line}" /></not>
                   <!-- Skip CustomLabels since individual custom labels are deleted via CustomLabel -->
                   <not><contains string="@{line}" substring="CustomLabels::" /></not>
+                  <!-- Skip SControls since they may need to stay in some orgs due to legacy issues -->
+                  <not><contains string="@{line}" substring="SControls::" /></not>
                 </and>
                 <then>
                   <!-- Parse type and member name from string in format TYPE::MEMBERNAME -->

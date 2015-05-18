@@ -58,6 +58,12 @@
     <property name="cumulusci.apexdoc.scope" value="global;public;private;testmethod;webService" />
     <property name="cumulusci.apexdoc.branch" value="gh-pages" />
 
+    <!-- urlencode the package name to handle special characters -->
+    <urlencode name="cumulusci.package.name.encoded" value="${cumulusci.package.name}" />
+    <urlencode name="cumulusci.package.name.managed.encoded" value="${cumulusci.package.name.managed}" />
+    <var name="cumulusci.package.name" value="${cumulusci.package.name.encoded}" />
+    <var name="cumulusci.package.name.managed" value="${cumulusci.package.name.managed.encoded}" />
+
     <!-- Allow TEST_JSON_OUTPUT environment variable to override cumulusci.test.jsonoutput -->
     <if>
       <isset property="env.TEST_JSON_OUTPUT" />
@@ -289,10 +295,10 @@
         <!-- Attempt to destroy any stale metadata but continue even if this fails -->
         <trycatch>
             <try>
-                <antcall target="destroyStaleMetadata" />
+                <antcall target="destroyStaleMetadataManaged" />
             </try>
             <catch>
-                <echo>First run of destroyStaleMetadata failed.  Ignoring for now but it may cause build failures in other targets.</echo>
+                <echo>First run of destroyStaleMetadataManaged failed.  Ignoring for now but it may cause build failures in other targets.</echo>
             </catch>
         </trycatch>
 
@@ -306,7 +312,7 @@
         <antcall target="revertManagedSrc" />
 
         <!-- Finally, delete any metadata from the org which is not in the repo -->
-        <antcall target="destroyStaleMetadata" />
+        <antcall target="destroyStaleMetadataManaged" />
 
         <!-- Deploy any unpackaged metadata bundles needed after the deployment -->
         <antcall target="deployUnpackagedPost" />
@@ -455,6 +461,24 @@
     <!-- Utility Build Targets -->
 
     <target name="destroyStaleMetadata">
+        <echo>----------------------------------------------------------------------------</echo>
+        <delete dir="uninstallsrc" />
+        <delete dir="uninstall" />
+
+        <!-- Fetch all metadata in the  package from target org -->
+        <retrievePackaged dir="uninstallsrc" package="${cumulusci.package.name}" />
+
+        <!-- Build a destructiveChanges.xml pacckage to delete metadata in org but not in repo -->
+        <buildDestroyStaleMetadata srcdir="uninstallsrc" commdir="src" dir="uninstall" />
+
+        <!-- deploy the destructiveChanges.xml package -->
+        <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="uninstall" runAllTests="false" purgeOnDelete="true" maxPoll="${cumulusci.maxPoll.notest}" />
+
+        <delete dir="uninstallsrc" />
+        <delete dir="uninstall" />
+    </target>
+
+    <target name="destroyStaleMetadataManaged">
         <echo>----------------------------------------------------------------------------</echo>
         <delete dir="uninstallsrc" />
         <delete dir="uninstall" />
