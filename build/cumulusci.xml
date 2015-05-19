@@ -684,7 +684,7 @@ project.setProperty("downgradePackage", result);
                   <!-- Skip CustomLabels since individual custom labels are deleted via CustomLabel -->
                   <not><contains string="@{line}" substring="CustomLabels::" /></not>
                   <!-- Skip SControls since they may need to stay in some orgs due to legacy issues -->
-                  <not><contains string="@{line}" substring="SControls::" /></not>
+                  <not><contains string="@{line}" substring="Scontrol::" /></not>
                 </and>
                 <then>
                   <!-- Parse type and member name from string in format TYPE::MEMBERNAME -->
