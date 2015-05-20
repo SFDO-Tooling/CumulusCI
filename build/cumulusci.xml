@@ -414,7 +414,15 @@ project.setProperty("downgradePackage", result);
                         <else>
                           <!-- This type contains metadata grouped into subdirectories under typedir.  Include the dir once and prefix all files with it -->
                           <if>
-                            <not><contains string="${parents_included}" substring=",${component_file_parent}," /></not>
+                            <and>
+                              <not>
+                                <and>
+                                  <equals arg1="${typename}" arg2="Report" />
+                                  <contains string="${component_file_parent}" substring="__" />
+                                </and>
+                              </not>
+                              <not><contains string="${parents_included}" substring=",${component_file_parent}," /></not>
+                            </and>
                             <then>
                               <echo file="@{xmlfile}" append="true">        &lt;members&gt;${component_file_parent}&lt;/members&gt;${line.separator}</echo>
                               <var name="parents_included" value="${parents_included},${component_file_parent}," />
