@@ -260,14 +260,6 @@ if __name__ == '__main__':
         uploader, build_name = package_uploader()
         package_upload(uploader, build_name)
     except:
-        # Try to capture a selenium screenshot
-        print 'Attempting to capture screenshot...'
-        if hasattr(uploader, 'driver'):
-            uploader.driver.get_screenshot_as_file('error-screenshot.png')
-            print 'Created error-screenshot.png'
-        else:
-            print 'Screenshot failed'
-       
         # Print the traceback 
         import traceback
         exc_type, exc_value, exc_traceback = sys.exc_info()
@@ -276,3 +268,11 @@ if __name__ == '__main__':
         print '-'*60
         sys.exit(1)
 
+        # Try to capture a selenium screenshot
+        print 'Attempting to capture screenshot...'
+        if hasattr(uploader, 'driver'):
+            uploader.driver.get_screenshot_as_file('error-screenshot.png')
+            print 'Created error-screenshot.png'
+        else:
+            print 'Screenshot failed'
+       
