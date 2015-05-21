@@ -211,6 +211,8 @@ NetworkMember.object
 NetworkMemberGroup.object
 NetworkModeration.object
 NewsFeed.object
+NewNote.quickAction
+NewTask.quickAction
 Note.object
 NoteAndAttachment.object
 NoteTag.object
