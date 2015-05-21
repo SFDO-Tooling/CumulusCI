@@ -173,7 +173,7 @@ def create_release_notes():
     # If there is no content found, exit
     if not content['warning'] and not content['info'] and not content['issues']:
         print 'No release note content found, exiting'
-        exit()
+        return
     
     # Sort issues by issue number
     content['issues'].sort()
