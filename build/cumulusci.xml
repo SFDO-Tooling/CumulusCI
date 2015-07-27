@@ -286,6 +286,9 @@ project.setProperty("downgradePackage", result);
             <case value="applications">
               <property name="typename" value="CustomApplication" />
             </case>
+            <case value="aura">
+              <property name="typename" value="AuraBundleDefinition" />
+            </case>
             <case value="classes">
               <property name="typename" value="ApexClass" />
             </case>
@@ -419,6 +422,7 @@ project.setProperty("downgradePackage", result);
                                 <and>
                                   <equals arg1="${typename}" arg2="Report" />
                                   <contains string="${component_file_parent}" substring="__" />
+                                  <equals arg1="${typename}" arg2="AuraBundleDefinition" />
                                 </and>
                               </not>
                               <not><contains string="${parents_included}" substring=",${component_file_parent}," /></not>
@@ -437,7 +441,14 @@ project.setProperty("downgradePackage", result);
                               <echo file="@{xmlfile}" append="true">        &lt;members&gt;${component_file_parent}/${component_file}&lt;/members&gt;${line.separator}</echo>
                             </then>
                             <else>
-                              <echo file="@{xmlfile}" append="true">        &lt;members&gt;${component_file_parent}/${component}&lt;/members&gt;${line.separator}</echo>
+                              <if>
+                                <not>
+                                  <equals arg1="${typename}" arg2="AuraBundleDefinition" />
+                                </not>
+                                <then>
+                                  <echo file="@{xmlfile}" append="true">        &lt;members&gt;${component_file_parent}/${component}&lt;/members&gt;${line.separator}</echo>
+                                </then>
+                              </if>
                             </else>
                           </if>
                         </else>
