@@ -287,7 +287,7 @@ project.setProperty("downgradePackage", result);
               <property name="typename" value="CustomApplication" />
             </case>
             <case value="aura">
-              <property name="typename" value="AuraBundleDefinition" />
+              <property name="typename" value="AuraDefinitionBundle" />
             </case>
             <case value="classes">
               <property name="typename" value="ApexClass" />
@@ -422,7 +422,7 @@ project.setProperty("downgradePackage", result);
                                 <and>
                                   <equals arg1="${typename}" arg2="Report" />
                                   <contains string="${component_file_parent}" substring="__" />
-                                  <equals arg1="${typename}" arg2="AuraBundleDefinition" />
+                                  <equals arg1="${typename}" arg2="AuraDefinitionBundle" />
                                 </and>
                               </not>
                               <not><contains string="${parents_included}" substring=",${component_file_parent}," /></not>
@@ -443,7 +443,7 @@ project.setProperty("downgradePackage", result);
                             <else>
                               <if>
                                 <not>
-                                  <equals arg1="${typename}" arg2="AuraBundleDefinition" />
+                                  <equals arg1="${typename}" arg2="AuraDefinitionBundle" />
                                 </not>
                                 <then>
                                   <echo file="@{xmlfile}" append="true">        &lt;members&gt;${component_file_parent}/${component}&lt;/members&gt;${line.separator}</echo>

@@ -604,6 +604,58 @@
 
     <!-- Developer focused build targets -->
 
+    <!-- deployDevOrg: Does a full build including uninstalling previously deployed packaged code, updating managed package versions, and then deploying without running tests.  Use this target to quickly refresh a dev org. -->
+    <!-- !!!WARNING!!!: DO NOT run this against a real production org as it will delete everything.  It is designed to clear the target org to ensure a clean development environment. -->
+    <target name="deployDevOrg">
+        <echo>============================================================================</echo>
+        <antcall target="preDeployCI" />
+
+        <!-- Create the unmanaged package if it doesn't already exist -->
+        <antcall target="createUnmanagedPackage" />
+
+        <!-- Uninstall all unpackaged code from the target org.  We have to do this first so we can uninstall and reinstall any managed packages not at the right version -->
+        <if>
+            <equals arg1="${cumulusci.unmanaged.destroy.mode}" arg2="full" />
+            <then>
+                <antcall target="uninstall" />
+            </then>
+            <else>
+                <!-- Attempt to destroy any stale metadata but continue even if this fails -->
+                <trycatch>
+                    <try>
+                        <antcall target="destroyStaleMetadata" />
+                    </try>
+                    <catch>
+                        <echo>First run of destroyStaleMetadata failed.  Ignoring for now but it may cause build failures in other targets.</echo>
+                    </catch>
+                </trycatch>
+            </else>
+        </if>
+
+        <!-- Update any managed packages which are not at the right version -->
+        <antcall target="updateRequiredPackages" />
+
+        <!-- Deploy any unpackaged metadata bundles needed before the deployment -->
+        <antcall target="deployUnpackagedPre" />
+
+        <!-- Deploy the src directory -->
+        <antcall target="deployWithoutTest" />
+        
+        <if>
+            <not><equals arg1="${cumulusci.unmanaged.destroy.mode}" arg2="full" /></not>
+            <then>
+                <!-- Finally, delete any metadata from the org which is not in the repo -->
+                <antcall target="destroyStaleMetadata" />
+            </then>
+        </if>
+        
+        <!-- Deploy any unpackaged metadata bundles needed after the deployment -->
+        <antcall target="deployUnpackagedPost" />
+
+        <antcall target="postDeployCI" />
+    </target>
+
+
     <!-- retrieveUnpackaged: Retrieves all unpackaged metadata from target org into the unpackaged directory -->
     <target name="retrieveUnpackaged">
         <retrieveUnpackaged dir="org_unpackaged" />
