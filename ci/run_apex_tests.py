@@ -241,6 +241,8 @@ def run_tests():
 
     # If debug is turned on, setup debug traces for all test classes
     if debug:
+        print 'Setting up trace flags to capture debug logs'
+        
         # Set up a simple-salesforce sobject for TraceFlag using the tooling api
         TraceFlag = sf.TraceFlag
         TraceFlag.base_url = (u'https://{instance}/services/data/v{sf_version}/tooling/sobjects/{object_name}/'
@@ -270,6 +272,8 @@ def run_tests():
                 'Workflow': 'Error',
             })
             traces_by_class_id[class_id] = res['id']
+            
+        print 'Created %s TraceFlag objects' % len(traces_by_class_id.keys())
     
     # Run all the tests
     print "Queuing tests for execution..."
