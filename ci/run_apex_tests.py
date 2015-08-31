@@ -76,7 +76,10 @@ def parse_unit_started(class_name, line):
 
 def parse_log_by_method(class_name, log):
     stats = {}
+    last_stats = {}
     in_limits = False
+    in_cumulative_limits = False
+    in_testing_limits = False
     unit = None
     method = None
     children = {}
@@ -114,6 +117,16 @@ def parse_log_by_method(class_name, log):
 
             continue
 
+        if line.find('|CUMULATIVE_LIMIT_USAGE') != -1 and line.find('USAGE_END') == -1:
+            in_cumulative_limits = True
+            in_testing_limits = False
+            continue
+
+        if line.find('|TESTING_LIMITS') != -1:
+            in_testing_limits = True
+            in_cumulative_limits = False
+            continue
+
         if line.find('|LIMIT_USAGE_FOR_NS|(default)|') != -1:
             # Parse the start of the limits section
             in_limits = True
@@ -122,11 +135,15 @@ def parse_log_by_method(class_name, log):
         if in_limits and line.find(':') == -1:
             # Parse the end of the limits section
             in_limits = False
+            in_cumulative_limits = False
+            in_testing_limits = False
             continue
 
         if in_limits:
             # Parse the limit name, used, and allowed values
             limit, value = line.split(': ')
+            if in_testing_limits:
+                limit = 'TESTING_LIMITS: %s' % limit
             used, allowed = value.split(' out of ')
             stats[limit] = {
                 'used': used,
@@ -141,7 +158,9 @@ def parse_log_by_method(class_name, log):
 
             # Yield the stats for the method
             yield method, stats, children
+            last_stats = stats.copy()
             stats = {}
+            in_cumulative_limits = False
             in_limits = False
 
         # Handle all other code units finishing
@@ -163,6 +182,7 @@ def parse_log_by_method(class_name, log):
             #children[unit_type][unit][-1]['stats'] = stats
 
             stats = {}
+            in_cumulative_limits = False
             in_limits = False
         
         # If debug log size limit was reached, fail gracefully
@@ -229,7 +249,7 @@ def run_tests():
     
     classes_by_id = {}
     classes_by_name = {}
-    traces_by_class_id = {}
+    trace_id = None
     results_by_class_name = {}
     classes_by_log_id = {}
     logs_by_class_id = {}
@@ -241,7 +261,11 @@ def run_tests():
 
     # If debug is turned on, setup debug traces for all test classes
     if debug:
-        print 'Setting up trace flags to capture debug logs'
+        print 'Setting up trace flag to capture debug logs'
+
+        # Get the User's id to set a TraceFlag
+        res_user = sf.query("Select Id from User where Username = '%s'" % username)
+        user_id = res_user['records'][0]['Id']
         
         # Set up a simple-salesforce sobject for TraceFlag using the tooling api
         TraceFlag = sf.TraceFlag
@@ -257,23 +281,22 @@ def run_tests():
                 TraceFlag.delete(tf['Id'])
     
         expiration = datetime.datetime.now() + datetime.timedelta(1)
-        for class_id in classes_by_id.keys():
-            res = TraceFlag.create({
-                'ApexCode': 'Error',
-                'ApexProfiling': 'Debug',
-                'Callout': 'Error',
-                'Database': 'Error',
-                'ExpirationDate': expiration.isoformat(),
-                #'ScopeId': class_id,
-                'System': 'Error',
-                'TracedEntityId': class_id,
-                'Validation': 'Error',
-                'Visualforce': 'Error',
-                'Workflow': 'Error',
-            })
-            traces_by_class_id[class_id] = res['id']
-            
-        print 'Created %s TraceFlag objects' % len(traces_by_class_id.keys())
+        res = TraceFlag.create({
+            'ApexCode': 'Info',
+            'ApexProfiling': 'Debug',
+            'Callout': 'Info',
+            'Database': 'Info',
+            'ExpirationDate': expiration.isoformat(),
+            'ScopeId': user_id,
+            'System': 'Info',
+            'TracedEntityId': user_id,
+            'Validation': 'Info',
+            'Visualforce': 'Info',
+            'Workflow': 'Info',
+        })
+        trace_id = res['id']
+
+        print 'Created TraceFlag for user'
     
     # Run all the tests
     print "Queuing tests for execution..."
@@ -350,9 +373,8 @@ def run_tests():
             for method, info in method_stats.items():
                 results_by_class_name[class_name][method].update(info)
 
-        # Delete the trace flags
-        for trace_id in traces_by_class_id.values():
-            TraceFlag.delete(trace_id)
+        # Delete the trace flag
+        TraceFlag.delete(trace_id)
 
     # Build an OrderedDict of results
     test_results = []
