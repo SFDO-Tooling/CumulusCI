@@ -287,7 +287,7 @@ def run_tests():
             'Callout': 'Info',
             'Database': 'Info',
             'ExpirationDate': expiration.isoformat(),
-            'ScopeId': user_id,
+            #'ScopeId': user_id,
             'System': 'Info',
             'TracedEntityId': user_id,
             'Validation': 'Info',
