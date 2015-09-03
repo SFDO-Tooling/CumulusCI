@@ -119,7 +119,7 @@
         <antcall target="deployWithoutTest" />
         <antcall target="runAllTests" />
         <!-- Changed to deploy then test due to suspicion that staging the deployment to run tests was causing a failure with every other build
-          <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="src" runAllTests="true" maxPoll="${cumulusci.maxPoll.test}" />
+          <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="src" testLevel="RunLocalTests" maxPoll="${cumulusci.maxPoll.test}" />
           -->
     </target>
 
@@ -127,7 +127,7 @@
     <target name="deployWithoutTest">
         <echo>----------------------------------------------------------------------------</echo>
         <antcall target="preDeploy" />
-        <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="src" runAllTests="false" maxPoll="${cumulusci.maxPoll.notest}" />
+        <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="src" testLevel="NoTestRun" maxPoll="${cumulusci.maxPoll.notest}" />
         <antcall target="postDeploy" />
     </target>
 
@@ -183,7 +183,7 @@
                         <echo>Uninstalling unpackaged bundle @{dir}</echo>
                         <delete dir="uninstall" />
                         <buildPackagedDestructiveChanges srcdir="@{dir}" dir="uninstall" package="${cumulusci.package.name}" />
-                        <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="uninstall" runAllTests="false" purgeOnDelete="true" ignoreWarnings="true" maxPoll="${cumulusci.maxPoll.notest}" />
+                        <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="uninstall" testLevel="NoTestRun" purgeOnDelete="true" ignoreWarnings="true" maxPoll="${cumulusci.maxPoll.notest}" />
                         <delete dir="uninstall" />
                     </sequential>
                 </for>
@@ -208,7 +208,7 @@
                         <echo>Uninstalling unpackaged bundle @{dir}</echo>
                         <delete dir="uninstall" />
                         <buildPackagedDestructiveChanges srcdir="@{dir}" dir="uninstall" package="${cumulusci.package.name}" />
-                        <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="uninstall" runAllTests="false" purgeOnDelete="true" ignoreWarnings="true" maxPoll="${cumulusci.maxPoll.notest}" />
+                        <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="uninstall" testLevel="NoTestRun" purgeOnDelete="true" ignoreWarnings="true" maxPoll="${cumulusci.maxPoll.notest}" />
                         <delete dir="uninstall" />
                     </sequential>
                 </for>
@@ -447,6 +447,7 @@
         <!-- Since we want to use the versions required by the tag rather than the currently checked out code, unset all version properties and load the version.properties.prod file -->
         <var file="${basedir}/version.properties.prod" />
         <delete file="${basedir}/version.properties.prod" />
+        <var name="version.managed" value="${version.managed.prod}" />
 
         <!-- Run updateRequiredPackages to install the correct versions of required packages and the main package -->
         <antcall target="updateRequiredPackages" />
@@ -472,7 +473,7 @@
         <buildDestroyStaleMetadata srcdir="uninstallsrc" commdir="src" dir="uninstall" />
 
         <!-- deploy the destructiveChanges.xml package -->
-        <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="uninstall" runAllTests="false" purgeOnDelete="true" maxPoll="${cumulusci.maxPoll.notest}" />
+        <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="uninstall" testLevel="NoTestRun" purgeOnDelete="true" maxPoll="${cumulusci.maxPoll.notest}" />
 
         <delete dir="uninstallsrc" />
         <delete dir="uninstall" />
@@ -490,7 +491,7 @@
         <buildDestroyStaleMetadata srcdir="uninstallsrc" commdir="src" dir="uninstall" />
 
         <!-- deploy the destructiveChanges.xml package -->
-        <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="uninstall" runAllTests="false" purgeOnDelete="true" maxPoll="${cumulusci.maxPoll.notest}" />
+        <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="uninstall" testLevel="NoTestRun" purgeOnDelete="true" maxPoll="${cumulusci.maxPoll.notest}" />
 
         <delete dir="uninstallsrc" />
         <delete dir="uninstall" />
@@ -505,7 +506,7 @@
         <delete dir="uninstall" />
         <retrievePackaged dir="uninstallsrc" package="${cumulusci.package.name}" />
         <buildPackagedDestructiveChanges srcdir="uninstallsrc" dir="uninstall" package="${cumulusci.package.name}" />
-        <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="uninstall" runAllTests="false" purgeOnDelete="true" maxPoll="${cumulusci.maxPoll.notest}" />
+        <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="uninstall" testLevel="NoTestRun" purgeOnDelete="true" maxPoll="${cumulusci.maxPoll.notest}" />
         <delete dir="uninstallsrc" />
         <delete dir="uninstall" />
         <antcall target="uninstallUnpackagedPre" />
@@ -519,8 +520,8 @@
         <retrieveUnpackaged dir="uninstallsrc" />
         <deleteWhitelistedMetadata dir="uninstallsrc/unpackaged" />
         <buildUnpackagedDestructiveChanges srcdir="uninstallsrc" dir="uninstall" />
-        <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="uninstall/standard" runAllTests="false" maxPoll="${cumulusci.maxPoll.notest}" />
-        <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="uninstall/unpackaged" runAllTests="false" purgeOnDelete="true" maxPoll="${cumulusci.maxPoll.notest}" />
+        <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="uninstall/standard" testLevel="NoTestRun" maxPoll="${cumulusci.maxPoll.notest}" />
+        <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="uninstall/unpackaged" testLevel="NoTestRun" purgeOnDelete="true" maxPoll="${cumulusci.maxPoll.notest}" />
         <delete dir="uninstallsrc" />
         <delete dir="uninstall" />
     </target>
@@ -679,7 +680,7 @@
                 <delete dir="${basedir}/create_package" />
                 <mkdir dir="${basedir}/create_package" />
                 <buildPackageXml package="${cumulusci.package.name}" version="${cumulusci.package.apiVersion}" srcDir="create_package" />
-                <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="create_package" runAllTests="false" maxPoll="${cumulusci.maxPoll.notest}" />
+                <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="create_package" testLevel="NoTestRun" maxPoll="${cumulusci.maxPoll.notest}" />
                 <delete dir="${basedir}/create_package" />
             </then>
         </if>
@@ -702,7 +703,7 @@
                 </exec>
             </then>
             <else>
-                <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="${cumulus_ci.basedir}/empty" runAllTests="true" maxPoll="${cumulusci.maxPoll.test}" />
+                <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="${cumulus_ci.basedir}/empty" testLevel="RunLocalTests" maxPoll="${cumulusci.maxPoll.test}" />
             </else>
         </if>
     </target>
@@ -725,7 +726,7 @@
                 </exec>
             </then>
             <else>
-                <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="${cumulus_ci.basedir}/empty" runAllTests="true" maxPoll="${cumulusci.maxPoll.test}" />
+                <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="${cumulus_ci.basedir}/empty" testLevel="RunLocalTests" maxPoll="${cumulusci.maxPoll.test}" />
             </else>
         </if>
     </target>
