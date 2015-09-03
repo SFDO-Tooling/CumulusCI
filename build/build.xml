@@ -726,7 +726,7 @@
                 </exec>
             </then>
             <else>
-                <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="${cumulus_ci.basedir}/empty" testLevel="RunLocalTests" maxPoll="${cumulusci.maxPoll.test}" />
+                <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="${cumulus_ci.basedir}/empty" testLevel="RunAllTestsInOrg" maxPoll="${cumulusci.maxPoll.test}" />
             </else>
         </if>
     </target>
