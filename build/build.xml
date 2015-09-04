@@ -449,12 +449,17 @@
         <delete file="${basedir}/version.properties.prod" />
         <var name="version.managed" value="${version.managed.prod}" />
 
+        <!-- Deploy any unpackaged metadata bundles needed before the deployment -->
+        <antcall target="deployManagedUnpackagedPre" />
+
         <!-- Run updateRequiredPackages to install the correct versions of required packages and the main package -->
         <antcall target="updateRequiredPackages" />
 
         <!-- Deploy any unpackaged metadata bundles needed for builds -->
-        <antcall target="deployUnpackagedPre" />
-        <antcall target="deployUnpackagedPost" />
+        <antcall target="deployManagedUnpackagedPost" />
+
+        <!-- Uninstall the unpackaged post bundles so they don't cause dependency issues in the next build -->
+        <antcall target="uninstallUnpackagedPost" />
 
         <antcall target="postDeployManaged" />
     </target>
