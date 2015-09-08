@@ -4,9 +4,9 @@ import sys
 import requests
 
 def upload_test_results():
-    APEXTESTDB_BASE_URL=os.environ.get('RESULTSDB_BASE_URL')
-    RESULTSDB_USER_ID=os.environ.get('RESULTSDB_USER_ID')
-    RESULTSDB_TOKEN=os.environ.get('RESULTSDB_TOKEN')
+    APEXTESTSDB_BASE_URL=os.environ.get('APEXTESTSDB_BASE_URL')
+    APEXTESTSDB_USER_ID=os.environ.get('APEXTESTSDB_USER_ID')
+    APEXTESTSDB_TOKEN=os.environ.get('APEXTESTSDB_TOKEN')
 
     PACKAGE=os.environ.get('PACKAGE')
     REPOSITORY_URL=os.environ.get('REPOSITORY_URL')
@@ -23,15 +23,15 @@ def upload_test_results():
         'commit_sha': COMMIT_SHA,
         'execution_name': EXECUTION_NAME,
         'execution_url': EXECUTION_URL,
-        'user': RESULTSDB_USER_ID,
-        'token': RESULTSDB_TOKEN,
+        'user': APEXTESTSDB_USER_ID,
+        'token': APEXTESTSDB_TOKEN,
     }
 
     files = {
         'results_file': open(RESULTS_FILE_PATH, 'rb'),
     }
 
-    return requests.post(RESULTSDB_BASE_URL + '/upload_test_result', files=files, data=payload)
+    return requests.post(APEXTESTSDB_BASE_URL + '/upload_test_result', files=files, data=payload)
 
 if __name__ == '__main__':
     try:
