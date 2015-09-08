@@ -1,0 +1,46 @@
+import json
+import os
+import sys
+import requests
+
+def upload_test_results():
+    APEXTESTDB_BASE_URL=os.environ.get('RESULTSDB_BASE_URL')
+    RESULTSDB_USER_ID=os.environ.get('RESULTSDB_USER_ID')
+    RESULTSDB_TOKEN=os.environ.get('RESULTSDB_TOKEN')
+
+    PACKAGE=os.environ.get('PACKAGE')
+    REPOSITORY_URL=os.environ.get('REPOSITORY_URL')
+    BRANCH_NAME=os.environ.get('BRANCH_NAME')
+    COMMIT_SHA=os.environ.get('COMMIT_SHA')
+    EXECUTION_NAME=os.environ.get('EXECUTION_NAME')
+    EXECUTION_URL=os.environ.get('EXECUTION_URL')
+    RESULTS_FILE_PATH=os.environ.get('RESULTS_FILE_PATH')
+
+    payload = {
+        'package': PACKAGE,
+        'repository_url': REPOSITORY_URL,
+        'branch_name': BRANCH_NAME,
+        'commit_sha': COMMIT_SHA,
+        'execution_name': EXECUTION_NAME,
+        'execution_url': EXECUTION_URL,
+        'user': RESULTSDB_USER_ID,
+        'token': RESULTSDB_TOKEN,
+    }
+
+    files = {
+        'results_file': open(RESULTS_FILE_PATH, 'rb'),
+    }
+
+    return requests.post(RESULTSDB_BASE_URL + '/upload_test_result', files=files, data=payload)
+
+if __name__ == '__main__':
+    try:
+        response = upload_test_results()
+        print response.content
+    except:
+        import traceback
+        exc_type, exc_value, exc_traceback = sys.exc_info()
+        print '-'*60
+        traceback.print_exception(exc_type, exc_value, exc_traceback, file=sys.stdout)
+        print '-'*60
+        sys.exit(1)
