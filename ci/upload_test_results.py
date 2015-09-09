@@ -31,12 +31,14 @@ def upload_test_results():
         'results_file': open(RESULTS_FILE_PATH, 'rb'),
     }
 
-    return requests.post(APEXTESTSDB_BASE_URL + '/upload_test_result', files=files, data=payload)
+    response = requests.post(APEXTESTSDB_BASE_URL + '/upload_test_result', files=files, data=payload)
+    data = json.loads(response.content)
+    return '%s/executions/%s' % (APEXTESTSDB_BASE_URL, data['execution_id'])
 
 if __name__ == '__main__':
     try:
-        response = upload_test_results()
-        print response.content
+        execution_detail_url = upload_test_results()
+        print execution_detail_url
     except:
         import traceback
         exc_type, exc_value, exc_traceback = sys.exc_info()
