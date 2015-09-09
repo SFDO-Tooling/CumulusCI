@@ -695,14 +695,14 @@
         <!-- Deploy any unpackaged metadata bundles needed before the deployment -->
         <antcall target="deployUnpackagedPre" />
 
-        <!-- Prepare the managed version of the src directory -->
-        <antcall target="createManagedSrc" />
+        <!-- Prepare the unmanaged EE version of the src directory -->
+        <antcall target="createUnmanagedEESrc" />
 
         <!-- Deploy src directory -->
         <antcall target="deployWithoutTest" />
 
         <!-- Revert the src directory -->
-        <antcall target="revertManagedSrc" />
+        <antcall target="revertUnmanagedEESrc" />
         
         <if>
             <not><equals arg1="${cumulusci.unmanaged.destroy.mode}" arg2="full" /></not>
@@ -834,7 +834,7 @@
     </target>
 
     <!-- Run prepareSrcForUnmanagedEE against src for unmanaged deployment to EE orgs -->
-    <target name="createEEUnmanagedSrc">
+    <target name="createUnmanagedEESrc">
         <delete dir="src.orig" />
         <copy todir="src.orig" preservelastmodified="true">
           <fileset dir="src" />
@@ -842,8 +842,8 @@
         <prepareSrcForUnmanagedEE dir="src" />
     </target>
 
-    <!-- Revert the src directory from createEEUnmanagedSrc -->
-    <target name="revertEEUnmanagedSrc">
+    <!-- Revert the src directory from createUnmanagedEESrc -->
+    <target name="revertUnmanagedEESrc">
         <copy todir="src" preservelastmodified="true" overwrite="true">
           <fileset dir="src.orig" />
         </copy>
