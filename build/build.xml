@@ -661,6 +661,63 @@
         <antcall target="postDeployCI" />
     </target>
 
+    <!-- deployUnmanagedEE: Does a full build including uninstalling previously deployed packaged code, updating managed package versions, and then deploying without running tests.  Use this target to quickly deploy the unmanaged code into a fresh DE org. -->
+    <!-- !!!WARNING!!!: DO NOT run this against a real production org as it will delete everything.  It is designed to clear the target org to ensure a clean development environment. -->
+    <target name="deployUnmanagedEE">
+        <echo>============================================================================</echo>
+        <antcall target="preDeployCI" />
+
+        <!-- Create the unmanaged package if it doesn't already exist -->
+        <antcall target="createUnmanagedPackage" />
+
+        <!-- Uninstall all unpackaged code from the target org.  We have to do this first so we can uninstall and reinstall any managed packages not at the right version -->
+        <if>
+            <equals arg1="${cumulusci.unmanaged.destroy.mode}" arg2="full" />
+            <then>
+                <antcall target="uninstall" />
+            </then>
+            <else>
+                <!-- Attempt to destroy any stale metadata but continue even if this fails -->
+                <trycatch>
+                    <try>
+                        <antcall target="destroyStaleMetadata" />
+                    </try>
+                    <catch>
+                        <echo>First run of destroyStaleMetadata failed.  Ignoring for now but it may cause build failures in other targets.</echo>
+                    </catch>
+                </trycatch>
+            </else>
+        </if>
+
+        <!-- Update any managed packages which are not at the right version -->
+        <antcall target="updateRequiredPackages" />
+
+        <!-- Deploy any unpackaged metadata bundles needed before the deployment -->
+        <antcall target="deployUnpackagedPre" />
+
+        <!-- Prepare the managed version of the src directory -->
+        <antcall target="createManagedSrc" />
+
+        <!-- Deploy src directory -->
+        <antcall target="deployWithoutTest" />
+
+        <!-- Revert the src directory -->
+        <antcall target="revertManagedSrc" />
+        
+        <if>
+            <not><equals arg1="${cumulusci.unmanaged.destroy.mode}" arg2="full" /></not>
+            <then>
+                <!-- Finally, delete any metadata from the org which is not in the repo -->
+                <antcall target="destroyStaleMetadata" />
+            </then>
+        </if>
+        
+        <!-- Deploy any unpackaged metadata bundles needed after the deployment -->
+        <antcall target="deployUnpackagedPost" />
+
+        <antcall target="postDeployCI" />
+    </target>
+
 
     <!-- retrieveUnpackaged: Retrieves all unpackaged metadata from target org into the unpackaged directory -->
     <target name="retrieveUnpackaged">
@@ -770,6 +827,23 @@
 
     <!-- Revert the src directory from createManagedSrc -->
     <target name="revertManagedSrc">
+        <copy todir="src" preservelastmodified="true" overwrite="true">
+          <fileset dir="src.orig" />
+        </copy>
+        <delete dir="src.orig" />
+    </target>
+
+    <!-- Run prepareSrcForUnmanagedEE against src for unmanaged deployment to EE orgs -->
+    <target name="createEEUnmanagedSrc">
+        <delete dir="src.orig" />
+        <copy todir="src.orig" preservelastmodified="true">
+          <fileset dir="src" />
+        </copy>
+        <prepareSrcForUnmanagedEE dir="src" />
+    </target>
+
+    <!-- Revert the src directory from createEEUnmanagedSrc -->
+    <target name="revertEEUnmanagedSrc">
         <copy todir="src" preservelastmodified="true" overwrite="true">
           <fileset dir="src.orig" />
         </copy>

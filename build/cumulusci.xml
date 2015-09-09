@@ -1030,4 +1030,24 @@ project.setProperty("downgradePackage", result);
     </sequential>
   </macrodef>
 
+  <macrodef name="prepareSrcForUnmanagedEE" description="Modifies the src directory to prepare it for deployment as unmanaged code to an EE org">
+    <attribute name="dir" description="A directory containing metadata files to prep for unmanaged deployment to an EE org" />
+    <sequential>
+
+      <for param="file">
+        <path>
+          <fileset dir="@{dir}"> 
+            <include name="**/objects/*.object" />
+          </fileset>
+        </path>
+        <sequential>
+          <!-- EE orgs can't handle availableFields on a fieldset, so we remove them -->
+          <xslt in="@{file}" out="@{file}.eeunmanaged" style="${cumulus_ci.basedir}/xsl/remove_available_fields.xsl" />
+          <move file="@{file}.eeunmanaged" tofile="@{file}" />
+        </sequential>
+      </for>
+
+    </sequential>
+  </macrodef>
+
 </project>
