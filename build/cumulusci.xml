@@ -224,6 +224,7 @@ project.setProperty("downgradePackage", result);
 
   <macrodef name="retrieveAdminProfile" description="Retrieves the Admin.profile from the target org into the specified dir">
     <attribute name="dir" description="The local directory to store the metadata files" />
+    <attribute name="manifest" description="The package.xml manifest to use when retrieving the Admin.profile.  Override this to retrieve additional metadata with the profile if needed" default="DEFAULT" />
     <sequential>
 
       <!-- Create a clean output directory structure -->
@@ -231,12 +232,21 @@ project.setProperty("downgradePackage", result);
       <mkdir dir="@{dir}"/>
 
       <!-- Retrieve unpackaged metadata (uses /build/all_metadata_types.xml as the manifest) -->
+      <if>
+        <equals arg1="@{manifest}" arg2="DEFAULT" />
+        <then>
+          <property name="manifest" value="${cumulus_ci.basedir}/admin_profile.xml" />
+        </then>
+        <else>
+          <property name="manifest" value="@{manifest}" />
+        </else>
+      </if>
       <sf:retrieve 
         username="${sf.username}" 
         password="${sf.password}" 
         serverurl="${sf.serverurl}" 
         retrieveTarget="@{dir}" 
-        unpackaged="${cumulus_ci.basedir}/admin_profile.xml"/>
+        unpackaged="${manifest}"/>
 
     </sequential>
   </macrodef>
