@@ -222,6 +222,33 @@ project.setProperty("downgradePackage", result);
     </sequential>
   </macrodef>
 
+  <macrodef name="retrieveAdminProfile" description="Retrieves the Admin.profile from the target org into the specified dir">
+    <attribute name="dir" description="The local directory to store the metadata files" />
+    <sequential>
+
+      <!-- Create a clean output directory structure -->
+      <delete dir="@{dir}" />
+      <mkdir dir="@{dir}"/>
+
+      <!-- Retrieve unpackaged metadata (uses /build/all_metadata_types.xml as the manifest) -->
+      <sf:retrieve 
+        username="${sf.username}" 
+        password="${sf.password}" 
+        serverurl="${sf.serverurl}" 
+        retrieveTarget="@{dir}" 
+        unpackaged="${cumulus_ci.basedir}/admin_profile.xml"/>
+
+    </sequential>
+  </macrodef>
+
+  <macrodef name="updateAdminProfileGrantFLS" description="Updates the Admin.profile to grant all FLS">
+    <attribute name="dir" description="The local directory where the Admin.profile was retrieved to" />
+    <sequential>
+      <replaceregexp file="@{dir}/profiles/Admin.profile" match="${lt}editable>false${lt}" replace="${lt}editable>true${lt}" flags="g" />
+      <replaceregexp file="@{dir}/profiles/Admin.profile" match="${lt}readable>false${lt}" replace="${lt}readable>true${lt}" flags="g" />
+    </sequential>
+  </macrodef>
+
   <macrodef name="deleteWhitelistedMetadata" description="Deletes any metadata files from a given directory which are listed in /build/whitelists/metadata.txt">
     <attribute name="dir" description="The directory to delete metadata from" />
     <sequential>

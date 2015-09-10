@@ -816,6 +816,22 @@
         <updateMetaXmlApi dir="${basedir}/src" apiVersion="${cumulusci.package.apiVersion}" />
     </target>
 
+    <!-- Update the Admin.profile to grant all FLS permissions -->
+    <target name="deployUpdatedAdminProfile">
+        <echo>Retrieving Admin.profile</echo>
+        <retrieveAdminProfile dir="admin_profile" />
+
+        <echo>Granting read/edit FLS on all fields in Admin.profile</echo>
+        <updateAdminProfileGrantFLS dir="admin_profile" />
+
+        <antcall target="preDeployUpdatedAdminProfile" />
+
+        <echo>Deploying updated Admin.profile</echo>
+        <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="admin_profile" testLevel="NoTestRun" maxPoll="${cumulusci.maxPoll.notest}" />
+
+        <delete dir="admin_profile" />
+    </target>
+
     <!-- Run stripManagedToken against src for managed deployment -->
     <target name="createManagedSrc">
         <delete dir="src.orig" />
@@ -1010,6 +1026,10 @@
     <!-- After deployManagedBeta -->
     <target name="postDeployManagedBeta">
         <echo>Nothing to do for postDeployManagedBeta</echo>
+    </target>
+    <!-- Before deployment is run in deployUpdatedAdminProfile -->
+    <target name="preDeployUpdatedAdminProfile">
+        <echo>Nothing to do for preDeployUpdatedAdminProfile</echo>
     </target>
 
 </project>
