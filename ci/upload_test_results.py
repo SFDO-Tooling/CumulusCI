@@ -24,7 +24,7 @@ def upload_test_results():
         'commit_sha': COMMIT_SHA,
         'execution_name': EXECUTION_NAME,
         'execution_url': EXECUTION_URL,
-        'environment_name': ENVIRONMENT_URL,
+        'environment_name': ENVIRONMENT_NAME,
         'user': APEXTESTSDB_USER_ID,
         'token': APEXTESTSDB_TOKEN,
     }
