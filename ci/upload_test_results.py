@@ -15,6 +15,7 @@ def upload_test_results():
     EXECUTION_NAME=os.environ.get('EXECUTION_NAME')
     EXECUTION_URL=os.environ.get('EXECUTION_URL')
     RESULTS_FILE_PATH=os.environ.get('RESULTS_FILE_PATH')
+    ENVIRONMENT_NAME=os.environ.get('ENVIRONMENT_NAME')
 
     payload = {
         'package': PACKAGE,
@@ -23,6 +24,7 @@ def upload_test_results():
         'commit_sha': COMMIT_SHA,
         'execution_name': EXECUTION_NAME,
         'execution_url': EXECUTION_URL,
+        'environment_name': ENVIRONMENT_URL,
         'user': APEXTESTSDB_USER_ID,
         'token': APEXTESTSDB_TOKEN,
     }
