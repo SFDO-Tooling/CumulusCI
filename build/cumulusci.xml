@@ -335,6 +335,9 @@ project.setProperty("downgradePackage", result);
             <case value="connectedApps">
               <property name="typename" value="ConnectedApp" />
             </case>
+          	<case value="customMetadata">
+          		<property name="typename" value="CustomMetadata" />
+          	</case>
             <case value="dashboards">
               <property name="typename" value="Dashboard" />
             </case>
