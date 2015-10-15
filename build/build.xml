@@ -108,6 +108,17 @@
       </else>
     </if>
 
+    <!-- Allow PURGE_ON_DELETE environment variable to override cumulusci.destroy.purgeondelete -->
+    <if>
+      <isset property="env.PURGE_ON_DELETE" />
+      <then>
+        <var name="cumulusci.destroy.purgeondelete" value="${env.PURGE_ON_DELETE}" />
+      </then>
+      <else>
+        <property name="cumulusci.destroy.purgeondelete" value="true" />
+      </else>
+    </if>
+
     <!-- Setup a blank namespace prefix string.  Managed deployments need to override this property before calling deployUnpackagedPost -->
     <property name="cumulusci.namespace.prefix" value="" />
     
@@ -183,7 +194,7 @@
                         <echo>Uninstalling unpackaged bundle @{dir}</echo>
                         <delete dir="uninstall" />
                         <buildPackagedDestructiveChanges srcdir="@{dir}" dir="uninstall" package="${cumulusci.package.name}" />
-                        <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="uninstall" purgeOnDelete="true" ignoreWarnings="true" maxPoll="${cumulusci.maxPoll.notest}" />
+                        <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="uninstall" purgeOnDelete="${cumulusci.destroy.purgeondelete}" ignoreWarnings="true" maxPoll="${cumulusci.maxPoll.notest}" />
                         <delete dir="uninstall" />
                     </sequential>
                 </for>
@@ -208,7 +219,7 @@
                         <echo>Uninstalling unpackaged bundle @{dir}</echo>
                         <delete dir="uninstall" />
                         <buildPackagedDestructiveChanges srcdir="@{dir}" dir="uninstall" package="${cumulusci.package.name}" />
-                        <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="uninstall" purgeOnDelete="true" ignoreWarnings="true" maxPoll="${cumulusci.maxPoll.notest}" />
+                        <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="uninstall" purgeOnDelete="${cumulusci.destroy.purgeondelete}" ignoreWarnings="true" maxPoll="${cumulusci.maxPoll.notest}" />
                         <delete dir="uninstall" />
                     </sequential>
                 </for>
@@ -478,7 +489,7 @@
         <buildDestroyStaleMetadata srcdir="uninstallsrc" commdir="src" dir="uninstall" />
 
         <!-- deploy the destructiveChanges.xml package -->
-        <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="uninstall" purgeOnDelete="true" maxPoll="${cumulusci.maxPoll.notest}" />
+        <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="uninstall" purgeOnDelete="${cumulusci.destroy.purgeondelete}" maxPoll="${cumulusci.maxPoll.notest}" />
 
         <delete dir="uninstallsrc" />
         <delete dir="uninstall" />
@@ -496,7 +507,7 @@
         <buildDestroyStaleMetadata srcdir="uninstallsrc" commdir="src" dir="uninstall" />
 
         <!-- deploy the destructiveChanges.xml package -->
-        <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="uninstall" purgeOnDelete="true" maxPoll="${cumulusci.maxPoll.notest}" />
+        <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="uninstall" purgeOnDelete="${cumulusci.destroy.purgeondelete}" maxPoll="${cumulusci.maxPoll.notest}" />
 
         <delete dir="uninstallsrc" />
         <delete dir="uninstall" />
@@ -505,13 +516,14 @@
     <!-- uninstall: Removes all metadata from the package -->
     <target name="uninstall">
         <echo>----------------------------------------------------------------------------</echo>
+        <var name="cumulusci.destroy.purgeondelete" value="false" />
         <antcall target="preUninstall" />
         <antcall target="uninstallUnpackagedPost" />
         <delete dir="uninstallsrc" />
         <delete dir="uninstall" />
         <retrievePackaged dir="uninstallsrc" package="${cumulusci.package.name}" />
         <buildPackagedDestructiveChanges srcdir="uninstallsrc" dir="uninstall" package="${cumulusci.package.name}" />
-        <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="uninstall" purgeOnDelete="true" maxPoll="${cumulusci.maxPoll.notest}" />
+        <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="uninstall" purgeOnDelete="${cumulusci.destroy.purgeondelete}" maxPoll="${cumulusci.maxPoll.notest}" />
         <delete dir="uninstallsrc" />
         <delete dir="uninstall" />
         <antcall target="uninstallUnpackagedPre" />
@@ -526,7 +538,7 @@
         <deleteWhitelistedMetadata dir="uninstallsrc/unpackaged" />
         <buildUnpackagedDestructiveChanges srcdir="uninstallsrc" dir="uninstall" />
         <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="uninstall/standard" maxPoll="${cumulusci.maxPoll.notest}" />
-        <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="uninstall/unpackaged" purgeOnDelete="true" maxPoll="${cumulusci.maxPoll.notest}" />
+        <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="uninstall/unpackaged" purgeOnDelete="${cumulusci.destroy.purgeondelete}" maxPoll="${cumulusci.maxPoll.notest}" />
         <delete dir="uninstallsrc" />
         <delete dir="uninstall" />
     </target>
@@ -666,6 +678,9 @@
     <target name="deployUnmanagedEE">
         <echo>============================================================================</echo>
         <antcall target="preDeployCI" />
+
+        <!-- Override the purgeOnDelete=true default since we can't do that in EE orgs -->
+        <var name="cumulus.destroy.purgeondelete" value="false" />
 
         <!-- Create the unmanaged package if it doesn't already exist -->
         <antcall target="createUnmanagedPackage" />
