@@ -87,7 +87,7 @@ def parse_log_by_method(class_name, log):
 
     for line in log:
         # Strip newline character
-        line = line.strip()
+        line = line.strip().decode('ISO-8859-1').encode('utf-8')
 
         if line.find('|CODE_UNIT_STARTED|[EXTERNAL]|') != -1:
             unit, unit_type, unit_info = parse_unit_started(class_name, line)
