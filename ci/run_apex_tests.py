@@ -2,6 +2,7 @@ import os
 import re
 import sys
 import cgi
+import codecs
 from time import sleep
 import datetime
 import calendar
@@ -41,6 +42,7 @@ def log_time_delta(start, end):
     return delta.total_seconds()
 
 def parse_log(class_name, log):
+    class_name = class_name.decode('ISO-8859-1').encode('ascii')
     methods = {}
     for method, stats, children in parse_log_by_method(class_name, log):
         methods[method] = {
@@ -87,13 +89,13 @@ def parse_log_by_method(class_name, log):
 
     for line in log:
         # Strip newline character
-        line = line.strip().decode('ISO-8859-1').encode('utf-8')
+        line = line.decode('ISO-8859-1').encode('utf-8').strip()
 
         if line.find('|CODE_UNIT_STARTED|[EXTERNAL]|') != -1:
             unit, unit_type, unit_info = parse_unit_started(class_name, line)
             
             if unit_type == 'test_method':
-                method = unit
+                method = unit.decode('ISO-8859-1').encode('ascii')
                 method_unit_info = unit_info
                 #children = {}
                 children = []
@@ -155,22 +157,21 @@ def parse_log_by_method(class_name, log):
         if line.find('|CODE_UNIT_FINISHED|%s.%s' % (class_name, method)) != -1:
             end_timestamp = line.split(' ')[0]
             stats['duration'] = log_time_delta(method_unit_info['start_timestamp'], end_timestamp)
-
+    
             # Yield the stats for the method
             yield method, stats, children
             last_stats = stats.copy()
             stats = {}
             in_cumulative_limits = False
             in_limits = False
-
         # Handle all other code units finishing
         elif line.find('|CODE_UNIT_FINISHED|') != -1:
             end_timestamp = line.split(' ')[0]
             stats['duration'] = log_time_delta(method_unit_info['start_timestamp'], end_timestamp)
-
+   
             child = stack.pop()
             child['stats'] = stats
-
+  
             # If the stack is now empty, add the child to the main children list
             if not stack:
                 children.append(child)
@@ -180,7 +181,7 @@ def parse_log_by_method(class_name, log):
                 
             # Add the stats to the children dict
             #children[unit_type][unit][-1]['stats'] = stats
-
+ 
             stats = {}
             in_cumulative_limits = False
             in_limits = False
@@ -212,7 +213,7 @@ def run_tests():
     if serverurl.find('test.salesforce.com') != -1:
         sandbox = True
     
-    sf = Salesforce(username=username, password=password, security_token='', sandbox=sandbox, version='32.0')
+    sf = Salesforce(username=username, password=password, security_token='', sandbox=sandbox, sf_version='32.0')
     
     # Change base_url to use the tooling api
     sf.base_url = sf.base_url + 'tooling/'
@@ -464,12 +465,12 @@ def run_tests():
             sys.stdout.flush()
 
     if json_output:
-        f = open(json_output, 'w')
+        f = codecs.open(json_output, encoding='utf-8', mode='w')
         f.write(json.dumps(test_results))
         f.close()
 
     if junit_output:
-        f = open(junit_output, 'w')
+        f = codecs.open(junit_output, encoding='utf-8', mode='w')
         f.write('<testsuite tests="%s">\n' % len(test_results))
         for result in test_results:
             testcase = '  <testcase classname="%s" name="%s"' % (result['ClassName'], result['Method'])
@@ -485,7 +486,6 @@ def run_tests():
                 testcase = '%s  </testcase>\n' % testcase
             else:
                 testcase = '%s />\n' % testcase
-            
             f.write(testcase)
 
         f.write('</testsuite>')
@@ -508,4 +508,4 @@ if __name__ == '__main__':
         print '-'*60
         traceback.print_exception(exc_type, exc_value, exc_traceback, file=sys.stdout)
         print '-'*60
-        sys.exit(1)
+        sys.exit(2)
