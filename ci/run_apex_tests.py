@@ -41,8 +41,17 @@ def log_time_delta(start, end):
 
     return delta.total_seconds()
 
+def decode_to_unicode(content):
+    if content:
+        try:
+            # Try to decode ISO-8859-1 to unicode
+            return content.decode('ISO-8859-1')
+        except UnicodeEncodeError:
+            # If decoding ISO-8859 failed, assume content is unicode already
+            return content
+
 def parse_log(class_name, log):
-    class_name = class_name.decode('ISO-8859-1').encode('ascii')
+    class_name = decode_to_unicode(class_name)
     methods = {}
     for method, stats, children in parse_log_by_method(class_name, log):
         methods[method] = {
@@ -89,13 +98,13 @@ def parse_log_by_method(class_name, log):
 
     for line in log:
         # Strip newline character
-        line = line.decode('ISO-8859-1').encode('utf-8').strip()
+        line = decode_to_unicode(line).strip()
 
         if line.find('|CODE_UNIT_STARTED|[EXTERNAL]|') != -1:
             unit, unit_type, unit_info = parse_unit_started(class_name, line)
             
             if unit_type == 'test_method':
-                method = unit.decode('ISO-8859-1').encode('ascii')
+                method = decode_to_unicode(unit)
                 method_unit_info = unit_info
                 #children = {}
                 children = []
@@ -154,7 +163,7 @@ def parse_log_by_method(class_name, log):
             continue
 
         # Handle the finish of test methods
-        if line.find('|CODE_UNIT_FINISHED|%s.%s' % (class_name, method)) != -1:
+        if line.find(u'|CODE_UNIT_FINISHED|%s.%s' % (class_name, method)) != -1:
             end_timestamp = line.split(' ')[0]
             stats['duration'] = log_time_delta(method_unit_info['start_timestamp'], end_timestamp)
     
@@ -399,59 +408,59 @@ def run_tests():
 
             test_results.append({
                 'Children': result.get('children', None),
-                'ClassName': class_name,
-                'Method': result['MethodName'],
-                'Message': result['Message'],
-                'Outcome': result['Outcome'],
-                'StackTrace': result['StackTrace'],
+                'ClassName': decode_to_unicode(class_name),
+                'Method': decode_to_unicode(result['MethodName']),
+                'Message': decode_to_unicode(result['Message']),
+                'Outcome': decode_to_unicode(result['Outcome']),
+                'StackTrace': decode_to_unicode(result['StackTrace']),
                 'Stats': result.get('stats', None),
                 'TestTimestamp': result.get('TestTimestamp', None),
             })
-    
+            
             # Output result for method
             if debug and json_output and result.get('stats') and 'duration' in result['stats']:
                 # If debug is enabled and we're generating the json output, include duration with the test
-                print '   %s: %s (%ss)' % (
+                print u'   %s: %s (%ss)' % (
                     result['Outcome'], 
                     result['MethodName'], 
                     result['stats']['duration']
                 )
             else:
-                print '   %(Outcome)s: %(MethodName)s' % result
+                print u'   %(Outcome)s: %(MethodName)s' % result
 
             if debug and not json_output:
-                print '     DEBUG LOG INFO:'
+                print u'     DEBUG LOG INFO:'
                 stats = result.get('stats',None)
                 if not stats:
-                    print '       No stats found, likely because of debug log size limit'
+                    print u'       No stats found, likely because of debug log size limit'
                 else:
                     stat_keys = stats.keys()
                     stat_keys.sort()
                     for stat in stat_keys:
                         try:
                             value = stats[stat]
-                            output = '       %s / %s' % (value['used'], value['allowed'])
+                            output = u'       %s / %s' % (value['used'], value['allowed'])
                             print output.ljust(26) + stat
                         except:
-                            output = '       %s' % stats[stat]
+                            output = u'       %s' % stats[stat]
                             print output.ljust(26) + stat
     
             # Print message and stack trace if failed
             if result['Outcome'] in ['Fail','CompileFail']:
-                print '   Message: %(Message)s' % result
-                print '   StackTrace: %(StackTrace)s' % result
+                print u'   Message: %(Message)s' % result
+                print u'   StackTrace: %(StackTrace)s' % result
             sys.stdout.flush()
     
-    print '-------------------------------------------------------------------------------'
-    print 'Passed: %(Pass)s  Fail: %(Fail)s  Compile Fail: %(CompileFail)s  Skipped: %(Skip)s' % counts
-    print '-------------------------------------------------------------------------------'
+    print u'-------------------------------------------------------------------------------'
+    print u'Passed: %(Pass)s  Fail: %(Fail)s  Compile Fail: %(CompileFail)s  Skipped: %(Skip)s' % counts
+    print u'-------------------------------------------------------------------------------'
     sys.stdout.flush()
     
     if counts['Fail'] or counts['CompileFail']:
-        print ''
-        print 'Failing Tests'
-        print '-------------'
-        print ''
+        print u''
+        print u'Failing Tests'
+        print u'-------------'
+        print u''
         sys.stdout.flush()
 
         counter = 0
@@ -459,9 +468,9 @@ def run_tests():
             if result['Outcome'] not in ['Fail','CompileFail']:
                 continue
             counter += 1
-            print '%s: %s.%s - %s' % (counter, result['ClassName'], result['Method'], result['Outcome'])
-            print '  Message: %s' % result['Message']
-            print '  StackTrace: %s' % result['StackTrace']
+            print u'%s: %s.%s - %s' % (counter, result['ClassName'], result['Method'], result['Outcome'])
+            print u'  Message: %s' % result['Message']
+            print u'  StackTrace: %s' % result['StackTrace']
             sys.stdout.flush()
 
     if json_output:
