@@ -10,6 +10,10 @@ import collections
 import json
 from simple_salesforce import Salesforce
 
+# Force UTF8 output
+reload(sys)
+sys.setdefaultencoding('UTF8')
+
 def log_time_delta(start, end):
     """ Returns microsecond difference between two debug log timestamps
         in the format HH:MM:SS.micro
@@ -154,7 +158,7 @@ def parse_log_by_method(class_name, log):
             # Parse the limit name, used, and allowed values
             limit, value = line.split(': ')
             if in_testing_limits:
-                limit = 'TESTING_LIMITS: %s' % limit
+                limit = 'TESTING_LIMITS: {0}'.format(limit,)
             used, allowed = value.split(' out of ')
             stats[limit] = {
                 'used': used,
@@ -163,7 +167,7 @@ def parse_log_by_method(class_name, log):
             continue
 
         # Handle the finish of test methods
-        if line.find(u'|CODE_UNIT_FINISHED|%s.%s' % (class_name, method)) != -1:
+        if line.find(u'|CODE_UNIT_FINISHED|{0}.{1}'.format(class_name, method)) != -1:
             end_timestamp = line.split(' ')[0]
             stats['duration'] = log_time_delta(method_unit_info['start_timestamp'], end_timestamp)
     
@@ -214,7 +218,7 @@ def run_tests():
     junit_output = os.environ.get('TEST_JUNIT_OUTPUT', None)
     
     if namespace:
-        namespace = "'%s'" % namespace
+        namespace = "'{0}'".format(namespace,)
     else:
         namespace = 'null'
     
@@ -231,27 +235,27 @@ def run_tests():
     where_name = []
     for pattern in test_name_match.split(','):
         if pattern:
-            where_name.append("Name LIKE '%s'" % pattern)
+            where_name.append("Name LIKE '{0}'".format(pattern))
 
     # Add any excludes to the where clause
     where_exclude = []
     for pattern in test_name_exclude.split(','):
         if pattern:
-            where_exclude.append("(NOT Name LIKE '%s')" % pattern)
+            where_exclude.append("(NOT Name LIKE '{0}')".format(pattern,))
    
     # Get all test classes for namespace
-    query = "SELECT Id, Name FROM ApexClass WHERE NamespacePrefix = %s" % namespace
+    query = "SELECT Id, Name FROM ApexClass WHERE NamespacePrefix = {0}".format(namespace,)
     if where_name:
-        query += " AND (%s)" % ' OR '.join(where_name)
+        query += " AND ({0})".format(' OR '.join(where_name),)
     if where_exclude:
-        query += " AND %s" % ' AND '.join(where_exclude)
+        query += " AND {0}".format(' AND '.join(where_exclude),)
 
-    print "Running Query: %s" % query
+    print "Running Query: {0}".format(query,)
     sys.stdout.flush()
 
     res = sf.query_all(query)
 
-    print "Found %s classes" % res['totalSize']
+    print "Found {0} classes".format(res['totalSize'],)
     sys.stdout.flush()
 
     if not res['totalSize']:
@@ -274,7 +278,7 @@ def run_tests():
         print 'Setting up trace flag to capture debug logs'
 
         # Get the User's id to set a TraceFlag
-        res_user = sf.query("Select Id from User where Username = '%s'" % username)
+        res_user = sf.query("Select Id from User where Username = '{0}'".format(username,))
         user_id = res_user['records'][0]['Id']
         
         # Set up a simple-salesforce sobject for TraceFlag using the tooling api
@@ -315,7 +319,7 @@ def run_tests():
     
     # Loop waiting for the tests to complete
     while True:
-        res = sf.query_all("SELECT Id, Status, ApexClassId FROM ApexTestQueueItem WHERE ParentJobId = '%s'" % job_id)
+        res = sf.query_all("SELECT Id, Status, ApexClassId FROM ApexTestQueueItem WHERE ParentJobId = '{0}'".format(job_id,))
         counts = {
             'Queued': 0,
             'Processing': 0,
@@ -342,7 +346,7 @@ def run_tests():
         sleep(poll_interval)
     
     # Get the test results by method
-    res = sf.query_all("SELECT StackTrace,Message, ApexLogId, AsyncApexJobId,MethodName, Outcome, ApexClassId, TestTimestamp FROM ApexTestResult WHERE AsyncApexJobId = '%s'" % job_id)
+    res = sf.query_all("SELECT StackTrace,Message, ApexLogId, AsyncApexJobId,MethodName, Outcome, ApexClassId, TestTimestamp FROM ApexTestResult WHERE AsyncApexJobId = '{0}'".format(job_id,))
     
     counts = {
         'Pass': 0,
@@ -359,14 +363,14 @@ def run_tests():
     
     # Fetch debug logs if debug is enabled
     if debug:
-        log_ids = "('%s')" % "','".join([str(id) for id in classes_by_log_id.keys()])
-        res = sf.query_all("SELECT Id, Application, DurationMilliseconds, Location, LogLength, LogUserId, Operation, Request, StartTime, Status from ApexLog where Id in %s" % log_ids)
+        log_ids = "('{0}')".format("','".join([str(id) for id in classes_by_log_id.keys()]),)
+        res = sf.query_all("SELECT Id, Application, DurationMilliseconds, Location, LogLength, LogUserId, Operation, Request, StartTime, Status from ApexLog where Id in {0}".format(log_ids,))
         for log in res['records']:
             class_id = classes_by_log_id[log['Id']]
             class_name = classes_by_id[class_id]
             logs_by_class_id[class_id] = log
             # Fetch the debug log file
-            body_url = '%ssobjects/ApexLog/%s/Body' % (sf.base_url, log['Id'])
+            body_url = '{0}sobjects/ApexLog/{1}/Body'.format(sf.base_url, log['Id'])
             resp = sf.request.get(body_url, headers=sf.headers)
             log_file = class_name + '.log'
             if debug_logdir:
@@ -396,9 +400,9 @@ def run_tests():
         duration = None
         if debug and class_id in logs_by_class_id:
             duration = int(logs_by_class_id[class_id]['DurationMilliseconds']) * .001
-            print 'Class: %s (%ss)' % (class_name, duration)
+            print 'Class: {0} ({1}s)'.format(class_name, duration)
         else:
-            print 'Class: %s' % class_name
+            print 'Class: {0}'.format(class_name,)
         sys.stdout.flush()
 
         method_names = results_by_class_name[class_name].keys()
@@ -420,13 +424,13 @@ def run_tests():
             # Output result for method
             if debug and json_output and result.get('stats') and 'duration' in result['stats']:
                 # If debug is enabled and we're generating the json output, include duration with the test
-                print u'   %s: %s (%ss)' % (
+                print u'   {0}: {1} ({2}s)'.format(
                     result['Outcome'], 
                     result['MethodName'], 
                     result['stats']['duration']
                 )
             else:
-                print u'   %(Outcome)s: %(MethodName)s' % result
+                print u'   {Outcome}: {MethodName}'.format(**result)
 
             if debug and not json_output:
                 print u'     DEBUG LOG INFO:'
@@ -439,16 +443,16 @@ def run_tests():
                     for stat in stat_keys:
                         try:
                             value = stats[stat]
-                            output = u'       %s / %s' % (value['used'], value['allowed'])
+                            output = u'       {0} / {1}'.format(value['used'], value['allowed'])
                             print output.ljust(26) + stat
                         except:
-                            output = u'       %s' % stats[stat]
+                            output = u'       {0}'.format(stats[stat],)
                             print output.ljust(26) + stat
     
             # Print message and stack trace if failed
             if result['Outcome'] in ['Fail','CompileFail']:
-                print u'   Message: %(Message)s' % result
-                print u'   StackTrace: %(StackTrace)s' % result
+                print u'   Message: {Message}'.format(**result)
+                print u'   StackTrace: {StackTrace}'.format(**result)
             sys.stdout.flush()
     
     print u'-------------------------------------------------------------------------------'
@@ -468,9 +472,9 @@ def run_tests():
             if result['Outcome'] not in ['Fail','CompileFail']:
                 continue
             counter += 1
-            print u'%s: %s.%s - %s' % (counter, result['ClassName'], result['Method'], result['Outcome'])
-            print u'  Message: %s' % result['Message']
-            print u'  StackTrace: %s' % result['StackTrace']
+            print u'{0}: {1}.{2} - {3}'.format(counter, result['ClassName'], result['Method'], result['Outcome'])
+            print u'  Message: {0}'.format(result['Message'],)
+            print u'  StackTrace: {0}'.format(result['StackTrace'],)
             sys.stdout.flush()
 
     if json_output:
@@ -480,21 +484,21 @@ def run_tests():
 
     if junit_output:
         f = codecs.open(junit_output, encoding='utf-8', mode='w')
-        f.write('<testsuite tests="%s">\n' % len(test_results))
+        f.write('<testsuite tests="{0}">\n'.format(len(test_results)),)
         for result in test_results:
-            testcase = '  <testcase classname="%s" name="%s"' % (result['ClassName'], result['Method'])
+            testcase = '  <testcase classname="{0}" name="{1}"'.format(result['ClassName'], result['Method'])
             if 'Stats' in result and result['Stats'] and 'duration' in result['Stats']:
-                testcase = '%s time="%s"' % (testcase, result['Stats']['duration'])
+                testcase = '{0} time="{1}"'.format(testcase, result['Stats']['duration'])
             if result['Outcome'] in ['Fail','CompileFail']:
-                testcase = '%s>\n' % testcase
-                testcase = '%s    <failure type="%s">%s</failure>\n' %  (
+                testcase = '{0}>\n'.format(testcase,)
+                testcase = '{0}    <failure type="{1}">{2}</failure>\n'.format(
                     testcase, 
                     cgi.escape(result['StackTrace']), 
                     cgi.escape(result['Message']),
                 )
-                testcase = '%s  </testcase>\n' % testcase
+                testcase = '{0}  </testcase>\n'.format(testcase,)
             else:
-                testcase = '%s />\n' % testcase
+                testcase = '{0} />\n'.format(testcase,)
             f.write(testcase)
 
         f.write('</testsuite>')
@@ -505,6 +509,7 @@ def run_tests():
 
 if __name__ == '__main__':
     try:
+        
         counts = run_tests()
         # Exit with status 1 if test failures occurred
         if counts['Fail'] or counts['CompileFail'] or counts['Skip']:
