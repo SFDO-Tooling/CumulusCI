@@ -194,6 +194,7 @@
                         <echo>Uninstalling unpackaged bundle @{dir}</echo>
                         <delete dir="uninstall" />
                         <buildPackagedDestructiveChanges srcdir="@{dir}" dir="uninstall" package="${cumulusci.package.name}" />
+                        <echo>Uninstalling with purgeOnDelete=${cumulusci.destroy.purgeondelete}</echo>
                         <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="uninstall" purgeOnDelete="${cumulusci.destroy.purgeondelete}" ignoreWarnings="true" maxPoll="${cumulusci.maxPoll.notest}" />
                         <delete dir="uninstall" />
                     </sequential>
@@ -219,6 +220,7 @@
                         <echo>Uninstalling unpackaged bundle @{dir}</echo>
                         <delete dir="uninstall" />
                         <buildPackagedDestructiveChanges srcdir="@{dir}" dir="uninstall" package="${cumulusci.package.name}" />
+                        <echo>Uninstalling with purgeOnDelete=${cumulusci.destroy.purgeondelete}</echo>
                         <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="uninstall" purgeOnDelete="${cumulusci.destroy.purgeondelete}" ignoreWarnings="true" maxPoll="${cumulusci.maxPoll.notest}" />
                         <delete dir="uninstall" />
                     </sequential>
@@ -489,6 +491,7 @@
         <buildDestroyStaleMetadata srcdir="uninstallsrc" commdir="src" dir="uninstall" />
 
         <!-- deploy the destructiveChanges.xml package -->
+        <echo>Deleting metdata with purgeOnDelete=${cumulusci.destroy.purgeondelete}</echo>
         <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="uninstall" purgeOnDelete="${cumulusci.destroy.purgeondelete}" maxPoll="${cumulusci.maxPoll.notest}" />
 
         <delete dir="uninstallsrc" />
@@ -507,6 +510,7 @@
         <buildDestroyStaleMetadata srcdir="uninstallsrc" commdir="src" dir="uninstall" />
 
         <!-- deploy the destructiveChanges.xml package -->
+        <echo>Deleting metdata with purgeOnDelete=${cumulusci.destroy.purgeondelete}</echo>
         <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="uninstall" purgeOnDelete="${cumulusci.destroy.purgeondelete}" maxPoll="${cumulusci.maxPoll.notest}" />
 
         <delete dir="uninstallsrc" />
@@ -516,13 +520,13 @@
     <!-- uninstall: Removes all metadata from the package -->
     <target name="uninstall">
         <echo>----------------------------------------------------------------------------</echo>
-        <var name="cumulusci.destroy.purgeondelete" value="false" />
         <antcall target="preUninstall" />
         <antcall target="uninstallUnpackagedPost" />
         <delete dir="uninstallsrc" />
         <delete dir="uninstall" />
         <retrievePackaged dir="uninstallsrc" package="${cumulusci.package.name}" />
         <buildPackagedDestructiveChanges srcdir="uninstallsrc" dir="uninstall" package="${cumulusci.package.name}" />
+        <echo>Uninstalling with purgeOnDelete=${cumulusci.destroy.purgeondelete}</echo>
         <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="uninstall" purgeOnDelete="${cumulusci.destroy.purgeondelete}" maxPoll="${cumulusci.maxPoll.notest}" />
         <delete dir="uninstallsrc" />
         <delete dir="uninstall" />
@@ -538,6 +542,7 @@
         <deleteWhitelistedMetadata dir="uninstallsrc/unpackaged" />
         <buildUnpackagedDestructiveChanges srcdir="uninstallsrc" dir="uninstall" />
         <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="uninstall/standard" maxPoll="${cumulusci.maxPoll.notest}" />
+        <echo>Uninstalling with purgeOnDelete=${cumulusci.destroy.purgeondelete}</echo>
         <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="uninstall/unpackaged" purgeOnDelete="${cumulusci.destroy.purgeondelete}" maxPoll="${cumulusci.maxPoll.notest}" />
         <delete dir="uninstallsrc" />
         <delete dir="uninstall" />
