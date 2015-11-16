@@ -24,7 +24,7 @@ if [ $? == 1 ]; then
     fi
 fi
 
-target=$1
+target=$@
 ant $target  | stdbuf -oL \
     stdbuf -o L grep -v '^  *\[copy\]' | \
     stdbuf -o L grep -v '^  *\[delete\]' | \
