@@ -14,7 +14,7 @@ def upload_test_results():
     COMMIT_SHA=os.environ.get('COMMIT_SHA')
     EXECUTION_NAME=os.environ.get('EXECUTION_NAME')
     EXECUTION_URL=os.environ.get('EXECUTION_URL')
-    RESULTS_FILE_PATH=os.environ.get('RESULTS_FILE_PATH')
+    RESULTS_FILE_URL=os.environ.get('RESULTS_FILE_URL')
     ENVIRONMENT_NAME=os.environ.get('ENVIRONMENT_NAME')
 
     payload = {
@@ -27,13 +27,10 @@ def upload_test_results():
         'environment_name': ENVIRONMENT_NAME,
         'user': APEXTESTSDB_USER_ID,
         'token': APEXTESTSDB_TOKEN,
+        'results_file_url': RESULTS_FILE_URL,
     }
 
-    files = {
-        'results_file': open(RESULTS_FILE_PATH, 'rb'),
-    }
-
-    response = requests.post(APEXTESTSDB_BASE_URL + '/upload_test_result', files=files, data=payload)
+    response = requests.post(APEXTESTSDB_BASE_URL + '/upload_test_result', data=payload)
     data = json.loads(response.content)
     return '%s/executions/%s' % (APEXTESTSDB_BASE_URL, data['execution_id'])
 
