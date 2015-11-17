@@ -27,7 +27,7 @@ if [ $? == 1 ]; then
 fi
 
 target=$@
-ant $target  | stdbuf -oL \
+ant $target 2>&1 | stdbuf -oL \
     stdbuf -o L grep -v '^  *\[copy\]' | \
     stdbuf -o L grep -v '^  *\[delete\]' | \
     stdbuf -o L grep -v '^  *\[loadfile\]' | \
@@ -43,16 +43,19 @@ ant $target  | stdbuf -oL \
     stdbuf -o L sed -e "s/^\[sf:.*\] Request Status: InProgress.*$/$GREY&$NORMAL/g" | \
     stdbuf -o L sed -e "s/^\[sf:.*\] Request Status: Pending.*$/$GREY&$NORMAL/g" | \
     # Highlight retrieve/deploy status
+    stdbuf -o L sed -e "s/^\[sf:.*\] Request for a .* submitted successfully\.$/$GREEN&$NORMAL/g" | \
+    stdbuf -o L sed -e "s/^\[sf:.*\] Request ID for the current .* task: .*$/$GREY&$NORMAL/g" | \
+    stdbuf -o L sed -e "s/^\[sf:.*\] Waiting for server to finish processing the request.*$/$GREY&$NORMAL/g" | \
     stdbuf -o L sed -e "s/^\[sf:.*\] Request Status: Succeeded.*$/$GREEN&$NORMAL/g" | \
     stdbuf -o L sed -e "s/^\[sf:.*\] Request Status: Succeeded.*$/$GREEN&$NORMAL/g" | \
     stdbuf -o L sed -e "s/^\[sf:.*\] Finished request .* successfully\.$/$GREEN&$NORMAL/g" | \
     stdbuf -o L sed -e "s/^\[sf:.*\] Request Status: Failed.*$/$RED&$NORMAL/g" | \
     # Highlight retrieve/deploy warnings and errors
-    stdbuf -o L sed -e "s/^.*[0-9][0-9]*\..* -- Warning:.*$/$PURPLE&$NORMAL/g" | \
-    stdbuf -o L sed -e "s/^.*[0-9][0-9]*\..* -- Error:.*$/$RED&$NORMAL/g" | \
+    stdbuf -o L sed -e "s/^.*[0-9][0-9]*\..*-- Warning:.*$/$PURPLE&$NORMAL/g" | \
+    stdbuf -o L sed -e "s/^.*[0-9][0-9]*\..*-- Error:.*$/$RED&$NORMAL/g" | \
     # Highlight final build status
-    stdbuf -o L sed -e "s/^BUILD SUCCESSFUL$/$GREEN&$NORMAL/g" | \
-    stdbuf -o L sed -e "s/^BUILD FAILED$/$RED&$NORMAL/g"
+    stdbuf -o L sed -e "s/^.*BUILD SUCCESSFUL.*$/$GREEN&$NORMAL/g" | \
+    stdbuf -o L sed -e "s/^.*BUILD FAILED.*$/$RED&$NORMAL/g"
 
 exit_status=${PIPESTATUS[0]}
     
