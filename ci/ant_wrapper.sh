@@ -6,8 +6,10 @@
 NORMAL=`echo -e '\033[0m'`
 BLACK=`echo -e '\033[30m'`
 BLUE=`echo -e '\033[34m'`
+PURPLE=`echo -e '\033[35m'`
 GREEN=`echo -e '\033[32m'`
 RED=`echo -e '\033[31m'`
+GREY=`echo -e '\033[90m'`
 
 STDBUF=`which stdbuf`
 if [ $? == 1 ]; then
@@ -32,7 +34,23 @@ ant $target  | stdbuf -oL \
     stdbuf -o L grep -v '^  *\[mkdir\]' | \
     stdbuf -o L grep -v '^  *\[move\]' | \
     stdbuf -o L grep -v '^  *\[xslt\]' | \
+    # Highlight entering ant target
     stdbuf -o L sed -e "s/^[a-z|A-Z|_|-|0-9][a-z|A-Z|_|-|0-9-]*:$/$BLUE&$NORMAL/g" | \
+    # Highlight deployment status
+    stdbuf -o L sed -e "s/^.*\*\** DEPLOYMENT SUCCEEDED \*\**$/$GREEN&$NORMAL/g" | \
+    stdbuf -o L sed -e "s/^.*\*\** DEPLOYMENT FAILED \*\**$/$RED&$NORMAL/g" | \
+    # Dim the Pending and InProgress messsages during deployment
+    stdbuf -o L sed -e "s/^\[sf:.*\] Request Status: InProgress.*$/$GREY&$NORMAL/g" | \
+    stdbuf -o L sed -e "s/^\[sf:.*\] Request Status: Pending.*$/$GREY&$NORMAL/g" | \
+    # Highlight retrieve/deploy status
+    stdbuf -o L sed -e "s/^\[sf:.*\] Request Status: Succeeded.*$/$GREEN&$NORMAL/g" | \
+    stdbuf -o L sed -e "s/^\[sf:.*\] Request Status: Succeeded.*$/$GREEN&$NORMAL/g" | \
+    stdbuf -o L sed -e "s/^\[sf:.*\] Finished request .* successfully\.$/$GREEN&$NORMAL/g" | \
+    stdbuf -o L sed -e "s/^\[sf:.*\] Request Status: Failed.*$/$RED&$NORMAL/g" | \
+    # Highlight retrieve/deploy warnings and errors
+    stdbuf -o L sed -e "s/^.*[0-9][0-9]*\..* -- Warning:.*$/$PURPLE&$NORMAL/g" | \
+    stdbuf -o L sed -e "s/^.*[0-9][0-9]*\..* -- Error:.*$/$RED&$NORMAL/g" | \
+    # Highlight final build status
     stdbuf -o L sed -e "s/^BUILD SUCCESSFUL$/$GREEN&$NORMAL/g" | \
     stdbuf -o L sed -e "s/^BUILD FAILED$/$RED&$NORMAL/g"
 
