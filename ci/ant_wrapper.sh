@@ -9,7 +9,7 @@ BLUE=`echo -e '\033[34m'`
 PURPLE=`echo -e '\033[35m'`
 GREEN=`echo -e '\033[32m'`
 RED=`echo -e '\033[31m'`
-GREY=`echo -e '\033[90m'`
+GREY=`echo -e '\033[37m'`
 
 STDBUF=`which stdbuf`
 if [ $? == 1 ]; then
