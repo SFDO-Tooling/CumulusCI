@@ -338,6 +338,9 @@ project.setProperty("downgradePackage", result);
             <case value="dashboards">
               <property name="typename" value="Dashboard" />
             </case>
+            <case value="dataSources">
+              <property name="typename" value="ExternalDataSource" />
+            </case>
             <case value="documents">
               <property name="typename" value="Document" />
             </case>
