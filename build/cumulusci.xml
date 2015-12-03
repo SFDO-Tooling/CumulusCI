@@ -652,6 +652,11 @@ project.setProperty("downgradePackage", result);
                   <var name="type.extract" value="${line.separator}    ${lt}types>${line.separator}${type.extract}        ${lt}name>@{typename}${lt}/name>${line.separator}    ${lt}/types>" />
                   <replaceregexp file="@{xmlfile}" match="Package(.*)>" replace="Package\1>${type.extract}" />
                   <xslt in="@{xmlfile}" out="@{xmlfile}.tidy" style="${cumulus_ci.basedir}/xsl/tidy_package_xml.xsl" />
+                  <!-- Strip out the standalone="yes" attribute on the XML declaration.  The XSLT files use the standalone="yes"
+                       option on xsl:output to force the insertion of a new line after the XML declaration.  However, that leaves
+                       an unwanted attribute on the declaration in the resulting file.  This strips the attribute from the declaration.
+                       -->
+                  <replaceregexp file="@{xmlfile}.tidy" match=" standalone=.yes..>" replace="?>" flags="" />
                   <move file="@{xmlfile}.tidy" tofile="@{xmlfile}" />
                 </then>
               </if>
@@ -918,6 +923,11 @@ project.setProperty("downgradePackage", result);
             <param name="major" expression="${updatemetaxml.major}" />
             <param name="minor" expression="${updatemetaxml.minor}" />
           </xslt>
+          <!-- Strip out the standalone="yes" attribute on the XML declaration.  The XSLT files use the standalone="yes"
+               option on xsl:output to force the insertion of a new line after the XML declaration.  However, that leaves
+               an unwanted attribute on the declaration in the resulting file.  This strips the attribute from the declaration.
+               -->
+          <replaceregexp file="@{file}.updated" match=" standalone=.yes..>" replace="?>" flags="" />
           <if>
             <not><filesmatch file1="@{file}" file2="@{file}.updated" /></not>
             <then>
@@ -945,6 +955,11 @@ project.setProperty("downgradePackage", result);
           <xslt in="@{file}" out="@{file}.updated" style="${cumulus_ci.basedir}/xsl/update_meta_xml_api.xsl">
             <param name="apiVersion" expression="@{apiVersion}" />
           </xslt>
+          <!-- Strip out the standalone="yes" attribute on the XML declaration.  The XSLT files use the standalone="yes"
+               option on xsl:output to force the insertion of a new line after the XML declaration.  However, that leaves
+               an unwanted attribute on the declaration in the resulting file.  This strips the attribute from the declaration.
+               -->
+          <replaceregexp file="@{file}.updated" match=" standalone=.yes..>" replace="?>" flags="" />
           <if>
             <not><filesmatch file1="@{file}" file2="@{file}.updated" /></not>
             <then>
