@@ -557,6 +557,7 @@
             <sf:bulkRetrieve
                 username="${sf.username}"
                 password="${sf.password}"
+                serverurl="${sf.serverurl}"
                 metadataType="InstalledPackage"
                 retrieveTarget="${basedir}/installedPackages"/>
     
