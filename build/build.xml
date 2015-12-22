@@ -4,7 +4,7 @@
 
     <include file="${cumulus_ci.basedir}/cumulusci.xml" />
 
-    <taskdef 
+    <taskdef
          resource="net/sf/antcontrib/antlib.xml"
          classpath="${cumulus_ci.basedir}/lib/ant-contrib-1.0b2.jar" />
 
@@ -85,7 +85,7 @@
         <property name="cumulusci.test.namematch" value="%\_TEST" />
       </else>
     </if>
-    
+
     <!-- Allow APEX_TEST_NAME_EXCLUDE environment variable to override cumulusci.test.nameexclude -->
     <if>
       <isset property="env.APEX_TEST_NAME_EXCLUDE" />
@@ -121,7 +121,7 @@
 
     <!-- Setup a blank namespace prefix string.  Managed deployments need to override this property before calling deployUnpackagedPost -->
     <property name="cumulusci.namespace.prefix" value="" />
-    
+
     <!-- Primary Build Targets -->
 
     <!-- deploy: Run a full deployment including running all tests.  Does not attempt to clean target org or ensure dependent package versions are correct -->
@@ -268,7 +268,7 @@
 
         <!-- Deploy the src directory -->
         <antcall target="deployWithoutTest" />
-        
+
         <if>
             <not><equals arg1="${cumulusci.unmanaged.destroy.mode}" arg2="full" /></not>
             <then>
@@ -276,7 +276,7 @@
                 <antcall target="destroyStaleMetadata" />
             </then>
         </if>
-        
+
         <!-- Deploy any unpackaged metadata bundles needed after the deployment -->
         <antcall target="deployUnpackagedPost" />
 
@@ -553,16 +553,16 @@
         <sequential>
             <delete dir="${basedir}/installedPackages"/>
             <mkdir dir="${basedir}/installedPackages"/>
-    
+
             <sf:bulkRetrieve
                 username="${sf.username}"
                 password="${sf.password}"
                 metadataType="InstalledPackage"
                 retrieveTarget="${basedir}/installedPackages"/>
-    
+
             <echo>Required Package Versions:</echo>
             <echo>-------------------------------</echo>
-    
+
             <for list="${required.packages}" delimiter="," param="packageNamespace">
                 <sequential>
                     <if>
@@ -579,7 +579,7 @@
                     </if>
                 </sequential>
             </for>
-    
+
             <delete dir="${basedir}/installedPackages"/>
         </sequential>
     </macrodef>
@@ -601,7 +601,7 @@
                         <if>
                             <available file="${basedir}/unpackaged/@{packageNamespace}/pre" type="dir" />
                             <then>
-                                <deployMetadataBundles dir="${basedir}/unpackaged/@{packageNamespace}/pre" stagedir="${basedir}/unpackaged_stage" />
+                                <deployMetadataBundles dir="${basedir}/unpackaged/@{packageNamespace}/pre" stagedir="${basedir}/unpackaged_stage" nsprefix="@{packageNamespace}"/>
                             </then>
                             <else>
                                 <echo>No pre bundles found for @{packageNamespace} at ${basedir}/unpackaged/@{packageNamespace}/pre</echo>
@@ -612,7 +612,7 @@
                         <if>
                             <available file="${basedir}/unpackaged/@{packageNamespace}/post" type="dir" />
                             <then>
-                                <deployMetadataBundles dir="${basedir}/unpackaged/@{packageNamespace}/post" stagedir="${basedir}/unpackaged_stage" />
+                                <deployMetadataBundles dir="${basedir}/unpackaged/@{packageNamespace}/post" stagedir="${basedir}/unpackaged_stage" nsprefix="@{packageNamespace}"/>
                             </then>
                             <else>
                                 <echo>No post bundles found for @{packageNamespace} at ${basedir}/unpackaged/@{packageNamespace}/post</echo>
@@ -663,7 +663,7 @@
 
         <!-- Deploy the src directory -->
         <antcall target="deployWithoutTest" />
-        
+
         <if>
             <not><equals arg1="${cumulusci.unmanaged.destroy.mode}" arg2="full" /></not>
             <then>
@@ -671,7 +671,7 @@
                 <antcall target="destroyStaleMetadata" />
             </then>
         </if>
-        
+
         <!-- Deploy any unpackaged metadata bundles needed after the deployment -->
         <antcall target="deployUnpackagedPost" />
 
@@ -723,7 +723,7 @@
 
         <!-- Revert the src directory -->
         <antcall target="revertUnmanagedEESrc" />
-        
+
         <if>
             <not><equals arg1="${cumulusci.unmanaged.destroy.mode}" arg2="full" /></not>
             <then>
@@ -731,7 +731,7 @@
                 <antcall target="destroyStaleMetadata" />
             </then>
         </if>
-        
+
         <!-- Deploy any unpackaged metadata bundles needed after the deployment -->
         <antcall target="deployUnpackagedPost" />
 
@@ -748,10 +748,10 @@
     <target name="retrievePackaged">
         <retrievePackaged dir="packaged" package="${cumulusci.package.name}" />
     </target>
-    
-    <!-- retrievePackagedToSrc: Retrieves all metadata from the package in the target org into the src directory --> 
-    <target name="retrievePackagedToSrc"> 
-        <retrievePackaged dir="src" package="${cumulusci.package.name}" mkdir="false" /> 
+
+    <!-- retrievePackagedToSrc: Retrieves all metadata from the package in the target org into the src directory -->
+    <target name="retrievePackagedToSrc">
+        <retrievePackaged dir="src" package="${cumulusci.package.name}" mkdir="false" />
     </target>
 
     <!-- createUnmanagedPackage: Does an empty deployment into an unmanaged package to create it if it does not exist -->
@@ -929,7 +929,7 @@
         <exec executable="git" failonerror="true" dir="../${cumulusci.package.name}ApexDoc">
             <arg line="checkout ${cumulusci.apexdoc.branch}" />
         </exec>
-            
+
         <!-- Download apexdoc.jar -->
         <delete dir="${cumulus_ci.basedir}/../ci/doc" />
         <mkdir dir="${cumulus_ci.basedir}/../ci/doc" />
