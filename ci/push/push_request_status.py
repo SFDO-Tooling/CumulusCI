@@ -8,6 +8,8 @@ from push_api import SalesforcePushApi
 reload(sys)
 sys.setdefaultencoding('UTF8')
 
+completed_statuses = ['Succeeded','Failed','Cancelled']
+
 if __name__ == '__main__':
     try:
         
@@ -24,9 +26,15 @@ if __name__ == '__main__':
         push_api = SalesforcePushApi(username, password, serverurl, lazy=['subscribers','jobs'], default_where=default_where)
         push_request = push_api.get_push_request_objs("Id = '%s'" % push_request_id, limit=1)[0]
 
-        while push_request.status not in ['Succeeded','Failed','Cancelled']:
-            interval = 10
-            print 'Push request is not yet complete.  Polling for completion every %s seconds...' % interval
+        if push_request.status not in completed_statuses:
+            print 'Push request is not yet complete.  Polling for status every %s seconds until completion...' % interval
+
+        interval = 10
+        i = 0
+        while push_request.status not in completed_statuses:
+            if i == 10:
+                print 'This is taking a while! Polling every 60 seconds...'
+                interval = 60
             time.sleep(interval)
     
             # Clear the method level cache on get_push_requests and get_push_request_objs
@@ -35,6 +43,10 @@ if __name__ == '__main__':
 
             # Get the push_request again
             push_request = push_api.get_push_request_objs("Id = '%s'" % push_request_id, limit=1)[0]
+
+            print push_request.status
+            
+            i += 1
 
 
         failed_jobs = []
