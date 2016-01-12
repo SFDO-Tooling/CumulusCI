@@ -204,7 +204,7 @@ class SalesforcePushApi(object):
         if serverurl.find('test.salesforce.com') != -1:
             sandbox = True
     
-        self.sf = Salesforce(username=username, password=password, security_token='', sandbox=sandbox, sf_version='35.0')
+        self.sf = Salesforce(username=username, password=password, security_token='', sandbox=sandbox, version='35.0')
 
         # Change base_url to use the tooling api
         self.sf.base_url = self.sf.base_url + 'tooling/'
