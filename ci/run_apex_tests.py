@@ -226,7 +226,7 @@ def run_tests():
     if serverurl.find('test.salesforce.com') != -1:
         sandbox = True
     
-    sf = Salesforce(username=username, password=password, security_token='', sandbox=sandbox, sf_version='32.0')
+    sf = Salesforce(username=username, password=password, security_token='', sandbox=sandbox, version='32.0')
     
     # Change base_url to use the tooling api
     sf.base_url = sf.base_url + 'tooling/'
@@ -315,6 +315,7 @@ def run_tests():
     # Run all the tests
     print "Queuing tests for execution..."
     sys.stdout.flush()
+    import pdb; pdb.set_trace()
     job_id = sf.restful('runTestsAsynchronous', params={'classids': ','.join(classes_by_id.keys())})
     
     # Loop waiting for the tests to complete
