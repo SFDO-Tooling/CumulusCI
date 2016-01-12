@@ -315,7 +315,6 @@ def run_tests():
     # Run all the tests
     print "Queuing tests for execution..."
     sys.stdout.flush()
-    import pdb; pdb.set_trace()
     job_id = sf.restful('runTestsAsynchronous', params={'classids': ','.join(classes_by_id.keys())})
     
     # Loop waiting for the tests to complete
