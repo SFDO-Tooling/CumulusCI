@@ -1,6 +1,7 @@
 import os
 import sys
 import csv
+import time
 from push_api import SalesforcePushApi
 
 # Force UTF8 output
@@ -35,6 +36,10 @@ if __name__ == '__main__':
         request_id = push_api.create_push_request(version, orgs)
 
         print 'Push Request %s is populated, setting status to Pending to start execution' % request_id
+
+        if len(orgs) > 1000:
+            print "Delaying 30 seconds to allow all jobs to initialize..."
+            time.sleep(30)
     
         print push_api.run_push_request(request_id)
 
