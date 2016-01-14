@@ -226,7 +226,7 @@ def run_tests():
     if serverurl.find('test.salesforce.com') != -1:
         sandbox = True
     
-    sf = Salesforce(username=username, password=password, security_token='', sandbox=sandbox, sf_version='32.0')
+    sf = Salesforce(username=username, password=password, security_token='', sandbox=sandbox, version='32.0')
     
     # Change base_url to use the tooling api
     sf.base_url = sf.base_url + 'tooling/'
