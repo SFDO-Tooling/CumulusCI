@@ -294,7 +294,7 @@ def run_tests():
             for tf in tf_res['records']:
                 TraceFlag.delete(tf['Id'])
     
-        expiration = datetime.datetime.now() + datetime.timedelta(1)
+        expiration = datetime.datetime.now() + datetime.timedelta(seconds=60*60*12)
         res = TraceFlag.create({
             'ApexCode': 'Info',
             'ApexProfiling': 'Debug',
