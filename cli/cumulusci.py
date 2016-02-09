@@ -1,4 +1,5 @@
 import click
+import json
 import os
 import sarge
 import sys
@@ -43,6 +44,9 @@ class Config(object):
         self.junit_output = 'test_results_junit.xml'
         self.json_output = 'test_results.json'
         self.parse_cumulusci_properties()
+        self.branch = None
+        self.commit = None
+        self.build_type = None
 
     def parse_cumulusci_properties(self):
         if os.path.isfile('cumulusci.properties'):
@@ -72,18 +76,17 @@ def cli(config):
 def ci(config):
     pass
 
-# command: ci build_router
-@click.command()
-@pass_config
-def build_router(config):
-    """ Routes a build commit to the proper type of initial build """
+def get_build_info():
     # Attempt to parse out common ways of passing the branch
     branch = None
     commit = None
+    vendor = None
+    build_type = None
     # Solano CI
     if os.environ.get('TDDIUM'):
         branch = os.environ.get('TDDIUM_CURRENT_BRANCH')
         commit = os.environ.get('TDDIUM_CURRENT_COMMIT')
+        vendor = 'SolanoCI'
     # Codeship
     # Jenkins
     # CicleCI
@@ -99,22 +102,74 @@ def build_router(config):
         click.echo('FAIL: Could not determine branch or commit')
         return 1
 
-    click.echo("Building branch %s at commit %s" % (branch, commit))
+    if branch.startswith('feature/'):
+        build_type = 'feature'
 
-    if branch and branch.startswith('feature/'):
+    elif branch == 'master':
+        build_type = 'master'
+
+    click.echo("Detected %s build of branch %s at commit %s on %s" % (build_type, branch, commit, vendor))
+
+    return branch, commit, build_type, vendor
+
+# command: ci build_router
+@click.command(help="Controls the initial routing of a build to its first step and executes the step")
+@pass_config
+def build_router(config, next_step):
+    """ Routes a build commit to the proper type of initial build """
+
+    branch, commit, build_type, vendor = get_build_info()
+
+    if build_type == 'feature':
         click.echo('-- Building with feature branch flow')
+        config.build_type = 'feature'
+        config.branch = branch
+        config.commit = branch
         config.sf_username = os.environ.get('SF_USERNAME_FEATURE')
         config.sf_password = os.environ.get('SF_PASSWORD_FEATURE')
         config.sf_serverurl = os.environ.get('SF_SERVERURL_FEATURE', config.sf_serverurl)
-        unmanaged_deploy.main(args=['--run-tests','--full-delete'], obj=config)
+        unmanaged_deploy.main(args=['--run-tests','--full-delete'], standalone_mode=False, obj=config)
 
-    elif branch == 'master':
+    elif build_type == 'master':
         click.echo('-- Building with master branch flow')
+        config.build_type = 'master'
+        config.branch = branch
+        config.commit = branch
         config.sf_username = os.environ.get('SF_USERNAME_PACKAGING')
         config.sf_password = os.environ.get('SF_PASSWORD_PACKAGING')
         config.sf_serverurl = os.environ.get('SF_SERVERURL_PACKAGING', config.sf_serverurl)
-        package_deploy(args=['--run-tests',], obj=config)
-        package_upload(args=[commit,], obj=config)
+        package_deploy.main(args=['--run-tests',], standalone_mode=False, obj=config)
+        package_upload.main(args=[commit,], standalone_mode=False, obj=config)
+
+# command: ci next_step
+@click.command(help='A command to calculate and return the next steps for a ci build to run')
+@pass_config
+def next_step(config):
+    step = None
+
+    branch, commit, build_type, vendor = get_build_info()
+    
+    # SolanoCI
+    if vendor == 'SolanoCI':
+        profile = os.environ.get('SOLANO_PROFILE_NAME')
+        version = None
+        if profile:
+            if profile == 'build_router' and branch == 'master':
+                step = 'package_beta'
+            elif profile == 'package_beta':
+                f = open('package.properties', 'r')
+                for line in f:
+                    if line.startswith('PACKAGE_VERSION='):
+                        version = line.replace('PACKAGE_VERSION=','')
+                        break 
+                step = 'deploy_beta_package'
+                
+        click.echo('Writing next step %s to solano-plan-variables.json' % step)
+        f = open('solano-plan-variables.json', 'w')
+        data = {'next_profile': step, 'version': version}
+        f.write(json.dumps(data))
+        return
+         
 
 @click.group()
 @pass_config
@@ -187,13 +242,13 @@ def run_ant_target(target, env, config, check_credentials=None):
             else:
                 raise AntTargetException(logtxt)
         except DeploymentException as e:
-            click.echo('BUILD FAILED: One or more deployment error occurred')
+            click.echo('BUILD FAILED: One or more deployment errors occurred')
             sys.exit(2)
         except ApexTestException as e:
             click.echo('BUILD FAILED: One or more Apex tests failed')
             sys.exit(3)
         except AntTargetException as e:
-            click.echo('BUILD FAILED: One or more deployment error occurred')
+            click.echo('BUILD FAILED: One or more Ant target errors occurred')
             sys.exit(1)
     return p
 
@@ -281,13 +336,13 @@ def package_deploy(config, run_tests):
 
     p = run_ant_target(target, env, config, check_credentials=True)
 
-# command: package_upload
+# command: package_beta
 @click.command(help='Use Selenium to upload a package version in the packaging org')
 @click.argument('commit')
 @click.option('--build-name', default='Manual build from CumulusCI CLI', help='If provided, overrides the build name used to name the package version')
 @click.option('--selenium-url', help='If provided, uses a Selenium Server at the specified url.  Example: http://127.0.0.1:4444/wd/hub')
 @pass_config
-def package_upload(config, commit, build_name, selenium_url):
+def package_beta(config, commit, build_name, selenium_url):
 
     # Build the environment for the command
     env = get_env_cumulusci(config)
@@ -371,12 +426,13 @@ def mrbelvedere(config):
 # Top level commands
 cli.add_command(managed_deploy)
 cli.add_command(package_deploy)
-cli.add_command(package_upload)
+cli.add_command(package_beta)
 cli.add_command(unmanaged_deploy)
 cli.add_command(update_package_xml)
 
 # Group: ci
 ci.add_command(build_router)
+ci.add_command(next_step)
 cli.add_command(ci)
 
 #cli.add_command(dev)
