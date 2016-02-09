@@ -12,6 +12,11 @@ CumulusCI now provides a command line interface.  The CLI is evolving and not al
     # To activate the CLI, you need to activate the virtualenv where you installed it
     source $CUMULUSCI_PATH/venv/bin/activate
 
+    # Call the CLI
+    cumulusci
+
+The steps above require that you have Python 2.7.x and the virtualenv command already installed.  See http://virtualenv.readthedocs.org/en/latest/installation.html for more info on installing virtualenv
+
 # CumulusCI
 
 If you are already familiar with [Github Flow](http://scottchacon.com/2011/08/31/github-flow.html) and just want to get up and running using this process in the Salesforce platform, follow these steps:
