@@ -32,8 +32,13 @@ class Config(object):
         self.sf_username = os.environ.get('SF_USERNAME', None)
         self.sf_password = os.environ.get('SF_PASSWORD', None)
         self.sf_serverurl = os.environ.get('SF_SERVERURL', 'https://login.salesforce.com')
+        self.oauth_client_id = os.environ.get('OAUTH_CLIENT_ID')
+        self.oauth_client_secret = os.environ.get('OAUTH_CLIENT_SECRET')
+        self.oauth_callback_url = os.environ.get('OAUTH_CALLBACK_URL')
+        self.oauth_instance_url = os.environ.get('INSTANCE_URL')
+        self.oauth_refresh_token = os.environ.get('REFRESH_TOKEN')
         self.advanced_testing = True
-        self.debug_tests = False
+        self.debug_tests = os.environ.get('DEBUG_TESTS') not in [None, 'true', 'True']
         self.apex_logdir = 'apex_debug_logs'
         self.junit_output = 'test_results_junit.xml'
         self.json_output = 'test_results.json'
@@ -109,6 +114,7 @@ def build_router(config):
         config.sf_password = os.environ.get('SF_PASSWORD_PACKAGING')
         config.sf_serverurl = os.environ.get('SF_SERVERURL_PACKAGING', config.sf_serverurl)
         package_deploy(args=['--run-tests',], obj=config)
+        package_upload(args=[commit,], obj=config)
 
 @click.group()
 @pass_config
@@ -128,6 +134,16 @@ def get_env_sf_org(config):
         'SF_PASSWORD': config.sf_password,
         'SF_SERVERURL': config.sf_serverurl,
     }
+
+def get_env_sf_org_oauth(config):
+    return {
+        'OAUTH_CLIENT_ID': config.oauth_client_id,
+        'OAUTH_CLIENT_SECRET': config.oauth_client_secret,
+        'OAUTH_CALLBACK_URL': config.oauth_callback_url,
+        'INSTANCE_URL': config.oauth_instance_url,
+        'REFRESH_TOKEN': config.oauth_refresh_token,
+    }
+
 def get_env_apex_tests(config):
     return {
         'TEST_MODE': config.test_mode,
@@ -181,6 +197,32 @@ def run_ant_target(target, env, config, check_credentials=None):
             sys.exit(1)
     return p
 
+def check_required_env(env, required_env):
+    missing = []
+    for key in required_env:
+        if key not in env or not env[key]:
+            missing.append(key)
+    if missing:
+        raise click.BadParameter('You must set the environment variables: %s' % ', '.join(missing))
+
+def run_python_script(script, env, config, required_env=None): 
+    if required_env:
+        check_required_env(env, required_env)
+
+    # Execute the command
+    p = sarge.Command('python %s/ci/%s' % (config.cumulusci_path, script), stdout=sarge.Capture(buffer_size=-1), env=env)
+    p.run(async=True)
+
+    # Print the stdout buffer until the command completes and capture all lines in log for reference in exceptions
+    log = []
+    while p.returncode is None:
+        for line in p.stdout:
+            log.append(line.rstrip())
+            click.echo(line.rstrip())
+        p.poll()
+
+    return p
+        
 # command: dev unmanaged_deploy
 @click.command(
     help='Runs a full deployment of the code including unused stale package metadata, setting up dependencies, deploying the code, and optionally running tests',
@@ -241,16 +283,41 @@ def package_deploy(config, run_tests):
 
 # command: package_upload
 @click.command(help='Use Selenium to upload a package version in the packaging org')
+@click.argument('commit')
+@click.option('--build-name', default='Manual build from CumulusCI CLI', help='If provided, overrides the build name used to name the package version')
 @click.option('--selenium-url', help='If provided, uses a Selenium Server at the specified url.  Example: http://127.0.0.1:4444/wd/hub')
 @pass_config
-def package_upload(config, selenium_url):
+def package_upload(config, commit, build_name, selenium_url):
 
     # Build the environment for the command
     env = get_env_cumulusci(config)
-    env.update(get_env_sf_org(config))
-    env.update(get_env_apex_tests(config))
+    env.update(get_env_sf_org_oauth(config))
 
-    p = run_ant_target(target, env, config)
+    if config.cumulusci__package__name:
+        env['PACKAGE'] = config.cumulusci__package__name
+    env['BUILD_WORKSPACE'] = '.'
+    env['BUILD_COMMIT'] = commit
+    env['BUILD_NAME'] = build_name
+
+    required_env = [
+        'OAUTH_CLIENT_ID',
+        'OAUTH_CLIENT_SECRET',
+        'OAUTH_CALLBACK_URL',
+        'INSTANCE_URL',
+        'REFRESH_TOKEN',
+        'PACKAGE',
+        'BUILD_NAME',
+        'BUILD_COMMIT',
+        'BUILD_WORKSPACE',
+    ]
+
+    script = 'package_upload.py'
+    if selenium_url:
+        required_env.append('SELENIUM_URL')
+        env['SELENIUM_URL'] = selenium_url
+        script = 'package_upload_ss.py'
+
+    p = run_python_script(script, env, config, required_env=required_env)
 
 # command: packaging managed_deploy
 @click.command(help='Installs a managed package version and optionally runs the tests from the installed managed package')
@@ -304,6 +371,7 @@ def mrbelvedere(config):
 # Top level commands
 cli.add_command(managed_deploy)
 cli.add_command(package_deploy)
+cli.add_command(package_upload)
 cli.add_command(unmanaged_deploy)
 cli.add_command(update_package_xml)
 
