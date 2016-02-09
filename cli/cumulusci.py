@@ -163,13 +163,13 @@ def run_ant_target(target, env, config):
                 raise AntTargetException(logtxt)
         except DeploymentException as e:
             click.echo('BUILD FAILED: One or more deployment error occurred')
-            raise e
+            sys.exit(2)
         except ApexTestException as e:
             click.echo('BUILD FAILED: One or more Apex tests failed')
-            raise e
+            sys.exit(3)
         except AntTargetException as e:
             click.echo('BUILD FAILED: One or more deployment error occurred')
-            raise e
+            sys.exit(1)
     return p
 
 # command: dev unmanaged_deploy
