@@ -85,10 +85,16 @@ def build_router(config):
 
     if branch.startswith('feature/'):
         click.echo('-- Building with feature branch flow')
+        config.sf_username = os.environ.get('SF_USERNAME_FEATURE')
+        config.sf_password = os.environ.get('SF_PASSWORD_FEATURE')
+        config.sf_serverurl = os.environ.get('SF_SERVERURL_FEATURE', config.sf_serverurl)
         unmanaged_deploy.main(args=['--run-tests','True'])
 
     elif branch == 'master':
         click.echo('-- Building with master branch flow')
+        config.sf_username = os.environ.get('SF_USERNAME_PACKAGING')
+        config.sf_password = os.environ.get('SF_PASSWORD_PACKAGING')
+        config.sf_serverurl = os.environ.get('SF_SERVERURL_PACKAGING', config.sf_serverurl)
         package_deploy(args=['--run-tests','True'])
 
 @click.group()
