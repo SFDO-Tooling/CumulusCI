@@ -3,17 +3,6 @@ import os
 import sarge
 import sys
 
-OPTION_ARGS = {
-    'advanced_testing': {
-        'default': True,
-        'help': 'Set to False to fallback to using the Force.com Ant Migration Tool for running tests.  Default is True which uses the Tooling API based test runner that can run tests in parallel, capture and parse debug logs, and output JUnit format test results',
-    },
-    'debug_tests': {
-        'default': False,
-        'help': 'If set to True, debug logs will be captured for all tests classes to provide extended output.  Defaults to False.'
-    },
-}
-
 # Exceptions
 class AntTargetException(Exception):
     pass
