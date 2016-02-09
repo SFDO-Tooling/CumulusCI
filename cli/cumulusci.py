@@ -139,7 +139,7 @@ def build_router(config):
         config.sf_password = os.environ.get('SF_PASSWORD_PACKAGING')
         config.sf_serverurl = os.environ.get('SF_SERVERURL_PACKAGING', config.sf_serverurl)
         package_deploy.main(args=['--run-tests',], standalone_mode=False, obj=config)
-        package_upload.main(args=[commit,], standalone_mode=False, obj=config)
+        package_beta.main(args=[commit,], standalone_mode=False, obj=config)
 
 # command: ci next_step
 @click.command(help='A command to calculate and return the next steps for a ci build to run')
