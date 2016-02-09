@@ -138,8 +138,7 @@ def build_router(config):
         config.sf_username = os.environ.get('SF_USERNAME_PACKAGING')
         config.sf_password = os.environ.get('SF_PASSWORD_PACKAGING')
         config.sf_serverurl = os.environ.get('SF_SERVERURL_PACKAGING', config.sf_serverurl)
-        package_deploy.main(args=['--run-tests',], standalone_mode=False, obj=config)
-        package_beta.main(args=[commit,], standalone_mode=False, obj=config)
+        package_deploy.main(args=[], standalone_mode=False, obj=config)
 
 # command: ci next_step
 @click.command(help='A command to calculate and return the next steps for a ci build to run')
@@ -321,13 +320,10 @@ def unmanaged_deploy(config, run_tests, full_delete, ee_org, deploy_only):
 
 # command: package_deploy
 @click.command(help='Runs a full deployment of the code as managed code to the packaging org including setting up dependencies, deleting metadata removed from the repository, deploying the code, and optionally running tests')
-@click.option('--run-tests', default=False, is_flag=True, help='If set, run tests as part of the deployment.  Defaults to not running tests')
 @pass_config
-def package_deploy(config, run_tests):
+def package_deploy(config):
     # Determine the deploy target to use based on options
     target = 'deployCIPackageOrg'
-    if run_tests:
-        target += ' runAllTestsManaged'
 
     # Build the environment for the command
     env = get_env_cumulusci(config)
