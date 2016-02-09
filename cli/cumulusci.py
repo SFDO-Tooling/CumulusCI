@@ -51,6 +51,47 @@ def cli(config):
 
 @click.group()
 @pass_config
+def ci(config):
+    pass
+
+@click.command()
+@pass_config
+def build_router(config):
+    """ Routes a build commit to the proper type of initial build """
+    # Attempt to parse out common ways of passing the branch
+    branch = None
+    commit = None
+    # Solano CI
+    if os.environ.get('TDDIUM'):
+        branch = os.environ.get('TDDIUM_CURRENT_BRANCH')
+        commit = os.environ.get('TDDIUM_CURRENT_BRANCH')
+    # Codeship
+    # Jenkins
+    # CicleCI
+    if os.environ.get('CIRCLECI'):
+        branch = os.environ.get('CIRCLE_BRANCH')
+        commit = os.environ.get('CIRCLE_COMMIT')
+    # Drone.io
+    # Semaphore
+    # Shippable
+    # Fallback to calling git command line?
+
+    if not branch or not commit:
+        click.echo('FAIL: Could not determine branch or commit')
+        return 1
+
+    click.echo("Building branch %s at commit %s" % (branch, commit))
+
+    if branch.startswith('feature/'):
+        click.echo('-- Building with feature branch flow')
+        unmanaged_deploy(config, True, False)
+
+    elif branch == 'master':
+        click.echo('-- Building with master branch flow')
+        package_deploy(config, True)
+
+@click.group()
+@pass_config
 def dev(config):
     pass
 
@@ -96,7 +137,7 @@ def run_ant_target(target, env, config):
 @click.option('--run-tests', default=False, help='If True, run tests as part of the deployment.  Defaults to False')
 @click.option('--ee-org', default=False, help='If True, use the deployUnmanagedEE target which prepares the code for loading into a production Enterprise Edition org.  Defaults to False.')
 @pass_config
-def deploy(config, run_tests, ee_org):
+def unmanaged_deploy(config, run_tests, ee_org):
 
     # Determine the deploy target to use based on options
     target = None
@@ -114,6 +155,45 @@ def deploy(config, run_tests, ee_org):
     env = get_env_cumulusci(config)
     env.update(get_env_sf_org(config))
     env.update(get_env_apex_tests(config))
+
+    p = run_ant_target(target, env, config)
+    click.echo('Return Code = %s' % p.returncode)
+
+@click.command(help='Runs a full deployment of the code as managed code to the packaging org including setting up dependencies, deleting metadata removed from the repository, deploying the code, and optionally running tests')
+@click.option('--run-tests', default=False, help='If True, run tests as part of the deployment.  Defaults to False')
+@pass_config
+def package_deploy(config, run_tests):
+    # Determine the deploy target to use based on options
+    target = 'deployCIPackageOrg'
+    if run_tests:
+        target += ' runAllTestsManaged'
+
+    # Build the environment for the command
+    env = get_env_cumulusci(config)
+    env.update(get_env_sf_org(config))
+    env.update(get_env_apex_tests(config))
+
+    p = run_ant_target(target, env, config)
+    click.echo('Return Code = %s' % p.returncode)
+
+@click.command(help='Installs a managed package version and optionally runs the tests from the installed managed package')
+@click.option('--run-tests', default=False, help='If True, run tests as part of the deployment.  Defaults to False')
+@click.option('--package-version', help='The package version number to install.  Examples: 1.2, 1.2.1, 1.3 (Beta 3)')
+@click.option('--commit', help='The commit for the version.  This is used to look up dependencies from the version.properties file and unpackaged subdirectory in the repository')
+@pass_config
+def managed_deploy(config, run_tests, package_version, commit):
+    # Determine the deploy target to use based on options
+    target = 'deployManaged'
+    if run_tests:
+        target += ' runAllTestsManaged'
+
+    # Build the environment for the command
+    env = get_env_cumulusci(config)
+    env.update(get_env_sf_org(config))
+    env.update(get_env_apex_tests(config))
+
+    env['PACKAGE_VERSION'] = package_version
+    env['BUILD_COMMIT'] = commit
 
     p = run_ant_target(target, env, config)
     click.echo('Return Code = %s' % p.returncode)
@@ -144,9 +224,16 @@ def github(config):
 def mrbelvedere(config):
     pass
 
-dev.add_command(deploy)
+ci.add_command(build_router)
+
+dev.add_command(unmanaged_deploy)
 dev.add_command(update_package_xml)
 
+packaging.add_command(package_deploy)
+
+managed.add_command(managed_deploy)
+
+cli.add_command(ci)
 cli.add_command(dev)
 cli.add_command(packaging)
 cli.add_command(managed)
