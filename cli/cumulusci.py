@@ -13,6 +13,15 @@ OPTION_ARGS = {
     },
 }
 
+class AntTargetException(Exception):
+    pass
+
+class DeploymentException(Exception):
+    pass
+
+class ApexTestException(Exception):
+    pass
+
 class Config(object):
     def __init__(self):
         self.cumulusci_path = os.environ.get('CUMULUSCI_PATH', None)
@@ -126,24 +135,32 @@ def get_env_apex_tests(config):
 def get_env_github(config):
     return {
     }
-def get_env_cum(config):
-    return {
-    }
    
 def run_ant_target(target, env, config): 
     # Execute the command
     p = sarge.Command('%s/ci/ant_wrapper.sh %s' % (config.cumulusci_path, target), stdout=sarge.Capture(buffer_size=-1), env=env)
     p.run(async=True)
+
+    # Print the stdout buffer until the command completes
     while p.returncode is None:
         for line in p.stdout:
             click.echo(line.rstrip())
         p.poll()
+
+    # Check the return code, raise the appropriate exception if needed
+    if p.returncode:
+        if p.stdout.text.find('[exec] Failing Tests') != -1:
+            raise TestFailureException(p.stdout.text)
+        elif p.stdout.text.find('All Component Failures:') != -1:
+            raise DeploymentErrorException(p.stdout.text)
+        else:
+            raise AntTargetException(p.stdout.text)
     return p
 
 # command: dev unmanaged_deploy
 @click.command(
     help='Runs a full deployment of the code including deleting package metadata from the target org (WARNING), setting up dependencies, deploying the code, and optionally running tests',
-    context_settings={'color': True}
+    context_settings={'color': True},
 )
 @click.option('--run-tests', default=False, help='If True, run tests as part of the deployment.  Defaults to False')
 @click.option('--ee-org', default=False, help='If True, use the deployUnmanagedEE target which prepares the code for loading into a production Enterprise Edition org.  Defaults to False.')
