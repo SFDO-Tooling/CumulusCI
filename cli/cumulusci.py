@@ -54,6 +54,7 @@ def cli(config):
 def ci(config):
     pass
 
+# command: ci build_router
 @click.command()
 @pass_config
 def build_router(config):
@@ -84,11 +85,11 @@ def build_router(config):
 
     if branch.startswith('feature/'):
         click.echo('-- Building with feature branch flow')
-        unmanaged_deploy(config, True, False)
+        unmanaged_deploy.main(args=['--run-tests','True'])
 
     elif branch == 'master':
         click.echo('-- Building with master branch flow')
-        package_deploy(config, True)
+        package_deploy(args=['--run-tests','True'])
 
 @click.group()
 @pass_config
@@ -133,7 +134,11 @@ def run_ant_target(target, env, config):
         p.poll()
     return p
 
-@click.command(help='Runs a full deployment of the code including deleting package metadata from the target org (WARNING), setting up dependencies, deploying the code, and optionally running tests')
+# command: dev unmanaged_deploy
+@click.command(
+    help='Runs a full deployment of the code including deleting package metadata from the target org (WARNING), setting up dependencies, deploying the code, and optionally running tests',
+    context_settings={'color': True}
+)
 @click.option('--run-tests', default=False, help='If True, run tests as part of the deployment.  Defaults to False')
 @click.option('--ee-org', default=False, help='If True, use the deployUnmanagedEE target which prepares the code for loading into a production Enterprise Edition org.  Defaults to False.')
 @pass_config
@@ -159,6 +164,7 @@ def unmanaged_deploy(config, run_tests, ee_org):
     p = run_ant_target(target, env, config)
     click.echo('Return Code = %s' % p.returncode)
 
+# command: package_deploy
 @click.command(help='Runs a full deployment of the code as managed code to the packaging org including setting up dependencies, deleting metadata removed from the repository, deploying the code, and optionally running tests')
 @click.option('--run-tests', default=False, help='If True, run tests as part of the deployment.  Defaults to False')
 @pass_config
@@ -176,6 +182,7 @@ def package_deploy(config, run_tests):
     p = run_ant_target(target, env, config)
     click.echo('Return Code = %s' % p.returncode)
 
+# command: packaging managed_deploy
 @click.command(help='Installs a managed package version and optionally runs the tests from the installed managed package')
 @click.option('--run-tests', default=False, help='If True, run tests as part of the deployment.  Defaults to False')
 @click.option('--package-version', help='The package version number to install.  Examples: 1.2, 1.2.1, 1.3 (Beta 3)')
@@ -198,6 +205,7 @@ def managed_deploy(config, run_tests, package_version, commit):
     p = run_ant_target(target, env, config)
     click.echo('Return Code = %s' % p.returncode)
 
+# command: dev update_package_xml
 @click.command(help='Updates the src/package.xml file by parsing out the metadata under src/')
 @pass_config
 def update_package_xml(config):
