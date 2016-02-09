@@ -161,7 +161,7 @@ def next_step(config):
                     if line.startswith('PACKAGE_VERSION='):
                         version = line.replace('PACKAGE_VERSION=','')
                         break 
-                step = 'deploy_beta_package'
+                step = 'deploy_beta'
                 
         click.echo('Writing next step %s to solano-plan-variables.json' % step)
         f = open('solano-plan-variables.json', 'w')
