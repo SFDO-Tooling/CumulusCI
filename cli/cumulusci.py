@@ -51,7 +51,7 @@ def cli(config):
 
 @click.group()
 @pass_config
-def unmanaged(config):
+def dev(config):
     pass
 
 # Methods used to map config properties to environment variables for various scripts
@@ -144,11 +144,11 @@ def github(config):
 def mrbelvedere(config):
     pass
 
-unmanaged.add_command(deploy)
-unmanaged.add_command(update_package_xml)
+dev.add_command(deploy)
+dev.add_command(update_package_xml)
 
-cli.add_command(unmanaged)
-cli.add_command(managed)
+cli.add_command(dev)
 cli.add_command(packaging)
+cli.add_command(managed)
 cli.add_command(github)
 cli.add_command(mrbelvedere)
