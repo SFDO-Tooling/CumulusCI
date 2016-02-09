@@ -115,7 +115,7 @@ def get_build_info():
 # command: ci build_router
 @click.command(help="Controls the initial routing of a build to its first step and executes the step")
 @pass_config
-def build_router(config, next_step):
+def build_router(config):
     """ Routes a build commit to the proper type of initial build """
 
     branch, commit, build_type, vendor = get_build_info()
