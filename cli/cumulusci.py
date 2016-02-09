@@ -24,6 +24,18 @@ class DeploymentException(Exception):
 class ApexTestException(Exception):
     pass
 
+class SalesforceCredentialsException(Exception):
+    pass
+
+def check_salesforce_credentials(env):
+    missing = []
+    if not env.get('SF_USERNAME'):
+        missing.append('SF_USERNAME')
+    if not env.get('SF_PASSWORD'):
+        missing.append('SF_PASSWORD')
+    if missing:
+        raise SalesforceCredentialsException('You must set the environment variables: %s' % ', '.join(missing))
+
 # Config object
 class Config(object):
     def __init__(self):
@@ -36,7 +48,7 @@ class Config(object):
         self.apex_logdir = 'apex_debug_logs'
         self.junit_output = 'test_results_junit.xml'
         self.json_output = 'test_results.json'
-        self.parse_cumulusci_properties
+        self.parse_cumulusci_properties()
 
     def parse_cumulusci_properties(self):
         if os.path.isfile('cumulusci.properties'):
@@ -45,7 +57,7 @@ class Config(object):
                 parts = line.split('=')
                 attr = parts[0].strip().replace('.','__')
                 value = parts[1].strip()
-                setattr(self, key, value)
+                setattr(self, attr, value)
 
     @property
     def test_mode(self):
@@ -61,7 +73,7 @@ pass_config = click.make_pass_decorator(Config, ensure=True)
 def cli(config):
     pass
 
-@click.group()
+@click.group(help="Commands to make building on CI servers easier")
 @pass_config
 def ci(config):
     pass
@@ -77,7 +89,7 @@ def build_router(config):
     # Solano CI
     if os.environ.get('TDDIUM'):
         branch = os.environ.get('TDDIUM_CURRENT_BRANCH')
-        commit = os.environ.get('TDDIUM_CURRENT_BRANCH')
+        commit = os.environ.get('TDDIUM_CURRENT_COMMIT')
     # Codeship
     # Jenkins
     # CicleCI
@@ -89,25 +101,26 @@ def build_router(config):
     # Shippable
     # Fallback to calling git command line?
 
-    if not branch or not commit:
-        click.echo('FAIL: Could not determine branch or commit')
-        return 1
+    #if not branch or not commit:
+    #    click.echo('FAIL: Could not determine branch or commit')
+    #    return 1
 
-    click.echo("Building branch %s at commit %s" % (branch, commit))
+    #click.echo("Building branch %s at commit %s" % (branch, commit))
 
-    if branch.startswith('feature/'):
+    if branch and branch.startswith('feature/'):
         click.echo('-- Building with feature branch flow')
         config.sf_username = os.environ.get('SF_USERNAME_FEATURE')
         config.sf_password = os.environ.get('SF_PASSWORD_FEATURE')
         config.sf_serverurl = os.environ.get('SF_SERVERURL_FEATURE', config.sf_serverurl)
-        unmanaged_deploy.main(args=['--run-tests','True'])
+        unmanaged_deploy.main(args=['--run-tests','--full-delete'], obj=config)
 
-    elif branch == 'master':
+    #elif branch == 'master':
+    else:
         click.echo('-- Building with master branch flow')
         config.sf_username = os.environ.get('SF_USERNAME_PACKAGING')
         config.sf_password = os.environ.get('SF_PASSWORD_PACKAGING')
         config.sf_serverurl = os.environ.get('SF_SERVERURL_PACKAGING', config.sf_serverurl)
-        package_deploy(args=['--run-tests','True'])
+        package_deploy(args=['--run-tests',], obj=config)
 
 @click.group()
 @pass_config
@@ -139,7 +152,14 @@ def get_env_github(config):
     return {
     }
    
-def run_ant_target(target, env, config): 
+def run_ant_target(target, env, config, check_credentials=None): 
+    if check_credentials:
+        try:
+            check_salesforce_credentials(env)
+        except SalesforceCredentialsException as e:
+            click.echo('BUILD FAILED: %s' % e)
+            sys.exit(4)
+        
     # Execute the command
     p = sarge.Command('%s/ci/ant_wrapper.sh %s' % (config.cumulusci_path, target), stdout=sarge.Capture(buffer_size=-1), env=env)
     p.run(async=True)
@@ -175,18 +195,19 @@ def run_ant_target(target, env, config):
 
 # command: dev unmanaged_deploy
 @click.command(
-    help='Runs a full deployment of the code including deleting package metadata from the target org (WARNING), setting up dependencies, deploying the code, and optionally running tests',
+    help='Runs a full deployment of the code including unused stale package metadata, setting up dependencies, deploying the code, and optionally running tests',
     context_settings={'color': True},
 )
-@click.option('--quick', default=False, help='If True, runs only the deployWithoutTest target.  Does not clean the org, update dependencies, or run any tests.  This option invalidates all other options')
-@click.option('--run-tests', default=False, help='If True, run tests as part of the deployment.  Defaults to False')
-@click.option('--ee-org', default=False, help='If True, use the deployUnmanagedEE target which prepares the code for loading into a production Enterprise Edition org.  Defaults to False.')
+@click.option('--run-tests', default=False, is_flag=True, help='If set, run tests as part of the deployment.  Defaults to not running tests')
+@click.option('--full-delete', default=False, is_flag=True, help='If set, delete all package metadata at the start of the build instead of doing an incremental delete.  **WARNING**: This deletes all package metadata, use with caution.  This option can be necessary if you have reference issues during an incremental delete deployment.')
+@click.option('--ee-org', default=False, is_flag=True, help='If set, use the deployUnmanagedEE target which prepares the code for loading into a production Enterprise Edition org.  Defaults to False.')
+@click.option('--deploy-only', default=False, is_flag=True, help='If set, runs only the deployWithoutTest target.  Does not clean the org, update dependencies, or run any tests.  This option invalidates all other options')
 @pass_config
-def unmanaged_deploy(config, quick, run_tests, ee_org):
+def unmanaged_deploy(config, run_tests, full_delete, ee_org, deploy_only):
 
     # Determine the deploy target to use based on options
     target = None
-    if quick:
+    if deploy_only:
         target = 'deployWithoutTest'
     elif ee_org:
         target = 'deployUnmanagedEE'
@@ -203,12 +224,19 @@ def unmanaged_deploy(config, quick, run_tests, ee_org):
     env.update(get_env_sf_org(config))
     env.update(get_env_apex_tests(config))
 
-    p = run_ant_target(target, env, config)
-    click.echo('Return Code = %s' % p.returncode)
+    # Set the delete mode
+    if not deploy_only:
+        env['UNMANAGED_DESTROY_MODE'] = 'incremental'
+        if full_delete:
+            env['UNMANAGED_DESTROY_MODE'] = 'full'
+        click.echo('Metadata deletion mode: %s' % env['UNMANAGED_DESTROY_MODE'])
+
+    # Run the command
+    p = run_ant_target(target, env, config, check_credentials=True)
 
 # command: package_deploy
 @click.command(help='Runs a full deployment of the code as managed code to the packaging org including setting up dependencies, deleting metadata removed from the repository, deploying the code, and optionally running tests')
-@click.option('--run-tests', default=False, help='If True, run tests as part of the deployment.  Defaults to False')
+@click.option('--run-tests', default=False, is_flag=True, help='If set, run tests as part of the deployment.  Defaults to not running tests')
 @pass_config
 def package_deploy(config, run_tests):
     # Determine the deploy target to use based on options
@@ -221,8 +249,20 @@ def package_deploy(config, run_tests):
     env.update(get_env_sf_org(config))
     env.update(get_env_apex_tests(config))
 
+    p = run_ant_target(target, env, config, check_credentials=True)
+
+# command: package_upload
+@click.command(help='Use Selenium to upload a package version in the packaging org')
+@click.option('--selenium-url', help='If provided, uses a Selenium Server at the specified url.  Example: http://127.0.0.1:4444/wd/hub')
+@pass_config
+def package_upload(config, selenium_url):
+
+    # Build the environment for the command
+    env = get_env_cumulusci(config)
+    env.update(get_env_sf_org(config))
+    env.update(get_env_apex_tests(config))
+
     p = run_ant_target(target, env, config)
-    click.echo('Return Code = %s' % p.returncode)
 
 # command: packaging managed_deploy
 @click.command(help='Installs a managed package version and optionally runs the tests from the installed managed package')
@@ -244,8 +284,7 @@ def managed_deploy(config, run_tests, package_version, commit):
     env['PACKAGE_VERSION'] = package_version
     env['BUILD_COMMIT'] = commit
 
-    p = run_ant_target(target, env, config)
-    click.echo('Return Code = %s' % p.returncode)
+    p = run_ant_target(target, env, config, check_credentials=True)
 
 # command: dev update_package_xml
 @click.command(help='Updates the src/package.xml file by parsing out the metadata under src/')
@@ -274,16 +313,16 @@ def github(config):
 def mrbelvedere(config):
     pass
 
-cli.add_command(build_router)
-
+# Top level commands
+cli.add_command(managed_deploy)
+cli.add_command(package_deploy)
 cli.add_command(unmanaged_deploy)
 cli.add_command(update_package_xml)
 
-cli.add_command(package_deploy)
+# Group: ci
+ci.add_command(build_router)
+cli.add_command(ci)
 
-cli.add_command(managed_deploy)
-
-#cli.add_command(ci)
 #cli.add_command(dev)
 #cli.add_command(packaging)
 #cli.add_command(managed)
