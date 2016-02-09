@@ -1,6 +1,7 @@
 import click
 import os
 import sarge
+import sys
 
 OPTION_ARGS = {
     'advanced_testing': {
