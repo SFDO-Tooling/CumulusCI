@@ -13,6 +13,7 @@ OPTION_ARGS = {
     },
 }
 
+# Exceptions
 class AntTargetException(Exception):
     pass
 
@@ -22,6 +23,7 @@ class DeploymentException(Exception):
 class ApexTestException(Exception):
     pass
 
+# Config object
 class Config(object):
     def __init__(self):
         self.cumulusci_path = os.environ.get('CUMULUSCI_PATH', None)
@@ -141,20 +143,33 @@ def run_ant_target(target, env, config):
     p = sarge.Command('%s/ci/ant_wrapper.sh %s' % (config.cumulusci_path, target), stdout=sarge.Capture(buffer_size=-1), env=env)
     p.run(async=True)
 
-    # Print the stdout buffer until the command completes
+    # Print the stdout buffer until the command completes and capture all lines in log for reference in exceptions
+    log = []
     while p.returncode is None:
         for line in p.stdout:
+            log.append(line.rstrip())
             click.echo(line.rstrip())
         p.poll()
 
     # Check the return code, raise the appropriate exception if needed
     if p.returncode:
-        if p.stdout.text.find('[exec] Failing Tests') != -1:
-            raise TestFailureException(p.stdout.text)
-        elif p.stdout.text.find('All Component Failures:') != -1:
-            raise DeploymentErrorException(p.stdout.text)
-        else:
-            raise AntTargetException(p.stdout.text)
+        logtxt = '\n'.join(log)
+        try:
+            if logtxt.find('All Component Failures:') != -1:
+                raise DeploymentException(logtxt)
+            elif logtxt.find('[exec] Failing Tests') != -1:
+                raise ApexTestException(logtxt)
+            else:
+                raise AntTargetException(logtxt)
+        except DeploymentException as e:
+            click.echo('BUILD FAILED: One or more deployment error occurred')
+            raise e
+        except ApexTestException as e:
+            click.echo('BUILD FAILED: One or more Apex tests failed')
+            raise e
+        except AntTargetException as e:
+            click.echo('BUILD FAILED: One or more deployment error occurred')
+            raise e
     return p
 
 # command: dev unmanaged_deploy
@@ -162,14 +177,17 @@ def run_ant_target(target, env, config):
     help='Runs a full deployment of the code including deleting package metadata from the target org (WARNING), setting up dependencies, deploying the code, and optionally running tests',
     context_settings={'color': True},
 )
+@click.option('--quick', default=False, help='If True, runs only the deployWithoutTest target.  Does not clean the org, update dependencies, or run any tests.  This option invalidates all other options')
 @click.option('--run-tests', default=False, help='If True, run tests as part of the deployment.  Defaults to False')
 @click.option('--ee-org', default=False, help='If True, use the deployUnmanagedEE target which prepares the code for loading into a production Enterprise Edition org.  Defaults to False.')
 @pass_config
-def unmanaged_deploy(config, run_tests, ee_org):
+def unmanaged_deploy(config, quick, run_tests, ee_org):
 
     # Determine the deploy target to use based on options
     target = None
-    if ee_org:
+    if quick:
+        target = 'deployWithoutTest'
+    elif ee_org:
         target = 'deployUnmanagedEE'
         if run_tests:
             target += ' runAllTests'
@@ -245,28 +263,28 @@ def packaging(config):
 def managed(config):
     pass
 
-@click.group()
+@click.group(help='Commands for interacting with the Github repository for the project')
 @pass_config
 def github(config):
     pass
 
-@click.group()
+@click.group(help='Commands for integrating builds with mrbelvedere (https://github.com/SalesforceFoundation/mrbelvedere)')
 @pass_config
 def mrbelvedere(config):
     pass
 
-ci.add_command(build_router)
+cli.add_command(build_router)
 
-dev.add_command(unmanaged_deploy)
-dev.add_command(update_package_xml)
+cli.add_command(unmanaged_deploy)
+cli.add_command(update_package_xml)
 
-packaging.add_command(package_deploy)
+cli.add_command(package_deploy)
 
-managed.add_command(managed_deploy)
+cli.add_command(managed_deploy)
 
-cli.add_command(ci)
-cli.add_command(dev)
-cli.add_command(packaging)
-cli.add_command(managed)
+#cli.add_command(ci)
+#cli.add_command(dev)
+#cli.add_command(packaging)
+#cli.add_command(managed)
 cli.add_command(github)
 cli.add_command(mrbelvedere)
