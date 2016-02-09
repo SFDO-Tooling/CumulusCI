@@ -101,11 +101,11 @@ def build_router(config):
     # Shippable
     # Fallback to calling git command line?
 
-    #if not branch or not commit:
-    #    click.echo('FAIL: Could not determine branch or commit')
-    #    return 1
+    if not branch or not commit:
+        click.echo('FAIL: Could not determine branch or commit')
+        return 1
 
-    #click.echo("Building branch %s at commit %s" % (branch, commit))
+    click.echo("Building branch %s at commit %s" % (branch, commit))
 
     if branch and branch.startswith('feature/'):
         click.echo('-- Building with feature branch flow')
@@ -114,8 +114,7 @@ def build_router(config):
         config.sf_serverurl = os.environ.get('SF_SERVERURL_FEATURE', config.sf_serverurl)
         unmanaged_deploy.main(args=['--run-tests','--full-delete'], obj=config)
 
-    #elif branch == 'master':
-    else:
+    elif branch == 'master':
         click.echo('-- Building with master branch flow')
         config.sf_username = os.environ.get('SF_USERNAME_PACKAGING')
         config.sf_password = os.environ.get('SF_PASSWORD_PACKAGING')
