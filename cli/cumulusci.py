@@ -186,10 +186,14 @@ def next_step(config):
                         step = config.steps_master[i_current_step + 1]
                 except ValueError:
                     pass
-                
-        click.echo('Writing next step %s to solano-plan-variables.json' % step)
+               
+        # The first step is manually specified in the plan, so the first dynamic step starts at 2 
+        step_var = 'plan_step_%s' % str(i_current_step + 2)
+
+        click.echo('Writing next step %s as %s to solano-plan-variables.json' % (step, step_var))
+
         f = open('solano-plan-variables.json', 'w')
-        data = {'next_profile%s' % i_current_step: step}
+        data = {step_var: step}
         f.write(json.dumps(data))
         return
          
