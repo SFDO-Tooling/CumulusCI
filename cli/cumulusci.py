@@ -30,23 +30,43 @@ def check_salesforce_credentials(env):
 class Config(object):
     def __init__(self):
         self.cumulusci_path = os.environ.get('CUMULUSCI_PATH', None)
+
+        # Salesforce org credentials
         self.sf_username = os.environ.get('SF_USERNAME', None)
         self.sf_password = os.environ.get('SF_PASSWORD', None)
         self.sf_serverurl = os.environ.get('SF_SERVERURL', 'https://login.salesforce.com')
+
+        # OAuth credentials for the packaging org
         self.oauth_client_id = os.environ.get('OAUTH_CLIENT_ID')
         self.oauth_client_secret = os.environ.get('OAUTH_CLIENT_SECRET')
         self.oauth_callback_url = os.environ.get('OAUTH_CALLBACK_URL')
         self.oauth_instance_url = os.environ.get('INSTANCE_URL')
         self.oauth_refresh_token = os.environ.get('REFRESH_TOKEN')
+
+        # Github Credentials
+        self.github_org_name = os.environ.get('GITHUB_ORG_NAME')
+        self.github_repo_name = os.environ.get('GITHUB_REPO_NAME')
+        self.github_username = os.environ.get('GITHUB_USERNAME')
+        self.github_password = os.environ.get('GITHUB_PASSWORD')
+    
+        # Default test configuration and override via environment variable
         self.advanced_testing = True
         self.debug_tests = os.environ.get('DEBUG_TESTS') not in [None, 'true', 'True']
         self.apex_logdir = 'apex_debug_logs'
         self.junit_output = 'test_results_junit.xml'
         self.json_output = 'test_results.json'
-        self.parse_cumulusci_properties()
+
+        # Branch naming
+        self.prefix_beta = os.environ.get('PREFIX_BETA', 'beta/')
+        self.master_branch = os.environ.get('MASTER_BRANCH', 'master')
+
+        # Build info
         self.branch = None
         self.commit = None
         self.build_type = None
+
+        # Parse the cumulusci.properties file if it exists.  Make all variables into attrs by replacing . with __ in the variable name
+        self.parse_cumulusci_properties()
 
     def parse_cumulusci_properties(self):
         if os.path.isfile('cumulusci.properties'):
@@ -112,19 +132,18 @@ def get_build_info():
 
     return branch, commit, build_type, vendor
 
-# command: ci build_router
-@click.command(help="Controls the initial routing of a build to its first step and executes the step")
+# command: ci deploy
+@click.command(name='deploy', help="Determines the right kind of build for the branch and runs the build including tests")
 @pass_config
-def build_router(config):
-    """ Routes a build commit to the proper type of initial build """
-
+def ci_deploy(config):
     branch, commit, build_type, vendor = get_build_info()
+
+    config.branch = branch
+    config.commit = commit
 
     if build_type == 'feature':
         click.echo('-- Building with feature branch flow')
         config.build_type = 'feature'
-        config.branch = branch
-        config.commit = branch
         config.sf_username = os.environ.get('SF_USERNAME_FEATURE')
         config.sf_password = os.environ.get('SF_PASSWORD_FEATURE')
         config.sf_serverurl = os.environ.get('SF_SERVERURL_FEATURE', config.sf_serverurl)
@@ -133,8 +152,6 @@ def build_router(config):
     elif build_type == 'master':
         click.echo('-- Building with master branch flow')
         config.build_type = 'master'
-        config.branch = branch
-        config.commit = branch
         config.sf_username = os.environ.get('SF_USERNAME_PACKAGING')
         config.sf_password = os.environ.get('SF_PASSWORD_PACKAGING')
         config.sf_serverurl = os.environ.get('SF_SERVERURL_PACKAGING', config.sf_serverurl)
@@ -144,16 +161,16 @@ def build_router(config):
 @click.command(help='A command to calculate and return the next steps for a ci build to run')
 @pass_config
 def next_step(config):
-    step = None
-
     branch, commit, build_type, vendor = get_build_info()
     
+    step = None
+
     # SolanoCI
     if vendor == 'SolanoCI':
         profile = os.environ.get('SOLANO_PROFILE_NAME')
         version = None
-        if profile:
-            if profile == 'build_router' and branch == 'master':
+        if profile and branch == 'master':
+            if profile == 'deploy':
                 step = 'package_beta'
             elif profile == 'package_beta':
                 f = open('package.properties', 'r')
@@ -161,7 +178,7 @@ def next_step(config):
                     if line.startswith('PACKAGE_VERSION='):
                         version = line.replace('PACKAGE_VERSION=','')
                         break 
-                step = 'deploy_beta'
+                step = 'beta_deploy'
                 
         click.echo('Writing next step %s to solano-plan-variables.json' % step)
         f = open('solano-plan-variables.json', 'w')
@@ -169,6 +186,34 @@ def next_step(config):
         f.write(json.dumps(data))
         return
          
+# command: ci beta_deploy
+@click.command(help="Deploys a beta managed package version by its git tag and commit")
+@click.argument('tag')
+@click.argument('commit')
+@click.option('--org', default='beta', help="Override the default org (beta).  The value will be used to look up credentials via environment variable in the form of SF_USERNAME_{{ org|upper }} and SF_PASSWORD_{{ org|upper }}")
+@click.option('--run-tests', default=False, is_flag=True, help='If set, run tests as part of the deployment.  Defaults to not running tests')
+@pass_config
+def beta_deploy(config, tag, commit, org, run_tests):
+    branch, build_commit, build_type, vendor = get_build_info()
+
+    config.build_type = 'master'
+    config.branch = branch
+    config.commit = commit
+
+    # Look up the org via environment variables using a suffix on the variable name
+    org_suffix = org_suffix.upper()
+    
+    config.sf_username = os.environ.get('SF_USERNAME_%s' % org_suffix)
+    config.sf_password = os.environ.get('SF_PASSWORD_%s' % org_suffix)
+    config.sf_serverurl = os.environ.get('SF_SERVERURL_%s' % org_suffix, config.sf_serverurl)
+
+    package_version = tag.replace('beta/','').replace('-',' ').replace('Beta','(Beta').replace('_',' ') + ')'
+
+    args = [commit, package_version]
+    if run_tests:
+        args.append('--run-tests')
+
+    managed_deploy.main(args=args, standalone_mode=False, obj=config)
 
 @click.group()
 @pass_config
@@ -208,6 +253,10 @@ def get_env_apex_tests(config):
     }
 def get_env_github(config):
     return {
+        'GITHUB_ORG_NAME': config.github_org_name,
+        'GITHUB_REPO_NAME': config.github_repo_name,
+        'GITHUB_USERNAME': config.github_username,
+        'GITHUB_PASSWORD': config.github_password,
     }
    
 def run_ant_target(target, env, config, check_credentials=None): 
@@ -337,8 +386,9 @@ def package_deploy(config):
 @click.argument('commit')
 @click.option('--build-name', default='Manual build from CumulusCI CLI', help='If provided, overrides the build name used to name the package version')
 @click.option('--selenium-url', help='If provided, uses a Selenium Server at the specified url.  Example: http://127.0.0.1:4444/wd/hub')
+@click.option('--create-release', is_flag=True, help='If set, creates a release in Github which also creates a tag')
 @pass_config
-def package_beta(config, commit, build_name, selenium_url):
+def package_beta(config, commit, build_name, selenium_url, create_release):
 
     # Build the environment for the command
     env = get_env_cumulusci(config)
@@ -370,15 +420,66 @@ def package_beta(config, commit, build_name, selenium_url):
 
     p = run_python_script(script, env, config, required_env=required_env)
 
+    if create_release:
+        # Parse package.properties
+        version = None
+        commit = None
+
+        if os.path.isfile('package.properties'):
+            f = open('package.properties', 'r')
+            for line in f:
+                if line.startswith('PACKAGE_VERSION='):
+                    version = line.replace('PACKAGE_VERSION=','')
+                    continue
+                if line.startswith('BUILD_COMMIT='):
+                    commit = line.replace('BUILD_COMMIT=','')
+                    continue
+
+        # Call the github_release command
+        click.echo('Creating release in Github for %s from commit %s' % (version, commit))
+        github_release.main(args=[version, commit], standalone_mode=False, obj=config)
+
+# command: github_release
+@click.command(name='release', help='Create a release in Github')
+@click.argument('version')
+@click.argument('commit')
+@pass_config
+def github_release(config, version, commit):
+
+    # Build the environment for the command
+    env = get_env_cumulusci(config)
+    env.update(get_env_github(config))
+
+    env['BUILD_WORKSPACE'] = '.'
+    env['BUILD_COMMIT'] = commit
+    env['PACKAGE_VERSION'] = package_version
+    env['PREFIX_BETA'] = config.prefix_beta
+
+    required_env = [
+        'GITHUB_ORG_NAME',
+        'GITHUB_REPO_NAME',
+        'GITHUB_USERNAME',
+        'GITHUB_PASSWORD',
+        'BUILD_COMMIT',
+        'PACKAGE_VERSION',
+        'BUILD_WORKSPACE',
+        'BUILD_WORKSPACE',
+        'PREFIX_BETA',
+    ]
+
+    p = run_python_script('github/create_release.py', env, config, required_env=required_env)
+
 # command: packaging managed_deploy
 @click.command(help='Installs a managed package version and optionally runs the tests from the installed managed package')
+@click.argument('commit')
+@click.argument('package_version')
 @click.option('--run-tests', default=False, help='If True, run tests as part of the deployment.  Defaults to False')
-@click.option('--package-version', help='The package version number to install.  Examples: 1.2, 1.2.1, 1.3 (Beta 3)')
-@click.option('--commit', help='The commit for the version.  This is used to look up dependencies from the version.properties file and unpackaged subdirectory in the repository')
 @pass_config
-def managed_deploy(config, run_tests, package_version, commit):
+def managed_deploy(config, commit, package_version, run_tests):
     # Determine the deploy target to use based on options
     target = 'deployManaged'
+    if package_version.find('(Beta ') != -1:
+        target = 'deployManagedBeta'
     if run_tests:
         target += ' runAllTestsManaged'
 
@@ -427,12 +528,18 @@ cli.add_command(unmanaged_deploy)
 cli.add_command(update_package_xml)
 
 # Group: ci
-ci.add_command(build_router)
+ci.add_command(ci_deploy)
 ci.add_command(next_step)
+ci.add_command(beta_deploy)
 cli.add_command(ci)
 
 #cli.add_command(dev)
 #cli.add_command(packaging)
 #cli.add_command(managed)
+
+
+# Group: github
+github.add_command(github_release)
 cli.add_command(github)
+
 cli.add_command(mrbelvedere)
