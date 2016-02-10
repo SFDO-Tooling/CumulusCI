@@ -195,7 +195,7 @@ def beta_deploy(config, tag, commit, org, run_tests):
     config.commit = commit
 
     # Look up the org via environment variables using a suffix on the variable name
-    org_suffix = org_suffix.upper()
+    org_suffix = org.upper()
     
     config.sf_username = os.environ.get('SF_USERNAME_%s' % org_suffix)
     config.sf_password = os.environ.get('SF_PASSWORD_%s' % org_suffix)
