@@ -195,6 +195,7 @@ def next_step(config):
         f = open('solano-plan-variables.json', 'w')
         data = {step_var: step}
         f.write(json.dumps(data))
+        f.close()
         return
          
 # command: ci beta_deploy
