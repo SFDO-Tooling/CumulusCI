@@ -168,21 +168,15 @@ def next_step(config):
     # SolanoCI
     if vendor == 'SolanoCI':
         profile = os.environ.get('SOLANO_PROFILE_NAME')
-        version = None
         if profile and branch == 'master':
             if profile == 'deploy':
                 step = 'package_beta'
             elif profile == 'package_beta':
-                f = open('package.properties', 'r')
-                for line in f:
-                    if line.startswith('PACKAGE_VERSION='):
-                        version = line.replace('PACKAGE_VERSION=','')
-                        break 
                 step = 'beta_deploy'
                 
         click.echo('Writing next step %s to solano-plan-variables.json' % step)
         f = open('solano-plan-variables.json', 'w')
-        data = {'next_profile': step, 'version': version}
+        data = {'next_profile': step}
         f.write(json.dumps(data))
         return
          
@@ -428,6 +422,7 @@ def package_beta(config, commit, build_name, selenium_url, create_release):
         if os.path.isfile('package.properties'):
             f = open('package.properties', 'r')
             for line in f:
+                line = line.strip()
                 if line.startswith('PACKAGE_VERSION='):
                     version = line.replace('PACKAGE_VERSION=','')
                     continue
