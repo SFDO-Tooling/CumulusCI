@@ -170,6 +170,7 @@ def next_step(config):
     # SolanoCI
     if vendor == 'SolanoCI':
         profile = os.environ.get('SOLANO_PROFILE_NAME')
+        i_current_step = 0
         if profile:
             if build_type == 'feature':
                 try:
@@ -188,7 +189,7 @@ def next_step(config):
                 
         click.echo('Writing next step %s to solano-plan-variables.json' % step)
         f = open('solano-plan-variables.json', 'w')
-        data = {'next_profile': step}
+        data = {'next_profile%s' % i_current_step: step}
         f.write(json.dumps(data))
         return
          
