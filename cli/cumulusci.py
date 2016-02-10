@@ -65,7 +65,7 @@ class Config(object):
         self.commit = None
         self.build_type = None
         self.steps_feature = os.environ.get('CUMULUSCI_STEPS_FEATURE', 'deploy').split(',')
-        self.steps_master = os.environ.get('CUMULUSCI_STEPS_MASTER', 'deploy,package_beta,beta_deploy').split(',')
+        self.steps_master = os.environ.get('CUMULUSCI_STEPS_MASTER', 'deploy').split(',')
 
         # Parse the cumulusci.properties file if it exists.  Make all variables into attrs by replacing . with __ in the variable name
         self.parse_cumulusci_properties()
