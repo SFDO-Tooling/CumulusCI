@@ -452,7 +452,7 @@ def github_release(config, version, commit):
 
     env['BUILD_WORKSPACE'] = '.'
     env['BUILD_COMMIT'] = commit
-    env['PACKAGE_VERSION'] = package_version
+    env['PACKAGE_VERSION'] = version
     env['PREFIX_BETA'] = config.prefix_beta
 
     required_env = [
