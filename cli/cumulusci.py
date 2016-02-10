@@ -64,6 +64,8 @@ class Config(object):
         self.branch = None
         self.commit = None
         self.build_type = None
+        self.steps_feature = os.environ.get('CUMULUSCI_STEPS_FEATURE', 'deploy').split(',')
+        self.steps_master = os.environ.get('CUMULUSCI_STEPS_MASTER', 'deploy,package_beta,beta_deploy').split(',')
 
         # Parse the cumulusci.properties file if it exists.  Make all variables into attrs by replacing . with __ in the variable name
         self.parse_cumulusci_properties()
@@ -168,11 +170,21 @@ def next_step(config):
     # SolanoCI
     if vendor == 'SolanoCI':
         profile = os.environ.get('SOLANO_PROFILE_NAME')
-        if profile and branch == 'master':
-            if profile == 'deploy':
-                step = 'package_beta'
-            elif profile == 'package_beta':
-                step = 'beta_deploy'
+        if profile:
+            if build_type == 'feature':
+                try:
+                    i_current_step = config.steps_feature.index(profile)
+                    if len(config.steps_feature) > i_current_step + 1:
+                        step = config.steps_feature[i_current_step + 1]
+                except ValueError:
+                    pass
+            elif build_type == 'master':
+                try:
+                    i_current_step = config.steps_master.index(profile)
+                    if len(config.steps_master) > i_current_step + 1:
+                        step = config.steps_master[i_current_step + 1]
+                except ValueError:
+                    pass
                 
         click.echo('Writing next step %s to solano-plan-variables.json' % step)
         f = open('solano-plan-variables.json', 'w')
@@ -468,7 +480,7 @@ def github_release(config, version, commit):
 @click.command(help='Installs a managed package version and optionally runs the tests from the installed managed package')
 @click.argument('commit')
 @click.argument('package_version')
-@click.option('--run-tests', default=False, help='If True, run tests as part of the deployment.  Defaults to False')
+@click.option('--run-tests', is_flag=True, help='If True, run tests as part of the deployment.  Defaults to False')
 @pass_config
 def managed_deploy(config, commit, package_version, run_tests):
     # Determine the deploy target to use based on options
