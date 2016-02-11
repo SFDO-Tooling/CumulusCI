@@ -62,9 +62,11 @@ class Config(object):
         self.master_branch = os.environ.get('MASTER_BRANCH', 'master')
 
         # Build info
-        self.branch = None
-        self.commit = None
-        self.build_type = None
+        branch, commit, build_type, vendor = get_build_info()
+        self.branch = branch
+        self.commit = commit
+        self.build_type = build_type
+        self.build_vendor = vendor
         self.build_workspace = '.'
         self.steps_feature = os.environ.get('CUMULUSCI_STEPS_FEATURE', 'deploy').split(',')
         self.steps_master = os.environ.get('CUMULUSCI_STEPS_MASTER', 'deploy').split(',')
@@ -140,12 +142,7 @@ def get_build_info():
 @click.command(name='deploy', help="Determines the right kind of build for the branch and runs the build including tests")
 @pass_config
 def ci_deploy(config):
-    branch, commit, build_type, vendor = get_build_info()
-
-    config.branch = branch
-    config.commit = commit
-
-    if build_type == 'feature':
+    if config.build_type == 'feature':
         click.echo('-- Building with feature branch flow')
         config.build_type = 'feature'
         config.sf_username = os.environ.get('SF_USERNAME_FEATURE')
@@ -153,7 +150,7 @@ def ci_deploy(config):
         config.sf_serverurl = os.environ.get('SF_SERVERURL_FEATURE', config.sf_serverurl)
         unmanaged_deploy.main(args=['--run-tests','--full-delete'], standalone_mode=False, obj=config)
 
-    elif build_type == 'master':
+    elif config.build_type == 'master':
         click.echo('-- Building with master branch flow')
         config.build_type = 'master'
         config.sf_username = os.environ.get('SF_USERNAME_PACKAGING')
@@ -165,23 +162,21 @@ def ci_deploy(config):
 @click.command(help='A command to calculate and return the next steps for a ci build to run')
 @pass_config
 def next_step(config):
-    branch, commit, build_type, vendor = get_build_info()
-    
     step = 'dummy'
 
     # SolanoCI
-    if vendor == 'SolanoCI':
+    if config.vendor == 'SolanoCI':
         profile = os.environ.get('SOLANO_PROFILE_NAME')
         i_current_step = 0
         if profile:
-            if build_type == 'feature':
+            if config.build_type == 'feature':
                 try:
                     i_current_step = config.steps_feature.index(profile)
                     if len(config.steps_feature) > i_current_step + 1:
                         step = config.steps_feature[i_current_step + 1]
                 except ValueError:
                     pass
-            elif build_type == 'master':
+            elif config.build_type == 'master':
                 try:
                     i_current_step = config.steps_master.index(profile)
                     if len(config.steps_master) > i_current_step + 1:
@@ -208,12 +203,6 @@ def next_step(config):
 @click.option('--run-tests', default=False, is_flag=True, help='If set, run tests as part of the deployment.  Defaults to not running tests')
 @pass_config
 def beta_deploy(config, tag, commit, org, run_tests):
-    branch, build_commit, build_type, vendor = get_build_info()
-
-    config.build_type = 'master'
-    config.branch = branch
-    config.commit = commit
-
     # Check for an ORG_SUFFIX environment variable
     org = os.environ.get('ORG_SUFFIX', org)
 
@@ -226,7 +215,7 @@ def beta_deploy(config, tag, commit, org, run_tests):
 
     package_version = tag.replace('beta/','').replace('-',' ').replace('Beta','(Beta').replace('_',' ') + ')'
 
-    args = [commit, package_version]
+    args = [config.commit, package_version]
     if run_tests:
         args.append('--run-tests')
 
