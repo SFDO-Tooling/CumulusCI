@@ -5,10 +5,10 @@ from github.GithubException import GithubException
 
 def tag_to_tag():
     SRC_TAG=os.environ.get('SRC_TAG')
-    ORG_NAME=os.environ.get('ORG_NAME')
-    REPO_NAME=os.environ.get('REPO_NAME')
-    USERNAME=os.environ.get('USERNAME')
-    PASSWORD=os.environ.get('PASSWORD')
+    ORG_NAME=os.environ.get('GITHIB_ORG_NAME')
+    REPO_NAME=os.environ.get('GITHIB_REPO_NAME')
+    USERNAME=os.environ.get('GITHIB_USERNAME')
+    PASSWORD=os.environ.get('GITHIB_PASSWORD')
     TAG=os.environ.get('TAG')
     
     print 'Attempting to create tag %s from tag %s' % (TAG, SRC_TAG)
