@@ -165,7 +165,7 @@ def ci_deploy(config):
 def next_step(config):
     branch, commit, build_type, vendor = get_build_info()
     
-    step = None
+    step = 'dummy'
 
     # SolanoCI
     if vendor == 'SolanoCI':
@@ -202,7 +202,7 @@ def next_step(config):
 @click.command(help="Deploys a beta managed package version by its git tag and commit")
 @click.argument('tag')
 @click.argument('commit')
-@click.option('--org', default='beta', help="Override the default org (beta).  The value will be used to look up credentials via environment variable in the form of SF_USERNAME_{{ org|upper }} and SF_PASSWORD_{{ org|upper }}")
+@click.option('--org', default='beta', help="Override the default org (beta).  The value will be used to look up credentials via environment variable in the form of SF_USERNAME_{{ org|upper }} and SF_PASSWORD_{{ org|upper }}.  Can be overridden by the ORG_SUFFIX environment variable")
 @click.option('--run-tests', default=False, is_flag=True, help='If set, run tests as part of the deployment.  Defaults to not running tests')
 @pass_config
 def beta_deploy(config, tag, commit, org, run_tests):
@@ -211,6 +211,9 @@ def beta_deploy(config, tag, commit, org, run_tests):
     config.build_type = 'master'
     config.branch = branch
     config.commit = commit
+
+    # Check for an ORG_SUFFIX environment variable
+    org = os.environ.get('ORG_SUFFIX', org)
 
     # Look up the org via environment variables using a suffix on the variable name
     org_suffix = org.upper()
