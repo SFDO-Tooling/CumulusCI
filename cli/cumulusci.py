@@ -165,7 +165,7 @@ def next_step(config):
     step = 'dummy'
 
     # SolanoCI
-    if config.vendor == 'SolanoCI':
+    if config.build_vendor == 'SolanoCI':
         profile = os.environ.get('SOLANO_PROFILE_NAME')
         i_current_step = 0
         if profile:
