@@ -280,6 +280,12 @@ def get_env_build(config):
         'BUILD_WORKSPACE': config.build_workspace,
         'BUILD_COMMIT': config.commit,
     }
+def get_env_apextestsdb(config):
+    return {
+        'APEXTESTSDB_BASE_URL': config.apextestsdb_base_url,
+        'APEXTESTSDB_USER_ID': config.apextestsdb_user_id,
+        'APEXTESTSDB_TOKEN': config.apextestsdb_token,
+    }
    
 def run_ant_target(target, env, config, check_credentials=None): 
     if check_credentials:
@@ -462,6 +468,47 @@ def package_beta(config, commit, build_name, selenium_url, create_release):
         click.echo('Creating release in Github for %s from commit %s' % (version, commit))
         github_release.main(args=[version, commit], standalone_mode=False, obj=config)
 
+# command: apextestsdb_upload
+# FIXME: Use S3 storage to facilitate uploads of local test_results.json file
+@click.command(help='Upload a test_results.json file to the ApexTestsDB web application for analysis.  NOTE: This does not currently work with local files.  You will have to upload the file to an internet accessible web server and provide the path.')
+@click.argument('execution_name')
+@click.argument('results_file_url')
+@click.option('--repo-url', help="Set to override the repository url for the report")
+@click.option('--branch', help="Set to override the branch for the report")
+@click.option('--commit', help="Set to override the commit sha for the report")
+@click.option('--execution-url', help="Set to provide a link back to execution results")
+@click.option('--environment', help="Set a custom name for the build environment")
+def apextestsdb_upload(config, execution_name, results_file_url, repo_url, branch, commit, execution_url, environment):
+    # Build the environment for the command
+    env = get_env_cumulusci(config)
+    env.update(get_env_apextestsdb(config))
+    env.update(get_env_build(config))
+
+    env['PACKAGE_VERSION'] = version
+    env['PREFIX_BETA'] = config.prefix_beta
+
+    env['REPOSITORY_URL'] = repository_url
+    env['BRANCH'] = branch
+    env['COMMIT_SHA'] = commit
+    env['EXECUTION_NAME'] = execution_name
+    env['EXECUTION_URL'] = execution_url
+    env['ENVIRONMENT'] = environment
+
+    required_env = [
+        'APEXTESTSDB_BASE_URL',
+        'APEXTESTSDB_USER_ID',
+        'APEXTESTSDB_TOKEN',
+        'REPOSITORY_URL',
+        'BRANCH_NAME',
+        'COMMIT_SHA',
+        'EXECUTION_NAME',
+        'EXECUTION_URL',
+        'ENVIRONMENT',
+    ]
+
+    p = run_python_script('upload_test_results.py', env, config, required_env=required_env)
+
+
 # command: github release
 @click.command(name='release', help='Create a release in Github')
 @click.argument('version')
@@ -624,6 +671,7 @@ def mrbelvedere(config):
     pass
 
 # Top level commands
+cli.add_command(apextestsdb_upload)
 cli.add_command(managed_deploy)
 cli.add_command(package_deploy)
 cli.add_command(package_beta)
