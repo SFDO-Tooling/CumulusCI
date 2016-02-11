@@ -58,12 +58,14 @@ class Config(object):
 
         # Branch naming
         self.prefix_beta = os.environ.get('PREFIX_BETA', 'beta/')
+        self.prefix_release = os.environ.get('PREFIX_RELEASE', 'release/')
         self.master_branch = os.environ.get('MASTER_BRANCH', 'master')
 
         # Build info
         self.branch = None
         self.commit = None
         self.build_type = None
+        self.build_workspace = '.'
         self.steps_feature = os.environ.get('CUMULUSCI_STEPS_FEATURE', 'deploy').split(',')
         self.steps_master = os.environ.get('CUMULUSCI_STEPS_MASTER', 'deploy').split(',')
 
@@ -273,6 +275,11 @@ def get_env_github(config):
         'GITHUB_USERNAME': config.github_username,
         'GITHUB_PASSWORD': config.github_password,
     }
+def get_env_build(config):
+    return {
+        'BUILD_WORKSPACE': config.build_workspace,
+        'BUILD_COMMIT': config.commit,
+    }
    
 def run_ant_target(target, env, config, check_credentials=None): 
     if check_credentials:
@@ -408,11 +415,11 @@ def package_beta(config, commit, build_name, selenium_url, create_release):
     # Build the environment for the command
     env = get_env_cumulusci(config)
     env.update(get_env_sf_org_oauth(config))
+    env.update(get_env_build(config))
 
     if config.cumulusci__package__name:
         env['PACKAGE'] = config.cumulusci__package__name
-    env['BUILD_WORKSPACE'] = '.'
-    env['BUILD_COMMIT'] = commit
+
     env['BUILD_NAME'] = build_name
 
     required_env = [
@@ -455,7 +462,7 @@ def package_beta(config, commit, build_name, selenium_url, create_release):
         click.echo('Creating release in Github for %s from commit %s' % (version, commit))
         github_release.main(args=[version, commit], standalone_mode=False, obj=config)
 
-# command: github_release
+# command: github release
 @click.command(name='release', help='Create a release in Github')
 @click.argument('version')
 @click.argument('commit')
@@ -465,9 +472,8 @@ def github_release(config, version, commit):
     # Build the environment for the command
     env = get_env_cumulusci(config)
     env.update(get_env_github(config))
+    env.update(get_env_build(config))
 
-    env['BUILD_WORKSPACE'] = '.'
-    env['BUILD_COMMIT'] = commit
     env['PACKAGE_VERSION'] = version
     env['PREFIX_BETA'] = config.prefix_beta
 
@@ -479,11 +485,92 @@ def github_release(config, version, commit):
         'BUILD_COMMIT',
         'PACKAGE_VERSION',
         'BUILD_WORKSPACE',
-        'BUILD_WORKSPACE',
         'PREFIX_BETA',
     ]
 
     p = run_python_script('github/create_release.py', env, config, required_env=required_env)
+
+# command: github release_notes
+@click.command(name='release_notes', help='Generates release notes by parsing Warning, Info, and Issues headings from pull request bodies of all pull requests merged since the last production release tag')
+@click.argument('tag')
+@click.option('--last-tag', help="Instead of looking for the last tag, you can manually provide it.  This is useful if you skip a release and want to build release notes going back 2 releases")
+@click.option('--update-release', is_flag=True, help="If set, add the release notes to the body")
+@pass_config
+def github_release_notes(config, tag, last_tag, update_release):
+
+    # Build the environment for the command
+    env = get_env_cumulusci(config)
+    env.update(get_env_github(config))
+
+    env['CURRENT_REL_TAG'] = tag
+    if last_tag:
+        env['LAST_REL_TAG'] = last_tag
+    env['MASTER_BRANCH'] = config.master_branch
+    env['PREFIX_BETA'] = config.prefix_beta
+    env['PREFIX_RELEASE'] = config.prefix_release
+    env['PRINT_ONLY'] = str(not update_release)
+
+    required_env = [
+        'GITHUB_ORG_NAME',
+        'GITHUB_REPO_NAME',
+        'GITHUB_USERNAME',
+        'GITHUB_PASSWORD',
+        'CURRENT_REL_TAG',
+        'MASTER_BRANCH',
+        'PREFIX_BETA',
+        'PREFIX_RELEASE',
+    ]
+
+    p = run_python_script('github/release_notes.py', env, config, required_env=required_env)
+
+# command: github master_to_feature
+@click.command(name='master_to_feature', help='Attempts to merge a commit on the master branch to all open feature branches.  Creates pull requests assigned to the developer of the feature branch if a merge conflict occurs.')
+@click.option('--commit', help="By default, the head commit on master will be merged.  You can override this behavior by specifying a commit sha")
+@pass_config
+def github_master_to_feature(config, commit):
+
+    # Build the environment for the command
+    env = get_env_cumulusci(config)
+    env.update(get_env_github(config))
+
+    if commit:
+        env['BUILD_COMMIT'] = commit
+    env['MASTER_BRANCH'] = config.master_branch
+
+    required_env = [
+        'GITHUB_ORG_NAME',
+        'GITHUB_REPO_NAME',
+        'GITHUB_USERNAME',
+        'GITHUB_PASSWORD',
+        'MASTER_BRANCH',
+    ]
+
+    p = run_python_script('github/merge_master_to_feature.py', env, config, required_env=required_env)
+
+# command: github clone_tag
+@click.command(name='clone_tag', help='Create one tag referencing the same commit as another tag')
+@click.argument('src_tag')
+@click.argument('tag')
+@pass_config
+def github_clone_tag(config, src_tag, tag):
+
+    # Build the environment for the command
+    env = get_env_cumulusci(config)
+    env.update(get_env_github(config))
+
+    env['SRC_TAG'] = src_tag
+    env['TAG'] = tag
+
+    required_env = [
+        'GITHUB_ORG_NAME',
+        'GITHUB_REPO_NAME',
+        'GITHUB_USERNAME',
+        'GITHUB_PASSWORD',
+        'SRC_TAG',
+        'TAG',
+    ]
+
+    p = run_python_script('github/tag_to_tag.py', env, config, required_env=required_env)
 
 # command: packaging managed_deploy
 @click.command(help='Installs a managed package version and optionally runs the tests from the installed managed package')
@@ -555,7 +642,10 @@ cli.add_command(ci)
 
 
 # Group: github
+github.add_command(github_clone_tag)
+github.add_command(github_master_to_feature)
 github.add_command(github_release)
+github.add_command(github_release_notes)
 cli.add_command(github)
 
 cli.add_command(mrbelvedere)

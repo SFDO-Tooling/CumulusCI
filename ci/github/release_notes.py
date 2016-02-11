@@ -17,6 +17,7 @@ LAST_REL_TAG=os.environ.get('LAST_REL_TAG', None)
 CURRENT_REL_TAG=os.environ.get('CURRENT_REL_TAG')
 PREFIX_BETA=os.environ.get('PREFIX_BETA', 'beta/')
 PREFIX_RELEASE=os.environ.get('PREFIX_RELEASE', 'release/')
+PRINT_ONLY=os.environ.get('PRINT_ONLY','') in ('true','True')
     
 # custom api wrapper for release interaction
 def call_api(subpath, data=None):
@@ -92,8 +93,9 @@ def create_release_notes():
             last_rel_commit = call_api('/git/commits/%s' % last_rel_tag['object']['sha'])
         else:
             last_rel_commit = call_api('/git/commits/%s' % last_rel_ref['object']['sha'])
-    
+
     current_rel_ref = call_api('/git/refs/tags/%s' % CURRENT_REL_TAG)
+    print current_rel_ref
     if current_rel_ref['object']['type'] == 'tag':
         current_rel_tag = call_api('/git/tags/%s' % current_rel_ref['object']['sha'])
         current_rel_commit = call_api('/git/commits/%s' % current_rel_tag['object']['sha'])
@@ -229,35 +231,36 @@ def create_release_notes():
     print '----- END RELEASE NOTES -----'
     
     # Add the release notes to the body of the release
-    releases = call_api('/releases')
-    for release in releases:
-        if release['tag_name'] == CURRENT_REL_TAG:
-            print 'Adding release notes to body of %s' % release['html_url']
-    
-            data = {
-                "tag_name": release['tag_name'],
-                "target_commitish": release['target_commitish'],
-                "name": release['name'],
-                "body": release['body'], 
-                "draft": release['draft'],
-                "prerelease": release['prerelease'],
-            }
-    
-            if data['body']:
-                new_body = []
-                release_notes_found = False
-                for line in data['body'].split('\n'):
-                    if line.startswith('# Critical Changes') or line.startswith('# Changes') or line.startswith('# Issues Closed'):
-                        release_notes_found = True
-                    if not release_notes_found:
-                        new_body.append(line)
-                        
-                data['body'] = '%s\r\n%s' % ('\r\n'.join(new_body), release_notes)
-            else:
-                data['body'] = release_notes
-    
-            call_api('/releases/%s' % release['id'], data=data)
-            break
+    if not PRINT_ONLY:
+        releases = call_api('/releases')
+        for release in releases:
+            if release['tag_name'] == CURRENT_REL_TAG:
+                print 'Adding release notes to body of %s' % release['html_url']
+        
+                data = {
+                    "tag_name": release['tag_name'],
+                    "target_commitish": release['target_commitish'],
+                    "name": release['name'],
+                    "body": release['body'], 
+                    "draft": release['draft'],
+                    "prerelease": release['prerelease'],
+                }
+        
+                if data['body']:
+                    new_body = []
+                    release_notes_found = False
+                    for line in data['body'].split('\n'):
+                        if line.startswith('# Critical Changes') or line.startswith('# Changes') or line.startswith('# Issues Closed'):
+                            release_notes_found = True
+                        if not release_notes_found:
+                            new_body.append(line)
+                            
+                    data['body'] = '%s\r\n%s' % ('\r\n'.join(new_body), release_notes)
+                else:
+                    data['body'] = release_notes
+        
+                call_api('/releases/%s' % release['id'], data=data)
+                break
 
 if __name__ == '__main__':
     try:
