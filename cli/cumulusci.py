@@ -468,6 +468,46 @@ def package_beta(config, commit, build_name, selenium_url, create_release):
         click.echo('Creating release in Github for %s from commit %s' % (version, commit))
         github_release.main(args=[version, commit], standalone_mode=False, obj=config)
 
+# command: run_tests
+@click.command(help='Run Apex tests in the target org via the Tooling API and report results. Defaults to running all unmanaged test classes ending in _TEST.')
+@click.option('--test-match', default="%_TEST", help="A SOQL like format value to match against the test name.  Defaults to %_TEST.  You can use commas to separate multiple values like %_SMOKE_TESTS,%_LOAD_TESTS")
+@click.option('--test-exclude', help="Similar to --test-match, but adds exclusions to the test name matching.  Defaults to no value.  You can use commas to separate multiple values")
+@click.option('--namespace', help="If set, only search for tests inside the specified namespace.  By default, all unmanaged tests are searched")
+@click.option('--debug-logdir', help="A directory to store debug logs from each test class.  If specified, a TraceFlag is created which captures debug logs.  When all tests have completed, the debug logs are downloaded to the specified directory.  They are then parsed to capture detail information on the test.  See --json-output for more details")
+@click.option('--json-output', help="If set, outputs test results data in json format to the specified file.  This option is most useful with the --debug-logs option.  The resulting json file contains detailed information on the code execution structure of each test method including cumulative limits usage both inside and outside the startTest/stopTest context")
+@pass_config
+def run_tests(config, test_match, test_exclude, namespace, debug_logdir, json_output):
+    # Build the environment for the command
+    env = get_env_cumulusci(config)
+    env.update(get_env_sf_org(config))
+
+    env['APEX_TEST_NAME_MATCH'] = test_match
+    if test_exclude:
+        env['APEX_TEST_NAME_EXCLUDE'] = test_exclude
+    if namespace:
+        env['NAMESPACE'] = test_exclude
+    if debug_logdir:
+        env['DEBUG'] = 'True'
+        env['DEBUG_LOGDIR'] = debug_logdir
+
+        # ensure the logdir actually exists
+        if not os.path.exists(debug_logdir):
+            os.makedirs(debug_logdir)
+    if json_output:
+        env['JSON_OUTPUT'] = json_output
+
+    env['JUNIT_OUTPUT'] = config.junit_output
+
+    required_env = [
+        'SF_USERNAME',
+        'SF_PASSWORD',
+        'SF_SERVERURL',
+        'APEX_TEST_NAME_MATCH',
+    ]
+
+    p = run_python_script('run_apex_tests.py', env, config, required_env=required_env)
+
+
 # command: apextestsdb_upload
 # FIXME: Use S3 storage to facilitate uploads of local test_results.json file
 @click.command(help='Upload a test_results.json file to the ApexTestsDB web application for analysis.  NOTE: This does not currently work with local files.  You will have to upload the file to an internet accessible web server and provide the path.')
@@ -675,6 +715,7 @@ cli.add_command(apextestsdb_upload)
 cli.add_command(managed_deploy)
 cli.add_command(package_deploy)
 cli.add_command(package_beta)
+cli.add_command(run_tests)
 cli.add_command(unmanaged_deploy)
 cli.add_command(update_package_xml)
 
