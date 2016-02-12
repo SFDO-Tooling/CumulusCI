@@ -1,0 +1,73 @@
+# Use Python 2.7 for scripts
+python:
+  python_version: 2.7
+
+system:
+  queue:
+    - branch: master
+      queue: default
+    - branch: "feature/*"
+      queue: feature
+
+hooks:
+  pre_setup: |
+    set -e # Exit on error
+    git clone https://github.com/SalesforceFoundation/CumulusCI CumulusCI
+    cd CumulusCI
+    git fetch --all
+    git checkout features/cloud-ci-integrations
+    pip install -r requirements.txt
+    cd ..
+    mkdir apex_debug_logs
+
+  post_build: cumulusci ci next_step
+
+environment:
+  CUMULUSCI_PATH: CumulusCI
+  DEBUG_TESTS: true
+  CUMULUSCI_STEPS_FEATURE: deploy,dummy1,dummy2
+  CUMULUSCI_STEPS_MASTER: deploy,package_beta,beta_deploy
+
+test_pattern: 
+  - 'none'
+
+plan:
+  - profile: deploy
+    sets: plan_step_2
+  - profile: "{{ plan_step_2 }}"
+    sets: plan_step_3
+  - profile: "{{ plan_step_3 }}"
+
+profiles:
+  deploy:
+    tests:
+      - type: junit
+        command: cumulusci ci deploy
+        report_files:
+        - "test_results_junit.xml"
+
+  package_beta:
+    tests:
+      - type: custom
+        command: cumulusci package_beta $TDDIUM_CURRENT_COMMIT --create-release
+
+  beta_deploy:
+    tests:
+      - type: junit
+        command: git fetch --all; cumulusci ci beta_deploy "`git describe --tags | grep 'beta\/' | tail -1`" "$TDDIUM_CURRENT_COMMIT" --run-tests
+        report_files:
+        - "test_results_junit.xml"
+        
+
+  dummy1:
+    tests:
+      - /bin/true
+  dummy2:
+    tests:
+      - /bin/true
+
+collect:
+  repo:
+    - package.properties
+    - test_results.json
+    - test_results_junit.xml
