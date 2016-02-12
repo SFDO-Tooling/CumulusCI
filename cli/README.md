@@ -121,7 +121,7 @@ You can override any of these values with the following environment variables:
 
 ## cumulusci
 
-    $ cumulusci
+cumulusci
     Usage: cumulusci [OPTIONS] COMMAND [ARGS]...
     
     Options:
@@ -133,9 +133,9 @@ You can override any of these values with the following environment variables:
       github   Commands for interacting with the Github...
       release  Commands used in the release process and...
 
-## For Developers
+## (dev) For Developers
 
-    $ cumulusci dev apextestsdb_upload --help
+cumulusci dev apextestsdb_upload --help
     Detected None build of branch None at commit None on None
     Usage: cumulusci dev apextestsdb_upload [OPTIONS] EXECUTION_NAME
                                             RESULTS_FILE_URL
@@ -153,7 +153,7 @@ You can override any of these values with the following environment variables:
       --environment TEXT    Set a custom name for the build environment
       --help                Show this message and exit.
 
-    $ cumulusci dev deploy --help
+cumulusci dev deploy --help
     Detected None build of branch None at commit None on None
     Usage: cumulusci dev deploy [OPTIONS]
     
@@ -177,7 +177,7 @@ You can override any of these values with the following environment variables:
                      option invalidates all other options
       --help         Show this message and exit.
 
-    $ cumulusci dev deploy_managed --help
+cumulusci dev deploy_managed --help
     Detected None build of branch None at commit None on None
     Usage: cumulusci dev deploy_managed [OPTIONS] COMMIT PACKAGE_VERSION
     
@@ -189,7 +189,7 @@ You can override any of these values with the following environment variables:
                    False
       --help       Show this message and exit.
 
-    $ cumulusci dev run_tests --help
+cumulusci dev run_tests --help
     Detected None build of branch None at commit None on None
     Usage: cumulusci dev run_tests [OPTIONS]
     
@@ -221,7 +221,7 @@ You can override any of these values with the following environment variables:
                            inside and outside the startTest/stopTest context
       --help               Show this message and exit.
 
-    $ cumulusci dev update_package_xml --help
+cumulusci dev update_package_xml --help
     Detected None build of branch None at commit None on None
     Usage: cumulusci dev update_package_xml [OPTIONS]
     
@@ -230,9 +230,9 @@ You can override any of these values with the following environment variables:
     Options:
       --help  Show this message and exit.
 
-## For Release Managers
+## (release) For Release Managers
 
-    $ cumulusci release deploy --help
+cumulusci release deploy --help
     Detected None build of branch None at commit None on None
     Usage: cumulusci release deploy [OPTIONS]
     
@@ -243,7 +243,7 @@ You can override any of these values with the following environment variables:
     Options:
       --help  Show this message and exit.
 
-    $ cumulusci release upload_beta --help
+cumulusci release upload_beta --help
     Detected None build of branch None at commit None on None
     Usage: cumulusci release upload_beta [OPTIONS] COMMIT
     
@@ -258,8 +258,8 @@ You can override any of these values with the following environment variables:
                            a tag
       --help               Show this message and exit.
 
-    $ cumulusci github
-## Github
+cumulusci github
+## (github) Github Scripts
 
     Detected None build of branch None at commit None on None
     Usage: cumulusci github [OPTIONS] COMMAND [ARGS]...
@@ -275,7 +275,7 @@ You can override any of these values with the following environment variables:
       release            Create a release in Github
       release_notes      Generates release notes by parsing Warning,...
 
-    $ cumulusci release --help
+cumulusci release --help
     Detected None build of branch None at commit None on None
     Usage: cumulusci github release [OPTIONS] VERSION COMMIT
     
@@ -284,7 +284,7 @@ You can override any of these values with the following environment variables:
     Options:
       --help  Show this message and exit.
 
-    $ cumulusci release_notes --help
+cumulusci release_notes --help
     Detected None build of branch None at commit None on None
     Usage: cumulusci github release_notes [OPTIONS] TAG
     
@@ -308,7 +308,7 @@ You can override any of these values with the following environment variables:
     Options:
       --help  Show this message and exit.
 
-    $ cumulusci master_to_feature --help
+cumulusci master_to_feature --help
     Detected None build of branch None at commit None on None
     Usage: cumulusci github master_to_feature [OPTIONS]
     
@@ -321,9 +321,9 @@ You can override any of these values with the following environment variables:
                      can override this behavior by specifying a commit sha
       --help         Show this message and exit.
 
-    $ cumulusci ci
+cumulusci ci
 
-## Continuous Integration
+## (ci) Continuous Integration
 
     Detected None build of branch None at commit None on None
     Usage: cumulusci ci [OPTIONS] COMMAND [ARGS]...
@@ -338,7 +338,7 @@ You can override any of these values with the following environment variables:
       deploy       Determines the right kind of build for the...
       next_step    A command to calculate and return the next...
 
-    $ cumulusci ci deploy --help
+cumulusci ci deploy --help
     Detected None build of branch None at commit None on None
     Usage: cumulusci ci deploy [OPTIONS]
     
@@ -348,7 +348,7 @@ You can override any of these values with the following environment variables:
     Options:
       --help  Show this message and exit.
 
-    $ cumulusci ci beta_deploy --help
+cumulusci ci beta_deploy --help
     Detected None build of branch None at commit None on None
     Usage: cumulusci ci beta_deploy [OPTIONS] TAG COMMIT
     
@@ -363,7 +363,7 @@ You can override any of these values with the following environment variables:
                    running tests
       --help       Show this message and exit.
 
-    $ cumulusci ci next_step --help
+cumulusci ci next_step --help
     Detected None build of branch None at commit None on None
     Usage: cumulusci ci next_step [OPTIONS]
     
