@@ -122,6 +122,7 @@ You can override any of these values with the following environment variables:
 ## cumulusci
 
 cumulusci
+
     Usage: cumulusci [OPTIONS] COMMAND [ARGS]...
     
     Options:
@@ -136,6 +137,7 @@ cumulusci
 ## (dev) For Developers
 
 cumulusci dev apextestsdb_upload --help
+
     Detected None build of branch None at commit None on None
     Usage: cumulusci dev apextestsdb_upload [OPTIONS] EXECUTION_NAME
                                             RESULTS_FILE_URL
@@ -154,6 +156,7 @@ cumulusci dev apextestsdb_upload --help
       --help                Show this message and exit.
 
 cumulusci dev deploy --help
+
     Detected None build of branch None at commit None on None
     Usage: cumulusci dev deploy [OPTIONS]
     
@@ -178,6 +181,7 @@ cumulusci dev deploy --help
       --help         Show this message and exit.
 
 cumulusci dev deploy_managed --help
+
     Detected None build of branch None at commit None on None
     Usage: cumulusci dev deploy_managed [OPTIONS] COMMIT PACKAGE_VERSION
     
@@ -190,6 +194,7 @@ cumulusci dev deploy_managed --help
       --help       Show this message and exit.
 
 cumulusci dev run_tests --help
+
     Detected None build of branch None at commit None on None
     Usage: cumulusci dev run_tests [OPTIONS]
     
@@ -222,6 +227,7 @@ cumulusci dev run_tests --help
       --help               Show this message and exit.
 
 cumulusci dev update_package_xml --help
+
     Detected None build of branch None at commit None on None
     Usage: cumulusci dev update_package_xml [OPTIONS]
     
@@ -233,6 +239,7 @@ cumulusci dev update_package_xml --help
 ## (release) For Release Managers
 
 cumulusci release deploy --help
+
     Detected None build of branch None at commit None on None
     Usage: cumulusci release deploy [OPTIONS]
     
@@ -244,6 +251,7 @@ cumulusci release deploy --help
       --help  Show this message and exit.
 
 cumulusci release upload_beta --help
+
     Detected None build of branch None at commit None on None
     Usage: cumulusci release upload_beta [OPTIONS] COMMIT
     
@@ -259,6 +267,7 @@ cumulusci release upload_beta --help
       --help               Show this message and exit.
 
 cumulusci github
+
 ## (github) Github Scripts
 
     Detected None build of branch None at commit None on None
@@ -276,6 +285,7 @@ cumulusci github
       release_notes      Generates release notes by parsing Warning,...
 
 cumulusci release --help
+
     Detected None build of branch None at commit None on None
     Usage: cumulusci github release [OPTIONS] VERSION COMMIT
     
@@ -285,6 +295,7 @@ cumulusci release --help
       --help  Show this message and exit.
 
 cumulusci release_notes --help
+
     Detected None build of branch None at commit None on None
     Usage: cumulusci github release_notes [OPTIONS] TAG
     
@@ -309,6 +320,7 @@ cumulusci release_notes --help
       --help  Show this message and exit.
 
 cumulusci master_to_feature --help
+
     Detected None build of branch None at commit None on None
     Usage: cumulusci github master_to_feature [OPTIONS]
     
@@ -322,6 +334,7 @@ cumulusci master_to_feature --help
       --help         Show this message and exit.
 
 cumulusci ci
+
 
 ## (ci) Continuous Integration
 
@@ -339,6 +352,7 @@ cumulusci ci
       next_step    A command to calculate and return the next...
 
 cumulusci ci deploy --help
+
     Detected None build of branch None at commit None on None
     Usage: cumulusci ci deploy [OPTIONS]
     
@@ -349,6 +363,7 @@ cumulusci ci deploy --help
       --help  Show this message and exit.
 
 cumulusci ci beta_deploy --help
+
     Detected None build of branch None at commit None on None
     Usage: cumulusci ci beta_deploy [OPTIONS] TAG COMMIT
     
