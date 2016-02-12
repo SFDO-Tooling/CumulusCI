@@ -143,14 +143,14 @@ def ci_deploy(config):
         config.sf_username = os.environ.get('SF_USERNAME_FEATURE')
         config.sf_password = os.environ.get('SF_PASSWORD_FEATURE')
         config.sf_serverurl = os.environ.get('SF_SERVERURL_FEATURE', config.sf_serverurl)
-        unmanaged_deploy.main(args=['--run-tests','--full-delete'], standalone_mode=False, obj=config)
+        deploy_unmanaged.main(args=['--run-tests','--full-delete'], standalone_mode=False, obj=config)
 
     elif config.build_type == 'master':
         click.echo('-- Building with master branch flow')
         config.sf_username = os.environ.get('SF_USERNAME_PACKAGING')
         config.sf_password = os.environ.get('SF_PASSWORD_PACKAGING')
         config.sf_serverurl = os.environ.get('SF_SERVERURL_PACKAGING', config.sf_serverurl)
-        package_deploy.main(args=[], standalone_mode=False, obj=config)
+        deploy_packaging.main(args=[], standalone_mode=False, obj=config)
 
 # command: ci next_step
 @click.command(help='A command to calculate and return the next steps for a ci build to run')
@@ -213,9 +213,9 @@ def beta_deploy(config, tag, commit, org, run_tests):
     if run_tests:
         args.append('--run-tests')
 
-    managed_deploy.main(args=args, standalone_mode=False, obj=config)
+    deploy_managed.main(args=args, standalone_mode=False, obj=config)
 
-@click.group()
+@click.group(help="Commands useful to developers in interacting with Salesforce package source metadata")
 @pass_config
 def dev(config):
     pass
@@ -337,8 +337,9 @@ def run_python_script(script, env, config, required_env=None):
 
     return p
         
-# command: dev unmanaged_deploy
+# command: dev deploy
 @click.command(
+    name='deploy',
     help='Runs a full deployment of the code including unused stale package metadata, setting up dependencies, deploying the code, and optionally running tests',
     context_settings={'color': True},
 )
@@ -347,7 +348,7 @@ def run_python_script(script, env, config, required_env=None):
 @click.option('--ee-org', default=False, is_flag=True, help='If set, use the deployUnmanagedEE target which prepares the code for loading into a production Enterprise Edition org.  Defaults to False.')
 @click.option('--deploy-only', default=False, is_flag=True, help='If set, runs only the deployWithoutTest target.  Does not clean the org, update dependencies, or run any tests.  This option invalidates all other options')
 @pass_config
-def unmanaged_deploy(config, run_tests, full_delete, ee_org, deploy_only):
+def deploy_unmanaged(config, run_tests, full_delete, ee_org, deploy_only):
 
     # Determine the deploy target to use based on options
     target = None
@@ -378,10 +379,10 @@ def unmanaged_deploy(config, run_tests, full_delete, ee_org, deploy_only):
     # Run the command
     p = run_ant_target(target, env, config, check_credentials=True)
 
-# command: package_deploy
-@click.command(help='Runs a full deployment of the code as managed code to the packaging org including setting up dependencies, deleting metadata removed from the repository, deploying the code, and optionally running tests')
+# command: release deploy
+@click.command(name='deploy', help='Runs a full deployment of the code as managed code to the packaging org including setting up dependencies, deleting metadata removed from the repository, deploying the code, and optionally running tests')
 @pass_config
-def package_deploy(config):
+def deploy_packaging(config):
     # Determine the deploy target to use based on options
     target = 'deployCIPackageOrg'
 
@@ -392,14 +393,14 @@ def package_deploy(config):
 
     p = run_ant_target(target, env, config, check_credentials=True)
 
-# command: package_beta
+# command: release upload_beta
 @click.command(help='Use Selenium to upload a package version in the packaging org')
 @click.argument('commit')
 @click.option('--build-name', default='Manual build from CumulusCI CLI', help='If provided, overrides the build name used to name the package version')
 @click.option('--selenium-url', help='If provided, uses a Selenium Server at the specified url.  Example: http://127.0.0.1:4444/wd/hub')
 @click.option('--create-release', is_flag=True, help='If set, creates a release in Github which also creates a tag')
 @pass_config
-def package_beta(config, commit, build_name, selenium_url, create_release):
+def upload_beta(config, commit, build_name, selenium_url, create_release):
 
     # Build the environment for the command
     env = get_env_cumulusci(config)
@@ -642,13 +643,13 @@ def github_clone_tag(config, src_tag, tag):
 
     p = run_python_script('github/tag_to_tag.py', env, config, required_env=required_env)
 
-# command: packaging managed_deploy
+# command: dev deploy_managed
 @click.command(help='Installs a managed package version and optionally runs the tests from the installed managed package')
 @click.argument('commit')
 @click.argument('package_version')
 @click.option('--run-tests', is_flag=True, help='If True, run tests as part of the deployment.  Defaults to False')
 @pass_config
-def managed_deploy(config, commit, package_version, run_tests):
+def deploy_managed(config, commit, package_version, run_tests):
     # Determine the deploy target to use based on options
     target = 'deployManaged'
     if package_version.find('(Beta ') != -1:
@@ -673,14 +674,9 @@ def update_package_xml(config):
     env = get_env_cumulusci(config)
     p = run_ant_target('updatePackageXml', env, config)
 
-@click.group()
+@click.group(help="Commands used in the release process and interacting with a Manage Package packing org")
 @pass_config
-def packaging(config):
-    pass
-
-@click.group()
-@pass_config
-def managed(config):
+def release(config):
     pass
 
 @click.group(help='Commands for interacting with the Github repository for the project')
@@ -688,19 +684,7 @@ def managed(config):
 def github(config):
     pass
 
-@click.group(help='Commands for integrating builds with mrbelvedere (https://github.com/SalesforceFoundation/mrbelvedere)')
-@pass_config
-def mrbelvedere(config):
-    pass
-
 # Top level commands
-cli.add_command(apextestsdb_upload)
-cli.add_command(managed_deploy)
-cli.add_command(package_deploy)
-cli.add_command(package_beta)
-cli.add_command(run_tests)
-cli.add_command(unmanaged_deploy)
-cli.add_command(update_package_xml)
 
 # Group: ci
 ci.add_command(ci_deploy)
@@ -708,10 +692,18 @@ ci.add_command(next_step)
 ci.add_command(beta_deploy)
 cli.add_command(ci)
 
-#cli.add_command(dev)
-#cli.add_command(packaging)
-#cli.add_command(managed)
+# Group: dev
+dev.add_command(apextestsdb_upload)
+dev.add_command(deploy_unmanaged)
+dev.add_command(deploy_managed)
+dev.add_command(run_tests)
+dev.add_command(update_package_xml)
+cli.add_command(dev)
 
+# Group: release
+release.add_command(deploy_packaging)
+release.add_command(upload_beta)
+cli.add_command(release)
 
 # Group: github
 github.add_command(github_clone_tag)
@@ -719,5 +711,3 @@ github.add_command(github_master_to_feature)
 github.add_command(github_release)
 github.add_command(github_release_notes)
 cli.add_command(github)
-
-cli.add_command(mrbelvedere)

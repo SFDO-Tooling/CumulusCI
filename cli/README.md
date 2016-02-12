@@ -50,19 +50,13 @@ When the installation completes, you should be able to run the cumulusci command
         Usage: cumulusci [OPTIONS] COMMAND [ARGS]...
         
         Options:
-        --help  Show this message and exit.
-
+          --help  Show this message and exit.
+        
         Commands:
-        apextestsdb_upload  Upload a test_results.json file to the...
-        ci                  Commands to make building on CI servers...
-        github              Commands for interacting with the Github...
-        managed_deploy      Installs a managed package version and...
-        mrbelvedere         Commands for integrating builds with...
-        package_beta        Use Selenium to upload a package version in...
-        package_deploy      Runs a full deployment of the code as managed...
-        run_tests           Run Apex tests in the target org via the...
-        unmanaged_deploy    Runs a full deployment of the code including...
-        update_package_xml  Updates the src/package.xml file by parsing...
+          ci       Commands to make building on CI servers...
+          dev      Commands useful to developers in interacting...
+          github   Commands for interacting with the Github...
+          release  Commands used in the release process and...
 
 As long as your virtualenv is activated, you can go into any repository configured for CumulusCI and use the cumulusci command to perform actions against it.
 
@@ -123,7 +117,6 @@ You can override any of these values with the following environment variables:
 * PREFIX_BETA
 * PREFIX_RELEASE
 
-
 # Full help text for the cumulusci command
 
 ## cumulusci
@@ -135,22 +128,34 @@ You can override any of these values with the following environment variables:
       --help  Show this message and exit.
     
     Commands:
-      apextestsdb_upload  Upload a test_results.json file to the...
-      ci                  Commands to make building on CI servers...
-      github              Commands for interacting with the Github...
-      managed_deploy      Installs a managed package version and...
-      mrbelvedere         Commands for integrating builds with...
-      package_beta        Use Selenium to upload a package version in...
-      package_deploy      Runs a full deployment of the code as managed...
-      run_tests           Run Apex tests in the target org via the...
-      unmanaged_deploy    Runs a full deployment of the code including...
-      update_package_xml  Updates the src/package.xml file by parsing...
+      ci       Commands to make building on CI servers...
+      dev      Commands useful to developers in interacting...
+      github   Commands for interacting with the Github...
+      release  Commands used in the release process and...
 
-## Salesforce
+## For Developers
 
-    $ cumulusci unmanaged_deploy --help
+    $ cumulusci dev apextestsdb_upload --help
     Detected None build of branch None at commit None on None
-    Usage: cumulusci unmanaged_deploy [OPTIONS]
+    Usage: cumulusci dev apextestsdb_upload [OPTIONS] EXECUTION_NAME
+                                            RESULTS_FILE_URL
+    
+      Upload a test_results.json file to the ApexTestsDB web application for
+      analysis.  NOTE: This does not currently work with local files.  You will
+      have to upload the file to an internet accessible web server and provide
+      the path.
+    
+    Options:
+      --repo-url TEXT       Set to override the repository url for the report
+      --branch TEXT         Set to override the branch for the report
+      --commit TEXT         Set to override the commit sha for the report
+      --execution-url TEXT  Set to provide a link back to execution results
+      --environment TEXT    Set a custom name for the build environment
+      --help                Show this message and exit.
+
+    $ cumulusci dev deploy --help
+    Detected None build of branch None at commit None on None
+    Usage: cumulusci dev deploy [OPTIONS]
     
       Runs a full deployment of the code including unused stale package
       metadata, setting up dependencies, deploying the code, and optionally
@@ -172,9 +177,9 @@ You can override any of these values with the following environment variables:
                      option invalidates all other options
       --help         Show this message and exit.
 
-    $ cumulusci managed_deploy --help
+    $ cumulusci dev deploy_managed --help
     Detected None build of branch None at commit None on None
-    Usage: cumulusci managed_deploy [OPTIONS] COMMIT PACKAGE_VERSION
+    Usage: cumulusci dev deploy_managed [OPTIONS] COMMIT PACKAGE_VERSION
     
       Installs a managed package version and optionally runs the tests from the
       installed managed package
@@ -184,9 +189,9 @@ You can override any of these values with the following environment variables:
                    False
       --help       Show this message and exit.
 
-    $ cumulusci run_tests --help
+    $ cumulusci dev run_tests --help
     Detected None build of branch None at commit None on None
-    Usage: cumulusci run_tests [OPTIONS]
+    Usage: cumulusci dev run_tests [OPTIONS]
     
       Run Apex tests in the target org via the Tooling API and report results.
       Defaults to running all unmanaged test classes ending in _TEST.
@@ -216,18 +221,31 @@ You can override any of these values with the following environment variables:
                            inside and outside the startTest/stopTest context
       --help               Show this message and exit.
 
-    $ cumulusci update_package_xml --help
+    $ cumulusci dev update_package_xml --help
     Detected None build of branch None at commit None on None
-    Usage: cumulusci update_package_xml [OPTIONS]
+    Usage: cumulusci dev update_package_xml [OPTIONS]
     
       Updates the src/package.xml file by parsing out the metadata under src/
     
     Options:
       --help  Show this message and exit.
 
-    $ cumulusci package_beta --help
+## For Release Managers
+
+    $ cumulusci release deploy --help
     Detected None build of branch None at commit None on None
-    Usage: cumulusci package_beta [OPTIONS] COMMIT
+    Usage: cumulusci release deploy [OPTIONS]
+    
+      Runs a full deployment of the code as managed code to the packaging org
+      including setting up dependencies, deleting metadata removed from the
+      repository, deploying the code, and optionally running tests
+    
+    Options:
+      --help  Show this message and exit.
+
+    $ cumulusci release upload_beta --help
+    Detected None build of branch None at commit None on None
+    Usage: cumulusci release upload_beta [OPTIONS] COMMIT
     
       Use Selenium to upload a package version in the packaging org
     
@@ -239,23 +257,6 @@ You can override any of these values with the following environment variables:
       --create-release     If set, creates a release in Github which also creates
                            a tag
       --help               Show this message and exit.
-
-    $ cumulusci apextestsdb_upload --help
-    Detected None build of branch None at commit None on None
-    Usage: cumulusci apextestsdb_upload [OPTIONS] EXECUTION_NAME RESULTS_FILE_URL
-    
-      Upload a test_results.json file to the ApexTestsDB web application for
-      analysis.  NOTE: This does not currently work with local files.  You will
-      have to upload the file to an internet accessible web server and provide
-      the path.
-    
-    Options:
-      --repo-url TEXT       Set to override the repository url for the report
-      --branch TEXT         Set to override the branch for the report
-      --commit TEXT         Set to override the commit sha for the report
-      --execution-url TEXT  Set to provide a link back to execution results
-      --environment TEXT    Set a custom name for the build environment
-      --help                Show this message and exit.
 
     $ cumulusci github
 ## Github
