@@ -112,3 +112,6 @@ echo "" >> "$OUTPUT"
 echo "cumulusci ci next_step --help" >> "$OUTPUT"
 echo "" >> "$OUTPUT"
 cumulusci ci next_step --help | sed -e 's/^/    /g' >> "$OUTPUT"
+echo "" >> "$OUTPUT"
+
+grep -v 'Detected .* build of branch' help.md > help_clean.md

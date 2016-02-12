@@ -138,7 +138,6 @@ cumulusci
 
 cumulusci dev
 
-    Detected None build of branch None at commit None on None
     Usage: cumulusci dev [OPTIONS] COMMAND [ARGS]...
     
       Commands useful to developers in interacting with Salesforce package
@@ -156,7 +155,6 @@ cumulusci dev
 
 cumulusci dev apextestsdb_upload --help
 
-    Detected None build of branch None at commit None on None
     Usage: cumulusci dev apextestsdb_upload [OPTIONS] EXECUTION_NAME
                                             RESULTS_FILE_URL
     
@@ -175,7 +173,6 @@ cumulusci dev apextestsdb_upload --help
 
 cumulusci dev deploy --help
 
-    Detected None build of branch None at commit None on None
     Usage: cumulusci dev deploy [OPTIONS]
     
       Runs a full deployment of the code including unused stale package
@@ -200,7 +197,6 @@ cumulusci dev deploy --help
 
 cumulusci dev deploy_managed --help
 
-    Detected None build of branch None at commit None on None
     Usage: cumulusci dev deploy_managed [OPTIONS] COMMIT PACKAGE_VERSION
     
       Installs a managed package version and optionally runs the tests from the
@@ -213,7 +209,6 @@ cumulusci dev deploy_managed --help
 
 cumulusci dev run_tests --help
 
-    Detected None build of branch None at commit None on None
     Usage: cumulusci dev run_tests [OPTIONS]
     
       Run Apex tests in the target org via the Tooling API and report results.
@@ -246,7 +241,6 @@ cumulusci dev run_tests --help
 
 cumulusci dev update_package_xml --help
 
-    Detected None build of branch None at commit None on None
     Usage: cumulusci dev update_package_xml [OPTIONS]
     
       Updates the src/package.xml file by parsing out the metadata under src/
@@ -258,7 +252,6 @@ cumulusci dev update_package_xml --help
 
 cumulusci release
 
-    Detected None build of branch None at commit None on None
     Usage: cumulusci release [OPTIONS] COMMAND [ARGS]...
     
       Commands used in the release process and interacting with a Manage Package
@@ -273,7 +266,6 @@ cumulusci release
 
 cumulusci release deploy --help
 
-    Detected None build of branch None at commit None on None
     Usage: cumulusci release deploy [OPTIONS]
     
       Runs a full deployment of the code as managed code to the packaging org
@@ -285,7 +277,6 @@ cumulusci release deploy --help
 
 cumulusci release upload_beta --help
 
-    Detected None build of branch None at commit None on None
     Usage: cumulusci release upload_beta [OPTIONS] COMMIT
     
       Use Selenium to upload a package version in the packaging org
@@ -303,7 +294,6 @@ cumulusci release upload_beta --help
 
 cumulusci github
 
-    Detected None build of branch None at commit None on None
     Usage: cumulusci github [OPTIONS] COMMAND [ARGS]...
     
       Commands for interacting with the Github repository for the project
@@ -319,7 +309,6 @@ cumulusci github
 
 cumulusci github release --help
 
-    Detected None build of branch None at commit None on None
     Usage: cumulusci github release [OPTIONS] VERSION COMMIT
     
       Create a release in Github
@@ -329,7 +318,6 @@ cumulusci github release --help
 
 cumulusci github release_notes --help
 
-    Detected None build of branch None at commit None on None
     Usage: cumulusci github release_notes [OPTIONS] TAG
     
       Generates release notes by parsing Warning, Info, and Issues headings from
@@ -344,7 +332,6 @@ cumulusci github release_notes --help
       --help            Show this message and exit.
 
 cumulusci github clone_tag --help
-    Detected None build of branch None at commit None on None
     Usage: cumulusci github clone_tag [OPTIONS] SRC_TAG TAG
     
       Create one tag referencing the same commit as another tag
@@ -354,7 +341,6 @@ cumulusci github clone_tag --help
 
 cumulusci github master_to_feature --help
 
-    Detected None build of branch None at commit None on None
     Usage: cumulusci github master_to_feature [OPTIONS]
     
       Attempts to merge a commit on the master branch to all open feature
@@ -370,7 +356,6 @@ cumulusci github master_to_feature --help
 
 cumulusci ci
 
-    Detected None build of branch None at commit None on None
     Usage: cumulusci ci [OPTIONS] COMMAND [ARGS]...
     
       Commands to make building on CI servers easier
@@ -385,7 +370,6 @@ cumulusci ci
 
 cumulusci ci deploy --help
 
-    Detected None build of branch None at commit None on None
     Usage: cumulusci ci deploy [OPTIONS]
     
       Determines the right kind of build for the branch and runs the build
@@ -396,7 +380,6 @@ cumulusci ci deploy --help
 
 cumulusci ci beta_deploy --help
 
-    Detected None build of branch None at commit None on None
     Usage: cumulusci ci beta_deploy [OPTIONS] TAG COMMIT
     
       Deploys a beta managed package version by its git tag and commit
@@ -412,10 +395,10 @@ cumulusci ci beta_deploy --help
 
 cumulusci ci next_step --help
 
-    Detected None build of branch None at commit None on None
     Usage: cumulusci ci next_step [OPTIONS]
     
       A command to calculate and return the next steps for a ci build to run
     
     Options:
       --help  Show this message and exit.
+
