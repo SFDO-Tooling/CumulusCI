@@ -257,9 +257,9 @@ You can override any of these values with the following environment variables:
       --environment TEXT    Set a custom name for the build environment
       --help                Show this message and exit.
 
-    $ cumulusci github
 ## Github
 
+    $ cumulusci github
     Detected None build of branch None at commit None on None
     Usage: cumulusci github [OPTIONS] COMMAND [ARGS]...
     
@@ -320,10 +320,9 @@ You can override any of these values with the following environment variables:
                      can override this behavior by specifying a commit sha
       --help         Show this message and exit.
 
-    $ cumulusci ci
-
 ## Continuous Integration
 
+    $ cumulusci ci
     Detected None build of branch None at commit None on None
     Usage: cumulusci ci [OPTIONS] COMMAND [ARGS]...
     
