@@ -124,14 +124,10 @@ def get_build_info():
     # Shippable
     # Fallback to calling git command line?
 
-    if not branch or not commit:
-        click.echo('FAIL: Could not determine branch or commit')
-        return 1
-
-    if branch.startswith('feature/'):
+    if branch and branch.startswith('feature/'):
         build_type = 'feature'
 
-    elif branch == 'master':
+    elif branch and branch == 'master':
         build_type = 'master'
 
     click.echo("Detected %s build of branch %s at commit %s on %s" % (build_type, branch, commit, vendor))
@@ -144,7 +140,6 @@ def get_build_info():
 def ci_deploy(config):
     if config.build_type == 'feature':
         click.echo('-- Building with feature branch flow')
-        config.build_type = 'feature'
         config.sf_username = os.environ.get('SF_USERNAME_FEATURE')
         config.sf_password = os.environ.get('SF_PASSWORD_FEATURE')
         config.sf_serverurl = os.environ.get('SF_SERVERURL_FEATURE', config.sf_serverurl)
@@ -152,7 +147,6 @@ def ci_deploy(config):
 
     elif config.build_type == 'master':
         click.echo('-- Building with master branch flow')
-        config.build_type = 'master'
         config.sf_username = os.environ.get('SF_USERNAME_PACKAGING')
         config.sf_password = os.environ.get('SF_PASSWORD_PACKAGING')
         config.sf_serverurl = os.environ.get('SF_SERVERURL_PACKAGING', config.sf_serverurl)
