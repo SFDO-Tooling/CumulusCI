@@ -47,6 +47,7 @@ def update_dependencies():
     
     if changed:
         resp = requests.post(dependencies_url, data=json.dumps(dependencies), headers={'Authorization': PACKAGE_KEY})
+        print resp.content
 
 if __name__ == '__main__':
     try:
