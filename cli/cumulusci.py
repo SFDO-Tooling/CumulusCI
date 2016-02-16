@@ -224,7 +224,7 @@ def beta_deploy(config, tag, commit, org, run_tests, retries):
         error = repr(e)
 
         # Only retry if there are retries and the version doesn't exist, raise all other exceptions
-        if not retries or error.find('Error: InstalledPackage version number : %s does not exist!' % package_version) == -1:
+        if not retries or (error.find('Error: Invalid Package, Details: This package is not yet available') == -1 and error.find('Error: InstalledPackage version number : %s does not exist!' % package_version) == -1):
             raise e
 
         click.echo("Retrying installation of %s due to package unavailable error.  Sleeping for 1 minute before retrying installation.  %s retries remain" % (package_version, retries - 1))

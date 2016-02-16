@@ -117,6 +117,7 @@ You can override any of these values with the following environment variables:
 * PREFIX_BETA
 * PREFIX_RELEASE
 
+
 # Full help text for the cumulusci command
 
 ## cumulusci
@@ -385,13 +386,20 @@ cumulusci ci beta_deploy --help
       Deploys a beta managed package version by its git tag and commit
     
     Options:
-      --org TEXT   Override the default org (beta).  The value will be used to
-                   look up credentials via environment variable in the form of
-                   SF_USERNAME_{{ org|upper }} and SF_PASSWORD_{{ org|upper }}.
-                   Can be overridden by the ORG_SUFFIX environment variable
-      --run-tests  If set, run tests as part of the deployment.  Defaults to not
-                   running tests
-      --help       Show this message and exit.
+      --org TEXT         Override the default org (beta).  The value will be used
+                         to look up credentials via environment variable in the
+                         form of SF_USERNAME_{{ org|upper }} and SF_PASSWORD_{{
+                         org|upper }}.  Can be overridden by the ORG_SUFFIX
+                         environment variable
+      --run-tests        If set, run tests as part of the deployment.  Defaults to
+                         not running tests
+      --retries INTEGER  The number of times the installation should retry
+                         installation if the prior attempt failed due to a package
+                         unavailable error.  This error is common after uploading
+                         a package if the test org is on a different pod.  There
+                         is a slight delay in copying newly uploaded packages.
+                         Defaults to 3
+      --help             Show this message and exit.
 
 cumulusci ci next_step --help
 
