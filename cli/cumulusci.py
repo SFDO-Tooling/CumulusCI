@@ -3,6 +3,7 @@ import json
 import os
 import sarge
 import sys
+from time import sleep
 
 # Exceptions
 class AntTargetException(Exception):
@@ -195,8 +196,9 @@ def next_step(config):
 @click.argument('commit')
 @click.option('--org', default='beta', help="Override the default org (beta).  The value will be used to look up credentials via environment variable in the form of SF_USERNAME_{{ org|upper }} and SF_PASSWORD_{{ org|upper }}.  Can be overridden by the ORG_SUFFIX environment variable")
 @click.option('--run-tests', default=False, is_flag=True, help='If set, run tests as part of the deployment.  Defaults to not running tests')
+@click.option('--retries', default=3, help="The number of times the installation should retry installation if the prior attempt failed due to a package unavailable error.  This error is common after uploading a package if the test org is on a different pod.  There is a slight delay in copying newly uploaded packages.  Defaults to 3")
 @pass_config
-def beta_deploy(config, tag, commit, org, run_tests):
+def beta_deploy(config, tag, commit, org, run_tests, retries):
     # Check for an ORG_SUFFIX environment variable
     org = os.environ.get('ORG_SUFFIX', org)
 
@@ -213,7 +215,38 @@ def beta_deploy(config, tag, commit, org, run_tests):
     if run_tests:
         args.append('--run-tests')
 
-    deploy_managed.main(args=args, standalone_mode=False, obj=config)
+    try:
+        # Call the deploy_managed command to install the beta
+        deploy_managed.main(args=args, standalone_mode=False, obj=config)
+
+    except DeploymentException as e:
+        # Get failure text for searching
+        error = repr(e)
+
+        # Only retry if there are retries and the version doesn't exist, raise all other exceptions
+        if not retries or error.find('Error: InstalledPackage version number : %s does not exist!' % package_version) == -1:
+            raise e
+
+        click.echo("Retrying installation of %s due to package unavailable error.  Sleeping for 1 minute before retrying installation.  %s retries remain" % (package_version, retries - 1))
+        sleep(60)
+
+        # Construct arguments for retry
+        args = [
+            tag,
+            commit,
+            '--org',
+            org,
+            '--retries',
+            retries - 1,
+        ]
+        if run_tests:
+            args.append('--runtests')
+
+        click.echo("Retry command: cumulusci ci beta_deploy %s" % ' '.join(args))
+
+        # Retry
+        deploy_beta.main(args=args, standalone_mode=False)
+        
 
 @click.group(help="Commands useful to developers in interacting with Salesforce package source metadata")
 @pass_config
