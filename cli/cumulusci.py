@@ -43,7 +43,7 @@ class Config(object):
 
         # Detected Build Info
         build_info = get_build_info()
-        for key, value in build_info.keys():
+        for key, value in build_info.items():
             setattr(self, key, value)
 
         self.steps_feature = os.environ.get(self.env_prefix + 'CUMULUSCI_STEPS_FEATURE', 'deploy').split(',')
