@@ -125,9 +125,9 @@ def get_build_info():
     # Semaphore
     # Shippable
     # Bamboo
-    if os.environ.get('BAMBOO_BUILDKEY'):
-        branch = os.environ.get('BAMBOO_REPOSITORY_BRANCH_NAME')
-        commit = os.environ.get('BAMBOO_REPOSITORY_REVISION_NUMBER')
+    if os.environ.get('bamboo_buildKey'):
+        branch = os.environ.get('bamboo_repository_branch_name')
+        commit = os.environ.get('bamboo_repoistory_revision_number')
         vendor = 'Bamboo'
 
     # Fallback to calling git command line?
