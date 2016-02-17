@@ -146,6 +146,9 @@ def get_build_info():
 @click.command(name='deploy', help="Determines the right kind of build for the branch and runs the build including tests")
 @pass_config
 def ci_deploy(config):
+    if not config.commit or not config.branch:
+        raise click.BadParameter('Could not determine commit or branch for ci deploy')
+        
     if config.build_type == 'feature':
         click.echo('-- Building with feature branch flow')
         config.sf_username = os.environ.get('SF_USERNAME_FEATURE')
