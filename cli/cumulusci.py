@@ -1,6 +1,7 @@
 import click
 import json
 import os
+import pprint
 import sarge
 import sys
 from time import sleep
@@ -30,47 +31,55 @@ def check_salesforce_credentials(env):
 # Config object
 class Config(object):
     def __init__(self):
-        self.cumulusci_path = os.environ.get('CUMULUSCI_PATH', None)
+        # Default Build Info
+        self.env_prefix = ''
+        self.branch = None
+        self.commit = None
+        self.build_type = None
+        self.build_vendor = None
+        self.build_workspace = '.'
+        self.steps_feature = ''
+        self.steps_master = ''
+
+        # Detected Build Info
+        build_info = get_build_info()
+        for key, value in build_info.keys():
+            setattr(self, key, value)
+
+        self.steps_feature = os.environ.get(self.env_prefix + 'CUMULUSCI_STEPS_FEATURE', 'deploy').split(',')
+        self.steps_master = os.environ.get(self.env_prefix + 'CUMULUSCI_STEPS_MASTER', 'deploy').split(',')
+        self.cumulusci_path = os.environ.get(self.env_prefix + 'CUMULUSCI_PATH', None)
 
         # Salesforce org credentials
-        self.sf_username = os.environ.get('SF_USERNAME', None)
-        self.sf_password = os.environ.get('SF_PASSWORD', None)
-        self.sf_serverurl = os.environ.get('SF_SERVERURL', 'https://login.salesforce.com')
+        self.sf_username = os.environ.get(self.env_prefix + 'SF_USERNAME', None)
+        self.sf_password = os.environ.get(self.env_prefix + 'SF_PASSWORD', None)
+        self.sf_serverurl = os.environ.get(self.env_prefix + 'SF_SERVERURL', 'https://login.salesforce.com')
 
         # OAuth credentials for the packaging org
-        self.oauth_client_id = os.environ.get('OAUTH_CLIENT_ID')
-        self.oauth_client_secret = os.environ.get('OAUTH_CLIENT_SECRET')
-        self.oauth_callback_url = os.environ.get('OAUTH_CALLBACK_URL')
-        self.oauth_instance_url = os.environ.get('INSTANCE_URL')
-        self.oauth_refresh_token = os.environ.get('REFRESH_TOKEN')
+        self.oauth_client_id = os.environ.get(self.env_prefix + 'OAUTH_CLIENT_ID')
+        self.oauth_client_secret = os.environ.get(self.env_prefix + 'OAUTH_CLIENT_SECRET')
+        self.oauth_callback_url = os.environ.get(self.env_prefix + 'OAUTH_CALLBACK_URL')
+        self.oauth_instance_url = os.environ.get(self.env_prefix + 'INSTANCE_URL')
+        self.oauth_refresh_token = os.environ.get(self.env_prefix + 'REFRESH_TOKEN')
 
         # Github Credentials
-        self.github_org_name = os.environ.get('GITHUB_ORG_NAME')
-        self.github_repo_name = os.environ.get('GITHUB_REPO_NAME')
-        self.github_username = os.environ.get('GITHUB_USERNAME')
-        self.github_password = os.environ.get('GITHUB_PASSWORD')
+        self.github_org_name = os.environ.get(self.env_prefix + 'GITHUB_ORG_NAME')
+        self.github_repo_name = os.environ.get(self.env_prefix + 'GITHUB_REPO_NAME')
+        self.github_username = os.environ.get(self.env_prefix + 'GITHUB_USERNAME')
+        self.github_password = os.environ.get(self.env_prefix + 'GITHUB_PASSWORD')
     
         # Default test configuration and override via environment variable
         self.advanced_testing = True
-        self.debug_tests = os.environ.get('DEBUG_TESTS') not in [None, 'true', 'True']
+        self.debug_tests = os.environ.get(self.env_prefix + 'DEBUG_TESTS') not in [None, 'true', 'True']
         self.apex_logdir = 'apex_debug_logs'
         self.junit_output = 'test_results_junit.xml'
         self.json_output = 'test_results.json'
 
         # Branch naming
-        self.prefix_beta = os.environ.get('PREFIX_BETA', 'beta/')
-        self.prefix_release = os.environ.get('PREFIX_RELEASE', 'release/')
-        self.master_branch = os.environ.get('MASTER_BRANCH', 'master')
+        self.prefix_beta = os.environ.get(self.env_prefix + 'PREFIX_BETA', 'beta/')
+        self.prefix_release = os.environ.get(self.env_prefix + 'PREFIX_RELEASE', 'release/')
+        self.master_branch = os.environ.get(self.env_prefix + 'MASTER_BRANCH', 'master')
 
-        # Build info
-        branch, commit, build_type, vendor = get_build_info()
-        self.branch = branch
-        self.commit = commit
-        self.build_type = build_type
-        self.build_vendor = vendor
-        self.build_workspace = '.'
-        self.steps_feature = os.environ.get('CUMULUSCI_STEPS_FEATURE', 'deploy').split(',')
-        self.steps_master = os.environ.get('CUMULUSCI_STEPS_MASTER', 'deploy').split(',')
 
         # Parse the cumulusci.properties file if it exists.  Make all variables into attrs by replacing . with __ in the variable name
         self.parse_cumulusci_properties()
@@ -105,42 +114,40 @@ def ci(config):
 
 def get_build_info():
     # Attempt to parse out common ways of passing the branch
-    branch = None
-    commit = None
-    vendor = None
-    build_type = None
+    info = {}
     # Solano CI
     if os.environ.get('TDDIUM'):
-        branch = os.environ.get('TDDIUM_CURRENT_BRANCH')
-        commit = os.environ.get('TDDIUM_CURRENT_COMMIT')
-        vendor = 'SolanoCI'
+        info['branch'] = os.environ.get('TDDIUM_CURRENT_BRANCH')
+        info['commit'] = os.environ.get('TDDIUM_CURRENT_COMMIT')
+        info['build_vendor'] = 'SolanoCI'
     # Codeship
     # Jenkins
     # CicleCI
     elif os.environ.get('CIRCLECI'):
-        branch = os.environ.get('CIRCLE_BRANCH')
-        commit = os.environ.get('CIRCLE_COMMIT')
-        vendor = 'CircleCI'
+        info['branch'] = os.environ.get('CIRCLE_BRANCH')
+        info['commit'] = os.environ.get('CIRCLE_COMMIT')
+        info['build_vendor'] = 'CircleCI'
     # Drone.io
     # Semaphore
     # Shippable
     # Bamboo
     elif os.environ.get('bamboo_buildKey'):
-        branch = os.environ.get('bamboo_repository_branch_name')
-        commit = os.environ.get('bamboo_repository_revision_number')
-        vendor = 'Bamboo'
+        info['branch'] = os.environ.get('bamboo_repository_branch_name')
+        info['commit'] = os.environ.get('bamboo_repository_revision_number')
+        info['build_vendor'] = 'Bamboo'
+        info['env_prefix'] = 'bamboo_'
 
     # Fallback to calling git command line?
 
-    if branch and branch.startswith('feature/'):
-        build_type = 'feature'
+    if info.get('branch') and info['branch'].startswith('feature/'):
+        info['build_type'] = 'feature'
 
-    elif branch and branch == 'master':
-        build_type = 'master'
+    elif info.get('branch') and info['branch'] == 'master':
+        info['build_type'] = 'master'
 
-    click.echo("Detected %s build of branch %s at commit %s on %s" % (build_type, branch, commit, vendor))
+    click.echo("Detected build information: %s" % pprint.pformat(info))
 
-    return branch, commit, build_type, vendor
+    return info
 
 # command: ci deploy
 @click.command(name='deploy', help="Determines the right kind of build for the branch and runs the build including tests")
@@ -151,16 +158,16 @@ def ci_deploy(config):
         
     if config.build_type == 'feature':
         click.echo('-- Building with feature branch flow')
-        config.sf_username = os.environ.get('SF_USERNAME_FEATURE')
-        config.sf_password = os.environ.get('SF_PASSWORD_FEATURE')
-        config.sf_serverurl = os.environ.get('SF_SERVERURL_FEATURE', config.sf_serverurl)
+        config.sf_username = os.environ.get(config.env_prefix + 'SF_USERNAME_FEATURE')
+        config.sf_password = os.environ.get(config.env_prefix + 'SF_PASSWORD_FEATURE')
+        config.sf_serverurl = os.environ.get(config.env_prefix + 'SF_SERVERURL_FEATURE', config.sf_serverurl)
         deploy_unmanaged.main(args=['--run-tests','--full-delete'], standalone_mode=False, obj=config)
 
     elif config.build_type == 'master':
         click.echo('-- Building with master branch flow')
-        config.sf_username = os.environ.get('SF_USERNAME_PACKAGING')
-        config.sf_password = os.environ.get('SF_PASSWORD_PACKAGING')
-        config.sf_serverurl = os.environ.get('SF_SERVERURL_PACKAGING', config.sf_serverurl)
+        config.sf_username = os.environ.get(config.env_prefix + 'SF_USERNAME_PACKAGING')
+        config.sf_password = os.environ.get(config.env_prefix + 'SF_PASSWORD_PACKAGING')
+        config.sf_serverurl = os.environ.get(config.env_prefix + 'SF_SERVERURL_PACKAGING', config.sf_serverurl)
         deploy_packaging.main(args=[], standalone_mode=False, obj=config)
 
 # command: ci next_step
@@ -210,14 +217,14 @@ def next_step(config):
 @pass_config
 def beta_deploy(config, tag, commit, org, run_tests, retries):
     # Check for an ORG_SUFFIX environment variable
-    org = os.environ.get('ORG_SUFFIX', org)
+    org = os.environ.get(config.env_prefix + 'ORG_SUFFIX', org)
 
     # Look up the org via environment variables using a suffix on the variable name
     org_suffix = org.upper()
     
-    config.sf_username = os.environ.get('SF_USERNAME_%s' % org_suffix)
-    config.sf_password = os.environ.get('SF_PASSWORD_%s' % org_suffix)
-    config.sf_serverurl = os.environ.get('SF_SERVERURL_%s' % org_suffix, config.sf_serverurl)
+    config.sf_username = os.environ.get(config.env_prefix + 'SF_USERNAME_' + org_suffix)
+    config.sf_password = os.environ.get(config.env_prefix + 'SF_PASSWORD_' + org_suffix)
+    config.sf_serverurl = os.environ.get(config.env_prefix + 'SF_SERVERURL_' + org_suffix, config.sf_serverurl)
 
     package_version = tag.replace('beta/','').replace('-',' ').replace('Beta','(Beta').replace('_',' ') + ')'
 
