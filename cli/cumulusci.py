@@ -120,9 +120,16 @@ def get_build_info():
     if os.environ.get('CIRCLECI'):
         branch = os.environ.get('CIRCLE_BRANCH')
         commit = os.environ.get('CIRCLE_COMMIT')
+        vendor = 'CircleCI'
     # Drone.io
     # Semaphore
     # Shippable
+    # Bamboo
+    if os.environ.get('bamboo.buildKey'):
+        branch = os.environ.get('bamboo.repository.branch.name')
+        commit = os.environ.get('bamboo.repository.revision.number')
+        vendor = 'Bamboo'
+
     # Fallback to calling git command line?
 
     if branch and branch.startswith('feature/'):
