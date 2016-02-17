@@ -117,7 +117,7 @@ def get_build_info():
     # Codeship
     # Jenkins
     # CicleCI
-    if os.environ.get('CIRCLECI'):
+    elif os.environ.get('CIRCLECI'):
         branch = os.environ.get('CIRCLE_BRANCH')
         commit = os.environ.get('CIRCLE_COMMIT')
         vendor = 'CircleCI'
@@ -125,9 +125,9 @@ def get_build_info():
     # Semaphore
     # Shippable
     # Bamboo
-    if os.environ.get('bamboo_buildKey'):
+    elif os.environ.get('bamboo_buildKey'):
         branch = os.environ.get('bamboo_repository_branch_name')
-        commit = os.environ.get('bamboo_repoistory_revision_number')
+        commit = os.environ.get('bamboo_repository_revision_number')
         vendor = 'Bamboo'
 
     # Fallback to calling git command line?
