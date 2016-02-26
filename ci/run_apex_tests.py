@@ -181,8 +181,14 @@ def parse_log_by_method(class_name, log):
         elif line.find('|CODE_UNIT_FINISHED|') != -1:
             end_timestamp = line.split(' ')[0]
             stats['duration'] = log_time_delta(method_unit_info['start_timestamp'], end_timestamp)
-   
-            child = stack.pop()
+ 
+            try: 
+                child = stack.pop()
+            except:
+                # Skip if there was no stack.  This seems to have have started in Spring 16
+                # where the debug log will contain CODE_UNIT_FINISHED lines which have no matching
+                # CODE_UNIT_STARTED from earlier in the file
+                continue
             child['stats'] = stats
   
             # If the stack is now empty, add the child to the main children list
