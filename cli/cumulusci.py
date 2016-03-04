@@ -82,8 +82,8 @@ class Config(object):
 
         # Org pooling support.  CI builds can pass the ORG_SUFFIX environment variable to use a different set of environment variables
         # for the Salesforce org credentials.
-        self.sf_feature_org_suffix = os.environ.get(self.env_prefix + 'FEATURE_ORG_SUFFIX', 'FEATURE')
-        self.sf_beta_org_suffix = os.environ.get(self.env_prefix + 'BETA_ORG_SUFFIX', 'BETA')
+        self.feature_org_suffix = os.environ.get(self.env_prefix + 'FEATURE_ORG_SUFFIX', 'FEATURE')
+        self.beta_org_suffix = os.environ.get(self.env_prefix + 'BETA_ORG_SUFFIX', 'BETA')
 
         # Parse the cumulusci.properties file if it exists.  Make all variables into attrs by replacing . with __ in the variable name
         self.parse_cumulusci_properties()
