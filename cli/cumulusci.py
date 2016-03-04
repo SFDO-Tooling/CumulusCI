@@ -271,6 +271,7 @@ def dev(config):
 def get_env_cumulusci(config):
     env = {
         'CUMULUSCI_PATH': config.cumulusci_path,
+        'PATH': os.environ.get('PATH'),
     }
     return env
     
