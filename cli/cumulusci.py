@@ -80,6 +80,10 @@ class Config(object):
         self.prefix_release = os.environ.get(self.env_prefix + 'PREFIX_RELEASE', 'release/')
         self.master_branch = os.environ.get(self.env_prefix + 'MASTER_BRANCH', 'master')
 
+        # Org pooling support.  CI builds can pass the ORG_SUFFIX environment variable to use a different set of environment variables
+        # for the Salesforce org credentials.
+        self.sf_feature_org_suffix = os.environ.get(self.env_prefix + 'FEATURE_ORG_SUFFIX', 'FEATURE')
+        self.sf_beta_org_suffix = os.environ.get(self.env_prefix + 'BETA_ORG_SUFFIX', 'BETA')
 
         # Parse the cumulusci.properties file if it exists.  Make all variables into attrs by replacing . with __ in the variable name
         self.parse_cumulusci_properties()
@@ -211,20 +215,13 @@ def next_step(config):
 @click.command(help="Deploys a beta managed package version by its git tag and commit")
 @click.argument('tag')
 @click.argument('commit')
-@click.option('--org', default='beta', help="Override the default org (beta).  The value will be used to look up credentials via environment variable in the form of SF_USERNAME_{{ org|upper }} and SF_PASSWORD_{{ org|upper }}.  Can be overridden by the ORG_SUFFIX environment variable")
 @click.option('--run-tests', default=False, is_flag=True, help='If set, run tests as part of the deployment.  Defaults to not running tests')
 @click.option('--retries', default=3, help="The number of times the installation should retry installation if the prior attempt failed due to a package unavailable error.  This error is common after uploading a package if the test org is on a different pod.  There is a slight delay in copying newly uploaded packages.  Defaults to 3")
 @pass_config
 def beta_deploy(config, tag, commit, org, run_tests, retries):
-    # Check for an ORG_SUFFIX environment variable
-    org = os.environ.get(config.env_prefix + 'ORG_SUFFIX', org)
-
-    # Look up the org via environment variables using a suffix on the variable name
-    org_suffix = org.upper()
-    
-    config.sf_username = os.environ.get(config.env_prefix + 'SF_USERNAME_' + org_suffix)
-    config.sf_password = os.environ.get(config.env_prefix + 'SF_PASSWORD_' + org_suffix)
-    config.sf_serverurl = os.environ.get(config.env_prefix + 'SF_SERVERURL_' + org_suffix, config.sf_serverurl)
+    config.sf_username = os.environ.get(config.env_prefix + 'SF_USERNAME_' + config.beta_org_suffix)
+    config.sf_password = os.environ.get(config.env_prefix + 'SF_PASSWORD_' + config.beta_org_suffix)
+    config.sf_serverurl = os.environ.get(config.env_prefix + 'SF_SERVERURL_' + config.beta_org_suffix, config.sf_serverurl)
 
     package_version = tag.replace('beta/','').replace('-',' ').replace('Beta','(Beta').replace('_',' ') + ')'
 
@@ -521,7 +518,7 @@ def run_tests(config, test_match, test_exclude, namespace, debug_logdir, json_ou
     if namespace:
         env['NAMESPACE'] = test_exclude
     if debug_logdir:
-        env['DEBUG'] = 'True'
+        env['DEBUG_TESTS'] = 'True'
         env['DEBUG_LOGDIR'] = debug_logdir
 
         # ensure the logdir actually exists
