@@ -161,7 +161,7 @@ def ci_deploy(config):
         raise click.BadParameter('Could not determine commit or branch for ci deploy')
         
     if config.build_type == 'feature':
-        click.echo('-- Building with feature branch flow')
+        click.echo('-- Building with feature branch flow against %s org' % config.feature_org_suffix)
         config.sf_username = os.environ.get(config.env_prefix + 'SF_USERNAME_' + config.feature_org_suffix)
         config.sf_password = os.environ.get(config.env_prefix + 'SF_PASSWORD_' + config.feature_org_suffix)
         config.sf_serverurl = os.environ.get(config.env_prefix + 'SF_SERVERURL_' + config.feature_org_suffix, config.sf_serverurl)
