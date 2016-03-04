@@ -162,9 +162,9 @@ def ci_deploy(config):
         
     if config.build_type == 'feature':
         click.echo('-- Building with feature branch flow')
-        config.sf_username = os.environ.get(config.env_prefix + 'SF_USERNAME_FEATURE')
-        config.sf_password = os.environ.get(config.env_prefix + 'SF_PASSWORD_FEATURE')
-        config.sf_serverurl = os.environ.get(config.env_prefix + 'SF_SERVERURL_FEATURE', config.sf_serverurl)
+        config.sf_username = os.environ.get(config.env_prefix + 'SF_USERNAME_' + config.feature_org_suffix)
+        config.sf_password = os.environ.get(config.env_prefix + 'SF_PASSWORD_' + config.feature_org_suffix)
+        config.sf_serverurl = os.environ.get(config.env_prefix + 'SF_SERVERURL_' + config.feature_org_suffix, config.sf_serverurl)
         deploy_unmanaged.main(args=['--run-tests','--full-delete'], standalone_mode=False, obj=config)
 
     elif config.build_type == 'master':
