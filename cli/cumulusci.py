@@ -273,6 +273,9 @@ def get_env_cumulusci(config):
         'CUMULUSCI_PATH': config.cumulusci_path,
         'PATH': os.environ.get('PATH'),
     }
+    venv = os.environ.get('VIRTUAL_ENV')
+    if venv:
+        env['VIRTUAL_ENV'] = venv
     return env
     
 def get_env_sf_org(config):
