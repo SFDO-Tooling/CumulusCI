@@ -605,6 +605,51 @@ def apextestsdb_upload(config, execution_name, results_file_url, repo_url, branc
     p = run_python_script('upload_test_results.py', env, config, required_env=required_env)
 
 
+# command: github commit_status
+@click.command(name='commit_status', help='Set the Github Commit Status for the current commit.  Acceptible state values are pending, success, error, and failure')
+@click.argument('state')
+@click.option('--context', help="The context of this status.  This is usually a string to identify a build system")
+@click.option('--url', help="A url to the build.  This is usually a link to a build system that ran the build")
+@click.option('--description', help="Override the default status description text")
+@click.option('--commit', help="By default, the current local commit is used.  You can pass a commit sha here to set status on a different commit")
+@pass_config
+def github_commit_status(config, state, context, url, description, commit):
+
+    # Build the environment for the command
+    env = get_env_cumulusci(config)
+    env.update(get_env_github(config))
+    env.update(get_env_build(config))
+
+    env['STATE'] = state
+
+    if context:
+        env['CONTEXT'] = context
+    elif config.build_vendor:
+        # Set context to build vendor if it exists
+        env['CONTEXT'] = vendor
+
+    if url:
+        env['BUILD_URL'] = url
+
+    if description:
+        env['DESCRIPTION'] = description
+
+    if commit:
+        env['BUILD_COMMIT'] = commit
+    elif config.commit:
+        env['BUILD_COMMIT'] = config.commit
+
+    required_env = [
+        'GITHUB_ORG_NAME',
+        'GITHUB_REPO_NAME',
+        'GITHUB_USERNAME',
+        'GITHUB_PASSWORD',
+        'STATE',
+        'BUILD_COMMIT',
+    ]
+
+    p = run_python_script('github/set_commit_status.py', env, config, required_env=required_env)
+
 # command: github release
 @click.command(name='release', help='Create a release in Github')
 @click.argument('version')
@@ -779,6 +824,7 @@ cli.add_command(release)
 
 # Group: github
 github.add_command(github_clone_tag)
+github.add_command(github_commit_status)
 github.add_command(github_master_to_feature)
 github.add_command(github_release)
 github.add_command(github_release_notes)

@@ -139,6 +139,7 @@ cumulusci
 
 cumulusci dev
 
+    Detected build information: {}
     Usage: cumulusci dev [OPTIONS] COMMAND [ARGS]...
     
       Commands useful to developers in interacting with Salesforce package
@@ -156,6 +157,7 @@ cumulusci dev
 
 cumulusci dev apextestsdb_upload --help
 
+    Detected build information: {}
     Usage: cumulusci dev apextestsdb_upload [OPTIONS] EXECUTION_NAME
                                             RESULTS_FILE_URL
     
@@ -174,6 +176,7 @@ cumulusci dev apextestsdb_upload --help
 
 cumulusci dev deploy --help
 
+    Detected build information: {}
     Usage: cumulusci dev deploy [OPTIONS]
     
       Runs a full deployment of the code including unused stale package
@@ -198,6 +201,7 @@ cumulusci dev deploy --help
 
 cumulusci dev deploy_managed --help
 
+    Detected build information: {}
     Usage: cumulusci dev deploy_managed [OPTIONS] COMMIT PACKAGE_VERSION
     
       Installs a managed package version and optionally runs the tests from the
@@ -210,6 +214,7 @@ cumulusci dev deploy_managed --help
 
 cumulusci dev run_tests --help
 
+    Detected build information: {}
     Usage: cumulusci dev run_tests [OPTIONS]
     
       Run Apex tests in the target org via the Tooling API and report results.
@@ -242,6 +247,7 @@ cumulusci dev run_tests --help
 
 cumulusci dev update_package_xml --help
 
+    Detected build information: {}
     Usage: cumulusci dev update_package_xml [OPTIONS]
     
       Updates the src/package.xml file by parsing out the metadata under src/
@@ -253,6 +259,7 @@ cumulusci dev update_package_xml --help
 
 cumulusci release
 
+    Detected build information: {}
     Usage: cumulusci release [OPTIONS] COMMAND [ARGS]...
     
       Commands used in the release process and interacting with a Manage Package
@@ -267,6 +274,7 @@ cumulusci release
 
 cumulusci release deploy --help
 
+    Detected build information: {}
     Usage: cumulusci release deploy [OPTIONS]
     
       Runs a full deployment of the code as managed code to the packaging org
@@ -278,6 +286,7 @@ cumulusci release deploy --help
 
 cumulusci release upload_beta --help
 
+    Detected build information: {}
     Usage: cumulusci release upload_beta [OPTIONS] COMMIT
     
       Use Selenium to upload a package version in the packaging org
@@ -295,6 +304,7 @@ cumulusci release upload_beta --help
 
 cumulusci github
 
+    Detected build information: {}
     Usage: cumulusci github [OPTIONS] COMMAND [ARGS]...
     
       Commands for interacting with the Github repository for the project
@@ -304,12 +314,14 @@ cumulusci github
     
     Commands:
       clone_tag          Create one tag referencing the same commit as...
+      commit_status      Set the Github Commit Status for the current...
       master_to_feature  Attempts to merge a commit on the master...
       release            Create a release in Github
       release_notes      Generates release notes by parsing Warning,...
 
 cumulusci github release --help
 
+    Detected build information: {}
     Usage: cumulusci github release [OPTIONS] VERSION COMMIT
     
       Create a release in Github
@@ -319,6 +331,7 @@ cumulusci github release --help
 
 cumulusci github release_notes --help
 
+    Detected build information: {}
     Usage: cumulusci github release_notes [OPTIONS] TAG
     
       Generates release notes by parsing Warning, Info, and Issues headings from
@@ -332,7 +345,27 @@ cumulusci github release_notes --help
       --update-release  If set, add the release notes to the body
       --help            Show this message and exit.
 
+cumulusci github commit_status --help
+
+    Detected build information: {}
+    Usage: cumulusci github commit_status [OPTIONS] STATE
+    
+      Set the Github Commit Status for the current commit.  Acceptible state
+      values are pending, success, error, and failure
+    
+    Options:
+      --context TEXT      The context of this status.  This is usually a string to
+                          identify a build system
+      --url TEXT          A url to the build.  This is usually a link to a build
+                          system that ran the build
+      --description TEXT  Override the default status description text
+      --commit TEXT       By default, the current local commit is used.  You can
+                          pass a commit sha here to set status on a different
+                          commit
+      --help              Show this message and exit.
+
 cumulusci github clone_tag --help
+    Detected build information: {}
     Usage: cumulusci github clone_tag [OPTIONS] SRC_TAG TAG
     
       Create one tag referencing the same commit as another tag
@@ -342,6 +375,7 @@ cumulusci github clone_tag --help
 
 cumulusci github master_to_feature --help
 
+    Detected build information: {}
     Usage: cumulusci github master_to_feature [OPTIONS]
     
       Attempts to merge a commit on the master branch to all open feature
@@ -357,6 +391,7 @@ cumulusci github master_to_feature --help
 
 cumulusci ci
 
+    Detected build information: {}
     Usage: cumulusci ci [OPTIONS] COMMAND [ARGS]...
     
       Commands to make building on CI servers easier
@@ -371,6 +406,7 @@ cumulusci ci
 
 cumulusci ci deploy --help
 
+    Detected build information: {}
     Usage: cumulusci ci deploy [OPTIONS]
     
       Determines the right kind of build for the branch and runs the build
@@ -381,16 +417,12 @@ cumulusci ci deploy --help
 
 cumulusci ci beta_deploy --help
 
+    Detected build information: {}
     Usage: cumulusci ci beta_deploy [OPTIONS] TAG COMMIT
     
       Deploys a beta managed package version by its git tag and commit
     
     Options:
-      --org TEXT         Override the default org (beta).  The value will be used
-                         to look up credentials via environment variable in the
-                         form of SF_USERNAME_{{ org|upper }} and SF_PASSWORD_{{
-                         org|upper }}.  Can be overridden by the ORG_SUFFIX
-                         environment variable
       --run-tests        If set, run tests as part of the deployment.  Defaults to
                          not running tests
       --retries INTEGER  The number of times the installation should retry
@@ -403,6 +435,7 @@ cumulusci ci beta_deploy --help
 
 cumulusci ci next_step --help
 
+    Detected build information: {}
     Usage: cumulusci ci next_step [OPTIONS]
     
       A command to calculate and return the next steps for a ci build to run
