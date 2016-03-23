@@ -626,7 +626,7 @@ def github_commit_status(config, state, context, url, description, commit):
         env['CONTEXT'] = context
     elif config.build_vendor:
         # Set context to build vendor if it exists
-        env['CONTEXT'] = vendor
+        env['CONTEXT'] = config.build_vendor
 
     if url:
         env['BUILD_URL'] = url
