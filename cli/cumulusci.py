@@ -239,7 +239,7 @@ def next_step(config):
 @click.option('--run-tests', default=False, is_flag=True, help='If set, run tests as part of the deployment.  Defaults to not running tests')
 @click.option('--retries', default=3, help="The number of times the installation should retry installation if the prior attempt failed due to a package unavailable error.  This error is common after uploading a package if the test org is on a different pod.  There is a slight delay in copying newly uploaded packages.  Defaults to 3")
 @pass_config
-def beta_deploy(config, tag, commit, org, run_tests, retries):
+def beta_deploy(config, tag, commit, run_tests, retries):
     config.sf_username = config.get_env_var('SF_USERNAME_' + config.beta_org_suffix)
     config.sf_password = config.get_env_var('SF_PASSWORD_' + config.beta_org_suffix)
     config.sf_serverurl = config.get_env_var('SF_SERVERURL_' + config.beta_org_suffix, config.sf_serverurl)
