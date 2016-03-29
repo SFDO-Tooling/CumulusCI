@@ -244,7 +244,7 @@ def beta_deploy(config, tag, commit, run_tests, retries):
     config.sf_password = config.get_env_var('SF_PASSWORD_' + config.beta_org_suffix)
     config.sf_serverurl = config.get_env_var('SF_SERVERURL_' + config.beta_org_suffix, config.sf_serverurl)
 
-    click.echo("Building as user %s" % config.sf_username
+    click.echo("Building as user %s" % config.sf_username)
 
     # FIXME: This hard codes the beta tag prefix
     package_version = tag.replace('beta/','').replace('-',' ').replace('Beta','(Beta').replace('_',' ') + ')'
