@@ -206,9 +206,6 @@ class SalesforcePushApi(object):
     
         self.sf = Salesforce(username=username, password=password, security_token='', sandbox=sandbox, version='35.0')
 
-        # Change base_url to use the tooling api
-        self.sf.base_url = self.sf.base_url + 'tooling/'
-
         if not lazy:
             lazy = []
         self.lazy = lazy
@@ -243,15 +240,6 @@ class SalesforcePushApi(object):
             return query
 
         return '%s LIMIT %s' % (query, limit)
-
-    def get_tooling_object(self, object_name):
-        # Set up a simple-salesforce sobject for TraceFlag using the tooling api
-        obj = getattr(self.sf, object_name)
-        obj.base_url = (u'https://{instance}/services/data/v{sf_version}/tooling/sobjects/{object_name}/'
-                     .format(instance=self.sf.sf_instance,
-                             object_name=object_name,
-                             sf_version=self.sf.sf_version))
-        return obj
 
     @memoize
     def get_packages(self, where=None, limit=None):
@@ -482,12 +470,8 @@ class SalesforcePushApi(object):
             # By default, delay the push start by 15 minutes to allow manual review and intervention
             start = datetime.datetime.now() + datetime.timedelta(0, 15*60)
 
-        # Get the modified simple-salesforce Tooling API endpoint objects
-        ToolingPackagePushRequest = self.get_tooling_object('PackagePushRequest')
-        ToolingPackagePushJob = self.get_tooling_object('PackagePushJob')
-
         # Create the request
-        res = ToolingPackagePushRequest.create({
+        res = self.sf.PackagePushRequest.create({
             'PackageVersionId': version.sf_id,
             'ScheduledStartTime': start.isoformat(),
         })
@@ -496,7 +480,7 @@ class SalesforcePushApi(object):
         # Schedule the orgs
         for org in orgs:
             try:
-                res = ToolingPackagePushJob.create({
+                res = self.sf.PackagePushJob.create({
                     'PackagePushRequestId': request_id,
                     'SubscriberOrganizationKey': org,
                 })
@@ -511,5 +495,4 @@ class SalesforcePushApi(object):
 
     def run_push_request(self, request_id):
         # Set the request to Pending status
-        ToolingPackagePushRequest = self.get_tooling_object('PackagePushRequest')
-        return ToolingPackagePushRequest.update(request_id, {'Status': 'Pending'})
+        return self.sf.PackagePushRequest.update(request_id, {'Status': 'Pending'})
