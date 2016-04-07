@@ -86,7 +86,8 @@ class Config(object):
         self.junit_output = 'test_results_junit.xml'
         self.json_output = 'test_results.json'
 
-        # Branch naming
+        # Branch and tag naming
+        self.prefix_feature = self.get_env_var('PREFIX_FEATURE', 'feature/')
         self.prefix_beta = self.get_env_var('PREFIX_BETA', 'beta/')
         self.prefix_release = self.get_env_var('PREFIX_RELEASE', 'release/')
         self.master_branch = self.get_env_var('MASTER_BRANCH', 'master')
@@ -98,6 +99,18 @@ class Config(object):
 
         # Parse the cumulusci.properties file if it exists.  Make all variables into attrs by replacing . with __ in the variable name
         self.parse_cumulusci_properties()
+
+        # mrbelvedere configuration
+        self.mrbelvedere_base_url = self.get_env_var('MRBELVEDERE_BASE_URL')
+        self.mrbelvedere_package_key = self.get_env_var('MRBELVEDERE_PACKAGE_KEY')
+
+        # Determine the build type
+        self.build_type = self.get_env_var('BUILD_TYPE')
+        if not self.build_type:
+            if self.branch and self.branch.startswith(self.prefix_feature):
+                self.build_type = 'feature'
+            elif self.branch and self.branch == self.master_branch:
+                self.build_type = 'master'
 
     def get_env_var(self, var, default=None):
         var_name = var
@@ -161,14 +174,6 @@ def get_build_info():
         info['build_vendor'] = 'Bamboo'
         info['env_prefix'] = 'bamboo_'
         info['env_mask'] = '_PASSWORD'
-
-    # Fallback to calling git command line?
-
-    if info.get('branch') and info['branch'].startswith('feature/'):
-        info['build_type'] = 'feature'
-
-    elif info.get('branch') and info['branch'] == 'master':
-        info['build_type'] = 'master'
 
     click.echo("Detected build information: %s" % pprint.pformat(info))
 
@@ -343,6 +348,11 @@ def get_env_apextestsdb(config):
         'APEXTESTSDB_BASE_URL': config.apextestsdb_base_url,
         'APEXTESTSDB_USER_ID': config.apextestsdb_user_id,
         'APEXTESTSDB_TOKEN': config.apextestsdb_token,
+    }
+def get_env_mrbelvedere(config):
+    return {
+        'MRBELVEDERE_BASE_URL': config.mrbelvedere_base_url,
+        'MRBELVEDERE_PACKAGE_KEY': config.mrbelvedere_package_key,
     }
    
 def run_ant_target(target, env, config, check_credentials=None): 
@@ -763,6 +773,37 @@ def github_clone_tag(config, src_tag, tag):
 
     p = run_python_script('github/tag_to_tag.py', env, config, required_env=required_env)
 
+# command: mrbelvedere release
+@click.command(name='release', help='Adds a new beta or production release to an existing package in mrbelvedere, sets up dependencies for the installer, and sets the version as the latest beta or production')
+@click.argument('version')
+@click.option('--namespace', help='By default, the cumulusci.package.namespace property from cumulusci.properties will be used.  This option allows you to override the namespace for the package in mrbelvedere if needed')
+@pass_config
+def mrbelvedere_release(config, version, namespace):
+
+    # Build the environment for the command
+    env = get_env_cumulusci(config)
+    env.update(get_env_mrbelvedere(config))
+
+    env['PACKAGE_VERSION'] = version
+    env['PROPERITIES_PATH'] = 'version.properties'
+    if namespace:
+        env['NAMESPACE'] = namespace
+    else:
+        env['NAMESPACE'] = config.cumulusci__package__namespace
+
+    # Determine if this is a production or beta version
+    if version.find('Beta') != -1:
+        env['BETA'] = 'True'
+
+    required_env = [
+        'MRBELVEDERE_BASE_URL',
+        'MRBELVEDERE_PACKAGE_KEY',
+        'NAMESPACE',
+    ]
+
+    p = run_python_script('mrbelvedere_update_dependencies.py', env, config, required_env=required_env)
+
+
 # command: dev deploy_managed
 @click.command(help='Installs a managed package version and optionally runs the tests from the installed managed package')
 @click.argument('commit')
@@ -804,6 +845,11 @@ def release(config):
 def github(config):
     pass
 
+@click.group(help='Commands for interacting with mrbelvedere')
+@pass_config
+def mrbelvedere(config):
+    pass
+
 # Top level commands
 
 # Group: ci
@@ -832,3 +878,7 @@ github.add_command(github_master_to_feature)
 github.add_command(github_release)
 github.add_command(github_release_notes)
 cli.add_command(github)
+
+# Group: mrbelvedere
+mrbelvedere.add_command(mrbelvedere_release)
+cli.add_command(mrbelvedere)
