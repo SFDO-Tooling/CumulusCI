@@ -39,6 +39,7 @@ class Config(object):
         'OAUTH_CALLBACK_URL',
         'INSTANCE_URL',
         'REFRESH_TOKEN',
+        'MRBELVEDERE_PACKAGE_KEY',
     )
     def __init__(self):
         # Default Build Info
