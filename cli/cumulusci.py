@@ -790,7 +790,10 @@ def mrbelvedere_release(config, version, namespace):
     if namespace:
         env['NAMESPACE'] = namespace
     else:
-        env['NAMESPACE'] = config.cumulusci__package__namespace
+        namespace = getattr(config, 'cumulusci__package__namespace__managed', None)
+        if not namespace:
+            namespace = config.cumulusci__package__namespace
+        env['NAMESPACE'] = namespace
 
     # Determine if this is a production or beta version
     if version.find('Beta') != -1:
