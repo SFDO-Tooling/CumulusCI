@@ -485,15 +485,18 @@ def deploy_packaging(config):
 @click.option('--build-name', default='Manual build from CumulusCI CLI', help='If provided, overrides the build name used to name the package version')
 @click.option('--selenium-url', help='If provided, uses a Selenium Server at the specified url.  Example: http://127.0.0.1:4444/wd/hub')
 @click.option('--create-release', is_flag=True, help='If set, creates a release in Github which also creates a tag')
+@click.option('--package', help='By default, the package name will be parsed from the cumulusci.properties file in the repo.  Use the package option to override the package name.')
 @pass_config
-def upload_beta(config, commit, build_name, selenium_url, create_release):
+def upload_beta(config, commit, build_name, selenium_url, create_release, package):
 
     # Build the environment for the command
     env = get_env_cumulusci(config)
     env.update(get_env_sf_org_oauth(config))
     env.update(get_env_build(config))
 
-    if hasattr(config, 'cumulusci__package__name__managed'):
+    if package:
+        env['PACKAGE'] = package
+    elif hasattr(config, 'cumulusci__package__name__managed'):
         env['PACKAGE'] = config.cumulusci__package__name__managed
     elif hasattr(config, 'cumulusci__package__name'):
         env['PACKAGE'] = config.cumulusci__package__name
