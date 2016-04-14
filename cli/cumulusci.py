@@ -493,7 +493,9 @@ def upload_beta(config, commit, build_name, selenium_url, create_release):
     env.update(get_env_sf_org_oauth(config))
     env.update(get_env_build(config))
 
-    if config.cumulusci__package__name:
+    if hasattr(config, 'cumulusci__package__name__managed'):
+        env['PACKAGE'] = config.cumulusci__package__name__managed
+    elif hasattr(config, 'cumulusci__package__name'):
         env['PACKAGE'] = config.cumulusci__package__name
 
     env['BUILD_NAME'] = build_name
@@ -790,10 +792,7 @@ def mrbelvedere_release(config, version, namespace):
     if namespace:
         env['NAMESPACE'] = namespace
     else:
-        namespace = getattr(config, 'cumulusci__package__namespace__managed', None)
-        if not namespace:
-            namespace = config.cumulusci__package__namespace
-        env['NAMESPACE'] = namespace
+        env['NAMESPACE'] = config.cumulusci__package__namespace
 
     # Determine if this is a production or beta version
     if version.find('Beta') != -1:
