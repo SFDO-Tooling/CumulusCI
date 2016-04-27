@@ -33,6 +33,7 @@ def create_release():
     BUILD_WORKSPACE=os.environ.get('BUILD_WORKSPACE')
     BUILD_WORKSPACE=os.environ.get('BUILD_WORKSPACE')
     PREFIX_BETA=os.environ.get('PREFIX_BETA', 'beta/')
+    MESSAGE=os.environ.get('MESSAGE', 'Tag created by CumulusCI master flow build')
     
     existing = None
     
@@ -45,20 +46,38 @@ def create_release():
     if existing:
         print 'Release for %s already exists' % PACKAGE_VERSION
         exit()
-    
+
     tag_name = PACKAGE_VERSION.replace(' (','-').replace(')','').replace(' ','_')
-    
+    tag_name = '%s%s' % (PREFIX_BETA, tag_name)
+
+    # Create the lightweight tag
     data = {
-        'tag_name': '%s%s' % (PREFIX_BETA, tag_name),
+        'tag': tag_name,
+        'message': MESSAGE,
+        'object': BUILD_COMMIT,
+        'type': 'commit',
+    }
+    tag = call_api(ORG_NAME, REPO_NAME, '/git/tags', data=data, username=USERNAME, password=PASSWORD)
+
+    # Annotate the tag
+    data = {
+        'ref': 'refs/tags/%s' % tag_name,
+        'sha': tag['sha'],
+    }
+    ref = call_api(ORG_NAME, REPO_NAME, '/git/refs', data=data, username=USERNAME, password=PASSWORD)
+
+    # Create the release
+    data = {
+        'tag_name': tag_name,
         'target_commitish': BUILD_COMMIT,
         'name': PACKAGE_VERSION,
         'body': '',
         'draft': False,
         'prerelease': True,
     }
-    
+
     rel = call_api(ORG_NAME, REPO_NAME, '/releases', data=data, username=USERNAME, password=PASSWORD)
-    
+   
     print 'Release created:'
     print rel
 

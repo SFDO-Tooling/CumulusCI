@@ -47,6 +47,8 @@ class Config(object):
         self.env_mask = None
         self.branch = None
         self.commit = None
+        self.build_id = None
+        self.build_url = None
         self.build_type = None
         self.build_vendor = None
         self.build_workspace = '.'
@@ -105,13 +107,39 @@ class Config(object):
         self.mrbelvedere_base_url = self.get_env_var('MRBELVEDERE_BASE_URL')
         self.mrbelvedere_package_key = self.get_env_var('MRBELVEDERE_PACKAGE_KEY')
 
+        # Calculated values
+        self.build_type = self.get_build_type()
+        self.tag_message = self.get_tag_message()
+
+
+    def get_build_type(self):
         # Determine the build type
-        self.build_type = self.get_env_var('BUILD_TYPE')
-        if not self.build_type:
+        build_type = self.get_env_var('BUILD_TYPE')
+        if not build_type:
             if self.branch and self.branch.startswith(self.prefix_feature):
-                self.build_type = 'feature'
+                build_type = 'feature'
             elif self.branch and self.branch == self.master_branch:
-                self.build_type = 'master'
+                build_type = 'master'
+        return build_type
+
+    def get_tag_message(self):
+        # Determine the tag message.  This is used as a key to find tags created by the current build
+
+        # We only have a tag message on master builds
+        if not self.build_type == 'master':
+            return None
+
+        message = ['Tag created by',]
+
+        if self.build_id:
+            message.append('build %s' % self.build_id) 
+        else:
+            message.append('CumulusCI master flow build')
+
+        if self.build_vendor:
+            message.append('on %s' % self.build_vendor) 
+
+        return ' '.join(message)
 
     def get_env_var(self, var, default=None):
         var_name = var
@@ -173,6 +201,19 @@ def get_build_info():
         info['branch'] = os.environ.get('bamboo_repository_branch_name')
         info['commit'] = os.environ.get('bamboo_repository_revision_number')
         info['build_vendor'] = 'Bamboo'
+
+        # Bamboo sets the build id and url variables to be unique to the job but we're interested
+        # in the plan level build id and url.  Thus, we parse out the job portion to get the plan values
+        job_key = os.environ.get('bamboo_shortJobKey')  # ex: JOB1
+        job_build_key = os.environ.get('bamboo_buildResultKey') # ex: REPO-PLAN1-JOB1-123
+
+        build_id = job_build_key
+        build_id = build_id.replace('-%s-' % job_key, '-') # ex: REPO-PLAN1-123
+        build_url = os.environ.get('bamboo_buildResultUrl') # ex: https://your_bamboo_url/builds/browse/REPO-PLAN1-JOB1-123
+        build_url = build_url.replace(job_build_key, build_id) # ex: https://your_bamboo_url/builds/browse/REPO-PLAN1-123
+        
+        info['build_id'] = build_id
+        info['build_url'] = build_url
         info['env_prefix'] = 'bamboo_'
         info['env_mask'] = '_PASSWORD'
 
@@ -681,8 +722,11 @@ def github_release(config, version, commit):
     env.update(get_env_github(config))
     env.update(get_env_build(config))
 
+    env['BUILD_COMMIT'] = commit
     env['PACKAGE_VERSION'] = version
     env['PREFIX_BETA'] = config.prefix_beta
+    if config.tag_message:
+        env['MESSAGE'] = config.tag_message
 
     required_env = [
         'GITHUB_ORG_NAME',
