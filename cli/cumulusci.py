@@ -209,7 +209,7 @@ def get_build_info():
 
         build_id = job_build_key
         build_id = build_id.replace('-%s-' % job_key, '-') # ex: REPO-PLAN1-123
-        build_url = os.environ.get('bamboo_buildResultUrl') # ex: https://your_bamboo_url/builds/browse/REPO-PLAN1-JOB1-123
+        build_url = os.environ.get('bamboo_buildResultsUrl') # ex: https://your_bamboo_url/builds/browse/REPO-PLAN1-JOB1-123
         build_url = build_url.replace(job_build_key, build_id) # ex: https://your_bamboo_url/builds/browse/REPO-PLAN1-123
         
         info['build_id'] = build_id
