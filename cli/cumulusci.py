@@ -327,7 +327,7 @@ def beta_deploy(config, tag, commit, run_tests, retries):
             retries - 1,
         ]
         if run_tests:
-            args.append('--runtests')
+            args.append('--run-tests')
 
         # Construct a list of args that are all strings
         str_args = [str(arg) for arg in args]
