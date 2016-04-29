@@ -293,12 +293,12 @@ def beta_deploy(config, tag, commit, run_tests, retries):
 
     click.echo("Building as user %s" % config.sf_username)
 
-    # FIXME: This hard codes the beta tag prefix
-    package_version = tag.replace('beta/','').replace('-',' ').replace('Beta','(Beta').replace('_',' ') + ')'
+    package_version = tag.replace(config.prefix_beta,'').replace('-',' ').replace('Beta','(Beta').replace('_',' ') + ')'
 
     args = [config.commit, package_version]
     if run_tests:
         args.append('--run-tests')
+        args.append('--no-exit')
 
     try:
         # Call the deploy_managed command to install the beta
@@ -309,7 +309,11 @@ def beta_deploy(config, tag, commit, run_tests, retries):
         error = repr(e)
 
         # Only retry if there are retries and the version doesn't exist, raise all other exceptions
-        if not retries or (error.find('Error: Invalid Package, Details: This package is not yet available') == -1 and error.find('Error: InstalledPackage version number : %s does not exist!' % package_version) == -1):
+        if not retries:
+            click.echo('----- No retries remaining -----')
+            raise e
+
+        if error.find('Error: Invalid Package, Details: This package is not yet available') == -1 and error.find('Error: InstalledPackage version number : %s does not exist!' % package_version) == -1:
             raise e
 
         click.echo("Retrying installation of %s due to package unavailable error.  Sleeping for 1 minute before retrying installation.  %s retries remain" % (package_version, retries - 1))
@@ -397,7 +401,7 @@ def get_env_mrbelvedere(config):
         'MRBELVEDERE_PACKAGE_KEY': config.mrbelvedere_package_key,
     }
    
-def run_ant_target(target, env, config, check_credentials=None): 
+def run_ant_target(target, env, config, check_credentials=None, no_exit=None): 
     if check_credentials:
         try:
             check_salesforce_credentials(env)
@@ -429,13 +433,22 @@ def run_ant_target(target, env, config, check_credentials=None):
                 raise AntTargetException(logtxt)
         except DeploymentException as e:
             click.echo('BUILD FAILED: One or more deployment errors occurred')
-            sys.exit(2)
+            if no_exit:
+                raise e
+            else:
+                sys.exit(2)
         except ApexTestException as e:
             click.echo('BUILD FAILED: One or more Apex tests failed')
-            sys.exit(3)
+            if no_exit:
+                raise e
+            else:
+                sys.exit(3)
         except AntTargetException as e:
             click.echo('BUILD FAILED: One or more Ant target errors occurred')
-            sys.exit(1)
+            if no_exit:
+                raise e
+            else:
+                sys.exit(1)
     return p
 
 def check_required_env(env, required_env):
@@ -859,8 +872,9 @@ def mrbelvedere_release(config, version, namespace):
 @click.argument('commit')
 @click.argument('package_version')
 @click.option('--run-tests', is_flag=True, help='If True, run tests as part of the deployment.  Defaults to False')
+@click.option('--no-exit', is_flag=True, help='If True, do not exit on exception.  Instead, throw the exception so the caller can handle it.  This is used to allow for retrying a managed package installation if the package is unavailable.  Defaults to False')
 @pass_config
-def deploy_managed(config, commit, package_version, run_tests):
+def deploy_managed(config, commit, package_version, run_tests, no_exit):
     # Determine the deploy target to use based on options
     target = 'deployManaged'
     if package_version.find('(Beta ') != -1:
@@ -876,7 +890,7 @@ def deploy_managed(config, commit, package_version, run_tests):
     env['PACKAGE_VERSION'] = package_version
     env['BUILD_COMMIT'] = commit
 
-    p = run_ant_target(target, env, config, check_credentials=True)
+    p = run_ant_target(target, env, config, check_credentials=True, no_exit=no_exit)
 
 # command: dev update_package_xml
 @click.command(help='Updates the src/package.xml file by parsing out the metadata under src/')
