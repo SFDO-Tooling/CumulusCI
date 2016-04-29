@@ -323,8 +323,6 @@ def beta_deploy(config, tag, commit, run_tests, retries):
         args = [
             tag,
             commit,
-            '--org',
-            org,
             '--retries',
             retries - 1,
         ]
