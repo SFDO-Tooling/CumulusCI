@@ -334,7 +334,7 @@ def beta_deploy(config, tag, commit, run_tests, retries):
         click.echo("Retry command: cumulusci ci beta_deploy %s" % ' '.join(str_args))
 
         # Retry
-        deploy_beta.main(args=args, standalone_mode=False)
+        beta_deploy.main(args=args, standalone_mode=False)
         
 
 @click.group(help="Commands useful to developers in interacting with Salesforce package source metadata")
