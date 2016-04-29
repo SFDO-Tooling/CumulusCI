@@ -329,7 +329,9 @@ def beta_deploy(config, tag, commit, run_tests, retries):
         if run_tests:
             args.append('--runtests')
 
-        click.echo("Retry command: cumulusci ci beta_deploy %s" % ' '.join(args))
+        # Construct a list of args that are all strings
+        str_args = [str(arg) for arg in args]
+        click.echo("Retry command: cumulusci ci beta_deploy %s" % ' '.join(str_args))
 
         # Retry
         deploy_beta.main(args=args, standalone_mode=False)
