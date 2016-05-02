@@ -291,6 +291,8 @@ def beta_deploy(config, tag, commit, run_tests, retries):
     config.sf_password = config.get_env_var('SF_PASSWORD_' + config.beta_org_suffix)
     config.sf_serverurl = config.get_env_var('SF_SERVERURL_' + config.beta_org_suffix, config.sf_serverurl)
 
+    retries = int(retries)
+
     click.echo("Building as user %s" % config.sf_username)
 
     package_version = tag.replace(config.prefix_beta,'').replace('-',' ').replace('Beta','(Beta').replace('_',' ') + ')'
