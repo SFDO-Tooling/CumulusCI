@@ -297,10 +297,9 @@ def beta_deploy(config, tag, commit, run_tests, retries):
 
     package_version = tag.replace(config.prefix_beta,'').replace('-',' ').replace('Beta','(Beta').replace('_',' ') + ')'
 
-    args = [config.commit, package_version]
+    args = [config.commit, package_version, '--no-exit']
     if run_tests:
         args.append('--run-tests')
-        args.append('--no-exit')
 
     try:
         # Call the deploy_managed command to install the beta
