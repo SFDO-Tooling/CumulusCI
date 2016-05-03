@@ -223,8 +223,9 @@ def get_build_info():
 
 # command: ci deploy
 @click.command(name='deploy', help="Determines the right kind of build for the branch and runs the build including tests")
+@click.option('--debug-logdir', help="A directory to store debug logs from each test class.  If specified, a TraceFlag is created which captures debug logs.  When all tests have completed, the debug logs are downloaded to the specified directory.  They are then parsed to capture detail information on the test.  See cumulusci dev deploy --json-output for more details")
 @pass_config
-def ci_deploy(config):
+def ci_deploy(config, debug_logdir):
     if not config.commit or not config.branch:
         raise click.BadParameter('Could not determine commit or branch for ci deploy')
         
@@ -233,7 +234,17 @@ def ci_deploy(config):
         config.sf_username = config.get_env_var('SF_USERNAME_' + config.feature_org_suffix)
         config.sf_password = config.get_env_var('SF_PASSWORD_' + config.feature_org_suffix)
         config.sf_serverurl = config.get_env_var('SF_SERVERURL_' + config.feature_org_suffix, config.sf_serverurl)
-        deploy_unmanaged.main(args=['--run-tests','--full-delete'], standalone_mode=False, obj=config)
+        args = ['--run-tests', '--full-delete']
+
+        if debug_logdir:
+            # Create directory if it doesn't exist
+            if not os.path.exists(debug_logdir):
+                os.makedirs(debug_logdir)
+       
+            # Pass argument 
+            args += ['--debug-logdir',debug_logdir]
+            
+        deploy_unmanaged.main(args=args, standalone_mode=False, obj=config)
 
     elif config.build_type == 'master':
         click.echo('-- Building with master branch flow')
@@ -605,7 +616,7 @@ def upload_beta(config, commit, build_name, selenium_url, create_release, packag
 @click.option('--test-exclude', help="Similar to --test-match, but adds exclusions to the test name matching.  Defaults to no value.  You can use commas to separate multiple values")
 @click.option('--namespace', help="If set, only search for tests inside the specified namespace.  By default, all unmanaged tests are searched")
 @click.option('--debug-logdir', help="A directory to store debug logs from each test class.  If specified, a TraceFlag is created which captures debug logs.  When all tests have completed, the debug logs are downloaded to the specified directory.  They are then parsed to capture detail information on the test.  See --json-output for more details")
-@click.option('--json-output', help="If set, outputs test results data in json format to the specified file.  This option is most useful with the --debug-logs option.  The resulting json file contains detailed information on the code execution structure of each test method including cumulative limits usage both inside and outside the startTest/stopTest context")
+@click.option('--json-output', default="test_results.json", help="If set, outputs test results data in json format to the specified file.  This option is most useful with the --debug-logs option.  The resulting json file contains detailed information on the code execution structure of each test method including cumulative limits usage both inside and outside the startTest/stopTest context")
 @pass_config
 def run_tests(config, test_match, test_exclude, namespace, debug_logdir, json_output):
     # Build the environment for the command
