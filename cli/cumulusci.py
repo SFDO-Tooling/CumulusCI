@@ -362,13 +362,13 @@ def beta_deploy(config, tag, commit, run_tests, retries):
         # Retry
         beta_deploy.main(args=args, standalone_mode=False)
         
-# command: ci apextestsdb
-@click.command(name='apextestsdb', help="Uploads the json output file containing parsed data from debug logs to the ApexTestsDB app")
+# command: ci apextestsdb_upload
+@click.command(name='apextestsdb_upload', help="Uploads the json output file containing parsed data from debug logs to the ApexTestsDB app")
 @click.option('--environment', help="Set a custom name for the build environment")
 @pass_config
-def ci_apextestsdb(config, environment):
+def ci_apextestsdb_upload(config, environment):
     if not config.commit or not config.branch:
-        raise click.BadParameter('Could not determine commit or branch for ci apextestsdb')
+        raise click.BadParameter('Could not determine commit or branch for ci apextestsdb_upload')
 
     args = []
 
@@ -1001,7 +1001,7 @@ def mrbelvedere(config):
 ci.add_command(ci_deploy)
 ci.add_command(next_step)
 ci.add_command(beta_deploy)
-ci.add_command(ci_apextestsdb)
+ci.add_command(ci_apextestsdb_upload)
 cli.add_command(ci)
 
 # Group: dev
