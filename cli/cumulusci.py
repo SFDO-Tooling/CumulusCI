@@ -108,6 +108,12 @@ class Config(object):
         self.mrbelvedere_base_url = self.get_env_var('MRBELVEDERE_BASE_URL')
         self.mrbelvedere_package_key = self.get_env_var('MRBELVEDERE_PACKAGE_KEY')
 
+        # ApexTestsDB configuration
+        self.apextestsdb_base_url = self.get_env_var('APEXTESTSDB_BASE_URL')
+        self.apextestsdb_user_id = self.get_env_var('APEXTESTSDB_USER_ID')
+        self.apextestsdb_token = self.get_env_var('APEXTESTSDB_TOKEN')
+
+
         # Calculated values
         self.build_type = self.get_build_type()
         self.tag_message = self.get_tag_message()
@@ -356,13 +362,13 @@ def beta_deploy(config, tag, commit, run_tests, retries):
         # Retry
         beta_deploy.main(args=args, standalone_mode=False)
         
-# command: ci apextestsdb_upload
-@click.command(name='apextestsdb_upload', help="Uploads the json output file containing parsed data from debug logs to the ApexTestsDB app")
+# command: ci apextestsdb
+@click.command(name='apextestsdb', help="Uploads the json output file containing parsed data from debug logs to the ApexTestsDB app")
 @click.option('--environment', help="Set a custom name for the build environment")
 @pass_config
-def ci_apextestsdb_upload(config, environment):
+def ci_apextestsdb(config, environment):
     if not config.commit or not config.branch:
-        raise click.BadParameter('Could not determine commit or branch for ci apextestsdb_upload')
+        raise click.BadParameter('Could not determine commit or branch for ci apextestsdb')
 
     args = []
 
@@ -394,7 +400,8 @@ def ci_apextestsdb_upload(config, environment):
     else:
         raise click.BadParameter('Could not determine results_file_url for vendor "%s"' % config.build_vendor)
 
-    click.echo("Calling: cumulusci dev apextestsdb_upload %s" % ' '.join(args))
+    str_args = [str(arg) for arg in args]
+    click.echo("Calling: cumulusci dev apextestsdb_upload %s" % ' '.join(str_args))
 
     apextestsdb_upload.main(args=args, standalone_mode=False, obj=config)
 
@@ -592,7 +599,11 @@ def deploy_unmanaged(config, run_tests, full_delete, ee_org, deploy_only, debug_
     p = run_ant_target(target, env, config, check_credentials=True)
 
 # command: release deploy
-@click.command(name='deploy', help='Runs a full deployment of the code as managed code to the packaging org including setting up dependencies, deleting metadata removed from the repository, deploying the code, and optionally running tests')
+@click.command(
+    name='deploy', 
+    help='Runs a full deployment of the code as managed code to the packaging org including setting up dependencies, deleting metadata removed from the repository, deploying the code, and optionally running tests',
+    context_settings={'color': True},
+)
 @pass_config
 def deploy_packaging(config):
     # Determine the deploy target to use based on options
@@ -719,16 +730,14 @@ def run_tests(config, test_match, test_exclude, namespace, debug_logdir, json_ou
 @click.option('--commit', help="Set to override the commit sha for the report")
 @click.option('--execution-url', help="Set to provide a link back to execution results")
 @click.option('--environment', help="Set a custom name for the build environment")
+@pass_config
 def apextestsdb_upload(config, execution_name, results_file_url, repo_url, branch, commit, execution_url, environment):
     # Build the environment for the command
     env = get_env_cumulusci(config)
     env.update(get_env_apextestsdb(config))
     env.update(get_env_build(config))
 
-    env['PACKAGE_VERSION'] = version
-    env['PREFIX_BETA'] = config.prefix_beta
-
-    env['REPOSITORY_URL'] = repository_url
+    env['REPOSITORY_URL'] = repo_url
     env['BRANCH'] = branch
     env['COMMIT_SHA'] = commit
     env['EXECUTION_NAME'] = execution_name
@@ -992,7 +1001,7 @@ def mrbelvedere(config):
 ci.add_command(ci_deploy)
 ci.add_command(next_step)
 ci.add_command(beta_deploy)
-ci.add_command(apextestsdb_upload)
+ci.add_command(ci_apextestsdb)
 cli.add_command(ci)
 
 # Group: dev
