@@ -500,8 +500,9 @@ def run_python_script(script, env, config, required_env=None):
 @click.option('--full-delete', default=False, is_flag=True, help='If set, delete all package metadata at the start of the build instead of doing an incremental delete.  **WARNING**: This deletes all package metadata, use with caution.  This option can be necessary if you have reference issues during an incremental delete deployment.')
 @click.option('--ee-org', default=False, is_flag=True, help='If set, use the deployUnmanagedEE target which prepares the code for loading into a production Enterprise Edition org.  Defaults to False.')
 @click.option('--deploy-only', default=False, is_flag=True, help='If set, runs only the deployWithoutTest target.  Does not clean the org, update dependencies, or run any tests.  This option invalidates all other options')
+@click.option('--debug-logdir', help="A directory to store debug logs from each test class.  If specified, a TraceFlag is created which captures debug logs.  When all tests have completed, the debug logs are downloaded to the specified directory.  They are then parsed to capture detail information on the test.  See cumulusci dev deploy --json-output for more details")
 @pass_config
-def deploy_unmanaged(config, run_tests, full_delete, ee_org, deploy_only):
+def deploy_unmanaged(config, run_tests, full_delete, ee_org, deploy_only, debug_logdir):
 
     # Determine the deploy target to use based on options
     target = None
@@ -516,6 +517,14 @@ def deploy_unmanaged(config, run_tests, full_delete, ee_org, deploy_only):
             target = 'deployCI'
         else:
             target = 'deployDevOrg'
+
+    if debug_logdir:
+        env['DEBUG_TESTS'] = 'True'
+        env['DEBUG_LOGDIR'] = debug_logdir
+
+        # ensure the logdir actually exists
+        if not os.path.exists(debug_logdir):
+            os.makedirs(debug_logdir)
 
     # Build the environment for the command
     env = get_env_cumulusci(config)
