@@ -130,10 +130,11 @@ cumulusci
       --help  Show this message and exit.
     
     Commands:
-      ci       Commands to make building on CI servers...
-      dev      Commands useful to developers in interacting...
-      github   Commands for interacting with the Github...
-      release  Commands used in the release process and...
+      ci           Commands to make building on CI servers...
+      dev          Commands useful to developers in interacting...
+      github       Commands for interacting with the Github...
+      mrbelvedere  Commands for interacting with mrbelvedere
+      release      Commands used in the release process and...
 
 ## (dev) For Developers
 
@@ -184,20 +185,28 @@ cumulusci dev deploy --help
       running tests
     
     Options:
-      --run-tests    If set, run tests as part of the deployment.  Defaults to not
-                     running tests
-      --full-delete  If set, delete all package metadata at the start of the build
-                     instead of doing an incremental delete.  **WARNING**: This
-                     deletes all package metadata, use with caution.  This option
-                     can be necessary if you have reference issues during an
-                     incremental delete deployment.
-      --ee-org       If set, use the deployUnmanagedEE target which prepares the
-                     code for loading into a production Enterprise Edition org.
-                     Defaults to False.
-      --deploy-only  If set, runs only the deployWithoutTest target.  Does not
-                     clean the org, update dependencies, or run any tests.  This
-                     option invalidates all other options
-      --help         Show this message and exit.
+      --run-tests          If set, run tests as part of the deployment.  Defaults
+                           to not running tests
+      --full-delete        If set, delete all package metadata at the start of the
+                           build instead of doing an incremental delete.
+                           **WARNING**: This deletes all package metadata, use
+                           with caution.  This option can be necessary if you have
+                           reference issues during an incremental delete
+                           deployment.
+      --ee-org             If set, use the deployUnmanagedEE target which prepares
+                           the code for loading into a production Enterprise
+                           Edition org.  Defaults to False.
+      --deploy-only        If set, runs only the deployWithoutTest target.  Does
+                           not clean the org, update dependencies, or run any
+                           tests.  This option invalidates all other options
+      --debug-logdir TEXT  A directory to store debug logs from each test class.
+                           If specified, a TraceFlag is created which captures
+                           debug logs.  When all tests have completed, the debug
+                           logs are downloaded to the specified directory.  They
+                           are then parsed to capture detail information on the
+                           test.  See cumulusci dev deploy --json-output for more
+                           details
+      --help               Show this message and exit.
 
 cumulusci dev deploy_managed --help
 
@@ -210,6 +219,10 @@ cumulusci dev deploy_managed --help
     Options:
       --run-tests  If True, run tests as part of the deployment.  Defaults to
                    False
+      --no-exit    If True, do not exit on exception.  Instead, throw the
+                   exception so the caller can handle it.  This is used to allow
+                   for retrying a managed package installation if the package is
+                   unavailable.  Defaults to False
       --help       Show this message and exit.
 
 cumulusci dev run_tests --help
@@ -298,6 +311,9 @@ cumulusci release upload_beta --help
                            url.  Example: http://127.0.0.1:4444/wd/hub
       --create-release     If set, creates a release in Github which also creates
                            a tag
+      --package TEXT       By default, the package name will be parsed from the
+                           cumulusci.properties file in the repo.  Use the package
+                           option to override the package name.
       --help               Show this message and exit.
 
 ## (github) Github Scripts
@@ -400,9 +416,10 @@ cumulusci ci
       --help  Show this message and exit.
     
     Commands:
-      beta_deploy  Deploys a beta managed package version by its...
-      deploy       Determines the right kind of build for the...
-      next_step    A command to calculate and return the next...
+      apextestsdb_upload  Upload a test_results.json file to the...
+      beta_deploy         Deploys a beta managed package version by its...
+      deploy              Determines the right kind of build for the...
+      next_step           A command to calculate and return the next...
 
 cumulusci ci deploy --help
 
@@ -413,7 +430,14 @@ cumulusci ci deploy --help
       including tests
     
     Options:
-      --help  Show this message and exit.
+      --debug-logdir TEXT  A directory to store debug logs from each test class.
+                           If specified, a TraceFlag is created which captures
+                           debug logs.  When all tests have completed, the debug
+                           logs are downloaded to the specified directory.  They
+                           are then parsed to capture detail information on the
+                           test.  See cumulusci dev deploy --json-output for more
+                           details
+      --help               Show this message and exit.
 
 cumulusci ci beta_deploy --help
 
@@ -432,6 +456,25 @@ cumulusci ci beta_deploy --help
                          is a slight delay in copying newly uploaded packages.
                          Defaults to 3
       --help             Show this message and exit.
+
+cumulusci ci apextestsdb_upload --help
+
+    Detected build information: {}
+    Usage: cumulusci ci apextestsdb_upload [OPTIONS] EXECUTION_NAME
+                                           RESULTS_FILE_URL
+    
+      Upload a test_results.json file to the ApexTestsDB web application for
+      analysis.  NOTE: This does not currently work with local files.  You will
+      have to upload the file to an internet accessible web server and provide
+      the path.
+    
+    Options:
+      --repo-url TEXT       Set to override the repository url for the report
+      --branch TEXT         Set to override the branch for the report
+      --commit TEXT         Set to override the commit sha for the report
+      --execution-url TEXT  Set to provide a link back to execution results
+      --environment TEXT    Set a custom name for the build environment
+      --help                Show this message and exit.
 
 cumulusci ci next_step --help
 

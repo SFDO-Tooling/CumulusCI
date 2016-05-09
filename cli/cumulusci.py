@@ -40,6 +40,8 @@ class Config(object):
         'INSTANCE_URL',
         'REFRESH_TOKEN',
         'MRBELVEDERE_PACKAGE_KEY',
+        'APEXTESTSDB_USER_ID',
+        'APEXTESTSDB_TOKEN',
     )
     def __init__(self):
         # Default Build Info
@@ -52,6 +54,7 @@ class Config(object):
         self.build_type = None
         self.build_vendor = None
         self.build_workspace = '.'
+        self.build_repo_url = None
         self.steps_feature = ''
         self.steps_master = ''
 
@@ -211,9 +214,15 @@ def get_build_info():
         build_id = build_id.replace('-%s-' % job_key, '-') # ex: REPO-PLAN1-123
         build_url = os.environ.get('bamboo_buildResultsUrl') # ex: https://your_bamboo_url/builds/browse/REPO-PLAN1-JOB1-123
         build_url = build_url.replace(job_build_key, build_id) # ex: https://your_bamboo_url/builds/browse/REPO-PLAN1-123
+
+        build_repo_url = os.environ.get('bamboo_planRepository_repositoryUrl')
+        if build_repo_url.endswith('.git'):
+            # Remove .git from end of repo url
+            build_repo_url = build_repo_url[:-4]
         
         info['build_id'] = build_id
         info['build_url'] = build_url
+        info['build_repo_url'] = build_repo_url
         info['env_prefix'] = 'bamboo_'
         info['env_mask'] = '_PASSWORD'
 
@@ -349,6 +358,42 @@ def beta_deploy(config, tag, commit, run_tests, retries):
         # Retry
         beta_deploy.main(args=args, standalone_mode=False)
         
+# command: ci apextestsdb_upload
+@click.command(name='apextestsdb_upload', help="Uploads the json output file containing parsed data from debug logs to the ApexTestsDB app")
+@click.option('--environment', help="Set a custom name for the build environment")
+@pass_config
+def ci_apextestsdb_upload(config, environment):
+    if not config.commit or not config.branch:
+        raise click.BadParameter('Could not determine commit or branch for ci apextestsdb_upload')
+
+    args = []
+
+    # arg: execution_name
+    args.append(config.build_id)
+
+    # arg: results_file_url
+    if config.build_vendor == 'Bamboo':
+        # NOTE: This url structure assumes you name the artifact in Bamboo the same as the json_output filename
+        results_file_url = '%s/artifact/shared/%s/%s' % (config.build_url, config.json_output, config.json_output)
+        click.echo('results_file_url = %s' % results_file_url)
+        args.append(results_file_url)
+    else:
+        raise click.BadParameter('Could not determine results_file_url for vendor "%s"' % config.build_vendor)
+
+    # opt: --repo-url
+    args += ['--repo-url', config.build_repo_url]
+    
+    # opt: --branch
+    args += ['--branch', config.branch]
+        
+    # opt: --commit
+    args += ['--commit', config.commit]
+
+    # opt: --execution-url
+    args += ['--execution-url', config.build_url]
+
+    apextestsdb_upload.main(args=args, standalone_mode=False, obj=config)
+
 
 @click.group(help="Commands useful to developers in interacting with Salesforce package source metadata")
 @pass_config
@@ -943,6 +988,7 @@ def mrbelvedere(config):
 ci.add_command(ci_deploy)
 ci.add_command(next_step)
 ci.add_command(beta_deploy)
+ci.add_command(apextestsdb_upload)
 cli.add_command(ci)
 
 # Group: dev
