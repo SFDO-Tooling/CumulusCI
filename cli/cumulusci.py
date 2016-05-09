@@ -518,14 +518,6 @@ def deploy_unmanaged(config, run_tests, full_delete, ee_org, deploy_only, debug_
         else:
             target = 'deployDevOrg'
 
-    if debug_logdir:
-        env['DEBUG_TESTS'] = 'True'
-        env['DEBUG_LOGDIR'] = debug_logdir
-
-        # ensure the logdir actually exists
-        if not os.path.exists(debug_logdir):
-            os.makedirs(debug_logdir)
-
     # Build the environment for the command
     env = get_env_cumulusci(config)
     env.update(get_env_sf_org(config))
@@ -537,6 +529,15 @@ def deploy_unmanaged(config, run_tests, full_delete, ee_org, deploy_only, debug_
         if full_delete:
             env['UNMANAGED_DESTROY_MODE'] = 'full'
         click.echo('Metadata deletion mode: %s' % env['UNMANAGED_DESTROY_MODE'])
+
+    # Set debug log capture
+    if debug_logdir:
+        env['DEBUG_TESTS'] = 'True'
+        env['DEBUG_LOGDIR'] = debug_logdir
+
+        # ensure the logdir actually exists
+        if not os.path.exists(debug_logdir):
+            os.makedirs(debug_logdir)
 
     # Run the command
     p = run_ant_target(target, env, config, check_credentials=True)
