@@ -385,8 +385,9 @@ def ci_apextestsdb_upload(config, environment):
     args += ['--execution-url', config.build_url]
 
     # opt: --environment
-    if environment:
-        args += ['--environment', environment]
+    if not environment:
+        environment = '%s org' % config.build_type
+    args += ['--environment', environment]
 
     # arg: execution_name
     args.append(config.build_id)
@@ -738,7 +739,7 @@ def apextestsdb_upload(config, execution_name, results_file_url, repo_url, branc
     env.update(get_env_build(config))
 
     env['REPOSITORY_URL'] = repo_url
-    env['BRANCH'] = branch
+    env['BRANCH_NAME'] = branch
     env['COMMIT_SHA'] = commit
     env['EXECUTION_NAME'] = execution_name
     env['EXECUTION_URL'] = execution_url
