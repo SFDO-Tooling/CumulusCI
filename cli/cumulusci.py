@@ -366,18 +366,6 @@ def ci_apextestsdb_upload(config, environment):
 
     args = []
 
-    # arg: execution_name
-    args.append(config.build_id)
-
-    # arg: results_file_url
-    if config.build_vendor == 'Bamboo':
-        # NOTE: This url structure assumes you name the artifact in Bamboo the same as the json_output filename
-        results_file_url = '%s/artifact/shared/%s/%s' % (config.build_url, config.json_output, config.json_output)
-        click.echo('results_file_url = %s' % results_file_url)
-        args.append(results_file_url)
-    else:
-        raise click.BadParameter('Could not determine results_file_url for vendor "%s"' % config.build_vendor)
-
     # opt: --repo-url
     args += ['--repo-url', config.build_repo_url]
     
@@ -393,6 +381,18 @@ def ci_apextestsdb_upload(config, environment):
     # opt: --environment
     if environment:
         args += ['--environment', environment]
+
+    # arg: execution_name
+    args.append(config.build_id)
+
+    # arg: results_file_url
+    if config.build_vendor == 'Bamboo':
+        # NOTE: This url structure assumes you name the artifact in Bamboo the same as the json_output filename
+        results_file_url = '%s/artifact/shared/%s/%s' % (config.build_url, config.json_output, config.json_output)
+        click.echo('results_file_url = %s' % results_file_url)
+        args.append(results_file_url)
+    else:
+        raise click.BadParameter('Could not determine results_file_url for vendor "%s"' % config.build_vendor)
 
     click.echo("Calling: cumulusci dev apextestsdb_upload %s" % ' '.join(args))
 
