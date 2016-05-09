@@ -37,10 +37,8 @@ class Config(object):
         'OAUTH_CLIENT_ID',
         'OAUTH_CLIENT_SECRET',
         'OAUTH_CALLBACK_URL',
-        'INSTANCE_URL',
         'REFRESH_TOKEN',
         'MRBELVEDERE_PACKAGE_KEY',
-        'APEXTESTSDB_USER_ID',
         'APEXTESTSDB_TOKEN',
     )
     def __init__(self):
@@ -391,6 +389,12 @@ def ci_apextestsdb_upload(config, environment):
 
     # opt: --execution-url
     args += ['--execution-url', config.build_url]
+
+    # opt: --environment
+    if environment:
+        args += ['--environment', environment]
+
+    click.echo("Calling: cumulusci dev apextestsdb_upload %s" % ' '.join(args))
 
     apextestsdb_upload.main(args=args, standalone_mode=False, obj=config)
 
