@@ -743,7 +743,9 @@ def apextestsdb_upload(config, execution_name, results_file_url, repo_url, branc
     env['COMMIT_SHA'] = commit
     env['EXECUTION_NAME'] = execution_name
     env['EXECUTION_URL'] = execution_url
-    env['ENVIRONMENT'] = environment
+    env['RESULTS_FILE_URL'] = results_file_url
+    env['ENVIRONMENT_NAME'] = environment
+    env['PACKAGE'] = config.github_repo_name
 
     required_env = [
         'APEXTESTSDB_BASE_URL',
@@ -754,7 +756,8 @@ def apextestsdb_upload(config, execution_name, results_file_url, repo_url, branc
         'COMMIT_SHA',
         'EXECUTION_NAME',
         'EXECUTION_URL',
-        'ENVIRONMENT',
+        'RESULTS_FILE_URL',
+        'ENVIRONMENT_NAME',
     ]
 
     p = run_python_script('upload_test_results.py', env, config, required_env=required_env)

@@ -114,9 +114,9 @@ echo "" >> "$OUTPUT"
 cumulusci ci beta_deploy --help | sed -e 's/^/    /g' >> "$OUTPUT"
 echo "" >> "$OUTPUT"
 
-echo "cumulusci ci apextestsdb_upload --help" >> "$OUTPUT"
+echo "cumulusci ci apextestsdb --help" >> "$OUTPUT"
 echo "" >> "$OUTPUT"
-cumulusci ci apextestsdb_upload --help | sed -e 's/^/    /g' >> "$OUTPUT"
+cumulusci ci apextestsdb --help | sed -e 's/^/    /g' >> "$OUTPUT"
 echo "" >> "$OUTPUT"
 
 echo "cumulusci ci next_step --help" >> "$OUTPUT"
