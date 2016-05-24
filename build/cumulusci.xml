@@ -468,7 +468,9 @@ project.setProperty("downgradePackage", result);
                                   <contains string="${component_file_parent}" substring="__" />
                                 </and>
                               </not>
+                              <!-- At some point this was necessary but doesn't seem to be anymore
                               <not><equals arg1="${typename}" arg2="AuraDefinitionBundle" /></not>
+                              -->
                               <not><contains string="${parents_included}" substring=",${component_file_parent}," /></not>
                             </and>
                             <then>
