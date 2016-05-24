@@ -464,10 +464,11 @@ project.setProperty("downgradePackage", result);
                               <not>
                                 <and>
                                   <equals arg1="${typename}" arg2="Report" />
+                                  <!-- Skip namespaced reports and folders since they come from another package -->
                                   <contains string="${component_file_parent}" substring="__" />
-                                  <equals arg1="${typename}" arg2="AuraDefinitionBundle" />
                                 </and>
                               </not>
+                              <not><equals arg1="${typename}" arg2="AuraDefinitionBundle" /></not>
                               <not><contains string="${parents_included}" substring=",${component_file_parent}," /></not>
                             </and>
                             <then>
