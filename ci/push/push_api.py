@@ -478,16 +478,32 @@ class SalesforcePushApi(object):
         request_id = res['id']
 
         # Schedule the orgs
-        for org in orgs:
-            try:
-                res = self.sf.PackagePushJob.create({
+        batch_size = 200
+        batch_offset = 0
+
+
+        while orgs[batch_offset:batch_size]:
+            batch = orgs[batch_offset:batch_size]
+            batch_offset += batch_size
+
+            batch_data = {'records': []}
+
+            for org in batch:
+                batch_data['records'].append({
                     'PackagePushRequestId': request_id,
                     'SubscriberOrganizationKey': org,
                 })
+            
+            try:
+                res = self.sf._call_salesforce(
+                    'POST', 
+                    self.sf.base_url + 'composite/tree/PackagePushJob', 
+                    data=json.dumps(batch_data),
+                )
             except SalesforceMalformedRequest, e:
                 error = e.content[0]
                 if error['errorCode'] == 'INVALID_OPERATION':
-                    print 'Skipping org %s, error message = %s' % (org, error['message'])
+                    print 'Skipping orgs %s, error message = %s' % (','.join(batch), error['message'])
                 else:
                     raise e
 
