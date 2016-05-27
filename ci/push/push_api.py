@@ -482,18 +482,20 @@ class SalesforcePushApi(object):
         batch_size = 200
         batch_offset = 0
 
-
         while orgs[batch_offset:batch_size]:
             batch = orgs[batch_offset:batch_size]
             batch_offset += batch_size
 
             batch_data = {'records': []}
+            i = 0
 
             for org in batch:
                 batch_data['records'].append({
+                    'attributes': {'type': 'PackagePushJob', 'referenceId': 'org%s' % i},
                     'PackagePushRequestId': request_id,
                     'SubscriberOrganizationKey': org,
                 })
+                i += 1
             
             try:
                 res = self.sf._call_salesforce(
