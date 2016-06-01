@@ -16,6 +16,14 @@ def memoize(obj):
         return cache[key]
     return memoizer
 
+def batch_list(data, batch_size):
+    batch_data = []
+    for item in data:
+        batch_data.append(item)
+        if len(batch_data) == batch_size:
+            yield batch_data
+            batch_data = []
+
 class BasePushApiObject(object):
     def format_where(self, id_field, where=None):
         base_where = "%s = '%s'" % (id_field, self.sf_id)
@@ -482,9 +490,7 @@ class SalesforcePushApi(object):
         batch_size = 200
         batch_offset = 0
 
-        while orgs[batch_offset:batch_size]:
-            batch = orgs[batch_offset:batch_size]
-            batch_offset += batch_size
+        for batch in batch_list(orgs, batch_size):
 
             batch_data = {'records': []}
             i = 0
