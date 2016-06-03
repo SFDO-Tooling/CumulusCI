@@ -1,21 +1,6 @@
 # CumulusCI CLI
 
-CumulusCI now provides a command line interface.  The CLI is evolving and not all functions are available through it yet.  You can try it out with the following steps:
-
-    cd $CUMULUSCI_PATH
-    git fetch --all
-    git checkout features/cloud-ci-integrations
-    virtualenv venv
-    source venv/bin/activate
-    pip install -r requirements.txt
-
-    # To activate the CLI, you need to activate the virtualenv where you installed it
-    source $CUMULUSCI_PATH/venv/bin/activate
-
-    # Call the CLI
-    cumulusci
-
-The steps above require that you have Python 2.7.x and the virtualenv command already installed.  See http://virtualenv.readthedocs.org/en/latest/installation.html for more info on installing virtualenv
+CumulusCI now provides a command line interface.  The CLI is evolving and not all functions are available through it yet.  You can find out more information about the CLI at https://github.com/SalesforceFoundation/CumulusCI/tree/master/cli
 
 # CumulusCI
 
