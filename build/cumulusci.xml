@@ -705,6 +705,7 @@ project.setProperty("downgradePackage", result);
       <addMetadataSubType dir="${basedir}/@{srcDir}/matchingRules" suffix="matchingRule" xmlfile="${basedir}/@{srcDir}/package.xml.new" typename="MatchingRule" element="matchingRules" parentelement="MatchingRules" />
       <addMetadataSubType dir="${basedir}/@{srcDir}/objects" xmlfile="${basedir}/@{srcDir}/package.xml.new" typename="NamedFilter" element="namedFilters" />
       <addMetadataSubType dir="${basedir}/@{srcDir}/objects" xmlfile="${basedir}/@{srcDir}/package.xml.new" typename="RecordType" element="recordTypes" />
+      <addMetadataSubType dir="${basedir}/@{srcDir}/objects" xmlfile="${basedir}/@{srcDir}/package.xml.new" typename="SharingReason" element="sharingReasons" />
       <addMetadataSubType dir="${basedir}/@{srcDir}/objects" xmlfile="${basedir}/@{srcDir}/package.xml.new" typename="ValidationRule" element="validationRules" />
       <addMetadataSubType dir="${basedir}/@{srcDir}/objects" xmlfile="${basedir}/@{srcDir}/package.xml.new" typename="WebLink" element="webLinks" />
       <addMetadataSubType dir="${basedir}/@{srcDir}/workflows" suffix="workflow" xmlfile="${basedir}/@{srcDir}/package.xml.new" typename="WorkflowFieldUpdate" element="fieldUpdates" parentelement="Workflow" />
