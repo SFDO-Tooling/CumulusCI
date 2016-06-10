@@ -478,6 +478,9 @@ def run_ant_target(target, env, config, check_credentials=None, no_exit=None):
         except SalesforceCredentialsException as e:
             click.echo('BUILD FAILED: %s' % e)
             sys.exit(4)
+
+    # Set max heap size for ant call
+    env["ANT_OPTS"] = '-Xmx512m'
         
     # Execute the command
     p = sarge.Command('%s/ci/ant_wrapper.sh %s' % (config.cumulusci_path, target), stdout=sarge.Capture(buffer_size=-1), env=env)
