@@ -237,8 +237,9 @@ def get_build_info():
 # command: ci deploy
 @click.command(name='deploy', help="Determines the right kind of build for the branch and runs the build including tests")
 @click.option('--debug-logdir', help="A directory to store debug logs from each test class.  If specified, a TraceFlag is created which captures debug logs.  When all tests have completed, the debug logs are downloaded to the specified directory.  They are then parsed to capture detail information on the test.  See cumulusci dev deploy --json-output for more details")
+@click.option('--verbose', default=False, is_flag=True, help='If set, outputs the full output from ant.  The default behavior runs through a wrapper script that filters and colors the output')
 @pass_config
-def ci_deploy(config, debug_logdir):
+def ci_deploy(config, debug_logdir, verbose):
     if not config.commit or not config.branch:
         raise click.BadParameter('Could not determine commit or branch for ci deploy')
         
@@ -256,6 +257,9 @@ def ci_deploy(config, debug_logdir):
        
             # Pass argument 
             args += ['--debug-logdir',debug_logdir]
+
+        if verbose:
+            args.append('--verbose')
             
         deploy_unmanaged.main(args=args, standalone_mode=False, obj=config)
 
@@ -264,7 +268,10 @@ def ci_deploy(config, debug_logdir):
         config.sf_username = config.get_env_var('SF_USERNAME_PACKAGING')
         config.sf_password = config.get_env_var('SF_PASSWORD_PACKAGING')
         config.sf_serverurl = config.get_env_var('SF_SERVERURL_PACKAGING', config.sf_serverurl)
-        deploy_packaging.main(args=[], standalone_mode=False, obj=config)
+        args = []
+        if verbose:
+            args.append('--verbose')
+        deploy_packaging.main(args=args, standalone_mode=False, obj=config)
 
 # command: ci next_step
 @click.command(help='A command to calculate and return the next steps for a ci build to run')
@@ -309,8 +316,9 @@ def next_step(config):
 @click.argument('commit')
 @click.option('--run-tests', default=False, is_flag=True, help='If set, run tests as part of the deployment.  Defaults to not running tests')
 @click.option('--retries', default=3, help="The number of times the installation should retry installation if the prior attempt failed due to a package unavailable error.  This error is common after uploading a package if the test org is on a different pod.  There is a slight delay in copying newly uploaded packages.  Defaults to 3")
+@click.option('--verbose', default=False, is_flag=True, help='If set, outputs the full output from ant.  The default behavior runs through a wrapper script that filters and colors the output')
 @pass_config
-def beta_deploy(config, tag, commit, run_tests, retries):
+def beta_deploy(config, tag, commit, run_tests, retries, verbose):
     config.sf_username = config.get_env_var('SF_USERNAME_' + config.beta_org_suffix)
     config.sf_password = config.get_env_var('SF_PASSWORD_' + config.beta_org_suffix)
     config.sf_serverurl = config.get_env_var('SF_SERVERURL_' + config.beta_org_suffix, config.sf_serverurl)
@@ -324,6 +332,9 @@ def beta_deploy(config, tag, commit, run_tests, retries):
     args = [commit, package_version, '--no-exit']
     if run_tests:
         args.append('--run-tests')
+
+    if verbose:
+        args.append('--verbose')
 
     try:
         # Call the deploy_managed command to install the beta
@@ -354,6 +365,9 @@ def beta_deploy(config, tag, commit, run_tests, retries):
         ]
         if run_tests:
             args.append('--run-tests')
+
+        if verbose:
+            args.append('--verbose')
 
         # Construct a list of args that are all strings
         str_args = [str(arg) for arg in args]
@@ -471,7 +485,7 @@ def get_env_mrbelvedere(config):
         'MRBELVEDERE_PACKAGE_KEY': config.mrbelvedere_package_key,
     }
    
-def run_ant_target(target, env, config, check_credentials=None, no_exit=None): 
+def run_ant_target(target, env, config, check_credentials=None, no_exit=None, verbose=None): 
     if check_credentials:
         try:
             check_salesforce_credentials(env)
@@ -483,7 +497,11 @@ def run_ant_target(target, env, config, check_credentials=None, no_exit=None):
     env["ANT_OPTS"] = '-Xmx512m'
         
     # Execute the command
-    p = sarge.Command('%s/ci/ant_wrapper.sh %s' % (config.cumulusci_path, target), stdout=sarge.Capture(buffer_size=-1), env=env)
+    if verbose:
+        cmd = 'ant %s' % target
+    else:
+        cmd = '%s/ci/ant_wrapper.sh %s' % (config.cumulusci_path, target)
+    p = sarge.Command(cmd, stdout=sarge.Capture(buffer_size=-1), env=env)
     p.run(async=True)
 
     # Print the stdout buffer until the command completes and capture all lines in log for reference in exceptions
@@ -561,8 +579,9 @@ def run_python_script(script, env, config, required_env=None):
 @click.option('--ee-org', default=False, is_flag=True, help='If set, use the deployUnmanagedEE target which prepares the code for loading into a production Enterprise Edition org.  Defaults to False.')
 @click.option('--deploy-only', default=False, is_flag=True, help='If set, runs only the deployWithoutTest target.  Does not clean the org, update dependencies, or run any tests.  This option invalidates all other options')
 @click.option('--debug-logdir', help="A directory to store debug logs from each test class.  If specified, a TraceFlag is created which captures debug logs.  When all tests have completed, the debug logs are downloaded to the specified directory.  They are then parsed to capture detail information on the test.  See cumulusci dev deploy --json-output for more details")
+@click.option('--verbose', default=False, is_flag=True, help='If set, outputs the full output from ant.  The default behavior runs through a wrapper script that filters and colors the output')
 @pass_config
-def deploy_unmanaged(config, run_tests, full_delete, ee_org, deploy_only, debug_logdir):
+def deploy_unmanaged(config, run_tests, full_delete, ee_org, deploy_only, debug_logdir, verbose):
 
     # Determine the deploy target to use based on options
     target = None
@@ -600,7 +619,7 @@ def deploy_unmanaged(config, run_tests, full_delete, ee_org, deploy_only, debug_
             os.makedirs(debug_logdir)
 
     # Run the command
-    p = run_ant_target(target, env, config, check_credentials=True)
+    p = run_ant_target(target, env, config, check_credentials=True, verbose=verbose)
 
 # command: release deploy
 @click.command(
@@ -608,8 +627,9 @@ def deploy_unmanaged(config, run_tests, full_delete, ee_org, deploy_only, debug_
     help='Runs a full deployment of the code as managed code to the packaging org including setting up dependencies, deleting metadata removed from the repository, deploying the code, and optionally running tests',
     context_settings={'color': True},
 )
+@click.option('--verbose', default=False, is_flag=True, help='If set, outputs the full output from ant.  The default behavior runs through a wrapper script that filters and colors the output')
 @pass_config
-def deploy_packaging(config):
+def deploy_packaging(config, verbose):
     # Determine the deploy target to use based on options
     target = 'deployCIPackageOrg'
 
@@ -618,7 +638,7 @@ def deploy_packaging(config):
     env.update(get_env_sf_org(config))
     env.update(get_env_apex_tests(config))
 
-    p = run_ant_target(target, env, config, check_credentials=True)
+    p = run_ant_target(target, env, config, check_credentials=True, verbose=verbose)
 
 # command: release upload_beta
 @click.command(help='Use Selenium to upload a package version in the packaging org')
@@ -961,8 +981,9 @@ def mrbelvedere_release(config, version, namespace):
 @click.argument('package_version')
 @click.option('--run-tests', is_flag=True, help='If True, run tests as part of the deployment.  Defaults to False')
 @click.option('--no-exit', is_flag=True, help='If True, do not exit on exception.  Instead, throw the exception so the caller can handle it.  This is used to allow for retrying a managed package installation if the package is unavailable.  Defaults to False')
+@click.option('--verbose', default=False, is_flag=True, help='If set, outputs the full output from ant.  The default behavior runs through a wrapper script that filters and colors the output')
 @pass_config
-def deploy_managed(config, commit, package_version, run_tests, no_exit):
+def deploy_managed(config, commit, package_version, run_tests, no_exit, verbose):
     # Determine the deploy target to use based on options
     target = 'deployManaged'
     if package_version.find('(Beta ') != -1:
@@ -978,14 +999,15 @@ def deploy_managed(config, commit, package_version, run_tests, no_exit):
     env['PACKAGE_VERSION'] = package_version
     env['BUILD_COMMIT'] = commit
 
-    p = run_ant_target(target, env, config, check_credentials=True, no_exit=no_exit)
+    p = run_ant_target(target, env, config, check_credentials=True, no_exit=no_exit, verbose=verbose)
 
 # command: dev update_package_xml
 @click.command(help='Updates the src/package.xml file by parsing out the metadata under src/')
+@click.option('--verbose', default=False, is_flag=True, help='If set, outputs the full output from ant.  The default behavior runs through a wrapper script that filters and colors the output')
 @pass_config
-def update_package_xml(config):
+def update_package_xml(config, verbose):
     env = get_env_cumulusci(config)
-    p = run_ant_target('updatePackageXml', env, config)
+    p = run_ant_target('updatePackageXml', env, config, verbose=verbose)
 
 @click.group(help="Commands used in the release process and interacting with a Manage Package packing org")
 @pass_config
