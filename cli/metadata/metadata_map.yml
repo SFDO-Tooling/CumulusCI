@@ -1,0 +1,95 @@
+applications:
+    type: CustomApplication
+    class: MetadataFilenameParser
+    extension: app
+aura:
+    type: AuraDefinitionBundle
+    class: MetadataFilenameParser
+classes:
+    type: ApexClass
+    class: MetadataFilenameParser
+    extension: cls
+components:
+    type: ApexComponent
+    class: MetadataFilenameParser
+connectedApps:
+    type: ConnectedApp
+    class: MetadataFilenameParser
+customMetadata:
+    type: CustomMetadata
+    class: MetadataFilenameParser
+dashboards:
+    type: Dashboard
+    class: MetadataFilenameParser
+dataSources:
+    type: ExternalDataSource
+    class: MetadataFilenameParser
+documents:
+    type: Document
+    class: MetadataFilenameParser
+email:
+    type: EmailTemplate
+    class: MetadataFilenameParser
+homePageComponents:
+    type: HomePageComponent
+    class: MetadataFilenameParser
+labels:
+    type: CustomLabel
+    class: MetadataFilenameParser
+layouts:
+    type: Layout
+    class: MetadataFilenameParser
+letterhead:
+    type: Letterhead
+    class: MetadataFilenameParser
+matchingRules:
+    type: MatchingRule
+    class: MetadataFilenameParser
+objects:
+    type: CustomObject
+    class: MetadataFilenameParser
+objectTranslations:
+    type: CustomObjectTranslation
+    class: MetadataFilenameParser
+pages:
+    type: ApexPage
+    class: MetadataFilenameParser
+profiles:
+    type: Profile
+    class: MetadataFilenameParser
+permissionsets:
+    type: PermissionSet
+    class: MetadataFilenameParser
+quickActions:
+    type: QuickAction
+    class: MetadataFilenameParser
+remoteSiteSettings:
+    type: RemoteSiteSetting
+    class: MetadataFilenameParser
+reportTypes:
+    type: ReportType
+    class: MetadataFilenameParser
+reports:
+    type: Report
+    class: MetadataFilenameParser
+scontrols:
+    type: Scontrol
+    class: MetadataFilenameParser
+staticresources:
+    type: StaticResource
+    class: MetadataFilenameParser
+tabs:
+    type: CustomTab
+    class: MetadataFilenameParser
+translations:
+    type: Translations
+    class: MetadataFilenameParser
+triggers:
+    type: ApexTrigger
+    class: MetadataFilenameParser
+weblinks:
+    type: CustomPageWebLink
+    class: MetadataFilenameParser
+workflows:
+    type: Workflow
+    class: MetadataFilenameParser
