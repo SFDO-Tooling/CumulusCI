@@ -47,7 +47,6 @@ class PackageXmlGenerator(object):
                 continue
             if item.startswith('.'):
                 continue
-            import pdb; pdb.set_trace()
             parser_config = self.metadata_map.get(item)
             if not parser_config:
                 raise MetadataParserMissingError
