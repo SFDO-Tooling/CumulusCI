@@ -65,6 +65,7 @@ class PackageXmlGenerator(object):
             self.types.append(parser)
 
     def print_xml(self):
+        self.types.sort(key=lambda x: x.metadata_type)
         for parser in self.types:
             parser()
         
