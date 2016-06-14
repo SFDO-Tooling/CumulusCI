@@ -58,19 +58,21 @@ class MetadataParserMissingError(Exception):
     pass
 
 class PackageXmlGenerator(object):
-    def __init__(self, directory, api_version, package_name=None, install_class=None, uninstall_class=None):
+    def __init__(self, directory, api_version, package_name=None, managed=None, delete=None, install_class=None, uninstall_class=None):
         f_metadata_map = open(__location__ + '/metadata_map.yml', 'r')
         self.metadata_map = yaml.load(f_metadata_map)
         self.directory = directory
         self.api_version = api_version
         self.package_name = package_name
+        self.managed = managed
+        self.delete = delete
         self.install_class = install_class
         self.uninstall_class = uninstall_class
         self.types = []
 
     def __call__(self):
         self.parse_types()
-        self.print_xml()
+        return self.render_xml()
 
     def parse_types(self):
         for item in os.listdir(self.directory):
@@ -83,55 +85,68 @@ class PackageXmlGenerator(object):
                 raise MetadataParserMissingError
 
             for parser_config in config:
-                if parser_config.get('args'):
+                if parser_config.get('options'):
                     parser = globals()[parser_config['class']](
                         parser_config['type'],                # Metadata Type
                         self.directory + '/' + item,          # Directory
                         parser_config.get('extension', ''),   # Extension
-                        *parser_config.get('args', [])       # Extra args
-                        #**parser_config.get('kwargs', {})     # Extra kwargs
+                        self.delete,                          # Parse for deletion?
+                        **parser_config.get('options', {})    # Extra kwargs
                     )
                 else:
                     parser = globals()[parser_config['class']](
                         parser_config['type'],                # Metadata Type
                         self.directory + '/' + item,          # Directory
                         parser_config.get('extension', ''),   # Extension
-                        #*parser_config.get('args', [])       # Extra args
-                        #**parser_config.get('kwargs', {})     # Extra kwargs
+                        self.delete,                          # Parse for deletion?
                     )
 
-                # Run the parser
                 self.types.append(parser)
 
-    def print_xml(self):
+    def render_xml(self):
+        lines = []
 
         # Print header
-        print u'<?xml version="1.0" encoding="UTF-8"?>'
-        print u'<Package xmlns="http://soap.sforce.com/2006/04/metadata">'
+        lines.append(u'<?xml version="1.0" encoding="UTF-8"?>')
+        lines.append(u'<Package xmlns="http://soap.sforce.com/2006/04/metadata">')
         if self.package_name:
-            print u'    <fullName>{0}</fullName>'.format(self.package_name)
+            lines.append(u'    <fullName>{0}</fullName>'.format(self.package_name))
    
         # Print types sections 
         self.types.sort(key=lambda x: x.metadata_type.upper())
         for parser in self.types:
-            parser()
+            type_xml = parser()
+            if type_xml:
+                lines.extend(type_xml)
 
         # Print footer
-        print u'    <version>{0}</version>'.format(self.api_version)
-        print u'</Package>'
-        
+        lines.append(u'    <version>{0}</version>'.format(self.api_version))
+        lines.append(u'</Package>')
+
+        return u'\n'.join(lines)
 
 class BaseMetadataParser(object):
 
-    def __init__(self, metadata_type, directory, extension):
+    def __init__(self, metadata_type, directory, extension, delete):
         self.metadata_type = metadata_type
         self.directory = directory
         self.extension = extension
+        self.delete = delete
         self.members = []
+
+        if self.delete:
+            self.delete_excludes = self.get_delete_excludes()
 
     def __call__(self):
         self.parse_items()
-        self.print_xml()
+        return self.render_xml()
+
+    def get_delete_excludes(self):
+        f = open(__location__ + '/../../build/whitelists/metadata.txt', 'r')
+        excludes = []
+        for line in f:
+            excludes.append(line.strip())
+        return excludes
 
     def parse_items(self):
         # Loop through items
@@ -140,6 +155,12 @@ class BaseMetadataParser(object):
                 continue
 
             if item.endswith('-meta.xml'):
+                continue
+
+            if item.startswith == 'Global-Global Layout.layout':
+                import pdb; pdb.set_trace()
+
+            if self.delete and item in self.delete_excludes:
                 continue
             
             self.parse_item(item)
@@ -156,17 +177,17 @@ class BaseMetadataParser(object):
     def strip_extension(self, filename):
         return '.'.join(filename.split('.')[:-1])
 
-    def print_xml(self):
-        output = u''
+    def render_xml(self):
+        output = []
         if not self.members:
             return
-        output += u'    <types>\n'
+        output.append(u'    <types>')
         self.members.sort(key=lambda x: metadata_sort_key(x))
         for member in self.members:
-            output += u'        <members>{0}</members>\n'.format(member) 
-        output += u'        <name>{0}</name>\n'.format(self.metadata_type) 
-        output += u'    </types>'
-        print output
+            output.append(u'        <members>{0}</members>'.format(member))
+        output.append(u'        <name>{0}</name>'.format(self.metadata_type)) 
+        output.append(u'    </types>')
+        return output
         
 
 class MetadataFilenameParser(BaseMetadataParser):
@@ -198,13 +219,17 @@ class MetadataFolderParser(BaseMetadataParser):
 class MissingNameElementError(Exception):
     pass
 
+class ParserConfigurationError(Exception):
+    pass
 
 class MetadataXmlElementParser(BaseMetadataParser):
 
     namespaces = {'sf': 'http://soap.sforce.com/2006/04/metadata'}
 
-    def __init__(self, metadata_type, directory, extension, item_xpath, name_xpath=None):
-        super(MetadataXmlElementParser, self).__init__(metadata_type, directory, extension)
+    def __init__(self, metadata_type, directory, extension, delete, item_xpath=None, name_xpath=None):
+        super(MetadataXmlElementParser, self).__init__(metadata_type, directory, extension, delete)
+        if not item_xpath:
+            raise ParserConfigurationError('You must provide a value for item_xpath')
         self.item_xpath = item_xpath
         if not name_xpath:
             name_xpath = './sf:fullName'

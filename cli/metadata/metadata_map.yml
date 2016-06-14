@@ -38,8 +38,8 @@ labels:
     - type: CustomLabel
       class: CustomLabelsParser
       extension: labels
-      args:
-            - './sf:labels'
+      options:
+            item_xpath: './sf:labels'
     - type: CustomLabels
       class: MetadataFilenameParser
       extension: labels
@@ -54,8 +54,8 @@ matchingRules:
     - type: MatchingRule
       class: MetadataXmlElementParser
       extension: matchingRule
-      args:
-            - './sf:matchingRules'
+      options:
+            item_xpath: './sf:matchingRules'
 objects:
     - type: CustomObject
       class: CustomObjectParser
@@ -63,53 +63,53 @@ objects:
     - type: BusinessProcess
       class: MetadataXmlElementParser
       extension: object
-      args:
-            - './sf:businessProcesses'
+      options:
+            item_xpath: './sf:businessProcesses'
     - type: CompactLayout
       class: MetadataXmlElementParser
       extension: object
-      args:
-            - './sf:compactLayouts'
+      options:
+            item_xpath: './sf:compactLayouts'
     - type: CustomField
       class: MetadataXmlElementParser
       extension: object
-      args:
-            - './sf:fields'
+      options:
+            item_xpath: './sf:fields'
     - type: FieldSet
       class: MetadataXmlElementParser
       extension: object
-      args:
-            - './sf:fieldSets'
+      options:
+            item_xpath: './sf:fieldSets'
     - type: ListView
       class: MetadataXmlElementParser
       extension: object
-      args:
-            - './sf:listViews'
+      options:
+            item_xpath: './sf:listViews'
     - type: NamedFilter
       class: MetadataXmlElementParser
       extension: object
-      args:
-            - './sf:namedFilters'
+      options:
+            item_xpath: './sf:namedFilters'
     - type: RecordType
       class: MetadataXmlElementParser
       extension: object
-      args:
-            - './sf:recordTypes'
+      options:
+            item_xpath: './sf:recordTypes'
     - type: SharingReason
       class: MetadataXmlElementParser
       extension: object
-      args:
-            - './sf:sharingReasons'
+      options:
+            item_xpath: './sf:sharingReasons'
     - type: ValidationRule
       class: MetadataXmlElementParser
       extension: object
-      args:
-            - './sf:validationRules'
+      options:
+            item_xpath: './sf:validationRules'
     - type: WebLink
       class: MetadataXmlElementParser
       extension: object
-      args:
-            - './sf:webLinks'
+      options:
+            item_xpath: './sf:webLinks'
 objectTranslations:
     - type: CustomObjectTranslation
       class: MetadataFilenameParser
@@ -162,15 +162,15 @@ workflows:
     - type: WorkflowAlert
       class: MetadataXmlElementParser
       extension: workflow
-      args:
-            - './sf:alerts'
+      options:
+            item_xpath: './sf:alerts'
     - type: WorkflowFieldUpdate
       class: MetadataXmlElementParser
       extension: workflow
-      args:
-            - './sf:fieldUpdates'
+      options:
+            item_xpath: './sf:fieldUpdates'
     - type: WorkflowRule
       class: MetadataXmlElementParser
       extension: workflow
-      args:
-            - './sf:rules'
+      options:
+            item_xpath: './sf:rules'

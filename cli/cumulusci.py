@@ -1003,11 +1003,42 @@ def deploy_managed(config, commit, package_version, run_tests, no_exit, verbose)
 
 # command: dev update_package_xml
 @click.command(help='Updates the src/package.xml file by parsing out the metadata under src/')
-@click.option('--verbose', default=False, is_flag=True, help='If set, outputs the full output from ant.  The default behavior runs through a wrapper script that filters and colors the output')
+@click.option('--output', default='src/package.xml', help='The file to write the package.xml output to.  Defaults to src/package.xml')
+@click.option('--directory', default='src', help='By default, package.xml generation runs against src/.  Use this option to generate against a different directory of metadata')
+@click.option('--delete', default=False, is_flag=True, help='Modifies behavior to generate a package.xml file to be used for metadata deletion.  Use this if generating a destructiveChanges.xml file')
+@click.option('--managed', default=False, is_flag=True, help='Includes elements in package.xml that can only be included in a deployment to the packaging org such as postInstallClass and uninstallClass')
 @pass_config
-def update_package_xml(config, verbose):
-    env = get_env_cumulusci(config)
-    p = run_ant_target('updatePackageXml', env, config, verbose=verbose)
+def update_package_xml(config, output, directory, delete, managed):
+    from metadata.package import PackageXmlGenerator
+    click.echo('Generating {0} using metadata in {1}'.format(output, directory))
+
+    kwargs = {
+        'delete': delete,
+        'managed': managed,
+    }
+    
+    package_name = None
+    if not delete:
+        if not managed and hasattr(config, 'cumulusci__package__name'):
+            package_name = config.cumulusci__package__name
+        elif managed and hasattr(config, 'cumulusci__package__name__managed'):
+            package_name = config.cumulusci__package__name__managed
+        elif managed and hasattr(config, 'cumulusci__package__name'):
+            package_name = config.cumulusci__package__name
+
+    if package_name:
+        kwargs = {'package_name': package_name}
+
+    if not delete and managed and hasattr(config, 'cumulusci__package__installClass'):
+        kwargs['install_class'] = config.cumulusci__package__installClass
+
+    if not delete and managed and hasattr(config, 'cumulusci__package__uninstallClass'):
+        kwargs['uninstall_class'] = config.cumulusci__package__uninstallClass
+
+    package_xml = PackageXmlGenerator(directory, config.cumulusci__package__apiVersion, **kwargs)
+
+    f_package_xml = open(output, 'w')
+    f_package_xml.write(package_xml())
 
 @click.group(help="Commands used in the release process and interacting with a Manage Package packing org")
 @pass_config
