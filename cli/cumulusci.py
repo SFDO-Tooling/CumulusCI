@@ -494,6 +494,8 @@ def run_ant_target(target, env, config, check_credentials=None, no_exit=None, ve
             click.echo('BUILD FAILED: %s' % e)
             sys.exit(4)
 
+    click.echo("DEBUG: CUMULUSCI_CLI = %s" % env.get('CUMULUSCI_CLI'))
+
     # Set max heap size for ant call
     env["ANT_OPTS"] = '-Xmx512m'
         
