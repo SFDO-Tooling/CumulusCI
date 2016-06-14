@@ -59,7 +59,7 @@ class PackageXmlGenerator(object):
                 continue
             config = self.metadata_map.get(item)
             if not config:
-                raise MetadataParserMissingError
+                raise MetadataParserMissingError('No parser configuration found for subdirectory %s' % item)
 
             for parser_config in config:
                 if parser_config.get('options'):
