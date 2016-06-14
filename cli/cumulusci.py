@@ -430,6 +430,7 @@ def dev(config):
 def get_env_cumulusci(config):
     env = {
         'CUMULUSCI_PATH': config.cumulusci_path,
+        'CUMULUSCI_CLI': True,
         'PATH': os.environ.get('PATH'),
     }
     venv = os.environ.get('VIRTUAL_ENV')
