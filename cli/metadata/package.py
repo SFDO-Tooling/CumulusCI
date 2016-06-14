@@ -1,24 +1,3 @@
-# Inputs
-# source: location of the source directory
-
-# Initialize new package xml file
-
-# Loop through subdirectories in package
-
-    # Determine type
-
-    # Select parser
-
-    # Parse files to generate <types><members>NAME</members><name>TYPE</name></types>
-
-        # Handle special cases
-    
-            # Reports (Report and report folder must be listed as members.  Reports are prefixed with FOLDER_NAME/)
-
-    # Contains Subtypes?
-
-        # Parse subtypes
-
 import os
 from xml.dom import minidom
 import xml.etree.ElementTree as ET
@@ -29,8 +8,6 @@ __location__ = os.path.realpath(
     os.path.join(os.getcwd(), os.path.dirname(__file__)))
 
 def metadata_sort_key(name):
-    name = name.replace('_','_')
-
     sections = []
     for section in re.split('[.|-]', name):
         sections.append(metadata_sort_key_section(section))
@@ -286,6 +263,10 @@ class CustomObjectParser(MetadataFilenameParser):
         members.append(self.strip_extension(item))
         return members
     
+class AuraBundleParser(MetadataFilenameParser):
+    def _parse_item(self, item):
+        return [item]
+
 class DocumentParser(MetadataFolderParser):        
     def _parse_subitem(self, item, subitem):
         return [item + '/' + subitem]
