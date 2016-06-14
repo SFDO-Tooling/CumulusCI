@@ -157,9 +157,6 @@ class BaseMetadataParser(object):
             if item.endswith('-meta.xml'):
                 continue
 
-            if item.startswith == 'Global-Global Layout.layout':
-                import pdb; pdb.set_trace()
-
             if self.delete and item in self.delete_excludes:
                 continue
             

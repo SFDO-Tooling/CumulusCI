@@ -697,6 +697,10 @@ project.setProperty("downgradePackage", result);
           <exec executable="cumulusci" failonerror="true">
             <arg value="dev" />
             <arg value="update_package_xml" />
+            <arg value="--directory" />
+            <arg value="@{srcDir}" />
+            <arg value="--output" />
+            <arg value="@{srcDir}/package.xml" />
           </exec>
         </then>
         <else>
