@@ -34,6 +34,11 @@ email:
 homePageComponents:
     - type: HomePageComponent
       class: MetadataFilenameParser
+      extension: homePageComponent
+homePageLayouts:
+    - type: HomePageLayout
+      class: MetadataFilenameParser
+      extension: homePageLayout
 labels:
     - type: CustomLabel
       class: CustomLabelsParser
