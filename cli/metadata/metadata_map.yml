@@ -61,7 +61,7 @@ objects:
       class: CustomObjectParser
       extension: object
     - type: BusinessProcess
-      class: MetadataXmlElementParser
+      class: BusinessProcessParser
       extension: object
       options:
             item_xpath: './sf:businessProcesses'
@@ -91,7 +91,7 @@ objects:
       options:
             item_xpath: './sf:namedFilters'
     - type: RecordType
-      class: MetadataXmlElementParser
+      class: RecordTypeParser
       extension: object
       options:
             item_xpath: './sf:recordTypes'

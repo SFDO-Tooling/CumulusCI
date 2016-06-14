@@ -134,10 +134,17 @@ class BaseMetadataParser(object):
             if item.endswith('-meta.xml'):
                 continue
 
-            if self.delete and item in self.delete_excludes:
+            if self.check_delete_excludes(item):
                 continue
             
             self.parse_item(item)
+
+    def check_delete_excludes(self, item):
+        if not self.delete:
+            return False
+        if item in self.delete_excludes:
+            return True
+        return False
 
     def parse_item(self, item):
         members = self._parse_item(item)
@@ -187,6 +194,9 @@ class MetadataFolderParser(BaseMetadataParser):
 
         return members
 
+    def check_delete_excludes(self, item):
+        return False
+
     def _parse_subitem(self, item, subitem):
         return [item + '/' + self.strip_extension(subitem)]
 
@@ -220,6 +230,9 @@ class MetadataXmlElementParser(BaseMetadataParser):
 
         return members
        
+    def check_delete_excludes(self, item):
+        return False
+
     def get_item_elements(self, root): 
         return root.findall(self.item_xpath, self.namespaces)
 
@@ -263,6 +276,16 @@ class CustomObjectParser(MetadataFilenameParser):
         members.append(self.strip_extension(item))
         return members
     
+class RecordTypeParser(MetadataXmlElementParser):
+    def check_delete_excludes(self, item):
+        if self.delete:
+            return True
+
+class BusinessProcessParser(MetadataXmlElementParser):
+    def check_delete_excludes(self, item):
+        if self.delete:
+            return True
+
 class AuraBundleParser(MetadataFilenameParser):
     def _parse_item(self, item):
         return [item]
