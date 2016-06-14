@@ -1,95 +1,176 @@
 applications:
-    type: CustomApplication
-    class: MetadataFilenameParser
-    extension: app
+    - type: CustomApplication
+      class: MetadataFilenameParser
+      extension: app
 aura:
-    type: AuraDefinitionBundle
-    class: MetadataFilenameParser
+    - type: AuraDefinitionBundle
+      class: MetadataFilenameParser
 classes:
-    type: ApexClass
-    class: MetadataFilenameParser
-    extension: cls
+    - type: ApexClass
+      class: MetadataFilenameParser
+      extension: cls
 components:
-    type: ApexComponent
-    class: MetadataFilenameParser
+    - type: ApexComponent
+      class: MetadataFilenameParser
+      extension: component
 connectedApps:
-    type: ConnectedApp
-    class: MetadataFilenameParser
+    - type: ConnectedApp
+      class: MetadataFilenameParser
 customMetadata:
-    type: CustomMetadata
-    class: MetadataFilenameParser
+    - type: CustomMetadata
+      class: MetadataFilenameParser
 dashboards:
-    type: Dashboard
-    class: MetadataFilenameParser
+    - type: Dashboard
+      class: MetadataFilenameParser
 dataSources:
-    type: ExternalDataSource
-    class: MetadataFilenameParser
+    - type: ExternalDataSource
+      class: MetadataFilenameParser
 documents:
-    type: Document
-    class: MetadataFilenameParser
+    - type: Document
+      class: DocumentParser
 email:
-    type: EmailTemplate
-    class: MetadataFilenameParser
+    - type: EmailTemplate
+      class: MetadataFolderParser
 homePageComponents:
-    type: HomePageComponent
-    class: MetadataFilenameParser
+    - type: HomePageComponent
+      class: MetadataFilenameParser
 labels:
-    type: CustomLabel
-    class: MetadataFilenameParser
+    - type: CustomLabel
+      class: CustomLabelsParser
+      extension: labels
+      args:
+            - './sf:labels'
+    - type: CustomLabels
+      class: MetadataFilenameParser
+      extension: labels
 layouts:
-    type: Layout
-    class: MetadataFilenameParser
+    - type: Layout
+      class: MetadataFilenameParser
+      extension: layout
 letterhead:
-    type: Letterhead
-    class: MetadataFilenameParser
+    - type: Letterhead
+      class: MetadataFilenameParser
 matchingRules:
-    type: MatchingRule
-    class: MetadataFilenameParser
+    - type: MatchingRule
+      class: MetadataXmlElementParser
+      extension: matchingRule
+      args:
+            - './sf:matchingRules'
 objects:
-    type: CustomObject
-    class: MetadataFilenameParser
+    - type: CustomObject
+      class: CustomObjectParser
+      extension: object
+    - type: BusinessProcess
+      class: MetadataXmlElementParser
+      extension: object
+      args:
+            - './sf:businessProcesses'
+    - type: CompactLayout
+      class: MetadataXmlElementParser
+      extension: object
+      args:
+            - './sf:compactLayouts'
+    - type: CustomField
+      class: MetadataXmlElementParser
+      extension: object
+      args:
+            - './sf:fields'
+    - type: FieldSet
+      class: MetadataXmlElementParser
+      extension: object
+      args:
+            - './sf:fieldSets'
+    - type: ListView
+      class: MetadataXmlElementParser
+      extension: object
+      args:
+            - './sf:listViews'
+    - type: NamedFilter
+      class: MetadataXmlElementParser
+      extension: object
+      args:
+            - './sf:namedFilters'
+    - type: RecordType
+      class: MetadataXmlElementParser
+      extension: object
+      args:
+            - './sf:recordTypes'
+    - type: SharingReason
+      class: MetadataXmlElementParser
+      extension: object
+      args:
+            - './sf:sharingReasons'
+    - type: ValidationRule
+      class: MetadataXmlElementParser
+      extension: object
+      args:
+            - './sf:validationRules'
+    - type: WebLink
+      class: MetadataXmlElementParser
+      extension: object
+      args:
+            - './sf:webLinks'
 objectTranslations:
-    type: CustomObjectTranslation
-    class: MetadataFilenameParser
+    - type: CustomObjectTranslation
+      class: MetadataFilenameParser
+      extension: objectTranslation
 pages:
-    type: ApexPage
-    class: MetadataFilenameParser
+    - type: ApexPage
+      class: MetadataFilenameParser
+      extension: page
 profiles:
-    type: Profile
-    class: MetadataFilenameParser
+    - type: Profile
+      class: MetadataFilenameParser
+      extension: profile
 permissionsets:
-    type: PermissionSet
-    class: MetadataFilenameParser
+    - type: PermissionSet
+      class: MetadataFilenameParser
 quickActions:
-    type: QuickAction
-    class: MetadataFilenameParser
+    - type: QuickAction
+      class: MetadataFilenameParser
+      extension: quickAction
 remoteSiteSettings:
-    type: RemoteSiteSetting
-    class: MetadataFilenameParser
+    - type: RemoteSiteSetting
+      class: MetadataFilenameParser
 reportTypes:
-    type: ReportType
-    class: MetadataFilenameParser
+    - type: ReportType
+      class: MetadataFilenameParser
 reports:
-    type: Report
-    class: MetadataFilenameParser
+    - type: Report
+      class: MetadataFolderParser
 scontrols:
-    type: Scontrol
-    class: MetadataFilenameParser
+    - type: Scontrol
+      class: MetadataFilenameParser
 staticresources:
-    type: StaticResource
-    class: MetadataFilenameParser
+    - type: StaticResource
+      class: MetadataFilenameParser
+      extension: resource
 tabs:
-    type: CustomTab
-    class: MetadataFilenameParser
+    - type: CustomTab
+      class: MetadataFilenameParser
 translations:
-    type: Translations
-    class: MetadataFilenameParser
+    - type: Translations
+      class: MetadataFilenameParser
 triggers:
-    type: ApexTrigger
-    class: MetadataFilenameParser
+    - type: ApexTrigger
+      class: MetadataFilenameParser
+      extension: trigger
 weblinks:
-    type: CustomPageWebLink
-    class: MetadataFilenameParser
+    - type: CustomPageWebLink
+      class: MetadataFilenameParser
 workflows:
-    type: Workflow
-    class: MetadataFilenameParser
+    - type: WorkflowAlert
+      class: MetadataXmlElementParser
+      extension: workflow
+      args:
+            - './sf:alerts'
+    - type: WorkflowFieldUpdate
+      class: MetadataXmlElementParser
+      extension: workflow
+      args:
+            - './sf:fieldUpdates'
+    - type: WorkflowRule
+      class: MetadataXmlElementParser
+      extension: workflow
+      args:
+            - './sf:rules'
