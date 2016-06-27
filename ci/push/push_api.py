@@ -23,6 +23,8 @@ def batch_list(data, batch_size):
         if len(batch_data) == batch_size:
             yield batch_data
             batch_data = []
+    if batch_data:
+        yield batch_data
 
 class BasePushApiObject(object):
     def format_where(self, id_field, where=None):
