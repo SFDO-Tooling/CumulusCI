@@ -511,7 +511,7 @@ class SalesforcePushApi(object):
                     self.sf.base_url + 'composite/tree/PackagePushJob', 
                     data=json.dumps(batch_data),
                 )
-            except SalesforceMalformedRequest, e:
+            except SalesforceMalformedRequest as e:
                 error = e.content[0]
                 if error['errorCode'] == 'INVALID_OPERATION':
                     print 'Skipping orgs %s, error message = %s' % (','.join(batch), error['message'])
