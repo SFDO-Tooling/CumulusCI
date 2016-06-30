@@ -78,18 +78,30 @@ class MetadataPackageVersion(BasePushApiObject):
             version_number += ' (Beta %s)' % self.build
         return version_number
 
-    def get_newer_released_version_objs(self, release_state=None):
+    def get_newer_released_version_objs(self, less_than_version=None):
         where = "MetadataPackageId = '%s' AND ReleaseState = 'Released' AND " % self.package.sf_id
         version_info = {'major': self.major, 'minor': self.minor, 'patch': self.patch}
         where += "(MajorVersion > %(major)s OR (MajorVersion = %(major)s AND MinorVersion > %(minor)s))" % version_info
         if self.patch:
             patch_where = " OR (MajorVersion = %(major)s AND MinorVersion = %(minor)s AND PatchVersion > %(patch))" % version_info
             where = where[:-1] + patch_where + where[-1:]
+
+        if less_than_version:
+            version_info = {
+                'major': less_than_version.major,
+                'minor': less_than_version.minor,
+                'patch': less_than_version.patch
+            }
+            less_than_where = " AND (MajorVersion < %(major)s OR (MajorVersion = %(major)s AND MinorVersion < %(minor)s))" % version_info
+            if less_than_version.patch:
+                patch_where = " OR (MajorVersion = %(major)s AND MinorVersion = %(minor)s AND PatchVersion < %(patch))" % version_info
+                less_than_where = less_than_where[:-1] + patch_where + less_than_where[-1:]
+            where += less_than_where
     
         versions = self.package.get_package_version_objs(where)
         return versions
 
-    def get_older_released_version_objs(self, release_state=None):
+    def get_older_released_version_objs(self, greater_than_version=None):
         where = "MetadataPackageId = '%s' AND ReleaseState = 'Released' AND " % self.package.sf_id
         version_info = {'major': self.major, 'minor': self.minor, 'patch': self.patch}
         where += "(MajorVersion < %(major)s OR (MajorVersion = %(major)s AND MinorVersion < %(minor)s))" % version_info
@@ -97,6 +109,18 @@ class MetadataPackageVersion(BasePushApiObject):
             patch_where = " OR (MajorVersion = %(major)s AND MinorVersion = %(minor)s AND PatchVersion < %(patch))" % version_info
             where = where[:-1] + patch_where + where[-1:]
     
+        if greater_than_version:
+            version_info = {
+                'major': greater_than_version.major,
+                'minor': greater_than_version.minor,
+                'patch': greater_than_version.patch
+            }
+            greater_than_where = " AND (MajorVersion > %(major)s OR (MajorVersion = %(major)s AND MinorVersion > %(minor)s))" % version_info
+            if greater_than_version.patch:
+                patch_where = " OR (MajorVersion = %(major)s AND MinorVersion = %(minor)s AND PatchVersion > %(patch))" % version_info
+                greater_than_where = greater_than_where[:-1] + patch_where + greater_than_where[-1:]
+            where += greater_than_where
+
         versions = self.package.get_package_version_objs(where)
         return versions
 
@@ -512,11 +536,12 @@ class SalesforcePushApi(object):
                     data=json.dumps(batch_data),
                 )
             except SalesforceMalformedRequest as e:
-                error = e.content[0]
-                if error['errorCode'] == 'INVALID_OPERATION':
-                    print 'Skipping orgs %s, error message = %s' % (','.join(batch), error['message'])
-                else:
-                    raise e
+                for result in e.content['results']:
+                    for error in result['errors']:
+                        if error['statusCode'] == 'INVALID_OPERATION':
+                            print u'Skipping org, error message = {}'.format(error['message'])
+                        else:
+                            raise e
 
         return request_id
 
