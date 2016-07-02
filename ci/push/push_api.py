@@ -1,3 +1,4 @@
+import json
 import datetime
 import functools
 from simple_salesforce import Salesforce
@@ -14,6 +15,16 @@ def memoize(obj):
             cache[key] = obj(*args, **kwargs)
         return cache[key]
     return memoizer
+
+def batch_list(data, batch_size):
+    batch_data = []
+    for item in data:
+        batch_data.append(item)
+        if len(batch_data) == batch_size:
+            yield batch_data
+            batch_data = []
+    if batch_data:
+        yield batch_data
 
 class BasePushApiObject(object):
     def format_where(self, id_field, where=None):
@@ -67,18 +78,30 @@ class MetadataPackageVersion(BasePushApiObject):
             version_number += ' (Beta %s)' % self.build
         return version_number
 
-    def get_newer_released_version_objs(self, release_state=None):
+    def get_newer_released_version_objs(self, less_than_version=None):
         where = "MetadataPackageId = '%s' AND ReleaseState = 'Released' AND " % self.package.sf_id
         version_info = {'major': self.major, 'minor': self.minor, 'patch': self.patch}
         where += "(MajorVersion > %(major)s OR (MajorVersion = %(major)s AND MinorVersion > %(minor)s))" % version_info
         if self.patch:
             patch_where = " OR (MajorVersion = %(major)s AND MinorVersion = %(minor)s AND PatchVersion > %(patch))" % version_info
             where = where[:-1] + patch_where + where[-1:]
+
+        if less_than_version:
+            version_info = {
+                'major': less_than_version.major,
+                'minor': less_than_version.minor,
+                'patch': less_than_version.patch
+            }
+            less_than_where = " AND (MajorVersion < %(major)s OR (MajorVersion = %(major)s AND MinorVersion < %(minor)s))" % version_info
+            if less_than_version.patch:
+                patch_where = " OR (MajorVersion = %(major)s AND MinorVersion = %(minor)s AND PatchVersion < %(patch))" % version_info
+                less_than_where = less_than_where[:-1] + patch_where + less_than_where[-1:]
+            where += less_than_where
     
         versions = self.package.get_package_version_objs(where)
         return versions
 
-    def get_older_released_version_objs(self, release_state=None):
+    def get_older_released_version_objs(self, greater_than_version=None):
         where = "MetadataPackageId = '%s' AND ReleaseState = 'Released' AND " % self.package.sf_id
         version_info = {'major': self.major, 'minor': self.minor, 'patch': self.patch}
         where += "(MajorVersion < %(major)s OR (MajorVersion = %(major)s AND MinorVersion < %(minor)s))" % version_info
@@ -86,6 +109,18 @@ class MetadataPackageVersion(BasePushApiObject):
             patch_where = " OR (MajorVersion = %(major)s AND MinorVersion = %(minor)s AND PatchVersion < %(patch))" % version_info
             where = where[:-1] + patch_where + where[-1:]
     
+        if greater_than_version:
+            version_info = {
+                'major': greater_than_version.major,
+                'minor': greater_than_version.minor,
+                'patch': greater_than_version.patch
+            }
+            greater_than_where = " AND (MajorVersion > %(major)s OR (MajorVersion = %(major)s AND MinorVersion > %(minor)s))" % version_info
+            if greater_than_version.patch:
+                patch_where = " OR (MajorVersion = %(major)s AND MinorVersion = %(minor)s AND PatchVersion > %(patch))" % version_info
+                greater_than_where = greater_than_where[:-1] + patch_where + greater_than_where[-1:]
+            where += greater_than_where
+
         versions = self.package.get_package_version_objs(where)
         return versions
 
@@ -204,10 +239,7 @@ class SalesforcePushApi(object):
         if serverurl.find('test.salesforce.com') != -1:
             sandbox = True
     
-        self.sf = Salesforce(username=username, password=password, security_token='', sandbox=sandbox, version='35.0')
-
-        # Change base_url to use the tooling api
-        self.sf.base_url = self.sf.base_url + 'tooling/'
+        self.sf = Salesforce(username=username, password=password, security_token='', sandbox=sandbox, version='36.0')
 
         if not lazy:
             lazy = []
@@ -243,15 +275,6 @@ class SalesforcePushApi(object):
             return query
 
         return '%s LIMIT %s' % (query, limit)
-
-    def get_tooling_object(self, object_name):
-        # Set up a simple-salesforce sobject for TraceFlag using the tooling api
-        obj = getattr(self.sf, object_name)
-        obj.base_url = (u'https://{instance}/services/data/v{sf_version}/tooling/sobjects/{object_name}/'
-                     .format(instance=self.sf.sf_instance,
-                             object_name=object_name,
-                             sf_version=self.sf.sf_version))
-        return obj
 
     @memoize
     def get_packages(self, where=None, limit=None):
@@ -482,34 +505,46 @@ class SalesforcePushApi(object):
             # By default, delay the push start by 15 minutes to allow manual review and intervention
             start = datetime.datetime.now() + datetime.timedelta(0, 15*60)
 
-        # Get the modified simple-salesforce Tooling API endpoint objects
-        ToolingPackagePushRequest = self.get_tooling_object('PackagePushRequest')
-        ToolingPackagePushJob = self.get_tooling_object('PackagePushJob')
-
         # Create the request
-        res = ToolingPackagePushRequest.create({
+        res = self.sf.PackagePushRequest.create({
             'PackageVersionId': version.sf_id,
             'ScheduledStartTime': start.isoformat(),
         })
         request_id = res['id']
 
         # Schedule the orgs
-        for org in orgs:
-            try:
-                res = ToolingPackagePushJob.create({
+        batch_size = 200
+        batch_offset = 0
+
+        for batch in batch_list(orgs, batch_size):
+
+            batch_data = {'records': []}
+            i = 0
+
+            for org in batch:
+                batch_data['records'].append({
+                    'attributes': {'type': 'PackagePushJob', 'referenceId': 'org%s' % i},
                     'PackagePushRequestId': request_id,
                     'SubscriberOrganizationKey': org,
                 })
-            except SalesforceMalformedRequest, e:
-                error = e.content[0]
-                if error['errorCode'] == 'INVALID_OPERATION':
-                    print 'Skipping org %s, error message = %s' % (org, error['message'])
-                else:
-                    raise e
+                i += 1
+            
+            try:
+                res = self.sf._call_salesforce(
+                    'POST', 
+                    self.sf.base_url + 'composite/tree/PackagePushJob', 
+                    data=json.dumps(batch_data),
+                )
+            except SalesforceMalformedRequest as e:
+                for result in e.content['results']:
+                    for error in result['errors']:
+                        if error['statusCode'] == 'INVALID_OPERATION':
+                            print u'Skipping org, error message = {}'.format(error['message'])
+                        else:
+                            raise e
 
         return request_id
 
     def run_push_request(self, request_id):
         # Set the request to Pending status
-        ToolingPackagePushRequest = self.get_tooling_object('PackagePushRequest')
-        return ToolingPackagePushRequest.update(request_id, {'Status': 'Pending'})
+        return self.sf.PackagePushRequest.update(request_id, {'Status': 'Pending'})

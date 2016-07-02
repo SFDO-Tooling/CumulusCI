@@ -122,6 +122,7 @@ class PackageUpload(object):
         driver.implicitly_wait(90) # seconds
 
         # Load the packages list page
+        sleep(5) # Not sure why this sleep is necessary, but it seems to be
         driver.get('%s/0A2' % self.instance_url)
 
         # Update Status

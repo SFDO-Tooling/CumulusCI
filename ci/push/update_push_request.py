@@ -19,9 +19,8 @@ if __name__ == '__main__':
         push_api = SalesforcePushApi(username, password, serverurl)
         request = push_api.get_push_request_objs("Id = '%s'" % request_id, limit=1)[0]
         if request.status != status:
-            ToolingPackagePushRequest = push_api.get_tooling_object('PackagePushRequest')
             print 'Updating status for Push Request %s from %s to %s' % (request_id, request.status, status)
-            print ToolingPackagePushRequest.update(request_id, {'Status': status})
+            print push_api.sf.PackagePushRequest.update(request_id, {'Status': status})
         else:
             print 'Status for Push Request %s is already %s' % (request_id, status)
 

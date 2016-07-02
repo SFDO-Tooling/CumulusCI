@@ -4,6 +4,7 @@ import requests
 import json
 import datetime
 import re
+import codecs
 from github import Github
 from distutils.version import LooseVersion
 from subprocess import call
@@ -17,6 +18,7 @@ LAST_REL_TAG=os.environ.get('LAST_REL_TAG', None)
 CURRENT_REL_TAG=os.environ.get('CURRENT_REL_TAG')
 PREFIX_BETA=os.environ.get('PREFIX_BETA', 'beta/')
 PREFIX_RELEASE=os.environ.get('PREFIX_RELEASE', 'release/')
+PRINT_ONLY=os.environ.get('PRINT_ONLY','') in ('true','True')
     
 # custom api wrapper for release interaction
 def call_api(subpath, data=None):
@@ -92,8 +94,9 @@ def create_release_notes():
             last_rel_commit = call_api('/git/commits/%s' % last_rel_tag['object']['sha'])
         else:
             last_rel_commit = call_api('/git/commits/%s' % last_rel_ref['object']['sha'])
-    
+
     current_rel_ref = call_api('/git/refs/tags/%s' % CURRENT_REL_TAG)
+    print current_rel_ref
     if current_rel_ref['object']['type'] == 'tag':
         current_rel_tag = call_api('/git/tags/%s' % current_rel_ref['object']['sha'])
         current_rel_commit = call_api('/git/commits/%s' % current_rel_tag['object']['sha'])
@@ -154,9 +157,9 @@ def create_release_notes():
             if not section:
                 continue
     
-            # Skip empty lines
-            line = line.strip()
-            if not line:
+            # Skip empty lines and trim extra spaces from line end
+            line = line.rstrip()
+            if not line.strip():
                 continue
     
             # If we got here, we are in a section and want to extract the line as content
@@ -178,26 +181,26 @@ def create_release_notes():
     # Sort issues by issue number
     content['issues'].sort()
     
-    f = open('release_notes.md', 'w')
+    f = codecs.open('release_notes.md', encoding='utf-8', mode='w')
     
     if content['warning']:
-        f.write('# Critical Changes\r\n')
+        f.write(u'# Critical Changes\r\n')
         for line in content['warning']:
-            f.write('%s\r\n' % line)
+            f.write(u'{0}\r\n'.format(line,))
         if content['info'] or content['issues']:
-            f.write('\r\n')
+            f.write(u'\r\n')
     if content['info']:
-        f.write('# Changes\r\n')
+        f.write(u'# Changes\r\n')
         for line in content['info']:
-            f.write('%s\r\n' % line)
+            f.write(u'{0}\r\n'.format(line,))
         if content['issues']:
-            f.write('\r\n')
+            f.write(u'\r\n')
     if content['issues']:
-        f.write('# Issues Closed\r\n')
+        f.write(u'# Issues Closed\r\n')
         for issue in content['issues']:
             # Get the issue title to include
             gh_issue = call_api('/issues/%s' % issue)
-            f.write('#%s: %s\r\n' % (issue, gh_issue['title']))
+            f.write(u'#{0}: {1}\r\n'.format(issue, gh_issue['title']))
     
             # Ensure all issues have a comment on which release they were fixed
             gh_issue_comments = call_api('/issues/%s/comments' % issue)
@@ -220,44 +223,45 @@ def create_release_notes():
     
     f.close()
     
-    f = open('release_notes.md', 'r')
+    f = codecs.open('release_notes.md', encoding='utf-8', mode='r')
     release_notes = f.read()
     f.close()
     
     print '----- RELEASE NOTES -----'
-    print release_notes
+    print release_notes.encode('utf-8')
     print '----- END RELEASE NOTES -----'
     
     # Add the release notes to the body of the release
-    releases = call_api('/releases')
-    for release in releases:
-        if release['tag_name'] == CURRENT_REL_TAG:
-            print 'Adding release notes to body of %s' % release['html_url']
-    
-            data = {
-                "tag_name": release['tag_name'],
-                "target_commitish": release['target_commitish'],
-                "name": release['name'],
-                "body": release['body'], 
-                "draft": release['draft'],
-                "prerelease": release['prerelease'],
-            }
-    
-            if data['body']:
-                new_body = []
-                release_notes_found = False
-                for line in data['body'].split('\n'):
-                    if line.startswith('# Critical Changes') or line.startswith('# Changes') or line.startswith('# Issues Closed'):
-                        release_notes_found = True
-                    if not release_notes_found:
-                        new_body.append(line)
-                        
-                data['body'] = '%s\r\n%s' % ('\r\n'.join(new_body), release_notes)
-            else:
-                data['body'] = release_notes
-    
-            call_api('/releases/%s' % release['id'], data=data)
-            break
+    if not PRINT_ONLY:
+        releases = call_api('/releases')
+        for release in releases:
+            if release['tag_name'] == CURRENT_REL_TAG:
+                print 'Adding release notes to body of %s' % release['html_url']
+        
+                data = {
+                    "tag_name": release['tag_name'],
+                    "target_commitish": release['target_commitish'],
+                    "name": release['name'],
+                    "body": release['body'], 
+                    "draft": release['draft'],
+                    "prerelease": release['prerelease'],
+                }
+        
+                if data['body']:
+                    new_body = []
+                    release_notes_found = False
+                    for line in data['body'].split('\n'):
+                        if line.startswith('# Critical Changes') or line.startswith('# Changes') or line.startswith('# Issues Closed'):
+                            release_notes_found = True
+                        if not release_notes_found:
+                            new_body.append(line)
+                            
+                    data['body'] = '%s\r\n%s' % ('\r\n'.join(new_body), release_notes)
+                else:
+                    data['body'] = release_notes
+        
+                call_api('/releases/%s' % release['id'], data=data)
+                break
 
 if __name__ == '__main__':
     try:

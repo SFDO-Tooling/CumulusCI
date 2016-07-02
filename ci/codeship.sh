@@ -42,6 +42,11 @@ if [ "$PACKAGE_AVAILABLE_RETRY_COUNT" == "" ]; then
     export PACKAGE_AVAILABLE_RETRY_COUNT=5
 fi
 
+# Get the PACKAGE_AVAILABILE_DELAY from env or use default
+if [ "$PACKAGE_AVAILABLE_DELAY" == "" ]; then
+    export PACKAGE_AVAILABLE_DELAY=0
+fi
+
 # The python scripts expect BUILD_COMMIT
 export BUILD_COMMIT=$CI_COMMIT_ID
 
@@ -269,6 +274,7 @@ if [ $BUILD_TYPE == "master" ]; then
     tries=0
     while [ $tries -lt $PACKAGE_AVAILABLE_RETRY_COUNT ]; do
         tries=$[tries + 1]
+        sleep $PACKAGE_AVAILABLE_DELAY
         echo
         echo "-----------------------------------------------------------------"
         echo "ant deployManagedBeta - Attempt $tries of $PACKAGE_AVAILABLE_RETRY_COUNT"

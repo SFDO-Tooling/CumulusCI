@@ -464,10 +464,13 @@ project.setProperty("downgradePackage", result);
                               <not>
                                 <and>
                                   <equals arg1="${typename}" arg2="Report" />
+                                  <!-- Skip namespaced reports and folders since they come from another package -->
                                   <contains string="${component_file_parent}" substring="__" />
-                                  <equals arg1="${typename}" arg2="AuraDefinitionBundle" />
                                 </and>
                               </not>
+                              <!-- At some point this was necessary but doesn't seem to be anymore
+                              <not><equals arg1="${typename}" arg2="AuraDefinitionBundle" /></not>
+                              -->
                               <not><contains string="${parents_included}" substring=",${component_file_parent}," /></not>
                             </and>
                             <then>
@@ -688,27 +691,43 @@ project.setProperty("downgradePackage", result);
     
   
     <sequential>
-      <!-- Exclude CustomLabels.labels so we can use addMetadataSubType on it instead -->
-      <buildPackageXmlFromDir dir="${basedir}/@{srcDir}" xmlfile="${basedir}/@{srcDir}/package.xml.new" package="@{package}" version="@{version}" exclude="CustomLabels.labels *.matchingRule" installClass="@{installClass}" uninstallClass="@{uninstallClass}" />
+      <if>
+        <equals arg1="${env.CUMULUSCI_CLI}" arg2="True" />
+        <then>
+          <exec executable="cumulusci" failonerror="true">
+            <arg value="dev" />
+            <arg value="update_package_xml" />
+            <arg value="--directory" />
+            <arg value="@{srcDir}" />
+            <arg value="--output" />
+            <arg value="@{srcDir}/package.xml" />
+          </exec>
+        </then>
+        <else>
+          <!-- Exclude CustomLabels.labels so we can use addMetadataSubType on it instead -->
+          <buildPackageXmlFromDir dir="${basedir}/@{srcDir}" xmlfile="${basedir}/@{srcDir}/package.xml.new" package="@{package}" version="@{version}" exclude="CustomLabels.labels *.matchingRule" installClass="@{installClass}" uninstallClass="@{uninstallClass}" />
 
-      <!-- Add metadata sub-types of object which need to be explicitly listed in package.xml -->
-      <!--<addMetadataSubType dir="${basedir}/@{srcDir}" xmlfile="${basedir}/@{srcDir}/package.xml.new" typename="ActionOverride" element="actionOverrides" nameelement="actionName" />-->
-      <addMetadataSubType dir="${basedir}/@{srcDir}/objects" xmlfile="${basedir}/@{srcDir}/package.xml.new" typename="BusinessProcess" element="businessProcesses" />
-      <addMetadataSubType dir="${basedir}/@{srcDir}/objects" xmlfile="${basedir}/@{srcDir}/package.xml.new" typename="CompactLayout" element="compactLayouts" />
-      <addMetadataSubType dir="${basedir}/@{srcDir}/objects" xmlfile="${basedir}/@{srcDir}/package.xml.new" typename="CustomField" element="fields" xslt="${cumulus_ci.basedir}/xsl/extract_obj_fields.xsl" />
-      <addMetadataSubType dir="${basedir}/@{srcDir}/labels" suffix="labels" xmlfile="${basedir}/@{srcDir}/package.xml.new" typename="CustomLabel" element="labels" parentelement="CustomLabels" />
-      <addMetadataSubType dir="${basedir}/@{srcDir}/objects" xmlfile="${basedir}/@{srcDir}/package.xml.new" typename="FieldSet" element="fieldSets" />
-      <addMetadataSubType dir="${basedir}/@{srcDir}/objects" xmlfile="${basedir}/@{srcDir}/package.xml.new" typename="ListView" element="listViews" />
-      <addMetadataSubType dir="${basedir}/@{srcDir}/matchingRules" suffix="matchingRule" xmlfile="${basedir}/@{srcDir}/package.xml.new" typename="MatchingRule" element="matchingRules" parentelement="MatchingRules" />
-      <addMetadataSubType dir="${basedir}/@{srcDir}/objects" xmlfile="${basedir}/@{srcDir}/package.xml.new" typename="NamedFilter" element="namedFilters" />
-      <addMetadataSubType dir="${basedir}/@{srcDir}/objects" xmlfile="${basedir}/@{srcDir}/package.xml.new" typename="RecordType" element="recordTypes" />
-      <addMetadataSubType dir="${basedir}/@{srcDir}/objects" xmlfile="${basedir}/@{srcDir}/package.xml.new" typename="ValidationRule" element="validationRules" />
-      <addMetadataSubType dir="${basedir}/@{srcDir}/objects" xmlfile="${basedir}/@{srcDir}/package.xml.new" typename="WebLink" element="webLinks" />
-      <addMetadataSubType dir="${basedir}/@{srcDir}/workflows" suffix="workflow" xmlfile="${basedir}/@{srcDir}/package.xml.new" typename="WorkflowFieldUpdate" element="fieldUpdates" parentelement="Workflow" />
-      <addMetadataSubType dir="${basedir}/@{srcDir}/workflows" suffix="workflow" xmlfile="${basedir}/@{srcDir}/package.xml.new" typename="WorkflowRule" element="rules" parentelement="Workflow" />
-      <addMetadataSubType dir="${basedir}/@{srcDir}/workflows" suffix="workflow" xmlfile="${basedir}/@{srcDir}/package.xml.new" typename="WorkflowAlert" element="alerts" parentelement="Workflow" />
+          <!-- Add metadata sub-types of object which need to be explicitly listed in package.xml -->
+          <!--<addMetadataSubType dir="${basedir}/@{srcDir}" xmlfile="${basedir}/@{srcDir}/package.xml.new" typename="ActionOverride" element="actionOverrides" nameelement="actionName" />-->
+          <addMetadataSubType dir="${basedir}/@{srcDir}/objects" xmlfile="${basedir}/@{srcDir}/package.xml.new" typename="BusinessProcess" element="businessProcesses" />
+          <addMetadataSubType dir="${basedir}/@{srcDir}/objects" xmlfile="${basedir}/@{srcDir}/package.xml.new" typename="CompactLayout" element="compactLayouts" />
+          <addMetadataSubType dir="${basedir}/@{srcDir}/objects" xmlfile="${basedir}/@{srcDir}/package.xml.new" typename="CustomField" element="fields" xslt="${cumulus_ci.basedir}/xsl/extract_obj_fields.xsl" />
+          <addMetadataSubType dir="${basedir}/@{srcDir}/labels" suffix="labels" xmlfile="${basedir}/@{srcDir}/package.xml.new" typename="CustomLabel" element="labels" parentelement="CustomLabels" />
+          <addMetadataSubType dir="${basedir}/@{srcDir}/objects" xmlfile="${basedir}/@{srcDir}/package.xml.new" typename="FieldSet" element="fieldSets" />
+          <addMetadataSubType dir="${basedir}/@{srcDir}/objects" xmlfile="${basedir}/@{srcDir}/package.xml.new" typename="ListView" element="listViews" />
+          <addMetadataSubType dir="${basedir}/@{srcDir}/matchingRules" suffix="matchingRule" xmlfile="${basedir}/@{srcDir}/package.xml.new" typename="MatchingRule" element="matchingRules" parentelement="MatchingRules" />
+          <addMetadataSubType dir="${basedir}/@{srcDir}/objects" xmlfile="${basedir}/@{srcDir}/package.xml.new" typename="NamedFilter" element="namedFilters" />
+          <addMetadataSubType dir="${basedir}/@{srcDir}/objects" xmlfile="${basedir}/@{srcDir}/package.xml.new" typename="RecordType" element="recordTypes" />
+          <addMetadataSubType dir="${basedir}/@{srcDir}/objects" xmlfile="${basedir}/@{srcDir}/package.xml.new" typename="SharingReason" element="sharingReasons" />
+          <addMetadataSubType dir="${basedir}/@{srcDir}/objects" xmlfile="${basedir}/@{srcDir}/package.xml.new" typename="ValidationRule" element="validationRules" />
+          <addMetadataSubType dir="${basedir}/@{srcDir}/objects" xmlfile="${basedir}/@{srcDir}/package.xml.new" typename="WebLink" element="webLinks" />
+          <addMetadataSubType dir="${basedir}/@{srcDir}/workflows" suffix="workflow" xmlfile="${basedir}/@{srcDir}/package.xml.new" typename="WorkflowFieldUpdate" element="fieldUpdates" parentelement="Workflow" />
+          <addMetadataSubType dir="${basedir}/@{srcDir}/workflows" suffix="workflow" xmlfile="${basedir}/@{srcDir}/package.xml.new" typename="WorkflowRule" element="rules" parentelement="Workflow" />
+          <addMetadataSubType dir="${basedir}/@{srcDir}/workflows" suffix="workflow" xmlfile="${basedir}/@{srcDir}/package.xml.new" typename="WorkflowAlert" element="alerts" parentelement="Workflow" />
+          <move file="${basedir}/@{srcDir}/package.xml.new" tofile="${basedir}/@{srcDir}/package.xml" />
+        </else>
+      </if>
 
-      <move file="${basedir}/@{srcDir}/package.xml.new" tofile="${basedir}/@{srcDir}/package.xml" />
     </sequential>
   </macrodef>
 
@@ -822,23 +841,39 @@ project.setProperty("downgradePackage", result);
       <replaceregexp file="@{xmlfile}" match="Package(.*)>" replace="Package\1>&lt;fullName>@{package}%lt;/fullName>${line-separator}" />
 
       <!-- Build the destructiveChanges.xml file by walking the srcdir and adding all metadata -->
-      <!-- Exclude CustomLabels.labels so we can use addMetadataSubType on it instead -->
-      <buildPackageXmlFromDir dir="@{srcdir}" xmlfile="@{dir}/destructiveChanges.xml" version="${cumulusci.package.apiVersion}" exclude="${metadata_whitelist} CustomLabels.labels *.workflow *.matchingRule" />
+      <if>
+        <equals arg1="${env.CUMULUSCI_CLI}" arg2="True" />
+        <then>
+          <exec executable="cumulusci" failonerror="true">
+            <arg value="dev" />
+            <arg value="update_package_xml" />
+            <arg value="--output" />
+            <arg value="${destxml}" />
+            <arg value="--directory" />
+            <arg value="@{srcdir}" />
+            <arg value="--delete" />
+          </exec>
+        </then>
+        <else>
+          <!-- Exclude CustomLabels.labels so we can use addMetadataSubType on it instead -->
+          <buildPackageXmlFromDir dir="@{srcdir}" xmlfile="@{dir}/destructiveChanges.xml" version="${cumulusci.package.apiVersion}" exclude="${metadata_whitelist} CustomLabels.labels *.workflow *.matchingRule" />
 
-      <!-- Add standard object fields to destructiveChanges.xml -->
-      <addMetadataSubType dir="@{srcdir}/objects" xmlfile="@{dir}/destructiveChanges.xml" typename="CompactLayout" element="compactLayouts" />
-      <addMetadataSubType dir="@{srcdir}/objects" xmlfile="@{dir}/destructiveChanges.xml" typename="CustomField" element="fields" xslt="${cumulus_ci.basedir}/xsl/extract_obj_fields.xsl" />
-      <addMetadataSubType dir="@{srcdir}/labels" suffix="labels" xmlfile="@{dir}/destructiveChanges.xml" typename="CustomLabel" element="labels" parentelement="CustomLabels" />
-      <addMetadataSubType dir="@{srcdir}/objects" xmlfile="@{dir}/destructiveChanges.xml" typename="FieldSet" element="fieldSets" />
-      <addMetadataSubType dir="@{srcdir}/objects" xmlfile="@{dir}/destructiveChanges.xml" typename="ListView" element="listViews" />
-      <addMetadataSubType dir="@{srcdir}/matchingRules" suffix="matchingRule" xmlfile="@{dir}/destructiveChanges.xml" typename="MatchingRule" element="matchingRule" parentelement="MatchingRules" />
-      <addMetadataSubType dir="@{srcdir}/objects" xmlfile="@{dir}/destructiveChanges.xml" typename="NamedFilter" element="namedFilters" />
-      <!--<addMetadataSubType dir="@{srcdir}" xmlfile="@{dir}/destructiveChanges.xml" typename="RecordType" element="recordTypes" />-->
-      <addMetadataSubType dir="@{srcdir}/objects" xmlfile="@{dir}/destructiveChanges.xml" typename="ValidationRule" element="validationRules" />
-      <addMetadataSubType dir="@{srcdir}/objects" xmlfile="@{dir}/destructiveChanges.xml" typename="WebLink" element="webLinks" />
-      <addMetadataSubType dir="@{srcdir}/workflows" suffix="workflow" xmlfile="@{dir}/destructiveChanges.xml" typename="WorkflowFieldUpdate" element="fieldUpdates" parentelement="Workflow" />
-      <addMetadataSubType dir="@{srcdir}/workflows" suffix="workflow" xmlfile="@{dir}/destructiveChanges.xml" typename="WorkflowRule" element="rules" parentelement="Workflow" />
-      <addMetadataSubType dir="@{srcdir}/workflows" suffix="workflow" xmlfile="@{dir}/destructiveChanges.xml" typename="WorkflowAlert" element="alerts" parentelement="Workflow" />
+          <!-- Add standard object fields to destructiveChanges.xml -->
+          <addMetadataSubType dir="@{srcdir}/objects" xmlfile="@{dir}/destructiveChanges.xml" typename="CompactLayout" element="compactLayouts" />
+          <addMetadataSubType dir="@{srcdir}/objects" xmlfile="@{dir}/destructiveChanges.xml" typename="CustomField" element="fields" xslt="${cumulus_ci.basedir}/xsl/extract_obj_fields.xsl" />
+          <addMetadataSubType dir="@{srcdir}/labels" suffix="labels" xmlfile="@{dir}/destructiveChanges.xml" typename="CustomLabel" element="labels" parentelement="CustomLabels" />
+          <addMetadataSubType dir="@{srcdir}/objects" xmlfile="@{dir}/destructiveChanges.xml" typename="FieldSet" element="fieldSets" />
+          <addMetadataSubType dir="@{srcdir}/objects" xmlfile="@{dir}/destructiveChanges.xml" typename="ListView" element="listViews" />
+          <addMetadataSubType dir="@{srcdir}/matchingRules" suffix="matchingRule" xmlfile="@{dir}/destructiveChanges.xml" typename="MatchingRule" element="matchingRule" parentelement="MatchingRules" />
+          <addMetadataSubType dir="@{srcdir}/objects" xmlfile="@{dir}/destructiveChanges.xml" typename="NamedFilter" element="namedFilters" />
+          <!--<addMetadataSubType dir="@{srcdir}" xmlfile="@{dir}/destructiveChanges.xml" typename="RecordType" element="recordTypes" />-->
+          <addMetadataSubType dir="@{srcdir}/objects" xmlfile="@{dir}/destructiveChanges.xml" typename="ValidationRule" element="validationRules" />
+          <addMetadataSubType dir="@{srcdir}/objects" xmlfile="@{dir}/destructiveChanges.xml" typename="WebLink" element="webLinks" />
+          <addMetadataSubType dir="@{srcdir}/workflows" suffix="workflow" xmlfile="@{dir}/destructiveChanges.xml" typename="WorkflowFieldUpdate" element="fieldUpdates" parentelement="Workflow" />
+          <addMetadataSubType dir="@{srcdir}/workflows" suffix="workflow" xmlfile="@{dir}/destructiveChanges.xml" typename="WorkflowRule" element="rules" parentelement="Workflow" />
+          <addMetadataSubType dir="@{srcdir}/workflows" suffix="workflow" xmlfile="@{dir}/destructiveChanges.xml" typename="WorkflowAlert" element="alerts" parentelement="Workflow" />
+        </else>
+      </if>
 
     </sequential>
   </macrodef>

@@ -1,3 +1,7 @@
+# CumulusCI CLI
+
+CumulusCI now provides a command line interface.  The CLI is evolving and not all functions are available through it yet.  You can find out more information about the CLI at https://github.com/SalesforceFoundation/CumulusCI/tree/master/cli
+
 # CumulusCI
 
 If you are already familiar with [Github Flow](http://scottchacon.com/2011/08/31/github-flow.html) and just want to get up and running using this process in the Salesforce platform, follow these steps:
