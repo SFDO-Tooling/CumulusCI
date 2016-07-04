@@ -31,7 +31,11 @@ def upload_test_results():
     }
 
     response = requests.post(APEXTESTSDB_BASE_URL + '/upload_test_result', data=payload)
-    data = json.loads(response.content)
+    try:
+        data = json.loads(response.content)
+    except ValueError:
+        print response.content
+
     return '%s/executions/%s' % (APEXTESTSDB_BASE_URL, data['execution_id'])
 
 if __name__ == '__main__':

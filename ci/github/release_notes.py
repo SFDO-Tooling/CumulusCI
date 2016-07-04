@@ -4,6 +4,7 @@ import requests
 import json
 import datetime
 import re
+import codecs
 from github import Github
 from distutils.version import LooseVersion
 from subprocess import call
@@ -180,26 +181,26 @@ def create_release_notes():
     # Sort issues by issue number
     content['issues'].sort()
     
-    f = open('release_notes.md', 'w')
+    f = codecs.open('release_notes.md', encoding='utf-8', mode='w')
     
     if content['warning']:
-        f.write('# Critical Changes\r\n')
+        f.write(u'# Critical Changes\r\n')
         for line in content['warning']:
-            f.write('%s\r\n' % line)
+            f.write(u'{0}\r\n'.format(line,))
         if content['info'] or content['issues']:
-            f.write('\r\n')
+            f.write(u'\r\n')
     if content['info']:
-        f.write('# Changes\r\n')
+        f.write(u'# Changes\r\n')
         for line in content['info']:
-            f.write('%s\r\n' % line)
+            f.write(u'{0}\r\n'.format(line,))
         if content['issues']:
-            f.write('\r\n')
+            f.write(u'\r\n')
     if content['issues']:
-        f.write('# Issues Closed\r\n')
+        f.write(u'# Issues Closed\r\n')
         for issue in content['issues']:
             # Get the issue title to include
             gh_issue = call_api('/issues/%s' % issue)
-            f.write('#%s: %s\r\n' % (issue, gh_issue['title']))
+            f.write(u'#{0}: {1}\r\n'.format(issue, gh_issue['title']))
     
             # Ensure all issues have a comment on which release they were fixed
             gh_issue_comments = call_api('/issues/%s/comments' % issue)
@@ -222,12 +223,12 @@ def create_release_notes():
     
     f.close()
     
-    f = open('release_notes.md', 'r')
+    f = codecs.open('release_notes.md', encoding='utf-8', mode='r')
     release_notes = f.read()
     f.close()
     
     print '----- RELEASE NOTES -----'
-    print release_notes
+    print release_notes.encode('utf-8')
     print '----- END RELEASE NOTES -----'
     
     # Add the release notes to the body of the release

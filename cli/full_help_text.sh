@@ -81,6 +81,11 @@ echo "" >> "$OUTPUT"
 cumulusci github release_notes --help | sed -e 's/^/    /g' >> "$OUTPUT"
 echo "" >> "$OUTPUT"
 
+echo "cumulusci github commit_status --help" >> "$OUTPUT"
+echo "" >> "$OUTPUT"
+cumulusci github commit_status --help | sed -e 's/^/    /g' >> "$OUTPUT"
+echo "" >> "$OUTPUT"
+
 echo "cumulusci github clone_tag --help" >> "$OUTPUT"
 cumulusci github clone_tag --help | sed -e 's/^/    /g' >> "$OUTPUT"
 echo "" >> "$OUTPUT"
@@ -107,6 +112,11 @@ echo "" >> "$OUTPUT"
 echo "cumulusci ci beta_deploy --help" >> "$OUTPUT"
 echo "" >> "$OUTPUT"
 cumulusci ci beta_deploy --help | sed -e 's/^/    /g' >> "$OUTPUT"
+echo "" >> "$OUTPUT"
+
+echo "cumulusci ci apextestsdb --help" >> "$OUTPUT"
+echo "" >> "$OUTPUT"
+cumulusci ci apextestsdb --help | sed -e 's/^/    /g' >> "$OUTPUT"
 echo "" >> "$OUTPUT"
 
 echo "cumulusci ci next_step --help" >> "$OUTPUT"
