@@ -1,15 +1,17 @@
 import unittest
+
+from github.release_notes import BaseChangeNotesParser
 from github.release_notes import BaseReleaseNotesGenerator
 from github.release_notes import ReleaseNotesGenerator
 from github.release_notes import ChangeNotesLinesParser
 
 
-class DummyParser(object):
+class DummyParser(BaseChangeNotesParser):
 
     def parse(self, change_note):
         pass
 
-    def render(self):
+    def _render(self):
         return 'dummy parser output'
 
 
@@ -22,8 +24,8 @@ class TestBaseReleaseNotesGenerator(unittest.TestCase):
 
     def test_render_dummy_parsers(self):
         release_notes = BaseReleaseNotesGenerator()
-        release_notes.parsers.append(DummyParser())
-        release_notes.parsers.append(DummyParser())
+        release_notes.parsers.append(DummyParser('Dummy 1'))
+        release_notes.parsers.append(DummyParser('Dummy 2'))
         content = release_notes.render()
         self.assertEqual(content, 'dummy parser output\r\ndummy parser output')
 
