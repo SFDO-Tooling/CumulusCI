@@ -12,7 +12,7 @@ class DummyParser(BaseChangeNotesParser):
         pass
 
     def _render(self):
-        return 'dummy parser output'
+        return 'dummy parser output\r\n'
 
 
 class TestBaseReleaseNotesGenerator(unittest.TestCase):
@@ -26,8 +26,9 @@ class TestBaseReleaseNotesGenerator(unittest.TestCase):
         release_notes = BaseReleaseNotesGenerator()
         release_notes.parsers.append(DummyParser('Dummy 1'))
         release_notes.parsers.append(DummyParser('Dummy 2'))
-        content = release_notes.render()
-        self.assertEqual(content, 'dummy parser output\r\ndummy parser output')
+        self.assertEqual(release_notes.render(), (
+                         u'# Dummy 1\r\ndummy parser output\r\n\r\n' +
+                         u'# Dummy 2\r\ndummy parser output\r\n'))
 
 
 class TestReleaseNotesGenerator(unittest.TestCase):
