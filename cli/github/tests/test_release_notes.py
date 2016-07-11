@@ -91,11 +91,11 @@ class TestChangeNotesLinesParser(unittest.TestCase):
         assert parser.render() == None
 
     def test_render_one_content(self):
-        start_line = '# Start Line'
-        change_note = '{}\r\nfoo\r\nbar\r\n\r\n'.format(start_line)
-        parser = ChangeNotesLinesParser(None, None, start_line)
-        parser.parse(change_note)
-        assert parser.content == ['foo', 'bar']
+        title = 'Title'
+        parser = ChangeNotesLinesParser(None, title, None)
+        content = ['foo']
+        parser.content = content
+        assert parser.render() == '# {}\r\n{}'.format(title, content[0])
 
     def test_render_multiple_content(self):
         pass
