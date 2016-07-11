@@ -73,7 +73,11 @@ class TestChangeNotesLinesParser(unittest.TestCase):
         assert parser.content == []
 
     def test_parse_multiple_start_lines_without_end_lines(self):
-        pass
+        start_line = '# Start Line'
+        change_note = '{0}\r\nfoo\r\n{0}\r\nbar\r\n'.format(start_line)
+        parser = ChangeNotesLinesParser(None, None, start_line)
+        parser.parse(change_note)
+        assert parser.content == ['foo', 'bar']
 
     def test_parse_multiple_start_lines_with_end_lines(self):
         pass
