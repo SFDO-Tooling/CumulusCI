@@ -115,6 +115,8 @@ class ChangeNotesLinesParser(BaseChangeNotesParser):
         self.content.append(line)
 
     def render(self):
+        if not self.content:
+            return None
         content = []
         content.append(self._render_header())
         content.append(self._render_content())
