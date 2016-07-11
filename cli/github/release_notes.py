@@ -104,7 +104,7 @@ class ChangeNotesLinesParser(BaseChangeNotesParser):
             return True
     
     def _is_start_line(self, line):
-        return line == self.parse_heading
+        return line == self.start_line
             
     def _is_end_line(self, line):
         if not line:
