@@ -45,7 +45,11 @@ class TestChangeNotesLinesParser(unittest.TestCase):
         pass
 
     def test_parse_no_start_line(self):
-        pass
+        start_line = '# Start Line'
+        change_note = 'foo\r\nbar\r\n'
+        parser = ChangeNotesLinesParser(None, None, start_line)
+        parser.parse(change_note)
+        assert parser.content == []
 
     def test_parse_start_line_no_content(self):
         start_line = '# Start Line'
