@@ -93,7 +93,7 @@ class ChangeNotesLinesParser(BaseChangeNotesParser):
                 if self._is_excluded_line(line):
                     continue
 
-                self.add_line(line)
+                self._add_line(line)
 
         self._in_section = False
 
