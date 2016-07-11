@@ -69,6 +69,8 @@ class ChangeNotesLinesParser(BaseChangeNotesParser):
     def __init__(self, release_notes, title, start_line):
         super(ChangeNotesLinesParser, self).__init__(release_notes)
         self.title = title
+        if not start_line:
+            raise ValueError('start_line cannot be empty')
         self.start_line = start_line
         self._in_section = False
 
