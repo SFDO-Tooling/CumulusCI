@@ -46,7 +46,6 @@ class BaseReleaseNotesGenerator(object):
 
 
 class BaseChangeNotesParser(object):
-    title = ''
 
     def __init__(self):
         self.content = []
