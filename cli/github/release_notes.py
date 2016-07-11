@@ -47,7 +47,8 @@ class BaseReleaseNotesGenerator(object):
 
 class BaseChangeNotesParser(object):
 
-    def __init__(self):
+    def __init__(self, title):
+        self.title = title
         self.content = []
 
     def parse(self):
@@ -65,8 +66,7 @@ class BaseChangeNotesParser(object):
 class ChangeNotesLinesParser(BaseChangeNotesParser):
 
     def __init__(self, title, start_line):
-        super(ChangeNotesLinesParser, self).__init__()
-        self.title = title
+        super(ChangeNotesLinesParser, self).__init__(title)
         if not start_line:
             raise ValueError('start_line cannot be empty')
         self.start_line = start_line
