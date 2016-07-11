@@ -87,7 +87,8 @@ class TestChangeNotesLinesParser(unittest.TestCase):
         assert parser.content == ['foo', 'bar']
 
     def test_render_no_content(self):
-        pass
+        parser = ChangeNotesLinesParser(None, None, None)
+        assert parser.render() == None
 
     def test_render_one_content(self):
         pass
