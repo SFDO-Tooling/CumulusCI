@@ -87,19 +87,22 @@ class TestChangeNotesLinesParser(unittest.TestCase):
         assert parser.content == ['foo', 'bar']
 
     def test_render_no_content(self):
-        parser = ChangeNotesLinesParser(None, None, None)
+        start_line = '# Start Line'
+        parser = ChangeNotesLinesParser(None, None, start_line)
         assert parser.render() == None
 
     def test_render_one_content(self):
         title = 'Title'
-        parser = ChangeNotesLinesParser(None, title, None)
+        start_line = '# Start Line'
+        parser = ChangeNotesLinesParser(None, title, start_line)
         content = ['foo']
         parser.content = content
         assert parser.render() == '# {}\r\n{}'.format(title, content[0])
 
     def test_render_multiple_content(self):
         title = 'Title'
-        parser = ChangeNotesLinesParser(None, title, None)
+        start_line = '# Start Line'
+        parser = ChangeNotesLinesParser(None, title, start_line)
         content = ['foo', 'bar']
         parser.content = content
         assert parser.render() == '# {}\r\n{}'.format(
