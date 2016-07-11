@@ -42,7 +42,7 @@ class TestBaseChangeNotesParser(unittest.TestCase):
 class TestChangeNotesLinesParser(unittest.TestCase):
 
     def test_init_empty_start_line(self):
-        pass
+        self.assertRaises(ValueError, ChangeNotesLinesParser, None, None, '')
 
     def test_parse_no_start_line(self):
         start_line = '# Start Line'
