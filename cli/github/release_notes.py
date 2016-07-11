@@ -55,9 +55,7 @@ class BaseChangeNotesParser(object):
         raise NotImplementedError()
 
     def render(self):
-        print self.title
-        self._render()
-        print
+        return '# {}\r\n{}'.format(self.title, self._render())
 
     def _render(self):
         raise NotImplementedError()
