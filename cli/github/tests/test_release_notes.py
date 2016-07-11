@@ -49,6 +49,9 @@ class TestChangeNotesLinesParser(unittest.TestCase):
     def test_parse_start_line_no_end_line(self):
         pass
 
+    def test_parse_start_line_no_content_no_end_line(self):
+        pass
+
     def test_parse_multiple_start_lines_without_end_lines(self):
         pass
 
