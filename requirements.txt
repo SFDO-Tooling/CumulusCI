@@ -1,6 +1,7 @@
 -e ./cli
 cement==2.6.2
 click==6.2
+nose==1.3.7
 sarge==0.1.4
 requests[security]==2.9.1
 selenium

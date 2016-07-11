@@ -21,7 +21,7 @@ class BaseReleaseNotesGenerator(object):
         """ Subclasses should override this method to initialize their parsers """
         pass
 
-    def _add(self, change_note):
+    def add(self, change_note):
         """ Adds Markdown content to self.change_notes and parses through all parsers in self.parsers """
         self.change_notes.append(change_note)
         self._parse_change_note(change_note)
@@ -126,7 +126,7 @@ class ChangeNotesLinesParser(BaseChangeNotesParser):
         return u'\r\n'.join(self.content)
 
 
-class GitHubIssuesParser(ChangeNotesLinesParser):
+class GithubIssuesParser(ChangeNotesLinesParser):
     
     def add_line(self, line):
         issue_number = re.sub(r'.*fix.* #(\d*).*$', r'\1', line, flags=re.IGNORECASE)
@@ -142,4 +142,4 @@ class ReleaseNotesGenerator(BaseReleaseNotesGenerator):
     def _init_parsers(self):
         self.parsers.append(ChangeNotesLinesParser(self, 'Critical Changes', '# Warning'))
         self.parsers.append(ChangeNotesLinesParser(self, 'Changes', '# Info'))
-        self.parsers.append(GitHubIssuesParser(self, 'Issues Closed', '# Issues'))
+        self.parsers.append(GithubIssuesParser(self, 'Issues Closed', '# Issues'))
