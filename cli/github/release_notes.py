@@ -65,8 +65,8 @@ class BaseChangeNotesParser(object):
 
 class ChangeNotesLinesParser(BaseChangeNotesParser):
 
-    def __init__(self, release_notes, title, start_line):
-        super(ChangeNotesLinesParser, self).__init__(release_notes)
+    def __init__(self, title, start_line):
+        super(ChangeNotesLinesParser, self).__init__()
         self.title = title
         if not start_line:
             raise ValueError('start_line cannot be empty')
@@ -146,7 +146,8 @@ class ReleaseNotesGenerator(BaseReleaseNotesGenerator):
 
     def _init_parsers(self):
         self.parsers.append(ChangeNotesLinesParser(
-            self, 'Critical Changes', '# Warning'))
-        self.parsers.append(ChangeNotesLinesParser(self, 'Changes', '# Info'))
+            'Critical Changes', '# Warning'))
+        self.parsers.append(ChangeNotesLinesParser(
+            'Changes', '# Info'))
         self.parsers.append(GithubIssuesParser(
-            self, 'Issues Closed', '# Issues'))
+            'Issues Closed', '# Issues'))

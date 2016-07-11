@@ -42,59 +42,59 @@ class TestBaseChangeNotesParser(unittest.TestCase):
 class TestChangeNotesLinesParser(unittest.TestCase):
 
     def test_init_empty_start_line(self):
-        self.assertRaises(ValueError, ChangeNotesLinesParser, None, None, '')
+        self.assertRaises(ValueError, ChangeNotesLinesParser, None, '')
 
     def test_parse_no_start_line(self):
         start_line = '# Start Line'
         change_note = 'foo\r\nbar\r\n'
-        parser = ChangeNotesLinesParser(None, None, start_line)
+        parser = ChangeNotesLinesParser(None, start_line)
         parser.parse(change_note)
         self.assertEqual(parser.content, [])
 
     def test_parse_start_line_no_content(self):
         start_line = '# Start Line'
         change_note = '{}\r\n\r\n'.format(start_line)
-        parser = ChangeNotesLinesParser(None, None, start_line)
+        parser = ChangeNotesLinesParser(None, start_line)
         parser.parse(change_note)
         self.assertEqual(parser.content, [])
 
     def test_parse_start_line_no_end_line(self):
         start_line = '# Start Line'
         change_note = '{}\r\nfoo\r\nbar'.format(start_line)
-        parser = ChangeNotesLinesParser(None, None, start_line)
+        parser = ChangeNotesLinesParser(None, start_line)
         parser.parse(change_note)
         self.assertEqual(parser.content, ['foo', 'bar'])
 
     def test_parse_start_line_no_content_no_end_line(self):
         start_line = '# Start Line'
         change_note = start_line
-        parser = ChangeNotesLinesParser(None, None, start_line)
+        parser = ChangeNotesLinesParser(None, start_line)
         parser.parse(change_note)
         self.assertEqual(parser.content, [])
 
     def test_parse_multiple_start_lines_without_end_lines(self):
         start_line = '# Start Line'
         change_note = '{0}\r\nfoo\r\n{0}\r\nbar\r\n'.format(start_line)
-        parser = ChangeNotesLinesParser(None, None, start_line)
+        parser = ChangeNotesLinesParser(None, start_line)
         parser.parse(change_note)
         self.assertEqual(parser.content, ['foo', 'bar'])
 
     def test_parse_multiple_start_lines_with_end_lines(self):
         start_line = '# Start Line'
         change_note = '{0}\r\nfoo\r\n\r\n{0}\r\nbar\r\n\r\n'.format(start_line)
-        parser = ChangeNotesLinesParser(None, None, start_line)
+        parser = ChangeNotesLinesParser(None, start_line)
         parser.parse(change_note)
         self.assertEqual(parser.content, ['foo', 'bar'])
 
     def test_render_no_content(self):
         start_line = '# Start Line'
-        parser = ChangeNotesLinesParser(None, None, start_line)
+        parser = ChangeNotesLinesParser(None, start_line)
         self.assertEqual(parser.render(), None)
 
     def test_render_one_content(self):
         title = 'Title'
         start_line = '# Start Line'
-        parser = ChangeNotesLinesParser(None, title, start_line)
+        parser = ChangeNotesLinesParser(title, start_line)
         content = ['foo']
         parser.content = content
         self.assertEqual(parser.render(),
@@ -103,7 +103,7 @@ class TestChangeNotesLinesParser(unittest.TestCase):
     def test_render_multiple_content(self):
         title = 'Title'
         start_line = '# Start Line'
-        parser = ChangeNotesLinesParser(None, title, start_line)
+        parser = ChangeNotesLinesParser(title, start_line)
         content = ['foo', 'bar']
         parser.content = content
         self.assertEqual(parser.render(),
