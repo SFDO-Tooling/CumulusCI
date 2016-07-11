@@ -98,7 +98,7 @@ class TestChangeNotesLinesParser(unittest.TestCase):
         content = ['foo']
         parser.content = content
         self.assertEqual(parser.render(),
-            '# {}\r\n{}'.format(title, content[0]))
+                         '# {}\r\n{}'.format(title, content[0]))
 
     def test_render_multiple_content(self):
         title = 'Title'
@@ -107,7 +107,7 @@ class TestChangeNotesLinesParser(unittest.TestCase):
         content = ['foo', 'bar']
         parser.content = content
         self.assertEqual(parser.render(),
-            '# {}\r\n{}'.format(title, '\r\n'.join(content)))
+                         '# {}\r\n{}'.format(title, '\r\n'.join(content)))
 
 
 class TestGithubIssuesParser(unittest.TestCase):
