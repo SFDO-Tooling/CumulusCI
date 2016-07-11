@@ -3,10 +3,12 @@ from github.release_notes import BaseReleaseNotesGenerator
 from github.release_notes import ReleaseNotesGenerator
 from github.release_notes import ChangeNotesLinesParser
 
+
 class DummyParser(object):
+
     def parse(self, change_note):
         pass
-    
+
     def render(self):
         return 'dummy parser output'
 
@@ -25,21 +27,23 @@ class TestBaseReleaseNotesGenerator(unittest.TestCase):
         content = release_notes.render()
         assert content == 'dummy parser output\r\ndummy parser output'
 
+
 class TestReleaseNotesGenerator(unittest.TestCase):
 
     def test_init_parser(self):
         release_notes = ReleaseNotesGenerator()
         assert len(release_notes.parsers) == 3
 
+
 class TestBaseChangeNotesParser(unittest.TestCase):
     pass
 
 
 class TestChangeNotesLinesParser(unittest.TestCase):
-    
+
     def test_init_empty_start_line(self):
         pass
-    
+
     def test_parse_no_start_line(self):
         pass
 
@@ -71,8 +75,9 @@ class TestChangeNotesLinesParser(unittest.TestCase):
     def test_render_multiple_content(self):
         pass
 
+
 class TestGithubIssuesParser(unittest.TestCase):
     pass
 
-#if __name__ == '__main__':
+# if __name__ == '__main__':
 #    unittest.main()

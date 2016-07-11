@@ -6,6 +6,7 @@ import re
 # Assumptions
 # - All overrides will be done via new Python classes
 
+
 class BaseReleaseNotesGenerator(object):
 
     def __init__(self):
@@ -50,7 +51,7 @@ class BaseChangeNotesParser(object):
     def __init__(self, release_notes):
         self.release_notes = release_notes
         self.content = []
-    
+
     def parse(self):
         raise NotImplementedError()
 
@@ -58,7 +59,7 @@ class BaseChangeNotesParser(object):
         print self.title
         self._render()
         print
-    
+
     def _render(self):
         raise NotImplementedError()
 
@@ -87,11 +88,11 @@ class ChangeNotesLinesParser(BaseChangeNotesParser):
                 if self._is_end_line(line):
                     self._in_section = False
                     continue
-   
-                # Skip excluded lines                 
+
+                # Skip excluded lines
                 if self._is_excluded_line(line):
                     continue
-            
+
                 self.add_line(line)
 
         self._in_section = False
@@ -102,10 +103,10 @@ class ChangeNotesLinesParser(BaseChangeNotesParser):
     def _is_excluded_line(self, line):
         if not line:
             return True
-    
+
     def _is_start_line(self, line):
         return line == self.start_line
-            
+
     def _is_end_line(self, line):
         if not line:
             return True
@@ -127,19 +128,22 @@ class ChangeNotesLinesParser(BaseChangeNotesParser):
 
 
 class GithubIssuesParser(ChangeNotesLinesParser):
-    
+
     def add_line(self, line):
-        issue_number = re.sub(r'.*fix.* #(\d*).*$', r'\1', line, flags=re.IGNORECASE)
+        issue_number = re.sub(r'.*fix.* #(\d*).*$', r'\1',
+                              line, flags=re.IGNORECASE)
         self.content.append(issue_number)
-                        
-    #def _render_issue(self, issue_number):
+
+    # def _render_issue(self, issue_number):
         #issue = github_api.get_issue(issue_number)
-        #print '#{}: {}'.format(issue_number, issue['title'])
-        
+        # print '#{}: {}'.format(issue_number, issue['title'])
+
 
 class ReleaseNotesGenerator(BaseReleaseNotesGenerator):
 
     def _init_parsers(self):
-        self.parsers.append(ChangeNotesLinesParser(self, 'Critical Changes', '# Warning'))
+        self.parsers.append(ChangeNotesLinesParser(
+            self, 'Critical Changes', '# Warning'))
         self.parsers.append(ChangeNotesLinesParser(self, 'Changes', '# Info'))
-        self.parsers.append(GithubIssuesParser(self, 'Issues Closed', '# Issues'))
+        self.parsers.append(GithubIssuesParser(
+            self, 'Issues Closed', '# Issues'))
