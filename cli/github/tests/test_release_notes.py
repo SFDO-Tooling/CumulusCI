@@ -82,6 +82,3 @@ class TestChangeNotesLinesParser(unittest.TestCase):
 
 class TestGithubIssuesParser(unittest.TestCase):
     pass
-
-# if __name__ == '__main__':
-#    unittest.main()
