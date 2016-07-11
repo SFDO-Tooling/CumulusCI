@@ -48,8 +48,7 @@ class BaseReleaseNotesGenerator(object):
 class BaseChangeNotesParser(object):
     title = ''
 
-    def __init__(self, release_notes):
-        self.release_notes = release_notes
+    def __init__(self):
         self.content = []
 
     def parse(self):
