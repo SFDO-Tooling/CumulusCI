@@ -1,6 +1,7 @@
 import unittest
-from release_notes import BaseReleaseNotesGenerator
-from release_notes import ReleaseNotesGenerator
+from github.release_notes import BaseReleaseNotesGenerator
+from github.release_notes import ReleaseNotesGenerator
+from github.release_notes import ChangeNotesLinesParser
 
 class DummyParser(object):
     def parse(self, change_note):
