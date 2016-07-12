@@ -165,3 +165,11 @@ class TestGithubIssuesParser(unittest.TestCase):
         parser = GithubIssuesParser(None, None, start_line)
         parser.parse(change_note)
         self.assertEqual(parser.content, [2])
+
+    def test_no_issue_numbers(self):
+        start_line = '# Issues'
+        change_note = '{}\r\n#2 and #3 are fixed by this change'.format(
+            start_line)
+        parser = GithubIssuesParser(None, None, start_line)
+        parser.parse(change_note)
+        self.assertEqual(parser.content, [])
