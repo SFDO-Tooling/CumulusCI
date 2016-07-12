@@ -5,6 +5,7 @@ from github.release_notes import StaticReleaseNotesGenerator
 from github.release_notes import DirectoryReleaseNotesGenerator
 from github.release_notes import BaseChangeNotesParser
 from github.release_notes import IssuesParser
+from github.release_notes import GithubIssuesParser
 from github.release_notes import ChangeNotesLinesParser
 
 
@@ -141,4 +142,11 @@ class TestIssuesParser(unittest.TestCase):
 
 
 class TestGithubIssuesParser(unittest.TestCase):
-    pass
+
+    def test_issue_number(self):
+        start_line = '# Issues'
+        change_note = '{}\r\nFixes #2, Closed #3 and Resolve #5'.format(
+            start_line)
+        parser = GithubIssuesParser(None, None, start_line)
+        parser.parse(change_note)
+        self.assertEqual(parser.content, [2, 3, 5])

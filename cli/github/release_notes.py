@@ -215,14 +215,21 @@ class IssuesParser(ChangeNotesLinesParser):
 
 class GithubIssuesParser(IssuesParser):
 
-    def _add_line(self, line):
-        issue_number = re.sub(r'.*fix.* #(\d*).*$', r'\1',
-                              line, flags=re.IGNORECASE)
-        self.content.append(issue_number)
-
-    # def _render_issue(self, issue_number):
-        #issue = github_api.get_issue(issue_number)
-        # print '#{}: {}'.format(issue_number, issue['title'])
+    def __init__(self, release_notes_generator, title, start_line):
+        self.keywords = (
+            'close',
+            'closes',
+            'closed',
+            'fix',
+            'fixes',
+            'fixed',
+            'resolve',
+            'resolves',
+            'resolved',
+        )
+        super(GithubIssuesParser, self).__init__(
+            release_notes_generator, title, start_line,
+            r'(?:{})\s#(\d+)'.format('|'.join(self.keywords)))
 
 
 class StaticChangeNotesProvider(BaseChangeNotesProvider):
