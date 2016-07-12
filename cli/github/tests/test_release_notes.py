@@ -2,11 +2,13 @@ import os
 import shutil
 import tempfile
 import unittest
+
 from github.release_notes import BaseReleaseNotesGenerator
 from github.release_notes import StaticReleaseNotesGenerator
 from github.release_notes import DirectoryReleaseNotesGenerator
-
 from github.release_notes import BaseChangeNotesParser
+from github.release_notes import IssuesParser
+from github.release_notes import GithubIssuesParser
 from github.release_notes import ChangeNotesLinesParser
 
 from github.release_notes import BaseChangeNotesProvider
@@ -48,14 +50,17 @@ class TestStaticReleaseNotesGenerator(unittest.TestCase):
         release_notes = StaticReleaseNotesGenerator([])
         assert len(release_notes.parsers) == 3
 
+
 class TestDirectoryReleaseNotesGenerator(unittest.TestCase):
 
     def test_init_parser(self):
         release_notes = DirectoryReleaseNotesGenerator('change_notes')
         assert len(release_notes.parsers) == 3
 
+
 class TestBaseChangeNotesParser(unittest.TestCase):
     pass
+
 
 class TestChangeNotesLinesParser(unittest.TestCase):
 
@@ -128,8 +133,56 @@ class TestChangeNotesLinesParser(unittest.TestCase):
                          '# {}\r\n{}'.format(title, '\r\n'.join(content)))
 
 
+class TestIssuesParser(unittest.TestCase):
+
+    def test_issue_numbers(self):
+        start_line = '# Issues'
+        change_note = '{}\r\nfix #2\r\nfix #3\r\nfix #5\r\n'.format(start_line)
+        parser = IssuesParser(None, None, start_line)
+        parser.parse(change_note)
+        self.assertEqual(parser.content, [2, 3, 5])
+
+    def test_issue_numbers_and_other_numbers(self):
+        start_line = '# Issues'
+        change_note = '{}\r\nfixes #2 but not # 3 or 5'.format(start_line)
+        parser = IssuesParser(None, None, start_line)
+        parser.parse(change_note)
+        self.assertEqual(parser.content, [2])
+
+    def test_multiple_issue_numbers_per_line(self):
+        start_line = '# Issues'
+        change_note = '{}\r\nfix #2 also does fix #3 and fix #5\r\n'.format(
+            start_line)
+        parser = IssuesParser(None, None, start_line)
+        parser.parse(change_note)
+        self.assertEqual(parser.content, [2, 3, 5])
+
+
 class TestGithubIssuesParser(unittest.TestCase):
-    pass
+
+    def test_issue_numbers(self):
+        start_line = '# Issues'
+        change_note = '{}\r\nFixes #2, Closed #3 and Resolve #5'.format(
+            start_line)
+        parser = GithubIssuesParser(None, None, start_line)
+        parser.parse(change_note)
+        self.assertEqual(parser.content, [2, 3, 5])
+
+    def test_issue_numbers_and_other_numbers(self):
+        start_line = '# Issues'
+        change_note = '{}\r\nFixes #2 but not #5'.format(
+            start_line)
+        parser = GithubIssuesParser(None, None, start_line)
+        parser.parse(change_note)
+        self.assertEqual(parser.content, [2])
+
+    def test_no_issue_numbers(self):
+        start_line = '# Issues'
+        change_note = '{}\r\n#2 and #3 are fixed by this change'.format(
+            start_line)
+        parser = GithubIssuesParser(None, None, start_line)
+        parser.parse(change_note)
+        self.assertEqual(parser.content, [])
 
 class TestBaseChangeNotesProvider(unittest.TestCase):
 

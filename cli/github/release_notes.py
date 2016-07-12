@@ -17,7 +17,7 @@ class BaseReleaseNotesGenerator(object):
 
     def init_change_notes(self):
         self.change_notes = self._init_change_notes()
-    
+
     def _init_change_notes(self):
         """ Subclasses should override this method to return an initialized subclass of BaseChangeNotesProvider """
         return []
@@ -64,6 +64,7 @@ class BaseChangeNotesParser(object):
     def _render(self):
         raise NotImplementedError()
 
+
 class BaseChangeNotesProvider(object):
 
     def __init__(self, release_notes_generator):
@@ -80,52 +81,55 @@ class GithubApiMixin(object):
     @property
     def github_owner(self):
         return self.github_info['github_owner']
-   
+
     @property
     def github_repo(self):
         return self.github_info['github_repo']
-   
+
     @property
     def github_username(self):
         return self.github_info['github_username']
-   
+
     @property
     def github_password(self):
         return self.github_info['github_password']
-   
+
     @property
     def master_branch(self):
         return self.github_info.get('master_branch', 'master')
-   
+
     @property
     def prefix_prod(self):
         return self.github_info.get('prefix_prod', 'prod/')
 
     @property
     def github_info(self):
-        # By default, look for github config info in the release_notes property.  Subclasses can override this if needed
+        # By default, look for github config info in the release_notes
+        # property.  Subclasses can override this if needed
         return self.release_notes_generator.github_info
 
     def call_api(self, subpath, data=None):
         """ Takes a subpath under the repository (ex: /releases) and returns the json data from the api """
-        api_url = '{}/repos/{}/{}{}'.format(self.github_api_base_url, self.github_owner, self.github_repo, subpath)
+        api_url = '{}/repos/{}/{}{}'.format(
+            self.github_api_base_url, self.github_owner, self.github_repo, subpath)
 
         # Use Github Authentication if available for the repo
         kwargs = {}
         if self.github_owner and self.github_owner:
             kwargs['auth'] = (self.github_owner, self.github_password)
-    
+
         if data:
             resp = requests.post(api_url, data=json.dumps(data), **kwargs)
         else:
             resp = requests.get(api_url, **kwargs)
-    
+
         try:
             data = json.loads(resp.content)
             return data
         except:
             return resp.status_code
-    
+
+
 class ChangeNotesLinesParser(BaseChangeNotesParser):
 
     def __init__(self, release_notes_generator, title, start_line):
@@ -193,16 +197,40 @@ class ChangeNotesLinesParser(BaseChangeNotesParser):
         return u'\r\n'.join(self.content)
 
 
-class GithubIssuesParser(ChangeNotesLinesParser):
+class IssuesParser(ChangeNotesLinesParser):
 
-    def add_line(self, line):
-        issue_number = re.sub(r'.*fix.* #(\d*).*$', r'\1',
-                              line, flags=re.IGNORECASE)
-        self.content.append(issue_number)
+    def __init__(self, release_notes_generator, title, start_line, issue_regex=None):
+        super(IssuesParser, self).__init__(
+            release_notes_generator, title, start_line)
+        if issue_regex:
+            self.issue_regex = issue_regex
+        else:
+            self.issue_regex = '#(\d+)'
 
-    # def _render_issue(self, issue_number):
-        #issue = github_api.get_issue(issue_number)
-        # print '#{}: {}'.format(issue_number, issue['title'])
+    def _add_line(self, line):
+        # find issue numbers per line
+        issue_numbers = re.findall(self.issue_regex, line, flags=re.IGNORECASE)
+        for issue_number in issue_numbers:
+            self.content.append(int(issue_number))
+
+
+class GithubIssuesParser(IssuesParser):
+
+    def __init__(self, release_notes_generator, title, start_line):
+        self.keywords = (
+            'close',
+            'closes',
+            'closed',
+            'fix',
+            'fixes',
+            'fixed',
+            'resolve',
+            'resolves',
+            'resolved',
+        )
+        super(GithubIssuesParser, self).__init__(
+            release_notes_generator, title, start_line,
+            r'(?:{})\s#(\d+)'.format('|'.join(self.keywords)))
 
 
 class StaticChangeNotesProvider(BaseChangeNotesProvider):
@@ -214,6 +242,7 @@ class StaticChangeNotesProvider(BaseChangeNotesProvider):
     def __call__(self):
         for change_note in self.change_notes:
             yield change_note
+
 
 class DirectoryChangeNotesProvider(BaseChangeNotesProvider):
 
@@ -241,7 +270,7 @@ class GithubChangeNotesProvider(BaseChangeNotesProvider, GithubApiMixin):
             - master_branch: Name of the default branch.  Defaults to master
             - prefix_prod: Tag prefix for production release tags.  Defaults to prod/
     """
-    
+
     def __init__(self, release_notes, current_tag, last_tag=None):
         super(GithubChangeNotesProvider, self).__init__(release_notes)
         self.current_tag = current_tag
@@ -264,7 +293,7 @@ class GithubChangeNotesProvider(BaseChangeNotesProvider, GithubApiMixin):
     @property
     def start_date(self):
         pass
-    
+
     @property
     def end_date(self):
         pass
@@ -278,10 +307,11 @@ class GithubChangeNotesProvider(BaseChangeNotesProvider, GithubApiMixin):
         for pull_request in pull_requests:
             if self._include_pull_request(pull_request):
                 yield pull_request
-                
+
     def _include_pull_request(self, pull_request):
         """ Checks if the given pull_request was merged to the default branch between self.start_date and self.end_date """
         pass
+
 
 class StaticReleaseNotesGenerator(BaseReleaseNotesGenerator):
 
@@ -290,12 +320,15 @@ class StaticReleaseNotesGenerator(BaseReleaseNotesGenerator):
         super(StaticReleaseNotesGenerator, self).__init__()
 
     def _init_parsers(self):
-        self.parsers.append(ChangeNotesLinesParser(self, 'Critical Changes', '# Warning'))
+        self.parsers.append(ChangeNotesLinesParser(
+            self, 'Critical Changes', '# Warning'))
         self.parsers.append(ChangeNotesLinesParser(self, 'Changes', '# Info'))
-        self.parsers.append(GithubIssuesParser(self, 'Issues Closed', '# Issues'))
+        self.parsers.append(GithubIssuesParser(
+            self, 'Issues Closed', '# Issues'))
 
     def _init_change_notes(self):
         return StaticChangeNotesProvider(self, self._change_notes)
+
 
 class DirectoryReleaseNotesGenerator(BaseReleaseNotesGenerator):
 
@@ -304,9 +337,11 @@ class DirectoryReleaseNotesGenerator(BaseReleaseNotesGenerator):
         super(DirectoryReleaseNotesGenerator, self).__init__()
 
     def _init_parsers(self):
-        self.parsers.append(ChangeNotesLinesParser(self, 'Critical Changes', '# Warning'))
+        self.parsers.append(ChangeNotesLinesParser(
+            self, 'Critical Changes', '# Warning'))
         self.parsers.append(ChangeNotesLinesParser(self, 'Changes', '# Info'))
-        self.parsers.append(GithubIssuesParser(self, 'Issues Closed', '# Issues'))
+        self.parsers.append(GithubIssuesParser(
+            self, 'Issues Closed', '# Issues'))
 
     def _init_change_notes(self):
         return DirectoryChangeNotesProvider(self, self.directory)
