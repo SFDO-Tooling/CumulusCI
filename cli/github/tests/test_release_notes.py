@@ -39,14 +39,17 @@ class TestStaticReleaseNotesGenerator(unittest.TestCase):
         release_notes = StaticReleaseNotesGenerator([])
         assert len(release_notes.parsers) == 3
 
+
 class TestDirectoryReleaseNotesGenerator(unittest.TestCase):
 
     def test_init_parser(self):
         release_notes = DirectoryReleaseNotesGenerator('change_notes')
         assert len(release_notes.parsers) == 3
 
+
 class TestBaseChangeNotesParser(unittest.TestCase):
     pass
+
 
 class TestChangeNotesLinesParser(unittest.TestCase):
 
@@ -120,7 +123,7 @@ class TestChangeNotesLinesParser(unittest.TestCase):
 
 
 class TestIssuesParser(unittest.TestCase):
-    
+
     def test_issue_numbers(self):
         start_line = '# Issues'
         change_note = '{}\r\nfix #2\r\nfix #3\r\nfix #5\r\n'.format(start_line)
