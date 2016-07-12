@@ -143,10 +143,18 @@ class TestIssuesParser(unittest.TestCase):
 
 class TestGithubIssuesParser(unittest.TestCase):
 
-    def test_issue_number(self):
+    def test_issue_numbers(self):
         start_line = '# Issues'
         change_note = '{}\r\nFixes #2, Closed #3 and Resolve #5'.format(
             start_line)
         parser = GithubIssuesParser(None, None, start_line)
         parser.parse(change_note)
         self.assertEqual(parser.content, [2, 3, 5])
+
+    def test_issue_numbers_and_other_numbers(self):
+        start_line = '# Issues'
+        change_note = '{}\r\nFixes #2 but not #5'.format(
+            start_line)
+        parser = GithubIssuesParser(None, None, start_line)
+        parser.parse(change_note)
+        self.assertEqual(parser.content, [2])
