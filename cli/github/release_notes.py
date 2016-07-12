@@ -6,6 +6,7 @@ import re
 # Assumptions
 # - All overrides will be done via new Python classes
 
+
 class BaseReleaseNotesGenerator(object):
 
     def __init__(self):
@@ -48,27 +49,24 @@ class BaseReleaseNotesGenerator(object):
 
 
 class BaseChangeNotesParser(object):
-    title = ''
 
-    def __init__(self, release_notes):
-        self.release_notes = release_notes
+    def __init__(self, title):
+        self.title = title
         self.content = []
-    
+
     def parse(self):
         raise NotImplementedError()
 
     def render(self):
-        print self.title
-        self._render()
-        print
-    
+        return '# {}\r\n{}'.format(self.title, self._render())
+
     def _render(self):
         raise NotImplementedError()
 
 class BaseChangeNotesProvider(object):
 
-    def __init__(self, release_notes):
-        self.release_notes = release_notes
+    def __init__(self, release_notes_generator):
+        self.release_notes_generator = release_notes_generator
 
     def __call__(self):
         """ Subclasses should provide an implementation that returns an iterable of each change note """
@@ -105,7 +103,7 @@ class GithubApiMixin(object):
     @property
     def github_info(self):
         # By default, look for github config info in the release_notes property.  Subclasses can override this if needed
-        return self.release_notes.github_info
+        return self.release_notes_generator.github_info
 
     def call_api(self, subpath, data=None):
         """ Takes a subpath under the repository (ex: /releases) and returns the json data from the api """
@@ -129,9 +127,11 @@ class GithubApiMixin(object):
     
 class ChangeNotesLinesParser(BaseChangeNotesParser):
 
-    def __init__(self, release_notes, title, start_line):
-        super(ChangeNotesLinesParser, self).__init__(release_notes)
-        self.title = title
+    def __init__(self, release_notes_generator, title, start_line):
+        super(ChangeNotesLinesParser, self).__init__(title)
+        if not start_line:
+            raise ValueError('start_line cannot be empty')
+        self.release_notes_generator = release_notes_generator
         self.start_line = start_line
         self._in_section = False
 
@@ -151,12 +151,12 @@ class ChangeNotesLinesParser(BaseChangeNotesParser):
                 if self._is_end_line(line):
                     self._in_section = False
                     continue
-   
-                # Skip excluded lines                 
+
+                # Skip excluded lines
                 if self._is_excluded_line(line):
                     continue
-            
-                self.add_line(line)
+
+                self._add_line(line)
 
         self._in_section = False
 
@@ -166,10 +166,10 @@ class ChangeNotesLinesParser(BaseChangeNotesParser):
     def _is_excluded_line(self, line):
         if not line:
             return True
-    
+
     def _is_start_line(self, line):
-        return line == self.parse_heading
-            
+        return line == self.start_line
+
     def _is_end_line(self, line):
         if not line:
             return True
@@ -178,6 +178,8 @@ class ChangeNotesLinesParser(BaseChangeNotesParser):
         self.content.append(line)
 
     def render(self):
+        if not self.content:
+            return None
         content = []
         content.append(self._render_header())
         content.append(self._render_content())
@@ -191,15 +193,16 @@ class ChangeNotesLinesParser(BaseChangeNotesParser):
 
 
 class GithubIssuesParser(ChangeNotesLinesParser):
-    
+
     def add_line(self, line):
-        issue_number = re.sub(r'.*fix.* #(\d*).*$', r'\1', line, flags=re.IGNORECASE)
+        issue_number = re.sub(r'.*fix.* #(\d*).*$', r'\1',
+                              line, flags=re.IGNORECASE)
         self.content.append(issue_number)
-                        
-    #def _render_issue(self, issue_number):
+
+    # def _render_issue(self, issue_number):
         #issue = github_api.get_issue(issue_number)
-        #print '#{}: {}'.format(issue_number, issue['title'])
-        
+        # print '#{}: {}'.format(issue_number, issue['title'])
+
 
 class StaticChangeNotesProvider(BaseChangeNotesProvider):
 
