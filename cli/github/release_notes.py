@@ -6,8 +6,6 @@ import re
 # Assumptions
 # - All overrides will be done via new Python classes
 
-SFDO_ISSUE_REGEX = r'.*fix.* #(\d*).*$'
-
 
 class BaseReleaseNotesGenerator(object):
 
@@ -206,15 +204,12 @@ class IssuesParser(ChangeNotesLinesParser):
         if issue_regex:
             self.issue_regex = issue_regex
         else:
-            self.issue_regex = SFDO_ISSUE_REGEX
-        print self.issue_regex
+            self.issue_regex = '#(\d+)'
 
     def _add_line(self, line):
-        # find one or more issue numbers (modify regex)
-        issue_number = re.sub(self.issue_regex, r'\1',
-                              line, flags=re.IGNORECASE)
-        # loop here
-        if issue_number:
+        # find issue numbers per line
+        issue_numbers = re.findall(self.issue_regex, line, flags=re.IGNORECASE)
+        for issue_number in issue_numbers:
             self.content.append(int(issue_number))
 
 

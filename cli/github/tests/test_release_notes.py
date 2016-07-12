@@ -131,6 +131,14 @@ class TestIssuesParser(unittest.TestCase):
         parser.parse(change_note)
         self.assertEqual(parser.content, [2, 3, 5])
 
+    def test_multiple_issue_numbers_per_line(self):
+        start_line = '# Issues'
+        change_note = '{}\r\nfix #2 also does fix #3 and fix #5\r\n'.format(
+            start_line)
+        parser = IssuesParser(None, None, start_line)
+        parser.parse(change_note)
+        self.assertEqual(parser.content, [2, 3, 5])
+
 
 class TestGithubIssuesParser(unittest.TestCase):
     pass
