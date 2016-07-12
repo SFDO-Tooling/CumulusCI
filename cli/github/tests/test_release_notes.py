@@ -1,9 +1,10 @@
 import unittest
+
 from github.release_notes import BaseReleaseNotesGenerator
 from github.release_notes import StaticReleaseNotesGenerator
 from github.release_notes import DirectoryReleaseNotesGenerator
-
 from github.release_notes import BaseChangeNotesParser
+from github.release_notes import IssuesParser
 from github.release_notes import ChangeNotesLinesParser
 
 
@@ -116,6 +117,16 @@ class TestChangeNotesLinesParser(unittest.TestCase):
         parser.content = content
         self.assertEqual(parser.render(),
                          '# {}\r\n{}'.format(title, '\r\n'.join(content)))
+
+
+class TestIssuesParser(unittest.TestCase):
+    
+    def test_issue_numbers(self):
+        start_line = '# Issues'
+        change_note = '{}\r\nfix #2\r\nfix #3\r\nfix #5\r\n'.format(start_line)
+        parser = IssuesParser(None, None, start_line)
+        parser.parse(change_note)
+        self.assertEqual(parser.content, [2, 3, 5])
 
 
 class TestGithubIssuesParser(unittest.TestCase):

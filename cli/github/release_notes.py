@@ -6,6 +6,7 @@ import re
 # Assumptions
 # - All overrides will be done via new Python classes
 
+SFDO_ISSUE_REGEX = r'.*fix.* #(\d*).*$'
 
 class BaseReleaseNotesGenerator(object):
 
@@ -192,9 +193,27 @@ class ChangeNotesLinesParser(BaseChangeNotesParser):
         return u'\r\n'.join(self.content)
 
 
-class GithubIssuesParser(ChangeNotesLinesParser):
+class IssuesParser(ChangeNotesLinesParser):
 
-    def add_line(self, line):
+    def __init__(self, release_notes_generator, title, start_line, issue_regex=None):
+        super(IssuesParser, self).__init__(release_notes_generator, title, start_line)
+        if issue_regex:
+            self.issue_regex = issue_regex
+        else:
+            self.issue_regex = SFDO_ISSUE_REGEX
+        print self.issue_regex
+
+    def _add_line(self, line):
+        # find one or more issue numbers (modify regex)
+        issue_number = re.sub(self.issue_regex, r'\1', line, flags=re.IGNORECASE)
+        # loop here
+        if issue_number:
+            self.content.append(int(issue_number))
+
+
+class GithubIssuesParser(IssuesParser):
+
+    def _add_line(self, line):
         issue_number = re.sub(r'.*fix.* #(\d*).*$', r'\1',
                               line, flags=re.IGNORECASE)
         self.content.append(issue_number)
