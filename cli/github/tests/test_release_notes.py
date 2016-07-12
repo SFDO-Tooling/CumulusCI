@@ -1,6 +1,7 @@
 import unittest
 from release_notes import BaseReleaseNotesGenerator
-from release_notes import ReleaseNotesGenerator
+from release_notes import StaticReleaseNotesGenerator
+from release_notes import DirectoryReleaseNotesGenerator
 
 class DummyParser(object):
     def parse(self, change_note):
@@ -24,10 +25,16 @@ class TestBaseReleaseNotesGenerator(unittest.TestCase):
         content = release_notes.render()
         assert content == 'dummy parser output\r\ndummy parser output'
 
-class TestReleaseNotesGenerator(unittest.TestCase):
+class TestStaticReleaseNotesGenerator(unittest.TestCase):
 
     def test_init_parser(self):
-        release_notes = ReleaseNotesGenerator()
+        release_notes = StaticReleaseNotesGenerator([])
+        assert len(release_notes.parsers) == 3
+
+class TestDirectoryReleaseNotesGenerator(unittest.TestCase):
+
+    def test_init_parser(self):
+        release_notes = DirectoryReleaseNotesGenerator('change_notes')
         assert len(release_notes.parsers) == 3
 
 class TestBaseChangeNotesParser(unittest.TestCase):

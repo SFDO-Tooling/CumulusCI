@@ -11,6 +11,14 @@ class BaseReleaseNotesGenerator(object):
     def __init__(self):
         self.change_notes = []
         self.init_parsers()
+        self.init_change_notes()
+
+    def init_change_notes(self):
+        self.change_notes = self._init_change_notes()
+    
+    def _init_change_notes(self):
+        """ Subclasses should override this method to return an initialized subclass of BaseChangeNotesProvider """
+        return []
 
     def init_parsers(self):
         """ Initializes the parser instances as the list self.parsers """
@@ -21,14 +29,9 @@ class BaseReleaseNotesGenerator(object):
         """ Subclasses should override this method to initialize their parsers """
         pass
 
-    def add(self, change_note):
-        """ Adds Markdown content to self.change_notes and parses through all parsers in self.parsers """
-        self.change_notes.append(change_note)
-        self._parse_change_note(change_note)
-
     def _parse_change_notes(self):
-        """ Parses all change_notes in self.change_notes through all parsers in self.parsers """
-        for change_note in self.change_notes:
+        """ Parses all change_notes in self.change_notes() through all parsers in self.parsers """
+        for change_note in self.change_notes():
             self._parse_change_note(change_note)
 
     def _parse_change_note(self, change_note):
@@ -62,7 +65,68 @@ class BaseChangeNotesParser(object):
     def _render(self):
         raise NotImplementedError()
 
+class BaseChangeNotesProvider(object):
 
+    def __init__(self, release_notes):
+        self.release_notes = release_notes
+
+    def __call__(self):
+        """ Subclasses should provide an implementation that returns an iterable of each change note """
+        raise NotImplemented
+
+
+class GithubApiMixin(object):
+    github_api_base_url = 'https://api.github.com'
+
+    @property
+    def github_owner(self):
+        return self.github_info['github_owner']
+   
+    @property
+    def github_repo(self):
+        return self.github_info['github_repo']
+   
+    @property
+    def github_username(self):
+        return self.github_info['github_username']
+   
+    @property
+    def github_password(self):
+        return self.github_info['github_password']
+   
+    @property
+    def master_branch(self):
+        return self.github_info.get('master_branch', 'master')
+   
+    @property
+    def prefix_prod(self):
+        return self.github_info.get('prefix_prod', 'prod/')
+
+    @property
+    def github_info(self):
+        # By default, look for github config info in the release_notes property.  Subclasses can override this if needed
+        return self.release_notes.github_info
+
+    def call_api(self, subpath, data=None):
+        """ Takes a subpath under the repository (ex: /releases) and returns the json data from the api """
+        api_url = '{}/repos/{}/{}{}'.format(self.github_api_base_url, self.github_owner, self.github_repo, subpath)
+
+        # Use Github Authentication if available for the repo
+        kwargs = {}
+        if self.github_owner and self.github_owner:
+            kwargs['auth'] = (self.github_owner, self.github_password)
+    
+        if data:
+            resp = requests.post(api_url, data=json.dumps(data), **kwargs)
+        else:
+            resp = requests.get(api_url, **kwargs)
+    
+        try:
+            data = json.loads(resp.content)
+            return data
+        except:
+            return resp.status_code
+    
 class ChangeNotesLinesParser(BaseChangeNotesParser):
 
     def __init__(self, release_notes, title, start_line):
@@ -137,9 +201,108 @@ class GithubIssuesParser(ChangeNotesLinesParser):
         #print '#{}: {}'.format(issue_number, issue['title'])
         
 
-class ReleaseNotesGenerator(BaseReleaseNotesGenerator):
+class StaticChangeNotesProvider(BaseChangeNotesProvider):
+
+    def __init__(self, release_notes, change_notes):
+        super(StaticChangeNotesProvider, self).__init__(release_notes)
+        self.change_notes = change_notes
+
+    def __call__(self):
+        for change_note in self.change_notes:
+            yield change_note
+
+class DirectoryChangeNotesProvider(BaseChangeNotesProvider):
+
+    def __init__(self, release_notes, directory):
+        super(DirectoryChangeNotesProvider, self).__init__(release_notes)
+        self.directory = directory
+
+    def __call__(self):
+        for item in os.listdir(self.directory):
+            yield open('{}/{}'.format(self.directory, item)).read()
+
+
+class GithubChangeNotesProvider(BaseChangeNotesProvider, GithubApiMixin):
+    """ Provides changes notes by finding all merged pull requests to
+        the default branch between two tags.
+
+        Expects the passed release_notes instance to have a github_info property
+        that contains a dictionary of settings for accessing Github:
+            - github_repo
+            - github_owner
+            - github_username
+            - github_password
+
+        Will optionally use the following if set provided by release_notes
+            - master_branch: Name of the default branch.  Defaults to master
+            - prefix_prod: Tag prefix for production release tags.  Defaults to prod/
+    """
+    
+    def __init__(self, release_notes, current_tag, last_tag=None):
+        super(GithubChangeNotesProvider, self).__init__(release_notes)
+        self.current_tag = current_tag
+        self._last_tag = last_tag
+        self._start_date = None
+        self._end_date = None
+
+    def __call__(self):
+        for pull_request in self._get_pull_requests:
+            yield pull_request['body']
+
+    @property
+    def last_tag(self):
+        if self._last_tag:
+            return self._last_tag
+
+        self._last_tag = self._get_last_tag
+        return self._last_tag
+
+    @property
+    def start_date(self):
+        pass
+    
+    @property
+    def end_date(self):
+        pass
+
+    def _get_last_tag(self):
+        """ Gets the last release tag before self.current_tag """
+        pass
+
+    def _get_pull_requests(self):
+        """ Gets all pull requests from the repo since we can't do a filtered date merged search """
+        for pull_request in pull_requests:
+            if self._include_pull_request(pull_request):
+                yield pull_request
+                
+    def _include_pull_request(self, pull_request):
+        """ Checks if the given pull_request was merged to the default branch between self.start_date and self.end_date """
+        pass
+
+class StaticReleaseNotesGenerator(BaseReleaseNotesGenerator):
+
+    def __init__(self, change_notes):
+        self._change_notes = change_notes
+        super(StaticReleaseNotesGenerator, self).__init__()
 
     def _init_parsers(self):
         self.parsers.append(ChangeNotesLinesParser(self, 'Critical Changes', '# Warning'))
         self.parsers.append(ChangeNotesLinesParser(self, 'Changes', '# Info'))
         self.parsers.append(GithubIssuesParser(self, 'Issues Closed', '# Issues'))
+
+    def _init_change_notes(self):
+        return StaticChangeNotesProvider(self, self._change_notes)
+
+class DirectoryReleaseNotesGenerator(BaseReleaseNotesGenerator):
+
+    def __init__(self, directory):
+        self.directory = directory
+        super(DirectoryReleaseNotesGenerator, self).__init__()
+
+    def _init_parsers(self):
+        self.parsers.append(ChangeNotesLinesParser(self, 'Critical Changes', '# Warning'))
+        self.parsers.append(ChangeNotesLinesParser(self, 'Changes', '# Info'))
+        self.parsers.append(GithubIssuesParser(self, 'Issues Closed', '# Issues'))
+
+    def _init_change_notes(self):
+        return DirectoryChangeNotesProvider(self, self.directory)
