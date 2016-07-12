@@ -132,6 +132,13 @@ class TestIssuesParser(unittest.TestCase):
         parser.parse(change_note)
         self.assertEqual(parser.content, [2, 3, 5])
 
+    def test_issue_numbers_and_other_numbers(self):
+        start_line = '# Issues'
+        change_note = '{}\r\nfixes #2 but not # 3 or 5'.format(start_line)
+        parser = IssuesParser(None, None, start_line)
+        parser.parse(change_note)
+        self.assertEqual(parser.content, [2])
+
     def test_multiple_issue_numbers_per_line(self):
         start_line = '# Issues'
         change_note = '{}\r\nfix #2 also does fix #3 and fix #5\r\n'.format(
