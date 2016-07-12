@@ -1,4 +1,5 @@
 import re
+import os
 
 # NOT IMPLEMENTED
 #import github_api
@@ -70,7 +71,7 @@ class BaseChangeNotesProvider(object):
 
     def __call__(self):
         """ Subclasses should provide an implementation that returns an iterable of each change note """
-        raise NotImplemented
+        raise NotImplementedError()
 
 
 class GithubApiMixin(object):

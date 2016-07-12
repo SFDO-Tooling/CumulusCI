@@ -1,3 +1,6 @@
+import os
+import shutil
+import tempfile
 import unittest
 from github.release_notes import BaseReleaseNotesGenerator
 from github.release_notes import StaticReleaseNotesGenerator
@@ -6,6 +9,13 @@ from github.release_notes import DirectoryReleaseNotesGenerator
 from github.release_notes import BaseChangeNotesParser
 from github.release_notes import ChangeNotesLinesParser
 
+from github.release_notes import BaseChangeNotesProvider
+from github.release_notes import StaticChangeNotesProvider
+from github.release_notes import DirectoryChangeNotesProvider
+from github.release_notes import GithubChangeNotesProvider
+
+__location__ = os.path.realpath(
+    os.path.join(os.getcwd(), os.path.dirname(__file__)))
 
 class DummyParser(BaseChangeNotesParser):
 
@@ -120,3 +130,60 @@ class TestChangeNotesLinesParser(unittest.TestCase):
 
 class TestGithubIssuesParser(unittest.TestCase):
     pass
+
+class TestBaseChangeNotesProvider(unittest.TestCase):
+
+    def test_init(self):
+        provider = BaseChangeNotesProvider('test')
+        assert provider.release_notes_generator == 'test'
+
+    def test_call_raises_notimplemented(self):
+        provider = BaseChangeNotesProvider('test')
+        self.assertRaises(NotImplementedError, provider.__call__)
+       
+class TestStaticChangeNotesProvider(unittest.TestCase):
+    
+    def test_empty_list(self): 
+        provider = StaticChangeNotesProvider('test', [])
+        assert list(provider()) == []
+
+    def test_single_item_list(self): 
+        provider = StaticChangeNotesProvider('test', ['abc'])
+        assert list(provider()) == ['abc']
+
+    def test_multi_item_list(self): 
+        provider = StaticChangeNotesProvider('test', ['abc','d','e'])
+        assert list(provider()) == ['abc','d','e']
+
+class TestDirectoryChangeNotesProvider(unittest.TestCase):
+
+    def get_empty_dir(self):
+        tempdir = tempfile.mkdtemp()
+        return os.path.join(tempdir)
+
+    def get_dir_content(self, path):
+        dir_content = [] 
+        for item in os.listdir(path):
+            item_path = '{}/{}'.format(path, item)
+            dir_content.append(open(item_path, 'r').read())
+        return dir_content
+
+    def test_empty_directory(self): 
+        directory = self.get_empty_dir()
+        provider = DirectoryChangeNotesProvider('test', directory)
+        dir_content = self.get_dir_content(directory)
+        assert list(provider()) == dir_content    
+        shutil.rmtree(directory)
+        
+
+    def test_single_item_directory(self): 
+        directory = '{}/change_notes/single/'.format(__location__)
+        provider = DirectoryChangeNotesProvider('test', directory)
+        dir_content = self.get_dir_content(directory)
+        assert list(provider()) == dir_content
+
+    def test_multi_item_directory(self): 
+        directory = '{}/change_notes/multi/'.format(__location__)
+        provider = DirectoryChangeNotesProvider('test', directory)
+        dir_content = self.get_dir_content(directory)
+        assert list(provider()) == dir_content
