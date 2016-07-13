@@ -19,7 +19,8 @@ class BaseReleaseNotesGenerator(object):
         self.change_notes = self._init_change_notes()
 
     def _init_change_notes(self):
-        """ Subclasses should override this method to return an initialized subclass of BaseChangeNotesProvider """
+        """ Subclasses should override this method to return an initialized
+        subclass of BaseChangeNotesProvider """
         return []
 
     def init_parsers(self):
@@ -28,16 +29,19 @@ class BaseReleaseNotesGenerator(object):
         self._init_parsers()
 
     def _init_parsers(self):
-        """ Subclasses should override this method to initialize their parsers """
+        """ Subclasses should override this method to initialize their
+        parsers """
         pass
 
     def _parse_change_notes(self):
-        """ Parses all change_notes in self.change_notes() through all parsers in self.parsers """
+        """ Parses all change_notes in self.change_notes() through all parsers
+        in self.parsers """
         for change_note in self.change_notes():
             self._parse_change_note(change_note)
 
     def _parse_change_note(self, change_note):
-        """ Parses an individual change note through all parsers in self.parsers """
+        """ Parses an individual change note through all parsers in
+        self.parsers """
         for parser in self.parsers:
             parser.parse(change_notes)
 
@@ -71,7 +75,8 @@ class BaseChangeNotesProvider(object):
         self.release_notes_generator = release_notes_generator
 
     def __call__(self):
-        """ Subclasses should provide an implementation that returns an iterable of each change note """
+        """ Subclasses should provide an implementation that returns an
+        iterable of each change note """
         raise NotImplementedError()
 
 
@@ -109,9 +114,11 @@ class GithubApiMixin(object):
         return self.release_notes_generator.github_info
 
     def call_api(self, subpath, data=None):
-        """ Takes a subpath under the repository (ex: /releases) and returns the json data from the api """
+        """ Takes a subpath under the repository (ex: /releases) and returns
+        the json data from the api """
         api_url = '{}/repos/{}/{}{}'.format(
-            self.github_api_base_url, self.github_owner, self.github_repo, subpath)
+            self.github_api_base_url, self.github_owner, self.github_repo,
+            subpath)
 
         # Use Github Authentication if available for the repo
         kwargs = {}
@@ -199,7 +206,8 @@ class ChangeNotesLinesParser(BaseChangeNotesParser):
 
 class IssuesParser(ChangeNotesLinesParser):
 
-    def __init__(self, release_notes_generator, title, start_line, issue_regex=None):
+    def __init__(self, release_notes_generator, title, start_line,
+                 issue_regex=None):
         super(IssuesParser, self).__init__(
             release_notes_generator, title, start_line)
         if issue_regex:
@@ -259,16 +267,18 @@ class GithubChangeNotesProvider(BaseChangeNotesProvider, GithubApiMixin):
     """ Provides changes notes by finding all merged pull requests to
         the default branch between two tags.
 
-        Expects the passed release_notes instance to have a github_info property
-        that contains a dictionary of settings for accessing Github:
+        Expects the passed release_notes instance to have a github_info
+        property that contains a dictionary of settings for accessing Github:
             - github_repo
             - github_owner
             - github_username
             - github_password
 
         Will optionally use the following if set provided by release_notes
-            - master_branch: Name of the default branch.  Defaults to master
-            - prefix_prod: Tag prefix for production release tags.  Defaults to prod/
+            - master_branch: Name of the default branch.
+                Defaults to 'master'
+            - prefix_prod: Tag prefix for production release tags.
+                Defaults to 'prod/'
     """
 
     def __init__(self, release_notes, current_tag, last_tag=None):
@@ -303,13 +313,15 @@ class GithubChangeNotesProvider(BaseChangeNotesProvider, GithubApiMixin):
         pass
 
     def _get_pull_requests(self):
-        """ Gets all pull requests from the repo since we can't do a filtered date merged search """
+        """ Gets all pull requests from the repo since we can't do a filtered
+        date merged search """
         for pull_request in pull_requests:
             if self._include_pull_request(pull_request):
                 yield pull_request
 
     def _include_pull_request(self, pull_request):
-        """ Checks if the given pull_request was merged to the default branch between self.start_date and self.end_date """
+        """ Checks if the given pull_request was merged to the default branch
+        between self.start_date and self.end_date """
         pass
 
 
