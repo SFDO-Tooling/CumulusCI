@@ -213,7 +213,7 @@ class IssuesParser(ChangeNotesLinesParser):
         if issue_regex:
             self.issue_regex = issue_regex
         else:
-            self.issue_regex = '#(\d+)'
+            self.issue_regex = self._get_default_regex()
 
     def _add_line(self, line):
         # find issue numbers per line
@@ -221,11 +221,14 @@ class IssuesParser(ChangeNotesLinesParser):
         for issue_number in issue_numbers:
             self.content.append(int(issue_number))
 
+    def _get_default_regex(self):
+        return '#(\d+)'
+
 
 class GithubIssuesParser(IssuesParser):
 
-    def __init__(self, release_notes_generator, title, start_line):
-        self.keywords = (
+    def _get_default_regex(self):
+        keywords = (
             'close',
             'closes',
             'closed',
@@ -236,9 +239,7 @@ class GithubIssuesParser(IssuesParser):
             'resolves',
             'resolved',
         )
-        super(GithubIssuesParser, self).__init__(
-            release_notes_generator, title, start_line,
-            r'(?:{})\s#(\d+)'.format('|'.join(self.keywords)))
+        return r'(?:{})\s#(\d+)'.format('|'.join(keywords))
 
 
 class StaticChangeNotesProvider(BaseChangeNotesProvider):
