@@ -277,7 +277,7 @@ class TestGithubChangeNotesProvider(unittest.TestCase):
             'github_password': 'TestPass',
         }
 
-    def create_generator(self):
+    def _create_generator(self):
         generator = BaseReleaseNotesGenerator()
         generator.github_info = self.github_info.copy()
         return generator
@@ -298,7 +298,7 @@ class TestGithubChangeNotesProvider(unittest.TestCase):
             status=httplib.NOT_FOUND,
         )
 
-        generator = self.create_generator()
+        generator = self._create_generator()
         provider = GithubChangeNotesProvider(generator, self.invalid_tag)
         with self.assertRaises(GithubApiNotFoundError):
             provider.current_tag_info
@@ -394,7 +394,7 @@ class TestGithubChangeNotesProvider(unittest.TestCase):
             json=expected_response_list_tag_refs,
         )
 
-        generator = self.create_generator()
+        generator = self._create_generator()
         provider = GithubChangeNotesProvider(generator, self.current_tag)
 
         self.assertEquals(provider.current_tag_info[
