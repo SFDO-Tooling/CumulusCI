@@ -1,12 +1,10 @@
+import httplib
 import re
 import os
+import requests
+import json
 
-# NOT IMPLEMENTED
-#import github_api
-
-# Assumptions
-# - All overrides will be done via new Python classes
-
+from distutils.version import LooseVersion
 
 class BaseReleaseNotesGenerator(object):
 
@@ -75,6 +73,9 @@ class BaseChangeNotesProvider(object):
         raise NotImplementedError()
 
 
+class GithubApiNotFoundError(BaseException):
+    pass
+
 class GithubApiMixin(object):
     github_api_base_url = 'https://api.github.com'
 
@@ -122,6 +123,9 @@ class GithubApiMixin(object):
             resp = requests.post(api_url, data=json.dumps(data), **kwargs)
         else:
             resp = requests.get(api_url, **kwargs)
+
+        if resp.status_code == httplib.NOT_FOUND:
+            raise GithubApiNotFoundError(resp.content)
 
         try:
             data = json.loads(resp.content)
@@ -254,6 +258,8 @@ class DirectoryChangeNotesProvider(BaseChangeNotesProvider):
         for item in os.listdir(self.directory):
             yield open('{}/{}'.format(self.directory, item)).read()
 
+class LastReleaseTagNotFoundError(BaseException):
+    pass
 
 class GithubChangeNotesProvider(BaseChangeNotesProvider, GithubApiMixin):
     """ Provides changes notes by finding all merged pull requests to
@@ -282,13 +288,24 @@ class GithubChangeNotesProvider(BaseChangeNotesProvider, GithubApiMixin):
         for pull_request in self._get_pull_requests:
             yield pull_request['body']
 
+
     @property
     def last_tag(self):
-        if self._last_tag:
-            return self._last_tag
-
-        self._last_tag = self._get_last_tag
+        if not self._last_tag:
+            self._last_tag = self._get_last_tag()
         return self._last_tag
+
+    @property
+    def current_tag_info(self):
+        if not hasattr(self, '_current_tag_info'):
+            self._current_tag_info = self._get_tag_info(self.current_tag)
+        return self._current_tag_info
+
+    @property
+    def last_tag_info(self):
+        if not hasattr(self, '_last_tag_info'):
+            self._last_tag_info = self._get_tag_info(self.last_tag)
+        return self._last_tag_info
 
     @property
     def start_date(self):
@@ -298,9 +315,43 @@ class GithubChangeNotesProvider(BaseChangeNotesProvider, GithubApiMixin):
     def end_date(self):
         pass
 
+    def _get_tag_info(self, tag):
+        tag_info = {
+            'ref': self.call_api('/git/refs/tags/{}'.format(tag)),
+        }
+        tag_info['tag'] = self.call_api('/git/tags/{}'.format(tag_info['ref']['object']['sha']))
+        return tag_info
+
+    def _get_version_from_tag(self, tag):
+        if tag.startswith(self.prefix_prod):
+            return tag.replace(self.prefix_prod, '')
+        elif tag.startswith(self.prefix_beta):
+            return tag.replace(self.prefix_beta, '')
+        raise ValueError('Could not determine version number from tag {}'.format(tag))
+
     def _get_last_tag(self):
         """ Gets the last release tag before self.current_tag """
-        pass
+        
+        current_version = LooseVersion(self._get_version_from_tag(self.current_tag))
+
+        versions = []
+        for ref in self.call_api('/git/refs/tags/{}'.format(self.prefix_prod)):
+            ref_prefix = 'refs/tags/{}'.format(self.prefix_prod)
+
+            # If possible to match a version number, extract the version number
+            if re.search('%s[0-9][0-9]*\.[0-9][0-9]*' % ref_prefix, ref['ref']):
+                version = LooseVersion(ref['ref'].replace(ref_prefix,''))
+                # Skip the current_version and any newer releases
+                if version >= current_version:
+                    continue
+                versions.append(version)
+
+        if versions:
+            versions.sort()
+            versions.reverse()
+            return '%s%s' % (self.prefix_prod, versions[0])
+
+        raise LastReleaseTagNotFoundError('Could not locate the last release tag')
 
     def _get_pull_requests(self):
         """ Gets all pull requests from the repo since we can't do a filtered date merged search """
