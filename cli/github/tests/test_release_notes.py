@@ -303,7 +303,7 @@ class TestGithubChangeNotesProvider(unittest.TestCase):
         with self.assertRaises(GithubApiNotFoundError):
             provider.current_tag_info
 
-    def get_expected_tag_ref(self, tag, sha):
+    def _get_expected_tag_ref(self, tag, sha):
         return {
             'ref': 'refs/tags/{}'.format(tag),
             'url': 'https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/{}'.format(tag),
@@ -314,7 +314,7 @@ class TestGithubChangeNotesProvider(unittest.TestCase):
             }
         }
 
-    def get_expected_tag(self, tag, sha, tag_date=None):
+    def _get_expected_tag(self, tag, sha, tag_date=None):
         if not tag_date:
             tag_date = '2014-11-07T22:01:45Z'
 
@@ -341,7 +341,7 @@ class TestGithubChangeNotesProvider(unittest.TestCase):
         # Mock the current tag ref
         api_url = '{}/git/refs/tags/{}'.format(
             self.repo_api_url, self.current_tag)
-        expected_response_current_tag_ref = self.get_expected_tag_ref(
+        expected_response_current_tag_ref = self._get_expected_tag_ref(
             self.current_tag, self.current_tag_sha)
         responses.add(
             method=responses.GET,
@@ -352,7 +352,7 @@ class TestGithubChangeNotesProvider(unittest.TestCase):
         # Mock the current tag
         api_url = '{}/git/tags/{}'.format(self.repo_api_url,
                                           self.current_tag_sha)
-        expected_response_current_tag = self.get_expected_tag(
+        expected_response_current_tag = self._get_expected_tag(
             self.current_tag, self.current_tag_sha)
         responses.add(
             method=responses.GET,
@@ -363,7 +363,7 @@ class TestGithubChangeNotesProvider(unittest.TestCase):
         # Mock the last tag ref
         api_url = '{}/git/refs/tags/{}'.format(
             self.repo_api_url, self.last_tag)
-        expected_response_last_tag_ref = self.get_expected_tag_ref(
+        expected_response_last_tag_ref = self._get_expected_tag_ref(
             self.last_tag, self.last_tag_sha)
         responses.add(
             method=responses.GET,
@@ -373,7 +373,7 @@ class TestGithubChangeNotesProvider(unittest.TestCase):
 
         # Mock the last tag
         api_url = '{}/git/tags/{}'.format(self.repo_api_url, self.last_tag_sha)
-        expected_response_last_tag = self.get_expected_tag(
+        expected_response_last_tag = self._get_expected_tag(
             self.last_tag, self.last_tag_sha)
         responses.add(
             method=responses.GET,
@@ -386,7 +386,7 @@ class TestGithubChangeNotesProvider(unittest.TestCase):
         expected_response_list_tag_refs = [
             expected_response_current_tag_ref,
             expected_response_last_tag_ref,
-            self.get_expected_tag_ref(self.last2_tag, 'last2_tag_sha'),
+            self._get_expected_tag_ref(self.last2_tag, 'last2_tag_sha'),
         ]
         responses.add(
             method=responses.GET,
