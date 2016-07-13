@@ -25,6 +25,7 @@ from github.release_notes import GithubApiNotFoundError
 __location__ = os.path.realpath(
     os.path.join(os.getcwd(), os.path.dirname(__file__)))
 
+
 class DummyParser(BaseChangeNotesParser):
 
     def parse(self, change_note):
@@ -190,6 +191,7 @@ class TestGithubIssuesParser(unittest.TestCase):
         parser.parse(change_note)
         self.assertEqual(parser.content, [])
 
+
 class TestBaseChangeNotesProvider(unittest.TestCase):
 
     def test_init(self):
@@ -199,20 +201,22 @@ class TestBaseChangeNotesProvider(unittest.TestCase):
     def test_call_raises_notimplemented(self):
         provider = BaseChangeNotesProvider('test')
         self.assertRaises(NotImplementedError, provider.__call__)
-       
+
+
 class TestStaticChangeNotesProvider(unittest.TestCase):
-    
-    def test_empty_list(self): 
+
+    def test_empty_list(self):
         provider = StaticChangeNotesProvider('test', [])
         assert list(provider()) == []
 
-    def test_single_item_list(self): 
+    def test_single_item_list(self):
         provider = StaticChangeNotesProvider('test', ['abc'])
         assert list(provider()) == ['abc']
 
-    def test_multi_item_list(self): 
-        provider = StaticChangeNotesProvider('test', ['abc','d','e'])
-        assert list(provider()) == ['abc','d','e']
+    def test_multi_item_list(self):
+        provider = StaticChangeNotesProvider('test', ['abc', 'd', 'e'])
+        assert list(provider()) == ['abc', 'd', 'e']
+
 
 class TestDirectoryChangeNotesProvider(unittest.TestCase):
 
@@ -221,31 +225,31 @@ class TestDirectoryChangeNotesProvider(unittest.TestCase):
         return os.path.join(tempdir)
 
     def get_dir_content(self, path):
-        dir_content = [] 
+        dir_content = []
         for item in os.listdir(path):
             item_path = '{}/{}'.format(path, item)
             dir_content.append(open(item_path, 'r').read())
         return dir_content
 
-    def test_empty_directory(self): 
+    def test_empty_directory(self):
         directory = self.get_empty_dir()
         provider = DirectoryChangeNotesProvider('test', directory)
         dir_content = self.get_dir_content(directory)
-        assert list(provider()) == dir_content    
+        assert list(provider()) == dir_content
         shutil.rmtree(directory)
-        
 
-    def test_single_item_directory(self): 
+    def test_single_item_directory(self):
         directory = '{}/change_notes/single/'.format(__location__)
         provider = DirectoryChangeNotesProvider('test', directory)
         dir_content = self.get_dir_content(directory)
         assert list(provider()) == dir_content
 
-    def test_multi_item_directory(self): 
+    def test_multi_item_directory(self):
         directory = '{}/change_notes/multi/'.format(__location__)
         provider = DirectoryChangeNotesProvider('test', directory)
         dir_content = self.get_dir_content(directory)
         assert list(provider()) == dir_content
+
 
 class TestGithubChangeNotesProvider(unittest.TestCase):
 
@@ -278,21 +282,22 @@ class TestGithubChangeNotesProvider(unittest.TestCase):
         generator.github_info = self.github_info.copy()
         return generator
 
-    @responses.activate    
+    @responses.activate
     def test_invalid_current_tag(self):
-        api_url = '{}/git/refs/tags/{}'.format(self.repo_api_url, self.invalid_tag)
+        api_url = '{}/git/refs/tags/{}'.format(
+            self.repo_api_url, self.invalid_tag)
         expected_response = {
             'message': 'Not Found',
             'documentation_url': 'https://developer.github.com/v3'
         }
 
         responses.add(
-            method = responses.GET,
-            url = api_url,
-            json = expected_response,
-            status = httplib.NOT_FOUND,
+            method=responses.GET,
+            url=api_url,
+            json=expected_response,
+            status=httplib.NOT_FOUND,
         )
-    
+
         generator = self.create_generator()
         provider = GithubChangeNotesProvider(generator, self.invalid_tag)
         with self.assertRaises(GithubApiNotFoundError):
@@ -334,39 +339,46 @@ class TestGithubChangeNotesProvider(unittest.TestCase):
     def test_current_tag_without_last(self):
 
         # Mock the current tag ref
-        api_url = '{}/git/refs/tags/{}'.format(self.repo_api_url, self.current_tag)
-        expected_response_current_tag_ref = self.get_expected_tag_ref(self.current_tag, self.current_tag_sha)
+        api_url = '{}/git/refs/tags/{}'.format(
+            self.repo_api_url, self.current_tag)
+        expected_response_current_tag_ref = self.get_expected_tag_ref(
+            self.current_tag, self.current_tag_sha)
         responses.add(
-            method = responses.GET,
-            url = api_url,
-            json = expected_response_current_tag_ref,
+            method=responses.GET,
+            url=api_url,
+            json=expected_response_current_tag_ref,
         )
-    
+
         # Mock the current tag
-        api_url = '{}/git/tags/{}'.format(self.repo_api_url, self.current_tag_sha)
-        expected_response_current_tag = self.get_expected_tag(self.current_tag, self.current_tag_sha)
+        api_url = '{}/git/tags/{}'.format(self.repo_api_url,
+                                          self.current_tag_sha)
+        expected_response_current_tag = self.get_expected_tag(
+            self.current_tag, self.current_tag_sha)
         responses.add(
-            method = responses.GET,
-            url = api_url,
-            json = expected_response_current_tag,
+            method=responses.GET,
+            url=api_url,
+            json=expected_response_current_tag,
         )
-    
+
         # Mock the last tag ref
-        api_url = '{}/git/refs/tags/{}'.format(self.repo_api_url, self.last_tag)
-        expected_response_last_tag_ref = self.get_expected_tag_ref(self.last_tag, self.last_tag_sha)
+        api_url = '{}/git/refs/tags/{}'.format(
+            self.repo_api_url, self.last_tag)
+        expected_response_last_tag_ref = self.get_expected_tag_ref(
+            self.last_tag, self.last_tag_sha)
         responses.add(
-            method = responses.GET,
-            url = api_url,
-            json = expected_response_last_tag_ref,
+            method=responses.GET,
+            url=api_url,
+            json=expected_response_last_tag_ref,
         )
 
         # Mock the last tag
         api_url = '{}/git/tags/{}'.format(self.repo_api_url, self.last_tag_sha)
-        expected_response_last_tag = self.get_expected_tag(self.last_tag, self.last_tag_sha)
+        expected_response_last_tag = self.get_expected_tag(
+            self.last_tag, self.last_tag_sha)
         responses.add(
-            method = responses.GET,
-            url = api_url,
-            json = expected_response_last_tag,
+            method=responses.GET,
+            url=api_url,
+            json=expected_response_last_tag,
         )
 
         # Mock the list all tags call
@@ -377,18 +389,22 @@ class TestGithubChangeNotesProvider(unittest.TestCase):
             self.get_expected_tag_ref(self.last2_tag, 'last2_tag_sha'),
         ]
         responses.add(
-            method = responses.GET,
-            url = api_url,
-            json = expected_response_list_tag_refs,
+            method=responses.GET,
+            url=api_url,
+            json=expected_response_list_tag_refs,
         )
 
         generator = self.create_generator()
         provider = GithubChangeNotesProvider(generator, self.current_tag)
 
-        self.assertEquals(provider.current_tag_info['ref'], expected_response_current_tag_ref) 
-        self.assertEquals(provider.current_tag_info['tag'], expected_response_current_tag) 
-        self.assertEquals(provider.last_tag_info['ref'], expected_response_last_tag_ref) 
-        self.assertEquals(provider.last_tag_info['tag'], expected_response_last_tag) 
+        self.assertEquals(provider.current_tag_info[
+                          'ref'], expected_response_current_tag_ref)
+        self.assertEquals(provider.current_tag_info[
+                          'tag'], expected_response_current_tag)
+        self.assertEquals(provider.last_tag_info[
+                          'ref'], expected_response_last_tag_ref)
+        self.assertEquals(provider.last_tag_info[
+                          'tag'], expected_response_last_tag)
 
     @responses.activate
     def test_current_tag_without_last_no_last_found(self):

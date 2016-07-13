@@ -6,6 +6,7 @@ import json
 
 from distutils.version import LooseVersion
 
+
 class BaseReleaseNotesGenerator(object):
 
     def __init__(self):
@@ -80,6 +81,7 @@ class BaseChangeNotesProvider(object):
 
 class GithubApiNotFoundError(BaseException):
     pass
+
 
 class GithubApiMixin(object):
     github_api_base_url = 'https://api.github.com'
@@ -267,8 +269,10 @@ class DirectoryChangeNotesProvider(BaseChangeNotesProvider):
         for item in os.listdir(self.directory):
             yield open('{}/{}'.format(self.directory, item)).read()
 
+
 class LastReleaseTagNotFoundError(BaseException):
     pass
+
 
 class GithubChangeNotesProvider(BaseChangeNotesProvider, GithubApiMixin):
     """ Provides changes notes by finding all merged pull requests to
@@ -298,7 +302,6 @@ class GithubChangeNotesProvider(BaseChangeNotesProvider, GithubApiMixin):
     def __call__(self):
         for pull_request in self._get_pull_requests:
             yield pull_request['body']
-
 
     @property
     def last_tag(self):
@@ -330,7 +333,8 @@ class GithubChangeNotesProvider(BaseChangeNotesProvider, GithubApiMixin):
         tag_info = {
             'ref': self.call_api('/git/refs/tags/{}'.format(tag)),
         }
-        tag_info['tag'] = self.call_api('/git/tags/{}'.format(tag_info['ref']['object']['sha']))
+        tag_info['tag'] = self.call_api(
+            '/git/tags/{}'.format(tag_info['ref']['object']['sha']))
         return tag_info
 
     def _get_version_from_tag(self, tag):
@@ -338,12 +342,14 @@ class GithubChangeNotesProvider(BaseChangeNotesProvider, GithubApiMixin):
             return tag.replace(self.prefix_prod, '')
         elif tag.startswith(self.prefix_beta):
             return tag.replace(self.prefix_beta, '')
-        raise ValueError('Could not determine version number from tag {}'.format(tag))
+        raise ValueError(
+            'Could not determine version number from tag {}'.format(tag))
 
     def _get_last_tag(self):
         """ Gets the last release tag before self.current_tag """
-        
-        current_version = LooseVersion(self._get_version_from_tag(self.current_tag))
+
+        current_version = LooseVersion(
+            self._get_version_from_tag(self.current_tag))
 
         versions = []
         for ref in self.call_api('/git/refs/tags/{}'.format(self.prefix_prod)):
@@ -351,7 +357,7 @@ class GithubChangeNotesProvider(BaseChangeNotesProvider, GithubApiMixin):
 
             # If possible to match a version number, extract the version number
             if re.search('%s[0-9][0-9]*\.[0-9][0-9]*' % ref_prefix, ref['ref']):
-                version = LooseVersion(ref['ref'].replace(ref_prefix,''))
+                version = LooseVersion(ref['ref'].replace(ref_prefix, ''))
                 # Skip the current_version and any newer releases
                 if version >= current_version:
                     continue
@@ -362,7 +368,8 @@ class GithubChangeNotesProvider(BaseChangeNotesProvider, GithubApiMixin):
             versions.reverse()
             return '%s%s' % (self.prefix_prod, versions[0])
 
-        raise LastReleaseTagNotFoundError('Could not locate the last release tag')
+        raise LastReleaseTagNotFoundError(
+            'Could not locate the last release tag')
 
     def _get_pull_requests(self):
         """ Gets all pull requests from the repo since we can't do a filtered
