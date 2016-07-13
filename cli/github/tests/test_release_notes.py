@@ -167,6 +167,18 @@ class TestIssuesParser(unittest.TestCase):
 
 class TestGithubIssuesParser(unittest.TestCase):
 
+    def setUp(self):
+        # Set up the mock release_tag lookup response
+        self.repo_api_url = 'https://api.github.com/repos/TestOwner/TestRepo'
+        self.issue_number_valid = 123
+        self.issue_number_invalid = 456
+        self.github_info = {
+            'github_owner': 'TestOwner',
+            'github_repo': 'TestRepo',
+            'github_username': 'TestUser',
+            'github_password': 'TestPass',
+        }
+
     def test_issue_numbers(self):
         start_line = '# Issues'
         change_note = '{}\r\nFixes #2, Closed #3 and Resolve #5'.format(
@@ -190,6 +202,179 @@ class TestGithubIssuesParser(unittest.TestCase):
         parser = GithubIssuesParser(None, None, start_line)
         parser.parse(change_note)
         self.assertEqual(parser.content, [])
+
+    @responses.activate
+    def test_render_issue_number_valid(self):
+        start_line = '# Issues'
+        api_url = '{}/issues/{}'.format(
+            self.repo_api_url, self.issue_number_valid)
+        expected_response = self._get_expected_issue(self.issue_number_valid)
+        responses.add(
+            method=responses.GET,
+            url=api_url,
+            json=expected_response,
+        )
+        generator = self._create_generator()
+        parser = GithubIssuesParser(generator, 'Issues Fixed', start_line)
+        parser.content = [self.issue_number_valid]
+        expected_render = '# {}\r\n#{}: {}'.format(
+            parser.title,
+            self.issue_number_valid,
+            expected_response['title'],
+        )
+        self.assertEqual(parser.render(), expected_render)
+
+    @responses.activate
+    def test_render_issue_number_invalid(self):
+        start_line = '# Issues'
+        api_url = '{}/issues/{}'.format(
+            self.repo_api_url, self.issue_number_invalid)
+        expected_response = {
+            'message': 'Not Found',
+            'documentation_url': 'https://developer.github.com/v3',
+        }
+        responses.add(
+            method=responses.GET,
+            url=api_url,
+            json=expected_response,
+            status=httplib.NOT_FOUND,
+        )
+        generator = self._create_generator()
+        parser = GithubIssuesParser(generator, None, start_line)
+        parser.content = [self.issue_number_invalid]
+        with self.assertRaises(GithubApiNotFoundError):
+            parser.render()
+
+    def _create_generator(self):
+        generator = BaseReleaseNotesGenerator()
+        generator.github_info = self.github_info.copy()
+        return generator
+
+    def _get_expected_issue(self, issue_number):
+        response_body = {
+            'id': 1,
+            'url': 'https://api.github.com/repos/TestOwner/TestRepo/issues/{}'.format(issue_number),
+            'repository_url': 'https://api.github.com/repos/TestOwner/TestRepo',
+            'labels_url': 'https://api.github.com/repos/TestOwner/TestRepo/issues/{}/labels'.format(issue_number),
+            'comments_url': 'https://api.github.com/repos/TestOwner/TestRepo/issues/{}/comments'.format(issue_number),
+            'events_url': 'https://api.github.com/repos/TestOwner/TestRepo/issues/{}/events'.format(issue_number),
+            'html_url': 'https://github.com/TestOwner/TestRepo/issues/{}'.format(issue_number),
+            'number': issue_number,
+            'state': 'open',
+            'title': 'Found a bug',
+            'body': "I'm having a problem with this.",
+            'user': {
+                'login': 'TestOwner',
+                'id': 1,
+                'avatar_url': 'https://github.com/images/error/TestOwner_happy.gif',
+                'gravatar_id': '',
+                'url': 'https://api.github.com/users/TestOwner',
+                'html_url': 'https://github.com/TestOwner',
+                'followers_url': 'https://api.github.com/users/TestOwner/followers',
+                'following_url': 'https://api.github.com/users/TestOwner/following',
+                'gists_url': 'https://api.github.com/users/TestOwner/gists{/gist_id}',
+                'starred_url': 'https://api.github.com/users/TestOwner/starred',
+                'subscriptions_url': 'https://api.github.com/users/TestOwner/subscriptions',
+                'organizations_url': 'https://api.github.com/users/TestOwner/orgs',
+                'repos_url': 'https://api.github.com/users/TestOwner/repos',
+                'events_url': 'https://api.github.com/users/TestOwner/events',
+                'received_events_url': 'https://api.github.com/users/TestOwner/received_events',
+                'type': 'User',
+                'site_admin': False,
+            },
+            'labels': [
+                {
+                    'url': 'https://api.github.com/repos/TestOwner/TestRepo/labels/bug',
+                    'name': 'bug',
+                    'color': 'f29513',
+                }
+            ],
+            'assignee': {
+                'login': 'TestOwner',
+                'id': 1,
+                'avatar_url': 'https://github.com/images/error/TestOwner_happy.gif',
+                'gravatar_id': '',
+                'url': 'https://api.github.com/users/TestOwner',
+                'html_url': 'https://github.com/TestOwner',
+                'followers_url': 'https://api.github.com/users/TestOwner/followers',
+                'following_url': 'https://api.github.com/users/TestOwner/following',
+                'gists_url': 'https://api.github.com/users/TestOwner/gists',
+                'starred_url': 'https://api.github.com/users/TestOwner/starred',
+                'subscriptions_url': 'https://api.github.com/users/TestOwner/subscriptions',
+                'organizations_url': 'https://api.github.com/users/TestOwner/orgs',
+                'repos_url': 'https://api.github.com/users/TestOwner/repos',
+                'events_url': 'https://api.github.com/users/TestOwner/events',
+                'received_events_url': 'https://api.github.com/users/TestOwner/received_events',
+                'type': 'User',
+                'site_admin': False,
+            },
+            'milestone': {
+                'url': 'https://api.github.com/repos/TestOwner/TestRepo/milestones/1',
+                'html_url': 'https://github.com/TestOwner/TestRepo/milestones/v1.0',
+                'labels_url': 'https://api.github.com/repos/TestOwner/TestRepo/milestones/1/labels',
+                'id': 1002604,
+                'number': 1,
+                'state': 'open',
+                'title': 'v1.0',
+                'description': 'Tracking milestone for version 1.0',
+                'creator': {
+                    'login': 'TestOwner',
+                    'id': 1,
+                    'avatar_url': 'https://github.com/images/error/TestOwner_happy.gif',
+                    'gravatar_id': '',
+                    'url': 'https://api.github.com/users/TestOwner',
+                    'html_url': 'https://github.com/TestOwner',
+                    'followers_url': 'https://api.github.com/users/TestOwner/followers',
+                    'following_url': 'https://api.github.com/users/TestOwner/following',
+                    'gists_url': 'https://api.github.com/users/TestOwner/gists',
+                    'starred_url': 'https://api.github.com/users/TestOwner/starred',
+                    'subscriptions_url': 'https://api.github.com/users/TestOwner/subscriptions',
+                    'organizations_url': 'https://api.github.com/users/TestOwner/orgs',
+                    'repos_url': 'https://api.github.com/users/TestOwner/repos',
+                    'events_url': 'https://api.github.com/users/TestOwner/events',
+                    'received_events_url': 'https://api.github.com/users/TestOwner/received_events',
+                    'type': 'User',
+                    'site_admin': False,
+                },
+                'open_issues': 4,
+                'closed_issues': 8,
+                'created_at': '2011-04-10T20:09:31Z',
+                'updated_at': '2014-03-03T18:58:10Z',
+                'closed_at': '2013-02-12T13:22:01Z',
+                'due_on': '2012-10-09T23:39:01Z',
+            },
+            'locked': False,
+            'comments': 0,
+            'pull_request': {
+                'url': 'https://api.github.com/repos/TestOwner/TestRepo/pulls/{}'.format(issue_number),
+                'html_url': 'https://github.com/TestOwner/TestRepo/pull/{}'.format(issue_number),
+                'diff_url': 'https://github.com/TestOwner/TestRepo/pull/{}.diff'.format(issue_number),
+                'patch_url': 'https://github.com/TestOwner/TestRepo/pull/{}.patch'.format(issue_number),
+            },
+            'closed_at': None,
+            'created_at': '2011-04-22T13:33:48Z',
+            'updated_at': '2011-04-22T13:33:48Z',
+            'closed_by': {
+                'login': 'TestOwner',
+                'id': 1,
+                'avatar_url': 'https://github.com/images/error/TestOwner_happy.gif',
+                'gravatar_id': '',
+                'url': 'https://api.github.com/users/TestOwner',
+                'html_url': 'https://github.com/TestOwner',
+                'followers_url': 'https://api.github.com/users/TestOwner/followers',
+                'following_url': 'https://api.github.com/users/TestOwner/following',
+                'gists_url': 'https://api.github.com/users/TestOwner/gists',
+                'starred_url': 'https://api.github.com/users/TestOwner/starred',
+                'subscriptions_url': 'https://api.github.com/users/TestOwner/subscriptions',
+                'organizations_url': 'https://api.github.com/users/TestOwner/orgs',
+                'repos_url': 'https://api.github.com/users/TestOwner/repos',
+                'events_url': 'https://api.github.com/users/TestOwner/events',
+                'received_events_url': 'https://api.github.com/users/TestOwner/received_events',
+                'type': 'User',
+                'site_admin': False,
+            },
+        }
+        return response_body
 
 
 class TestBaseChangeNotesProvider(unittest.TestCase):

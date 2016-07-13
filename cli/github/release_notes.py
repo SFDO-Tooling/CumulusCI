@@ -231,7 +231,7 @@ class IssuesParser(ChangeNotesLinesParser):
         return '#(\d+)'
 
 
-class GithubIssuesParser(IssuesParser):
+class GithubIssuesParser(IssuesParser, GithubApiMixin):
 
     def _get_default_regex(self):
         keywords = (
@@ -246,6 +246,17 @@ class GithubIssuesParser(IssuesParser):
             'resolved',
         )
         return r'(?:{})\s#(\d+)'.format('|'.join(keywords))
+
+    def _render_content(self):
+        content = []
+        for issue_number in self.content:
+            issue_info = self._get_issue_info(issue_number)
+            issue_title = issue_info['title']
+            content.append('#{}: {}'.format(issue_number, issue_title))
+        return u'\r\n'.join(content)
+
+    def _get_issue_info(self, issue_number):
+        return self.call_api('/issues/{}'.format(issue_number))
 
 
 class StaticChangeNotesProvider(BaseChangeNotesProvider):
