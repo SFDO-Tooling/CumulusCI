@@ -4,6 +4,7 @@ import os
 import requests
 import json
 
+from datetime import datetime
 from distutils.version import LooseVersion
 
 
@@ -82,6 +83,8 @@ class BaseChangeNotesProvider(object):
 class GithubApiNotFoundError(BaseException):
     pass
 
+class GithubApiNoResultsError(BaseException):
+    pass
 
 class GithubApiMixin(object):
     github_api_base_url = 'https://api.github.com'
@@ -311,7 +314,7 @@ class GithubChangeNotesProvider(BaseChangeNotesProvider, GithubApiMixin):
         self._end_date = None
 
     def __call__(self):
-        for pull_request in self._get_pull_requests:
+        for pull_request in self._get_pull_requests():
             yield pull_request['body']
 
     @property
@@ -334,11 +337,13 @@ class GithubChangeNotesProvider(BaseChangeNotesProvider, GithubApiMixin):
 
     @property
     def start_date(self):
-        pass
+        tag_date = self.current_tag_info['tag']['tagger']['date']
+        return datetime.strptime(tag_date, "%Y-%m-%dT%H:%M:%SZ")
 
     @property
     def end_date(self):
-        pass
+        tag_date = self.last_tag_info['tag']['tagger']['date']
+        return datetime.strptime(tag_date, "%Y-%m-%dT%H:%M:%SZ")
 
     def _get_tag_info(self, tag):
         tag_info = {
@@ -385,6 +390,13 @@ class GithubChangeNotesProvider(BaseChangeNotesProvider, GithubApiMixin):
     def _get_pull_requests(self):
         """ Gets all pull requests from the repo since we can't do a filtered
         date merged search """
+        try:
+            pull_requests = self.call_api(
+                '/pulls?state=closed&base={}'.format(self.master_branch)
+            )
+        except GithubApiNoResultsError:
+            pull_requests = []
+
         for pull_request in pull_requests:
             if self._include_pull_request(pull_request):
                 yield pull_request
@@ -392,7 +404,24 @@ class GithubChangeNotesProvider(BaseChangeNotesProvider, GithubApiMixin):
     def _include_pull_request(self, pull_request):
         """ Checks if the given pull_request was merged to the default branch
         between self.start_date and self.end_date """
-        pass
+
+
+        if pull_request['state'] == 'open':
+            return False
+
+        if pull_request['base']['ref'] != self.master_branch:
+            return False
+    
+        merged_date = pull_request.get('merged_at')
+        if not merged_date:
+            return False
+
+        merged_date = datetime.strptime(merged_date, "%Y-%m-%dT%H:%M:%SZ")
+
+        if merged_date < self.start_date and merged_date > self.end_date:
+            return True
+
+        return False
 
 
 class StaticReleaseNotesGenerator(BaseReleaseNotesGenerator):
