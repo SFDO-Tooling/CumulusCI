@@ -15,6 +15,10 @@ class BaseReleaseNotesGenerator(object):
         self.init_parsers()
         self.init_change_notes()
 
+    def __call__(self):
+        self._parse_change_notes()
+        return self.render()
+
     def init_change_notes(self):
         self.change_notes = self._init_change_notes()
 
@@ -43,13 +47,15 @@ class BaseReleaseNotesGenerator(object):
         """ Parses an individual change note through all parsers in
         self.parsers """
         for parser in self.parsers:
-            parser.parse(change_notes)
+            parser.parse(change_note)
 
     def render(self):
         """ Returns the rendered release notes from all parsers as a string """
         release_notes = []
         for parser in self.parsers:
-            release_notes.append(parser.render())
+            parser_content = parser.render()
+            if parser_content is not None:
+                release_notes.append(parser_content)
         return u'\r\n'.join(release_notes)
 
 
@@ -193,6 +199,9 @@ class ChangeNotesLinesParser(BaseChangeNotesParser):
 
     def _is_end_line(self, line):
         if not line:
+            return True
+        # Also treat any new top level heading as end of section
+        if line.startswith('# '):
             return True
 
     def _add_line(self, line):
@@ -470,7 +479,7 @@ class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator):
             ChangeNotesLinesParser(
                 self, 
                 'Critical Changes', 
-                '# Warning'
+                '# Warning',
             )
         )
         self.parsers.append(
