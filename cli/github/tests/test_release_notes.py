@@ -15,6 +15,8 @@ import responses
 from github.release_notes import BaseReleaseNotesGenerator
 from github.release_notes import StaticReleaseNotesGenerator
 from github.release_notes import DirectoryReleaseNotesGenerator
+from github.release_notes import GithubReleaseNotesGenerator
+
 from github.release_notes import BaseChangeNotesParser
 from github.release_notes import IssuesParser
 from github.release_notes import GithubIssuesParser
@@ -252,8 +254,7 @@ class TestGithubIssuesParser(unittest.TestCase):
             parser.render()
 
     def _create_generator(self):
-        generator = BaseReleaseNotesGenerator()
-        generator.github_info = self.github_info.copy()
+        generator = GithubReleaseNotesGenerator(self.github_info.copy(), 'prod/1.1')
         return generator
 
     def _get_expected_issue(self, issue_number):
@@ -468,9 +469,12 @@ class TestGithubChangeNotesProvider(unittest.TestCase):
             'github_password': 'TestPass',
         }
 
-    def _create_generator(self):
-        generator = BaseReleaseNotesGenerator()
-        generator.github_info = self.github_info.copy()
+    def _create_generator(self, current_tag, last_tag=None):
+        generator = GithubReleaseNotesGenerator(
+            self.github_info.copy(),
+            current_tag,
+            last_tag=last_tag
+        )
         return generator
 
     def _get_expected_tag_ref(self, tag, sha):
@@ -918,7 +922,7 @@ class TestGithubChangeNotesProvider(unittest.TestCase):
             status=httplib.NOT_FOUND,
         )
 
-        generator = self._create_generator()
+        generator = self._create_generator(self.invalid_tag)
         provider = GithubChangeNotesProvider(generator, self.invalid_tag)
         with self.assertRaises(GithubApiNotFoundError):
             provider.current_tag_info
@@ -982,7 +986,7 @@ class TestGithubChangeNotesProvider(unittest.TestCase):
             json=expected_response_list_tag_refs,
         )
 
-        generator = self._create_generator()
+        generator = self._create_generator(self.current_tag)
         provider = GithubChangeNotesProvider(generator, self.current_tag)
 
         self.assertEquals(provider.current_tag_info[
@@ -1028,7 +1032,7 @@ class TestGithubChangeNotesProvider(unittest.TestCase):
             url=api_url,
             json=expected_response_list_tag_refs,
         )
-        generator = self._create_generator()
+        generator = self._create_generator(self.current_tag)
         provider = GithubChangeNotesProvider(generator, self.current_tag)
 
         with self.assertRaises(LastReleaseTagNotFoundError):
@@ -1115,7 +1119,7 @@ class TestGithubChangeNotesProvider(unittest.TestCase):
             content_type='application/json',
         )
 
-        generator = self._create_generator()
+        generator = self._create_generator(self.current_tag, self.last_tag)
         provider = GithubChangeNotesProvider(generator, self.current_tag, self.last_tag)
         self.assertEquals(list(provider()), [])
 
@@ -1141,7 +1145,7 @@ class TestGithubChangeNotesProvider(unittest.TestCase):
             json=expected_response_list_pull_requests,
         )
 
-        generator = self._create_generator()
+        generator = self._create_generator(self.current_tag, self.last_tag)
         provider = GithubChangeNotesProvider(generator, self.current_tag, self.last_tag)
         self.assertEquals(list(provider()), [])
 
@@ -1174,7 +1178,7 @@ class TestGithubChangeNotesProvider(unittest.TestCase):
             json=expected_response_list_pull_requests,
         )
 
-        generator = self._create_generator()
+        generator = self._create_generator(self.current_tag, self.last_tag)
         provider = GithubChangeNotesProvider(generator, self.current_tag, self.last_tag)
         self.assertEquals(list(provider()), ['pull 1'])
 
@@ -1228,6 +1232,37 @@ class TestGithubChangeNotesProvider(unittest.TestCase):
             json=expected_response_list_pull_requests,
         )
 
-        generator = self._create_generator()
+        generator = self._create_generator(self.current_tag, self.last_tag)
         provider = GithubChangeNotesProvider(generator, self.current_tag, self.last_tag)
         self.assertEquals(list(provider()), ['pull 1','pull 2','pull 3'])
+
+class TestReleaseNotesGenerator(unittest.TestCase):
+    
+    def setUp(self):
+        self.current_tag = 'prod/1.4'
+        self.last_tag = 'prod/1.3'
+        self.github_info = {
+            'github_owner': 'TestOwner',
+            'github_repo': 'TestRepo',
+            'github_username': 'TestUser',
+            'github_password': 'TestPass',
+        }
+
+    def test_init_without_last_tag(self):
+        github_info = self.github_info.copy()
+        generator = GithubReleaseNotesGenerator(github_info, self.current_tag)
+        self.assertEquals(generator.github_info, github_info)
+        self.assertEquals(generator.current_tag, self.current_tag)
+        self.assertEquals(generator.last_tag, None)
+        self.assertEquals(generator.change_notes.current_tag, self.current_tag)
+        self.assertEquals(generator.change_notes._last_tag, None)
+
+    def test_init_without_last_tag(self):
+        github_info = self.github_info.copy()
+        generator = GithubReleaseNotesGenerator(github_info, self.current_tag, self.last_tag)
+        self.assertEquals(generator.github_info, github_info)
+        self.assertEquals(generator.current_tag, self.current_tag)
+        self.assertEquals(generator.last_tag, self.last_tag)
+        self.assertEquals(generator.change_notes.current_tag, self.current_tag)
+        self.assertEquals(generator.change_notes._last_tag, self.last_tag)
+

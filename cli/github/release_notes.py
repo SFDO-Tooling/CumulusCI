@@ -434,7 +434,7 @@ class StaticReleaseNotesGenerator(BaseReleaseNotesGenerator):
         self.parsers.append(ChangeNotesLinesParser(
             self, 'Critical Changes', '# Warning'))
         self.parsers.append(ChangeNotesLinesParser(self, 'Changes', '# Info'))
-        self.parsers.append(GithubIssuesParser(
+        self.parsers.append(IssuesParser(
             self, 'Issues Closed', '# Issues'))
 
     def _init_change_notes(self):
@@ -451,8 +451,38 @@ class DirectoryReleaseNotesGenerator(BaseReleaseNotesGenerator):
         self.parsers.append(ChangeNotesLinesParser(
             self, 'Critical Changes', '# Warning'))
         self.parsers.append(ChangeNotesLinesParser(self, 'Changes', '# Info'))
-        self.parsers.append(GithubIssuesParser(
+        self.parsers.append(IssuesParser(
             self, 'Issues Closed', '# Issues'))
 
     def _init_change_notes(self):
         return DirectoryChangeNotesProvider(self, self.directory)
+
+class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator):
+
+    def __init__(self, github_info, current_tag, last_tag=None):
+        self.github_info = github_info
+        self.current_tag = current_tag
+        self.last_tag = last_tag
+        super(GithubReleaseNotesGenerator, self).__init__()
+
+    def _init_parsers(self):
+        self.parsers.append(
+            ChangeNotesLinesParser(
+                self, 
+                'Critical Changes', 
+                '# Warning'
+            )
+        )
+        self.parsers.append(
+            ChangeNotesLinesParser(self, 'Changes', '# Info')
+        )
+        self.parsers.append(
+            GithubIssuesParser(self, 'Issues Closed', '# Issues')
+        )
+
+    def _init_change_notes(self):
+        return GithubChangeNotesProvider(
+            self, 
+            self.current_tag, 
+            self.last_tag
+        )
