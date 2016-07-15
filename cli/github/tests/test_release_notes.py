@@ -41,7 +41,7 @@ class DummyParser(BaseChangeNotesParser):
         pass
 
     def _render(self):
-        return 'dummy parser output\r\n'
+        return 'dummy parser output'.format(self.title)
 
 
 class TestBaseReleaseNotesGenerator(unittest.TestCase):
@@ -55,9 +55,9 @@ class TestBaseReleaseNotesGenerator(unittest.TestCase):
         release_notes = BaseReleaseNotesGenerator()
         release_notes.parsers.append(DummyParser('Dummy 1'))
         release_notes.parsers.append(DummyParser('Dummy 2'))
-        self.assertEqual(release_notes.render(), (
-                         u'# Dummy 1\r\ndummy parser output\r\n\r\n' +
-                         u'# Dummy 2\r\ndummy parser output\r\n'))
+        expected = u'# Dummy 1\r\n\r\ndummy parser output\r\n\r\n' +\
+                   u'# Dummy 2\r\n\r\ndummy parser output'
+        self.assertEqual(release_notes.render(), expected)
 
 
 class TestStaticReleaseNotesGenerator(unittest.TestCase):
@@ -73,6 +73,24 @@ class TestDirectoryReleaseNotesGenerator(unittest.TestCase):
         release_notes = DirectoryReleaseNotesGenerator('change_notes')
         assert len(release_notes.parsers) == 3
 
+    def test_full_content(self):
+        change_notes_dir = os.path.join(
+            __location__,
+            'change_notes',
+            'full',
+        )
+        release_notes = DirectoryReleaseNotesGenerator(
+            change_notes_dir,
+        )
+        
+        content = release_notes()
+        expected = "# Critical Changes\r\n\r\n* This will break everything!\r\n\r\n# Changes\r\n\r\nHere's something I did. It was really cool\r\nOh yeah I did something else too!\r\n\r\n# Issues Closed\r\n\r\n#2345\r\n#6236"
+        print expected
+        print '-------------------------------------'
+        print content
+
+        self.assertEquals(content, expected) 
+
 
 class TestBaseChangeNotesParser(unittest.TestCase):
     pass
@@ -80,103 +98,90 @@ class TestBaseChangeNotesParser(unittest.TestCase):
 
 class TestChangeNotesLinesParser(unittest.TestCase):
 
-    def test_init_empty_start_line(self):
-        self.assertRaises(ValueError, ChangeNotesLinesParser, None, None, '')
+    def setUp(self):
+        self.title = 'Title'
 
     def test_parse_no_start_line(self):
-        start_line = '# Start Line'
         change_note = 'foo\r\nbar\r\n'
-        parser = ChangeNotesLinesParser(None, None, start_line)
+        parser = ChangeNotesLinesParser(None, self.title)
         parser.parse(change_note)
         self.assertEqual(parser.content, [])
 
     def test_parse_start_line_no_content(self):
-        start_line = '# Start Line'
-        change_note = '{}\r\n\r\n'.format(start_line)
-        parser = ChangeNotesLinesParser(None, None, start_line)
+        change_note = '# {}\r\n\r\n'.format(self.title)
+        parser = ChangeNotesLinesParser(None, self.title)
         parser.parse(change_note)
         self.assertEqual(parser.content, [])
 
     def test_parse_start_line_no_end_line(self):
-        start_line = '# Start Line'
-        change_note = '{}\r\nfoo\r\nbar'.format(start_line)
-        parser = ChangeNotesLinesParser(None, None, start_line)
+        change_note = '# {}\r\nfoo\r\nbar'.format(self.title)
+        parser = ChangeNotesLinesParser(None, self.title)
         parser.parse(change_note)
         self.assertEqual(parser.content, ['foo', 'bar'])
 
     def test_parse_start_line_end_at_header(self):
-        start_line = '# Start Line'
-        change_note = '{}\r\nfoo\r\n# Another Header\r\nbar'.format(start_line)
-        parser = ChangeNotesLinesParser(None, None, start_line)
+        change_note = '# {}\r\nfoo\r\n# Another Header\r\nbar'.format(self.title)
+        parser = ChangeNotesLinesParser(None, self.title)
         parser.parse(change_note)
         self.assertEqual(parser.content, ['foo'])
 
     def test_parse_start_line_no_content_no_end_line(self):
-        start_line = '# Start Line'
-        change_note = start_line
-        parser = ChangeNotesLinesParser(None, None, start_line)
+        change_note = '# {}'.format(self.title)
+        parser = ChangeNotesLinesParser(None, self.title)
         parser.parse(change_note)
         self.assertEqual(parser.content, [])
 
     def test_parse_multiple_start_lines_without_end_lines(self):
-        start_line = '# Start Line'
-        change_note = '{0}\r\nfoo\r\n{0}\r\nbar\r\n'.format(start_line)
-        parser = ChangeNotesLinesParser(None, None, start_line)
+        change_note = '# {0}\r\nfoo\r\n# {0}\r\nbar\r\n'.format(self.title)
+        parser = ChangeNotesLinesParser(None, self.title)
         parser.parse(change_note)
         self.assertEqual(parser.content, ['foo', 'bar'])
 
     def test_parse_multiple_start_lines_with_end_lines(self):
-        start_line = '# Start Line'
-        change_note = '{0}\r\nfoo\r\n\r\n{0}\r\nbar\r\n\r\nnot included'.format(start_line)
-        parser = ChangeNotesLinesParser(None, None, start_line)
+        change_note = '# {0}\r\nfoo\r\n\r\n# {0}\r\nbar\r\n\r\nincluded\r\n\r\n# not included'.format(self.title)
+        parser = ChangeNotesLinesParser(None, self.title)
         parser.parse(change_note)
-        self.assertEqual(parser.content, ['foo', 'bar'])
+        self.assertEqual(parser.content, ['foo', 'bar', 'included'])
 
     def test_render_no_content(self):
-        start_line = '# Start Line'
-        parser = ChangeNotesLinesParser(None, None, start_line)
+        parser = ChangeNotesLinesParser(None, self.title)
         self.assertEqual(parser.render(), None)
 
     def test_render_one_content(self):
-        title = 'Title'
-        start_line = '# Start Line'
-        parser = ChangeNotesLinesParser(None, title, start_line)
+        parser = ChangeNotesLinesParser(None, self.title)
         content = ['foo']
         parser.content = content
         self.assertEqual(parser.render(),
-                         '# {}\r\n{}'.format(title, content[0]))
+                         '# {}\r\n\r\n{}'.format(self.title, content[0]))
 
     def test_render_multiple_content(self):
-        title = 'Title'
-        start_line = '# Start Line'
-        parser = ChangeNotesLinesParser(None, title, start_line)
+        parser = ChangeNotesLinesParser(None, self.title)
         content = ['foo', 'bar']
         parser.content = content
         self.assertEqual(parser.render(),
-                         '# {}\r\n{}'.format(title, '\r\n'.join(content)))
-
+                         '# {}\r\n\r\n{}'.format(self.title, '\r\n'.join(content)))
 
 class TestIssuesParser(unittest.TestCase):
 
+    def setUp(self):
+        self.title = 'Issues'
+
     def test_issue_numbers(self):
-        start_line = '# Issues'
-        change_note = '{}\r\nfix #2\r\nfix #3\r\nfix #5\r\n'.format(start_line)
-        parser = IssuesParser(None, None, start_line)
+        change_note = '# {}\r\nfix #2\r\nfix #3\r\nfix #5\r\n'.format(self.title)
+        parser = IssuesParser(None, self.title)
         parser.parse(change_note)
         self.assertEqual(parser.content, [2, 3, 5])
 
     def test_issue_numbers_and_other_numbers(self):
-        start_line = '# Issues'
-        change_note = '{}\r\nfixes #2 but not # 3 or 5'.format(start_line)
-        parser = IssuesParser(None, None, start_line)
+        change_note = '# {}\r\nfixes #2 but not # 3 or 5'.format(self.title)
+        parser = IssuesParser(None, self.title)
         parser.parse(change_note)
         self.assertEqual(parser.content, [2])
 
     def test_multiple_issue_numbers_per_line(self):
-        start_line = '# Issues'
-        change_note = '{}\r\nfix #2 also does fix #3 and fix #5\r\n'.format(
-            start_line)
-        parser = IssuesParser(None, None, start_line)
+        change_note = '# {}\r\nfix #2 also does fix #3 and fix #5\r\n'.format(
+            self.title)
+        parser = IssuesParser(None, self.title)
         parser.parse(change_note)
         self.assertEqual(parser.content, [2, 3, 5])
 
@@ -184,37 +189,35 @@ class TestGithubIssuesParser(unittest.TestCase, GithubApiTestMixin):
 
     def setUp(self):
         self.init_github()
+
+        self.title = 'Issues'
         # Set up the mock release_tag lookup response
         self.issue_number_valid = 123
         self.issue_number_invalid = 456
 
     def test_issue_numbers(self):
-        start_line = '# Issues'
-        change_note = '{}\r\nFixes #2, Closed #3 and Resolve #5'.format(
-            start_line)
-        parser = GithubIssuesParser(None, None, start_line)
+        change_note = '# {}\r\nFixes #2, Closed #3 and Resolve #5'.format(
+            self.title)
+        parser = GithubIssuesParser(None, self.title)
         parser.parse(change_note)
         self.assertEqual(parser.content, [2, 3, 5])
 
     def test_issue_numbers_and_other_numbers(self):
-        start_line = '# Issues'
-        change_note = '{}\r\nFixes #2 but not #5'.format(
-            start_line)
-        parser = GithubIssuesParser(None, None, start_line)
+        change_note = '# {}\r\nFixes #2 but not #5'.format(
+            self.title)
+        parser = GithubIssuesParser(None, self.title)
         parser.parse(change_note)
         self.assertEqual(parser.content, [2])
 
     def test_no_issue_numbers(self):
-        start_line = '# Issues'
-        change_note = '{}\r\n#2 and #3 are fixed by this change'.format(
-            start_line)
-        parser = GithubIssuesParser(None, None, start_line)
+        change_note = '# {}\r\n#2 and #3 are fixed by this change'.format(
+            self.title)
+        parser = GithubIssuesParser(None, self.title)
         parser.parse(change_note)
         self.assertEqual(parser.content, [])
 
     @responses.activate
     def test_render_issue_number_valid(self):
-        start_line = '# Issues'
         api_url = '{}/issues/{}'.format(
             self.repo_api_url, self.issue_number_valid)
         expected_response = self._get_expected_issue(self.issue_number_valid)
@@ -224,10 +227,10 @@ class TestGithubIssuesParser(unittest.TestCase, GithubApiTestMixin):
             json=expected_response,
         )
         generator = self._create_generator()
-        parser = GithubIssuesParser(generator, 'Issues Fixed', start_line)
+        parser = GithubIssuesParser(generator, self.title)
         parser.content = [self.issue_number_valid]
-        expected_render = '# {}\r\n#{}: {}'.format(
-            parser.title,
+        expected_render = '# {}\r\n\r\n#{}: {}'.format(
+            self.title,
             self.issue_number_valid,
             expected_response['title'],
         )
@@ -235,7 +238,6 @@ class TestGithubIssuesParser(unittest.TestCase, GithubApiTestMixin):
 
     @responses.activate
     def test_render_issue_number_invalid(self):
-        start_line = '# Issues'
         api_url = '{}/issues/{}'.format(
             self.repo_api_url, self.issue_number_invalid)
         expected_response = {
@@ -249,7 +251,7 @@ class TestGithubIssuesParser(unittest.TestCase, GithubApiTestMixin):
             status=httplib.NOT_FOUND,
         )
         generator = self._create_generator()
-        parser = GithubIssuesParser(generator, None, start_line)
+        parser = GithubIssuesParser(generator, self.title)
         parser.content = [self.issue_number_invalid]
         with self.assertRaises(GithubApiNotFoundError):
             parser.render()
