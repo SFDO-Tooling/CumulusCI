@@ -6,6 +6,8 @@ import sarge
 import sys
 from time import sleep
 
+from release_notes.generator import GithubReleaseNotesGenerator
+
 # Exceptions
 class AntTargetException(Exception):
     pass
@@ -871,30 +873,19 @@ def github_release(config, version, commit):
 @pass_config
 def github_release_notes(config, tag, last_tag, update_release):
 
-    # Build the environment for the command
-    env = get_env_cumulusci(config)
-    env.update(get_env_github(config))
+    github_info = {
+        'github_owner': config.github_org_name,
+        'github_repo': config.github_repo_name,
+        'github_username': config.github_username,
+        'github_password': config.github_password,
+        'master_branch': config.master_branch,
+        'prefix_prod': config.prefix_release,
+        'prefix_beta': config.prefix_beta,
+    }
 
-    env['CURRENT_REL_TAG'] = tag
-    if last_tag:
-        env['LAST_REL_TAG'] = last_tag
-    env['MASTER_BRANCH'] = config.master_branch
-    env['PREFIX_BETA'] = config.prefix_beta
-    env['PREFIX_RELEASE'] = config.prefix_release
-    env['PRINT_ONLY'] = str(not update_release)
+    release_notes = GithubReleaseNotesGenerator(github_info, tag, last_tag)
 
-    required_env = [
-        'GITHUB_ORG_NAME',
-        'GITHUB_REPO_NAME',
-        'GITHUB_USERNAME',
-        'GITHUB_PASSWORD',
-        'CURRENT_REL_TAG',
-        'MASTER_BRANCH',
-        'PREFIX_BETA',
-        'PREFIX_RELEASE',
-    ]
-
-    p = run_python_script('github/release_notes.py', env, config, required_env=required_env)
+    print release_notes()
 
 # command: github master_to_feature
 @click.command(name='master_to_feature', help='Attempts to merge a commit on the master branch to all open feature branches.  Creates pull requests assigned to the developer of the feature branch if a merge conflict occurs.')
