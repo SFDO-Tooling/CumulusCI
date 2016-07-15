@@ -11,25 +11,25 @@ from datetime import timedelta
 import requests
 import responses
 
-from github.release_notes import BaseReleaseNotesGenerator
-from github.release_notes import StaticReleaseNotesGenerator
-from github.release_notes import DirectoryReleaseNotesGenerator
-from github.release_notes import GithubReleaseNotesGenerator
+from release_notes.generator import BaseReleaseNotesGenerator
+from release_notes.generator import StaticReleaseNotesGenerator
+from release_notes.generator import DirectoryReleaseNotesGenerator
+from release_notes.generator import GithubReleaseNotesGenerator
 
-from github.release_notes import BaseChangeNotesParser
-from github.release_notes import IssuesParser
-from github.release_notes import GithubIssuesParser
-from github.release_notes import ChangeNotesLinesParser
+from release_notes.parser import BaseChangeNotesParser
+from release_notes.parser import IssuesParser
+from release_notes.parser import GithubIssuesParser
+from release_notes.parser import ChangeNotesLinesParser
 
-from github.release_notes import BaseChangeNotesProvider
-from github.release_notes import StaticChangeNotesProvider
-from github.release_notes import DirectoryChangeNotesProvider
-from github.release_notes import GithubChangeNotesProvider
+from release_notes.provider import BaseChangeNotesProvider
+from release_notes.provider import StaticChangeNotesProvider
+from release_notes.provider import DirectoryChangeNotesProvider
+from release_notes.provider import GithubChangeNotesProvider
 
-from github.release_notes import GithubApiNotFoundError
-from github.release_notes import LastReleaseTagNotFoundError
+from release_notes.exceptions import GithubApiNotFoundError
+from release_notes.exceptions import LastReleaseTagNotFoundError
 
-from github.tests.util_github_api import GithubApiTestMixin
+from release_notes.tests.util_github_api import GithubApiTestMixin
 
 __location__ = os.path.realpath(
     os.path.join(os.getcwd(), os.path.dirname(__file__)))
