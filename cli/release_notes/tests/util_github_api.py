@@ -143,6 +143,11 @@ class GithubApiTestMixin(object):
         }
         return response_body
 
+    def _get_expected_issue_comment(self, body):
+        return {
+            'body': body,
+        }
+
     def _get_expected_tag_ref(self, tag, sha):
         return {
             'ref': 'refs/tags/{}'.format(tag),

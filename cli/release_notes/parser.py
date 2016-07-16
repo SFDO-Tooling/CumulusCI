@@ -143,4 +143,75 @@ class GithubIssuesParser(IssuesParser, GithubApiMixin):
     def _get_issue_info(self, issue_number):
         return self.call_api('/issues/{}'.format(issue_number))
 
+class CommentingGithubIssuesParser(GithubIssuesParser):
 
+    message_prod = 'Included in production release'
+    message_beta = 'Included in beta release'
+    
+    def _get_issue_info(self, issue_number):
+        self._add_issue_comment(issue_number)
+        return super(CommentingGithubIssuesParser, self)._get_issue_info(issue_number)
+
+    def _get_current_tag_info(self):
+        is_prod = False
+        is_beta = False
+        tag = self.release_notes_generator.current_tag
+        if tag.startswith(self.prefix_prod):
+            is_prod = True
+        elif tag.startswith(self.prefix_beta):
+            is_beta = True
+
+        if is_prod:
+            version_number = tag.replace(self.prefix_beta,'')
+        elif is_beta:
+            version_parts = re.findall(
+                '{}(\d+\.\d+)-Beta_(\d+)'.format(self.prefix_beta),
+                tag,
+            )
+            assert version_parts
+            version_number = '{} (Beta {})'.format(*version_parts[0])
+        else:
+            version_number = None
+
+        tag_info = {
+            'is_prod': is_prod,
+            'is_beta': is_beta,
+            'version_number': version_number,
+        }
+        
+        return tag_info
+
+
+    def _add_issue_comment(self, issue_number):
+        # Ensure all issues have a comment on which release they were fixed
+        gh_issue_comments = self.call_api('/issues/{}/comments'.format(issue_number))
+        has_comment = False
+
+        current_tag_info = self._get_current_tag_info()
+        
+        for comment in gh_issue_comments:
+            if current_tag_info['is_prod']:
+                if comment['body'].startswith(self.message_prod):
+                    has_comment = True
+            elif current_tag_info['is_beta']:
+                if comment['body'].startswith(self.message_beta):
+                    has_comment = True
+
+        if not has_comment:
+            data = {}
+            if current_tag_info['is_prod']:
+                data['body'] = '{} {}'.format(
+                    self.message_prod,
+                    current_tag_info['version_number'],
+                )
+            elif current_tag_info['is_beta']:
+                data['body'] = '{} {}'.format(
+                    self.message_beta,
+                    current_tag_info['version_number'],
+                )
+
+            if data:
+                self.call_api(
+                    '/issues/{}/comments'.format(issue_number),
+                    data = data,
+                )
