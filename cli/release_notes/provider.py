@@ -21,8 +21,8 @@ class BaseChangeNotesProvider(object):
 
 class StaticChangeNotesProvider(BaseChangeNotesProvider):
 
-    def __init__(self, release_notes, change_notes):
-        super(StaticChangeNotesProvider, self).__init__(release_notes)
+    def __init__(self, release_notes_generator, change_notes):
+        super(StaticChangeNotesProvider, self).__init__(release_notes_generator)
         self.change_notes = change_notes
 
     def __call__(self):
@@ -32,36 +32,46 @@ class StaticChangeNotesProvider(BaseChangeNotesProvider):
 
 class DirectoryChangeNotesProvider(BaseChangeNotesProvider):
 
-    def __init__(self, release_notes, directory):
-        super(DirectoryChangeNotesProvider, self).__init__(release_notes)
+    def __init__(self, release_notes_generator, directory):
+        super(DirectoryChangeNotesProvider, self).__init__(release_notes_generator)
         self.directory = directory
 
     def __call__(self):
         for item in os.listdir(self.directory):
             yield open('{}/{}'.format(self.directory, item)).read()
 
+class ProviderGithubApiMixin(GithubApiMixin):
+    @property
+    def current_tag(self):
+        return self.release_notes_generator.current_tag
 
-class GithubChangeNotesProvider(BaseChangeNotesProvider, GithubApiMixin):
+    @property
+    def github_info(self):
+        # By default, look for github config info in the release_notes
+        # property.  Subclasses can override this if needed
+        return self.release_notes_generator.github_info
+
+class GithubChangeNotesProvider(BaseChangeNotesProvider, ProviderGithubApiMixin):
     """ Provides changes notes by finding all merged pull requests to
         the default branch between two tags.
 
-        Expects the passed release_notes instance to have a github_info
+        Expects the passed release_notes_generator instance to have a github_info
         property that contains a dictionary of settings for accessing Github:
             - github_repo
             - github_owner
             - github_username
             - github_password
 
-        Will optionally use the following if set provided by release_notes
+        Will optionally use the following if set provided by release_notes_generator
             - master_branch: Name of the default branch.
                 Defaults to 'master'
             - prefix_prod: Tag prefix for production release tags.
                 Defaults to 'prod/'
     """
 
-    def __init__(self, release_notes, current_tag, last_tag=None):
-        super(GithubChangeNotesProvider, self).__init__(release_notes)
-        self.current_tag = current_tag
+    def __init__(self, release_notes_generator, current_tag, last_tag=None):
+        super(GithubChangeNotesProvider, self).__init__(release_notes_generator)
+        #self.current_tag = current_tag
         self._last_tag = last_tag
         self._start_date = None
         self._end_date = None

@@ -7,6 +7,7 @@ import json
 from datetime import datetime
 from distutils.version import LooseVersion
 
+from .github_api import GithubApiMixin
 from .parser import ChangeNotesLinesParser
 from .parser import IssuesParser
 from .parser import GithubIssuesParser
@@ -128,7 +129,7 @@ class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator):
             self.last_tag
         )
 
-class PublishingGithubReleaseNotesGenerator(GithubReleaseNotesGenerator):
+class PublishingGithubReleaseNotesGenerator(GithubReleaseNotesGenerator, GithubApiMixin):
    
     def __call__(self):
         content = super(PublishingGithubReleaseNotesGenerator, self)() 
@@ -137,40 +138,34 @@ class PublishingGithubReleaseNotesGenerator(GithubReleaseNotesGenerator):
 
     def publish(self):
         release = self._get_or_create_release()
-
+        return self._update_release(release)
 
     def _get_or_create_release(self):
         # Query for the release
         try:
             release = self.call_api('/releases/tags/{}'.format(self.current_tag))
         except GithubApiNotFoundError:
+            tag_info = self.current_tag_info
+            draft = tag_info['is_prod']
             release = {
-                "tag_name": release['tag_name'],
+                "tag_name": self.current_tag,
                 "target_commitish": release['target_commitish'],
-                "name": release['name'],
-                "body": release['body'],
-                "draft": release['draft'],
-                "prerelease": release['prerelease'],
+                "name": self.current_tag,
+                "body": None,
+                "draft": tag_info['is_prod'],
+                "prerelease": tag_info['is_beta'],
             }
         return release
         
-    def _update_release(self):
-        data = {
-            "tag_name": release['tag_name'],
-            "target_commitish": release['target_commitish'],
-            "name": release['name'],
-            "body": release['body'],
-            "draft": release['draft'],
-            "prerelease": release['prerelease'],
-        }
+    def _update_release(self, release):
 
-        if data['body']:
+        if release['body']:
             new_body = []
             found_release_notes = False
             in_release_notes = False
             in_parser_section = False
 
-            for line in data['body'].splitlines():
+            for line in release['body'].splitlines():
 
                 for parser in self.parsers:
                     if parser._render_heading() == parser._process_line(line):
@@ -193,9 +188,9 @@ class PublishingGithubReleaseNotesGenerator(GithubReleaseNotesGenerator):
             if in_parser_section:
                 new_body.append(in_parser_section.render())
                     
-            release_notes['body'] = u'\r\n'.join(new_body)
+            release['body'] = u'\r\n'.join(new_body)
         else:
-            data['body'] = release_notes
+            release['body'] = release_notes
 
         if release.get('id'):
             resp = self.call_api('/releases/{}'.format(release['id']), data=release)
@@ -203,5 +198,3 @@ class PublishingGithubReleaseNotesGenerator(GithubReleaseNotesGenerator):
             resp = self.call_api('/releases', data=release)
 
         return resp
-        
-

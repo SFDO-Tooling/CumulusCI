@@ -116,7 +116,18 @@ class IssuesParser(ChangeNotesLinesParser):
             issues.append('#{}'.format(issue))
         return u'\r\n'.join(issues)
 
-class GithubIssuesParser(IssuesParser, GithubApiMixin):
+class ParserGithubApiMixin(GithubApiMixin):
+    @property
+    def current_tag(self):
+        return self.release_notes_generator.current_tag
+
+    @property
+    def github_info(self):
+        # By default, look for github config info in the release_notes
+        # property.  Subclasses can override this if needed
+        return self.release_notes_generator.github_info
+
+class GithubIssuesParser(IssuesParser, ParserGithubApiMixin):
 
     def _get_default_regex(self):
         keywords = (
@@ -152,42 +163,12 @@ class CommentingGithubIssuesParser(GithubIssuesParser):
         self._add_issue_comment(issue_number)
         return super(CommentingGithubIssuesParser, self)._get_issue_info(issue_number)
 
-    def _get_current_tag_info(self):
-        is_prod = False
-        is_beta = False
-        tag = self.release_notes_generator.current_tag
-        if tag.startswith(self.prefix_prod):
-            is_prod = True
-        elif tag.startswith(self.prefix_beta):
-            is_beta = True
-
-        if is_prod:
-            version_number = tag.replace(self.prefix_beta,'')
-        elif is_beta:
-            version_parts = re.findall(
-                '{}(\d+\.\d+)-Beta_(\d+)'.format(self.prefix_beta),
-                tag,
-            )
-            assert version_parts
-            version_number = '{} (Beta {})'.format(*version_parts[0])
-        else:
-            version_number = None
-
-        tag_info = {
-            'is_prod': is_prod,
-            'is_beta': is_beta,
-            'version_number': version_number,
-        }
-        
-        return tag_info
-
-
     def _add_issue_comment(self, issue_number):
         # Ensure all issues have a comment on which release they were fixed
         gh_issue_comments = self.call_api('/issues/{}/comments'.format(issue_number))
         has_comment = False
 
-        current_tag_info = self._get_current_tag_info()
+        current_tag_info = self.current_tag_info
         
         for comment in gh_issue_comments:
             if current_tag_info['is_prod']:

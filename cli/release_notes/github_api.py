@@ -1,6 +1,8 @@
 import httplib
-import requests
 import json
+import re
+
+import requests
 
 from .exceptions import GithubApiNotFoundError
 from .exceptions import GithubApiNoResultsError
@@ -37,10 +39,34 @@ class GithubApiMixin(object):
         return self.github_info.get('prefix_beta', 'beta/')
 
     @property
-    def github_info(self):
-        # By default, look for github config info in the release_notes
-        # property.  Subclasses can override this if needed
-        return self.release_notes_generator.github_info
+    def current_tag_info(self):
+        is_prod = False
+        is_beta = False
+        tag = self.current_tag
+        if tag.startswith(self.prefix_prod):
+            is_prod = True
+        elif tag.startswith(self.prefix_beta):
+            is_beta = True
+
+        if is_prod:
+            version_number = tag.replace(self.prefix_beta,'')
+        elif is_beta:
+            version_parts = re.findall(
+                '{}(\d+\.\d+)-Beta_(\d+)'.format(self.prefix_beta),
+                tag,
+            )
+            assert version_parts
+            version_number = '{} (Beta {})'.format(*version_parts[0])
+        else:
+            version_number = None
+
+        tag_info = {
+            'is_prod': is_prod,
+            'is_beta': is_beta,
+            'version_number': version_number,
+        }
+
+        return tag_info
 
     def call_api(self, subpath, data=None):
         """ Takes a subpath under the repository (ex: /releases) and returns
@@ -67,3 +93,4 @@ class GithubApiMixin(object):
             return data
         except:
             return resp.status_code
+
