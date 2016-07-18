@@ -16,7 +16,6 @@ from release_notes.provider import DirectoryChangeNotesProvider
 from release_notes.provider import GithubChangeNotesProvider
 from release_notes.exceptions import GithubApiNotFoundError
 from release_notes.exceptions import LastReleaseTagNotFoundError
-
 from release_notes.tests.util_github_api import GithubApiTestMixin
 
 __location__ = os.path.split(os.path.realpath(__file__))[0]
