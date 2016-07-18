@@ -127,3 +127,81 @@ class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator):
             self.current_tag, 
             self.last_tag
         )
+
+class PublishingGithubReleaseNotesGenerator(GithubReleaseNotesGenerator):
+   
+    def __call__(self):
+        content = super(PublishingGithubReleaseNotesGenerator, self)() 
+        self.publish()
+        return content
+
+    def publish(self):
+        release = self._get_or_create_release()
+
+
+    def _get_or_create_release(self):
+        # Query for the release
+        try:
+            release = self.call_api('/releases/tags/{}'.format(self.current_tag))
+        except GithubApiNotFoundError:
+            release = {
+                "tag_name": release['tag_name'],
+                "target_commitish": release['target_commitish'],
+                "name": release['name'],
+                "body": release['body'],
+                "draft": release['draft'],
+                "prerelease": release['prerelease'],
+            }
+        return release
+        
+    def _update_release(self):
+        data = {
+            "tag_name": release['tag_name'],
+            "target_commitish": release['target_commitish'],
+            "name": release['name'],
+            "body": release['body'],
+            "draft": release['draft'],
+            "prerelease": release['prerelease'],
+        }
+
+        if data['body']:
+            new_body = []
+            found_release_notes = False
+            in_release_notes = False
+            in_parser_section = False
+
+            for line in data['body'].splitlines():
+
+                for parser in self.parsers:
+                    if parser._render_heading() == parser._process_line(line):
+                        in_parser_section = parser
+                        break
+
+                if in_parser_section:
+                    # If inside a parser section, skip emitting any lines
+                    # and instead render the parser and add its content once
+                    # the parser finds an endline
+                    if in_parser_section._is_end_line(parser._process_line(line)):
+                        parser_content = parser.render()
+                        if parser_content:
+                            new_body.append(parser_content + '\r\n')
+                        in_parser_section = False
+                        continue
+                else:
+                    new_body.append(line.strip())
+
+            if in_parser_section:
+                new_body.append(in_parser_section.render())
+                    
+            release_notes['body'] = u'\r\n'.join(new_body)
+        else:
+            data['body'] = release_notes
+
+        if release.get('id'):
+            resp = self.call_api('/releases/{}'.format(release['id']), data=release)
+        else:
+            resp = self.call_api('/releases', data=release)
+
+        return resp
+        
+

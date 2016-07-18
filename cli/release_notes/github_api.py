@@ -33,6 +33,10 @@ class GithubApiMixin(object):
         return self.github_info.get('prefix_prod', 'prod/')
 
     @property
+    def prefix_beta(self):
+        return self.github_info.get('prefix_beta', 'beta/')
+
+    @property
     def github_info(self):
         # By default, look for github config info in the release_notes
         # property.  Subclasses can override this if needed
