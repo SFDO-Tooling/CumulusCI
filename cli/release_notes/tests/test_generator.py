@@ -88,7 +88,7 @@ class TestGithubReleaseNotesGenerator(unittest.TestCase):
         self.assertEquals(generator.change_notes.current_tag, self.current_tag)
         self.assertEquals(generator.change_notes._last_tag, None)
 
-    def test_init_without_last_tag(self):
+    def test_init_with_last_tag(self):
         github_info = self.github_info.copy()
         generator = GithubReleaseNotesGenerator(
             github_info, self.current_tag, self.last_tag)
