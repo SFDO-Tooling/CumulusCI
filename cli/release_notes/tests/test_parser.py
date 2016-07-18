@@ -12,8 +12,7 @@ from release_notes.parser import IssuesParser
 from release_notes.exceptions import GithubApiNotFoundError
 from release_notes.tests.util_github_api import GithubApiTestMixin
 
-__location__ = os.path.realpath(
-    os.path.join(os.getcwd(), os.path.dirname(__file__)))
+__location__ = os.path.split(os.path.realpath(__file__))[0]
 
 
 class TestChangeNotesLinesParser(unittest.TestCase):

@@ -7,8 +7,7 @@ from release_notes.generator import DirectoryReleaseNotesGenerator
 from release_notes.generator import GithubReleaseNotesGenerator
 from release_notes.parser import BaseChangeNotesParser
 
-__location__ = os.path.realpath(
-    os.path.join(os.getcwd(), os.path.dirname(__file__)))
+__location__ = os.path.split(os.path.realpath(__file__))[0]
 
 
 class DummyParser(BaseChangeNotesParser):
