@@ -253,11 +253,11 @@ class TestGithubChangeNotesProvider(unittest.TestCase, GithubApiTestMixin):
     def _mock_pull_request_tags(self):
         # Mock the current tag ref
         api_url = '{}/git/refs/tags/{}'.format(
-            self.repo_api_url, 
+            self.repo_api_url,
             self.current_tag,
         )
         expected_response_current_tag_ref = self._get_expected_tag_ref(
-            self.current_tag, 
+            self.current_tag,
             self.current_tag_sha,
         )
         responses.add(
@@ -284,11 +284,11 @@ class TestGithubChangeNotesProvider(unittest.TestCase, GithubApiTestMixin):
 
         # Mock the last tag ref
         api_url = '{}/git/refs/tags/{}'.format(
-            self.repo_api_url, 
+            self.repo_api_url,
             self.last_tag
         )
         expected_response_last_tag_ref = self._get_expected_tag_ref(
-            self.last_tag, 
+            self.last_tag,
             self.last_tag_sha,
         )
         responses.add(
@@ -299,11 +299,11 @@ class TestGithubChangeNotesProvider(unittest.TestCase, GithubApiTestMixin):
 
         # Mock the last tag
         api_url = '{}/git/tags/{}'.format(
-            self.repo_api_url, 
+            self.repo_api_url,
             self.last_tag_sha,
         )
         expected_response_last_tag = self._get_expected_tag(
-            self.last_tag, 
+            self.last_tag,
             self.last_tag_sha,
             datetime.now() - timedelta(days=1),
         )
@@ -329,7 +329,8 @@ class TestGithubChangeNotesProvider(unittest.TestCase, GithubApiTestMixin):
         )
 
         generator = self._create_generator(self.current_tag, self.last_tag)
-        provider = GithubChangeNotesProvider(generator, self.current_tag, self.last_tag)
+        provider = GithubChangeNotesProvider(
+            generator, self.current_tag, self.last_tag)
         self.assertEquals(list(provider()), [])
 
     @responses.activate
@@ -355,7 +356,8 @@ class TestGithubChangeNotesProvider(unittest.TestCase, GithubApiTestMixin):
         )
 
         generator = self._create_generator(self.current_tag, self.last_tag)
-        provider = GithubChangeNotesProvider(generator, self.current_tag, self.last_tag)
+        provider = GithubChangeNotesProvider(
+            generator, self.current_tag, self.last_tag)
         self.assertEquals(list(provider()), [])
 
     @responses.activate
@@ -388,7 +390,8 @@ class TestGithubChangeNotesProvider(unittest.TestCase, GithubApiTestMixin):
         )
 
         generator = self._create_generator(self.current_tag, self.last_tag)
-        provider = GithubChangeNotesProvider(generator, self.current_tag, self.last_tag)
+        provider = GithubChangeNotesProvider(
+            generator, self.current_tag, self.last_tag)
         self.assertEquals(list(provider()), ['pull 1'])
 
     @responses.activate
@@ -442,6 +445,6 @@ class TestGithubChangeNotesProvider(unittest.TestCase, GithubApiTestMixin):
         )
 
         generator = self._create_generator(self.current_tag, self.last_tag)
-        provider = GithubChangeNotesProvider(generator, self.current_tag, self.last_tag)
-        self.assertEquals(list(provider()), ['pull 1','pull 2','pull 3'])
-
+        provider = GithubChangeNotesProvider(
+            generator, self.current_tag, self.last_tag)
+        self.assertEquals(list(provider()), ['pull 1', 'pull 2', 'pull 3'])

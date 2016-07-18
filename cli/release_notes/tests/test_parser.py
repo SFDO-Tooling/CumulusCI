@@ -39,7 +39,8 @@ class TestChangeNotesLinesParser(unittest.TestCase):
         self.assertEqual(parser.content, ['foo', 'bar'])
 
     def test_parse_start_line_end_at_header(self):
-        change_note = '# {}\r\nfoo\r\n# Another Header\r\nbar'.format(self.title)
+        change_note = '# {}\r\nfoo\r\n# Another Header\r\nbar'.format(
+            self.title)
         parser = ChangeNotesLinesParser(None, self.title)
         parser.parse(change_note)
         self.assertEqual(parser.content, ['foo'])
@@ -57,7 +58,8 @@ class TestChangeNotesLinesParser(unittest.TestCase):
         self.assertEqual(parser.content, ['foo', 'bar'])
 
     def test_parse_multiple_start_lines_with_end_lines(self):
-        change_note = '# {0}\r\nfoo\r\n\r\n# {0}\r\nbar\r\n\r\nincluded\r\n\r\n# not included'.format(self.title)
+        change_note = '# {0}\r\nfoo\r\n\r\n# {0}\r\nbar\r\n\r\nincluded\r\n\r\n# not included'.format(
+            self.title)
         parser = ChangeNotesLinesParser(None, self.title)
         parser.parse(change_note)
         self.assertEqual(parser.content, ['foo', 'bar', 'included'])
@@ -80,13 +82,15 @@ class TestChangeNotesLinesParser(unittest.TestCase):
         self.assertEqual(parser.render(),
                          '# {}\r\n\r\n{}'.format(self.title, '\r\n'.join(content)))
 
+
 class TestIssuesParser(unittest.TestCase):
 
     def setUp(self):
         self.title = 'Issues'
 
     def test_issue_numbers(self):
-        change_note = '# {}\r\nfix #2\r\nfix #3\r\nfix #5\r\n'.format(self.title)
+        change_note = '# {}\r\nfix #2\r\nfix #3\r\nfix #5\r\n'.format(
+            self.title)
         parser = IssuesParser(None, self.title)
         parser.parse(change_note)
         self.assertEqual(parser.content, [2, 3, 5])
@@ -103,6 +107,7 @@ class TestIssuesParser(unittest.TestCase):
         parser = IssuesParser(None, self.title)
         parser.parse(change_note)
         self.assertEqual(parser.content, [2, 3, 5])
+
 
 class TestGithubIssuesParser(unittest.TestCase, GithubApiTestMixin):
 
@@ -176,7 +181,8 @@ class TestGithubIssuesParser(unittest.TestCase, GithubApiTestMixin):
             parser.render()
 
     def _create_generator(self):
-        generator = GithubReleaseNotesGenerator(self.github_info.copy(), 'prod/1.1')
+        generator = GithubReleaseNotesGenerator(
+            self.github_info.copy(), 'prod/1.1')
         return generator
 
 
@@ -200,12 +206,12 @@ class TestCommentingGithubIssuesParser(unittest.TestCase, GithubApiTestMixin):
     def _create_generator(self, tag):
         generator = GithubReleaseNotesGenerator(self.github_info.copy(), tag)
         return generator
-    
+
     @responses.activate
     def test_render_issue_without_comments(self):
         issue_number = self.issue_number_without_comments
         tag = self.tag_not_prod_or_beta
-        
+
         # Mock the issue
         api_url = '{}/issues/{}'.format(
             self.repo_api_url,
@@ -227,7 +233,7 @@ class TestCommentingGithubIssuesParser(unittest.TestCase, GithubApiTestMixin):
             method=responses.GET,
             url=api_url,
             body=[],
-            content_type='application/json',   
+            content_type='application/json',
         )
 
         generator = self._create_generator(tag)
@@ -243,13 +249,12 @@ class TestCommentingGithubIssuesParser(unittest.TestCase, GithubApiTestMixin):
         # Only 2 api calls were made, ensuring comment creation
         # was not attempted
         self.assertEqual(len(responses.calls._calls), 2)
-       
 
-    @responses.activate 
+    @responses.activate
     def test_render_issue_with_beta_comment(self):
         issue_number = self.issue_number_with_beta_comment
         tag = self.tag_beta
-        
+
         # Mock the issue
         api_url = '{}/issues/{}'.format(
             self.repo_api_url,
@@ -297,7 +302,7 @@ class TestCommentingGithubIssuesParser(unittest.TestCase, GithubApiTestMixin):
     def test_render_issue_without_beta_comment(self):
         issue_number = self.issue_number_without_beta_comment
         tag = self.tag_beta
-        
+
         # Mock the issue
         api_url = '{}/issues/{}'.format(
             self.repo_api_url,
@@ -325,7 +330,7 @@ class TestCommentingGithubIssuesParser(unittest.TestCase, GithubApiTestMixin):
             method=responses.GET,
             url=api_url,
             body=[],
-            content_type='application/json',   
+            content_type='application/json',
         )
 
         # Mock the comment post response
@@ -336,7 +341,7 @@ class TestCommentingGithubIssuesParser(unittest.TestCase, GithubApiTestMixin):
         expected_comment_1 = self._get_expected_issue_comment(
             '{} {}'.format(
                 CommentingGithubIssuesParser.message_beta,
-                self.version_number_beta,        
+                self.version_number_beta,
             )
         )
         responses.add(
@@ -359,11 +364,11 @@ class TestCommentingGithubIssuesParser(unittest.TestCase, GithubApiTestMixin):
         # was attempted
         self.assertEqual(len(responses.calls._calls), 3)
 
-    @responses.activate 
+    @responses.activate
     def test_render_issue_with_prod_comment(self):
         issue_number = self.issue_number_with_prod_comment
         tag = self.tag_prod
-        
+
         # Mock the issue
         api_url = '{}/issues/{}'.format(
             self.repo_api_url,
@@ -411,7 +416,7 @@ class TestCommentingGithubIssuesParser(unittest.TestCase, GithubApiTestMixin):
     def test_render_issue_without_prod_comment(self):
         issue_number = self.issue_number_without_prod_comment
         tag = self.tag_prod
-        
+
         # Mock the issue
         api_url = '{}/issues/{}'.format(
             self.repo_api_url,
@@ -439,7 +444,7 @@ class TestCommentingGithubIssuesParser(unittest.TestCase, GithubApiTestMixin):
             method=responses.GET,
             url=api_url,
             body=[],
-            content_type='application/json',   
+            content_type='application/json',
         )
 
         # Mock the comment post response
@@ -450,7 +455,7 @@ class TestCommentingGithubIssuesParser(unittest.TestCase, GithubApiTestMixin):
         expected_comment_1 = self._get_expected_issue_comment(
             '{} {}'.format(
                 CommentingGithubIssuesParser.message_prod,
-                self.version_number_prod,        
+                self.version_number_prod,
             )
         )
         responses.add(
@@ -472,4 +477,3 @@ class TestCommentingGithubIssuesParser(unittest.TestCase, GithubApiTestMixin):
         # 3 api calls were made, ensuring comment creation
         # was attempted
         self.assertEqual(len(responses.calls._calls), 3)
-

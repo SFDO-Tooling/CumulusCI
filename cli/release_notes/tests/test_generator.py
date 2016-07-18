@@ -57,18 +57,18 @@ class TestDirectoryReleaseNotesGenerator(unittest.TestCase):
         release_notes = DirectoryReleaseNotesGenerator(
             change_notes_dir,
         )
-        
+
         content = release_notes()
         expected = "# Critical Changes\r\n\r\n* This will break everything!\r\n\r\n# Changes\r\n\r\nHere's something I did. It was really cool\r\nOh yeah I did something else too!\r\n\r\n# Issues Closed\r\n\r\n#2345\r\n#6236"
         print expected
         print '-------------------------------------'
         print content
 
-        self.assertEquals(content, expected) 
+        self.assertEquals(content, expected)
 
 
 class TestGithubReleaseNotesGenerator(unittest.TestCase):
-    
+
     def setUp(self):
         self.current_tag = 'prod/1.4'
         self.last_tag = 'prod/1.3'
@@ -90,10 +90,10 @@ class TestGithubReleaseNotesGenerator(unittest.TestCase):
 
     def test_init_without_last_tag(self):
         github_info = self.github_info.copy()
-        generator = GithubReleaseNotesGenerator(github_info, self.current_tag, self.last_tag)
+        generator = GithubReleaseNotesGenerator(
+            github_info, self.current_tag, self.last_tag)
         self.assertEquals(generator.github_info, github_info)
         self.assertEquals(generator.current_tag, self.current_tag)
         self.assertEquals(generator.last_tag, self.last_tag)
         self.assertEquals(generator.change_notes.current_tag, self.current_tag)
         self.assertEquals(generator.change_notes._last_tag, self.last_tag)
-
