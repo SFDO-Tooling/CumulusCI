@@ -11,6 +11,7 @@ from .github_api import GithubApiMixin
 from .parser import ChangeNotesLinesParser
 from .parser import IssuesParser
 from .parser import GithubIssuesParser
+from .parser import CommentingGithubIssuesParser
 from .provider import StaticChangeNotesProvider
 from .provider import DirectoryChangeNotesProvider
 from .provider import GithubChangeNotesProvider
@@ -133,14 +134,28 @@ class PublishingGithubReleaseNotesGenerator(GithubReleaseNotesGenerator, GithubA
    
     def __call__(self):
         content = super(PublishingGithubReleaseNotesGenerator, self)() 
-        self.publish()
+        self.publish(content)
         return content
 
-    def publish(self):
-        release = self._get_or_create_release()
-        return self._update_release(release)
+    def _init_parsers(self):
+        self.parsers.append(
+            ChangeNotesLinesParser(
+                self, 
+                'Critical Changes', 
+            )
+        )
+        self.parsers.append(
+            ChangeNotesLinesParser(self, 'Changes')
+        )
+        self.parsers.append(
+            CommentingGithubIssuesParser(self, 'Issues Closed')
+        )
 
-    def _get_or_create_release(self):
+    def publish(self, content):
+        release = self._get_or_create_release()
+        return self._update_release(release, content)
+
+    def _get_or_create_release(self, content):
         # Query for the release
         try:
             release = self.call_api('/releases/tags/{}'.format(self.current_tag))
@@ -157,12 +172,10 @@ class PublishingGithubReleaseNotesGenerator(GithubReleaseNotesGenerator, GithubA
             }
         return release
         
-    def _update_release(self, release):
+    def _update_release(self, release, content):
 
         if release['body']:
             new_body = []
-            found_release_notes = False
-            in_release_notes = False
             in_parser_section = False
 
             for line in release['body'].splitlines():
@@ -190,7 +203,7 @@ class PublishingGithubReleaseNotesGenerator(GithubReleaseNotesGenerator, GithubA
                     
             release['body'] = u'\r\n'.join(new_body)
         else:
-            release['body'] = release_notes
+            release['body'] = content
 
         if release.get('id'):
             resp = self.call_api('/releases/{}'.format(release['id']), data=release)
