@@ -94,3 +94,15 @@ class GithubApiTestMixin(object):
             'mergeable': True,
         }
 
+    def _get_expected_release(self, body, draft, prerelease):
+        return {
+            'body': body,
+            'draft': draft,
+            'prerelease': prerelease,
+        }
+        
+    def _get_expected_not_found(self):
+        return {
+            'message': 'Not Found',
+            'documentation_url': 'https://developer.github.com/v3',
+        }

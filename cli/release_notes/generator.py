@@ -15,6 +15,7 @@ from .parser import CommentingGithubIssuesParser
 from .provider import StaticChangeNotesProvider
 from .provider import DirectoryChangeNotesProvider
 from .provider import GithubChangeNotesProvider
+from .exceptions import GithubApiNotFoundError
 
 
 class BaseReleaseNotesGenerator(object):
@@ -133,9 +134,8 @@ class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator):
 class PublishingGithubReleaseNotesGenerator(GithubReleaseNotesGenerator, GithubApiMixin):
    
     def __call__(self):
-        content = super(PublishingGithubReleaseNotesGenerator, self)() 
-        self.publish(content)
-        return content
+        content = super(PublishingGithubReleaseNotesGenerator, self).__call__() 
+        return self.publish(content)
 
     def _init_parsers(self):
         self.parsers.append(
@@ -155,7 +155,7 @@ class PublishingGithubReleaseNotesGenerator(GithubReleaseNotesGenerator, GithubA
         release = self._get_or_create_release()
         return self._update_release(release, content)
 
-    def _get_or_create_release(self, content):
+    def _get_or_create_release(self):
         # Query for the release
         try:
             release = self.call_api('/releases/tags/{}'.format(self.current_tag))
@@ -164,7 +164,7 @@ class PublishingGithubReleaseNotesGenerator(GithubReleaseNotesGenerator, GithubA
             draft = tag_info['is_prod']
             release = {
                 "tag_name": self.current_tag,
-                "target_commitish": release['target_commitish'],
+                "target_commitish": self.master_branch,
                 "name": self.current_tag,
                 "body": None,
                 "draft": tag_info['is_prod'],
@@ -210,4 +210,4 @@ class PublishingGithubReleaseNotesGenerator(GithubReleaseNotesGenerator, GithubA
         else:
             resp = self.call_api('/releases', data=release)
 
-        return resp
+        return release['body']

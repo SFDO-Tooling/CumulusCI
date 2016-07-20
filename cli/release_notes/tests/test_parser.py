@@ -162,10 +162,7 @@ class TestGithubIssuesParser(unittest.TestCase, GithubApiTestMixin):
     def test_render_issue_number_invalid(self):
         api_url = '{}/issues/{}'.format(
             self.repo_api_url, self.issue_number_invalid)
-        expected_response = {
-            'message': 'Not Found',
-            'documentation_url': 'https://developer.github.com/v3',
-        }
+        expected_response = self._get_expected_not_found()
         responses.add(
             method=responses.GET,
             url=api_url,
