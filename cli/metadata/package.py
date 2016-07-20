@@ -1,8 +1,10 @@
 import os
-from xml.dom import minidom
-import xml.etree.ElementTree as ET
-import yaml
 import re
+import urllib
+
+import xml.etree.ElementTree as ET
+
+import yaml
 
 __location__ = os.path.realpath(
     os.path.join(os.getcwd(), os.path.dirname(__file__)))
@@ -55,6 +57,8 @@ class PackageXmlGenerator(object):
         for item in os.listdir(self.directory):
             if item == 'package.xml':
                 continue
+            if not os.path.isdir(self.directory + '/' + item):
+                continue
             if item.startswith('.'):
                 continue
             config = self.metadata_map.get(item)
@@ -87,7 +91,10 @@ class PackageXmlGenerator(object):
         lines.append(u'<?xml version="1.0" encoding="UTF-8"?>')
         lines.append(u'<Package xmlns="http://soap.sforce.com/2006/04/metadata">')
         if self.package_name:
-            lines.append(u'    <fullName>{0}</fullName>'.format(self.package_name))
+            package_name_encoded = urllib.quote(self.package_name, safe=' ')
+            lines.append(
+                u'    <fullName>{0}</fullName>'.format(package_name_encoded)
+            )
    
         # Print types sections 
         self.types.sort(key=lambda x: x.metadata_type.upper())
@@ -179,12 +186,16 @@ class MetadataFilenameParser(BaseMetadataParser):
 class MetadataFolderParser(BaseMetadataParser):
     
     def _parse_item(self, item):
-        members = [item]
-
+        members = []
         path = self.directory + '/' + item
+
         # Skip non-directories
         if not os.path.isdir(path):
             return members
+
+        # Add the member if it is not namespaced
+        if item.find('__') == -1:
+            members.append(item)
     
         for subitem in os.listdir(path):
             if subitem.endswith('-meta.xml'):
