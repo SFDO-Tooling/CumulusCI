@@ -23,7 +23,8 @@ class BaseChangeNotesProvider(object):
 class StaticChangeNotesProvider(BaseChangeNotesProvider):
 
     def __init__(self, release_notes_generator, change_notes):
-        super(StaticChangeNotesProvider, self).__init__(release_notes_generator)
+        super(StaticChangeNotesProvider, self).__init__(
+            release_notes_generator)
         self.change_notes = change_notes
 
     def __call__(self):
@@ -34,14 +35,17 @@ class StaticChangeNotesProvider(BaseChangeNotesProvider):
 class DirectoryChangeNotesProvider(BaseChangeNotesProvider):
 
     def __init__(self, release_notes_generator, directory):
-        super(DirectoryChangeNotesProvider, self).__init__(release_notes_generator)
+        super(DirectoryChangeNotesProvider, self).__init__(
+            release_notes_generator)
         self.directory = directory
 
     def __call__(self):
         for item in os.listdir(self.directory):
             yield open('{}/{}'.format(self.directory, item)).read()
 
+
 class ProviderGithubApiMixin(GithubApiMixin):
+
     @property
     def current_tag(self):
         return self.release_notes_generator.current_tag
@@ -51,6 +55,7 @@ class ProviderGithubApiMixin(GithubApiMixin):
         # By default, look for github config info in the release_notes
         # property.  Subclasses can override this if needed
         return self.release_notes_generator.github_info
+
 
 class GithubChangeNotesProvider(BaseChangeNotesProvider, ProviderGithubApiMixin):
     """ Provides changes notes by finding all merged pull requests to
@@ -71,7 +76,8 @@ class GithubChangeNotesProvider(BaseChangeNotesProvider, ProviderGithubApiMixin)
     """
 
     def __init__(self, release_notes_generator, current_tag, last_tag=None):
-        super(GithubChangeNotesProvider, self).__init__(release_notes_generator)
+        super(GithubChangeNotesProvider, self).__init__(
+            release_notes_generator)
         #self.current_tag = current_tag
         self._last_tag = last_tag
         self._start_date = None
@@ -169,13 +175,12 @@ class GithubChangeNotesProvider(BaseChangeNotesProvider, ProviderGithubApiMixin)
         """ Checks if the given pull_request was merged to the default branch
         between self.start_date and self.end_date """
 
-
         if pull_request['state'] == 'open':
             return False
 
         if pull_request['base']['ref'] != self.master_branch:
             return False
-    
+
         merged_date = pull_request.get('merged_at')
         if not merged_date:
             return False

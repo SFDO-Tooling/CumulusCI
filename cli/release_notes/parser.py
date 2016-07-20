@@ -3,6 +3,7 @@ import os
 
 from .github_api import GithubApiMixin
 
+
 class BaseChangeNotesParser(object):
 
     def __init__(self, title):
@@ -17,6 +18,7 @@ class BaseChangeNotesParser(object):
 
     def _render(self):
         raise NotImplementedError()
+
 
 class ChangeNotesLinesParser(BaseChangeNotesParser):
 
@@ -90,7 +92,7 @@ class ChangeNotesLinesParser(BaseChangeNotesParser):
 
 class IssuesParser(ChangeNotesLinesParser):
 
-    def __init__(self, release_notes_generator, title, 
+    def __init__(self, release_notes_generator, title,
                  issue_regex=None):
         super(IssuesParser, self).__init__(
             release_notes_generator,
@@ -116,7 +118,9 @@ class IssuesParser(ChangeNotesLinesParser):
             issues.append('#{}'.format(issue))
         return u'\r\n'.join(issues)
 
+
 class ParserGithubApiMixin(GithubApiMixin):
+
     @property
     def current_tag(self):
         return self.release_notes_generator.current_tag
@@ -126,6 +130,7 @@ class ParserGithubApiMixin(GithubApiMixin):
         # By default, look for github config info in the release_notes
         # property.  Subclasses can override this if needed
         return self.release_notes_generator.github_info
+
 
 class GithubIssuesParser(IssuesParser, ParserGithubApiMixin):
 
@@ -154,22 +159,24 @@ class GithubIssuesParser(IssuesParser, ParserGithubApiMixin):
     def _get_issue_info(self, issue_number):
         return self.call_api('/issues/{}'.format(issue_number))
 
+
 class CommentingGithubIssuesParser(GithubIssuesParser):
 
     message_prod = 'Included in production release'
     message_beta = 'Included in beta release'
-    
+
     def _get_issue_info(self, issue_number):
         self._add_issue_comment(issue_number)
         return super(CommentingGithubIssuesParser, self)._get_issue_info(issue_number)
 
     def _add_issue_comment(self, issue_number):
         # Ensure all issues have a comment on which release they were fixed
-        gh_issue_comments = self.call_api('/issues/{}/comments'.format(issue_number))
+        gh_issue_comments = self.call_api(
+            '/issues/{}/comments'.format(issue_number))
         has_comment = False
 
         current_tag_info = self.current_tag_info
-        
+
         for comment in gh_issue_comments:
             if current_tag_info['is_prod']:
                 if comment['body'].startswith(self.message_prod):
@@ -194,5 +201,5 @@ class CommentingGithubIssuesParser(GithubIssuesParser):
             if data:
                 self.call_api(
                     '/issues/{}/comments'.format(issue_number),
-                    data = data,
+                    data=data,
                 )

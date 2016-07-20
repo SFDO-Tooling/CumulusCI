@@ -116,12 +116,12 @@ class TestPublishingGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTest
             'github_username': 'TestUser',
             'github_password': 'TestPass',
         }
-        
+
     @responses.activate
     def test_publish_beta_new(self):
-        
+
         current_tag = 'beta/1.4-Beta_1'
-        
+
         # mock the attempted GET of non-existent release
         api_url = '{}/releases/tags/{}'.format(self.repo_api_url, current_tag)
         expected_response = self._get_expected_not_found()
@@ -140,9 +140,9 @@ class TestPublishingGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTest
             url=api_url,
             json=expected_response,
         )
-        
+
         generator = self._create_generator(current_tag)
-        
+
         # inject content into the Changes parser
         generator.parsers[1].content.append('foo')
         content = generator.render()
@@ -153,12 +153,12 @@ class TestPublishingGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTest
         self.assertEqual(body['prerelease'], True)
         self.assertEqual(body['draft'], False)
         self.assertEqual(len(responses.calls._calls), 2)
-        
+
     @responses.activate
     def test_publish_prod_new(self):
-        
+
         current_tag = 'prod/1.4'
-        
+
         # mock the attempted GET of non-existent release
         api_url = '{}/releases/tags/{}'.format(self.repo_api_url, current_tag)
         expected_response = self._get_expected_not_found()
@@ -177,9 +177,9 @@ class TestPublishingGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTest
             url=api_url,
             json=expected_response,
         )
-        
+
         generator = self._create_generator(current_tag)
-        
+
         # inject content into the Changes parser
         generator.parsers[1].content.append('foo')
         content = generator.render()
@@ -190,9 +190,8 @@ class TestPublishingGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTest
         self.assertEqual(body['prerelease'], False)
         self.assertEqual(body['draft'], True)
         self.assertEqual(len(responses.calls._calls), 2)
-        
+
     def _create_generator(self, current_tag, last_tag=None):
         generator = PublishingGithubReleaseNotesGenerator(
             self.github_info.copy(), current_tag, last_tag)
         return generator
-

@@ -89,8 +89,10 @@ class BaseChangeNotesProvider(object):
 class GithubApiNotFoundError(BaseException):
     pass
 
+
 class GithubApiNoResultsError(BaseException):
     pass
+
 
 class GithubApiMixin(object):
     github_api_base_url = 'https://api.github.com'
@@ -224,7 +226,7 @@ class ChangeNotesLinesParser(BaseChangeNotesParser):
 
 class IssuesParser(ChangeNotesLinesParser):
 
-    def __init__(self, release_notes_generator, title, 
+    def __init__(self, release_notes_generator, title,
                  issue_regex=None):
         super(IssuesParser, self).__init__(
             release_notes_generator,
@@ -249,6 +251,7 @@ class IssuesParser(ChangeNotesLinesParser):
         for issue in self.content:
             issues.append('#{}'.format(issue))
         return u'\r\n'.join(issues)
+
 
 class GithubIssuesParser(IssuesParser, GithubApiMixin):
 
@@ -421,13 +424,12 @@ class GithubChangeNotesProvider(BaseChangeNotesProvider, GithubApiMixin):
         """ Checks if the given pull_request was merged to the default branch
         between self.start_date and self.end_date """
 
-
         if pull_request['state'] == 'open':
             return False
 
         if pull_request['base']['ref'] != self.master_branch:
             return False
-    
+
         merged_date = pull_request.get('merged_at')
         if not merged_date:
             return False
@@ -473,6 +475,7 @@ class DirectoryReleaseNotesGenerator(BaseReleaseNotesGenerator):
     def _init_change_notes(self):
         return DirectoryChangeNotesProvider(self, self.directory)
 
+
 class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator):
 
     def __init__(self, github_info, current_tag, last_tag=None):
@@ -484,8 +487,8 @@ class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator):
     def _init_parsers(self):
         self.parsers.append(
             ChangeNotesLinesParser(
-                self, 
-                'Critical Changes', 
+                self,
+                'Critical Changes',
             )
         )
         self.parsers.append(
@@ -497,7 +500,7 @@ class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator):
 
     def _init_change_notes(self):
         return GithubChangeNotesProvider(
-            self, 
-            self.current_tag, 
+            self,
+            self.current_tag,
             self.last_tag
         )

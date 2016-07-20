@@ -197,14 +197,14 @@ class TestGithubChangeNotesProvider(unittest.TestCase, GithubApiTestMixin):
         generator = self._create_generator(self.current_tag)
         provider = GithubChangeNotesProvider(generator, self.current_tag)
 
-        self.assertEqual(provider.current_tag_info[
-                          'ref'], expected_response_current_tag_ref)
-        self.assertEqual(provider.current_tag_info[
-                          'tag'], expected_response_current_tag)
-        self.assertEqual(provider.last_tag_info[
-                          'ref'], expected_response_last_tag_ref)
-        self.assertEqual(provider.last_tag_info[
-                          'tag'], expected_response_last_tag)
+        self.assertEqual(provider.current_tag_info['ref'],
+                         expected_response_current_tag_ref)
+        self.assertEqual(provider.current_tag_info['tag'],
+                         expected_response_current_tag)
+        self.assertEqual(provider.last_tag_info['ref'],
+                         expected_response_last_tag_ref)
+        self.assertEqual(provider.last_tag_info['tag'],
+                         expected_response_last_tag)
 
     @responses.activate
     def test_current_tag_without_last_no_last_found(self):

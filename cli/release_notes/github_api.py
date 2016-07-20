@@ -7,6 +7,7 @@ import requests
 from .exceptions import GithubApiNotFoundError
 from .exceptions import GithubApiNoResultsError
 
+
 class GithubApiMixin(object):
     github_api_base_url = 'https://api.github.com'
 
@@ -49,7 +50,7 @@ class GithubApiMixin(object):
             is_beta = True
 
         if is_prod:
-            version_number = tag.replace(self.prefix_beta,'')
+            version_number = tag.replace(self.prefix_beta, '')
         elif is_beta:
             version_parts = re.findall(
                 '{}(\d+\.\d+)-Beta_(\d+)'.format(self.prefix_beta),
@@ -93,4 +94,3 @@ class GithubApiMixin(object):
             return data
         except:
             return resp.status_code
-

@@ -102,6 +102,7 @@ class DirectoryReleaseNotesGenerator(BaseReleaseNotesGenerator):
     def _init_change_notes(self):
         return DirectoryChangeNotesProvider(self, self.directory)
 
+
 class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator):
 
     def __init__(self, github_info, current_tag, last_tag=None):
@@ -113,8 +114,8 @@ class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator):
     def _init_parsers(self):
         self.parsers.append(
             ChangeNotesLinesParser(
-                self, 
-                'Critical Changes', 
+                self,
+                'Critical Changes',
             )
         )
         self.parsers.append(
@@ -126,22 +127,23 @@ class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator):
 
     def _init_change_notes(self):
         return GithubChangeNotesProvider(
-            self, 
-            self.current_tag, 
+            self,
+            self.current_tag,
             self.last_tag
         )
 
+
 class PublishingGithubReleaseNotesGenerator(GithubReleaseNotesGenerator, GithubApiMixin):
-   
+
     def __call__(self):
-        content = super(PublishingGithubReleaseNotesGenerator, self).__call__() 
+        content = super(PublishingGithubReleaseNotesGenerator, self).__call__()
         return self.publish(content)
 
     def _init_parsers(self):
         self.parsers.append(
             ChangeNotesLinesParser(
-                self, 
-                'Critical Changes', 
+                self,
+                'Critical Changes',
             )
         )
         self.parsers.append(
@@ -158,7 +160,8 @@ class PublishingGithubReleaseNotesGenerator(GithubReleaseNotesGenerator, GithubA
     def _get_or_create_release(self):
         # Query for the release
         try:
-            release = self.call_api('/releases/tags/{}'.format(self.current_tag))
+            release = self.call_api(
+                '/releases/tags/{}'.format(self.current_tag))
         except GithubApiNotFoundError:
             tag_info = self.current_tag_info
             draft = tag_info['is_prod']
@@ -171,7 +174,7 @@ class PublishingGithubReleaseNotesGenerator(GithubReleaseNotesGenerator, GithubA
                 "prerelease": tag_info['is_beta'],
             }
         return release
-        
+
     def _update_release(self, release, content):
 
         if release['body']:
@@ -200,13 +203,14 @@ class PublishingGithubReleaseNotesGenerator(GithubReleaseNotesGenerator, GithubA
 
             if in_parser_section:
                 new_body.append(in_parser_section.render())
-                    
+
             release['body'] = u'\r\n'.join(new_body)
         else:
             release['body'] = content
 
         if release.get('id'):
-            resp = self.call_api('/releases/{}'.format(release['id']), data=release)
+            resp = self.call_api(
+                '/releases/{}'.format(release['id']), data=release)
         else:
             resp = self.call_api('/releases', data=release)
 

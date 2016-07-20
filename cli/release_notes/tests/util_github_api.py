@@ -5,6 +5,7 @@ from datetime import timedelta
 
 import responses
 
+
 class GithubApiTestMixin(object):
     """ Mixin that provide common values and mocked http responses for tests of code that talks to the Github API """
 
@@ -42,7 +43,7 @@ class GithubApiTestMixin(object):
     def _get_expected_tag(self, tag, sha, tag_date=None):
         if not tag_date:
             tag_date = datetime.now()
-        
+
         tag_date = datetime.strftime(tag_date, "%Y-%m-%dT%H:%M:%SZ")
 
         return {
@@ -72,7 +73,7 @@ class GithubApiTestMixin(object):
         if merged_date:
             merge_sha = self._random_sha()
 
-        master_branch = self.github_info.get('master_branch','master')
+        master_branch = self.github_info.get('master_branch', 'master')
 
         return {
             'id': pull_id,
@@ -100,7 +101,7 @@ class GithubApiTestMixin(object):
             'draft': draft,
             'prerelease': prerelease,
         }
-        
+
     def _get_expected_not_found(self):
         return {
             'message': 'Not Found',
