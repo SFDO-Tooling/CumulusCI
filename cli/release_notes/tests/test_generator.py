@@ -171,7 +171,7 @@ class TestPublishingGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTest
 
         # mock the release creation
         api_url = '{}/releases'.format(self.repo_api_url)
-        expected_response = self._get_expected_release(None, False, True)
+        expected_response = self._get_expected_release(None, True, False)
         responses.add(
             method=responses.POST,
             url=api_url,
