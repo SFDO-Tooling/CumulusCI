@@ -71,7 +71,7 @@ class TestDirectoryReleaseNotesGenerator(unittest.TestCase):
         print '-------------------------------------'
         print content
 
-        self.assertEquals(content, expected)
+        self.assertEqual(content, expected)
 
 
 class TestGithubReleaseNotesGenerator(unittest.TestCase):
@@ -89,21 +89,21 @@ class TestGithubReleaseNotesGenerator(unittest.TestCase):
     def test_init_without_last_tag(self):
         github_info = self.github_info.copy()
         generator = GithubReleaseNotesGenerator(github_info, self.current_tag)
-        self.assertEquals(generator.github_info, github_info)
-        self.assertEquals(generator.current_tag, self.current_tag)
-        self.assertEquals(generator.last_tag, None)
-        self.assertEquals(generator.change_notes.current_tag, self.current_tag)
-        self.assertEquals(generator.change_notes._last_tag, None)
+        self.assertEqual(generator.github_info, github_info)
+        self.assertEqual(generator.current_tag, self.current_tag)
+        self.assertEqual(generator.last_tag, None)
+        self.assertEqual(generator.change_notes.current_tag, self.current_tag)
+        self.assertEqual(generator.change_notes._last_tag, None)
 
     def test_init_with_last_tag(self):
         github_info = self.github_info.copy()
         generator = GithubReleaseNotesGenerator(
             github_info, self.current_tag, self.last_tag)
-        self.assertEquals(generator.github_info, github_info)
-        self.assertEquals(generator.current_tag, self.current_tag)
-        self.assertEquals(generator.last_tag, self.last_tag)
-        self.assertEquals(generator.change_notes.current_tag, self.current_tag)
-        self.assertEquals(generator.change_notes._last_tag, self.last_tag)
+        self.assertEqual(generator.github_info, github_info)
+        self.assertEqual(generator.current_tag, self.current_tag)
+        self.assertEqual(generator.last_tag, self.last_tag)
+        self.assertEqual(generator.change_notes.current_tag, self.current_tag)
+        self.assertEqual(generator.change_notes._last_tag, self.last_tag)
 
 
 class TestPublishingGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTestMixin):
@@ -149,9 +149,9 @@ class TestPublishingGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTest
         release_body = generator.publish(content)
         expected_release_body = '# Changes\r\n\r\nfoo'
         body = json.loads(responses.calls._calls[1].request.body)
-        self.assertEquals(release_body, expected_release_body)
-        self.assertEquals(body['prerelease'], True)
-        self.assertEquals(body['draft'], False)
+        self.assertEqual(release_body, expected_release_body)
+        self.assertEqual(body['prerelease'], True)
+        self.assertEqual(body['draft'], False)
         self.assertEqual(len(responses.calls._calls), 2)
         
     @responses.activate

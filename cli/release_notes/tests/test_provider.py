@@ -197,13 +197,13 @@ class TestGithubChangeNotesProvider(unittest.TestCase, GithubApiTestMixin):
         generator = self._create_generator(self.current_tag)
         provider = GithubChangeNotesProvider(generator, self.current_tag)
 
-        self.assertEquals(provider.current_tag_info[
+        self.assertEqual(provider.current_tag_info[
                           'ref'], expected_response_current_tag_ref)
-        self.assertEquals(provider.current_tag_info[
+        self.assertEqual(provider.current_tag_info[
                           'tag'], expected_response_current_tag)
-        self.assertEquals(provider.last_tag_info[
+        self.assertEqual(provider.last_tag_info[
                           'ref'], expected_response_last_tag_ref)
-        self.assertEquals(provider.last_tag_info[
+        self.assertEqual(provider.last_tag_info[
                           'tag'], expected_response_last_tag)
 
     @responses.activate
@@ -330,7 +330,7 @@ class TestGithubChangeNotesProvider(unittest.TestCase, GithubApiTestMixin):
         generator = self._create_generator(self.current_tag, self.last_tag)
         provider = GithubChangeNotesProvider(
             generator, self.current_tag, self.last_tag)
-        self.assertEquals(list(provider()), [])
+        self.assertEqual(list(provider()), [])
 
     @responses.activate
     def test_no_pull_requests_in_range(self):
@@ -357,7 +357,7 @@ class TestGithubChangeNotesProvider(unittest.TestCase, GithubApiTestMixin):
         generator = self._create_generator(self.current_tag, self.last_tag)
         provider = GithubChangeNotesProvider(
             generator, self.current_tag, self.last_tag)
-        self.assertEquals(list(provider()), [])
+        self.assertEqual(list(provider()), [])
 
     @responses.activate
     def test_one_pull_request_in_range(self):
@@ -391,7 +391,7 @@ class TestGithubChangeNotesProvider(unittest.TestCase, GithubApiTestMixin):
         generator = self._create_generator(self.current_tag, self.last_tag)
         provider = GithubChangeNotesProvider(
             generator, self.current_tag, self.last_tag)
-        self.assertEquals(list(provider()), ['pull 1'])
+        self.assertEqual(list(provider()), ['pull 1'])
 
     @responses.activate
     def test_multiple_pull_requests_in_range(self):
@@ -446,4 +446,4 @@ class TestGithubChangeNotesProvider(unittest.TestCase, GithubApiTestMixin):
         generator = self._create_generator(self.current_tag, self.last_tag)
         provider = GithubChangeNotesProvider(
             generator, self.current_tag, self.last_tag)
-        self.assertEquals(list(provider()), ['pull 1', 'pull 2', 'pull 3'])
+        self.assertEqual(list(provider()), ['pull 1', 'pull 2', 'pull 3'])
