@@ -179,35 +179,35 @@ class PublishingGithubReleaseNotesGenerator(GithubReleaseNotesGenerator, GithubA
 
         if release['body']:
             new_body = []
-            in_parser_section = False
+            current_parser = None
             is_start_line = False
 
             for line in release['body'].splitlines():
 
                 for parser in self.parsers:
                     if parser._render_header().strip() == parser._process_line(line).strip():
-                        in_parser_section = parser
+                        current_parser = parser
                         is_start_line = True
                         break
                     else:
                         is_start_line = False
                 if is_start_line:
                     continue
-                if in_parser_section:
+                if current_parser:
                     # If inside a parser section, skip emitting any lines
                     # and instead render the parser and add its content once
                     # the parser finds an endline
-                    if in_parser_section._is_end_line(parser._process_line(line)):
+                    if current_parser._is_end_line(parser._process_line(line)):
                         parser_content = parser.render()
                         if parser_content:
                             new_body.append(parser_content + '\r\n')
-                        in_parser_section = False
+                        current_parser = None
                         continue
                 else:
                     new_body.append(line.strip())
 
-            if in_parser_section:
-                new_body.append(in_parser_section.render())
+            if current_parser:
+                new_body.append(current_parser.render())
 
             release['body'] = u'\r\n'.join(new_body)
         else:
