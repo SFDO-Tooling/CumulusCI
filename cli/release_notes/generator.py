@@ -185,8 +185,8 @@ class PublishingGithubReleaseNotesGenerator(GithubReleaseNotesGenerator, GithubA
             for line in release['body'].splitlines():
 
                 if current_parser:
-                    if current_parser._is_end_line(parser._process_line(line)):
-                        parser_content = parser.render()
+                    if current_parser._is_end_line(current_parser._process_line(line)):
+                        parser_content = current_parser.render()
                         if parser_content:
                             new_body.append(parser_content + '\r\n')
                         current_parser = None
