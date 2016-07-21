@@ -231,6 +231,26 @@ class TestPublishingGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTest
             '# Critical Changes\r\n\r\nfaz\r\n\r\n' +
             '# Foo\r\nfoo\r\n# Changes\r\n\r\nfiz')
 
+    @responses.activate
+    def test_publish_update_content_before_after_and_between(self):
+        tag = 'prod/1.4'
+        self._mock_release(False, tag, True,
+            'goo\n# Critical Changes\nbar\n# Foo\nfoo\n' +
+            '# Changes\nbiz\n# Zoo\nzoo')
+        # create generator
+        generator = self._create_generator(tag)
+        # inject content into parser
+        generator.parsers[0].content.append('faz')
+        generator.parsers[1].content.append('fiz')
+        # render and publish
+        content = generator.render()
+        release_body = generator.publish(content)
+        # verify
+        self.assertEqual(release_body,
+            'goo\r\n# Critical Changes\r\n\r\nfaz\r\n\r\n' +
+            '# Foo\r\nfoo\r\n# Changes\r\n\r\nfiz\r\n\r\n' +
+            '# Zoo\r\nzoo')
+
     def _create_generator(self, current_tag, last_tag=None):
         generator = PublishingGithubReleaseNotesGenerator(
             self.github_info.copy(), current_tag, last_tag)
