@@ -119,22 +119,40 @@ class TestPublishingGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTest
 
     @responses.activate
     def test_publish_beta_new(self):
-        release_body = self._mock_new_release(True, 'beta/1.4-Beta_1')
+        tag = 'beta/1.4-Beta_1'
+        self._mock_release_new(True, tag)
+        # create generator
+        generator = self._create_generator(tag)
+        # inject content into Changes parser
+        generator.parsers[1].content.append('foo')
+        # render and publish
+        content = generator.render()
+        release_body = generator.publish(content)
+        # verify
         expected_release_body = '# Changes\r\n\r\nfoo'
-        body = json.loads(responses.calls._calls[1].request.body)
         self.assertEqual(release_body, expected_release_body)
-        self.assertEqual(body['draft'], False)
-        self.assertEqual(body['prerelease'], True)
+        response_body = json.loads(responses.calls._calls[1].request.body)
+        self.assertEqual(response_body['draft'], False)
+        self.assertEqual(response_body['prerelease'], True)
         self.assertEqual(len(responses.calls._calls), 2)
 
     @responses.activate
     def test_publish_prod_new(self):
-        release_body = self._mock_new_release(False, 'prod/1.4')
+        tag = 'prod/1.4'
+        self._mock_release_new(False, tag)
+        # create generator
+        generator = self._create_generator(tag)
+        # inject content into Changes parser
+        generator.parsers[1].content.append('foo')
+        # render and publish
+        content = generator.render()
+        release_body = generator.publish(content)
+        # verify
         expected_release_body = '# Changes\r\n\r\nfoo'
-        body = json.loads(responses.calls._calls[1].request.body)
         self.assertEqual(release_body, expected_release_body)
-        self.assertEqual(body['draft'], True)
-        self.assertEqual(body['prerelease'], False)
+        response_body = json.loads(responses.calls._calls[1].request.body)
+        self.assertEqual(response_body['draft'], True)
+        self.assertEqual(response_body['prerelease'], False)
         self.assertEqual(len(responses.calls._calls), 2)
 
     @responses.activate
@@ -174,7 +192,7 @@ class TestPublishingGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTest
             self.github_info.copy(), current_tag, last_tag)
         return generator
 
-    def _mock_new_release(self, beta, tag):
+    def _mock_release_new(self, beta, tag):
         if beta:
             draft = False
             prerelease = True
@@ -198,11 +216,4 @@ class TestPublishingGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTest
             url=api_url,
             json=expected_response,
         )
-        # create generator
-        generator = self._create_generator(tag)
-        # inject content into parser
-        generator.parsers[1].content.append('foo')
-        # render and publish
-        content = generator.render()
-        release_body = generator.publish(content)
-        return release_body
+
