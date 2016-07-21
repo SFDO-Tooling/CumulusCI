@@ -137,6 +137,38 @@ class TestPublishingGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTest
         self.assertEqual(body['prerelease'], False)
         self.assertEqual(len(responses.calls._calls), 2)
 
+    @responses.activate
+    def test_publish_update_no_body(self):
+        # mock GET existing release
+        tag = 'prod/1.4'
+        api_url = '{}/releases/tags/{}'.format(self.repo_api_url, tag)
+        expected_response = self._get_expected_release('', True, False)
+        responses.add(
+            method=responses.GET,
+            url=api_url,
+            json=expected_response,
+        )
+        # mock POST release
+        api_url = '{}/releases'.format(self.repo_api_url)
+        expected_response = self._get_expected_release(None, True, False)
+        responses.add(
+            method=responses.POST,
+            url=api_url,
+            json=expected_response,
+        )
+        # create generator
+        generator = self._create_generator(tag)
+        # inject content into parser
+        generator.parsers[1].content.append('foo')
+        # render and publish
+        content = generator.render()
+        release_body = generator.publish(content)
+        # verify
+        expected_release_body = '# Changes\r\n\r\nfoo'
+        self.assertEqual(release_body, expected_release_body)
+        body = json.loads(responses.calls._calls[1].request.body)
+        self.assertEqual(len(responses.calls._calls), 2)
+
     def _create_generator(self, current_tag, last_tag=None):
         generator = PublishingGithubReleaseNotesGenerator(
             self.github_info.copy(), current_tag, last_tag)
