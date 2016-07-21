@@ -184,6 +184,20 @@ class TestPublishingGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTest
         # verify
         self.assertEqual(release_body, 'foo\r\n# Changes\r\n\r\nbaz')
 
+    @responses.activate
+    def test_publish_update_content_after(self):
+        tag = 'prod/1.4'
+        self._mock_release(False, tag, True, '# Changes\nbar\n# Foo\nfoo')
+        # create generator
+        generator = self._create_generator(tag)
+        # inject content into parser
+        generator.parsers[1].content.append('baz')
+        # render and publish
+        content = generator.render()
+        release_body = generator.publish(content)
+        # verify
+        self.assertEqual(release_body, '# Changes\r\n\r\nbaz\r\n\r\n# Foo\r\nfoo')
+
     def _create_generator(self, current_tag, last_tag=None):
         generator = PublishingGithubReleaseNotesGenerator(
             self.github_info.copy(), current_tag, last_tag)
