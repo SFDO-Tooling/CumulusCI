@@ -184,7 +184,7 @@ class PublishingGithubReleaseNotesGenerator(GithubReleaseNotesGenerator, GithubA
             for line in release['body'].splitlines():
 
                 for parser in self.parsers:
-                    if parser._render_heading() == parser._process_line(line):
+                    if parser._render_header() == parser._process_line(line):
                         in_parser_section = parser
                         break
 
