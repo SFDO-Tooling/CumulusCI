@@ -7,6 +7,7 @@ import sys
 from time import sleep
 
 from release_notes.generator import GithubReleaseNotesGenerator
+from release_notes.generator import PublishingGithubReleaseNotesGenerator
 
 # Exceptions
 class AntTargetException(Exception):
@@ -866,12 +867,12 @@ def github_release(config, version, commit):
     p = run_python_script('github/create_release.py', env, config, required_env=required_env)
 
 # command: github release_notes
-@click.command(name='release_notes', help='Generates release notes by parsing Warning, Info, and Issues headings from pull request bodies of all pull requests merged since the last production release tag')
+@click.command(name='release_notes', help='Generates release notes by parsing sections from pull request bodies of all pull requests merged since the last production release tag.')
 @click.argument('tag')
-@click.option('--last-tag', help="Instead of looking for the last tag, you can manually provide it.  This is useful if you skip a release and want to build release notes going back 2 releases")
-@click.option('--update-release', is_flag=True, help="If set, add the release notes to the body")
+@click.option('--last-tag', help='Instead of looking for the last tag, you can manually provide it.  This is useful if you skip a release and want to build release notes going back 2 releases.')
+@click.option('--publish', is_flag=True, help='Creates or updates a release in GitHub with new release notes. Also adds comments to closed issues noting the fixed version.')
 @pass_config
-def github_release_notes(config, tag, last_tag, update_release):
+def github_release_notes(config, tag, last_tag, publish):
 
     github_info = {
         'github_owner': config.github_org_name,
@@ -883,7 +884,12 @@ def github_release_notes(config, tag, last_tag, update_release):
         'prefix_beta': config.prefix_beta,
     }
 
-    release_notes = GithubReleaseNotesGenerator(github_info, tag, last_tag)
+    if publish:
+        release_notes = PublishingGithubReleaseNotesGenerator(
+            github_info, tag, last_tag)
+    else:
+        release_notes = GithubReleaseNotesGenerator(
+            github_info, tag, last_tag)
 
     print release_notes()
 
