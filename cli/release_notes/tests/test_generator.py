@@ -119,79 +119,58 @@ class TestPublishingGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTest
 
     @responses.activate
     def test_publish_beta_new(self):
-
-        current_tag = 'beta/1.4-Beta_1'
-
-        # mock the attempted GET of non-existent release
-        api_url = '{}/releases/tags/{}'.format(self.repo_api_url, current_tag)
-        expected_response = self._get_expected_not_found()
-        responses.add(
-            method=responses.GET,
-            url=api_url,
-            json=expected_response,
-            status=httplib.NOT_FOUND,
-        )
-
-        # mock the release creation
-        api_url = '{}/releases'.format(self.repo_api_url)
-        expected_response = self._get_expected_release(None, False, True)
-        responses.add(
-            method=responses.POST,
-            url=api_url,
-            json=expected_response,
-        )
-
-        generator = self._create_generator(current_tag)
-
-        # inject content into the Changes parser
-        generator.parsers[1].content.append('foo')
-        content = generator.render()
-        release_body = generator.publish(content)
+        release_body = self._mock_new_release(True, 'beta/1.4-Beta_1')
         expected_release_body = '# Changes\r\n\r\nfoo'
         body = json.loads(responses.calls._calls[1].request.body)
         self.assertEqual(release_body, expected_release_body)
-        self.assertEqual(body['prerelease'], True)
         self.assertEqual(body['draft'], False)
+        self.assertEqual(body['prerelease'], True)
         self.assertEqual(len(responses.calls._calls), 2)
 
     @responses.activate
     def test_publish_prod_new(self):
-
-        current_tag = 'prod/1.4'
-
-        # mock the attempted GET of non-existent release
-        api_url = '{}/releases/tags/{}'.format(self.repo_api_url, current_tag)
-        expected_response = self._get_expected_not_found()
-        responses.add(
-            method=responses.GET,
-            url=api_url,
-            json=expected_response,
-            status=httplib.NOT_FOUND,
-        )
-
-        # mock the release creation
-        api_url = '{}/releases'.format(self.repo_api_url)
-        expected_response = self._get_expected_release(None, True, False)
-        responses.add(
-            method=responses.POST,
-            url=api_url,
-            json=expected_response,
-        )
-
-        generator = self._create_generator(current_tag)
-
-        # inject content into the Changes parser
-        generator.parsers[1].content.append('foo')
-        content = generator.render()
-        release_body = generator.publish(content)
+        release_body = self._mock_new_release(False, 'prod/1.4')
         expected_release_body = '# Changes\r\n\r\nfoo'
         body = json.loads(responses.calls._calls[1].request.body)
         self.assertEqual(release_body, expected_release_body)
-        self.assertEqual(body['prerelease'], False)
         self.assertEqual(body['draft'], True)
+        self.assertEqual(body['prerelease'], False)
         self.assertEqual(len(responses.calls._calls), 2)
 
     def _create_generator(self, current_tag, last_tag=None):
         generator = PublishingGithubReleaseNotesGenerator(
             self.github_info.copy(), current_tag, last_tag)
         return generator
+
+    def _mock_new_release(self, beta, tag):
+        if beta:
+            draft = False
+            prerelease = True
+        else:
+            draft = True
+            prerelease = False
+        # mock the attempted GET of non-existent release
+        api_url = '{}/releases/tags/{}'.format(self.repo_api_url, tag)
+        expected_response = self._get_expected_not_found()
+        responses.add(
+            method=responses.GET,
+            url=api_url,
+            json=expected_response,
+            status=httplib.NOT_FOUND,
+        )
+        # mock the release creation
+        api_url = '{}/releases'.format(self.repo_api_url)
+        expected_response = self._get_expected_release(None, draft, prerelease)
+        responses.add(
+            method=responses.POST,
+            url=api_url,
+            json=expected_response,
+        )
+        # create generator
+        generator = self._create_generator(tag)
+        # inject content into parser
+        generator.parsers[1].content.append('foo')
+        # render and publish
+        content = generator.render()
+        release_body = generator.publish(content)
+        return release_body
