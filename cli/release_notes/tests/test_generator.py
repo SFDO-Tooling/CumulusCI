@@ -120,7 +120,7 @@ class TestPublishingGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTest
     @responses.activate
     def test_publish_beta_new(self):
         tag = 'beta/1.4-Beta_1'
-        self._mock_release_new(True, tag)
+        self._mock_release(True, tag, False, '')
         # create generator
         generator = self._create_generator(tag)
         # inject content into Changes parser
@@ -139,7 +139,7 @@ class TestPublishingGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTest
     @responses.activate
     def test_publish_prod_new(self):
         tag = 'prod/1.4'
-        self._mock_release_new(False, tag)
+        self._mock_release(False, tag, False, '')
         # create generator
         generator = self._create_generator(tag)
         # inject content into Changes parser
@@ -157,26 +157,11 @@ class TestPublishingGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTest
 
     @responses.activate
     def test_publish_update_no_body(self):
-        # mock GET existing release
         tag = 'prod/1.4'
-        api_url = '{}/releases/tags/{}'.format(self.repo_api_url, tag)
-        expected_response = self._get_expected_release('', True, False)
-        responses.add(
-            method=responses.GET,
-            url=api_url,
-            json=expected_response,
-        )
-        # mock POST release
-        api_url = '{}/releases'.format(self.repo_api_url)
-        expected_response = self._get_expected_release(None, True, False)
-        responses.add(
-            method=responses.POST,
-            url=api_url,
-            json=expected_response,
-        )
+        self._mock_release(False, tag, True, '')
         # create generator
         generator = self._create_generator(tag)
-        # inject content into parser
+        # inject content into Changes parser
         generator.parsers[1].content.append('foo')
         # render and publish
         content = generator.render()
@@ -184,15 +169,27 @@ class TestPublishingGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTest
         # verify
         expected_release_body = '# Changes\r\n\r\nfoo'
         self.assertEqual(release_body, expected_release_body)
-        body = json.loads(responses.calls._calls[1].request.body)
-        self.assertEqual(len(responses.calls._calls), 2)
+
+    @responses.activate
+    def test_publish_update_content_before(self):
+        tag = 'prod/1.4'
+        self._mock_release(False, tag, True, 'foo\n# Changes\nbar')
+        # create generator
+        generator = self._create_generator(tag)
+        # inject content into parser
+        generator.parsers[1].content.append('baz')
+        # render and publish
+        content = generator.render()
+        release_body = generator.publish(content)
+        # verify
+        self.assertEqual(release_body, 'foo\r\n# Changes\r\n\r\nbaz')
 
     def _create_generator(self, current_tag, last_tag=None):
         generator = PublishingGithubReleaseNotesGenerator(
             self.github_info.copy(), current_tag, last_tag)
         return generator
 
-    def _mock_release_new(self, beta, tag):
+    def _mock_release(self, beta, tag, update, body):
         if beta:
             draft = False
             prerelease = True
@@ -201,12 +198,18 @@ class TestPublishingGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTest
             prerelease = False
         # mock the attempted GET of non-existent release
         api_url = '{}/releases/tags/{}'.format(self.repo_api_url, tag)
-        expected_response = self._get_expected_not_found()
+        if update:
+            expected_response = self._get_expected_release(
+                body, draft, prerelease)
+            status = httplib.OK
+        else:
+            expected_response = self._get_expected_not_found()
+            status = httplib.NOT_FOUND
         responses.add(
             method=responses.GET,
             url=api_url,
             json=expected_response,
-            status=httplib.NOT_FOUND,
+            status=status,
         )
         # mock the release creation
         api_url = '{}/releases'.format(self.repo_api_url)
@@ -216,4 +219,3 @@ class TestPublishingGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTest
             url=api_url,
             json=expected_response,
         )
-
