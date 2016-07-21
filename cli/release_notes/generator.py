@@ -184,6 +184,13 @@ class PublishingGithubReleaseNotesGenerator(GithubReleaseNotesGenerator, GithubA
 
             for line in release['body'].splitlines():
 
+                if current_parser:
+                    if current_parser._is_end_line(parser._process_line(line)):
+                        parser_content = parser.render()
+                        if parser_content:
+                            new_body.append(parser_content + '\r\n')
+                        current_parser = None
+
                 for parser in self.parsers:
                     if parser._render_header().strip() == parser._process_line(line).strip():
                         current_parser = parser
@@ -191,18 +198,11 @@ class PublishingGithubReleaseNotesGenerator(GithubReleaseNotesGenerator, GithubA
                         break
                     else:
                         is_start_line = False
+
                 if is_start_line:
                     continue
                 if current_parser:
-                    # If inside a parser section, skip emitting any lines
-                    # and instead render the parser and add its content once
-                    # the parser finds an endline
-                    if current_parser._is_end_line(parser._process_line(line)):
-                        parser_content = parser.render()
-                        if parser_content:
-                            new_body.append(parser_content + '\r\n')
-                        current_parser = None
-                        continue
+                    continue
                 else:
                     new_body.append(line.strip())
 
