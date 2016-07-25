@@ -21,7 +21,7 @@ customMetadata:
       class: MetadataFilenameParser
 dashboards:
     - type: Dashboard
-      class: MetadataFilenameParser
+      class: MetadataFolderParser
 dataSources:
     - type: ExternalDataSource
       class: MetadataFilenameParser
