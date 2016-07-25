@@ -6,6 +6,9 @@ import sarge
 import sys
 from time import sleep
 
+from release_notes.generator import GithubReleaseNotesGenerator
+from release_notes.generator import PublishingGithubReleaseNotesGenerator
+
 # Exceptions
 class AntTargetException(Exception):
     pass
@@ -864,37 +867,31 @@ def github_release(config, version, commit):
     p = run_python_script('github/create_release.py', env, config, required_env=required_env)
 
 # command: github release_notes
-@click.command(name='release_notes', help='Generates release notes by parsing Warning, Info, and Issues headings from pull request bodies of all pull requests merged since the last production release tag')
+@click.command(name='release_notes', help='Generates release notes by parsing sections from pull request bodies of all pull requests merged since the last production release tag.')
 @click.argument('tag')
-@click.option('--last-tag', help="Instead of looking for the last tag, you can manually provide it.  This is useful if you skip a release and want to build release notes going back 2 releases")
-@click.option('--update-release', is_flag=True, help="If set, add the release notes to the body")
+@click.option('--last-tag', help='Instead of looking for the last tag, you can manually provide it.  This is useful if you skip a release and want to build release notes going back 2 releases.')
+@click.option('--publish', is_flag=True, help='Creates or updates a release in GitHub with new release notes. Also adds comments to closed issues noting the fixed version.')
 @pass_config
-def github_release_notes(config, tag, last_tag, update_release):
+def github_release_notes(config, tag, last_tag, publish):
 
-    # Build the environment for the command
-    env = get_env_cumulusci(config)
-    env.update(get_env_github(config))
+    github_info = {
+        'github_owner': config.github_org_name,
+        'github_repo': config.github_repo_name,
+        'github_username': config.github_username,
+        'github_password': config.github_password,
+        'master_branch': config.master_branch,
+        'prefix_prod': config.prefix_release,
+        'prefix_beta': config.prefix_beta,
+    }
 
-    env['CURRENT_REL_TAG'] = tag
-    if last_tag:
-        env['LAST_REL_TAG'] = last_tag
-    env['MASTER_BRANCH'] = config.master_branch
-    env['PREFIX_BETA'] = config.prefix_beta
-    env['PREFIX_RELEASE'] = config.prefix_release
-    env['PRINT_ONLY'] = str(not update_release)
+    if publish:
+        release_notes = PublishingGithubReleaseNotesGenerator(
+            github_info, tag, last_tag)
+    else:
+        release_notes = GithubReleaseNotesGenerator(
+            github_info, tag, last_tag)
 
-    required_env = [
-        'GITHUB_ORG_NAME',
-        'GITHUB_REPO_NAME',
-        'GITHUB_USERNAME',
-        'GITHUB_PASSWORD',
-        'CURRENT_REL_TAG',
-        'MASTER_BRANCH',
-        'PREFIX_BETA',
-        'PREFIX_RELEASE',
-    ]
-
-    p = run_python_script('github/release_notes.py', env, config, required_env=required_env)
+    print release_notes()
 
 # command: github master_to_feature
 @click.command(name='master_to_feature', help='Attempts to merge a commit on the master branch to all open feature branches.  Creates pull requests assigned to the developer of the feature branch if a merge conflict occurs.')
