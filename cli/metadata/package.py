@@ -187,10 +187,6 @@ class MetadataFilenameParser(BaseMetadataParser):
     def _parse_item(self, item):
         return [self.strip_extension(item)]
 
-class CustomMetadataParser(BaseMetadataParser):
-
-    def _parse_item(self, item):
-        return [self.strip_extension(item)]
 
 class MetadataFolderParser(BaseMetadataParser):
     
