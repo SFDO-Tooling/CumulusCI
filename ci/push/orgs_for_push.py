@@ -24,10 +24,12 @@ if __name__ == '__main__':
         if subscriber_where:
             default_where['PackageSubscriber'] += " AND (%s)" % subscriber_where
 
-        push_api = SalesforcePushApi(username, password, serverurl, default_where=default_where)
+        push_api = SalesforcePushApi(username, password, serverurl, default_where=default_where.copy())
 
         # Get the target version
         version = push_api.get_package_version_objs("Id = '%s'" % version_id, limit=1)[0]
+
+        orgs = []
 
         if greater_than_version_id:
             # If working with a range of versions, use an inclusive search
@@ -39,10 +41,14 @@ if __name__ == '__main__':
             if not included_versions:
                 raise ValueError('No versions found between version id %s and %s' % (version.version_number, greater_than_version.version_number))
 
-            if len(included_versions) == 1:
-                push_api.default_where['PackageSubscriber'] += " AND MetadataPackageVersionId = '%s'" % included_versions[0]
-            else:
-                push_api.default_where['PackageSubscriber'] += " AND MetadataPackageVersionId IN %s" % "('" + "','".join(included_versions) + "')"
+            # Query orgs for each version in the range individually to avoid query timeout errors with querying multiple versions
+            for included_version in included_versions:
+                # Clear the get_subscribers method cache before each call
+                push_api.get_subscribers.cache.clear()
+                push_api.default_where['PackageSubscriber'] = "%s AND MetadataPackageVersionId = '%s'" % (default_where['PackageSubscriber'], included_version)
+                for subscriber in push_api.get_subscribers():
+                    orgs.append(subscriber['OrgKey'])
+                
         else:
             # If working with a specific version rather than a range, use an exclusive search
             # Add exclusion of all orgs running on newer releases
@@ -55,9 +61,8 @@ if __name__ == '__main__':
             else:
                 push_api.default_where['PackageSubscriber'] += " AND MetadataPackageVersionId NOT IN %s" % "('" + "','".join(excluded_versions) + "')"
 
-        orgs = []
-        for subscriber in push_api.get_subscribers():
-            orgs.append(subscriber['OrgKey'])
+            for subscriber in push_api.get_subscribers():
+                orgs.append(subscriber['OrgKey'])
 
         for org in orgs:
             print org

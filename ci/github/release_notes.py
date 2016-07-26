@@ -248,15 +248,34 @@ def create_release_notes():
                 }
         
                 if data['body']:
-                    new_body = []
-                    release_notes_found = False
+                    new_body = {
+                        'pre': [],
+                        'post': [],
+                    }
+                    found_release_notes = False
+                    in_release_notes = False
+                    
                     for line in data['body'].split('\n'):
-                        if line.startswith('# Critical Changes') or line.startswith('# Changes') or line.startswith('# Issues Closed'):
-                            release_notes_found = True
-                        if not release_notes_found:
-                            new_body.append(line)
+                        if line.startswith(('# Critical Changes', '# Changes', '# Issues Closed')):
+                            found_release_notes = True
+                            in_release_notes = True
+                       
+                        # Skip empty lines 
+                        elif not line.strip():
+                            in_release_notes = False
+                            continue
+
+                        if not in_release_notes:
+                            if found_release_notes:
+                                new_body['post'].append(line)
+                            else:
+                                new_body['pre'].append(line)
                             
-                    data['body'] = '%s\r\n%s' % ('\r\n'.join(new_body), release_notes)
+                    data['body'] = u'{0}\r\n{1}\r\n{2}'.format(
+                        '\r\n'.join(new_body['pre']), 
+                        release_notes, 
+                        '\r\n'.join(new_body['post']),
+                    )
                 else:
                     data['body'] = release_notes
         
