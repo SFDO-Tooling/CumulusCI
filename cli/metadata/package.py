@@ -37,7 +37,8 @@ class MetadataParserMissingError(Exception):
     pass
 
 class PackageXmlGenerator(object):
-    def __init__(self, directory, api_version, package_name=None, managed=None, delete=None, install_class=None, uninstall_class=None):
+    def __init__(self, directory, api_version, package_name=None, managed=None, delete=None, install_class=None,
+                 uninstall_class=None):
         f_metadata_map = open(__location__ + '/metadata_map.yml', 'r')
         self.metadata_map = yaml.load(f_metadata_map)
         self.directory = directory
@@ -48,6 +49,7 @@ class PackageXmlGenerator(object):
         self.install_class = install_class
         self.uninstall_class = uninstall_class
         self.types = []
+
 
     def __call__(self):
         self.parse_types()
@@ -87,14 +89,19 @@ class PackageXmlGenerator(object):
     def render_xml(self):
         lines = []
 
+
         # Print header
         lines.append(u'<?xml version="1.0" encoding="UTF-8"?>')
         lines.append(u'<Package xmlns="http://soap.sforce.com/2006/04/metadata">')
         if self.package_name:
             package_name_encoded = urllib.quote(self.package_name, safe=' ')
-            lines.append(
-                u'    <fullName>{0}</fullName>'.format(package_name_encoded)
-            )
+            lines.append(u'    <fullName>{0}</fullName>'.format(package_name_encoded))
+
+        if self.install_class:
+            lines.append(u'    <postInstallClass>{0}</postInstallClass>'.format(self.install_class))
+
+        if self.uninstall_class:
+            lines.append(u'    <uninstallClass>{0}</uninstallClass>'.format(self.uninstall_class))
    
         # Print types sections 
         self.types.sort(key=lambda x: x.metadata_type.upper())

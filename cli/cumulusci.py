@@ -1025,7 +1025,7 @@ def update_package_xml(config, output, directory, delete, managed):
             package_name = config.cumulusci__package__name
 
     if package_name:
-        kwargs = {'package_name': package_name}
+        kwargs['package_name'] = package_name
 
     if not delete and managed and hasattr(config, 'cumulusci__package__installClass'):
         kwargs['install_class'] = config.cumulusci__package__installClass

@@ -150,7 +150,7 @@ if [ $BUILD_TYPE == "master" ]; then
         export SF_SERVERURL=$SF_SERVERURL_MASTER
         echo "Got org credentials for master org from env"
         
-        # Deploy to packaging org
+        # Deploy to master org
         echo
         echo "-----------------------------------------------------------------"
         echo "ant deployCI - Deploy to master org"
