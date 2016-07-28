@@ -8,7 +8,6 @@ from urlparse import urlparse
 import webbrowser
 
 HTTP_HEADERS = {'Content-Type': 'application/x-www-form-urlencoded'}
-HTTP_TIMEOUT_S = 300
 
 
 class SalesforceOAuth2(object):
@@ -88,6 +87,7 @@ class CaptureSalesforceOAuth(object):
         self.oauth_api = self._get_oauth_api()
         self.response = None
         self.scope = scope
+        self.httpd_timeout = 300
 
     def __call__(self):
         url = self.oauth_api.get_authorize_url(self.scope)
@@ -101,7 +101,7 @@ class CaptureSalesforceOAuth(object):
         server_address = (url_parts.hostname, url_parts.port)
         OAuthCallbackHandler.parent = self
         self.httpd = HTTPServer(server_address, OAuthCallbackHandler)
-        self.httpd.timeout = HTTP_TIMEOUT_S
+        self.httpd.timeout = self.httpd_timeout
 
     def _get_oauth_api(self):
         return SalesforceOAuth2(
