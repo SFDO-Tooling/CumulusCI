@@ -3,7 +3,6 @@ import threading
 import time
 import unittest
 import urllib2
-from Queue import Queue
 
 import mock
 import responses
