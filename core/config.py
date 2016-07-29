@@ -1,8 +1,13 @@
 import os
 import yaml
 
+from .exceptions import NotInProject
+from .exceptions import ProjectConfigNotFound
+
 __location__ = os.path.realpath(
     os.path.join(os.getcwd(), os.path.dirname(__file__)))
+
+
 
 class BaseConfig(object):
     """ Base class for all configuration objects """
@@ -83,15 +88,25 @@ class BaseGlobalConfig(BaseTaskFlowConfig):
 class BaseProjectConfig(BaseTaskFlowConfig):
     """ Base class for a project's configuration which extends the global config """
 
-    def __init__(self, global_config):
+    search_path = ['config_local','config','config_global_local','config_global']
+
+    def __init__(self, global_config_obj):
         super(BaseProjectConfig, self).__init__()
-        self.global_config = global_config
+        self.global_config_obj = global_config_obj
         self.config = {}
         self.config_local = {}
         self._load_project_config()
-        self._load_local_config()
+        self._load_config_local()
 
-    def _load_local_config(self):
+    @property
+    def config_global_local(self):
+        return self.global_config_obj.config_local
+
+    @property
+    def config_global(self):
+        return self.global_config_obj.config_local
+
+    def _load_config_local(self):
         """ Loads the local configuration """
         raise NotImplemented
 
@@ -124,42 +139,109 @@ class FlowConfig(BaseConfig):
     pass
 
 class YamlGlobalConfig(BaseGlobalConfig):
-    def _load_local_config(self):
+    config_local_dir = '.cumulusci'
+    search_path = ['config_local','config']
+
+    def _get_config_local_file(self):
+        directory = os.path.join(
+            os.path.expanduser('~'),
+            self.config_local_dir,
+        )
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+   
+        config_path = os.path.join(
+            directory,
+            'cumulusci.yml',
+        ) 
+        if not os.path.exists(config_path):
+            return None
+
+        return open(config_path, 'r')
+        
+    def _load_config_local(self):
         """ Loads the local configuration """
-        pass
+        f_config = self.get_config_local_file()
+        if not f_config:
+            return
+        config = yaml.load(f_config)
+        self.config_local.update(config)
+
+    def _load_global_config(self):
+        """ Loads the configuration for the project """
+
+        # Load the global cumulusci.yml file
+        f_base_config = open(
+            os.path.join(
+                __location__,
+                '..',
+                'cumulusci.yml'
+            ), 'r'
+        )
+        base_config = yaml.load(f_base_config)
+        self.config.update(base_config)
 
     def list_tasks(self):
         """ Returns a list of task info dictionaries with keys 'name' and 'description' """
+        tasks = []
+        return tasks
 
-    def get_task(self):
+    def get_task(self, name):
         """ Returns a TaskConfig """
+        config = getattr(self, 'tasks__{}'.format(name))
+        return config
 
     def list_flows(self):
         """ Returns a list of flow info dictionaries with keys 'name' and 'description' """
+        flows = []
+        return flows
 
-    def get_flow(self):
+    def get_flow(self, name):
         """ Returns a FlowConfig """
+        config = getattr(self, 'flows__{}'.format(name))
+        return config
 
 class YamlProjectConfig(BaseProjectConfig):
-    def _load_local_config(self):
+    config_filename = 'cumulusci.yml'
+
+    def _load_config_local(self):
         """ Loads the local configuration """
         pass
 
+    @property
+    def repo_root(self):
+        root = None
+        pwd = os.getcwd().split(os.sep)
+        while pwd:
+            if os.path.isdir(os.path.join(os.sep, os.path.join(*pwd),'.git')):
+                break
+            else:
+                pwd.pop()
+        if pwd:
+            return os.path.join(os.sep, os.path.join(*pwd))
+
     def _load_project_config(self):
         """ Loads the configuration for the project """
-        config = {}
+        
+        repo_root = self.repo_root
+        if not repo_root:
+            raise NotInProject('No repository found in current path.  You must be inside a repository to initialize the project configuration')
+         
+        project_config_path = os.path.join(repo_root, self.config_filename)
 
-        # Start with the base cumulusci.yml
-        f_base_config = open(__location__ + '/cumulusci.yml', 'r')
-        base_config = yaml.load(f_base_config)
-        config.update(base_config)
+        if not os.path.isfile(project_config_path):
+            raise ProjectConfigNotFound(
+                'The file {} was not found in the repo root: {}'.format(
+                    self.config_filename,
+                    repo_root
+                )
+            )
 
-        # Include the local repo's cumulusci.yml overrides
+        f_config = open(project_config_path, 'r')
+        project_config = yaml.load(f_config)
+        if project_config:
+            self.config.update(project_config)
 
-        # Include the local user's cumulusci.yml overrides
-
-        return config
-        raise NotImplemented
 
     def list_tasks(self):
         """ Returns a list of task info dictionaries with keys 'name' and 'description' """

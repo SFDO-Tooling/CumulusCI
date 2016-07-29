@@ -1,5 +1,18 @@
+import os
+import tempfile
 import unittest
+
+import nose
+import yaml
+
 from core.config import BaseConfig
+from core.config import YamlGlobalConfig
+from core.config import YamlProjectConfig
+from core.exceptions import NotInProject
+from core.exceptions import ProjectConfigNotFound
+
+__location__ = os.path.realpath(
+    os.path.join(os.getcwd(), os.path.dirname(__file__)))
 
 class TestBaseConfig(unittest.TestCase):
     def test_getattr_toplevel_key(self):
@@ -99,3 +112,52 @@ class TestBaseConfig(unittest.TestCase):
         config._middle = {}
         config._last = {'foo': 'bar'}
         self.assertEquals(config.foo, 'bar')
+
+class TestYamlGlobalConfig(unittest.TestCase):
+    def test_load_global_config(self):
+        config = YamlGlobalConfig()
+
+        f_expected_config = open(__location__ + '/../../cumulusci.yml', 'r')
+        expected_config = yaml.load(f_expected_config)
+
+        self.assertEquals(config.config, expected_config)
+
+class TestYamlProjectConfig(unittest.TestCase):
+
+    @nose.tools.raises(NotInProject)
+    def test_load_project_config_not_repo(self):
+        directory = tempfile.mkdtemp()
+        os.chdir(directory)
+        global_config = YamlGlobalConfig()
+
+        config = YamlProjectConfig(global_config)
+
+    @nose.tools.raises(ProjectConfigNotFound)
+    def test_load_project_config_no_config(self):
+        directory = tempfile.mkdtemp()
+        os.mkdir(os.path.join(directory, '.git'))
+        os.chdir(directory)
+        global_config = YamlGlobalConfig()
+
+        config = YamlProjectConfig(global_config)
+
+    def test_load_project_config_empty_config(self):
+        directory = tempfile.mkdtemp()
+        os.mkdir(os.path.join(directory, '.git'))
+        open(os.path.join(directory, YamlProjectConfig.config_filename), 'w').write('')
+        os.chdir(directory)
+        global_config = YamlGlobalConfig()
+
+        config = YamlProjectConfig(global_config)
+        self.assertEquals(config.config, {})
+
+    def test_load_project_config_valid_config(self):
+        config_yaml = "project:\n    name: TestProject\n    namespace: testproject\n"
+        directory = tempfile.mkdtemp()
+        os.mkdir(os.path.join(directory, '.git'))
+        open(os.path.join(directory, YamlProjectConfig.config_filename), 'w').write(config_yaml)
+        os.chdir(directory)
+        global_config = YamlGlobalConfig()
+        config = YamlProjectConfig(global_config)
+        self.assertEquals(config.project__name, 'TestProject')
+        self.assertEquals(config.project__namespace, 'testproject')
