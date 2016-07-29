@@ -70,10 +70,18 @@ class OAuthCallbackHandler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         args = parse_qs(urlparse(self.path).query, keep_blank_values=True)
-        self.parent.response = self.parent.oauth_api.get_token(args['code'])
-        self.send_response(httplib.OK)
+        if 'error' in args:
+            http_status = httplib.BAD_REQUEST
+            http_body = 'error: {}\nerror description: {}'.format(
+                args['error'], args['error_description'])
+        else:
+            http_status = httplib.OK
+            http_body = 'OK'
+            code = args['code']
+            self.parent.response = self.parent.oauth_api.get_token(code)
+        self.send_response(http_status)
         self.end_headers()
-        self.wfile.write('OK')
+        self.wfile.write(http_body)
 
 
 class CaptureSalesforceOAuth(object):
