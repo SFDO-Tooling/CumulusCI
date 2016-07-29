@@ -1,0 +1,2 @@
+class SalesforceOAuthError(Exception):
+    pass

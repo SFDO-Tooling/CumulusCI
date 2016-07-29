@@ -7,6 +7,8 @@ from urlparse import parse_qs
 from urlparse import urlparse
 import webbrowser
 
+from .exceptions import SalesforceOAuthError
+
 HTTP_HEADERS = {'Content-Type': 'application/x-www-form-urlencoded'}
 
 
@@ -20,7 +22,6 @@ class SalesforceOAuth2(object):
             self.auth_site = 'https://test.salesforce.com'
         else:
             self.auth_site = 'https://login.salesforce.com'
-        self.json = None
 
     def _request_token(self, request_data):
         url = self.auth_site + '/services/oauth2/token'
@@ -30,9 +31,7 @@ class SalesforceOAuth2(object):
         }
         data.update(request_data)
         response = requests.post(url, headers=HTTP_HEADERS, data=data)
-        response.raise_for_status()
-        self.json = response.json()
-        return response.json()
+        return response
 
     def get_authorize_url(self, scope):
         url = self.auth_site + '/services/oauth2/authorize'
@@ -62,7 +61,7 @@ class SalesforceOAuth2(object):
         data = {'token': quote(current_token)}
         response = requests.post(url, headers=HTTP_HEADERS, data=data)
         response.raise_for_status()
-        return response.json()
+        return response
 
 
 class OAuthCallbackHandler(BaseHTTPRequestHandler):
@@ -79,6 +78,11 @@ class OAuthCallbackHandler(BaseHTTPRequestHandler):
             http_body = 'OK'
             code = args['code']
             self.parent.response = self.parent.oauth_api.get_token(code)
+            try:
+                self.parent._check_response(self.parent.response)
+            except SalesforceOAuthError as e:
+                http_status = self.parent.response.status_code
+                http_body = unicode(e)
         self.send_response(http_status)
         self.end_headers()
         self.wfile.write(http_body)
@@ -98,11 +102,24 @@ class CaptureSalesforceOAuth(object):
         self.httpd_timeout = 300
 
     def __call__(self):
-        url = self.oauth_api.get_authorize_url(self.scope)
+        url = self._get_redirect_url()
         self._launch_browser(url)
         self._create_httpd()
+        print (
+            'Spawning HTTP server at {} '.format(self.callback_url) +
+            'with timeout of {} seconds.\n'.format(self.httpd.timeout) +
+            'If you are unable to log in to Salesforce you can ' +
+            'press ctrl+c to kill the server and return to the command line.'
+        )
         self.httpd.handle_request()
-        return self.response
+        self._check_response(self.response)
+        return self.response.json()
+
+    def _check_response(self, response):
+        if response.status_code == httplib.OK:
+            return
+        raise SalesforceOAuthError('status_code:{} content:{}'.format(
+            response.status_code, response.content))
 
     def _create_httpd(self):
         url_parts = urlparse(self.callback_url)
@@ -119,5 +136,12 @@ class CaptureSalesforceOAuth(object):
             self.sandbox,
         )
 
+    def _get_redirect_url(self):
+        url = self.oauth_api.get_authorize_url(self.scope)
+        response = requests.get(url)
+        self._check_response(response)
+        return url
+
     def _launch_browser(self, url):
+        print 'Launching web browser for URL {}'.format(url)
         webbrowser.open(url, new=1)
