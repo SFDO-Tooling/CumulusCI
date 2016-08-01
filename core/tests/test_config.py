@@ -14,12 +14,14 @@ from core.exceptions import ProjectConfigNotFound
 
 __location__ = os.path.dirname(os.path.realpath(__file__))
 
+
 class TestBaseConfig(unittest.TestCase):
+
     def test_getattr_toplevel_key(self):
         config = BaseConfig()
         config.config = {'foo': 'bar'}
         self.assertEquals(config.foo, 'bar')
-        
+
     def test_getattr_toplevel_key_missing(self):
         config = BaseConfig()
         config.config = {}
@@ -80,18 +82,18 @@ class TestBaseConfig(unittest.TestCase):
         config = BaseConfig()
         config.search_path = []
         self.assertEquals(config.foo, None)
-        
+
     def test_getattr_search_path_no_match(self):
         config = BaseConfig()
-        config.search_path = ['_first','_middle','_last']
+        config.search_path = ['_first', '_middle', '_last']
         config._first = {}
         config._middle = {}
         config._last = {}
         self.assertEquals(config.foo, None)
-        
+
     def test_getattr_search_path_match_first(self):
         config = BaseConfig()
-        config.search_path = ['_first','_middle','_last']
+        config.search_path = ['_first', '_middle', '_last']
         config._first = {'foo': 'bar'}
         config._middle = {}
         config._last = {}
@@ -99,21 +101,23 @@ class TestBaseConfig(unittest.TestCase):
 
     def test_getattr_search_path_match_middle(self):
         config = BaseConfig()
-        config.search_path = ['_first','_middle','_last']
+        config.search_path = ['_first', '_middle', '_last']
         config._first = {}
         config._middle = {'foo': 'bar'}
         config._last = {}
         self.assertEquals(config.foo, 'bar')
-        
+
     def test_getattr_search_path_match_last(self):
         config = BaseConfig()
-        config.search_path = ['_first','_middle','_last']
+        config.search_path = ['_first', '_middle', '_last']
         config._first = {}
         config._middle = {}
         config._last = {'foo': 'bar'}
         self.assertEquals(config.foo, 'bar')
 
+
 class TestYamlGlobalConfig(unittest.TestCase):
+
     def test_load_global_config(self):
         config = YamlGlobalConfig()
 
@@ -122,11 +126,11 @@ class TestYamlGlobalConfig(unittest.TestCase):
 
         self.assertEquals(config.config, expected_config)
 
+
 class TestYamlProjectConfig(unittest.TestCase):
 
     def setUp(self):
         self.tempdir = tempfile.mkdtemp()
-        print self.tempdir
 
     def tearDown(self):
         shutil.rmtree(self.tempdir)
@@ -148,8 +152,10 @@ class TestYamlProjectConfig(unittest.TestCase):
 
     def test_load_project_config_empty_config(self):
         os.mkdir(os.path.join(self.tempdir, '.git'))
-        open(os.path.join(self.tempdir, '.git', 'config'), 'w').write('[remote "origin"]\n  url = git@github.com:TestOwner/TestRepo')
-        open(os.path.join(self.tempdir, YamlProjectConfig.config_filename), 'w').write('')
+        open(os.path.join(self.tempdir, '.git', 'config'), 'w').write(
+            '[remote "origin"]\n  url = git@github.com:TestOwner/TestRepo')
+        open(os.path.join(self.tempdir, YamlProjectConfig.config_filename),
+             'w').write('')
         os.chdir(self.tempdir)
         global_config = YamlGlobalConfig()
 
@@ -157,10 +163,13 @@ class TestYamlProjectConfig(unittest.TestCase):
         self.assertEquals(config.config_project, {})
 
     def test_load_project_config_valid_config(self):
-        config_yaml = "project:\n    name: TestProject\n    namespace: testproject\n"
+        config_yaml = ('project:\n    name: TestProject\n' +
+                       '    namespace: testproject\n')
         os.mkdir(os.path.join(self.tempdir, '.git'))
-        open(os.path.join(self.tempdir, '.git', 'config'), 'w').write('[remote "origin"]\n  url = git@github.com:TestOwner/TestRepo')
-        open(os.path.join(self.tempdir, YamlProjectConfig.config_filename), 'w').write(config_yaml)
+        open(os.path.join(self.tempdir, '.git', 'config'), 'w').write(
+            '[remote "origin"]\n  url = git@github.com:TestOwner/TestRepo')
+        open(os.path.join(self.tempdir, YamlProjectConfig.config_filename),
+             'w').write(config_yaml)
         os.chdir(self.tempdir)
         global_config = YamlGlobalConfig()
         config = YamlProjectConfig(global_config)
