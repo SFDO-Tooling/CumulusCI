@@ -132,6 +132,17 @@ class TestYamlGlobalConfig(unittest.TestCase):
 @mock.patch('os.path.expanduser', mock.MagicMock(return_value='/Users/jdoe'))
 class TestYamlProjectConfig(unittest.TestCase):
 
+    def _create_git_config(self):
+        filename = os.path.join(self.tempdir, '.git', 'config')
+        content = ('[remote "origin"]\n' +
+                   '  url = git@github.com:TestOwner/TestRepo')
+        self._write_file(filename, content)
+
+    def _write_file(self, filename, content):
+        f = open(filename, 'w')
+        f.write(content)
+        f.close()
+
     def setUp(self):
         self.tempdir = tempfile.mkdtemp()
 
@@ -142,7 +153,6 @@ class TestYamlProjectConfig(unittest.TestCase):
     def test_load_project_config_not_repo(self):
         os.chdir(self.tempdir)
         global_config = YamlGlobalConfig()
-
         config = YamlProjectConfig(global_config)
 
     @nose.tools.raises(ProjectConfigNotFound)
@@ -150,29 +160,35 @@ class TestYamlProjectConfig(unittest.TestCase):
         os.mkdir(os.path.join(self.tempdir, '.git'))
         os.chdir(self.tempdir)
         global_config = YamlGlobalConfig()
-
         config = YamlProjectConfig(global_config)
 
     def test_load_project_config_empty_config(self):
         os.mkdir(os.path.join(self.tempdir, '.git'))
-        open(os.path.join(self.tempdir, '.git', 'config'), 'w').write(
-            '[remote "origin"]\n  url = git@github.com:TestOwner/TestRepo')
-        open(os.path.join(self.tempdir, YamlProjectConfig.config_filename),
-             'w').write('')
+        self._create_git_config()
+
+        # create empty project config file
+        filename = os.path.join(self.tempdir,
+                                YamlProjectConfig.config_filename)
+        content = ''
+        self._write_file(filename, content)
+
         os.chdir(self.tempdir)
         global_config = YamlGlobalConfig()
-
         config = YamlProjectConfig(global_config)
         self.assertEquals(config.config_project, {})
 
     def test_load_project_config_valid_config(self):
-        config_yaml = ('project:\n    name: TestProject\n' +
-                       '    namespace: testproject\n')
         os.mkdir(os.path.join(self.tempdir, '.git'))
-        open(os.path.join(self.tempdir, '.git', 'config'), 'w').write(
-            '[remote "origin"]\n  url = git@github.com:TestOwner/TestRepo')
-        open(os.path.join(self.tempdir, YamlProjectConfig.config_filename),
-             'w').write(config_yaml)
+        self._create_git_config()
+
+        # create valid project config file
+        filename = os.path.join(self.tempdir,
+                                YamlProjectConfig.config_filename)
+        content = ('project:\n' +
+                   '    name: TestProject\n' +
+                   '    namespace: testproject\n')
+        self._write_file(filename, content)
+
         os.chdir(self.tempdir)
         global_config = YamlGlobalConfig()
         config = YamlProjectConfig(global_config)
