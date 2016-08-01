@@ -6,8 +6,7 @@ import hiyapyco
 from .exceptions import NotInProject
 from .exceptions import ProjectConfigNotFound
 
-__location__ = os.path.realpath(
-    os.path.join(os.getcwd(), os.path.dirname(__file__)))
+__location__ = os.path.dirname(os.path.realpath(__file__))
 
 
 
