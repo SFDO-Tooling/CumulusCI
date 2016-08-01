@@ -3,6 +3,7 @@ import shutil
 import tempfile
 import unittest
 
+import mock
 import nose
 import yaml
 
@@ -127,6 +128,8 @@ class TestYamlGlobalConfig(unittest.TestCase):
         self.assertEquals(config.config, expected_config)
 
 
+@mock.patch('os.makedirs', mock.MagicMock(return_value=None))
+@mock.patch('os.path.expanduser', mock.MagicMock(return_value='/Users/jdoe'))
 class TestYamlProjectConfig(unittest.TestCase):
 
     def setUp(self):
