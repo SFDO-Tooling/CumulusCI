@@ -69,21 +69,6 @@ class BaseTaskFlowConfig(BaseConfig):
         """ Returns a FlowConfig """
         raise NotImplementedError('Subclasses must provide an implementation')
 
-class BaseGlobalConfig(BaseTaskFlowConfig):
-    """ Base class for the global config which contains all configuration not specific to projects """
-    
-    def list_projects(self):
-        """ Returns a list of project names """
-        raise NotImplementedError('Subclasses must provide an implementation')
-
-    def get_project_config(self, project_name):
-        """ Returns a ProjectConfig for the given project """
-        raise NotImplementedError('Subclasses must provide an implementation')
-
-    def create_project(self, project_name, config):
-        """ Creates a new project configuration and returns it """
-        raise NotImplementedError('Subclasses must provide an implementation')
-
 class BaseProjectConfig(BaseTaskFlowConfig):
     """ Base class for a project's configuration which extends the global config """
 
@@ -113,6 +98,23 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         """ Creates or updates an org's oauth info """
         raise NotImplementedError('Subclasses must provide an implementation')
 
+class BaseGlobalConfig(BaseTaskFlowConfig):
+    """ Base class for the global config which contains all configuration not specific to projects """
+    project_config_class = BaseProjectConfig
+    
+    def list_projects(self):
+        """ Returns a list of project names """
+        raise NotImplementedError('Subclasses must provide an implementation')
+
+    def get_project_config(self, project_name):
+        """ Returns a ProjectConfig for the given project """
+        return self.project_config_class(self)
+
+    def create_project(self, project_name, config):
+        """ Creates a new project configuration and returns it """
+        raise NotImplementedError('Subclasses must provide an implementation')
+
+
 class OrgConfig(BaseConfig):
     """ Salesforce org configuration (i.e. org credentials) """
     pass
@@ -127,12 +129,11 @@ class FlowConfig(BaseConfig):
 
 class YamlGlobalConfig(BaseGlobalConfig):
     config_local_dir = '.cumulusci'
-    search_path = ['config']
 
     def __init__(self):
-        super(YamlGlobalConfig, self).__init__()
         self.config_global_local = {}
         self.config_global = {}
+        super(YamlGlobalConfig, self).__init__()
 
     @property
     def config_global_local_path(self):
@@ -147,7 +148,7 @@ class YamlGlobalConfig(BaseGlobalConfig):
             directory,
             'cumulusci.yml',
         ) 
-        if not os.path.exists(config_path):
+        if not os.path.isfile(config_path):
             return None
     
         return config_path
@@ -156,7 +157,6 @@ class YamlGlobalConfig(BaseGlobalConfig):
         """ Loads the local configuration """
         # load the global config
         self._load_global_config()
-
 
         merge_yaml = [self.config_global_path]
 
@@ -183,6 +183,11 @@ class YamlGlobalConfig(BaseGlobalConfig):
     def list_tasks(self):
         """ Returns a list of task info dictionaries with keys 'name' and 'description' """
         tasks = []
+        for task in self.tasks.keys():
+            tasks.append({
+                'name': self.tasks[task].get('name'),
+                'description': self.tasks[task].get('description'),
+            })
         return tasks
 
     def get_task(self, name):
