@@ -144,17 +144,19 @@ class TestYamlProjectConfig(unittest.TestCase):
     def test_load_project_config_empty_config(self):
         directory = tempfile.mkdtemp()
         os.mkdir(os.path.join(directory, '.git'))
+        open(os.path.join(directory, '.git', 'config'), 'w').write('[remote "origin"]\n  url = git@github.com:TestOwner/TestRepo')
         open(os.path.join(directory, YamlProjectConfig.config_filename), 'w').write('')
         os.chdir(directory)
         global_config = YamlGlobalConfig()
 
         config = YamlProjectConfig(global_config)
-        self.assertEquals(config.config, {})
+        self.assertEquals(config.config_project, {})
 
     def test_load_project_config_valid_config(self):
         config_yaml = "project:\n    name: TestProject\n    namespace: testproject\n"
         directory = tempfile.mkdtemp()
         os.mkdir(os.path.join(directory, '.git'))
+        open(os.path.join(directory, '.git', 'config'), 'w').write('[remote "origin"]\n  url = git@github.com:TestOwner/TestRepo')
         open(os.path.join(directory, YamlProjectConfig.config_filename), 'w').write(config_yaml)
         os.chdir(directory)
         global_config = YamlGlobalConfig()

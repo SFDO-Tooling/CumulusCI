@@ -1,6 +1,8 @@
 import os
 import yaml
 
+import hiyapyco
+
 from .exceptions import NotInProject
 from .exceptions import ProjectConfigNotFound
 
@@ -17,6 +19,11 @@ class BaseConfig(object):
 
     def __init__(self):
         self.config = {}    
+        self._load_config()
+
+    def _load_config(self):
+        """ Performs the logic to initialize self.config """
+        pass
 
     def __getattr__(self, name):
         tree = name.split('__')
@@ -48,83 +55,63 @@ class BaseTaskFlowConfig(BaseConfig):
 
     def list_tasks(self):
         """ Returns a list of task info dictionaries with keys 'name' and 'description' """
-        raise NotImplemented
+        raise NotImplementedError('Subclasses must provide an implementation')
 
     def get_task(self):
         """ Returns a TaskConfig """
-        raise NotImplemented
+        raise NotImplementedError('Subclasses must provide an implementation')
 
     def list_flows(self):
         """ Returns a list of flow info dictionaries with keys 'name' and 'description' """
-        raise NotImplemented
+        raise NotImplementedError('Subclasses must provide an implementation')
 
     def get_flow(self):
         """ Returns a FlowConfig """
-        raise NotImplemented
+        raise NotImplementedError('Subclasses must provide an implementation')
 
 class BaseGlobalConfig(BaseTaskFlowConfig):
     """ Base class for the global config which contains all configuration not specific to projects """
     
-    def __init__(self):
-        super(BaseGlobalConfig, self).__init__()
-        self._load_global_config()
-
-    def _load_global_config(self):
-        """ Load the global configuration """
-        raise NotImplemented
-
     def list_projects(self):
         """ Returns a list of project names """
-        raise NotImplemented
+        raise NotImplementedError('Subclasses must provide an implementation')
 
     def get_project_config(self, project_name):
         """ Returns a ProjectConfig for the given project """
-        raise NotImplemented
+        raise NotImplementedError('Subclasses must provide an implementation')
 
     def create_project(self, project_name, config):
         """ Creates a new project configuration and returns it """
-        raise NotImplemented
+        raise NotImplementedError('Subclasses must provide an implementation')
 
 class BaseProjectConfig(BaseTaskFlowConfig):
     """ Base class for a project's configuration which extends the global config """
 
-    search_path = ['config_local','config','config_global_local','config_global']
+    search_path = ['config']
 
     def __init__(self, global_config_obj):
-        super(BaseProjectConfig, self).__init__()
         self.global_config_obj = global_config_obj
-        self.config = {}
-        self.config_local = {}
-        self._load_project_config()
-        self._load_config_local()
+        super(BaseProjectConfig, self).__init__()
 
     @property
     def config_global_local(self):
-        return self.global_config_obj.config_local
+        return self.global_config_obj.config_global_local
 
     @property
     def config_global(self):
-        return self.global_config_obj.config_local
-
-    def _load_config_local(self):
-        """ Loads the local configuration """
-        raise NotImplemented
-
-    def _load_project_config(self):
-        """ Loads the configuration for the project """
-        raise NotImplemented
+        return self.global_config_obj.config_global
 
     def list_orgs(self):
         """ Returns a list of all org names for the project """
-        raise NotImplemented
+        raise NotImplementedError('Subclasses must provide an implementation')
 
     def get_org(self, org_name):    
         """ Returns an OrgConfig for the given org_name """
-        raise NotImplemented
+        raise NotImplementedError('Subclasses must provide an implementation')
 
     def set_org(self, org_name, config):
         """ Creates or updates an org's oauth info """
-        raise NotImplemented
+        raise NotImplementedError('Subclasses must provide an implementation')
 
 class OrgConfig(BaseConfig):
     """ Salesforce org configuration (i.e. org credentials) """
@@ -140,9 +127,15 @@ class FlowConfig(BaseConfig):
 
 class YamlGlobalConfig(BaseGlobalConfig):
     config_local_dir = '.cumulusci'
-    search_path = ['config_local','config']
+    search_path = ['config']
 
-    def _get_config_local_file(self):
+    def __init__(self):
+        super(YamlGlobalConfig, self).__init__()
+        self.config_global_local = {}
+        self.config_global = {}
+
+    @property
+    def config_global_local_path(self):
         directory = os.path.join(
             os.path.expanduser('~'),
             self.config_local_dir,
@@ -156,30 +149,36 @@ class YamlGlobalConfig(BaseGlobalConfig):
         ) 
         if not os.path.exists(config_path):
             return None
-
-        return open(config_path, 'r')
+    
+        return config_path
         
-    def _load_config_local(self):
+    def _load_config(self):
         """ Loads the local configuration """
-        f_config = self.get_config_local_file()
-        if not f_config:
-            return
-        config = yaml.load(f_config)
-        self.config_local.update(config)
+        # load the global config
+        self._load_global_config()
+
+
+        merge_yaml = [self.config_global_path]
+
+        # Load the local config
+        if self.config_global_local_path:
+            config = yaml.load(open(config_global_local_path, 'r'))
+            self.config_global_local = config
+            merge_yaml.append(config)
+
+        self.config = hiyapyco.load(*merge_yaml)
+       
+    @property
+    def config_global_path(self):
+        return os.path.join( __location__, '..', 'cumulusci.yml')
 
     def _load_global_config(self):
         """ Loads the configuration for the project """
-
+    
         # Load the global cumulusci.yml file
-        f_base_config = open(
-            os.path.join(
-                __location__,
-                '..',
-                'cumulusci.yml'
-            ), 'r'
-        )
-        base_config = yaml.load(f_base_config)
-        self.config.update(base_config)
+        f_config = open(self.config_global_path, 'r')
+        config = yaml.load(f_config)
+        self.config_global = config
 
     def list_tasks(self):
         """ Returns a list of task info dictionaries with keys 'name' and 'description' """
@@ -204,10 +203,6 @@ class YamlGlobalConfig(BaseGlobalConfig):
 class YamlProjectConfig(BaseProjectConfig):
     config_filename = 'cumulusci.yml'
 
-    def _load_config_local(self):
-        """ Loads the local configuration """
-        pass
-
     @property
     def repo_root(self):
         root = None
@@ -220,16 +215,54 @@ class YamlProjectConfig(BaseProjectConfig):
         if pwd:
             return os.path.join(os.sep, os.path.join(*pwd))
 
-    def _load_project_config(self):
+    @property
+    def repo_name(self):
+        if not self.repo_root:
+            return
+
+        in_remote_origin = False
+        for line in open(os.path.join(self.repo_root,'.git','config'), 'r').read():
+            line = line.strip()
+            if line == '[remote "origin"]':
+                in_remote_origin = True
+                continue
+            if line.find('url =') != -1:
+                line_parts = line.split('/')
+                return line_parts[-1]
+
+    @property
+    def config_project_path(self):
+        if not self.repo_root:
+            return
+        path = os.path.join(self.repo_root, self.config_filename)
+        if os.path.isfile(path):
+            return path
+
+    @property
+    def config_project_local_path(self):
+        path = os.path.join(
+            os.path.expanduser('~'),
+            self.global_config_obj.config_local_dir,
+            self.repo_name,
+            self.config_filename,
+        )
+        if os.path.isfile(path):
+            return path
+
+    def _load_config(self):
         """ Loads the configuration for the project """
+
+        # Initialize the dictionaries for the individual configs
+        self.config_project = {}
+        self.config_project_local = {}
         
+        # Verify that we're in a project
         repo_root = self.repo_root
         if not repo_root:
             raise NotInProject('No repository found in current path.  You must be inside a repository to initialize the project configuration')
-         
-        project_config_path = os.path.join(repo_root, self.config_filename)
 
-        if not os.path.isfile(project_config_path):
+        # Verify that the project's root has a config file
+        if not self.config_project_path:
             raise ProjectConfigNotFound(
                 'The file {} was not found in the repo root: {}'.format(
                     self.config_filename,
@@ -237,11 +270,27 @@ class YamlProjectConfig(BaseProjectConfig):
                 )
             )
 
-        f_config = open(project_config_path, 'r')
+        # Start the merged yaml config from the global and global local configs        
+        merge_yaml = [self.global_config_obj.config_global_path]
+        if self.global_config_obj.config_global_local_path:
+            merge_yaml.append(self.global_config_obj.config_global_local_path)
+
+        # Load the project's yaml config file
+        f_config = open(self.config_project_path, 'r')
         project_config = yaml.load(f_config)
         if project_config:
-            self.config.update(project_config)
+            self.config_project.update(project_config)
+            merge_yaml.append(self.config_project_path)
 
+        # Load the local project yaml config file if it exists
+        if self.config_project_local_path:
+            f_local_config = open(self.config_project_local_path, 'r')
+            local_config = yaml.load(f_local_config)
+            if local_config:
+                self.config_project_local.update(local_config)
+                merge_yaml.append(self.config_project_local_path)
+
+        self.config = hiyapyco.load(*merge_yaml)
 
     def list_tasks(self):
         """ Returns a list of task info dictionaries with keys 'name' and 'description' """
@@ -257,15 +306,15 @@ class YamlProjectConfig(BaseProjectConfig):
 
     def list_orgs(self):
         """ Returns a list of all org names for the project """
-        raise NotImplemented
+        raise NotImplementedError('Subclasses must provide an implementation')
 
     def get_org(self, org_name):    
         """ Returns an OrgConfig for the given org_name """
-        raise NotImplemented
+        raise NotImplementedError('Subclasses must provide an implementation')
 
     def set_org(self, org_name, config):
         """ Creates or updates an org's oauth info """
-        raise NotImplemented
+        raise NotImplementedError('Subclasses must provide an implementation')
        
 class HomeDirLocalConfig(BaseGlobalConfig):
     parent_dir_name = '.cumulusci'
