@@ -1,0 +1,57 @@
+tasks:
+    apexdoc:
+    create_ee_src:
+    create_managed_src:
+    create_package:
+    deploy:
+        class: MetadataApiDeploy
+    deploy_bundle:
+    destroy:
+    destroy_bundle:
+    package_install:
+    package_uninstall:
+    retrieve:
+        class: MetadataApiRetrieve
+    revert_src:
+    test_apex:
+    test_browser:
+    update_admin_profile:
+    update_meta_xml:
+    update_package_xml:
+    update_required_packages:
+
+flows:
+    beta_upload:
+    beta_test:
+    dev:
+        name:
+        description:
+        tasks:
+            - create_package
+            - destroy_bundle:
+                path: unpackaged/pre
+            - destroy_bundle:
+                path: unpackaged/post
+            - update_required_packages
+            - deploy_bundle:
+                path: unpackaged/pre
+            - deploy
+    feature:
+        name:
+        description:
+        tasks:
+            - create_package
+            - destroy_bundle:
+                path: unpackaged/pre
+            - destroy_bundle:
+                path: unpackaged/post
+            - update_required_packages
+            - deploy_bundle:
+                path: unpackaged/pre
+            - deploy
+            - test_apex
+            - destroy_bundle:
+                path: unpackaged/post
+        
+    release:
+    unmanaged_prod:
