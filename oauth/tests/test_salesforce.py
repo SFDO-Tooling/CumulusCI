@@ -14,6 +14,15 @@ from oauth.exceptions import SalesforceOAuthError
 @mock.patch('webbrowser.open', mock.MagicMock(return_value=None))
 class TestCaptureSalesforceOAuth(unittest.TestCase):
 
+    def _create_oauth(self):
+        return CaptureSalesforceOAuth(
+            self.client_id,
+            self.client_secret,
+            self.callback_url,
+            self.sandbox,
+            self.scope,
+        )
+
     def setUp(self):
         self.client_id = 'foo_id'
         self.client_secret = 'foo_secret'
@@ -51,13 +60,7 @@ class TestCaptureSalesforceOAuth(unittest.TestCase):
         )
 
         # create CaptureSalesforceOAuth instance
-        o = CaptureSalesforceOAuth(
-            self.client_id,
-            self.client_secret,
-            self.callback_url,
-            self.sandbox,
-            self.scope,
-        )
+        o = self._create_oauth()
 
         # call OAuth object on another thread - this spawns local httpd
         t = threading.Thread(target=o.__call__)
@@ -89,13 +92,7 @@ class TestCaptureSalesforceOAuth(unittest.TestCase):
         )
 
         # create CaptureSalesforceOAuth instance
-        o = CaptureSalesforceOAuth(
-            self.client_id,
-            self.client_secret,
-            self.callback_url,
-            self.sandbox,
-            self.scope,
-        )
+        o = self._create_oauth()
 
         # call OAuth object with bad info
         with self.assertRaises(SalesforceOAuthError):
