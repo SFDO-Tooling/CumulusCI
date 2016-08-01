@@ -11,8 +11,7 @@ from core.config import YamlProjectConfig
 from core.exceptions import NotInProject
 from core.exceptions import ProjectConfigNotFound
 
-__location__ = os.path.realpath(
-    os.path.join(os.getcwd(), os.path.dirname(__file__)))
+__location__ = os.path.dirname(os.path.realpath(__file__))
 
 class TestBaseConfig(unittest.TestCase):
     def test_getattr_toplevel_key(self):
