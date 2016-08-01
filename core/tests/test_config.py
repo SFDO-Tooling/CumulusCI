@@ -1,4 +1,5 @@
 import os
+import shutil
 import tempfile
 import unittest
 
@@ -123,29 +124,33 @@ class TestYamlGlobalConfig(unittest.TestCase):
 
 class TestYamlProjectConfig(unittest.TestCase):
 
+    def setUp(self):
+        self.tempdir = tempfile.mkdtemp()
+        print self.tempdir
+
+    def tearDown(self):
+        shutil.rmtree(self.tempdir)
+
     @nose.tools.raises(NotInProject)
     def test_load_project_config_not_repo(self):
-        directory = tempfile.mkdtemp()
-        os.chdir(directory)
+        os.chdir(self.tempdir)
         global_config = YamlGlobalConfig()
 
         config = YamlProjectConfig(global_config)
 
     @nose.tools.raises(ProjectConfigNotFound)
     def test_load_project_config_no_config(self):
-        directory = tempfile.mkdtemp()
-        os.mkdir(os.path.join(directory, '.git'))
-        os.chdir(directory)
+        os.mkdir(os.path.join(self.tempdir, '.git'))
+        os.chdir(self.tempdir)
         global_config = YamlGlobalConfig()
 
         config = YamlProjectConfig(global_config)
 
     def test_load_project_config_empty_config(self):
-        directory = tempfile.mkdtemp()
-        os.mkdir(os.path.join(directory, '.git'))
-        open(os.path.join(directory, '.git', 'config'), 'w').write('[remote "origin"]\n  url = git@github.com:TestOwner/TestRepo')
-        open(os.path.join(directory, YamlProjectConfig.config_filename), 'w').write('')
-        os.chdir(directory)
+        os.mkdir(os.path.join(self.tempdir, '.git'))
+        open(os.path.join(self.tempdir, '.git', 'config'), 'w').write('[remote "origin"]\n  url = git@github.com:TestOwner/TestRepo')
+        open(os.path.join(self.tempdir, YamlProjectConfig.config_filename), 'w').write('')
+        os.chdir(self.tempdir)
         global_config = YamlGlobalConfig()
 
         config = YamlProjectConfig(global_config)
@@ -153,11 +158,10 @@ class TestYamlProjectConfig(unittest.TestCase):
 
     def test_load_project_config_valid_config(self):
         config_yaml = "project:\n    name: TestProject\n    namespace: testproject\n"
-        directory = tempfile.mkdtemp()
-        os.mkdir(os.path.join(directory, '.git'))
-        open(os.path.join(directory, '.git', 'config'), 'w').write('[remote "origin"]\n  url = git@github.com:TestOwner/TestRepo')
-        open(os.path.join(directory, YamlProjectConfig.config_filename), 'w').write(config_yaml)
-        os.chdir(directory)
+        os.mkdir(os.path.join(self.tempdir, '.git'))
+        open(os.path.join(self.tempdir, '.git', 'config'), 'w').write('[remote "origin"]\n  url = git@github.com:TestOwner/TestRepo')
+        open(os.path.join(self.tempdir, YamlProjectConfig.config_filename), 'w').write(config_yaml)
+        os.chdir(self.tempdir)
         global_config = YamlGlobalConfig()
         config = YamlProjectConfig(global_config)
         self.assertEquals(config.project__name, 'TestProject')
