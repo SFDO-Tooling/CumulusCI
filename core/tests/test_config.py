@@ -137,6 +137,29 @@ class TestYamlProjectConfig(unittest.TestCase):
         )
         self._write_file(filename, content)
 
+    def _create_project_config(self):
+        filename = os.path.join(
+            self.tempdir_project,
+            YamlProjectConfig.config_filename,
+        )
+        content = (
+            'project:\n' +
+            '    name: TestProject\n' +
+            '    namespace: testproject\n'
+        )
+        self._write_file(filename, content)
+
+    def _create_project_config_local(self, content):
+        project_local_dir = os.path.join(
+            self.tempdir_home,
+            '.cumulusci',
+            self.project_name,
+        )
+        os.makedirs(project_local_dir)
+        filename = os.path.join(project_local_dir,
+                                YamlProjectConfig.config_filename)
+        self._write_file(filename, content)
+
     def _write_file(self, filename, content):
         f = open(filename, 'w')
         f.write(content)
@@ -187,15 +210,32 @@ class TestYamlProjectConfig(unittest.TestCase):
         self._create_git_config()
 
         # create valid project config file
-        filename = os.path.join(self.tempdir_project,
-                                YamlProjectConfig.config_filename)
-        content = ('project:\n' +
-                   '    name: TestProject\n' +
-                   '    namespace: testproject\n')
-        self._write_file(filename, content)
+        self._create_project_config()
 
         os.chdir(self.tempdir_project)
         global_config = YamlGlobalConfig()
         config = YamlProjectConfig(global_config)
         self.assertEquals(config.project__name, 'TestProject')
         self.assertEquals(config.project__namespace, 'testproject')
+
+    def test_load_project_config_local(self, mock_class):
+        mock_class.return_value = self.tempdir_home
+        os.mkdir(os.path.join(self.tempdir_project, '.git'))
+        self._create_git_config()
+
+        # create valid project config file
+        self._create_project_config()
+
+        # create local project config file
+        content = (
+            'project:\n' +
+            '    name: TestProject2\n'
+        )
+        self._create_project_config_local(content)
+
+        os.chdir(self.tempdir_project)
+        global_config = YamlGlobalConfig()
+        config = YamlProjectConfig(global_config)
+        self.assertNotEqual(config.config_project_local, {})
+        self.assertEqual(config.project__name, 'TestProject2')
+        self.assertEqual(config.project__namespace, 'testproject')
