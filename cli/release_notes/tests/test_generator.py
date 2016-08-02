@@ -6,13 +6,13 @@ import unittest
 
 import responses
 
-from release_notes.generator import BaseReleaseNotesGenerator
-from release_notes.generator import StaticReleaseNotesGenerator
-from release_notes.generator import DirectoryReleaseNotesGenerator
-from release_notes.generator import GithubReleaseNotesGenerator
-from release_notes.generator import PublishingGithubReleaseNotesGenerator
-from release_notes.parser import BaseChangeNotesParser
-from release_notes.tests.util_github_api import GithubApiTestMixin
+from cli.release_notes.generator import BaseReleaseNotesGenerator
+from cli.release_notes.generator import StaticReleaseNotesGenerator
+from cli.release_notes.generator import DirectoryReleaseNotesGenerator
+from cli.release_notes.generator import GithubReleaseNotesGenerator
+from cli.release_notes.generator import PublishingGithubReleaseNotesGenerator
+from cli.release_notes.parser import BaseChangeNotesParser
+from cli.release_notes.tests.util_github_api import GithubApiTestMixin
 
 __location__ = os.path.split(os.path.realpath(__file__))[0]
 

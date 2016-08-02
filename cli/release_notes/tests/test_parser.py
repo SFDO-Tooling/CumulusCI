@@ -4,13 +4,13 @@ import unittest
 
 import responses
 
-from release_notes.generator import GithubReleaseNotesGenerator
-from release_notes.parser import ChangeNotesLinesParser
-from release_notes.parser import CommentingGithubIssuesParser
-from release_notes.parser import GithubIssuesParser
-from release_notes.parser import IssuesParser
-from release_notes.exceptions import GithubApiNotFoundError
-from release_notes.tests.util_github_api import GithubApiTestMixin
+from cli.release_notes.generator import GithubReleaseNotesGenerator
+from cli.release_notes.parser import ChangeNotesLinesParser
+from cli.release_notes.parser import CommentingGithubIssuesParser
+from cli.release_notes.parser import GithubIssuesParser
+from cli.release_notes.parser import IssuesParser
+from cli.release_notes.exceptions import GithubApiNotFoundError
+from cli.release_notes.tests.util_github_api import GithubApiTestMixin
 
 
 class TestChangeNotesLinesParser(unittest.TestCase):
