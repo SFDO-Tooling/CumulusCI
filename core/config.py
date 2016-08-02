@@ -105,9 +105,12 @@ class BaseGlobalConfig(BaseTaskFlowConfig):
         """ Returns a list of project names """
         raise NotImplementedError('Subclasses must provide an implementation')
 
-    def get_project_config(self, project_name):
+    def get_project_config(self):
         """ Returns a ProjectConfig for the given project """
-        return self.project_config_class(self)
+        try:
+            project_config = self.project_config_class(self)
+        except NotInProject:
+            return None
 
     def create_project(self, project_name, config):
         """ Creates a new project configuration and returns it """
@@ -125,84 +128,6 @@ class TaskConfig(BaseConfig):
 class FlowConfig(BaseConfig):
     """ A flow with its configuration merged """
     pass
-
-class YamlGlobalConfig(BaseGlobalConfig):
-    config_local_dir = '.cumulusci'
-
-    def __init__(self):
-        self.config_global_local = {}
-        self.config_global = {}
-        super(YamlGlobalConfig, self).__init__()
-
-    @property
-    def config_global_local_path(self):
-        directory = os.path.join(
-            os.path.expanduser('~'),
-            self.config_local_dir,
-        )
-        if not os.path.exists(directory):
-            os.makedirs(directory)
-   
-        config_path = os.path.join(
-            directory,
-            'cumulusci.yml',
-        ) 
-        if not os.path.isfile(config_path):
-            return None
-    
-        return config_path
-        
-    def _load_config(self):
-        """ Loads the local configuration """
-        # load the global config
-        self._load_global_config()
-
-        merge_yaml = [self.config_global_path]
-
-        # Load the local config
-        if self.config_global_local_path:
-            config = yaml.load(open(config_global_local_path, 'r'))
-            self.config_global_local = config
-            merge_yaml.append(config)
-
-        self.config = hiyapyco.load(*merge_yaml)
-       
-    @property
-    def config_global_path(self):
-        return os.path.join( __location__, '..', 'cumulusci.yml')
-
-    def _load_global_config(self):
-        """ Loads the configuration for the project """
-    
-        # Load the global cumulusci.yml file
-        f_config = open(self.config_global_path, 'r')
-        config = yaml.load(f_config)
-        self.config_global = config
-
-    def list_tasks(self):
-        """ Returns a list of task info dictionaries with keys 'name' and 'description' """
-        tasks = []
-        for task in self.tasks.keys():
-            tasks.append({
-                'name': self.tasks[task].get('name'),
-                'description': self.tasks[task].get('description'),
-            })
-        return tasks
-
-    def get_task(self, name):
-        """ Returns a TaskConfig """
-        config = getattr(self, 'tasks__{}'.format(name))
-        return config
-
-    def list_flows(self):
-        """ Returns a list of flow info dictionaries with keys 'name' and 'description' """
-        flows = []
-        return flows
-
-    def get_flow(self, name):
-        """ Returns a FlowConfig """
-        config = getattr(self, 'flows__{}'.format(name))
-        return config
 
 class YamlProjectConfig(BaseProjectConfig):
     config_filename = 'cumulusci.yml'
@@ -320,6 +245,85 @@ class YamlProjectConfig(BaseProjectConfig):
         """ Creates or updates an org's oauth info """
         raise NotImplementedError('Subclasses must provide an implementation')
        
+class YamlGlobalConfig(BaseGlobalConfig):
+    config_local_dir = '.cumulusci'
+    project_config_class = YamlProjectConfig
+
+    def __init__(self):
+        self.config_global_local = {}
+        self.config_global = {}
+        super(YamlGlobalConfig, self).__init__()
+
+    @property
+    def config_global_local_path(self):
+        directory = os.path.join(
+            os.path.expanduser('~'),
+            self.config_local_dir,
+        )
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+   
+        config_path = os.path.join(
+            directory,
+            'cumulusci.yml',
+        ) 
+        if not os.path.isfile(config_path):
+            return None
+    
+        return config_path
+        
+    def _load_config(self):
+        """ Loads the local configuration """
+        # load the global config
+        self._load_global_config()
+
+        merge_yaml = [self.config_global_path]
+
+        # Load the local config
+        if self.config_global_local_path:
+            config = yaml.load(open(config_global_local_path, 'r'))
+            self.config_global_local = config
+            merge_yaml.append(config)
+
+        self.config = hiyapyco.load(*merge_yaml)
+       
+    @property
+    def config_global_path(self):
+        return os.path.join( __location__, '..', 'cumulusci.yml')
+
+    def _load_global_config(self):
+        """ Loads the configuration for the project """
+    
+        # Load the global cumulusci.yml file
+        f_config = open(self.config_global_path, 'r')
+        config = yaml.load(f_config)
+        self.config_global = config
+
+    def list_tasks(self):
+        """ Returns a list of task info dictionaries with keys 'name' and 'description' """
+        tasks = []
+        for task in self.tasks.keys():
+            tasks.append({
+                'name': self.tasks[task].get('name'),
+                'description': self.tasks[task].get('description'),
+            })
+        return tasks
+
+    def get_task(self, name):
+        """ Returns a TaskConfig """
+        config = getattr(self, 'tasks__{}'.format(name))
+        return config
+
+    def list_flows(self):
+        """ Returns a list of flow info dictionaries with keys 'name' and 'description' """
+        flows = []
+        return flows
+
+    def get_flow(self, name):
+        """ Returns a FlowConfig """
+        config = getattr(self, 'flows__{}'.format(name))
+        return config
+
 class HomeDirLocalConfig(BaseGlobalConfig):
     parent_dir_name = '.cumulusci'
 
