@@ -159,7 +159,8 @@ class YamlProjectConfig(BaseProjectConfig):
             return
 
         in_remote_origin = False
-        for line in open(os.path.join(self.repo_root,'.git','config'), 'r').read():
+        f = open(os.path.join(self.repo_root, '.git', 'config'), 'r')
+        for line in f.read().splitlines():
             line = line.strip()
             if line == '[remote "origin"]':
                 in_remote_origin = True
