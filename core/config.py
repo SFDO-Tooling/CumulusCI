@@ -282,7 +282,7 @@ class YamlGlobalConfig(BaseGlobalConfig):
             self.config_global_local = config
             merge_yaml.append(config)
 
-        self.config = hiyapyco.load(*merge_yaml)
+        self.config = hiyapyco.load(*merge_yaml, method=hiyapyco.METHOD_MERGE)
        
     @property
     def config_global_path(self):
