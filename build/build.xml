@@ -819,7 +819,7 @@
     </target>
 
     <target name="updatePackageXmlManaged">
-        <buildPackageXml package="${cumulusci.package.name.managed}" version="${cumulusci.package.apiVersion}" installClass="${cumulusci.package.installClass}" uninstallClass="${cumulusci.package.uninstallClass}" />
+        <buildPackageXml package="${cumulusci.package.name.managed}" version="${cumulusci.package.apiVersion}" installClass="${cumulusci.package.installClass}" uninstallClass="${cumulusci.package.uninstallClass}" type="managed" />
     </target>
 
     <target name="updateMetaXml">

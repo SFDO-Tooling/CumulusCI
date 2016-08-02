@@ -688,20 +688,36 @@ project.setProperty("downgradePackage", result);
     <attribute name="installClass" description="If provided, a installClass element will be added to the file to specify a class to run when installing the package." default="NOTSET" />
     <attribute name="uninstallClass" description="If provided, a uninstallClass element will be added to the file to specify a class to run when uninstalling the package." default="NOTSET" />
     <attribute name="srcDir" description="If provided, the relative path to the source directory from the project root.  Defaults to src" default="src" />
-    
+    <attribute name="type" description="Type of deployment to build a package.xml for... can be managed or unmanaged" default="unmanaged" />
   
     <sequential>
       <if>
         <equals arg1="${env.CUMULUSCI_CLI}" arg2="True" />
         <then>
-          <exec executable="cumulusci" failonerror="true">
-            <arg value="dev" />
-            <arg value="update_package_xml" />
-            <arg value="--directory" />
-            <arg value="@{srcDir}" />
-            <arg value="--output" />
-            <arg value="@{srcDir}/package.xml" />
-          </exec>
+          <if>
+            <equals arg1="@{type}" arg2="managed" />
+            <then>
+              <exec executable="cumulusci" failonerror="true">
+                <arg value="dev" />
+                <arg value="update_package_xml" />
+                <arg value="--directory" />
+                <arg value="@{srcDir}" />
+                <arg value="--output" />
+                <arg value="@{srcDir}/package.xml" />
+                <arg value="--managed" />
+              </exec>
+            </then>
+            <else>
+              <exec executable="cumulusci" failonerror="true">
+                <arg value="dev" />
+                <arg value="update_package_xml" />
+                <arg value="--directory" />
+                <arg value="@{srcDir}" />
+                <arg value="--output" />
+                <arg value="@{srcDir}/package.xml" />
+              </exec>
+            </else>
+          </if>
         </then>
         <else>
           <!-- Exclude CustomLabels.labels so we can use addMetadataSubType on it instead -->
