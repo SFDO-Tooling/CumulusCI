@@ -9,6 +9,7 @@ setup(
     ],
     entry_points='''
         [console_scripts]
-        cumulusci=cumulusci:cli
+        cumulusci=cli.cumulusci:cli
+        cumulusci2=newcli.cumulusci:cli
     ''',
 )
