@@ -3,6 +3,7 @@ import shutil
 import tempfile
 import unittest
 
+import mock
 import nose
 import yaml
 
@@ -120,58 +121,121 @@ class TestYamlGlobalConfig(unittest.TestCase):
 
     def test_load_global_config(self):
         config = YamlGlobalConfig()
-
         f_expected_config = open(__location__ + '/../../cumulusci.yml', 'r')
         expected_config = yaml.load(f_expected_config)
-
         self.assertEquals(config.config, expected_config)
 
 
+@mock.patch('os.path.expanduser')
 class TestYamlProjectConfig(unittest.TestCase):
 
+    def _create_git_config(self):
+        filename = os.path.join(self.tempdir_project, '.git', 'config')
+        content = (
+            '[remote "origin"]\n' +
+            '  url = git@github.com:TestOwner/{}'.format(self.project_name)
+        )
+        self._write_file(filename, content)
+
+    def _create_project_config(self):
+        filename = os.path.join(
+            self.tempdir_project,
+            YamlProjectConfig.config_filename,
+        )
+        content = (
+            'project:\n' +
+            '    name: TestProject\n' +
+            '    namespace: testproject\n'
+        )
+        self._write_file(filename, content)
+
+    def _create_project_config_local(self, content):
+        project_local_dir = os.path.join(
+            self.tempdir_home,
+            '.cumulusci',
+            self.project_name,
+        )
+        os.makedirs(project_local_dir)
+        filename = os.path.join(project_local_dir,
+                                YamlProjectConfig.config_filename)
+        self._write_file(filename, content)
+
+    def _write_file(self, filename, content):
+        f = open(filename, 'w')
+        f.write(content)
+        f.close()
+
     def setUp(self):
-        self.tempdir = tempfile.mkdtemp()
+        self.tempdir_home = tempfile.mkdtemp()
+        self.tempdir_project = tempfile.mkdtemp()
+        self.project_name = 'TestRepo'
 
     def tearDown(self):
-        shutil.rmtree(self.tempdir)
+        shutil.rmtree(self.tempdir_home)
+        shutil.rmtree(self.tempdir_project)
 
     @nose.tools.raises(NotInProject)
-    def test_load_project_config_not_repo(self):
-        os.chdir(self.tempdir)
+    def test_load_project_config_not_repo(self, mock_class):
+        mock_class.return_value = self.tempdir_home
+        os.chdir(self.tempdir_project)
         global_config = YamlGlobalConfig()
-
         config = YamlProjectConfig(global_config)
 
     @nose.tools.raises(ProjectConfigNotFound)
-    def test_load_project_config_no_config(self):
-        os.mkdir(os.path.join(self.tempdir, '.git'))
-        os.chdir(self.tempdir)
+    def test_load_project_config_no_config(self, mock_class):
+        mock_class.return_value = self.tempdir_home
+        os.mkdir(os.path.join(self.tempdir_project, '.git'))
+        os.chdir(self.tempdir_project)
         global_config = YamlGlobalConfig()
-
         config = YamlProjectConfig(global_config)
 
-    def test_load_project_config_empty_config(self):
-        os.mkdir(os.path.join(self.tempdir, '.git'))
-        open(os.path.join(self.tempdir, '.git', 'config'), 'w').write(
-            '[remote "origin"]\n  url = git@github.com:TestOwner/TestRepo')
-        open(os.path.join(self.tempdir, YamlProjectConfig.config_filename),
-             'w').write('')
-        os.chdir(self.tempdir)
-        global_config = YamlGlobalConfig()
+    def test_load_project_config_empty_config(self, mock_class):
+        mock_class.return_value = self.tempdir_home
+        os.mkdir(os.path.join(self.tempdir_project, '.git'))
+        self._create_git_config()
+        # create empty project config file
+        filename = os.path.join(self.tempdir_project,
+                                YamlProjectConfig.config_filename)
+        content = ''
+        self._write_file(filename, content)
 
+        os.chdir(self.tempdir_project)
+        global_config = YamlGlobalConfig()
         config = YamlProjectConfig(global_config)
         self.assertEquals(config.config_project, {})
 
-    def test_load_project_config_valid_config(self):
-        config_yaml = ('project:\n    name: TestProject\n' +
-                       '    namespace: testproject\n')
-        os.mkdir(os.path.join(self.tempdir, '.git'))
-        open(os.path.join(self.tempdir, '.git', 'config'), 'w').write(
-            '[remote "origin"]\n  url = git@github.com:TestOwner/TestRepo')
-        open(os.path.join(self.tempdir, YamlProjectConfig.config_filename),
-             'w').write(config_yaml)
-        os.chdir(self.tempdir)
+    def test_load_project_config_valid_config(self, mock_class):
+        mock_class.return_value = self.tempdir_home
+        os.mkdir(os.path.join(self.tempdir_project, '.git'))
+        self._create_git_config()
+
+        # create valid project config file
+        self._create_project_config()
+
+        os.chdir(self.tempdir_project)
         global_config = YamlGlobalConfig()
         config = YamlProjectConfig(global_config)
         self.assertEquals(config.project__name, 'TestProject')
         self.assertEquals(config.project__namespace, 'testproject')
+
+    def test_load_project_config_local(self, mock_class):
+        mock_class.return_value = self.tempdir_home
+        os.mkdir(os.path.join(self.tempdir_project, '.git'))
+        self._create_git_config()
+
+        # create valid project config file
+        self._create_project_config()
+
+        # create local project config file
+        content = (
+            'project:\n' +
+            '    name: TestProject2\n'
+        )
+        self._create_project_config_local(content)
+
+        os.chdir(self.tempdir_project)
+        global_config = YamlGlobalConfig()
+        config = YamlProjectConfig(global_config)
+        self.assertNotEqual(config.config_project_local, {})
+        self.assertEqual(config.project__name, 'TestProject2')
+        self.assertEqual(config.project__namespace, 'testproject')

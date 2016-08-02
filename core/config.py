@@ -177,7 +177,8 @@ class YamlProjectConfig(BaseProjectConfig):
             return
 
         in_remote_origin = False
-        for line in open(os.path.join(self.repo_root,'.git','config'), 'r').read():
+        f = open(os.path.join(self.repo_root, '.git', 'config'), 'r')
+        for line in f.read().splitlines():
             line = line.strip()
             if line == '[remote "origin"]':
                 in_remote_origin = True
@@ -298,7 +299,7 @@ class YamlGlobalConfig(BaseGlobalConfig):
             self.config_global_local = config
             merge_yaml.append(config)
 
-        self.config = hiyapyco.load(*merge_yaml)
+        self.config = hiyapyco.load(*merge_yaml, method=hiyapyco.METHOD_MERGE)
        
     @property
     def config_global_path(self):

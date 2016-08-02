@@ -9,14 +9,14 @@ import unittest
 import requests
 import responses
 
-from release_notes.generator import GithubReleaseNotesGenerator
-from release_notes.provider import BaseChangeNotesProvider
-from release_notes.provider import StaticChangeNotesProvider
-from release_notes.provider import DirectoryChangeNotesProvider
-from release_notes.provider import GithubChangeNotesProvider
-from release_notes.exceptions import GithubApiNotFoundError
-from release_notes.exceptions import LastReleaseTagNotFoundError
-from release_notes.tests.util_github_api import GithubApiTestMixin
+from cli.release_notes.generator import GithubReleaseNotesGenerator
+from cli.release_notes.provider import BaseChangeNotesProvider
+from cli.release_notes.provider import StaticChangeNotesProvider
+from cli.release_notes.provider import DirectoryChangeNotesProvider
+from cli.release_notes.provider import GithubChangeNotesProvider
+from cli.release_notes.exceptions import GithubApiNotFoundError
+from cli.release_notes.exceptions import LastReleaseTagNotFoundError
+from cli.release_notes.tests.util_github_api import GithubApiTestMixin
 
 __location__ = os.path.split(os.path.realpath(__file__))[0]
 
