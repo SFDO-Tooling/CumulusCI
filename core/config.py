@@ -54,19 +54,31 @@ class BaseTaskFlowConfig(BaseConfig):
 
     def list_tasks(self):
         """ Returns a list of task info dictionaries with keys 'name' and 'description' """
-        raise NotImplementedError('Subclasses must provide an implementation')
+        tasks = []
+        for task in self.tasks.keys():
+            task_info = self.tasks[task]
+            if not task_info:
+                task_info = {}
+            tasks.append({
+                'name': task,
+                'description': task_info.get('description'),
+            })
+        return tasks
 
-    def get_task(self):
+    def get_task(self, name):
         """ Returns a TaskConfig """
-        raise NotImplementedError('Subclasses must provide an implementation')
+        config = getattr(self, 'tasks__{}'.format(name))
+        return config
 
     def list_flows(self):
         """ Returns a list of flow info dictionaries with keys 'name' and 'description' """
-        raise NotImplementedError('Subclasses must provide an implementation')
+        flows = []
+        return flows
 
-    def get_flow(self):
+    def get_flow(self, name):
         """ Returns a FlowConfig """
-        raise NotImplementedError('Subclasses must provide an implementation')
+        config = getattr(self, 'flows__{}'.format(name))
+        return config
 
 class BaseProjectConfig(BaseTaskFlowConfig):
     """ Base class for a project's configuration which extends the global config """
@@ -107,10 +119,7 @@ class BaseGlobalConfig(BaseTaskFlowConfig):
 
     def get_project_config(self):
         """ Returns a ProjectConfig for the given project """
-        try:
-            project_config = self.project_config_class(self)
-        except NotInProject:
-            return None
+        return self.project_config_class(self)
 
     def create_project(self, project_name, config):
         """ Creates a new project configuration and returns it """
@@ -219,19 +228,7 @@ class YamlProjectConfig(BaseProjectConfig):
                 self.config_project_local.update(local_config)
                 merge_yaml.append(self.config_project_local_path)
 
-        self.config = hiyapyco.load(*merge_yaml)
-
-    def list_tasks(self):
-        """ Returns a list of task info dictionaries with keys 'name' and 'description' """
-
-    def get_task(self):
-        """ Returns a TaskConfig """
-
-    def list_flows(self):
-        """ Returns a list of flow info dictionaries with keys 'name' and 'description' """
-
-    def get_flow(self):
-        """ Returns a FlowConfig """
+        self.config = hiyapyco.load(*merge_yaml, method=hiyapyco.METHOD_MERGE)
 
     def list_orgs(self):
         """ Returns a list of all org names for the project """
@@ -299,30 +296,24 @@ class YamlGlobalConfig(BaseGlobalConfig):
         config = yaml.load(f_config)
         self.config_global = config
 
-    def list_tasks(self):
-        """ Returns a list of task info dictionaries with keys 'name' and 'description' """
-        tasks = []
-        for task in self.tasks.keys():
-            tasks.append({
-                'name': self.tasks[task].get('name'),
-                'description': self.tasks[task].get('description'),
-            })
-        return tasks
 
-    def get_task(self, name):
-        """ Returns a TaskConfig """
-        config = getattr(self, 'tasks__{}'.format(name))
-        return config
+class BaseProjectKeychain(object):
+    def __init__(self):
+        self.orgs = {}
 
-    def list_flows(self):
-        """ Returns a list of flow info dictionaries with keys 'name' and 'description' """
-        flows = []
-        return flows
+    def set_org(self, name, org_config):
+        self.orgs[name] = org_config
 
-    def get_flow(self, name):
-        """ Returns a FlowConfig """
-        config = getattr(self, 'flows__{}'.format(name))
-        return config
+    def get_org(self, name):
+        return self.orgs.get(name)
+
+class EncryptedHomeProjectKeychain(object):
+    def __init__(self, password):
+        self.password = password
+        super(EncryptedHomeProjectKeychain, self).__init__()
+
+    def set_org(self, name, org_config):
+        pass
 
 class HomeDirLocalConfig(BaseGlobalConfig):
     parent_dir_name = '.cumulusci'
