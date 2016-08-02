@@ -1,14 +1,17 @@
+import base64
 import os
-import yaml
+import pickle
 
 import hiyapyco
+import yaml
+
+from Crypto import Random
+from Crypto.Cipher import AES
 
 from .exceptions import NotInProject
 from .exceptions import ProjectConfigNotFound
 
 __location__ = os.path.dirname(os.path.realpath(__file__))
-
-
 
 class BaseConfig(object):
     """ Base class for all configuration objects """
@@ -87,6 +90,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
     def __init__(self, global_config_obj):
         self.global_config_obj = global_config_obj
+        self.keychain = None
         super(BaseProjectConfig, self).__init__()
 
     @property
@@ -97,17 +101,27 @@ class BaseProjectConfig(BaseTaskFlowConfig):
     def config_global(self):
         return self.global_config_obj.config_global
 
+    def set_keychain(self, keychain):
+        self.keychain = keychain
+
+    def _check_keychain(self):
+        if not self.keychain:
+            raise KeychainNotFound('Could not find config.keychain.  You must call config.set_keychain(keychain) before accessing orgs')
+
     def list_orgs(self):
         """ Returns a list of all org names for the project """
-        raise NotImplementedError('Subclasses must provide an implementation')
-
-    def get_org(self, org_name):    
+        self._check_keychain()
+       
+    def get_org(self, name):    
         """ Returns an OrgConfig for the given org_name """
-        raise NotImplementedError('Subclasses must provide an implementation')
+        self._check_keychain()
+        return self.keychain.get_org(name)
 
-    def set_org(self, org_name, config):
+    def set_org(self, name, org_config):
         """ Creates or updates an org's oauth info """
-        raise NotImplementedError('Subclasses must provide an implementation')
+        self._check_keychain()
+        return self.keychain.set_org(name, org_config)
+        
 
 class BaseGlobalConfig(BaseTaskFlowConfig):
     """ Base class for the global config which contains all configuration not specific to projects """
@@ -125,6 +139,9 @@ class BaseGlobalConfig(BaseTaskFlowConfig):
         """ Creates a new project configuration and returns it """
         raise NotImplementedError('Subclasses must provide an implementation')
 
+class ConnectedAppOAuthConfig(BaseConfig):
+    """ Salesforce Connected App OAuth configuration """
+    pass
 
 class OrgConfig(BaseConfig):
     """ Salesforce org configuration (i.e. org credentials) """
@@ -155,6 +172,7 @@ class YamlProjectConfig(BaseProjectConfig):
 
     @property
     def repo_name(self):
+        import pdb; pdb.set_trace()
         if not self.repo_root:
             return
 
@@ -177,11 +195,20 @@ class YamlProjectConfig(BaseProjectConfig):
             return path
 
     @property
-    def config_project_local_path(self):
+    def project_local_dir(self):
         path = os.path.join(
             os.path.expanduser('~'),
             self.global_config_obj.config_local_dir,
             self.repo_name,
+        )
+        if not os.path.isdir(path):
+            os.makedirs(path)
+        return path
+
+    @property
+    def config_project_local_path(self):
+        path = os.path.join(
+            self.project_local_dir,
             self.config_filename,
         )
         if os.path.isfile(path):
@@ -230,17 +257,6 @@ class YamlProjectConfig(BaseProjectConfig):
 
         self.config = hiyapyco.load(*merge_yaml, method=hiyapyco.METHOD_MERGE)
 
-    def list_orgs(self):
-        """ Returns a list of all org names for the project """
-        raise NotImplementedError('Subclasses must provide an implementation')
-
-    def get_org(self, org_name):    
-        """ Returns an OrgConfig for the given org_name """
-        raise NotImplementedError('Subclasses must provide an implementation')
-
-    def set_org(self, org_name, config):
-        """ Creates or updates an org's oauth info """
-        raise NotImplementedError('Subclasses must provide an implementation')
        
 class YamlGlobalConfig(BaseGlobalConfig):
     config_local_dir = '.cumulusci'
@@ -297,9 +313,10 @@ class YamlGlobalConfig(BaseGlobalConfig):
         self.config_global = config
 
 
-class BaseProjectKeychain(object):
+class BaseProjectKeychain(BaseConfig):
     def __init__(self):
-        self.orgs = {}
+        self.config = {'orgs': {}}
+        super(BaseProjectKeychain, self).__init__()
 
     def set_org(self, name, org_config):
         self.orgs[name] = org_config
@@ -307,13 +324,82 @@ class BaseProjectKeychain(object):
     def get_org(self, name):
         return self.orgs.get(name)
 
-class EncryptedHomeProjectKeychain(object):
-    def __init__(self, password):
-        self.password = password
-        super(EncryptedHomeProjectKeychain, self).__init__()
+BS = 16
+pad = lambda s: s + (BS - len(s) % BS) * chr(BS - len(s) % BS)
+unpad = lambda s : s[0:-ord(s[-1])]
+
+class EncryptedProjectKeychain(BaseProjectKeychain):
+    def __init__(self, project_config, key):
+        self.project_config = project_config
+        self.key = key
+        super(EncryptedProjectKeychain, self).__init__()
+
+    def _load_config(self):
+        self.config['app'] = {}
+
+        orgs = {}
+       
+        if not self.project_local_dir: 
+            return
+
+        for item in os.listdir(self.project_local_dir):
+            if item.endswith('.org'):
+                f_item = open(os.path.join(self.project_local_dir, item), 'r')
+                org_name = f_item.replace('.org', '')
+                org_config = self.decrypt_obj(f_item.read())
+                self.config['orgs'][org_name] = org_config
+            elif item == 'connected.app':
+                f_item = open(os.path.join(self.project_local_dir, item), 'r')
+                app_config = self.decrypt_obj(f_item.read())
+                self.config['app'] = app_config
+
+        if not self.config['app']:
+            raise KeychainMissingConnectedApp('Expected to find the connected app info for the keychain in {}/connected.app'.format(self.project_local_dir))
+
+    @property
+    def project_local_dir(self):
+        return self.project_config.project_local_dir
+
+    def resave_all(self):
+        """ Encrypts and saves to disk the connected app and org configs.  If you change self.key after init and call this, you can change the encryption password """
+        self.set_connected_app(self.app)
+        for org in self.orgs:
+            self.set_org(org)
+        
+    def set_connected_app(self, app_config):
+        encrypted = self.encrypt_obj(org_config)
+        f_org = open(os.path.join(self.project_local_dir, 'connected.app'.format(name)), 'w')
+        f_org.write()
+        f_org.close()
+        self._load_config()
 
     def set_org(self, name, org_config):
-        pass
+        encrypted = self.encrypt_obj(org_config)
+        import pdb; pdb.set_trace()
+        f_org = open(os.path.join(self.project_local_dir, '{}.org'.format(name)), 'w')
+        f_org.write()
+        f_org.close()
+        self._load_config()
+
+    def get_org(self, name):
+        org = self.orgs.get(name)
+        if not org:
+            raise OrgNotFound('Org information could not be found.  Expected to find encrypted file at {}/{}.org'.format(self.project_local_dir, name))
+        return org
+
+    def encrypt_obj(self, obj):
+        pickled = pickle.dumps(obj)
+        pickled = pad(pickled)
+        iv = Random.new().read(AES.block_size)
+        cipher = AES.new(self.key, AES.MODE_CBC, iv)
+        return base64.b64encode(iv + cipher.encrypt(pickled))
+
+    def decrypt_obj(self, encrypted_obj):
+        encrypted_org_config = base64.b64decode(encrypted_obj)
+        iv = encrypted_obj[:16]
+        cipher = AES.new(self.key, AES.MODE_CBC, iv )
+        pickled = unpad(cipher.decrypt( encrypted_obj[16:] ))
+        return pickle.loads(pickled)
 
 class HomeDirLocalConfig(BaseGlobalConfig):
     parent_dir_name = '.cumulusci'
