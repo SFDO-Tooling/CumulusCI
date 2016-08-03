@@ -11,6 +11,7 @@ from Crypto.Cipher import AES
 from .exceptions import NotInProject
 from .exceptions import KeychainConnectedAppNotFound
 from .exceptions import ProjectConfigNotFound
+from oauth.salesforce import SalesforceOAuth2
 
 __location__ = os.path.dirname(os.path.realpath(__file__))
 
@@ -149,7 +150,23 @@ class ConnectedAppOAuthConfig(BaseConfig):
 
 class OrgConfig(BaseConfig):
     """ Salesforce org configuration (i.e. org credentials) """
-    pass
+
+    def refresh_oauth_token(self, connected_app):
+        sf_oauth = SalesforceOAuth2(
+            connected_app.client_id, 
+            connected_app.client_secret, 
+            connected_app.callback_url,
+            False
+        )
+        resp = sf_oauth.refresh_token(self.refresh_token).json()
+        if resp != self.config:
+            self.config.update(resp)
+
+    @property
+    def start_url(self):
+        start_url = '%s/secur/frontdoor.jsp?sid=%s' % (self.instance_url, self.access_token)
+        return start_url
+
 
 class TaskConfig(BaseConfig):
     """ A task with its configuration merged """

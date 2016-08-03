@@ -49,10 +49,10 @@ class SalesforceOAuth2(object):
         }
         return self._request_token(data)
 
-    def refresh_token(self):
+    def refresh_token(self, refresh_token):
         data = {
             'grant_type': 'refresh_token',
-            'refresh_token': self.refresh_token,
+            'refresh_token': refresh_token,
         }
         return self._request_token(data)
 

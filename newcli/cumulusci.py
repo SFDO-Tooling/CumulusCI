@@ -1,4 +1,5 @@
 import os
+import webbrowser
 
 import click
 
@@ -103,7 +104,12 @@ def check_keychain(config):
 @click.argument('org_name')
 @pass_config
 def org_browser(config, org_name):
-    pass
+    check_keychain(config)
+
+    org_config = config.project_config.get_org(org_name)
+    org_config.refresh_oauth_token(config.keychain.app)
+    
+    webbrowser.open(org_config.start_url)
 
 @click.command(name='connect', help="Connects a new org's credentials using OAuth Web Flow")
 @click.argument('org_name')
