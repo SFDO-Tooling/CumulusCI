@@ -107,11 +107,22 @@ def org_browser(config, org_name):
 
 @click.command(name='connect', help="Connects a new org's credentials using OAuth Web Flow")
 @click.argument('org_name')
+@click.option('--sandbox', is_flag=True, help="If set, connects to a Salesforce sandbox org")
 @pass_config
-def org_connect(config, org_name):
+def org_connect(config, org_name, sandbox):
     check_keychain(config)
-    org_config = OrgConfig({'foo': 'bar'})
-    config.keychain.set_org(org_name, org_config) 
+
+    oauth_capture = CaptureSalesforceOAuth(
+        client_id = config.keychain.app.client_id,
+        client_secret = config.keychain.app.client_secret,
+        callback_url = config.keychain.app.callback_url,
+        sandbox = sandbox,
+        scope = 'web full refresh_token'
+    ) 
+    oauth_dict = oauth_capture()
+    org_config = OrgConfig(oauth_dict)
+    
+    config.keychain.set_org(org_name, org_config)
 
 @click.command(name='info', help="Display information for a connected org")
 @click.argument('org_name')
