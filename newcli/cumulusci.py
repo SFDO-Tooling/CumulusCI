@@ -140,7 +140,8 @@ def org_info(config, org_name):
 @click.command(name='list', help="Lists the connected orgs for the current project")
 @pass_config
 def org_list(config):
-    click.echo(config.list_orgs())
+    for org in config.project_config.list_orgs():
+        click.echo('    {}'.format(org))
 
 @click.command(name='connected_app', help="Displays the ConnectedApp info used for OAuth connections")
 @pass_config
