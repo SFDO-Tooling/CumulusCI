@@ -1,9 +1,12 @@
 from setuptools import setup
+from setuptools import find_packages
 
 setup(
     name='cumulusci',
     version='2.0-prealpha',
     py_modules=['cumulusci'],
+    packages=find_packages('core', 'tasks', 'salesforce'),
+    package_dir={'': '.'},
     install_requires=[
         'Click',
     ],

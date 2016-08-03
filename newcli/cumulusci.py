@@ -172,6 +172,13 @@ org.add_command(org_list)
 org.add_command(org_connected_app)
 org.add_command(org_config_connected_app)
 
+def import_class(path):
+    components = path.split('.')
+    module = components[:-1]
+    module = '.'.join(module)
+    mod = __import__(module, fromlist=[components[-1]])
+    return getattr(mod, components[-1])
+
 # Commands for group: task
 @click.command(name='list', help="List available tasks for the current context")
 @pass_config
@@ -187,9 +194,17 @@ def task_info(config, task_name):
     click.echo(task_info)
 
 @click.command(name='run', help="Runs a task")
+@click.argument('task_name')
+@click.argument('org_name')
 @pass_config
-def task_run(config):
-    pass
+def task_run(config, task_name, org_name):
+    check_keychain(config)
+    org_config = config.project_config.get_org(org_name)
+    task_config = getattr(config.project_config, 'tasks__{}'.format(task_name))
+    class_path = task_config.get('class_path')
+    task_class = import_class(class_path)
+    task = task_class(config.project_config, task_config, org_config)
+    click.echo(task())
 
 task.add_command(task_list)
 task.add_command(task_info)

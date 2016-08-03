@@ -1,57 +1,25 @@
 tasks:
-    apexdoc:
-    create_ee_src:
-    create_managed_src:
-    create_package:
+    get_installed_packages:
+        description: Retrieves a list of the currently installed managed package namespaces and their versions
+        class_path: tasks.salesforce.GetInstalledPackages
     deploy:
-        class: MetadataApiDeploy
-    deploy_bundle:
-    destroy:
-    destroy_bundle:
-    package_install:
-    package_uninstall:
-    retrieve:
-        class: MetadataApiRetrieve
-    revert_src:
-    test_apex:
-    test_browser:
-    update_admin_profile:
-    update_meta_xml:
-    update_package_xml:
-    update_required_packages:
+        description: Deploys a directory (src by default) to the org
+        class_path: tasks.salesforce.Deploy
+    retrieve_unpackaged:
+        description: Retrieves unpackaged metadata from the org
+        class_path: tasks.salesforce.RetrievePackaged
+    retrieve_packaged:
+        description: Retrieves the packaged metadata from the org
+        class_path: tasks.salesforce.RetrievePackaged
 
 flows:
-    beta_upload:
-    beta_test:
-    dev:
-        name:
-        description:
+    update_dependencies:
+        description: Updates all configured dependencies in the target org
         tasks:
-            - create_package
-            - destroy_bundle:
-                path: unpackaged/pre
-            - destroy_bundle:
-                path: unpackaged/post
-            - update_required_packages
-            - deploy_bundle:
-                path: unpackaged/pre
-            - deploy
-    feature:
-        name:
-        description:
-        tasks:
-            - create_package
-            - destroy_bundle:
-                path: unpackaged/pre
-            - destroy_bundle:
-                path: unpackaged/post
-            - update_required_packages
-            - deploy_bundle:
-                path: unpackaged/pre
-            - deploy
-            - test_apex
-            - destroy_bundle:
-                path: unpackaged/post
-        
-    release:
-    unmanaged_prod:
+            - get_installed_packages
+
+project:
+    name:
+    namespace:
+    api_version: 37.0
+    dependencies:

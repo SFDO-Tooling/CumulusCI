@@ -116,6 +116,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
     def list_orgs(self):
         """ Returns a list of all org names for the project """
         self._check_keychain()
+        return self.keychain.list_orgs()
        
     def get_org(self, name):    
         """ Returns an OrgConfig for the given org_name """
@@ -345,6 +346,9 @@ class BaseProjectKeychain(BaseConfig):
     def get_org(self, name):
         return self.orgs.get(name)
 
+    def list_orgs(self):
+        return self.orgs.keys()
+
 BS = 16
 pad = lambda s: s + (BS - len(s) % BS) * chr(BS - len(s) % BS)
 unpad = lambda s : s[0:-ord(s[-1])]
@@ -380,7 +384,7 @@ class EncryptedProjectKeychain(BaseProjectKeychain):
     def project_local_dir(self):
         return self.project_config.project_local_dir
 
-    def resave_all(self):
+    def save(self):
         """ Encrypts and saves to disk the connected app and org configs.  If you change self.key after init and call this, you can change the encryption password """
         self.set_connected_app(self.app)
         for org in self.orgs:
