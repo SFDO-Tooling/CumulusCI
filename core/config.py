@@ -9,6 +9,7 @@ from Crypto import Random
 from Crypto.Cipher import AES
 
 from .exceptions import NotInProject
+from .exceptions import KeychainConnectedAppNotFound
 from .exceptions import ProjectConfigNotFound
 
 __location__ = os.path.dirname(os.path.realpath(__file__))
@@ -19,8 +20,11 @@ class BaseConfig(object):
     defaults = {}
     search_path = ['config']
 
-    def __init__(self):
-        self.config = {}    
+    def __init__(self, config=None):
+        if config is None:
+            self.config = {}    
+        else:
+            self.config = config
         self._load_config()
 
     def _load_config(self):
@@ -172,7 +176,6 @@ class YamlProjectConfig(BaseProjectConfig):
 
     @property
     def repo_name(self):
-        import pdb; pdb.set_trace()
         if not self.repo_root:
             return
 
@@ -337,25 +340,24 @@ class EncryptedProjectKeychain(BaseProjectKeychain):
 
     def _load_config(self):
         self.config['app'] = {}
-
-        orgs = {}
-       
+        self.config['orgs'] = {}
+        
         if not self.project_local_dir: 
             return
 
         for item in os.listdir(self.project_local_dir):
             if item.endswith('.org'):
                 f_item = open(os.path.join(self.project_local_dir, item), 'r')
-                org_name = f_item.replace('.org', '')
-                org_config = self.decrypt_obj(f_item.read())
+                org_name = item.replace('.org', '')
+                org_config = self._decrypt_config(OrgConfig, f_item.read())
                 self.config['orgs'][org_name] = org_config
             elif item == 'connected.app':
                 f_item = open(os.path.join(self.project_local_dir, item), 'r')
-                app_config = self.decrypt_obj(f_item.read())
+                app_config = self._decrypt_config(ConnectedAppOAuthConfig, f_item.read())
                 self.config['app'] = app_config
 
-        if not self.config['app']:
-            raise KeychainMissingConnectedApp('Expected to find the connected app info for the keychain in {}/connected.app'.format(self.project_local_dir))
+        #if not self.config['app']:
+        #    raise KeychainConnectedAppNotFound('Expected to find the connected app info for the keychain in {}/connected.app'.format(self.project_local_dir))
 
     @property
     def project_local_dir(self):
@@ -368,17 +370,16 @@ class EncryptedProjectKeychain(BaseProjectKeychain):
             self.set_org(org)
         
     def set_connected_app(self, app_config):
-        encrypted = self.encrypt_obj(org_config)
-        f_org = open(os.path.join(self.project_local_dir, 'connected.app'.format(name)), 'w')
-        f_org.write()
+        encrypted = self._encrypt_config(app_config)
+        f_org = open(os.path.join(self.project_local_dir, 'connected.app'), 'w')
+        f_org.write(encrypted)
         f_org.close()
         self._load_config()
 
     def set_org(self, name, org_config):
-        encrypted = self.encrypt_obj(org_config)
-        import pdb; pdb.set_trace()
+        encrypted = self._encrypt_config(org_config)
         f_org = open(os.path.join(self.project_local_dir, '{}.org'.format(name)), 'w')
-        f_org.write()
+        f_org.write(encrypted)
         f_org.close()
         self._load_config()
 
@@ -388,19 +389,27 @@ class EncryptedProjectKeychain(BaseProjectKeychain):
             raise OrgNotFound('Org information could not be found.  Expected to find encrypted file at {}/{}.org'.format(self.project_local_dir, name))
         return org
 
-    def encrypt_obj(self, obj):
-        pickled = pickle.dumps(obj)
-        pickled = pad(pickled)
-        iv = Random.new().read(AES.block_size)
+    def _get_cipher(self, iv=None):
+        if iv is None:
+            iv = Random.new().read(AES.block_size)
         cipher = AES.new(self.key, AES.MODE_CBC, iv)
+        return cipher, iv
+
+    def _encrypt_config(self, config):
+        pickled = pickle.dumps(config.config)
+        pickled = pad(pickled)
+        #pickled = base64.b64encode(pickled)
+        cipher, iv = self._get_cipher()
         return base64.b64encode(iv + cipher.encrypt(pickled))
 
-    def decrypt_obj(self, encrypted_obj):
-        encrypted_org_config = base64.b64decode(encrypted_obj)
-        iv = encrypted_obj[:16]
-        cipher = AES.new(self.key, AES.MODE_CBC, iv )
-        pickled = unpad(cipher.decrypt( encrypted_obj[16:] ))
-        return pickle.loads(pickled)
+    def _decrypt_config(self, config_class, encrypted_config):
+        if not encrypted_config:
+            return config_class()
+        encrypted_config = base64.b64decode(encrypted_config)
+        iv = encrypted_config[:16]
+        cipher, iv = self._get_cipher(iv)
+        pickled = cipher.decrypt(encrypted_config[16:])
+        return config_class(pickle.loads(pickled))
 
 class HomeDirLocalConfig(BaseGlobalConfig):
     parent_dir_name = '.cumulusci'
