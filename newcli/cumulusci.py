@@ -8,7 +8,9 @@ from core.config import YamlProjectConfig
 from core.config import EncryptedProjectKeychain
 from core.config import ConnectedAppOAuthConfig
 from core.config import OrgConfig
+from core.exceptions import KeychainConnectedAppNotFound
 from core.exceptions import KeychainKeyNotFound
+from core.exceptions import ProjectConfigNotFound
 
 from oauth.salesforce import CaptureSalesforceOAuth
 
@@ -26,7 +28,10 @@ class CliConfig(object):
         self.global_config = YamlGlobalConfig()
 
     def _load_project_config(self):
-        self.project_config = self.global_config.get_project_config()
+        try:
+            self.project_config = self.global_config.get_project_config()
+        except ProjectConfigNotFound:
+            pass
 
     def _load_keychain(self):
         self.keychain_key = os.environ.get('CUMULUSCI_KEY')
@@ -35,6 +40,21 @@ class CliConfig(object):
             self.project_config.set_keychain(self.keychain)
 
 pass_config = click.make_pass_decorator(CliConfig, ensure=True)
+
+def check_connected_app(config):
+    check_keychain(config)
+    if not config.keychain.app:
+        raise KeychainConnectedAppNotFound("Please use the 'org config_connected_app' command to configure the OAuth Connected App to use for this project's keychain")
+        
+
+def check_keychain(config):
+    check_project_config(config)
+    if not config.keychain_key:
+        raise KeychainKeyNotFound('You must set the environment variable CUMULUSCI_KEY with the encryption key to be used for storing org credentials')
+
+def check_project_config(config):
+    if not config.keychain_key:
+        raise ProjectCOnfigNotFound('No project configuration found.  You can use the "project init" command to initilize the project for use with CumulusCI')
 
 # Root command
 @click.group('cli')
@@ -71,14 +91,28 @@ cli.add_command(flow)
 # Commands for group: project
 
 @click.command(name='init', help="Initialize a new project for use with the cumulusci toolbelt")
+@click.option('--name', help="The project's package name", prompt=True)
 @pass_config
-def project_init(config):
-    pass
+def project_init(config, name):
+    if not os.path.isdir('.git'):
+        click.echo("You are not in the root of a Git repository")
+
+    if os.path.isfile('cumulusci.yml'):
+        click.echo("This project already has a cumulusci.yml file")
+
+    f_yml = open('cumulusci.yml','w')
+
+    yml_config = 'project:\n    name: {}'.format(name)
+    f_yml.write(yml_config)
+
+    click.echo("Your project is now initialized for use with CumulusCI")
+    click.echo("You can use the project edit command to edit the project's config file")
 
 @click.command(name='info', help="Display information about the current project's configuration")
 @pass_config
 def project_info(config):
-    pass
+    check_project_config(config)
+    click.echo(config.project_config.project)
 
 @click.command(name='list', help="List projects and their locations")
 @pass_config
@@ -95,16 +129,12 @@ project.add_command(project_info)
 project.add_command(project_list)
 project.add_command(project_cd)
 
-def check_keychain(config):
-    if not config.keychain_key:
-        raise KeychainKeyNotFound('You must set the environment variable CUMULUSCI_KEY with the encryption key to be used for storing org credentials')
-
 # Commands for group: org
 @click.command(name='browser', help="Opens a browser window and logs into the org using the stored OAuth credentials")
 @click.argument('org_name')
 @pass_config
 def org_browser(config, org_name):
-    check_keychain(config)
+    check_connected_app(config)
 
     org_config = config.project_config.get_org(org_name)
     org_config.refresh_oauth_token(config.keychain.app)
@@ -116,7 +146,7 @@ def org_browser(config, org_name):
 @click.option('--sandbox', is_flag=True, help="If set, connects to a Salesforce sandbox org")
 @pass_config
 def org_connect(config, org_name, sandbox):
-    check_keychain(config)
+    check_connected_app(config)
 
     oauth_capture = CaptureSalesforceOAuth(
         client_id = config.keychain.app.client_id,
@@ -134,19 +164,20 @@ def org_connect(config, org_name, sandbox):
 @click.argument('org_name')
 @pass_config
 def org_info(config, org_name):
-    check_keychain(config)
+    check_connected_app(config)
     click.echo(getattr(config.keychain, 'orgs__{}'.format(org_name)).config)
 
 @click.command(name='list', help="Lists the connected orgs for the current project")
 @pass_config
 def org_list(config):
+    check_connected_app(config)
     for org in config.project_config.list_orgs():
         click.echo('    {}'.format(org))
 
 @click.command(name='connected_app', help="Displays the ConnectedApp info used for OAuth connections")
 @pass_config
 def org_connected_app(config):
-    check_keychain(config)
+    check_connected_app(config)
     click.echo(config.keychain.app.config)
 
 
@@ -183,6 +214,7 @@ def import_class(path):
 @click.command(name='list', help="List available tasks for the current context")
 @pass_config
 def task_list(config):
+    check_project_config(config)
     for task in config.project_config.list_tasks():
         click.echo('{name}: {description}'.format(**task))
 
@@ -190,6 +222,7 @@ def task_list(config):
 @click.argument('task_name')
 @pass_config
 def task_info(config, task_name):
+    check_project_config(config)
     task_info = getattr(config.project_config, 'tasks__{}'.format(task_name))
     click.echo(task_info)
 
@@ -214,16 +247,22 @@ task.add_command(task_run)
 @click.command(name='list', help="List available flows for the current context")
 @pass_config
 def flow_list(config):
-    pass
+    check_project_config(config)
+    click.echo(config.project_config.flows)
 
 @click.command(name='info', help="Displays information for a flow")
+@click.argument('flow_name')
 @pass_config
-def flow_info(config):
-    pass
+def flow_info(config, flow_name):
+    check_project_config(config)
+    click.echo(getattr(config.project_config, 'flows__{}'.format(flow_name)))
 
 @click.command(name='run', help="Runs a flow")
+@click.argument('flow_name')
+@click.argument('org_name')
 @pass_config
-def flow_run(config):
+def flow_run(config, flow_name, org_name):
+    check_keychain(config)
     pass
 
 flow.add_command(flow_list)
