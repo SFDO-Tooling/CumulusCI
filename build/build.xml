@@ -50,7 +50,7 @@
     <property name="cumulusci.package.name.managed" value="${cumulusci.package.name}" />
     <property name="cumulusci.package.installClass" value="" />
     <property name="cumulusci.package.uninstallClass" value="" />
-    <property name="cumulusci.package.apiVersion" value="31.0" />
+    <property name="cumulusci.package.apiVersion" value="37.0" />
     <property name="cumulusci.maxPoll.test" value="400" />
     <property name="cumulusci.maxPoll.notest" value="200" />
     <property name="cumulusci.maxPoll.managed" value="400" />
@@ -236,6 +236,7 @@
     <!-- !!!WARNING!!!: DO NOT run this against a real production org as it will delete everything.  It is designed to clear the target org to ensure a clean build test. -->
     <target name="deployCI">
         <echo>============================================================================</echo>
+        <antcall target="bindOrg" />
         <antcall target="preDeployCI" />
 
         <!-- Create the unmanaged package if it doesn't already exist -->
@@ -287,6 +288,7 @@
         <antcall target="uninstallUnpackagedPost" />
 
         <antcall target="postDeployCI" />
+        <antcall target="releaseOrg" />
     </target>
 
     <!-- deployCIPackageOrg: Does a full build against the package org.  This differs from deployCI in that it uses destroyStaleMetadata instead of uninstall.
@@ -478,6 +480,34 @@
     </target>
 
     <!-- Utility Build Targets -->
+
+    <target name="bindOrg">
+        <!-- binds an org by appending the sf username to the github status API context. If the sf username is
+        already in the status context, waits until the build is completed
+         -->
+        <!-- TODO: call the correct command through the CLI -->
+        <exec executable="cumulusci" failonerror="true">
+            <arg value="dev" />
+            <arg value="update_package_xml" />
+            <arg value="--directory" />
+            <arg value="@{srcDir}" />
+            <arg value="--output" />
+            <arg value="@{srcDir}/package.xml" />
+        </exec>
+    </target>
+
+    <target name="releaseOrg">
+        <!-- releases the org by updating the commit context -->
+        <!-- TODO: call the correct command through the CLI -->
+        <exec executable="cumulusci" failonerror="true">
+            <arg value="dev" />
+            <arg value="update_package_xml" />
+            <arg value="--directory" />
+            <arg value="@{srcDir}" />
+            <arg value="--output" />
+            <arg value="@{srcDir}/package.xml" />
+        </exec>
+    </target>
 
     <target name="destroyStaleMetadata">
         <echo>----------------------------------------------------------------------------</echo>
@@ -819,7 +849,7 @@
     </target>
 
     <target name="updatePackageXmlManaged">
-        <buildPackageXml package="${cumulusci.package.name.managed}" version="${cumulusci.package.apiVersion}" installClass="${cumulusci.package.installClass}" uninstallClass="${cumulusci.package.uninstallClass}" />
+        <buildPackageXml package="${cumulusci.package.name.managed}" version="${cumulusci.package.apiVersion}" installClass="${cumulusci.package.installClass}" uninstallClass="${cumulusci.package.uninstallClass}" type="managed" />
     </target>
 
     <target name="updateMetaXml">

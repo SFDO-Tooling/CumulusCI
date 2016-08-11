@@ -833,7 +833,7 @@ def github_commit_status(config, state, context, url, description, commit):
         'BUILD_COMMIT',
     ]
 
-    p = run_python_script('github/set_commit_status.py', env, config, required_env=required_env)
+    p = run_python_script('github_commands/set_commit_status.py', env, config, required_env=required_env)
 
 # command: github release
 @click.command(name='release', help='Create a release in Github')
@@ -864,7 +864,7 @@ def github_release(config, version, commit):
         'PREFIX_BETA',
     ]
 
-    p = run_python_script('github/create_release.py', env, config, required_env=required_env)
+    p = run_python_script('github_commands/create_release.py', env, config, required_env=required_env)
 
 # command: github release_notes
 @click.command(name='release_notes', help='Generates release notes by parsing sections from pull request bodies of all pull requests merged since the last production release tag.')
@@ -915,7 +915,7 @@ def github_master_to_feature(config, commit):
         'MASTER_BRANCH',
     ]
 
-    p = run_python_script('github/merge_master_to_feature.py', env, config, required_env=required_env)
+    p = run_python_script('github_commands/merge_master_to_feature.py', env, config, required_env=required_env)
 
 # command: github clone_tag
 @click.command(name='clone_tag', help='Create one tag referencing the same commit as another tag')
@@ -940,7 +940,7 @@ def github_clone_tag(config, src_tag, tag):
         'TAG',
     ]
 
-    p = run_python_script('github/tag_to_tag.py', env, config, required_env=required_env)
+    p = run_python_script('github_commands/tag_to_tag.py', env, config, required_env=required_env)
 
 # command: mrbelvedere release
 @click.command(name='release', help='Adds a new beta or production release to an existing package in mrbelvedere, sets up dependencies for the installer, and sets the version as the latest beta or production')
