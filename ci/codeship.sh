@@ -4,6 +4,9 @@
 # SF_PASSWORD_MASTER
 # SF_SERVERURL_PACKAGING
 
+# Setup variable to determine so the CumulusCI CLI knows it has been started from a Codeship build server
+export CODESHIP="True"
+
 # Setup variables for branch naming conventions using env overrides if set
 if [ "$MASTER_BRANCH" == "" ]; then
     export MASTER_BRANCH='master'

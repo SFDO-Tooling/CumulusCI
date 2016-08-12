@@ -4,10 +4,13 @@ import os
 import pprint
 import sarge
 import sys
+
 from time import sleep
 
 from release_notes.generator import GithubReleaseNotesGenerator
 from release_notes.generator import PublishingGithubReleaseNotesGenerator
+
+from orgmanagement.bind_org import bind_org
 
 # Exceptions
 class AntTargetException(Exception):
@@ -197,6 +200,10 @@ def get_build_info():
         info['commit'] = os.environ.get('TDDIUM_CURRENT_COMMIT')
         info['build_vendor'] = 'SolanoCI'
     # Codeship
+    elif os.environ.get('CI_NAME'):
+        info['branch'] = os.environ.get('CI_BRANCH')
+        info['commit'] = os.environ.get('CI_COMMIT_ID')
+        info['build_vendor'] = 'CodeShip'
     # Jenkins
     # CicleCI
     elif os.environ.get('CIRCLECI'):
@@ -275,6 +282,67 @@ def ci_deploy(config, debug_logdir, verbose):
         if verbose:
             args.append('--verbose')
         deploy_packaging.main(args=args, standalone_mode=False, obj=config)
+
+
+# command: ci bind_org
+# TODO implement fail=False
+@click.command(name='bind_org', help="""binds an org to a 'build transaction' using the org credentials as identifier for the org.
+
+        You need an org to build and test a feature branch. The total build process consists of multiple steps and
+        multiple force.com migration tool calls against the org some of them changing the state of the org. If
+        another build would start using that org during his build process, both builds would fail since the org
+        status would become indeterminate. If you 'bind the org' to your build at the start of your build process,
+        that would stop the other build to use 'your' org. You have to release the org though after you have used it.
+
+        This only is needed when you do not have exclusive access to the org. So only on CI systems in general.
+
+        The binding of an org needs to be stored in a 'single point of truth'. Github is used for that.""")
+@click.option('--fail', default=True, is_flag=True, help="If set, will fail if there is no org available. If not set, "
+                                                         "the build will wait until an org becomes available")
+@click.option('--orgname', default=None, help="the name by which the salesforce org is known within all build "
+                                              "processes. If not set use the urlencoded username passed through "
+                                               "the config (coming from the environment)")
+@click.option('--sandbox', default=False, help="used together with the username to make a unique orgname")
+@click.option('--github_organization', default=None, help="the Github organization. If not given, the environment "
+                                                       "settings "
+                                                   "will be used. If no environment settings can be found the given "
+                                                   "github username (--github_user) will be used")
+@click.option('--github_user', default=None, help="The github username. If not given the environment settings will be used. "
+                                                  "If no username is found, the command will fail.")
+@click.option('--github_password', default=None, help="The github password for this user. If not given, "
+                                                      "the environment settings will be used. If no password is "
+                                                      "found the command will fail")
+@click.option('--github_repository', default=None, help="the Github repository name. If not given, the environment "
+                                                        "settings will be used. If no repository name can be found "
+                                                        "the command will fail")
+@click.option('--retry_attempts', default=10, help="the number of retry attempts that will be executed if fail = "
+                                                   "False. Defaults to 10")
+@click.option('--sleeping_time', default=360, help="the waiting period between retry attempts in seconds. "
+                                                   "Defaults to 360 (5 minutes)")
+@pass_config
+def ci_bind_org(config, fail, orgname, sandbox, github_organization, github_user, github_password, github_repository,
+                retry_attempts, sleeping_time):
+    orgname = get_arg(orgname, config.sf_username)
+    github_organization = get_arg(github_organization, config.github_org_name)
+    github_user = get_arg(github_user, config.github_username)
+    github_password = get_arg(github_password, config.github_password)
+    github_repository = get_arg(github_repository, config.github_repo_name)
+    sha = config.commit
+
+    bind_org(orgname, sha, sandbox, github_organization, github_user, github_password, github_repository, fail,
+             sandbox, retry_attempts, sleeping_time)
+
+
+def get_arg(arg, config_arg):
+    if not arg:
+        if config_arg:
+            return config_arg
+        else:
+            raise click.BadParameter
+    else:
+        assert isinstance(arg, str), "Argument " + str(arg) + " must be a string"
+        return arg
+
 
 # command: ci next_step
 @click.command(help='A command to calculate and return the next steps for a ci build to run')
@@ -1060,6 +1128,8 @@ ci.add_command(ci_deploy)
 ci.add_command(next_step)
 ci.add_command(beta_deploy)
 ci.add_command(ci_apextestsdb_upload)
+ci.add_command(ci_bind_org)
+ci.add_command(ci_release_org)
 cli.add_command(ci)
 
 # Group: dev

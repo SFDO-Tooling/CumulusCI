@@ -482,17 +482,21 @@
     <!-- Utility Build Targets -->
 
     <target name="bindOrg">
-        <!-- binds an org by appending the sf username to the github status API context. If the sf username is
-        already in the status context, waits until the build is completed
+        <!-- binds an org to a 'build transaction' using the org credentials as identifier for the org.
+
+        You need an org to build and test a feature branch. The total build process consists of multiple steps and
+        multiple force.com migration tool calls against the org some of them changing the state of the org. If
+        another build would start using that org during his build process, both builds would fail since the org
+        status would become indeterminate. If you 'bind the org' to your build at the start of your build process,
+        that would stop the other build to use 'your' org. You have to release the org though after you have used it.
+
+        This only is needed when you do not have exclusive access to the org. So only on CI systems in general.
          -->
-        <!-- TODO: call the correct command through the CLI -->
         <exec executable="cumulusci" failonerror="true">
-            <arg value="dev" />
-            <arg value="update_package_xml" />
-            <arg value="--directory" />
-            <arg value="@{srcDir}" />
-            <arg value="--output" />
-            <arg value="@{srcDir}/package.xml" />
+            <arg value="ci" />
+            <arg value="bind_org" />
+            <arg value="--fail" />
+            <arg value="true" /> <!-- TODO make it wait -->
         </exec>
     </target>
 
