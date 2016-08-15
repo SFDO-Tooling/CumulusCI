@@ -10,7 +10,7 @@ from time import sleep
 from release_notes.generator import GithubReleaseNotesGenerator
 from release_notes.generator import PublishingGithubReleaseNotesGenerator
 
-from orgmanagement.bind_org import bind_org
+from orgmanagement import bind_org
 
 # Exceptions
 class AntTargetException(Exception):
@@ -119,6 +119,8 @@ class Config(object):
         self.apextestsdb_user_id = self.get_env_var('APEXTESTSDB_USER_ID')
         self.apextestsdb_token = self.get_env_var('APEXTESTSDB_TOKEN')
 
+        # bound org config TODO make this work for org pools
+        self.bound_org = self.get_env_var('BOUND_ORG_NAME')
 
         # Calculated values
         self.build_type = self.get_build_type()
@@ -285,7 +287,6 @@ def ci_deploy(config, debug_logdir, verbose):
 
 
 # command: ci bind_org
-# TODO implement fail=False
 @click.command(name='bind_org', help="""binds an org to a 'build transaction' using the org credentials as identifier for the org.
 
         You need an org to build and test a feature branch. The total build process consists of multiple steps and
@@ -296,41 +297,44 @@ def ci_deploy(config, debug_logdir, verbose):
 
         This only is needed when you do not have exclusive access to the org. So only on CI systems in general.
 
-        The binding of an org needs to be stored in a 'single point of truth'. Github is used for that.""")
-@click.option('--fail', default=True, is_flag=True, help="If set, will fail if there is no org available. If not set, "
-                                                         "the build will wait until an org becomes available")
+        The binding of an org needs to be stored in a 'single point of truth'. Github is used for that and it's
+        done by storing a lightweight tag with the orgname attribute on the current commit.""")
 @click.option('--orgname', default=None, help="the name by which the salesforce org is known within all build "
                                               "processes. If not set use the urlencoded username passed through "
-                                               "the config (coming from the environment)")
-@click.option('--sandbox', default=False, help="used together with the username to make a unique orgname")
-@click.option('--github_organization', default=None, help="the Github organization. If not given, the environment "
-                                                       "settings "
-                                                   "will be used. If no environment settings can be found the given "
-                                                   "github username (--github_user) will be used")
-@click.option('--github_user', default=None, help="The github username. If not given the environment settings will be used. "
-                                                  "If no username is found, the command will fail.")
-@click.option('--github_password', default=None, help="The github password for this user. If not given, "
-                                                      "the environment settings will be used. If no password is "
-                                                      "found the command will fail")
-@click.option('--github_repository', default=None, help="the Github repository name. If not given, the environment "
-                                                        "settings will be used. If no repository name can be found "
-                                                        "the command will fail")
-@click.option('--retry_attempts', default=10, help="the number of retry attempts that will be executed if fail = "
+                                               "the config (coming from the environment). If that's not set use the "
+                                              "clientid of the oauth config. Fails ultimately if no orgname can be "
+                                              "found.")
+@click.option('--sandbox/--production', default=False, help="If sandbox this is a test org. If production(default) "
+                                                            "a search is conducted for a production org. "
+                                                            "Used together with the username to make a unique orgname")
+@click.option('--orgpool_name', default=None, type=str, help="reserved for future use.")
+@click.option('--wait/--fail-immediately', default=True, help="If wait, the build will wait until an org becomes "
+                                                              "available. If fail-immediately, the build fails "
+                                                              "immediately.")
+@click.option('--retry_attempts', default=10, type=int, help="the number of retry attempts that will be executed if " \
+                                                           "fail = "
                                                    "False. Defaults to 10")
-@click.option('--sleeping_time', default=360, help="the waiting period between retry attempts in seconds. "
+@click.option('--sleeping_time', default=360, type=int, help="the waiting period between retry attempts in seconds. "
                                                    "Defaults to 360 (5 minutes)")
 @pass_config
-def ci_bind_org(config, fail, orgname, sandbox, github_organization, github_user, github_password, github_repository,
-                retry_attempts, sleeping_time):
-    orgname = get_arg(orgname, config.sf_username)
-    github_organization = get_arg(github_organization, config.github_org_name)
-    github_user = get_arg(github_user, config.github_username)
-    github_password = get_arg(github_password, config.github_password)
-    github_repository = get_arg(github_repository, config.github_repo_name)
-    sha = config.commit
+def ci_bind_org(config, orgname, sandbox, orgpool_name,
+                wait, retry_attempts, sleeping_time):
+    orgname = get_arg(orgname, config.sf_username) #TODO make this work for org pools
 
-    bind_org(orgname, sha, sandbox, github_organization, github_user, github_password, github_repository, fail,
-             sandbox, retry_attempts, sleeping_time)
+    github_storage_config = get_env_github(config)
+    github_storage_config['SHA'] = config.commit
+
+    bind_org(orgname, github_storage_config, sandbox=sandbox, wait=wait, retry_attempts=retry_attempts,
+             sleeping_time=sleeping_time)
+
+
+
+@click.command(name='release_org', help="releases a given org. After release, the org can be used by other build "
+                                        "processes. See for a longer help on binding and releasing orgs bind_org.")
+@pass_config
+def ci_release_org(config, orgname):
+    pass
+
 
 
 def get_arg(arg, config_arg):

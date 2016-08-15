@@ -23,7 +23,8 @@ class TestBindOrg(unittest.TestCase):
 
     @patch('orgmanagement.bind_org.set_tag')
     @patch('orgmanagement.bind_org.get_tags')
-    def test_bind_not_bound_org(self, mock_get_tags, mock_set_tag):
+    @patch('os.environ')
+    def test_bind_not_bound_org(self, mock_environ, mock_get_tags, mock_set_tag):
         mock_get_tags.return_value = []
         orgname = 'testorg'
         sha = '12345'
@@ -38,9 +39,12 @@ class TestBindOrg(unittest.TestCase):
         mock_get_tags.assert_called_with(github_organization, github_repository, github_user, github_password, orgname)
         mock_set_tag.assert_called_with(github_organization, github_repository, github_user, github_password, orgname,
                                         sha)
+        mock_environ.__setitem__.assert_called_with('BOUND_ORG_NAME', orgname)
+
+
 
     @patch('orgmanagement.bind_org.get_tags')
-    def test_bind_bound_org_fail_true(self, mock_get_tags):
+    def test_bind_bound_org_wait_false(self, mock_get_tags):
         ret_value = [TestBindOrg.RefData(ref="refs/tags/v0.0.1",
                                          url="https://api.github.com/repos/octocat/Hello-World/git/refs/tags/v0.0.1",
                                          object=TestBindOrg.ObjectData(type="tag",
@@ -56,11 +60,11 @@ class TestBindOrg(unittest.TestCase):
         github_repository = 'testrepo'
 
         self.assertRaises(OrgBoundException, bind_org, orgname, sha, github_organization, github_user, github_password,
-                 github_repository)
+                 github_repository, wait=False)
 
     @patch('orgmanagement.bind_org.get_tags')
     @patch('time.sleep')
-    def test_bind_bound_org_fail_false(self, mock_sleep, mock_get_tags):
+    def test_bind_bound_org_wait_false(self, mock_sleep, mock_get_tags):
         ret_value = [TestBindOrg.RefData(ref="refs/tags/v0.0.1",
                                          url="https://api.github.com/repos/octocat/Hello-World/git/refs/tags/v0.0.1",
                                          object=TestBindOrg.ObjectData(type="tag",
@@ -78,7 +82,7 @@ class TestBindOrg(unittest.TestCase):
         retry_attempts = 5
 
         self.assertRaises(OrgBoundException, bind_org, orgname, sha, github_organization, github_user, github_password,
-                          github_repository, False, False, retry_attempts, sleep_time)
+                          github_repository, True, False, retry_attempts, sleep_time)
         mock_sleep.assert_called_with(sleep_time)
         self.assertEqual(mock_sleep.call_count, retry_attempts, 'More or less times sleep method called')
 
