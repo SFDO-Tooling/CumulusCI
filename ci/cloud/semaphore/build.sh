@@ -285,7 +285,7 @@ if [ $BUILD_TYPE == "master" ]; then
         echo "Creating GitHub Release $PACKAGE_VERSION"
         echo "-----------------------------------------------------------------"
         echo
-        python $CUMULUSCI_PATH/ci/github/create_release.py
+        python $CUMULUSCI_PATH/ci/github_commands/create_release.py
 
         # Add release notes
         echo
@@ -295,7 +295,7 @@ if [ $BUILD_TYPE == "master" ]; then
         echo
         export CURRENT_REL_TAG=`grep CURRENT_REL_TAG release.properties | sed -e 's/CURRENT_REL_TAG=//g'`
         echo "Generating release notes for tag $CURRENT_REL_TAG"
-        python $CUMULUSCI_PATH/ci/github/release_notes.py
+        python $CUMULUSCI_PATH/ci/github_commands/release_notes.py
     
     
         # Merge master commit to all open feature branches
@@ -304,7 +304,7 @@ if [ $BUILD_TYPE == "master" ]; then
         echo "Merge commit to all open feature branches"
         echo "-----------------------------------------------------------------"
         echo
-        python $CUMULUSCI_PATH/ci/github/merge_master_to_feature.py
+        python $CUMULUSCI_PATH/ci/github_commands/merge_master_to_feature.py
     else
         echo
         echo "-----------------------------------------------------------------"
