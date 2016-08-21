@@ -10,7 +10,7 @@ from time import sleep
 from release_notes.generator import GithubReleaseNotesGenerator
 from release_notes.generator import PublishingGithubReleaseNotesGenerator
 
-from orgmanagement import bind_org
+from orgmanagement.bind_org import bind_org, release_org
 
 # Exceptions
 class AntTargetException(Exception):
@@ -286,7 +286,7 @@ def ci_deploy(config, debug_logdir, verbose):
         deploy_packaging.main(args=args, standalone_mode=False, obj=config)
 
 
-# command: ci bind_org
+# command ci bind_org
 @click.command(name='bind_org', help="""binds an org to a 'build transaction' using the org credentials as identifier for the org.
 
         You need an org to build and test a feature branch. The total build process consists of multiple steps and
@@ -300,22 +300,21 @@ def ci_deploy(config, debug_logdir, verbose):
         The binding of an org needs to be stored in a 'single point of truth'. Github is used for that and it's
         done by storing a lightweight tag with the orgname attribute on the current commit.""")
 @click.option('--orgname', default=None, help="the name by which the salesforce org is known within all build "
-                                              "processes. If not set use the urlencoded username passed through "
-                                               "the config (coming from the environment). If that's not set use the "
-                                              "clientid of the oauth config. Fails ultimately if no orgname can be "
-                                              "found.")
+                                                "processes. If not set use the urlencoded username passed through "
+                                                "the config (coming from the environment). If that's not set use the "
+                                                "clientid of the oauth config. Fails ultimately if no orgname can be "
+                                                "found.")
 @click.option('--sandbox/--production', default=False, help="If sandbox this is a test org. If production(default) "
-                                                            "a search is conducted for a production org. "
-                                                            "Used together with the username to make a unique orgname")
+                                                              "a search is conducted for a production org. "
+                                                              "Used together with the username to make a unique orgname")
 @click.option('--orgpool_name', default=None, type=str, help="reserved for future use.")
 @click.option('--wait/--fail-immediately', default=True, help="If wait, the build will wait until an org becomes "
                                                               "available. If fail-immediately, the build fails "
                                                               "immediately.")
-@click.option('--retry_attempts', default=10, type=int, help="the number of retry attempts that will be executed if " \
-                                                           "fail = "
-                                                   "False. Defaults to 10")
-@click.option('--sleeping_time', default=360, type=int, help="the waiting period between retry attempts in seconds. "
-                                                   "Defaults to 360 (5 minutes)")
+@click.option('--retry_attempts', default=10, type=int, help="the number of retry attempts that will be executed if "
+                                                                                                                          "fail = "
+                                                                                                                  "False. Defaults to 10")
+@click.option('--sleeping_time', default=360, type=int, help="the waiting period between retry attempts in seconds. Defaults to 360 (5 minutes)")
 @pass_config
 def ci_bind_org(config, orgname, sandbox, orgpool_name,
                 wait, retry_attempts, sleeping_time):
@@ -328,13 +327,20 @@ def ci_bind_org(config, orgname, sandbox, orgpool_name,
              sleeping_time=sleeping_time)
 
 
-
+#command ci release_org
 @click.command(name='release_org', help="releases a given org. After release, the org can be used by other build "
                                         "processes. See for a longer help on binding and releasing orgs bind_org.")
+@click.option('--orgname', default=None, help="the orgname to be released. See bind_org for a further description")
+@click.option('--sandbox/--production', default=False, help="If sandbox this is a test org. If production(default) "
+                                                            "a search is conducted for a production org. "
+                                                            "Used together with the username to make a unique orgname")
 @pass_config
-def ci_release_org(config, orgname):
-    pass
+def ci_release_org(config, orgname, sandbox):
+    orgname = get_arg(orgname, config.sf_username)
 
+    github_storage_config = get_env_github(config)
+
+    release_org(orgname, github_storage_config, orgname, sandbox)
 
 
 def get_arg(arg, config_arg):
