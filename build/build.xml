@@ -495,8 +495,6 @@
         <exec executable="cumulusci" failonerror="true">
             <arg value="ci" />
             <arg value="bind_org" />
-            <arg value="--fail" />
-            <arg value="true" /> <!-- TODO make it wait -->
         </exec>
     </target>
 
@@ -504,12 +502,8 @@
         <!-- releases the org by updating the commit context -->
         <!-- TODO: call the correct command through the CLI -->
         <exec executable="cumulusci" failonerror="true">
-            <arg value="dev" />
-            <arg value="update_package_xml" />
-            <arg value="--directory" />
-            <arg value="@{srcDir}" />
-            <arg value="--output" />
-            <arg value="@{srcDir}/package.xml" />
+            <arg value="ci" />
+            <arg value="release_org" />
         </exec>
     </target>
 
