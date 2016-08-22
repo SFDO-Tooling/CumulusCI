@@ -44,17 +44,17 @@ pass_config = click.make_pass_decorator(CliConfig, ensure=True)
 def check_connected_app(config):
     check_keychain(config)
     if not config.keychain.app:
-        raise KeychainConnectedAppNotFound("Please use the 'org config_connected_app' command to configure the OAuth Connected App to use for this project's keychain")
+        raise click.UsageError("Please use the 'org config_connected_app' command to configure the OAuth Connected App to use for this project's keychain")
         
 
 def check_keychain(config):
     check_project_config(config)
     if not config.keychain_key:
-        raise KeychainKeyNotFound('You must set the environment variable CUMULUSCI_KEY with the encryption key to be used for storing org credentials')
+        raise click.UsageError('You must set the environment variable CUMULUSCI_KEY with the encryption key to be used for storing org credentials')
 
 def check_project_config(config):
-    if not config.keychain_key:
-        raise ProjectCOnfigNotFound('No project configuration found.  You can use the "project init" command to initilize the project for use with CumulusCI')
+    if not config.project_config:
+        raise click.UsageError('No project configuration found.  You can use the "project init" command to initilize the project for use with CumulusCI')
 
 # Root command
 @click.group('cli')
@@ -102,7 +102,7 @@ def project_init(config, name):
 
     f_yml = open('cumulusci.yml','w')
 
-    yml_config = 'project:\n    name: {}'.format(name)
+    yml_config = 'project:\n    name: {}\n'.format(name)
     f_yml.write(yml_config)
 
     click.echo("Your project is now initialized for use with CumulusCI")

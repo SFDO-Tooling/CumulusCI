@@ -33,7 +33,7 @@ CHECK_DEPLOY_STATUS = '''<?xml version="1.0" encoding="utf-8"?>
   <soap:Body>
     <checkDeployStatus xmlns="http://soap.sforce.com/2006/04/metadata">
       <asyncProcessId>%(process_id)s</asyncProcessId>
-      <includeDetails>true</includeDetails>
+      <includeDetails>false</includeDetails>
     </checkDeployStatus>
   </soap:Body>
 </soap:Envelope>'''

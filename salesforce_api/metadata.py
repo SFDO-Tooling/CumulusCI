@@ -24,7 +24,7 @@ import soap_envelopes
 
 
 class BaseMetadataApiCall(object):
-    check_interval = 5
+    check_interval = 2
     soap_envelope_start = None
     soap_envelope_status = None
     soap_envelope_result = None
@@ -84,7 +84,7 @@ class BaseMetadataApiCall(object):
         session_id = self.task.org_config.access_token
         auth_envelope = envelope.replace('###SESSION_ID###', session_id)
         response = requests.post(self._build_endpoint_url(
-        ), headers=headers, data=auth_envelope, verify=False)
+        ), headers=headers, data=auth_envelope)
         faultcode = parseString(
             response.content).getElementsByTagName('faultcode')
         # refresh = False can be passed to prevent a loop if refresh fails
@@ -199,10 +199,16 @@ class BaseMetadataApiCall(object):
         return response
 
     def _process_response_status(self, response):
-        done = parseString(response.content).getElementsByTagName('done')
+        resp_xml = parseString(response.content)
+        done = resp_xml.getElementsByTagName('done')
         if done:
             if done[0].firstChild.nodeValue == 'true':
                 self._set_status('Done')
+            else:
+                state_detail = resp_xml.getElementsByTagName('stateDetail')
+                if state_detail:
+                    log = state_detail[0].firstChild.nodeValue
+                    self._set_status('InProgress', log)
         else:
             # If no done element was in the xml, fail logging the entire SOAP
             # envelope as the log
@@ -214,9 +220,10 @@ class BaseMetadataApiCall(object):
             level = 'info'
         logger = getattr(self.task.logger, level)
         self.status = status
-        logger('STATUS: {}'.format(status))
         if log:
-            logger('LOG: {}'.format(log))
+            logger('[{}]: {}'.format(status, log))
+        else:
+            logger('[{}]'.format(status))
 
 
 class ApiRetrieveUnpackaged(BaseMetadataApiCall):
@@ -319,9 +326,10 @@ class ApiDeploy(BaseMetadataApiCall):
             self.purge_on_delete = 'true'
         # Disable purge on delete entirely for non sandbox or DE orgs as it is
         # not allowed
-        org_type = self.task.oauth.get('org_type')
-        if org_type.find('Sandbox') == -1 and org_type != 'Developer Edition':
-            self.purge_on_delete = 'false'
+        # FIXME: To implement this, the task needs to be able to provide the org_type
+        #org_type = self.task.org_config.org_type
+        #if org_type.find('Sandbox') == -1 and org_type != 'Developer Edition':
+        #    self.purge_on_delete = 'false'
 
     def _build_envelope_start(self):
         if self.package_zip:
@@ -342,7 +350,7 @@ class ApiDeploy(BaseMetadataApiCall):
         # Only done responses should be passed so we need to handle any status
         # related to done
         if status in ['Succeeded', 'SucceededPartial']:
-            self._set_status('Succeeded')
+            self._set_status('Success', status)
         else:
             # If failed, parse out the problem text and set as the log
             problems = parseString(

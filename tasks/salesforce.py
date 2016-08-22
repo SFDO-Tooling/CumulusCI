@@ -1,4 +1,8 @@
+import base64
 import logging
+import os
+import tempfile
+import zipfile
 
 from core.tasks import BaseTask
 from salesforce_api.metadata import ApiDeploy
@@ -27,9 +31,12 @@ class BaseSalesforceTask(BaseTask):
 class BaseSalesforceMetadataApiTask(BaseSalesforceTask):
     api_class = None
     name = 'BaseSalesforceMetadataApiTask'
+
+    def _get_api(self):
+        return self.api_class(self)
    
     def _run_task(self):
-        api = self.api_class(self)
+        api = self._get_api()
         if self.options:
             return api(**options)
         else:
@@ -37,6 +44,7 @@ class BaseSalesforceMetadataApiTask(BaseSalesforceTask):
 
 class GetInstalledPackages(BaseSalesforceMetadataApiTask):
     api_class = ApiRetrieveInstalledPackages
+    name = 'GetInstalledPackages'
 
 class RetrieveUnpackaged(BaseSalesforceMetadataApiTask):
     api_class = ApiRetrieveUnpackaged
@@ -46,3 +54,30 @@ class RetrievePackaged(BaseSalesforceMetadataApiTask):
 
 class Deploy(BaseSalesforceMetadataApiTask):
     api_class = ApiDeploy
+    task_options = {
+        'path': {
+            'description': 'The path to the metadata source to be deployed',
+            'required': True,
+        }
+    }
+
+    def _get_api(self):
+        path = self.task_config['options']['path']
+
+        # Build the zip file
+        zip_file = tempfile.TemporaryFile()
+        zipf = zipfile.ZipFile(zip_file, 'w', zipfile.ZIP_DEFLATED)
+        
+        os.chdir(path)
+        for root, dirs, files in os.walk('.'):
+            for f in files:
+                zip_path = os.path.join(root, f)
+                zipf.write(os.path.join(root, f))
+        zipf.close()
+        zip_file.seek(0)
+        package_zip = base64.b64encode(zip_file.read())
+
+        return self.api_class(self, package_zip)
+        
+
+    
