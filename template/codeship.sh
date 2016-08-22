@@ -20,6 +20,7 @@ fi
 # Run the codeship.sh from CumulusCI from BASEDIR
 cd $BASEDIR
 export CUMULUSCI_PATH=../CumulusCI
+pip install -r $CUMULUSCI_PATH/requirements.txt
 bash $CUMULUSCI_PATH/ci/codeship.sh
 
 # Exit based on exit status of CumulusCI's codeship.sh
