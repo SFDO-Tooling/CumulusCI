@@ -7,22 +7,16 @@ tasks:
         class_path: tasks.salesforce.Deploy
         options:
             path: src
-    deploy_pre:
-        description: Deploys the unpackaged/pre directory of the repository to the org
-        class_path: tasks.salesforce.Deploy
-        options:
-            path: unpackaged/pre
-    deploy_post:
-        description: Deploys the unpackaged/post directory of the repository to the org
-        class_path: tasks.salesforce.Deploy
-        options:
-            path: unpackaged/post
     retrieve_unpackaged:
         description: Retrieves unpackaged metadata from the org
-        class_path: tasks.salesforce.RetrievePackaged
+        class_path: tasks.salesforce.RetrieveUnpackaged
+        options:
+            path: unpackaged
     retrieve_packaged:
         description: Retrieves the packaged metadata from the org
         class_path: tasks.salesforce.RetrievePackaged
+        options:
+            path: packaged
 
 flows:
     update_dependencies:
