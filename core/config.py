@@ -316,9 +316,9 @@ class YamlGlobalConfig(BaseGlobalConfig):
 
         # Load the local config
         if self.config_global_local_path:
-            config = yaml.load(open(config_global_local_path, 'r'))
+            config = yaml.load(open(self.config_global_local_path, 'r'))
             self.config_global_local = config
-            merge_yaml.append(config)
+            merge_yaml.append(self.config_global_local_path)
 
         self.config = hiyapyco.load(*merge_yaml, method=hiyapyco.METHOD_MERGE)
        
