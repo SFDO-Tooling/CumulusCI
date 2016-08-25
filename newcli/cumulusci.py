@@ -223,22 +223,76 @@ def task_list(config):
 @pass_config
 def task_info(config, task_name):
     check_project_config(config)
-    task_info = getattr(config.project_config, 'tasks__{}'.format(task_name))
-    click.echo(task_info)
+    task_config = getattr(config.project_config, 'tasks__{}'.format(task_name))
+    class_path = task_config.get('class_path')
+    task_class = import_class(class_path)
+    
+    # General task info
+    click.echo('Description: {}'.format(task_config.get('description')))
+    click.echo('Class: {}'.format(task_config.get('class_path')))
+
+    # Default options
+    default_options = task_config.get('options', {})
+    if default_options:
+        click.echo('')
+        click.echo('Default Option Values')
+        for key, value in default_options.items():
+            click.echo('    {}: {}'.format(key, value))
+
+    # Task options
+    task_options = getattr(task_class, 'task_options', {})
+    if task_options:
+        click.echo('')
+        click.echo('Options:')
+        for key, option in task_options.items():
+            if option.get('required'):
+                click.echo('  * {}: {}'.format(key, option.get('description')))
+        for key, option in getattr(task_class, 'task_options', {}).items():
+            if not option.get('required'):
+                click.echo('    {}: {}'.format(key, option.get('description')))
 
 @click.command(name='run', help="Runs a task")
 @click.argument('task_name')
 @click.argument('org_name')
+@click.option('-o', nargs=2, multiple=True)
 @pass_config
-def task_run(config, task_name, org_name):
+def task_run(config, task_name, org_name, o):
+    # Check environment
     check_keychain(config)
+
+    # Get necessary configs
     org_config = config.project_config.get_org(org_name)
     task_config = getattr(config.project_config, 'tasks__{}'.format(task_name))
+
+    # Get the class to look up options
     class_path = task_config.get('class_path')
     task_class = import_class(class_path)
+
+    # Parse command line options and add to task config
+    if o:
+        if 'options' not in task_config:
+            task_config['options'] = {}
+        for option in o:
+            name = option[0]
+            value = option[1]
+
+            # Validate the option
+            if name not in task_class.task_options:
+                raise click.UsageError(
+                    'Option "{}" is not available for task {}'.format(
+                        name,
+                        task_name,
+                    )
+                )
+
+            # Override the option in the task config
+            task_config['options'][name] = value
+    
+    # Create and run the task    
     task = task_class(config.project_config, task_config, org_config)
     click.echo(task())
 
+# Add the task commands to the task group
 task.add_command(task_list)
 task.add_command(task_info)
 task.add_command(task_run)
