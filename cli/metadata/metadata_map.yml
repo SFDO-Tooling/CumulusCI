@@ -179,3 +179,7 @@ workflows:
       extension: workflow
       options:
             item_xpath: './sf:rules'
+flexipages:
+    - type: FlexiPage
+      class: MetadataFilenameParser
+      extension: flexipage

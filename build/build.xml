@@ -50,7 +50,7 @@
     <property name="cumulusci.package.name.managed" value="${cumulusci.package.name}" />
     <property name="cumulusci.package.installClass" value="" />
     <property name="cumulusci.package.uninstallClass" value="" />
-    <property name="cumulusci.package.apiVersion" value="31.0" />
+    <property name="cumulusci.package.apiVersion" value="37.0" />
     <property name="cumulusci.maxPoll.test" value="400" />
     <property name="cumulusci.maxPoll.notest" value="200" />
     <property name="cumulusci.maxPoll.managed" value="400" />
@@ -236,6 +236,7 @@
     <!-- !!!WARNING!!!: DO NOT run this against a real production org as it will delete everything.  It is designed to clear the target org to ensure a clean build test. -->
     <target name="deployCI">
         <echo>============================================================================</echo>
+        <antcall target="bindOrg" />
         <antcall target="preDeployCI" />
 
         <!-- Create the unmanaged package if it doesn't already exist -->
@@ -287,6 +288,7 @@
         <antcall target="uninstallUnpackagedPost" />
 
         <antcall target="postDeployCI" />
+        <antcall target="releaseOrg" />
     </target>
 
     <!-- deployCIPackageOrg: Does a full build against the package org.  This differs from deployCI in that it uses destroyStaleMetadata instead of uninstall.
@@ -478,6 +480,32 @@
     </target>
 
     <!-- Utility Build Targets -->
+
+    <target name="bindOrg">
+        <!-- binds an org to a 'build transaction' using the org credentials as identifier for the org.
+
+        You need an org to build and test a feature branch. The total build process consists of multiple steps and
+        multiple force.com migration tool calls against the org some of them changing the state of the org. If
+        another build would start using that org during his build process, both builds would fail since the org
+        status would become indeterminate. If you 'bind the org' to your build at the start of your build process,
+        that would stop the other build to use 'your' org. You have to release the org though after you have used it.
+
+        This only is needed when you do not have exclusive access to the org. So only on CI systems in general.
+         -->
+        <exec executable="cumulusci" failonerror="true">
+            <arg value="ci" />
+            <arg value="bind_org" />
+        </exec>
+    </target>
+
+    <target name="releaseOrg">
+        <!-- releases the org by updating the commit context -->
+        <!-- TODO: call the correct command through the CLI -->
+        <exec executable="cumulusci" failonerror="true">
+            <arg value="ci" />
+            <arg value="release_org" />
+        </exec>
+    </target>
 
     <target name="destroyStaleMetadata">
         <echo>----------------------------------------------------------------------------</echo>

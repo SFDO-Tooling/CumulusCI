@@ -1,7 +1,0 @@
-cumulusci.py
-cumulusci.egg-info/PKG-INFO
-cumulusci.egg-info/SOURCES.txt
-cumulusci.egg-info/dependency_links.txt
-cumulusci.egg-info/entry_points.txt
-cumulusci.egg-info/requires.txt
-cumulusci.egg-info/top_level.txt

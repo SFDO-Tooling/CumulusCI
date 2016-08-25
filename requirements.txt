@@ -1,3 +1,4 @@
+-e ./ci
 -e ./cli
 cement==2.6.2
 click==6.2

@@ -160,7 +160,15 @@ if [ $BUILD_TYPE == "master" ]; then
         #cd /home/rof/ 
         #cp -a clone clone2
         #cd clone2
+
+        #TODO: bind org to build
+        # pseudo code:
+        # if org is available
+        # bind the org
+        # else
+        # wait until org is available
         runAntTarget deployCI
+        #TODO: unbind org to build
         if [[ $? != 0 ]]; then exit 1; fi
 
     else
@@ -300,7 +308,7 @@ if [ $BUILD_TYPE == "master" ]; then
         echo "Creating GitHub Release $PACKAGE_VERSION"
         echo "-----------------------------------------------------------------"
         echo
-        python $CUMULUSCI_PATH/ci/github/create_release.py
+        python $CUMULUSCI_PATH/ci/github_commands/create_release.py
 
         # Add release notes
         echo
@@ -311,7 +319,7 @@ if [ $BUILD_TYPE == "master" ]; then
         pip install --upgrade PyGithub==1.25.1
         export CURRENT_REL_TAG=`grep CURRENT_REL_TAG release.properties | sed -e 's/CURRENT_REL_TAG=//g'`
         echo "Generating release notes for tag $CURRENT_REL_TAG"
-        python $CUMULUSCI_PATH/ci/github/release_notes.py
+        python $CUMULUSCI_PATH/ci/github_commands/release_notes.py
     
     
         # Merge master commit to all open feature branches
@@ -320,7 +328,7 @@ if [ $BUILD_TYPE == "master" ]; then
         echo "Merge commit to all open feature branches"
         echo "-----------------------------------------------------------------"
         echo
-        python $CUMULUSCI_PATH/ci/github/merge_master_to_feature.py
+        python $CUMULUSCI_PATH/ci/github_commands/merge_master_to_feature.py
     else
         echo
         echo "-----------------------------------------------------------------"
