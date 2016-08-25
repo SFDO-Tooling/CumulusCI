@@ -33,12 +33,14 @@ class SalesforceOAuth2(object):
         response = requests.post(url, headers=HTTP_HEADERS, data=data)
         return response
 
-    def get_authorize_url(self, scope):
+    def get_authorize_url(self, scope, prompt=None):
         url = self.auth_site + '/services/oauth2/authorize'
         url += '?response_type=code'
         url += '&client_id={}'.format(self.client_id)
         url += '&redirect_uri={}'.format(self.callback_url)
         url += '&scope={}'.format(quote(scope))
+        if prompt:
+            url += '&prompt={}'.format(quote(prompt))
         return url
 
     def get_token(self, code):
@@ -137,7 +139,7 @@ class CaptureSalesforceOAuth(object):
         )
 
     def _get_redirect_url(self):
-        url = self.oauth_api.get_authorize_url(self.scope)
+        url = self.oauth_api.get_authorize_url(self.scope, prompt='login')
         response = requests.get(url)
         self._check_response(response)
         return url
