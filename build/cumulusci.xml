@@ -1051,6 +1051,9 @@ project.setProperty("downgradePackage", result);
               <delete dir="@{stagedir}" />
               <copy todir="@{stagedir}">
                 <fileset dir="@{subdir}"/>
+                <filtermapper>
+                  <replacestring from="___NAMESPACE___" to="@{nsprefix}"/>
+                </filtermapper>
               </copy>
               <replaceNamespacePrefix dir="@{stagedir}" nsprefix="@{nsprefix}" />
                 
