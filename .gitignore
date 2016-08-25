@@ -1,2 +1,4 @@
 *.py[cod]
 .*.swp
+venv/
+
