@@ -117,12 +117,44 @@ class TestBaseConfig(unittest.TestCase):
         self.assertEquals(config.foo, 'bar')
 
 
+@mock.patch('os.path.expanduser')
 class TestYamlGlobalConfig(unittest.TestCase):
 
-    def test_load_global_config(self):
+    def setUp(self):
+        self.tempdir_home = tempfile.mkdtemp()
+
+    def _create_global_config_local(self, content):
+        global_local_dir = os.path.join(
+            self.tempdir_home,
+            '.cumulusci',
+        )
+        os.makedirs(global_local_dir)
+        filename = os.path.join(global_local_dir,
+                                YamlGlobalConfig.config_filename)
+        self._write_file(filename, content)
+
+    def _write_file(self, filename, content):
+        f = open(filename, 'w')
+        f.write(content)
+        f.close()
+
+    def test_load_global_config_no_local(self, mock_class):
+        mock_class.return_value = self.tempdir_home
         config = YamlGlobalConfig()
         f_expected_config = open(__location__ + '/../../cumulusci.yml', 'r')
         expected_config = yaml.load(f_expected_config)
+        self.assertEquals(config.config, expected_config)
+
+    def test_load_global_config_with_local(self, mock_class):
+        mock_class.return_value = self.tempdir_home
+
+        local_yaml = 'tasks:\n    newtesttask:\n        description: test description'
+        self._create_global_config_local(local_yaml)
+        config = YamlGlobalConfig()
+        f_expected_config = open(__location__ + '/../../cumulusci.yml', 'r')
+        expected_config = yaml.load(f_expected_config)
+        expected_config['tasks']['newtesttask'] = {}
+        expected_config['tasks']['newtesttask']['description'] = 'test description'
         self.assertEquals(config.config, expected_config)
 
 

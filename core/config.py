@@ -281,6 +281,7 @@ class YamlProjectConfig(BaseProjectConfig):
 
        
 class YamlGlobalConfig(BaseGlobalConfig):
+    config_filename = 'cumulusci.yml'
     config_local_dir = '.cumulusci'
     project_config_class = YamlProjectConfig
 
@@ -300,7 +301,7 @@ class YamlGlobalConfig(BaseGlobalConfig):
    
         config_path = os.path.join(
             directory,
-            'cumulusci.yml',
+            self.config_filename,
         ) 
         if not os.path.isfile(config_path):
             return None
@@ -324,7 +325,7 @@ class YamlGlobalConfig(BaseGlobalConfig):
        
     @property
     def config_global_path(self):
-        return os.path.join( __location__, '..', 'cumulusci.yml')
+        return os.path.join( __location__, '..', self.config_filename)
 
     def _load_global_config(self):
         """ Loads the configuration for the project """
