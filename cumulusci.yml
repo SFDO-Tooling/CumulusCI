@@ -1,3 +1,6 @@
+cumulusci:
+    keychain: core.keychain.EncryptedProjectKeychain
+
 tasks:
     get_installed_packages:
         description: Retrieves a list of the currently installed managed package namespaces and their versions

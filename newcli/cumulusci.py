@@ -5,12 +5,13 @@ import click
 
 from core.config import YamlGlobalConfig
 from core.config import YamlProjectConfig
-from core.config import EncryptedProjectKeychain
+from core.keychain import EncryptedProjectKeychain
 from core.config import ConnectedAppOAuthConfig
 from core.config import OrgConfig
 from core.exceptions import KeychainConnectedAppNotFound
 from core.exceptions import KeychainKeyNotFound
 from core.exceptions import ProjectConfigNotFound
+from core.utils import import_class
 
 from oauth.salesforce import CaptureSalesforceOAuth
 
@@ -36,7 +37,8 @@ class CliConfig(object):
     def _load_keychain(self):
         self.keychain_key = os.environ.get('CUMULUSCI_KEY')
         if self.project_config and self.keychain_key:
-            self.keychain = EncryptedProjectKeychain(self.project_config, self.keychain_key)
+            self.keychain_class = import_class(self.project_config.cumulusci__keychain)
+            self.keychain = self.keychain_class(self.project_config, self.keychain_key)
             self.project_config.set_keychain(self.keychain)
 
 pass_config = click.make_pass_decorator(CliConfig, ensure=True)
@@ -202,13 +204,6 @@ org.add_command(org_info)
 org.add_command(org_list)
 org.add_command(org_connected_app)
 org.add_command(org_config_connected_app)
-
-def import_class(path):
-    components = path.split('.')
-    module = components[:-1]
-    module = '.'.join(module)
-    mod = __import__(module, fromlist=[components[-1]])
-    return getattr(mod, components[-1])
 
 # Commands for group: task
 @click.command(name='list', help="List available tasks for the current context")
