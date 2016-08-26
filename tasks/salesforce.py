@@ -26,7 +26,7 @@ class BaseSalesforceTask(BaseTask):
         raise NotImplementedError('Subclasses should provide their own implementation')
 
     def _refresh_oauth_token(self):
-        self.org_config.refresh_oauth_token(self.project_config.keychain.app)
+        self.org_config.refresh_oauth_token(self.project_config.keychain.get_connected_app())
 
 class BaseSalesforceMetadataApiTask(BaseSalesforceTask):
     api_class = None

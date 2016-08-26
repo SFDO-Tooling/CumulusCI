@@ -106,6 +106,53 @@ class BaseProjectConfig(BaseTaskFlowConfig):
     def config_global(self):
         return self.global_config_obj.config_global
 
+    @property
+    def repo_root(self):
+        root = None
+        pwd = os.getcwd().split(os.sep)
+        while pwd:
+            if os.path.isdir(os.path.join(os.sep, os.path.join(*pwd),'.git')):
+                break
+            else:
+                pwd.pop()
+        if pwd:
+            return os.path.join(os.sep, os.path.join(*pwd))
+
+    @property
+    def repo_name(self):
+        if not self.repo_root:
+            return
+
+        in_remote_origin = False
+        f = open(os.path.join(self.repo_root, '.git', 'config'), 'r')
+        for line in f.read().splitlines():
+            line = line.strip()
+            if line == '[remote "origin"]':
+                in_remote_origin = True
+                continue
+            if line.find('url =') != -1:
+                line_parts = line.split('/')
+                return line_parts[-1]
+
+    @property
+    def config_project_path(self):
+        if not self.repo_root:
+            return
+        path = os.path.join(self.repo_root, self.config_filename)
+        if os.path.isfile(path):
+            return path
+
+    @property
+    def project_local_dir(self):
+        path = os.path.join(
+            os.path.expanduser('~'),
+            self.global_config_obj.config_local_dir,
+            self.repo_name,
+        )
+        if not os.path.isdir(path):
+            os.makedirs(path)
+        return path
+
     def set_keychain(self, keychain):
         self.keychain = keychain
 
@@ -133,6 +180,8 @@ class BaseGlobalConfig(BaseTaskFlowConfig):
     """ Base class for the global config which contains all configuration not specific to projects """
     project_config_class = BaseProjectConfig
     
+    config_local_dir = '.cumulusci'
+
     def list_projects(self):
         """ Returns a list of project names """
         raise NotImplementedError('Subclasses must provide an implementation')
@@ -180,52 +229,6 @@ class FlowConfig(BaseConfig):
 class YamlProjectConfig(BaseProjectConfig):
     config_filename = 'cumulusci.yml'
 
-    @property
-    def repo_root(self):
-        root = None
-        pwd = os.getcwd().split(os.sep)
-        while pwd:
-            if os.path.isdir(os.path.join(os.sep, os.path.join(*pwd),'.git')):
-                break
-            else:
-                pwd.pop()
-        if pwd:
-            return os.path.join(os.sep, os.path.join(*pwd))
-
-    @property
-    def repo_name(self):
-        if not self.repo_root:
-            return
-
-        in_remote_origin = False
-        f = open(os.path.join(self.repo_root, '.git', 'config'), 'r')
-        for line in f.read().splitlines():
-            line = line.strip()
-            if line == '[remote "origin"]':
-                in_remote_origin = True
-                continue
-            if line.find('url =') != -1:
-                line_parts = line.split('/')
-                return line_parts[-1]
-
-    @property
-    def config_project_path(self):
-        if not self.repo_root:
-            return
-        path = os.path.join(self.repo_root, self.config_filename)
-        if os.path.isfile(path):
-            return path
-
-    @property
-    def project_local_dir(self):
-        path = os.path.join(
-            os.path.expanduser('~'),
-            self.global_config_obj.config_local_dir,
-            self.repo_name,
-        )
-        if not os.path.isdir(path):
-            os.makedirs(path)
-        return path
 
     @property
     def config_project_local_path(self):

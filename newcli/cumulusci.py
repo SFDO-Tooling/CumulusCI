@@ -44,7 +44,7 @@ pass_config = click.make_pass_decorator(CliConfig, ensure=True)
 
 def check_connected_app(config):
     check_keychain(config)
-    if not config.keychain.app:
+    if not config.keychain.get_connected_app():
         raise click.UsageError("Please use the 'org config_connected_app' command to configure the OAuth Connected App to use for this project's keychain")
         
 
@@ -138,7 +138,7 @@ def org_browser(config, org_name):
     check_connected_app(config)
 
     org_config = config.project_config.get_org(org_name)
-    org_config.refresh_oauth_token(config.keychain.app)
+    org_config.refresh_oauth_token(config.keychain.get_connected_app())
     
     webbrowser.open(org_config.start_url)
 
@@ -149,10 +149,12 @@ def org_browser(config, org_name):
 def org_connect(config, org_name, sandbox):
     check_connected_app(config)
 
+    connected_app = config.keychain.get_connected_app()
+    
     oauth_capture = CaptureSalesforceOAuth(
-        client_id = config.keychain.app.client_id,
-        client_secret = config.keychain.app.client_secret,
-        callback_url = config.keychain.app.callback_url,
+        client_id = connected_app.client_id,
+        client_secret = connected_app.client_secret,
+        callback_url = connected_app.callback_url,
         sandbox = sandbox,
         scope = 'web full refresh_token'
     ) 
@@ -166,7 +168,7 @@ def org_connect(config, org_name, sandbox):
 @pass_config
 def org_info(config, org_name):
     check_connected_app(config)
-    click.echo(getattr(config.keychain, 'orgs__{}'.format(org_name)).config)
+    click.echo(config.keychain.get_org(org_name).config)
 
 @click.command(name='list', help="Lists the connected orgs for the current project")
 @pass_config
@@ -179,7 +181,7 @@ def org_list(config):
 @pass_config
 def org_connected_app(config):
     check_connected_app(config)
-    click.echo(config.keychain.app.config)
+    click.echo(config.keychain.get_connected_app().config)
 
 
 @click.command(name='config_connected_app', help="Configures the connected app used for connecting to Salesforce orgs")
