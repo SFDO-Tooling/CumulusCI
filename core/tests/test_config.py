@@ -124,6 +124,7 @@ class TestYamlGlobalConfig(unittest.TestCase):
         self.tempdir_home = tempfile.mkdtemp()
 
     def _create_global_config_local(self, content):
+        self.tempdir_home = tempfile.mkdtemp()
         global_local_dir = os.path.join(
             self.tempdir_home,
             '.cumulusci',
@@ -145,11 +146,20 @@ class TestYamlGlobalConfig(unittest.TestCase):
         expected_config = yaml.load(f_expected_config)
         self.assertEquals(config.config, expected_config)
 
-    def test_load_global_config_with_local(self, mock_class):
+    def test_load_global_config_empty_local(self, mock_class):
+        self._create_global_config_local('')
         mock_class.return_value = self.tempdir_home
 
+        config = YamlGlobalConfig()
+        f_expected_config = open(__location__ + '/../../cumulusci.yml', 'r')
+        expected_config = yaml.load(f_expected_config)
+        self.assertEquals(config.config, expected_config)
+
+    def test_load_global_config_with_local(self, mock_class):
         local_yaml = 'tasks:\n    newtesttask:\n        description: test description'
         self._create_global_config_local(local_yaml)
+        mock_class.return_value = self.tempdir_home
+
         config = YamlGlobalConfig()
         f_expected_config = open(__location__ + '/../../cumulusci.yml', 'r')
         expected_config = yaml.load(f_expected_config)

@@ -319,7 +319,8 @@ class YamlGlobalConfig(BaseGlobalConfig):
         if self.config_global_local_path:
             config = yaml.load(open(self.config_global_local_path, 'r'))
             self.config_global_local = config
-            merge_yaml.append(self.config_global_local_path)
+            if config:
+                merge_yaml.append(self.config_global_local_path)
 
         self.config = hiyapyco.load(*merge_yaml, method=hiyapyco.METHOD_MERGE)
        
@@ -432,35 +433,3 @@ class EncryptedProjectKeychain(BaseProjectKeychain):
         cipher, iv = self._get_cipher(iv)
         pickled = cipher.decrypt(encrypted_config[16:])
         return config_class(pickle.loads(pickled))
-
-class HomeDirLocalConfig(BaseGlobalConfig):
-    parent_dir_name = '.cumulusci'
-
-    def __init__(self):
-        self.parent_dir = os.path.join(os.path.expanduser('~'), self.parent_dir_name)
-
-    def _get_projects_path(self):
-        path = '{0}'.format(
-            os.path.join(
-                os.path.expanduser('~'), 
-                self.parent_dir_name, 
-            )
-        )
-        return path
-
-    def list_projects(self):
-        path = self._get_projects_path()
-        projects = []
-        for item in os.path.listdir(path):
-            if not os.path.isdir(os.path.join(path, item)):
-                continue
-            projects.append(item)
-        return projects
-                
-    def get_project(self, project_name):
-        path = self.get_projects_path()
-        path = os.path.join(path, project_name)
-
-        if not os.path.isdir(os.path.join(path, item)):
-            self._create_project(project_name)
-
