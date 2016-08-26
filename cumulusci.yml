@@ -1,5 +1,5 @@
 cumulusci:
-    keychain: core.keychain.EncryptedProjectKeychain
+    keychain: core.keychain.EncryptedFileProjectKeychain
 
 tasks:
     get_installed_packages:

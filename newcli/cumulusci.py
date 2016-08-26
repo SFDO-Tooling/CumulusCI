@@ -5,7 +5,6 @@ import click
 
 from core.config import YamlGlobalConfig
 from core.config import YamlProjectConfig
-from core.keychain import EncryptedProjectKeychain
 from core.config import ConnectedAppOAuthConfig
 from core.config import OrgConfig
 from core.exceptions import KeychainConnectedAppNotFound
