@@ -10,6 +10,16 @@ tasks:
         class_path: tasks.salesforce.Deploy
         options:
             path: src
+    deploy_pre:
+        description: Deploys all metadata bundles under unpackaged/pre/
+        class_path: tasks.salesforce.DeployBundles
+        options:
+            path: unpackaged/pre
+    deploy_post:
+        description: Deploys all metadata bundles under unpackaged/post/
+        class_path: tasks.salesforce.DeployBundles
+        options:
+            path: unpackaged/post
     retrieve_unpackaged:
         description: Retrieves unpackaged metadata from the org
         class_path: tasks.salesforce.RetrieveUnpackaged
@@ -22,11 +32,11 @@ tasks:
             path: packaged
 
 flows:
-    update_dependencies:
-        description: Updates all configured dependencies in the target org
+    deploy_dev_org:
+        description: Updates deploys the unpackaged/pre/account_record_types followed by src/
         tasks:
-            - get_installed_packages
-
+            - task: deploy_pre
+            - task: deploy
 project:
     name:
     namespace:

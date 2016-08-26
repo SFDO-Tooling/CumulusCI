@@ -312,8 +312,20 @@ def flow_info(config, flow_name):
 @click.argument('org_name')
 @pass_config
 def flow_run(config, flow_name, org_name):
+    # Check environment
     check_keychain(config)
-    pass
+
+    # Get necessary configs
+    org_config = config.project_config.get_org(org_name)
+    flow_config = getattr(config.project_config, 'flows__{}'.format(flow_name))
+
+    # Get the class to look up options
+    class_path = flow_config.get('class_path', 'core.flows.BaseFlow')
+    flow_class = import_class(class_path)
+
+    # Create and run the flow 
+    flow = flow_class(config.project_config, flow_config, org_config)
+    click.echo(flow())
 
 flow.add_command(flow_list)
 flow.add_command(flow_info)

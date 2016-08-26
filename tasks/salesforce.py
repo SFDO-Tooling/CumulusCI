@@ -61,13 +61,16 @@ class Deploy(BaseSalesforceMetadataApiTask):
         }
     }
 
-    def _get_api(self):
-        path = self.task_config['options']['path']
+    def _get_api(self, path=None):
+        if not path:
+            path = self.task_config['options']['path']
 
         # Build the zip file
         zip_file = tempfile.TemporaryFile()
         zipf = zipfile.ZipFile(zip_file, 'w', zipfile.ZIP_DEFLATED)
-        
+       
+        pwd = os.getcwd() 
+
         os.chdir(path)
         for root, dirs, files in os.walk('.'):
             for f in files:
@@ -77,7 +80,38 @@ class Deploy(BaseSalesforceMetadataApiTask):
         zip_file.seek(0)
         package_zip = base64.b64encode(zip_file.read())
 
-        return self.api_class(self, package_zip)
-        
+        os.chdir(pwd)
 
+        return self.api_class(self, package_zip)
+
+class DeployBundles(Deploy):
+    task_options = {
+        'path': {
+            'description': 'The path to the parent directory containing the metadata bundles directories',
+            'required': True,
+        }
+    }
     
+    def _run_task(self):
+        path = self.task_config['options']['path']
+        pwd = os.getcwd()
+
+        path = os.path.join(pwd, path)
+
+        self.logger.info('Deploying all metadata bundles in path {}'.format(path))
+
+        for item in os.listdir(path):
+            item_path = os.path.join(path, item)
+            if not os.path.isdir(item_path):
+                continue
+            
+            self.logger.info('Deploying bundle: {}'.format(item))
+
+            self._deploy_bundle(item_path)
+
+    def _deploy_bundle(self, path):
+        api = self._get_api(path)
+        if self.options:
+            return api(**options)
+        else:
+            return api()
