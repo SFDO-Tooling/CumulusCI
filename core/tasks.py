@@ -19,4 +19,4 @@ class BaseTask(object):
         pass
 
     def __call__(self):
-        raise NotImplementedError('Subclasses should provide their own implementation')
+        return

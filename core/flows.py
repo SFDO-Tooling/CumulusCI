@@ -7,7 +7,8 @@ class BaseFlow(object):
         self.project_config = project_config
         self.flow_config = flow_config
         self.org_config = org_config
-        self.responses = {}
+        self.responses = [] 
+        self.tasks = []
         self._init_logger()
         self._init_flow()
     
@@ -27,7 +28,7 @@ class BaseFlow(object):
     def __call__(self):
         
         for flow_task_config in self.flow_config.get('tasks',{}):
-            self.responses[flow_task_config['task']] = self._run_task(flow_task_config)
+            self._run_task(flow_task_config)
 
     def _run_task(self, flow_task_config):
         task_config = self.project_config.get_task(flow_task_config['task'])
@@ -50,4 +51,7 @@ class BaseFlow(object):
             task_config, 
             self.org_config
         )
-        return task()
+        self.tasks.append(task)
+        response = task()
+        self.responses.append(response)
+        return response
