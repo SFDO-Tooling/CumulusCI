@@ -102,7 +102,10 @@ class GithubChangeNotesProvider(BaseChangeNotesProvider, ProviderGithubApiMixin)
     @property
     def last_tag_info(self):
         if not hasattr(self, '_last_tag_info'):
-            self._last_tag_info = self._get_tag_info(self.last_tag)
+            if self.last_tag:
+                self._last_tag_info = self._get_tag_info(self.last_tag)
+            else:
+                self._last_tag_info = None
         return self._last_tag_info
 
     @property
@@ -138,7 +141,12 @@ class GithubChangeNotesProvider(BaseChangeNotesProvider, ProviderGithubApiMixin)
             self._get_version_from_tag(self.current_tag))
 
         versions = []
-        for ref in self.call_api('/git/refs/tags/{}'.format(self.prefix_prod)):
+        try:
+            refs = self.call_api('/git/refs/tags/{}'.format(self.prefix_prod))
+        except GithubApiNotFoundError:
+            # no production tags exist
+            refs = []
+        for ref in refs:
             ref_prefix = 'refs/tags/{}'.format(self.prefix_prod)
 
             # If possible to match a version number, extract the version number
@@ -153,9 +161,6 @@ class GithubChangeNotesProvider(BaseChangeNotesProvider, ProviderGithubApiMixin)
             versions.sort()
             versions.reverse()
             return '%s%s' % (self.prefix_prod, versions[0])
-
-        raise LastReleaseTagNotFoundError(
-            'Could not locate the last release tag')
 
     def _get_pull_requests(self):
         """ Gets all pull requests from the repo since we can't do a filtered
@@ -187,7 +192,14 @@ class GithubChangeNotesProvider(BaseChangeNotesProvider, ProviderGithubApiMixin)
 
         merged_date = datetime.strptime(merged_date, "%Y-%m-%dT%H:%M:%SZ")
 
-        if merged_date < self.start_date and merged_date > self.end_date:
-            return True
+        # include PRs before current tag
+        if merged_date < self.start_date:
+            if self.end_date:
+                # include PRs after last tag
+                if merged_date > self.end_date:
+                    return True
+            else:
+                # no last tag, include all PRs before current tag
+                return True
 
         return False
