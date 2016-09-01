@@ -10,7 +10,7 @@ from time import sleep
 from release_notes.generator import GithubReleaseNotesGenerator
 from release_notes.generator import PublishingGithubReleaseNotesGenerator
 
-from orgmanagement.bind_org import bind_org, release_org
+from orgmanagement.bind_org import BindBuildToOrgCommand
 
 # Exceptions
 class AntTargetException(Exception):
@@ -84,6 +84,9 @@ class Config(object):
         self.oauth_refresh_token = self.get_env_var('REFRESH_TOKEN')
 
         # Github Credentials
+        self.github_client_id = self.get_env_var('GITHUB_CLIENT_ID')
+        self.github_client_secret = self.get_env_var('GITHUB_CLIENT_SECRET')
+
         self.github_org_name = self.get_env_var('GITHUB_ORG_NAME')
         self.github_repo_name = self.get_env_var('GITHUB_REPO_NAME')
         self.github_username = self.get_env_var('GITHUB_USERNAME')
@@ -318,13 +321,12 @@ def ci_deploy(config, debug_logdir, verbose):
 @pass_config
 def ci_bind_org(config, orgname, sandbox, orgpool_name,
                 wait, retry_attempts, sleeping_time):
-    orgname = get_arg(orgname, config.sf_username) #TODO make this work for org pools
-
-    github_storage_config = get_env_github(config)
-    github_storage_config['SHA'] = config.commit
-
-    bind_org(orgname, github_storage_config, sandbox=sandbox, wait=wait, retry_attempts=retry_attempts,
-             sleeping_time=sleeping_time)
+    command = BindBuildToOrgCommand(orgname, config['commit'], config)
+    command.retry_attempts = retry_attempts
+    command.sandbox = sandbox
+    command.sleeping_time = sleeping_time
+    command.wait = wait
+    command.execute()
 
 
 #command ci release_org

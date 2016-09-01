@@ -1,185 +1,188 @@
 import unittest
-import urllib
-import os
-import threading
-import time
+import yaml
+import base64
+import github
 
-from mock import patch, Mock, MagicMock
-
-from orgmanagement.bind_org import bind_org, OrgBoundException, release_org
+from mock import patch, call, MagicMock
+from orgmanagement.bind_org import BindBuildToOrgCommand, OrgBoundException, ReleaseOrgCommand, OrgManagementCommand
 
 
-class TestBindOrg(unittest.TestCase):
-
-    class RefData(object):
-
-        def __init__(self, ref, url, object):
-            self.ref = ref
-            self.url = url
-            self.object = object
-
-    class ObjectData(object):
-
-        def __init__(self, type, sha, url):
-            self.type = type
-            self.sha = sha
-            self.url = url
-
-    class ThreadOne(threading.Thread):
-
-        def __init__(self, event, testcase, mock_github):
-            threading.Thread.__init__(self)
-            self._event = event
-            self._testcase = testcase
-            self._mock_github = mock_github
-
-        def run(self):
-            ret_value = [TestBindOrg.RefData(ref="refs/tags/" + urllib.quote_plus(self._testcase._org_name),
-                                             url="https://api.github.com/repos/octocat/Hello-World/git/refs/tags/v0.0.1",
-                                             object=TestBindOrg.ObjectData(type="tag",
-                                                                           sha="940bd336248efae0f9ee5bc7b2d5c985887b16ac",
-                                                                           url="https://api.github.com/repos/octocat/Hello-World/git/tags/940bd336248efae0f9ee5bc7b2d5c985887b16ac"))
-                         ]
-            # step 1: bind the org
-            bind_org(self._testcase._org_name, self._testcase._github_config)
-            self._mock_github.return_value.get_organization.return_value.get_repo.return_value.create_git_ref\
-                .assert_called_with(
-                '/tags/' + urllib.quote_plus(self._testcase._org_name), self._testcase._sha)
-            # stub the outcome of the git_git_refs call so it looks like the org is bound
-            self._mock_github.return_value.get_organization.return_value.get_repo.return_value.get_git_refs.return_value = \
-                ret_value
-            # let the other thread know the org is bound
-            self._event.set()
-            # wait for some time
-            time.sleep(3)
-            # make the event available for reuse (yes I know, should spin a second one but how to let the other
-            # thread know)
-            self._event.clear()
-            # release the org
-            with patch('github.Github') as self._mock_github:
-                release_org(self._testcase._org_name, self._testcase._github_config)
-                # stub the outcome of the get_git_refs call so it looks the org is released
-                ret_value = []
-                self._mock_github.return_value.get_organization.return_value.get_repo.return_value.get_git_refs.return_value = \
-                    ret_value
-                # and let the rest of the world know we have released it
-                self._event.set()
-
-    class ThreadTwo(threading.Thread):
-
-        def __init__(self, event, testcase, mock_github):
-            threading.Thread.__init__(self)
-            self._event = event
-            self._testcase = testcase
-            self._mock_github = mock_github
-
-        def run(self):
-            # we start by waiting for the event
-            self._event.wait()
-            # as soon as we have received the event we try to bind the org and fail (hopefully)
-            self._testcase.assertRaises(OrgBoundException, bind_org, self._testcase._org_name,
-                                        self._testcase._github_config,
-                                        False,
-                                        False,
-                                        10, 60)
-            # waiting again
-            self._event.wait()
-            # bind the org and now it should work
-            bind_org(self._testcase._org_name, self._testcase._github_config)
-            # test if the ref is created
-            self._mock_github.return_value.get_organization.return_value.get_repo.return_value.create_git_ref\
-                .assert_called_with(
-                '/tags/' + urllib.quote_plus(self._testcase._org_name), self._testcase._sha)
+class TestBindBuildToOrg(unittest.TestCase):
 
     def setUp(self):
-        self._github_config = {'GITHUB_ORG_NAME': 'testgithuborg',
-                                'GITHUB_USERNAME': 'testuser',
-                                'GITHUB_PASSWORD': 'testpassword',
-                                'GITHUB_REPO_NAME': 'testrepo'}
-        self._sha = '12345'
-        self._org_name = 'user@blah.com'
+        self._config = {'GITHUB_ORG_NAME': 'testgithuborg',
+                        'GITHUB_USERNAME': 'testuser',
+                        'GITHUB_PASSWORD': 'testpassword',
+                        'GITHUB_REPO_NAME': 'testrepo'}
+        self._orgname = 'orgname'
+        self._build_id = '12345'
+
+    @patch('orgmanagement.bind_org.OrgManagementCommand.GitFileStorage')
+    def test_bind_build_to_unbound_org(self, mock_git_file_storage):
+        self._command = BindBuildToOrgCommand(self._orgname, self._build_id, self._config)
+        mock_git_file_storage.return_value.get_binding.return_value = None
+        self._command.execute()
+        mock_git_file_storage.return_value.bind_build_to_org.assert_called_with(self._orgname, self._build_id)
+
+    @patch('orgmanagement.bind_org.OrgManagementCommand.GitFileStorage')
+    def test_bind_build_to_bound_org(self, mock_git_file_storage):
+        self._command = BindBuildToOrgCommand(self._orgname, self._build_id, self._config)
+        mock_git_file_storage.return_value.get_binding.return_value = 'justanotherbuild_id'
+        self._command.wait = False
+        self.assertRaises(OrgBoundException, self._command.execute)
+
+    @patch('orgmanagement.bind_org.OrgManagementCommand.GitFileStorage')
+    def test_bind_same_build_to_bound_org(self, mock_git_file_storage):
+        self._command = BindBuildToOrgCommand(self._orgname, self._build_id, self._config)
+        mock_git_file_storage.return_value.get_binding.return_value = self._build_id
+        self._command.wait = False
+        self.assertFalse(mock_git_file_storage.return_value.bind_build_to_org.called, 'method called')
+
+
+class TestReleaseOrgCommand(unittest.TestCase):
+
+    def setUp(self):
+        self._config = {'GITHUB_ORG_NAME': 'testgithuborg',
+                        'GITHUB_USERNAME': 'testuser',
+                        'GITHUB_PASSWORD': 'testpassword',
+                        'GITHUB_REPO_NAME': 'testrepo'}
+        self._orgname = 'orgname'
+        self._build_id = '12345'
+
+    @patch('orgmanagement.bind_org.OrgManagementCommand.GitFileStorage')
+    def test_release_bound_org(self, mock_git_file_storage):
+        self._command = ReleaseOrgCommand(self._orgname, self._config)
+        # setup in such a way the org is bound. In other words: get a correct build id from the bindings
+        mock_git_file_storage.return_value.get_binding.return_value = self._build_id
+        self._command.execute()
+        # assert the binding is removed from the storage
+        mock_git_file_storage.return_value.delete_binding.assert_called_with(self._orgname)
+
+    @patch('orgmanagement.bind_org.OrgManagementCommand.GitFileStorage')
+    def test_release_unbound_org(self, mock_git_file_storage):
+        self._command = ReleaseOrgCommand(self._orgname, self._config)
+        # setup in such a way the org is bound. In other words: get a correct build id from the bindings
+        mock_git_file_storage.return_value.get_binding.return_value = None
+        self.assertRaises(OrgBoundException, self._command.execute)
+
+    @patch('orgmanagement.bind_org.OrgManagementCommand.GitFileStorage')
+    def test_release_org_bound_to_wrong_build(self, mock_git_file_storage):
+        self._command = ReleaseOrgCommand(self._orgname, self._config)
+        self._command.binding = 'justanotherbuild'
+        # setup in such a way the org is bound. In other words: get a correct build id from the bindings
+        mock_git_file_storage.return_value.get_binding.return_value = self._build_id
+        self.assertRaises(OrgBoundException, self._command.execute)
+
+
+class TestGitFileStorage(unittest.TestCase):
+
+    def setUp(self):
+        self._config = {'GITHUB_ORG_NAME': 'testgithuborg',
+                        'GITHUB_USERNAME': 'testuser',
+                        'GITHUB_PASSWORD': 'testpassword',
+                        'GITHUB_REPO_NAME': 'testrepo',
+                        'BUILD_STORAGE_FILE': 'test_file_name',
+                        'BUILD_STORAGE_BRANCH': 'test_branch_name'}
+        self.__get_branch_counter = 0
+
+    def _get_branch_side_effect(self, branch_name):
+        if branch_name == self._config['BUILD_STORAGE_BRANCH']:
+            self.__get_branch_counter = self.__get_branch_counter + 1
+            if self.__get_branch_counter == 1:
+                raise Exception
+            else:
+                name_mock = MagicMock()
+                name_mock.name = self._config['BUILD_STORAGE_BRANCH']
+                return name_mock
+        else:
+            sha_mock = MagicMock()
+            sha_mock.commit.sha = '12345'
+            # mock_branch = MagicMock(spec=github.Branch, return_value=sha_mock)
+            return sha_mock
 
     @patch('github.Github')
-    @patch('os.environ')
-    def test_bind_not_bound_org_github_tags(self, mock_environ, mock_github):
+    def test_bind_build_org_no_branch_no_file(self, mock_github):
+        mock_repo = mock_github.return_value.get_organization.return_value.get_repo
+        mock_repo.return_value.default_branch = 'test_master'
+        mock_repo.return_value.get_branch.side_effect = self._get_branch_side_effect
+        mock_repo.return_value.get_file_contents.side_effect = Exception()
+        storage = OrgManagementCommand.GitFileStorage(self._config)
 
-        self._github_config['SHA'] = self._sha
+        storage.bind_build_to_org('test_orgname', 'test_build_id')
 
-        bind_org(self._org_name, self._github_config, sandbox=False, wait=True, retry_attempts=10, sleeping_time=60)
+        # have the bindings been properly set?
+        self.assertEqual(storage.get_binding('test_orgname'), 'test_build_id')
 
-        mock_github.return_value.get_organization.return_value.get_repo.return_value.create_git_ref.assert_called_with(
-            '/tags/' + urllib.quote_plus(self._org_name), self._sha)
-        mock_environ.__setitem__.assert_called_with('BOUND_ORG_NAME', self._org_name)
+        # no branch was already created so have the right methods been called to create one?
+        expected_get_branch_calls = [call(self._config['BUILD_STORAGE_BRANCH']), call('test_master'), call(self._config['BUILD_STORAGE_BRANCH'])]
+        self.assertEqual(mock_repo.return_value.get_branch.call_args_list, expected_get_branch_calls,
+                         'different call arguments/order for get_branch')
+        mock_repo.return_value.create_git_ref.assert_called_with('refs/heads/' + self._config[
+            'BUILD_STORAGE_BRANCH'], '12345')
 
+        # has the file been created properly?
+        bindings = {'test_orgname': 'test_build_id'}
+        yaml_string = yaml.safe_dump(bindings)
+        mock_repo.return_value.create_file.assert_called_with('/' + self._config['BUILD_STORAGE_FILE'], '--skip-ci',
+                                                              yaml_string, self._config['BUILD_STORAGE_BRANCH'])
+
+    @patch('github.ContentFile')
     @patch('github.Github')
-    def test_bind_bound_org_wait_false(self, mock_github):
-        ret_value = [TestBindOrg.RefData(ref="refs/tags/" + urllib.quote_plus(self._org_name),
-                                         url="https://api.github.com/repos/octocat/Hello-World/git/refs/tags/v0.0.1",
-                                         object=TestBindOrg.ObjectData(type="tag",
-                                                                       sha="940bd336248efae0f9ee5bc7b2d5c985887b16ac",
-                                                                       url="https://api.github.com/repos/octocat/Hello-World/git/tags/940bd336248efae0f9ee5bc7b2d5c985887b16ac"))
-                     ]
-        self._github_config['SHA'] = self._sha
+    @patch('github.Branch')
+    def test_bind_build_org_existing_file(self, mock_branch, mock_github, mock_content_file):
+        mock_repo = mock_github.return_value.get_organization.return_value.get_repo
+        mock_repo.return_value.default_branch = 'test_master'
+        mock_repo.return_value.get_branch.return_value = mock_branch
+        # trick the system in thinking there is a file
+        mock_repo.return_value.get_file_contents.return_value = mock_content_file
+        # trick the system in thinking there are no bindings
+        no_bindings = {}
+        decoded_content = yaml.safe_dump(no_bindings)
+        mock_content_file.content = base64.encodestring(decoded_content)
+        mock_content_file.decoded_content = decoded_content
 
-        mock_github.return_value.get_organization.return_value.get_repo.return_value.get_git_refs.return_value = \
-            ret_value
+        storage = OrgManagementCommand.GitFileStorage(self._config)
 
-        self.assertRaises(OrgBoundException, bind_org, self._org_name, self._github_config, False, False,
-                          10, 60)
+        self.assertIsNone(storage.get_binding('fake_org_name'), 'Got a binding returned')
 
+        storage.bind_build_to_org('test_org_name', 'test_build_id')
+
+        bindings = {'test_org_name': 'test_build_id'}
+        yaml_string = yaml.safe_dump(bindings)
+        self.assertEqual(storage.get_binding('test_org_name'), 'test_build_id', 'Got an unknown binding back')
+        mock_repo.return_value.update_file.assert_called_with('/' + self._config['BUILD_STORAGE_FILE'], '--skip-ci',
+                                                              yaml_string, self._config[
+                                                                  'BUILD_STORAGE_BRANCH'])
+
+    @patch('github.ContentFile')
     @patch('github.Github')
-    @patch('time.sleep')
-    def test_bind_bound_org_wait_true(self, mock_sleep, mock_github):
-        ret_value = [TestBindOrg.RefData(ref="refs/tags/" + urllib.quote_plus(self._org_name),
-                                         url="https://api.github.com/repos/octocat/Hello-World/git/refs/tags/v0.0.1",
-                                         object=TestBindOrg.ObjectData(type="tag",
-                                                                       sha="940bd336248efae0f9ee5bc7b2d5c985887b16ac",
-                                                                       url="https://api.github.com/repos/octocat/Hello-World/git/tags/940bd336248efae0f9ee5bc7b2d5c985887b16ac"))
-                     ]
-        self._github_config['SHA'] = self._sha
+    @patch('github.Branch')
+    def test_bind_build_org_existing_binding(self, mock_branch, mock_github, mock_content_file):
+        mock_repo = mock_github.return_value.get_organization.return_value.get_repo
+        mock_repo.return_value.default_branch = 'test_master'
+        mock_repo.return_value.get_branch.return_value = mock_branch
+        # trick the system in thinking there is a file
+        mock_repo.return_value.get_file_contents.return_value = mock_content_file
+        # trick the system in thinking there is a binding
+        bindings = {'org_name1': 'mybuild'}
+        decoded_content = yaml.safe_dump(bindings)
+        mock_content_file.content = base64.encodestring(decoded_content)
+        mock_content_file.decoded_content = decoded_content
 
-        mock_github.return_value.get_organization.return_value.get_repo.return_value.get_git_refs.return_value = \
-            ret_value
+        storage = OrgManagementCommand.GitFileStorage(self._config)
 
-        self.assertRaises(OrgBoundException, bind_org, self._org_name, self._github_config, False, True,
-                          10, 60)
-        mock_sleep.assert_called_with(60)
-        self.assertEqual(mock_sleep.call_count, 10, 'More or less times sleep method called')
+        self.assertIsNone(storage.get_binding('fake_org_name'), 'Got a binding returned')
 
-    @patch('github.Github')
-    @patch('github.GitRef.GitRef')
-    def test_release_bound_org(self, mock_ref, mock_github):
+        storage.bind_build_to_org('test_org_name', 'test_build_id')
 
-        mock_ref.return_value.ref.return_value = "refs/tags/" + urllib.quote_plus(self._org_name)
-        mock_ref.return_value.object.return_value = MagicMock()
-        mock_ref.return_value.object.return_value.type.return_value = "tag"
-        ret_value = [mock_ref]
-        mock_github.return_value.get_organization.return_value.get_repo.return_value.get_git_refs.return_value = \
-            ret_value
-        self._github_config['SHA'] = self._sha
+        self.assertEqual(storage.get_binding('test_org_name'), 'test_build_id', 'Got an unknown binding back')
+        bindings = {'org_name1': 'mybuild', 'test_org_name': 'test_build_id'}
+        yaml_string = yaml.safe_dump(bindings)
+        mock_repo.return_value.update_file.assert_called_with('/' + self._config['BUILD_STORAGE_FILE'], '--skip-ci',
+                                                              yaml_string, self._config[
+                                                                  'BUILD_STORAGE_BRANCH'])
 
-        release_org(self._org_name, self._github_config)
-
-        mock_ref.delete.assert_called_with()
-
-    @patch('github.Github')
-    def test_release_unbound_org(self, mock_github):
-        ret_value = []
-        mock_github.return_value.get_organization.return_value.get_repo.return_value.get_git_refs.return_value = \
-            ret_value
-        self._github_config['SHA'] = self._sha
-
-        self.assertRaises(OrgBoundException, release_org, self._org_name, self._github_config)
-
-
-    # @patch('github.Github')
-    # def test_bind_org_bounded_by_other_thread(self, mock_github):
-    #     self._github_config['SHA'] = self._sha
-    #     event = threading.Event()
-    #     t1 = TestBindOrg.ThreadOne(event=event, testcase=self, mock_github=mock_github)
-    #     t2 = TestBindOrg.ThreadTwo(event=event, testcase=self, mock_github=mock_github)
-    #     t1.start()
-    #     t2.start()
+        self.assertEqual(storage.get_binding('org_name1'), 'mybuild', 'wrong build returned')
 
 
 if __name__ == '__main__':

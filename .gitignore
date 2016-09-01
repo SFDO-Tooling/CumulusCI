@@ -2,3 +2,4 @@
 .*.swp
 .idea/*
 */*.egg-info/*
+/ci/orgmanagement/tests/bind_org_integration_tests.py
