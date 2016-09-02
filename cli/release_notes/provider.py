@@ -7,6 +7,7 @@ from distutils.version import LooseVersion
 from .exceptions import LastReleaseTagNotFoundError
 from .github_api import GithubApiMixin
 from .exceptions import GithubApiNoResultsError
+from .exceptions import GithubApiNotFoundError
 
 
 class BaseChangeNotesProvider(object):
