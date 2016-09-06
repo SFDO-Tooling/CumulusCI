@@ -1,4 +1,3 @@
-import base64
 import time
 from abc import abstractmethod, ABCMeta
 
@@ -120,10 +119,11 @@ class OrgManagementCommand(object):
             """precondition: already tried to load the file (and thus set _bindings_file)"""
             decoded_content = yaml.safe_dump(self._bindings)
             if self._bindings_file is None: # create the file
-                self._create_bindings_file(decoded_content)
+                self._bindings_file = self._create_bindings_file(decoded_content)
             else:
-                self._repo.update_file(self._get_github_path(), '--skip-ci', decoded_content,
-                                       self._get_github_branch_name())
+                self._bindings_file = self._repo.update_file(self._get_github_path(), '--skip-ci', decoded_content,
+                                                             self._bindings_file.sha,
+                                                             branch=self._get_github_branch_name())['content']
 
         def _create_bindings_file(self, decoded_content):
             branch = None
@@ -132,7 +132,7 @@ class OrgManagementCommand(object):
             except:
                 # create the branch
                 branch = self._create_branch()
-            self._repo.create_file(self._get_github_path(), '--skip-ci', decoded_content, branch.name)
+            return self._repo.create_file(self._get_github_path(), '--skip-ci', decoded_content, branch.name)['content']
 
 
 
