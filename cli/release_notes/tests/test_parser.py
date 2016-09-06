@@ -62,6 +62,13 @@ class TestChangeNotesLinesParser(unittest.TestCase):
         parser.parse(change_note)
         self.assertEqual(parser.content, ['foo', 'bar', 'included'])
 
+    def test_parse_multi_level_indent(self):
+        change_note = '# {0}\r\nfoo \r\n    bar  \r\n        baz \r\n'.format(
+            self.title)
+        parser = ChangeNotesLinesParser(None, self.title)
+        parser.parse(change_note)
+        self.assertEqual(parser.content, ['foo', '    bar', '        baz'])
+
     def test_render_no_content(self):
         parser = ChangeNotesLinesParser(None, self.title)
         self.assertEqual(parser.render(), None)
