@@ -232,7 +232,8 @@ class BindBuildToOrgCommand(OrgManagementCommand):
     @sleeping_time.setter
     def sleeping_time(self, value):
         assert isinstance(value, int), 'sleeping_time is not an integer'
-        assert value > 0, 'sleeping_time need to be greater than 0'
+        assert value > 0, 'sleeping_time needs to be greater than 0'
+        assert value < (10*60-1), 'sleeping time needs to be smaller than 10 mins'
         self.__sleeping_time = value
 
     def __init__(self, orgname, build_id,  storage_config, storage_type='GITFILE'):
@@ -240,8 +241,8 @@ class BindBuildToOrgCommand(OrgManagementCommand):
         self.__build_id = build_id
         self.__sandbox = False
         self.__wait = True
-        self.__retry_attempts = 10
-        self.__sleeping_time = 360
+        self.__retry_attempts = 90
+        self.__sleeping_time = 60
 
     def execute(self):
         binding = self.storage.get_binding(self.orgname) # returns the build id bound to the org
@@ -253,6 +254,7 @@ class BindBuildToOrgCommand(OrgManagementCommand):
             if self.retry_attempts > 0:
                 time.sleep(self.sleeping_time)
                 self.__retry_attempts = self.__retry_attempts - 1
+                print 'Retrying. Attempt ' + self.__retry_attempts
                 self.execute()
             else:
                 raise OrgBoundException('Org ' + self.orgname + ' bound to build ' + binding + ' not released in time '
