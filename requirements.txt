@@ -9,5 +9,5 @@ responses==0.5.1
 selenium
 simple-salesforce==0.68.1
 wheel==0.24.0
-PyGithub==1.25.1
-PyYAML==3.11
+PyGithub
+PyYAML
