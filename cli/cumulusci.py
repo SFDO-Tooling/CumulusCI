@@ -319,7 +319,7 @@ def ci_deploy(config, debug_logdir, verbose):
 def ci_bind_org(config, orgname, orgpool_name,
                 wait, retry_attempts, sleeping_time):
     orgname = get_arg(orgname, config.sf_username)
-    command = BindBuildToOrgCommand(orgname, config['commit'], config)
+    command = BindBuildToOrgCommand(orgname, config.commit, config)
     command.retry_attempts = retry_attempts
     command.sleeping_time = sleeping_time
     command.wait = wait
