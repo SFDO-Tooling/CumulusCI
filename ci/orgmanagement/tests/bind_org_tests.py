@@ -77,10 +77,10 @@ class TestReleaseOrgCommand(unittest.TestCase):
 class TestGitFileStorage(unittest.TestCase):
 
     def setUp(self):
-        self._config = {'GITHUB_ORG_NAME': 'testgithuborg',
-                        'GITHUB_USERNAME': 'testuser',
-                        'GITHUB_PASSWORD': 'testpassword',
-                        'GITHUB_REPO_NAME': 'testrepo',
+        self._config = {'github_org_name': 'testgithuborg',
+                        'github_username': 'testuser',
+                        'github_password': 'testpassword',
+                        'github_repo_name': 'testrepo',
                         'BUILD_STORAGE_FILE': 'test_file_name',
                         'BUILD_STORAGE_BRANCH': 'test_branch_name'}
         self.__get_branch_counter = 0

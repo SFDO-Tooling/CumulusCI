@@ -72,15 +72,15 @@ class OrgManagementCommand(object):
             self._load_bindings()
 
         def _get_github_repo(self):
-            self._github = github.Github(self.config['GITHUB_USERNAME'], self.config['GITHUB_PASSWORD'])
+            self._github = github.Github(self.config['github_username'], self.config['github_password'])
             self._org = self._get_github_organization()
-            self._repo = self._org.get_repo(self.config['GITHUB_REPO_NAME'])
+            self._repo = self._org.get_repo(self.config['github_repo_name'])
 
         def _get_github_organization(self):
             try:
-                org = self._github.get_organization(self.config['GITHUB_ORG_NAME'])
+                org = self._github.get_organization(self.config['github_org_name'])
             except:
-                org = self._github.get_user(self.config['GITHUB_USERNAME'])
+                org = self._github.get_user(self.config['github_username'])
             return org
 
         def _load_bindings(self):
