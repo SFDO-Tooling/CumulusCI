@@ -276,7 +276,10 @@ class ReleaseOrgCommand(OrgManagementCommand):
         self._binding = value
 
     def execute(self):
-        binding = self.storage.get_binding(self.orgname)
+        if self._binding is None:
+            binding = self.storage.get_binding(self.orgname)
+        else:
+            binding = self._binding
         if binding is None:
             raise OrgBoundException('Org ' + self.orgname + ' not bound')
         elif self.binding and self.binding != binding:
