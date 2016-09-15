@@ -1,7 +1,6 @@
 import unittest
 import yaml
 import base64
-import github
 
 from mock import patch, call, MagicMock
 from orgmanagement.bind_org import BindBuildToOrgCommand, OrgBoundException, ReleaseOrgCommand, OrgManagementCommand
@@ -60,18 +59,18 @@ class TestReleaseOrgCommand(unittest.TestCase):
 
     @patch('orgmanagement.bind_org.OrgManagementCommand.GitFileStorage')
     def test_release_unbound_org(self, mock_git_file_storage):
-        self._command = ReleaseOrgCommand(self._orgname, self._config)
-        # setup in such a way the org is bound. In other words: get a correct build id from the bindings
         mock_git_file_storage.return_value.get_binding.return_value = None
-        self.assertRaises(OrgBoundException, self._command.execute)
+        self.assertRaises(OrgBoundException, ReleaseOrgCommand, self._orgname, self._config)
+
+    def bindingSetterCallable(self, value):
+        self._command.binding = value;
 
     @patch('orgmanagement.bind_org.OrgManagementCommand.GitFileStorage')
     def test_release_org_bound_to_wrong_build(self, mock_git_file_storage):
         self._command = ReleaseOrgCommand(self._orgname, self._config)
-        self._command.binding = 'justanotherbuild'
-        # setup in such a way the org is bound. In other words: get a correct build id from the bindings
-        mock_git_file_storage.return_value.get_binding.return_value = self._build_id
-        self.assertRaises(OrgBoundException, self._command.execute)
+        # so now get_binding returns a magicmock
+        # and this will throw an orgboundexception since the binding isn't equal to the binding of the org
+        self.assertRaises(OrgBoundException, self.bindingSetterCallable, 'justanotherbuild')
 
 
 class TestGitFileStorage(unittest.TestCase):
@@ -151,9 +150,9 @@ class TestGitFileStorage(unittest.TestCase):
         yaml_string = yaml.safe_dump(bindings)
         self.assertEqual(storage.get_binding('test_org_name'), 'test_build_id', 'Got an unknown binding back')
         mock_repo.return_value.update_file.assert_called_with('/' + self._config['BUILD_STORAGE_FILE'], '--skip-ci',
-                                                              yaml_string, self._config[
+                                                              yaml_string, mock_content_file.sha,
+                                                              branch=self._config[
                                                                   'BUILD_STORAGE_BRANCH'])
-
     @patch('github.ContentFile')
     @patch('github.Github')
     @patch('github.Branch')
@@ -179,7 +178,8 @@ class TestGitFileStorage(unittest.TestCase):
         bindings = {'org_name1': 'mybuild', 'test_org_name': 'test_build_id'}
         yaml_string = yaml.safe_dump(bindings)
         mock_repo.return_value.update_file.assert_called_with('/' + self._config['BUILD_STORAGE_FILE'], '--skip-ci',
-                                                              yaml_string, self._config[
+                                                              yaml_string, mock_content_file.sha,
+                                                              branch=self._config[
                                                                   'BUILD_STORAGE_BRANCH'])
 
         self.assertEqual(storage.get_binding('org_name1'), 'mybuild', 'wrong build returned')

@@ -1,5 +1,6 @@
 import time
 from abc import abstractmethod, ABCMeta
+from click import echo
 
 import github
 import yaml
@@ -169,12 +170,39 @@ class OrgManagementCommand(object):
         assert isinstance(value, str), 'org_name is not a string'
         self.__orgname = value
 
+    @property
+    def storage_config(self):
+        return self.__storage_config
+
+    @storage_config.setter
+    def storage_config(self, value):
+        self.__storage_config = value
+
+    @property
+    def storage_type(self):
+        return self.__storage_type
+
+    @storage_type.setter
+    def storage_type(self, value):
+        self.__storage_type = value
+
+    @property
+    def click(self):
+        return self.__click
+
+    @click.setter
+    def click(self, value):
+        self.__click = value
+
     @abstractmethod
     def execute(self):
         pass
 
-    def __init__(self, orgname, storage_config, storage_type='GITFILE'):
+    def __init__(self, orgname, storage_config, storage_type='GITFILE', click=None):
+        self.__click = click
         self.__orgname = orgname
+        self.__storage_config = storage_config
+        self.__storage_type = storage_type
         self.__storage = self._get_storage(storage_type, storage_config)
 
     def _get_storage(self, storage_type, storage_config):
@@ -236,10 +264,9 @@ class BindBuildToOrgCommand(OrgManagementCommand):
         assert value < (10*60-1), 'sleeping time needs to be smaller than 10 mins'
         self.__sleeping_time = value
 
-    def __init__(self, orgname, build_id,  storage_config, storage_type='GITFILE'):
-        super(BindBuildToOrgCommand, self).__init__(orgname, storage_config, storage_type)
+    def __init__(self, orgname, build_id,  storage_config, storage_type='GITFILE', click=None):
+        super(BindBuildToOrgCommand, self).__init__(orgname, storage_config, storage_type, click)
         self.__build_id = build_id
-        self.__sandbox = False
         self.__wait = True
         self.__retry_attempts = 90
         self.__sleeping_time = 60
@@ -254,8 +281,13 @@ class BindBuildToOrgCommand(OrgManagementCommand):
             if self.retry_attempts > 0:
                 time.sleep(self.sleeping_time)
                 self.__retry_attempts = self.__retry_attempts - 1
-                print 'Retrying. Attempt ' + self.__retry_attempts
-                self.execute()
+                echo('Retrying. Attempt ' + self.__retry_attempts)
+                command = BindBuildToOrgCommand(self.orgname, self.build_id, self.storage_config, self.storage_type)
+                command.build_id = self.build_id
+                command.wait = self.wait
+                command.retry_attempts = self.retry_attempts
+                command.sleeping_time = self.sleeping_time
+                command.execute()
             else:
                 raise OrgBoundException('Org ' + self.orgname + ' bound to build ' + binding + ' not released in time '
                                         'to bind org to new build ' + self.build_id)
@@ -267,7 +299,7 @@ class ReleaseOrgCommand(OrgManagementCommand):
 
     def __init__(self, org_name, storage_config, binding=None, storage_type='GITFILE'):
         super(ReleaseOrgCommand, self).__init__(org_name, storage_config, storage_type)
-        self._binding = binding
+        self.binding = binding
 
     @property
     def binding(self):
@@ -275,19 +307,21 @@ class ReleaseOrgCommand(OrgManagementCommand):
 
     @binding.setter
     def binding(self, value):
-        self._binding = value
+        if value is None:
+            binding = self.storage.get_binding(self.orgname)
+            if binding is None:
+                raise OrgBoundException('Org ' + self.orgname + ' not bound')
+            else:
+                self._binding = binding
+        else:
+            binding = self.storage.get_binding(self.orgname)
+            if binding != value:
+                raise OrgBoundException('Org ' + self.orgname + ' is bound to another build ' + binding)
+            else:
+                self._binding = value
 
     def execute(self):
-        if self._binding is None:
-            binding = self.storage.get_binding(self.orgname)
-        else:
-            binding = self._binding
-        if binding is None:
-            raise OrgBoundException('Org ' + self.orgname + ' not bound')
-        elif self.binding and self.binding != binding:
-            raise OrgBoundException('Org ' + self.orgname + ' is bound to another build ' + binding)
-        else:
-            self.storage.delete_binding(self.orgname)
+        self.storage.delete_binding(self.orgname)
 
 
 
