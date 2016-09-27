@@ -200,6 +200,10 @@
         <members>*</members>
         <name>ForecastingSettings</name>
     </types>
+        <types>
+        <members>*</members>
+        <name>GlobalPicklist</name>
+    </types>
     <types>
         <members>*</members>
         <name>Group</name>
@@ -408,5 +412,5 @@
         <members>*</members>
         <name>Workflow</name>
     </types>
-    <version>34.0</version>
+    <version>36.0</version>
 </Package>
