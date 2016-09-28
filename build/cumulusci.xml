@@ -350,6 +350,9 @@ project.setProperty("downgradePackage", result);
             <case value="homePageComponents">
               <property name="typename" value="HomePageComponent" />
             </case>
+            <case value="homePageLayouts">
+              <property name="typename" value="HomePageLayout" />
+            </case>
             <case value="labels">
               <property name="typename" value="CustomLabel" />
             </case>
