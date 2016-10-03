@@ -31,6 +31,9 @@ documents:
 email:
     - type: EmailTemplate
       class: MetadataFolderParser
+globalPicklists:
+    - type: GlobalPicklist
+      class: MetadataFolderParser
 homePageComponents:
     - type: HomePageComponent
       class: MetadataFilenameParser
