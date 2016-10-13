@@ -201,7 +201,7 @@ def get_build_info():
     # CicleCI
     elif os.environ.get('CIRCLECI'):
         info['branch'] = os.environ.get('CIRCLE_BRANCH')
-        info['commit'] = os.environ.get('CIRCLE_COMMIT')
+        info['commit'] = os.environ.get('CIRCLE_SHA1')
         info['build_vendor'] = 'CircleCI'
         info['build_id'] = os.environ.get('CIRCLE_BUILD_NUM')
         info['build_url'] = os.environ.get('CIRCLE_BUILD_URL')
