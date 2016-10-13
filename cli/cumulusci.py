@@ -203,6 +203,9 @@ def get_build_info():
         info['branch'] = os.environ.get('CIRCLE_BRANCH')
         info['commit'] = os.environ.get('CIRCLE_COMMIT')
         info['build_vendor'] = 'CircleCI'
+        info['build_id'] = os.environ.get('CIRCLE_BUILD_NUM')
+        info['build_url'] = os.environ.get('CIRCLE_BUILD_URL')
+        info['build_repo_url'] = os.environ.get('CIRCLE_REPOSITORY_URL')
     # Drone.io
     # Semaphore
     # Shippable
