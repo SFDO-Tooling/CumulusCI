@@ -418,6 +418,15 @@ def ci_apextestsdb_upload(config, environment):
         results_file_url = '%s/artifact/shared/%s/%s' % (config.build_url, config.json_output, config.json_output)
         click.echo('results_file_url = %s' % results_file_url)
         args.append(results_file_url)
+    elif config.build_vendor == 'CircleCI':
+        results_file_url = 'https://circleci.com/gh/{}/{}/{}/artifacts/{}{}/{}'.format(
+            config.github_org_name,
+            config.github_repo_name,
+            config.build_id,
+            os.environ.get('CIRCLE_NODE_INDEX'),
+            os.environ.get('CIRCLE_ARTIFACTS'),
+            config.json_output,
+        )
     else:
         raise click.BadParameter('Could not determine results_file_url for vendor "%s"' % config.build_vendor)
 
