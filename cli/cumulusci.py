@@ -427,6 +427,8 @@ def ci_apextestsdb_upload(config, environment):
             os.environ.get('CIRCLE_ARTIFACTS'),
             config.json_output,
         )
+        click.echo('results_file_url = %s' % results_file_url)
+        args.append(results_file_url)
     else:
         raise click.BadParameter('Could not determine results_file_url for vendor "%s"' % config.build_vendor)
 
