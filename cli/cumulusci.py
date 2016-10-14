@@ -663,8 +663,9 @@ def deploy_packaging(config, verbose):
 @click.option('--selenium-url', help='If provided, uses a Selenium Server at the specified url.  Example: http://127.0.0.1:4444/wd/hub')
 @click.option('--create-release', is_flag=True, help='If set, creates a release in Github which also creates a tag')
 @click.option('--package', help='By default, the package name will be parsed from the cumulusci.properties file in the repo.  Use the package option to override the package name.')
+@click.option('--browser', help='By default, uses the Firefox browser.  The browser should be a valid method on the Python webdriver class')
 @pass_config
-def upload_beta(config, commit, build_name, selenium_url, create_release, package):
+def upload_beta(config, commit, build_name, selenium_url, create_release, package, browser):
 
     # Build the environment for the command
     env = get_env_cumulusci(config)
@@ -678,8 +679,13 @@ def upload_beta(config, commit, build_name, selenium_url, create_release, packag
     elif hasattr(config, 'cumulusci__package__name'):
         env['PACKAGE'] = config.cumulusci__package__name
 
-    env['BUILD_NAME'] = build_name
+    if browser:
+        env['SELENIUM_BROWSER'] = browser
+    else:
+        env['SELENIUM_BROWSER'] = 'Firefox'
 
+    env['BUILD_NAME'] = build_name
+    
     required_env = [
         'OAUTH_CLIENT_ID',
         'OAUTH_CLIENT_SECRET',
@@ -690,6 +696,7 @@ def upload_beta(config, commit, build_name, selenium_url, create_release, packag
         'BUILD_NAME',
         'BUILD_COMMIT',
         'BUILD_WORKSPACE',
+        'SELENIUM_BROWSER',
     ]
 
     script = 'package_upload.py'
