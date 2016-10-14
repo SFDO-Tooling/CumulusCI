@@ -146,6 +146,10 @@ reportTypes:
 reports:
     - type: Report
       class: MetadataFolderParser
+settings:
+    - type: Setting
+      class: MetadataFilenameParser
+      extension: settings
 scontrols:
     - type: Scontrol
       class: MetadataFilenameParser
