@@ -243,9 +243,11 @@ def get_build_info():
 # command: ci deploy
 @click.command(name='deploy', help="Determines the right kind of build for the branch and runs the build including tests")
 @click.option('--debug-logdir', help="A directory to store debug logs from each test class.  If specified, a TraceFlag is created which captures debug logs.  When all tests have completed, the debug logs are downloaded to the specified directory.  They are then parsed to capture detail information on the test.  See cumulusci dev deploy --json-output for more details")
+@click.option('--no-test', default=False, is_flag=True, help='If set, apex tests will not be run as part of the deployment')
+@click.option('--incremental-delete', default=False, is_flag=True, help='If set, an incremental delete of metadata will be used rather than a full delete')
 @click.option('--verbose', default=False, is_flag=True, help='If set, outputs the full output from ant.  The default behavior runs through a wrapper script that filters and colors the output')
 @pass_config
-def ci_deploy(config, debug_logdir, verbose):
+def ci_deploy(config, debug_logdir, no_test, incremental_delete, verbose):
     if not config.commit or not config.branch:
         raise click.BadParameter('Could not determine commit or branch for ci deploy')
         
@@ -254,7 +256,12 @@ def ci_deploy(config, debug_logdir, verbose):
         config.sf_username = config.get_env_var('SF_USERNAME_' + config.feature_org_suffix)
         config.sf_password = config.get_env_var('SF_PASSWORD_' + config.feature_org_suffix)
         config.sf_serverurl = config.get_env_var('SF_SERVERURL_' + config.feature_org_suffix, config.sf_serverurl)
-        args = ['--run-tests', '--full-delete']
+
+        args = []
+        if no_test is False:
+            args.append('--run-tests')
+        if incremental_delete is False:
+            args.append('--full-delete')
 
         if debug_logdir:
             # Create directory if it doesn't exist
