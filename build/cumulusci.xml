@@ -209,6 +209,7 @@ project.setProperty("downgradePackage", result);
         password="${sf.password}" 
         serverurl="${sf.serverurl}" 
         retrieveTarget="@{dir}/standard" 
+        apiVersion="${cumulusci.package.apiVersion}"
         unpackaged="${cumulus_ci.basedir}/standard_objects.xml"/>
 
       <!-- Retrieve unpackaged metadata (uses /build/all_metadata_types.xml as the manifest) -->
@@ -216,7 +217,8 @@ project.setProperty("downgradePackage", result);
         username="${sf.username}" 
         password="${sf.password}" 
         serverurl="${sf.serverurl}" 
-        retrieveTarget="@{dir}/unpackaged" 
+        retrieveTarget="@{dir}/unpackaged"
+        apiVersion="${cumulusci.package.apiVersion}"
         unpackaged="${cumulus_ci.basedir}/all_meta_types.xml"/>
 
     </sequential>
@@ -246,6 +248,7 @@ project.setProperty("downgradePackage", result);
         password="${sf.password}" 
         serverurl="${sf.serverurl}" 
         retrieveTarget="@{dir}" 
+        apiVersion="${cumulusci.package.apiVersion}"
         unpackaged="${manifest}"/>
 
     </sequential>
@@ -291,6 +294,7 @@ project.setProperty("downgradePackage", result);
         password="${sf.password}" 
         serverurl="${sf.serverurl}" 
         retrieveTarget="@{dir}" 
+        apiVersion="${cumulusci.package.apiVersion}"
         packageNames="@{package}"/>
     </sequential>
   </macrodef>
