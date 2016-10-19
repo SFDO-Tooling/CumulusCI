@@ -200,6 +200,10 @@
         <members>*</members>
         <name>ForecastingSettings</name>
     </types>
+        <types>
+        <members>*</members>
+        <name>GlobalPicklist</name>
+    </types>
     <types>
         <members>*</members>
         <name>Group</name>
@@ -390,9 +394,13 @@
     </types>
     <types>
         <members>*</members>
-        <name>SynonymDictionary</name>
+        <name>Settings</name>
     </types>
     <types>
+        <members>*</members>
+        <name>SynonymDictionary</name>
+    </types>
+	<types>
         <members>*</members>
         <name>Translations</name>
     </types>
@@ -408,5 +416,5 @@
         <members>*</members>
         <name>Workflow</name>
     </types>
-    <version>34.0</version>
+    <version>36.0</version>
 </Package>
