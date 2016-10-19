@@ -12,7 +12,7 @@ sys.setdefaultencoding('UTF8')
 
 if __name__ == '__main__':
     try:
-        
+
         username = os.environ.get('SF_USERNAME')
         password = os.environ.get('SF_PASSWORD')
         serverurl = os.environ.get('SF_SERVERURL')
@@ -22,10 +22,10 @@ if __name__ == '__main__':
         startTimeRaw = os.environ.get('START_TIME')
 
         if startTimeRaw:
-            startTime = datetime.strptime(startTimeRaw, "%m-%d-%YT%H:%M") # Example: 10-19-2016T10:00
+            startTime = datetime.strptime(startTimeRaw, "%Y-%m-%dT%H:%M") # Example: 2016-10-19T10:00
         else:
             startTime = None
-        
+
         if not subscribers and not subscribers_file:
             raise ValueError('You must provide either the SUBSCRIBERS or SUBSCRIBERS_FILE environment variables')
 
@@ -49,10 +49,10 @@ if __name__ == '__main__':
         if len(orgs) > 1000:
             print "Delaying 30 seconds to allow all jobs to initialize..."
             time.sleep(30)
-    
+
         print 'Push Request %s is populated, setting status to Pending to queue execution.' % request_id
-        print push_api.run_push_request(request_id)                  
-        
+        print push_api.run_push_request(request_id)
+
         print 'Push Request %s is queued for execution.' % request_id
     except SystemExit:
         sys.exit(1)
