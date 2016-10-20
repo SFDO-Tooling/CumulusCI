@@ -57,7 +57,7 @@ class ChangeNotesLinesParser(BaseChangeNotesParser):
         self._in_section = False
 
     def _process_line(self, line):
-        return line.strip()
+        return line.rstrip()
 
     def _is_excluded_line(self, line):
         if not line:
@@ -108,6 +108,7 @@ class IssuesParser(ChangeNotesLinesParser):
         issue_numbers = re.findall(self.issue_regex, line, flags=re.IGNORECASE)
         for issue_number in issue_numbers:
             self.content.append(int(issue_number))
+        self.content.sort()
 
     def _get_default_regex(self):
         return '#(\d+)'

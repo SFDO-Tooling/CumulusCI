@@ -31,6 +31,9 @@ documents:
 email:
     - type: EmailTemplate
       class: MetadataFolderParser
+globalPicklists:
+    - type: GlobalPicklist
+      class: MetadataFolderParser
 homePageComponents:
     - type: HomePageComponent
       class: MetadataFilenameParser
@@ -143,6 +146,10 @@ reportTypes:
 reports:
     - type: Report
       class: MetadataFolderParser
+settings:
+    - type: Setting
+      class: MetadataFilenameParser
+      extension: settings
 scontrols:
     - type: Scontrol
       class: MetadataFilenameParser
