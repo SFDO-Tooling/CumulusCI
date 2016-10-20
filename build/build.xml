@@ -56,6 +56,9 @@
             <var name="sf.username" value="" />
             <var name="sf.password" value="" />
         </then>
+        <else>
+            <var name="sf.sessionId" value="" />
+        </else>
     </if>
 
     <!-- Load up cumulusci.properties file with package specific properties -->
