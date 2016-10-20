@@ -42,6 +42,21 @@
         <var name="sf.serverurl" value="${env.SF_SERVERURL}" />
       </then>
     </if>
+    
+    <if>
+      <isset property="env.SF_SESSIONID" />
+      <then>
+        <var name="sf.sessionId" value="${env.SF_SESSIONID}" />
+      </then>
+    </if>
+    
+    <if>
+        <isset property="sf.sessionId"/>
+        <then>
+            <var name="sf.username" value="" />
+            <var name="sf.password" value="" />
+        </then>
+    </if>
 
     <!-- Load up cumulusci.properties file with package specific properties -->
     <loadproperties srcFile="${basedir}/cumulusci.properties"/>
