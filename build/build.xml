@@ -42,25 +42,19 @@
         <var name="sf.serverurl" value="${env.SF_SERVERURL}" />
       </then>
     </if>
-    
+   
     <if>
       <isset property="env.SF_SESSIONID" />
       <then>
         <var name="sf.sessionId" value="${env.SF_SESSIONID}" />
+        <var name="sf.username" value="" />
+        <var name="sf.password" value="" />
       </then>
+      <else>
+        <var name="sf.sessionId" value="" />
+      </else>
     </if>
     
-    <if>
-        <isset property="sf.sessionId"/>
-        <then>
-            <var name="sf.username" value="" />
-            <var name="sf.password" value="" />
-        </then>
-        <else>
-            <var name="sf.sessionId" value="" />
-        </else>
-    </if>
-
     <!-- Load up cumulusci.properties file with package specific properties -->
     <loadproperties srcFile="${basedir}/cumulusci.properties"/>
 
@@ -771,8 +765,9 @@
         <!-- Override the purgeOnDelete=true default since we can't do that in EE orgs -->
         <var name="cumulus.destroy.purgeondelete" value="false" />
 
+        <echo>${sf.username}</echo>
         <!-- Create the unmanaged package if it doesn't already exist -->
-        <antcall target="createUnmanagedPackage" />
+        <antcall target="createUnmanagedPackage" inheritRefs="true" />
 
         <!-- Uninstall all unpackaged code from the target org.  We have to do this first so we can uninstall and reinstall any managed packages not at the right version -->
         <if>
