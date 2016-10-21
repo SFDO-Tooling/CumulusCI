@@ -320,7 +320,7 @@ def flow_run(config, flow_name, org_name):
     flow_config = getattr(config.project_config, 'flows__{}'.format(flow_name))
 
     # Get the class to look up options
-    class_path = flow_config.get('class_path', 'core.flows.BaseFlow')
+    class_path = flow_config.get('class_path', 'cumulusci.core.flows.BaseFlow')
     flow_class = import_class(class_path)
 
     # Create and run the flow 

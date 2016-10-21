@@ -4,11 +4,11 @@ import os
 import tempfile
 import zipfile
 
-from core.tasks import BaseTask
-from salesforce_api.metadata import ApiDeploy
-from salesforce_api.metadata import ApiRetrieveInstalledPackages
-from salesforce_api.metadata import ApiRetrievePackaged
-from salesforce_api.metadata import ApiRetrieveUnpackaged
+from cumulusci.core.tasks import BaseTask
+from cumulusci.salesforce_api.metadata import ApiDeploy
+from cumulusci.salesforce_api.metadata import ApiRetrieveInstalledPackages
+from cumulusci.salesforce_api.metadata import ApiRetrievePackaged
+from cumulusci.salesforce_api.metadata import ApiRetrieveUnpackaged
 
 class BaseSalesforceTask(BaseTask):
     name = 'BaseSalesforceTask'

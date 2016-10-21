@@ -1,5 +1,5 @@
 cumulusci:
-    keychain: core.keychain.EncryptedFileProjectKeychain
+    keychain: cumulusci.core.keychain.EncryptedFileProjectKeychain
 
 tasks:
     create_unmanaged_package:

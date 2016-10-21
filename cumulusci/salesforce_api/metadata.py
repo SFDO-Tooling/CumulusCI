@@ -19,9 +19,8 @@ from zipfile import ZipFile
 
 import requests
 
-from oauth.salesforce import SalesforceOAuth2
-import soap_envelopes
-
+from cumulusci.oauth.salesforce import SalesforceOAuth2
+from cumulusci.salesforce_api import soap_envelopes
 
 class BaseMetadataApiCall(object):
     check_interval = 2

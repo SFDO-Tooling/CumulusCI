@@ -5,10 +5,10 @@ import sarge
 import tempfile
 import zipfile
 
-from core.exceptions import AntTargetException
-from core.exceptions import ApexTestException
-from core.exceptions import DeploymentException
-from core.tasks import BaseTask
+from cumulusci.core.exceptions import AntTargetException
+from cumulusci.core.exceptions import ApexTestException
+from cumulusci.core.exceptions import DeploymentException
+from cumulusci.core.tasks import BaseTask
 
 CUMULUSCI_PATH = os.path.realpath(
     os.path.join(
