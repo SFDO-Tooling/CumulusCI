@@ -1,4 +1,9 @@
 *.py[cod]
 .*.swp
+.*.swo
 venv/
-
+.DS_Store
+cli/help.txt
+cli/help.md
+cli/help_clean.md
+.swp
