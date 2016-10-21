@@ -201,8 +201,11 @@ def get_build_info():
     # CicleCI
     elif os.environ.get('CIRCLECI'):
         info['branch'] = os.environ.get('CIRCLE_BRANCH')
-        info['commit'] = os.environ.get('CIRCLE_COMMIT')
+        info['commit'] = os.environ.get('CIRCLE_SHA1')
         info['build_vendor'] = 'CircleCI'
+        info['build_id'] = os.environ.get('CIRCLE_BUILD_NUM')
+        info['build_url'] = os.environ.get('CIRCLE_BUILD_URL')
+        info['build_repo_url'] = os.environ.get('CIRCLE_REPOSITORY_URL')
     # Drone.io
     # Semaphore
     # Shippable
@@ -240,9 +243,11 @@ def get_build_info():
 # command: ci deploy
 @click.command(name='deploy', help="Determines the right kind of build for the branch and runs the build including tests")
 @click.option('--debug-logdir', help="A directory to store debug logs from each test class.  If specified, a TraceFlag is created which captures debug logs.  When all tests have completed, the debug logs are downloaded to the specified directory.  They are then parsed to capture detail information on the test.  See cumulusci dev deploy --json-output for more details")
+@click.option('--no-test', default=False, is_flag=True, help='If set, apex tests will not be run as part of the deployment')
+@click.option('--incremental-delete', default=False, is_flag=True, help='If set, an incremental delete of metadata will be used rather than a full delete')
 @click.option('--verbose', default=False, is_flag=True, help='If set, outputs the full output from ant.  The default behavior runs through a wrapper script that filters and colors the output')
 @pass_config
-def ci_deploy(config, debug_logdir, verbose):
+def ci_deploy(config, debug_logdir, no_test, incremental_delete, verbose):
     if not config.commit or not config.branch:
         raise click.BadParameter('Could not determine commit or branch for ci deploy')
         
@@ -251,7 +256,12 @@ def ci_deploy(config, debug_logdir, verbose):
         config.sf_username = config.get_env_var('SF_USERNAME_' + config.feature_org_suffix)
         config.sf_password = config.get_env_var('SF_PASSWORD_' + config.feature_org_suffix)
         config.sf_serverurl = config.get_env_var('SF_SERVERURL_' + config.feature_org_suffix, config.sf_serverurl)
-        args = ['--run-tests', '--full-delete']
+
+        args = []
+        if no_test is False:
+            args.append('--run-tests')
+        if incremental_delete is False:
+            args.append('--full-delete')
 
         if debug_logdir:
             # Create directory if it doesn't exist
@@ -413,6 +423,17 @@ def ci_apextestsdb_upload(config, environment):
     if config.build_vendor == 'Bamboo':
         # NOTE: This url structure assumes you name the artifact in Bamboo the same as the json_output filename
         results_file_url = '%s/artifact/shared/%s/%s' % (config.build_url, config.json_output, config.json_output)
+        click.echo('results_file_url = %s' % results_file_url)
+        args.append(results_file_url)
+    elif config.build_vendor == 'CircleCI':
+        results_file_url = 'https://circleci.com/gh/{}/{}/{}/artifacts/{}{}/{}'.format(
+            config.github_org_name,
+            config.github_repo_name,
+            config.build_id,
+            os.environ.get('CIRCLE_NODE_INDEX'),
+            os.environ.get('CIRCLE_ARTIFACTS'),
+            config.json_output,
+        )
         click.echo('results_file_url = %s' % results_file_url)
         args.append(results_file_url)
     else:
@@ -651,8 +672,9 @@ def deploy_packaging(config, verbose):
 @click.option('--selenium-url', help='If provided, uses a Selenium Server at the specified url.  Example: http://127.0.0.1:4444/wd/hub')
 @click.option('--create-release', is_flag=True, help='If set, creates a release in Github which also creates a tag')
 @click.option('--package', help='By default, the package name will be parsed from the cumulusci.properties file in the repo.  Use the package option to override the package name.')
+@click.option('--browser', help='By default, uses the Firefox browser.  The browser should be a valid method on the Python webdriver class')
 @pass_config
-def upload_beta(config, commit, build_name, selenium_url, create_release, package):
+def upload_beta(config, commit, build_name, selenium_url, create_release, package, browser):
 
     # Build the environment for the command
     env = get_env_cumulusci(config)
@@ -666,8 +688,13 @@ def upload_beta(config, commit, build_name, selenium_url, create_release, packag
     elif hasattr(config, 'cumulusci__package__name'):
         env['PACKAGE'] = config.cumulusci__package__name
 
-    env['BUILD_NAME'] = build_name
+    if browser:
+        env['SELENIUM_BROWSER'] = browser
+    else:
+        env['SELENIUM_BROWSER'] = 'Firefox'
 
+    env['BUILD_NAME'] = build_name
+    
     required_env = [
         'OAUTH_CLIENT_ID',
         'OAUTH_CLIENT_SECRET',
@@ -678,6 +705,7 @@ def upload_beta(config, commit, build_name, selenium_url, create_release, packag
         'BUILD_NAME',
         'BUILD_COMMIT',
         'BUILD_WORKSPACE',
+        'SELENIUM_BROWSER',
     ]
 
     script = 'package_upload.py'

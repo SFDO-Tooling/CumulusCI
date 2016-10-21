@@ -181,18 +181,23 @@ class PublishingGithubReleaseNotesGenerator(GithubReleaseNotesGenerator, GithubA
             new_body = []
             current_parser = None
             is_start_line = False
+            for parser in self.parsers:
+                parser.replaced = False
 
+            # update existing sections
             for line in release['body'].splitlines():
 
                 if current_parser:
                     if current_parser._is_end_line(current_parser._process_line(line)):
                         parser_content = current_parser.render()
                         if parser_content:
+                            # replace existing section with new content
                             new_body.append(parser_content + '\r\n')
                         current_parser = None
 
                 for parser in self.parsers:
                     if parser._render_header().strip() == parser._process_line(line).strip():
+                        parser.replaced = True
                         current_parser = parser
                         is_start_line = True
                         break
@@ -204,10 +209,18 @@ class PublishingGithubReleaseNotesGenerator(GithubReleaseNotesGenerator, GithubA
                 if current_parser:
                     continue
                 else:
+                    # preserve existing sections
                     new_body.append(line.strip())
 
+            # catch section without end line
             if current_parser:
                 new_body.append(current_parser.render())
+
+            # add new sections at bottom
+            for parser in self.parsers:
+                parser_content = parser.render()
+                if parser_content and not parser.replaced:
+                    new_body.append(parser_content + '\r\n')
 
             release['body'] = u'\r\n'.join(new_body)
         else:

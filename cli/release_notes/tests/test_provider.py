@@ -243,11 +243,8 @@ class TestGithubChangeNotesProvider(unittest.TestCase, GithubApiTestMixin):
         generator = self._create_generator(self.current_tag)
         provider = GithubChangeNotesProvider(generator, self.current_tag)
 
-        with self.assertRaises(LastReleaseTagNotFoundError):
-            provider.last_tag
-
-        with self.assertRaises(LastReleaseTagNotFoundError):
-            provider.last_tag_info
+        self.assertEqual(provider.last_tag, None)
+        self.assertEqual(provider.last_tag_info, None)
 
     def _mock_pull_request_tags(self):
         # Mock the current tag ref

@@ -4,7 +4,7 @@
 
     <include file="${cumulus_ci.basedir}/cumulusci.xml" />
 
-    <taskdef 
+    <taskdef
          resource="net/sf/antcontrib/antlib.xml"
          classpath="${cumulus_ci.basedir}/lib/ant-contrib-1.0b2.jar" />
 
@@ -42,7 +42,19 @@
         <var name="sf.serverurl" value="${env.SF_SERVERURL}" />
       </then>
     </if>
-
+   
+    <if>
+      <isset property="env.SF_SESSIONID" />
+      <then>
+        <var name="sf.sessionId" value="${env.SF_SESSIONID}" />
+        <var name="sf.username" value="" />
+        <var name="sf.password" value="" />
+      </then>
+      <else>
+        <var name="sf.sessionId" value="" />
+      </else>
+    </if>
+    
     <!-- Load up cumulusci.properties file with package specific properties -->
     <loadproperties srcFile="${basedir}/cumulusci.properties"/>
 
@@ -85,7 +97,7 @@
         <property name="cumulusci.test.namematch" value="%\_TEST" />
       </else>
     </if>
-    
+
     <!-- Allow APEX_TEST_NAME_EXCLUDE environment variable to override cumulusci.test.nameexclude -->
     <if>
       <isset property="env.APEX_TEST_NAME_EXCLUDE" />
@@ -121,7 +133,7 @@
 
     <!-- Setup a blank namespace prefix string.  Managed deployments need to override this property before calling deployUnpackagedPost -->
     <property name="cumulusci.namespace.prefix" value="" />
-    
+
     <!-- Primary Build Targets -->
 
     <!-- deploy: Run a full deployment including running all tests.  Does not attempt to clean target org or ensure dependent package versions are correct -->
@@ -138,7 +150,14 @@
     <target name="deployWithoutTest">
         <echo>----------------------------------------------------------------------------</echo>
         <antcall target="preDeploy" />
-        <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="src" maxPoll="${cumulusci.maxPoll.notest}" />
+        <sf:deploy
+          username="${sf.username}"
+          password="${sf.password}"
+          serverurl="${sf.serverurl}"
+          apiVersion="${cumulusci.package.apiVersion}"
+          sessionId="${sf.sessionId}"
+          deployRoot="src"
+          maxPoll="${cumulusci.maxPoll.notest}" />
         <antcall target="postDeploy" />
     </target>
 
@@ -195,7 +214,16 @@
                         <delete dir="uninstall" />
                         <buildPackagedDestructiveChanges srcdir="@{dir}" dir="uninstall" package="${cumulusci.package.name}" />
                         <echo>Uninstalling with purgeOnDelete=${cumulusci.destroy.purgeondelete}</echo>
-                        <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="uninstall" purgeOnDelete="${cumulusci.destroy.purgeondelete}" ignoreWarnings="true" maxPoll="${cumulusci.maxPoll.notest}" />
+                        <sf:deploy
+                          username="${sf.username}"
+                          password="${sf.password}"
+                          serverurl="${sf.serverurl}"
+                          apiVersion="${cumulusci.package.apiVersion}"
+                          sessionId="${sf.sessionId}"
+                          deployRoot="uninstall"
+                          purgeOnDelete="${cumulusci.destroy.purgeondelete}"
+                          ignoreWarnings="true"
+                          maxPoll="${cumulusci.maxPoll.notest}" />
                         <delete dir="uninstall" />
                     </sequential>
                 </for>
@@ -221,7 +249,15 @@
                         <delete dir="uninstall" />
                         <buildPackagedDestructiveChanges srcdir="@{dir}" dir="uninstall" package="${cumulusci.package.name}" />
                         <echo>Uninstalling with purgeOnDelete=${cumulusci.destroy.purgeondelete}</echo>
-                        <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="uninstall" purgeOnDelete="${cumulusci.destroy.purgeondelete}" ignoreWarnings="true" maxPoll="${cumulusci.maxPoll.notest}" />
+                        <sf:deploy username="${sf.username}" 
+                          password="${sf.password}"
+                          serverurl="${sf.serverurl}"
+                          apiVersion="${cumulusci.package.apiVersion}"
+                          sessionId="${sf.sessionId}"
+                          deployRoot="uninstall"
+                          purgeOnDelete="${cumulusci.destroy.purgeondelete}"
+                          ignoreWarnings="true"
+                          maxPoll="${cumulusci.maxPoll.notest}" />
                         <delete dir="uninstall" />
                     </sequential>
                 </for>
@@ -268,7 +304,7 @@
 
         <!-- Deploy the src directory -->
         <antcall target="deployWithoutTest" />
-        
+
         <if>
             <not><equals arg1="${cumulusci.unmanaged.destroy.mode}" arg2="full" /></not>
             <then>
@@ -276,7 +312,7 @@
                 <antcall target="destroyStaleMetadata" />
             </then>
         </if>
-        
+
         <!-- Deploy any unpackaged metadata bundles needed after the deployment -->
         <antcall target="deployUnpackagedPost" />
 
@@ -492,7 +528,15 @@
 
         <!-- deploy the destructiveChanges.xml package -->
         <echo>Deleting metdata with purgeOnDelete=${cumulusci.destroy.purgeondelete}</echo>
-        <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="uninstall" purgeOnDelete="${cumulusci.destroy.purgeondelete}" maxPoll="${cumulusci.maxPoll.notest}" />
+        <sf:deploy
+          username="${sf.username}"
+          password="${sf.password}"
+          serverurl="${sf.serverurl}"
+          apiVersion="${cumulusci.package.apiVersion}"
+          sessionId="${sf.sessionId}"
+          deployRoot="uninstall"
+          purgeOnDelete="${cumulusci.destroy.purgeondelete}"
+          maxPoll="${cumulusci.maxPoll.notest}" />
 
         <delete dir="uninstallsrc" />
         <delete dir="uninstall" />
@@ -511,7 +555,15 @@
 
         <!-- deploy the destructiveChanges.xml package -->
         <echo>Deleting metdata with purgeOnDelete=${cumulusci.destroy.purgeondelete}</echo>
-        <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="uninstall" purgeOnDelete="${cumulusci.destroy.purgeondelete}" maxPoll="${cumulusci.maxPoll.notest}" />
+        <sf:deploy
+          username="${sf.username}"
+          password="${sf.password}"
+          serverurl="${sf.serverurl}"
+          apiVersion="${cumulusci.package.apiVersion}"
+          sessionId="${sf.sessionId}"
+          deployRoot="uninstall"
+          purgeOnDelete="${cumulusci.destroy.purgeondelete}"
+          maxPoll="${cumulusci.maxPoll.notest}" />
 
         <delete dir="uninstallsrc" />
         <delete dir="uninstall" />
@@ -527,7 +579,15 @@
         <retrievePackaged dir="uninstallsrc" package="${cumulusci.package.name}" />
         <buildPackagedDestructiveChanges srcdir="uninstallsrc" dir="uninstall" package="${cumulusci.package.name}" />
         <echo>Uninstalling with purgeOnDelete=${cumulusci.destroy.purgeondelete}</echo>
-        <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="uninstall" purgeOnDelete="${cumulusci.destroy.purgeondelete}" maxPoll="${cumulusci.maxPoll.notest}" />
+        <sf:deploy
+          username="${sf.username}"
+          password="${sf.password}"
+          serverurl="${sf.serverurl}"
+          apiVersion="${cumulusci.package.apiVersion}"
+          sessionId="${sf.sessionId}"
+          deployRoot="uninstall"
+          purgeOnDelete="${cumulusci.destroy.purgeondelete}"
+          maxPoll="${cumulusci.maxPoll.notest}" />
         <delete dir="uninstallsrc" />
         <delete dir="uninstall" />
         <antcall target="uninstallUnpackagedPre" />
@@ -541,9 +601,24 @@
         <retrieveUnpackaged dir="uninstallsrc" />
         <deleteWhitelistedMetadata dir="uninstallsrc/unpackaged" />
         <buildUnpackagedDestructiveChanges srcdir="uninstallsrc" dir="uninstall" />
-        <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="uninstall/standard" maxPoll="${cumulusci.maxPoll.notest}" />
+        <sf:deploy
+          username="${sf.username}"
+          password="${sf.password}"
+          serverurl="${sf.serverurl}"
+          apiVersion="${cumulusci.package.apiVersion}"
+          sessionId="${sf.sessionId}"
+          deployRoot="uninstall/standard"
+          maxPoll="${cumulusci.maxPoll.notest}" />
         <echo>Uninstalling with purgeOnDelete=${cumulusci.destroy.purgeondelete}</echo>
-        <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="uninstall/unpackaged" purgeOnDelete="${cumulusci.destroy.purgeondelete}" maxPoll="${cumulusci.maxPoll.notest}" />
+        <sf:deploy
+          username="${sf.username}"
+          password="${sf.password}"
+          serverurl="${sf.serverurl}"
+          apiVersion="${cumulusci.package.apiVersion}"
+          sessionId="${sf.sessionId}"
+          deployRoot="uninstall/unpackaged"
+          purgeOnDelete="${cumulusci.destroy.purgeondelete}"
+          maxPoll="${cumulusci.maxPoll.notest}" />
         <delete dir="uninstallsrc" />
         <delete dir="uninstall" />
     </target>
@@ -553,16 +628,19 @@
         <sequential>
             <delete dir="${basedir}/installedPackages"/>
             <mkdir dir="${basedir}/installedPackages"/>
-    
+
             <sf:bulkRetrieve
                 username="${sf.username}"
                 password="${sf.password}"
+                serverurl="${sf.serverurl}"
+                apiVersion="${cumulusci.package.apiVersion}"
+                sessionId="${sf.sessionId}"
                 metadataType="InstalledPackage"
                 retrieveTarget="${basedir}/installedPackages"/>
-    
+
             <echo>Required Package Versions:</echo>
             <echo>-------------------------------</echo>
-    
+
             <for list="${required.packages}" delimiter="," param="packageNamespace">
                 <sequential>
                     <if>
@@ -579,7 +657,7 @@
                     </if>
                 </sequential>
             </for>
-    
+
             <delete dir="${basedir}/installedPackages"/>
         </sequential>
     </macrodef>
@@ -663,7 +741,7 @@
 
         <!-- Deploy the src directory -->
         <antcall target="deployWithoutTest" />
-        
+
         <if>
             <not><equals arg1="${cumulusci.unmanaged.destroy.mode}" arg2="full" /></not>
             <then>
@@ -671,7 +749,7 @@
                 <antcall target="destroyStaleMetadata" />
             </then>
         </if>
-        
+
         <!-- Deploy any unpackaged metadata bundles needed after the deployment -->
         <antcall target="deployUnpackagedPost" />
 
@@ -687,8 +765,9 @@
         <!-- Override the purgeOnDelete=true default since we can't do that in EE orgs -->
         <var name="cumulus.destroy.purgeondelete" value="false" />
 
+        <echo>${sf.username}</echo>
         <!-- Create the unmanaged package if it doesn't already exist -->
-        <antcall target="createUnmanagedPackage" />
+        <antcall target="createUnmanagedPackage" inheritRefs="true" />
 
         <!-- Uninstall all unpackaged code from the target org.  We have to do this first so we can uninstall and reinstall any managed packages not at the right version -->
         <if>
@@ -723,7 +802,7 @@
 
         <!-- Revert the src directory -->
         <antcall target="revertUnmanagedEESrc" />
-        
+
         <if>
             <not><equals arg1="${cumulusci.unmanaged.destroy.mode}" arg2="full" /></not>
             <then>
@@ -731,7 +810,7 @@
                 <antcall target="destroyStaleMetadata" />
             </then>
         </if>
-        
+
         <!-- Deploy any unpackaged metadata bundles needed after the deployment -->
         <antcall target="deployUnpackagedPost" />
 
@@ -748,10 +827,10 @@
     <target name="retrievePackaged">
         <retrievePackaged dir="packaged" package="${cumulusci.package.name}" />
     </target>
-    
-    <!-- retrievePackagedToSrc: Retrieves all metadata from the package in the target org into the src directory --> 
-    <target name="retrievePackagedToSrc"> 
-        <retrievePackaged dir="src" package="${cumulusci.package.name}" mkdir="false" /> 
+
+    <!-- retrievePackagedToSrc: Retrieves all metadata from the package in the target org into the src directory -->
+    <target name="retrievePackagedToSrc">
+        <retrievePackaged dir="src" package="${cumulusci.package.name}" mkdir="false" />
     </target>
 
     <!-- createUnmanagedPackage: Does an empty deployment into an unmanaged package to create it if it does not exist -->
@@ -762,7 +841,13 @@
                 <delete dir="${basedir}/create_package" />
                 <mkdir dir="${basedir}/create_package" />
                 <buildPackageXml package="${cumulusci.package.name}" version="${cumulusci.package.apiVersion}" srcDir="create_package" />
-                <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="create_package" maxPoll="${cumulusci.maxPoll.notest}" />
+                <sf:deploy username="${sf.username}"
+                  password="${sf.password}"
+                  serverurl="${sf.serverurl}"
+                  apiVersion="${cumulusci.package.apiVersion}"
+                  sessionId="${sf.sessionId}"
+                  deployRoot="create_package"
+                  maxPoll="${cumulusci.maxPoll.notest}" />
                 <delete dir="${basedir}/create_package" />
             </then>
         </if>
@@ -785,7 +870,15 @@
                 </exec>
             </then>
             <else>
-                <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="${cumulus_ci.basedir}/empty" testLevel="RunLocalTests" maxPoll="${cumulusci.maxPoll.test}" />
+                <sf:deploy
+                  username="${sf.username}"
+                  password="${sf.password}"
+                  serverurl="${sf.serverurl}"
+                  apiVersion="${cumulusci.package.apiVersion}"
+                  sessionId="${sf.sessionId}"
+                  deployRoot="${cumulus_ci.basedir}/empty"
+                  testLevel="RunLocalTests"
+                  maxPoll="${cumulusci.maxPoll.test}" />
             </else>
         </if>
     </target>
@@ -808,7 +901,15 @@
                 </exec>
             </then>
             <else>
-                <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="${cumulus_ci.basedir}/empty" testLevel="RunAllTestsInOrg" maxPoll="${cumulusci.maxPoll.test}" />
+                <sf:deploy
+                  username="${sf.username}"
+                  password="${sf.password}"
+                  serverurl="${sf.serverurl}"
+                  apiVersion="${cumulusci.package.apiVersion}"
+                  sessionId="${sf.sessionId}"
+                  deployRoot="${cumulus_ci.basedir}/empty"
+                  testLevel="RunAllTestsInOrg"
+                  maxPoll="${cumulusci.maxPoll.test}" />
             </else>
         </if>
     </target>
@@ -819,7 +920,7 @@
     </target>
 
     <target name="updatePackageXmlManaged">
-        <buildPackageXml package="${cumulusci.package.name.managed}" version="${cumulusci.package.apiVersion}" installClass="${cumulusci.package.installClass}" uninstallClass="${cumulusci.package.uninstallClass}" />
+        <buildPackageXml package="${cumulusci.package.name.managed}" version="${cumulusci.package.apiVersion}" installClass="${cumulusci.package.installClass}" uninstallClass="${cumulusci.package.uninstallClass}" type="managed" />
     </target>
 
     <target name="updateMetaXml">
@@ -847,7 +948,14 @@
         <antcall target="preDeployUpdatedAdminProfile" />
 
         <echo>Deploying updated Admin.profile</echo>
-        <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="admin_profile" maxPoll="${cumulusci.maxPoll.notest}" />
+        <sf:deploy
+          username="${sf.username}"
+          password="${sf.password}"
+          serverurl="${sf.serverurl}"
+          apiVersion="${cumulusci.package.apiVersion}"
+          sessionId="${sf.sessionId}"
+          deployRoot="admin_profile"
+          maxPoll="${cumulusci.maxPoll.notest}" />
 
         <delete dir="admin_profile" />
     </target>
@@ -929,7 +1037,7 @@
         <exec executable="git" failonerror="true" dir="../${cumulusci.package.name}ApexDoc">
             <arg line="checkout ${cumulusci.apexdoc.branch}" />
         </exec>
-            
+
         <!-- Download apexdoc.jar -->
         <delete dir="${cumulus_ci.basedir}/../ci/doc" />
         <mkdir dir="${cumulus_ci.basedir}/../ci/doc" />
