@@ -19,3 +19,18 @@ class OrgNotFound(CumulusCIException):
     """ Raised when no org could be found by a given name in the project keychain """
     pass
 
+class AntTargetException(CumulusCIException):
+    """ Raised when a generic Ant target error occurs """
+    pass
+
+class DeploymentException(CumulusCIException):
+    """ Raised when a metadata api deployment error occurs """
+    pass
+
+class ApexTestException(CumulusCIException):
+    """ Raised when a build fails because of an Apex test failure """
+    pass
+
+class SalesforceCredentialsException(CumulusCIException):
+    """ Raise when Salesforce credentials are invalid """
+    pass
