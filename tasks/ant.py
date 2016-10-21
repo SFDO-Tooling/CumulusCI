@@ -50,7 +50,7 @@ class BaseAntTask(BaseTask):
     def _get_ant_env(self):
         env = {
             'CUMULUSCI_PATH': CUMULUSCI_PATH,
-            #'CUMULUSCI_CLI': 'True',
+            'CUMULUSCI_CLI': 'True',
             'PATH': os.environ.get('PATH'),
             'ANT_OPTS': '-Xmx512m',
             'SF_SESSIONID': self.org_config.access_token,
@@ -77,7 +77,7 @@ class BaseAntTask(BaseTask):
         while p.returncode is None:
             for line in p.stdout:
                 log.append(line.rstrip())
-                print line.rstrip()
+                self.logger.info(line.rstrip())
             p.poll()
     
         # Check the return code, raise the appropriate exception if needed
@@ -91,13 +91,13 @@ class BaseAntTask(BaseTask):
                 else:
                     raise AntTargetException(logtxt)
             except DeploymentException as e:
-                print 'BUILD FAILED: One or more deployment errors occurred'
+                self.logger.error('BUILD FAILED: One or more deployment errors occurred')
                 raise e
             except ApexTestException as e:
-                print 'BUILD FAILED: One or more Apex tests failed'
+                self.logger.error('BUILD FAILED: One or more Apex tests failed')
                 raise e
             except AntTargetException as e:
-                print 'BUILD FAILED: One or more Ant target errors occurred'
+                self.logger.error('BUILD FAILED: One or more Ant target errors occurred')
                 raise e
         return p
             

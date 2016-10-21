@@ -39,9 +39,9 @@ tasks:
             path: unpackaged/pre
     deploy_post:
         description: Deploys all metadata bundles under unpackaged/post/
-        class_path: tasks.salesforce.DeployBundles
+        class_path: tasks.ant.BaseAntTask
         options:
-            path: unpackaged/post
+            target: deployUnpackagedPost
     generate_apex_doc:
         description: Generates ApexDoc documentation and uploads to the gh-pages branch
         class_path: tasks.ant.BaseAntTask
