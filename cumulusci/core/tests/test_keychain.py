@@ -82,6 +82,36 @@ class TestBaseProjectKeychain(unittest.TestCase):
         keychain = self.keychain_class(self.project_config, self.key)
         self.assertEquals(keychain.get_org('test'), None)
 
+    def test_get_default_org(self):
+        self._test_get_default_org()
+
+    def _test_get_default_org(self):
+        keychain = self.keychain_class(self.project_config, self.key)
+        org_config = self.org_config.config.copy()
+        org_config = OrgConfig(org_config)
+        org_config.config['default'] = True
+        keychain.set_org('test', org_config)
+        self.assertEquals(keychain.get_default_org().config, org_config.config)
+
+    def test_get_default_org_no_default(self):
+        self._test_get_default_org_no_default()
+
+    def _test_get_default_org_no_default(self):
+        keychain = self.keychain_class(self.project_config, self.key)
+        self.assertEquals(keychain.get_default_org(), None)
+
+    def test_unset_default_org(self):
+        self._test_unset_default_org()
+
+    def _test_unset_default_org(self):
+        keychain = self.keychain_class(self.project_config, self.key)
+        org_config = self.org_config.config.copy()
+        org_config = OrgConfig(org_config)
+        org_config.config['default'] = True
+        keychain.set_org('test', org_config)
+        keychain.unset_default_org()
+        self.assertEquals(keychain.get_default_org(), None)
+
     def test_list_orgs(self):
         self._test_list_orgs()
 
@@ -134,7 +164,6 @@ class TestEnvironmentProjectKeychain(TestBaseProjectKeychain):
 
     def _test_list_orgs(self):
         with self.env:
-            print os.environ
             keychain = self.keychain_class(self.project_config, self.key)
             self.assertEquals(keychain.list_orgs(), ['test'])
 
@@ -145,8 +174,6 @@ class TestEnvironmentProjectKeychain(TestBaseProjectKeychain):
                 self.keychain_class.app_var,
                 json.dumps(self.connected_app_config.config)
             )
-            print os.environ
-            print env
             self._test_list_orgs_empty()
 
     def test_get_org_not_found(self):
@@ -156,9 +183,22 @@ class TestEnvironmentProjectKeychain(TestBaseProjectKeychain):
                 self.keychain_class.app_var,
                 json.dumps(self.connected_app_config.config)
             )
-            print os.environ
-            print env
             self._test_get_org_not_found()
+
+    def test_get_default_org(self):
+        with EnvironmentVarGuard() as env:
+            self._clean_env(env)
+            org_config = self.org_config.config.copy()
+            org_config['default'] = True
+            self.env.set(
+                '{}test'.format(self.keychain_class.org_var_prefix),
+                json.dumps(org_config)
+            )
+            env.set(
+                self.keychain_class.app_var,
+                json.dumps(self.connected_app_config.config)
+            )
+            self._test_get_default_org()
 
 class TestBaseEncryptedProjectKeychain(TestBaseProjectKeychain):
     keychain_class = BaseEncryptedProjectKeychain
@@ -172,7 +212,7 @@ class TestEncryptedFileProjectKeychain(TestBaseProjectKeychain):
         self.project_config = BaseProjectConfig(self.global_config)
         self.project_name = 'TestRepo'
         self.connected_app_config = ConnectedAppOAuthConfig({'test': 'value'})
-        self.org_config = OrgConfig()
+        self.org_config = OrgConfig({'foo': 'bar'})
         self.key = '0123456789123456'
 
     def _mk_temp_home(self):
@@ -239,6 +279,27 @@ class TestEncryptedFileProjectKeychain(TestBaseProjectKeychain):
         mock_class.return_value = self.tempdir_home
         os.chdir(self.tempdir_project)
         self._test_get_org_not_found()
+
+    def test_get_default_org(self, mock_class):
+        self._mk_temp_home()
+        self._mk_temp_project()
+        mock_class.return_value = self.tempdir_home
+        os.chdir(self.tempdir_project)
+        self._test_get_default_org()
+
+    def test_get_default_org_no_default(self, mock_class):
+        self._mk_temp_home()
+        self._mk_temp_project()
+        mock_class.return_value = self.tempdir_home
+        os.chdir(self.tempdir_project)
+        self._test_get_default_org_no_default()
+
+    def test_unset_default_org(self, mock_class):
+        self._mk_temp_home()
+        self._mk_temp_project()
+        mock_class.return_value = self.tempdir_home
+        os.chdir(self.tempdir_project)
+        self._test_unset_default_org()
 
     def test_list_orgs(self, mock_class):
         self._mk_temp_home()

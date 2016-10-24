@@ -172,6 +172,21 @@ def org_connect(config, org_name, sandbox):
     
     config.keychain.set_org(org_name, org_config)
 
+@click.command(name='default', help="Sets an org as the default org for tasks and flows")
+@click.argument('org_name')
+@click.option('--unset', is_flag=True, help="Unset the org as the default org leaving no default org selected")
+@pass_config
+def org_default(config, org_name, unset):
+    check_connected_app(config)
+
+    if unset:
+        org = config.keychain.unset_default_org()
+        click.echo('{} is no longer the default org.  No default org set.'.format(org_name))
+    else:
+        org = config.keychain.set_default_org(org_name)
+        click.echo('{} is now the default org'.format(org_name))
+
+
 @click.command(name='info', help="Display information for a connected org")
 @click.argument('org_name')
 @pass_config
@@ -184,7 +199,11 @@ def org_info(config, org_name):
 def org_list(config):
     check_connected_app(config)
     for org in config.project_config.list_orgs():
-        click.echo('    {}'.format(org))
+        org_config = config.project_config.get_org(org)
+        if org_config.default:
+            click.echo('  * {}'.format(org))
+        else:
+            click.echo('    {}'.format(org))
 
 @click.command(name='connected_app', help="Displays the ConnectedApp info used for OAuth connections")
 @pass_config
@@ -210,6 +229,7 @@ def org_config_connected_app(config, client_id, client_secret, callback_url):
 
 org.add_command(org_browser)
 org.add_command(org_connect)
+org.add_command(org_default)
 org.add_command(org_info)
 org.add_command(org_list)
 org.add_command(org_connected_app)

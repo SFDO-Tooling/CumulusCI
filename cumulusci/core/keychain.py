@@ -59,6 +59,24 @@ class BaseProjectKeychain(BaseConfig):
     def _set_org(self, name, org_config):
         self.orgs[name] = org_config
 
+    def get_default_org(self):
+        for org in self.list_orgs():
+            org_config = self.get_org(org)
+            if org_config.default:
+                return org_config
+
+    def set_default_org(self, name):
+        org = self.get_org(name)
+        self.unset_default_org()
+        org.config['default'] = True
+        
+    def unset_default_org(self):
+        for org in self.list_orgs():
+            org_config = self.get_org(org)
+            if org_config.default:
+                del org_config.config['default']
+                self.set_org(org, org_config)
+
     def get_org(self, name):
         if name not in self.orgs:
             self._raise_org_not_found(name)

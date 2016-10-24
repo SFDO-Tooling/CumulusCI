@@ -217,7 +217,6 @@ class OrgConfig(BaseConfig):
         start_url = '%s/secur/frontdoor.jsp?sid=%s' % (self.instance_url, self.access_token)
         return start_url
 
-
 class TaskConfig(BaseConfig):
     """ A task with its configuration merged """
     pass
