@@ -12,11 +12,7 @@ from cumulusci.salesforce_api.metadata import ApiRetrieveUnpackaged
 
 class BaseSalesforceTask(BaseTask):
     name = 'BaseSalesforceTask'
-
-    def __init__(self, project_config, task_config, org_config, **kwargs):
-        self.org_config = org_config
-        self.options = kwargs
-        super(BaseSalesforceTask, self).__init__(project_config, task_config)
+    salesforce_task = True
 
     def __call__(self):
         self._refresh_oauth_token()
@@ -63,7 +59,7 @@ class Deploy(BaseSalesforceMetadataApiTask):
 
     def _get_api(self, path=None):
         if not path:
-            path = self.task_config['options']['path']
+            path = self.task_config.options__path
 
         # Build the zip file
         zip_file = tempfile.TemporaryFile()
@@ -93,7 +89,7 @@ class DeployBundles(Deploy):
     }
     
     def _run_task(self):
-        path = self.task_config['options']['path']
+        path = self.task_config.options__path
         pwd = os.getcwd()
 
         path = os.path.join(pwd, path)

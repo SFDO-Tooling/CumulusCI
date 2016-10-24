@@ -49,7 +49,7 @@ class BaseFlow(object):
         task = task_class(
             self.project_config, 
             task_config, 
-            self.org_config
+            org_config = self.org_config,
         )
         self.tasks.append(task)
         response = task()

@@ -9,6 +9,7 @@ from cumulusci.core.exceptions import AntTargetException
 from cumulusci.core.exceptions import ApexTestException
 from cumulusci.core.exceptions import DeploymentException
 from cumulusci.core.tasks import BaseTask
+from cumulusci.tasks.salesforce import BaseSalesforceTask
 
 CUMULUSCI_PATH = os.path.realpath(
     os.path.join(
@@ -20,8 +21,8 @@ CUMULUSCI_PATH = os.path.realpath(
     )
 )
 
-class BaseAntTask(BaseTask):
-    name = 'BaseAntTask'
+class AntTask(BaseTask):
+    name = 'AntTask'
 
     task_options = {
         'target': {
@@ -34,17 +35,8 @@ class BaseAntTask(BaseTask):
         }
     }
 
-    def __init__(self, project_config, task_config, org_config, **kwargs):
-        self.org_config = org_config
-        self.options = kwargs
-        super(BaseAntTask, self).__init__(project_config, task_config)
-
-    def __call__(self):
-        self._refresh_oauth_token()
-        return self._run_task()
-
     def _run_task(self):
-        target = self.task_config['options']['target']
+        target = self.task_config.options__target
         env = self._get_ant_env()
         return self._run_ant_target(target, env)
 
@@ -53,9 +45,6 @@ class BaseAntTask(BaseTask):
             'CUMULUSCI_PATH': CUMULUSCI_PATH,
             'CUMULUSCI_CLI': 'True',
             'PATH': os.environ.get('PATH'),
-            'ANT_OPTS': '-Xmx512m',
-            'SF_SESSIONID': self.org_config.access_token,
-            'SF_SERVERURL': self.org_config.instance_url,
         }
         venv = os.environ.get('VIRTUAL_ENV')
         if venv:
@@ -63,7 +52,7 @@ class BaseAntTask(BaseTask):
         return env
 
     def _run_ant_target(self, target, env):
-        verbose = self.options.get('verbose') in ('True','true')
+        verbose = self.task_config.options__verbose in ('True','true')
             
         # Execute the command
         if verbose:
@@ -80,7 +69,7 @@ class BaseAntTask(BaseTask):
                 log.append(line.rstrip())
                 self.logger.info(line.rstrip())
             p.poll()
-    
+   
         # Check the return code, raise the appropriate exception if needed
         if p.returncode:
             logtxt = '\n'.join(log)
@@ -101,8 +90,18 @@ class BaseAntTask(BaseTask):
                 self.logger.error('BUILD FAILED: One or more Ant target errors occurred')
                 raise e
         return p
+
+class SalesforceAntTask(AntTask, BaseSalesforceTask):
             
+    def __call__(self):
+        self._refresh_oauth_token()
+        return self._run_task()
+
+    def _get_ant_env(self):
+        env = super(SalesforceAntTask, self)._get_ant_env()
+        env['SF_SESSIONID'] = self.org_config.access_token
+        env['SF_SERVERURL'] = self.org_config.instance_url
+        return env
     
     def _refresh_oauth_token(self):
         self.org_config.refresh_oauth_token(self.project_config.keychain.get_connected_app())
-

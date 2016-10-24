@@ -4,27 +4,27 @@ cumulusci:
 tasks:
     create_unmanaged_package:
         description: Deploys an empty package with name from project -> name
-        class_path: cumulusci.tasks.ant.BaseAntTask
+        class_path: cumulusci.tasks.ant.SalesforceAntTask
         options:
             target: createUnmanagedPackage
     create_managed_src:
         description: Modifies the src directory for managed deployment.  Strips //cumulusci-managed from all Apex code
-        class_path: cumulusci.tasks.ant.BaseAntTask
+        class_path: cumulusci.tasks.ant.AntTask
         options:
             target: createManagedSrc
     create_unmanaged_ee_src:
         description: Modifies the src directory for unmanaged deployment to an EE org
-        class_path: cumulusci.tasks.ant.BaseAntTask
+        class_path: cumulusci.tasks.ant.AntTask
         options:
             target: createUnmanagedEESrc
     delete_incremental:
         description: Deletes any metadata from the package in the target org not in the local workspace
-        class_path: cumulusci.tasks.ant.BaseAntTask
+        class_path: cumulusci.tasks.ant.SalesforceAntTask
         options:
             target: destroyStaleMetadata
     delete_incremental_managed:
         description: Deletes any metadata from the package in the target packaging org not in the local workspace
-        class_path: cumulusci.tasks.ant.BaseAntTask
+        class_path: cumulusci.tasks.ant.SalesforceAntTask
         options:
             target: destroyStaleMetadataManaged
     deploy:
@@ -39,12 +39,12 @@ tasks:
             path: unpackaged/pre
     deploy_post:
         description: Deploys all metadata bundles under unpackaged/post/
-        class_path: cumulusci.tasks.ant.BaseAntTask
+        class_path: cumulusci.tasks.ant.SalesforceAntTask
         options:
             target: deployUnpackagedPost
     generate_apex_doc:
         description: Generates ApexDoc documentation and uploads to the gh-pages branch
-        class_path: cumulusci.tasks.ant.BaseAntTask
+        class_path: cumulusci.tasks.ant.AntTask
         options:
             target: revertUnmanagedEESrc
     get_installed_packages:
@@ -57,12 +57,12 @@ tasks:
             path: packaged
     retrieve_packaged_ant:
         description: Retrieves the packaged metadata
-        class_path: cumulusci.tasks.ant.BaseAntTask
+        class_path: cumulusci.tasks.ant.SalesforceAntTask
         options:
             target: retrievePackaged
     retrieve_src:
         description: Retrieves the packaged metadata into the src directory
-        class_path: cumulusci.tasks.ant.BaseAntTask
+        class_path: cumulusci.tasks.ant.SalesforceAntTask
         options:
             target: retrievePackagedToSrc
     retrieve_unpackaged:
@@ -72,57 +72,57 @@ tasks:
             path: unpackaged
     revert_managed_src:
         description: Reverts the changes from create_managed_src
-        class_path: cumulusci.tasks.ant.BaseAntTask
+        class_path: cumulusci.tasks.ant.AntTask
         options:
             target: revertManagedSrc
     revert_unmanaged_ee_src:
         description: Reverts the changes from create_unmanaged_ee_src
-        class_path: cumulusci.tasks.ant.BaseAntTask
+        class_path: cumulusci.tasks.ant.AntTask
         options:
             target: revertUnmanagedEESrc
     run_tests:
         description: Runs all apex tests
-        class_path: cumulusci.tasks.ant.BaseAntTask
+        class_path: cumulusci.tasks.ant.SalesforceAntTask
         options:
             target: runAllTests
     run_tests_managed:
         description: Runs all apex tests in the packaging org or a managed package subscriber org
-        class_path: cumulusci.tasks.ant.BaseAntTask
+        class_path: cumulusci.tasks.ant.SalesforceAntTask
         options:
             target: runAllTestsManaged
     uninstall:
         description: Uninstalls the package metadata
-        class_path: cumulusci.tasks.ant.BaseAntTask
+        class_path: cumulusci.tasks.ant.SalesforceAntTask
         options:
             target: uninstall
     uninstall_unpackaged_pre:
         description: Uninstalls the unpackaged/pre bundles
-        class_path: cumulusci.tasks.ant.BaseAntTask
+        class_path: cumulusci.tasks.ant.SalesforceAntTask
         options:
             target: uninstallUnpackagedPre
     uninstall_unpackaged_post:
         description: Uninstalls the unpackaged/post bundles
-        class_path: cumulusci.tasks.ant.BaseAntTask
+        class_path: cumulusci.tasks.ant.SalesforceAntTask
         options:
             target: uninstallUnpackagedPost
     update_admin_profile:
         description: Retrieves, edits, and redeploys the Admin.profile with full FLS perms for all objects/fields
-        class_path: cumulusci.tasks.ant.BaseAntTask
+        class_path: cumulusci.tasks.ant.SalesforceAntTask
         options:
             target: deployUpdatedAdminProfile
     update_meta_xml:
         description: Updates all -meta.xml files to have the correct API version and extension package versions
-        class_path: cumulusci.tasks.ant.BaseAntTask
+        class_path: cumulusci.tasks.ant.AntTask
         options:
             target: updateMetaXml
     update_package_xml:
         description: Updates src/package.xml with metadata in src/
-        class_path: cumulusci.tasks.ant.BaseAntTask
+        class_path: cumulusci.tasks.ant.AntTask
         options:
             target: updatePackageXml
     update_required_packages:
         description: Ensures all managed package versions in version.properties are installed
-        class_path: cumulusci.tasks.ant.BaseAntTask
+        class_path: cumulusci.tasks.ant.SalesforceAntTask
         options:
             target: updateRequiredPackages
 

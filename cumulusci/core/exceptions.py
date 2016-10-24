@@ -34,3 +34,7 @@ class ApexTestException(CumulusCIException):
 class SalesforceCredentialsException(CumulusCIException):
     """ Raise when Salesforce credentials are invalid """
     pass
+
+class TaskRequiresSalesforceOrg(CumulusCIException):
+    """ Raise when a task that requires a Salesforce org_config is not initialized with an org_config """
+    pass

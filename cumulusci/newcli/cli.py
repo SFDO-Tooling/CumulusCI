@@ -8,9 +8,11 @@ from cumulusci.core.config import YamlGlobalConfig
 from cumulusci.core.config import YamlProjectConfig
 from cumulusci.core.config import ConnectedAppOAuthConfig
 from cumulusci.core.config import OrgConfig
+from cumulusci.core.config import TaskConfig
 from cumulusci.core.exceptions import KeychainConnectedAppNotFound
 from cumulusci.core.exceptions import KeychainKeyNotFound
 from cumulusci.core.exceptions import ProjectConfigNotFound
+from cumulusci.core.exceptions import TaskRequiresSalesforceOrg
 from cumulusci.core.utils import import_class
 
 from cumulusci.oauth.salesforce import CaptureSalesforceOAuth
@@ -315,10 +317,16 @@ def task_run(config, task_name, org, o):
 
             # Override the option in the task config
             task_config['options'][name] = value
+
+    task_config = TaskConfig(task_config)
     
     # Create and run the task    
-    task = task_class(config.project_config, task_config, org_config)
-    click.echo(task())
+    try:
+        task = task_class(config.project_config, task_config, org_config = org_config)
+    except TaskRequiresSalesforceOrg as e:
+        raise click.UsageError('This task requires a salesforce org.  Use org default <name> to set a default org or pass the org name with the --org option')
+        
+    task()
 
 # Add the task commands to the task group
 task.add_command(task_list)
@@ -360,7 +368,7 @@ def flow_run(config, flow_name, org):
 
     # Create and run the flow 
     flow = flow_class(config.project_config, flow_config, org_config)
-    click.echo(flow())
+    flow()
 
 flow.add_command(flow_list)
 flow.add_command(flow_info)
