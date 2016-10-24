@@ -278,15 +278,18 @@ def task_info(config, task_name):
 
 @click.command(name='run', help="Runs a task")
 @click.argument('task_name')
-@click.argument('org_name')
+@click.option('--org', help="Specify the target org.  By default, runs against the current default org")
 @click.option('-o', nargs=2, multiple=True)
 @pass_config
-def task_run(config, task_name, org_name, o):
+def task_run(config, task_name, org, o):
     # Check environment
     check_keychain(config)
 
     # Get necessary configs
-    org_config = config.project_config.get_org(org_name)
+    if org:
+        org_config = config.project_config.get_org(org)
+    else:
+        org_config = config.project_config.keychain.get_default_org()
     task_config = getattr(config.project_config, 'tasks__{}'.format(task_name))
 
     # Get the class to look up options
@@ -338,14 +341,17 @@ def flow_info(config, flow_name):
 
 @click.command(name='run', help="Runs a flow")
 @click.argument('flow_name')
-@click.argument('org_name')
+@click.option('--org', help="Specify the target org.  By default, runs against the current default org")
 @pass_config
-def flow_run(config, flow_name, org_name):
+def flow_run(config, flow_name, org):
     # Check environment
     check_keychain(config)
 
     # Get necessary configs
-    org_config = config.project_config.get_org(org_name)
+    if org:
+        org_config = config.project_config.get_org(org)
+    else:
+        org_config = config.project_config.keychain.get_default_org()
     flow_config = getattr(config.project_config, 'flows__{}'.format(flow_name))
 
     # Get the class to look up options

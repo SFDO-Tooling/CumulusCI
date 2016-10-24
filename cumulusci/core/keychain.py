@@ -69,6 +69,7 @@ class BaseProjectKeychain(BaseConfig):
         org = self.get_org(name)
         self.unset_default_org()
         org.config['default'] = True
+        self.set_org(name, org)
         
     def unset_default_org(self):
         for org in self.list_orgs():
