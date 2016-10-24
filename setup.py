@@ -39,12 +39,12 @@ test_requirements = [
 
 setup(
     name='cumulusci',
-    version='2.0.0-alpha5',
+    version='2.0.0-alpha6',
     description="Build and release tools for Salesforce developers",
     long_description=readme + '\n\n' + history,
     author="Jason Lantz",
     author_email='jlantz@salesforce.com',
-    url='https://github.com/SalesforceFoundation/CumulusCI',
+    url='https://github.com/SalesforceFoundation/CumulusCI/tree/feature/2.0',
     packages = list(find_packages(cumulusci.__path__, cumulusci.__name__)),
     package_dir={'cumulusci':
                  'cumulusci'},
