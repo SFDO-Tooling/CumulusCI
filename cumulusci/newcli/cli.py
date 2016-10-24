@@ -1,3 +1,4 @@
+import json
 import os
 import webbrowser
 
@@ -13,6 +14,11 @@ from cumulusci.core.exceptions import ProjectConfigNotFound
 from cumulusci.core.utils import import_class
 
 from cumulusci.oauth.salesforce import CaptureSalesforceOAuth
+
+def pretty_dict(data):
+    if not data:
+        return ''
+    return json.dumps(data, sort_keys=True, indent=4, separators=(',', ': '))
 
 class CliConfig(object):
     def __init__(self):
@@ -116,7 +122,7 @@ def project_init(config, name):
 @pass_config
 def project_info(config):
     check_project_config(config)
-    click.echo(config.project_config.project)
+    click.echo(pretty_dict(config.project_config.project))
 
 @click.command(name='list', help="List projects and their locations")
 @pass_config
@@ -171,7 +177,7 @@ def org_connect(config, org_name, sandbox):
 @pass_config
 def org_info(config, org_name):
     check_connected_app(config)
-    click.echo(config.keychain.get_org(org_name).config)
+    click.echo(pretty_dict(config.keychain.get_org(org_name).config))
 
 @click.command(name='list', help="Lists the connected orgs for the current project")
 @pass_config
@@ -184,7 +190,7 @@ def org_list(config):
 @pass_config
 def org_connected_app(config):
     check_connected_app(config)
-    click.echo(config.keychain.get_connected_app().config)
+    click.echo(pretty_dict(config.keychain.get_connected_app().config))
 
 
 @click.command(name='config_connected_app', help="Configures the connected app used for connecting to Salesforce orgs")
@@ -308,7 +314,7 @@ def flow_list(config):
 @pass_config
 def flow_info(config, flow_name):
     check_project_config(config)
-    click.echo(getattr(config.project_config, 'flows__{}'.format(flow_name)))
+    click.echo(pretty_dict(getattr(config.project_config, 'flows__{}'.format(flow_name))))
 
 @click.command(name='run', help="Runs a flow")
 @click.argument('flow_name')

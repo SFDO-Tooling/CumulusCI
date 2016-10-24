@@ -1,3 +1,4 @@
+import json
 import os
 import shutil
 import tempfile
@@ -7,6 +8,8 @@ import mock
 import nose
 import yaml
 
+from test.test_support import EnvironmentVarGuard
+
 from cumulusci.core.config import BaseGlobalConfig
 from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.config import ConnectedAppOAuthConfig
@@ -14,6 +17,7 @@ from cumulusci.core.config import OrgConfig
 from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.core.keychain import BaseEncryptedProjectKeychain
 from cumulusci.core.keychain import EncryptedFileProjectKeychain
+from cumulusci.core.keychain import EnvironmentProjectKeychain
 from cumulusci.core.exceptions import NotInProject
 from cumulusci.core.exceptions import OrgNotFound
 from cumulusci.core.exceptions import ProjectConfigNotFound
@@ -93,6 +97,68 @@ class TestBaseProjectKeychain(unittest.TestCase):
         keychain = self.keychain_class(self.project_config, self.key)
         self.assertEquals(keychain.list_orgs(), [])
 
+class TestEnvironmentProjectKeychain(TestBaseProjectKeychain):
+    keychain_class = EnvironmentProjectKeychain
+
+    def setUp(self):
+        super(TestEnvironmentProjectKeychain, self).setUp()
+        self.env = EnvironmentVarGuard()
+        self._clean_env(self.env)
+        self.env.set(
+            '{}test'.format(self.keychain_class.org_var_prefix),
+            json.dumps(self.org_config.config)
+        )
+        self.env.set(
+            self.keychain_class.app_var,
+            json.dumps(self.connected_app_config.config)
+        )
+
+        #self.env_empty = EnvironmentVarGuard()
+        #self._clean_env(self.env_empty, self.keychain_class)
+        #self.env_empty.set(
+            #self.keychain_class.app_var,
+            #json.dumps(self.connected_app_config.config)
+        #)
+
+    def _clean_env(self, env):
+        for key, value in env.items():
+            if key.startswith(self.keychain_class.org_var_prefix):
+                del env[key]
+        if self.keychain_class.app_var in env:
+            del env[self.keychain_class.app_var]
+
+    def test_get_org(self):
+        keychain = self.keychain_class(self.project_config, self.key)
+        self.assertEquals(keychain.orgs.keys(), ['test'])
+        self.assertEquals(keychain.get_org('test').config, self.org_config.config)
+
+    def _test_list_orgs(self):
+        with self.env:
+            print os.environ
+            keychain = self.keychain_class(self.project_config, self.key)
+            self.assertEquals(keychain.list_orgs(), ['test'])
+
+    def test_list_orgs_empty(self):
+        with EnvironmentVarGuard() as env:
+            self._clean_env(env)
+            env.set(
+                self.keychain_class.app_var,
+                json.dumps(self.connected_app_config.config)
+            )
+            print os.environ
+            print env
+            self._test_list_orgs_empty()
+
+    def test_get_org_not_found(self):
+        with EnvironmentVarGuard() as env:
+            self._clean_env(env)
+            env.set(
+                self.keychain_class.app_var,
+                json.dumps(self.connected_app_config.config)
+            )
+            print os.environ
+            print env
+            self._test_get_org_not_found()
 
 class TestBaseEncryptedProjectKeychain(TestBaseProjectKeychain):
     keychain_class = BaseEncryptedProjectKeychain

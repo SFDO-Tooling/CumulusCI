@@ -133,7 +133,7 @@ class BaseMetadataParser(object):
         return self.render_xml()
 
     def get_delete_excludes(self):
-        f = open(__location__ + '/../../build/whitelists/metadata.txt', 'r')
+        f = open(__location__ + '/../../../build/whitelists/metadata.txt', 'r')
         excludes = []
         for line in f:
             excludes.append(line.strip())

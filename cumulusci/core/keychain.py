@@ -1,4 +1,5 @@
 import base64
+import json
 import os
 import pickle
 
@@ -70,7 +71,29 @@ class BaseProjectKeychain(BaseConfig):
         raise OrgNotFound('Org named {} was not found in keychain'.format(name))
 
     def list_orgs(self):
-        return self.orgs.keys()
+        orgs = self.orgs.keys()
+        orgs.sort()
+        return orgs
+
+class EnvironmentProjectKeychain(BaseProjectKeychain):
+    """ A project keychain that stores org credentials in environment variables """ 
+    org_var_prefix = 'CUMULUSCI_ORG_'
+    app_var = 'CUMULUSCI_CONNECTED_APP'
+   
+    def _load_keychain(self): 
+        self._load_keychain_app()
+        self._load_keychain_orgs()
+
+    def _load_keychain_app(self):
+        app = os.environ.get(self.app_var)
+        if app:
+            self.app = ConnectedAppOAuthConfig(json.loads(app))
+
+    def _load_keychain_orgs(self):
+        for key, value in os.environ.items():
+            if key.startswith(self.org_var_prefix):
+                self.orgs[key[len(self.org_var_prefix):]] = OrgConfig(json.loads(value))
+
 
 BS = 16
 pad = lambda s: s + (BS - len(s) % BS) * chr(BS - len(s) % BS)
