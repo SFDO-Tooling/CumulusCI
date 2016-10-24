@@ -2,7 +2,7 @@ import os
 import tempfile
 import unittest
 
-from cumulusci.cli.metadata.package import PackageXmlGenerator
+from cumulusci.tasks.metadata.package import PackageXmlGenerator
 
 __location__ = os.path.split(os.path.realpath(__file__))[0]
 

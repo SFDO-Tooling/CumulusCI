@@ -117,9 +117,9 @@ tasks:
             target: updateMetaXml
     update_package_xml:
         description: Updates src/package.xml with metadata in src/
-        class_path: cumulusci.tasks.ant.AntTask
+        class_path: cumulusci.tasks.metadata.package.UpdatePackageXml
         options:
-            target: updatePackageXml
+            path: src
     update_required_packages:
         description: Ensures all managed package versions in version.properties are installed
         class_path: cumulusci.tasks.ant.SalesforceAntTask

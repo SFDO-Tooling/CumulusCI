@@ -6,6 +6,8 @@ import xml.etree.ElementTree as ET
 
 import yaml
 
+from cumulusci.core.tasks import BaseTask
+
 __location__ = os.path.realpath(
     os.path.join(os.getcwd(), os.path.dirname(__file__)))
 
@@ -318,3 +320,39 @@ class AuraBundleParser(MetadataFilenameParser):
 class DocumentParser(MetadataFolderParser):        
     def _parse_subitem(self, item, subitem):
         return [item + '/' + subitem]
+
+class UpdatePackageXml(BaseTask):
+    task_options = {
+        'path': {
+            'description': 'The path to a folder of metadata to build the package.xml from',
+            'required': True,
+        },
+        'output': {
+            'description': 'The output file, defaults to <path>/package.xml',
+        },
+        'managed': {
+            'description': 'If True, generate a package.xml for deployment to the managed package packaging org',
+        },
+        'delete': {
+            'description': 'If True, generate a package.xml for use as a destructiveChanges.xml file for deleting metadata',
+        },
+    }
+
+    def _init_task(self):
+        self.package_xml = PackageXmlGenerator(
+            directory = self.options.get('path'),
+            api_version = self.project_config.project__api_version,
+            package_name = self.project_config.project__name,
+            managed = self.options.get('managed', False),
+            delete = self.options.get('delete', False),
+            install_class = self.project_config.project__install_class,
+            uninstall_class = self.project_config.project__uninstall_class,
+        )
+
+    def _run_task(self):
+        output = self.options.get('output', '{}/package.xml'.format(self.options.get('path')))
+        self.logger.info('Generating {} from metadata in {}'.format(output, self.options.get('path')))
+        package_xml = self.package_xml()
+        f = open(self.options.get('output', output), 'w')
+        f.write(package_xml)
+        f.close()

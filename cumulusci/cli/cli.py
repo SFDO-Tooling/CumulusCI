@@ -1035,7 +1035,7 @@ def deploy_managed(config, commit, package_version, run_tests, no_exit, verbose)
 @click.option('--managed', default=False, is_flag=True, help='Includes elements in package.xml that can only be included in a deployment to the packaging org such as postInstallClass and uninstallClass')
 @pass_config
 def update_package_xml(config, output, directory, delete, managed):
-    from metadata.package import PackageXmlGenerator
+    from cumulusci.tasks.metadata.package import PackageXmlGenerator
     click.echo('Generating {0} using metadata in {1}'.format(output, directory))
 
     kwargs = {
