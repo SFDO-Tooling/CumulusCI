@@ -4,6 +4,8 @@ import os
 import tempfile
 import zipfile
 
+from simple_salesforce import Salesforce
+
 from cumulusci.core.tasks import BaseTask
 from cumulusci.salesforce_api.metadata import ApiDeploy
 from cumulusci.salesforce_api.metadata import ApiRetrieveInstalledPackages
@@ -30,13 +32,30 @@ class BaseSalesforceMetadataApiTask(BaseSalesforceTask):
 
     def _get_api(self):
         return self.api_class(self)
-   
+
     def _run_task(self):
         api = self._get_api()
         if self.options:
             return api(**options)
         else:
             return api()
+
+class BaseSalesforceToolingApiTask(BaseSalesforceTask):
+    api_class = None
+    name = 'BaseSalesforceToolingApiTask'
+
+    def _init_task(self):
+        self.tooling = Salesforce(
+            instance=self.org_config.instance_url,
+            session_id=self.org_config.access_token,
+            version=self.project_config.project__api_version,
+        )
+        self.tooling.base_url += 'tooling/'
+
+    def _get_tooling_object(self, obj_name):
+        obj = getattr(self.tooling, obj_name)
+        obj.base_url = obj.base_url.replace('/sobjects/', '/tooling/sobjects/')
+        return obj
 
 class GetInstalledPackages(BaseSalesforceMetadataApiTask):
     api_class = ApiRetrieveInstalledPackages
@@ -64,8 +83,8 @@ class Deploy(BaseSalesforceMetadataApiTask):
         # Build the zip file
         zip_file = tempfile.TemporaryFile()
         zipf = zipfile.ZipFile(zip_file, 'w', zipfile.ZIP_DEFLATED)
-       
-        pwd = os.getcwd() 
+
+        pwd = os.getcwd()
 
         os.chdir(path)
         for root, dirs, files in os.walk('.'):
@@ -87,7 +106,7 @@ class DeployBundles(Deploy):
             'required': True,
         }
     }
-    
+
     def _run_task(self):
         path = self.task_config.options__path
         pwd = os.getcwd()
@@ -100,7 +119,7 @@ class DeployBundles(Deploy):
             item_path = os.path.join(path, item)
             if not os.path.isdir(item_path):
                 continue
-            
+
             self.logger.info('Deploying bundle: {}'.format(item))
 
             self._deploy_bundle(item_path)
