@@ -36,7 +36,10 @@ class CliConfig(object):
     def _load_keychain(self):
         self.keychain_key = os.environ.get('CUMULUSCI_KEY')
         if self.project_config and self.keychain_key:
-            self.keychain_class = import_class(self.project_config.cumulusci__keychain)
+            keychain_class = os.environ.get('CUMULUSCI_KEYCHAIN_CLASS')
+            if not keychain_class:
+                keychain_class = self.project_config.cumulusci__keychain
+            self.keychain_class = import_class(keychain_class)
             self.keychain = self.keychain_class(self.project_config, self.keychain_key)
             self.project_config.set_keychain(self.keychain)
 
