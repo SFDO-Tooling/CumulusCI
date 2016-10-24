@@ -7,3 +7,6 @@ cli/help.txt
 cli/help.md
 cli/help_clean.md
 .swp
+pybuild
+cumulusci.egg-info
+dist/
