@@ -197,8 +197,9 @@ class TestYamlProjectConfig(unittest.TestCase):
         )
         content = (
             'project:\n' +
-            '    name: TestProject\n' +
-            '    namespace: testproject\n'
+            '    package:\n' +
+            '        name: TestProject\n' +
+            '        namespace: testproject\n'
         )
         self._write_file(filename, content)
 
@@ -270,8 +271,8 @@ class TestYamlProjectConfig(unittest.TestCase):
         os.chdir(self.tempdir_project)
         global_config = YamlGlobalConfig()
         config = YamlProjectConfig(global_config)
-        self.assertEquals(config.project__name, 'TestProject')
-        self.assertEquals(config.project__namespace, 'testproject')
+        self.assertEquals(config.project__package__name, 'TestProject')
+        self.assertEquals(config.project__package__namespace, 'testproject')
 
     def test_repo_owner(self, mock_class):
         mock_class.return_value = self.tempdir_home
@@ -331,5 +332,5 @@ class TestYamlProjectConfig(unittest.TestCase):
         global_config = YamlGlobalConfig()
         config = YamlProjectConfig(global_config)
         self.assertNotEqual(config.config_project_local, {})
-        self.assertEqual(config.project__name, 'TestProject2')
-        self.assertEqual(config.project__namespace, 'testproject')
+        self.assertEqual(config.project__package__name, 'TestProject2')
+        self.assertEqual(config.project__package__namespace, 'testproject')

@@ -59,3 +59,62 @@ class CloneTag(BaseGithubTask):
         self.logger.info('Tag {} created by cloning {}'.format(self.options['tag'], self.options['src_tag']))
 
         return tag
+
+class CreateRelease(BaseGithubTask):
+
+    task_options = {
+        'version': {
+            'description': "The managed package version number.  Ex: 1.2",
+            'required': True,
+        },
+        'message': {
+            'description': "The message to attach to the created git tag",
+        },
+        'commit': {
+            'description': "Override the commit used to create the release.  Defaults to the current local HEAD commit",
+        },
+        'draft': {
+            'description': "Set to True to create a draft release.  Defaults to False",
+        },
+    }
+    
+    def _run_task(self):
+        repo = self.get_repo()
+
+        for release in repo.iter_releases():
+            if release.name == self.options['version']:
+                self.logger.error('Release {} already exists at {}'.format(release.name, release.html_url))
+                return
+
+        commit = self.options.get('commit', self.project_config.repo_commit)
+        if not commit:
+            self.logger.error('Could not detect the current commit from the local repo')
+            return
+
+        version = self.options['version']
+        tag_name = self.project_config.get_tag_for_version(version)
+
+        tag = repo.create_tag(
+            tag = tag_name,
+            message = 'Release of version {}'.format(version),
+            sha = commit,
+            obj_type = 'commit',
+            tagger = {
+                'name': self.github_config.username,
+                'email': self.github_config.email,
+                'date': '{}Z'.format(datetime.now().isoformat()),
+            },
+        )
+
+        draft = self.options.get('draft', False) in [True, 'True', 'true']
+        prerelease = 'Beta' in version
+
+        release = repo.create_release(
+            tag_name = tag_name,
+            target_commitish = commit,
+            name = version,
+            draft = draft,
+            prerelease = prerelease,
+        )
+
+        self.logger.info('Created release {} at {}'.format(release.name, release.html_url))

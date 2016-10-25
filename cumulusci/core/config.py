@@ -198,6 +198,14 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             os.makedirs(path)
         return path
 
+    def get_tag_for_version(self, version):
+        if '(Beta' in version:
+            tag_version = version.replace(' (','-').replace(')','').replace(' ','_')
+            tag_name = self.project__git__prefix_beta + tag_version
+        else:
+            tag_name = self.project__git__prefix_release + version
+        return tag_name
+
     def set_keychain(self, keychain):
         self.keychain = keychain
 

@@ -56,6 +56,9 @@ tasks:
     github_pull_requests:
         description: Lists open pull requests in project Github repository
         class_path: cumulusci.tasks.github.PullRequests
+    github_release:
+        description: Creates a Github release for a given managed package version number
+        class_path: cumulusci.tasks.github.CreateRelease
     retrieve_packaged:
         description: Retrieves the packaged metadata from the org
         class_path: cumulusci.tasks.salesforce.RetrievePackaged
@@ -143,8 +146,24 @@ flows:
             - task: deploy
             - task: delete_incremental
             - task: deploy_post
+
 project:
     name:
-    namespace:
-    api_version: 37.0
+    package:
+        name:
+        name_managed:
+        namespace:
+        install_class:
+        uninstall_class:
+        api_version: 38.0
+    git:
+        prefix_feature: feature/
+        prefix_beta: beta/
+        prefix_release: release/
+    test:
+        namematch: '%_TEST%'
+    apexdoc:
+        url: https://github.com/SalesforceFoundation/ApexDoc/releases/download/1.7/apexdoc.jar
+        homepage: 
+        banner: 
     dependencies:
