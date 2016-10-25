@@ -324,7 +324,8 @@ class TestYamlProjectConfig(unittest.TestCase):
         # create local project config file
         content = (
             'project:\n' +
-            '    name: TestProject2\n'
+            '    package:\n' +
+            '        name: TestProject2\n'
         )
         self._create_project_config_local(content)
 

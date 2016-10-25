@@ -53,6 +53,9 @@ tasks:
     github_clone_tag:
         description: Lists open pull requests in project Github repository
         class_path: cumulusci.tasks.github.CloneTag
+    github_master_to_feature:
+        description: Merges the latest commit on the master branch into all open feature branches
+        class_path: cumulusci.tasks.github.MergeBranch
     github_pull_requests:
         description: Lists open pull requests in project Github repository
         class_path: cumulusci.tasks.github.PullRequests
@@ -157,6 +160,7 @@ project:
         uninstall_class:
         api_version: 38.0
     git:
+        default_branch: master
         prefix_feature: feature/
         prefix_beta: beta/
         prefix_release: release/
