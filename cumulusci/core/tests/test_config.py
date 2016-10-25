@@ -260,6 +260,19 @@ class TestYamlProjectConfig(unittest.TestCase):
         self.assertEquals(config.project__name, 'TestProject')
         self.assertEquals(config.project__namespace, 'testproject')
 
+    def test_repo_owner(self, mock_class):
+        mock_class.return_value = self.tempdir_home
+        os.mkdir(os.path.join(self.tempdir_project, '.git'))
+        self._create_git_config()
+
+        # create valid project config file
+        self._create_project_config()
+
+        os.chdir(self.tempdir_project)
+        global_config = YamlGlobalConfig()
+        config = YamlProjectConfig(global_config)
+        self.assertEquals(config.repo_owner, 'TestOwner')
+
     def test_load_project_config_local(self, mock_class):
         mock_class.return_value = self.tempdir_home
         os.mkdir(os.path.join(self.tempdir_project, '.git'))

@@ -135,6 +135,22 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                 return line_parts[-1]
 
     @property
+    def repo_owner(self):
+        if not self.repo_root:
+            return
+
+        in_remote_origin = False
+        f = open(os.path.join(self.repo_root, '.git', 'config'), 'r')
+        for line in f.read().splitlines():
+            line = line.strip()
+            if line == '[remote "origin"]':
+                in_remote_origin = True
+                continue
+            if line.find('url =') != -1:
+                line_parts = line.split('/')
+                return line_parts[-2].split(':')[-1]
+
+    @property
     def config_project_path(self):
         if not self.repo_root:
             return
