@@ -2,6 +2,26 @@
 History
 =======
 
+2.0.0-alpha7 (2016-10-24)
+------------------
+
+* New commands for connecting to other services
+** cumulusci2 project connect_apextestsdb: Stores ApexTestDB auth configuration in the keychain for use by tasks that require ApexTestsDB access
+** cumulusci2 project connect_github: Stores Github auth configuration in the keychain for use by tasks that require Github access
+** cumulusci2 project connect_mrbelvedere: Stores mrbelvedere auth configuration in the keychain for use by tasks that require access to mrbelvedere
+** cumulusci2 project show_apextestsdb: Shows the configured ApexTestsDB auth info
+** cumulusci2 project show_github: Shows the configured Github auth info
+** cumulusci2 project show_mrbelvedere: Shows the configured mrbelvedere auth info
+* Github Tasks
+** The new BaseGithubTask wraps the github3.py API library to allow writing tasks targetting Github
+** The following new Github tasks are implemented on top of BaseGithubTask:
+*** github_clone_tag: Clones one git tag to another via the Github API    
+*** github_master_to_feature: Merges the HEAD commit on master to all open feature branches via the Github API
+*** github_release: Creates a Release via the Github API
+*** github_release_notes: Generates release notes by parsing merged Github pull request bodies between two tags
+* BaseTask now enforces required task_options raising TaskOptionError if required options are missing
+* Restructured the project: heading in cumulusci.yml
+
 2.0.0-alpha6 (2016-10-24)
 ------------------
 
@@ -11,14 +31,14 @@ History
 * Tasks now support the salesforce_task option for requiring a Salesforce org
 * The new BaseSalesforceToolingApi task wraps simple-salesforce for building tasks that interact with the Tooling API
 * cumulusci org default <name>
-    * Set a default org for tasks and flows
-    * No longer require passing org name in task run and flow run
-    * --unset option flag unsets current default
-    * cumulusci org list shows a * next to the default org
+** Set a default org for tasks and flows
+** No longer require passing org name in task run and flow run
+** --unset option flag unsets current default
+** cumulusci org list shows a * next to the default org
 * BaseAntTask split out into AntTask and SalesforceAntTask
 * cumulusci.tasks.metadata.package.UpdatePackageXml:
-    * Pure python based package.xml generation controlled by metadata_map.yml for mapping in new types
-    * Wired into the update_package_xml task instead of the old ant target
+** Pure python based package.xml generation controlled by metadata_map.yml for mapping in new types
+** Wired into the update_package_xml task instead of the old ant target
 * 130 unit tests and counting, and our test suite now exceeds 1 second!
 
 2.0.0-alpha5 (2016-10-21)
