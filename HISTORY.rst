@@ -2,7 +2,7 @@
 History
 =======
 
-2.0.0-alpha7 (2016-10-24)
+2.0.0-alpha7 (2016-10-25)
 ------------------
 
 * New commands for connecting to other services
