@@ -4,13 +4,13 @@ import unittest
 
 import responses
 
-from cumulusci.cli.release_notes.generator import GithubReleaseNotesGenerator
-from cumulusci.cli.release_notes.parser import ChangeNotesLinesParser
-from cumulusci.cli.release_notes.parser import CommentingGithubIssuesParser
-from cumulusci.cli.release_notes.parser import GithubIssuesParser
-from cumulusci.cli.release_notes.parser import IssuesParser
-from cumulusci.cli.release_notes.exceptions import GithubApiNotFoundError
-from cumulusci.cli.release_notes.tests.util_github_api import GithubApiTestMixin
+from cumulusci.tasks.release_notes.generator import GithubReleaseNotesGenerator
+from cumulusci.tasks.release_notes.parser import ChangeNotesLinesParser
+from cumulusci.tasks.release_notes.parser import CommentingGithubIssuesParser
+from cumulusci.tasks.release_notes.parser import GithubIssuesParser
+from cumulusci.tasks.release_notes.parser import IssuesParser
+from cumulusci.tasks.release_notes.exceptions import GithubApiNotFoundError
+from cumulusci.tasks.release_notes.tests.util_github_api import GithubApiTestMixin
 
 
 class TestChangeNotesLinesParser(unittest.TestCase):

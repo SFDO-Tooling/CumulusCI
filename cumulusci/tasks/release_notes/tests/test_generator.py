@@ -6,13 +6,13 @@ import unittest
 
 import responses
 
-from cumulusci.cli.release_notes.generator import BaseReleaseNotesGenerator
-from cumulusci.cli.release_notes.generator import StaticReleaseNotesGenerator
-from cumulusci.cli.release_notes.generator import DirectoryReleaseNotesGenerator
-from cumulusci.cli.release_notes.generator import GithubReleaseNotesGenerator
-from cumulusci.cli.release_notes.generator import PublishingGithubReleaseNotesGenerator
-from cumulusci.cli.release_notes.parser import BaseChangeNotesParser
-from cumulusci.cli.release_notes.tests.util_github_api import GithubApiTestMixin
+from cumulusci.tasks.release_notes.generator import BaseReleaseNotesGenerator
+from cumulusci.tasks.release_notes.generator import StaticReleaseNotesGenerator
+from cumulusci.tasks.release_notes.generator import DirectoryReleaseNotesGenerator
+from cumulusci.tasks.release_notes.generator import GithubReleaseNotesGenerator
+from cumulusci.tasks.release_notes.generator import PublishingGithubReleaseNotesGenerator
+from cumulusci.tasks.release_notes.parser import BaseChangeNotesParser
+from cumulusci.tasks.release_notes.tests.util_github_api import GithubApiTestMixin
 
 __location__ = os.path.split(os.path.realpath(__file__))[0]
 

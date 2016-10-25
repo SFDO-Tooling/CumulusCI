@@ -4,10 +4,10 @@ import os
 from datetime import datetime
 from distutils.version import LooseVersion
 
-from cumulusci.cli.release_notes.exceptions import LastReleaseTagNotFoundError
-from cumulusci.cli.release_notes.github_api import GithubApiMixin
-from cumulusci.cli.release_notes.exceptions import GithubApiNoResultsError
-from cumulusci.cli.release_notes.exceptions import GithubApiNotFoundError
+from cumulusci.tasks.release_notes.exceptions import LastReleaseTagNotFoundError
+from cumulusci.tasks.release_notes.github_api import GithubApiMixin
+from cumulusci.tasks.release_notes.exceptions import GithubApiNoResultsError
+from cumulusci.tasks.release_notes.exceptions import GithubApiNotFoundError
 
 
 class BaseChangeNotesProvider(object):

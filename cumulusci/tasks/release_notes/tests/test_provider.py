@@ -9,14 +9,14 @@ import unittest
 import requests
 import responses
 
-from cumulusci.cli.release_notes.generator import GithubReleaseNotesGenerator
-from cumulusci.cli.release_notes.provider import BaseChangeNotesProvider
-from cumulusci.cli.release_notes.provider import StaticChangeNotesProvider
-from cumulusci.cli.release_notes.provider import DirectoryChangeNotesProvider
-from cumulusci.cli.release_notes.provider import GithubChangeNotesProvider
-from cumulusci.cli.release_notes.exceptions import GithubApiNotFoundError
-from cumulusci.cli.release_notes.exceptions import LastReleaseTagNotFoundError
-from cumulusci.cli.release_notes.tests.util_github_api import GithubApiTestMixin
+from cumulusci.tasks.release_notes.generator import GithubReleaseNotesGenerator
+from cumulusci.tasks.release_notes.provider import BaseChangeNotesProvider
+from cumulusci.tasks.release_notes.provider import StaticChangeNotesProvider
+from cumulusci.tasks.release_notes.provider import DirectoryChangeNotesProvider
+from cumulusci.tasks.release_notes.provider import GithubChangeNotesProvider
+from cumulusci.tasks.release_notes.exceptions import GithubApiNotFoundError
+from cumulusci.tasks.release_notes.exceptions import LastReleaseTagNotFoundError
+from cumulusci.tasks.release_notes.tests.util_github_api import GithubApiTestMixin
 
 __location__ = os.path.split(os.path.realpath(__file__))[0]
 

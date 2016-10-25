@@ -4,8 +4,8 @@ import re
 
 import requests
 
-from cumulusci.cli.release_notes.exceptions import GithubApiNotFoundError
-from cumulusci.cli.release_notes.exceptions import GithubApiNoResultsError
+from cumulusci.tasks.release_notes.exceptions import GithubApiNotFoundError
+from cumulusci.tasks.release_notes.exceptions import GithubApiNoResultsError
 
 
 class GithubApiMixin(object):

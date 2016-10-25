@@ -1,7 +1,7 @@
 import re
 import os
 
-from cumulusci.cli.release_notes.github_api import GithubApiMixin
+from cumulusci.tasks.release_notes.github_api import GithubApiMixin
 
 
 class BaseChangeNotesParser(object):

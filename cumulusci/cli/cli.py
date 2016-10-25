@@ -6,8 +6,8 @@ import sarge
 import sys
 from time import sleep
 
-from cumulusci.cli.release_notes.generator import GithubReleaseNotesGenerator
-from cumulusci.cli.release_notes.generator import PublishingGithubReleaseNotesGenerator
+from cumulusci.tasks.release_notes.generator import GithubReleaseNotesGenerator
+from cumulusci.tasks.release_notes.generator import PublishingGithubReleaseNotesGenerator
 
 # Exceptions
 class AntTargetException(Exception):

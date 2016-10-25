@@ -7,15 +7,15 @@ import json
 from datetime import datetime
 from distutils.version import LooseVersion
 
-from cumulusci.cli.release_notes.github_api import GithubApiMixin
-from cumulusci.cli.release_notes.parser import ChangeNotesLinesParser
-from cumulusci.cli.release_notes.parser import IssuesParser
-from cumulusci.cli.release_notes.parser import GithubIssuesParser
-from cumulusci.cli.release_notes.parser import CommentingGithubIssuesParser
-from cumulusci.cli.release_notes.provider import StaticChangeNotesProvider
-from cumulusci.cli.release_notes.provider import DirectoryChangeNotesProvider
-from cumulusci.cli.release_notes.provider import GithubChangeNotesProvider
-from cumulusci.cli.release_notes.exceptions import GithubApiNotFoundError
+from cumulusci.tasks.release_notes.github_api import GithubApiMixin
+from cumulusci.tasks.release_notes.parser import ChangeNotesLinesParser
+from cumulusci.tasks.release_notes.parser import IssuesParser
+from cumulusci.tasks.release_notes.parser import GithubIssuesParser
+from cumulusci.tasks.release_notes.parser import CommentingGithubIssuesParser
+from cumulusci.tasks.release_notes.provider import StaticChangeNotesProvider
+from cumulusci.tasks.release_notes.provider import DirectoryChangeNotesProvider
+from cumulusci.tasks.release_notes.provider import GithubChangeNotesProvider
+from cumulusci.tasks.release_notes.exceptions import GithubApiNotFoundError
 
 
 class BaseReleaseNotesGenerator(object):
