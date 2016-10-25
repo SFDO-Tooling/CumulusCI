@@ -151,6 +151,35 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                 return line_parts[-2].split(':')[-1]
 
     @property
+    def repo_branch(self):
+        if not self.repo_root:
+            return
+
+        f = open(os.path.join(self.repo_root, '.git', 'HEAD'), 'r')
+        branch_ref = f.read().strip()
+        if branch_ref.startswith('ref: '):
+            return '/'.join(branch_ref[5:].split('/')[2:])
+
+    @property
+    def repo_commit(self):
+        if not self.repo_root:
+            return
+
+        branch = self.repo_branch
+        if not branch:
+            return
+
+        join_args = [self.repo_root, '.git', 'refs', 'heads']
+        join_args.extend(branch.split('/'))
+        commit_file = os.path.join(*join_args)
+       
+        f = open(commit_file, 'r')
+        commit_sha = f.read().strip()
+        f.close()
+
+        return commit_sha
+
+    @property
     def config_project_path(self):
         if not self.repo_root:
             return

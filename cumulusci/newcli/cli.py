@@ -38,6 +38,9 @@ class CliConfig(object):
         self._load_project_config()
         self._load_keychain()
 
+        print 'Branch: {}'.format(self.project_config.repo_branch)
+        print 'Commit: {}'.format(self.project_config.repo_commit)
+
     def _load_global_config(self):
         self.global_config = YamlGlobalConfig()
 
@@ -135,12 +138,14 @@ def project_info(config):
 @click.command(name='connect_github', help="Configure this project for Github tasks")
 @click.option('--username', help="The Github username to use for tasks", prompt=True)
 @click.option('--password', help="The Github password to use for tasks.  It is recommended to use a Github Application Token instead of password to allow bypassing 2fa.", prompt=True, hide_input=True)
+@click.option('--email', help="The email address to used by Github tasks when an operation requires an email address.", prompt=True)
 @pass_config
-def project_connect_github(config, username, password):
+def project_connect_github(config, username, password, email):
     check_keychain(config)
     config.keychain.set_github(GithubConfig({
         'username': username,
         'password': password,
+        'email': email,
     }))
     click.echo('Github is now configured for this project')
         

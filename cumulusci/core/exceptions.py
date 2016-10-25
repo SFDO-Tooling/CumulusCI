@@ -39,6 +39,10 @@ class TaskRequiresSalesforceOrg(CumulusCIException):
     """ Raise when a task that requires a Salesforce org_config is not initialized with an org_config """
     pass
 
+class TaskOptionsError(CumulusCIException):
+    """ Raise when a task's options are invalid """
+    pass
+
 class GithubNotConfigured(CumulusCIException):
     """ Raise when attempting to get the Github configuration from the keychain and no configuration is set """
     pass

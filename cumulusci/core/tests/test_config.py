@@ -172,11 +172,22 @@ class TestYamlGlobalConfig(unittest.TestCase):
 class TestYamlProjectConfig(unittest.TestCase):
 
     def _create_git_config(self):
+
         filename = os.path.join(self.tempdir_project, '.git', 'config')
         content = (
             '[remote "origin"]\n' +
             '  url = git@github.com:TestOwner/{}'.format(self.project_name)
         )
+        self._write_file(filename, content)
+
+        filename = os.path.join(self.tempdir_project, '.git', 'HEAD')
+        content = 'ref: refs/heads/{}'.format(self.current_branch)
+        self._write_file(filename, content)
+
+        dirname = os.path.join(self.tempdir_project, '.git', 'refs', 'heads')
+        os.makedirs(dirname)
+        filename = os.path.join(dirname, 'master')
+        content = (self.current_commit)
         self._write_file(filename, content)
 
     def _create_project_config(self):
@@ -211,6 +222,8 @@ class TestYamlProjectConfig(unittest.TestCase):
         self.tempdir_home = tempfile.mkdtemp()
         self.tempdir_project = tempfile.mkdtemp()
         self.project_name = 'TestRepo'
+        self.current_commit = 'abcdefg1234567890'
+        self.current_branch = 'master'
 
     def tearDown(self):
         shutil.rmtree(self.tempdir_home)
@@ -272,6 +285,32 @@ class TestYamlProjectConfig(unittest.TestCase):
         global_config = YamlGlobalConfig()
         config = YamlProjectConfig(global_config)
         self.assertEquals(config.repo_owner, 'TestOwner')
+
+    def test_repo_branch(self, mock_class):
+        mock_class.return_value = self.tempdir_home
+        os.mkdir(os.path.join(self.tempdir_project, '.git'))
+        self._create_git_config()
+
+        # create valid project config file
+        self._create_project_config()
+
+        os.chdir(self.tempdir_project)
+        global_config = YamlGlobalConfig()
+        config = YamlProjectConfig(global_config)
+        self.assertEquals(config.repo_branch, self.current_branch)
+
+    def test_repo_commit(self, mock_class):
+        mock_class.return_value = self.tempdir_home
+        os.mkdir(os.path.join(self.tempdir_project, '.git'))
+        self._create_git_config()
+
+        # create valid project config file
+        self._create_project_config()
+
+        os.chdir(self.tempdir_project)
+        global_config = YamlGlobalConfig()
+        config = YamlProjectConfig(global_config)
+        self.assertEquals(config.repo_commit, self.current_commit)
 
     def test_load_project_config_local(self, mock_class):
         mock_class.return_value = self.tempdir_home
