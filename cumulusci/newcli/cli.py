@@ -9,8 +9,14 @@ from cumulusci.core.config import YamlProjectConfig
 from cumulusci.core.config import ConnectedAppOAuthConfig
 from cumulusci.core.config import OrgConfig
 from cumulusci.core.config import TaskConfig
+from cumulusci.core.config import ApexTestsDBConfig
+from cumulusci.core.config import GithubConfig
+from cumulusci.core.config import MrbelvedereConfig
+from cumulusci.core.exceptions import ApexTestsDBNotConfigured
+from cumulusci.core.exceptions import GithubNotConfigured
 from cumulusci.core.exceptions import KeychainConnectedAppNotFound
 from cumulusci.core.exceptions import KeychainKeyNotFound
+from cumulusci.core.exceptions import MrbelvedereNotConfigured
 from cumulusci.core.exceptions import ProjectConfigNotFound
 from cumulusci.core.exceptions import TaskRequiresSalesforceOrg
 from cumulusci.core.utils import import_class
@@ -126,6 +132,76 @@ def project_info(config):
     check_project_config(config)
     click.echo(pretty_dict(config.project_config.project))
 
+@click.command(name='connect_github', help="Configure this project for Github tasks")
+@click.option('--username', help="The Github username to use for tasks", prompt=True)
+@click.option('--password', help="The Github password to use for tasks.  It is recommended to use a Github Application Token instead of password to allow bypassing 2fa.", prompt=True, hide_input=True)
+@pass_config
+def project_connect_github(config, username, password):
+    check_keychain(config)
+    config.keychain.set_github(GithubConfig({
+        'username': username,
+        'password': password,
+    }))
+    click.echo('Github is now configured for this project')
+        
+@click.command(name='show_github', help="Prints the current Github configuration for this project")
+@pass_config
+def project_show_github(config):
+    check_keychain(config)
+    try:
+        github = config.keychain.get_github()
+        click.echo(pretty_dict(github.config))
+    except GithubNotConfigured:
+        click.echo('Github is not configured for this project.  Use project connect_github to configure.')
+    
+
+@click.command(name='connect_mrbelvedere', help="Configure this project for mrbelvedere tasks")
+@click.option('--base_url', help="The base url for your mrbelvedere instance", prompt=True)
+@click.option('--api_key', help="The package api_key for the package in your mrbelvedere instance.", prompt=True, hide_input=True)
+@pass_config
+def project_connect_mrbelvedere(config, base_url, api_key):
+    check_keychain(config)
+    config.keychain.set_mrbelvedere(MrbelvedereConfig({
+        'base_url': base_url,
+        'api_key': api_key,
+    }))
+    click.echo('Mrbelvedere is now configured for this project')
+        
+@click.command(name='show_mrbelvedere', help="Prints the current mrbelvedere configuration for this project")
+@pass_config
+def project_show_mrbelvedere(config):
+    check_keychain(config)
+    try:
+        mrbelvedere = config.keychain.get_mrbelvedere()
+        click.echo(pretty_dict(mrbelvedere.config))
+    except MrbelvedereNotConfigured:
+        click.echo('mrbelvedere is not configured for this project.  Use project connect_mrbelvedere to configure.')
+    
+@click.command(name='connect_apextestsdb', help="Configure this project for ApexTestsDB tasks")
+@click.option('--base_url', help="The base url for your ApexTestsDB instance", prompt=True)
+@click.option('--user-id', help="The user id to use when connecting to ApexTestsDB.", prompt=True)
+@click.option('--token', help="The api token to use when connecting to ApexTestsDB.", prompt=True, hide_input=True)
+@pass_config
+def project_connect_apextestsdb(config, base_url, user_id, token):
+    check_keychain(config)
+    config.keychain.set_apextestsdb(ApexTestsDBConfig({
+        'base_url': base_url,
+        'user_id': user_id,
+        'token': token,
+    }))
+    click.echo('ApexTestsDB is now configured for this project')
+        
+@click.command(name='show_apextestsdb', help="Prints the current ApexTestsDB configuration for this project")
+@pass_config
+def project_show_apextestsdb(config):
+    check_keychain(config)
+    try:
+        apextestsdb = config.keychain.get_apextestsdb()
+        click.echo(pretty_dict(apextestsdb.config))
+    except ApexTestsDBNotConfigured:
+        click.echo('ApexTestsDB is not configured for this project.  Use project connect_apextestsdb to configure.')
+    
+
 @click.command(name='list', help="List projects and their locations")
 @pass_config
 def project_list(config):
@@ -136,10 +212,16 @@ def project_list(config):
 def project_cd(config):
     pass
 
+project.add_command(project_connect_apextestsdb)
+project.add_command(project_connect_github)
+project.add_command(project_connect_mrbelvedere)
 project.add_command(project_init)
 project.add_command(project_info)
-project.add_command(project_list)
-project.add_command(project_cd)
+project.add_command(project_show_apextestsdb)
+project.add_command(project_show_github)
+project.add_command(project_show_mrbelvedere)
+#project.add_command(project_list)
+#project.add_command(project_cd)
 
 # Commands for group: org
 @click.command(name='browser', help="Opens a browser window and logs into the org using the stored OAuth credentials")

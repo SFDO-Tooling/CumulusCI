@@ -38,3 +38,15 @@ class SalesforceCredentialsException(CumulusCIException):
 class TaskRequiresSalesforceOrg(CumulusCIException):
     """ Raise when a task that requires a Salesforce org_config is not initialized with an org_config """
     pass
+
+class GithubNotConfigured(CumulusCIException):
+    """ Raise when attempting to get the Github configuration from the keychain and no configuration is set """
+    pass
+
+class MrbelvedereNotConfigured(CumulusCIException):
+    """ Raise when attempting to get the mrbelvedere configuration from the keychain and no configuration is set """
+    pass
+
+class ApexTestsDBNotConfigured(CumulusCIException):
+    """ Raise when attempting to get the ApexTestsDB configuration from the keychain and no configuration is set """
+    pass
