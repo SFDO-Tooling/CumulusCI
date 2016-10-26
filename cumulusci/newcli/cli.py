@@ -57,6 +57,8 @@ class CliConfig(object):
             self.keychain = self.keychain_class(self.project_config, self.keychain_key)
             self.project_config.set_keychain(self.keychain)
 
+CLI_CONFIG = CliConfig()
+
 pass_config = click.make_pass_decorator(CliConfig, ensure=True)
 
 def check_connected_app(config):
@@ -108,10 +110,53 @@ cli.add_command(flow)
        
 # Commands for group: project
 
-@click.command(name='init', help="Initialize a new project for use with the cumulusci toolbelt")
-@click.option('--name', help="The project's package name", prompt=True)
+@click.command(name='init', 
+    help="Initialize a new project for use with the cumulusci toolbelt",
+)
+@click.option('--name', 
+    help="The project's package name", 
+    prompt=True,
+)
+@click.option('--package-name', 
+    help="The project's package name",
+    prompt=True,
+)
+@click.option('--package-namespace',
+    help="The project's package namespace",
+    prompt=True,
+)
+@click.option('--package-api-version',
+    help="The Salesforce API verson for the package",
+    prompt=True,
+    default=CLI_CONFIG.global_config.project__package__api_version,
+)
+@click.option('--git-prefix-feature',
+    help="The branch prefix for all feature branches",
+    prompt=True,
+    default=CLI_CONFIG.global_config.project__git__prefix_feature,
+)
+@click.option('--git-default-branch',
+    help="The default branch in the repository",
+    prompt=True,
+    default=CLI_CONFIG.global_config.project__git__default_branch,
+)
+@click.option('--git-prefix-beta',
+    help="The tag prefix for beta release tags",
+    prompt=True,
+    default=CLI_CONFIG.global_config.project__git__prefix_beta,
+)
+@click.option('--git-prefix-release',
+    help="The tag prefix for production release tags",
+    prompt=True,
+    default=CLI_CONFIG.global_config.project__git__prefix_release,
+)
+@click.option('--test-namematch',
+    help="The SOQL format like query for selecting Apex tests.  % is wildcard",
+    prompt=True,
+    default=CLI_CONFIG.global_config.project__test__namematch,
+)
 @pass_config
-def project_init(config, name):
+def project_init(config, name, package_name, package_namespace, package_api_version, git_prefix_feature, git_default_branch, git_prefix_beta, git_prefix_release, test_namematch):
     if not os.path.isdir('.git'):
         click.echo("You are not in the root of a Git repository")
 
@@ -120,8 +165,38 @@ def project_init(config, name):
 
     f_yml = open('cumulusci.yml','w')
 
-    yml_config = 'project:\n    name: {}\n'.format(name)
-    f_yml.write(yml_config)
+    yml_config = []
+    # project:
+    yml_config.append('project:')
+    yml_config.append('name: {}'.format(name))
+
+    #     package:
+    yml_config.append('    package:')
+    if package_name and package_name != config.global_config.project__package__name:
+        yml_config.append('        name: {}'.format(package_name))
+    if package_namespace and package_namespace != config.global_config.project__package__namespace:
+        yml_config.append('        namespace: {}'.format(package_namespace))
+    if package_api_version and package_api_version != config.global_config.project__package__api_version:
+        yml_config.append('        api_version: {}'.format(package_api_version))
+
+    #     git:
+    yml_config.append('    git:')
+    if git_prefix_feature and git_prefix_feature != config.global_config.project__git__prefix_feature:
+        yml_config.append('        feature: {}'.format(git_prefix_feature))
+    if git_default_branch and git_default_branch != config.global_config.project__git__default_branch:
+        yml_config.append('        branch: {}'.format(git_default_branch))
+    if git_prefix_beta and git_prefix_beta != config.global_config.project__git__prefix_beta:
+        yml_config.append('        beta: {}'.format(git_prefix_beta))
+    if git_prefix_release and git_prefix_release != config.global_config.project__git__prefix_release:
+        yml_config.append('        release: {}'.format(git_prefix_release))
+
+    #     test:
+    yml_config.append('    test:')
+    if test_namematch and test_namematch != config.global_config.project__test__namematch:
+        yml_config.append('        namematch: {}'.format(test_namematch))
+
+    yml_config.append('')
+    f_yml.write('\n'.join(yml_config))
 
     click.echo("Your project is now initialized for use with CumulusCI")
     click.echo("You can use the project edit command to edit the project's config file")
