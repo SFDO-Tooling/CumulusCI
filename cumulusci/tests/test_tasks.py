@@ -14,10 +14,13 @@ class TestBaseSalesforceToolingApiTask(unittest.TestCase):
     def setUp(self):
         self.api_version = 38.0
         self.global_config = BaseGlobalConfig(
-            {'project': {'api_version': self.api_version}})
+            {'project': {'package': {'api_version': self.api_version}}})
         self.project_config = BaseProjectConfig(self.global_config)
         self.project_config.config['project'] = {
-            'api_version': self.api_version}
+            'package': {
+                'api_version': self.api_version,
+            }
+        }
         self.task_config = TaskConfig()
         self.org_config = OrgConfig({
             'instance_url': 'foo',
