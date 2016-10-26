@@ -65,6 +65,24 @@ tasks:
     github_release_notes:
         description: Generates release notes by parsing pull request bodies of merged pull requests between two tags
         class_path: cumulusci.tasks.release_notes.task.GithubReleaseNotes
+    push_all:
+        description: Schedules a push upgrade of a package version to all subscribers
+        class_path: cumulusci.tasks.push.tasks.SchedulePushOrgQuery
+    push_qa:
+        description: Schedules a push upgrade of a package version to all orgs listed in push/orgs_qa.txt
+        class_path: cumulusci.tasks.push.tasks.SchedulePushOrgList
+        options:
+            orgs: push/orgs_qa.txt
+    push_sandbox:
+        description: Schedules a push upgrade of a package version to all subscribers
+        class_path: cumulusci.tasks.push.tasks.SchedulePushOrgQuery
+        options:
+            subscriber_where: "OrgType = 'Sandbox'"
+    push_trial:
+        description: Schedules a push upgrade of a package version to Trialforce Template orgs listed in push/orgs_trial.txt
+        class_path: cumulusci.tasks.push.tasks.SchedulePushOrgList
+        options:
+            orgs: push/orgs_trial.txt
     retrieve_packaged:
         description: Retrieves the packaged metadata from the org
         class_path: cumulusci.tasks.salesforce.RetrievePackaged

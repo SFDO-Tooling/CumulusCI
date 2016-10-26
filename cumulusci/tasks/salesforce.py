@@ -40,16 +40,24 @@ class BaseSalesforceMetadataApiTask(BaseSalesforceTask):
         else:
             return api()
 
-class BaseSalesforceToolingApiTask(BaseSalesforceTask):
-    api_class = None
-    name = 'BaseSalesforceToolingApiTask'
+class BaseSalesforceApiTask(BaseSalesforceTask):
+    name = 'BaseSalesforceApiTask'
 
     def _init_task(self):
-        self.tooling = Salesforce(
+        self.sf = self._init_api()
+
+    def _init_api(self):
+        self.sf = Salesforce(
             instance=self.org_config.instance_url,
             session_id=self.org_config.access_token,
             version=self.project_config.project__api_version,
         )
+
+class BaseSalesforceToolingApiTask(BaseSalesforceApiTask):
+    name = 'BaseSalesforceToolingApiTask'
+
+    def _init_task(self):
+        self.tooling = self._init_api()
         self.tooling.base_url += 'tooling/'
 
     def _get_tooling_object(self, obj_name):

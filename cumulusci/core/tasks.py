@@ -14,6 +14,7 @@ class BaseTask(object):
             raise TaskRequiresSalesforceOrg('This task requires a Saleforce org_config but none was passed to __init__')
         self._init_logger()
         self._init_options(kwargs)
+        self._validate_options()
         self._init_task()
 
     def _init_logger(self):
@@ -28,7 +29,6 @@ class BaseTask(object):
             self.options = {}
         if kwargs:
             self.options.update(kwargs)
-        self._validate_options()
 
     def _validate_options(self):
         missing_required = []
