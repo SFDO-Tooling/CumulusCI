@@ -38,9 +38,6 @@ class CliConfig(object):
         self._load_project_config()
         self._load_keychain()
 
-        print 'Branch: {}'.format(self.project_config.repo_branch)
-        print 'Commit: {}'.format(self.project_config.repo_commit)
-
     def _load_global_config(self):
         self.global_config = YamlGlobalConfig()
 

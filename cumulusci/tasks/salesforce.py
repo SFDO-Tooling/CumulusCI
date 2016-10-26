@@ -47,10 +47,10 @@ class BaseSalesforceApiTask(BaseSalesforceTask):
         self.sf = self._init_api()
 
     def _init_api(self):
-        self.sf = Salesforce(
-            instance=self.org_config.instance_url,
+        return Salesforce(
+            instance=self.org_config.instance_url.replace('https://', ''),
             session_id=self.org_config.access_token,
-            version=self.project_config.project__api_version,
+            version=self.project_config.project__package__api_version,
         )
 
 class BaseSalesforceToolingApiTask(BaseSalesforceApiTask):

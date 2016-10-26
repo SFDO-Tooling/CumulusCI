@@ -235,10 +235,6 @@ class SalesforcePushApi(object):
     """ API Wrapper for the Salesforce Push API """
 
     def __init__(self, sf, logger, lazy=None, default_where=None):
-        sandbox = False
-        if serverurl.find('test.salesforce.com') != -1:
-            sandbox = True
-    
         self.sf = sf
         self.logger = logger
 

@@ -1,10 +1,13 @@
+import time
+from datetime import datetime
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
+from cumulusci.tasks.push.push_api import SalesforcePushApi
 
 class BaseSalesforcePushTask(BaseSalesforceApiTask):
     completed_statuses = ['Succeeded','Failed','Cancelled']
 
     def _init_task(self):
-        super(BaseSalesforcePushTask, self)._init_tasks()
+        super(BaseSalesforcePushTask, self)._init_task()
         self.push = SalesforcePushApi(self.sf, self.logger)
 
     def _parse_version(self, version):
@@ -39,18 +42,17 @@ class BaseSalesforcePushTask(BaseSalesforceApiTask):
 
     def _get_version(self, package, version):
 
-        if package is None:
-            package = self.get_package()
-
         version_info = self._parse_version(version)
 
         version_where = "ReleaseState = '{}' AND MajorVersion = {} AND MinorVersion = {}".format(
-            state, major, minor
+            version_info['state'],
+            version_info['major'],
+            version_info['minor'],
         )
-        if patch:
-             version_where += " AND PatchVersion = {}".format(patch)
-        if state == 'Beta' and build:
-             version_where += " AND BuildNumber = {}".format(build)
+        if version_info.get('patch'):
+             version_where += " AND PatchVersion = {}".format(version_info['patch'])
+        if version_info['state'] == 'Beta' and version_info.get('build'):
+             version_where += " AND BuildNumber = {}".format(version_info['build'])
 
         version = package.get_package_version_objs(version_where, limit=1)
         if not version:
@@ -59,7 +61,7 @@ class BaseSalesforcePushTask(BaseSalesforceApiTask):
 
 
     def _get_package(self, namespace):
-        package = push_api.get_package_objs(
+        package = self.push.get_package_objs(
             "NamespacePrefix = '{}'".format(namespace),
             limit=1
         )
@@ -91,7 +93,8 @@ class BaseSalesforcePushTask(BaseSalesforceApiTask):
         push_request = self.push_report.get_push_request_objs("Id = '{}'".format(request_id), limit=1)
         if not push_request:
             raise PushApiObjectNotFound('Push Request {} was not found'.format(push_request))
-        push_request = [0]
+        push_request = push_request[0]
+
 
         # Check if the request is complete
         interval = 10
@@ -123,7 +126,7 @@ class BaseSalesforcePushTask(BaseSalesforceApiTask):
         success_jobs = []
         cancelled_jobs = []
 
-        jobs = self.push_report.get_push_job_objs()
+        jobs = push_request.get_push_job_objs()
         for job in jobs:
             if job.status == 'Failed':
                 failed_jobs.append(job)
@@ -181,8 +184,8 @@ class SchedulePushOrgList(BaseSalesforcePushTask):
         }
     }
 
-    def _init_options(self):
-        super(PushOrgList, self)._init_options()
+    def _init_options(self, kwargs):
+        super(SchedulePushOrgList, self)._init_options(kwargs)
 
         # Set the namespace option to the value from cumulusci.yml if not already set
         if not 'namespace' in self.options:
@@ -192,7 +195,7 @@ class SchedulePushOrgList(BaseSalesforcePushTask):
         return self._load_orgs_file(self.options.get('orgs'))
 
     def _run_task(self):
-        orgs = self.get_orgs()
+        orgs = self._get_orgs()
         package = self._get_package(self.options.get('namespace')) 
         version = self._get_version(package, self.options.get('version'))
 
@@ -200,7 +203,7 @@ class SchedulePushOrgList(BaseSalesforcePushTask):
         if start_time:
             start_time = datetime.strptime(start_time, "%Y-%m-%dT%H:%M") # Example: 2016-10-19T10:00
 
-        self.request_id = push_api.create_push_request(version, orgs, start_time)
+        self.request_id = self.push.create_push_request(version, orgs, start_time)
 
         if len(orgs) > 1000:
             self.logger.info("Delaying 30 seconds to allow all jobs to initialize...")
@@ -212,7 +215,7 @@ class SchedulePushOrgList(BaseSalesforcePushTask):
             self.logger.info('The push request will start at {}'.format(start_time))
 
         # Run the job
-        self.logger.info(push_api.run_push_request(self.request_id))
+        self.logger.info(self.push.run_push_request(self.request_id))
         self.logger.info('Push Request {} is queued for execution.'.format(self.request_id))
 
         # Report the status
@@ -295,5 +298,7 @@ class SchedulePushOrgQuery(SchedulePushOrgList):
 
             for subscriber in push_api.get_subscribers():
                 orgs.append(subscriber['OrgKey'])
+
+        return orgs
 
 
