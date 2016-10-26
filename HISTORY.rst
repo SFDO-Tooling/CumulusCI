@@ -2,6 +2,35 @@
 History
 =======
 
+2.0.0-alpha8 (2016-10-26)
+------------------
+
+* New tasks for push upgrading packages
+
+  * push_all: Pushes a package version to all available subscriber orgs
+
+    * ex: cumulusci2 task run --org packaging -o version 1.1 push_all
+
+  * push_qa: Pushes a package version to all org ids in the file push/orgs_qa.txt in the repo
+
+    * ex: cumulusci2 task run --org packaging -o version 1.1 push_qa
+
+  * push_sandbox: Pushes a package version to all available sandbox subscriber orgs
+
+    * ex: cumulusci2 task run --org packaging -o version 1.1 push_sandbox
+
+  * push_trial: Pushes a package version to all org ids in the file push/orgs_trial.txt in the repo
+
+    * ex: cumulusci2 task run --org packaging -o version 1.1 push_trial
+
+  * Configurable push tasks in cumulusci.tasks.push.tasks:
+
+    * SchedulePushOrgList: uses a file with one OrgID per line as the target list
+    * SchedulePushOrgQuery: queries PackageSubscribers to select orgs for the target list
+
+  * Additional push tasks can be built by subclassing cumulusci.tasks.push.tasks.BaseSalesforcePushTask
+  
+
 2.0.0-alpha7 (2016-10-25)
 ------------------
 
