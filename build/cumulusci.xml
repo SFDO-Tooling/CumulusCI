@@ -2,16 +2,16 @@
 
   <!-- Following typedefs and macro definitions are from https://gist.github.com/afawcett/5843110 -->
   <!--   Download from Salesforce Tools page under Setup -->
-  <typedef 
-      uri="antlib:com.salesforce" 
-      resource="com/salesforce/antlib.xml" 
+  <typedef
+      uri="antlib:com.salesforce"
+      resource="com/salesforce/antlib.xml"
       classpath="${cumulus_ci.basedir}/lib/ant-salesforce.jar"/>
-      
+
   <!--   Download from http://sourceforge.net/projects/ant-contrib/files/ant-contrib/1.0b3/ -->
-  <taskdef 
-      resource="net/sf/antcontrib/antlib.xml" 
+  <taskdef
+      resource="net/sf/antcontrib/antlib.xml"
       classpath="${cumulus_ci.basedir}/lib/ant-contrib-1.0b2.jar"
-      />  
+      />
 
   <!-- load whitelists -->
   <loadproperties srcFile="${cumulus_ci.basedir}/whitelists/object_subtype.properties"/>
@@ -83,11 +83,17 @@ project.setProperty("downgradePackage", result);
           <!-- Generate working folder and metadata files representing the package to install -->
           <delete dir="${basedir}/installdeploy"/>
           <mkdir dir="${basedir}/installdeploy"/>
-          <mkdir dir="${basedir}/installdeploy"/>         
+          <mkdir dir="${basedir}/installdeploy"/>
           <mkdir dir="${basedir}/installdeploy/installedPackages"/>
           <echo file="${basedir}/installdeploy/package.xml"><![CDATA[<Package xmlns="http://soap.sforce.com/2006/04/metadata"><types><members>@{namespace}</members><name>InstalledPackage</name></types><version>${cumulusci.package.apiVersion}</version></Package>]]></echo>
           <echo file="${basedir}/installdeploy/installedPackages/@{namespace}.installedPackage"><![CDATA[<InstalledPackage xmlns="http://soap.sforce.com/2006/04/metadata"><versionNumber>@{version}</versionNumber>${passwordElement}</InstalledPackage>]]></echo>
-          <sf:deploy deployRoot="${basedir}/installdeploy" username="@{username}" password="@{password}" maxPoll="${cumulusci.maxPoll.managed}" />
+          <sf:deploy deployRoot="${basedir}/installdeploy"
+            username="@{username}"
+            password="@{password}"
+            apiVersion="${cumulusci.package.apiVersion}"
+            sessionId="${sf.sessionId}"
+            serverurl="${sf.serverurl}"
+            maxPoll="${cumulusci.maxPoll.managed}" />
           <delete dir="${basedir}/installdeploy"/>
       </sequential>
   </macrodef>
@@ -98,15 +104,21 @@ project.setProperty("downgradePackage", result);
       <attribute name="username" description="Salesforce user name."/>
       <attribute name="password" description="Salesforce password."/>
       <sequential>
-          <!-- Generate working folder and metadata files representing the package to uninstall -->       
+          <!-- Generate working folder and metadata files representing the package to uninstall -->
           <delete dir="${basedir}/installdeploy"/>
           <mkdir dir="${basedir}/installdeploy"/>
-          <mkdir dir="${basedir}/installdeploy"/>         
+          <mkdir dir="${basedir}/installdeploy"/>
           <mkdir dir="${basedir}/installdeploy/installedPackages"/>
           <echo file="${basedir}/installdeploy/package.xml"><![CDATA[<Package xmlns="http://soap.sforce.com/2006/04/metadata"><version>${cumulusci.package.apiVersion}</version></Package>]]></echo>
           <echo file="${basedir}/installdeploy/destructiveChanges.xml"><![CDATA[<Package xmlns="http://soap.sforce.com/2006/04/metadata"><types><members>@{namespace}</members><name>InstalledPackage</name></types><version>${cumulusci.package.apiVersion}</version></Package>]]></echo>
           <echo file="${basedir}/installdeploy/installedPackages/@{namespace}.installedPackage"><![CDATA[<InstalledPackage xmlns="http://soap.sforce.com/2006/04/metadata"><versionNumber>@{version}</versionNumber></InstalledPackage>]]></echo>
-          <sf:deploy deployRoot="${basedir}/installdeploy" username="@{username}" password="@{password}" maxPoll="${cumulusci.maxPoll.managed}" />
+          <sf:deploy deployRoot="${basedir}/installdeploy"
+            username="@{username}"
+            password="@{password}"
+            apiVersion="${cumulusci.package.apiVersion}"
+            sessionId="${sf.sessionId}"
+            serverurl="${sf.serverurl}"
+            maxPoll="${cumulusci.maxPoll.managed}" />
       </sequential>
   </macrodef>
 
@@ -122,6 +134,9 @@ project.setProperty("downgradePackage", result);
             username="${sf.username}"
             password="${sf.password}"
             metadataType="InstalledPackage"
+            apiVersion="${cumulusci.package.apiVersion}"
+            sessionId="${sf.sessionId}"
+            serverurl="${sf.serverurl}"
             retrieveTarget="${basedir}/installedPackages"/>
         </then>
       </if>
@@ -166,7 +181,7 @@ project.setProperty("downgradePackage", result);
             <and>
               <!-- package is installed in org -->
               <not><equals arg1="${InstalledPackage.@{namespace}.versionNumber}" arg2="Not Installed" /></not>
-            
+
               <!-- package needs downgrade or should be Not Installed -->
               <or>
                 <bool><equals arg1="${downgradePackage}" arg2="true" /></bool>
@@ -204,21 +219,23 @@ project.setProperty("downgradePackage", result);
       <mkdir dir="@{dir}/standard"/>
 
       <!-- Retrieve standard objects (uses /build/standard_objects.xml as the manifest) -->
-      <sf:retrieve 
-        username="${sf.username}" 
-        password="${sf.password}" 
-        serverurl="${sf.serverurl}" 
-        retrieveTarget="@{dir}/standard" 
+      <sf:retrieve
+        username="${sf.username}"
+        password="${sf.password}"
+        serverurl="${sf.serverurl}"
+        retrieveTarget="@{dir}/standard"
         apiVersion="${cumulusci.package.apiVersion}"
+        sessionId="${sf.sessionId}"
         unpackaged="${cumulus_ci.basedir}/standard_objects.xml"/>
 
       <!-- Retrieve unpackaged metadata (uses /build/all_metadata_types.xml as the manifest) -->
-      <sf:retrieve 
-        username="${sf.username}" 
-        password="${sf.password}" 
-        serverurl="${sf.serverurl}" 
+      <sf:retrieve
+        username="${sf.username}"
+        password="${sf.password}"
+        serverurl="${sf.serverurl}"
         retrieveTarget="@{dir}/unpackaged"
         apiVersion="${cumulusci.package.apiVersion}"
+        sessionId="${sf.sessionId}"
         unpackaged="${cumulus_ci.basedir}/all_meta_types.xml"/>
 
     </sequential>
@@ -243,12 +260,13 @@ project.setProperty("downgradePackage", result);
           <property name="manifest" value="@{manifest}" />
         </else>
       </if>
-      <sf:retrieve 
-        username="${sf.username}" 
-        password="${sf.password}" 
-        serverurl="${sf.serverurl}" 
-        retrieveTarget="@{dir}" 
+      <sf:retrieve
+        username="${sf.username}"
+        password="${sf.password}"
+        serverurl="${sf.serverurl}"
+        retrieveTarget="@{dir}"
         apiVersion="${cumulusci.package.apiVersion}"
+        sessionId="${sf.sessionId}"
         unpackaged="${manifest}"/>
 
     </sequential>
@@ -289,12 +307,13 @@ project.setProperty("downgradePackage", result);
       	    <mkdir dir="@{dir}"/>
       	</then>
       </if>
-      <sf:retrieve 
-        username="${sf.username}" 
-        password="${sf.password}" 
-        serverurl="${sf.serverurl}" 
-        retrieveTarget="@{dir}" 
+      <sf:retrieve
+        username="${sf.username}"
+        password="${sf.password}"
+        serverurl="${sf.serverurl}"
+        retrieveTarget="@{dir}"
         apiVersion="${cumulusci.package.apiVersion}"
+        sessionId="${sf.sessionId}"
         packageNames="@{package}"/>
     </sequential>
   </macrodef>
@@ -310,7 +329,7 @@ project.setProperty("downgradePackage", result);
     <sequential>
       <!-- Write the header for the destructiveChanges.xml -->
       <echo file="@{xmlfile}">&lt;?xml version="1.0" encoding="UTF-8"?&gt;${line.separator}</echo>
-      <echo file="@{xmlfile}" append="true">&lt;Package xmlns="http://soap.sforce.com/2006/04/metadata"&gt;${line.separator}</echo>  
+      <echo file="@{xmlfile}" append="true">&lt;Package xmlns="http://soap.sforce.com/2006/04/metadata"&gt;${line.separator}</echo>
 
       <!-- Loop through the subfolders to add lines to destructiveChanges.xml -->
       <for param="typedir">
@@ -322,7 +341,7 @@ project.setProperty("downgradePackage", result);
 
           <!-- Map dir name to a metadata type name.  This also serves as a whitelist for which metadata types to add.  If a mapping is not listed, the type is not added to the package.xml -->
           <!-- FIXME: Is there a cleaner way to do this so the mapping could live in a separate file? -->
-          <var name="typename" unset="true" /> 
+          <var name="typename" unset="true" />
           <switch value="${metatype}">
             <case value="applications">
               <property name="typename" value="CustomApplication" />
@@ -508,7 +527,7 @@ project.setProperty("downgradePackage", result);
                             </else>
                           </if>
                         </else>
-                      </if> 
+                      </if>
                     </then>
                   </if>
 
@@ -540,7 +559,7 @@ project.setProperty("downgradePackage", result);
             <echo file="@{xmlfile}" append="true">    &lt;postInstallClass&gt;@{installClass}&lt;/postInstallClass&gt;${line.separator}</echo>
         </then>
       </if>
-        
+
       <if>
         <not><equals arg1="@{uninstallClass}" arg2="NOTSET" /></not>
         <then>
@@ -601,12 +620,12 @@ project.setProperty("downgradePackage", result);
               <basename property="parent_file" file="@{file}" />
               <basename property="parent" file="@{file}" suffix=".@{suffix}" />
 
-              <!-- Construct an xslt file from the template by replacing ___element with @{element}.  
+              <!-- Construct an xslt file from the template by replacing ___element with @{element}.
                    This is to get around xslt's limitations in selecting an element whose name is passed as a parameter.
                    This approach avoids the need to create an xsl file for each metadata subtype
                 -->
               <var name="xslt_basename" unset="true" />
-              <basename property="xslt_basename" file="@{xslt}" /> 
+              <basename property="xslt_basename" file="@{xslt}" />
               <var name="xslt_rendered_file" value="${basedir}/${xslt_basename}.rendered" />
 
               <copy file="@{xslt}" tofile="${xslt_rendered_file}" />
@@ -666,7 +685,7 @@ project.setProperty("downgradePackage", result);
             <then>
               <loadfile property="type.extract" srcfile="@{dir}/@{typename}.extract" />
               <if>
-                <isset property="type.extract" /> 
+                <isset property="type.extract" />
                 <then>
                   <var name="type.extract" value="${line.separator}    ${lt}types>${line.separator}${type.extract}        ${lt}name>@{typename}${lt}/name>${line.separator}    ${lt}/types>" />
                   <replaceregexp file="@{xmlfile}" match="Package(.*)>" replace="Package\1>${type.extract}" />
@@ -683,13 +702,13 @@ project.setProperty("downgradePackage", result);
                   <fileset dir="@{dir}" includes="**/*.@{typename}" />
               </delete>
               <delete file="@{dir}/@{typename}.extract" />
-        
+
               <var name="type.extract" unset="true" />
-            </then>  
+            </then>
           </if>
         </then>
       </if>
-    </sequential>  
+    </sequential>
   </macrodef>
 
   <macrodef name="buildPackageXml" description="Construct a complete package.xml file based on the metadata in the src directory">
@@ -699,7 +718,7 @@ project.setProperty("downgradePackage", result);
     <attribute name="uninstallClass" description="If provided, a uninstallClass element will be added to the file to specify a class to run when uninstalling the package." default="NOTSET" />
     <attribute name="srcDir" description="If provided, the relative path to the source directory from the project root.  Defaults to src" default="src" />
     <attribute name="type" description="Type of deployment to build a package.xml for... can be managed or unmanaged" default="unmanaged" />
-  
+
     <sequential>
       <if>
         <equals arg1="${env.CUMULUSCI_CLI}" arg2="True" />
@@ -924,7 +943,7 @@ project.setProperty("downgradePackage", result);
       <!-- Build the destructiveChanges.xml file by walking the unpackaged directory and adding all metadata -->
       <!-- Exclude CustomLabels.labels so we can use addMetadataSubType on it instead -->
       <buildPackageXmlFromDir dir="@{srcdir}/unpackaged" xmlfile="@{dir}/unpackaged/destructiveChanges.xml" version="${cumulusci.package.apiVersion}" exclude="CustomLabels.labels *.matchingRules" />
-     
+
       <!-- Copy the package manifest used to retrieve standard objects into srcdir and create an objects subfolder-->
       <copy file="@{srcdir}/standard/package.xml" todir="@{dir}/standard" />
       <mkdir dir="@{dir}/standard/objects" />
@@ -1044,7 +1063,7 @@ project.setProperty("downgradePackage", result);
     <attribute name="dir" description="The parent directory containing subfolders each representing an individual metadata bundle" />
     <attribute name="stagedir" description="The directory where rendered bundles should be staged for deployment.  This directory is created and deleted by the macro" />
     <attribute name="nsprefix" description="The string to replace all instances of %%%NAMESPACE%%% in the source files" default="" />
-    
+
     <sequential>
       <if>
         <available file="@{dir}" type="dir" />
@@ -1066,9 +1085,16 @@ project.setProperty("downgradePackage", result);
                 </filtermapper>
               </copy>
               <replaceNamespacePrefix dir="@{stagedir}" nsprefix="@{nsprefix}" />
-                
+
               <echo>Deploying unpackaged bundle @{subdir}</echo>
-              <sf:deploy username="${sf.username}" password="${sf.password}" serverurl="${sf.serverurl}" deployRoot="@{stagedir}" maxPoll="${cumulusci.maxPoll.notest}" />
+              <sf:deploy
+                username="${sf.username}"
+                password="${sf.password}"
+                serverurl="${sf.serverurl}"
+                deployRoot="@{stagedir}"
+                apiVersion="${cumulusci.package.apiVersion}"
+                sessionId="${sf.sessionId}"
+                maxPoll="${cumulusci.maxPoll.notest}" />
               <delete dir="@{stagedir}" />
             </sequential>
           </for>
@@ -1101,7 +1127,7 @@ project.setProperty("downgradePackage", result);
                 <fileset dir="@{subdir}"/>
               </copy>
               <replaceNamespacePrefix dir="@{stagedir}" nsprefix="@{nsprefix}" />
-            
+
               <var name="bundle_dirname" unset="true" />
               <var name="bundle_dir" unset="true" />
               <var name="bundle_basename" unset="true" />
@@ -1109,7 +1135,7 @@ project.setProperty("downgradePackage", result);
               <basename property="bundle_dir" file="${bundle_dirname}" />
               <basename property="bundle_basename" file="@{subdir}" />
 
-              <echo>Zipping bundle @{subdir} to @{zipdir}/${bundle_dir}/${bundle_basename}.zip</echo> 
+              <echo>Zipping bundle @{subdir} to @{zipdir}/${bundle_dir}/${bundle_basename}.zip</echo>
               <mkdir dir="@{zipdir}/${bundle_dir}" />
               <zip destfile="@{zipdir}/${bundle_dir}/${bundle_basename}.zip" basedir="@{stagedir}" />
             </sequential>
@@ -1140,7 +1166,7 @@ project.setProperty("downgradePackage", result);
       <echo>Removing the string //cumulusci-managed from @{dir}/classes and @{dir}/triggers</echo>
       <for param="file">
         <path>
-          <fileset dir="@{dir}"> 
+          <fileset dir="@{dir}">
             <include name="**/classes/*.cls" />
             <include name="**/triggers/*.trigger" />
           </fileset>
@@ -1158,7 +1184,7 @@ project.setProperty("downgradePackage", result);
 
       <for param="file">
         <path>
-          <fileset dir="@{dir}"> 
+          <fileset dir="@{dir}">
             <include name="**/objects/*.object" />
           </fileset>
         </path>
