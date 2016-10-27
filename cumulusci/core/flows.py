@@ -1,5 +1,6 @@
 import copy
 import logging
+from cumulusci.core.config import TaskConfig
 from cumulusci.core.utils import import_class
 
 class BaseFlow(object):
@@ -34,10 +35,14 @@ class BaseFlow(object):
         task_config = self.project_config.get_task(flow_task_config['task'])
         task_config = copy.deepcopy(task_config)
 
-        if flow_task_config:
-            task_config['options'].update(flow_task_config.get('options', {}))
+        task_config = TaskConfig(task_config)
 
-        task_class = import_class(task_config.get('class_path'))
+        if flow_task_config:
+            if 'options' not in task_config.config:
+                task_config.config['options'] = {}
+            task_config.config['options'].update(flow_task_config.get('options', {}))
+
+        task_class = import_class(task_config.class_path)
         
         self.logger.info(
             'Initializing task {} using config:\n{}'.format(

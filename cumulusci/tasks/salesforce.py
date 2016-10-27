@@ -7,11 +7,13 @@ import zipfile
 from simple_salesforce import Salesforce
 
 from cumulusci.core.tasks import BaseTask
+from cumulusci.tasks.metadata.package import PackageXmlGenerator
 from cumulusci.salesforce_api.metadata import ApiDeploy
 from cumulusci.salesforce_api.metadata import ApiRetrieveInstalledPackages
 from cumulusci.salesforce_api.metadata import ApiRetrievePackaged
 from cumulusci.salesforce_api.metadata import ApiRetrieveUnpackaged
 from cumulusci.salesforce_api.package_zip import CreatePackageZipBuilder
+from cumulusci.salesforce_api.package_zip import DestructiveChangesZipBuilder
 from cumulusci.salesforce_api.package_zip import InstallPackageZipBuilder
 from cumulusci.salesforce_api.package_zip import UninstallPackageZipBuilder
 
@@ -69,10 +71,24 @@ class GetInstalledPackages(BaseSalesforceMetadataApiTask):
     api_class = ApiRetrieveInstalledPackages
     name = 'GetInstalledPackages'
 
-class RetrieveUnpackaged(BaseSalesforceMetadataApiTask):
+class BaseRetrieveMetadata(BaseSalesforceMetadataApiTask):
+    task_options = {
+        'path': {
+            'description': 'The path to write the retrieved metadata',
+            'required': True,
+        }
+    }
+
+    def _run_task(self):
+        api = self._get_api()
+        src_zip = api()
+        src_zip.extractall(self.options['path'])
+        self.logger.info('Extracted retrieved metadata into {}'.format(self.options['path']))
+
+class RetrieveUnpackaged(BaseRetrieveMetadata):
     api_class = ApiRetrieveUnpackaged
 
-class RetrievePackaged(BaseSalesforceMetadataApiTask):
+class RetrievePackaged(BaseRetrieveMetadata):
     api_class = ApiRetrievePackaged
 
 class Deploy(BaseSalesforceMetadataApiTask):
@@ -129,7 +145,7 @@ class CreatePackage(Deploy):
         if 'api_version' not in self.options:
             self.options['api_version'] = self.project_config.project__package__api_version
 
-    def _get_api(self):
+    def _get_api(self, path=None):
         package_zip = CreatePackageZipBuilder(self.options['package'], self.options['api_version'])
         return self.api_class(self, package_zip())
 
@@ -150,7 +166,7 @@ class InstallPackageVersion(Deploy):
         if 'namespace' not in self.options:
             self.options['namespace'] = self.project_config.project__package__namespace
 
-    def _get_api(self):
+    def _get_api(self, path=None):
         package_zip = InstallPackageZipBuilder(self.options['namespace'], self.options['version'])
         return self.api_class(self, package_zip())
 
@@ -167,7 +183,7 @@ class UninstallPackage(Deploy):
         if 'namespace' not in self.options:
             self.options['namespace'] = self.project_config.project__package__namespace
 
-    def _get_api(self):
+    def _get_api(self, path=None):
         package_zip = UninstallPackageZipBuilder(self.options['namespace'])
         return self.api_class(self, package_zip())
 
@@ -236,6 +252,8 @@ class DeployNamespacedBundles(DeployBundles):
     def _write_zip_file(self, zipf, root, path):
         if self.options['managed'] in [True, 'True', 'true']:
             namespace = self.options['namespace']
+            if namespace:
+                namespace = namespace + '__'
         else:
             namespace = ''
 
@@ -243,6 +261,127 @@ class DeployNamespacedBundles(DeployBundles):
         content = open(os.path.join(root, path), 'r').read()
         content = content.replace(self.options['namespace_token'], namespace)
         zipf.writestr(path, content)
+
+class BaseUninstallMetadata(Deploy):
+
+    def _get_api(self, path=None):
+        destructive_changes = self._get_destructive_changes(path=path)
+        package_zip = DestructiveChangesZipBuilder(destructive_changes) 
+        api = self.api_class(self, package_zip())
+        return api
+
+
+class UninstallLocal(BaseUninstallMetadata):
+    
+    def _get_destructive_changes(self, path=None):
+        if not path:
+            path = self.options['path']
+
+        generator = PackageXmlGenerator(
+            directory = path,
+            api_version = self.project_config.project__package__api_version,
+            delete = True,
+        )
+        return generator()
+
+class UninstallPackaged(UninstallLocal):
+
+    task_options = {
+        'package': {
+            'description': 'The package name to uninstall.  All metadata from the package will be retrieved and a custom destructiveChanges.xml package will be constructed and deployed to delete all deleteable metadata from the package.  Defaults to project__package__name',
+            'required': True,
+        },
+    }
+
+    def _init_options(self, kwargs):
+        super(UninstallPackaged, self)._init_options(kwargs)
+        if 'package' not in self.options:
+            self.options['package'] = self.project_config.project__package__name
+
+    def _get_destructive_changes(self, path=None):
+        self.logger.info('Retrieving metadata in package {} from target org'.format(self.options['package']))
+        retrieve_api = ApiRetrievePackaged(self)
+        packaged = retrieve_api()
+
+        tempdir = tempfile.mkdtemp()
+        packaged.extractall(tempdir)
+
+        destructive_changes = super(UninstallPackaged, self)._get_destructive_changes(
+            os.path.join(tempdir, self.options['package'])
+        )
+
+        self.logger.info('Deleting metadata in package {} from target org'.format(self.options['package']))
+        return destructive_changes
+
+class UninstallLocalBundles(UninstallLocal):
+
+    def _run_task(self):
+        path = self.options['path']
+        pwd = os.getcwd()
+
+        path = os.path.join(pwd, path)
+
+        self.logger.info('Deleting all metadata from bundles in {} from target org'.format(path))
+
+        for item in os.listdir(path):
+            item_path = os.path.join(path, item)
+            if not os.path.isdir(item_path):
+                continue
+
+            self.logger.info('Deleting bundle: {}/{}'.format(self.options['path'], item))
+
+            self._delete_bundle(item_path)
+
+    def _delete_bundle(self, path=None):
+        api = self._get_api(path)
+        return api()
+
+class UninstallLocalNamespacedBundles(UninstallLocalBundles):
+
+    task_options = {
+        'path': {
+            'description': 'The path to a directory containing the metadata bundles (subdirectories) to uninstall',
+            'required': True,
+        },
+        'managed': {
+            'description': 'If True, will insert the actual namespace prefix.  Defaults to False or no namespace',
+        },
+        'namespace': {
+            'description': 'The namespace to replace the token with if in managed mode. Defaults to project__package__namespace',
+        },
+        'filename_token': {
+            'description': 'The path to the parent directory containing the metadata bundles directories',
+            'required': True,
+        },
+    }
+    
+    def _init_options(self, kwargs):
+        super(UninstallLocalNamespacedBundles, self)._init_options(kwargs)
+
+        if 'managed' not in self.options:
+            self.options['managed'] = False
+
+        if 'namespace' not in self.options:
+            self.options['namespace'] = self.project_config.project__package__namespace
+
+    def _get_destructive_changes(self, path=None):
+        if not path:
+            path = self.options['path']
+
+        generator = PackageXmlGenerator(
+            directory = path,
+            api_version = self.project_config.project__package__api_version,
+            delete = True,
+        )
+        namespace = ''
+        if self.options['managed'] in [True, 'True', 'true']:
+            if self.options['namespace']:
+                namespace = self.options['namespace'] + '__'
+
+        destructive_changes = generator()
+        destructive_changes.replace(self.options['filename_token'], namespace)
+
+        return destructive_changes
 
 class PackageUpload(BaseSalesforceToolingApiTask):
     name = 'PackageUpload'

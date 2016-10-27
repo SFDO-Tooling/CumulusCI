@@ -51,11 +51,6 @@ tasks:
             managed: True
             namespace_token: '%%%NAMESPACE%%%'
             filename_token: '___NAMESPACE___'
-    generate_apex_doc:
-        description: Generates ApexDoc documentation and uploads to the gh-pages branch
-        class_path: cumulusci.tasks.ant.AntTask
-        options:
-            target: revertUnmanagedEESrc
     get_installed_packages:
         description: Retrieves a list of the currently installed managed package namespaces and their versions
         class_path: cumulusci.tasks.salesforce.GetInstalledPackages
@@ -100,21 +95,11 @@ tasks:
         class_path: cumulusci.tasks.salesforce.RetrievePackaged
         options:
             path: packaged
-    retrieve_packaged_ant:
-        description: Retrieves the packaged metadata
-        class_path: cumulusci.tasks.ant.SalesforceAntTask
-        options:
-            target: retrievePackaged
     retrieve_src:
         description: Retrieves the packaged metadata into the src directory
-        class_path: cumulusci.tasks.ant.SalesforceAntTask
+        class_path: cumulusci.tasks.salesforce.RetrievePackaged
         options:
-            target: retrievePackagedToSrc
-    retrieve_unpackaged:
-        description: Retrieves unpackaged metadata from the org
-        class_path: cumulusci.tasks.salesforce.RetrieveUnpackaged
-        options:
-            path: unpackaged
+            path: src
     revert_managed_src:
         description: Reverts the changes from create_managed_src
         class_path: cumulusci.tasks.metadata.managed_src.RevertManagedSrc
@@ -136,24 +121,35 @@ tasks:
         class_path: cumulusci.tasks.ant.SalesforceAntTask
         options:
             target: runAllTestsManaged
-    uninstall:
-        description: Uninstalls the package metadata
-        class_path: cumulusci.tasks.ant.SalesforceAntTask
-        options:
-            target: uninstall
-    uninstall_package:
+    uninstall_managed:
         description: Uninstalls the managed version of the package
         class_path: cumulusci.tasks.salesforce.UninstallPackage
-    uninstall_unpackaged_pre:
+    uninstall_packaged:
+        description: Uninstalls all deleteable metadata in the package in the target org
+        class_path: cumulusci.tasks.salesforce.UninstallPackaged
+    uninstall_src:
+        description: Uninstalls all metadata in the local src directory
+        class_path: cumulusci.tasks.salesforce.UninstallLocal
+        options:
+            path: src
+    uninstall_pre:
         description: Uninstalls the unpackaged/pre bundles
-        class_path: cumulusci.tasks.ant.SalesforceAntTask
+        class_path: cumulusci.tasks.salesforce.UninstallLocalBundles
         options:
-            target: uninstallUnpackagedPre
-    uninstall_unpackaged_post:
+            path: unpackaged/pre
+    uninstall_post:
         description: Uninstalls the unpackaged/post bundles
-        class_path: cumulusci.tasks.ant.SalesforceAntTask
+        class_path: cumulusci.tasks.salesforce.UninstallLocalNamespacedBundles
         options:
-            target: uninstallUnpackagedPost
+            path: unpackaged/post
+            filename_token: ___NAMESPACE___
+    uninstall_post_managed:
+        description: Uninstalls the unpackaged/post bundles
+        class_path: cumulusci.tasks.salesforce.UninstallLocalNamespacedBundles
+        options:
+            path: unpackaged/post
+            filename_token: ___NAMESPACE___
+            managed: True
     update_admin_profile:
         description: Retrieves, edits, and redeploys the Admin.profile with full FLS perms for all objects/fields
         class_path: cumulusci.tasks.ant.SalesforceAntTask
@@ -185,10 +181,10 @@ tasks:
 
 
 flows:
-    deploy_dev_org:
-        description: Updates deploys the unpackaged/pre/account_record_types followed by src/
+    dev_org:
+        description: Deploys the unmanaged package metadata and all dependencies to the target org
         tasks:
-            - task: create_unmanaged_package
+            - task: create_package
             - task: update_required_packages
             - task: deploy_pre
             - task: deploy

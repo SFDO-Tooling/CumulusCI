@@ -17,7 +17,11 @@ History
 
   * create_package
   * install_package
-  * uninstall_package
+  * uninstall_managed
+  * uninstall_packaged
+  * uninstall_pre
+  * uninstall_post
+  * uninstall_post_managed
 
 * New tasks to interact with the new PackageUploadRequest object in the Tooling API
 

@@ -39,7 +39,7 @@ class BaseMetadataApiCall(object):
         self.status = None
 
     def __call__(self):
-        self.task.logger.info('InProgress')
+        self.task.logger.info('Pending')
         response = self._get_response()
         if self.status != 'Failed':
             return self._process_response(response)
@@ -291,7 +291,7 @@ class ApiRetrievePackaged(BaseMetadataApiCall):
 
     def __init__(self, task):
         super(ApiRetrievePackaged, self).__init__(task)
-        self.package_name = self.task.project_config.package_name
+        self.package_name = self.task.project_config.project__package__name
 
     def _build_envelope_start(self):
         return self.soap_envelope_start % self.package_name

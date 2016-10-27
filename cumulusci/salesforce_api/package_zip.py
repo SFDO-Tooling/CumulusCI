@@ -29,9 +29,17 @@ INSTALLED_PACKAGE = """<?xml version="1.0" encoding="UTF-8"?>
 
 class BasePackageZipBuilder(object):
 
+    def __call__(self):
+        self._open_zip()
+        self._populate_zip()
+        return self._encode_zip()
+
     def _open_zip(self):
         self.zip_file = TemporaryFile()
         self.zip= ZipFile(self.zip_file, 'w')
+
+    def _populate_zip(self):
+        raise NotImplementedError('Subclasses need to provide their own implementation')
 
     def _write_package_xml(self, package_xml):
         self.zip.writestr('package.xml', package_xml)
@@ -54,13 +62,9 @@ class CreatePackageZipBuilder(BasePackageZipBuilder):
         self.name= name
         self.api_version= api_version
 
-    def __call__(self):
-        self._open_zip()
-
+    def _populate_zip(self):
         package_xml = FULL_NAME_PACKAGE_XML.format(self.name, self.api_version)
         self._write_package_xml(package_xml)
-
-        return self._encode_zip()
 
 class InstallPackageZipBuilder(BasePackageZipBuilder):
 
@@ -72,9 +76,7 @@ class InstallPackageZipBuilder(BasePackageZipBuilder):
         self.namespace = namespace
         self.version = version
 
-    def __call__(self):
-        self._open_zip()
-
+    def _populate_zip(self):
         package_xml = INSTALLED_PACKAGE_PACKAGE_XML.format(self.namespace)
         self._write_package_xml(package_xml)
 
@@ -84,18 +86,19 @@ class InstallPackageZipBuilder(BasePackageZipBuilder):
             installed_package
         )
 
-        return self._encode_zip()
+class DestructiveChangesZipBuilder(BasePackageZipBuilder):
 
-class UninstallPackageZipBuilder(BasePackageZipBuilder):
+    def __init__(self, destructive_changes):
+        self.destructive_changes = destructive_changes
+
+    def _populate_zip(self): 
+        self._write_package_xml(EMPTY_PACKAGE_XML)
+        self._write_file('destructiveChanges.xml', self.destructive_changes)
+
+class UninstallPackageZipBuilder(DestructiveChangesZipBuilder):
 
     def __init__(self, namespace):
         if not namespace:
             raise ValueError('You must provide a namespace to install a package')
         self.namespace = namespace
-
-    def __call__(self):
-        self._open_zip()
-        self._write_package_xml(EMPTY_PACKAGE_XML)
-        self._write_file('destructiveChanges.xml', EMPTY_PACKAGE_XML)
-        return self._encode_zip()
-        
+        self.destructive_changes = INSTALLED_PACKAGE_XML.format(self.namespace)
