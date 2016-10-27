@@ -2,6 +2,29 @@
 History
 =======
 
+2.0.0-alpha9 (2016-10-27)
+------------------
+
+* Switch to using `plaintable` for printing text tables in the following CLI commands:
+
+  * cumulusci2 org list
+  * cumulusci2 task list
+  * cumulusci2 task info
+  * cumulusci2 flow list
+
+* Easier project set up: `cumulusci2 project init` now prompts for all project values using the global default values
+* More pure Python Metadata API tasks:
+
+  * create_package
+  * install_package
+  * uninstall_package
+
+* New tasks to interact with the new PackageUploadRequest object in the Tooling API
+
+  * upload_beta
+  * upload_production
+
+
 2.0.0-alpha8 (2016-10-26)
 ------------------
 

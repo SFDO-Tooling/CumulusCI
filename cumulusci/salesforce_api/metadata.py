@@ -22,8 +22,10 @@ import requests
 from cumulusci.oauth.salesforce import SalesforceOAuth2
 from cumulusci.salesforce_api import soap_envelopes
 
+
+
 class BaseMetadataApiCall(object):
-    check_interval = 2
+    check_interval = 1
     soap_envelope_start = None
     soap_envelope_status = None
     soap_envelope_result = None

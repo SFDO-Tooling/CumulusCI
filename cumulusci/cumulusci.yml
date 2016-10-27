@@ -2,11 +2,9 @@ cumulusci:
     keychain: cumulusci.core.keychain.EncryptedFileProjectKeychain
 
 tasks:
-    create_unmanaged_package:
-        description: Deploys an empty package with name from project -> name
-        class_path: cumulusci.tasks.ant.SalesforceAntTask
-        options:
-            target: createUnmanagedPackage
+    create_package:
+        description: Creates a package in the target org with the default package name for the project
+        class_path: cumulusci.tasks.salesforce.CreatePackage
     create_managed_src:
         description: Modifies the src directory for managed deployment.  Strips //cumulusci-managed from all Apex code
         class_path: cumulusci.tasks.ant.AntTask
@@ -65,6 +63,9 @@ tasks:
     github_release_notes:
         description: Generates release notes by parsing pull request bodies of merged pull requests between two tags
         class_path: cumulusci.tasks.release_notes.task.GithubReleaseNotes
+    install_package:
+        description: Installs the managed version of the package
+        class_path: cumulusci.tasks.salesforce.InstallPackageVersion
     push_all:
         description: Schedules a push upgrade of a package version to all subscribers
         class_path: cumulusci.tasks.push.tasks.SchedulePushOrgQuery
@@ -128,6 +129,9 @@ tasks:
         class_path: cumulusci.tasks.ant.SalesforceAntTask
         options:
             target: uninstall
+    uninstall_package:
+        description: Uninstalls the managed version of the package
+        class_path: cumulusci.tasks.salesforce.UninstallPackage
     uninstall_unpackaged_pre:
         description: Uninstalls the unpackaged/pre bundles
         class_path: cumulusci.tasks.ant.SalesforceAntTask
@@ -158,6 +162,14 @@ tasks:
         class_path: cumulusci.tasks.ant.SalesforceAntTask
         options:
             target: updateRequiredPackages
+    upload_beta:
+        description: Uploads a beta release of the metadata currently in the packaging org
+        class_path: cumulusci.tasks.salesforce.PackageUpload
+    upload_production:
+        description: Uploads a beta release of the metadata currently in the packaging org
+        class_path: cumulusci.tasks.salesforce.PackageUpload
+        options:
+            production: True
 
 
 flows:

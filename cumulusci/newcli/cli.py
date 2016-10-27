@@ -1,8 +1,10 @@
 import json
 import os
+import sys
 import webbrowser
 
 import click
+from plaintable import Table
 
 from cumulusci.core.config import YamlGlobalConfig
 from cumulusci.core.config import YamlProjectConfig
@@ -17,6 +19,7 @@ from cumulusci.core.exceptions import GithubNotConfigured
 from cumulusci.core.exceptions import KeychainConnectedAppNotFound
 from cumulusci.core.exceptions import KeychainKeyNotFound
 from cumulusci.core.exceptions import MrbelvedereNotConfigured
+from cumulusci.core.exceptions import NotInProject
 from cumulusci.core.exceptions import ProjectConfigNotFound
 from cumulusci.core.exceptions import TaskRequiresSalesforceOrg
 from cumulusci.core.utils import import_class
@@ -39,13 +42,18 @@ class CliConfig(object):
         self._load_keychain()
 
     def _load_global_config(self):
-        self.global_config = YamlGlobalConfig()
+        try:
+            self.global_config = YamlGlobalConfig()
+        except NotInProject as e:
+            raise click.UsageError(e.message) 
 
     def _load_project_config(self):
         try:
             self.project_config = self.global_config.get_project_config()
         except ProjectConfigNotFound:
             pass
+        except NotInProject as e:
+            raise click.UsageError(e.message) 
 
     def _load_keychain(self):
         self.keychain_key = os.environ.get('CUMULUSCI_KEY')
@@ -57,7 +65,12 @@ class CliConfig(object):
             self.keychain = self.keychain_class(self.project_config, self.keychain_key)
             self.project_config.set_keychain(self.keychain)
 
-CLI_CONFIG = CliConfig()
+try:
+    CLI_CONFIG = CliConfig()
+except click.UsageError as e:
+    click.echo(e.message)
+    sys.exit(1)
+    
 
 pass_config = click.make_pass_decorator(CliConfig, ensure=True)
 
@@ -359,12 +372,16 @@ def org_info(config, org_name):
 @pass_config
 def org_list(config):
     check_connected_app(config)
+    data = []
+    headers = ['org','is_default']
     for org in config.project_config.list_orgs():
         org_config = config.project_config.get_org(org)
         if org_config.default:
-            click.echo('  * {}'.format(org))
+            data.append((org, '*'))
         else:
-            click.echo('    {}'.format(org))
+            data.append((org, ''))
+    table = Table(data, headers)
+    click.echo(table)
 
 @click.command(name='connected_app', help="Displays the ConnectedApp info used for OAuth connections")
 @pass_config
@@ -401,8 +418,12 @@ org.add_command(org_config_connected_app)
 @pass_config
 def task_list(config):
     check_project_config(config)
+    data = []
+    headers = ['task', 'description']
     for task in config.project_config.list_tasks():
-        click.echo('{name}: {description}'.format(**task))
+        data.append((task['name'], task['description']))
+    table = Table(data, headers)
+    click.echo(table)
 
 @click.command(name='info', help="Displays information for a task")
 @click.argument('task_name')
@@ -429,13 +450,15 @@ def task_info(config, task_name):
     task_options = getattr(task_class, 'task_options', {})
     if task_options:
         click.echo('')
-        click.echo('Options:')
+        data = []
+        headers = ['Option', 'Required', 'Description']
         for key, option in task_options.items():
             if option.get('required'):
-                click.echo('  * {}: {}'.format(key, option.get('description')))
-        for key, option in getattr(task_class, 'task_options', {}).items():
-            if not option.get('required'):
-                click.echo('    {}: {}'.format(key, option.get('description')))
+                data.append((key, '*', option.get('description')))
+            else:
+                data.append((key, '', option.get('description')))
+        table = Table(data, headers)
+        click.echo(table)
 
 @click.command(name='run', help="Runs a task")
 @click.argument('task_name')
@@ -497,7 +520,13 @@ task.add_command(task_run)
 @pass_config
 def flow_list(config):
     check_project_config(config)
-    click.echo(config.project_config.flows)
+    data = []
+    headers = ['flow', 'description']
+    for flow in config.project_config.flows:
+        description = getattr(config.project_config, 'flows__{}__description'.format(flow))
+        data.append((flow, description))
+    table = Table(data, headers)
+    click.echo(table)
 
 @click.command(name='info', help="Displays information for a flow")
 @click.argument('flow_name')
