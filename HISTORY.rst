@@ -24,6 +24,11 @@ History
   * upload_beta
   * upload_production
 
+* Python task to replace deployUnpackagedPost ant target with support for replacing namespace prefix in filenames and file contents
+
+  * deploy_post
+  * deploy_post_managed
+
 * Python tasks to replace createManagedSrc and revertManagedSrc ant targets
 
   * create_managed_src

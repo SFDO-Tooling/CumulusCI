@@ -97,8 +97,7 @@ class Deploy(BaseSalesforceMetadataApiTask):
         os.chdir(path)
         for root, dirs, files in os.walk('.'):
             for f in files:
-                zip_path = os.path.join(root, f)
-                zipf.write(os.path.join(root, f))
+                self._write_zip_file(zipf, root, f)
         zipf.close()
         zip_file.seek(0)
         package_zip = base64.b64encode(zip_file.read())
@@ -106,6 +105,10 @@ class Deploy(BaseSalesforceMetadataApiTask):
         os.chdir(pwd)
 
         return self.api_class(self, package_zip)
+
+    def _write_zip_file(self, zipf, root, path):
+        zipf.write(os.path.join(root, path))
+       
 
 class CreatePackage(Deploy):
     task_options = {
@@ -177,7 +180,7 @@ class DeployBundles(Deploy):
     }
 
     def _run_task(self):
-        path = self.task_config.options__path
+        path = self.options['path']
         pwd = os.getcwd()
 
         path = os.path.join(pwd, path)
@@ -189,16 +192,57 @@ class DeployBundles(Deploy):
             if not os.path.isdir(item_path):
                 continue
 
-            self.logger.info('Deploying bundle: {}'.format(item))
+            self.logger.info('Deploying bundle: {}/{}'.format(self.options['path'], item))
 
             self._deploy_bundle(item_path)
 
     def _deploy_bundle(self, path):
         api = self._get_api(path)
-        if self.options:
-            return api(**options)
+        return api()
+
+class DeployNamespacedBundles(DeployBundles):
+    name = 'DeployNamespacedBundles'
+
+    task_options = {
+        'path': {
+            'description': 'The path to the parent directory containing the metadata bundles directories',
+            'required': True,
+        },
+        'managed': {
+            'description': 'If True, will insert the actual namespace prefix.  Defaults to False or no namespace',
+        },
+        'namespace': {
+            'description': 'The namespace to replace the token with if in managed mode. Defaults to project__package__namespace',
+        },
+        'namespace_token': {
+            'description': 'The string token to replace with the namespace',
+            'required': True,
+        },
+        'filename_token': {
+            'description': 'The path to the parent directory containing the metadata bundles directories',
+            'required': True,
+        },
+    }
+    
+    def _init_options(self, kwargs):
+        super(DeployNamespacedBundles, self)._init_options(kwargs)
+
+        if 'managed' not in self.options:
+            self.options['managed'] = False
+
+        if 'namespace' not in self.options:
+            self.options['namespace'] = self.project_config.project__package__namespace
+
+    def _write_zip_file(self, zipf, root, path):
+        if self.options['managed'] in [True, 'True', 'true']:
+            namespace = self.options['namespace']
         else:
-            return api()
+            namespace = ''
+
+        path = path.replace(self.options['filename_token'], namespace)
+        content = open(os.path.join(root, path), 'r').read()
+        content = content.replace(self.options['namespace_token'], namespace)
+        zipf.writestr(path, content)
 
 class PackageUpload(BaseSalesforceToolingApiTask):
     name = 'PackageUpload'
