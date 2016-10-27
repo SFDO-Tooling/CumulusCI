@@ -341,7 +341,7 @@ class UpdatePackageXml(BaseTask):
     def _init_task(self):
         self.package_xml = PackageXmlGenerator(
             directory = self.options.get('path'),
-            api_version = self.project_config.project__api_version,
+            api_version = self.project_config.project__package__api_version,
             package_name = self.project_config.project__package__name,
             managed = self.options.get('managed', False),
             delete = self.options.get('delete', False),

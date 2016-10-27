@@ -7,9 +7,10 @@ tasks:
         class_path: cumulusci.tasks.salesforce.CreatePackage
     create_managed_src:
         description: Modifies the src directory for managed deployment.  Strips //cumulusci-managed from all Apex code
-        class_path: cumulusci.tasks.ant.AntTask
+        class_path: cumulusci.tasks.metadata.managed_src.CreateManagedSrc
         options:
-            target: createManagedSrc
+            path: src
+            revert_path: src.orig
     create_unmanaged_ee_src:
         description: Modifies the src directory for unmanaged deployment to an EE org
         class_path: cumulusci.tasks.ant.AntTask
@@ -106,9 +107,10 @@ tasks:
             path: unpackaged
     revert_managed_src:
         description: Reverts the changes from create_managed_src
-        class_path: cumulusci.tasks.ant.AntTask
+        class_path: cumulusci.tasks.metadata.managed_src.RevertManagedSrc
         options:
-            target: revertManagedSrc
+            path: src
+            revert_path: src.orig
     revert_unmanaged_ee_src:
         description: Reverts the changes from create_unmanaged_ee_src
         class_path: cumulusci.tasks.ant.AntTask

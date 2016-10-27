@@ -24,6 +24,10 @@ History
   * upload_beta
   * upload_production
 
+* Python tasks to replace createManagedSrc and revertManagedSrc ant targets
+
+  * create_managed_src
+  * revert_managed_src
 
 2.0.0-alpha8 (2016-10-26)
 ------------------

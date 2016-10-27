@@ -21,6 +21,7 @@ from cumulusci.core.exceptions import KeychainKeyNotFound
 from cumulusci.core.exceptions import MrbelvedereNotConfigured
 from cumulusci.core.exceptions import NotInProject
 from cumulusci.core.exceptions import ProjectConfigNotFound
+from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.exceptions import TaskRequiresSalesforceOrg
 from cumulusci.core.utils import import_class
 
@@ -507,8 +508,13 @@ def task_run(config, task_name, org, o):
         task = task_class(config.project_config, task_config, org_config = org_config)
     except TaskRequiresSalesforceOrg as e:
         raise click.UsageError('This task requires a salesforce org.  Use org default <name> to set a default org or pass the org name with the --org option')
-        
-    task()
+    except TaskOptionsError as e:
+        raise click.UsageError(e.message)
+    
+    try:    
+        task()
+    except TaskOptionsError as e:
+        raise click.UsageError(e.message)
 
 # Add the task commands to the task group
 task.add_command(task_list)
@@ -554,9 +560,19 @@ def flow_run(config, flow_name, org):
     class_path = flow_config.get('class_path', 'cumulusci.core.flows.BaseFlow')
     flow_class = import_class(class_path)
 
-    # Create and run the flow 
-    flow = flow_class(config.project_config, flow_config, org_config)
-    flow()
+    # Create the flow and handle initialization exceptions
+    try:
+        flow = flow_class(config.project_config, flow_config, org_config)
+    except TaskRequiresSalesforceOrg as e:
+        raise click.UsageError('This flow requires a salesforce org.  Use org default <name> to set a default org or pass the org name with the --org option')
+    except TaskOptionsError as e:
+        raise click.UsageError(e.message)
+
+    # Run the flow and handle exceptions
+    try:
+        flow()
+    except TaskOptionsError as e:
+        raise click.UsageError(e.message)
 
 flow.add_command(flow_list)
 flow.add_command(flow_info)
