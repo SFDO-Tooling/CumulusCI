@@ -182,32 +182,42 @@ def project_init(config, name, package_name, package_namespace, package_api_vers
     yml_config = []
     # project:
     yml_config.append('project:')
-    yml_config.append('name: {}'.format(name))
+    yml_config.append('    name: {}'.format(name))
 
     #     package:
-    yml_config.append('    package:')
+    package_config = []
     if package_name and package_name != config.global_config.project__package__name:
-        yml_config.append('        name: {}'.format(package_name))
+        package_config.append('        name: {}'.format(package_name))
     if package_namespace and package_namespace != config.global_config.project__package__namespace:
-        yml_config.append('        namespace: {}'.format(package_namespace))
+        package_config.append('        namespace: {}'.format(package_namespace))
     if package_api_version and package_api_version != config.global_config.project__package__api_version:
-        yml_config.append('        api_version: {}'.format(package_api_version))
+        package_config.append('        api_version: {}'.format(package_api_version))
+    if package_config:
+        yml_config.append('    package:')
+        yml_config.extend(package_config)
 
     #     git:
-    yml_config.append('    git:')
+    git_config = []
     if git_prefix_feature and git_prefix_feature != config.global_config.project__git__prefix_feature:
-        yml_config.append('        feature: {}'.format(git_prefix_feature))
+        git_config.append('        feature: {}'.format(git_prefix_feature))
     if git_default_branch and git_default_branch != config.global_config.project__git__default_branch:
-        yml_config.append('        branch: {}'.format(git_default_branch))
+        git_config.append('        branch: {}'.format(git_default_branch))
     if git_prefix_beta and git_prefix_beta != config.global_config.project__git__prefix_beta:
-        yml_config.append('        beta: {}'.format(git_prefix_beta))
+        git_config.append('        beta: {}'.format(git_prefix_beta))
     if git_prefix_release and git_prefix_release != config.global_config.project__git__prefix_release:
-        yml_config.append('        release: {}'.format(git_prefix_release))
+        git_config.append('        release: {}'.format(git_prefix_release))
+    if git_config:
+        yml_config.append('    git:')
+        yml_config.extend(git_config)
+        
 
     #     test:
-    yml_config.append('    test:')
+    test_config = []
     if test_namematch and test_namematch != config.global_config.project__test__namematch:
-        yml_config.append('        namematch: {}'.format(test_namematch))
+        test_config.append('        namematch: {}'.format(test_namematch))
+    if test_config:
+        yml_config.append('    test:')
+        yml_config.extend(test_config)
 
     yml_config.append('')
     f_yml.write('\n'.join(yml_config))

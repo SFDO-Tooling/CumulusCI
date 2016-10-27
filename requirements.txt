@@ -7,6 +7,7 @@ requests[security]==2.9.1
 responses==0.5.1
 selenium
 simple-salesforce==0.68.1
+xmltodict==0.10.2
 HiYaPyCo==0.4.8
 PyCrypto==2.6.1
 PyGithub==1.25.1
