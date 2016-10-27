@@ -35,9 +35,18 @@ documents:
 email:
     - type: EmailTemplate
       class: MetadataFolderParser
-globalPicklists:
+flexipages:
+    - type: FlexiPage
+      class: MetadataFilenameParser
+      extension: flexipage
+globalPicklist:
     - type: GlobalPicklist
-      class: MetadataFolderParser
+      class: MetadataFilenameParser
+      extension: globalPicklist
+globalValueSets:
+    - type: GlobalValueSet
+      class: MetadataFilenameParser
+      extension: globalValueSet
 homePageComponents:
     - type: HomePageComponent
       class: MetadataFilenameParser
