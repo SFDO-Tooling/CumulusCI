@@ -16,6 +16,10 @@ components:
 connectedApps:
     - type: ConnectedApp
       class: MetadataFilenameParser
+contentassets:
+    - type: ContentAsset
+      class: MetadataFilenameParser
+      extension: asset
 customMetadata:
     - type: CustomMetadata
       class: MetadataFilenameParser
