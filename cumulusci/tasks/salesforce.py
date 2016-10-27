@@ -15,6 +15,7 @@ from cumulusci.salesforce_api.metadata import ApiRetrieveInstalledPackages
 from cumulusci.salesforce_api.metadata import ApiRetrievePackaged
 from cumulusci.salesforce_api.metadata import ApiRetrieveUnpackaged
 
+
 class BaseSalesforceTask(BaseTask):
     name = 'BaseSalesforceTask'
     salesforce_task = True
@@ -24,10 +25,13 @@ class BaseSalesforceTask(BaseTask):
         return self._run_task()
 
     def _run_task(self):
-        raise NotImplementedError('Subclasses should provide their own implementation')
+        raise NotImplementedError(
+            'Subclasses should provide their own implementation')
 
     def _refresh_oauth_token(self):
-        self.org_config.refresh_oauth_token(self.project_config.keychain.get_connected_app())
+        self.org_config.refresh_oauth_token(
+            self.project_config.keychain.get_connected_app())
+
 
 class BaseSalesforceMetadataApiTask(BaseSalesforceTask):
     api_class = None
@@ -43,6 +47,7 @@ class BaseSalesforceMetadataApiTask(BaseSalesforceTask):
         else:
             return api()
 
+
 class BaseSalesforceApiTask(BaseSalesforceTask):
     name = 'BaseSalesforceApiTask'
 
@@ -56,6 +61,7 @@ class BaseSalesforceApiTask(BaseSalesforceTask):
             version=self.project_config.project__package__api_version,
         )
 
+
 class BaseSalesforceToolingApiTask(BaseSalesforceApiTask):
     name = 'BaseSalesforceToolingApiTask'
 
@@ -68,15 +74,19 @@ class BaseSalesforceToolingApiTask(BaseSalesforceApiTask):
         obj.base_url = obj.base_url.replace('/sobjects/', '/tooling/sobjects/')
         return obj
 
+
 class GetInstalledPackages(BaseSalesforceMetadataApiTask):
     api_class = ApiRetrieveInstalledPackages
     name = 'GetInstalledPackages'
 
+
 class RetrieveUnpackaged(BaseSalesforceMetadataApiTask):
     api_class = ApiRetrieveUnpackaged
 
+
 class RetrievePackaged(BaseSalesforceMetadataApiTask):
     api_class = ApiRetrievePackaged
+
 
 class Deploy(BaseSalesforceMetadataApiTask):
     api_class = ApiDeploy
@@ -110,6 +120,7 @@ class Deploy(BaseSalesforceMetadataApiTask):
 
         return self.api_class(self, package_zip)
 
+
 class DeployBundles(Deploy):
     task_options = {
         'path': {
@@ -124,7 +135,8 @@ class DeployBundles(Deploy):
 
         path = os.path.join(pwd, path)
 
-        self.logger.info('Deploying all metadata bundles in path {}'.format(path))
+        self.logger.info(
+            'Deploying all metadata bundles in path {}'.format(path))
 
         for item in os.listdir(path):
             item_path = os.path.join(path, item)
@@ -142,16 +154,17 @@ class DeployBundles(Deploy):
         else:
             return api()
 
+
 class RunApexTests(BaseSalesforceToolingApiTask):
     task_options = {
         'test_name_match': {
             'description': ('Query to find Apex test classes to run ' +
-                '("%" is wildcard)'),
+                            '("%" is wildcard)'),
             'required': True,
         },
         'test_name_exclude': {
             'description': ('Query to find Apex test classes to exclude ' +
-                '("%" is wildcard)'),
+                            '("%" is wildcard)'),
             'required': False,
         },
         'namespace': {
@@ -197,7 +210,7 @@ class RunApexTests(BaseSalesforceToolingApiTask):
                 excluded_tests.append("(NOT Name LIKE '{}')".format(pattern))
         # Get all test classes for namespace
         query = ('SELECT Id, Name FROM ApexClass ' +
-            'WHERE NamespacePrefix = {}'.format(namespace))
+                 'WHERE NamespacePrefix = {}'.format(namespace))
         if included_tests:
             query += ' AND ({})'.format(' OR '.join(included_tests))
         if excluded_tests:
@@ -247,18 +260,18 @@ class RunApexTests(BaseSalesforceToolingApiTask):
                     'Stats': result.get('stats', None),
                     'TestTimestamp': result.get('TestTimestamp', None),
                 })
-                if result['Outcome'] in ['Fail','CompileFail']:
+                if result['Outcome'] in ['Fail', 'CompileFail']:
                     self.logger.info(u'\tMessage: {Message}'.format(**result))
                     self.logger.info(u'\tStackTrace: {StackTrace}'.format(
                         **result))
         self.logger.info(u'-' * 80)
         self.logger.info(u'Pass: {}  Fail: {}  CompileFail: {}  Skip: {}'
-            .format(
-            counts['Pass'],
-            counts['Fail'],
-            counts['CompileFail'],
-            counts['Skip'],
-        ))
+                         .format(
+                             counts['Pass'],
+                             counts['Fail'],
+                             counts['CompileFail'],
+                             counts['Skip'],
+                         ))
         self.logger.info(u'-' * 80)
         if counts['Fail'] or counts['CompileFail']:
             self.logger.info(u'-' * 80)
@@ -275,7 +288,6 @@ class RunApexTests(BaseSalesforceToolingApiTask):
                 self.logger.info(u'\tStackTrace: {}'.format(
                     result['StackTrace']))
         return test_results
-
 
     def _run_task(self):
         result = self._get_test_classes()
@@ -318,11 +330,11 @@ class RunApexTests(BaseSalesforceToolingApiTask):
             for record in result['records']:
                 counts[record['Status']] += 1
             self.logger.info('Completed: {}  Processing: {}  Queued: {}'
-                .format(
-                counts['Completed'],
-                counts['Processing'],
-                counts['Queued'],
-            ))
+                             .format(
+                                 counts['Completed'],
+                                 counts['Processing'],
+                                 counts['Queued'],
+                             ))
             if counts['Queued'] == 0 and counts['Processing'] == 0:
                 self.logger.info('Apex tests completed')
                 break
@@ -336,9 +348,9 @@ class RunApexTests(BaseSalesforceToolingApiTask):
                 s = u'  <testcase classname="{}" name="{}"'.format(
                     result['ClassName'], result['Method'])
                 if ('Stats' in result and result['Stats']
-                    and 'duration' in result['Stats']):
+                        and 'duration' in result['Stats']):
                     s += ' time="{}"'.format(result['Stats']['duration'])
-                if result['Outcome'] in ['Fail','CompileFail']:
+                if result['Outcome'] in ['Fail', 'CompileFail']:
                     s += '>\n'
                     s += '    <failure type="{}">{}</failure>\n'.format(
                         cgi.escape(result['StackTrace']),
