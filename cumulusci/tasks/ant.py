@@ -10,16 +10,7 @@ from cumulusci.core.exceptions import ApexTestException
 from cumulusci.core.exceptions import DeploymentException
 from cumulusci.core.tasks import BaseTask
 from cumulusci.tasks.salesforce import BaseSalesforceTask
-
-CUMULUSCI_PATH = os.path.realpath(
-    os.path.join(
-        os.path.dirname(
-            os.path.realpath(__file__),
-        ),
-        '..',
-        '..'
-    )
-)
+from cumulusci.utils import CUMULUSCI_PATH
 
 class AntTask(BaseTask):
     name = 'AntTask'
