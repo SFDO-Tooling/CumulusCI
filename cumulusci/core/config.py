@@ -132,7 +132,10 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                 continue
             if line.find('url =') != -1:
                 line_parts = line.split('/')
-                return line_parts[-1]
+                repo_name = line_parts[-1]
+                if repo_name.endswith('.git'):
+                    repo_name = repo_name[:-4]
+                return repo_name
 
     @property
     def repo_owner(self):
