@@ -91,7 +91,7 @@ RETRIEVE_UNPACKAGED = '''<?xml version="1.0" encoding="utf-8"?>
         <apiVersion>{}</apiVersion>
         <unpackaged>
           {} 
-        </unpackaged
+        </unpackaged>
       </retrieveRequest>
     </retrieve>
   </soap:Body>

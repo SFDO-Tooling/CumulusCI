@@ -16,6 +16,8 @@ from cumulusci.salesforce_api.package_zip import CreatePackageZipBuilder
 from cumulusci.salesforce_api.package_zip import DestructiveChangesZipBuilder
 from cumulusci.salesforce_api.package_zip import InstallPackageZipBuilder
 from cumulusci.salesforce_api.package_zip import UninstallPackageZipBuilder
+from cumulusci.utils import CUMULUSCI_PATH
+from cumulusci.utils import findReplaceRegex
 from cumulusci.utils import zip_subfolder
 
 class BaseSalesforceTask(BaseTask):
@@ -486,9 +488,10 @@ class UpdateAdminProfile(Deploy):
             self.project_config.project__package__api_version,
         )
         unpackaged = api_retrieve()
+        unpackaged = zip_subfolder(unpackaged, 'unpackaged')
         unpackaged.extractall(self.tempdir)
 
-    def _process_unpackaged(self):
+    def _process_metadata(self):
         self.logger.info('Processing retrieved metadata in {}'.format(self.tempdir))
 
         findReplaceRegex(
@@ -497,7 +500,17 @@ class UpdateAdminProfile(Deploy):
             os.path.join(self.tempdir, 'profiles'),
             'Admin.profile',
         )
+        findReplaceRegex(
+            '<readable>false</readable>',
+            '<readable>true</readable>',
+            os.path.join(self.tempdir, 'profiles'),
+            'Admin.profile',
+        )
 
+    def _deploy_metadata(self):
+        self.logger.info('Deploying updated Admin.profile from {}'.format(self.tempdir))
+        api = self._get_api(path=self.tempdir)
+        return api()
 
 class PackageUpload(BaseSalesforceToolingApiTask):
     name = 'PackageUpload'

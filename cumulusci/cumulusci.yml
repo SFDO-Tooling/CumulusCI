@@ -154,9 +154,7 @@ tasks:
             managed: True
     update_admin_profile:
         description: Retrieves, edits, and redeploys the Admin.profile with full FLS perms for all objects/fields
-        class_path: cumulusci.tasks.ant.SalesforceAntTask
-        options:
-            target: deployUpdatedAdminProfile
+        class_path: cumulusci.tasks.salesforce.UpdateAdminProfile
     update_meta_xml:
         description: Updates all -meta.xml files to have the correct API version and extension package versions
         class_path: cumulusci.tasks.ant.AntTask

@@ -240,6 +240,14 @@ class ApiRetrieveUnpackaged(BaseMetadataApiCall):
         super(ApiRetrieveUnpackaged, self).__init__(task)
         self.package_xml = package_xml
         self.api_version = api_version
+        self._clean_package_xml()
+
+    def _clean_package_xml(self):
+        self.package_xml = re.sub('<\?xml.*\?>', '', self.package_xml)
+        self.package_xml = re.sub('<Package.*>', '', self.package_xml, 1)
+        self.package_xml = re.sub('</Package>', '', self.package_xml, 1)
+        self.package_xml = re.sub('\n', '', self.package_xml)
+        self.package_xml = re.sub(' *', '', self.package_xml)
 
     def _build_envelope_start(self):
         return self.soap_envelope_start.format(
@@ -247,6 +255,17 @@ class ApiRetrieveUnpackaged(BaseMetadataApiCall):
             self.package_xml,
         )
 
+    def _process_response(self, response):
+        # Parse the metadata zip file from the response
+        zipstr = parseString(response.content).getElementsByTagName('zipFile')
+        if zipstr:
+            zipstr = zipstr[0].firstChild.nodeValue
+        else:
+            return self.packages
+        zipfp = TemporaryFile()
+        zipfp.write(base64.b64decode(zipstr))
+        zipfile = ZipFile(zipfp, 'r')
+        return zipfile
 
 class ApiRetrieveInstalledPackages(BaseMetadataApiCall):
     check_interval = 1
