@@ -2,6 +2,7 @@ import json
 import os
 import sys
 import webbrowser
+import code
 
 import click
 from plaintable import Table
@@ -105,6 +106,11 @@ def cli(config):
 def version():
     click.echo(cumulusci.__version__)
 
+@click.command(name='shell', help='Drop into a python shell')
+@pass_config
+def shell(config):
+    code.interact(local=dict(globals(), **locals()))
+
 # Top Level Groups
 @click.group('project', help="Commands for interacting with project repository configurations")
 @pass_config
@@ -131,6 +137,7 @@ cli.add_command(org)
 cli.add_command(task)
 cli.add_command(flow)
 cli.add_command(version)
+cli.add_command(shell)
 
 # Commands for group: project
 
