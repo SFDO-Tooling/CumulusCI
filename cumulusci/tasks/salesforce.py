@@ -4,6 +4,8 @@ import os
 import tempfile
 import zipfile
 
+import xmltodict
+
 from simple_salesforce import Salesforce
 
 from cumulusci.core.tasks import BaseTask
@@ -276,6 +278,10 @@ class DeployBundles(Deploy):
 
         self.logger.info('Deploying all metadata bundles in path {}'.format(path))
 
+        if not os.path.isdir(path):
+            self.logger.warn('Path {} not found, skipping'.format(path))
+            return
+
         for item in os.listdir(path):
             item_path = os.path.join(path, item)
             if not os.path.isdir(item_path):
@@ -371,10 +377,19 @@ class UninstallPackaged(UninstallLocal):
         if 'package' not in self.options:
             self.options['package'] = self.project_config.project__package__name
 
+    def _retrieve_packaged(self):
+        retrieve_api = ApiRetrievePackaged(
+            self,
+            self.options['package'],
+            self.project_config.project__package__api_version
+        )
+        packaged = retrieve_api()
+        packaged = zip_subfolder(packaged, self.options['package'])
+        return packaged
+
     def _get_destructive_changes(self, path=None):
         self.logger.info('Retrieving metadata in package {} from target org'.format(self.options['package']))
-        retrieve_api = ApiRetrievePackaged(self, self.options['package'])
-        packaged = retrieve_api()
+        packaged = self._retrieve_packaged()
 
         tempdir = tempfile.mkdtemp()
         packaged.extractall(tempdir)
@@ -385,6 +400,110 @@ class UninstallPackaged(UninstallLocal):
 
         self.logger.info('Deleting metadata in package {} from target org'.format(self.options['package']))
         return destructive_changes
+
+class UninstallPackagedIncremental(UninstallPackaged):
+    name = 'UninstallPackagedIncremental'
+
+    task_options = {
+        'path': {
+            'description': 'The local path to compare to the retrieved packaged metadata from the org.  Defaults to src',
+            'required': True,
+        },
+        'package': {
+            'description': 'The package name to uninstall.  All metadata from the package will be retrieved and a custom destructiveChanges.xml package will be constructed and deployed to delete all deleteable metadata from the package.  Defaults to project__package__name',
+            'required': True,
+        },
+    }
+
+    def _init_options(self, kwargs):
+        super(UninstallPackagedIncremental, self)._init_options(kwargs)
+        if 'path' not in self.options:
+            self.options['path'] = 'src'
+
+    def _get_destructive_changes(self, path=None):
+        self.logger.info('Retrieving metadata in package {} from target org'.format(self.options['package']))
+        packaged = self._retrieve_packaged()
+
+        tempdir = tempfile.mkdtemp()
+        packaged.extractall(tempdir)
+
+        destructive_changes = self._package_xml_diff(
+            os.path.join(self.options['path'], 'package.xml'),
+            os.path.join(tempdir, 'package.xml'),
+        )
+            
+        self.logger.info('Deleting metadata in package {} from target org'.format(self.options['package']))
+        return destructive_changes
+
+    def _package_xml_diff(self, master, compare):
+        master_xml = xmltodict.parse(open(master, 'r'))
+        compare_xml = xmltodict.parse(open(compare, 'r'))
+
+        delete = {}
+
+        master_items = {}
+        compare_items = {}
+
+        for md_type in master_xml['Package'].get('types',[]):
+            master_items[md_type['name']] = []
+            if 'members' not in md_type:
+                continue
+            if isinstance(md_type['members'], unicode):
+                master_items[md_type['name']].append(md_type['members'])
+            else:
+                for item in md_type['members']:
+                    master_items[md_type['name']].append(item)
+            
+        for md_type in compare_xml['Package'].get('types',[]):
+            compare_items[md_type['name']] = []
+            if 'members' not in md_type:
+                continue
+            if isinstance(md_type['members'], unicode):
+                compare_items[md_type['name']].append(md_type['members'])
+            else:
+                for item in md_type['members']:
+                    compare_items[md_type['name']].append(item)
+
+        for md_type, members in compare_items.items():
+            if md_type not in master_items:
+                delete[md_type] = members
+                continue
+
+            for member in members:
+                if member not in master_items[md_type]:
+                    if md_type not in delete:
+                        delete[md_type] = []
+                    delete[md_type].append(member)
+
+        destructive_changes = self._render_xml_from_items_dict(delete)
+        return destructive_changes
+
+    def _render_xml_from_items_dict(self, items):
+        lines = []
+
+        # Print header
+        lines.append(u'<?xml version="1.0" encoding="UTF-8"?>')
+        lines.append(u'<Package xmlns="http://soap.sforce.com/2006/04/metadata">')
+
+        # Print types sections 
+        md_types = items.keys()
+        md_types.sort()
+        for md_type in md_types:
+            members = items[md_type]
+            members.sort()
+            lines.append('    <types>')
+            for member in members:
+                lines.append('        <members>{}</members>'.format(member))
+            lines.append('        <name>{}</name>'.format(md_type))
+            lines.append('    </types>')
+
+        # Print footer
+        lines.append(u'    <version>{0}</version>'.format(
+            self.project_config.project__package__api_version
+        ))
+        lines.append(u'</Package>')
+
+        return u'\n'.join(lines)
 
 class UninstallLocalBundles(UninstallLocal):
 
@@ -511,6 +630,7 @@ class UpdateAdminProfile(Deploy):
         self.logger.info('Deploying updated Admin.profile from {}'.format(self.tempdir))
         api = self._get_api(path=self.tempdir)
         return api()
+
 
 class PackageUpload(BaseSalesforceToolingApiTask):
     name = 'PackageUpload'

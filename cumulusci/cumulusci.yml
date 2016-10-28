@@ -17,16 +17,6 @@ tasks:
         options:
             path: src
             revert_path: src.orig
-    delete_incremental:
-        description: Deletes any metadata from the package in the target org not in the local workspace
-        class_path: cumulusci.tasks.ant.SalesforceAntTask
-        options:
-            target: destroyStaleMetadata
-    delete_incremental_managed:
-        description: Deletes any metadata from the package in the target packaging org not in the local workspace
-        class_path: cumulusci.tasks.ant.SalesforceAntTask
-        options:
-            target: destroyStaleMetadataManaged
     deploy:
         description: Deploys the src directory of the repository to the org
         class_path: cumulusci.tasks.salesforce.Deploy
@@ -129,6 +119,9 @@ tasks:
     uninstall_packaged:
         description: Uninstalls all deleteable metadata in the package in the target org
         class_path: cumulusci.tasks.salesforce.UninstallPackaged
+    uninstall_packaged_incremental:
+        description: Deletes any metadata from the package in the target org not in the local workspace
+        class_path: cumulusci.tasks.salesforce.UninstallPackagedIncremental
     uninstall_src:
         description: Uninstalls all metadata in the local src directory
         class_path: cumulusci.tasks.salesforce.UninstallLocal
@@ -188,7 +181,7 @@ flows:
             - task: update_required_packages
             - task: deploy_pre
             - task: deploy
-            - task: delete_incremental
+            - task: uninstall_packaged_incremental
             - task: deploy_post
     unmanaged_ee:
         description: Deploys the unmanaged package metadata and all dependencies to the target EE org
@@ -199,7 +192,7 @@ flows:
             - task: create_unmanaged_ee_src
             - task: deploy
             - task: revert_unmanaged_ee_src
-            - task: delete_incremental
+            - task: uninstall_packaged_incremental
             - task: deploy_post
 
 project:
