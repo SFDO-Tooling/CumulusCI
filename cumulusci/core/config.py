@@ -5,6 +5,8 @@ import pickle
 import hiyapyco
 import yaml
 
+import requests
+
 from Crypto import Random
 from Crypto.Cipher import AES
 
@@ -23,7 +25,7 @@ class BaseConfig(object):
 
     def __init__(self, config=None):
         if config is None:
-            self.config = {}    
+            self.config = {}
         else:
             self.config = config
         self._load_config()
@@ -46,7 +48,7 @@ class BaseConfig(object):
                         break
             if config is None:
                 continue
-            
+
             if tree[-1] in config:
                 value = config[tree[-1]]
                 value_found = True
@@ -175,7 +177,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         join_args = [self.repo_root, '.git', 'refs', 'heads']
         join_args.extend(branch.split('/'))
         commit_file = os.path.join(*join_args)
-       
+
         f = open(commit_file, 'r')
         commit_sha = f.read().strip()
         f.close()
@@ -220,8 +222,8 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         """ Returns a list of all org names for the project """
         self._check_keychain()
         return self.keychain.list_orgs()
-       
-    def get_org(self, name):    
+
+    def get_org(self, name):
         """ Returns an OrgConfig for the given org_name """
         self._check_keychain()
         return self.keychain.get_org(name)
@@ -230,12 +232,12 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         """ Creates or updates an org's oauth info """
         self._check_keychain()
         return self.keychain.set_org(name, org_config)
-        
+
 
 class BaseGlobalConfig(BaseTaskFlowConfig):
     """ Base class for the global config which contains all configuration not specific to projects """
     project_config_class = BaseProjectConfig
-    
+
     config_local_dir = '.cumulusci'
 
     def list_projects(self):
@@ -259,8 +261,8 @@ class OrgConfig(BaseConfig):
 
     def refresh_oauth_token(self, connected_app):
         sf_oauth = SalesforceOAuth2(
-            connected_app.client_id, 
-            connected_app.client_secret, 
+            connected_app.client_id,
+            connected_app.client_secret,
             connected_app.callback_url,
             False
         )
@@ -272,6 +274,12 @@ class OrgConfig(BaseConfig):
     def start_url(self):
         start_url = '%s/secur/frontdoor.jsp?sid=%s' % (self.instance_url, self.access_token)
         return start_url
+
+    def _load_config(self):
+        headers = {"Authorization":"Bearer " + self.access_token}
+        response = requests.get(self.instance_url+"/services/oauth2/userinfo",headers=headers)
+        if response != self.config.get('userinfo',{}):
+            self.config.update({'userinfo':response.json()})
 
 class GithubConfig(BaseConfig):
     """ Github configuration """
@@ -312,7 +320,7 @@ class YamlProjectConfig(BaseProjectConfig):
         # Initialize the dictionaries for the individual configs
         self.config_project = {}
         self.config_project_local = {}
-        
+
         # Verify that we're in a project
         repo_root = self.repo_root
         if not repo_root:
@@ -327,7 +335,7 @@ class YamlProjectConfig(BaseProjectConfig):
                 )
             )
 
-        # Start the merged yaml config from the global and global local configs        
+        # Start the merged yaml config from the global and global local configs
         merge_yaml = [self.global_config_obj.config_global_path]
         if self.global_config_obj.config_global_local_path:
             merge_yaml.append(self.global_config_obj.config_global_local_path)
@@ -349,7 +357,7 @@ class YamlProjectConfig(BaseProjectConfig):
 
         self.config = hiyapyco.load(*merge_yaml, method=hiyapyco.METHOD_MERGE)
 
-       
+
 class YamlGlobalConfig(BaseGlobalConfig):
     config_filename = 'cumulusci.yml'
     config_local_dir = '.cumulusci'
@@ -368,16 +376,16 @@ class YamlGlobalConfig(BaseGlobalConfig):
         )
         if not os.path.exists(directory):
             os.makedirs(directory)
-   
+
         config_path = os.path.join(
             directory,
             self.config_filename,
-        ) 
+        )
         if not os.path.isfile(config_path):
             return None
-    
+
         return config_path
-        
+
     def _load_config(self):
         """ Loads the local configuration """
         # load the global config
@@ -393,14 +401,14 @@ class YamlGlobalConfig(BaseGlobalConfig):
                 merge_yaml.append(self.config_global_local_path)
 
         self.config = hiyapyco.load(*merge_yaml, method=hiyapyco.METHOD_MERGE)
-       
+
     @property
     def config_global_path(self):
         return os.path.join( __location__, '..', self.config_filename)
 
     def _load_global_config(self):
         """ Loads the configuration for the project """
-    
+
         # Load the global cumulusci.yml file
         f_config = open(self.config_global_path, 'r')
         config = yaml.load(f_config)
