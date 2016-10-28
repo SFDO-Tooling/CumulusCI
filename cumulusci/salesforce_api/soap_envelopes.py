@@ -71,8 +71,8 @@ RETRIEVE_PACKAGED = '''<?xml version="1.0" encoding="utf-8"?>
   <soap:Body>
     <retrieve xmlns="http://soap.sforce.com/2006/04/metadata">
       <retrieveRequest>
-        <apiVersion>33.0</apiVersion>
-        <packageNames>%s</packageNames>
+        <apiVersion>{}</apiVersion>
+        <packageNames>{}</packageNames>
       </retrieveRequest>
     </retrieve>
   </soap:Body>
@@ -88,9 +88,9 @@ RETRIEVE_UNPACKAGED = '''<?xml version="1.0" encoding="utf-8"?>
   <soap:Body>
     <retrieve xmlns="http://soap.sforce.com/2006/04/metadata">
       <retrieveRequest>
-        <apiVersion>33.0</apiVersion>
+        <apiVersion>{}</apiVersion>
         <unpackaged>
-          %s
+          {} 
         </unpackaged
       </retrieveRequest>
     </retrieve>

@@ -229,16 +229,23 @@ class BaseMetadataApiCall(object):
 
 class ApiRetrieveUnpackaged(BaseMetadataApiCall):
     check_interval = 1
-    soap_envelope_start = soap_envelopes.RETRIEVE_INSTALLEDPACKAGE
+    soap_envelope_start = soap_envelopes.RETRIEVE_UNPACKAGED
     soap_envelope_status = soap_envelopes.CHECK_STATUS
     soap_envelope_result = soap_envelopes.CHECK_RETRIEVE_STATUS
     soap_action_start = 'retrieve'
     soap_action_status = 'checkStatus'
     soap_action_result = 'checkRetrieveStatus'
 
-    def __init__(self, task):
+    def __init__(self, task, package_xml, api_version):
         super(ApiRetrieveUnpackaged, self).__init__(task)
-        self.metadata_zip = None
+        self.package_xml = package_xml
+        self.api_version = api_version
+
+    def _build_envelope_start(self):
+        return self.soap_envelope_start.format(
+            self.api_version,
+            self.package_xml,
+        )
 
 
 class ApiRetrieveInstalledPackages(BaseMetadataApiCall):
@@ -289,12 +296,16 @@ class ApiRetrievePackaged(BaseMetadataApiCall):
     soap_action_status = 'checkStatus'
     soap_action_result = 'checkRetrieveStatus'
 
-    def __init__(self, task):
+    def __init__(self, task, package_name, api_version):
         super(ApiRetrievePackaged, self).__init__(task)
-        self.package_name = self.task.project_config.project__package__name
+        self.package_name = package_name
+        self.api_version = api_version
 
     def _build_envelope_start(self):
-        return self.soap_envelope_start % self.package_name
+        return self.soap_envelope_start.format(
+            self.api_version,
+            self.package_name,
+        )
 
     def _process_response(self, response):
         # Parse the metadata zip file from the response

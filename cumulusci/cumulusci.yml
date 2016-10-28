@@ -13,9 +13,10 @@ tasks:
             revert_path: src.orig
     create_unmanaged_ee_src:
         description: Modifies the src directory for unmanaged deployment to an EE org
-        class_path: cumulusci.tasks.ant.AntTask
+        class_path: cumulusci.tasks.metadata.ee_src.CreateUnmanagedEESrc
         options:
-            target: createUnmanagedEESrc
+            path: src
+            revert_path: src.orig
     delete_incremental:
         description: Deletes any metadata from the package in the target org not in the local workspace
         class_path: cumulusci.tasks.ant.SalesforceAntTask
@@ -108,9 +109,10 @@ tasks:
             revert_path: src.orig
     revert_unmanaged_ee_src:
         description: Reverts the changes from create_unmanaged_ee_src
-        class_path: cumulusci.tasks.ant.AntTask
+        class_path: cumulusci.tasks.metadata.ee_src.RevertUnmanagedEESrc
         options:
-            target: revertUnmanagedEESrc
+            path: src
+            revert_path: src.orig
     run_tests:
         description: Runs all apex tests
         class_path: cumulusci.tasks.ant.SalesforceAntTask
@@ -188,6 +190,17 @@ flows:
             - task: update_required_packages
             - task: deploy_pre
             - task: deploy
+            - task: delete_incremental
+            - task: deploy_post
+    unmanaged_ee:
+        description: Deploys the unmanaged package metadata and all dependencies to the target EE org
+        tasks:
+            - task: create_package
+            - task: update_required_packages
+            - task: deploy_pre
+            - task: create_unmanaged_ee_src
+            - task: deploy
+            - task: revert_unmanaged_ee_src
             - task: delete_incremental
             - task: deploy_post
 

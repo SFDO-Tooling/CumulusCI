@@ -16,6 +16,7 @@ from cumulusci.salesforce_api.package_zip import CreatePackageZipBuilder
 from cumulusci.salesforce_api.package_zip import DestructiveChangesZipBuilder
 from cumulusci.salesforce_api.package_zip import InstallPackageZipBuilder
 from cumulusci.salesforce_api.package_zip import UninstallPackageZipBuilder
+from cumulusci.utils import zip_subfolder
 
 class BaseSalesforceTask(BaseTask):
     name = 'BaseSalesforceTask'
@@ -82,14 +83,84 @@ class BaseRetrieveMetadata(BaseSalesforceMetadataApiTask):
     def _run_task(self):
         api = self._get_api()
         src_zip = api()
-        src_zip.extractall(self.options['path'])
+        self._extract_zip(src_zip)
         self.logger.info('Extracted retrieved metadata into {}'.format(self.options['path']))
+
+    def _extract_zip(self, src_zip):
+        src_zip.extractall(self.options['path'])
+
 
 class RetrieveUnpackaged(BaseRetrieveMetadata):
     api_class = ApiRetrieveUnpackaged
 
+    task_options = {
+        'path': {
+            'description': 'The path where the retrieved metadata should be written',
+            'required': True,
+        },
+        'package_xml': {
+            'description': 'The package.xml manifest to use for the retrieve.',
+            'required': True,
+        },
+        'api_version': {
+            'description': 'Override the default api version for the retrieve.  Defaults to project__package__api_version',
+            'required': True,
+        },
+    }
+
+    def _init_options(self, kwargs):
+        super(RetrieveUnpackaged, self)._init_options(kwargs)
+
+        if 'api_version' not in self.options:
+            self.options['api_version'] = self.project_config.project__package__api_version
+
+        if 'package_xml' in self.options:
+            self.options['package_xml_path'] = self.options['package_xml']
+            self.options['package_xml'] = open(self.options['package_xml_path'], 'r').read()
+
+    def _get_api(self):
+        return self.api_class(
+            self,
+            self.options['package_xml'],
+            self.options['api_version'],
+        )
+   
+ 
 class RetrievePackaged(BaseRetrieveMetadata):
     api_class = ApiRetrievePackaged
+
+    task_options = {
+        'path': {
+            'description': 'The path where the retrieved metadata should be written',
+            'required': True,
+        },
+        'package': {
+            'description': 'The package name to retrieve.  Defaults to project__package__name',
+            'required': True,
+        },
+        'api_version': {
+            'description': 'Override the default api version for the retrieve.  Defaults to project__package__api_version',
+            'required': True,
+        },
+    }
+
+    def _init_options(self, kwargs):
+        super(RetrievePackaged, self)._init_options(kwargs)
+        if 'package' not in self.options:
+            self.options['package'] = self.project_config.project__package__name
+        if 'api_version' not in self.options:
+            self.options['api_version'] = self.project_config.project__package__api_version
+
+    def _get_api(self):
+        return self.api_class(
+            self,
+            self.options['package'],
+            self.options['api_version'],
+        )
+
+    def _extract_zip(self, src_zip):
+        src_zip = zip_subfolder(src_zip, self.options.get('package')) 
+        super(RetrievePackaged, self)._extract_zip(src_zip)
 
 class Deploy(BaseSalesforceMetadataApiTask):
     api_class = ApiDeploy
@@ -300,7 +371,7 @@ class UninstallPackaged(UninstallLocal):
 
     def _get_destructive_changes(self, path=None):
         self.logger.info('Retrieving metadata in package {} from target org'.format(self.options['package']))
-        retrieve_api = ApiRetrievePackaged(self)
+        retrieve_api = ApiRetrievePackaged(self, self.options['package'])
         packaged = retrieve_api()
 
         tempdir = tempfile.mkdtemp()
@@ -382,6 +453,51 @@ class UninstallLocalNamespacedBundles(UninstallLocalBundles):
         destructive_changes.replace(self.options['filename_token'], namespace)
 
         return destructive_changes
+
+class UpdateAdminProfile(Deploy):
+    name = 'UpdateAdminProfile'
+
+    task_options = {
+        'package_xml': {
+            'description': 'Override the default package.xml file for retrieving the Admin.profile and all objects and classes that need to be included by providing a path to your custom package.xml',
+        }
+    }
+
+    def _init_options(self, kwargs):
+        super(UpdateAdminProfile, self)._init_options(kwargs)
+
+        if 'package_xml' not in self.options:
+            self.options['package_xml'] = os.path.join(CUMULUSCI_PATH, 'build', 'admin_profile.xml')
+
+        self.options['package_xml_path'] = self.options['package_xml']
+        self.options['package_xml'] = open(self.options['package_xml_path'], 'r').read()
+
+    def _run_task(self):
+        self.tempdir = tempfile.mkdtemp()
+        self._retrieve_unpackaged()
+        self._process_metadata()
+        self._deploy_metadata()
+
+    def _retrieve_unpackaged(self):
+        self.logger.info('Retrieving metadata using {}'.format(self.options['package_xml_path']))
+        api_retrieve = ApiRetrieveUnpackaged(
+            self,
+            self.options.get('package_xml'),
+            self.project_config.project__package__api_version,
+        )
+        unpackaged = api_retrieve()
+        unpackaged.extractall(self.tempdir)
+
+    def _process_unpackaged(self):
+        self.logger.info('Processing retrieved metadata in {}'.format(self.tempdir))
+
+        findReplaceRegex(
+            '<editable>false</editable>',
+            '<editable>true</editable>',
+            os.path.join(self.tempdir, 'profiles'),
+            'Admin.profile',
+        )
+
 
 class PackageUpload(BaseSalesforceToolingApiTask):
     name = 'PackageUpload'
