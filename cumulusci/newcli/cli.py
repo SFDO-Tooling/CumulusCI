@@ -6,6 +6,7 @@ import webbrowser
 import click
 from plaintable import Table
 
+import cumulusci
 from cumulusci.core.config import YamlGlobalConfig
 from cumulusci.core.config import YamlProjectConfig
 from cumulusci.core.config import ConnectedAppOAuthConfig
@@ -46,7 +47,7 @@ class CliConfig(object):
         try:
             self.global_config = YamlGlobalConfig()
         except NotInProject as e:
-            raise click.UsageError(e.message) 
+            raise click.UsageError(e.message)
 
     def _load_project_config(self):
         try:
@@ -54,7 +55,7 @@ class CliConfig(object):
         except ProjectConfigNotFound:
             pass
         except NotInProject as e:
-            raise click.UsageError(e.message) 
+            raise click.UsageError(e.message)
 
     def _load_keychain(self):
         self.keychain_key = os.environ.get('CUMULUSCI_KEY')
@@ -71,7 +72,7 @@ try:
 except click.UsageError as e:
     click.echo(e.message)
     sys.exit(1)
-    
+
 
 pass_config = click.make_pass_decorator(CliConfig, ensure=True)
 
@@ -79,7 +80,7 @@ def check_connected_app(config):
     check_keychain(config)
     if not config.keychain.get_connected_app():
         raise click.UsageError("Please use the 'org config_connected_app' command to configure the OAuth Connected App to use for this project's keychain")
-        
+
 
 def check_keychain(config):
     check_project_config(config)
@@ -96,7 +97,11 @@ def check_project_config(config):
 def cli(config):
     pass
 
-# Top Level Groups    
+@click.command(name='version', help='Print the current version of CumulusCI')
+def version():
+    click.echo(cumulusci.__version__)
+
+# Top Level Groups
 @click.group('project', help="Commands for interacting with project repository configurations")
 @pass_config
 def project(config):
@@ -121,17 +126,18 @@ cli.add_command(project)
 cli.add_command(org)
 cli.add_command(task)
 cli.add_command(flow)
-       
+cli.add_command(version)
+
 # Commands for group: project
 
-@click.command(name='init', 
+@click.command(name='init',
     help="Initialize a new project for use with the cumulusci toolbelt",
 )
-@click.option('--name', 
-    help="The project's package name", 
+@click.option('--name',
+    help="The project's package name",
     prompt=True,
 )
-@click.option('--package-name', 
+@click.option('--package-name',
     help="The project's package name",
     prompt=True,
 )
@@ -209,7 +215,7 @@ def project_init(config, name, package_name, package_namespace, package_api_vers
     if git_config:
         yml_config.append('    git:')
         yml_config.extend(git_config)
-        
+
 
     #     test:
     test_config = []
@@ -244,7 +250,7 @@ def project_connect_github(config, username, password, email):
         'email': email,
     }))
     click.echo('Github is now configured for this project')
-        
+
 @click.command(name='show_github', help="Prints the current Github configuration for this project")
 @pass_config
 def project_show_github(config):
@@ -254,7 +260,7 @@ def project_show_github(config):
         click.echo(pretty_dict(github.config))
     except GithubNotConfigured:
         click.echo('Github is not configured for this project.  Use project connect_github to configure.')
-    
+
 
 @click.command(name='connect_mrbelvedere', help="Configure this project for mrbelvedere tasks")
 @click.option('--base_url', help="The base url for your mrbelvedere instance", prompt=True)
@@ -267,7 +273,7 @@ def project_connect_mrbelvedere(config, base_url, api_key):
         'api_key': api_key,
     }))
     click.echo('Mrbelvedere is now configured for this project')
-        
+
 @click.command(name='show_mrbelvedere', help="Prints the current mrbelvedere configuration for this project")
 @pass_config
 def project_show_mrbelvedere(config):
@@ -277,7 +283,7 @@ def project_show_mrbelvedere(config):
         click.echo(pretty_dict(mrbelvedere.config))
     except MrbelvedereNotConfigured:
         click.echo('mrbelvedere is not configured for this project.  Use project connect_mrbelvedere to configure.')
-    
+
 @click.command(name='connect_apextestsdb', help="Configure this project for ApexTestsDB tasks")
 @click.option('--base_url', help="The base url for your ApexTestsDB instance", prompt=True)
 @click.option('--user-id', help="The user id to use when connecting to ApexTestsDB.", prompt=True)
@@ -291,7 +297,7 @@ def project_connect_apextestsdb(config, base_url, user_id, token):
         'token': token,
     }))
     click.echo('ApexTestsDB is now configured for this project')
-        
+
 @click.command(name='show_apextestsdb', help="Prints the current ApexTestsDB configuration for this project")
 @pass_config
 def project_show_apextestsdb(config):
@@ -301,7 +307,7 @@ def project_show_apextestsdb(config):
         click.echo(pretty_dict(apextestsdb.config))
     except ApexTestsDBNotConfigured:
         click.echo('ApexTestsDB is not configured for this project.  Use project connect_apextestsdb to configure.')
-    
+
 
 @click.command(name='list', help="List projects and their locations")
 @pass_config
@@ -333,7 +339,7 @@ def org_browser(config, org_name):
 
     org_config = config.project_config.get_org(org_name)
     org_config.refresh_oauth_token(config.keychain.get_connected_app())
-    
+
     webbrowser.open(org_config.start_url)
 
 @click.command(name='connect', help="Connects a new org's credentials using OAuth Web Flow")
@@ -344,17 +350,17 @@ def org_connect(config, org_name, sandbox):
     check_connected_app(config)
 
     connected_app = config.keychain.get_connected_app()
-    
+
     oauth_capture = CaptureSalesforceOAuth(
         client_id = connected_app.client_id,
         client_secret = connected_app.client_secret,
         callback_url = connected_app.callback_url,
         sandbox = sandbox,
         scope = 'web full refresh_token'
-    ) 
+    )
     oauth_dict = oauth_capture()
     org_config = OrgConfig(oauth_dict)
-    
+
     config.keychain.set_org(org_name, org_config)
 
 @click.command(name='default', help="Sets an org as the default org for tasks and flows")
@@ -444,7 +450,7 @@ def task_info(config, task_name):
     task_config = getattr(config.project_config, 'tasks__{}'.format(task_name))
     class_path = task_config.get('class_path')
     task_class = import_class(class_path)
-    
+
     # General task info
     click.echo('Description: {}'.format(task_config.get('description')))
     click.echo('Class: {}'.format(task_config.get('class_path')))
@@ -512,16 +518,16 @@ def task_run(config, task_name, org, o):
             task_config['options'][name] = value
 
     task_config = TaskConfig(task_config)
-    
-    # Create and run the task    
+
+    # Create and run the task
     try:
         task = task_class(config.project_config, task_config, org_config = org_config)
     except TaskRequiresSalesforceOrg as e:
         raise click.UsageError('This task requires a salesforce org.  Use org default <name> to set a default org or pass the org name with the --org option')
     except TaskOptionsError as e:
         raise click.UsageError(e.message)
-    
-    try:    
+
+    try:
         task()
     except TaskOptionsError as e:
         raise click.UsageError(e.message)
