@@ -278,7 +278,8 @@ class OrgConfig(BaseConfig):
     def _load_config(self):
         headers = {"Authorization":"Bearer " + self.access_token}
         response = requests.get(self.instance_url+"/services/oauth2/userinfo",headers=headers)
-        self.config.update({'userinfo':response.json()})
+        if response != self.config.get('userinfo',{}):
+            self.config.update({'userinfo':response.json()})
 
 class GithubConfig(BaseConfig):
     """ Github configuration """
