@@ -27,6 +27,7 @@ requirements = [
     'responses>=0.5.1',
     'sarge>=0.1.4',
     'selenium',
+    'salesforce-bulk==1.1.0',
     'simple-salesforce>=0.68.1',
     'xmltodict==0.10.2',
     'HiYaPyCo>=0.4.8',
