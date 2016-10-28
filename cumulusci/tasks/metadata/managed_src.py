@@ -44,8 +44,20 @@ class CreateManagedSrc(BaseTask):
             self.managed_token,
             self.options['path'],
         ))
-        findReplace(os.path.join(self.options['path'], 'classes'), self.managed_token, '', '*.cls')
-        findReplace(os.path.join(self.options['path'], 'triggers'), self.managed_token, '', '*.trigger')
+        findReplace(
+            os.path.join(self.options['path'], 'classes'),
+            self.managed_token,
+            '',
+            '*.cls',
+            self.logger
+        )
+        findReplace(
+            os.path.join(self.options['path'], 'triggers'),
+            self.managed_token,
+            '',
+            '*.trigger',
+            self.logger
+        )
     
         self.logger.info('{} has been stripped from all classes and triggers in {}'.format(
             self.managed_token,
