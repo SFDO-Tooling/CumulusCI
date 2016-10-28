@@ -7,6 +7,7 @@ import zipfile
 import xmltodict
 
 from simple_salesforce import Salesforce
+from salesforce_bulk import SalesforceBulk
 
 from cumulusci.core.tasks import BaseTask
 from cumulusci.tasks.metadata.package import PackageXmlGenerator
@@ -71,6 +72,18 @@ class BaseSalesforceToolingApiTask(BaseSalesforceApiTask):
         obj = getattr(self.tooling, obj_name)
         obj.base_url = obj.base_url.replace('/sobjects/', '/tooling/sobjects/')
         return obj
+
+class BaseSalesforceBulkApiTask(BaseSalesforceTask):
+    name = 'BaseSalesforceBulkApiTask'
+
+    def _init_task(self):
+        self.bulk = self._init_api()
+
+    def _init_api(self):
+        return Salesforce(
+            instance=self.org_config.instance_url.replace('https://', ''),
+            session_id=self.org_config.access_token,
+        )
 
 class GetInstalledPackages(BaseSalesforceMetadataApiTask):
     api_class = ApiRetrieveInstalledPackages

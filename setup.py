@@ -27,6 +27,7 @@ requirements = [
     'responses>=0.5.1',
     'sarge>=0.1.4',
     'selenium',
+    'salesforce-bulk==1.1.0',
     'simple-salesforce>=0.68.1',
     'xmltodict==0.10.2',
     'HiYaPyCo>=0.4.8',
@@ -42,7 +43,7 @@ test_requirements = [
 
 setup(
     name='cumulusci',
-    version='2.0.0-alpha9',
+    version='2.0.0-alpha10',
     description="Build and release tools for Salesforce developers",
     long_description=readme + '\n\n' + history,
     author="Jason Lantz",

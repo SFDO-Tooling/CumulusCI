@@ -2,6 +2,30 @@
 History
 =======
 
+2.0.0-alpha10 (2016-10-28)
+------------------
+
+* More pure Python tasks to replace ant targets:
+
+  * create_ee_src
+  * retrieve_packaged
+  * retrieve_src
+  * revert_ee_src
+  * uninstall_packaged_incremental
+  * update_admin_profile
+
+* New flow:
+
+  * unmanaged_ee: Deploys unmanaged code to an EE org
+
+* New cumulusci.utils
+
+  * CUMULUSCI_PATH: The absolute path to the root of CumulusCI
+  * findReplaceRegex: Recursive regex based search/replace for files
+  * zip_subfolder: Accepts a zipfile and path, returns a zipfile with path as root 
+
+* Fix bug where repo_name was not being properly handled if it origin ended in .git
+
 2.0.0-alpha9 (2016-10-27)
 ------------------
 

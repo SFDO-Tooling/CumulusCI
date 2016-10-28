@@ -6,6 +6,7 @@ sarge==0.1.4
 requests[security]==2.9.1
 responses==0.5.1
 selenium
+salesforce-bulk==1.1.0
 simple-salesforce==0.68.1
 xmltodict==0.10.2
 HiYaPyCo==0.4.8
