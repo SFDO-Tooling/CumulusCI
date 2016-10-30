@@ -45,7 +45,8 @@ class CliConfig(object):
         self._add_repo_to_path()
 
     def _add_repo_to_path(self):
-        sys.path.append(self.project_config.repo_root)
+        if self.project_config:
+            sys.path.append(self.project_config.repo_root)
 
     def _load_global_config(self):
         try:
