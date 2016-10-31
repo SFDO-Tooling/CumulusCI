@@ -2,6 +2,7 @@ import base64
 import logging
 import os
 import tempfile
+import time
 import zipfile
 
 import xmltodict
@@ -27,14 +28,10 @@ class BaseSalesforceTask(BaseTask):
     name = 'BaseSalesforceTask'
     salesforce_task = True
 
-    def __call__(self):
-        self._refresh_oauth_token()
-        return self._run_task()
-
     def _run_task(self):
         raise NotImplementedError('Subclasses should provide their own implementation')
 
-    def _refresh_oauth_token(self):
+    def _update_credentials(self):
         self.org_config.refresh_oauth_token(self.project_config.keychain.get_connected_app())
 
 class BaseSalesforceMetadataApiTask(BaseSalesforceTask):
@@ -50,15 +47,21 @@ class BaseSalesforceMetadataApiTask(BaseSalesforceTask):
 
 class BaseSalesforceApiTask(BaseSalesforceTask):
     name = 'BaseSalesforceApiTask'
+    api_version = None
 
     def _init_task(self):
         self.sf = self._init_api()
 
     def _init_api(self):
+        if self.api_version:
+            api_version = self.api_version
+        else:
+            api_version = self.project_config.project__package__api_version
+            
         return Salesforce(
             instance=self.org_config.instance_url.replace('https://', ''),
             session_id=self.org_config.access_token,
-            version=self.project_config.project__package__api_version,
+            version=api_version,
         )
 
 class BaseSalesforceToolingApiTask(BaseSalesforceApiTask):
@@ -647,6 +650,7 @@ class UpdateAdminProfile(Deploy):
 
 class PackageUpload(BaseSalesforceToolingApiTask):
     name = 'PackageUpload'
+    api_version = '38.0'
     task_options = {
         'name': {
             'description': 'The name of the package version.',
@@ -681,12 +685,19 @@ class PackageUpload(BaseSalesforceToolingApiTask):
 
     def _run_task(self):
         sf = self._init_api()
-        package_res = sf.query("select Id from MetadataPackage where NamespacePrefix=''".format(self.options['namespace']))
+        package_res = sf.query("select Id from MetadataPackage where NamespacePrefix='{}'".format(self.options['namespace']))
+
+        if package_res['totalSize'] != 1:
+            self.logger.error('No package found with namespace {}'.format(self.options['namespace']))
+            return
+
+        package_id = package_res['records'][0]['Id']
 
         production = self.options.get('production', False) in [True, 'True', 'true']
         package_info = {
             'VersionName': self.options['name'],
             'IsReleaseVersion': production,
+            'MetadataPackageId': package_id,
         }
         
         if 'description' in self.options:
@@ -698,10 +709,48 @@ class PackageUpload(BaseSalesforceToolingApiTask):
         if 'release_notes_url' in self.options:
             package_info['ReleaseNotesUrl'] = self.options['release_notes_url']
 
-        upload = self.tooling.PackageUploadRequest.create(package_info)[0]
+        PackageUploadRequest = self._get_tooling_object('PackageUploadRequest')
+        upload = PackageUploadRequest.create(package_info)
+        upload_id = upload['id']
 
-        while upload.status == 'InProgress':
+        soql_check_upload = "select Status, Errors, MetadataPackageVersionId from PackageUploadRequest where Id = '{}'".format(upload['id'])
+
+        upload = self.tooling.query(soql_check_upload)
+        if upload['totalSize'] != 1:
+            self.logger.error("Failed to get info for upload with id {}".format(upload_id))
+            return
+        upload = upload['records'][0]
+
+        while upload['Status'] == 'IN_PROGRESS':
             time.sleep(3)
-            upload = self.tooling.query("select Status, Errors from PackageUploadRequest where Id = '{}'".format(upload['Id']))[0]
+            upload = self.tooling.query(soql_check_upload)
+            if upload['totalSize'] != 1:
+                self.logger.error("Failed to get info for upload with id {}".format(upload_id))
+                return
+            upload = upload['records'][0]
 
-        self.logger.info('Uploaded package version: {}'.format(str(upload)))
+        if upload['Status'] == 'ERROR':
+            self.logger.error('Package upload failed with the following errors')
+            for error in upload['Errors']['errors']:
+                self.logger.error('  {}'.format(error['message']))
+        else:
+            version_id = upload['MetadataPackageVersionId']
+            version_res = self.tooling.query("select MajorVersion, MinorVersion, PatchVersion, BuildNumber, ReleaseState from MetadataPackageVersion where Id = '{}'".format(version_id))
+            if version_res['totalSize'] != 1:
+                self.logger.error('Version {} not found'.format(version_id))
+                return
+
+            version = version_res['records'][0]
+            version_parts = [
+                str(version['MajorVersion']),
+                str(version['MinorVersion']),
+            ]
+            if version['PatchVersion']:
+                version_parts.append(str(version['PatchVersion']))
+
+            version_number = '.'.join(version_parts)
+            
+            if version['ReleaseState'] == 'Beta':
+                version_number += ' (Beta {})'.format(version['BuildNumber'])
+
+            self.logger.info('Uploaded package version {} with Id {}'.format(version_number, version_id))

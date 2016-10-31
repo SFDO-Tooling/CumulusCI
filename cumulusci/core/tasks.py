@@ -15,6 +15,7 @@ class BaseTask(object):
         self._init_logger()
         self._init_options(kwargs)
         self._validate_options()
+        self._update_credentials()
         self._init_task()
 
     def _init_logger(self):
@@ -42,6 +43,10 @@ class BaseTask(object):
                     ', '.join(missing_required)
                 )
             )
+
+    def _update_credentials(self):
+        """ Subclasses should override to do any logic necessary to refresh credentials """
+        pass
 
     def _init_task(self):
         """ A method that subclasses can override to implement dynamic logic for initializing the task """
