@@ -271,8 +271,8 @@ class OrgConfig(BaseConfig):
         return start_url
 
     @property
-    def user_id(self):
-        return self.id.split('/')[-1]
+    def user_id(self):
+        return self.id.split('/')[-1]
 
 class GithubConfig(BaseConfig):
     """ Github configuration """
