@@ -185,7 +185,7 @@ flows:
         description: Deploys the unmanaged package metadata and all dependencies to the target EE org
         tasks:
             - task: create_package
-            - task: update_required_packages
+            - task: update_dependencies
             - task: deploy_pre
             - task: create_unmanaged_ee_src
             - task: deploy
