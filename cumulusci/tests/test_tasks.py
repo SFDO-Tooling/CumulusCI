@@ -1,5 +1,6 @@
 import unittest
 
+import mock
 import responses
 
 from cumulusci.core.config import BaseGlobalConfig
@@ -8,7 +9,7 @@ from cumulusci.core.config import OrgConfig
 from cumulusci.core.config import TaskConfig
 from cumulusci.tasks.salesforce import BaseSalesforceToolingApiTask
 
-
+@mock.patch('cumulusci.tasks.salesforce.BaseSalesforceTask._update_credentials', mock.MagicMock(return_value=None))
 class TestBaseSalesforceToolingApiTask(unittest.TestCase):
 
     def setUp(self):
