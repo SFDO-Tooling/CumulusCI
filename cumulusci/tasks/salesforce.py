@@ -1168,9 +1168,6 @@ class RunApexTestsDebug(RunApexTests):
     def _debug_init_class(self):
         self.classes_by_log_id = {}
         self.logs_by_class_id = {}
-        self.tooling.TraceFlag.base_url = (
-            'https://{}/services/data/v{}/tooling/sobjects/{}/'.format(
-            self.tooling.sf_instance, self.tooling.sf_version, 'TraceFlag'))
         self.trace_id = None
 
     def _debug_create_trace_flag(self):
@@ -1180,7 +1177,8 @@ class RunApexTestsDebug(RunApexTests):
         # New TraceFlag expires 12 hours from now
         expiration_date = (datetime.datetime.now() +
             datetime.timedelta(seconds=60*60*12))
-        result = self.tooling.TraceFlag.create({
+        TraceFlag = self._get_tooling_object('TraceFlag')
+        result = TraceFlag.create({
             'ApexCode': 'Info',
             'ApexProfiling': 'Debug',
             'Callout': 'Info',
@@ -1200,8 +1198,9 @@ class RunApexTestsDebug(RunApexTests):
         self.logger.info('Deleting existing TraceFlags')
         traceflags = self.tooling.query('Select Id from TraceFlag')
         if traceflags['totalSize']:
+            TraceFlag = self._get_tooling_object('TraceFlag')
             for traceflag in traceflags['records']:
-                self.tooling.TraceFlag.delete(str(traceflag['Id']))
+                TraceFlag.delete(str(traceflag['Id']))
 
     def _debug_get_duration_class(self, class_id):
         if class_id in self.logs_by_class_id:
@@ -1239,7 +1238,8 @@ class RunApexTestsDebug(RunApexTests):
             for method, info in method_stats.items():
                 results_by_class_name[class_name][method].update(info)
         # Delete the TraceFlag
-        self.tooling.TraceFlag.delete(str(self.trace_id))
+        TraceFlag = self._get_tooling_object('TraceFlag')
+        TraceFlag.delete(str(self.trace_id))
 
     def _debug_get_results(self, result):
         if result['ApexLogId']:

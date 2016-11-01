@@ -146,16 +146,14 @@ class TestRunApexTestsDebug(TestRunApexTests):
         self.task_config.config['json_output'] = 'results.json'
 
     def _mock_create_trace_flag(self):
-        url = self.base_tooling_url.replace('/tooling/',
-            '/sobjects/TraceFlag/')
+        url = self.base_tooling_url + 'sobjects/TraceFlag/'
         expected_response = {
             'id': 1,
         }
         responses.add(responses.POST, url, json=expected_response)
 
     def _mock_delete_trace_flags(self):
-        url = self.base_tooling_url.replace('/tooling/',
-            '/sobjects/TraceFlag/1')
+        url = self.base_tooling_url + 'sobjects/TraceFlag/1'
         responses.add(responses.DELETE, url)
 
     def _mock_get_duration(self):
