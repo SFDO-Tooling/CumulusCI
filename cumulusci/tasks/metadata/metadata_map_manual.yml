@@ -16,6 +16,10 @@ components:
 connectedApps:
     - type: ConnectedApp
       class: MetadataFilenameParser
+contentassets:
+    - type: ContentAsset
+      class: MetadataFilenameParser
+      extension: asset
 customMetadata:
     - type: CustomMetadata
       class: MetadataFilenameParser
@@ -31,6 +35,18 @@ documents:
 email:
     - type: EmailTemplate
       class: MetadataFolderParser
+flexipages:
+    - type: FlexiPage
+      class: MetadataFilenameParser
+      extension: flexipage
+globalPicklist:
+    - type: GlobalPicklist
+      class: MetadataFilenameParser
+      extension: globalPicklist
+globalValueSets:
+    - type: GlobalValueSet
+      class: MetadataFilenameParser
+      extension: globalValueSet
 homePageComponents:
     - type: HomePageComponent
       class: MetadataFilenameParser
@@ -179,3 +195,8 @@ workflows:
       extension: workflow
       options:
             item_xpath: './sf:rules'
+    - type: WorkflowTask
+      class: MetadataXmlElementParser
+      extension: workflow
+      options:
+            item_xpath: './sf:tasks'
