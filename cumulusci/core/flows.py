@@ -21,7 +21,9 @@ class BaseFlow(object):
 
     def _init_flow(self):
         self.logger.info('---------------------------------------')
-        self.logger.info('Initializing flow class {} with config:')
+        self.logger.info('Initializing flow class {}:'.format(
+            self.__class__.__name__,
+        ))
         self.logger.info('---------------------------------------')
         for line in self._render_config():
             self.logger.info(line)
@@ -71,7 +73,7 @@ class BaseFlow(object):
 
             # Handle dynamic value lookups in the format ^^task_name.attr1.attr2
             for option, value in task_config.options.items():
-                if value.startswith('^^'):
+                if unicode(value).startswith('^^'):
                     value_parts = value[2:].split('.')
                     task_name = value_parts[0]
                     parent = self._find_task_by_name(task_name)
