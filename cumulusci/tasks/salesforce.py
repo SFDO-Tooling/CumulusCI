@@ -874,12 +874,15 @@ class PackageUpload(BaseSalesforceToolingApiTask):
             if version['PatchVersion']:
                 version_parts.append(str(version['PatchVersion']))
 
-            version_number = '.'.join(version_parts)
+            self.version_number = '.'.join(version_parts)
 
             if version['ReleaseState'] == 'Beta':
-                version_number += ' (Beta {})'.format(version['BuildNumber'])
+                self.version_number += ' (Beta {})'.format(version['BuildNumber'])
 
-            self.logger.info('Uploaded package version {} with Id {}'.format(version_number, version_id))
+            self.logger.info('Uploaded package version {} with Id {}'.format(
+                self.version_number,
+                version_id
+            ))
 
 
 class RunApexTests(BaseSalesforceToolingApiTask):

@@ -92,10 +92,10 @@ class CreateRelease(BaseGithubTask):
             return
 
         version = self.options['version']
-        tag_name = self.project_config.get_tag_for_version(version)
+        self.tag_name = self.project_config.get_tag_for_version(version)
 
         tag = repo.create_tag(
-            tag = tag_name,
+            tag = self.tag_name,
             message = 'Release of version {}'.format(version),
             sha = commit,
             obj_type = 'commit',
@@ -110,7 +110,7 @@ class CreateRelease(BaseGithubTask):
         prerelease = 'Beta' in version
 
         release = repo.create_release(
-            tag_name = tag_name,
+            tag_name = self.tag_name,
             target_commitish = commit,
             name = version,
             draft = draft,
