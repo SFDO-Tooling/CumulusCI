@@ -1237,7 +1237,7 @@ class RunApexTestsDebug(RunApexTests):
                 method_stats = self._parse_log(class_name, f)
             # Add method stats to results_by_class_name
             for method, info in method_stats.items():
-                results_by_class_name[class_name][method].update(info)
+                self.results_by_class_name[class_name][method].update(info)
         # Delete the TraceFlag
         TraceFlag = self._get_tooling_object('TraceFlag')
         TraceFlag.delete(str(self.trace_id))
