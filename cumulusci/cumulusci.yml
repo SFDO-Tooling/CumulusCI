@@ -167,6 +167,12 @@ tasks:
         class_path: cumulusci.tasks.metadata.package.UpdatePackageXml
         options:
             path: src
+    update_package_xml_managed:
+        description: Updates src/package.xml with metadata in src/
+        class_path: cumulusci.tasks.metadata.package.UpdatePackageXml
+        options:
+            path: src
+            managed: True
     upload_beta:
         description: Uploads a beta release of the metadata currently in the packaging org
         class_path: cumulusci.tasks.salesforce.PackageUpload
