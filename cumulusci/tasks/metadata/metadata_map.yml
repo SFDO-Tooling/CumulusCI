@@ -199,3 +199,8 @@ workflows:
       extension: workflow
       options:
             item_xpath: './sf:rules'
+    - type: WorkflowTask
+      class: MetadataXmlElementParser
+      extension: workflow
+      options:
+            item_xpath: './sf:tasks'

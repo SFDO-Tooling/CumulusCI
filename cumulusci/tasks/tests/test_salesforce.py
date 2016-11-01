@@ -1,10 +1,12 @@
 import unittest
 
+from mock import MagicMock
 from mock import patch
 import responses
 
 from cumulusci.core.config import BaseGlobalConfig
 from cumulusci.core.config import BaseProjectConfig
+from cumulusci.core.config import ConnectedAppOAuthConfig
 from cumulusci.core.config import OrgConfig
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.keychain import BaseProjectKeychain
@@ -13,6 +15,8 @@ from cumulusci.tasks.salesforce import RunApexTests
 from cumulusci.tasks.salesforce import RunApexTestsDebug
 
 
+@patch('cumulusci.tasks.salesforce.BaseSalesforceTask._update_credentials',
+    MagicMock(return_value=None))
 class TestBaseSalesforceToolingApiTask(unittest.TestCase):
 
     def setUp(self):
@@ -41,6 +45,8 @@ class TestBaseSalesforceToolingApiTask(unittest.TestCase):
         self.assertEqual(obj.base_url, url)
 
 
+@patch('cumulusci.tasks.salesforce.BaseSalesforceTask._update_credentials',
+    MagicMock(return_value=None))
 class TestRunApexTests(unittest.TestCase):
 
     def setUp(self):
@@ -57,6 +63,8 @@ class TestRunApexTests(unittest.TestCase):
         self.project_config.config['project'] = {'package': {
             'api_version': self.api_version}}
         keychain = BaseProjectKeychain(self.project_config, '')
+        app_config = ConnectedAppOAuthConfig()
+        keychain.set_connected_app(app_config)
         self.project_config.set_keychain(keychain)
         self.org_config = OrgConfig({
             'id': 'foo/1',
@@ -128,11 +136,12 @@ class TestRunApexTests(unittest.TestCase):
         self._mock_get_test_results()
         task = RunApexTests(
             self.project_config, self.task_config, self.org_config)
-        with patch.object(OrgConfig, 'refresh_oauth_token'):
-            task()
+        task()
         self.assertEqual(len(responses.calls), 4)
 
 
+@patch('cumulusci.tasks.salesforce.BaseSalesforceTask._update_credentials',
+    MagicMock(return_value=None))
 class TestRunApexTestsDebug(TestRunApexTests):
 
     def _get_results_filename(self):
@@ -194,6 +203,5 @@ class TestRunApexTestsDebug(TestRunApexTests):
         self._mock_delete_trace_flags()
         task = RunApexTestsDebug(
             self.project_config, self.task_config, self.org_config)
-        with patch.object(OrgConfig, 'refresh_oauth_token'):
-            task()
+        task()
         self.assertEqual(len(responses.calls), 10)

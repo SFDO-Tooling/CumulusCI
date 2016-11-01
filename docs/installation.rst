@@ -32,13 +32,13 @@ You can either clone the public repository:
 
 .. code-block:: console
 
-    $ git clone git://github.com/jlantz/cumulusci
+    $ git clone git://github.com/SalesforceFoundation/CumulusCI
 
 Or download the `tarball`_:
 
 .. code-block:: console
 
-    $ curl  -OL https://github.com/jlantz/cumulusci/tarball/master
+    $ curl  -OL https://github.com/SalesforceFoundation/CumulusCI/tarball/feature/2.0
 
 Once you have a copy of the source, you can install it with:
 
@@ -47,5 +47,5 @@ Once you have a copy of the source, you can install it with:
     $ python setup.py install
 
 
-.. _Github repo: https://github.com/jlantz/cumulusci
-.. _tarball: https://github.com/jlantz/cumulusci/tarball/master
+.. _Github repo: https://github.com/SalesforceFoundation/CumulusCI/tree/feature/2.0
+.. _tarball: https://github.com/SalesforceFoundation/CumulusCI/tarball/feature/2.0

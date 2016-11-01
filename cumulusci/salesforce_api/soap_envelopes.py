@@ -33,7 +33,7 @@ CHECK_DEPLOY_STATUS = '''<?xml version="1.0" encoding="utf-8"?>
   <soap:Body>
     <checkDeployStatus xmlns="http://soap.sforce.com/2006/04/metadata">
       <asyncProcessId>%(process_id)s</asyncProcessId>
-      <includeDetails>false</includeDetails>
+      <includeDetails>true</includeDetails>
     </checkDeployStatus>
   </soap:Body>
 </soap:Envelope>'''
@@ -71,8 +71,8 @@ RETRIEVE_PACKAGED = '''<?xml version="1.0" encoding="utf-8"?>
   <soap:Body>
     <retrieve xmlns="http://soap.sforce.com/2006/04/metadata">
       <retrieveRequest>
-        <apiVersion>33.0</apiVersion>
-        <packageNames>%s</packageNames>
+        <apiVersion>{}</apiVersion>
+        <packageNames>{}</packageNames>
       </retrieveRequest>
     </retrieve>
   </soap:Body>
@@ -88,10 +88,10 @@ RETRIEVE_UNPACKAGED = '''<?xml version="1.0" encoding="utf-8"?>
   <soap:Body>
     <retrieve xmlns="http://soap.sforce.com/2006/04/metadata">
       <retrieveRequest>
-        <apiVersion>33.0</apiVersion>
+        <apiVersion>{}</apiVersion>
         <unpackaged>
-          %s
-        </unpackaged
+          {} 
+        </unpackaged>
       </retrieveRequest>
     </retrieve>
   </soap:Body>

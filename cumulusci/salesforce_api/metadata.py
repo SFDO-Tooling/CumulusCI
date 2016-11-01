@@ -22,8 +22,10 @@ import requests
 from cumulusci.oauth.salesforce import SalesforceOAuth2
 from cumulusci.salesforce_api import soap_envelopes
 
+
+
 class BaseMetadataApiCall(object):
-    check_interval = 2
+    check_interval = 1
     soap_envelope_start = None
     soap_envelope_status = None
     soap_envelope_result = None
@@ -37,7 +39,7 @@ class BaseMetadataApiCall(object):
         self.status = None
 
     def __call__(self):
-        self.task.logger.info('InProgress')
+        self.task.logger.info('Pending')
         response = self._get_response()
         if self.status != 'Failed':
             return self._process_response(response)
@@ -227,17 +229,43 @@ class BaseMetadataApiCall(object):
 
 class ApiRetrieveUnpackaged(BaseMetadataApiCall):
     check_interval = 1
-    soap_envelope_start = soap_envelopes.RETRIEVE_INSTALLEDPACKAGE
+    soap_envelope_start = soap_envelopes.RETRIEVE_UNPACKAGED
     soap_envelope_status = soap_envelopes.CHECK_STATUS
     soap_envelope_result = soap_envelopes.CHECK_RETRIEVE_STATUS
     soap_action_start = 'retrieve'
     soap_action_status = 'checkStatus'
     soap_action_result = 'checkRetrieveStatus'
 
-    def __init__(self, task):
+    def __init__(self, task, package_xml, api_version):
         super(ApiRetrieveUnpackaged, self).__init__(task)
-        self.metadata_zip = None
+        self.package_xml = package_xml
+        self.api_version = api_version
+        self._clean_package_xml()
 
+    def _clean_package_xml(self):
+        self.package_xml = re.sub('<\?xml.*\?>', '', self.package_xml)
+        self.package_xml = re.sub('<Package.*>', '', self.package_xml, 1)
+        self.package_xml = re.sub('</Package>', '', self.package_xml, 1)
+        self.package_xml = re.sub('\n', '', self.package_xml)
+        self.package_xml = re.sub(' *', '', self.package_xml)
+
+    def _build_envelope_start(self):
+        return self.soap_envelope_start.format(
+            self.api_version,
+            self.package_xml,
+        )
+
+    def _process_response(self, response):
+        # Parse the metadata zip file from the response
+        zipstr = parseString(response.content).getElementsByTagName('zipFile')
+        if zipstr:
+            zipstr = zipstr[0].firstChild.nodeValue
+        else:
+            return self.packages
+        zipfp = TemporaryFile()
+        zipfp.write(base64.b64decode(zipstr))
+        zipfile = ZipFile(zipfp, 'r')
+        return zipfile
 
 class ApiRetrieveInstalledPackages(BaseMetadataApiCall):
     check_interval = 1
@@ -287,12 +315,16 @@ class ApiRetrievePackaged(BaseMetadataApiCall):
     soap_action_status = 'checkStatus'
     soap_action_result = 'checkRetrieveStatus'
 
-    def __init__(self, task):
+    def __init__(self, task, package_name, api_version):
         super(ApiRetrievePackaged, self).__init__(task)
-        self.package_name = self.task.project_config.package_name
+        self.package_name = package_name
+        self.api_version = api_version
 
     def _build_envelope_start(self):
-        return self.soap_envelope_start % self.package_name
+        return self.soap_envelope_start.format(
+            self.api_version,
+            self.package_name,
+        )
 
     def _process_response(self, response):
         # Parse the metadata zip file from the response

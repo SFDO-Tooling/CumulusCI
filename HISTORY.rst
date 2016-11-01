@@ -2,6 +2,66 @@
 History
 =======
 
+2.0.0-alpha10 (2016-10-28)
+------------------
+
+* More pure Python tasks to replace ant targets:
+
+  * create_ee_src
+  * retrieve_packaged
+  * retrieve_src
+  * revert_ee_src
+  * uninstall_packaged_incremental
+  * update_admin_profile
+
+* New flow:
+
+  * unmanaged_ee: Deploys unmanaged code to an EE org
+
+* New cumulusci.utils
+
+  * CUMULUSCI_PATH: The absolute path to the root of CumulusCI
+  * findReplaceRegex: Recursive regex based search/replace for files
+  * zip_subfolder: Accepts a zipfile and path, returns a zipfile with path as root 
+
+* Fix bug where repo_name was not being properly handled if it origin ended in .git
+
+2.0.0-alpha9 (2016-10-27)
+------------------
+
+* Switch to using `plaintable` for printing text tables in the following CLI commands:
+
+  * cumulusci2 org list
+  * cumulusci2 task list
+  * cumulusci2 task info
+  * cumulusci2 flow list
+
+* Easier project set up: `cumulusci2 project init` now prompts for all project values using the global default values
+* More pure Python Metadata API tasks:
+
+  * create_package
+  * install_package
+  * uninstall_managed
+  * uninstall_packaged
+  * uninstall_pre
+  * uninstall_post
+  * uninstall_post_managed
+
+* New tasks to interact with the new PackageUploadRequest object in the Tooling API
+
+  * upload_beta
+  * upload_production
+
+* Python task to replace deployUnpackagedPost ant target with support for replacing namespace prefix in filenames and file contents
+
+  * deploy_post
+  * deploy_post_managed
+
+* Python tasks to replace createManagedSrc and revertManagedSrc ant targets
+
+  * create_managed_src
+  * revert_managed_src
+
 2.0.0-alpha8 (2016-10-26)
 ------------------
 

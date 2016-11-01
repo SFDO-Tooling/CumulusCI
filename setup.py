@@ -22,11 +22,14 @@ with open('HISTORY.rst') as history_file:
 requirements = [
     'click>=6.2',
     'github3.py==0.9.6',
+    'plaintable==0.1.1',
     'requests[security]>=2.9.1',
     'responses>=0.5.1',
     'sarge>=0.1.4',
     'selenium',
+    'salesforce-bulk==1.1.0',
     'simple-salesforce>=0.68.1',
+    'xmltodict==0.10.2',
     'HiYaPyCo>=0.4.8',
     'PyCrypto>=2.6.1',
     'PyGithub>=1.25.1',
@@ -40,7 +43,7 @@ test_requirements = [
 
 setup(
     name='cumulusci',
-    version='2.0.0-alpha8',
+    version='2.0.0-alpha10',
     description="Build and release tools for Salesforce developers",
     long_description=readme + '\n\n' + history,
     author="Jason Lantz",
