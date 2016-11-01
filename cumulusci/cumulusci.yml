@@ -61,7 +61,7 @@ tasks:
         description: Generates release notes by parsing pull request bodies of merged pull requests between two tags
         class_path: cumulusci.tasks.release_notes.task.GithubReleaseNotes
     install_package:
-        description: Installs the managed version of the package
+        description: Installs a managed version of the package
         class_path: cumulusci.tasks.salesforce.InstallPackageVersion
     push_all:
         description: Schedules a push upgrade of a package version to all subscribers
@@ -105,14 +105,20 @@ tasks:
             revert_path: src.orig
     run_tests:
         description: Runs all apex tests
-        class_path: cumulusci.tasks.ant.SalesforceAntTask
-        options:
-            target: runAllTests
+        class_path: cumulusci.tasks.salesforce.RunApexTests
+    run_tests_debug:
+        description: Runs all apex tests
+        class_path: cumulusci.tasks.salesforce.RunApexTestsDebug
     run_tests_managed:
         description: Runs all apex tests in the packaging org or a managed package subscriber org
-        class_path: cumulusci.tasks.ant.SalesforceAntTask
+        class_path: cumulusci.tasks.salesforce.RunApexTests
         options:
-            target: runAllTestsManaged
+            managed: True
+    run_tests_managed_debug:
+        description: Runs all apex tests in the packaging org or a managed package subscriber org
+        class_path: cumulusci.tasks.salesforce.RunApexTestsDebug
+        options:
+            managed: True
     uninstall_managed:
         description: Uninstalls the managed version of the package
         class_path: cumulusci.tasks.salesforce.UninstallPackage
@@ -181,6 +187,42 @@ flows:
             - task: deploy
             - task: uninstall_packaged_incremental
             - task: deploy_post
+    ci_feature:
+        description: Deploys the unmanaged package metadata and all dependencies to the target org
+        tasks:
+            - task: create_package
+            - task: update_dependencies
+            - task: deploy_pre
+            - task: deploy
+            - task: uninstall_packaged_incremental
+            - task: deploy_post
+    ci_master:
+        description: Deploys the managed package metadata and all dependencies to the packaging org
+        tasks:
+            - task: update_dependencies
+            - task: deploy_pre
+            - task: update_package_xml_managed
+            - task: create_managed_src
+            - task: deploy
+            - task: revert_managed_src
+            - task: uninstall_packaged_incremental
+            - task: deploy_post_managed
+    ci_beta:
+        description: Installs a beta version and runs tests
+        tasks:
+            - task: uninstall_package
+            - task: update_dependencies
+            - task: deploy_pre
+            - task: install_package
+            - task: deploy_post_managed
+            - task: run_tests
+    release_beta:
+        description: Uploads and releases a beta version of the metadata currently in packaging
+        tasks:
+            - task: upload_beta
+              options:
+                  name: Automated beta release
+            - task: github_create_release
     unmanaged_ee:
         description: Deploys the unmanaged package metadata and all dependencies to the target EE org
         tasks:
@@ -208,7 +250,7 @@ project:
         prefix_beta: beta/
         prefix_release: release/
     test:
-        namematch: '%_TEST%'
+        name_match: '%_TEST%'
     apexdoc:
         url: https://github.com/SalesforceFoundation/ApexDoc/releases/download/1.7/apexdoc.jar
         homepage: 
