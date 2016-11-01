@@ -55,7 +55,7 @@ class TestRunApexTests(unittest.TestCase):
             {'project': {'api_version': self.api_version}})
         self.task_config = TaskConfig()
         self.task_config.config['options'] = {
-            'results_filename': self._get_results_filename(),
+            'junit_output': 'results_junit.xml',
             'poll_interval': 1,
             'test_name_match': '%_TEST',
         }
@@ -73,9 +73,6 @@ class TestRunApexTests(unittest.TestCase):
         })
         self.base_tooling_url = 'https://{}/services/data/v{}/tooling/'.format(
             self.org_config.instance_url, self.api_version)
-
-    def _get_results_filename(self):
-        return 'results_junit.xml'
 
     def _mock_apex_class_query(self):
         url = (self.base_tooling_url + 'query/?q=SELECT+Id%2C+Name+' +
@@ -144,8 +141,9 @@ class TestRunApexTests(unittest.TestCase):
     MagicMock(return_value=None))
 class TestRunApexTestsDebug(TestRunApexTests):
 
-    def _get_results_filename(self):
-        return 'results.json'
+    def setUp(self):
+        super(TestRunApexTestsDebug, self).setUp()
+        self.task_config.config['json_output'] = 'results.json'
 
     def _mock_create_trace_flag(self):
         url = self.base_tooling_url.replace('/tooling/',

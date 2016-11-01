@@ -537,9 +537,7 @@ class UninstallPackaged(UninstallLocal):
         tempdir = tempfile.mkdtemp()
         packaged.extractall(tempdir)
 
-        destructive_changes = super(UninstallPackaged, self)._get_destructive_changes(
-            os.path.join(tempdir, self.options['package'])
-        )
+        destructive_changes = super(UninstallPackaged, self)._get_destructive_changes(tempdir)
 
         self.logger.info('Deleting metadata in package {} from target org'.format(self.options['package']))
         return destructive_changes
@@ -888,27 +886,51 @@ class RunApexTests(BaseSalesforceToolingApiTask):
     task_options = {
         'test_name_match': {
             'description': ('Query to find Apex test classes to run ' +
-                            '("%" is wildcard)'),
+                            '("%" is wildcard).  Defaults to ' +
+                            'project__test__name_match'),
             'required': True,
         },
         'test_name_exclude': {
             'description': ('Query to find Apex test classes to exclude ' +
-                            '("%" is wildcard)'),
-            'required': False,
+                            '("%" is wildcard).  Defaults to ' +
+                            'project__test__name_exclude'),
         },
         'namespace': {
-            'description': 'Salesforce project namespace',
-            'required': False,
+            'description': ('Salesforce project namespace.  Defaults to ' +
+                            'project__package__namespace'),
+        },
+        'managed': {
+            'description': ('If True, search for tests in the namespace ' +
+                            'only.  Defaults to False'),
         },
         'poll_interval': {
-            'description': 'Time to wait between polling for Apex test status',
-            'required': False,
+            'description': ('Seconds to wait between polling for Apex test ' +
+                            'results.  Defaults to 3'),
         },
         'junit_output': {
-            'description': 'File name for JUnit output',
-            'required': False,
+            'description': 'File name for JUnit output.  Defaults to test_results.xml',
         },
     }
+
+    def _init_options(self, kwargs):
+        super(RunApexTests, self)._init_options(kwargs)
+        if 'test_name_match' not in self.options:
+            self.options['test_name_match'] = self.project_config.project__test__name_match
+        if 'test_name_exclude' not in self.options:
+            self.options['test_name_exclude'] = self.project_config.project__test__name_exclude
+        if self.options['test_name_exclude'] is None:
+            self.options['test_name_exclude'] = ''
+        if 'namespace' not in self.options:
+            self.options['namespace'] = self.project_config.project__package__namespace
+        if 'managed' not in self.options:
+            self.options['managed'] = False
+        else:
+            if self.options['managed'] in [True, 'True', 'true']:
+                self.options['managed'] = True
+            else:
+                self.options['managed'] = False
+        if 'junit_output' not in self.options:
+            self.options['junit_output'] = 'test_results.xml'
 
     def _init_class(self):
         self.classes_by_id = {}
@@ -946,8 +968,12 @@ class RunApexTests(BaseSalesforceToolingApiTask):
                 return content
 
     def _get_test_classes(self):
-        namespace = self.options.get('namespace')
-        if namespace:
+        if self.options['managed']:
+            namespace = self.options.get('namespace')
+            if not namespace:
+                raise TaskOptionsError(
+                    'Running tests in managed mode but no namespace available.'
+                )
             namespace = "'{}'".format(namespace)
         else:
             namespace = 'null'
@@ -1100,8 +1126,8 @@ class RunApexTests(BaseSalesforceToolingApiTask):
             time.sleep(poll_interval)
 
     def _write_output(self, test_results):
-        results_filename = self.options['results_filename']
-        with io.open(results_filename, mode='w', encoding='utf-8') as f:
+        junit_output = self.options['junit_output']
+        with io.open(junit_output, mode='w', encoding='utf-8') as f:
             f.write(u'<testsuite tests="{}">\n'.format(len(test_results)))
             for result in test_results:
                 s = '  <testcase classname="{}" name="{}"'.format(
@@ -1121,9 +1147,23 @@ class RunApexTests(BaseSalesforceToolingApiTask):
                 f.write(unicode(s))
             f.write(u'</testsuite>')
 
+run_apex_tests_debug_options = RunApexTests.task_options.copy()
+run_apex_tests_debug_options.update({
+    'json_output': {
+        'description': ('The path to the json output file.  Defaults to ' +
+                       'test_results.json'),
+    }
+})
 
 class RunApexTestsDebug(RunApexTests):
     """Run Apex tests and collect debug info"""
+
+    task_options = run_apex_tests_debug_options
+    
+    def _init_options(self, kwargs):
+        super(RunApexTestsDebug, self)._init_options(kwargs)
+        if 'json_output' not in self.options:
+            self.options['json_output'] = 'test_results.json'
 
     def _debug_init_class(self):
         self.classes_by_log_id = {}
@@ -1351,6 +1391,10 @@ class RunApexTestsDebug(RunApexTests):
         return unit, unit_type, unit_info
 
     def _write_output(self, test_results):
-        results_filename = self.options['results_filename']
-        with io.open(results_filename, mode='w', encoding='utf-8') as f:
+        # Write the JUnit test report
+        super(RunApexTestsDebug, self)._write_output(test_results)
+
+        # Write the json file
+        json_output = self.options['json_output']
+        with io.open(json_output, mode='w', encoding='utf-8') as f:
             f.write(unicode(json.dumps(test_results)))
