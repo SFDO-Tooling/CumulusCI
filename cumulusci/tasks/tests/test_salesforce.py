@@ -10,6 +10,8 @@ from cumulusci.core.config import TaskConfig
 from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.tasks.salesforce import BaseSalesforceToolingApiTask
 from cumulusci.tasks.salesforce import RunApexTests
+from cumulusci.tasks.salesforce import RunApexTestsDebug
+
 
 class TestBaseSalesforceToolingApiTask(unittest.TestCase):
 
@@ -38,6 +40,7 @@ class TestBaseSalesforceToolingApiTask(unittest.TestCase):
         url = self.base_tooling_url + 'sobjects/TestObject/'
         self.assertEqual(obj.base_url, url)
 
+
 class TestRunApexTests(unittest.TestCase):
 
     def setUp(self):
@@ -46,7 +49,7 @@ class TestRunApexTests(unittest.TestCase):
             {'project': {'api_version': self.api_version}})
         self.task_config = TaskConfig()
         self.task_config.config['options'] = {
-            'junit_output': 'test_junit_output.txt',
+            'results_filename': self._get_results_filename(),
             'poll_interval': 1,
             'test_name_match': '%_TEST',
         }
@@ -56,18 +59,39 @@ class TestRunApexTests(unittest.TestCase):
         keychain = BaseProjectKeychain(self.project_config, '')
         self.project_config.set_keychain(keychain)
         self.org_config = OrgConfig({
+            'id': 'foo/1',
             'instance_url': 'example.com',
             'access_token': 'abc123',
         })
         self.base_tooling_url = 'https://{}/services/data/v{}/tooling/'.format(
             self.org_config.instance_url, self.api_version)
 
+    def _get_results_filename(self):
+        return 'results_junit.xml'
+
     def _mock_apex_class_query(self):
-        url = self.base_tooling_url + 'query/'
+        url = (self.base_tooling_url + 'query/?q=SELECT+Id%2C+Name+' +
+            'FROM+ApexClass+WHERE+NamespacePrefix+%3D+null' +
+            '+AND+%28Name+LIKE+%27%25_TEST%27%29')
+        expected_response = {
+            'done': True,
+            'records': [{'Id': 1, 'Name': 'TestClass_TEST'}],
+            'totalSize': 1,
+        }
+        responses.add(responses.GET, url, match_querystring=True,
+            json=expected_response)
+
+    def _mock_get_test_results(self):
+        url = (self.base_tooling_url + 'query/?q=SELECT+StackTrace%2C+' +
+            'Message%2C+ApexLogId%2C+AsyncApexJobId%2C+MethodName%2C+' +
+            'Outcome%2C+ApexClassId%2C+TestTimestamp+FROM+ApexTestResult+' +
+            'WHERE+AsyncApexJobId+%3D+%27OrderedDict%28%5B%28u%27' +
+            'foo%27%2C+u%27bar%27%29%5D%29%27')
         expected_response = {
             'done': True,
             'records': [{
                 'ApexClassId': 1,
+                'ApexLogId': 1,
                 'Id': 1,
                 'Message': 'Test passed',
                 'MethodName': 'TestMethod',
@@ -76,22 +100,100 @@ class TestRunApexTests(unittest.TestCase):
                 'StackTrace': '1. ParentFunction\n2. ChildFunction',
                 'Status': 'Completed',
             }],
-            'totalSize': 1,
         }
-        responses.add(responses.GET, url, json=expected_response)
+        responses.add(responses.GET, url, match_querystring=True,
+            json=expected_response)
+
+    def _mock_tests_complete(self):
+        url = (self.base_tooling_url + 'query/?q=SELECT+Id%2C+Status%2C+' +
+            'ApexClassId+FROM+ApexTestQueueItem+WHERE+ParentJobId+%3D+%27' +
+            'OrderedDict%28%5B%28u%27foo%27%2C+u%27bar%27%29%5D%29%27')
+        expected_response = {
+            'done': True,
+            'records': [{'Status': 'Completed'}],
+        }
+        responses.add(responses.GET, url, match_querystring=True,
+            json=expected_response)
 
     def _mock_run_tests(self):
         url = self.base_tooling_url + 'runTestsAsynchronous'
-        expected_response = {
-            'foo': 'bar',
-        }
+        expected_response = {'foo': 'bar'}
         responses.add(responses.GET, url, json=expected_response)
 
     @responses.activate
     def test_run_task(self):
         self._mock_apex_class_query()
         self._mock_run_tests()
+        self._mock_tests_complete()
+        self._mock_get_test_results()
         task = RunApexTests(
             self.project_config, self.task_config, self.org_config)
         with patch.object(OrgConfig, 'refresh_oauth_token'):
             task()
+        self.assertEqual(len(responses.calls), 4)
+
+
+class TestRunApexTestsDebug(TestRunApexTests):
+
+    def _get_results_filename(self):
+        return 'results.json'
+
+    def _mock_create_trace_flag(self):
+        url = self.base_tooling_url.replace('/tooling/',
+            '/sobjects/TraceFlag/')
+        expected_response = {
+            'id': 1,
+        }
+        responses.add(responses.POST, url, json=expected_response)
+
+    def _mock_delete_trace_flags(self):
+        url = self.base_tooling_url.replace('/tooling/',
+            '/sobjects/TraceFlag/1')
+        responses.add(responses.DELETE, url)
+
+    def _mock_get_duration(self):
+        url = (self.base_tooling_url + 'query/?q=SELECT+Id%2C+' +
+            'Application%2C+DurationMilliseconds%2C+Location%2C+LogLength%2C' +
+            '+LogUserId%2C+Operation%2C+Request%2C+StartTime%2C+Status+' +
+            'from+ApexLog+where+Id+in+%28%271%27%29')
+        expected_response = {
+            'done': True,
+            'records': [{'Id': 1, 'DurationMilliseconds': 1}],
+            'totalSize': 1,
+        }
+        responses.add(responses.GET, url, match_querystring=True,
+            json=expected_response)
+
+    def _mock_get_log_body(self):
+        url = self.base_tooling_url + 'sobjects/ApexLog/1/Body'
+        expected_response = {
+            'foo': 'bar',
+        }
+        responses.add(responses.GET, url, json=expected_response)
+
+    def _mock_get_trace_flags(self):
+        url = self.base_tooling_url + 'query/?q=Select+Id+from+TraceFlag'
+        expected_response = {
+            'records': [{'Id': 1}],
+            'totalSize': 1,
+        }
+        responses.add(responses.GET, url, match_querystring=True,
+            json=expected_response)
+
+    @responses.activate
+    def test_run_task(self):
+        self._mock_apex_class_query()
+        self._mock_get_trace_flags()
+        self._mock_delete_trace_flags()
+        self._mock_create_trace_flag()
+        self._mock_run_tests()
+        self._mock_tests_complete()
+        self._mock_get_test_results()
+        self._mock_get_duration()
+        self._mock_get_log_body()
+        self._mock_delete_trace_flags()
+        task = RunApexTestsDebug(
+            self.project_config, self.task_config, self.org_config)
+        with patch.object(OrgConfig, 'refresh_oauth_token'):
+            task()
+        self.assertEqual(len(responses.calls), 10)
