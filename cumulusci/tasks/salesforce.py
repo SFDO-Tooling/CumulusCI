@@ -880,7 +880,6 @@ class PackageUpload(BaseSalesforceToolingApiTask):
                 version_number += ' (Beta {})'.format(version['BuildNumber'])
 
             self.logger.info('Uploaded package version {} with Id {}'.format(version_number, version_id))
-            return api()
 
 
 class RunApexTests(BaseSalesforceToolingApiTask):
