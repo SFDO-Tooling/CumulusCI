@@ -33,21 +33,30 @@ class BaseFlow(object):
         if not self.flow_config.tasks:
             return config
 
-        task_headers = ['Task','Description']
-        task_data = []
+        config.append('Tasks:')
         for task_info in self.flow_config.tasks:
             task_config = self.project_config.get_task(task_info['task'])
-            task_data.append((task_info['task'], task_config.description))
+            config.append('  {}: {}'.format(
+                task_info['task'],
+                task_config.description,
+            ))
       
-        table = Table(task_data, task_headers) 
-        for line in unicode(table).splitlines(): 
-            config.append(line)
-
         return config
 
     def __call__(self):
         for flow_task_config in self.flow_config.tasks:
             self._run_task(flow_task_config)
+
+    def _find_task_by_name(self, name):
+        if not self.flow_config.tasks:
+            return
+
+        i = 0
+        for task in self.flow_config.tasks:
+            if task.get('task') == name:
+                if len(self.tasks) > i:
+                    return self.tasks[i]
+            i += 1
 
     def _run_task(self, flow_task_config):
         task_config = self.project_config.get_task(flow_task_config['task'])
@@ -59,6 +68,17 @@ class BaseFlow(object):
             if 'options' not in task_config.config:
                 task_config.config['options'] = {}
             task_config.config['options'].update(flow_task_config.get('options', {}))
+
+            # Handle dynamic value lookups in the format ^^task_name.attr1.attr2
+            for option, value in task_config.options.items():
+                if value.startswith('^^'):
+                    value_parts = value[2:].split('.')
+                    task_name = value_parts[0]
+                    parent = self._find_task_by_name(task_name)
+                    for attr in value_parts[1:]:
+                        parent = getattr(parent, attr)
+                    task_config.config['options'][option] = parent
+
 
         task_class = import_class(task_config.class_path)
        
@@ -84,22 +104,14 @@ class BaseFlow(object):
         return response
 
     def _render_task_config(self, task):
-        config = []
+        config = ['Options:']
         if not task.task_options:
             return config
 
-        headers = ('Option','Value','Description')
-        data = []
-
         for option_name, option_info in task.task_options.items():
-            data.append((
+            config.append('  {}: {}'.format(
                 option_name,
                 task.options.get(option_name),
-                option_info.get('description'),
             ))
         
-        table = Table(data, headers)
-        for line in unicode(table).splitlines(): 
-            config.append(line)
-
         return config
