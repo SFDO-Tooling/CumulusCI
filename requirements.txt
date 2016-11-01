@@ -4,7 +4,7 @@ mock
 sarge==0.1.4
 requests[security]==2.9.1
 responses==0.5.1
-selenium
+selenium==2.52
 simple-salesforce==0.68.1
 HiYaPyCo==0.4.8
 PyCrypto==2.6.1
