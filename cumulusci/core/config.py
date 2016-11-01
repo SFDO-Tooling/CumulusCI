@@ -57,6 +57,14 @@ class BaseConfig(object):
         else:
             return self.defaults.get(name)
 
+class TaskConfig(BaseConfig):
+    """ A task with its configuration merged """
+    pass
+
+class FlowConfig(BaseConfig):
+    """ A flow with its configuration merged """
+    pass
+
 class BaseTaskFlowConfig(BaseConfig):
     """ Base class for all configs that contain tasks and flows """
 
@@ -76,7 +84,7 @@ class BaseTaskFlowConfig(BaseConfig):
     def get_task(self, name):
         """ Returns a TaskConfig """
         config = getattr(self, 'tasks__{}'.format(name))
-        return config
+        return TaskConfig(config)
 
     def list_flows(self):
         """ Returns a list of flow info dictionaries with keys 'name' and 'description' """
@@ -86,7 +94,7 @@ class BaseTaskFlowConfig(BaseConfig):
     def get_flow(self, name):
         """ Returns a FlowConfig """
         config = getattr(self, 'flows__{}'.format(name))
-        return config
+        return FlowConfig(config)
 
 class BaseProjectConfig(BaseTaskFlowConfig):
     """ Base class for a project's configuration which extends the global config """
@@ -287,14 +295,6 @@ class MrbelvedereConfig(BaseConfig):
 
 class ApexTestsDBConfig(BaseConfig):
     """ ApexTestsDB configuration """
-    pass
-
-class TaskConfig(BaseConfig):
-    """ A task with its configuration merged """
-    pass
-
-class FlowConfig(BaseConfig):
-    """ A flow with its configuration merged """
     pass
 
 class YamlProjectConfig(BaseProjectConfig):

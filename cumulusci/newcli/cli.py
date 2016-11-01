@@ -8,14 +8,15 @@ import click
 from plaintable import Table
 
 import cumulusci
-from cumulusci.core.config import YamlGlobalConfig
-from cumulusci.core.config import YamlProjectConfig
-from cumulusci.core.config import ConnectedAppOAuthConfig
-from cumulusci.core.config import OrgConfig
-from cumulusci.core.config import TaskConfig
 from cumulusci.core.config import ApexTestsDBConfig
+from cumulusci.core.config import ConnectedAppOAuthConfig
+from cumulusci.core.config import FlowConfig
 from cumulusci.core.config import GithubConfig
 from cumulusci.core.config import MrbelvedereConfig
+from cumulusci.core.config import OrgConfig
+from cumulusci.core.config import TaskConfig
+from cumulusci.core.config import YamlGlobalConfig
+from cumulusci.core.config import YamlProjectConfig
 from cumulusci.core.exceptions import ApexTestsDBNotConfigured
 from cumulusci.core.exceptions import GithubNotConfigured
 from cumulusci.core.exceptions import KeychainConnectedAppNotFound
@@ -582,10 +583,14 @@ def flow_run(config, flow_name, org):
         org_config = config.project_config.get_org(org)
     else:
         org_config = config.project_config.keychain.get_default_org()
-    flow_config = getattr(config.project_config, 'flows__{}'.format(flow_name))
+    flow_config = FlowConfig(
+        getattr(config.project_config, 'flows__{}'.format(flow_name))
+    )
+    if not flow_config.config:
+        raise click.UsageError('No configuration fould for flow {}'.format(flow_name))
 
     # Get the class to look up options
-    class_path = flow_config.get('class_path', 'cumulusci.core.flows.BaseFlow')
+    class_path = flow_config.config.get('class_path', 'cumulusci.core.flows.BaseFlow')
     flow_class = import_class(class_path)
 
     # Create the flow and handle initialization exceptions

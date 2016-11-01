@@ -2,6 +2,7 @@ import unittest
 from cumulusci.core.flows import BaseFlow
 from cumulusci.core.config import BaseGlobalConfig
 from cumulusci.core.config import BaseProjectConfig
+from cumulusci.core.config import FlowConfig
 from cumulusci.core.config import OrgConfig
 
 class TestBaseFlow(unittest.TestCase):
@@ -16,7 +17,7 @@ class TestBaseFlow(unittest.TestCase):
         self._test_init()
 
     def _test_init(self):
-        flow_config = {}
+        flow_config = FlowConfig({})
         flow = BaseFlow(self.project_config, flow_config, self.org_config)
         self.assertEquals(hasattr(flow, 'logger'), True)
 
