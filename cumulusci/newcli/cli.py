@@ -182,13 +182,13 @@ cli.add_command(shell)
     prompt=True,
     default=CLI_CONFIG.global_config.project__git__prefix_release,
 )
-@click.option('--test-namematch',
+@click.option('--test-name-match',
     help="The SOQL format like query for selecting Apex tests.  % is wildcard",
     prompt=True,
-    default=CLI_CONFIG.global_config.project__test__namematch,
+    default=CLI_CONFIG.global_config.project__test__name_match,
 )
 @pass_config
-def project_init(config, name, package_name, package_namespace, package_api_version, git_prefix_feature, git_default_branch, git_prefix_beta, git_prefix_release, test_namematch):
+def project_init(config, name, package_name, package_namespace, package_api_version, git_prefix_feature, git_default_branch, git_prefix_beta, git_prefix_release, test_name_match):
     if not os.path.isdir('.git'):
         click.echo("You are not in the root of a Git repository")
 
@@ -231,8 +231,8 @@ def project_init(config, name, package_name, package_namespace, package_api_vers
 
     #     test:
     test_config = []
-    if test_namematch and test_namematch != config.global_config.project__test__namematch:
-        test_config.append('        namematch: {}'.format(test_namematch))
+    if test_name_match and test_name_match != config.global_config.project__test__name_match:
+        test_config.append('        name_match: {}'.format(test_name_match))
     if test_config:
         yml_config.append('    test:')
         yml_config.extend(test_config)
