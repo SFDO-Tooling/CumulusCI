@@ -148,6 +148,9 @@ tasks:
     update_admin_profile:
         description: Retrieves, edits, and redeploys the Admin.profile with full FLS perms for all objects/fields
         class_path: cumulusci.tasks.salesforce.UpdateAdminProfile
+    update_dependencies:
+        description: Installs all dependencies in project__dependencies into the target org
+        class_path: cumulusci.tasks.salesforce.UpdateDependencies
     update_meta_xml:
         description: Updates all -meta.xml files to have the correct API version and extension package versions
         class_path: cumulusci.tasks.ant.AntTask
@@ -158,11 +161,6 @@ tasks:
         class_path: cumulusci.tasks.metadata.package.UpdatePackageXml
         options:
             path: src
-    update_required_packages:
-        description: Ensures all managed package versions in version.properties are installed
-        class_path: cumulusci.tasks.ant.SalesforceAntTask
-        options:
-            target: updateRequiredPackages
     upload_beta:
         description: Uploads a beta release of the metadata currently in the packaging org
         class_path: cumulusci.tasks.salesforce.PackageUpload
@@ -178,7 +176,7 @@ flows:
         description: Deploys the unmanaged package metadata and all dependencies to the target org
         tasks:
             - task: create_package
-            - task: update_required_packages
+            - task: update_dependencies
             - task: deploy_pre
             - task: deploy
             - task: uninstall_packaged_incremental
@@ -187,7 +185,7 @@ flows:
         description: Deploys the unmanaged package metadata and all dependencies to the target EE org
         tasks:
             - task: create_package
-            - task: update_required_packages
+            - task: update_dependencies
             - task: deploy_pre
             - task: create_unmanaged_ee_src
             - task: deploy

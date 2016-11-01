@@ -2,6 +2,25 @@
 History
 =======
 
+2.0.0-alpha11 (2016-10-31)
+------------------
+
+* project_config.repo_root is now added to the python syspath, thanks @cdcarter for the contribution
+* Tasks for the new Package Upload API
+  
+  * upload_beta: Uploads a beta release of the metadata currently in the packaging org
+  * upload_production: Uploads a production release of the metadata currently in the packaging org
+
+* Dependency management for managed packages:
+
+  * update_dependencies: Task that ensures the target org has all dependencies installed at the correct version
+  * Dependencies are configured using the dependencies: heading in cumulusci.yml under the project: section
+
+* Integrated salesforce-bulk and created BaseSalesforceBulkApiTask for building bulk data tasks
+
+* Added `cumulusci2 version` command to print out current package version, thanks @cdcarter for the contribution
+
+
 2.0.0-alpha10 (2016-10-28)
 ------------------
 

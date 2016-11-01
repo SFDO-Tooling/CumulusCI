@@ -1,6 +1,7 @@
 import base64
 import cgi
 import datetime
+from distutils.version import LooseVersion
 import io
 import json
 import logging
@@ -288,6 +289,120 @@ class UninstallPackage(Deploy):
     def _get_api(self, path=None):
         package_zip = UninstallPackageZipBuilder(self.options['namespace'])
         return self.api_class(self, package_zip())
+
+class UpdateDependencies(BaseSalesforceMetadataApiTask):
+    api_class = ApiDeploy
+    name = 'UpdateDependencies'
+
+    def _run_task(self):
+        dependencies = self.project_config.project__dependencies
+        if not dependencies:
+            self.logger.info('Project has no dependencies, doing nothing')
+            return
+
+        self.installed = self._get_installed()
+        self.uninstall_queue = []
+        self.install_queue = []
+
+        self.logger.info('Dependencies:')
+
+        self._process_dependencies(dependencies)
+
+        # Reverse the uninstall queue
+        self.uninstall_queue.reverse()
+
+        self._uninstall_dependencies()
+        self._install_dependencies()
+
+    def _process_dependencies(self, dependencies):
+        for dependency in dependencies:
+            dependency_version = str(dependency['version'])
+
+            # Process child dependencies
+            dependency_uninstalled = False
+            if 'dependencies' in dependency and dependency['dependencies']:
+                count_uninstall = len(self.uninstall_queue)
+                self._process_dependencies(dependency['dependencies'])
+                if count_uninstall != len(self.uninstall_queue):
+                    dependency_uninstalled = True
+
+            if dependency['namespace'] in self.installed:
+                # Some version is installed, check what to do
+                installed_version = self.installed[dependency['namespace']]
+                if dependency_version == installed_version:
+                    self.logger.info('  {}: version {} already installed'.format(
+                        dependency['namespace'],
+                        dependency_version,
+                    ))
+                    continue
+
+                required_version = LooseVersion(dependency_version)
+                installed_version = LooseVersion(installed_version)
+
+                if 'Beta' in installed_version.vstring:
+                    # Always uninstall Beta versions if required is different
+                    self.uninstall_queue.append(dependency)
+                    self.logger.info('  {}: Uninstall {} to upgrade to {}'.format(
+                        dependency['namespace'],
+                        installed_version,
+                        dependency['version'],
+                    ))
+                elif dependency_uninstalled:
+                    # If a dependency of this one needs to be uninstalled, always uninstall the package
+                    self.uninstall_queue.append(dependency)
+                    self.logger.info('  {}: Uninstall and Reinstall to allow downgrade of dependency'.format(
+                        dependency['namespace'],
+                    ))
+                elif required_version < installed_version:
+                    # Uninstall to downgrade
+                    self.uninstall_queue.append(dependency)
+                    self.logger.info('  {}: Downgrade from {} to {} (requires uninstall/install)'.format(
+                        dependency['namespace'],
+                        installed_version,
+                        dependency['version'],
+                    ))
+                else:
+                    self.logger.info('  {}: Upgrade from {} to {}'.format(
+                        dependency['namespace'],
+                        installed_version,
+                        dependency['version'],
+                    ))
+                self.install_queue.append(dependency)
+            else:
+                # Just a regular install
+                self.logger.info('  {}: Install version {}'.format(
+                        dependency['namespace'],
+                        dependency['version'],
+                ))
+                self.install_queue.append(dependency)
+
+    def _get_installed(self):
+        self.logger.info('Retrieving list of packages from target org')
+        api = ApiRetrieveInstalledPackages(self)
+        return api()
+
+    def _uninstall_dependencies(self):
+        for dependency in self.uninstall_queue:
+            self._uninstall_dependency(dependency)
+
+    def _install_dependencies(self):
+        for dependency in self.install_queue:
+            self._install_dependency(dependency)
+
+    def _install_dependency(self, dependency):
+        self.logger.info('Installing {} version {}'.format(
+            dependency['namespace'],
+            dependency['version'],
+        ))
+        package_zip = InstallPackageZipBuilder(dependency['namespace'], dependency['version'])
+        api = self.api_class(self, package_zip())
+        return api()
+
+    def _uninstall_dependency(self, dependency):
+        self.logger.info('Uninstalling {}'.format(dependency['namespace']))
+        package_zip = UninstallPackageZipBuilder(dependency['namespace'])
+        api = self.api_class(self, package_zip())
+        return api()
 
 class DeployBundles(Deploy):
     task_options = {

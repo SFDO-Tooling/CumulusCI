@@ -101,4 +101,4 @@ class UninstallPackageZipBuilder(DestructiveChangesZipBuilder):
         if not namespace:
             raise ValueError('You must provide a namespace to install a package')
         self.namespace = namespace
-        self.destructive_changes = INSTALLED_PACKAGE_XML.format(self.namespace)
+        self.destructive_changes = INSTALLED_PACKAGE_PACKAGE_XML.format(self.namespace)
