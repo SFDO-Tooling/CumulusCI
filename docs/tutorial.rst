@@ -110,8 +110,8 @@ The newly created `cumulusci.yml` file is the configuration file for wiring up a
     $ git add cumulusci.yml
     $ git commit -m "Initialized CumulusCI Configuration"
 
-Connecting Salesforce Orgs
---------------------------
+Part 2: Connecting Salesforce Orgs
+==================================
 
 First, you will need to create a Salesforce Connected App with the following steps:
 
@@ -173,8 +173,8 @@ So we can start running some tasks, let's set dev as our default again::
 
     $ cumulusci2 org default dev
 
-Running Tasks
--------------
+Part 3: Running Tasks
+=====================
 
 Once you have some orgs connected, you can start running tasks against them.  First, you'll want to get a list of tasks available to run::
 
@@ -299,8 +299,8 @@ Now that the metadata is deployed, you can run the tests::
 
     $ cumulusci2 task run run_tests
     
-Flows
------
+Part 4: Flows
+-------------
 
 Flows are simply named sequences of tasks.  Flows are designed to be run against a single target org.  CumulusCI comes with a number of best practice flows out of the box.::
 
@@ -395,16 +395,10 @@ To set up our newly connected dev org, run the dev_org flow::
     INFO:DeployNamespacedBundles:Pending
     INFO:DeployNamespacedBundles:[Done]
     INFO:DeployNamespacedBundles:[Success]: Succeeded
+
+Part 5: Digging Deeper
+======================
    
-Further Exploration
--------------------
-
-These will be filled out in more detail in the future but are a brief overview of commands to explore next
- 
-    $ cumulusci2 project connect_github
-    $ cumulusci2 project connect_apextestsdb
-    $ cumulusci2 project connect_mrbelvedere
-
 Custom Tasks
 ------------
 
@@ -480,6 +474,15 @@ Run the tasks::
     INFO:ListApexClasses:01pj000000164zwAAA: [npe03] RecurringDonations_TEST
     INFO:ListApexClasses:01pj000000164zxAAA: [npe4] Relationships_INST
 
+Further Exploration
+-------------------
+
+These will be filled out in more detail in the future but are a brief overview of commands to explore next::
+ 
+    $ cumulusci2 project connect_github
+    $ cumulusci2 project connect_apextestsdb
+    $ cumulusci2 project connect_mrbelvedere
+
 
 Environment Keychain
 --------------------
@@ -490,11 +493,13 @@ The keychain class can be overridden to change storage implementations.  The def
     $ cumulusci2 org info feature
     $ cumulusci2 org info packaging
     $ cumulusci2 org info beta
+    $ cumulusci2 project show_github 
     $ export CUMULUSCI_KEYCHAIN_CLASS=cumulusci.core.keychain.EnvironmentProjectKeychain
     $ cumulusci2 org list
     $ export CUMULUSCI_CONNECTED_APP="{__COPIED_FROM_ABOVE__}"
     $ export CUMULUSCI_ORG_feature="{__COPIED_FROM_ABOVE__}"
     $ export CUMULUSCI_ORG_packaging="{__COPIED_FROM_ABOVE__}"
     $ export CUMULUSCI_ORG_beta="{__COPIED_FROM_ABOVE__}"
+    $ export CUMULUSCI_SERVICE_github="{__COPIED_FROM_ABOVE__}"
     $ cumulusci2 org list
     $ cumulusci2 task run --org feature deploy

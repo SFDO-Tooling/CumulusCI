@@ -11,11 +11,7 @@ Contents:
 .. toctree::
    :maxdepth: 2
 
-   readme
-   installation
-   usage
-   contributing
-   authorshistory
+   tutorial
 
 Indices and tables
 ==================
