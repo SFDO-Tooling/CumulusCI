@@ -2,6 +2,36 @@
 History
 =======
 
+2.0.0-alpha12 (2016-11-2)
+------------------
+
+* Automatic detection of latest production and beta release via Github Releases
+
+  * project_config.get_latest_release() added to query Github Releases to find the latest production or beta release version
+  * InstallPackage now accepts the virtual versions 'latest' and 'latest_beta' as well as specific versions for the version option
+
+* New flows:
+    
+  * ci_feature: Runs a full deployment of the unmanaged code for testing in a feature org
+  * ci_master: Runs a full deployment of the managed version of the code into the packaging org
+  * ci_beta: Installs the latest beta and runs all tests
+  * ci_release: Installs the latest release and runs all tests
+  * release_beta: Uploads a beta release of the metadata in the packaging org, creates a Github Release, and generates release notes
+
+* Removed the hard coded slots in the keychain for github, mrbelvedere, and apextestsdb and replaced with a more generic concept of named keychain services.  keychain.get_service('name') retrieves a named service.  The CLI commands for setting github, mrbelvedere, and apextestsdb were modified to write the service configs to the new structure.
+
+* Flow tasks can now access previous tasks' attributes in their options definitions.  The syntax is ^^task_name.attr1.attr2
+
+* Flow output is now nicer showing the flow configuration and the active configuration for each task before execution
+
+* New tasks
+
+  * update_package_xml_managed: Create a new package.xml from the metadata in src/ with attributes only available when deploying to packaging org
+  * run_tests: Runs matching apex tests in parallel and generate a JUnit report
+  * run_tests_debug: Runs matching apex tests in parallel, generates JUnit report, captures debug logs, and parses debug logs for limits usage outputing results to test_results.json
+  * run_tests_managed: Runs matching apex tests in parallel from the package's namespace and generate a JUnit report
+
+
 2.0.0-alpha11 (2016-10-31)
 ------------------
 
