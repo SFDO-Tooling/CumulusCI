@@ -171,6 +171,8 @@ This should open a browser on your computer pointed to the Salesforce login page
 Default Org
 -----------
 
+You can set a default org on your project which will then be used as the org for all tasks and flows.::
+
     $ cumulusci2 org default dev
 
     dev is now the default org
