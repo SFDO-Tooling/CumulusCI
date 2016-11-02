@@ -244,7 +244,7 @@ flows:
             - task: github_release_notes
               options:
                   publish: True
-                  version: ^^github_release.tag_name
+                  tag: ^^github_release.tag_name
     unmanaged_ee:
         description: Deploys the unmanaged package metadata and all dependencies to the target EE org
         tasks:
