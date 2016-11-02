@@ -136,7 +136,7 @@ class EnvironmentProjectKeychain(BaseProjectKeychain):
     """ A project keychain that stores org credentials in environment variables """ 
     org_var_prefix = 'CUMULUSCI_ORG_'
     app_var = 'CUMULUSCI_CONNECTED_APP'
-    service_var_prefix = 'CUMULUSCI_SERVICES_'
+    service_var_prefix = 'CUMULUSCI_SERVICE_'
    
     def _load_keychain(self): 
         self._load_keychain_app()
