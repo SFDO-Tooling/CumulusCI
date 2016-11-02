@@ -58,6 +58,15 @@ This will install the latest version of CumulusCI and all its dependencies into 
     task     Commands for finding and running tasks for a... 
     version  Print the current version of CumulusCI
 
+Part 2: Project Configuration
+-----------------------------
+
+Keychain Key
+------------
+
+The cumulusci2 command stores all credentials in AES encrypted files under the ~/.cumulusci folder.  To use the CLI, you must set the environment variable `CUMULUSCI_KEY` to a 16 character string which is your password to access your keychain.  Do not forget this password!::
+
+    $ export CUMULUSCI_KEY=0a2b4c6d8e0f2g4h  # Must be 16 characters long
 
 Project Initialization
 ----------------------
@@ -110,7 +119,7 @@ The newly created `cumulusci.yml` file is the configuration file for wiring up a
     $ git add cumulusci.yml
     $ git commit -m "Initialized CumulusCI Configuration"
 
-Part 2: Connecting Salesforce Orgs
+Part 3: Connecting Salesforce Orgs
 ==================================
 
 Creating a Connected App
@@ -186,7 +195,7 @@ So we can start running some tasks, let's set dev as our default again::
 
     $ cumulusci2 org default dev
 
-Part 3: Running Tasks
+Part 4: Running Tasks
 =====================
 
 Once you have some orgs connected, you can start running tasks against them.  First, you'll want to get a list of tasks available to run::
@@ -321,7 +330,7 @@ Now that the metadata is deployed, you can run the tests::
 
     $ cumulusci2 task run run_tests
     
-Part 4: Flows
+Part 5: Flows
 =============
 
 Listing Flows
@@ -424,7 +433,7 @@ To set up our newly connected dev org, run the dev_org flow::
     INFO:DeployNamespacedBundles:[Done]
     INFO:DeployNamespacedBundles:[Success]: Succeeded
 
-Part 5: Digging Deeper
+Part 6: Digging Deeper
 ======================
    
 Custom Tasks
