@@ -59,7 +59,7 @@ This will install the latest version of CumulusCI and all its dependencies into 
     version  Print the current version of CumulusCI
 
 Part 2: Project Configuration
------------------------------
+=============================
 
 Keychain Key
 ------------
