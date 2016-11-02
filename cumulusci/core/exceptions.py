@@ -19,6 +19,10 @@ class OrgNotFound(CumulusCIException):
     """ Raised when no org could be found by a given name in the project keychain """
     pass
 
+class ServiceNotConfigured(CumulusCIException):
+    """ Raised when no service configuration could be found by a given name in the project keychain """
+    pass
+
 class AntTargetException(CumulusCIException):
     """ Raised when a generic Ant target error occurs """
     pass

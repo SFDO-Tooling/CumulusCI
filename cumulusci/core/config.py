@@ -5,6 +5,8 @@ import pickle
 import hiyapyco
 import yaml
 
+from distutils.version import LooseVersion
+from github3 import login
 from Crypto import Random
 from Crypto.Cipher import AES
 
@@ -190,6 +192,25 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
         return commit_sha
 
+    def get_latest_version(self, beta=None):
+        """ Query Github Releases to find the latest production or beta release """
+        github_config = self.keychain.get_service('github')
+        gh = login(github_config.username, github_config.password)
+        repo = gh.repository(self.repo_owner, self.repo_name)
+        latest_version = None
+        for release in repo.iter_releases():
+            if beta:
+                if 'Beta' not in release.tag_name:
+                    continue
+            else:
+                if 'Beta' in release.tag_name:
+                    continue
+            version = self.get_version_for_tag(release.tag_name)
+            version = LooseVersion(version)
+            if not latest_version or version > latest_version:
+                latest_version = version
+        return latest_version
+
     @property
     def config_project_path(self):
         if not self.repo_root:
@@ -216,6 +237,15 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         else:
             tag_name = self.project__git__prefix_release + version
         return tag_name
+
+    def get_version_for_tag(self, tag):
+        if 'Beta' in tag:
+            version = tag[len(self.project__git__prefix_beta):]
+            version = version.replace('-',' (').replace('_',' ') + ')'
+        else:
+            version = tag[len(self.project__git__prefix_release):]
+        return version
+        
 
     def set_keychain(self, keychain):
         self.keychain = keychain
@@ -285,16 +315,8 @@ class OrgConfig(BaseConfig):
     def user_id(self):
         return self.id.split('/')[-1]
 
-class GithubConfig(BaseConfig):
+class ServiceConfig(BaseConfig):
     """ Github configuration """
-    pass
-
-class MrbelvedereConfig(BaseConfig):
-    """ Mrbelvedere configuration """
-    pass
-
-class ApexTestsDBConfig(BaseConfig):
-    """ ApexTestsDB configuration """
     pass
 
 class YamlProjectConfig(BaseProjectConfig):

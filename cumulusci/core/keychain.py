@@ -9,14 +9,10 @@ from Crypto.Cipher import AES
 from cumulusci.core.config import BaseConfig
 from cumulusci.core.config import ConnectedAppOAuthConfig
 from cumulusci.core.config import OrgConfig
-from cumulusci.core.config import GithubConfig
-from cumulusci.core.config import MrbelvedereConfig
-from cumulusci.core.config import ApexTestsDBConfig
+from cumulusci.core.config import ServiceConfig
 from cumulusci.core.exceptions import OrgNotFound
+from cumulusci.core.exceptions import ServiceNotConfigured
 from cumulusci.core.exceptions import KeychainConnectedAppNotFound
-from cumulusci.core.exceptions import ApexTestsDBNotConfigured
-from cumulusci.core.exceptions import GithubNotConfigured
-from cumulusci.core.exceptions import MrbelvedereNotConfigured
 from cumulusci.oauth.salesforce import SalesforceOAuth2
 
 class BaseProjectKeychain(BaseConfig):
@@ -25,9 +21,7 @@ class BaseProjectKeychain(BaseConfig):
         self.config = {
             'orgs': {}, 
             'app': None, 
-            'github': None, 
-            'mrbelvedere': None, 
-            'apextestsdb': None, 
+            'services': {},
         }
         self.project_config = project_config
         self.key = key
@@ -39,9 +33,11 @@ class BaseProjectKeychain(BaseConfig):
 
     def change_key(self, key):
         connected_app = self.get_connected_app()
-        github = self.get_github()
-        mrbelvedere = self.get_mrbelvedere()
-        apextestsdb = self.get_apextestsdb()
+
+        services = {}
+        for service_name in self.list_services():
+            services[service_name] = self.get_service(service_name)
+
         orgs = {}
         for org_name in self.list_orgs():
             orgs[org_name] = self.get_org(org_name)
@@ -54,14 +50,9 @@ class BaseProjectKeychain(BaseConfig):
             for org_name, org_config in orgs.items():
                 self.set_org(org_name, org_config)
 
-        if github:
-            self.set_github(github)
-
-        if mrbelvedere:
-            self.set_mrbelvedere(mrbelvedere)
-
-        if apextestsdb:
-            self.set_apextestsdb(apextestsdb)
+        if services:
+            for service_name, service_config in services.items():
+                self.set_service(service_name, service_config)
 
     def set_connected_app(self, app_config):
         self._set_connected_app(app_config)
@@ -118,71 +109,39 @@ class BaseProjectKeychain(BaseConfig):
         orgs.sort()
         return orgs
 
-    def get_github(self):
-        github = self._get_github()
-        if not github:
-            raise GithubNotConfigured("Github is not configured on the keychain.  Configure Github in the keychain and try again")
-        return github
+    def set_service(self, name, service_config):
+        self._set_service(name, service_config)
+        self._load_keychain()
 
-    def _get_github(self):
-        return self.github
+    def _set_service(self, name, service_config):
+        self.services[name] = service_config
 
-    def set_github(self, github_config):
-        #if not isinstance(github_config, GithubConfig):
-        #    raise TypeError('github_config must be an instance of cumulusci.core.config.GithubConfig')
-        return self._set_github(github_config)
-       
-    def _set_github(self, github_config):
-        self.config['github'] = github_config
+    def get_service(self, name):
+        if name not in self.services:
+            self._raise_service_not_configured(name)
+        return self._get_service(name)
 
-    def get_mrbelvedere(self):
-        mrbelvedere = self._get_mrbelvedere()
-        if not mrbelvedere:
-            raise MrbelvedereNotConfigured("mrbelvedere is not configured on the keychain.  Configure mrbelvedere in the keychain and try again")
-        return mrbelvedere
+    def _get_service(self, name):
+        return self.services.get(name)
+    
+    def _raise_service_not_configured(self, name):
+        raise ServiceNotConfigured('Service named {} is not configured for this project'.format(name))
 
-    def _get_mrbelvedere(self):
-        return self.mrbelvedere
-
-    def set_mrbelvedere(self, mrbelvedere_config):
-        #if not isinstance(mrbelvedere_config, MrbelvedereConfig):
-        #    raise TypeError('mrbelvedere_config must be an instance of cumulusci.core.config.MrbelvedereConfig')
-        return self._set_mrbelvedere(mrbelvedere_config)
-
-    def _set_mrbelvedere(self, mrbelvedere_config):
-        self.config['mrbelvedere'] = mrbelvedere_config
-
-    def get_apextestsdb(self):
-        apextestsdb = self._get_apextestsdb()
-        if not apextestsdb:
-            raise ApexTestsDBNotConfigured("ApexTestsDB is not configured on the keychain.  Configure ApexTestsDB in the keychain and try again")
-        return apextestsdb
-
-    def _get_apextestsdb(self):
-        return self.apextestsdb
-
-    def set_apextestsdb(self, apextestsdb_config):
-        #if not isinstance(apextestsdb_config, ApexTestsDBConfig):
-        #    raise TypeError('apextestsdb_config must be an instance of cumulusci.core.config.ApexTestsDBConfig')
-        return self._set_apextestsdb(apextestsdb_config)
-
-    def _set_apextestsdb(self, apextestsdb_config):
-        self.config['apextestsdb'] = apextestsdb_config
+    def list_services(self):
+        services = self.services.keys()
+        services.sort()
+        return services
 
 class EnvironmentProjectKeychain(BaseProjectKeychain):
     """ A project keychain that stores org credentials in environment variables """ 
     org_var_prefix = 'CUMULUSCI_ORG_'
     app_var = 'CUMULUSCI_CONNECTED_APP'
-    github_var = 'CUMULUSCI_GITHUB'
-    mrbelvedere_var = 'CUMULUSCI_MRBELVEDERE'
-    apextestsdb_var = 'CUMULUSCI_APEXTESTSDB'
+    service_var_prefix = 'CUMULUSCI_SERVICES_'
    
     def _load_keychain(self): 
         self._load_keychain_app()
         self._load_keychain_orgs()
-        self._load_keychain_github()
-        self._load_keychain_mrbelvedere()
-        self._load_keychain_apextestsdb()
+        self._load_keychain_services()
 
     def _load_keychain_app(self):
         app = os.environ.get(self.app_var)
@@ -194,20 +153,10 @@ class EnvironmentProjectKeychain(BaseProjectKeychain):
             if key.startswith(self.org_var_prefix):
                 self.orgs[key[len(self.org_var_prefix):]] = OrgConfig(json.loads(value))
 
-    def _load_keychain_github(self):
-        github = os.environ.get(self.github_var)
-        if github:
-            self.github = GithubConfig(json.loads(github))
-
-    def _load_keychain_mrbelvedere(self):
-        mrbelvedere = os.environ.get(self.mrbelvedere_var)
-        if mrbelvedere:
-            self.mrbelvedere = MrbelvedereConfig(json.loads(mrbelvedere))
-
-    def _load_keychain_apextestsdb(self):
-        apextestsdb = os.environ.get(self.apextestsdb_var)
-        if apextestsdb:
-            self.apextestsdb = ApexTestsDBConfig(json.loads(apextestsdb))
+    def _load_keychain_services(self):
+        for key, value in os.environ.items():
+            if key.startswith(self.service_var_prefix):
+                self.services[key[len(self.service_var_prefix):]] = ServiceConfig(json.loads(value))
 
 
 BS = 16
@@ -228,38 +177,15 @@ class BaseEncryptedProjectKeychain(BaseProjectKeychain):
         if self.app:
             return self._decrypt_config(ConnectedAppOAuthConfig, self.app)
 
-    def _set_github(self, github_config):
-        encrypted = self._encrypt_config(github_config)
-        self._set_encrypted_github(encrypted)
+    def _get_service(self, name):
+        return self._decrypt_config(ServiceConfig, self.services[name])
 
-    def _set_encrypted_github(self, encrypted):
-        self.github = encrypted
+    def _set_service(self, service, service_config):
+        encrypted = self._encrypt_config(service_config)
+        self._set_encrypted_service(service, encrypted)
 
-    def _get_github(self):
-        if self.github:
-            return self._decrypt_config(GithubConfig, self.github)
-
-    def _set_mrbelvedere(self, mrbelvedere_config):
-        encrypted = self._encrypt_config(mrbelvedere_config)
-        self._set_encrypted_mrbelvedere(encrypted)
-
-    def _set_encrypted_mrbelvedere(self, encrypted):
-        self.mrbelvedere = encrypted
-
-    def _get_mrbelvedere(self):
-        if self.mrbelvedere:
-            return self._decrypt_config(MrbelvedereConfig, self.mrbelvedere)
-
-    def _set_apextestsdb(self, apextestsdb_config):
-        encrypted = self._encrypt_config(apextestsdb_config)
-        self._set_encrypted_apextestsdb(encrypted)
-
-    def _set_encrypted_apextestsdb(self, encrypted):
-        self.apextestsdb = encrypted
-
-    def _get_apextestsdb(self):
-        if self.apextestsdb:
-            return self._decrypt_config(ApexTestsDBConfig, self.apextestsdb)
+    def _set_encrypted_service(self, service, encrypted):
+        self.services[service] = encrypted
 
     def _set_org(self, name, org_config):
         encrypted = self._encrypt_config(org_config)
@@ -309,23 +235,19 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
                 f_item = open(os.path.join(self.project_local_dir, item), 'r')
                 org_name = item.replace('.org', '')
                 org_config = f_item.read()
+                f_item.close()
                 self.config['orgs'][org_name] = org_config
+            elif item.endswith('.service'):
+                f_item = open(os.path.join(self.project_local_dir, item), 'r')
+                service_name = item.replace('.service', '')
+                service_config = f_item.read()
+                f_item.close()
+                self.config['services'][service_name] = service_config
             elif item == 'connected.app':
                 f_item = open(os.path.join(self.project_local_dir, item), 'r')
                 app_config = f_item.read()
+                f_item.close()
                 self.config['app'] = app_config
-            elif item == 'github.config':
-                f_item = open(os.path.join(self.project_local_dir, item), 'r')
-                github_config = f_item.read()
-                self.config['github'] = github_config
-            elif item == 'mrbelvedere.config':
-                f_item = open(os.path.join(self.project_local_dir, item), 'r')
-                mrbelvedere_config = f_item.read()
-                self.config['mrbelvedere'] = mrbelvedere_config
-            elif item == 'apextestsdb.config':
-                f_item = open(os.path.join(self.project_local_dir, item), 'r')
-                apextestsdb_config = f_item.read()
-                self.config['apextestsdb'] = apextestsdb_config
 
     def _set_encrypted_connected_app(self, encrypted):
         f_org = open(os.path.join(self.project_local_dir, 'connected.app'), 'w')
@@ -333,32 +255,27 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
         f_org.close()
         self.app = encrypted
 
-    def _set_encrypted_github(self, encrypted):
-        f_org = open(os.path.join(self.project_local_dir, 'github.config'), 'w')
-        f_org.write(encrypted)
-        f_org.close()
-        self.github = encrypted
-
-    def _set_encrypted_mrbelvedere(self, encrypted):
-        f_org = open(os.path.join(self.project_local_dir, 'mrbelvedere.config'), 'w')
-        f_org.write(encrypted)
-        f_org.close()
-        self.mrbelvedere = encrypted
-
-    def _set_encrypted_apextestsdb(self, encrypted):
-        f_org = open(os.path.join(self.project_local_dir, 'apextestsdb.config'), 'w')
-        f_org.write(encrypted)
-        f_org.close()
-        self.apextestsdb = encrypted
-
     def _set_encrypted_org(self, name, encrypted):
         f_org = open(os.path.join(self.project_local_dir, '{}.org'.format(name)), 'w')
         f_org.write(encrypted)
         f_org.close()
 
+    def _set_encrypted_service(self, name, encrypted):
+        f_service = open(os.path.join(self.project_local_dir, '{}.service'.format(name)), 'w')
+        f_service.write(encrypted)
+        f_service.close()
+
     def _raise_org_not_found(self, name):
         raise OrgNotFound(
             'Org information could not be found.  Expected to find encrypted file at {}/{}.org'.format(
+                self.project_local_dir, 
+                name
+            )
+        )
+
+    def _raise_service_not_configured(self, name):
+        raise ServiceNotConfigured(
+            'Service configuration could not be found.  Expected to find encrypted file at {}/{}.org'.format(
                 self.project_local_dir, 
                 name
             )

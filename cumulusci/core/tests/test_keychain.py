@@ -14,9 +14,7 @@ from cumulusci.core.config import BaseGlobalConfig
 from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.config import ConnectedAppOAuthConfig
 from cumulusci.core.config import OrgConfig
-from cumulusci.core.config import GithubConfig
-from cumulusci.core.config import MrbelvedereConfig
-from cumulusci.core.config import ApexTestsDBConfig
+from cumulusci.core.config import ServiceConfig
 from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.core.keychain import BaseEncryptedProjectKeychain
 from cumulusci.core.keychain import EncryptedFileProjectKeychain
@@ -36,10 +34,12 @@ class TestBaseProjectKeychain(unittest.TestCase):
         self.global_config = BaseGlobalConfig()
         self.project_config = BaseProjectConfig(self.global_config)
         self.connected_app_config = ConnectedAppOAuthConfig({'test': 'value'})
+        self.services = {
+            'github': ServiceConfig({'git': 'hub'}),
+            'mrbelvedere': ServiceConfig({'mr': 'belvedere'}),
+            'apextestsdb': ServiceConfig({'apex': 'testsdb'}),
+        }
         self.org_config = OrgConfig({'foo': 'bar'})
-        self.github_config = GithubConfig({'git': 'hub'})
-        self.mrbelvedere_config = MrbelvedereConfig({'mr': 'belvedere'})
-        self.apextestsdb_config = ApexTestsDBConfig({'apex': 'testsdb'})
         self.key = '0123456789123456'
 
     def test_init(self):
@@ -58,15 +58,15 @@ class TestBaseProjectKeychain(unittest.TestCase):
         keychain = self.keychain_class(self.project_config, self.key)
         keychain.set_org('test', self.org_config)
         keychain.set_connected_app(self.connected_app_config)
-        keychain.set_github(self.github_config)
-        keychain.set_mrbelvedere(self.mrbelvedere_config)
-        keychain.set_apextestsdb(self.apextestsdb_config)
+        keychain.set_service('github', self.services['github'])
+        keychain.set_service('mrbelvedere', self.services['mrbelvedere'])
+        keychain.set_service('apextestsdb', self.services['apextestsdb'])
         keychain.change_key(new_key)
         self.assertEquals(keychain.key, new_key)
         self.assertEquals(keychain.get_connected_app().config, self.connected_app_config.config)
-        self.assertEquals(keychain.get_github().config, self.github_config.config)
-        self.assertEquals(keychain.get_mrbelvedere().config, self.mrbelvedere_config.config)
-        self.assertEquals(keychain.get_apextestsdb().config, self.apextestsdb_config.config)
+        self.assertEquals(keychain.get_service('github').config, self.services['github'].config)
+        self.assertEquals(keychain.get_service('mrbelvedere').config, self.services['mrbelvedere'].config)
+        self.assertEquals(keychain.get_service('apextestsdb').config, self.services['apextestsdb'].config)
         self.assertEquals(keychain.get_org('test').config, self.org_config.config)
 
     def test_set_connected_app(self):
@@ -77,29 +77,29 @@ class TestBaseProjectKeychain(unittest.TestCase):
         keychain.set_connected_app(self.connected_app_config)
         self.assertEquals(keychain.get_connected_app().config, {'test': 'value'})
 
-    def test_set_github(self):
-        self._test_set_github()
+    def test_set_service_github(self):
+        self._test_set_service_github()
 
-    def _test_set_github(self):
+    def _test_set_service_github(self):
         keychain = self.keychain_class(self.project_config, self.key)
-        keychain.set_github(self.github_config)
-        self.assertEquals(keychain.get_github().config, self.github_config.config)
+        keychain.set_service('github', self.services['github'])
+        self.assertEquals(keychain.get_service('github').config, self.services['github'].config)
 
-    def test_set_mrbelvedere(self):
-        self._test_set_mrbelvedere()
+    def test_set_service_mrbelvedere(self):
+        self._test_set_service_mrbelvedere()
 
-    def _test_set_mrbelvedere(self):
+    def _test_set_service_mrbelvedere(self):
         keychain = self.keychain_class(self.project_config, self.key)
-        keychain.set_mrbelvedere(self.mrbelvedere_config)
-        self.assertEquals(keychain.get_mrbelvedere().config, self.mrbelvedere_config.config)
+        keychain.set_service('mrbelvedere', self.services['mrbelvedere'])
+        self.assertEquals(keychain.get_service('mrbelvedere').config, self.services['mrbelvedere'].config)
 
-    def test_set_apextestsdb(self):
-        self._test_set_apextestsdb()
+    def test_set_service_apextestsdb(self):
+        self._test_set_service_apextestsdb()
 
-    def _test_set_apextestsdb(self):
+    def _test_set_service_apextestsdb(self):
         keychain = self.keychain_class(self.project_config, self.key)
-        keychain.set_apextestsdb(self.apextestsdb_config)
-        self.assertEquals(keychain.get_apextestsdb().config, self.apextestsdb_config.config)
+        keychain.set_service('apextestsdb', self.services['apextestsdb'])
+        self.assertEquals(keychain.get_service('apextestsdb').config, self.services['apextestsdb'].config)
 
     def test_set_and_get_org(self):
         self._test_set_and_get_org()
@@ -179,30 +179,27 @@ class TestEnvironmentProjectKeychain(TestBaseProjectKeychain):
             json.dumps(self.connected_app_config.config)
         )
         self.env.set(
-            self.keychain_class.github_var,
-            json.dumps(self.github_config.config)
+            '{}github'.format(self.keychain_class.service_var_prefix),
+            json.dumps(self.services['github'].config)
         )
         self.env.set(
-            self.keychain_class.mrbelvedere_var,
-            json.dumps(self.mrbelvedere_config.config)
+            '{}mrbelvedere'.format(self.keychain_class.service_var_prefix),
+            json.dumps(self.services['mrbelvedere'].config)
         )
         self.env.set(
-            self.keychain_class.apextestsdb_var,
-            json.dumps(self.apextestsdb_config.config)
+            '{}apextestsdb'.format(self.keychain_class.service_var_prefix),
+            json.dumps(self.services['apextestsdb'].config)
         )
 
     def _clean_env(self, env):
         for key, value in env.items():
             if key.startswith(self.keychain_class.org_var_prefix):
                 del env[key]
+        for key, value in env.items():
+            if key.startswith(self.keychain_class.service_var_prefix):
+                del env[key]
         if self.keychain_class.app_var in env:
             del env[self.keychain_class.app_var]
-        if self.keychain_class.github_var in env:
-            del env[self.keychain_class.app_var]
-        if self.keychain_class.mrbelvedere_var in env:
-            del env[self.keychain_class.mrbelvedere_var]
-        if self.keychain_class.apextestsdb_var in env:
-            del env[self.keychain_class.apextestsdb_var]
 
     def test_get_org(self):
         keychain = self.keychain_class(self.project_config, self.key)
@@ -260,9 +257,11 @@ class TestEncryptedFileProjectKeychain(TestBaseProjectKeychain):
         self.project_name = 'TestRepo'
         self.connected_app_config = ConnectedAppOAuthConfig({'test': 'value'})
         self.org_config = OrgConfig({'foo': 'bar'})
-        self.github_config = GithubConfig({'git': 'hub'})
-        self.mrbelvedere_config = MrbelvedereConfig({'mr': 'belvedere'})
-        self.apextestsdb_config = ApexTestsDBConfig({'apex': 'testsdb'})
+        self.services = {
+            'github': ServiceConfig({'git': 'hub'}),
+            'mrbelvedere': ServiceConfig({'mr': 'belvedere'}),
+            'apextestsdb': ServiceConfig({'apex': 'testsdb'}),
+        }
         self.key = '0123456789123456'
 
     def _mk_temp_home(self):
@@ -316,26 +315,26 @@ class TestEncryptedFileProjectKeychain(TestBaseProjectKeychain):
         os.chdir(self.tempdir_project)
         self._test_set_connected_app()
 
-    def test_set_github(self, mock_class):
+    def test_set_service_github(self, mock_class):
         self._mk_temp_home()
         self._mk_temp_project()
         mock_class.return_value = self.tempdir_home
         os.chdir(self.tempdir_project)
-        self._test_set_github()
+        self._test_set_service_github()
 
-    def test_set_mrbelvedere(self, mock_class):
+    def test_set_service_mrbelvedere(self, mock_class):
         self._mk_temp_home()
         self._mk_temp_project()
         mock_class.return_value = self.tempdir_home
         os.chdir(self.tempdir_project)
-        self._test_set_mrbelvedere()
+        self._test_set_service_mrbelvedere()
 
-    def test_set_apextestsdb(self, mock_class):
+    def test_set_service_apextestsdb(self, mock_class):
         self._mk_temp_home()
         self._mk_temp_project()
         mock_class.return_value = self.tempdir_home
         os.chdir(self.tempdir_project)
-        self._test_set_apextestsdb()
+        self._test_set_service_apextestsdb()
 
     def test_set_and_get_org(self, mock_class):
         self._mk_temp_home()

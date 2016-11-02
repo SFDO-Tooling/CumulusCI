@@ -8,22 +8,18 @@ import click
 from plaintable import Table
 
 import cumulusci
-from cumulusci.core.config import ApexTestsDBConfig
 from cumulusci.core.config import ConnectedAppOAuthConfig
 from cumulusci.core.config import FlowConfig
-from cumulusci.core.config import GithubConfig
-from cumulusci.core.config import MrbelvedereConfig
 from cumulusci.core.config import OrgConfig
+from cumulusci.core.config import ServiceConfig
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.config import YamlGlobalConfig
 from cumulusci.core.config import YamlProjectConfig
-from cumulusci.core.exceptions import ApexTestsDBNotConfigured
-from cumulusci.core.exceptions import GithubNotConfigured
 from cumulusci.core.exceptions import KeychainConnectedAppNotFound
 from cumulusci.core.exceptions import KeychainKeyNotFound
-from cumulusci.core.exceptions import MrbelvedereNotConfigured
 from cumulusci.core.exceptions import NotInProject
 from cumulusci.core.exceptions import ProjectConfigNotFound
+from cumulusci.core.exceptions import ServiceNotConfigured
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.exceptions import TaskRequiresSalesforceOrg
 from cumulusci.core.utils import import_class
@@ -257,7 +253,7 @@ def project_info(config):
 @pass_config
 def project_connect_github(config, username, password, email):
     check_keychain(config)
-    config.keychain.set_github(GithubConfig({
+    config.keychain.set_service('github', ServiceConfig({
         'username': username,
         'password': password,
         'email': email,
@@ -269,9 +265,9 @@ def project_connect_github(config, username, password, email):
 def project_show_github(config):
     check_keychain(config)
     try:
-        github = config.keychain.get_github()
+        github = config.keychain.get_service('github')
         click.echo(pretty_dict(github.config))
-    except GithubNotConfigured:
+    except ServiceNotConfigured:
         click.echo('Github is not configured for this project.  Use project connect_github to configure.')
 
 
@@ -281,7 +277,7 @@ def project_show_github(config):
 @pass_config
 def project_connect_mrbelvedere(config, base_url, api_key):
     check_keychain(config)
-    config.keychain.set_mrbelvedere(MrbelvedereConfig({
+    config.keychain.set_service('mrbelvedere', ServiceConfig({
         'base_url': base_url,
         'api_key': api_key,
     }))
@@ -292,9 +288,9 @@ def project_connect_mrbelvedere(config, base_url, api_key):
 def project_show_mrbelvedere(config):
     check_keychain(config)
     try:
-        mrbelvedere = config.keychain.get_mrbelvedere()
+        mrbelvedere = config.keychain.get_service('mrbelvedere')
         click.echo(pretty_dict(mrbelvedere.config))
-    except MrbelvedereNotConfigured:
+    except ServiceNotConfigured:
         click.echo('mrbelvedere is not configured for this project.  Use project connect_mrbelvedere to configure.')
 
 @click.command(name='connect_apextestsdb', help="Configure this project for ApexTestsDB tasks")
@@ -304,7 +300,7 @@ def project_show_mrbelvedere(config):
 @pass_config
 def project_connect_apextestsdb(config, base_url, user_id, token):
     check_keychain(config)
-    config.keychain.set_apextestsdb(ApexTestsDBConfig({
+    config.keychain.set_service('apextestsdb', ServiceConfig({
         'base_url': base_url,
         'user_id': user_id,
         'token': token,
@@ -316,9 +312,9 @@ def project_connect_apextestsdb(config, base_url, user_id, token):
 def project_show_apextestsdb(config):
     check_keychain(config)
     try:
-        apextestsdb = config.keychain.get_apextestsdb()
+        apextestsdb = config.keychain.get_service('apextestsdb')
         click.echo(pretty_dict(apextestsdb.config))
-    except ApexTestsDBNotConfigured:
+    except ServiceNotConfigured:
         click.echo('ApexTestsDB is not configured for this project.  Use project connect_apextestsdb to configure.')
 
 
