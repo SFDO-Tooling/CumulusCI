@@ -260,7 +260,7 @@ class InstallPackageVersion(Deploy):
             'required': True,
         },
         'version': {
-            'description': 'The version of the package to install',
+            'description': 'The version of the package to install.  "latest" and "latest_beta" can be used to trigger lookup via Github Releases on the repository.',
             'required': True,
         },
     }
@@ -269,6 +269,12 @@ class InstallPackageVersion(Deploy):
         super(InstallPackageVersion, self)._init_options(kwargs)
         if 'namespace' not in self.options:
             self.options['namespace'] = self.project_config.project__package__namespace
+        if self.options.get('version') == 'latest':
+            self.options['version'] = self.project_config.get_latest_version()
+            self.logger.info('Installing latest release: {}'.format(self.options['version']))
+        elif self.options.get('version') == 'latest_beta':
+            self.options['version'] = self.project_config.get_latest_version(beta=True)
+            self.logger.info('Installing latest beta release: {}'.format(self.options['version']))
 
     def _get_api(self, path=None):
         package_zip = InstallPackageZipBuilder(self.options['namespace'], self.options['version'])
