@@ -50,7 +50,7 @@ class CliConfig(object):
         try:
             self.global_config = YamlGlobalConfig()
         except NotInProject as e:
-            raise click.UsageError(e.message)
+            raise click.UsageError(e.message, exit_code=1)
 
     def _load_project_config(self):
         try:
@@ -58,7 +58,7 @@ class CliConfig(object):
         except ProjectConfigNotFound:
             pass
         except NotInProject as e:
-            raise click.UsageError(e.message)
+            raise click.UsageError(e.message, exit_code=1)
 
     def _load_keychain(self):
         self.keychain_key = os.environ.get('CUMULUSCI_KEY')
@@ -82,17 +82,17 @@ pass_config = click.make_pass_decorator(CliConfig, ensure=True)
 def check_connected_app(config):
     check_keychain(config)
     if not config.keychain.get_connected_app():
-        raise click.UsageError("Please use the 'org config_connected_app' command to configure the OAuth Connected App to use for this project's keychain")
+        raise click.UsageError("Please use the 'org config_connected_app' command to configure the OAuth Connected App to use for this project's keychain", exit_code=1)
 
 
 def check_keychain(config):
     check_project_config(config)
     if not config.keychain_key:
-        raise click.UsageError('You must set the environment variable CUMULUSCI_KEY with the encryption key to be used for storing org credentials')
+        raise click.UsageError('You must set the environment variable CUMULUSCI_KEY with the encryption key to be used for storing org credentials', exit_code=1)
 
 def check_project_config(config):
     if not config.project_config:
-        raise click.UsageError('No project configuration found.  You can use the "project init" command to initilize the project for use with CumulusCI')
+        raise click.UsageError('No project configuration found.  You can use the "project init" command to initilize the project for use with CumulusCI', exit_code=1)
 
 # Root command
 @click.group('cli')
@@ -520,7 +520,7 @@ def task_run(config, task_name, org, o):
                     'Option "{}" is not available for task {}'.format(
                         name,
                         task_name,
-                    )
+                    ),
                 )
 
             # Override the option in the task config
@@ -535,11 +535,15 @@ def task_run(config, task_name, org, o):
         raise click.UsageError('This task requires a salesforce org.  Use org default <name> to set a default org or pass the org name with the --org option')
     except TaskOptionsError as e:
         raise click.UsageError(e.message)
+    except Exception as e:
+        raise click.ClickException('{}: {}'.format(e.__class__.__name__, e.message))
 
     try:
         task()
     except TaskOptionsError as e:
         raise click.UsageError(e.message)
+    except Exception as e:
+        raise click.ClickException('{}: {}'.format(e.__class__.__name__, unicode(e)))
 
 # Add the task commands to the task group
 task.add_command(task_list)
@@ -602,6 +606,8 @@ def flow_run(config, flow_name, org):
         flow()
     except TaskOptionsError as e:
         raise click.UsageError(e.message)
+    except Exception as e:
+        raise click.ClickException('{}: {}'.format(e.__class__.__name__, e.message))
 
 flow.add_command(flow_list)
 flow.add_command(flow_info)
