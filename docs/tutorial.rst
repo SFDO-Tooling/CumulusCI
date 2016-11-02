@@ -113,26 +113,36 @@ The newly created `cumulusci.yml` file is the configuration file for wiring up a
 Part 2: Connecting Salesforce Orgs
 ==================================
 
+Creating a Connected App
+------------------------
+
 First, you will need to create a Salesforce Connected App with the following steps:
 
 * In a Salesforce Org, go to Setup -> Create -> Apps
 * Click "New" under Connected Apps
-* Enter a unique value for the Name and API Name field
-* Enter a Contact Email
-* Check "Enable OAuth Settings"
-* Set the Callback URL to http://localhost:8080
-* Enable the scopes: full, refresh_token, and web
-* Save the Connected App
+
+  * Enter a unique value for the Name and API Name field
+  * Enter a Contact Email
+  * Check "Enable OAuth Settings"
+  * Set the Callback URL to http://localhost:8080
+  * Enable the scopes: full, refresh_token, and web
+  * Save the Connected App
+
 * Click the Manage button, then click Edit
-* Go back to Setup -> Create -> Apps, and click on the app you created
 * Record the client_id (Consumer Key) and the client_secret (Consumer Secret)
+
+Configuring the Project's Connected App
+---------------------------------------
 
 Configure the Connected App in your project's keychain::
 
     $ cumulusci2 org configure_connected_app
     client_id:
     client_secret:
-    
+
+Connecting an Org
+-----------------
+ 
 Configuring the Connected App is a one time operation per project.  Once configured, you can start connecting Salesforce Orgs to your project's keychain::
 
     $ cumulsci2 org connect dev
@@ -148,6 +158,9 @@ This should open a browser on your computer pointed to the Salesforce login page
     org        is_default
     ---------  ----------
     dev
+
+Default Org
+-----------
 
     $ cumulusci2 org default dev
 
@@ -223,6 +236,9 @@ Once you have some orgs connected, you can start running tasks against them.  Fi
     upload_beta                     Uploads a beta release of the metadata currently in the packaging org
     upload_production               Uploads a beta release of the metadata currently in the packaging org
 
+Getting Task Info
+-----------------
+
 You can view the details on an individual task::
 
     $ cumulusci2 task info update_package_xml
@@ -240,11 +256,17 @@ You can view the details on an individual task::
     managed            If True, generate a package.xml for deployment to the managed package packaging org
     output             The output file, defaults to <path>/package.xml
 
+Running a Task
+--------------
+
 You can run a task::
 
     $ cumulusci2 task run update_package_xml
 
     INFO:UpdatePackageXml:Generating src/package.xml from metadata in src
+
+Task Options
+------------
 
 And you can run a task passing any of the options via the command line::
 
@@ -300,6 +322,9 @@ Now that the metadata is deployed, you can run the tests::
     $ cumulusci2 task run run_tests
     
 Part 4: Flows
+=============
+
+Listing Flows
 -------------
 
 Flows are simply named sequences of tasks.  Flows are designed to be run against a single target org.  CumulusCI comes with a number of best practice flows out of the box.::
@@ -315,6 +340,9 @@ Flows are simply named sequences of tasks.  Flows are designed to be run against
     ci_release    Installs a production release version and runs tests
     release_beta  Uploads and releases a beta version of the metadata currently in packaging
     unmanaged_ee  Deploys the unmanaged package metadata and all dependencies to the target EE org
+
+Running a Flow
+--------------
 
 To set up our newly connected dev org, run the dev_org flow::
 
