@@ -2,6 +2,20 @@
 History
 =======
 
+2.0.0-alpha14 (2016-11-3)
+------------------
+
+* Fix version number
+* Fix bug in BaseSalesforceBulkApiTask (thanks @cdcarter)
+
+2.0.0-alpha13 (2016-11-3)
+------------------
+
+* Nicer log output from tasks and flows using `coloredlogs`
+* Added handling for packed git references in the file .git/packed-refs
+* Docs now available at http://cumulusci.readthedocs.io
+* Tasks and Flows run through the CLI now show a more simple message if an exception is thrown
+
 2.0.0-alpha12 (2016-11-2)
 ------------------
 

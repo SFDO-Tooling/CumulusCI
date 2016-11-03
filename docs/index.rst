@@ -13,6 +13,7 @@ Contents:
 
    tutorial
    history
+   authors
 
 Indices and tables
 ==================
