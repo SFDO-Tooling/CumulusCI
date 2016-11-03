@@ -186,10 +186,27 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         join_args.extend(branch.split('/'))
         commit_file = os.path.join(*join_args)
 
-        f = open(commit_file, 'r')
-        commit_sha = f.read().strip()
-        f.close()
-
+        commit_sha = None
+        if os.path.isfile(commit_file):
+            f = open(commit_file, 'r')
+            commit_sha = f.read().strip()
+            f.close()
+        else:
+            packed_refs_path = os.path.join(
+                self.repo_root,
+                '.git',
+                'packed-refs'
+            )
+            f = open(packed_refs_path, 'r')
+            for line in f.readlines():
+                parts = line.split(' ')
+                if len(parts) == 1:
+                    # Skip lines showing the commit sha of a tag on the preceeding line
+                    continue
+                if parts[1].replace('refs/remotes/origin/', '').strip() == branch:
+                    commit_sha = parts[0]
+                    break
+    
         return commit_sha
 
     def get_latest_version(self, beta=None):
