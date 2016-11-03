@@ -50,7 +50,7 @@ class CliConfig(object):
         try:
             self.global_config = YamlGlobalConfig()
         except NotInProject as e:
-            raise click.UsageError(e.message, exit_code=1)
+            raise click.UsageError(e.message)
 
     def _load_project_config(self):
         try:
@@ -58,7 +58,7 @@ class CliConfig(object):
         except ProjectConfigNotFound:
             pass
         except NotInProject as e:
-            raise click.UsageError(e.message, exit_code=1)
+            raise click.UsageError(e.message)
 
     def _load_keychain(self):
         self.keychain_key = os.environ.get('CUMULUSCI_KEY')
@@ -82,17 +82,17 @@ pass_config = click.make_pass_decorator(CliConfig, ensure=True)
 def check_connected_app(config):
     check_keychain(config)
     if not config.keychain.get_connected_app():
-        raise click.UsageError("Please use the 'org config_connected_app' command to configure the OAuth Connected App to use for this project's keychain", exit_code=1)
+        raise click.UsageError("Please use the 'org config_connected_app' command to configure the OAuth Connected App to use for this project's keychain")
 
 
 def check_keychain(config):
     check_project_config(config)
     if not config.keychain_key:
-        raise click.UsageError('You must set the environment variable CUMULUSCI_KEY with the encryption key to be used for storing org credentials', exit_code=1)
+        raise click.UsageError('You must set the environment variable CUMULUSCI_KEY with the encryption key to be used for storing org credentials')
 
 def check_project_config(config):
     if not config.project_config:
-        raise click.UsageError('No project configuration found.  You can use the "project init" command to initilize the project for use with CumulusCI', exit_code=1)
+        raise click.UsageError('No project configuration found.  You can use the "project init" command to initilize the project for use with CumulusCI')
 
 # Root command
 @click.group('cli')
