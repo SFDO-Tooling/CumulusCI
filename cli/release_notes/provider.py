@@ -116,8 +116,9 @@ class GithubChangeNotesProvider(BaseChangeNotesProvider, ProviderGithubApiMixin)
 
     @property
     def end_date(self):
-        tag_date = self.last_tag_info['tag']['tagger']['date']
-        return datetime.strptime(tag_date, "%Y-%m-%dT%H:%M:%SZ")
+        if self.last_tag_info:
+            tag_date = self.last_tag_info['tag']['tagger']['date']
+            return datetime.strptime(tag_date, "%Y-%m-%dT%H:%M:%SZ")
 
     def _get_tag_info(self, tag):
         tag_info = {
