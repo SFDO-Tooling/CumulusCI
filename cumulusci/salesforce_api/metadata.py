@@ -76,7 +76,7 @@ class BaseMetadataApiCall(object):
     def _build_headers(self, action, message):
         return {
             'Content-Type': 'text/xml; charset=UTF-8',
-            'Content-Length': len(message),
+            'Content-Length': str(len(message)),
             'SOAPAction': action,
         }
 
