@@ -26,7 +26,7 @@ class BaseFlow(object):
         handler.setLevel(logging.DEBUG)
 
         formatter = coloredlogs.ColoredFormatter(
-            fmt='%(asctime)s %(levelname)8s: %(message)s'
+            fmt='%(asctime)s: %(message)s'
         )
         handler.setFormatter(formatter)
 
