@@ -96,9 +96,9 @@ class BaseSalesforceBulkApiTask(BaseSalesforceTask):
         self.bulk = self._init_api()
 
     def _init_api(self):
-        return Salesforce(
-            instance=self.org_config.instance_url.replace('https://', ''),
-            session_id=self.org_config.access_token,
+        return SalesforceBulk(
+            host=self.org_config.instance_url.replace('https://', ''),
+            sessionId=self.org_config.access_token,
         )
 
 class GetInstalledPackages(BaseSalesforceMetadataApiTask):
@@ -1168,7 +1168,7 @@ class RunApexTestsDebug(RunApexTests):
     """Run Apex tests and collect debug info"""
 
     task_options = run_apex_tests_debug_options
-    
+
     def _init_options(self, kwargs):
         super(RunApexTestsDebug, self)._init_options(kwargs)
         if 'json_output' not in self.options:
