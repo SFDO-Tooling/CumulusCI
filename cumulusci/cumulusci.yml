@@ -183,6 +183,9 @@ tasks:
         class_path: cumulusci.tasks.salesforce.PackageUpload
         options:
             production: True
+    query:
+      description: Queries the connected org
+      class_path: cumulusci.tasks.salesforce.SOQLQuery
 
 
 flows:
@@ -275,6 +278,6 @@ project:
         name_match: '%_TEST%'
     apexdoc:
         url: https://github.com/SalesforceFoundation/ApexDoc/releases/download/1.7/apexdoc.jar
-        homepage: 
-        banner: 
+        homepage:
+        banner:
     dependencies:
