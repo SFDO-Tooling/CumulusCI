@@ -305,8 +305,8 @@ Running a Task
 You can run a task::
 
     $ cumulusci2 task run update_package_xml
-
-    INFO:UpdatePackageXml:Generating src/package.xml from metadata in src
+    
+    2016-11-03 11:57:53: Generating src/package.xml from metadata in src
 
 Task Options
 ------------
@@ -336,16 +336,13 @@ The update_package_xml task works only on local files and does not require a con
 
     $ cumulusci2 task run deploy
 
-    INFO:Deploy:Pending
-    INFO:Deploy:[InProgress]: Processing Type: ApexComponent
-    INFO:Deploy:[InProgress]: Processing Type: CustomObject
-    INFO:Deploy:[InProgress]: Processing Type: CustomObject
-    INFO:Deploy:[InProgress]: Processing Type: Layout
-    INFO:Deploy:[InProgress]: Processing Type: ApexClass
-    INFO:Deploy:[InProgress]: Processing Type: ApexTrigger
-    INFO:Deploy:[InProgress]: Processing Type: ApexTrigger
-    INFO:Deploy:[Done]
-    INFO:Deploy:[Success]: Succeeded
+    2016-11-03 11:58:01: Pending
+    2016-11-03 11:58:05: [InProgress]: Processing Type: CustomObject
+    2016-11-03 11:58:06: [InProgress]: Processing Type: CustomObject
+    2016-11-03 11:58:08: [InProgress]: Processing Type: QuickAction
+    2016-11-03 11:58:09: [InProgress]: Processing Type: ApexClass
+    2016-11-03 11:58:13: [Done]
+    2016-11-03 11:58:14: [Success]: Succeeded
 
 Now that the metadata is deployed, you can run the tests::
 
@@ -363,19 +360,19 @@ Now that the metadata is deployed, you can run the tests::
     junit_output                 File name for JUnit output.  Defaults to test_results.xml
 
     $ cumulusci2 task run run_tests
-    INFO:RunApexTests:Running query: SELECT Id, Name FROM ApexClass WHERE NamespacePrefix = null AND (Name LIKE '%_TEST%')
-    INFO:RunApexTests:Found 2 test classes
-    INFO:RunApexTests:Queuing tests for execution...
-    INFO:RunApexTests:Completed: 0  Processing: 0  Queued: 2
-    INFO:RunApexTests:Completed: 2  Processing: 0  Queued: 0
-    INFO:RunApexTests:Apex tests completed
-    INFO:RunApexTests:Class: SampleClass_TEST
-    INFO:RunApexTests:	Pass: fillInFirstNameTest
-    INFO:RunApexTests:Class: SamplePage_CTRL_TEST
-    INFO:RunApexTests:	Pass: getSamplesTest
-    INFO:RunApexTests:--------------------------------------------------------------------------------
-    INFO:RunApexTests:Pass: 2  Fail: 0  CompileFail: 0  Skip: 0
-    INFO:RunApexTests:--------------------------------------------------------------------------------
+    2016-11-03 12:01:04: Running query: SELECT Id, Name FROM ApexClass WHERE NamespacePrefix = null AND (Name LIKE '%_TEST%')
+    2016-11-03 12:01:05: Found 2 test classes
+    2016-11-03 12:01:05: Queuing tests for execution...
+    2016-11-03 12:01:07: Completed: 0  Processing: 0  Queued: 2
+    2016-11-03 12:01:10: Completed: 2  Processing: 0  Queued: 0
+    2016-11-03 12:01:10: Apex tests completed
+    2016-11-03 12:01:12: Class: SampleClass_TEST
+    2016-11-03 12:01:12: 	Pass: fillInFirstNameTest
+    2016-11-03 12:01:12: Class: SamplePage_CTRL_TEST
+    2016-11-03 12:01:12: 	Pass: getSamplesTest
+    2016-11-03 12:01:12: --------------------------------------------------------------------------------
+    2016-11-03 12:01:12: Pass: 2  Fail: 0  CompileFail: 0  Skip: 0
+    2016-11-03 12:01:12: --------------------------------------------------------------------------------
 
 Part 5: Flows
 =============
@@ -404,82 +401,84 @@ To set up our newly connected dev org, run the dev_org flow::
 
     $ cumulusci2 flow run dev_org
 
-    INFO:BaseFlow:---------------------------------------
-    INFO:BaseFlow:Initializing flow class BaseFlow:
-    INFO:BaseFlow:---------------------------------------
-    INFO:BaseFlow:Flow Description: Deploys the unmanaged package metadata and all dependencies to the target org
-    INFO:BaseFlow:Tasks:
-    INFO:BaseFlow:  create_package: Creates a package in the target org with the default package name for the project
-    INFO:BaseFlow:  update_dependencies: Installs all dependencies in project__dependencies into the target org
-    INFO:BaseFlow:  deploy_pre: Deploys all metadata bundles under unpackaged/pre/
-    INFO:BaseFlow:  deploy: Deploys the src directory of the repository to the org
-    INFO:BaseFlow:  uninstall_packaged_incremental: Deletes any metadata from the package in the target org not in the local workspace
-    INFO:BaseFlow:  deploy_post: Deploys all metadata bundles under unpackaged/post/
-    INFO:BaseFlow:
-    INFO:BaseFlow:Running task: create_package
-    INFO:BaseFlow:Options:
-    INFO:BaseFlow:  api_version: 33.0
-    INFO:BaseFlow:  package: CumulusCI-Test
-    INFO:CreatePackage:Pending
-    INFO:CreatePackage:[Done]
-    INFO:CreatePackage:[Success]: Succeeded
-    INFO:BaseFlow:
-    INFO:BaseFlow:Running task: update_dependencies
-    INFO:BaseFlow:Options:
-    INFO:UpdateDependencies:Project has no dependencies, doing nothing
-    INFO:BaseFlow:
-    INFO:BaseFlow:Running task: deploy_pre
-    INFO:BaseFlow:Options:
-    INFO:BaseFlow:  path: unpackaged/pre
-    INFO:DeployBundles:Deploying all metadata bundles in path /Users/jlantz/dev/CumulusCI-Test/unpackaged/pre
-    INFO:DeployBundles:Deploying bundle: unpackaged/pre/account_record_types
-    INFO:DeployBundles:Pending
-    INFO:DeployBundles:[InProgress]: Processing Type: CustomObject
-    INFO:DeployBundles:[InProgress]: Processing Type: CustomObject
-    INFO:DeployBundles:[Done]
-    INFO:DeployBundles:[Success]: Succeeded
-    INFO:DeployBundles:Deploying bundle: unpackaged/pre/opportunity_record_types
-    INFO:DeployBundles:Pending
-    INFO:DeployBundles:[Done]
-    INFO:DeployBundles:[Success]: Succeeded
-    INFO:BaseFlow:
-    INFO:BaseFlow:Running task: deploy
-    INFO:BaseFlow:Options:
-    INFO:BaseFlow:  path: src
-    INFO:Deploy:Pending
-    INFO:Deploy:[InProgress]: Processing Type: ApexPage
-    INFO:Deploy:[InProgress]: Processing Type: CustomObject
-    INFO:Deploy:[InProgress]: Processing Type: CustomObject
-    INFO:Deploy:[InProgress]: Processing Type: QuickAction
-    INFO:Deploy:[InProgress]: Processing Type: ApexClass
-    INFO:Deploy:[Done]
-    INFO:Deploy:[Success]: Succeeded
-    INFO:BaseFlow:
-    INFO:BaseFlow:Running task: uninstall_packaged_incremental
-    INFO:BaseFlow:Options:
-    INFO:BaseFlow:  path: src
-    INFO:BaseFlow:  package: CumulusCI-Test
-    INFO:UninstallPackagedIncremental:Retrieving metadata in package CumulusCI-Test from target org
-    INFO:UninstallPackagedIncremental:Pending
-    INFO:UninstallPackagedIncremental:[Done]
-    INFO:UninstallPackagedIncremental:Deleting metadata in package CumulusCI-Test from target org
-    INFO:UninstallPackagedIncremental:Pending
-    INFO:UninstallPackagedIncremental:[Done]
-    INFO:UninstallPackagedIncremental:[Success]: Succeeded
-    INFO:BaseFlow:
-    INFO:BaseFlow:Running task: deploy_post
-    INFO:BaseFlow:Options:
-    INFO:BaseFlow:  namespace_token: %%%NAMESPACE%%%
-    INFO:BaseFlow:  path: unpackaged/post
-    INFO:BaseFlow:  namespace: ccitest
-    INFO:BaseFlow:  managed: False
-    INFO:BaseFlow:  filename_token: ___NAMESPACE___
-    INFO:DeployNamespacedBundles:Deploying all metadata bundles in path /Users/jlantz/dev/CumulusCI-Test/unpackaged/post
-    INFO:DeployNamespacedBundles:Deploying bundle: unpackaged/post/salesforce1
-    INFO:DeployNamespacedBundles:Pending
-    INFO:DeployNamespacedBundles:[Done]
-    INFO:DeployNamespacedBundles:[Success]: Succeeded
-
+    2016-11-03 12:01:48: ---------------------------------------
+    2016-11-03 12:01:48: Initializing flow class BaseFlow:
+    2016-11-03 12:01:48: ---------------------------------------
+    2016-11-03 12:01:48: Flow Description: Deploys the unmanaged package metadata and all dependencies to the target org
+    2016-11-03 12:01:48: Tasks:
+    2016-11-03 12:01:48:   create_package: Creates a package in the target org with the default package name for the project
+    2016-11-03 12:01:48:   update_dependencies: Installs all dependencies in project__dependencies into the target org
+    2016-11-03 12:01:48:   deploy_pre: Deploys all metadata bundles under unpackaged/pre/
+    2016-11-03 12:01:48:   deploy: Deploys the src directory of the repository to the org
+    2016-11-03 12:01:48:   uninstall_packaged_incremental: Deletes any metadata from the package in the target org not in the local workspace
+    2016-11-03 12:01:48:   deploy_post: Deploys all metadata bundles under unpackaged/post/
+    2016-11-03 12:01:48: 
+    2016-11-03 12:01:48: Running task: create_package
+    2016-11-03 12:01:49: Options:
+    2016-11-03 12:01:49:   api_version: 33.0
+    2016-11-03 12:01:49:   package: CumulusCI-Test
+    2016-11-03 12:01:49: Pending
+    2016-11-03 12:01:53: [Done]
+    2016-11-03 12:01:54: [Success]: Succeeded
+    2016-11-03 12:01:54: 
+    2016-11-03 12:01:54: Running task: update_dependencies
+    2016-11-03 12:01:56: Options:
+    2016-11-03 12:01:56: Project has no dependencies, doing nothing
+    2016-11-03 12:01:56: 
+    2016-11-03 12:01:56: Running task: deploy_pre
+    2016-11-03 12:01:56: Options:
+    2016-11-03 12:01:56:   path: unpackaged/pre
+    2016-11-03 12:01:56: Deploying all metadata bundles in path /Users/jlantz/dev/CumulusCI-Test/unpackaged/pre
+    2016-11-03 12:01:56: Deploying bundle: unpackaged/pre/account_record_types
+    2016-11-03 12:01:56: Pending
+    2016-11-03 12:01:58: [InProgress]: Processing Type: CustomObject
+    2016-11-03 12:02:00: [InProgress]: Processing Type: CustomObject
+    2016-11-03 12:02:02: [Done]
+    2016-11-03 12:02:03: [Success]: Succeeded
+    2016-11-03 12:02:03: Deploying bundle: unpackaged/pre/opportunity_record_types
+    2016-11-03 12:02:03: Pending
+    2016-11-03 12:02:07: [InProgress]: Processing Type: CustomObject
+    2016-11-03 12:02:08: [InProgress]: Processing Type: CustomObject
+    2016-11-03 12:02:09: [InProgress]: Processing Type: CustomObject
+    2016-11-03 12:02:12: [Done]
+    2016-11-03 12:02:13: [Success]: Succeeded
+    2016-11-03 12:02:13: 
+    2016-11-03 12:02:13: Running task: deploy
+    2016-11-03 12:02:14: Options:
+    2016-11-03 12:02:14:   path: src
+    2016-11-03 12:02:14: Pending
+    2016-11-03 12:02:18: [InProgress]: Processing Type: CustomObject
+    2016-11-03 12:02:19: [InProgress]: Processing Type: CustomObject
+    2016-11-03 12:02:20: [InProgress]: Processing Type: QuickAction
+    2016-11-03 12:02:22: [InProgress]: Processing Type: ApexClass
+    2016-11-03 12:02:28: [Done]
+    2016-11-03 12:02:29: [Success]: Succeeded
+    2016-11-03 12:02:29: 
+    2016-11-03 12:02:29: Running task: uninstall_packaged_incremental
+    2016-11-03 12:02:29: Options:
+    2016-11-03 12:02:29:   path: src
+    2016-11-03 12:02:29:   package: CumulusCI-Test
+    2016-11-03 12:02:29: Retrieving metadata in package CumulusCI-Test from target org
+    2016-11-03 12:02:29: Pending
+    2016-11-03 12:02:34: [Done]
+    2016-11-03 12:02:35: Deleting metadata in package CumulusCI-Test from target org
+    2016-11-03 12:02:35: Pending
+    2016-11-03 12:02:41: [Done]
+    2016-11-03 12:02:42: [Success]: Succeeded
+    2016-11-03 12:02:42: 
+    2016-11-03 12:02:42: Running task: deploy_post
+    2016-11-03 12:02:43: Options:
+    2016-11-03 12:02:43:   namespace_token: %%%NAMESPACE%%%
+    2016-11-03 12:02:43:   path: unpackaged/post
+    2016-11-03 12:02:43:   namespace: ccitest
+    2016-11-03 12:02:43:   managed: False
+    2016-11-03 12:02:43:   filename_token: ___NAMESPACE___
+    2016-11-03 12:02:43: Deploying all metadata bundles in path /Users/jlantz/dev/CumulusCI-Test/unpackaged/post
+    2016-11-03 12:02:43: Deploying bundle: unpackaged/post/salesforce1
+    2016-11-03 12:02:43: Pending
+    2016-11-03 12:02:50: [Done]
+    2016-11-03 12:02:51: [Success]: Succeeded
+    
 Part 6: Digging Deeper
 ======================
 
@@ -534,29 +533,29 @@ Run the tasks::
 
     $ cumulusci2 task run list_contacts
 
-    INFO:ListContacts:003j00000045WfwAAE: Siddartha Nedaerk
-    INFO:ListContacts:003j00000045WfxAAE: Jake Llorrac
-    INFO:ListContacts:003j00000045WfeAAE: Rose Gonzalez
-    INFO:ListContacts:003j00000045WffAAE: Sean Forbes
-    INFO:ListContacts:003j00000045WfgAAE: Jack Rogers
-    INFO:ListContacts:003j00000045WfhAAE: Pat Stumuller
-    INFO:ListContacts:003j00000045WfiAAE: Andy Young
-    INFO:ListContacts:003j00000045WfjAAE: Tim Barr
-    INFO:ListContacts:003j00000045WfkAAE: John Bond
-    INFO:ListContacts:003j00000045WflAAE: Stella Pavlova
+    2016-11-03 12:04:34: 003j00000045WfwAAE: Siddartha Nedaerk
+    2016-11-03 12:04:34: 003j00000045WfxAAE: Jake Llorrac
+    2016-11-03 12:04:34: 003j00000045WfeAAE: Rose Gonzalez
+    2016-11-03 12:04:34: 003j00000045WffAAE: Sean Forbes
+    2016-11-03 12:04:34: 003j00000045WfgAAE: Jack Rogers
+    2016-11-03 12:04:34: 003j00000045WfhAAE: Pat Stumuller
+    2016-11-03 12:04:34: 003j00000045WfiAAE: Andy Young
+    2016-11-03 12:04:34: 003j00000045WfjAAE: Tim Barr
+    2016-11-03 12:04:34: 003j00000045WfkAAE: John Bond
+    2016-11-03 12:04:34: 003j00000045WflAAE: Stella Pavlova
 
     $ cumulusci2 task run list_apex_classes
 
-    INFO:ListApexClasses:01pj000000164zgAAA: [npe01] Tests
-    INFO:ListApexClasses:01pj000000164zeAAA: [npe01] IndividualAccounts
-    INFO:ListApexClasses:01pj000000164zfAAA: [npe01] NPSPPkgVersionCheck
-    INFO:ListApexClasses:01pj000000164zdAAA: [npe01] Constants
-    INFO:ListApexClasses:01pj000000164zsAAA: [npe03] RecurringDonations
-    INFO:ListApexClasses:01pj000000164ztAAA: [npe03] RecurringDonationsPkgVersionCheck
-    INFO:ListApexClasses:01pj000000164zuAAA: [npe03] RecurringDonations_BATCH
-    INFO:ListApexClasses:01pj000000164zvAAA: [npe03] RecurringDonations_SCHED
-    INFO:ListApexClasses:01pj000000164zwAAA: [npe03] RecurringDonations_TEST
-    INFO:ListApexClasses:01pj000000164zxAAA: [npe4] Relationships_INST
+    2016-11-03 12:04:40: 01pj000000164zgAAA: [npe01] Tests
+    2016-11-03 12:04:40: 01pj000000164zeAAA: [npe01] IndividualAccounts
+    2016-11-03 12:04:40: 01pj000000164zfAAA: [npe01] NPSPPkgVersionCheck
+    2016-11-03 12:04:40: 01pj000000164zdAAA: [npe01] Constants
+    2016-11-03 12:04:40: 01pj000000164zsAAA: [npe03] RecurringDonations
+    2016-11-03 12:04:40: 01pj000000164ztAAA: [npe03] RecurringDonationsPkgVersionCheck
+    2016-11-03 12:04:40: 01pj000000164zuAAA: [npe03] RecurringDonations_BATCH
+    2016-11-03 12:04:40: 01pj000000164zvAAA: [npe03] RecurringDonations_SCHED
+    2016-11-03 12:04:40: 01pj000000164zwAAA: [npe03] RecurringDonations_TEST
+    2016-11-03 12:04:40: 01pj000000164zxAAA: [npe4] Relationships_INST
 
 Further Exploration
 -------------------
