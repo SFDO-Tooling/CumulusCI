@@ -9,9 +9,11 @@ Requirements
 ------------
 
 * You must have Python version 2.7.x installed
-* A local git repository containing Salesforce metadata in the `src/` subfolder or fork then clone CumulusCI-Test for demo::
+* A local git repository containing Salesforce metadata in the `src/` subfolder OR fork then clone CumulusCI-Test for demo::
 
     git clone https://github.com/YOUR_GITHUB_FORK_USER/CumulusCI-Test
+
+If you are using the CumulusCI-Test repo, enable Chatter in your dev org.
 
 * Ensure you have virtualenv installed by either installing a package for your OS or installing with pip::
 
@@ -26,7 +28,7 @@ Run the following::
     virtualenv ~/cumulusci_venv
     source ~/cumulusci_venv/bin/activate
 
-Once activated, you will see (venv) at the start of your shell prompt to let you know the virtualenv is active.  From this point, any Python packages you install will be installed only into the virtualenv and leave your system's Python alone.
+Once activated, you will see (cumulusci_venv) at the start of your shell prompt to let you know the virtualenv is active.  From this point, any Python packages you install will be installed only into the virtualenv and leave your system's Python alone.
 
 If you want to always have the CumulusCI commands available, you can add the following line to your ~/.bash_profile::
 
@@ -42,20 +44,20 @@ With your virtualenv activated::
 
     pip install cumulusci
 
-This will install the latest version of CumulusCI and all its dependencies into the virtualenv.  You can verify the installation by running:
+This will install the latest version of CumulusCI and all its dependencies into the virtualenv.  You can verify the installation by running::
 
     $ cumulusci2
     Usage: cumulusci2 [OPTIONS] COMMAND [ARGS]...
-    
+
     Options:
     --help  Show this message and exit.
-    
+
     Commands:
     flow     Commands for finding and running flows for a...
     org      Commands for connecting and interacting with...
     project  Commands for interacting with project...
     shell    Drop into a python shell
-    task     Commands for finding and running tasks for a... 
+    task     Commands for finding and running tasks for a...
     version  Print the current version of CumulusCI
 
 Part 2: Project Configuration
@@ -84,9 +86,39 @@ If you run the `cumulusci2` command from outside a git repository, it will gener
     $ cumulusci2
     No repository found in current path.  You must be inside a repository to initialize the project configuration
 
-If you run the `cumulusci2 org list` command from inside a git repository that has not yet been set up for CumulusCI, you will get an error::
+If you run the `cumulusci2 project info` command from inside a git repository that has already been set up for CumulusCI, it will print the project info::
 
     $ cd path/to/your/repo
+
+    $ cumulusci2 project info
+    {
+        "apexdoc": {
+            "banner": null,
+            "homepage": null,
+            "url": "https://github.com/SalesforceFoundation/ApexDoc/releases/download/1.7/apexdoc.jar"
+        },
+        "dependencies": null,
+        "git": {
+            "default_branch": "master",
+            "prefix_beta": "beta/",
+            "prefix_feature": "feature/",
+            "prefix_release": "release/"
+        },
+        "name": "MyRepoName",
+        "package": {
+            "api_version": 38.0,
+            "install_class": null,
+            "name": "My Repo Name",
+            "name_managed": null,
+            "namespace": "mynamespace",
+            "uninstall_class": null
+        },
+        "test": {
+            "name_match": "%_TEST%"
+        }
+    }
+
+If you run the same command from inside a git repository that has not yet been set up for CumulusCI, you will get an error::
 
     $ cumulusci2 project info
     Usage: cumulusci2 project info [OPTIONS]
@@ -95,18 +127,18 @@ If you run the `cumulusci2 org list` command from inside a git repository that h
 As the instructions say, you can use the `cumulusci2 project init` command to initialize the configuration::
 
     $ cumulusci2 project init
-    Name: MyRepoName    
+    Name: MyRepoName
     Package name: My Repo Name
     Package namespace: mynamespace
-    Package api version [38.0]: 
-    Git prefix feature [feature/]: 
-    Git default branch [master]: 
-    Git prefix beta [beta/]: 
-    Git prefix release [release/]: 
-    Test namematch [%_TEST%]: 
+    Package api version [38.0]:
+    Git prefix feature [feature/]:
+    Git default branch [master]:
+    Git prefix beta [beta/]:
+    Git prefix release [release/]:
+    Test namematch [%_TEST%]:
     Your project is now initialized for use with CumulusCI
     You can use the project edit command to edit the project's config file
-    
+
     $ cat cumulusci.yml
     project:
         name: MyRepoName
@@ -145,16 +177,16 @@ Configuring the Project's Connected App
 
 Configure the Connected App in your project's keychain::
 
-    $ cumulusci2 org configure_connected_app
+    $ cumulusci2 org config_connected_app
     client_id:
     client_secret:
 
 Connecting an Org
 -----------------
- 
+
 Configuring the Connected App is a one time operation per project.  Once configured, you can start connecting Salesforce Orgs to your project's keychain::
 
-    $ cumulsci2 org connect dev
+    $ cumulusci2 org connect dev
 
     Launching web browser for URL https://login.salesforce.com/services/oauth2/authorize?response_type=code&client_id=YOUR_CLIENT_ID&redirect_uri=http://localhost:8080/callback&scope=web%20full%20refresh_token&prompt=login
     Spawning HTTP server at http://localhost:8080/callback with timeout of 300 seconds.
@@ -176,7 +208,7 @@ You can set a default org on your project which will then be used as the org for
     $ cumulusci2 org default dev
 
     dev is now the default org
-     
+
     $ cumulusci2 org list
 
     org        is_default
@@ -203,7 +235,7 @@ Part 4: Running Tasks
 Once you have some orgs connected, you can start running tasks against them.  First, you'll want to get a list of tasks available to run::
 
     $ cumulusci2 task list
-    
+
     task                            description
     ------------------------------  -------------------------------------------------------------------------------------------------------
     create_package                  Creates a package in the target org with the default package name for the project
@@ -256,10 +288,10 @@ You can view the details on an individual task::
 
     Description: Updates src/package.xml with metadata in src/
     Class: cumulusci.tasks.metadata.package.UpdatePackageXml
-    
+
     Default Option Values
         path: src
-    
+
     Option   Required  Description
     -------  --------  ----------------------------------------------------------------------------------------------
     path     *         The path to a folder of metadata to build the package.xml from
@@ -284,20 +316,20 @@ And you can run a task passing any of the options via the command line::
     $ cumulusci2 task run update_package_xml -o managed True -o output managed_package.xml
 
     INFO:UpdatePackageXml:Generating managed_package.xml from metadata in src
- 
+
 Running Tasks Against a Salesforce Org
 --------------------------------------
- 
+
 The update_package_xml task works only on local files and does not require a connection to a Salesforce org.  The deploy task uses the Metadata API to deploy the src directory to the target org and thus requires a Salesforce org.  Since we already made dev our default org, we can still just run the task against our dev org by calling it without any options::
 
     $ cumulusci2 task info deploy
 
     Description: Deploys the src directory of the repository to the org
     Class: cumulusci.tasks.salesforce.Deploy
-    
+
     Default Option Values
         path: src
-    
+
     Option  Required  Description
     ------  --------  ----------------------------------------------
     path    *         The path to the metadata source to be deployed
@@ -316,11 +348,11 @@ The update_package_xml task works only on local files and does not require a con
     INFO:Deploy:[Success]: Succeeded
 
 Now that the metadata is deployed, you can run the tests::
-    
+
     $ cumulusci2 task info run_tests
     Description: Runs all apex tests
     Class: cumulusci.tasks.salesforce.RunApexTests
-    
+
     Option             Required  Description
     -----------------  --------  ------------------------------------------------------------------------------------------------------
     test_name_exclude            Query to find Apex test classes to exclude ("%" is wildcard).  Defaults to project__test__name_exclude
@@ -331,7 +363,20 @@ Now that the metadata is deployed, you can run the tests::
     junit_output                 File name for JUnit output.  Defaults to test_results.xml
 
     $ cumulusci2 task run run_tests
-    
+    INFO:RunApexTests:Running query: SELECT Id, Name FROM ApexClass WHERE NamespacePrefix = null AND (Name LIKE '%_TEST%')
+    INFO:RunApexTests:Found 2 test classes
+    INFO:RunApexTests:Queuing tests for execution...
+    INFO:RunApexTests:Completed: 0  Processing: 0  Queued: 2
+    INFO:RunApexTests:Completed: 2  Processing: 0  Queued: 0
+    INFO:RunApexTests:Apex tests completed
+    INFO:RunApexTests:Class: SampleClass_TEST
+    INFO:RunApexTests:	Pass: fillInFirstNameTest
+    INFO:RunApexTests:Class: SamplePage_CTRL_TEST
+    INFO:RunApexTests:	Pass: getSamplesTest
+    INFO:RunApexTests:--------------------------------------------------------------------------------
+    INFO:RunApexTests:Pass: 2  Fail: 0  CompileFail: 0  Skip: 0
+    INFO:RunApexTests:--------------------------------------------------------------------------------
+
 Part 5: Flows
 =============
 
@@ -437,7 +482,7 @@ To set up our newly connected dev org, run the dev_org flow::
 
 Part 6: Digging Deeper
 ======================
-   
+
 Custom Tasks
 ------------
 
@@ -450,23 +495,23 @@ Create the file `tasks/salesforce.py` with the following content::
 
     from cumulusci.tasks.salesforce import BaseSalesforceApiTask
     from cumulusci.tasks.salesforce import BaseSalesforceToolingApiTask
-    
+
     class ListContacts(BaseSalesforceApiTask):
-    
+
         def _run_task(self):
             res = self.sf.query('Select Id, FirstName, LastName from Contact LIMIT 10')
             for contact in res['records']:
                 self.logger.info('{Id}: {FirstName} {LastName}'.format(**contact))
-    
+
     class ListApexClasses(BaseSalesforceToolingApiTask):
-    
+
         def _run_task(self):
             res = self.tooling.query('Select Id, Name, NamespacePrefix from ApexClass LIMIT 10')
             for apexclass in res['records']:
-                self.logger.info('{Id}: [{NamespacePrefix}] {Name}'.format(**apexclass)) 
+                self.logger.info('{Id}: [{NamespacePrefix}] {Name}'.format(**apexclass))
 
 Finally, wire in your new tasks by editing the cumulusci.yml file in your repo and adding the following lines::
-    
+
     tasks:
         list_contacts:
             description: Prints out 10 Contacts from the target org using the Enterprise API
@@ -476,7 +521,7 @@ Finally, wire in your new tasks by editing the cumulusci.yml file in your repo a
             class_path: tasks.salesforce.ListApexClasses
 
 Now your new tasks are available in the task list::
-    
+
     $ cumulusci2 task list
     task                            description
     ------------------------------  ---------------------------------------------------------------------------------
@@ -486,7 +531,7 @@ Now your new tasks are available in the task list::
     list_apex_classes               Prints out 10 ApexClasses from the target org using the Tooling API
 
 Run the tasks::
-    
+
     $ cumulusci2 task run list_contacts
 
     INFO:ListContacts:003j00000045WfwAAE: Siddartha Nedaerk
@@ -517,7 +562,7 @@ Further Exploration
 -------------------
 
 These will be filled out in more detail in the future but are a brief overview of commands to explore next::
- 
+
     $ cumulusci2 project connect_github
     $ cumulusci2 project connect_apextestsdb
     $ cumulusci2 project connect_mrbelvedere
@@ -532,7 +577,7 @@ The keychain class can be overridden to change storage implementations.  The def
     $ cumulusci2 org info feature
     $ cumulusci2 org info packaging
     $ cumulusci2 org info beta
-    $ cumulusci2 project show_github 
+    $ cumulusci2 project show_github
     $ export CUMULUSCI_KEYCHAIN_CLASS=cumulusci.core.keychain.EnvironmentProjectKeychain
     $ cumulusci2 org list
     $ export CUMULUSCI_CONNECTED_APP="{__COPIED_FROM_ABOVE__}"
