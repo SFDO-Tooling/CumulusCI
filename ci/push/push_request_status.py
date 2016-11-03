@@ -29,11 +29,13 @@ if __name__ == '__main__':
         interval = 10
         if push_request.status not in completed_statuses:
             print 'Push request is not yet complete.  Polling for status every %s seconds until completion...' % interval
+            sys.stdout.flush()
 
         i = 0
         while push_request.status not in completed_statuses:
             if i == 10:
                 print 'This is taking a while! Polling every 60 seconds...'
+                sys.stdout.flush()
                 interval = 60
             time.sleep(interval)
     
@@ -45,6 +47,7 @@ if __name__ == '__main__':
             push_request = push_api.get_push_request_objs("Id = '%s'" % push_request_id, limit=1)[0]
 
             print push_request.status
+            sys.stdout.flush()
             
             i += 1
 
@@ -63,6 +66,7 @@ if __name__ == '__main__':
                 cancelled_jobs.append(job)
 
         print "Push complete: %s succeeded, %s failed, %s cancelled" % (len(success_jobs),len(failed_jobs),len(cancelled_jobs))
+        sys.stdout.flush()
 
         failed_by_error = {}
         for job in failed_jobs:
@@ -78,6 +82,7 @@ if __name__ == '__main__':
             print "-----------------------------------"
             print "Failures by error type"
             print "-----------------------------------"
+            sys.stdout.flush()
             for key, errors in failed_by_error.items():
                 print "    "
                 print "%s failed with..." % (len(errors))
@@ -85,6 +90,7 @@ if __name__ == '__main__':
                 print "    Title = %s" % key[1]
                 print "    Message = %s" % key[2]
                 print "    Details = %s" % key[3]
+                sys.stdout.flush()
         
 
     except SystemExit:

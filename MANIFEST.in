@@ -1,0 +1,17 @@
+
+include AUTHORS.rst
+
+include CONTRIBUTING.rst
+include HISTORY.rst
+include LICENSE
+include README.rst
+
+recursive-include build *.xml *.jar *.xsl *.txt *.properties *.sh
+recursive-include ci *.xml *.jar *.xsl *.txt *.properties *.sh *.py
+
+recursive-include tests *
+recursive-exclude * __pycache__
+recursive-exclude * *.py[co]
+
+recursive-include docs *.rst conf.py Makefile make.bat *.jpg *.png *.gif
+recursive-include cumulusci *.xml *.jar *.xsl *.txt *.properties *.sh *.py *.yml *.report *.md
