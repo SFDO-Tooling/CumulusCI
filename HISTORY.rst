@@ -2,6 +2,11 @@
 History
 =======
 
+2.0.0-alpha15 (2016-11-3)
+------------------
+
+* Fix CLI bug in new exception handling logic
+
 2.0.0-alpha14 (2016-11-3)
 ------------------
 
