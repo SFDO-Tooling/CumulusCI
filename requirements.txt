@@ -1,4 +1,5 @@
 click==6.2
+coloredlogs==5.2
 github3.py==0.9.6
 mock
 plaintable==0.1.1

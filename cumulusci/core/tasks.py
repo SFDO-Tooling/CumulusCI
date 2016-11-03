@@ -1,4 +1,5 @@
 import logging
+import coloredlogs
 from cumulusci.core.exceptions import TaskRequiresSalesforceOrg
 from cumulusci.core.exceptions import TaskOptionsError
 
@@ -22,6 +23,18 @@ class BaseTask(object):
         """ Initializes self.logger """
         self.logger = logging.getLogger(self.__class__.__name__)
         self.logger.setLevel(logging.DEBUG)
+        self.logger.propagate = False
+
+        #import pdb; pdb.set_trace()
+        handler = logging.StreamHandler()
+        handler.setLevel(logging.DEBUG)
+
+        formatter = coloredlogs.ColoredFormatter(
+            fmt='%(asctime)s %(levelname)8s: %(message)s'
+        )
+        handler.setFormatter(formatter)
+
+        self.logger.addHandler(handler)
 
     def _init_options(self, kwargs):
         """ Initializes self.options """

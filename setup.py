@@ -21,6 +21,7 @@ with open('HISTORY.rst') as history_file:
 
 requirements = [
     'click>=6.2',
+    'coloredlogs>=5.2',
     'github3.py==0.9.6',
     'plaintable==0.1.1',
     'requests[security]>=2.9.1',
