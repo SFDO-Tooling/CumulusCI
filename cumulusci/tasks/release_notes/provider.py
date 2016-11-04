@@ -116,15 +116,19 @@ class GithubChangeNotesProvider(BaseChangeNotesProvider, ProviderGithubApiMixin)
 
     @property
     def end_date(self):
-        tag_date = self.last_tag_info['tag']['tagger']['date']
-        return datetime.strptime(tag_date, "%Y-%m-%dT%H:%M:%SZ")
+        if self.last_tag_info and self.last_tag_info.get('tag'):
+            tag_date = self.last_tag_info['tag']['tagger']['date']
+            return datetime.strptime(tag_date, "%Y-%m-%dT%H:%M:%SZ")
 
     def _get_tag_info(self, tag):
         tag_info = {
             'ref': self.call_api('/git/refs/tags/{}'.format(tag)),
         }
-        tag_info['tag'] = self.call_api(
-            '/git/tags/{}'.format(tag_info['ref']['object']['sha']))
+        try:
+            tag_info['tag'] = self.call_api(
+                '/git/tags/{}'.format(tag_info['ref']['object']['sha']))
+        except GithubApiNotFoundError:
+            tag_info['tag'] = None
         return tag_info
 
     def _get_version_from_tag(self, tag):
