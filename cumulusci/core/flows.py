@@ -10,11 +10,11 @@ class BaseFlow(object):
         self.project_config = project_config
         self.flow_config = flow_config
         self.org_config = org_config
-        self.responses = [] 
+        self.responses = []
         self.tasks = []
         self._init_logger()
         self._init_flow()
-    
+
     def _init_logger(self):
         """ Initializes self.logger """
         self.logger = logging.getLogger(self.__class__.__name__)
@@ -40,8 +40,8 @@ class BaseFlow(object):
         self.logger.info('---------------------------------------')
         for line in self._render_config():
             self.logger.info(line)
-   
-    def _render_config(self): 
+
+    def _render_config(self):
         config = []
         config.append('Flow Description: {}'.format(self.flow_config.description))
 
@@ -55,7 +55,7 @@ class BaseFlow(object):
                 task_info['task'],
                 task_config.description,
             ))
-      
+
         return config
 
     def __call__(self):
@@ -96,27 +96,35 @@ class BaseFlow(object):
 
 
         task_class = import_class(task_config.class_path)
-       
-        self.logger.info('') 
+
+        self.logger.info('')
         self.logger.info(
             'Running task: {}'.format(
-                flow_task_config['task'], 
+                flow_task_config['task'],
             )
-        )    
+        )
 
         task = task_class(
-            self.project_config, 
-            task_config, 
+            self.project_config,
+            task_config,
             org_config = self.org_config,
         )
         self.tasks.append(task)
 
         for line in self._render_task_config(task):
             self.logger.info(line)
-        
-        response = task()
-        self.responses.append(response)
-        return response
+
+        try:
+            response = task()
+            self.logger.info('Task complete: {}'.format(flow_task_config['task']))
+            self.responses.append(response)
+            return response
+        except:
+            self.logger.error('Task failed: {}'.format(flow_task_config['task']))
+            if not task.proceed_after_failure:
+                self.logger.info('Aborting flow')
+                raise
+            self.logger.info('Continuing flow')
 
     def _render_task_config(self, task):
         config = ['Options:']
@@ -128,5 +136,5 @@ class BaseFlow(object):
                 option_name,
                 task.options.get(option_name),
             ))
-        
+
         return config

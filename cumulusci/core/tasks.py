@@ -6,6 +6,7 @@ from cumulusci.core.exceptions import TaskOptionsError
 class BaseTask(object):
     task_options = {}
     salesforce_task = False  # Does this task require a salesforce org?
+    proceed_after_failure = False  # Should a failure cause the flow to fail?
 
     def __init__(self, project_config, task_config, org_config=None, **kwargs):
         self.project_config = project_config
