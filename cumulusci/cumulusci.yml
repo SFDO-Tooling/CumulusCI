@@ -183,7 +183,11 @@ tasks:
         class_path: cumulusci.tasks.salesforce.PackageUpload
         options:
             production: True
-
+    util_sleep:
+        description: Sleeps for N seconds
+        class_path: cumulusci.tasks.util.Sleep
+        options:
+            seconds: 5
 
 flows:
     dev_org:
@@ -241,6 +245,7 @@ flows:
             - task: github_release
               options:
                   version: ^^upload_beta.version_number
+            - task: util_sleep
             - task: github_release_notes
               options:
                   publish: True
