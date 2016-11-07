@@ -168,17 +168,12 @@ class BaseMetadataApiCall(object):
             faultstring = response.content
         if faultcode == 'sf:INVALID_SESSION_ID' and self.task.org_config and self.task.org_config.refresh_token:
             # Attempt to refresh token and recall request
-            sandbox = self.task.org_config.get('sandbox', False)
-            sf = SalesforceOAuth2(
-                self.client_id, self.client_secret, self.callback_url, sandbox=sandbox)
-            refresh_response = sf.refresh_token(
-                self.task.org_config.refresh_token)
-            if refresh_response.get('access_token', None):
-                # Set the new token in the session
-                self.task.org_config.config.update(refresh_response)
-                self.task.project_config.keychain.save()
-                if refresh:
-                    return self._call_mdapi(headers, envelope, refresh=False)
+            self.org_config.refresh_oauth_token()
+            if refresh:
+                return self._call_mdapi(headers, envelope, refresh=False)
+
+
+
         # Log the error on the PackageInstallation
         self._set_status('Failed', '%s: %s' % (faultcode, faultstring))
         # No automated error handling possible, return back the raw response
