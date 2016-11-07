@@ -168,12 +168,9 @@ class BaseMetadataApiCall(object):
             faultstring = response.content
         if faultcode == 'sf:INVALID_SESSION_ID' and self.task.org_config and self.task.org_config.refresh_token:
             # Attempt to refresh token and recall request
-            self.org_config.refresh_oauth_token()
             if refresh:
+                self.org_config.refresh_oauth_token()
                 return self._call_mdapi(headers, envelope, refresh=False)
-
-
-
         # Log the error on the PackageInstallation
         self._set_status('Failed', '%s: %s' % (faultcode, faultstring))
         # No automated error handling possible, return back the raw response
