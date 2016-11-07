@@ -213,6 +213,8 @@ flows:
         tasks:
             - task: update_dependencies
             - task: deploy_pre
+            - task: uninstall_packaged_incremental
+              ignore_failure: True
             - task: update_package_xml_managed
             - task: create_managed_src
             - task: deploy
@@ -280,6 +282,6 @@ project:
         name_match: '%_TEST%'
     apexdoc:
         url: https://github.com/SalesforceFoundation/ApexDoc/releases/download/1.7/apexdoc.jar
-        homepage: 
-        banner: 
+        homepage:
+        banner:
     dependencies:
