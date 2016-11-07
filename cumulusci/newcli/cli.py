@@ -62,10 +62,11 @@ class CliConfig(object):
 
     def _load_keychain(self):
         self.keychain_key = os.environ.get('CUMULUSCI_KEY')
-        if self.project_config and self.keychain_key:
-            keychain_class = os.environ.get('CUMULUSCI_KEYCHAIN_CLASS')
-            if not keychain_class:
-                keychain_class = self.project_config.cumulusci__keychain
+        if self.project_config:
+            keychain_class = os.environ.get(
+                'CUMULUSCI_KEYCHAIN_CLASS',
+                self.project_config.cumulusci__keychain,
+            )
             self.keychain_class = import_class(keychain_class)
             self.keychain = self.keychain_class(self.project_config, self.keychain_key)
             self.project_config.set_keychain(self.keychain)
@@ -87,7 +88,7 @@ def check_connected_app(config):
 
 def check_keychain(config):
     check_project_config(config)
-    if not config.keychain_key:
+    if config.project_config.keychain and config.project_config.keychain.encrypted and not config.keychain_key:
         raise click.UsageError('You must set the environment variable CUMULUSCI_KEY with the encryption key to be used for storing org credentials')
 
 def check_project_config(config):
