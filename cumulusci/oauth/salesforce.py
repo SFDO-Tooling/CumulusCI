@@ -8,6 +8,7 @@ from urlparse import urlparse
 import webbrowser
 
 from cumulusci.oauth.exceptions import SalesforceOAuthError
+from cumulusci.oauth.exceptions import RequestOauthTokenError
 
 HTTP_HEADERS = {'Content-Type': 'application/x-www-form-urlencoded'}
 
@@ -31,6 +32,9 @@ class SalesforceOAuth2(object):
         }
         data.update(request_data)
         response = requests.post(url, headers=HTTP_HEADERS, data=data)
+        if response.status_code >= httplib.BAD_REQUEST:
+            message = '{}: {}'.format(response.status_code, response.content)
+            raise RequestOauthTokenError(message, response)
         return response
 
     def get_authorize_url(self, scope, prompt=None):
