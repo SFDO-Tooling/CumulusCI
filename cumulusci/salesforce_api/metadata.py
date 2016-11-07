@@ -21,7 +21,7 @@ import requests
 
 from cumulusci.oauth.salesforce import SalesforceOAuth2
 from cumulusci.salesforce_api import soap_envelopes
-
+from cumulusci.salesforce_api.exceptions import MetadataApiError
 
 
 class BaseMetadataApiCall(object):
@@ -172,9 +172,9 @@ class BaseMetadataApiCall(object):
                 self.org_config.refresh_oauth_token()
                 return self._call_mdapi(headers, envelope, refresh=False)
         # Log the error on the PackageInstallation
-        self._set_status('Failed', '%s: %s' % (faultcode, faultstring))
-        # No automated error handling possible, return back the raw response
-        return response
+        message = '{}: {}'.format(faultcode, faultstring)
+        self._set_status('Failed', message)
+        raise MetadataApiError(message, response)
 
     def _process_response(self, response):
         return response
