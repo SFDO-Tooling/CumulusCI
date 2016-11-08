@@ -21,7 +21,7 @@ import requests
 
 from cumulusci.oauth.salesforce import SalesforceOAuth2
 from cumulusci.salesforce_api import soap_envelopes
-
+from cumulusci.salesforce_api.exceptions import MetadataApiError
 
 
 class BaseMetadataApiCall(object):
@@ -76,7 +76,7 @@ class BaseMetadataApiCall(object):
     def _build_headers(self, action, message):
         return {
             'Content-Type': 'text/xml; charset=UTF-8',
-            'Content-Length': len(message),
+            'Content-Length': str(len(message)),
             'SOAPAction': action,
         }
 
@@ -168,21 +168,13 @@ class BaseMetadataApiCall(object):
             faultstring = response.content
         if faultcode == 'sf:INVALID_SESSION_ID' and self.task.org_config and self.task.org_config.refresh_token:
             # Attempt to refresh token and recall request
-            sandbox = self.task.org_config.get('sandbox', False)
-            sf = SalesforceOAuth2(
-                self.client_id, self.client_secret, self.callback_url, sandbox=sandbox)
-            refresh_response = sf.refresh_token(
-                self.task.org_config.refresh_token)
-            if refresh_response.get('access_token', None):
-                # Set the new token in the session
-                self.task.org_config.config.update(refresh_response)
-                self.task.project_config.keychain.save()
-                if refresh:
-                    return self._call_mdapi(headers, envelope, refresh=False)
+            if refresh:
+                self.org_config.refresh_oauth_token()
+                return self._call_mdapi(headers, envelope, refresh=False)
         # Log the error on the PackageInstallation
-        self._set_status('Failed', '%s: %s' % (faultcode, faultstring))
-        # No automated error handling possible, return back the raw response
-        return response
+        message = '{}: {}'.format(faultcode, faultstring)
+        self._set_status('Failed', message)
+        raise MetadataApiError(message, response)
 
     def _process_response(self, response):
         return response

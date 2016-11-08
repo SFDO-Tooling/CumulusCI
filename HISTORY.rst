@@ -2,6 +2,17 @@
 History
 =======
 
+2.0.0-alpha16 (2016-11-3)
+------------------
+
+* Fix bug in SOAP calls to MDAPI with newer versions of the requests library
+* This version was used to record the demo screencast: https://asciinema.org/a/91555
+
+2.0.0-alpha15 (2016-11-3)
+------------------
+
+* Fix CLI bug in new exception handling logic
+
 2.0.0-alpha14 (2016-11-3)
 ------------------
 

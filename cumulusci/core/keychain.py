@@ -16,6 +16,8 @@ from cumulusci.core.exceptions import KeychainConnectedAppNotFound
 from cumulusci.oauth.salesforce import SalesforceOAuth2
 
 class BaseProjectKeychain(BaseConfig):
+    encrypted = False
+
     def __init__(self, project_config, key):
         super(BaseProjectKeychain, self).__init__()
         self.config = {
@@ -134,6 +136,7 @@ class BaseProjectKeychain(BaseConfig):
 
 class EnvironmentProjectKeychain(BaseProjectKeychain):
     """ A project keychain that stores org credentials in environment variables """ 
+    encrypted = False
     org_var_prefix = 'CUMULUSCI_ORG_'
     app_var = 'CUMULUSCI_CONNECTED_APP'
     service_var_prefix = 'CUMULUSCI_SERVICE_'
@@ -165,6 +168,7 @@ unpad = lambda s : s[0:-ord(s[-1])]
 
 class BaseEncryptedProjectKeychain(BaseProjectKeychain):
     """ Base class for building project keychains that use AES encryption for securing stored org credentials """
+    encrypted = True
 
     def _set_connected_app(self, app_config):
         encrypted = self._encrypt_config(app_config)
