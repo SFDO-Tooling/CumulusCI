@@ -14,11 +14,13 @@ HTTP_HEADERS = {'Content-Type': 'application/x-www-form-urlencoded'}
 
 class SalesforceOAuth2(object):
 
-    def __init__(self, client_id, client_secret, callback_url, sandbox):
+    def __init__(self, client_id, client_secret, callback_url, sandbox=None, instance_url=None):
         self.client_id = client_id
         self.client_secret = client_secret
         self.callback_url = callback_url
-        if sandbox:
+        if instance_url:
+            self.auth_site = instance_url
+        elif sandbox:
             self.auth_site = 'https://test.salesforce.com'
         else:
             self.auth_site = 'https://login.salesforce.com'
@@ -135,7 +137,7 @@ class CaptureSalesforceOAuth(object):
             self.client_id,
             self.client_secret,
             self.callback_url,
-            self.sandbox,
+            sandbox = self.sandbox,
         )
 
     def _get_redirect_url(self):
