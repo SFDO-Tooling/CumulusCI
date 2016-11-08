@@ -15,7 +15,9 @@ HTTP_HEADERS = {'Content-Type': 'application/x-www-form-urlencoded'}
 
 class SalesforceOAuth2(object):
 
-    def __init__(self, client_id, client_secret, callback_url, auth_site='https://login.salesforce.com'):
+    def __init__(self, client_id, client_secret, callback_url, auth_site=None):
+        if auth_site == None:
+            auth_site = 'https://login.salesforce.com'
         self.client_id = client_id
         self.client_secret = client_secret
         self.callback_url = callback_url

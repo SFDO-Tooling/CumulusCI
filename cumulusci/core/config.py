@@ -316,8 +316,7 @@ class OrgConfig(BaseConfig):
         sf_oauth = SalesforceOAuth2(
             connected_app.client_id,
             connected_app.client_secret,
-            connected_app.callback_url,
-            False
+            connected_app.callback_url
         )
         resp = sf_oauth.refresh_token(self.refresh_token).json()
         if resp != self.config:

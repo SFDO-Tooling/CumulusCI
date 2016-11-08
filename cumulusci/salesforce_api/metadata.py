@@ -19,7 +19,6 @@ from zipfile import ZipFile
 
 import requests
 
-from cumulusci.oauth.salesforce import SalesforceOAuth2
 from cumulusci.salesforce_api import soap_envelopes
 from cumulusci.salesforce_api.exceptions import MetadataApiError
 

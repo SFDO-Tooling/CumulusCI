@@ -13,7 +13,6 @@ from cumulusci.core.config import ServiceConfig
 from cumulusci.core.exceptions import OrgNotFound
 from cumulusci.core.exceptions import ServiceNotConfigured
 from cumulusci.core.exceptions import KeychainConnectedAppNotFound
-from cumulusci.oauth.salesforce import SalesforceOAuth2
 
 class BaseProjectKeychain(BaseConfig):
     encrypted = False
