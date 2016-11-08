@@ -121,7 +121,7 @@ class BaseFlow(object):
             return response
         except:
             self.logger.error('Task failed: {}'.format(flow_task_config['task']))
-            if not task.proceed_after_failure:
+            if not flow_task_config.get('ignore_failure'):
                 self.logger.info('Aborting flow')
                 raise
             self.logger.info('Continuing flow')
