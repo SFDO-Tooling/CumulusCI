@@ -19,7 +19,7 @@ class TestCaptureSalesforceOAuth(unittest.TestCase):
             self.client_id,
             self.client_secret,
             self.callback_url,
-            self.sandbox,
+            self.auth_site,
             self.scope,
         )
 
@@ -27,8 +27,8 @@ class TestCaptureSalesforceOAuth(unittest.TestCase):
         self.client_id = 'foo_id'
         self.client_secret = 'foo_secret'
         self.callback_url = 'http://localhost:8080'
-        self.sandbox = False
         self.scope = 'refresh_token web full'
+        self.auth_site = 'https://login.salesforce.com'
 
     @responses.activate
     def test_oauth_flow(self):

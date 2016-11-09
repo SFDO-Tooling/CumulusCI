@@ -15,16 +15,13 @@ HTTP_HEADERS = {'Content-Type': 'application/x-www-form-urlencoded'}
 
 class SalesforceOAuth2(object):
 
-    def __init__(self, client_id, client_secret, callback_url, sandbox=None, instance_url=None):
+    def __init__(self, client_id, client_secret, callback_url, auth_site=None):
+        if auth_site == None:
+            auth_site = 'https://login.salesforce.com'
         self.client_id = client_id
         self.client_secret = client_secret
         self.callback_url = callback_url
-        if instance_url:
-            self.auth_site = instance_url
-        elif sandbox:
-            self.auth_site = 'https://test.salesforce.com'
-        else:
-            self.auth_site = 'https://login.salesforce.com'
+        self.auth_site = auth_site
 
     def _request_token(self, request_data):
         url = self.auth_site + '/services/oauth2/token'
@@ -98,11 +95,11 @@ class OAuthCallbackHandler(BaseHTTPRequestHandler):
 
 class CaptureSalesforceOAuth(object):
 
-    def __init__(self, client_id, client_secret, callback_url, sandbox, scope):
+    def __init__(self, client_id, client_secret, callback_url, auth_site, scope):
         self.client_id = client_id
         self.client_secret = client_secret
         self.callback_url = callback_url
-        self.sandbox = sandbox
+        self.auth_site = auth_site
         self.httpd = None
         self.oauth_api = self._get_oauth_api()
         self.response = None
@@ -141,7 +138,11 @@ class CaptureSalesforceOAuth(object):
             self.client_id,
             self.client_secret,
             self.callback_url,
+<<<<<<< HEAD
             sandbox = self.sandbox,
+=======
+            self.auth_site,
+>>>>>>> 0d49e7e1835b2473f4dcaaf9f05b347224c6983f
         )
 
     def _get_redirect_url(self):
