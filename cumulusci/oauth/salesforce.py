@@ -138,11 +138,7 @@ class CaptureSalesforceOAuth(object):
             self.client_id,
             self.client_secret,
             self.callback_url,
-<<<<<<< HEAD
-            sandbox = self.sandbox,
-=======
             self.auth_site,
->>>>>>> 0d49e7e1835b2473f4dcaaf9f05b347224c6983f
         )
 
     def _get_redirect_url(self):
