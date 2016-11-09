@@ -88,6 +88,9 @@ tasks:
         class_path: cumulusci.tasks.push.tasks.SchedulePushOrgList
         options:
             orgs: push/orgs_trial.txt
+    query:
+        description: Queries the connected org
+        class_path: cumulusci.tasks.salesforce.SOQLQuery
     retrieve_packaged:
         description: Retrieves the packaged metadata from the org
         class_path: cumulusci.tasks.salesforce.RetrievePackaged
