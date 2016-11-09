@@ -355,17 +355,20 @@ def org_browser(config, org_name):
 @click.command(name='connect', help="Connects a new org's credentials using OAuth Web Flow")
 @click.argument('org_name')
 @click.option('--sandbox', is_flag=True, help="If set, connects to a Salesforce sandbox org")
+@click.option('--login-url', help='If set, login to this hostname.', default= 'https://login.salesforce.com')
 @pass_config
-def org_connect(config, org_name, sandbox):
+def org_connect(config, org_name, sandbox, login_url):
     check_connected_app(config)
 
     connected_app = config.keychain.get_connected_app()
+    if sandbox:
+        login_url = 'https://test.salesforce.com'
 
     oauth_capture = CaptureSalesforceOAuth(
         client_id = connected_app.client_id,
         client_secret = connected_app.client_secret,
         callback_url = connected_app.callback_url,
-        sandbox = sandbox,
+        auth_site = login_url,
         scope = 'web full refresh_token'
     )
     oauth_dict = oauth_capture()
