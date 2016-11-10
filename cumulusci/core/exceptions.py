@@ -58,3 +58,11 @@ class MrbelvedereNotConfigured(CumulusCIException):
 class ApexTestsDBNotConfigured(CumulusCIException):
     """ Raise when attempting to get the ApexTestsDB configuration from the keychain and no configuration is set """
     pass
+
+class TaskNotFoundError(CumulusCIException):
+    """ Raise when task is not found in project config """
+    pass
+
+class FlowNotFoundError(CumulusCIException):
+    """ Raise when flow is not found in project config """
+    pass
