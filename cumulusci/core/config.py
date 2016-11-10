@@ -1,8 +1,11 @@
 import base64
+import logging
 import os
 import pickle
 
+import coloredlogs
 import hiyapyco
+import sarge
 import yaml
 
 from distutils.version import LooseVersion
@@ -28,7 +31,24 @@ class BaseConfig(object):
             self.config = {}
         else:
             self.config = config
+        self._init_logger()
         self._load_config()
+
+    def _init_logger(self):
+        """ Initializes self.logger """
+        self.logger = logging.getLogger(self.__class__.__name__)
+        self.logger.setLevel(logging.DEBUG)
+        self.logger.propagate = False
+
+        handler = logging.StreamHandler()
+        handler.setLevel(logging.DEBUG)
+
+        formatter = coloredlogs.ColoredFormatter(
+            fmt='%(asctime)s: %(message)s'
+        )
+        handler.setFormatter(formatter)
+
+        self.logger.addHandler(handler)
 
     def _load_config(self):
         """ Performs the logic to initialize self.config """
@@ -36,6 +56,8 @@ class BaseConfig(object):
 
     def __getattr__(self, name):
         tree = name.split('__')
+        if name.startswith('_'):
+            raise AttributeError('Attribute {} not found'.format(name))
         value = None
         value_found = False
         for attr in self.search_path:
@@ -313,10 +335,16 @@ class OrgConfig(BaseConfig):
     """ Salesforce org configuration (i.e. org credentials) """
 
     def refresh_oauth_token(self, connected_app):
+        client_id = self.client_id
+        client_secret = self.client_secret
+        if not client_id:
+            client_id = connected_app.client_id
+            client_secret = connected_app.client_secret
         sf_oauth = SalesforceOAuth2(
-            connected_app.client_id,
-            connected_app.client_secret,
-            connected_app.callback_url
+            client_id,
+            client_secret,
+            connected_app.callback_url, # Callback url isn't really used for this call
+            auth_site=self.auth_site,
         )
         resp = sf_oauth.refresh_token(self.refresh_token).json()
         if resp != self.config:
@@ -330,6 +358,107 @@ class OrgConfig(BaseConfig):
     @property
     def user_id(self):
         return self.id.split('/')[-1]
+
+    @property
+    def org_id(self):
+        return self.id.split('/')[-2]
+
+class ScratchOrgConfig(OrgConfig):
+    """ Salesforce DX Scratch org configuration """
+    
+    @property
+    def scratch_info(self):
+        if hasattr(self, '_scratch_info'):
+            return self._scratch_info
+        
+        # Create the org if it hasn't already been created
+        if not self.created:
+            self.create_org()
+
+        self.logger.info('Getting scratch org info from Salesforce DX')
+
+        # Call force:org:open and parse output to get instance_url and access_token
+        proc = sarge.Command('heroku force:org:open -d', stdout=sarge.Capture(buffer_size=-1))
+        proc.run()
+
+        org_info = None
+        for line in proc.stdout:
+            if line.startswith('Access org'):
+                org_info = line.strip()
+                break
+
+        if proc.returncode:
+            # FIXME: raise exception
+            self.logger.error(proc.stdout)
+            return
+
+        if not org_info:
+            self.logger.error('Did not find org info in command output:\n'.format(proc.stdout))
+            #FIXME: raise exception
+            return
+
+        # OrgID is the third word of the output
+        org_id = org_info.split(' ')[2]
+
+        info_parts = org_info.split('following URL: ')
+        if len(info_parts) == 1:
+            self.logger.error('Did not find org info in command output:\n'.format(proc.stdout))
+            #FIXME: raise exception
+            return
+
+        instance_url, access_token = info_parts[1].split('/secur/frontdoor.jsp?sid=')
+        self._scratch_info = {
+            'instance_url': instance_url,
+            'access_token': access_token,
+            'org_id': org_id,
+        }
+
+        return self._scratch_info
+
+    @property
+    def access_token(self):
+        return self.scratch_info['access_token']
+
+    @property
+    def instance_url(self):
+        return self.scratch_info['instance_url']
+
+    @property
+    def org_id(self):
+        return self.scratch_info['org_id']
+
+    def create_org(self):
+        """ Uses heroku force:org:create to create the org """
+        if not self.config_file:
+            # FIXME: raise exception
+            return
+        if not self.scratch_org_type:
+            self.config['scratch_org_type'] = 'workspace'
+            return
+        
+        command = 'heroku force:org:create -t {} -f {}'.format(self.scratch_org_type, self.config_file)
+        self.logger.info('Creating scratch org with command {}'.format(command))
+        p = sarge.Command(command, stdout=sarge.Capture(buffer_size=-1))
+        p.run()
+
+        org_info = None
+        for line in p.stdout:
+            self.logger.info(line)
+
+        if p.returncode:
+            # FIXME: raise exception
+            raise ConfigError('Failed to create scratch org: {}'.format(p.stdout))
+
+        # Flag that this org has been created
+        self.config['created'] = True
+
+    def refresh_oauth_token(self, connected_app):
+        """ Use heroku force:org:open to refresh token instead of built in OAuth handling """
+        if hasattr(self, '_scratch_info'):
+            del self._scratch_info
+        # This triggers a refresh
+        self.scratch_info
+    
 
 class ServiceConfig(BaseConfig):
     """ Github configuration """

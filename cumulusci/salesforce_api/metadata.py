@@ -45,7 +45,7 @@ class BaseMetadataApiCall(object):
 
     def _build_endpoint_url(self):
         # Parse org id from id which ends in /ORGID/USERID
-        org_id = self.task.org_config.id.split('/')[-2]
+        org_id = self.task.org_config.org_id
         # If "My Domain" is configured in the org, the instance_url needs to be
         # parsed differently
         instance_url = self.task.org_config.instance_url

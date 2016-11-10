@@ -25,7 +25,6 @@ class BaseTask(object):
         self.logger.setLevel(logging.DEBUG)
         self.logger.propagate = False
 
-        #import pdb; pdb.set_trace()
         handler = logging.StreamHandler()
         handler.setLevel(logging.DEBUG)
 

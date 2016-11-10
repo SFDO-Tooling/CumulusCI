@@ -9,6 +9,7 @@ from Crypto.Cipher import AES
 from cumulusci.core.config import BaseConfig
 from cumulusci.core.config import ConnectedAppOAuthConfig
 from cumulusci.core.config import OrgConfig
+from cumulusci.core.config import ScratchOrgConfig
 from cumulusci.core.config import ServiceConfig
 from cumulusci.core.exceptions import OrgNotFound
 from cumulusci.core.exceptions import ServiceNotConfigured
@@ -69,6 +70,8 @@ class BaseProjectKeychain(BaseConfig):
         return self.app
 
     def set_org(self, name, org_config):
+        if isinstance(org_config, ScratchOrgConfig):
+            org_config.config['scratch'] = True
         self._set_org(name, org_config)
         self._load_keychain()
 
@@ -153,7 +156,11 @@ class EnvironmentProjectKeychain(BaseProjectKeychain):
     def _load_keychain_orgs(self):
         for key, value in os.environ.items():
             if key.startswith(self.org_var_prefix):
-                self.orgs[key[len(self.org_var_prefix):]] = OrgConfig(json.loads(value))
+                org_config = json.loads(value)
+                if org_config.get('scratch'):
+                    self.orgs[key[len(self.org_var_prefix):]] = ScratchOrgConfig(json.loads(value))
+                else:
+                    self.orgs[key[len(self.org_var_prefix):]] = OrgConfig(json.loads(value))
 
     def _load_keychain_services(self):
         for key, value in os.environ.items():
@@ -211,7 +218,8 @@ class BaseEncryptedProjectKeychain(BaseProjectKeychain):
         pickled = pad(pickled)
         #pickled = base64.b64encode(pickled)
         cipher, iv = self._get_cipher()
-        return base64.b64encode(iv + cipher.encrypt(pickled))
+        encrypted = base64.b64encode(iv + cipher.encrypt(pickled))
+        return encrypted
 
     def _decrypt_config(self, config_class, encrypted_config):
         if not encrypted_config:
@@ -220,6 +228,9 @@ class BaseEncryptedProjectKeychain(BaseProjectKeychain):
         iv = encrypted_config[:16]
         cipher, iv = self._get_cipher(iv)
         pickled = cipher.decrypt(encrypted_config[16:])
+        config_dict = pickle.loads(pickled)
+        if config_dict.get('scratch'):
+            config_class = ScratchOrgConfig
         return config_class(pickle.loads(pickled))
 
 class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):

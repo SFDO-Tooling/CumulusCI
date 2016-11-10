@@ -11,6 +11,7 @@ import cumulusci
 from cumulusci.core.config import ConnectedAppOAuthConfig
 from cumulusci.core.config import FlowConfig
 from cumulusci.core.config import OrgConfig
+from cumulusci.core.config import ScratchOrgConfig
 from cumulusci.core.config import ServiceConfig
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.config import YamlGlobalConfig
@@ -413,6 +414,25 @@ def org_list(config):
     table = Table(data, headers)
     click.echo(table)
 
+@click.command(name='scratch', help="Connects a Salesforce DX Scratch Org to the keychain")
+@click.argument('config_name')
+@click.argument('org_name')
+@pass_config
+def org_scratch(config, config_name, org_name):
+    check_connected_app(config)
+  
+    scratch_configs = getattr(config.project_config, 'orgs__scratch')
+    if not scratch_configs:
+        raise click.UsageError( 'No scratch org configs found in cumulusci.yml')
+    scratch_config = scratch_configs.get(config_name)
+    if not scratch_config:
+        raise click.UsageError(
+            'No scratch org config named {} found in the cumulusci.yml file'.format(config_name)
+        )
+
+    org_config = ScratchOrgConfig(scratch_config) 
+    config.keychain.set_org(org_name, org_config)
+
 @click.command(name='connected_app', help="Displays the ConnectedApp info used for OAuth connections")
 @pass_config
 def org_connected_app(config):
@@ -436,12 +456,13 @@ def org_config_connected_app(config, client_id, client_secret, callback_url):
     config.keychain.set_connected_app(app_config)
 
 org.add_command(org_browser)
+org.add_command(org_config_connected_app)
 org.add_command(org_connect)
+org.add_command(org_connected_app)
 org.add_command(org_default)
 org.add_command(org_info)
 org.add_command(org_list)
-org.add_command(org_connected_app)
-org.add_command(org_config_connected_app)
+org.add_command(org_scratch)
 
 # Commands for group: task
 @click.command(name='list', help="List available tasks for the current context")
@@ -549,6 +570,9 @@ def task_run(config, task_name, org, o):
     except Exception as e:
         raise click.ClickException('{}: {}'.format(e.__class__.__name__, unicode(e)))
 
+    # Save the org config in case it was modified in the task
+    config.keychain.set_org(org, org_config)
+
 # Add the task commands to the task group
 task.add_command(task_list)
 task.add_command(task_info)
@@ -612,6 +636,9 @@ def flow_run(config, flow_name, org):
         raise click.UsageError(e.message)
     except Exception as e:
         raise click.ClickException('{}: {}'.format(e.__class__.__name__, e.message))
+
+    # Save the org config in case it was modified in a task
+    config.keychain.set_org(org, org_config)
 
 flow.add_command(flow_list)
 flow.add_command(flow_info)
