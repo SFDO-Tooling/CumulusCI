@@ -16,11 +16,13 @@ from cumulusci.core.config import ServiceConfig
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.config import YamlGlobalConfig
 from cumulusci.core.config import YamlProjectConfig
+from cumulusci.core.exceptions import FlowNotFoundError
 from cumulusci.core.exceptions import KeychainConnectedAppNotFound
 from cumulusci.core.exceptions import KeychainKeyNotFound
 from cumulusci.core.exceptions import NotInProject
 from cumulusci.core.exceptions import ProjectConfigNotFound
 from cumulusci.core.exceptions import ServiceNotConfigured
+from cumulusci.core.exceptions import TaskNotFoundError
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.exceptions import TaskRequiresSalesforceOrg
 from cumulusci.core.utils import import_class
@@ -482,6 +484,8 @@ def task_list(config):
 def task_info(config, task_name):
     check_project_config(config)
     task_config = getattr(config.project_config, 'tasks__{}'.format(task_name))
+    if not task_config:
+        raise TaskNotFoundError('Task not found: {}'.format(task_name))
     class_path = task_config.get('class_path')
     task_class = import_class(class_path)
 
@@ -526,6 +530,8 @@ def task_run(config, task_name, org, o):
     else:
         org_config = config.project_config.keychain.get_default_org()
     task_config = getattr(config.project_config, 'tasks__{}'.format(task_name))
+    if not task_config:
+        raise TaskNotFoundError('Task not found: {}'.format(task_name))
 
     # Get the class to look up options
     class_path = task_config.get('class_path')
@@ -596,7 +602,10 @@ def flow_list(config):
 @pass_config
 def flow_info(config, flow_name):
     check_project_config(config)
-    click.echo(pretty_dict(getattr(config.project_config, 'flows__{}'.format(flow_name))))
+    flow = getattr(config.project_config, 'flows__{}'.format(flow_name))
+    if not flow:
+        raise FlowNotFoundError('Flow not found: {}'.format(flow_name))
+    click.echo(pretty_dict(flow))
 
 @click.command(name='run', help="Runs a flow")
 @click.argument('flow_name')
@@ -611,11 +620,12 @@ def flow_run(config, flow_name, org):
         org_config = config.project_config.get_org(org)
     else:
         org_config = config.project_config.keychain.get_default_org()
-    flow_config = FlowConfig(
-        getattr(config.project_config, 'flows__{}'.format(flow_name))
-    )
+    flow = getattr(config.project_config, 'flows__{}'.format(flow_name))
+    if not flow:
+        raise FlowNotFoundError('Flow not found: {}'.format(flow_name))
+    flow_config = FlowConfig(flow)
     if not flow_config.config:
-        raise click.UsageError('No configuration fould for flow {}'.format(flow_name))
+        raise click.UsageError('No configuration found for flow {}'.format(flow_name))
 
     # Get the class to look up options
     class_path = flow_config.config.get('class_path', 'cumulusci.core.flows.BaseFlow')
