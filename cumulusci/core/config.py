@@ -370,7 +370,7 @@ class ScratchOrgConfig(OrgConfig):
     def scratch_info(self):
         if hasattr(self, '_scratch_info'):
             return self._scratch_info
-        
+      
         # Create the org if it hasn't already been created
         if not self.created:
             self.create_org()
@@ -434,7 +434,6 @@ class ScratchOrgConfig(OrgConfig):
             return
         if not self.scratch_org_type:
             self.config['scratch_org_type'] = 'workspace'
-            return
         
         command = 'heroku force:org:create -t {} -f {}'.format(self.scratch_org_type, self.config_file)
         self.logger.info('Creating scratch org with command {}'.format(command))
