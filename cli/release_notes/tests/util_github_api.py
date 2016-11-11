@@ -5,6 +5,7 @@ from datetime import timedelta
 
 import responses
 
+date_format = '%Y-%m-%dT%H:%M:%SZ'
 
 class GithubApiTestMixin(object):
     """ Mixin that provide common values and mocked http responses for tests of code that talks to the Github API """
@@ -40,20 +41,19 @@ class GithubApiTestMixin(object):
             }
         }
 
-    def _get_expected_tag(self, tag, sha, tag_date=None):
+    def _get_expected_tag(self, tag, tag_sha, commit_sha, tag_date=None):
         if not tag_date:
             tag_date = datetime.now()
 
-        tag_date = datetime.strftime(tag_date, "%Y-%m-%dT%H:%M:%SZ")
-
+        tag_date = datetime.strftime(tag_date, date_format)
         return {
             'tag': tag,
-            'sha': sha,
+            'sha': tag_sha,
             'tagger': {
                 'date': tag_date,
             },
             'object': {
-                'sha': sha,
+                'sha': commit_sha,
             },
         }
 
@@ -64,7 +64,7 @@ class GithubApiTestMixin(object):
     def _get_expected_pull_request(self, pull_id, issue_number, body, merged_date=None):
         if merged_date:
             state = 'closed'
-            merged_date = datetime.strftime(merged_date, "%Y-%m-%dT%H:%M:%SZ")
+            merged_date = datetime.strftime(merged_date, date_format)
         else:
             state = 'open'
 
