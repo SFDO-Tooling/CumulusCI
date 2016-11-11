@@ -98,6 +98,8 @@ class GithubChangeNotesProvider(BaseChangeNotesProvider, ProviderGithubApiMixin)
     def current_tag_info(self):
         if not hasattr(self, '_current_tag_info'):
             self._current_tag_info = self._get_tag_info(self.current_tag)
+            self._current_tag_info['commit'] = self._get_commit_info(
+                self._current_tag_info)
         return self._current_tag_info
 
     @property
@@ -105,20 +107,28 @@ class GithubChangeNotesProvider(BaseChangeNotesProvider, ProviderGithubApiMixin)
         if not hasattr(self, '_last_tag_info'):
             if self.last_tag:
                 self._last_tag_info = self._get_tag_info(self.last_tag)
+                self._last_tag_info['commit'] = self._get_commit_info(
+                    self._last_tag_info)
             else:
                 self._last_tag_info = None
         return self._last_tag_info
 
+    def _get_commit_info(self, tag_info):
+        commit_sha = tag_info['tag']['object']['sha']
+        return self.call_api('/git/commits/{}'.format(commit_sha))
+
     @property
     def start_date(self):
-        tag_date = self.current_tag_info['tag']['tagger']['date']
-        return datetime.strptime(tag_date, "%Y-%m-%dT%H:%M:%SZ")
+        return self._get_commit_date(self.current_tag_info['commit'])
 
     @property
     def end_date(self):
         if self.last_tag_info:
-            tag_date = self.last_tag_info['tag']['tagger']['date']
-            return datetime.strptime(tag_date, "%Y-%m-%dT%H:%M:%SZ")
+            return self._get_commit_date(self.last_tag_info['commit'])
+
+    def _get_commit_date(self, commit_info):
+        commit_date = commit_info['author']['date']
+        return datetime.strptime(commit_date, "%Y-%m-%dT%H:%M:%SZ")
 
     def _get_tag_info(self, tag):
         tag_info = {
@@ -195,7 +205,7 @@ class GithubChangeNotesProvider(BaseChangeNotesProvider, ProviderGithubApiMixin)
         merged_date = datetime.strptime(merged_date, "%Y-%m-%dT%H:%M:%SZ")
 
         # include PRs before current tag
-        if merged_date < self.start_date:
+        if merged_date <= self.start_date:
             if self.end_date:
                 # include PRs after last tag
                 if merged_date > self.end_date:
