@@ -12,6 +12,7 @@ import time
 import zipfile
 
 from simple_salesforce import Salesforce
+from simple_salesforce import SalesforceGeneralError
 from salesforce_bulk import SalesforceBulk
 import xmltodict
 
@@ -1100,8 +1101,17 @@ class RunApexTests(BaseSalesforceToolingApiTask):
         self._debug_create_trace_flag()
         self.logger.info('Queuing tests for execution...')
         ids = self.classes_by_id.keys()
-        self.job_id = self.tooling.restful('runTestsAsynchronous',
-            params={'classids': ','.join(str(id) for id in ids)})
+        result = self.tooling._call_salesforce(
+            method='POST',
+            url=self.tooling.base_url + 'runTestsAsynchronous',
+            json={'classids': ','.join(str(id) for id in ids)},
+        )
+        if result.status_code != 200:
+            raise SalesforceGeneralError(url,
+                                         path,
+                                         result.status_code,
+                                         result.content)
+        self.job_id = result.json()
         self._wait_for_tests()
         test_results = self._get_test_results()
         self._write_output(test_results)

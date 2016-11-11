@@ -90,8 +90,7 @@ class TestRunApexTests(unittest.TestCase):
         url = (self.base_tooling_url + 'query/?q=SELECT+StackTrace%2C+' +
             'Message%2C+ApexLogId%2C+AsyncApexJobId%2C+MethodName%2C+' +
             'Outcome%2C+ApexClassId%2C+TestTimestamp+FROM+ApexTestResult+' +
-            'WHERE+AsyncApexJobId+%3D+%27OrderedDict%28%5B%28u%27' +
-            'foo%27%2C+u%27bar%27%29%5D%29%27')
+            'WHERE+AsyncApexJobId+%3D+%27JOB_ID1234567%27')
         expected_response = {
             'done': True,
             'records': [{
@@ -112,7 +111,7 @@ class TestRunApexTests(unittest.TestCase):
     def _mock_tests_complete(self):
         url = (self.base_tooling_url + 'query/?q=SELECT+Id%2C+Status%2C+' +
             'ApexClassId+FROM+ApexTestQueueItem+WHERE+ParentJobId+%3D+%27' +
-            'OrderedDict%28%5B%28u%27foo%27%2C+u%27bar%27%29%5D%29%27')
+            'JOB_ID1234567%27')
         expected_response = {
             'done': True,
             'records': [{'Status': 'Completed'}],
@@ -122,8 +121,8 @@ class TestRunApexTests(unittest.TestCase):
 
     def _mock_run_tests(self):
         url = self.base_tooling_url + 'runTestsAsynchronous'
-        expected_response = {'foo': 'bar'}
-        responses.add(responses.GET, url, json=expected_response)
+        expected_response = 'JOB_ID1234567'
+        responses.add(responses.POST, url, json=expected_response)
 
     @responses.activate
     def test_run_task(self):
