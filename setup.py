@@ -29,7 +29,7 @@ requirements = [
     'sarge>=0.1.4',
     'selenium',
     'salesforce-bulk==1.1.0',
-    'simple-salesforce>=0.68.1',
+    'simple-salesforce>=0.72',
     'xmltodict==0.10.2',
     'HiYaPyCo>=0.4.8',
     'PyCrypto>=2.6.1',

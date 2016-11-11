@@ -13,6 +13,7 @@ from github3 import login
 from Crypto import Random
 from Crypto.Cipher import AES
 
+from cumulusci.core.exceptions import ConfigError
 from cumulusci.core.exceptions import NotInProject
 from cumulusci.core.exceptions import KeychainConnectedAppNotFound
 from cumulusci.core.exceptions import ProjectConfigNotFound
@@ -378,31 +379,34 @@ class ScratchOrgConfig(OrgConfig):
         self.logger.info('Getting scratch org info from Salesforce DX')
 
         # Call force:org:open and parse output to get instance_url and access_token
-        proc = sarge.Command('heroku force:org:open -d', stdout=sarge.Capture(buffer_size=-1))
-        proc.run()
+        p = sarge.Command('heroku force:org:open -d', stdout=sarge.Capture(buffer_size=-1))
+        p.run()
 
         org_info = None
-        for line in proc.stdout:
+        for line in p.stdout:
             if line.startswith('Access org'):
                 org_info = line.strip()
                 break
 
-        if proc.returncode:
+        if p.returncode:
+            self.logger.error(p.stdout)
             # FIXME: raise exception
-            self.logger.error(proc.stdout)
             return
 
         if not org_info:
-            self.logger.error('Did not find org info in command output:\n'.format(proc.stdout))
+            self.logger.error('Did not find org info in command output:\n'.format(p.stdout))
             #FIXME: raise exception
             return
 
         # OrgID is the third word of the output
         org_id = org_info.split(' ')[2]
 
+        # Username is the sixth word of the output
+        username = org_info.split(' ')[5]
+
         info_parts = org_info.split('following URL: ')
         if len(info_parts) == 1:
-            self.logger.error('Did not find org info in command output:\n'.format(proc.stdout))
+            self.logger.error('Did not find org info in command output:\n'.format(p.stdout))
             #FIXME: raise exception
             return
 
@@ -411,6 +415,7 @@ class ScratchOrgConfig(OrgConfig):
             'instance_url': instance_url,
             'access_token': access_token,
             'org_id': org_id,
+            'username': username,
         }
 
         return self._scratch_info
@@ -427,6 +432,13 @@ class ScratchOrgConfig(OrgConfig):
     def org_id(self):
         return self.scratch_info['org_id']
 
+    @property
+    def username(self):
+        username = self.config.get('username')
+        if not username:
+            username = self.scratch_info['username']
+        return username
+
     def create_org(self):
         """ Uses heroku force:org:create to create the org """
         if not self.config_file:
@@ -434,7 +446,7 @@ class ScratchOrgConfig(OrgConfig):
             return
         if not self.scratch_org_type:
             self.config['scratch_org_type'] = 'workspace'
-        
+       
         command = 'heroku force:org:create -t {} -f {}'.format(self.scratch_org_type, self.config_file)
         self.logger.info('Creating scratch org with command {}'.format(command))
         p = sarge.Command(command, stdout=sarge.Capture(buffer_size=-1))
@@ -446,10 +458,34 @@ class ScratchOrgConfig(OrgConfig):
 
         if p.returncode:
             # FIXME: raise exception
-            raise ConfigError('Failed to create scratch org: {}'.format(p.stdout))
+            raise ConfigError('Failed to create scratch org: {}'.format('\n'.join(p.stdout)))
 
         # Flag that this org has been created
         self.config['created'] = True
+        self.config['username'] = self.username
+
+    def delete_org(self):
+        """ Uses heroku force:org:delete to create the org """
+        if not self.created:
+            self.logger.info('Skipping org deletion: the scratch org has not been created')
+            return
+       
+        command = 'heroku force:org:delete --force -u {}'.format(self.username)
+        self.logger.info('Deleting scratch org with command {}'.format(command))
+        p = sarge.Command(command, stdout=sarge.Capture(buffer_size=-1))
+        p.run()
+
+        org_info = None
+        for line in p.stdout:
+            self.logger.info(line)
+
+        if p.returncode:
+            # FIXME: raise exception
+            raise ConfigError('Failed to delete scratch org: {}'.format('\n'.join(p.stdout)))
+
+        # Flag that this org has been created
+        self.config['created'] = False
+        self.config['username'] = False
 
     def refresh_oauth_token(self, connected_app):
         """ Use heroku force:org:open to refresh token instead of built in OAuth handling """

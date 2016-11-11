@@ -23,6 +23,10 @@ class ServiceNotConfigured(CumulusCIException):
     """ Raised when no service configuration could be found by a given name in the project keychain """
     pass
 
+class ConfigError(CumulusCIException):
+    """ Raised when a configuration enounters an error """
+    pass
+
 class AntTargetException(CumulusCIException):
     """ Raised when a generic Ant target error occurs """
     pass

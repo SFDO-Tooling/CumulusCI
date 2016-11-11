@@ -419,8 +419,9 @@ def org_list(config):
 @click.command(name='scratch', help="Connects a Salesforce DX Scratch Org to the keychain")
 @click.argument('config_name')
 @click.argument('org_name')
+@click.option('--delete', is_flag=True, help="If set, triggers a deletion of the current scratch org.  This can be used to reset the org as the org configuration remains to regenerate the org on the next task run.")
 @pass_config
-def org_scratch(config, config_name, org_name):
+def org_scratch(config, config_name, org_name, delete):
     check_connected_app(config)
   
     scratch_configs = getattr(config.project_config, 'orgs__scratch')
@@ -433,6 +434,18 @@ def org_scratch(config, config_name, org_name):
         )
 
     org_config = ScratchOrgConfig(scratch_config) 
+    config.keychain.set_org(org_name, org_config)
+
+@click.command(name='scratch_delete', help="Deletes a Salesforce DX Scratch Org leaving the config in the keychain for regeneration")
+@click.argument('org_name')
+@pass_config
+def org_scratch_delete(config, org_name):
+    check_connected_app(config)
+    org_config = config.keychain.get_org(org_name)
+    if not org_config.scratch:
+        raise click.UsageError('Org {} is not a scratch org'.format(org_name))
+
+    org_config.delete_org()
     config.keychain.set_org(org_name, org_config)
 
 @click.command(name='connected_app', help="Displays the ConnectedApp info used for OAuth connections")
@@ -465,6 +478,7 @@ org.add_command(org_default)
 org.add_command(org_info)
 org.add_command(org_list)
 org.add_command(org_scratch)
+org.add_command(org_scratch_delete)
 
 # Commands for group: task
 @click.command(name='list', help="List available tasks for the current context")
