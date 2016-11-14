@@ -438,15 +438,14 @@ def org_scratch(config, config_name, org_name, delete):
 
 @click.command(name='scratch_delete', help="Deletes a Salesforce DX Scratch Org leaving the config in the keychain for regeneration")
 @click.argument('org_name')
-@click.option('--force', is_flag=True, help="Forces an attempt to delete even if the scratch org isn't marked created")
 @pass_config
-def org_scratch_delete(config, org_name, force):
+def org_scratch_delete(config, org_name):
     check_connected_app(config)
     org_config = config.keychain.get_org(org_name)
     if not org_config.scratch:
         raise click.UsageError('Org {} is not a scratch org'.format(org_name))
 
-    org_config.delete_org(force=force)
+    org_config.delete_org()
     config.keychain.set_org(org_name, org_config)
 
 @click.command(name='connected_app', help="Displays the ConnectedApp info used for OAuth connections")
@@ -625,8 +624,9 @@ def flow_info(config, flow_name):
 @click.command(name='run', help="Runs a flow")
 @click.argument('flow_name')
 @click.option('--org', help="Specify the target org.  By default, runs against the current default org")
+@click.option('--delete-org', is_flag=True, help="If set, deletes the scratch org after the flow completes")
 @pass_config
-def flow_run(config, flow_name, org):
+def flow_run(config, flow_name, org, delete_org):
     # Check environment
     check_keychain(config)
 
@@ -635,6 +635,10 @@ def flow_run(config, flow_name, org):
         org_config = config.project_config.get_org(org)
     else:
         org_config = config.project_config.keychain.get_default_org()
+
+    if delete_org and not org_config.scratch:
+        raise click.UsageError('--delete-org can only be used with a scratch org')
+
     flow = getattr(config.project_config, 'flows__{}'.format(flow_name))
     if not flow:
         raise FlowNotFoundError('Flow not found: {}'.format(flow_name))
@@ -661,6 +665,10 @@ def flow_run(config, flow_name, org):
         raise click.UsageError(e.message)
     except Exception as e:
         raise click.ClickException('{}: {}'.format(e.__class__.__name__, e.message))
+
+    # Delete the scratch org if --delete-org was set
+    if delete_org:
+        org_config.delete_org()
 
     # Save the org config in case it was modified in a task
     config.keychain.set_org(org, org_config)

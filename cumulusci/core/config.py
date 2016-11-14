@@ -464,9 +464,9 @@ class ScratchOrgConfig(OrgConfig):
         self.config['created'] = True
         self.config['username'] = self.username
 
-    def delete_org(self, force=None):
+    def delete_org(self):
         """ Uses heroku force:org:delete to create the org """
-        if not self.created and not force:
+        if not self.created:
             self.logger.info('Skipping org deletion: the scratch org has not been created')
             return
       

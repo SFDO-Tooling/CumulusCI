@@ -209,7 +209,7 @@ flows:
             - task: uninstall_packaged_incremental
             - task: deploy_post
     ci_feature:
-        description: Deploys the unmanaged package metadata and all dependencies to the target org
+        description: Deploys the unmanaged package metadata and all dependencies to the target org and runs tests
         tasks:
             - task: create_package
             - task: update_dependencies
@@ -217,6 +217,7 @@ flows:
             - task: deploy
             - task: uninstall_packaged_incremental
             - task: deploy_post
+            - task: run_tests_debug
     ci_master:
         description: Deploys the managed package metadata and all dependencies to the packaging org
         tasks:
