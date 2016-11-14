@@ -464,12 +464,12 @@ class ScratchOrgConfig(OrgConfig):
         self.config['created'] = True
         self.config['username'] = self.username
 
-    def delete_org(self):
+    def delete_org(self, force=None):
         """ Uses heroku force:org:delete to create the org """
-        if not self.created:
+        if not self.created and not force:
             self.logger.info('Skipping org deletion: the scratch org has not been created')
             return
-       
+      
         command = 'heroku force:org:delete --force -u {}'.format(self.username)
         self.logger.info('Deleting scratch org with command {}'.format(command))
         p = sarge.Command(command, stdout=sarge.Capture(buffer_size=-1))
@@ -481,7 +481,7 @@ class ScratchOrgConfig(OrgConfig):
 
         if p.returncode:
             # FIXME: raise exception
-            raise ConfigError('Failed to delete scratch org: {}'.format('\n'.join(p.stdout)))
+            raise ConfigError('Failed to delete scratch org')
 
         # Flag that this org has been created
         self.config['created'] = False

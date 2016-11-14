@@ -438,14 +438,15 @@ def org_scratch(config, config_name, org_name, delete):
 
 @click.command(name='scratch_delete', help="Deletes a Salesforce DX Scratch Org leaving the config in the keychain for regeneration")
 @click.argument('org_name')
+@click.option('--force', is_flag=True, help="Forces an attempt to delete even if the scratch org isn't marked created")
 @pass_config
-def org_scratch_delete(config, org_name):
+def org_scratch_delete(config, org_name, force):
     check_connected_app(config)
     org_config = config.keychain.get_org(org_name)
     if not org_config.scratch:
         raise click.UsageError('Org {} is not a scratch org'.format(org_name))
 
-    org_config.delete_org()
+    org_config.delete_org(force=force)
     config.keychain.set_org(org_name, org_config)
 
 @click.command(name='connected_app', help="Displays the ConnectedApp info used for OAuth connections")
