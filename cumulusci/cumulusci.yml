@@ -76,6 +76,9 @@ tasks:
         class_path: cumulusci.tasks.salesforce.InstallPackageVersion
         options:
             version: latest_beta
+    mrbelvedere_publish:
+        description: Publishes a release to the mrbelvedere web installer
+        class_path: cumulusci.tasks.mrbelvedere.MrbelvederePublish
     push_all:
         description: Schedules a push upgrade of a package version to all subscribers
         class_path: cumulusci.tasks.push.tasks.SchedulePushOrgQuery
