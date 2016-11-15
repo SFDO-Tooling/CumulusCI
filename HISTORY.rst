@@ -2,6 +2,39 @@
 History
 =======
 
+2.0.0-alpha17 (2016-11-15)
+------------------
+
+* Community contributions by @cdcarter
+
+  * `query` task using the Bulk Data API
+  * `--login-url` option on `cumulusci2 org connect`
+
+* Salesforce DX wrapper
+
+  * NOTE: Requires developer preview access to Salesforce DX
+  * `cumulusci2 org scratch <config_name> <org_name>` creates a wrapper for a scratch org in your keychain
+  * Tasks and Flows run against a scratch org will create the scratch org if needed
+  * `cumulusci2 org scratch_delete <org_name>` deletes a scratch org that was created by running a task or flow
+  * `cumulusci2 flow run` now supports the `--delete-org` option to delete a scratch org at the end of the flow
+  * `BaseSalesforceDXTask` wraps the heroku force:* commands.  The `dx_push` task is provided as an example.
+    
+    * NOTE: Currently the command output is buffered and only outputs when the command completes.
+  
+* Integration with mrbelvedere
+
+  * `mrbelvedere_publish` task publishes a beta or release tag to an existing package on mrbelvedere
+
+* Flow changes
+
+    * `ci_feature` now runs tests as part of the flow
+    * New flow task configuration `ignore_failure` can be used to ignore a failure from a particular task in the flow
+
+* CUMULUSCI_KEY is no longer required if using a keychain class with the encrypted attribute set to False such as the EnvironmentProjectKeychain
+* Refactored OAuth token refresh to be more centralized and raise a proper exception if there is an issue
+* The org keychain now correctly uses the instance url when appropriate
+* Calls to runTestsAsynchronous in the Tooling API are now done via POST instead of GET
+
 2.0.0-alpha16 (2016-11-3)
 ------------------
 
