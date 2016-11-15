@@ -532,7 +532,7 @@ def task_info(config, task_name):
 @click.command(name='run', help="Runs a task")
 @click.argument('task_name')
 @click.option('--org', help="Specify the target org.  By default, runs against the current default org")
-@click.option('-o', nargs=2, multiple=True)
+@click.option('-o', nargs=2, multiple=True, help="Pass task specific options for the task as '-o option value'.  You can specify more than one option by using -o more than once.")
 @pass_config
 def task_run(config, task_name, org, o):
     # Check environment
@@ -542,7 +542,7 @@ def task_run(config, task_name, org, o):
     if org:
         org_config = config.project_config.get_org(org)
     else:
-        org_config = config.project_config.keychain.get_default_org()
+        org, org_config = config.project_config.keychain.get_default_org()
     task_config = getattr(config.project_config, 'tasks__{}'.format(task_name))
     if not task_config:
         raise TaskNotFoundError('Task not found: {}'.format(task_name))
@@ -572,26 +572,31 @@ def task_run(config, task_name, org, o):
             task_config['options'][name] = value
 
     task_config = TaskConfig(task_config)
+    exception = None
 
     # Create and run the task
     try:
         task = task_class(config.project_config, task_config, org_config = org_config)
     except TaskRequiresSalesforceOrg as e:
-        raise click.UsageError('This task requires a salesforce org.  Use org default <name> to set a default org or pass the org name with the --org option')
+        exception = click.UsageError('This task requires a salesforce org.  Use org default <name> to set a default org or pass the org name with the --org option')
     except TaskOptionsError as e:
-        raise click.UsageError(e.message)
+        exception = click.UsageError(e.message)
     except Exception as e:
-        raise click.ClickException('{}: {}'.format(e.__class__.__name__, e.message))
+        exception = click.ClickException('{}: {}'.format(e.__class__.__name__, e.message))
 
-    try:
-        task()
-    except TaskOptionsError as e:
-        raise click.UsageError(e.message)
-    except Exception as e:
-        raise click.ClickException('{}: {}'.format(e.__class__.__name__, unicode(e)))
+    if not exception:
+        try:
+            task()
+        except TaskOptionsError as e:
+            exception = click.UsageError(e.message)
+        except Exception as e:
+            exception = click.ClickException('{}: {}'.format(e.__class__.__name__, unicode(e)))
 
     # Save the org config in case it was modified in the task
     config.keychain.set_org(org, org_config)
+
+    if exception:
+        raise exception
 
 # Add the task commands to the task group
 task.add_command(task_list)
@@ -634,7 +639,7 @@ def flow_run(config, flow_name, org, delete_org):
     if org:
         org_config = config.project_config.get_org(org)
     else:
-        org_config = config.project_config.keychain.get_default_org()
+        org, org_config = config.project_config.keychain.get_default_org()
 
     if delete_org and not org_config.scratch:
         raise click.UsageError('--delete-org can only be used with a scratch org')
@@ -650,21 +655,24 @@ def flow_run(config, flow_name, org, delete_org):
     class_path = flow_config.config.get('class_path', 'cumulusci.core.flows.BaseFlow')
     flow_class = import_class(class_path)
 
+    exception = None
+
     # Create the flow and handle initialization exceptions
     try:
         flow = flow_class(config.project_config, flow_config, org_config)
     except TaskRequiresSalesforceOrg as e:
-        raise click.UsageError('This flow requires a salesforce org.  Use org default <name> to set a default org or pass the org name with the --org option')
+        exception = click.UsageError('This flow requires a salesforce org.  Use org default <name> to set a default org or pass the org name with the --org option')
     except TaskOptionsError as e:
-        raise click.UsageError(e.message)
+        exception = click.UsageError(e.message)
 
-    # Run the flow and handle exceptions
-    try:
-        flow()
-    except TaskOptionsError as e:
-        raise click.UsageError(e.message)
-    except Exception as e:
-        raise click.ClickException('{}: {}'.format(e.__class__.__name__, e.message))
+    if not exception:
+        # Run the flow and handle exceptions
+        try:
+            flow()
+        except TaskOptionsError as e:
+            exception = click.UsageError(e.message)
+        except Exception as e:
+            exception = click.ClickException('{}: {}'.format(e.__class__.__name__, e.message))
 
     # Delete the scratch org if --delete-org was set
     if delete_org:
@@ -672,6 +680,9 @@ def flow_run(config, flow_name, org, delete_org):
 
     # Save the org config in case it was modified in a task
     config.keychain.set_org(org, org_config)
+
+    if exception:
+        raise exception
 
 flow.add_command(flow_list)
 flow.add_command(flow_info)

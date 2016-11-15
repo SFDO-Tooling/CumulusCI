@@ -127,14 +127,14 @@ class TestBaseProjectKeychain(unittest.TestCase):
         org_config = OrgConfig(org_config)
         org_config.config['default'] = True
         keychain.set_org('test', org_config)
-        self.assertEquals(keychain.get_default_org().config, org_config.config)
+        self.assertEquals(keychain.get_default_org()[1].config, org_config.config)
 
     def test_get_default_org_no_default(self):
         self._test_get_default_org_no_default()
 
     def _test_get_default_org_no_default(self):
         keychain = self.keychain_class(self.project_config, self.key)
-        self.assertEquals(keychain.get_default_org(), None)
+        self.assertEquals(keychain.get_default_org()[1], None)
 
     def test_unset_default_org(self):
         self._test_unset_default_org()
@@ -146,7 +146,7 @@ class TestBaseProjectKeychain(unittest.TestCase):
         org_config.config['default'] = True
         keychain.set_org('test', org_config)
         keychain.unset_default_org()
-        self.assertEquals(keychain.get_default_org(), None)
+        self.assertEquals(keychain.get_default_org()[1], None)
 
     def test_list_orgs(self):
         self._test_list_orgs()

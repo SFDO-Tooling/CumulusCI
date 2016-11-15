@@ -624,6 +624,12 @@ class UninstallPackagedIncremental(UninstallPackaged):
                         delete[md_type] = []
                     delete[md_type].append(member)
 
+        if delete:
+            self.logger.info('Deleting metadata:')
+            for md_type, members in delete.items():
+                for member in members:
+                    self.logger.info('    {}: {}'.format(md_type, member))
+
         destructive_changes = self._render_xml_from_items_dict(delete)
         return destructive_changes
 

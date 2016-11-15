@@ -210,6 +210,8 @@ class BaseMetadataApiCall(object):
     def _set_status(self, status, log=None, level=None):
         if not level:
             level = 'info'
+            if status == 'Failed':
+                level = 'error'
         logger = getattr(self.task.logger, level)
         self.status = status
         if log:
