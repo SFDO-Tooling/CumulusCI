@@ -66,3 +66,7 @@ class TaskNotFoundError(CumulusCIException):
 class FlowNotFoundError(CumulusCIException):
     """ Raise when flow is not found in project config """
     pass
+
+class MrbelvedereError(CumulusCIException):
+    """ Raise for errors from mrbelvedere installer """
+    pass
