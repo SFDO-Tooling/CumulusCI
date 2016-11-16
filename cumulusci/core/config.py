@@ -171,6 +171,21 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                 return repo_name
 
     @property
+    def repo_url(self):
+        if not self.repo_root:
+            return
+        git_config_file = os.path.join(self.repo_root, '.git', 'config')
+        with open(git_config_file, 'r') as f:
+            in_remote_origin = False
+            for line in f:
+                line = line.strip()
+                if line == '[remote "origin"]':
+                    in_remote_origin = True
+                    continue
+                if in_remote_origin and 'url = ' in line:
+                    return line[7:]
+
+    @property
     def repo_owner(self):
         if not self.repo_root:
             return
@@ -229,7 +244,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                 if parts[1].replace('refs/remotes/origin/', '').strip() == branch:
                     commit_sha = parts[0]
                     break
-    
+
         return commit_sha
 
     def get_latest_version(self, beta=None):
@@ -285,7 +300,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         else:
             version = tag[len(self.project__git__prefix_release):]
         return version
-        
+
 
     def set_keychain(self, keychain):
         self.keychain = keychain
@@ -366,12 +381,12 @@ class OrgConfig(BaseConfig):
 
 class ScratchOrgConfig(OrgConfig):
     """ Salesforce DX Scratch org configuration """
-    
+
     @property
     def scratch_info(self):
         if hasattr(self, '_scratch_info'):
             return self._scratch_info
-      
+
         # Create the org if it hasn't already been created
         if not self.created:
             self.create_org()
@@ -446,7 +461,7 @@ class ScratchOrgConfig(OrgConfig):
             return
         if not self.scratch_org_type:
             self.config['scratch_org_type'] = 'workspace'
-       
+
         command = 'heroku force:org:create -t {} -f {}'.format(self.scratch_org_type, self.config_file)
         self.logger.info('Creating scratch org with command {}'.format(command))
         p = sarge.Command(command, stdout=sarge.Capture(buffer_size=-1))
@@ -469,7 +484,7 @@ class ScratchOrgConfig(OrgConfig):
         if not self.created:
             self.logger.info('Skipping org deletion: the scratch org has not been created')
             return
-      
+
         command = 'heroku force:org:delete --force -u {}'.format(self.username)
         self.logger.info('Deleting scratch org with command {}'.format(command))
         p = sarge.Command(command, stdout=sarge.Capture(buffer_size=-1))
@@ -493,7 +508,7 @@ class ScratchOrgConfig(OrgConfig):
             del self._scratch_info
         # This triggers a refresh
         self.scratch_info
-    
+
 
 class ServiceConfig(BaseConfig):
     """ Github configuration """
