@@ -25,6 +25,12 @@ class ApextestsdbUpload(BaseApextestsdbTask):
     """ upload test results to apextestsdb """
 
     task_options = {
+        'branch_name': {
+            'description': 'Name of branch where tests were run',
+        },
+        'commit_sha': {
+            'description': 'Commit SHA from where tests were run',
+        },
         'environment_name': {
             'description': 'Name of test environment',
             'required': True,
