@@ -46,6 +46,7 @@ class MrbelvederePublish(BaseMrbelvedereTask):
             if response.status_code >= httplib.BAD_REQUEST:
                 raise MrbelvedereError('{}: {}'.format(
                     response.status_code, response.content))
+            self.logger.info(response.content)
 
     def _get_current_dependencies(self):
         response = requests.get(self.dependencies_url)
@@ -76,6 +77,11 @@ class MrbelvederePublish(BaseMrbelvedereTask):
             if not match:
                 self.logger.info('No change for %s',
                                  current_dependency['namespace'])
+        diffs.append({
+            'namespace': self.project_config.project__package__namespace,
+            'number': self.project_config.get_version_for_tag(
+                self.options['tag']),
+        })
         return diffs
 
     def _clean_dependencies(self, dependency_list):

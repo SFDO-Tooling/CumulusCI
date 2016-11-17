@@ -74,3 +74,7 @@ class FlowNotFoundError(CumulusCIException):
 class MrbelvedereError(CumulusCIException):
     """ Raise for errors from mrbelvedere installer """
     pass
+
+class ApextestsdbError(CumulusCIException):
+    """ Raise for errors from apextestsdb """
+    pass
