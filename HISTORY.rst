@@ -2,6 +2,13 @@
 History
 =======
 
+2.0.0-alpha18 (2016-11-17)
+------------------
+
+* New task `apextestsdb_upload` uploads json test data to an instance of ApexTestsDB
+* Fixed bug in CLI when running tasks that don't require an org 
+* Include mappings for Community Template metadata types in package.xml generator
+
 2.0.0-alpha17 (2016-11-15)
 ------------------
 
