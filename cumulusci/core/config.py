@@ -163,7 +163,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             if line == '[remote "origin"]':
                 in_remote_origin = True
                 continue
-            if line.find('url =') != -1:
+            if in_remote_origin and line.find('url =') != -1:
                 line_parts = line.split('/')
                 repo_name = line_parts[-1]
                 if repo_name.endswith('.git'):
@@ -197,7 +197,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             if line == '[remote "origin"]':
                 in_remote_origin = True
                 continue
-            if line.find('url =') != -1:
+            if in_remote_origin and line.find('url =') != -1:
                 line_parts = line.split('/')
                 return line_parts[-2].split(':')[-1]
 
