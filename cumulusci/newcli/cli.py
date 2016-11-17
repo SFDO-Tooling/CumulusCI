@@ -593,7 +593,8 @@ def task_run(config, task_name, org, o):
             exception = click.ClickException('{}: {}'.format(e.__class__.__name__, unicode(e)))
 
     # Save the org config in case it was modified in the task
-    config.keychain.set_org(org, org_config)
+    if org and org_config:
+        config.keychain.set_org(org, org_config)
 
     if exception:
         raise exception
@@ -679,7 +680,8 @@ def flow_run(config, flow_name, org, delete_org):
         org_config.delete_org()
 
     # Save the org config in case it was modified in a task
-    config.keychain.set_org(org, org_config)
+    if org and org_config:
+        config.keychain.set_org(org, org_config)
 
     if exception:
         raise exception
