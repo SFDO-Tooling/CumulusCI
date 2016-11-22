@@ -165,7 +165,7 @@ First, you will need to create a Salesforce Connected App with the following ste
   * Enter a unique value for the Name and API Name field
   * Enter a Contact Email
   * Check "Enable OAuth Settings"
-  * Set the Callback URL to http://localhost:8080
+  * Set the Callback URL to http://localhost:8080/callback
   * Enable the scopes: full, refresh_token, and web
   * Save the Connected App
 
