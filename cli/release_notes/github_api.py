@@ -6,6 +6,7 @@ import requests
 
 from .exceptions import GithubApiNotFoundError
 from .exceptions import GithubApiNoResultsError
+from .exceptions import GithubApiUnauthorized
 
 
 class GithubApiMixin(object):
@@ -88,6 +89,8 @@ class GithubApiMixin(object):
 
         if resp.status_code == httplib.NOT_FOUND:
             raise GithubApiNotFoundError(resp.content)
+        elif resp.status_code == httplib.UNAUTHORIZED:
+            raise GithubApiUnauthorized(resp.content)
 
         try:
             data = json.loads(resp.content)

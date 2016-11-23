@@ -1,10 +1,14 @@
-class GithubApiNotFoundError(BaseException):
+class GithubApiNotFoundError(Exception):
     pass
 
 
-class GithubApiNoResultsError(BaseException):
+class GithubApiNoResultsError(Exception):
     pass
 
 
-class LastReleaseTagNotFoundError(BaseException):
+class GithubApiUnauthorized(Exception):
+    pass
+
+
+class LastReleaseTagNotFoundError(Exception):
     pass
