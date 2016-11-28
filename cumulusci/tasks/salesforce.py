@@ -743,7 +743,7 @@ class UpdateAdminProfile(Deploy):
         super(UpdateAdminProfile, self)._init_options(kwargs)
 
         if 'package_xml' not in self.options:
-            self.options['package_xml'] = os.path.join(CUMULUSCI_PATH, 'build', 'admin_profile.xml')
+            self.options['package_xml'] = os.path.join(CUMULUSCI_PATH, 'cumulusci', 'files', 'admin_profile.xml')
 
         self.options['package_xml_path'] = self.options['package_xml']
         self.options['package_xml'] = open(self.options['package_xml_path'], 'r').read()
