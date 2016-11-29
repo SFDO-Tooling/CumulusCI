@@ -2,6 +2,13 @@
 History
 =======
 
+2.0.0-alpha19 (2016-11-29)
+------------------
+
+* Fix IOError issue with update_admin_profile when using the egg version
+* Changed cumulusci2 task_run and flow_run commands to no longer swallow unknown exceptions so a useful error message with traceback is shown
+* Centralized loggers for BaseConfig, BaseTask, and BaseFlow under cumulusci.core.logger and changed logs to always write to a temp file available as self.log_file on any config, task, or flow subclass.
+
 2.0.0-alpha18 (2016-11-17)
 ------------------
 
