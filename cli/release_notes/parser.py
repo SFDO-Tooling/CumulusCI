@@ -57,7 +57,11 @@ class ChangeNotesLinesParser(BaseChangeNotesParser):
         self._in_section = False
 
     def _process_line(self, line):
-        return unicode(line.rstrip(), 'utf-8')
+        try:
+            line = unicode(line, 'utf-8')
+        except TypeError:
+            pass
+        return line.rstrip()
 
     def _is_excluded_line(self, line):
         if not line:
