@@ -85,7 +85,7 @@ class Config(object):
         self.github_repo_name = self.get_env_var('GITHUB_REPO_NAME')
         self.github_username = self.get_env_var('GITHUB_USERNAME')
         self.github_password = self.get_env_var('GITHUB_PASSWORD')
-    
+
         # Default test configuration and override via environment variable
         self.advanced_testing = True
         self.debug_tests = self.get_env_var('DEBUG_TESTS') not in [None, 'true', 'True']
@@ -142,12 +142,12 @@ class Config(object):
         message = ['Tag created by',]
 
         if self.build_id:
-            message.append('build %s' % self.build_id) 
+            message.append('build %s' % self.build_id)
         else:
             message.append('CumulusCI master flow build')
 
         if self.build_vendor:
-            message.append('on %s' % self.build_vendor) 
+            message.append('on %s' % self.build_vendor)
 
         return ' '.join(message)
 
@@ -229,7 +229,7 @@ def get_build_info():
         if build_repo_url.endswith('.git'):
             # Remove .git from end of repo url
             build_repo_url = build_repo_url[:-4]
-        
+
         info['build_id'] = build_id
         info['build_url'] = build_url
         info['build_repo_url'] = build_repo_url
@@ -250,7 +250,7 @@ def get_build_info():
 def ci_deploy(config, debug_logdir, no_test, incremental_delete, verbose):
     if not config.commit or not config.branch:
         raise click.BadParameter('Could not determine commit or branch for ci deploy')
-        
+
     if config.build_type == 'feature':
         click.echo('-- Building with feature branch flow against %s org' % config.feature_org_suffix)
         config.sf_username = config.get_env_var('SF_USERNAME_' + config.feature_org_suffix)
@@ -267,13 +267,13 @@ def ci_deploy(config, debug_logdir, no_test, incremental_delete, verbose):
             # Create directory if it doesn't exist
             if not os.path.exists(debug_logdir):
                 os.makedirs(debug_logdir)
-       
-            # Pass argument 
+
+            # Pass argument
             args += ['--debug-logdir',debug_logdir]
 
         if verbose:
             args.append('--verbose')
-            
+
         deploy_unmanaged.main(args=args, standalone_mode=False, obj=config)
 
     elif config.build_type == 'master':
@@ -311,8 +311,8 @@ def next_step(config):
                         step = config.steps_master[i_current_step + 1]
                 except ValueError:
                     pass
-               
-        # The first step is manually specified in the plan, so the first dynamic step starts at 2 
+
+        # The first step is manually specified in the plan, so the first dynamic step starts at 2
         step_var = 'plan_step_%s' % str(i_current_step + 2)
 
         click.echo('Writing next step %s as %s to solano-plan-variables.json' % (step, step_var))
@@ -322,7 +322,7 @@ def next_step(config):
         f.write(json.dumps(data))
         f.close()
         return
-         
+
 # command: ci beta_deploy
 @click.command(help="Deploys a beta managed package version by its git tag and commit")
 @click.argument('tag')
@@ -388,7 +388,7 @@ def beta_deploy(config, tag, commit, run_tests, retries, verbose):
 
         # Retry
         beta_deploy.main(args=args, standalone_mode=False)
-        
+
 # command: ci apextestsdb_upload
 @click.command(name='apextestsdb_upload', help="Uploads the json output file containing parsed data from debug logs to the ApexTestsDB app")
 @click.option('--environment', help="Set a custom name for the build environment")
@@ -401,10 +401,10 @@ def ci_apextestsdb_upload(config, environment):
 
     # opt: --repo-url
     args += ['--repo-url', config.build_repo_url]
-    
+
     # opt: --branch
     args += ['--branch', config.branch]
-        
+
     # opt: --commit
     args += ['--commit', config.commit]
 
@@ -461,7 +461,7 @@ def get_env_cumulusci(config):
     if venv:
         env['VIRTUAL_ENV'] = venv
     return env
-    
+
 def get_env_sf_org(config):
     return {
         'SF_USERNAME': config.sf_username,
@@ -509,8 +509,8 @@ def get_env_mrbelvedere(config):
         'MRBELVEDERE_BASE_URL': config.mrbelvedere_base_url,
         'MRBELVEDERE_PACKAGE_KEY': config.mrbelvedere_package_key,
     }
-   
-def run_ant_target(target, env, config, check_credentials=None, no_exit=None, verbose=None): 
+
+def run_ant_target(target, env, config, check_credentials=None, no_exit=None, verbose=None):
     if check_credentials:
         try:
             check_salesforce_credentials(env)
@@ -520,7 +520,7 @@ def run_ant_target(target, env, config, check_credentials=None, no_exit=None, ve
 
     # Set max heap size for ant call
     env["ANT_OPTS"] = '-Xmx512m'
-        
+
     # Execute the command
     if verbose:
         cmd = 'ant %s' % target
@@ -575,7 +575,7 @@ def check_required_env(env, required_env):
     if missing:
         raise click.BadParameter('You must set the environment variables: %s' % ', '.join(missing))
 
-def run_python_script(script, env, config, required_env=None): 
+def run_python_script(script, env, config, required_env=None):
     if required_env:
         check_required_env(env, required_env)
 
@@ -592,7 +592,7 @@ def run_python_script(script, env, config, required_env=None):
         p.poll()
 
     return p
-        
+
 # command: dev deploy
 @click.command(
     name='deploy',
@@ -648,7 +648,7 @@ def deploy_unmanaged(config, run_tests, full_delete, ee_org, deploy_only, debug_
 
 # command: release deploy
 @click.command(
-    name='deploy', 
+    name='deploy',
     help='Runs a full deployment of the code as managed code to the packaging org including setting up dependencies, deleting metadata removed from the repository, deploying the code, and optionally running tests',
     context_settings={'color': True},
 )
@@ -694,7 +694,7 @@ def upload_beta(config, commit, build_name, selenium_url, create_release, packag
         env['SELENIUM_BROWSER'] = 'Firefox'
 
     env['BUILD_NAME'] = build_name
-    
+
     required_env = [
         'OAUTH_CLIENT_ID',
         'OAUTH_CLIENT_SECRET',
@@ -913,13 +913,16 @@ def github_release_notes(config, tag, last_tag, publish):
     }
 
     if publish:
-        release_notes = PublishingGithubReleaseNotesGenerator(
+        release_notes_generator = PublishingGithubReleaseNotesGenerator(
             github_info, tag, last_tag)
     else:
-        release_notes = GithubReleaseNotesGenerator(
+        release_notes_generator = GithubReleaseNotesGenerator(
             github_info, tag, last_tag)
-
-    print release_notes()
+    release_notes = release_notes_generator()
+    try:
+        print release_notes.encode('utf-8')
+    except UnicodeDecodeError:
+        print release_notes
 
 # command: github master_to_feature
 @click.command(name='master_to_feature', help='Attempts to merge a commit on the master branch to all open feature branches.  Creates pull requests assigned to the developer of the feature branch if a merge conflict occurs.')
@@ -1042,7 +1045,7 @@ def update_package_xml(config, output, directory, delete, managed):
         'delete': delete,
         'managed': managed,
     }
-    
+
     package_name = None
     if not delete:
         if not managed and hasattr(config, 'cumulusci__package__name'):
