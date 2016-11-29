@@ -1,8 +1,6 @@
 import copy
-import logging
-import coloredlogs
-from plaintable import Table
 from cumulusci.core.config import TaskConfig
+from cumulusci.core.logger import logger, log_file
 from cumulusci.core.utils import import_class
 
 class BaseFlow(object):
@@ -17,20 +15,9 @@ class BaseFlow(object):
 
     def _init_logger(self):
         """ Initializes self.logger """
-        self.logger = logging.getLogger(self.__class__.__name__)
-        self.logger.setLevel(logging.DEBUG)
-        self.logger.propagate = False
-
-        #import pdb; pdb.set_trace()
-        handler = logging.StreamHandler()
-        handler.setLevel(logging.DEBUG)
-
-        formatter = coloredlogs.ColoredFormatter(
-            fmt='%(asctime)s: %(message)s'
-        )
-        handler.setFormatter(formatter)
-
-        self.logger.addHandler(handler)
+        self.logger = logger
+        self.log_file = log_file
+        return
 
     def _init_flow(self):
         self.logger.info('---------------------------------------')
@@ -61,6 +48,7 @@ class BaseFlow(object):
     def __call__(self):
         for flow_task_config in self.flow_config.tasks:
             self._run_task(flow_task_config)
+        import pdb; pdb.set_trace()
 
     def _find_task_by_name(self, name):
         if not self.flow_config.tasks:

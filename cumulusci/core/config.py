@@ -1,9 +1,7 @@
 import base64
-import logging
 import os
 import pickle
 
-import coloredlogs
 import hiyapyco
 import sarge
 import yaml
@@ -17,6 +15,7 @@ from cumulusci.core.exceptions import ConfigError
 from cumulusci.core.exceptions import NotInProject
 from cumulusci.core.exceptions import KeychainConnectedAppNotFound
 from cumulusci.core.exceptions import ProjectConfigNotFound
+from cumulusci.core.logger import logger, log_file
 from cumulusci.oauth.salesforce import SalesforceOAuth2
 
 __location__ = os.path.dirname(os.path.realpath(__file__))
@@ -37,19 +36,8 @@ class BaseConfig(object):
 
     def _init_logger(self):
         """ Initializes self.logger """
-        self.logger = logging.getLogger(self.__class__.__name__)
-        self.logger.setLevel(logging.DEBUG)
-        self.logger.propagate = False
-
-        handler = logging.StreamHandler()
-        handler.setLevel(logging.DEBUG)
-
-        formatter = coloredlogs.ColoredFormatter(
-            fmt='%(asctime)s: %(message)s'
-        )
-        handler.setFormatter(formatter)
-
-        self.logger.addHandler(handler)
+        self.logger = logger
+        self.log_file = log_file
 
     def _load_config(self):
         """ Performs the logic to initialize self.config """
