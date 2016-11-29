@@ -581,16 +581,12 @@ def task_run(config, task_name, org, o):
         exception = click.UsageError('This task requires a salesforce org.  Use org default <name> to set a default org or pass the org name with the --org option')
     except TaskOptionsError as e:
         exception = click.UsageError(e.message)
-    except Exception as e:
-        exception = click.ClickException('{}: {}'.format(e.__class__.__name__, e.message))
 
     if not exception:
         try:
             task()
         except TaskOptionsError as e:
             exception = click.UsageError(e.message)
-        except Exception as e:
-            exception = click.ClickException('{}: {}'.format(e.__class__.__name__, unicode(e)))
 
     # Save the org config in case it was modified in the task
     if org and org_config:
@@ -672,8 +668,6 @@ def flow_run(config, flow_name, org, delete_org):
             flow()
         except TaskOptionsError as e:
             exception = click.UsageError(e.message)
-        except Exception as e:
-            exception = click.ClickException('{}: {}'.format(e.__class__.__name__, e.message))
 
     # Delete the scratch org if --delete-org was set
     if delete_org:
