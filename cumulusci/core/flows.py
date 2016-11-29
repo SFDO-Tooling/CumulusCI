@@ -48,7 +48,6 @@ class BaseFlow(object):
     def __call__(self):
         for flow_task_config in self.flow_config.tasks:
             self._run_task(flow_task_config)
-        import pdb; pdb.set_trace()
 
     def _find_task_by_name(self, name):
         if not self.flow_config.tasks:
