@@ -56,11 +56,11 @@ class BaseProjectKeychain(BaseConfig):
             for service_name, service_config in services.items():
                 self.set_service(service_name, service_config)
 
-    def set_connected_app(self, app_config):
-        self._set_connected_app(app_config)
+    def set_connected_app(self, app_config, project=False):
+        self._set_connected_app(app_config, project)
         self._load_keychain()
     
-    def _set_connected_app(self, app_config):
+    def _set_connected_app(self, app_config, project):
         self.app = app_config
 
     def get_connected_app(self):
@@ -69,13 +69,13 @@ class BaseProjectKeychain(BaseConfig):
     def _get_connected_app(self):
         return self.app
 
-    def set_org(self, name, org_config):
+    def set_org(self, name, org_config, global_org=False):
         if isinstance(org_config, ScratchOrgConfig):
             org_config.config['scratch'] = True
-        self._set_org(name, org_config)
+        self._set_org(name, org_config, global_org)
         self._load_keychain()
 
-    def _set_org(self, name, org_config):
+    def _set_org(self, name, org_config, global_org):
         self.orgs[name] = org_config
 
     def get_default_org(self):
@@ -114,11 +114,11 @@ class BaseProjectKeychain(BaseConfig):
         orgs.sort()
         return orgs
 
-    def set_service(self, name, service_config):
-        self._set_service(name, service_config)
+    def set_service(self, name, service_config, project=False):
+        self._set_service(name, service_config, project)
         self._load_keychain()
 
-    def _set_service(self, name, service_config):
+    def _set_service(self, name, service_config, project):
         self.services[name] = service_config
 
     def get_service(self, name):
@@ -177,11 +177,11 @@ class BaseEncryptedProjectKeychain(BaseProjectKeychain):
     """ Base class for building project keychains that use AES encryption for securing stored org credentials """
     encrypted = True
 
-    def _set_connected_app(self, app_config):
+    def _set_connected_app(self, app_config, project):
         encrypted = self._encrypt_config(app_config)
-        self._set_encrypted_connected_app(encrypted)
+        self._set_encrypted_connected_app(encrypted, project)
 
-    def _set_encrypted_connected_app(self, encrypted):
+    def _set_encrypted_connected_app(self, encrypted, project):
         self.app = encrypted
 
     def _get_connected_app(self):
@@ -191,18 +191,18 @@ class BaseEncryptedProjectKeychain(BaseProjectKeychain):
     def _get_service(self, name):
         return self._decrypt_config(ServiceConfig, self.services[name])
 
-    def _set_service(self, service, service_config):
+    def _set_service(self, service, service_config, project):
         encrypted = self._encrypt_config(service_config)
-        self._set_encrypted_service(service, encrypted)
+        self._set_encrypted_service(service, encrypted, project)
 
-    def _set_encrypted_service(self, service, encrypted):
+    def _set_encrypted_service(self, service, encrypted, project):
         self.services[service] = encrypted
 
-    def _set_org(self, name, org_config):
+    def _set_org(self, name, org_config, global_org):
         encrypted = self._encrypt_config(org_config)
-        self._set_encrypted_org(name, encrypted)
+        self._set_encrypted_org(name, encrypted, global_org)
 
-    def _set_encrypted_org(self, name, encrypted):
+    def _set_encrypted_org(self, name, encrypted, global_org):
         self.orgs[name] = encrypted
 
     def _get_org(self, name):
@@ -238,45 +238,68 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
     """ An encrypted project keychain that stores in the project's local directory """
 
     @property
+    def config_local_dir(self):
+        return os.path.join(
+            os.path.expanduser('~'),
+            self.project_config.global_config_obj.config_local_dir,
+        )
+
+    @property
     def project_local_dir(self):
         return self.project_config.project_local_dir
 
     def _load_keychain(self):
+
+        def load_files(dirname):
+            for item in os.listdir(dirname):
+                if item.endswith('.org'):
+                    f_item = open(os.path.join(dirname, item), 'r')
+                    org_name = item.replace('.org', '')
+                    org_config = f_item.read()
+                    f_item.close()
+                    self.config['orgs'][org_name] = org_config
+                elif item.endswith('.service'):
+                    f_item = open(os.path.join(dirname, item), 'r')
+                    service_name = item.replace('.service', '')
+                    service_config = f_item.read()
+                    f_item.close()
+                    self.config['services'][service_name] = service_config
+                elif item == 'connected.app':
+                    f_item = open(os.path.join(dirname, item), 'r')
+                    app_config = f_item.read()
+                    f_item.close()
+                    self.config['app'] = app_config
+
+        load_files(self.config_local_dir)
         if not self.project_local_dir: 
             return
+        load_files(self.project_local_dir)
 
-        for item in os.listdir(self.project_local_dir):
-            if item.endswith('.org'):
-                f_item = open(os.path.join(self.project_local_dir, item), 'r')
-                org_name = item.replace('.org', '')
-                org_config = f_item.read()
-                f_item.close()
-                self.config['orgs'][org_name] = org_config
-            elif item.endswith('.service'):
-                f_item = open(os.path.join(self.project_local_dir, item), 'r')
-                service_name = item.replace('.service', '')
-                service_config = f_item.read()
-                f_item.close()
-                self.config['services'][service_name] = service_config
-            elif item == 'connected.app':
-                f_item = open(os.path.join(self.project_local_dir, item), 'r')
-                app_config = f_item.read()
-                f_item.close()
-                self.config['app'] = app_config
-
-    def _set_encrypted_connected_app(self, encrypted):
-        f_org = open(os.path.join(self.project_local_dir, 'connected.app'), 'w')
+    def _set_encrypted_connected_app(self, encrypted, project):
+        if project:
+            filename = os.path.join(self.project_local_dir, 'connected.app')
+        else:
+            filename = os.path.join(self.config_local_dir, 'connected.app')
+        f_org = open(filename, 'w')
         f_org.write(encrypted)
         f_org.close()
         self.app = encrypted
 
-    def _set_encrypted_org(self, name, encrypted):
-        f_org = open(os.path.join(self.project_local_dir, '{}.org'.format(name)), 'w')
+    def _set_encrypted_org(self, name, encrypted, global_org):
+        if global_org:
+            filename = os.path.join(self.config_local_dir, '{}.org'.format(name))
+        else:
+            filename = os.path.join(self.project_local_dir, '{}.org'.format(name))
+        f_org = open(filename, 'w')
         f_org.write(encrypted)
         f_org.close()
 
-    def _set_encrypted_service(self, name, encrypted):
-        f_service = open(os.path.join(self.project_local_dir, '{}.service'.format(name)), 'w')
+    def _set_encrypted_service(self, name, encrypted, project):
+        if project:
+            filename = os.path.join(self.project_local_dir, '{}.service'.format(name))
+        else:
+            filename = os.path.join(self.config_local_dir, '{}.service'.format(name))
+        f_service = open(filename, 'w')
         f_service.write(encrypted)
         f_service.close()
 

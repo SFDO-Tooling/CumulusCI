@@ -254,15 +254,19 @@ def project_info(config):
 @click.option('--username', help="The Github username to use for tasks", prompt=True)
 @click.option('--password', help="The Github password to use for tasks.  It is recommended to use a Github Application Token instead of password to allow bypassing 2fa.", prompt=True, hide_input=True)
 @click.option('--email', help="The email address to used by Github tasks when an operation requires an email address.", prompt=True)
+@click.option('--project', help='Set if storing encrypted keychain file in project directory', is_flag=True)
 @pass_config
-def project_connect_github(config, username, password, email):
+def project_connect_github(config, username, password, email, project):
     check_keychain(config)
     config.keychain.set_service('github', ServiceConfig({
         'username': username,
         'password': password,
         'email': email,
-    }))
-    click.echo('Github is now configured for this project')
+    }), project)
+    if project:
+        click.echo('Github is now configured for this project')
+    else:
+        click.echo('Github is now configured for global use')
 
 @click.command(name='show_github', help="Prints the current Github configuration for this project")
 @pass_config
@@ -278,14 +282,18 @@ def project_show_github(config):
 @click.command(name='connect_mrbelvedere', help="Configure this project for mrbelvedere tasks")
 @click.option('--base_url', help="The base url for your mrbelvedere instance", prompt=True)
 @click.option('--api_key', help="The package api_key for the package in your mrbelvedere instance.", prompt=True, hide_input=True)
+@click.option('--project', help='Set if storing encrypted keychain file in project directory', is_flag=True)
 @pass_config
-def project_connect_mrbelvedere(config, base_url, api_key):
+def project_connect_mrbelvedere(config, base_url, api_key, project):
     check_keychain(config)
     config.keychain.set_service('mrbelvedere', ServiceConfig({
         'base_url': base_url,
         'api_key': api_key,
-    }))
-    click.echo('Mrbelvedere is now configured for this project')
+    }), project)
+    if project:
+        click.echo('MrBelvedere is now configured for this project')
+    else:
+        click.echo('MrBelvedere is now configured for global use')
 
 @click.command(name='show_mrbelvedere', help="Prints the current mrbelvedere configuration for this project")
 @pass_config
@@ -301,15 +309,19 @@ def project_show_mrbelvedere(config):
 @click.option('--base_url', help="The base url for your ApexTestsDB instance", prompt=True)
 @click.option('--user-id', help="The user id to use when connecting to ApexTestsDB.", prompt=True)
 @click.option('--token', help="The api token to use when connecting to ApexTestsDB.", prompt=True, hide_input=True)
+@click.option('--project', help='Set if storing encrypted keychain file in project directory', is_flag=True)
 @pass_config
-def project_connect_apextestsdb(config, base_url, user_id, token):
+def project_connect_apextestsdb(config, base_url, user_id, token, project):
     check_keychain(config)
     config.keychain.set_service('apextestsdb', ServiceConfig({
         'base_url': base_url,
         'user_id': user_id,
         'token': token,
-    }))
-    click.echo('ApexTestsDB is now configured for this project')
+    }), project)
+    if project:
+        click.echo('ApexTestsDB is now configured for this project')
+    else:
+        click.echo('ApexTestsDB is now configured for global use')
 
 @click.command(name='show_apextestsdb', help="Prints the current ApexTestsDB configuration for this project")
 @pass_config
@@ -359,8 +371,9 @@ def org_browser(config, org_name):
 @click.argument('org_name')
 @click.option('--sandbox', is_flag=True, help="If set, connects to a Salesforce sandbox org")
 @click.option('--login-url', help='If set, login to this hostname.', default= 'https://login.salesforce.com')
+@click.option('--global-org', help='Set True if org should be used by any project', is_flag=True)
 @pass_config
-def org_connect(config, org_name, sandbox, login_url):
+def org_connect(config, org_name, sandbox, login_url, global_org):
     check_connected_app(config)
 
     connected_app = config.keychain.get_connected_app()
@@ -377,7 +390,7 @@ def org_connect(config, org_name, sandbox, login_url):
     oauth_dict = oauth_capture()
     org_config = OrgConfig(oauth_dict)
 
-    config.keychain.set_org(org_name, org_config)
+    config.keychain.set_org(org_name, org_config, global_org)
 
 @click.command(name='default', help="Sets an org as the default org for tasks and flows")
 @click.argument('org_name')
@@ -459,8 +472,9 @@ def org_connected_app(config):
 @click.option('--client_id', help="The Client ID from the connected app", prompt=True)
 @click.option('--client_secret', help="The Client Secret from the connected app", prompt=True, hide_input=True)
 @click.option('--callback_url', help="The callback_url configured on the Connected App", default='http://localhost:8080/callback')
+@click.option('--project', help='Set if storing encrypted keychain file in project directory', is_flag=True)
 @pass_config
-def org_config_connected_app(config, client_id, client_secret, callback_url):
+def org_config_connected_app(config, client_id, client_secret, callback_url, project):
     check_keychain(config)
     app_config = ConnectedAppOAuthConfig()
     app_config.config = {
@@ -468,7 +482,7 @@ def org_config_connected_app(config, client_id, client_secret, callback_url):
         'client_secret': client_secret,
         'callback_url': callback_url,
     }
-    config.keychain.set_connected_app(app_config)
+    config.keychain.set_connected_app(app_config, project)
 
 org.add_command(org_browser)
 org.add_command(org_config_connected_app)
