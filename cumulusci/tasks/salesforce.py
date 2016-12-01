@@ -203,10 +203,13 @@ class Deploy(BaseSalesforceMetadataApiTask):
         'path': {
             'description': 'The path to the metadata source to be deployed',
             'required': True,
-        }
+        },
+        'retries': {
+            'description': 'Number of retries (default=1)',
+        },
     }
 
-    def _get_api(self, path=None):
+    def _get_api(self, path=None, retries=1):
         if not path:
             path = self.task_config.options__path
 
@@ -226,7 +229,7 @@ class Deploy(BaseSalesforceMetadataApiTask):
 
         os.chdir(pwd)
 
-        return self.api_class(self, package_zip)
+        return self.api_class(self, package_zip, retries=retries)
 
     def _write_zip_file(self, zipf, root, path):
         zipf.write(os.path.join(root, path))
