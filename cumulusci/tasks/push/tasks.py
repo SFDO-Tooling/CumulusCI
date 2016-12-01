@@ -72,10 +72,10 @@ class BaseSalesforcePushTask(BaseSalesforceApiTask):
         return package[0]
 
     def _load_orgs_file(self, path):
-        f_orgs = open(path, 'r')
         orgs = []
-        for org in f_orgs:
-            orgs.append(org.strip())
+        with open(path, 'r') as f_orgs:
+            for org in f_orgs:
+                orgs.append(org.strip())
         return orgs
 
     def _report_push_status(self, request_id):

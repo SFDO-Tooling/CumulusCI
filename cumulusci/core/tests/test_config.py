@@ -135,15 +135,14 @@ class TestYamlGlobalConfig(unittest.TestCase):
         self._write_file(filename, content)
 
     def _write_file(self, filename, content):
-        f = open(filename, 'w')
-        f.write(content)
-        f.close()
+        with open(filename, 'w') as f:
+            f.write(content)
 
     def test_load_global_config_no_local(self, mock_class):
         mock_class.return_value = self.tempdir_home
         config = YamlGlobalConfig()
-        f_expected_config = open(__location__ + '/../../cumulusci.yml', 'r')
-        expected_config = yaml.load(f_expected_config)
+        with open(__location__ + '/../../cumulusci.yml', 'r') as f_expected_config:
+            expected_config = yaml.load(f_expected_config)
         self.assertEquals(config.config, expected_config)
 
     def test_load_global_config_empty_local(self, mock_class):
@@ -151,8 +150,8 @@ class TestYamlGlobalConfig(unittest.TestCase):
         mock_class.return_value = self.tempdir_home
 
         config = YamlGlobalConfig()
-        f_expected_config = open(__location__ + '/../../cumulusci.yml', 'r')
-        expected_config = yaml.load(f_expected_config)
+        with open(__location__ + '/../../cumulusci.yml', 'r') as f_expected_config:
+            expected_config = yaml.load(f_expected_config)
         self.assertEquals(config.config, expected_config)
 
     def test_load_global_config_with_local(self, mock_class):
@@ -161,8 +160,8 @@ class TestYamlGlobalConfig(unittest.TestCase):
         mock_class.return_value = self.tempdir_home
 
         config = YamlGlobalConfig()
-        f_expected_config = open(__location__ + '/../../cumulusci.yml', 'r')
-        expected_config = yaml.load(f_expected_config)
+        with open(__location__ + '/../../cumulusci.yml', 'r') as f_expected_config:
+            expected_config = yaml.load(f_expected_config)
         expected_config['tasks']['newtesttask'] = {}
         expected_config['tasks']['newtesttask']['description'] = 'test description'
         self.assertEquals(config.config, expected_config)
@@ -215,9 +214,8 @@ class TestYamlProjectConfig(unittest.TestCase):
         self._write_file(filename, content)
 
     def _write_file(self, filename, content):
-        f = open(filename, 'w')
-        f.write(content)
-        f.close()
+        with open(filename, 'w') as f:
+            f.write(content)
 
     def setUp(self):
         self.tempdir_home = tempfile.mkdtemp()

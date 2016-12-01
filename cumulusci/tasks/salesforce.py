@@ -150,7 +150,8 @@ class RetrieveUnpackaged(BaseRetrieveMetadata):
 
         if 'package_xml' in self.options:
             self.options['package_xml_path'] = self.options['package_xml']
-            self.options['package_xml'] = open(self.options['package_xml_path'], 'r').read()
+            with open(self.options['package_xml_path'], 'r') as f:
+                self.options['package_xml'] = f.read()
 
     def _get_api(self):
         return self.api_class(
@@ -488,8 +489,8 @@ class DeployNamespacedBundles(DeployBundles):
             namespace = ''
 
         path = path.replace(self.options['filename_token'], namespace)
-        content = open(os.path.join(root, path), 'r').read()
-        content = content.replace(self.options['namespace_token'], namespace)
+        with open(os.path.join(root, path), 'r') as f:
+            content = f.read().replace(self.options['namespace_token'], namespace)
         zipf.writestr(path, content)
 
 class BaseUninstallMetadata(Deploy):
@@ -746,7 +747,8 @@ class UpdateAdminProfile(Deploy):
             self.options['package_xml'] = os.path.join(CUMULUSCI_PATH, 'cumulusci', 'files', 'admin_profile.xml')
 
         self.options['package_xml_path'] = self.options['package_xml']
-        self.options['package_xml'] = open(self.options['package_xml_path'], 'r').read()
+        with open(self.options['package_xml_path'], 'r') as f:
+            self.options['package_xml'] = f.read()
 
     def _run_task(self):
         self.tempdir = tempfile.mkdtemp()

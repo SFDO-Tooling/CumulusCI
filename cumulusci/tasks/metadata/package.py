@@ -41,8 +41,8 @@ class MetadataParserMissingError(Exception):
 class PackageXmlGenerator(object):
     def __init__(self, directory, api_version, package_name=None, managed=None, delete=None, install_class=None,
                  uninstall_class=None):
-        f_metadata_map = open(__location__ + '/metadata_map.yml', 'r')
-        self.metadata_map = yaml.load(f_metadata_map)
+        with open(__location__ + '/metadata_map.yml', 'r') as f_metadata_map:
+            self.metadata_map = yaml.load(f_metadata_map)
         self.directory = directory
         self.api_version = api_version
         self.package_name = package_name
@@ -136,10 +136,10 @@ class BaseMetadataParser(object):
 
     def get_delete_excludes(self):
         filename = os.path.join(__location__, '..', '..', 'files', 'metadata_whitelist.txt')
-        f = open(filename, 'r')
         excludes = []
-        for line in f:
-            excludes.append(line.strip())
+        with open(filename, 'r') as f:
+            for line in f:
+                excludes.append(line.strip())
         return excludes
 
     def parse_items(self):
@@ -354,6 +354,5 @@ class UpdatePackageXml(BaseTask):
         output = self.options.get('output', '{}/package.xml'.format(self.options.get('path')))
         self.logger.info('Generating {} from metadata in {}'.format(output, self.options.get('path')))
         package_xml = self.package_xml()
-        f = open(self.options.get('output', output), 'w')
-        f.write(package_xml)
-        f.close()
+        with open(self.options.get('output', output), 'w') as f:
+            f.write(package_xml)

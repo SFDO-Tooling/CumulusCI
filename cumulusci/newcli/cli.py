@@ -196,8 +196,6 @@ def project_init(config, name, package_name, package_namespace, package_api_vers
     if os.path.isfile('cumulusci.yml'):
         click.echo("This project already has a cumulusci.yml file")
 
-    f_yml = open('cumulusci.yml','w')
-
     yml_config = []
     # project:
     yml_config.append('project:')
@@ -239,7 +237,9 @@ def project_init(config, name, package_name, package_namespace, package_api_vers
         yml_config.extend(test_config)
 
     yml_config.append('')
-    f_yml.write('\n'.join(yml_config))
+    
+    with open('cumulusci.yml','w') as f_yml:
+        f_yml.write('\n'.join(yml_config))
 
     click.echo("Your project is now initialized for use with CumulusCI")
     click.echo("You can use the project edit command to edit the project's config file")

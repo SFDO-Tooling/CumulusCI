@@ -145,18 +145,18 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             return
 
         in_remote_origin = False
-        f = open(os.path.join(self.repo_root, '.git', 'config'), 'r')
-        for line in f.read().splitlines():
-            line = line.strip()
-            if line == '[remote "origin"]':
-                in_remote_origin = True
-                continue
-            if in_remote_origin and line.find('url =') != -1:
-                line_parts = line.split('/')
-                repo_name = line_parts[-1]
-                if repo_name.endswith('.git'):
-                    repo_name = repo_name[:-4]
-                return repo_name
+        with open(os.path.join(self.repo_root, '.git', 'config'), 'r') as f:
+            for line in f:
+                line = line.strip()
+                if line == '[remote "origin"]':
+                    in_remote_origin = True
+                    continue
+                if in_remote_origin and line.find('url =') != -1:
+                    line_parts = line.split('/')
+                    repo_name = line_parts[-1]
+                    if repo_name.endswith('.git'):
+                        repo_name = repo_name[:-4]
+                    return repo_name
 
     @property
     def repo_url(self):
@@ -179,23 +179,23 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             return
 
         in_remote_origin = False
-        f = open(os.path.join(self.repo_root, '.git', 'config'), 'r')
-        for line in f.read().splitlines():
-            line = line.strip()
-            if line == '[remote "origin"]':
-                in_remote_origin = True
-                continue
-            if in_remote_origin and line.find('url =') != -1:
-                line_parts = line.split('/')
-                return line_parts[-2].split(':')[-1]
+        with open(os.path.join(self.repo_root, '.git', 'config'), 'r') as f:
+            for line in f:
+                line = line.strip()
+                if line == '[remote "origin"]':
+                    in_remote_origin = True
+                    continue
+                if in_remote_origin and line.find('url =') != -1:
+                    line_parts = line.split('/')
+                    return line_parts[-2].split(':')[-1]
 
     @property
     def repo_branch(self):
         if not self.repo_root:
             return
 
-        f = open(os.path.join(self.repo_root, '.git', 'HEAD'), 'r')
-        branch_ref = f.read().strip()
+        with open(os.path.join(self.repo_root, '.git', 'HEAD'), 'r') as f:
+            branch_ref = f.read().strip()
         if branch_ref.startswith('ref: '):
             return '/'.join(branch_ref[5:].split('/')[2:])
 
@@ -214,24 +214,23 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
         commit_sha = None
         if os.path.isfile(commit_file):
-            f = open(commit_file, 'r')
-            commit_sha = f.read().strip()
-            f.close()
+            with open(commit_file, 'r') as f:
+                commit_sha = f.read().strip()
         else:
             packed_refs_path = os.path.join(
                 self.repo_root,
                 '.git',
                 'packed-refs'
             )
-            f = open(packed_refs_path, 'r')
-            for line in f.readlines():
-                parts = line.split(' ')
-                if len(parts) == 1:
-                    # Skip lines showing the commit sha of a tag on the preceeding line
-                    continue
-                if parts[1].replace('refs/remotes/origin/', '').strip() == branch:
-                    commit_sha = parts[0]
-                    break
+            with open(packed_refs_path, 'r') as f:
+                for line in f:
+                    parts = line.split(' ')
+                    if len(parts) == 1:
+                        # Skip lines showing the commit sha of a tag on the preceeding line
+                        continue
+                    if parts[1].replace('refs/remotes/origin/', '').strip() == branch:
+                        commit_sha = parts[0]
+                        break
 
         return commit_sha
 
@@ -542,16 +541,16 @@ class YamlProjectConfig(BaseProjectConfig):
             merge_yaml.append(self.global_config_obj.config_global_local_path)
 
         # Load the project's yaml config file
-        f_config = open(self.config_project_path, 'r')
-        project_config = yaml.load(f_config)
+        with open(self.config_project_path, 'r') as f_config:
+            project_config = yaml.load(f_config)
         if project_config:
             self.config_project.update(project_config)
             merge_yaml.append(self.config_project_path)
 
         # Load the local project yaml config file if it exists
         if self.config_project_local_path:
-            f_local_config = open(self.config_project_local_path, 'r')
-            local_config = yaml.load(f_local_config)
+            with open(self.config_project_local_path, 'r') as f_local_config:
+                local_config = yaml.load(f_local_config)
             if local_config:
                 self.config_project_local.update(local_config)
                 merge_yaml.append(self.config_project_local_path)
@@ -611,6 +610,6 @@ class YamlGlobalConfig(BaseGlobalConfig):
         """ Loads the configuration for the project """
 
         # Load the global cumulusci.yml file
-        f_config = open(self.config_global_path, 'r')
-        config = yaml.load(f_config)
+        with open(self.config_global_path, 'r') as f_config:
+            config = yaml.load(f_config)
         self.config_global = config

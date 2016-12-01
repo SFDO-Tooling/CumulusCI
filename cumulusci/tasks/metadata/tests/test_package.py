@@ -37,8 +37,8 @@ class TestPackageXmlGenerator(unittest.TestCase):
         )
 
         generator = PackageXmlGenerator(path, api_version, package_name)
-        expected_package_xml = open(os.path.join(path, 'package.xml'), 'r')
-        expected_package_xml = expected_package_xml.read().strip()
+        with open(os.path.join(path, 'package.xml'), 'r') as f:
+            expected_package_xml = f.read().strip()
         package_xml = generator()
 
         self.assertEquals(package_xml, expected_package_xml)
@@ -55,8 +55,8 @@ class TestPackageXmlGenerator(unittest.TestCase):
         )
 
         generator = PackageXmlGenerator(path, api_version, package_name, delete=True)
-        expected_package_xml = open(os.path.join(path, 'destructiveChanges.xml'), 'r')
-        expected_package_xml = expected_package_xml.read().strip()
+        with open(os.path.join(path, 'destructiveChanges.xml'), 'r') as f:
+            expected_package_xml = f.read().strip()
         package_xml = generator()
 
         self.assertEquals(package_xml, expected_package_xml)

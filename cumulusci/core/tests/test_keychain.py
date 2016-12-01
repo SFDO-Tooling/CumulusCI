@@ -290,9 +290,8 @@ class TestEncryptedFileProjectKeychain(TestBaseProjectKeychain):
         self._write_file(filename, content)
 
     def _write_file(self, filename, content):
-        f = open(filename, 'w')
-        f.write(content)
-        f.close()
+        with open(filename, 'w') as f:
+            f.write(content)
 
     def test_init(self, mock_class):
         self._mk_temp_home()
