@@ -2,6 +2,17 @@
 History
 =======
 
+2.0.0-alpha21 (2016-12-01)
+------------------
+
+* Added support for global and project specific orgs, services, and connected app.  The global credentials will be used by default if they exist and individual projects an override them.
+
+  * Orgs still default to creating in the project level but the `--global` flag can be used in the CLI to create an org
+
+  * `config_connected_app` command now sets the connected app as global by default.  Use the '--project' flag to set as a project override
+
+  * `connect_github`, `connect_mrbelvedere`, and `connect_apextestsdb` commands now set the service as global by default.  Use the '--project' flag to set as a project override
+
 2.0.0-alpha20 (2016-11-29)
 ------------------
 
