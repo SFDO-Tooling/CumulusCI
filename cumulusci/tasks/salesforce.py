@@ -488,10 +488,10 @@ class DeployNamespacedBundles(DeployBundles):
         else:
             namespace = ''
 
-        path = path.replace(self.options['filename_token'], namespace)
+        zip_path = path.replace(self.options['filename_token'], namespace)
         with open(os.path.join(root, path), 'r') as f:
             content = f.read().replace(self.options['namespace_token'], namespace)
-        zipf.writestr(path, content)
+        zipf.writestr(zip_path, content)
 
 class BaseUninstallMetadata(Deploy):
 

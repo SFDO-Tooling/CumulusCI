@@ -42,7 +42,7 @@ class CloneTag(BaseGithubTask):
         ref = repo.ref('tags/{}'.format(self.options['src_tag']))
         src_tag = repo.tag(ref.object.sha)
         if not src_tag:
-            logger.error('Tag {} not found'.format(self.options['src_tag']))
+            self.logger.error('Tag {} not found'.format(self.options['src_tag']))
             return
 
         tag = repo.create_tag(
