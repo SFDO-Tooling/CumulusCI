@@ -2,6 +2,11 @@
 History
 =======
 
+2.0.0-alpha22 (2016-12-02)
+------------------
+
+* Fix for bug in deploy_post when using the filename token to merge namespace into a filename
+
 2.0.0-alpha21 (2016-12-01)
 ------------------
 
