@@ -926,7 +926,7 @@ class RunApexTests(BaseSalesforceToolingApiTask):
                             'results.  Defaults to 3'),
         },
         'junit_output': {
-            'description': 'File name for JUnit output.  Defaults to test_results.xml',
+            'description': 'File name for JUnit output. Defaults to temp file.',
         },
     }
 
@@ -948,7 +948,9 @@ class RunApexTests(BaseSalesforceToolingApiTask):
             else:
                 self.options['managed'] = False
         if 'junit_output' not in self.options:
-            self.options['junit_output'] = 'test_results.xml'
+            f = tempfile.NamedTemporaryFile(suffix='_test_results.xml', delete=False)
+            f.close()
+            self.options['junit_output'] = f.name
 
     def _init_class(self):
         self.classes_by_id = {}
@@ -1177,8 +1179,7 @@ class RunApexTests(BaseSalesforceToolingApiTask):
 run_apex_tests_debug_options = RunApexTests.task_options.copy()
 run_apex_tests_debug_options.update({
     'json_output': {
-        'description': ('The path to the json output file.  Defaults to ' +
-                       'test_results.json'),
+        'description': 'The path to the json output file. Defaults to temp file.',
     }
 })
 
@@ -1190,7 +1191,9 @@ class RunApexTestsDebug(RunApexTests):
     def _init_options(self, kwargs):
         super(RunApexTestsDebug, self)._init_options(kwargs)
         if 'json_output' not in self.options:
-            self.options['json_output'] = 'test_results.json'
+            f = tempfile.NamedTemporaryFile(suffix='_test_results.json', delete=False)
+            f.close()
+            self.options['json_output'] = f.name
 
     def _debug_init_class(self):
         self.classes_by_log_id = {}
