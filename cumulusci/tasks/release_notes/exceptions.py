@@ -1,14 +1,17 @@
-class GithubApiNotFoundError(Exception):
+from cumulusci.core.exceptions import CumulusCIException
+
+
+class GithubApiNotFoundError(CumulusCIException):
     pass
 
 
-class GithubApiNoResultsError(Exception):
+class GithubApiNoResultsError(CumulusCIException):
     pass
 
 
-class GithubApiUnauthorized(Exception):
+class GithubApiUnauthorized(CumulusCIException):
     pass
 
 
-class LastReleaseTagNotFoundError(Exception):
+class LastReleaseTagNotFoundError(CumulusCIException):
     pass
