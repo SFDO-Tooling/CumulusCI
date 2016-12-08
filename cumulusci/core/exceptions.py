@@ -90,3 +90,7 @@ class GithubException(CumulusCIException):
 class SalesforceException(CumulusCIException):
     """ Raise for errors related to Salesforce """
     pass
+
+class SalesforceDXException(CumulusCIException):
+    """ Raise for errors related to Salesforce DX """
+    pass
