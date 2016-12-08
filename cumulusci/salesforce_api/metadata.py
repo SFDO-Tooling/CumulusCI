@@ -170,7 +170,7 @@ class BaseMetadataApiCall(object):
             if refresh:
                 self.org_config.refresh_oauth_token()
                 return self._call_mdapi(headers, envelope, refresh=False)
-        # Log the error on the PackageInstallation
+        # Log the error
         message = '{}: {}'.format(faultcode, faultstring)
         self._set_status('Failed', message)
         raise MetadataApiError(message, response)

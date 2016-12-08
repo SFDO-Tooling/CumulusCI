@@ -27,7 +27,7 @@ from cumulusci.salesforce_api.package_zip import DestructiveChangesZipBuilder
 from cumulusci.salesforce_api.package_zip import InstallPackageZipBuilder
 from cumulusci.salesforce_api.package_zip import UninstallPackageZipBuilder
 from cumulusci.utils import CUMULUSCI_PATH
-from cumulusci.utils import findReplaceRegex
+from cumulusci.utils import findReplace
 from cumulusci.utils import zip_subfolder
 
 
@@ -770,13 +770,13 @@ class UpdateAdminProfile(Deploy):
     def _process_metadata(self):
         self.logger.info('Processing retrieved metadata in {}'.format(self.tempdir))
 
-        findReplaceRegex(
+        findReplace(
             '<editable>false</editable>',
             '<editable>true</editable>',
             os.path.join(self.tempdir, 'profiles'),
             'Admin.profile',
         )
-        findReplaceRegex(
+        findReplace(
             '<readable>false</readable>',
             '<readable>true</readable>',
             os.path.join(self.tempdir, 'profiles'),

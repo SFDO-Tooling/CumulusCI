@@ -47,7 +47,11 @@ class CreateUnmanagedEESrc(BaseTask):
         for replace_regex in self.replace_regex:
             for fname_match in self.fname_match:
                 findReplaceRegex(
-                    os.path.join(self.options['path']), replace_regex, '', fname_match)
+                    replace_regex,
+                    '',
+                    os.path.join(self.options['path']),
+                    fname_match
+                )
     
         self.logger.info('Metadata in {} is now prepared for unmanaged EE deployment'.format(
             self.options['path'],
