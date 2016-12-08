@@ -492,7 +492,12 @@ class DeployNamespacedBundles(DeployBundles):
         zip_path = path.replace(self.options['filename_token'], namespace)
         with open(os.path.join(root, path), 'r') as f:
             content = f.read().replace(self.options['namespace_token'], namespace)
-        zipf.writestr(zip_path, content)
+        if root == '.':
+            zipf.writestr(zip_path, content)
+        else:
+            # strip ./ from the start of root
+            root = root[2:]
+            zipf.writestr(os.path.join(root, zip_path), content)
 
 class BaseUninstallMetadata(Deploy):
 
