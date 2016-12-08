@@ -442,6 +442,9 @@ project.setProperty("downgradePackage", result);
             <case value="letterhead">
               <property name="typename" value="Letterhead" />
             </case>
+            <case value="customMetadata">
+              <property name="typename" value="CustomMetadata" />
+            </case>
             <default/>
           </switch>
 
