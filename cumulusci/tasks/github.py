@@ -1,5 +1,7 @@
 from datetime import datetime
 from github3 import login
+
+from cumulusci.core.exceptions import GithubException
 from cumulusci.core.tasks import BaseTask
 
 class BaseGithubTask(BaseTask):
@@ -42,8 +44,9 @@ class CloneTag(BaseGithubTask):
         ref = repo.ref('tags/{}'.format(self.options['src_tag']))
         src_tag = repo.tag(ref.object.sha)
         if not src_tag:
-            self.logger.error('Tag {} not found'.format(self.options['src_tag']))
-            return
+            message = 'Tag {} not found'.format(self.options['src_tag'])
+            logger.error(message)
+            raise GithubException(message)
 
         tag = repo.create_tag(
             tag = self.options['tag'],
@@ -83,13 +86,15 @@ class CreateRelease(BaseGithubTask):
 
         for release in repo.iter_releases():
             if release.name == self.options['version']:
-                self.logger.error('Release {} already exists at {}'.format(release.name, release.html_url))
-                return
+                message = 'Release {} already exists at {}'.format(release.name, release.html_url)
+                self.logger.error(message)
+                return GithubException(message)
 
         commit = self.options.get('commit', self.project_config.repo_commit)
         if not commit:
-            self.logger.error('Could not detect the current commit from the local repo')
-            return
+            message = 'Could not detect the current commit from the local repo'
+            self.logger.error(message)
+            return GithubException(message)
 
         version = self.options['version']
         self.tag_name = self.project_config.get_tag_for_version(version)

@@ -15,6 +15,7 @@ from cumulusci.core.exceptions import ConfigError
 from cumulusci.core.exceptions import NotInProject
 from cumulusci.core.exceptions import KeychainConnectedAppNotFound
 from cumulusci.core.exceptions import ProjectConfigNotFound
+from cumulusci.core.exceptions import ScratchOrgException
 from cumulusci.core.logger import logger, log_file
 from cumulusci.oauth.salesforce import SalesforceOAuth2
 
@@ -391,14 +392,14 @@ class ScratchOrgConfig(OrgConfig):
                 break
 
         if p.returncode:
-            self.logger.error(p.stdout)
-            # FIXME: raise exception
-            return
+            message = '{}: {}'.format(p.returncode, p.stdout)
+            self.logger.error(message)
+            raise ScratchOrgException(message)
 
         if not org_info:
-            self.logger.error('Did not find org info in command output:\n'.format(p.stdout))
-            #FIXME: raise exception
-            return
+            message = 'Did not find org info in command output:\n{}'.format(p.stdout)
+            self.logger.error(message)
+            raise ScratchOrgException(message)
 
         # OrgID is the third word of the output
         org_id = org_info.split(' ')[2]
@@ -408,9 +409,9 @@ class ScratchOrgConfig(OrgConfig):
 
         info_parts = org_info.split('following URL: ')
         if len(info_parts) == 1:
-            self.logger.error('Did not find org info in command output:\n'.format(p.stdout))
-            #FIXME: raise exception
-            return
+            message = 'Did not find org info in command output:\n{}'.format(p.stdout)
+            self.logger.error(message)
+            raise ScratchOrgException(message)
 
         instance_url, access_token = info_parts[1].split('/secur/frontdoor.jsp?sid=')
         self._scratch_info = {

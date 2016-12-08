@@ -16,6 +16,7 @@ from simple_salesforce import SalesforceGeneralError
 from salesforce_bulk import SalesforceBulk
 import xmltodict
 
+from cumulusci.core.exceptions import SalesforceException
 from cumulusci.core.tasks import BaseTask
 from cumulusci.tasks.metadata.package import PackageXmlGenerator
 from cumulusci.salesforce_api.metadata import ApiDeploy
@@ -829,8 +830,9 @@ class PackageUpload(BaseSalesforceToolingApiTask):
         package_res = sf.query("select Id from MetadataPackage where NamespacePrefix='{}'".format(self.options['namespace']))
 
         if package_res['totalSize'] != 1:
-            self.logger.error('No package found with namespace {}'.format(self.options['namespace']))
-            return
+            message = 'No package found with namespace {}'.format(self.options['namespace'])
+            self.logger.error(message)
+            raise SalesforceException(message)
 
         package_id = package_res['records'][0]['Id']
 
@@ -858,28 +860,32 @@ class PackageUpload(BaseSalesforceToolingApiTask):
 
         upload = self.tooling.query(soql_check_upload)
         if upload['totalSize'] != 1:
-            self.logger.error("Failed to get info for upload with id {}".format(upload_id))
-            return
+            message = 'Failed to get info for upload with id {}'.format(upload_id)
+            self.logger.error(message)
+            raise SalesforceException(message)
         upload = upload['records'][0]
 
         while upload['Status'] == 'IN_PROGRESS':
             time.sleep(3)
             upload = self.tooling.query(soql_check_upload)
             if upload['totalSize'] != 1:
-                self.logger.error("Failed to get info for upload with id {}".format(upload_id))
-                return
+                message = 'Failed to get info for upload with id {}'.format(upload_id)
+                self.logger.error(message)
+                raise SalesforceException(message)
             upload = upload['records'][0]
 
         if upload['Status'] == 'ERROR':
             self.logger.error('Package upload failed with the following errors')
             for error in upload['Errors']['errors']:
                 self.logger.error('  {}'.format(error['message']))
+            raise SalesforceException('Package upload failed')
         else:
             version_id = upload['MetadataPackageVersionId']
             version_res = self.tooling.query("select MajorVersion, MinorVersion, PatchVersion, BuildNumber, ReleaseState from MetadataPackageVersion where Id = '{}'".format(version_id))
             if version_res['totalSize'] != 1:
-                self.logger.error('Version {} not found'.format(version_id))
-                return
+                message = 'Version {} not found'.format(version_id)
+                self.logger.error(message)
+                raise SalesforceException(message)
 
             version = version_res['records'][0]
             version_parts = [
