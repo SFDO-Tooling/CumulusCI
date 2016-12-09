@@ -367,6 +367,9 @@ def org_browser(config, org_name):
 
     webbrowser.open(org_config.start_url)
 
+    # Save the org config in case it was modified
+    config.keychain.set_org(org_name, org_config)
+
 @click.command(name='connect', help="Connects a new org's credentials using OAuth Web Flow")
 @click.argument('org_name')
 @click.option('--sandbox', is_flag=True, help="If set, connects to a Salesforce sandbox org")
@@ -685,7 +688,11 @@ def flow_run(config, flow_name, org, delete_org):
 
     # Delete the scratch org if --delete-org was set
     if delete_org:
-        org_config.delete_org()
+        try:
+            org_config.delete_org()
+        except Exception as e:
+            click.echo('Scratch org deletion failed.  Ignoring the error below to complete the flow:')
+            click.echo(e.message)
 
     # Save the org config in case it was modified in a task
     if org and org_config:
