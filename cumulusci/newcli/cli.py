@@ -16,6 +16,7 @@ from cumulusci.core.config import ServiceConfig
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.config import YamlGlobalConfig
 from cumulusci.core.config import YamlProjectConfig
+from cumulusci.core.exceptions import ApexTestException
 from cumulusci.core.exceptions import FlowNotFoundError
 from cumulusci.core.exceptions import KeychainConnectedAppNotFound
 from cumulusci.core.exceptions import KeychainKeyNotFound
@@ -613,6 +614,8 @@ def task_run(config, task_name, org, o, debug):
             task()
         except TaskOptionsError as e:
             exception = click.UsageError(e.message)
+        except ApexTestException as e:
+            exception = click.ClickException('ApexTestException: {}'.format(e.message))
         except Exception as e:
             if debug:
                 import pdb
@@ -711,6 +714,8 @@ def flow_run(config, flow_name, org, delete_org, debug):
             flow()
         except TaskOptionsError as e:
             exception = click.UsageError(e.message)
+        except ApexTestException as e:
+            exception = click.ClickException('ApexTestException: {}'.format(e.message))
         except Exception as e:
             if debug:
                 import pdb
