@@ -109,7 +109,7 @@ Query the Enterprise API for Data
 
 CumulusCI provides a number of base task classes that are useful for building completely custom tasks.  For this example, we'll use the `BaseSalesforceApiTask` which initializes the `simple-salesforce` python library for interacting with the Salesforce REST API.  `BaseSalesforceApiTask` sets `self.sf` to an initialized instance with the access token already set so you just focus on writing your API interaction logic.
 
-Create the file `tasks/rest.py':: python
+Create the file `tasks/rest.py`::
 
     from cumulusci.core.tasks.salesforce import BaseSalesforceApiTask
 
@@ -137,7 +137,7 @@ Query the Tooling API
 
 For this example, we'll use `BaseSalesforceToolingApiTask` to query ApexClasses via the Tooling API.  This base class initializes a modified version of `simple-salesforce` that points to the Tooling API.  The initalized API wrapper is `self.tooling`.
 
-Create the file `tasks/tooling.py`:: python
+Create the file `tasks/tooling.py`::
 
     from cumulusci.tasks.salesforce import BaseSalesforceToolingApiTask
 
@@ -164,7 +164,7 @@ Extend the default update_admin_profile task
 
 The previous examples showed how to add a completely new task, but what if we need to implement some custom project specific logic into an existing task?  For this example, we'll take a look at how the Salesforce.org Nonprofit Success Pack modifies the `update_admin_profile` task to grant FLS on custom fields added to a managed object and set the visibility and default values for project specific record types.
 
-The following is the content of the `tasks/salesforce.py` file in the Cumulus repository:: python
+The following is the content of the `tasks/salesforce.py` file in the Cumulus repository::
 
     import os
     from cumulusci.tasks.salesforce import UpdateAdminProfile as BaseUpdateAdminProfile
