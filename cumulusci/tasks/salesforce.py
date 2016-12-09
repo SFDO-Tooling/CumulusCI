@@ -1178,7 +1178,7 @@ class RunApexTests(BaseSalesforceToolingApiTask):
 run_apex_tests_debug_options = RunApexTests.task_options.copy()
 run_apex_tests_debug_options.update({
     'debug_log_dir': {
-        'description': 'Directory to store debug logs.',
+        'description': 'Directory to store debug logs. Defaults to temp dir.',
     },
     'json_output': {
         'description': ('The path to the json output file.  Defaults to ' +
@@ -1250,7 +1250,15 @@ class RunApexTestsDebug(RunApexTests):
             'Operation, Request, StartTime, Status ' +
             'from ApexLog where Id in {}'.format(log_ids))
         debug_log_dir = self.options.get('debug_log_dir')
-        tempdir = None if debug_log_dir else tempfile.mkdtemp()
+        if debug_log_dir:
+            tempdir = None
+            try:
+                os.makedirs(debug_log_dir)
+            except OSError as e:
+                if e.errno ~= errno.EEXIST:
+                    raise e
+        else:
+            tempdir = tempfile.mkdtemp()
         for log in result['records']:
             class_id = self.classes_by_log_id[log['Id']]
             class_name = self.classes_by_id[class_id]
