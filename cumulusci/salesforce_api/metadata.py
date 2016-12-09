@@ -204,10 +204,10 @@ class BaseMetadataApiCall(object):
         else:
             # If no done element was in the xml, fail logging the entire SOAP
             # envelope as the log
-            self._set_status('Failed', response.content)
+            self._set_status('Failed', response.content, response=response)
         return response
 
-    def _set_status(self, status, log=None, level=None):
+    def _set_status(self, status, log=None, level=None, response=None):
         if not level:
             level = 'info'
             if status == 'Failed':
@@ -218,6 +218,9 @@ class BaseMetadataApiCall(object):
             logger('[{}]: {}'.format(status, log))
         else:
             logger('[{}]'.format(status))
+
+        if level == 'error':
+            raise MetadataApiError(log, response)
 
 
 class ApiRetrieveUnpackaged(BaseMetadataApiCall):
