@@ -434,7 +434,10 @@ class ScratchOrgConfig(OrgConfig):
 
     @property
     def org_id(self):
-        return self.scratch_info['org_id']
+        org_id = self.config.get('org_id')
+        if not org_id:
+            org_id = self.scratch_info['org_id']
+        return org_id
 
     @property
     def username(self):
@@ -461,6 +464,7 @@ class ScratchOrgConfig(OrgConfig):
         for line in p.stdout:
             match = re_obj.search(line)
             if match:
+                self.config['org_id'] = match.group(1)
                 self.config['username'] = match.group(2)
             self.logger.info(line)
 
