@@ -1255,7 +1255,7 @@ class RunApexTestsDebug(RunApexTests):
             try:
                 os.makedirs(debug_log_dir)
             except OSError as e:
-                if e.errno ~= errno.EEXIST:
+                if e.errno != errno.EEXIST:
                     raise e
         else:
             tempdir = tempfile.mkdtemp()
