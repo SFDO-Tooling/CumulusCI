@@ -2,6 +2,23 @@
 History
 =======
 
+2.0.0-alpha23 (2016-12-09)
+------------------
+
+* `cumulusci2 org browser` now saves the org back to the keychain.  This fixes an issue with scratch orgs where a call to org browser on a scratch org that hasn't been created yet gets created but doesn't persist after the command
+
+* `task run` and `flow run` now support the `--debug` flag which will drop you into the Python interactive debugger (pdb) at the point of the exception.
+
+* Added Cookbook to the docs: http://cumulusci.readthedocs.io/en/latest/cookbook.html
+
+* `flow run` with the `--delete-org` option flag and scratch orgs no longer fails the flow if the delete org call fails.
+
+* Fixed the `deploy_post` task which has having errors with namespaced file names
+
+* Fixed `update_admin_profile` to properly update the profile.  This involved fixing the utils `findReplace` and `findReplaceRegex`.
+
+* Reworked exceptions structure and ensure that tasks throw an exception where approriate.
+
 2.0.0-alpha22 (2016-12-02)
 ------------------
 
