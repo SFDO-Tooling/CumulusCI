@@ -144,6 +144,13 @@ class TestRunApexTestsDebug(TestRunApexTests):
         super(TestRunApexTestsDebug, self).setUp()
         self.task_config.config['json_output'] = 'results.json'
 
+    def _mock_create_debug_level(self):
+        url = self.base_tooling_url + 'sobjects/DebugLevel/'
+        expected_response = {
+            'id': 1,
+        }
+        responses.add(responses.POST, url, json=expected_response)
+
     def _mock_create_trace_flag(self):
         url = self.base_tooling_url + 'sobjects/TraceFlag/'
         expected_response = {
@@ -151,8 +158,8 @@ class TestRunApexTestsDebug(TestRunApexTests):
         }
         responses.add(responses.POST, url, json=expected_response)
 
-    def _mock_delete_trace_flags(self):
-        url = self.base_tooling_url + 'sobjects/TraceFlag/1'
+    def _mock_delete_debug_levels(self):
+        url = self.base_tooling_url + 'sobjects/DebugLevel/1'
         responses.add(responses.DELETE, url)
 
     def _mock_get_duration(self):
@@ -184,19 +191,29 @@ class TestRunApexTestsDebug(TestRunApexTests):
         responses.add(responses.GET, url, match_querystring=True,
             json=expected_response)
 
+    def _mock_get_debug_levels(self):
+        url = self.base_tooling_url + 'query/?q=Select+Id+from+DebugLevel'
+        expected_response = {
+            'records': [{'Id': 1}],
+            'totalSize': 1,
+        }
+        responses.add(responses.GET, url, match_querystring=True,
+            json=expected_response)
+
     @responses.activate
     def test_run_task(self):
         self._mock_apex_class_query()
         self._mock_get_trace_flags()
-        self._mock_delete_trace_flags()
+        self._mock_get_debug_levels()
+        self._mock_delete_debug_levels()
+        self._mock_create_debug_level()
         self._mock_create_trace_flag()
         self._mock_run_tests()
         self._mock_tests_complete()
         self._mock_get_test_results()
         self._mock_get_duration()
         self._mock_get_log_body()
-        self._mock_delete_trace_flags()
         task = RunApexTestsDebug(
             self.project_config, self.task_config, self.org_config)
         task()
-        self.assertEqual(len(responses.calls), 10)
+        self.assertEqual(len(responses.calls), 11)
