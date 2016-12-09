@@ -1177,6 +1177,9 @@ class RunApexTests(BaseSalesforceToolingApiTask):
 
 run_apex_tests_debug_options = RunApexTests.task_options.copy()
 run_apex_tests_debug_options.update({
+    'debug_log_dir': {
+        'description': 'Directory to store debug logs.',
+    },
     'json_output': {
         'description': ('The path to the json output file.  Defaults to ' +
                        'test_results.json'),
