@@ -663,7 +663,7 @@ def flow_info(config, flow_name):
 @click.option('--delete-org', is_flag=True, help="If set, deletes the scratch org after the flow completes")
 @click.option('--debug', is_flag=True, help="Drops into pdb, the Python debugger, on an exception")
 @pass_config
-def flow_run(config, flow_name, org, delete_org):
+def flow_run(config, flow_name, org, delete_org, debug):
     # Check environment
     check_keychain(config)
 
