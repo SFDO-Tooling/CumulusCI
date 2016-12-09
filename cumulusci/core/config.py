@@ -382,7 +382,8 @@ class ScratchOrgConfig(OrgConfig):
         self.logger.info('Getting scratch org info from Salesforce DX')
 
         # Call force:org:open and parse output to get instance_url and access_token
-        p = sarge.Command('heroku force:org:open -d', stdout=sarge.Capture(buffer_size=-1))
+        command = 'heroku force:org:open -d -u {}'.format(self.username)
+        p = sarge.Command(command, stdout=sarge.Capture(buffer_size=-1))
         p.run()
 
         org_info = None
