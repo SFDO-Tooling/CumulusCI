@@ -1195,7 +1195,7 @@ run_apex_tests_debug_options.update({
 
 class RunApexTestsDebug(RunApexTests):
     """Run Apex tests and collect debug info"""
-
+    api_version = '38.0'
     task_options = run_apex_tests_debug_options
 
     def _init_options(self, kwargs):

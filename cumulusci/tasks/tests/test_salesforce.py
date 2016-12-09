@@ -50,7 +50,7 @@ class TestBaseSalesforceToolingApiTask(unittest.TestCase):
 class TestRunApexTests(unittest.TestCase):
 
     def setUp(self):
-        self.api_version = 36.0
+        self.api_version = 38.0
         self.global_config = BaseGlobalConfig(
             {'project': {'api_version': self.api_version}})
         self.task_config = TaskConfig()
