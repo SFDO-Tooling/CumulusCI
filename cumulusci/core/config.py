@@ -456,7 +456,11 @@ class ScratchOrgConfig(OrgConfig):
         p.run()
 
         org_info = None
+        re_obj = re.compile('Successfully created workspace org: (.+), username: (.+)')
         for line in p.stdout:
+            match = re_obj.search(line)
+            if match:
+                self.config['username'] = match.group(2)
             self.logger.info(line)
 
         if p.returncode:
@@ -465,7 +469,6 @@ class ScratchOrgConfig(OrgConfig):
 
         # Flag that this org has been created
         self.config['created'] = True
-        self.config['username'] = self.username
 
     def delete_org(self):
         """ Uses heroku force:org:delete to create the org """
