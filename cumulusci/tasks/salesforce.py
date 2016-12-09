@@ -7,6 +7,7 @@ import json
 import logging
 import os
 import re
+import shutil
 import tempfile
 import time
 import zipfile
@@ -1197,6 +1198,9 @@ class RunApexTests(BaseSalesforceToolingApiTask):
 
 run_apex_tests_debug_options = RunApexTests.task_options.copy()
 run_apex_tests_debug_options.update({
+    'debug_log_dir': {
+        'description': 'Directory to store debug logs. Defaults to temp dir.',
+    },
     'json_output': {
         'description': ('The path to the json output file.  Defaults to ' +
                        'test_results.json'),
@@ -1266,6 +1270,16 @@ class RunApexTestsDebug(RunApexTests):
             'DurationMilliseconds, Location, LogLength, LogUserId, ' +
             'Operation, Request, StartTime, Status ' +
             'from ApexLog where Id in {}'.format(log_ids))
+        debug_log_dir = self.options.get('debug_log_dir')
+        if debug_log_dir:
+            tempdir = None
+            try:
+                os.makedirs(debug_log_dir)
+            except OSError as e:
+                if e.errno != errno.EEXIST:
+                    raise e
+        else:
+            tempdir = tempfile.mkdtemp()
         for log in result['records']:
             class_id = self.classes_by_log_id[log['Id']]
             class_name = self.classes_by_id[class_id]
@@ -1275,9 +1289,10 @@ class RunApexTestsDebug(RunApexTests):
             response = self.tooling.request.get(body_url,
                 headers=self.tooling.headers)
             log_file = class_name + '.log'
-            debug_log_dir = self.options.get('debug_log_dir')
             if debug_log_dir:
                 log_file = os.path.join(debug_log_dir, log_file)
+            else:
+                log_file = os.path.join(tempdir, log_file)
             with io.open(log_file, mode='w', encoding='utf-8') as f:
                 f.write(unicode(response.content))
             with io.open(log_file, mode='r', encoding='utf-8') as f:
@@ -1288,6 +1303,9 @@ class RunApexTestsDebug(RunApexTests):
         # Delete the TraceFlag
         TraceFlag = self._get_tooling_object('TraceFlag')
         TraceFlag.delete(str(self.trace_id))
+        # Clean up tempdir logs
+        if tempdir:
+            shutil.rmtree(tempdir)
 
     def _debug_get_results(self, result):
         if result['ApexLogId']:
