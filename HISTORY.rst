@@ -2,6 +2,11 @@
 History
 =======
 
+2.0.0-alpha24 (2016-12-09)
+------------------
+
+* Bug fix release, flow_run in the CLI should accept debug argument and was throwing and error
+
 2.0.0-alpha23 (2016-12-09)
 ------------------
 
