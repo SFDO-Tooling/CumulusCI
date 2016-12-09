@@ -253,3 +253,155 @@ Note that here we're overriding the default package_xml used by UpdateAdminProfi
         </types>
         <version>36.0</version>
     </Package>
+
+Continuous Integration with CumulusCI
+=====================================
+
+CircleCI
+--------
+
+Building a project configured for CumulusCI on CircleCI is fairly easy to get set up.  However, if you are using persistent DE orgs to build against, you will hit issues if you have more than one build container in your CircleCI account and two feature branch commits come in at about the same time.  CircleCI does not currently have a way to control build concurrency other than to restrict the number of containers to one.
+
+First, set up your project in CircleCI and add the following Environment Variables in the project's config:
+
+* CUMULUSCI_CONNECTED_APP: The output from `cumulusci2 org connected_app`
+* CUMULUSCI_ORG_feature: The output from `cumulusci2 org info feature`, assuming you've already connected your feature org to your local toolbelt.
+    
+
+The following circle.yml file added to your repo will build all branches as unmanaged code::
+
+    machine:
+      python:
+        version: 2.7.12
+    environment:
+      CUMULUSCI_KEYCHAIN_CLASS: cumulusci.core.keychain.EnvironmentProjectKeychain
+    dependencies:
+      override:
+        - 'pip install --upgrade pip'
+        - 'pip install --upgrade -r requirements.txt'
+    test:
+      override:
+        - 'cumulusci2 flow run ci_feature_cumulus --org feature'
+      post:
+        - 'mkdir -p $CIRCLE_TEST_REPORTS/junit/'
+        - 'cp test_results.xml $CIRCLE_TEST_REPORTS/junit/'
+
+If you want to run the full packaging flow where feature branches build unmanaged and master branch commits build and test a beta managed package, you need to set the following environment variables in CircleCI:
+
+* CUMULUSCI_ORG_packaging: The output from `cumulusci2 org info packaging`, assuming you've already connected your packaging org to your local toolbelt.
+* CUMULUSCI_ORG_beta: The output from `cumulusci2 org info beta`, assuming you've already connected your beta org to your local toolbelt.
+* CUMULUSCI_SERVICE_github: The output from `cumulusci2 project show_github`, assuming you've already configured github locally via `cumulusci2 project connect_github` 
+
+Next, use the following circle.yml::
+
+    machine:
+      python:
+        version: 2.7.12
+      environment:
+        CUMULUSCI_KEYCHAIN_CLASS: cumulusci.core.keychain.EnvironmentProjectKeychain
+    dependencies:
+      override:
+        - 'pip install --upgrade pip'
+        - 'pip install --upgrade cumulusci'
+    test:
+      pre:
+        - 'if [[ $CIRCLE_BRANCH == "master" ]]; then cumulusci2 flow run ci_master --org packaging; fi'
+        - 'if [[ $CIRCLE_BRANCH == "master" ]]; then cumulusci2 flow run release_beta --org packaging; fi'
+      override:
+        - 'if [[ $CIRCLE_BRANCH == "master" ]]; then cumulusci2 flow run ci_beta --org beta; else cumulusci2 flow run ci_feature --org feature; fi'
+      post:
+        - 'mkdir -p $CIRCLE_TEST_REPORTS/junit/'
+        - 'cp test_results.xml $CIRCLE_TEST_REPORTS/junit/'
+        - 'if [[ $CIRCLE_BRANCH != "master" ]]; then cp test_results.json $CIRCLE_ARTIFACTS; fi'
+        #- 'if [[ $CIRCLE_BRANCH != "master" ]]; then cumulusci2 task run apextestsdb_upload; fi'
+    deployment:
+      master_to_feature:
+        branch: master
+        commands:
+          - 'cumulusci2 task run github_master_to_feature'
+
+Note that the beta upload flow requires pilot access to the PackageUploadRequest API.
+
+
+CircleCI + Salesforce DX
+------------------------
+
+If you have Developer Preview access to Salesforce DX, you can use CumulusCI 2.0 to build against scratch orgs and allow for concurrent feature branch builds that automatically delete the scratch org at the end of the build.
+
+You'll first need to setup some prerequirements:
+
+* Ensure that orgs/dev.json contains a valid scratch org definition file
+* Your project's workspace-config.json should have `"EnableTokenEncryption": false`
+* Once encryption is disabled, authorize DX to your Environment Hub org
+* Your packaging org should be connected to your keychain already, verify with `cumulusci2 org info packaging`
+* Run `cumulusci2 org scratch dev feature` to create the configuration for the scratch org in your cumulusci2 keychain.  You should be able to run `cumulusci2 org info feature` to see the config.
+* Run `cumulusci2 org scratch dev beta` to create the configuration for the scratch org in your cumulusci2 keychain.  You should be able to run `cumulusci2 org info beta` to see the config.
+
+Once your project is set up in CircleCI, add the following additional environment variables in addition to the ones listed above:
+
+* CUMULUSCI_CONNECTED_APP: The output from `cumulusci2 org connected_app`
+* CUMULUSCI_ORG_feature: The output from `cumulusci2 org info feature`, assuming you've already connected your feature org to your local toolbelt.
+* SFDX_HUB_ORG: The contents of ~/.appcloud/hubOrg.json
+* SFDX_CONFIG: The contents of ~/.appcloud/workspace_config.json
+
+The following circle.yml in your project's root should get things going for unmanaged builds::
+
+    machine:
+      python:
+        version: 2.7.12
+      environment:
+        CUMULUSCI_KEYCHAIN_CLASS: cumulusci.core.keychain.EnvironmentProjectKeychain
+    dependencies:
+      override:
+        - 'pip install --upgrade pip'
+        - 'pip install --upgrade -r requirements.txt'
+        - 'mkdir ~/.appcloud'
+        - 'echo $SFDX_CONFIG > ~/.appcloud/workspace-config.json'
+        - 'echo $SFDX_HUB_ORG > ~/.appcloud/hubOrg.json'
+        - 'heroku plugins:install salesforce-alm@preview'
+        - 'heroku force --help'
+    test:
+      override:
+        - 'cumulusci2 flow run ci_feature_cumulus --org feature --delete-org'
+      post:
+        - 'mkdir -p $CIRCLE_TEST_REPORTS/junit/'
+        - 'cp test_results.xml $CIRCLE_TEST_REPORTS/junit/'
+
+To run the full feature/master flow using scratch orgs for feature and beta test builds, set the following additional environment variables:
+
+* CUMULUSCI_ORG_packaging: The output from `cumulusci2 org info packaging`, assuming you've already connected your packaging org to your local toolbelt.
+* CUMULUSCI_ORG_beta: The output from `cumulusci2 org info beta`, assuming you've already connected your beta org to your local toolbelt.
+* CUMULUSCI_SERVICE_github: The output from `cumulusci2 project show_github`, assuming you've already configured github locally via `cumulusci2 project connect_github` 
+
+The following circle.yml should set up the whole feature/master flow using scratch orgs for feature and beta test builds::
+
+    machine:
+      python:
+        version: 2.7.12
+      environment:
+        CUMULUSCI_KEYCHAIN_CLASS: cumulusci.core.keychain.EnvironmentProjectKeychain
+    dependencies:
+      override:
+        - 'pip install --upgrade pip'
+        - 'pip install --upgrade cumulusci'
+        - 'mkdir ~/.appcloud'
+        - 'echo $SFDX_CONFIG > ~/.appcloud/workspace-config.json'
+        - 'echo $SFDX_HUB_ORG > ~/.appcloud/hubOrg.json'
+        - 'heroku plugins:install salesforce-alm@preview'
+        - 'heroku force --help'
+    test:
+      pre:
+        - 'if [[ $CIRCLE_BRANCH == "master" ]]; then cumulusci2 flow run ci_master --org packaging; fi'
+        - 'if [[ $CIRCLE_BRANCH == "master" ]]; then cumulusci2 flow run release_beta --org packaging; fi'
+      override:
+        - 'if [[ $CIRCLE_BRANCH == "master" ]]; then cumulusci2 flow run ci_beta --org beta --delete-org; else cumulusci2 flow run ci_feature --org feature --delete-org; fi'
+      post:
+        - 'mkdir -p $CIRCLE_TEST_REPORTS/junit/'
+        - 'cp test_results.xml $CIRCLE_TEST_REPORTS/junit/'
+        - 'if [[ $CIRCLE_BRANCH != "master" ]]; then cp test_results.json $CIRCLE_ARTIFACTS; fi'
+        #- 'if [[ $CIRCLE_BRANCH != "master" ]]; then cumulusci2 task run apextestsdb_upload; fi'
+    deployment:
+      master_to_feature:
+        branch: master
+        commands:
+          - 'cumulusci2 task run github_master_to_feature'
