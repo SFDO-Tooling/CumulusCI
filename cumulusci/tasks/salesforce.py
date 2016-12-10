@@ -21,6 +21,7 @@ from cumulusci.core.exceptions import ApexTestException
 from cumulusci.core.exceptions import SalesforceException
 from cumulusci.core.tasks import BaseTask
 from cumulusci.tasks.metadata.package import PackageXmlGenerator
+from cumulusci.salesforce_api.exceptions import MetadataApiError
 from cumulusci.salesforce_api.metadata import ApiDeploy
 from cumulusci.salesforce_api.metadata import ApiRetrieveInstalledPackages
 from cumulusci.salesforce_api.metadata import ApiRetrievePackaged
@@ -206,9 +207,9 @@ class Deploy(BaseSalesforceMetadataApiTask):
         'path': {
             'description': 'The path to the metadata source to be deployed',
             'required': True,
-        }
+        },
     }
-
+        
     def _get_api(self, path=None):
         if not path:
             path = self.task_config.options__path
@@ -268,12 +269,17 @@ class InstallPackageVersion(Deploy):
             'description': 'The version of the package to install.  "latest" and "latest_beta" can be used to trigger lookup via Github Releases on the repository.',
             'required': True,
         },
+        'retries': {
+            'description': 'Number of retries (default=5)',
+        },
     }
 
     def _init_options(self, kwargs):
         super(InstallPackageVersion, self)._init_options(kwargs)
         if 'namespace' not in self.options:
             self.options['namespace'] = self.project_config.project__package__namespace
+        if 'retries' not in self.options:
+            self.options['retries'] = 5
         if self.options.get('version') == 'latest':
             self.options['version'] = self.project_config.get_latest_version()
             self.logger.info('Installing latest release: {}'.format(self.options['version']))
@@ -283,7 +289,19 @@ class InstallPackageVersion(Deploy):
 
     def _get_api(self, path=None):
         package_zip = InstallPackageZipBuilder(self.options['namespace'], self.options['version'])
-        return self.api_class(self, package_zip())
+        return self.api_class(self, package_zip(), self.options['retries'])
+
+    def _run_task(self):
+        api = self._get_api()
+        try:
+            res = api()
+        except MetadataApiError as e:
+            if self.options['retries'] and ('This package is not yet available' in e.message or
+                'InstalledPackage version number' in e.message):
+                self.options['retries'] -= 1
+                self.logger.warning('Retrying deploy (%d attempts remaining)' % (self.options['retries']))
+                return self._run_task()
+            raise e
 
 class UninstallPackage(Deploy):
     task_options = {
