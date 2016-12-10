@@ -21,6 +21,7 @@ from cumulusci.core.exceptions import ApexTestException
 from cumulusci.core.exceptions import SalesforceException
 from cumulusci.core.tasks import BaseTask
 from cumulusci.tasks.metadata.package import PackageXmlGenerator
+from cumulusci.salesforce_api.exceptions import MetadataApiError
 from cumulusci.salesforce_api.metadata import ApiDeploy
 from cumulusci.salesforce_api.metadata import ApiRetrieveInstalledPackages
 from cumulusci.salesforce_api.metadata import ApiRetrievePackaged
@@ -295,10 +296,10 @@ class InstallPackageVersion(Deploy):
         try:
             res = api()
         except MetadataApiError as e:
-            if self.options['retries'] and ('This package is not yet available' in response.content or
-                'Error: InstalledPackage version number' in response.content):
+            if self.options['retries'] and ('This package is not yet available' in e.message or
+                'InstalledPackage version number' in e.message):
                 self.options['retries'] -= 1
-                self.task.logger.warning('Retrying deploy (%d attempts remaining)' % (self.options['retries'] - 1))
+                self.logger.warning('Retrying deploy (%d attempts remaining)' % (self.options['retries']))
                 return self._run_task()
             raise e
 

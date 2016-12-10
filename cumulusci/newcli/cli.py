@@ -20,6 +20,7 @@ from cumulusci.core.exceptions import ApexTestException
 from cumulusci.core.exceptions import FlowNotFoundError
 from cumulusci.core.exceptions import KeychainConnectedAppNotFound
 from cumulusci.core.exceptions import KeychainKeyNotFound
+from cumulusci.salesforce_api.exceptions import MetadataApiError
 from cumulusci.core.exceptions import NotInProject
 from cumulusci.core.exceptions import ProjectConfigNotFound
 from cumulusci.core.exceptions import ServiceNotConfigured
@@ -616,6 +617,8 @@ def task_run(config, task_name, org, o, debug):
             exception = click.UsageError(e.message)
         except ApexTestException as e:
             exception = click.ClickException('ApexTestException: {}'.format(e.message))
+        except MetadataApiError as e:
+            exception = click.ClickException('MetadataApiError: {}'.format(e.message))
         except Exception as e:
             if debug:
                 import pdb
@@ -716,6 +719,8 @@ def flow_run(config, flow_name, org, delete_org, debug):
             exception = click.UsageError(e.message)
         except ApexTestException as e:
             exception = click.ClickException('ApexTestException: {}'.format(e.message))
+        except MetadataApiError as e:
+            exception = click.ClickException('MetadataApiError: {}'.format(e.message))
         except Exception as e:
             if debug:
                 import pdb
