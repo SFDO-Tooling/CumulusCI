@@ -338,26 +338,10 @@ class ApiDeploy(BaseMetadataApiCall):
     soap_action_start = 'deploy'
     soap_action_status = 'checkDeployStatus'
 
-    def __init__(self, task, package_zip, purge_on_delete=True, retries=1):
+    def __init__(self, task, package_zip, purge_on_delete=True):
         super(ApiDeploy, self).__init__(task)
         self._set_purge_on_delete(purge_on_delete)
         self.package_zip = package_zip
-        self.retries = int(retries)
-
-    def __call__(self):
-        self.task.logger.info('Pending')
-        # preserve the initial value of retries
-        retries = self.retries
-        while retries > 0:
-            if retries < self.retries:
-                self.task.logger.warning('Retrying deploy (%d attempts remaining)' % (retries - 1))
-            response = self._get_response()
-            if ('This package is not yet available' in response.content or
-                'Error: InstalledPackage version number' in response.content):
-                retries -= 1
-                continue
-            if self.status != 'Failed':
-                return self._process_response(response)
 
     def _set_purge_on_delete(self, purge_on_delete):
         if purge_on_delete == False or purge_on_delete == 'false':
