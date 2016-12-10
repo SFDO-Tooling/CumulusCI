@@ -2,6 +2,11 @@
 History
 =======
 
+2.0.0-alpha26 (2016-12-09)
+------------------
+
+* Bug fix, missing import of re in core/config.py
+
 2.0.0-alpha25 (2016-12-09)
 ------------------
 

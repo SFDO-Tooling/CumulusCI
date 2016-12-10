@@ -1,6 +1,7 @@
 import base64
 import os
 import pickle
+import re
 
 import hiyapyco
 import sarge
