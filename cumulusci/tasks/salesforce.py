@@ -1209,7 +1209,7 @@ run_apex_tests_debug_options.update({
 
 class RunApexTestsDebug(RunApexTests):
     """Run Apex tests and collect debug info"""
-
+    api_version = '38.0'
     task_options = run_apex_tests_debug_options
 
     def _init_options(self, kwargs):
@@ -1224,35 +1224,47 @@ class RunApexTestsDebug(RunApexTests):
 
     def _debug_create_trace_flag(self):
         """Create a TraceFlag for a given user."""
-        self._delete_trace_flags()
+        self._delete_debug_levels()
+        self.logger.info('Creating DebugLevel object')
+        DebugLevel = self._get_tooling_object('DebugLevel')
+        result = DebugLevel.create({
+            'ApexCode': 'Info',
+            'ApexProfiling': 'Debug',
+            'Callout': 'Info',
+            'Database': 'Info',
+            'DeveloperName': 'CumulusCI',
+            'MasterLabel': 'CumulusCI',
+            'System': 'Info',
+            'Validation': 'Info',
+            'Visualforce': 'Info',
+            'Workflow': 'Info',
+        })
+        self.debug_level_id = result['id']
         self.logger.info('Setting up trace flag to capture debug logs')
         # New TraceFlag expires 12 hours from now
         expiration_date = (datetime.datetime.now() +
             datetime.timedelta(seconds=60*60*12))
         TraceFlag = self._get_tooling_object('TraceFlag')
         result = TraceFlag.create({
-            'ApexCode': 'Info',
-            'ApexProfiling': 'Debug',
-            'Callout': 'Info',
-            'Database': 'Info',
+            'DebugLevelId': result['id'],
             'ExpirationDate': expiration_date.isoformat(),
-            'System': 'Info',
+            'LogType': 'USER_DEBUG',
             'TracedEntityId': self.org_config.user_id,
-            'Validation': 'Info',
-            'Visualforce': 'Info',
-            'Workflow': 'Info',
         })
         self.trace_id = result['id']
         self.logger.info('Created TraceFlag for user')
 
-    def _delete_trace_flags(self):
-        """Delete existing TraceFlags."""
-        self.logger.info('Deleting existing TraceFlags')
-        traceflags = self.tooling.query('Select Id from TraceFlag')
-        if traceflags['totalSize']:
-            TraceFlag = self._get_tooling_object('TraceFlag')
-            for traceflag in traceflags['records']:
-                TraceFlag.delete(str(traceflag['Id']))
+    def _delete_debug_levels(self):
+        """
+        Delete existing DebugLevel objects.
+        This will automatically delete associated TraceFlags as well.
+        """
+        self.logger.info('Deleting existing DebugLevel objects')
+        result = self.tooling.query('Select Id from DebugLevel')
+        if result['totalSize']:
+            DebugLevel = self._get_tooling_object('DebugLevel')
+            for record in result['records']:
+                DebugLevel.delete(str(record['Id']))
 
     def _debug_get_duration_class(self, class_id):
         if class_id in self.logs_by_class_id:
@@ -1300,9 +1312,9 @@ class RunApexTestsDebug(RunApexTests):
             # Add method stats to results_by_class_name
             for method, info in method_stats.items():
                 self.results_by_class_name[class_name][method].update(info)
-        # Delete the TraceFlag
-        TraceFlag = self._get_tooling_object('TraceFlag')
-        TraceFlag.delete(str(self.trace_id))
+        # Delete the DebugLevel
+        DebugLevel = self._get_tooling_object('DebugLevel')
+        DebugLevel.delete(str(self.debug_level_id))
         # Clean up tempdir logs
         if tempdir:
             shutil.rmtree(tempdir)

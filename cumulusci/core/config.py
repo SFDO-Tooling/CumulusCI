@@ -4,6 +4,7 @@ import pickle
 
 import hiyapyco
 import sarge
+from simple_salesforce import Salesforce
 import yaml
 
 from distutils.version import LooseVersion
@@ -16,6 +17,7 @@ from cumulusci.core.exceptions import NotInProject
 from cumulusci.core.exceptions import KeychainConnectedAppNotFound
 from cumulusci.core.exceptions import ProjectConfigNotFound
 from cumulusci.core.exceptions import ScratchOrgException
+from cumulusci.core.exceptions import SOQLQueryException
 from cumulusci.core.logger import logger, log_file
 from cumulusci.oauth.salesforce import SalesforceOAuth2
 
@@ -438,6 +440,22 @@ class ScratchOrgConfig(OrgConfig):
         if not org_id:
             org_id = self.scratch_info['org_id']
         return org_id
+
+    @property
+    def user_id(self):
+        if not self.config.get('user_id'):
+            sf = Salesforce(
+                instance=self.instance_url.replace('https://', ''),
+                session_id=self.access_token,
+                version='38.0',
+            )
+            result = sf.query_all(
+                "SELECT Id FROM User WHERE UserName='{}'".format(
+                    self.username
+                )
+            )
+            self.config['user_id'] = result['records'][0]['Id']
+        return self.config['user_id']
 
     @property
     def username(self):

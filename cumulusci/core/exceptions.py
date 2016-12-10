@@ -94,3 +94,7 @@ class SalesforceException(CumulusCIException):
 class SalesforceDXException(CumulusCIException):
     """ Raise for errors related to Salesforce DX """
     pass
+
+class SOQLQueryException(CumulusCIException):
+    """ Raise for errors related to Salesforce DX """
+    pass
