@@ -16,6 +16,7 @@ from cumulusci.core.config import ServiceConfig
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.config import YamlGlobalConfig
 from cumulusci.core.config import YamlProjectConfig
+from cumulusci.core.exceptions import ApexTestException
 from cumulusci.core.exceptions import FlowNotFoundError
 from cumulusci.core.exceptions import KeychainConnectedAppNotFound
 from cumulusci.core.exceptions import KeychainKeyNotFound
@@ -367,6 +368,9 @@ def org_browser(config, org_name):
 
     webbrowser.open(org_config.start_url)
 
+    # Save the org config in case it was modified
+    config.keychain.set_org(org_name, org_config)
+
 @click.command(name='connect', help="Connects a new org's credentials using OAuth Web Flow")
 @click.argument('org_name')
 @click.option('--sandbox', is_flag=True, help="If set, connects to a Salesforce sandbox org")
@@ -547,8 +551,9 @@ def task_info(config, task_name):
 @click.argument('task_name')
 @click.option('--org', help="Specify the target org.  By default, runs against the current default org")
 @click.option('-o', nargs=2, multiple=True, help="Pass task specific options for the task as '-o option value'.  You can specify more than one option by using -o more than once.")
+@click.option('--debug', is_flag=True, help="Drops into pdb, the Python debugger, on an exception")
 @pass_config
-def task_run(config, task_name, org, o):
+def task_run(config, task_name, org, o, debug):
     # Check environment
     check_keychain(config)
 
@@ -595,12 +600,30 @@ def task_run(config, task_name, org, o):
         exception = click.UsageError('This task requires a salesforce org.  Use org default <name> to set a default org or pass the org name with the --org option')
     except TaskOptionsError as e:
         exception = click.UsageError(e.message)
+    except Exception as e:
+        if debug:
+            import pdb
+            import traceback
+            traceback.print_exc()
+            pdb.post_mortem()
+        else:
+            raise e
 
     if not exception:
         try:
             task()
         except TaskOptionsError as e:
             exception = click.UsageError(e.message)
+        except ApexTestException as e:
+            exception = click.ClickException('ApexTestException: {}'.format(e.message))
+        except Exception as e:
+            if debug:
+                import pdb
+                import traceback
+                traceback.print_exc()
+                pdb.post_mortem()
+            else:
+                raise e
 
     # Save the org config in case it was modified in the task
     if org and org_config:
@@ -641,8 +664,9 @@ def flow_info(config, flow_name):
 @click.argument('flow_name')
 @click.option('--org', help="Specify the target org.  By default, runs against the current default org")
 @click.option('--delete-org', is_flag=True, help="If set, deletes the scratch org after the flow completes")
+@click.option('--debug', is_flag=True, help="Drops into pdb, the Python debugger, on an exception")
 @pass_config
-def flow_run(config, flow_name, org, delete_org):
+def flow_run(config, flow_name, org, delete_org, debug):
     # Check environment
     check_keychain(config)
 
@@ -675,6 +699,14 @@ def flow_run(config, flow_name, org, delete_org):
         exception = click.UsageError('This flow requires a salesforce org.  Use org default <name> to set a default org or pass the org name with the --org option')
     except TaskOptionsError as e:
         exception = click.UsageError(e.message)
+    except Exception as e:
+        if debug:
+            import pdb
+            import traceback
+            traceback.print_exc()
+            pdb.post_mortem()
+        else:
+            raise e
 
     if not exception:
         # Run the flow and handle exceptions
@@ -682,10 +714,24 @@ def flow_run(config, flow_name, org, delete_org):
             flow()
         except TaskOptionsError as e:
             exception = click.UsageError(e.message)
+        except ApexTestException as e:
+            exception = click.ClickException('ApexTestException: {}'.format(e.message))
+        except Exception as e:
+            if debug:
+                import pdb
+                import traceback
+                traceback.print_exc()
+                pdb.post_mortem()
+            else:
+                raise e
 
     # Delete the scratch org if --delete-org was set
     if delete_org:
-        org_config.delete_org()
+        try:
+            org_config.delete_org()
+        except Exception as e:
+            click.echo('Scratch org deletion failed.  Ignoring the error below to complete the flow:')
+            click.echo(e.message)
 
     # Save the org config in case it was modified in a task
     if org and org_config:

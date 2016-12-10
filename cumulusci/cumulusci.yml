@@ -227,8 +227,8 @@ flows:
     ci_master:
         description: Deploys the managed package metadata and all dependencies to the packaging org
         tasks:
-            - task: update_dependencies
             - task: deploy_pre
+            - task: update_dependencies
             - task: uninstall_packaged_incremental
               ignore_failure: True
             - task: update_package_xml_managed

@@ -7,6 +7,7 @@ import json
 import logging
 import os
 import re
+import shutil
 import tempfile
 import time
 import zipfile
@@ -16,6 +17,8 @@ from simple_salesforce import SalesforceGeneralError
 from salesforce_bulk import SalesforceBulk
 import xmltodict
 
+from cumulusci.core.exceptions import ApexTestException
+from cumulusci.core.exceptions import SalesforceException
 from cumulusci.core.tasks import BaseTask
 from cumulusci.tasks.metadata.package import PackageXmlGenerator
 from cumulusci.salesforce_api.metadata import ApiDeploy
@@ -27,7 +30,7 @@ from cumulusci.salesforce_api.package_zip import DestructiveChangesZipBuilder
 from cumulusci.salesforce_api.package_zip import InstallPackageZipBuilder
 from cumulusci.salesforce_api.package_zip import UninstallPackageZipBuilder
 from cumulusci.utils import CUMULUSCI_PATH
-from cumulusci.utils import findReplaceRegex
+from cumulusci.utils import findReplace
 from cumulusci.utils import zip_subfolder
 
 
@@ -505,10 +508,15 @@ class DeployNamespacedBundles(DeployBundles):
         else:
             namespace = ''
 
-        path = path.replace(self.options['filename_token'], namespace)
+        zip_path = path.replace(self.options['filename_token'], namespace)
         with open(os.path.join(root, path), 'r') as f:
             content = f.read().replace(self.options['namespace_token'], namespace)
-        zipf.writestr(path, content)
+        if root == '.':
+            zipf.writestr(zip_path, content)
+        else:
+            # strip ./ from the start of root
+            root = root[2:]
+            zipf.writestr(os.path.join(root, zip_path), content)
 
 class BaseUninstallMetadata(Deploy):
 
@@ -787,13 +795,13 @@ class UpdateAdminProfile(Deploy):
     def _process_metadata(self):
         self.logger.info('Processing retrieved metadata in {}'.format(self.tempdir))
 
-        findReplaceRegex(
+        findReplace(
             '<editable>false</editable>',
             '<editable>true</editable>',
             os.path.join(self.tempdir, 'profiles'),
             'Admin.profile',
         )
-        findReplaceRegex(
+        findReplace(
             '<readable>false</readable>',
             '<readable>true</readable>',
             os.path.join(self.tempdir, 'profiles'),
@@ -846,8 +854,9 @@ class PackageUpload(BaseSalesforceToolingApiTask):
         package_res = sf.query("select Id from MetadataPackage where NamespacePrefix='{}'".format(self.options['namespace']))
 
         if package_res['totalSize'] != 1:
-            self.logger.error('No package found with namespace {}'.format(self.options['namespace']))
-            return
+            message = 'No package found with namespace {}'.format(self.options['namespace'])
+            self.logger.error(message)
+            raise SalesforceException(message)
 
         package_id = package_res['records'][0]['Id']
 
@@ -875,28 +884,32 @@ class PackageUpload(BaseSalesforceToolingApiTask):
 
         upload = self.tooling.query(soql_check_upload)
         if upload['totalSize'] != 1:
-            self.logger.error("Failed to get info for upload with id {}".format(upload_id))
-            return
+            message = 'Failed to get info for upload with id {}'.format(upload_id)
+            self.logger.error(message)
+            raise SalesforceException(message)
         upload = upload['records'][0]
 
         while upload['Status'] == 'IN_PROGRESS':
             time.sleep(3)
             upload = self.tooling.query(soql_check_upload)
             if upload['totalSize'] != 1:
-                self.logger.error("Failed to get info for upload with id {}".format(upload_id))
-                return
+                message = 'Failed to get info for upload with id {}'.format(upload_id)
+                self.logger.error(message)
+                raise SalesforceException(message)
             upload = upload['records'][0]
 
         if upload['Status'] == 'ERROR':
             self.logger.error('Package upload failed with the following errors')
             for error in upload['Errors']['errors']:
                 self.logger.error('  {}'.format(error['message']))
+            raise SalesforceException('Package upload failed')
         else:
             version_id = upload['MetadataPackageVersionId']
             version_res = self.tooling.query("select MajorVersion, MinorVersion, PatchVersion, BuildNumber, ReleaseState from MetadataPackageVersion where Id = '{}'".format(version_id))
             if version_res['totalSize'] != 1:
-                self.logger.error('Version {} not found'.format(version_id))
-                return
+                message = 'Version {} not found'.format(version_id)
+                self.logger.error(message)
+                raise SalesforceException(message)
 
             version = version_res['records'][0]
             version_parts = [
@@ -966,6 +979,8 @@ class RunApexTests(BaseSalesforceToolingApiTask):
                 self.options['managed'] = False
         if 'junit_output' not in self.options:
             self.options['junit_output'] = 'test_results.xml'
+
+        self.counts = {}
 
     def _init_class(self):
         self.classes_by_id = {}
@@ -1042,7 +1057,7 @@ class RunApexTests(BaseSalesforceToolingApiTask):
             "ApexLogId, AsyncApexJobId, MethodName, Outcome, ApexClassId, " +
             "TestTimestamp FROM ApexTestResult " +
             "WHERE AsyncApexJobId = '{}'".format(self.job_id))
-        counts = {
+        self.counts = {
             'Pass': 0,
             'Fail': 0,
             'CompileFail': 0,
@@ -1052,7 +1067,7 @@ class RunApexTests(BaseSalesforceToolingApiTask):
             class_name = self.classes_by_id[test_result['ApexClassId']]
             self.results_by_class_name[class_name][test_result[
                 'MethodName']] = test_result
-            counts[test_result['Outcome']] += 1
+            self.counts[test_result['Outcome']] += 1
             self._debug_get_results(test_result)
         self._debug_get_logs()
         test_results = []
@@ -1093,25 +1108,25 @@ class RunApexTests(BaseSalesforceToolingApiTask):
         self.logger.info('-' * 80)
         self.logger.info('Pass: {}  Fail: {}  CompileFail: {}  Skip: {}'
                          .format(
-                             counts['Pass'],
-                             counts['Fail'],
-                             counts['CompileFail'],
-                             counts['Skip'],
+                             self.counts['Pass'],
+                             self.counts['Fail'],
+                             self.counts['CompileFail'],
+                             self.counts['Skip'],
                          ))
         self.logger.info('-' * 80)
-        if counts['Fail'] or counts['CompileFail']:
-            self.logger.info('-' * 80)
-            self.logger.info('Failing Tests')
-            self.logger.info('-' * 80)
+        if self.counts['Fail'] or self.counts['CompileFail']:
+            self.logger.error('-' * 80)
+            self.logger.error('Failing Tests')
+            self.logger.error('-' * 80)
             counter = 0
             for result in test_results:
                 if result['Outcome'] not in ['Fail', 'CompileFail']:
                     continue
                 counter += 1
-                self.logger.info('{}: {}.{} - {}'.format(counter,
+                self.logger.error('{}: {}.{} - {}'.format(counter,
                     result['ClassName'], result['Method'], result['Outcome']))
-                self.logger.info('\tMessage: {}'.format(result['Message']))
-                self.logger.info('\tStackTrace: {}'.format(
+                self.logger.error('\tMessage: {}'.format(result['Message']))
+                self.logger.error('\tStackTrace: {}'.format(
                     result['StackTrace']))
         return test_results
 
@@ -1140,6 +1155,13 @@ class RunApexTests(BaseSalesforceToolingApiTask):
         self._wait_for_tests()
         test_results = self._get_test_results()
         self._write_output(test_results)
+        if self.counts.get('Fail') or self.counts.get('CompileFail'):
+            total = self.counts.get('Fail') + self.counts.get('CompileFail')
+            raise ApexTestException(
+                '{} tests failed and {} tests failed compilation'.format(
+                    self.counts.get('Fail'), self.counts.get('CompileFail')
+                )
+            )
 
     def _wait_for_tests(self):
         poll_interval = int(self.options.get('poll_interval', 1))
@@ -1193,6 +1215,9 @@ class RunApexTests(BaseSalesforceToolingApiTask):
 
 run_apex_tests_debug_options = RunApexTests.task_options.copy()
 run_apex_tests_debug_options.update({
+    'debug_log_dir': {
+        'description': 'Directory to store debug logs. Defaults to temp dir.',
+    },
     'json_output': {
         'description': ('The path to the json output file.  Defaults to ' +
                        'test_results.json'),
@@ -1262,6 +1287,16 @@ class RunApexTestsDebug(RunApexTests):
             'DurationMilliseconds, Location, LogLength, LogUserId, ' +
             'Operation, Request, StartTime, Status ' +
             'from ApexLog where Id in {}'.format(log_ids))
+        debug_log_dir = self.options.get('debug_log_dir')
+        if debug_log_dir:
+            tempdir = None
+            try:
+                os.makedirs(debug_log_dir)
+            except OSError as e:
+                if e.errno != errno.EEXIST:
+                    raise e
+        else:
+            tempdir = tempfile.mkdtemp()
         for log in result['records']:
             class_id = self.classes_by_log_id[log['Id']]
             class_name = self.classes_by_id[class_id]
@@ -1271,9 +1306,10 @@ class RunApexTestsDebug(RunApexTests):
             response = self.tooling.request.get(body_url,
                 headers=self.tooling.headers)
             log_file = class_name + '.log'
-            debug_log_dir = self.options.get('debug_log_dir')
             if debug_log_dir:
                 log_file = os.path.join(debug_log_dir, log_file)
+            else:
+                log_file = os.path.join(tempdir, log_file)
             with io.open(log_file, mode='w', encoding='utf-8') as f:
                 f.write(unicode(response.content))
             with io.open(log_file, mode='r', encoding='utf-8') as f:
@@ -1284,6 +1320,9 @@ class RunApexTestsDebug(RunApexTests):
         # Delete the TraceFlag
         TraceFlag = self._get_tooling_object('TraceFlag')
         TraceFlag.delete(str(self.trace_id))
+        # Clean up tempdir logs
+        if tempdir:
+            shutil.rmtree(tempdir)
 
     def _debug_get_results(self, result):
         if result['ApexLogId']:

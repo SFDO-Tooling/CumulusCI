@@ -13,32 +13,34 @@ CUMULUSCI_PATH = os.path.realpath(
     )
 )
 
-def findReplace(directory, find, replace, filePattern, logger=None):
+def findReplace(find, replace, directory, filePattern, logger=None, max=None):
     for path, dirs, files in os.walk(os.path.abspath(directory)):
         for filename in fnmatch.filter(files, filePattern):
             filepath = os.path.join(path, filename)
             with open(filepath) as f:
                 s = f.read()
-            s_updated = s.replace(find, replace)
+            if max:
+                s_updated = s.replace(find, replace, max)
+            else:
+                s_updated = s.replace(find, replace)
             if s != s_updated:
                 if logger:
                     logger.info('Updating {}'.format(filepath))
                 with open(filepath, "w") as f:
                     f.write(s_updated)
 
-def findReplaceRegex(directory, find, replace, filePattern, logger=None):
+def findReplaceRegex(find, replace, directory, filePattern, logger=None):
     for path, dirs, files in os.walk(os.path.abspath(directory)):
         for filename in fnmatch.filter(files, filePattern):
             filepath = os.path.join(path, filename)
             with open(filepath) as f:
                 s = f.read()
-            s = s.replace(find, replace)
             s_updated = re.sub(find, replace, s)
             if s != s_updated:
                 if logger:
                     logger.info('Updating {}'.format(filepath))
                 with open(filepath, "w") as f:
-                    f.write(s)
+                    f.write(s_updated)
 
 def zip_subfolder(zip_src, path):
     if not path.endswith('/'):

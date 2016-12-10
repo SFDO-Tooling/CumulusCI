@@ -1,5 +1,6 @@
 import copy
 from cumulusci.core.config import TaskConfig
+from cumulusci.core.exceptions import CumulusCIException
 from cumulusci.core.logger import logger, log_file
 from cumulusci.core.utils import import_class
 
@@ -106,11 +107,11 @@ class BaseFlow(object):
             self.logger.info('Task complete: {}'.format(flow_task_config['task']))
             self.responses.append(response)
             return response
-        except:
+        except Exception as e:
             self.logger.error('Task failed: {}'.format(flow_task_config['task']))
             if not flow_task_config.get('ignore_failure'):
-                self.logger.info('Aborting flow')
-                raise
+                self.logger.error('Failing flow due to exception in task')
+                raise e
             self.logger.info('Continuing flow')
 
     def _render_task_config(self, task):

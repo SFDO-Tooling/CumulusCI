@@ -45,16 +45,16 @@ class CreateManagedSrc(BaseTask):
             self.options['path'],
         ))
         findReplace(
-            os.path.join(self.options['path'], 'classes'),
             self.managed_token,
             '',
+            os.path.join(self.options['path'], 'classes'),
             '*.cls',
             self.logger
         )
         findReplace(
-            os.path.join(self.options['path'], 'triggers'),
             self.managed_token,
             '',
+            os.path.join(self.options['path'], 'triggers'),
             '*.trigger',
             self.logger
         )

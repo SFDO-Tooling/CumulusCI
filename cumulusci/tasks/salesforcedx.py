@@ -1,4 +1,6 @@
 import sarge
+
+from cumulusci.core.exceptions import SalesforceDXException
 from cumulusci.core.tasks import BaseTask
 
 class BaseSalesforceDXTask(BaseTask):
@@ -28,9 +30,9 @@ class BaseSalesforceDXTask(BaseTask):
             self.logger.info(line)
 
         if p.returncode:
-            self.logger.error('Command failed with exit code {}'.format(p.returncode))
-            # FIXME: raise exception
-            return
+            message = '{}: {}'.format(p.returncode, p.stdout)
+            self.logger.error(message)
+            raise SalesforceDXException(message)
 
     def _run_task(self):
         self._call_salesforce_dx(self.options['command'], self.options.get('options'))
