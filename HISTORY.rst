@@ -2,6 +2,15 @@
 History
 =======
 
+2.0.0-alpha25 (2016-12-09)
+------------------
+
+* Fixed run_tests and run_tests_debug tasks to fail throwing an exception on test failure
+* run_tests_debug now stores debug logs in a tempdir
+* Have the CLI handle ApexTestException events with a nicer error rather than a full traceback which isn't helpful to determining the apex failure
+* BaseMetadataApi will now throw MetadataApiError after a Failed status is set
+* BaseFlow now throws the original exception rather than a more generic one that obscures the actual failure
+
 2.0.0-alpha24 (2016-12-09)
 ------------------
 
