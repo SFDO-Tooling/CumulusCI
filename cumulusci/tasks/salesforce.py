@@ -1324,7 +1324,7 @@ class RunApexTestsDebug(RunApexTests):
             else:
                 log_file = os.path.join(tempdir, log_file)
             with io.open(log_file, mode='w', encoding='utf-8') as f:
-                f.write(unicode(response.content))
+                f.write(self._decode_to_unicode(response.content))
             with io.open(log_file, mode='r', encoding='utf-8') as f:
                 method_stats = self._parse_log(class_name, f)
             # Add method stats to results_by_class_name
