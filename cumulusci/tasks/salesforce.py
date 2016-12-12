@@ -2,6 +2,7 @@ import base64
 import cgi
 import datetime
 from distutils.version import LooseVersion
+import errno
 import io
 import json
 import logging
