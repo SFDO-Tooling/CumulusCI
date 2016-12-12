@@ -625,7 +625,7 @@ def task_run(config, task_name, org, o, debug):
             traceback.print_exc()
             pdb.post_mortem()
         else:
-            raise e
+            raise
 
     if not exception:
         try:
@@ -643,7 +643,7 @@ def task_run(config, task_name, org, o, debug):
                 traceback.print_exc()
                 pdb.post_mortem()
             else:
-                raise e
+                raise
 
     # Save the org config in case it was modified in the task
     if org and org_config:
@@ -727,7 +727,7 @@ def flow_run(config, flow_name, org, delete_org, debug):
             traceback.print_exc()
             pdb.post_mortem()
         else:
-            raise e
+            raise
 
     if not exception:
         # Run the flow and handle exceptions
@@ -746,7 +746,7 @@ def flow_run(config, flow_name, org, delete_org, debug):
                 traceback.print_exc()
                 pdb.post_mortem()
             else:
-                raise e
+                raise
 
     # Delete the scratch org if --delete-org was set
     if delete_org:
