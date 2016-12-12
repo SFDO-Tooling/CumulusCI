@@ -6,6 +6,7 @@ import code
 
 import click
 from plaintable import Table
+from rst2ansi import rst2ansi
 
 import cumulusci
 from cumulusci.core.config import ConnectedAppOAuthConfig
@@ -28,6 +29,7 @@ from cumulusci.core.exceptions import TaskNotFoundError
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.exceptions import TaskRequiresSalesforceOrg
 from cumulusci.core.utils import import_class
+from cumulusci.utils import doc_task
 
 from cumulusci.oauth.salesforce import CaptureSalesforceOAuth
 
@@ -511,6 +513,17 @@ def task_list(config):
     table = Table(data, headers)
     click.echo(table)
 
+@click.command(name='doc', help="Exports RST format documentation for all tasks")
+@pass_config
+def task_doc(config):
+    config_src = config.global_config
+    
+    for name, options in config_src.tasks.items():
+        task_config = TaskConfig(options)
+        doc = doc_task(name, task_config)
+        click.echo(doc)
+        click.echo('')
+
 @click.command(name='info', help="Displays information for a task")
 @click.argument('task_name')
 @pass_config
@@ -519,6 +532,10 @@ def task_info(config, task_name):
     task_config = getattr(config.project_config, 'tasks__{}'.format(task_name))
     if not task_config:
         raise TaskNotFoundError('Task not found: {}'.format(task_name))
+
+    task_config = TaskConfig(task_config)
+    click.echo(rst2ansi(doc_task(task_name, task_config)))
+    return
     class_path = task_config.get('class_path')
     task_class = import_class(class_path)
 
@@ -636,8 +653,9 @@ def task_run(config, task_name, org, o, debug):
         raise exception
 
 # Add the task commands to the task group
-task.add_command(task_list)
+task.add_command(task_doc)
 task.add_command(task_info)
+task.add_command(task_list)
 task.add_command(task_run)
 
 # Commands for group: flow

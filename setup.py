@@ -26,6 +26,7 @@ requirements = [
     'plaintable==0.1.1',
     'requests[security]>=2.9.1',
     'responses>=0.5.1',
+    'rst2ansi>=0.1.5',
     'sarge>=0.1.4',
     'selenium',
     'salesforce-bulk==1.1.0',

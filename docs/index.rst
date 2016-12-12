@@ -13,6 +13,7 @@ Contents:
 
    tutorial
    cookbook
+   tasks
    history
    authors
 
