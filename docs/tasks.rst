@@ -2,7 +2,7 @@
 Tasks
 =====
 
-Task: apextestsdb_upload
+apextestsdb_upload
 ==========================================
 
 **Description:** Upload results from Apex tests to database
@@ -19,7 +19,7 @@ Options:
 * **commit_sha**: Commit SHA from where tests were run
 * **results_file_url** *(required)*: URL of test results file
 
-Task: create_package
+create_package
 ==========================================
 
 **Description:** Creates a package in the target org with the default package name for the project
@@ -32,7 +32,7 @@ Options:
 * **api_version** *(required)*: The api version to use when creating the package.  Defaults to project__package__api_version
 * **package** *(required)*: The name of the package to create.  Defaults to project__package__name
 
-Task: create_managed_src
+create_managed_src
 ==========================================
 
 **Description:** Modifies the src directory for managed deployment.  Strips //cumulusci-managed from all Apex code
@@ -45,7 +45,7 @@ Options:
 * **path** *(required)*: The path containing metadata to process for managed deployment
 * **revert_path** *(required)*: The path to copy the original metadata to for the revert call
 
-Task: create_unmanaged_ee_src
+create_unmanaged_ee_src
 ==========================================
 
 **Description:** Modifies the src directory for unmanaged deployment to an EE org
@@ -58,7 +58,7 @@ Options:
 * **path** *(required)*: The path containing metadata to process for managed deployment
 * **revert_path** *(required)*: The path to copy the original metadata to for the revert call
 
-Task: deploy
+deploy
 ==========================================
 
 **Description:** Deploys the src directory of the repository to the org
@@ -70,7 +70,7 @@ Options:
 
 * **path** *(required)*: The path to the metadata source to be deployed
 
-Task: deploy_pre
+deploy_pre
 ==========================================
 
 **Description:** Deploys all metadata bundles under unpackaged/pre/
@@ -82,7 +82,7 @@ Options:
 
 * **path** *(required)*: The path to the parent directory containing the metadata bundles directories
 
-Task: deploy_post
+deploy_post
 ==========================================
 
 **Description:** Deploys all metadata bundles under unpackaged/post/
@@ -98,7 +98,7 @@ Options:
 * **managed**: If True, will insert the actual namespace prefix.  Defaults to False or no namespace
 * **filename_token** *(required)*: The path to the parent directory containing the metadata bundles directories
 
-Task: deploy_post_managed
+deploy_post_managed
 ==========================================
 
 **Description:** Deploys all metadata bundles under unpackaged/post/
@@ -114,7 +114,7 @@ Options:
 * **managed**: If True, will insert the actual namespace prefix.  Defaults to False or no namespace
 * **filename_token** *(required)*: The path to the parent directory containing the metadata bundles directories
 
-Task: dx_push
+dx_push
 ==========================================
 
 **Description:** Uses Salesforce DX to push code to a scratch workspace org
@@ -127,7 +127,7 @@ Options:
 * **command** *(required)*: The Saleforce DX command to call.  For example: force:src:push
 * **options**: The command line options to pass to the command
 
-Task: get_installed_packages
+get_installed_packages
 ==========================================
 
 **Description:** Retrieves a list of the currently installed managed package namespaces and their versions
@@ -135,7 +135,7 @@ Task: get_installed_packages
 **Class::** cumulusci.tasks.salesforce.GetInstalledPackages
 
 
-Task: github_clone_tag
+github_clone_tag
 ==========================================
 
 **Description:** Lists open pull requests in project Github repository
@@ -148,7 +148,7 @@ Options:
 * **tag** *(required)*: The new tag to create by cloning the src tag.  Ex: release/1.0
 * **src_tag** *(required)*: The source tag to clone.  Ex: beta/1.0-Beta_2
 
-Task: github_master_to_feature
+github_master_to_feature
 ==========================================
 
 **Description:** Merges the latest commit on the master branch into all open feature branches
@@ -162,7 +162,7 @@ Options:
 * **branch_prefix**: The prefix of branches that should receive the merge.  Defaults to project__git__prefix_feature
 * **source_branch**: The source branch to merge from.  Defaults to project__git__default_branch.
 
-Task: github_pull_requests
+github_pull_requests
 ==========================================
 
 **Description:** Lists open pull requests in project Github repository
@@ -170,7 +170,7 @@ Task: github_pull_requests
 **Class::** cumulusci.tasks.github.PullRequests
 
 
-Task: github_release
+github_release
 ==========================================
 
 **Description:** Creates a Github release for a given managed package version number
@@ -185,7 +185,7 @@ Options:
 * **version** *(required)*: The managed package version number.  Ex: 1.2
 * **draft**: Set to True to create a draft release.  Defaults to False
 
-Task: github_release_notes
+github_release_notes
 ==========================================
 
 **Description:** Generates release notes by parsing pull request bodies of merged pull requests between two tags
@@ -199,7 +199,7 @@ Options:
 * **tag** *(required)*: The tag to generate release notes for.  Ex: release/1.2
 * **publish**: If True, publishes to the release matching the tag release notes were generated for.
 
-Task: install_managed
+install_managed
 ==========================================
 
 **Description:** Install the latest managed production release
@@ -213,7 +213,7 @@ Options:
 * **version** *(required)*: The version of the package to install.  "latest" and "latest_beta" can be used to trigger lookup via Github Releases on the repository.
 * **namespace** *(required)*: The namespace of the package to install.  Defaults to project__package__namespace
 
-Task: install_managed_beta
+install_managed_beta
 ==========================================
 
 **Description:** Installs the latest managed beta release
@@ -227,7 +227,7 @@ Options:
 * **version** *(required)*: The version of the package to install.  "latest" and "latest_beta" can be used to trigger lookup via Github Releases on the repository.
 * **namespace** *(required)*: The namespace of the package to install.  Defaults to project__package__namespace
 
-Task: mrbelvedere_publish
+mrbelvedere_publish
 ==========================================
 
 **Description:** Publishes a release to the mrbelvedere web installer
@@ -239,7 +239,7 @@ Options:
 
 * **tag** *(required)*: The tag to publish to mrbelvedere
 
-Task: push_all
+push_all
 ==========================================
 
 **Description:** Schedules a push upgrade of a package version to all subscribers
@@ -255,7 +255,7 @@ Options:
 * **start_time**: Set the start time to queue a future push. Ex: 2016-10-19T10:00
 * **subscriber_where**: A SOQL style where clause for filtering PackageSubscriber objects.  Ex: OrgType = 'Sandbox'
 
-Task: push_qa
+push_qa
 ==========================================
 
 **Description:** Schedules a push upgrade of a package version to all orgs listed in push/orgs_qa.txt
@@ -270,7 +270,7 @@ Options:
 * **version** *(required)*: The managed package version to push
 * **namespace**: The managed package namespace to push. Defaults to project__package__namespace.
 
-Task: push_sandbox
+push_sandbox
 ==========================================
 
 **Description:** Schedules a push upgrade of a package version to all subscribers
@@ -286,7 +286,7 @@ Options:
 * **start_time**: Set the start time to queue a future push. Ex: 2016-10-19T10:00
 * **subscriber_where**: A SOQL style where clause for filtering PackageSubscriber objects.  Ex: OrgType = 'Sandbox'
 
-Task: push_trial
+push_trial
 ==========================================
 
 **Description:** Schedules a push upgrade of a package version to Trialforce Template orgs listed in push/orgs_trial.txt
@@ -301,7 +301,7 @@ Options:
 * **version** *(required)*: The managed package version to push
 * **namespace**: The managed package namespace to push. Defaults to project__package__namespace.
 
-Task: query
+query
 ==========================================
 
 **Description:** Queries the connected org
@@ -315,7 +315,7 @@ Options:
 * **object** *(required)*: The object to query
 * **result_file** *(required)*: The name of the csv file to write the results to
 
-Task: retrieve_packaged
+retrieve_packaged
 ==========================================
 
 **Description:** Retrieves the packaged metadata from the org
@@ -329,7 +329,7 @@ Options:
 * **api_version** *(required)*: Override the default api version for the retrieve.  Defaults to project__package__api_version
 * **package** *(required)*: The package name to retrieve.  Defaults to project__package__name
 
-Task: retrieve_src
+retrieve_src
 ==========================================
 
 **Description:** Retrieves the packaged metadata into the src directory
@@ -343,7 +343,7 @@ Options:
 * **api_version** *(required)*: Override the default api version for the retrieve.  Defaults to project__package__api_version
 * **package** *(required)*: The package name to retrieve.  Defaults to project__package__name
 
-Task: revert_managed_src
+revert_managed_src
 ==========================================
 
 **Description:** Reverts the changes from create_managed_src
@@ -356,7 +356,7 @@ Options:
 * **path** *(required)*: The path containing metadata to process for managed deployment
 * **revert_path** *(required)*: The path to copy the original metadata to for the revert call
 
-Task: revert_unmanaged_ee_src
+revert_unmanaged_ee_src
 ==========================================
 
 **Description:** Reverts the changes from create_unmanaged_ee_src
@@ -369,7 +369,7 @@ Options:
 * **path** *(required)*: The path containing metadata to process for managed deployment
 * **revert_path** *(required)*: The path to copy the original metadata to for the revert call
 
-Task: run_tests
+run_tests
 ==========================================
 
 **Description:** Runs all apex tests
@@ -386,7 +386,7 @@ Options:
 * **namespace**: Salesforce project namespace.  Defaults to project__package__namespace
 * **junit_output**: File name for JUnit output.  Defaults to test_results.xml
 
-Task: run_tests_debug
+run_tests_debug
 ==========================================
 
 **Description:** Runs all apex tests
@@ -405,7 +405,7 @@ Options:
 * **debug_log_dir**: Directory to store debug logs. Defaults to temp dir.
 * **poll_interval**: Seconds to wait between polling for Apex test results.  Defaults to 3
 
-Task: run_tests_managed
+run_tests_managed
 ==========================================
 
 **Description:** Runs all apex tests in the packaging org or a managed package subscriber org
@@ -422,7 +422,7 @@ Options:
 * **namespace**: Salesforce project namespace.  Defaults to project__package__namespace
 * **junit_output**: File name for JUnit output.  Defaults to test_results.xml
 
-Task: uninstall_managed
+uninstall_managed
 ==========================================
 
 **Description:** Uninstalls the managed version of the package
@@ -434,7 +434,7 @@ Options:
 
 * **namespace** *(required)*: The namespace of the package to uninstall.  Defaults to project__package__namespace
 
-Task: uninstall_packaged
+uninstall_packaged
 ==========================================
 
 **Description:** Uninstalls all deleteable metadata in the package in the target org
@@ -446,7 +446,7 @@ Options:
 
 * **package** *(required)*: The package name to uninstall.  All metadata from the package will be retrieved and a custom destructiveChanges.xml package will be constructed and deployed to delete all deleteable metadata from the package.  Defaults to project__package__name
 
-Task: uninstall_packaged_incremental
+uninstall_packaged_incremental
 ==========================================
 
 **Description:** Deletes any metadata from the package in the target org not in the local workspace
@@ -459,7 +459,7 @@ Options:
 * **path** *(required)*: The local path to compare to the retrieved packaged metadata from the org.  Defaults to src
 * **package** *(required)*: The package name to uninstall.  All metadata from the package will be retrieved and a custom destructiveChanges.xml package will be constructed and deployed to delete all deleteable metadata from the package.  Defaults to project__package__name
 
-Task: uninstall_src
+uninstall_src
 ==========================================
 
 **Description:** Uninstalls all metadata in the local src directory
@@ -471,7 +471,7 @@ Options:
 
 * **path** *(required)*: The path to the metadata source to be deployed
 
-Task: uninstall_pre
+uninstall_pre
 ==========================================
 
 **Description:** Uninstalls the unpackaged/pre bundles
@@ -483,7 +483,7 @@ Options:
 
 * **path** *(required)*: The path to the metadata source to be deployed
 
-Task: uninstall_post
+uninstall_post
 ==========================================
 
 **Description:** Uninstalls the unpackaged/post bundles
@@ -498,7 +498,7 @@ Options:
 * **managed**: If True, will insert the actual namespace prefix.  Defaults to False or no namespace
 * **filename_token** *(required)*: The path to the parent directory containing the metadata bundles directories
 
-Task: uninstall_post_managed
+uninstall_post_managed
 ==========================================
 
 **Description:** Uninstalls the unpackaged/post bundles
@@ -513,7 +513,7 @@ Options:
 * **managed**: If True, will insert the actual namespace prefix.  Defaults to False or no namespace
 * **filename_token** *(required)*: The path to the parent directory containing the metadata bundles directories
 
-Task: update_admin_profile
+update_admin_profile
 ==========================================
 
 **Description:** Retrieves, edits, and redeploys the Admin.profile with full FLS perms for all objects/fields
@@ -525,7 +525,7 @@ Options:
 
 * **package_xml**: Override the default package.xml file for retrieving the Admin.profile and all objects and classes that need to be included by providing a path to your custom package.xml
 
-Task: update_dependencies
+update_dependencies
 ==========================================
 
 **Description:** Installs all dependencies in project__dependencies into the target org
@@ -533,7 +533,7 @@ Task: update_dependencies
 **Class::** cumulusci.tasks.salesforce.UpdateDependencies
 
 
-Task: update_meta_xml
+update_meta_xml
 ==========================================
 
 **Description:** Updates all -meta.xml files to have the correct API version and extension package versions
@@ -546,7 +546,7 @@ Options:
 * **target** *(required)*: The ant target to run
 * **verbose**: The ant target to run
 
-Task: update_package_xml
+update_package_xml
 ==========================================
 
 **Description:** Updates src/package.xml with metadata in src/
@@ -561,7 +561,7 @@ Options:
 * **managed**: If True, generate a package.xml for deployment to the managed package packaging org
 * **output**: The output file, defaults to <path>/package.xml
 
-Task: update_package_xml_managed
+update_package_xml_managed
 ==========================================
 
 **Description:** Updates src/package.xml with metadata in src/
@@ -576,7 +576,7 @@ Options:
 * **managed**: If True, generate a package.xml for deployment to the managed package packaging org
 * **output**: The output file, defaults to <path>/package.xml
 
-Task: upload_beta
+upload_beta
 ==========================================
 
 **Description:** Uploads a beta release of the metadata currently in the packaging org
@@ -594,7 +594,7 @@ Options:
 * **release_notes_url**: The fully-qualified URL of the package release notes. Release notes are shown as a link during the installation process and are available from the package detail view after installation.
 * **description**: A description of the package and what this version contains.
 
-Task: upload_production
+upload_production
 ==========================================
 
 **Description:** Uploads a beta release of the metadata currently in the packaging org
@@ -612,7 +612,7 @@ Options:
 * **release_notes_url**: The fully-qualified URL of the package release notes. Release notes are shown as a link during the installation process and are available from the package detail view after installation.
 * **description**: A description of the package and what this version contains.
 
-Task: util_sleep
+util_sleep
 ==========================================
 
 **Description:** Sleeps for N seconds
