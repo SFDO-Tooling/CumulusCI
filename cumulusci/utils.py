@@ -62,7 +62,7 @@ def zip_subfolder(zip_src, path):
 def doc_task(task_name, task_config, project_config=None, org_config=None):
     from cumulusci.core.utils import import_class
     doc = []
-    doc.append('Task: {}\n==========================================\n'.format(task_name))
+    doc.append('{}\n==========================================\n'.format(task_name))
     doc.append('**Description:** {}\n'.format(task_config.description))
     doc.append('**Class::** {}\n'.format(task_config.class_path))
 
