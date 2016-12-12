@@ -301,7 +301,7 @@ class InstallPackageVersion(Deploy):
                 self.options['retries'] -= 1
                 self.logger.warning('Retrying deploy (%d attempts remaining)' % (self.options['retries']))
                 return self._run_task()
-            raise e
+            raise
 
 class UninstallPackage(Deploy):
     task_options = {
@@ -1307,7 +1307,7 @@ class RunApexTestsDebug(RunApexTests):
                 os.makedirs(debug_log_dir)
             except OSError as e:
                 if e.errno != errno.EEXIST:
-                    raise e
+                    raise
         else:
             tempdir = tempfile.mkdtemp()
         for log in result['records']:

@@ -111,7 +111,7 @@ class BaseFlow(object):
             self.logger.error('Task failed: {}'.format(flow_task_config['task']))
             if not flow_task_config.get('ignore_failure'):
                 self.logger.error('Failing flow due to exception in task')
-                raise e
+                raise
             self.logger.info('Continuing flow')
 
     def _render_task_config(self, task):

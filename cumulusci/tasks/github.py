@@ -190,7 +190,7 @@ class MergeBranch(BaseGithubTask):
                 self.logger.info('Merged {} commits into {}'.format(compare.behind_by, branch.name))
             except GithubError as e:
                 if e.code != 409:
-                    raise e
+                    raise
 
                 if branch.name in existing_prs:
                     self.logger.info('Merge conflict on branch {}: merge PR already exists'.format(branch.name))

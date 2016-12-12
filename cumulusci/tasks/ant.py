@@ -73,13 +73,13 @@ class AntTask(BaseTask):
                     raise AntTargetException(logtxt)
             except DeploymentException as e:
                 self.logger.error('BUILD FAILED: One or more deployment errors occurred')
-                raise e
+                raise
             except ApexTestException as e:
                 self.logger.error('BUILD FAILED: One or more Apex tests failed')
-                raise e
+                raise
             except AntTargetException as e:
                 self.logger.error('BUILD FAILED: One or more Ant target errors occurred')
-                raise e
+                raise
         return p
 
 class SalesforceAntTask(AntTask, BaseSalesforceTask):
