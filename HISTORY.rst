@@ -2,6 +2,13 @@
 History
 =======
 
+2.0.0-alpha27 (2016-12-12)
+------------------
+
+* `cumulusci2` should now throw the direct exception rather than making it look like the exception came through click
+* `cumulusci2 task doc` command outputs RST format documentation of all tasks
+* New doc with info on all tasks: http://cumulusci.readthedocs.io/en/latest/tasks.html
+
 2.0.0-alpha26 (2016-12-09)
 ------------------
 
