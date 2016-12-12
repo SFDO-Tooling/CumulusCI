@@ -2,6 +2,11 @@
 History
 =======
 
+2.0.0-alpha29 (2016-12-12)
+------------------
+
+* Require docutils to supprot rst2ansi
+
 2.0.0-alpha28 (2016-12-12)
 ------------------
 
