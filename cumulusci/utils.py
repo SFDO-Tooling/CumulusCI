@@ -41,6 +41,14 @@ def findReplaceRegex(find, replace, directory, filePattern, logger=None):
                     logger.info('Updating {}'.format(filepath))
                 with open(filepath, "w") as f:
                     f.write(s_updated)
+                    
+def findRename(find,replace,directory,logger=None):
+    for path, dirs, files in os.walk(os.path.abspath(directory)):
+        for filename in files:
+            filepath = os.path.join(path, filename)
+            if logger:
+                logger.info('Renaming {}'.format(filepath))
+            os.rename(filepath, os.path.join(path,filename.replace(find,replace)))
 
 def zip_subfolder(zip_src, path):
     if not path.endswith('/'):
