@@ -2,6 +2,11 @@
 History
 =======
 
+2.0.0-alpha28 (2016-12-12)
+------------------
+
+* Modified tasks and flows to properly re-raise exceptions
+
 2.0.0-alpha27 (2016-12-12)
 ------------------
 
