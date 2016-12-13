@@ -1,6 +1,7 @@
+import logging
+
 from cumulusci.core.exceptions import TaskRequiresSalesforceOrg
 from cumulusci.core.exceptions import TaskOptionsError
-from cumulusci.core.logger import logger, log_file
 
 class BaseTask(object):
     task_options = {}
@@ -20,9 +21,7 @@ class BaseTask(object):
 
     def _init_logger(self):
         """ Initializes self.logger """
-        self.logger = logger
-        self.log_file = log_file
-        return
+        self.logger = logging.getLogger(__name__)
 
     def _init_options(self, kwargs):
         """ Initializes self.options """

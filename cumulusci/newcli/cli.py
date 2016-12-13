@@ -30,8 +30,9 @@ from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.exceptions import TaskRequiresSalesforceOrg
 from cumulusci.core.utils import import_class
 from cumulusci.utils import doc_task
-
 from cumulusci.oauth.salesforce import CaptureSalesforceOAuth
+from logger import init_logger
+
 
 def pretty_dict(data):
     if not data:
@@ -77,6 +78,8 @@ class CliConfig(object):
             self.keychain_class = import_class(keychain_class)
             self.keychain = self.keychain_class(self.project_config, self.keychain_key)
             self.project_config.set_keychain(self.keychain)
+
+init_logger()
 
 try:
     CLI_CONFIG = CliConfig()
