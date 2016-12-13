@@ -47,43 +47,88 @@ Swap out the create_package test to use an Ant target instead by adding the foll
 
 Now any flow in your project that calls the `create_package` task will run your `createUnmanagedPackage` Ant target instead.
 
-Defining a new flow
--------------------
+Custom Flows via YAML
+=====================
 
-If the out of the box flows provided by CumulusCI don't work for your project, you can define your own flows easily in your project's cumulusci.yml by adding the following::
-
-    flows:
-        my_custom_flow:
-            description: A custom flow for this project (put a better descriptions here please!)
-            tasks:
-                - deploy_pre
-                - update_dependencies
-                - deploy
-                - update_admin_profile
-                - run_tests
-
-Add a task to an existing flow
-------------------------------
-
-Currently, the hierarchical merge that combines the global and project cumulusci.yml files does not allow you to modify the tasks in a flow.  However, you can append a task onto the end of the current flow.  Here is the standard definition of the `dev_org` flow::
+The main cumulusci.yml file defines the `dev_org` flow using the following YAML.  We'll use the `dev_org` flow for the flow customization examples::
 
     flows:
         dev_org:
             description: Deploys the unmanaged package metadata and all dependencies to the target org
             tasks:
-                - task: create_package
-                - task: update_dependencies
-                - task: deploy_pre
-                - task: deploy
-                - task: uninstall_packaged_incremental
-                - task: deploy_post
+                1:
+                    task: create_package
+                2:
+                    task: update_dependencies
+                3:
+                    task: deploy_pre
+                4:
+                    task: deploy
+                5:
+                    task: uninstall_packaged_incremental
+                6:
+                    task: deploy_post
 
-If you want to also run the `update_admin_profile` task at the end of the `dev_org` flow for your project, add the following to your cumulusci.yml::
+Customize vs Create
+-------------------
+
+A key philosophy of the user experience for CumulusCI is to keep things consistent from project to project while allowing for project specific customizations.  For example, the included `dev_org` allows a developer to run a complete deployment to set up a development environment.  Rather than each project defining its own `dev_org_myproject` flow, it's a better user experience to just customize the `dev_org` flow for projects that need something different.  This way, a developer switching from Project Repo A to Project Repo B can run the same command, `cumulusci2 flow run dev_org` in each project instead of having to know the custom flow names for each project.
+
+Add a task to the dev_org flow
+------------------------------
+
+If you want to also run the `update_admin_profile` task after the `uninstall_packaged_incremental` task, you would add the following to your project's cumulusci.yml::
 
     flows:
         dev_org:
             tasks:
-                - task: update_admin_profile
+                5.1:
+                    - task: update_admin_profile
+
+Skip a task in a flow
+---------------------
+
+If you never want to run the `uninstall_packaged_incremental` task, add the following to your project's cumulusci.yml::
+
+    flows:
+        dev_org:
+            tasks:
+                5:
+                    - task: None
+
+Rearrange two tasks in a flow
+-----------------------------
+
+If you wanted to run `deploy_pre` before `update_dependencies`, add the following to your project's cumulusci.yml::
+
+    flows:
+        dev_org:
+            tasks:
+                2:
+                    - task: deploy_pre
+                3:
+                    - task: update_dependencies
+
+Defining a new flow
+-------------------
+
+If you can't customize an out of the box flow or have a use case for which there is no out of the box flow, you can create your own project specific flows by adding the following structure to your cumulusci.yml::
+
+    flows:
+        my_custom_flow: # Name this whatever you want
+            description: A custom flow for this project (put a better descriptions here please!)
+            tasks:
+                1:
+                    task: deploy_pre
+                2:
+                    task: update_dependencies
+                3:
+                    task: deploy
+                4:
+                    task: update_admin_profile
+                5:
+                    task: run_tests
+
 
 Custom tasks via Python
 =======================
