@@ -2,6 +2,22 @@
 History
 =======
 
+2.0.0-alpha30 (2016-12-13)
+------------------
+
+* **IMPORANT** This release changes the yaml structure for flows.  The new structure now looks like this::
+
+    flows:
+        flow_name:
+            tasks:
+                1:
+                    task: deploy
+                2:
+                    task: run_tests
+
+* See the new flow customization examples in the cookbook for examples of why this change was made and how to use it: http://cumulusci.readthedocs.io/en/latest/cookbook.html#custom-flows-via-yaml
+
+
 2.0.0-alpha30 (2016-12-12)
 ------------------
 
