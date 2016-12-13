@@ -754,7 +754,7 @@ class UninstallLocalNamespacedBundles(UninstallLocalBundles):
                 namespace = self.options['namespace'] + '__'
 
         destructive_changes = generator()
-        destructive_changes.replace(self.options['filename_token'], namespace)
+        destructive_changes = destructive_changes.replace(self.options['filename_token'], namespace)
 
         return destructive_changes
 
