@@ -2,6 +2,16 @@
 History
 =======
 
+2.0.0-alpha30 (2016-12-12)
+------------------
+
+* Bug fixes submitted by @ccarter:
+  
+  * `uninstall_post` was failing to substitute namespaces
+  * new util method `findRename` to rename files with a token in their name
+
+* Bug fix with Unicode handling in run_tests_debug
+
 2.0.0-alpha29 (2016-12-12)
 ------------------
 
