@@ -1,8 +1,9 @@
 import copy
 from distutils.version import LooseVersion
+import logging
+
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.exceptions import CumulusCIException
-from cumulusci.core.logger import logger, log_file
 from cumulusci.core.utils import import_class
 
 class BaseFlow(object):
@@ -17,9 +18,7 @@ class BaseFlow(object):
 
     def _init_logger(self):
         """ Initializes self.logger """
-        self.logger = logger
-        self.log_file = log_file
-        return
+        self.logger = logging.getLogger(__name__)
 
     def _init_flow(self):
         self.logger.info('---------------------------------------')

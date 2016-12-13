@@ -1,4 +1,5 @@
 import base64
+import logging
 import os
 import pickle
 import re
@@ -19,7 +20,6 @@ from cumulusci.core.exceptions import KeychainConnectedAppNotFound
 from cumulusci.core.exceptions import ProjectConfigNotFound
 from cumulusci.core.exceptions import ScratchOrgException
 from cumulusci.core.exceptions import SOQLQueryException
-from cumulusci.core.logger import logger, log_file
 from cumulusci.oauth.salesforce import SalesforceOAuth2
 
 __location__ = os.path.dirname(os.path.realpath(__file__))
@@ -40,8 +40,7 @@ class BaseConfig(object):
 
     def _init_logger(self):
         """ Initializes self.logger """
-        self.logger = logger
-        self.log_file = log_file
+        self.logger = logging.getLogger(__name__)
 
     def _load_config(self):
         """ Performs the logic to initialize self.config """
