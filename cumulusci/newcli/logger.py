@@ -15,6 +15,8 @@ def init_logger():
     handler.setFormatter(formatter)
 
     logger = logging.getLogger(__name__.split('.')[0])
-    logger.setLevel(logging.DEBUG)
+    for handler in logger.handlers:
+        logger.removeHandler(handler)
     logger.addHandler(handler)
+    logger.setLevel(logging.DEBUG)
     logger.propagate = False

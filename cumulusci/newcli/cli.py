@@ -45,6 +45,7 @@ class CliConfig(object):
         self.project_config = None
         self.keychain = None
 
+        init_logger()
         self._load_global_config()
         self._load_project_config()
         self._load_keychain()
@@ -79,7 +80,6 @@ class CliConfig(object):
             self.keychain = self.keychain_class(self.project_config, self.keychain_key)
             self.project_config.set_keychain(self.keychain)
 
-init_logger()
 
 try:
     CLI_CONFIG = CliConfig()
