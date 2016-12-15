@@ -35,7 +35,7 @@ Installation
 Quick Start
 -----------
 
-This section provide a brief example of the commands you'd use to start a new project once you have CumulusCI installed
+This section provide a brief example of the commands you'd use to start a new project once you have CumulusCI installed::
 
     $ cd <Your_Local_Repo>
     $ cumulusci2 project init

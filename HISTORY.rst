@@ -2,6 +2,49 @@
 History
 =======
 
+2.0.0-alpha30 (2016-12-13)
+------------------
+
+* **IMPORANT** This release changes the yaml structure for flows.  The new structure now looks like this::
+
+    flows:
+        flow_name:
+            tasks:
+                1:
+                    task: deploy
+                2:
+                    task: run_tests
+
+* See the new flow customization examples in the cookbook for examples of why this change was made and how to use it: http://cumulusci.readthedocs.io/en/latest/cookbook.html#custom-flows-via-yaml
+
+
+2.0.0-alpha30 (2016-12-12)
+------------------
+
+* Bug fixes submitted by @ccarter:
+  
+  * `uninstall_post` was failing to substitute namespaces
+  * new util method `findRename` to rename files with a token in their name
+
+* Bug fix with Unicode handling in run_tests_debug
+
+2.0.0-alpha29 (2016-12-12)
+------------------
+
+* Require docutils to supprot rst2ansi
+
+2.0.0-alpha28 (2016-12-12)
+------------------
+
+* Modified tasks and flows to properly re-raise exceptions
+
+2.0.0-alpha27 (2016-12-12)
+------------------
+
+* `cumulusci2` should now throw the direct exception rather than making it look like the exception came through click
+* `cumulusci2 task doc` command outputs RST format documentation of all tasks
+* New doc with info on all tasks: http://cumulusci.readthedocs.io/en/latest/tasks.html
+
 2.0.0-alpha26 (2016-12-09)
 ------------------
 

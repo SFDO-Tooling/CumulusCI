@@ -208,77 +208,122 @@ flows:
     dev_org:
         description: Deploys the unmanaged package metadata and all dependencies to the target org
         tasks:
-            - task: create_package
-            - task: update_dependencies
-            - task: deploy_pre
-            - task: deploy
-            - task: uninstall_packaged_incremental
-            - task: deploy_post
+            1:
+                task: create_package
+            2:
+                task: update_dependencies
+            3:
+                task: deploy_pre
+            4:
+                task: deploy
+            5:
+                task: uninstall_packaged_incremental
+            6:
+                task: deploy_post
     ci_feature:
         description: Deploys the unmanaged package metadata and all dependencies to the target org and runs tests
         tasks:
-            - task: create_package
-            - task: update_dependencies
-            - task: deploy_pre
-            - task: deploy
-            - task: uninstall_packaged_incremental
-            - task: deploy_post
-            - task: run_tests_debug
+            1:
+                task: create_package
+            2:
+                task: update_dependencies
+            3:
+                task: deploy_pre
+            4:
+                task: deploy
+            5:
+                task: uninstall_packaged_incremental
+            6:
+                task: deploy_post
+            7:
+                task: run_tests_debug
     ci_master:
         description: Deploys the managed package metadata and all dependencies to the packaging org
         tasks:
-            - task: deploy_pre
-            - task: update_dependencies
-            - task: uninstall_packaged_incremental
-              ignore_failure: True
-            - task: update_package_xml_managed
-            - task: create_managed_src
-            - task: deploy
-            - task: revert_managed_src
-            - task: uninstall_packaged_incremental
-            - task: deploy_post_managed
+            1:
+                task: deploy_pre
+            2:
+                task: update_dependencies
+            3:
+                task: uninstall_packaged_incremental
+                ignore_failure: True
+            4:
+                task: update_package_xml_managed
+            5:
+                task: create_managed_src
+            6:
+                task: deploy
+            7:
+                task: revert_managed_src
+            8:
+                task: uninstall_packaged_incremental
+            9:
+                task: deploy_post_managed
     ci_beta:
         description: Installs a beta version and runs tests
         tasks:
-            - task: uninstall_managed
-            - task: update_dependencies
-            - task: deploy_pre
-            - task: install_managed_beta
-            - task: deploy_post_managed
-            - task: run_tests_managed
+            1:
+                task: uninstall_managed
+            2:
+                task: update_dependencies
+            3:
+                task: deploy_pre
+            4:
+                task: install_managed_beta
+            5:
+                task: deploy_post_managed
+            6:
+                task: run_tests_managed
     ci_release:
         description: Installs a production release version and runs tests
         tasks:
-            - task: update_dependencies
-            - task: deploy_pre
-            - task: install_managed
-            - task: deploy_post_managed
-            - task: run_tests_managed
+            1:
+                task: update_dependencies
+            2:
+                task: deploy_pre
+            3:
+                task: install_managed
+            4:
+                task: deploy_post_managed
+            5:
+                task: run_tests_managed
     release_beta:
         description: Uploads and releases a beta version of the metadata currently in packaging
         tasks:
-            - task: upload_beta
-              options:
-                  name: Automated beta release
-            - task: github_release
-              options:
-                  version: ^^upload_beta.version_number
-            - task: util_sleep
-            - task: github_release_notes
-              options:
-                  publish: True
-                  tag: ^^github_release.tag_name
+            1:
+                task: upload_beta
+                options:
+                    name: Automated beta release
+            2:
+                task: github_release
+                options:
+                    version: ^^upload_beta.version_number
+            3:
+                task: util_sleep
+            4:
+                task: github_release_notes
+                options:
+                    publish: True
+                    tag: ^^github_release.tag_name
     unmanaged_ee:
         description: Deploys the unmanaged package metadata and all dependencies to the target EE org
         tasks:
-            - task: create_package
-            - task: update_dependencies
-            - task: deploy_pre
-            - task: create_unmanaged_ee_src
-            - task: deploy
-            - task: revert_unmanaged_ee_src
-            - task: uninstall_packaged_incremental
-            - task: deploy_post
+            1:
+                task: create_package
+            2:
+                task: update_dependencies
+            3:
+                task: deploy_pre
+            4:
+                task: create_unmanaged_ee_src
+            5:
+                task: deploy
+            6:
+                task: revert_unmanaged_ee_src
+            7:
+                task: uninstall_packaged_incremental
+            8:
+                task: deploy_post
 
 project:
     name:

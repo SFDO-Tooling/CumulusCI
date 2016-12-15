@@ -2,6 +2,7 @@ import base64
 import cgi
 import datetime
 from distutils.version import LooseVersion
+import errno
 import io
 import json
 import logging
@@ -301,7 +302,7 @@ class InstallPackageVersion(Deploy):
                 self.options['retries'] -= 1
                 self.logger.warning('Retrying deploy (%d attempts remaining)' % (self.options['retries']))
                 return self._run_task()
-            raise e
+            raise
 
 class UninstallPackage(Deploy):
     task_options = {
@@ -753,7 +754,7 @@ class UninstallLocalNamespacedBundles(UninstallLocalBundles):
                 namespace = self.options['namespace'] + '__'
 
         destructive_changes = generator()
-        destructive_changes.replace(self.options['filename_token'], namespace)
+        destructive_changes = destructive_changes.replace(self.options['filename_token'], namespace)
 
         return destructive_changes
 
@@ -1307,7 +1308,7 @@ class RunApexTestsDebug(RunApexTests):
                 os.makedirs(debug_log_dir)
             except OSError as e:
                 if e.errno != errno.EEXIST:
-                    raise e
+                    raise
         else:
             tempdir = tempfile.mkdtemp()
         for log in result['records']:
@@ -1324,7 +1325,7 @@ class RunApexTestsDebug(RunApexTests):
             else:
                 log_file = os.path.join(tempdir, log_file)
             with io.open(log_file, mode='w', encoding='utf-8') as f:
-                f.write(unicode(response.content))
+                f.write(self._decode_to_unicode(response.content))
             with io.open(log_file, mode='r', encoding='utf-8') as f:
                 method_stats = self._parse_log(class_name, f)
             # Add method stats to results_by_class_name
