@@ -2,6 +2,12 @@
 History
 =======
 
+2.0.0-alpha32 (2016-12-19)
+------------------
+
+* Move logger configuration out of core and into CLI so other implementations can provide their own logger configurations
+* Added `retry_interval` and `retry_interval_add` options to `install_beta` to introduce a progressive delay between retry attempts when the package is unavailable
+
 2.0.0-alpha30 (2016-12-13)
 ------------------
 
