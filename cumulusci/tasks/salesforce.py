@@ -314,7 +314,6 @@ class InstallPackageVersion(Deploy):
                     time.sleep(self.options['retry_interval'])
                     if self.options['retry_interval_add']:
                         self.options['retry_interval'] += self.options['retry_interval_add']
-                self.logger.warning('Retrying deploy (%d attempts remaining)' % (self.options['retries']))
                 self.options['retries'] -= 1
                 self.logger.warning('Retrying deploy (%d attempts remaining)' % (self.options['retries']))
                 return self._run_task()
