@@ -273,6 +273,12 @@ class InstallPackageVersion(Deploy):
         'retries': {
             'description': 'Number of retries (default=5)',
         },
+        'retry_interval': {
+            'description': 'Number of seconds to wait before the next retry (default=30),'
+        },
+        'retry_interval_add': {
+            'description': 'Number of seconds to add before each retry (default=60),'
+        },
     }
 
     def _init_options(self, kwargs):
@@ -281,6 +287,10 @@ class InstallPackageVersion(Deploy):
             self.options['namespace'] = self.project_config.project__package__namespace
         if 'retries' not in self.options:
             self.options['retries'] = 5
+        if 'retry_interval' not in self.options:
+            self.options['retry_interval'] = 5
+        if 'retry_interval_add' not in self.options:
+            self.options['retry_interval_add'] = 30
         if self.options.get('version') == 'latest':
             self.options['version'] = self.project_config.get_latest_version()
             self.logger.info('Installing latest release: {}'.format(self.options['version']))
@@ -299,6 +309,12 @@ class InstallPackageVersion(Deploy):
         except MetadataApiError as e:
             if self.options['retries'] and ('This package is not yet available' in e.message or
                 'InstalledPackage version number' in e.message):
+                if self.options['retry_interval']:
+                    self.logger.warning('Sleeping for {} seconds before retry...'.format(self.options['retry_interval']))
+                    time.sleep(self.options['retry_interval'])
+                    if self.options['retry_interval_add']:
+                        self.options['retry_interval'] += self.options['retry_interval_add']
+                self.logger.warning('Retrying deploy (%d attempts remaining)' % (self.options['retries']))
                 self.options['retries'] -= 1
                 self.logger.warning('Retrying deploy (%d attempts remaining)' % (self.options['retries']))
                 return self._run_task()
