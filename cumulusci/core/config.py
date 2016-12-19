@@ -525,7 +525,7 @@ class ScratchOrgConfig(OrgConfig):
 
 
 class ServiceConfig(BaseConfig):
-    """ Github configuration """
+    """ Keychain service configuration """
     pass
 
 class YamlProjectConfig(BaseProjectConfig):
