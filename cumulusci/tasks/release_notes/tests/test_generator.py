@@ -120,48 +120,10 @@ class TestPublishingGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTest
         }
 
     @responses.activate
-    def test_publish_beta_new(self):
-        tag = 'beta/1.4-Beta_1'
-        self._mock_release(True, tag, False, '')
-        # create generator
-        generator = self._create_generator(tag)
-        # inject content into Changes parser
-        generator.parsers[1].content.append('foo')
-        # render and publish
-        content = generator.render()
-        release_body = generator.publish(content)
-        # verify
-        expected_release_body = '# Changes\r\n\r\nfoo'
-        self.assertEqual(release_body, expected_release_body)
-        response_body = json.loads(responses.calls._calls[1].request.body)
-        self.assertEqual(response_body['draft'], False)
-        self.assertEqual(response_body['prerelease'], True)
-        self.assertEqual(len(responses.calls._calls), 2)
-
-    @responses.activate
-    def test_publish_prod_new(self):
-        tag = 'prod/1.4'
-        self._mock_release(False, tag, False, '')
-        # create generator
-        generator = self._create_generator(tag)
-        # inject content into Changes parser
-        generator.parsers[1].content.append('foo')
-        # render and publish
-        content = generator.render()
-        release_body = generator.publish(content)
-        # verify
-        expected_release_body = '# Changes\r\n\r\nfoo'
-        self.assertEqual(release_body, expected_release_body)
-        response_body = json.loads(responses.calls._calls[1].request.body)
-        self.assertEqual(response_body['draft'], True)
-        self.assertEqual(response_body['prerelease'], False)
-        self.assertEqual(len(responses.calls._calls), 2)
-
-    @responses.activate
-    def test_publish_unicode(self):
+    def test_publish_update_unicode(self):
         tag = 'prod/1.4'
         note = u'“Unicode quotes”'
-        self._mock_release(False, tag, False, '')
+        self._mock_release(False, tag, True, '')
         # create generator
         generator = self._create_generator(tag)
         # inject content into Changes parser
