@@ -2,7 +2,12 @@
 History
 =======
 
-2.0.0-alpha32 (2016-12-20)
+2.0.0-alpha34 (2016-12-20)
+------------------
+
+* Fix bug with `github_release` that was causing validation errors from Github
+
+2.0.0-alpha33 (2016-12-20)
 ------------------
 
 * `github_release_notes` now raises an exception in `publish` mode if the release doesn't exist instead of attempting to create it.  Use `github_release` to create the release first before calling `github_release_notes`
