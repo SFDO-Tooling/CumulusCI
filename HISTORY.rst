@@ -2,6 +2,12 @@
 History
 =======
 
+2.0.0-alpha32 (2016-12-20)
+------------------
+
+* `github_release_notes` now raises an exception in `publish` mode if the release doesn't exist instead of attempting to create it.  Use `github_release` to create the release first before calling `github_release_notes`
+* Fix a bug with dynamic task option lookup in flows
+
 2.0.0-alpha32 (2016-12-19)
 ------------------
 
