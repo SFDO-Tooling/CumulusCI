@@ -90,8 +90,7 @@ class BaseFlow(object):
         for option, value in task_config.options.items():
             if unicode(value).startswith('^^'):
                 value_parts = value[2:].split('.')
-                task_name = value_parts[0]
-                parent = self._find_task_by_name(task_name)
+                parent = self._find_task_by_name(value_parts[0])
                 for attr in value_parts[1:]:
                     parent = getattr(parent, attr)
                 task_config.config['options'][option] = parent
