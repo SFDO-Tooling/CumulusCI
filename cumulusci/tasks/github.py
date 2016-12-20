@@ -76,9 +76,6 @@ class CreateRelease(BaseGithubTask):
         'commit': {
             'description': "Override the commit used to create the release.  Defaults to the current local HEAD commit",
         },
-        'draft': {
-            'description': "Set to True to create a draft release.  Defaults to False",
-        },
     }
     
     def _run_task(self):
@@ -126,14 +123,12 @@ class CreateRelease(BaseGithubTask):
             sha = tag.sha,
         )
 
-        draft = self.options.get('draft', False) in [True, 'True', 'true']
         prerelease = 'Beta' in version
 
         # Create the Github Release
         release = repo.create_release(
             tag_name = self.tag_name,
             name = version,
-            draft = draft,
             prerelease = prerelease,
         )
 
