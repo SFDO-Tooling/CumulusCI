@@ -2,6 +2,11 @@
 History
 =======
 
+2.0.0-alpha35 (2016-12-20)
+------------------
+
+* Remove `draft` option from `github_release` since the Github API doesn't support querying draft releases
+
 2.0.0-alpha34 (2016-12-20)
 ------------------
 
