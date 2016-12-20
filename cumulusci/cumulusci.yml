@@ -299,8 +299,6 @@ flows:
                 options:
                     version: ^^upload_beta.version_number
             3:
-                task: util_sleep
-            4:
                 task: github_release_notes
                 options:
                     publish: True
