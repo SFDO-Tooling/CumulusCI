@@ -2,6 +2,11 @@
 History
 =======
 
+2.0.0-alpha36 (2016-12-20)
+------------------
+
+* `github_release` now works with an existing tag/ref and sleeps for 3 seconds after creating the tag to allow Github time to catch up
+
 2.0.0-alpha35 (2016-12-20)
 ------------------
 
