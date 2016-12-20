@@ -154,26 +154,12 @@ class PublishingGithubReleaseNotesGenerator(GithubReleaseNotesGenerator, GithubA
         )
 
     def publish(self, content):
-        release = self._get_or_create_release()
+        release = self._get_release()
         return self._update_release(release, content)
 
-    def _get_or_create_release(self):
+    def _get_release(self):
         # Query for the release
-        try:
-            release = self.call_api(
-                '/releases/tags/{}'.format(self.current_tag))
-        except GithubApiNotFoundError:
-            tag_info = self.current_tag_info
-            draft = tag_info['is_prod']
-            release = {
-                "tag_name": self.current_tag,
-                "target_commitish": self.master_branch,
-                "name": self.current_tag,
-                "body": None,
-                "draft": tag_info['is_prod'],
-                "prerelease": tag_info['is_beta'],
-            }
-        return release
+        return self.call_api('/releases/tags/{}'.format(self.current_tag))
 
     def _update_release(self, release, content):
 
