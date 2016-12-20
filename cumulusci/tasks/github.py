@@ -129,10 +129,9 @@ class CreateRelease(BaseGithubTask):
         draft = self.options.get('draft', False) in [True, 'True', 'true']
         prerelease = 'Beta' in version
 
-        # Create the Githbu Release
+        # Create the Github Release
         release = repo.create_release(
             tag_name = self.tag_name,
-            target_commitish = self.project_config.repo_branch,
             name = version,
             draft = draft,
             prerelease = prerelease,
