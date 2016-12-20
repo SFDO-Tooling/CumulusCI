@@ -389,13 +389,14 @@ class ScratchOrgConfig(OrgConfig):
         p.run()
 
         org_info = None
+        stdout_list = []
         for line in p.stdout:
             if line.startswith('Access org'):
                 org_info = line.strip()
-                break
+            stdout_list.append(line.strip())
 
         if p.returncode:
-            message = '{}: {}'.format(p.returncode, p.stdout)
+            message = '{}: {}'.format(p.returncode, '\n'.join(stdout_list))
             self.logger.error(message)
             raise ScratchOrgException(message)
 
