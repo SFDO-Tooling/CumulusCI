@@ -139,10 +139,12 @@ class TestGithubChangeNotesProvider(unittest.TestCase, GithubApiTestMixin):
     def _mock_current_tag_commit(self):
         api_url = '{}/git/commits/{}'.format(self.repo_api_url,
             self.current_tag_commit_sha)
-        expected_response = {'author': {
-            'date': datetime.strftime(self.current_tag_commit_date,
-                date_format),
-        }}
+        expected_response = {
+            'author': {
+                'date': datetime.strftime(self.current_tag_commit_date, date_format),
+            },
+            'sha': self.current_tag_commit_sha,
+        }
         responses.add(
             method=responses.GET,
             url=api_url,
@@ -192,9 +194,12 @@ class TestGithubChangeNotesProvider(unittest.TestCase, GithubApiTestMixin):
     def _mock_last_tag_commit(self):
         api_url = '{}/git/commits/{}'.format(self.repo_api_url,
             self.last_tag_commit_sha)
-        expected_response = {'author': {
-            'date': datetime.strftime(self.last_tag_commit_date, date_format),
-        }}
+        expected_response = {
+            'author': {
+                'date': datetime.strftime(self.last_tag_commit_date, date_format),
+            },
+            'sha': self.last_tag_commit_sha,
+        }
         responses.add(
             method=responses.GET,
             url=api_url,

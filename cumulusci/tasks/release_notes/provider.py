@@ -207,11 +207,22 @@ class GithubChangeNotesProvider(BaseChangeNotesProvider, ProviderGithubApiMixin)
 
         merged_date = datetime.strptime(merged_date, "%Y-%m-%dT%H:%M:%SZ")
 
+        merge_sha = pull_request['merge_commit_sha']
+        if self.last_tag:
+            last_tag_sha = self.last_tag_info['commit']['sha']
+            if merge_sha == last_tag_sha:
+                # Github commit dates can be different from the merged_at date
+                return False
+
+        current_tag_sha = self.current_tag_info['commit']['sha']
+        if merge_sha == current_tag_sha:
+            return True
+
         # include PRs before current tag
         if merged_date <= self.start_date:
             if self.end_date:
                 # include PRs after last tag
-                if merged_date > self.end_date:
+                if merged_date > self.end_date and merge_sha != last_tag_sha:
                     return True
             else:
                 # no last tag, include all PRs before current tag
