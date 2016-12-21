@@ -2,6 +2,11 @@
 History
 =======
 
+2.0.0-alpha37 (2016-12-20)
+------------------
+
+* `github_release_notes` now correctly handles the situation where a merge commit's date can be different than the PR's merged_at date in Github by comparing commit sha's
+
 2.0.0-alpha36 (2016-12-20)
 ------------------
 
