@@ -180,7 +180,7 @@ class SchedulePushOrgList(BaseSalesforcePushTask):
             'description': "The managed package namespace to push. Defaults to project__package__namespace.",
         },
         'start_time': {
-            'description': "Set the start time to queue a future push. Ex: 2016-10-19T10:00",
+            'description': "Set the start time (UTC) to queue a future push. Ex: 2016-10-19T10:00",
         }
     }
 
@@ -237,7 +237,7 @@ class SchedulePushOrgQuery(SchedulePushOrgList):
             'description': "The managed package namespace to push. Defaults to project__package__namespace.",
         },
         'start_time': {
-            'description': "Set the start time to queue a future push. Ex: 2016-10-19T10:00",
+            'description': "Set the start time (UTC) to queue a future push. Ex: 2016-10-19T10:00",
         }
     }
 
