@@ -249,10 +249,11 @@ class SchedulePushOrgQuery(SchedulePushOrgList):
 
         push_api = SalesforcePushApi(self.sf, self.logger, default_where=default_where.copy())
 
-        version = self._get_version(self.options.get('version'))
+        package = self._get_package(self.options.get('namespace')) 
+        version = self._get_version(package, self.options.get('version'))
         min_version = self.options.get('min_version')
         if min_version:
-            min_version = self._get_version(self.options.get('min_version'))
+            min_version = self._get_version(package, self.options.get('min_version'))
 
         orgs = []
 
