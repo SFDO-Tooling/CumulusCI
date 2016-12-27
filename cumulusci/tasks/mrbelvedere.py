@@ -86,6 +86,8 @@ class MrbelvederePublish(BaseMrbelvedereTask):
 
     def _clean_dependencies(self, dependency_list):
         cleaned_dependencies = []
+        if not dependency_list:
+            return cleaned_dependencies
         for dependency in dependency_list:
             if 'dependencies' in dependency:
                 cleaned_dependencies.extend(
