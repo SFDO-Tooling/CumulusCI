@@ -396,7 +396,11 @@ class ScratchOrgConfig(OrgConfig):
             stdout_list.append(line.strip())
 
         if p.returncode:
-            message = '{}: {}'.format(p.returncode, '\n'.join(stdout_list))
+            message = 'Return code: {}\nstdout: {}\nstderr: {}'.format(
+                p.returncode,
+                '\n'.join(stdout_list),
+                p.stderr,
+            )
             self.logger.error(message)
             raise ScratchOrgException(message)
 
