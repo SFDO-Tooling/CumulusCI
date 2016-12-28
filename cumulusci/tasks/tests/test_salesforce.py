@@ -162,6 +162,10 @@ class TestRunApexTestsDebug(TestRunApexTests):
         url = self.base_tooling_url + 'sobjects/DebugLevel/1'
         responses.add(responses.DELETE, url)
 
+    def _mock_delete_trace_flags(self):
+        url = self.base_tooling_url + 'sobjects/TraceFlag/1'
+        responses.add(responses.DELETE, url)
+
     def _mock_get_duration(self):
         url = (self.base_tooling_url + 'query/?q=SELECT+Id%2C+' +
             'Application%2C+DurationMilliseconds%2C+Location%2C+LogLength%2C' +
@@ -183,7 +187,7 @@ class TestRunApexTestsDebug(TestRunApexTests):
         responses.add(responses.GET, url, json=expected_response)
 
     def _mock_get_trace_flags(self):
-        url = self.base_tooling_url + 'query/?q=Select+Id+from+TraceFlag'
+        url = self.base_tooling_url + 'query/?q=Select+Id+from+TraceFlag+Where+TracedEntityId+%3D+%271%27'
         expected_response = {
             'records': [{'Id': 1}],
             'totalSize': 1,
@@ -206,6 +210,7 @@ class TestRunApexTestsDebug(TestRunApexTests):
         self._mock_get_trace_flags()
         self._mock_get_debug_levels()
         self._mock_delete_debug_levels()
+        self._mock_delete_trace_flags()
         self._mock_create_debug_level()
         self._mock_create_trace_flag()
         self._mock_run_tests()
@@ -216,4 +221,4 @@ class TestRunApexTestsDebug(TestRunApexTests):
         task = RunApexTestsDebug(
             self.project_config, self.task_config, self.org_config)
         task()
-        self.assertEqual(len(responses.calls), 11)
+        self.assertEqual(len(responses.calls), 13)

@@ -1259,6 +1259,7 @@ class RunApexTestsDebug(RunApexTests):
     def _debug_create_trace_flag(self):
         """Create a TraceFlag for a given user."""
         self._delete_debug_levels()
+        self._delete_trace_flags()
         self.logger.info('Creating DebugLevel object')
         DebugLevel = self._get_tooling_object('DebugLevel')
         result = DebugLevel.create({
@@ -1287,6 +1288,22 @@ class RunApexTestsDebug(RunApexTests):
         })
         self.trace_id = result['id']
         self.logger.info('Created TraceFlag for user')
+
+    def _delete_trace_flags(self):
+        """
+        Delete existing DebugLevel objects.
+        This will automatically delete associated TraceFlags as well.
+        """
+        self.logger.info('Deleting existing TraceFlag objects')
+        result = self.tooling.query(
+            "Select Id from TraceFlag Where TracedEntityId = '{}'".format(
+                self.org_config.user_id
+            )
+        )
+        if result['totalSize']:
+            TraceFlag = self._get_tooling_object('TraceFlag')
+            for record in result['records']:
+                TraceFlag.delete(str(record['Id']))
 
     def _delete_debug_levels(self):
         """
