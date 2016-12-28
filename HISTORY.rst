@@ -2,6 +2,15 @@
 History
 =======
 
+2.0.0-alpha38 (2016-12-28)
+------------------
+
+* Scratch orgs now cache the org info locally during flow execution to prevent multiple calls out to the Heroku CLI that are unnecessary
+* Scratch org calls now properly capture and print both stdout and stderr in the case of an exception in calls to Heroku CLI
+* `run_tests_debug` now deletes existing TraceFlag objects in addition to DebugLevels
+* Fix bug in `push_all` and `push_sandbox`
+* Push tasks now use timezone for start_date option
+
 2.0.0-alpha37 (2016-12-20)
 ------------------
 
