@@ -1,4 +1,5 @@
 import base64
+import datetime
 import logging
 import os
 import pickle
@@ -428,6 +429,8 @@ class ScratchOrgConfig(OrgConfig):
             'org_id': org_id,
             'username': username,
         }
+    
+        self._scratch_info_date = datetime.datetime.now()
 
         return self._scratch_info
 
@@ -524,7 +527,10 @@ class ScratchOrgConfig(OrgConfig):
     def refresh_oauth_token(self, connected_app):
         """ Use heroku force:org:open to refresh token instead of built in OAuth handling """
         if hasattr(self, '_scratch_info'):
-            del self._scratch_info
+            # Cache the scratch_info for 1 hour to avoid unnecessary calls out to heroku CLI
+            delta = datetime.datetime.now() - self._scratch_info_date
+            if delta.total_seconds() > 3600:
+                del self._scratch_info
         # This triggers a refresh
         self.scratch_info
 
