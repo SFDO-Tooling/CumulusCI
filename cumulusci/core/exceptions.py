@@ -98,3 +98,7 @@ class SalesforceDXException(CumulusCIException):
 class SOQLQueryException(CumulusCIException):
     """ Raise for errors related to Salesforce DX """
     pass
+
+class CommandException(CumulusCIException):
+    """ Raise for errors coming from spawned CLI subprocesses """
+    pass
