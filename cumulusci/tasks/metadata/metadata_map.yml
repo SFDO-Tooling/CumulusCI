@@ -31,6 +31,9 @@ contentassets:
 customMetadata:
     - type: CustomMetadata
       class: MetadataFilenameParser
+customPermissions:
+    - type: CustomPermission
+      class: MetadataFilenameParser
 dashboards:
     - type: Dashboard
       class: MetadataFolderParser
