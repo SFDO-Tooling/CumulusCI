@@ -37,6 +37,7 @@ requirements = [
     'PyCrypto>=2.6.1',
     'PyGithub>=1.25.1',
     'PyYAML>=3.11',
+    'SQLAlchemy>=1.1.4',
 ]
 
 test_requirements = [
