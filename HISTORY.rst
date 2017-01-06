@@ -1,6 +1,10 @@
 =======
 History
 =======
+2.0.0-alpha40 (2017-01-06)
+------------------
+
+* `uninstall_packaged_incremental` task now skips the deploy step if now metadata was found to be deleted
 
 2.0.0-alpha39 (2017-01-06)
 ------------------
