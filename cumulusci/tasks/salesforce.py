@@ -623,8 +623,10 @@ class UninstallPackagedIncremental(UninstallPackaged):
             os.path.join(self.options['path'], 'package.xml'),
             os.path.join(tempdir, 'package.xml'),
         )
-
-        self.logger.info('Deleting metadata in package {} from target org'.format(self.options['package']))
+        if destructive_changes:
+            self.logger.info('Deleting metadata in package {} from target org'.format(self.options['package']))
+        else:
+            self.logger.info('No metadata found to delete')
         return destructive_changes
 
     def _package_xml_diff(self, master, compare):
@@ -672,9 +674,8 @@ class UninstallPackagedIncremental(UninstallPackaged):
             for md_type, members in delete.items():
                 for member in members:
                     self.logger.info('    {}: {}'.format(md_type, member))
-
-        destructive_changes = self._render_xml_from_items_dict(delete)
-        return destructive_changes
+            destructive_changes = self._render_xml_from_items_dict(delete)
+            return destructive_changes
 
     def _render_xml_from_items_dict(self, items):
         lines = []
