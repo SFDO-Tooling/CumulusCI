@@ -2,6 +2,17 @@
 History
 =======
 
+2.0.0-alpha39 (2017-01-06)
+------------------
+
+* Two new task classes exist for loading and deleting data via Bulk API.  Note that there are no default task mappings for these classes as the mappings should be project specific.  Define your own mappings in your project's cumulusci.yml file to use them.
+
+  * **cumulusci.tasks.bulkdata.LoadData**: Loads relational data from a sqlite database into Salesforce objects using a yaml file for mapping
+  * **cumulusci.tasks.bulkdata.DeleteData**: Deletes all records from specified objects in order of object list
+
+* Added support for customPermissions
+* Added new Command task that can be used to call arbitrary commands with configurable environment variables
+
 2.0.0-alpha38 (2016-12-28)
 ------------------
 
