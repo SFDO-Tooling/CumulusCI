@@ -1,6 +1,12 @@
 =======
 History
 =======
+
+2.0.0-alpha41 (2017-01-06)
+------------------
+
+* Fix bug in `uninstall_packaged_incremental` where the task would error out if no metadata was found to delete
+
 2.0.0-alpha40 (2017-01-06)
 ------------------
 
