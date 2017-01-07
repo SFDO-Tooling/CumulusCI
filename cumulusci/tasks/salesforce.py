@@ -56,7 +56,8 @@ class BaseSalesforceMetadataApiTask(BaseSalesforceTask):
 
     def _run_task(self):
         api = self._get_api()
-        return api()
+        if api:
+            return api()
 
 
 class BaseSalesforceApiTask(BaseSalesforceTask):
@@ -539,6 +540,8 @@ class BaseUninstallMetadata(Deploy):
 
     def _get_api(self, path=None):
         destructive_changes = self._get_destructive_changes(path=path)
+        if not destructive_changes:
+            return
         package_zip = DestructiveChangesZipBuilder(destructive_changes)
         api = self.api_class(self, package_zip())
         return api
