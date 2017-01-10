@@ -36,6 +36,7 @@ class BaseMetadataApiCall(object):
         # the cumulucci context object contains logger, oauth, ID, secret, etc
         self.task = task
         self.status = None
+        self.check_num = 1
 
     def __call__(self):
         self.task.logger.info('Pending')
@@ -99,6 +100,9 @@ class BaseMetadataApiCall(object):
         if result:
             return result[0].firstChild.nodeValue
 
+    def _get_check_interval(self):
+        return self.check_interval * ((self.check_num / 3) + 1)
+
     def _get_response(self):
         if not self.soap_envelope_start:
             # where is this from?
@@ -128,7 +132,12 @@ class BaseMetadataApiCall(object):
                     self.soap_action_status, envelope)
                 response = self._call_mdapi(headers, envelope)
                 response = self._process_response_status(response)
-                time.sleep(self.check_interval)
+
+                # start increasing the check interval progressively to handle long pending jobs
+                check_interval = self._get_check_interval()
+                self.check_num += 1
+
+                time.sleep(check_interval)
             # Fetch the final result and return
             if self.soap_envelope_result:
                 envelope = self._build_envelope_result()
@@ -143,7 +152,11 @@ class BaseMetadataApiCall(object):
         else:
             # Check the result and return when done
             while self.status not in ['Succeeded', 'Failed', 'Cancelled']:
-                time.sleep(self.check_interval)
+                # start increasing the check interval progressively to handle long pending jobs
+                check_interval = self._get_check_interval()
+                self.check_num += 1
+                time.sleep(check_interval)
+
                 envelope = self._build_envelope_result()
                 envelope = envelope.encode('utf-8')
                 headers = self._build_headers(
@@ -201,6 +214,8 @@ class BaseMetadataApiCall(object):
                 if state_detail:
                     log = state_detail[0].firstChild.nodeValue
                     self._set_status('InProgress', log)
+                else:
+                    self._set_status('Pending', 'next check in {} seconds'.format(self._get_check_interval()))
         else:
             # If no done element was in the xml, fail logging the entire SOAP
             # envelope as the log
