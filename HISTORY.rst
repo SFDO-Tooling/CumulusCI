@@ -2,6 +2,11 @@
 History
 =======
 
+2.0.0-alpha42 (2017-01-10)
+------------------
+
+* Metadata API calls now progressively wait longer between each status check to handle calls with long Pending times.  Each check also now outputs a line saying how long it will sleep before the next check.
+
 2.0.0-alpha41 (2017-01-06)
 ------------------
 
