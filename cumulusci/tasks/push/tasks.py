@@ -5,6 +5,7 @@ from cumulusci.tasks.push.push_api import SalesforcePushApi
 
 class BaseSalesforcePushTask(BaseSalesforceApiTask):
     completed_statuses = ['Succeeded','Failed','Cancelled']
+    api_version = '38.0'
 
     def _init_task(self):
         super(BaseSalesforcePushTask, self)._init_task()
