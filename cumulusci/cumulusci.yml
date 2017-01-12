@@ -290,6 +290,28 @@ flows:
                 task: deploy_post_managed
             5:
                 task: run_tests_managed
+    install_beta:
+        description: Installs the latest beta version and all dependencies.
+        tasks:
+            1:
+                task: update_dependencies
+            2:
+                task: deploy_pre
+            3:
+                task: install_managed_beta
+            4:
+                task: deploy_post_managed
+    install_prod:
+        description: Installs the latest production version and all dependencies.
+        tasks:
+            1:
+                task: update_dependencies
+            2:
+                task: deploy_pre
+            3:
+                task: install_managed
+            4:
+                task: deploy_post_managed
     release_beta:
         description: Uploads and releases a beta version of the metadata currently in packaging
         tasks:
@@ -306,6 +328,8 @@ flows:
                 options:
                     publish: True
                     tag: ^^github_release.tag_name
+            4:
+                task: github_master_to_feature
     unmanaged_ee:
         description: Deploys the unmanaged package metadata and all dependencies to the target EE org
         tasks:

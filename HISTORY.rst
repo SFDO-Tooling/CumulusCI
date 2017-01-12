@@ -9,6 +9,8 @@ History
 * Changed primary CLI command to `cci` and left `cumulusci2` available for legacy support
 * Changed all docs to use `cci` command in examples
 * Peg push api tasks to api version 38.0 rather than project api version
+* Added 2 new flows: `install_beta` and `install_prod` which install the latest managed version of the package with all dependencies but without running tests
+* `release_beta` flow now runs `github_master_to_feature` at the end of the flow
 
 2.0.0-alpha42 (2017-01-10)
 ------------------
