@@ -883,7 +883,7 @@ project.setProperty("downgradePackage", result);
 </Package>]]></echo>
 
       <!-- Add the package name to the package.xml file -->
-      <replaceregexp file="@{xmlfile}" match="Package(.*)>" replace="Package\1>&lt;fullName>@{package}%lt;/fullName>${line-separator}" />
+      <replaceregexp file="@{dir}/package.xml" match="Package(.*)>" replace="Package\1>&lt;fullName>@{package}&lt;/fullName>${line-separator}" />
 
       <!-- Build the destructiveChanges.xml file by walking the srcdir and adding all metadata -->
       <if>
