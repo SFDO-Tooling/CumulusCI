@@ -679,7 +679,7 @@
                         <if>
                             <available file="${basedir}/unpackaged/@{packageNamespace}/pre" type="dir" />
                             <then>
-                                <deployMetadataBundles dir="${basedir}/unpackaged/@{packageNamespace}/pre" stagedir="${basedir}/unpackaged_stage" />
+                                <deployMetadataBundles dir="${basedir}/unpackaged/@{packageNamespace}/pre" stagedir="${basedir}/unpackaged_stage" nsprefix="@{packageNamespace}"/>
                             </then>
                             <else>
                                 <echo>No pre bundles found for @{packageNamespace} at ${basedir}/unpackaged/@{packageNamespace}/pre</echo>
@@ -690,7 +690,7 @@
                         <if>
                             <available file="${basedir}/unpackaged/@{packageNamespace}/post" type="dir" />
                             <then>
-                                <deployMetadataBundles dir="${basedir}/unpackaged/@{packageNamespace}/post" stagedir="${basedir}/unpackaged_stage" />
+                                <deployMetadataBundles dir="${basedir}/unpackaged/@{packageNamespace}/post" stagedir="${basedir}/unpackaged_stage" nsprefix="@{packageNamespace}"/>
                             </then>
                             <else>
                                 <echo>No post bundles found for @{packageNamespace} at ${basedir}/unpackaged/@{packageNamespace}/post</echo>
