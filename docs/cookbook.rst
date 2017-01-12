@@ -72,7 +72,7 @@ The main cumulusci.yml file defines the `dev_org` flow using the following YAML.
 Customize vs Create
 -------------------
 
-A key philosophy of the user experience for CumulusCI is to keep things consistent from project to project while allowing for project specific customizations.  For example, the included `dev_org` allows a developer to run a complete deployment to set up a development environment.  Rather than each project defining its own `dev_org_myproject` flow, it's a better user experience to just customize the `dev_org` flow for projects that need something different.  This way, a developer switching from Project Repo A to Project Repo B can run the same command, `cumulusci2 flow run dev_org` in each project instead of having to know the custom flow names for each project.
+A key philosophy of the user experience for CumulusCI is to keep things consistent from project to project while allowing for project specific customizations.  For example, the included `dev_org` allows a developer to run a complete deployment to set up a development environment.  Rather than each project defining its own `dev_org_myproject` flow, it's a better user experience to just customize the `dev_org` flow for projects that need something different.  This way, a developer switching from Project Repo A to Project Repo B can run the same command, `cci flow run dev_org` in each project instead of having to know the custom flow names for each project.
 
 Add a task to the dev_org flow
 ------------------------------
@@ -135,7 +135,7 @@ Custom tasks via Python
 
 While the built in tasks are designed to be highly configurable via the cumulusci.yml and the task's options, sometimes an individual project needs to change the implementation of a task to meet its requirements.  This section shows a few examples custom tasks implemented in Python.
 
-When the cumulusci2 command runs, it adds your current repo's root to the python path.  This means you can write your python customizations to CumulusCI and store them in your project's repo along with your code.
+When the cci command runs, it adds your current repo's root to the python path.  This means you can write your python customizations to CumulusCI and store them in your project's repo along with your code.
 
 All of the following examples assume that you've created a tasks module in your repo::
  
@@ -173,8 +173,8 @@ To wire this task up to CumulusCI, add the following in your project's cumulusci
 
 Verify that the task shows up::
 
-    cumulusci2 task list
-    cumulusci2 task info list_contacts
+    cci task list
+    cci task info list_contacts
         
 
 Query the Tooling API
@@ -201,8 +201,8 @@ To wire this task up to CumulusCI, add the following in your project's cumulusci
 
 Verify that the task shows up::
 
-    cumulusci2 task list
-    cumulusci2 task info list_classes
+    cci task list
+    cci task info list_classes
 
 Extend the default update_admin_profile task
 --------------------------------------------
@@ -309,8 +309,8 @@ Building a project configured for CumulusCI on CircleCI is fairly easy to get se
 
 First, set up your project in CircleCI and add the following Environment Variables in the project's config:
 
-* CUMULUSCI_CONNECTED_APP: The output from `cumulusci2 org connected_app`
-* CUMULUSCI_ORG_feature: The output from `cumulusci2 org info feature`, assuming you've already connected your feature org to your local toolbelt.
+* CUMULUSCI_CONNECTED_APP: The output from `cci org connected_app`
+* CUMULUSCI_ORG_feature: The output from `cci org info feature`, assuming you've already connected your feature org to your local toolbelt.
     
 
 The following circle.yml file added to your repo will build all branches as unmanaged code::
@@ -326,16 +326,16 @@ The following circle.yml file added to your repo will build all branches as unma
         - 'pip install --upgrade -r requirements.txt'
     test:
       override:
-        - 'cumulusci2 flow run ci_feature_cumulus --org feature'
+        - 'cci flow run ci_feature_cumulus --org feature'
       post:
         - 'mkdir -p $CIRCLE_TEST_REPORTS/junit/'
         - 'cp test_results.xml $CIRCLE_TEST_REPORTS/junit/'
 
 If you want to run the full packaging flow where feature branches build unmanaged and master branch commits build and test a beta managed package, you need to set the following environment variables in CircleCI:
 
-* CUMULUSCI_ORG_packaging: The output from `cumulusci2 org info packaging`, assuming you've already connected your packaging org to your local toolbelt.
-* CUMULUSCI_ORG_beta: The output from `cumulusci2 org info beta`, assuming you've already connected your beta org to your local toolbelt.
-* CUMULUSCI_SERVICE_github: The output from `cumulusci2 project show_github`, assuming you've already configured github locally via `cumulusci2 project connect_github` 
+* CUMULUSCI_ORG_packaging: The output from `cci org info packaging`, assuming you've already connected your packaging org to your local toolbelt.
+* CUMULUSCI_ORG_beta: The output from `cci org info beta`, assuming you've already connected your beta org to your local toolbelt.
+* CUMULUSCI_SERVICE_github: The output from `cci project show_github`, assuming you've already configured github locally via `cci project connect_github` 
 
 Next, use the following circle.yml::
 
@@ -350,20 +350,20 @@ Next, use the following circle.yml::
         - 'pip install --upgrade cumulusci'
     test:
       pre:
-        - 'if [[ $CIRCLE_BRANCH == "master" ]]; then cumulusci2 flow run ci_master --org packaging; fi'
-        - 'if [[ $CIRCLE_BRANCH == "master" ]]; then cumulusci2 flow run release_beta --org packaging; fi'
+        - 'if [[ $CIRCLE_BRANCH == "master" ]]; then cci flow run ci_master --org packaging; fi'
+        - 'if [[ $CIRCLE_BRANCH == "master" ]]; then cci flow run release_beta --org packaging; fi'
       override:
-        - 'if [[ $CIRCLE_BRANCH == "master" ]]; then cumulusci2 flow run ci_beta --org beta; else cumulusci2 flow run ci_feature --org feature; fi'
+        - 'if [[ $CIRCLE_BRANCH == "master" ]]; then cci flow run ci_beta --org beta; else cci flow run ci_feature --org feature; fi'
       post:
         - 'mkdir -p $CIRCLE_TEST_REPORTS/junit/'
         - 'cp test_results.xml $CIRCLE_TEST_REPORTS/junit/'
         - 'if [[ $CIRCLE_BRANCH != "master" ]]; then cp test_results.json $CIRCLE_ARTIFACTS; fi'
-        #- 'if [[ $CIRCLE_BRANCH != "master" ]]; then cumulusci2 task run apextestsdb_upload; fi'
+        #- 'if [[ $CIRCLE_BRANCH != "master" ]]; then cci task run apextestsdb_upload; fi'
     deployment:
       master_to_feature:
         branch: master
         commands:
-          - 'cumulusci2 task run github_master_to_feature'
+          - 'cci task run github_master_to_feature'
 
 Note that the beta upload flow requires pilot access to the PackageUploadRequest API.
 
@@ -378,14 +378,14 @@ You'll first need to setup some prerequirements:
 * Ensure that orgs/dev.json contains a valid scratch org definition file
 * Your project's workspace-config.json should have `"EnableTokenEncryption": false`
 * Once encryption is disabled, authorize DX to your Environment Hub org
-* Your packaging org should be connected to your keychain already, verify with `cumulusci2 org info packaging`
-* Run `cumulusci2 org scratch dev feature` to create the configuration for the scratch org in your cumulusci2 keychain.  You should be able to run `cumulusci2 org info feature` to see the config.
-* Run `cumulusci2 org scratch dev beta` to create the configuration for the scratch org in your cumulusci2 keychain.  You should be able to run `cumulusci2 org info beta` to see the config.
+* Your packaging org should be connected to your keychain already, verify with `cci org info packaging`
+* Run `cci org scratch dev feature` to create the configuration for the scratch org in your cci keychain.  You should be able to run `cci org info feature` to see the config.
+* Run `cci org scratch dev beta` to create the configuration for the scratch org in your cci keychain.  You should be able to run `cci org info beta` to see the config.
 
 Once your project is set up in CircleCI, add the following additional environment variables in addition to the ones listed above:
 
-* CUMULUSCI_CONNECTED_APP: The output from `cumulusci2 org connected_app`
-* CUMULUSCI_ORG_feature: The output from `cumulusci2 org info feature`, assuming you've already connected your feature org to your local toolbelt.
+* CUMULUSCI_CONNECTED_APP: The output from `cci org connected_app`
+* CUMULUSCI_ORG_feature: The output from `cci org info feature`, assuming you've already connected your feature org to your local toolbelt.
 * SFDX_HUB_ORG: The contents of ~/.appcloud/hubOrg.json
 * SFDX_CONFIG: The contents of ~/.appcloud/workspace_config.json
 
@@ -407,16 +407,16 @@ The following circle.yml in your project's root should get things going for unma
         - 'heroku force --help'
     test:
       override:
-        - 'cumulusci2 flow run ci_feature_cumulus --org feature --delete-org'
+        - 'cci flow run ci_feature_cumulus --org feature --delete-org'
       post:
         - 'mkdir -p $CIRCLE_TEST_REPORTS/junit/'
         - 'cp test_results.xml $CIRCLE_TEST_REPORTS/junit/'
 
 To run the full feature/master flow using scratch orgs for feature and beta test builds, set the following additional environment variables:
 
-* CUMULUSCI_ORG_packaging: The output from `cumulusci2 org info packaging`, assuming you've already connected your packaging org to your local toolbelt.
-* CUMULUSCI_ORG_beta: The output from `cumulusci2 org info beta`, assuming you've already connected your beta org to your local toolbelt.
-* CUMULUSCI_SERVICE_github: The output from `cumulusci2 project show_github`, assuming you've already configured github locally via `cumulusci2 project connect_github` 
+* CUMULUSCI_ORG_packaging: The output from `cci org info packaging`, assuming you've already connected your packaging org to your local toolbelt.
+* CUMULUSCI_ORG_beta: The output from `cci org info beta`, assuming you've already connected your beta org to your local toolbelt.
+* CUMULUSCI_SERVICE_github: The output from `cci project show_github`, assuming you've already configured github locally via `cci project connect_github` 
 
 The following circle.yml should set up the whole feature/master flow using scratch orgs for feature and beta test builds::
 
@@ -436,17 +436,17 @@ The following circle.yml should set up the whole feature/master flow using scrat
         - 'heroku force --help'
     test:
       pre:
-        - 'if [[ $CIRCLE_BRANCH == "master" ]]; then cumulusci2 flow run ci_master --org packaging; fi'
-        - 'if [[ $CIRCLE_BRANCH == "master" ]]; then cumulusci2 flow run release_beta --org packaging; fi'
+        - 'if [[ $CIRCLE_BRANCH == "master" ]]; then cci flow run ci_master --org packaging; fi'
+        - 'if [[ $CIRCLE_BRANCH == "master" ]]; then cci flow run release_beta --org packaging; fi'
       override:
-        - 'if [[ $CIRCLE_BRANCH == "master" ]]; then cumulusci2 flow run ci_beta --org beta --delete-org; else cumulusci2 flow run ci_feature --org feature --delete-org; fi'
+        - 'if [[ $CIRCLE_BRANCH == "master" ]]; then cci flow run ci_beta --org beta --delete-org; else cci flow run ci_feature --org feature --delete-org; fi'
       post:
         - 'mkdir -p $CIRCLE_TEST_REPORTS/junit/'
         - 'cp test_results.xml $CIRCLE_TEST_REPORTS/junit/'
         - 'if [[ $CIRCLE_BRANCH != "master" ]]; then cp test_results.json $CIRCLE_ARTIFACTS; fi'
-        #- 'if [[ $CIRCLE_BRANCH != "master" ]]; then cumulusci2 task run apextestsdb_upload; fi'
+        #- 'if [[ $CIRCLE_BRANCH != "master" ]]; then cci task run apextestsdb_upload; fi'
     deployment:
       master_to_feature:
         branch: master
         commands:
-          - 'cumulusci2 task run github_master_to_feature'
+          - 'cci task run github_master_to_feature'

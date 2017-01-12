@@ -47,17 +47,18 @@ test_requirements = [
 
 setup(
     name='cumulusci',
-    version='2.0.0-alpha42',
+    version='2.0.0-beta1',
     description="Build and release tools for Salesforce developers",
     long_description=readme + '\n\n' + history,
     author="Jason Lantz",
     author_email='jlantz@salesforce.com',
-    url='https://github.com/SalesforceFoundation/CumulusCI/tree/feature/2.0',
+    url='https://github.com/SalesforceFoundation/CumulusCI',
     packages = list(find_packages(cumulusci.__path__, cumulusci.__name__)),
     package_dir={'cumulusci':
                  'cumulusci'},
     entry_points={
         'console_scripts': [
+            'cci=cumulusci.newcli.cli:cli',
             'cumulusci=cumulusci.cli.cli:cli',
             'cumulusci2=cumulusci.newcli.cli:cli'
         ]

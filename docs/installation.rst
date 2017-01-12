@@ -33,19 +33,7 @@ You can either clone the public repository:
 .. code-block:: console
 
     $ git clone git://github.com/SalesforceFoundation/CumulusCI
+    $ cd CumulusCI
+    $ pip install -r requirements_dev.txt
 
-Or download the `tarball`_:
-
-.. code-block:: console
-
-    $ curl  -OL https://github.com/SalesforceFoundation/CumulusCI/tarball/feature/2.0
-
-Once you have a copy of the source, you can install it with:
-
-.. code-block:: console
-
-    $ python setup.py install
-
-
-.. _Github repo: https://github.com/SalesforceFoundation/CumulusCI/tree/feature/2.0
-.. _tarball: https://github.com/SalesforceFoundation/CumulusCI/tarball/feature/2.0
+.. _Github repo: https://github.com/SalesforceFoundation/CumulusCI

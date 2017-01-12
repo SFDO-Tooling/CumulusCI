@@ -2,6 +2,14 @@
 History
 =======
 
+2.0.0-beta1 (2017-01-12)
+------------------------
+
+* Move into the master branch!
+* Changed primary CLI command to `cci` and left `cumulusci2` available for legacy support
+* Changed all docs to use `cci` command in examples
+* Peg push api tasks to api version 38.0 rather than project api version
+
 2.0.0-alpha42 (2017-01-10)
 ------------------
 
@@ -108,8 +116,8 @@ History
 2.0.0-alpha27 (2016-12-12)
 ------------------
 
-* `cumulusci2` should now throw the direct exception rather than making it look like the exception came through click
-* `cumulusci2 task doc` command outputs RST format documentation of all tasks
+* `cci` should now throw the direct exception rather than making it look like the exception came through click
+* `cci task doc` command outputs RST format documentation of all tasks
 * New doc with info on all tasks: http://cumulusci.readthedocs.io/en/latest/tasks.html
 
 2.0.0-alpha26 (2016-12-09)
@@ -134,7 +142,7 @@ History
 2.0.0-alpha23 (2016-12-09)
 ------------------
 
-* `cumulusci2 org browser` now saves the org back to the keychain.  This fixes an issue with scratch orgs where a call to org browser on a scratch org that hasn't been created yet gets created but doesn't persist after the command
+* `cci org browser` now saves the org back to the keychain.  This fixes an issue with scratch orgs where a call to org browser on a scratch org that hasn't been created yet gets created but doesn't persist after the command
 
 * `task run` and `flow run` now support the `--debug` flag which will drop you into the Python interactive debugger (pdb) at the point of the exception.
 
@@ -173,7 +181,7 @@ History
 ------------------
 
 * Fix IOError issue with update_admin_profile when using the egg version
-* Changed cumulusci2 task_run and flow_run commands to no longer swallow unknown exceptions so a useful error message with traceback is shown
+* Changed cci task_run and flow_run commands to no longer swallow unknown exceptions so a useful error message with traceback is shown
 * Centralized loggers for BaseConfig, BaseTask, and BaseFlow under cumulusci.core.logger and changed logs to always write to a temp file available as self.log_file on any config, task, or flow subclass.
 
 2.0.0-alpha18 (2016-11-17)
@@ -189,15 +197,15 @@ History
 * Community contributions by @cdcarter
 
   * `query` task using the Bulk Data API
-  * `--login-url` option on `cumulusci2 org connect`
+  * `--login-url` option on `cci org connect`
 
 * Salesforce DX wrapper
 
   * NOTE: Requires developer preview access to Salesforce DX
-  * `cumulusci2 org scratch <config_name> <org_name>` creates a wrapper for a scratch org in your keychain
+  * `cci org scratch <config_name> <org_name>` creates a wrapper for a scratch org in your keychain
   * Tasks and Flows run against a scratch org will create the scratch org if needed
-  * `cumulusci2 org scratch_delete <org_name>` deletes a scratch org that was created by running a task or flow
-  * `cumulusci2 flow run` now supports the `--delete-org` option to delete a scratch org at the end of the flow
+  * `cci org scratch_delete <org_name>` deletes a scratch org that was created by running a task or flow
+  * `cci flow run` now supports the `--delete-org` option to delete a scratch org at the end of the flow
   * `BaseSalesforceDXTask` wraps the heroku force:* commands.  The `dx_push` task is provided as an example.
     
     * NOTE: Currently the command output is buffered and only outputs when the command completes.
@@ -287,7 +295,7 @@ History
 
 * Integrated salesforce-bulk and created BaseSalesforceBulkApiTask for building bulk data tasks
 
-* Added `cumulusci2 version` command to print out current package version, thanks @cdcarter for the contribution
+* Added `cci version` command to print out current package version, thanks @cdcarter for the contribution
 
 
 2.0.0-alpha10 (2016-10-28)
@@ -319,12 +327,12 @@ History
 
 * Switch to using `plaintable` for printing text tables in the following CLI commands:
 
-  * cumulusci2 org list
-  * cumulusci2 task list
-  * cumulusci2 task info
-  * cumulusci2 flow list
+  * cci org list
+  * cci task list
+  * cci task info
+  * cci flow list
 
-* Easier project set up: `cumulusci2 project init` now prompts for all project values using the global default values
+* Easier project set up: `cci project init` now prompts for all project values using the global default values
 * More pure Python Metadata API tasks:
 
   * create_package
@@ -357,19 +365,19 @@ History
 
   * push_all: Pushes a package version to all available subscriber orgs
 
-    * ex: cumulusci2 task run --org packaging -o version 1.1 push_all
+    * ex: cci task run --org packaging -o version 1.1 push_all
 
   * push_qa: Pushes a package version to all org ids in the file push/orgs_qa.txt in the repo
 
-    * ex: cumulusci2 task run --org packaging -o version 1.1 push_qa
+    * ex: cci task run --org packaging -o version 1.1 push_qa
 
   * push_sandbox: Pushes a package version to all available sandbox subscriber orgs
 
-    * ex: cumulusci2 task run --org packaging -o version 1.1 push_sandbox
+    * ex: cci task run --org packaging -o version 1.1 push_sandbox
 
   * push_trial: Pushes a package version to all org ids in the file push/orgs_trial.txt in the repo
 
-    * ex: cumulusci2 task run --org packaging -o version 1.1 push_trial
+    * ex: cci task run --org packaging -o version 1.1 push_trial
 
   * Configurable push tasks in cumulusci.tasks.push.tasks:
 
@@ -384,12 +392,12 @@ History
 
 * New commands for connecting to other services
 
-  * cumulusci2 project connect_apextestsdb: Stores ApexTestDB auth configuration in the keychain for use by tasks that require ApexTestsDB access
-  * cumulusci2 project connect_github: Stores Github auth configuration in the keychain for use by tasks that require Github access
-  * cumulusci2 project connect_mrbelvedere: Stores mrbelvedere auth configuration in the keychain for use by tasks that require access to mrbelvedere
-  * cumulusci2 project show_apextestsdb: Shows the configured ApexTestsDB auth info
-  * cumulusci2 project show_github: Shows the configured Github auth info
-  * cumulusci2 project show_mrbelvedere: Shows the configured mrbelvedere auth info
+  * cci project connect_apextestsdb: Stores ApexTestDB auth configuration in the keychain for use by tasks that require ApexTestsDB access
+  * cci project connect_github: Stores Github auth configuration in the keychain for use by tasks that require Github access
+  * cci project connect_mrbelvedere: Stores mrbelvedere auth configuration in the keychain for use by tasks that require access to mrbelvedere
+  * cci project show_apextestsdb: Shows the configured ApexTestsDB auth info
+  * cci project show_github: Shows the configured Github auth info
+  * cci project show_mrbelvedere: Shows the configured mrbelvedere auth info
   
 * Github Tasks
 
