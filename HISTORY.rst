@@ -2,6 +2,11 @@
 History
 =======
 
+2.0.0-beta4 (2017-01-13)
+------------------------
+
+* Add `update_admin_profile` to all flows that deploy or install to a Salesforce org.  Note that this adjusted the task numbers in some flows so you should double check your project specific flow customizations.
+
 2.0.0-beta3 (2017-01-13)
 ------------------------
 
