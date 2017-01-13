@@ -2,6 +2,11 @@
 History
 =======
 
+2.0.0-beta3 (2017-01-13)
+------------------------
+
+* Remove `deploy_post_managed` task from the default `ci_master` flow.  Deploying the unpackaged/post content to the packaging org risks the spider accidentally including some of it in the package.  Projects that want to run `deploy_post_managed` against the packaging org can extend `ci_master` in their cumulusci.yml file to add it.
+
 2.0.0-beta2 (2017-01-12)
 ------------------------
 
