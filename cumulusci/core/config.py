@@ -252,6 +252,8 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                 if 'Beta' in release.tag_name:
                     continue
             version = self.get_version_for_tag(release.tag_name)
+            if version is None:
+                continue
             version = LooseVersion(version)
             if not latest_version or version > latest_version:
                 latest_version = version
@@ -285,6 +287,9 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         return tag_name
 
     def get_version_for_tag(self, tag):
+        if not tag.startswith(self.project__git__prefix_beta) and not tag.startswith(self.project__git__prefix_release):
+            return None
+
         if 'Beta' in tag:
             version = tag[len(self.project__git__prefix_beta):]
             version = version.replace('-',' (').replace('_',' ') + ')'

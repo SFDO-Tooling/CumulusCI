@@ -2,6 +2,11 @@
 History
 =======
 
+2.0.0-beta2 (2017-01-12)
+------------------------
+
+* Fix a bug in project_config.get_latest_version() with tags that don't match either the beta or release prefix.
+
 2.0.0-beta1 (2017-01-12)
 ------------------------
 
