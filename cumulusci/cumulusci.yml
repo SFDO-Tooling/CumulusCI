@@ -223,6 +223,8 @@ flows:
                 task: uninstall_packaged_incremental
             6:
                 task: deploy_post
+            7:
+                task: update_admin_profile
     ci_feature:
         description: Deploys the unmanaged package metadata and all dependencies to the target org and runs tests
         tasks:
@@ -239,6 +241,8 @@ flows:
             6:
                 task: deploy_post
             7:
+                task: update_admin_profile
+            8:
                 task: run_tests_debug
     ci_master:
         description: Deploys the managed package metadata and all dependencies to the packaging org
@@ -260,6 +264,8 @@ flows:
                 task: revert_managed_src
             8:
                 task: uninstall_packaged_incremental
+            9:
+                task: update_admin_profile
     ci_beta:
         description: Installs a beta version and runs tests
         tasks:
@@ -274,6 +280,8 @@ flows:
             5:
                 task: deploy_post_managed
             6:
+                task: update_admin_profile
+            7:
                 task: run_tests_managed
     ci_release:
         description: Installs a production release version and runs tests
@@ -287,6 +295,8 @@ flows:
             4:
                 task: deploy_post_managed
             5:
+                task: update_admin_profile
+            6:
                 task: run_tests_managed
     install_beta:
         description: Installs the latest beta version and all dependencies.
@@ -299,6 +309,8 @@ flows:
                 task: install_managed_beta
             4:
                 task: deploy_post_managed
+            5:
+                task: update_admin_profile
     install_prod:
         description: Installs the latest production version and all dependencies.
         tasks:
@@ -310,6 +322,8 @@ flows:
                 task: install_managed
             4:
                 task: deploy_post_managed
+            5:
+                task: update_admin_profile
     release_beta:
         description: Uploads and releases a beta version of the metadata currently in packaging
         tasks:
@@ -347,6 +361,8 @@ flows:
                 task: uninstall_packaged_incremental
             8:
                 task: deploy_post
+            8:
+                task: update_admin_profile
 
 project:
     name:
