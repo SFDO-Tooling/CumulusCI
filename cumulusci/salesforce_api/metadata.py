@@ -356,8 +356,10 @@ class ApiDeploy(BaseMetadataApiCall):
     soap_action_start = 'deploy'
     soap_action_status = 'checkDeployStatus'
 
-    def __init__(self, task, package_zip, purge_on_delete=True):
+    def __init__(self, task, package_zip, purge_on_delete=None):
         super(ApiDeploy, self).__init__(task)
+        if purge_on_delete is None:
+            purge_on_delete = True
         self._set_purge_on_delete(purge_on_delete)
         self.package_zip = package_zip
 

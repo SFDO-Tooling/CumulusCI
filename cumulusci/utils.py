@@ -3,6 +3,7 @@ import os
 import re
 import StringIO
 import zipfile
+from xml.etree.ElementTree import ElementTree
 
 CUMULUSCI_PATH = os.path.realpath(
     os.path.join(
@@ -49,6 +50,28 @@ def findRename(find,replace,directory,logger=None):
             if logger:
                 logger.info('Renaming {}'.format(filepath))
             os.rename(filepath, os.path.join(path,filename.replace(find,replace)))
+
+def removeXmlElement(name,directory,file_pattern,logger=None):
+    for path, dirs, files in os.walk(os.path.abspath(directory)):
+        for filename in fnmatch.filter(files, file_pattern):
+            filepath = os.path.join(path, filename)
+            tree = ElementTree()
+            tree.parse(filepath)
+            root = tree.getroot()
+            remove = root.findall('.//{{http://soap.sforce.com/2006/04/metadata}}{}'.format(name))
+            if not remove:
+                continue
+
+            if logger:
+                logger.info('Modifying {} to remove <{}> elements'.format(filepath, name))
+
+            parent_map = {c:p for p in tree.iter() for c in p}
+
+            for elem in remove:
+                parent = parent_map[elem]
+                parent.remove(elem)
+
+            tree.write(filepath, encoding="utf8", default_namespace='http://soap.sforce.com/2006/04/metadata')
 
 def zip_subfolder(zip_src, path):
     if not path.endswith('/'):

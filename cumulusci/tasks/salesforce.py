@@ -232,7 +232,7 @@ class Deploy(BaseSalesforceMetadataApiTask):
 
         os.chdir(pwd)
 
-        return self.api_class(self, package_zip)
+        return self.api_class(self, package_zip, purge_on_delete=False)
 
     def _write_zip_file(self, zipf, root, path):
         zipf.write(os.path.join(root, path))
@@ -259,7 +259,7 @@ class CreatePackage(Deploy):
 
     def _get_api(self, path=None):
         package_zip = CreatePackageZipBuilder(self.options['package'], self.options['api_version'])
-        return self.api_class(self, package_zip())
+        return self.api_class(self, package_zip(), purge_on_delete=False)
 
 class InstallPackageVersion(Deploy):
     task_options = {
@@ -301,7 +301,7 @@ class InstallPackageVersion(Deploy):
 
     def _get_api(self, path=None):
         package_zip = InstallPackageZipBuilder(self.options['namespace'], self.options['version'])
-        return self.api_class(self, package_zip(), self.options['retries'])
+        return self.api_class(self, package_zip(), purge_on_delete=False)
 
     def _run_task(self):
         api = self._get_api()
@@ -326,16 +326,24 @@ class UninstallPackage(Deploy):
             'description': 'The namespace of the package to uninstall.  Defaults to project__package__namespace',
             'required': True,
         },
+        'purge_on_delete': {
+            'description': 'Sets the purgeOnDelete option for the deployment.  Defaults to True',
+            'required': True,
+        },
     }
 
     def _init_options(self, kwargs):
         super(UninstallPackage, self)._init_options(kwargs)
         if 'namespace' not in self.options:
             self.options['namespace'] = self.project_config.project__package__namespace
+        if 'purge_on_delete' not in self.options:
+            self.options['purge_on_delete'] = True
+        if self.options['purge_on_delete'] == 'False':
+            self.options['purge_on_delete'] = False
 
     def _get_api(self, path=None):
         package_zip = UninstallPackageZipBuilder(self.options['namespace'])
-        return self.api_class(self, package_zip())
+        return self.api_class(self, package_zip(), purge_on_delete=self.options['purge_on_delete'])
 
 class UpdateDependencies(BaseSalesforceMetadataApiTask):
     api_class = ApiDeploy
@@ -567,12 +575,20 @@ class UninstallPackaged(UninstallLocal):
             'description': 'The package name to uninstall.  All metadata from the package will be retrieved and a custom destructiveChanges.xml package will be constructed and deployed to delete all deleteable metadata from the package.  Defaults to project__package__name',
             'required': True,
         },
+        'purge_on_delete': {
+            'description': 'Sets the purgeOnDelete option for the deployment.  Defaults to True',
+            'required': True,
+        },
     }
 
     def _init_options(self, kwargs):
         super(UninstallPackaged, self)._init_options(kwargs)
         if 'package' not in self.options:
             self.options['package'] = self.project_config.project__package__name
+        if 'purge_on_delete' not in self.options:
+            self.options['purge_on_delete'] = True
+        if self.options['purge_on_delete'] == 'False':
+            self.options['purge_on_delete'] = False
 
     def _retrieve_packaged(self):
         retrieve_api = ApiRetrievePackaged(
@@ -608,12 +624,20 @@ class UninstallPackagedIncremental(UninstallPackaged):
             'description': 'The package name to uninstall.  All metadata from the package will be retrieved and a custom destructiveChanges.xml package will be constructed and deployed to delete all deleteable metadata from the package.  Defaults to project__package__name',
             'required': True,
         },
+        'purge_on_delete': {
+            'description': 'Sets the purgeOnDelete option for the deployment.  Defaults to True',
+            'required': True,
+        },
     }
 
     def _init_options(self, kwargs):
         super(UninstallPackagedIncremental, self)._init_options(kwargs)
         if 'path' not in self.options:
             self.options['path'] = 'src'
+        if 'purge_on_delete' not in self.options:
+            self.options['purge_on_delete'] = True
+        if self.options['purge_on_delete'] == 'False':
+            self.options['purge_on_delete'] = False
 
     def _get_destructive_changes(self, path=None):
         self.logger.info('Retrieving metadata in package {} from target org'.format(self.options['package']))
@@ -747,6 +771,10 @@ class UninstallLocalNamespacedBundles(UninstallLocalBundles):
             'description': 'The path to the parent directory containing the metadata bundles directories',
             'required': True,
         },
+        'purge_on_delete': {
+            'description': 'Sets the purgeOnDelete option for the deployment.  Defaults to True',
+            'required': True,
+        },
     }
 
     def _init_options(self, kwargs):
@@ -757,6 +785,10 @@ class UninstallLocalNamespacedBundles(UninstallLocalBundles):
 
         if 'namespace' not in self.options:
             self.options['namespace'] = self.project_config.project__package__namespace
+        if 'purge_on_delete' not in self.options:
+            self.options['purge_on_delete'] = True
+        if self.options['purge_on_delete'] == 'False':
+            self.options['purge_on_delete'] = False
 
     def _get_destructive_changes(self, path=None):
         if not path:

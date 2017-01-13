@@ -349,6 +349,8 @@ flows:
                 task: create_package
             2:
                 task: update_dependencies
+                options:
+                    purge_on_delete: False
             3:
                 task: deploy_pre
             4:
@@ -359,6 +361,8 @@ flows:
                 task: revert_unmanaged_ee_src
             7:
                 task: uninstall_packaged_incremental
+                options:
+                    purge_on_delete: False
             8:
                 task: deploy_post
             8:
