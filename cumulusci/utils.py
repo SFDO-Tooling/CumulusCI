@@ -71,7 +71,7 @@ def removeXmlElement(name,directory,file_pattern,logger=None):
                 parent = parent_map[elem]
                 parent.remove(elem)
 
-            tree.write(filepath, encoding="utf8", default_namespace='http://soap.sforce.com/2006/04/metadata')
+            tree.write(filepath, encoding="UTF-8", default_namespace='http://soap.sforce.com/2006/04/metadata')
 
 def zip_subfolder(zip_src, path):
     if not path.endswith('/'):
