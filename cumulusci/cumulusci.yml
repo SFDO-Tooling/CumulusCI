@@ -260,8 +260,6 @@ flows:
                 task: revert_managed_src
             8:
                 task: uninstall_packaged_incremental
-            9:
-                task: deploy_post_managed
     ci_beta:
         description: Installs a beta version and runs tests
         tasks:
