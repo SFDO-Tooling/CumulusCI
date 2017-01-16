@@ -2,6 +2,7 @@ import time
 
 from datetime import datetime
 from github3 import login
+from github3 import GitHubError
 
 from cumulusci.core.exceptions import GithubException
 from cumulusci.core.tasks import BaseTask
@@ -190,7 +191,7 @@ class MergeBranch(BaseGithubTask):
             try: 
                 result = repo.merge(branch.name, source_branch)
                 self.logger.info('Merged {} commits into {}'.format(compare.behind_by, branch.name))
-            except GithubError as e:
+            except GitHubError as e:
                 if e.code != 409:
                     raise
 

@@ -2,6 +2,12 @@
 History
 =======
 
+2.0.0-beta5 (2017-01-16)
+------------------------
+
+* Fixes for the `unmanaged_ee` flow to fix a bug where avialableFields elements were not properly being stripped from fieldsSets in .object files
+* Fixes for `github_master_to_feature` where merge conflicts would throw exception rather than creating a pull request as expected
+
 2.0.0-beta4 (2017-01-13)
 ------------------------
 
