@@ -397,11 +397,38 @@ class ApiDeploy(BaseMetadataApiCall):
             self._set_status('Success', status)
         else:
             # If failed, parse out the problem text and set as the log
-            problems = parseString(
-                response.content).getElementsByTagName('problem')
             messages = []
-            for problem in problems:
-                messages.append(problem.firstChild.nodeValue)
+            resp_xml = parseString(response.content)
+
+            component_failures = resp_xml.getElementsByTagName('componentFailures')
+            if component_failures:
+                messages.append('--- Component Failures ---\n')
+            for component_failure in component_failures:
+                failure_info = {
+                    'component_type': component_failure.getElementsByTagName('componentType')[0].firstChild.nodeValue,
+                    'file_name': component_failure.getElementsByTagName('fullName')[0].firstChild.nodeValue,
+                    'line_num': component_failure.getElementsByTagName('lineNumber')[0].firstChild.nodeValue,
+                    'problem': component_failure.getElementsByTagName('problem')[0].firstChild.nodeValue,
+                    'problem_type': component_failure.getElementsByTagName('problemType')[0].firstChild.nodeValue,
+                }
+                
+                created = component_failure.getElementsByTagName('created')[0].firstChild.nodeValue == 'true'
+                deleted = component_failure.getElementsByTagName('deleted')[0].firstChild.nodeValue == 'true'
+                if deleted: 
+                    failure_info['action'] = 'delete'
+                elif created:
+                    failure_info['action'] = 'create'
+                else:
+                    failure_info['action'] = 'update'
+   
+                messages.append('[{action}] {component_type} {file_name}: {problem_type} on line {line_num}: {problem}'.format(**failure_info))
+
+            if not messages: 
+                problems = parseString(
+                    response.content).getElementsByTagName('problem')
+                for problem in problems:
+                    messages.append(problem.firstChild.nodeValue)
+
             # Parse out any failure text (from test failures in production
             # deployments) and add to log
             failures = parseString(
