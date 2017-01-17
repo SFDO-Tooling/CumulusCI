@@ -1398,8 +1398,8 @@ class RunApexTestsDebug(RunApexTests):
                 method_stats = self._parse_log(class_name, f)
             # Add method stats to results_by_class_name
             for method, info in method_stats.items():
-                if method == 'dataSetup' and method not in self.results_by_class_name[class_name]:
-                    # Ignore lines from @testSetup decorated methods
+                if method not in self.results_by_class_name[class_name]:
+                    # Ignore lines that aren't from a test method such as the @testSetup decorated method
                     continue
                 self.results_by_class_name[class_name][method].update(info)
         # Delete the DebugLevel
