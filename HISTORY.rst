@@ -2,6 +2,12 @@
 History
 =======
 
+2.0.0-beta6 (2017-01-17)
+------------------------
+
+* Return full info when a component failure occurs on a Metadata API deployment.  Previously only the problem was shown without context like file name and line number making it difficult to figure out what caused the failure.
+* `run_tests_debug` now ignores the @testSetup method when parsing debug logs.  Previously it would throw an error if tests used @testSetup
+
 2.0.0-beta5 (2017-01-16)
 ------------------------
 
