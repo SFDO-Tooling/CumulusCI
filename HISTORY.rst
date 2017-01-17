@@ -2,6 +2,11 @@
 History
 =======
 
+2.0.0-beta7 (2017-01-17)
+------------------------
+
+* `run_tests_debug` now ignores all non-test methods including any method decorated with @testSetup
+
 2.0.0-beta6 (2017-01-17)
 ------------------------
 
