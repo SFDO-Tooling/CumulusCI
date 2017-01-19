@@ -285,6 +285,32 @@ def project_show_github(config):
     except ServiceNotConfigured:
         click.echo('Github is not configured for this project.  Use project connect_github to configure.')
 
+@click.command(name='connect_saucelabs', help="Configure this project for Saucelabs tasks")
+@click.option('--username', help="The Saucelabs username to use for tasks", prompt=True)
+@click.option('--api-key', help="The Saucelabs username to use for tasks", prompt=True, hide_input=True)
+@click.option('--project', help='Set if storing encrypted keychain file in project directory', is_flag=True)
+@pass_config
+def project_connect_saucelabs(config, username, api_key, project):
+    check_keychain(config)
+    config.keychain.set_service('saucelabs', ServiceConfig({
+        'username': username,
+        'api_key': api_key,
+    }), project)
+    if project:
+        click.echo('Saucelabs is now configured for this project')
+    else:
+        click.echo('Saucelabs is now configured for global use')
+
+@click.command(name='show_saucelabs', help="Prints the current Saucelabs configuration for this project")
+@pass_config
+def project_show_saucelabs(config):
+    check_keychain(config)
+    try:
+        saucelabs = config.keychain.get_service('saucelabs')
+        click.echo(pretty_dict(saucelabs.config))
+    except ServiceNotConfigured:
+        click.echo('Saucelabs is not configured for this project.  Use project connect_saucelabs to configure.')
+
 
 @click.command(name='connect_mrbelvedere', help="Configure this project for mrbelvedere tasks")
 @click.option('--base_url', help="The base url for your mrbelvedere instance", prompt=True)
@@ -354,11 +380,13 @@ def project_cd(config):
 project.add_command(project_connect_apextestsdb)
 project.add_command(project_connect_github)
 project.add_command(project_connect_mrbelvedere)
+project.add_command(project_connect_saucelabs)
 project.add_command(project_init)
 project.add_command(project_info)
 project.add_command(project_show_apextestsdb)
 project.add_command(project_show_github)
 project.add_command(project_show_mrbelvedere)
+project.add_command(project_show_saucelabs)
 #project.add_command(project_list)
 #project.add_command(project_cd)
 
