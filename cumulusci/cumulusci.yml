@@ -267,7 +267,7 @@ flows:
             9:
                 task: update_admin_profile
     ci_beta:
-        description: Installs a beta version and runs tests
+        description: Installs the latest beta version and runs apex tests from the managed package
         tasks:
             1:
                 task: uninstall_managed
@@ -283,6 +283,21 @@ flows:
                 task: update_admin_profile
             7:
                 task: run_tests_managed
+    ci_beta_install:
+        description: Installs the latest beta version without running apex tests.  Use for deploying to other test environments such as browser testings orgs
+        tasks:
+            1:
+                task: uninstall_managed
+            2:
+                task: update_dependencies
+            3:
+                task: deploy_pre
+            4:
+                task: install_managed_beta
+            5:
+                task: deploy_post_managed
+            6:
+                task: update_admin_profile
     ci_release:
         description: Installs a production release version and runs tests
         tasks:
@@ -299,7 +314,7 @@ flows:
             6:
                 task: run_tests_managed
     install_beta:
-        description: Installs the latest beta version and all dependencies.
+        description: Installs the latest beta version and all dependencies.  Does not attempt to uninstall a previous beta.  Use ci_beta_install for a flow that uninstalls first.
         tasks:
             1:
                 task: update_dependencies
