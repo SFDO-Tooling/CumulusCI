@@ -2,6 +2,15 @@
 History
 =======
 
+2.0.0-beta8 (2017-01-19)
+------------------------
+
+* Added new task classes util.DownloadZip, command.SalesforceCommand, and command.SalesforceBrowserTestCommand that can be mapped in individual projects to configure browser tests or other commands run against a Salesforce org.  The commands are automatically passed a refreshed `SF_ACCESS_TOKEN` and `SF_INSTANCE_URL` environment variables.
+* Added new CLI commands `cci project connect_saucelabs` and `cci project show_saucelabs`
+* Added `ci_install_beta` flow that uninstalls the previous managed version then installs the latest beta without running apex tests
+* Added new method cumulusci.utils.download_extract_zip to download and extract a zip including re-rooting the zip to a subfolder.
+* All Salesforce tasks now delete any tempdirs they create to prevent wasting disk space
+
 2.0.0-beta7 (2017-01-17)
 ------------------------
 

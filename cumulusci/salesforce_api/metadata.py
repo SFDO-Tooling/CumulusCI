@@ -214,6 +214,10 @@ class BaseMetadataApiCall(object):
                 if state_detail:
                     log = state_detail[0].firstChild.nodeValue
                     self._set_status('InProgress', log)
+                    self.check_num = 1
+                elif self.status == 'InProgress':
+                    self.check_num = 1
+                    self._set_status('InProgress', 'next check in {} seconds'.format(self._get_check_interval()))
                 else:
                     self._set_status('Pending', 'next check in {} seconds'.format(self._get_check_interval()))
         else:
@@ -405,12 +409,21 @@ class ApiDeploy(BaseMetadataApiCall):
                 messages.append('--- Component Failures ---\n')
             for component_failure in component_failures:
                 failure_info = {
-                    'component_type': component_failure.getElementsByTagName('componentType')[0].firstChild.nodeValue,
-                    'file_name': component_failure.getElementsByTagName('fullName')[0].firstChild.nodeValue,
-                    'line_num': component_failure.getElementsByTagName('lineNumber')[0].firstChild.nodeValue,
+                    'component_type': None,
+                    'file_name': None,
+                    'line_num': None,
                     'problem': component_failure.getElementsByTagName('problem')[0].firstChild.nodeValue,
                     'problem_type': component_failure.getElementsByTagName('problemType')[0].firstChild.nodeValue,
                 }
+                component_type = component_failure.getElementsByTagName('componentType')
+                if component_type:
+                    component_type = component_type[0].firstChild.nodeValue
+                file_name = component_failure.getElementsByTagName('fullName')
+                if file_name:
+                    file_name = file_name[0].firstChild.nodeValue
+                line_num = component_failure.getElementsByTagName('lineNumber')
+                if line_num:
+                    line_num = line_num[0].firstChild.nodeValue
                 
                 created = component_failure.getElementsByTagName('created')[0].firstChild.nodeValue == 'true'
                 deleted = component_failure.getElementsByTagName('deleted')[0].firstChild.nodeValue == 'true'
@@ -420,8 +433,13 @@ class ApiDeploy(BaseMetadataApiCall):
                     failure_info['action'] = 'create'
                 else:
                     failure_info['action'] = 'update'
-   
-                messages.append('[{action}] {component_type} {file_name}: {problem_type} on line {line_num}: {problem}'.format(**failure_info))
+  
+                if failure_info['file_name'] and failure_info['line_num']: 
+                    messages.append('[{action}] {component_type} {file_name}: {problem_type} on line {line_num}: {problem}'.format(**failure_info))
+                elif failure_info['file_name']:
+                    messages.append('[{action}] {component_type} {file_name}: {problem_type}: {problem}'.format(**failure_info))
+                else:
+                    messages.append('[{action}] {problem_type}: {problem}'.format(**failure_info))
 
             if not messages: 
                 problems = parseString(
