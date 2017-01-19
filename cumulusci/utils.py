@@ -3,6 +3,9 @@ import os
 import re
 import StringIO
 import zipfile
+
+import requests
+
 from xml.etree.ElementTree import ElementTree
 
 CUMULUSCI_PATH = os.path.realpath(
@@ -72,6 +75,20 @@ def removeXmlElement(name,directory,file_pattern,logger=None):
                 parent.remove(elem)
 
             tree.write(filepath, encoding="UTF-8", default_namespace='http://soap.sforce.com/2006/04/metadata')
+
+def download_extract_zip(url, target, subfolder=None):
+    resp = requests.get(url)
+    zip_content = StringIO.StringIO(resp.content)
+    zip_file = zipfile.ZipFile(zip_content)
+
+    if subfolder:
+        zip_file = zip_subfolder(zip_file, subfolder)
+   
+    #pwd = os.getcwd()
+    #os.chdir(target) 
+    zip_file.extractall(target)
+
+    #os.chdir(pwd)
 
 def zip_subfolder(zip_src, path):
     if not path.endswith('/'):
