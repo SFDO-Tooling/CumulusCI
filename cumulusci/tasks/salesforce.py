@@ -609,6 +609,8 @@ class UninstallPackaged(UninstallLocal):
 
         destructive_changes = super(UninstallPackaged, self)._get_destructive_changes(tempdir)
 
+        shutil.rmtree(tempdir)
+
         self.logger.info('Deleting metadata in package {} from target org'.format(self.options['package']))
         return destructive_changes
 
@@ -650,6 +652,8 @@ class UninstallPackagedIncremental(UninstallPackaged):
             os.path.join(self.options['path'], 'package.xml'),
             os.path.join(tempdir, 'package.xml'),
         )
+
+        shutil.rmtree(tempdir)
         if destructive_changes:
             self.logger.info('Deleting metadata in package {} from target org'.format(self.options['package']))
         else:
@@ -833,6 +837,7 @@ class UpdateAdminProfile(Deploy):
         self._retrieve_unpackaged()
         self._process_metadata()
         self._deploy_metadata()
+        shutil.rmtree(self.tempdir)
 
     def _retrieve_unpackaged(self):
         self.logger.info('Retrieving metadata using {}'.format(self.options['package_xml_path']))
