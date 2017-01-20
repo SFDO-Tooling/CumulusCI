@@ -177,11 +177,6 @@ tasks:
     update_dependencies:
         description: Installs all dependencies in project__dependencies into the target org
         class_path: cumulusci.tasks.salesforce.UpdateDependencies
-    update_meta_xml:
-        description: Updates all -meta.xml files to have the correct API version and extension package versions
-        class_path: cumulusci.tasks.ant.AntTask
-        options:
-            target: updateMetaXml
     update_package_xml:
         description: Updates src/package.xml with metadata in src/
         class_path: cumulusci.tasks.metadata.package.UpdatePackageXml

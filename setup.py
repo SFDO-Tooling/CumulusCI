@@ -58,9 +58,8 @@ setup(
                  'cumulusci'},
     entry_points={
         'console_scripts': [
-            'cci=cumulusci.newcli.cli:cli',
-            'cumulusci=cumulusci.cli.cli:cli',
-            'cumulusci2=cumulusci.newcli.cli:cli'
+            'cci=cumulusci.cli.cli:cli',
+            'cumulusci2=cumulusci.cli.cli:cli'
         ]
     },
     include_package_data=True,
