@@ -55,6 +55,18 @@ class Command(BaseTask):
         env.update(self.options['env'])
         return env
 
+    def _process_output(self, line):
+        self.logger.info(line.rstrip())
+       
+    def _handle_returncode(self, returncode): 
+        if returncode:
+            message = 'Return code: {}\nstderr: {}'.format(
+                p.returncode,
+                p.stderr,
+            )
+            self.logger.error(message)
+            raise CommandException(message)
+
     def _run_command(self, env):
         p = subprocess.Popen(
             self.options['command'],
@@ -66,7 +78,7 @@ class Command(BaseTask):
             cwd=self.options.get('dir'),
         )
         for line in iter(p.stdout.readline, ''):
-            self.logger.info(line.strip())
+            self._process_output(line)
         p.stdout.close()
         p.wait()
         if p.returncode:
