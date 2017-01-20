@@ -370,6 +370,9 @@ project.setProperty("downgradePackage", result);
             <case value="documents">
               <property name="typename" value="Document" />
             </case>
+            <case value="flexipages">
+              <property name="typename" value="FlexiPage" />
+            </case>
             <case value="globalPicklists">
               <property name="typename" value="GlobalPicklist" />
             </case>
