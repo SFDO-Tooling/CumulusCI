@@ -2,6 +2,13 @@
 History
 =======
 
+2.0.0-beta10 (2017-01-20)
+------------------------
+
+* Completed removed CumulusCI 1 code from the repository and egg.  The egg should be 17MB smaller now.
+* Removed `cumulusci.tasks.ant.AntTask`.  Please replace any usage with `cumulusci.tasks.command.Command` or `cumulusci.tasks.command.SalesforceCommand`
+* Removed the `update_meta_xml` task for now since it was the only task relying on Ant.  A new and much better Python based implementation will be coming soon.
+
 2.0.0-beta9 (2017-01-20)
 ------------------------
 
