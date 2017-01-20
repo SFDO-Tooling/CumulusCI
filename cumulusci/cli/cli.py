@@ -223,13 +223,13 @@ def project_init(config, name, package_name, package_namespace, package_api_vers
     #     git:
     git_config = []
     if git_prefix_feature and git_prefix_feature != config.global_config.project__git__prefix_feature:
-        git_config.append('        feature: {}'.format(git_prefix_feature))
+        git_config.append('        prefix_feature: {}'.format(git_prefix_feature))
     if git_default_branch and git_default_branch != config.global_config.project__git__default_branch:
-        git_config.append('        branch: {}'.format(git_default_branch))
+        git_config.append('        default_branch: {}'.format(git_default_branch))
     if git_prefix_beta and git_prefix_beta != config.global_config.project__git__prefix_beta:
-        git_config.append('        beta: {}'.format(git_prefix_beta))
+        git_config.append('        prefix_beta: {}'.format(git_prefix_beta))
     if git_prefix_release and git_prefix_release != config.global_config.project__git__prefix_release:
-        git_config.append('        release: {}'.format(git_prefix_release))
+        git_config.append('        prefix_release: {}'.format(git_prefix_release))
     if git_config:
         yml_config.append('    git:')
         yml_config.extend(git_config)
