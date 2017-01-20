@@ -2,6 +2,15 @@
 History
 =======
 
+2.0.0-beta9 (2017-01-20)
+------------------------
+
+* A few upgrades to the Command task:
+
+  * No longer strip left side whitespace from output to preserve indentation
+  * New method `_process_output` can be overridden to change how output lines are processed
+  * New method `_handle_returncode` can be overridden to change how exit status is handled
+
 2.0.0-beta8 (2017-01-19)
 ------------------------
 
