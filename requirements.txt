@@ -1,12 +1,19 @@
--e ./cli
-cement==2.6.2
 click==6.2
-nose==1.3.7
+coloredlogs==5.2
+docutils==0.13.1
+github3.py==0.9.6
+mock
+plaintable==0.1.1
 sarge==0.1.4
 requests[security]==2.9.1
 responses==0.5.1
-selenium==2.52
-simple-salesforce==0.68.1
-wheel==0.24.0
+rst2ansi==0.1.5
+selenium
+salesforce-bulk==1.1.0
+simple-salesforce==0.72
+xmltodict==0.10.2
+HiYaPyCo==0.4.8
+PyCrypto==2.6.1
 PyGithub==1.25.1
 PyYAML==3.11
+SQLAlchemy==1.1.4

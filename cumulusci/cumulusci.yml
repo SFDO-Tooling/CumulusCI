@@ -1,0 +1,415 @@
+cumulusci:
+    keychain: cumulusci.core.keychain.EncryptedFileProjectKeychain
+
+tasks:
+    apextestsdb_upload:
+        description: Upload results from Apex tests to database
+        class_path: cumulusci.tasks.apextestsdb.ApextestsdbUpload
+    command:
+        description: Run an arbitrary command
+        class_path: cumulusci.tasks.command.Command
+    create_package:
+        description: Creates a package in the target org with the default package name for the project
+        class_path: cumulusci.tasks.salesforce.CreatePackage
+    create_managed_src:
+        description: Modifies the src directory for managed deployment.  Strips //cumulusci-managed from all Apex code
+        class_path: cumulusci.tasks.metadata.managed_src.CreateManagedSrc
+        options:
+            path: src
+            revert_path: src.orig
+    create_unmanaged_ee_src:
+        description: Modifies the src directory for unmanaged deployment to an EE org
+        class_path: cumulusci.tasks.metadata.ee_src.CreateUnmanagedEESrc
+        options:
+            path: src
+            revert_path: src.orig
+    deploy:
+        description: Deploys the src directory of the repository to the org
+        class_path: cumulusci.tasks.salesforce.Deploy
+        options:
+            path: src
+    deploy_pre:
+        description: Deploys all metadata bundles under unpackaged/pre/
+        class_path: cumulusci.tasks.salesforce.DeployBundles
+        options:
+            path: unpackaged/pre
+    deploy_post:
+        description: Deploys all metadata bundles under unpackaged/post/
+        class_path: cumulusci.tasks.salesforce.DeployNamespacedBundles
+        options:
+            path: unpackaged/post
+            namespace_token: '%%%NAMESPACE%%%'
+            filename_token: '___NAMESPACE___'
+    deploy_post_managed:
+        description: Deploys all metadata bundles under unpackaged/post/
+        class_path: cumulusci.tasks.salesforce.DeployNamespacedBundles
+        options:
+            path: unpackaged/post
+            managed: True
+            namespace_token: '%%%NAMESPACE%%%'
+            filename_token: '___NAMESPACE___'
+    dx_push:
+        description: Uses Salesforce DX to push code to a scratch workspace org
+        class_path: cumulusci.tasks.salesforcedx.BaseSalesforceDXTask
+        options:
+            command: force:src:push
+            options: '-a'
+    get_installed_packages:
+        description: Retrieves a list of the currently installed managed package namespaces and their versions
+        class_path: cumulusci.tasks.salesforce.GetInstalledPackages
+    github_clone_tag:
+        description: Lists open pull requests in project Github repository
+        class_path: cumulusci.tasks.github.CloneTag
+    github_master_to_feature:
+        description: Merges the latest commit on the master branch into all open feature branches
+        class_path: cumulusci.tasks.github.MergeBranch
+    github_pull_requests:
+        description: Lists open pull requests in project Github repository
+        class_path: cumulusci.tasks.github.PullRequests
+    github_release:
+        description: Creates a Github release for a given managed package version number
+        class_path: cumulusci.tasks.github.CreateRelease
+    github_release_notes:
+        description: Generates release notes by parsing pull request bodies of merged pull requests between two tags
+        class_path: cumulusci.tasks.release_notes.task.GithubReleaseNotes
+    install_managed:
+        description: Install the latest managed production release
+        class_path: cumulusci.tasks.salesforce.InstallPackageVersion
+        options:
+            version: latest
+    install_managed_beta:
+        description: Installs the latest managed beta release
+        class_path: cumulusci.tasks.salesforce.InstallPackageVersion
+        options:
+            version: latest_beta
+    mrbelvedere_publish:
+        description: Publishes a release to the mrbelvedere web installer
+        class_path: cumulusci.tasks.mrbelvedere.MrbelvederePublish
+    push_all:
+        description: Schedules a push upgrade of a package version to all subscribers
+        class_path: cumulusci.tasks.push.tasks.SchedulePushOrgQuery
+    push_qa:
+        description: Schedules a push upgrade of a package version to all orgs listed in push/orgs_qa.txt
+        class_path: cumulusci.tasks.push.tasks.SchedulePushOrgList
+        options:
+            orgs: push/orgs_qa.txt
+    push_sandbox:
+        description: Schedules a push upgrade of a package version to all subscribers
+        class_path: cumulusci.tasks.push.tasks.SchedulePushOrgQuery
+        options:
+            subscriber_where: "OrgType = 'Sandbox'"
+    push_trial:
+        description: Schedules a push upgrade of a package version to Trialforce Template orgs listed in push/orgs_trial.txt
+        class_path: cumulusci.tasks.push.tasks.SchedulePushOrgList
+        options:
+            orgs: push/orgs_trial.txt
+    query:
+        description: Queries the connected org
+        class_path: cumulusci.tasks.salesforce.SOQLQuery
+    retrieve_packaged:
+        description: Retrieves the packaged metadata from the org
+        class_path: cumulusci.tasks.salesforce.RetrievePackaged
+        options:
+            path: packaged
+    retrieve_src:
+        description: Retrieves the packaged metadata into the src directory
+        class_path: cumulusci.tasks.salesforce.RetrievePackaged
+        options:
+            path: src
+    revert_managed_src:
+        description: Reverts the changes from create_managed_src
+        class_path: cumulusci.tasks.metadata.managed_src.RevertManagedSrc
+        options:
+            path: src
+            revert_path: src.orig
+    revert_unmanaged_ee_src:
+        description: Reverts the changes from create_unmanaged_ee_src
+        class_path: cumulusci.tasks.metadata.ee_src.RevertUnmanagedEESrc
+        options:
+            path: src
+            revert_path: src.orig
+    run_tests:
+        description: Runs all apex tests
+        class_path: cumulusci.tasks.salesforce.RunApexTests
+    run_tests_debug:
+        description: Runs all apex tests
+        class_path: cumulusci.tasks.salesforce.RunApexTestsDebug
+    run_tests_managed:
+        description: Runs all apex tests in the packaging org or a managed package subscriber org
+        class_path: cumulusci.tasks.salesforce.RunApexTests
+        options:
+            managed: True
+    uninstall_managed:
+        description: Uninstalls the managed version of the package
+        class_path: cumulusci.tasks.salesforce.UninstallPackage
+    uninstall_packaged:
+        description: Uninstalls all deleteable metadata in the package in the target org
+        class_path: cumulusci.tasks.salesforce.UninstallPackaged
+    uninstall_packaged_incremental:
+        description: Deletes any metadata from the package in the target org not in the local workspace
+        class_path: cumulusci.tasks.salesforce.UninstallPackagedIncremental
+    uninstall_src:
+        description: Uninstalls all metadata in the local src directory
+        class_path: cumulusci.tasks.salesforce.UninstallLocal
+        options:
+            path: src
+    uninstall_pre:
+        description: Uninstalls the unpackaged/pre bundles
+        class_path: cumulusci.tasks.salesforce.UninstallLocalBundles
+        options:
+            path: unpackaged/pre
+    uninstall_post:
+        description: Uninstalls the unpackaged/post bundles
+        class_path: cumulusci.tasks.salesforce.UninstallLocalNamespacedBundles
+        options:
+            path: unpackaged/post
+            filename_token: ___NAMESPACE___
+    uninstall_post_managed:
+        description: Uninstalls the unpackaged/post bundles
+        class_path: cumulusci.tasks.salesforce.UninstallLocalNamespacedBundles
+        options:
+            path: unpackaged/post
+            filename_token: ___NAMESPACE___
+            managed: True
+    update_admin_profile:
+        description: Retrieves, edits, and redeploys the Admin.profile with full FLS perms for all objects/fields
+        class_path: cumulusci.tasks.salesforce.UpdateAdminProfile
+    update_dependencies:
+        description: Installs all dependencies in project__dependencies into the target org
+        class_path: cumulusci.tasks.salesforce.UpdateDependencies
+    update_package_xml:
+        description: Updates src/package.xml with metadata in src/
+        class_path: cumulusci.tasks.metadata.package.UpdatePackageXml
+        options:
+            path: src
+    update_package_xml_managed:
+        description: Updates src/package.xml with metadata in src/
+        class_path: cumulusci.tasks.metadata.package.UpdatePackageXml
+        options:
+            path: src
+            managed: True
+    upload_beta:
+        description: Uploads a beta release of the metadata currently in the packaging org
+        class_path: cumulusci.tasks.salesforce.PackageUpload
+    upload_production:
+        description: Uploads a beta release of the metadata currently in the packaging org
+        class_path: cumulusci.tasks.salesforce.PackageUpload
+        options:
+            production: True
+    util_sleep:
+        description: Sleeps for N seconds
+        class_path: cumulusci.tasks.util.Sleep
+        options:
+            seconds: 5
+
+flows:
+    dev_org:
+        description: Deploys the unmanaged package metadata and all dependencies to the target org
+        tasks:
+            1:
+                task: create_package
+            2:
+                task: update_dependencies
+            3:
+                task: deploy_pre
+            4:
+                task: deploy
+            5:
+                task: uninstall_packaged_incremental
+            6:
+                task: deploy_post
+            7:
+                task: update_admin_profile
+    ci_feature:
+        description: Deploys the unmanaged package metadata and all dependencies to the target org and runs tests
+        tasks:
+            1:
+                task: create_package
+            2:
+                task: update_dependencies
+            3:
+                task: deploy_pre
+            4:
+                task: deploy
+            5:
+                task: uninstall_packaged_incremental
+            6:
+                task: deploy_post
+            7:
+                task: update_admin_profile
+            8:
+                task: run_tests_debug
+    ci_master:
+        description: Deploys the managed package metadata and all dependencies to the packaging org
+        tasks:
+            1:
+                task: deploy_pre
+            2:
+                task: update_dependencies
+            3:
+                task: uninstall_packaged_incremental
+                ignore_failure: True
+            4:
+                task: update_package_xml_managed
+            5:
+                task: create_managed_src
+            6:
+                task: deploy
+            7:
+                task: revert_managed_src
+            8:
+                task: uninstall_packaged_incremental
+            9:
+                task: update_admin_profile
+    ci_beta:
+        description: Installs the latest beta version and runs apex tests from the managed package
+        tasks:
+            1:
+                task: uninstall_managed
+            2:
+                task: update_dependencies
+            3:
+                task: deploy_pre
+            4:
+                task: install_managed_beta
+            5:
+                task: deploy_post_managed
+            6:
+                task: update_admin_profile
+            7:
+                task: run_tests_managed
+    ci_beta_install:
+        description: Installs the latest beta version without running apex tests.  Use for deploying to other test environments such as browser testings orgs
+        tasks:
+            1:
+                task: uninstall_managed
+            2:
+                task: update_dependencies
+            3:
+                task: deploy_pre
+            4:
+                task: install_managed_beta
+            5:
+                task: deploy_post_managed
+            6:
+                task: update_admin_profile
+    ci_release:
+        description: Installs a production release version and runs tests
+        tasks:
+            1:
+                task: update_dependencies
+            2:
+                task: deploy_pre
+            3:
+                task: install_managed
+            4:
+                task: deploy_post_managed
+            5:
+                task: update_admin_profile
+            6:
+                task: run_tests_managed
+    install_beta:
+        description: Installs the latest beta version and all dependencies.  Does not attempt to uninstall a previous beta.  Use ci_beta_install for a flow that uninstalls first.
+        tasks:
+            1:
+                task: update_dependencies
+            2:
+                task: deploy_pre
+            3:
+                task: install_managed_beta
+            4:
+                task: deploy_post_managed
+            5:
+                task: update_admin_profile
+    install_prod:
+        description: Installs the latest production version and all dependencies.
+        tasks:
+            1:
+                task: update_dependencies
+            2:
+                task: deploy_pre
+            3:
+                task: install_managed
+            4:
+                task: deploy_post_managed
+            5:
+                task: update_admin_profile
+    release_beta:
+        description: Uploads and releases a beta version of the metadata currently in packaging
+        tasks:
+            1:
+                task: upload_beta
+                options:
+                    name: Automated beta release
+            2:
+                task: github_release
+                options:
+                    version: ^^upload_beta.version_number
+            3:
+                task: github_release_notes
+                options:
+                    publish: True
+                    tag: ^^github_release.tag_name
+            4:
+                task: github_master_to_feature
+    unmanaged_ee:
+        description: Deploys the unmanaged package metadata and all dependencies to the target EE org
+        tasks:
+            1:
+                task: create_package
+            2:
+                task: update_dependencies
+                options:
+                    purge_on_delete: False
+            3:
+                task: deploy_pre
+            4:
+                task: create_unmanaged_ee_src
+            5:
+                task: deploy
+            6:
+                task: revert_unmanaged_ee_src
+            7:
+                task: uninstall_packaged_incremental
+                options:
+                    purge_on_delete: False
+            8:
+                task: deploy_post
+            8:
+                task: update_admin_profile
+
+project:
+    name:
+    package:
+        name:
+        name_managed:
+        namespace:
+        install_class:
+        uninstall_class:
+        api_version: 38.0
+    git:
+        default_branch: master
+        prefix_feature: feature/
+        prefix_beta: beta/
+        prefix_release: release/
+    test:
+        name_match: '%_TEST%'
+    apexdoc:
+        url: https://github.com/SalesforceFoundation/ApexDoc/releases/download/1.7/apexdoc.jar
+        homepage:
+        banner:
+    dependencies:
+
+orgs:
+    scratch:
+        dev:
+            config_file: orgs/dev.json
+        feature:
+            config_file: orgs/feature.json
+            scratch_org_type: test
+        beta:
+            config_file: orgs/beta.json
+            scratch_org_type: test
+        release:
+            config_file: orgs/release.json
+            scratch_org_type: test

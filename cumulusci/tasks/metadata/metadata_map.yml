@@ -1,0 +1,217 @@
+applications:
+    - type: CustomApplication
+      class: MetadataFilenameParser
+      extension: app
+aura:
+    - type: AuraDefinitionBundle
+      class: AuraBundleParser
+classes:
+    - type: ApexClass
+      class: MetadataFilenameParser
+      extension: cls
+communityTemplateDefinitions:
+    - type: CommunityTemplateDefinition
+      class: MetadataFilenameParser
+      extension: communityTemplateDefinition
+communityThemeDefinitions:
+    - type: CommunityThemeDefinition
+      class: MetadataFilenameParser
+      extension: communityThemeDefinition
+components:
+    - type: ApexComponent
+      class: MetadataFilenameParser
+      extension: component
+connectedApps:
+    - type: ConnectedApp
+      class: MetadataFilenameParser
+contentassets:
+    - type: ContentAsset
+      class: MetadataFilenameParser
+      extension: asset
+customMetadata:
+    - type: CustomMetadata
+      class: MetadataFilenameParser
+customPermissions:
+    - type: CustomPermission
+      class: MetadataFilenameParser
+dashboards:
+    - type: Dashboard
+      class: MetadataFolderParser
+dataSources:
+    - type: ExternalDataSource
+      class: MetadataFilenameParser
+documents:
+    - type: Document
+      class: DocumentParser
+email:
+    - type: EmailTemplate
+      class: MetadataFolderParser
+flexipages:
+    - type: FlexiPage
+      class: MetadataFilenameParser
+      extension: flexipage
+globalPicklist:
+    - type: GlobalPicklist
+      class: MetadataFilenameParser
+      extension: globalPicklist
+globalValueSets:
+    - type: GlobalValueSet
+      class: MetadataFilenameParser
+      extension: globalValueSet
+homePageComponents:
+    - type: HomePageComponent
+      class: MetadataFilenameParser
+      extension: homePageComponent
+homePageLayouts:
+    - type: HomePageLayout
+      class: MetadataFilenameParser
+      extension: homePageLayout
+labels:
+    - type: CustomLabel
+      class: CustomLabelsParser
+      extension: labels
+      options:
+            item_xpath: './sf:labels'
+    - type: CustomLabels
+      class: MetadataFilenameParser
+      extension: labels
+layouts:
+    - type: Layout
+      class: MetadataFilenameParser
+      extension: layout
+letterhead:
+    - type: Letterhead
+      class: MetadataFilenameParser
+matchingRules:
+    - type: MatchingRule
+      class: MetadataXmlElementParser
+      extension: matchingRule
+      options:
+            item_xpath: './sf:matchingRules'
+objects:
+    - type: CustomObject
+      class: CustomObjectParser
+      extension: object
+    - type: BusinessProcess
+      class: BusinessProcessParser
+      extension: object
+      options:
+            item_xpath: './sf:businessProcesses'
+    - type: CompactLayout
+      class: MetadataXmlElementParser
+      extension: object
+      options:
+            item_xpath: './sf:compactLayouts'
+    - type: CustomField
+      class: MetadataXmlElementParser
+      extension: object
+      options:
+            item_xpath: './sf:fields'
+    - type: FieldSet
+      class: MetadataXmlElementParser
+      extension: object
+      options:
+            item_xpath: './sf:fieldSets'
+    - type: ListView
+      class: MetadataXmlElementParser
+      extension: object
+      options:
+            item_xpath: './sf:listViews'
+    - type: NamedFilter
+      class: MetadataXmlElementParser
+      extension: object
+      options:
+            item_xpath: './sf:namedFilters'
+    - type: RecordType
+      class: RecordTypeParser
+      extension: object
+      options:
+            item_xpath: './sf:recordTypes'
+    - type: SharingReason
+      class: MetadataXmlElementParser
+      extension: object
+      options:
+            item_xpath: './sf:sharingReasons'
+    - type: ValidationRule
+      class: MetadataXmlElementParser
+      extension: object
+      options:
+            item_xpath: './sf:validationRules'
+    - type: WebLink
+      class: MetadataXmlElementParser
+      extension: object
+      options:
+            item_xpath: './sf:webLinks'
+objectTranslations:
+    - type: CustomObjectTranslation
+      class: MetadataFilenameParser
+      extension: objectTranslation
+pages:
+    - type: ApexPage
+      class: MetadataFilenameParser
+      extension: page
+profiles:
+    - type: Profile
+      class: MetadataFilenameParser
+      extension: profile
+permissionsets:
+    - type: PermissionSet
+      class: MetadataFilenameParser
+quickActions:
+    - type: QuickAction
+      class: MetadataFilenameParser
+      extension: quickAction
+remoteSiteSettings:
+    - type: RemoteSiteSetting
+      class: MetadataFilenameParser
+reportTypes:
+    - type: ReportType
+      class: MetadataFilenameParser
+reports:
+    - type: Report
+      class: MetadataFolderParser
+settings:
+    - type: Setting
+      class: MetadataFilenameParser
+      extension: settings
+scontrols:
+    - type: Scontrol
+      class: MetadataFilenameParser
+staticresources:
+    - type: StaticResource
+      class: MetadataFilenameParser
+      extension: resource
+tabs:
+    - type: CustomTab
+      class: MetadataFilenameParser
+translations:
+    - type: Translations
+      class: MetadataFilenameParser
+triggers:
+    - type: ApexTrigger
+      class: MetadataFilenameParser
+      extension: trigger
+weblinks:
+    - type: CustomPageWebLink
+      class: MetadataFilenameParser
+workflows:
+    - type: WorkflowAlert
+      class: MetadataXmlElementParser
+      extension: workflow
+      options:
+            item_xpath: './sf:alerts'
+    - type: WorkflowFieldUpdate
+      class: MetadataXmlElementParser
+      extension: workflow
+      options:
+            item_xpath: './sf:fieldUpdates'
+    - type: WorkflowRule
+      class: MetadataXmlElementParser
+      extension: workflow
+      options:
+            item_xpath: './sf:rules'
+    - type: WorkflowTask
+      class: MetadataXmlElementParser
+      extension: workflow
+      options:
+            item_xpath: './sf:tasks'
