@@ -50,7 +50,7 @@ class TestBaseSalesforceToolingApiTask(unittest.TestCase):
 class TestRunApexTests(unittest.TestCase):
 
     def setUp(self):
-        self.api_version = 36.0
+        self.api_version = 38.0
         self.global_config = BaseGlobalConfig(
             {'project': {'api_version': self.api_version}})
         self.task_config = TaskConfig()
@@ -90,8 +90,7 @@ class TestRunApexTests(unittest.TestCase):
         url = (self.base_tooling_url + 'query/?q=SELECT+StackTrace%2C+' +
             'Message%2C+ApexLogId%2C+AsyncApexJobId%2C+MethodName%2C+' +
             'Outcome%2C+ApexClassId%2C+TestTimestamp+FROM+ApexTestResult+' +
-            'WHERE+AsyncApexJobId+%3D+%27OrderedDict%28%5B%28u%27' +
-            'foo%27%2C+u%27bar%27%29%5D%29%27')
+            'WHERE+AsyncApexJobId+%3D+%27JOB_ID1234567%27')
         expected_response = {
             'done': True,
             'records': [{
@@ -112,7 +111,7 @@ class TestRunApexTests(unittest.TestCase):
     def _mock_tests_complete(self):
         url = (self.base_tooling_url + 'query/?q=SELECT+Id%2C+Status%2C+' +
             'ApexClassId+FROM+ApexTestQueueItem+WHERE+ParentJobId+%3D+%27' +
-            'OrderedDict%28%5B%28u%27foo%27%2C+u%27bar%27%29%5D%29%27')
+            'JOB_ID1234567%27')
         expected_response = {
             'done': True,
             'records': [{'Status': 'Completed'}],
@@ -122,8 +121,8 @@ class TestRunApexTests(unittest.TestCase):
 
     def _mock_run_tests(self):
         url = self.base_tooling_url + 'runTestsAsynchronous'
-        expected_response = {'foo': 'bar'}
-        responses.add(responses.GET, url, json=expected_response)
+        expected_response = 'JOB_ID1234567'
+        responses.add(responses.POST, url, json=expected_response)
 
     @responses.activate
     def test_run_task(self):
@@ -145,12 +144,23 @@ class TestRunApexTestsDebug(TestRunApexTests):
         super(TestRunApexTestsDebug, self).setUp()
         self.task_config.config['json_output'] = 'results.json'
 
+    def _mock_create_debug_level(self):
+        url = self.base_tooling_url + 'sobjects/DebugLevel/'
+        expected_response = {
+            'id': 1,
+        }
+        responses.add(responses.POST, url, json=expected_response)
+
     def _mock_create_trace_flag(self):
         url = self.base_tooling_url + 'sobjects/TraceFlag/'
         expected_response = {
             'id': 1,
         }
         responses.add(responses.POST, url, json=expected_response)
+
+    def _mock_delete_debug_levels(self):
+        url = self.base_tooling_url + 'sobjects/DebugLevel/1'
+        responses.add(responses.DELETE, url)
 
     def _mock_delete_trace_flags(self):
         url = self.base_tooling_url + 'sobjects/TraceFlag/1'
@@ -177,7 +187,16 @@ class TestRunApexTestsDebug(TestRunApexTests):
         responses.add(responses.GET, url, json=expected_response)
 
     def _mock_get_trace_flags(self):
-        url = self.base_tooling_url + 'query/?q=Select+Id+from+TraceFlag'
+        url = self.base_tooling_url + 'query/?q=Select+Id+from+TraceFlag+Where+TracedEntityId+%3D+%271%27'
+        expected_response = {
+            'records': [{'Id': 1}],
+            'totalSize': 1,
+        }
+        responses.add(responses.GET, url, match_querystring=True,
+            json=expected_response)
+
+    def _mock_get_debug_levels(self):
+        url = self.base_tooling_url + 'query/?q=Select+Id+from+DebugLevel'
         expected_response = {
             'records': [{'Id': 1}],
             'totalSize': 1,
@@ -189,15 +208,17 @@ class TestRunApexTestsDebug(TestRunApexTests):
     def test_run_task(self):
         self._mock_apex_class_query()
         self._mock_get_trace_flags()
+        self._mock_get_debug_levels()
+        self._mock_delete_debug_levels()
         self._mock_delete_trace_flags()
+        self._mock_create_debug_level()
         self._mock_create_trace_flag()
         self._mock_run_tests()
         self._mock_tests_complete()
         self._mock_get_test_results()
         self._mock_get_duration()
         self._mock_get_log_body()
-        self._mock_delete_trace_flags()
         task = RunApexTestsDebug(
             self.project_config, self.task_config, self.org_config)
         task()
-        self.assertEqual(len(responses.calls), 10)
+        self.assertEqual(len(responses.calls), 13)

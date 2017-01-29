@@ -12,6 +12,8 @@ Contents:
    :maxdepth: 2
 
    tutorial
+   cookbook
+   tasks
    history
    authors
 

@@ -19,6 +19,7 @@ from cumulusci.tasks.release_notes.exceptions import LastReleaseTagNotFoundError
 from cumulusci.tasks.release_notes.tests.util_github_api import GithubApiTestMixin
 
 __location__ = os.path.split(os.path.realpath(__file__))[0]
+date_format = '%Y-%m-%dT%H:%M:%SZ'
 
 
 class TestBaseChangeNotesProvider(unittest.TestCase):
@@ -97,7 +98,12 @@ class TestGithubChangeNotesProvider(unittest.TestCase, GithubApiTestMixin):
         self.last3_tag = 'prod/1.0'
 
         self.current_tag_sha = self._random_sha()
+        self.current_tag_commit_sha = self._random_sha()
+        self.current_tag_commit_date = datetime.now()
         self.last_tag_sha = self._random_sha()
+        self.last_tag_commit_sha = self._random_sha()
+        self.last_tag_commit_date = datetime.now() - timedelta(days=1)
+        self.last2_tag_sha = self._random_sha()
 
         self.github_info = {
             'github_owner': 'TestOwner',
@@ -114,31 +120,38 @@ class TestGithubChangeNotesProvider(unittest.TestCase, GithubApiTestMixin):
         )
         return generator
 
-    @responses.activate
-    def test_invalid_current_tag(self):
-        api_url = '{}/git/refs/tags/{}'.format(
-            self.repo_api_url, self.invalid_tag)
-        expected_response = {
-            'message': 'Not Found',
-            'documentation_url': 'https://developer.github.com/v3'
-        }
-
+    def _mock_current_tag(self):
+        api_url = '{}/git/tags/{}'.format(self.repo_api_url,
+                                          self.current_tag_sha)
+        expected_response = self._get_expected_tag(
+            self.current_tag,
+            self.current_tag_sha,
+            self.current_tag_commit_sha,
+            self.current_tag_commit_date,
+        )
         responses.add(
             method=responses.GET,
             url=api_url,
             json=expected_response,
-            status=httplib.NOT_FOUND,
+        )
+        return expected_response
+
+    def _mock_current_tag_commit(self):
+        api_url = '{}/git/commits/{}'.format(self.repo_api_url,
+            self.current_tag_commit_sha)
+        expected_response = {
+            'author': {
+                'date': datetime.strftime(self.current_tag_commit_date, date_format),
+            },
+            'sha': self.current_tag_commit_sha,
+        }
+        responses.add(
+            method=responses.GET,
+            url=api_url,
+            json=expected_response,
         )
 
-        generator = self._create_generator(self.invalid_tag)
-        provider = GithubChangeNotesProvider(generator, self.invalid_tag)
-        with self.assertRaises(GithubApiNotFoundError):
-            provider.current_tag_info
-
-    @responses.activate
-    def test_current_tag_without_last(self):
-
-        # Mock the current tag ref
+    def _mock_current_tag_ref(self):
         api_url = '{}/git/refs/tags/{}'.format(
             self.repo_api_url, self.current_tag)
         expected_response_current_tag_ref = self._get_expected_tag_ref(
@@ -149,18 +162,51 @@ class TestGithubChangeNotesProvider(unittest.TestCase, GithubApiTestMixin):
             json=expected_response_current_tag_ref,
         )
 
-        # Mock the current tag
-        api_url = '{}/git/tags/{}'.format(self.repo_api_url,
-                                          self.current_tag_sha)
-        expected_response_current_tag = self._get_expected_tag(
-            self.current_tag, self.current_tag_sha)
+    def _mock_invalid_tag(self):
+        api_url = '{}/git/refs/tags/{}'.format(
+            self.repo_api_url, self.invalid_tag)
+        expected_response = {
+            'message': 'Not Found',
+            'documentation_url': 'https://developer.github.com/v3'
+        }
         responses.add(
             method=responses.GET,
             url=api_url,
-            json=expected_response_current_tag,
+            json=expected_response,
+            status=httplib.NOT_FOUND,
         )
 
-        # Mock the last tag ref
+    def _mock_last_tag(self):
+        api_url = '{}/git/tags/{}'.format(self.repo_api_url, self.last_tag_sha)
+        expected_response = self._get_expected_tag(
+            self.last_tag,
+            self.last_tag_sha,
+            self.last_tag_commit_sha,
+            self.last_tag_commit_date,
+        )
+        responses.add(
+            method=responses.GET,
+            url=api_url,
+            json=expected_response,
+        )
+        return expected_response
+
+    def _mock_last_tag_commit(self):
+        api_url = '{}/git/commits/{}'.format(self.repo_api_url,
+            self.last_tag_commit_sha)
+        expected_response = {
+            'author': {
+                'date': datetime.strftime(self.last_tag_commit_date, date_format),
+            },
+            'sha': self.last_tag_commit_sha,
+        }
+        responses.add(
+            method=responses.GET,
+            url=api_url,
+            json=expected_response,
+        )
+
+    def _mock_last_tag_ref(self):
         api_url = '{}/git/refs/tags/{}'.format(
             self.repo_api_url, self.last_tag)
         expected_response_last_tag_ref = self._get_expected_tag_ref(
@@ -171,148 +217,116 @@ class TestGithubChangeNotesProvider(unittest.TestCase, GithubApiTestMixin):
             json=expected_response_last_tag_ref,
         )
 
-        # Mock the last tag
-        api_url = '{}/git/tags/{}'.format(self.repo_api_url, self.last_tag_sha)
-        expected_response_last_tag = self._get_expected_tag(
-            self.last_tag, self.last_tag_sha)
-        responses.add(
-            method=responses.GET,
-            url=api_url,
-            json=expected_response_last_tag,
-        )
-
-        # Mock the list all tags call
-        api_url = '{}/git/refs/tags/prod/'.format(self.repo_api_url)
-        expected_response_list_tag_refs = [
-            expected_response_current_tag_ref,
-            expected_response_last_tag_ref,
-            self._get_expected_tag_ref(self.last2_tag, 'last2_tag_sha'),
+    def _mock_list_pull_requests_one_in_range(self):
+        api_url = '{}/pulls'.format(self.repo_api_url)
+        expected_response = [
+            self._get_expected_pull_request(1, 101, 'pull 1',
+                datetime.now() - timedelta(seconds=60)),
+            self._get_expected_pull_request(2, 102, 'pull 2',
+                datetime.now() - timedelta(days=4)),
+            self._get_expected_pull_request(3, 103, 'pull 3',
+                datetime.now() - timedelta(days=5)),
         ]
         responses.add(
             method=responses.GET,
             url=api_url,
-            json=expected_response_list_tag_refs,
+            json=expected_response,
         )
+
+    def _mock_list_pull_requests_multiple_in_range(self):
+        api_url = '{}/pulls'.format(self.repo_api_url)
+        expected_response = [
+            self._get_expected_pull_request(1, 101, 'pull 1',
+                datetime.now() - timedelta(seconds=60)),
+            self._get_expected_pull_request(2, 102, 'pull 2',
+                datetime.now() - timedelta(seconds=90)),
+            self._get_expected_pull_request(3, 103, 'pull 3',
+                datetime.now() - timedelta(seconds=120)),
+            self._get_expected_pull_request(4, 104, 'pull 4',
+                datetime.now() - timedelta(days=4)),
+            self._get_expected_pull_request(5, 105, 'pull 5',
+                datetime.now() - timedelta(days=5)),
+        ]
+        responses.add(
+            method=responses.GET,
+            url=api_url,
+            json=expected_response,
+        )
+
+    def _mock_list_tags_multiple(self):
+        api_url = '{}/git/refs/tags/prod/'.format(self.repo_api_url)
+        expected_response = [
+            self._get_expected_tag_ref(self.current_tag, self.current_tag_sha),
+            self._get_expected_tag_ref(self.last_tag, self.last_tag_sha),
+            self._get_expected_tag_ref(self.last2_tag, self.last2_tag_sha),
+        ]
+        responses.add(
+            method=responses.GET,
+            url=api_url,
+            json=expected_response,
+        )
+
+    def _mock_list_tags_single(self):
+        api_url = '{}/git/refs/tags/prod/'.format(self.repo_api_url)
+        expected_response = [
+            self._get_expected_tag_ref(self.current_tag, self.current_tag_sha),
+        ]
+        responses.add(
+            method=responses.GET,
+            url=api_url,
+            json=expected_response,
+        )
+
+    @responses.activate
+    def test_invalid_current_tag(self):
+        self._mock_invalid_tag()
+        generator = self._create_generator(self.invalid_tag)
+        provider = GithubChangeNotesProvider(generator, self.invalid_tag)
+        with self.assertRaises(GithubApiNotFoundError):
+            provider.current_tag_info
+
+    @responses.activate
+    def test_current_tag_without_last(self):
+        self._mock_current_tag_ref()
+        current_tag = self._mock_current_tag()
+        self._mock_current_tag_commit()
+        self._mock_last_tag_ref()
+        last_tag = self._mock_last_tag()
+        self._mock_last_tag_commit()
+        self._mock_list_tags_multiple()
 
         generator = self._create_generator(self.current_tag)
         provider = GithubChangeNotesProvider(generator, self.current_tag)
 
         self.assertEqual(provider.current_tag_info['ref'],
-                         expected_response_current_tag_ref)
-        self.assertEqual(provider.current_tag_info['tag'],
-                         expected_response_current_tag)
+            self._get_expected_tag_ref(self.current_tag, self.current_tag_sha))
+        self.assertEqual(provider.current_tag_info['tag'], current_tag)
         self.assertEqual(provider.last_tag_info['ref'],
-                         expected_response_last_tag_ref)
-        self.assertEqual(provider.last_tag_info['tag'],
-                         expected_response_last_tag)
+            self._get_expected_tag_ref(self.last_tag, self.last_tag_sha))
+        self.assertEqual(provider.last_tag_info['tag'], last_tag)
 
     @responses.activate
     def test_current_tag_without_last_no_last_found(self):
-        # Mock the current tag ref
-        api_url = '{}/git/refs/tags/{}'.format(
-            self.repo_api_url, self.current_tag)
-        expected_response_current_tag_ref = self._get_expected_tag_ref(
-            self.current_tag, self.current_tag_sha)
-        responses.add(
-            method=responses.GET,
-            url=api_url,
-            json=expected_response_current_tag_ref,
-        )
+        self._mock_current_tag_ref()
+        self._mock_current_tag()
+        self._mock_current_tag_commit()
+        self._mock_list_tags_single()
 
-        # Mock the current tag
-        api_url = '{}/git/tags/{}'.format(self.repo_api_url,
-                                          self.current_tag_sha)
-        expected_response_current_tag = self._get_expected_tag(
-            self.current_tag, self.current_tag_sha)
-        responses.add(
-            method=responses.GET,
-            url=api_url,
-            json=expected_response_current_tag,
-        )
-
-        # Mock the list all tags call
-        api_url = '{}/git/refs/tags/prod/'.format(self.repo_api_url)
-        expected_response_list_tag_refs = [
-            expected_response_current_tag_ref,
-        ]
-        responses.add(
-            method=responses.GET,
-            url=api_url,
-            json=expected_response_list_tag_refs,
-        )
         generator = self._create_generator(self.current_tag)
         provider = GithubChangeNotesProvider(generator, self.current_tag)
 
         self.assertEqual(provider.last_tag, None)
         self.assertEqual(provider.last_tag_info, None)
 
-    def _mock_pull_request_tags(self):
-        # Mock the current tag ref
-        api_url = '{}/git/refs/tags/{}'.format(
-            self.repo_api_url,
-            self.current_tag,
-        )
-        expected_response_current_tag_ref = self._get_expected_tag_ref(
-            self.current_tag,
-            self.current_tag_sha,
-        )
-        responses.add(
-            method=responses.GET,
-            url=api_url,
-            json=expected_response_current_tag_ref,
-        )
-
-        # Mock the current tag
-        api_url = '{}/git/tags/{}'.format(
-            self.repo_api_url,
-            self.current_tag_sha,
-        )
-        expected_response_current_tag = self._get_expected_tag(
-            self.current_tag,
-            self.current_tag_sha,
-            datetime.now(),
-        )
-        responses.add(
-            method=responses.GET,
-            url=api_url,
-            json=expected_response_current_tag,
-        )
-
-        # Mock the last tag ref
-        api_url = '{}/git/refs/tags/{}'.format(
-            self.repo_api_url,
-            self.last_tag
-        )
-        expected_response_last_tag_ref = self._get_expected_tag_ref(
-            self.last_tag,
-            self.last_tag_sha,
-        )
-        responses.add(
-            method=responses.GET,
-            url=api_url,
-            json=expected_response_last_tag_ref,
-        )
-
-        # Mock the last tag
-        api_url = '{}/git/tags/{}'.format(
-            self.repo_api_url,
-            self.last_tag_sha,
-        )
-        expected_response_last_tag = self._get_expected_tag(
-            self.last_tag,
-            self.last_tag_sha,
-            datetime.now() - timedelta(days=1),
-        )
-        responses.add(
-            method=responses.GET,
-            url=api_url,
-            json=expected_response_last_tag,
-        )
-
     @responses.activate
     def test_no_pull_requests_in_repo(self):
         # Mock the tag calls
-        self._mock_pull_request_tags()
+        self._mock_current_tag_ref()
+        self._mock_current_tag()
+        self._mock_current_tag_commit()
+        self._mock_last_tag_ref()
+        self._mock_last_tag()
+        self._mock_last_tag_commit()
 
         # Mock the list all pull requests call
         api_url = '{}/pulls'.format(self.repo_api_url)
@@ -332,7 +346,12 @@ class TestGithubChangeNotesProvider(unittest.TestCase, GithubApiTestMixin):
     @responses.activate
     def test_no_pull_requests_in_range(self):
         # Mock the tag calls
-        self._mock_pull_request_tags()
+        self._mock_current_tag_ref()
+        self._mock_current_tag()
+        self._mock_current_tag_commit()
+        self._mock_last_tag_ref()
+        self._mock_last_tag()
+        self._mock_last_tag_commit()
 
         # Mock the list all pull requests call
         api_url = '{}/pulls'.format(self.repo_api_url)
@@ -359,31 +378,13 @@ class TestGithubChangeNotesProvider(unittest.TestCase, GithubApiTestMixin):
     @responses.activate
     def test_one_pull_request_in_range(self):
         # Mock the tag calls
-        self._mock_pull_request_tags()
-
-        # Mock the list all pull requests call
-        api_url = '{}/pulls'.format(self.repo_api_url)
-        expected_pull_request_1 = self._get_expected_pull_request(
-            pull_id=1,
-            issue_number=101,
-            body='pull 1',
-            merged_date=datetime.now() - timedelta(seconds=60),
-        )
-        expected_pull_request_2 = self._get_expected_pull_request(
-            pull_id=2,
-            issue_number=102,
-            body='pull 2',
-            merged_date=datetime.now() - timedelta(days=2),
-        )
-        expected_response_list_pull_requests = [
-            expected_pull_request_1,
-            expected_pull_request_2,
-        ]
-        responses.add(
-            method=responses.GET,
-            url=api_url,
-            json=expected_response_list_pull_requests,
-        )
+        self._mock_current_tag_ref()
+        self._mock_current_tag()
+        self._mock_current_tag_commit()
+        self._mock_last_tag_ref()
+        self._mock_last_tag()
+        self._mock_last_tag_commit()
+        self._mock_list_pull_requests_one_in_range()
 
         generator = self._create_generator(self.current_tag, self.last_tag)
         provider = GithubChangeNotesProvider(
@@ -393,52 +394,13 @@ class TestGithubChangeNotesProvider(unittest.TestCase, GithubApiTestMixin):
     @responses.activate
     def test_multiple_pull_requests_in_range(self):
         # Mock the tag calls
-        self._mock_pull_request_tags()
-
-        # Mock the list all pull requests call
-        api_url = '{}/pulls'.format(self.repo_api_url)
-        expected_pull_request_1 = self._get_expected_pull_request(
-            pull_id=1,
-            issue_number=101,
-            body='pull 1',
-            merged_date=datetime.now() - timedelta(seconds=60),
-        )
-        expected_pull_request_2 = self._get_expected_pull_request(
-            pull_id=2,
-            issue_number=102,
-            body='pull 2',
-            merged_date=datetime.now() - timedelta(seconds=90),
-        )
-        expected_pull_request_3 = self._get_expected_pull_request(
-            pull_id=3,
-            issue_number=103,
-            body='pull 3',
-            merged_date=datetime.now() - timedelta(seconds=120),
-        )
-        expected_pull_request_4 = self._get_expected_pull_request(
-            pull_id=4,
-            issue_number=104,
-            body='pull 4',
-            merged_date=datetime.now() - timedelta(days=4),
-        )
-        expected_pull_request_5 = self._get_expected_pull_request(
-            pull_id=5,
-            issue_number=105,
-            body='pull 5',
-            merged_date=datetime.now() - timedelta(days=5),
-        )
-        expected_response_list_pull_requests = [
-            expected_pull_request_1,
-            expected_pull_request_2,
-            expected_pull_request_3,
-            expected_pull_request_4,
-            expected_pull_request_5,
-        ]
-        responses.add(
-            method=responses.GET,
-            url=api_url,
-            json=expected_response_list_pull_requests,
-        )
+        self._mock_current_tag_ref()
+        self._mock_current_tag()
+        self._mock_current_tag_commit()
+        self._mock_last_tag_ref()
+        self._mock_last_tag()
+        self._mock_last_tag_commit()
+        self._mock_list_pull_requests_multiple_in_range()
 
         generator = self._create_generator(self.current_tag, self.last_tag)
         provider = GithubChangeNotesProvider(

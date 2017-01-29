@@ -1,8 +1,13 @@
 import base64
+import datetime
+import logging
 import os
 import pickle
+import re
 
 import hiyapyco
+import sarge
+from simple_salesforce import Salesforce
 import yaml
 
 from distutils.version import LooseVersion
@@ -10,9 +15,12 @@ from github3 import login
 from Crypto import Random
 from Crypto.Cipher import AES
 
+from cumulusci.core.exceptions import ConfigError
 from cumulusci.core.exceptions import NotInProject
 from cumulusci.core.exceptions import KeychainConnectedAppNotFound
 from cumulusci.core.exceptions import ProjectConfigNotFound
+from cumulusci.core.exceptions import ScratchOrgException
+from cumulusci.core.exceptions import SOQLQueryException
 from cumulusci.oauth.salesforce import SalesforceOAuth2
 
 __location__ = os.path.dirname(os.path.realpath(__file__))
@@ -28,7 +36,12 @@ class BaseConfig(object):
             self.config = {}
         else:
             self.config = config
+        self._init_logger()
         self._load_config()
+
+    def _init_logger(self):
+        """ Initializes self.logger """
+        self.logger = logging.getLogger(__name__)
 
     def _load_config(self):
         """ Performs the logic to initialize self.config """
@@ -36,6 +49,8 @@ class BaseConfig(object):
 
     def __getattr__(self, name):
         tree = name.split('__')
+        if name.startswith('_'):
+            raise AttributeError('Attribute {} not found'.format(name))
         value = None
         value_found = False
         for attr in self.search_path:
@@ -134,18 +149,33 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             return
 
         in_remote_origin = False
-        f = open(os.path.join(self.repo_root, '.git', 'config'), 'r')
-        for line in f.read().splitlines():
-            line = line.strip()
-            if line == '[remote "origin"]':
-                in_remote_origin = True
-                continue
-            if line.find('url =') != -1:
-                line_parts = line.split('/')
-                repo_name = line_parts[-1]
-                if repo_name.endswith('.git'):
-                    repo_name = repo_name[:-4]
-                return repo_name
+        with open(os.path.join(self.repo_root, '.git', 'config'), 'r') as f:
+            for line in f:
+                line = line.strip()
+                if line == '[remote "origin"]':
+                    in_remote_origin = True
+                    continue
+                if in_remote_origin and line.find('url =') != -1:
+                    line_parts = line.split('/')
+                    repo_name = line_parts[-1]
+                    if repo_name.endswith('.git'):
+                        repo_name = repo_name[:-4]
+                    return repo_name
+
+    @property
+    def repo_url(self):
+        if not self.repo_root:
+            return
+        git_config_file = os.path.join(self.repo_root, '.git', 'config')
+        with open(git_config_file, 'r') as f:
+            in_remote_origin = False
+            for line in f:
+                line = line.strip()
+                if line == '[remote "origin"]':
+                    in_remote_origin = True
+                    continue
+                if in_remote_origin and 'url = ' in line:
+                    return line[7:]
 
     @property
     def repo_owner(self):
@@ -153,23 +183,23 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             return
 
         in_remote_origin = False
-        f = open(os.path.join(self.repo_root, '.git', 'config'), 'r')
-        for line in f.read().splitlines():
-            line = line.strip()
-            if line == '[remote "origin"]':
-                in_remote_origin = True
-                continue
-            if line.find('url =') != -1:
-                line_parts = line.split('/')
-                return line_parts[-2].split(':')[-1]
+        with open(os.path.join(self.repo_root, '.git', 'config'), 'r') as f:
+            for line in f:
+                line = line.strip()
+                if line == '[remote "origin"]':
+                    in_remote_origin = True
+                    continue
+                if in_remote_origin and line.find('url =') != -1:
+                    line_parts = line.split('/')
+                    return line_parts[-2].split(':')[-1]
 
     @property
     def repo_branch(self):
         if not self.repo_root:
             return
 
-        f = open(os.path.join(self.repo_root, '.git', 'HEAD'), 'r')
-        branch_ref = f.read().strip()
+        with open(os.path.join(self.repo_root, '.git', 'HEAD'), 'r') as f:
+            branch_ref = f.read().strip()
         if branch_ref.startswith('ref: '):
             return '/'.join(branch_ref[5:].split('/')[2:])
 
@@ -188,25 +218,24 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
         commit_sha = None
         if os.path.isfile(commit_file):
-            f = open(commit_file, 'r')
-            commit_sha = f.read().strip()
-            f.close()
+            with open(commit_file, 'r') as f:
+                commit_sha = f.read().strip()
         else:
             packed_refs_path = os.path.join(
                 self.repo_root,
                 '.git',
                 'packed-refs'
             )
-            f = open(packed_refs_path, 'r')
-            for line in f.readlines():
-                parts = line.split(' ')
-                if len(parts) == 1:
-                    # Skip lines showing the commit sha of a tag on the preceeding line
-                    continue
-                if parts[1].replace('refs/remotes/origin/', '').strip() == branch:
-                    commit_sha = parts[0]
-                    break
-    
+            with open(packed_refs_path, 'r') as f:
+                for line in f:
+                    parts = line.split(' ')
+                    if len(parts) == 1:
+                        # Skip lines showing the commit sha of a tag on the preceeding line
+                        continue
+                    if parts[1].replace('refs/remotes/origin/', '').strip() == branch:
+                        commit_sha = parts[0]
+                        break
+
         return commit_sha
 
     def get_latest_version(self, beta=None):
@@ -223,6 +252,8 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                 if 'Beta' in release.tag_name:
                     continue
             version = self.get_version_for_tag(release.tag_name)
+            if version is None:
+                continue
             version = LooseVersion(version)
             if not latest_version or version > latest_version:
                 latest_version = version
@@ -256,13 +287,16 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         return tag_name
 
     def get_version_for_tag(self, tag):
+        if not tag.startswith(self.project__git__prefix_beta) and not tag.startswith(self.project__git__prefix_release):
+            return None
+
         if 'Beta' in tag:
             version = tag[len(self.project__git__prefix_beta):]
             version = version.replace('-',' (').replace('_',' ') + ')'
         else:
             version = tag[len(self.project__git__prefix_release):]
         return version
-        
+
 
     def set_keychain(self, keychain):
         self.keychain = keychain
@@ -313,10 +347,16 @@ class OrgConfig(BaseConfig):
     """ Salesforce org configuration (i.e. org credentials) """
 
     def refresh_oauth_token(self, connected_app):
+        client_id = self.client_id
+        client_secret = self.client_secret
+        if not client_id:
+            client_id = connected_app.client_id
+            client_secret = connected_app.client_secret
         sf_oauth = SalesforceOAuth2(
-            connected_app.client_id,
-            connected_app.client_secret,
-            connected_app.callback_url
+            client_id,
+            client_secret,
+            connected_app.callback_url, # Callback url isn't really used for this call
+            auth_site=self.auth_site,
         )
         resp = sf_oauth.refresh_token(self.refresh_token).json()
         if resp != self.config:
@@ -331,8 +371,177 @@ class OrgConfig(BaseConfig):
     def user_id(self):
         return self.id.split('/')[-1]
 
+    @property
+    def org_id(self):
+        return self.id.split('/')[-2]
+
+class ScratchOrgConfig(OrgConfig):
+    """ Salesforce DX Scratch org configuration """
+
+    @property
+    def scratch_info(self):
+        if hasattr(self, '_scratch_info'):
+            return self._scratch_info
+
+        # Create the org if it hasn't already been created
+        if not self.created:
+            self.create_org()
+
+        self.logger.info('Getting scratch org info from Salesforce DX')
+
+        # Call force:org:open and parse output to get instance_url and access_token
+        command = 'heroku force:org:open -d -u {}'.format(self.username)
+        p = sarge.Command(command, stdout=sarge.Capture(buffer_size=-1))
+        p.run()
+
+        org_info = None
+        stdout_list = []
+        for line in p.stdout:
+            if line.startswith('Access org'):
+                org_info = line.strip()
+            stdout_list.append(line.strip())
+
+        if p.returncode:
+            message = 'Return code: {}\nstdout: {}\nstderr: {}'.format(
+                p.returncode,
+                '\n'.join(stdout_list),
+                p.stderr,
+            )
+            self.logger.error(message)
+            raise ScratchOrgException(message)
+
+        if not org_info:
+            message = 'Did not find org info in command output:\n{}'.format(p.stdout)
+            self.logger.error(message)
+            raise ScratchOrgException(message)
+
+        # OrgID is the third word of the output
+        org_id = org_info.split(' ')[2]
+
+        # Username is the sixth word of the output
+        username = org_info.split(' ')[5]
+
+        info_parts = org_info.split('following URL: ')
+        if len(info_parts) == 1:
+            message = 'Did not find org info in command output:\n{}'.format(p.stdout)
+            self.logger.error(message)
+            raise ScratchOrgException(message)
+
+        instance_url, access_token = info_parts[1].split('/secur/frontdoor.jsp?sid=')
+        self._scratch_info = {
+            'instance_url': instance_url,
+            'access_token': access_token,
+            'org_id': org_id,
+            'username': username,
+        }
+    
+        self._scratch_info_date = datetime.datetime.now()
+
+        return self._scratch_info
+
+    @property
+    def access_token(self):
+        return self.scratch_info['access_token']
+
+    @property
+    def instance_url(self):
+        return self.scratch_info['instance_url']
+
+    @property
+    def org_id(self):
+        org_id = self.config.get('org_id')
+        if not org_id:
+            org_id = self.scratch_info['org_id']
+        return org_id
+
+    @property
+    def user_id(self):
+        if not self.config.get('user_id'):
+            sf = Salesforce(
+                instance=self.instance_url.replace('https://', ''),
+                session_id=self.access_token,
+                version='38.0',
+            )
+            result = sf.query_all(
+                "SELECT Id FROM User WHERE UserName='{}'".format(
+                    self.username
+                )
+            )
+            self.config['user_id'] = result['records'][0]['Id']
+        return self.config['user_id']
+
+    @property
+    def username(self):
+        username = self.config.get('username')
+        if not username:
+            username = self.scratch_info['username']
+        return username
+
+    def create_org(self):
+        """ Uses heroku force:org:create to create the org """
+        if not self.config_file:
+            # FIXME: raise exception
+            return
+        if not self.scratch_org_type:
+            self.config['scratch_org_type'] = 'workspace'
+
+        command = 'heroku force:org:create -t {} -f {}'.format(self.scratch_org_type, self.config_file)
+        self.logger.info('Creating scratch org with command {}'.format(command))
+        p = sarge.Command(command, stdout=sarge.Capture(buffer_size=-1))
+        p.run()
+
+        org_info = None
+        re_obj = re.compile('Successfully created workspace org: (.+), username: (.+)')
+        for line in p.stdout:
+            match = re_obj.search(line)
+            if match:
+                self.config['org_id'] = match.group(1)
+                self.config['username'] = match.group(2)
+            self.logger.info(line)
+
+        if p.returncode:
+            # FIXME: raise exception
+            raise ConfigError('Failed to create scratch org: {}'.format('\n'.join(p.stdout)))
+
+        # Flag that this org has been created
+        self.config['created'] = True
+
+    def delete_org(self):
+        """ Uses heroku force:org:delete to create the org """
+        if not self.created:
+            self.logger.info('Skipping org deletion: the scratch org has not been created')
+            return
+
+        command = 'heroku force:org:delete --force -u {}'.format(self.username)
+        self.logger.info('Deleting scratch org with command {}'.format(command))
+        p = sarge.Command(command, stdout=sarge.Capture(buffer_size=-1))
+        p.run()
+
+        org_info = None
+        for line in p.stdout:
+            self.logger.info(line)
+
+        if p.returncode:
+            # FIXME: raise exception
+            raise ConfigError('Failed to delete scratch org')
+
+        # Flag that this org has been created
+        self.config['created'] = False
+        self.config['username'] = False
+
+    def refresh_oauth_token(self, connected_app):
+        """ Use heroku force:org:open to refresh token instead of built in OAuth handling """
+        if hasattr(self, '_scratch_info'):
+            # Cache the scratch_info for 1 hour to avoid unnecessary calls out to heroku CLI
+            delta = datetime.datetime.now() - self._scratch_info_date
+            if delta.total_seconds() > 3600:
+                del self._scratch_info
+        # This triggers a refresh
+        self.scratch_info
+
+
 class ServiceConfig(BaseConfig):
-    """ Github configuration """
+    """ Keychain service configuration """
     pass
 
 class YamlProjectConfig(BaseProjectConfig):
@@ -375,16 +584,16 @@ class YamlProjectConfig(BaseProjectConfig):
             merge_yaml.append(self.global_config_obj.config_global_local_path)
 
         # Load the project's yaml config file
-        f_config = open(self.config_project_path, 'r')
-        project_config = yaml.load(f_config)
+        with open(self.config_project_path, 'r') as f_config:
+            project_config = yaml.load(f_config)
         if project_config:
             self.config_project.update(project_config)
             merge_yaml.append(self.config_project_path)
 
         # Load the local project yaml config file if it exists
         if self.config_project_local_path:
-            f_local_config = open(self.config_project_local_path, 'r')
-            local_config = yaml.load(f_local_config)
+            with open(self.config_project_local_path, 'r') as f_local_config:
+                local_config = yaml.load(f_local_config)
             if local_config:
                 self.config_project_local.update(local_config)
                 merge_yaml.append(self.config_project_local_path)
@@ -444,6 +653,6 @@ class YamlGlobalConfig(BaseGlobalConfig):
         """ Loads the configuration for the project """
 
         # Load the global cumulusci.yml file
-        f_config = open(self.config_global_path, 'r')
-        config = yaml.load(f_config)
+        with open(self.config_global_path, 'r') as f_config:
+            config = yaml.load(f_config)
         self.config_global = config

@@ -9,6 +9,14 @@ classes:
     - type: ApexClass
       class: MetadataFilenameParser
       extension: cls
+communityTemplateDefinitions:
+    - type: CommunityTemplateDefinition
+      class: MetadataFilenameParser
+      extension: communityTemplateDefinition
+communityThemeDefinitions:
+    - type: CommunityThemeDefinition
+      class: MetadataFilenameParser
+      extension: communityThemeDefinition
 components:
     - type: ApexComponent
       class: MetadataFilenameParser
@@ -22,6 +30,9 @@ contentassets:
       extension: asset
 customMetadata:
     - type: CustomMetadata
+      class: MetadataFilenameParser
+customPermissions:
+    - type: CustomPermission
       class: MetadataFilenameParser
 dashboards:
     - type: Dashboard

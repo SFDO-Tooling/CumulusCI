@@ -2,21 +2,27 @@ import base64
 import cgi
 import datetime
 from distutils.version import LooseVersion
+import errno
 import io
 import json
 import logging
 import os
 import re
+import shutil
 import tempfile
 import time
 import zipfile
 
 from simple_salesforce import Salesforce
+from simple_salesforce import SalesforceGeneralError
 from salesforce_bulk import SalesforceBulk
 import xmltodict
 
+from cumulusci.core.exceptions import ApexTestException
+from cumulusci.core.exceptions import SalesforceException
 from cumulusci.core.tasks import BaseTask
 from cumulusci.tasks.metadata.package import PackageXmlGenerator
+from cumulusci.salesforce_api.exceptions import MetadataApiError
 from cumulusci.salesforce_api.metadata import ApiDeploy
 from cumulusci.salesforce_api.metadata import ApiRetrieveInstalledPackages
 from cumulusci.salesforce_api.metadata import ApiRetrievePackaged
@@ -26,7 +32,7 @@ from cumulusci.salesforce_api.package_zip import DestructiveChangesZipBuilder
 from cumulusci.salesforce_api.package_zip import InstallPackageZipBuilder
 from cumulusci.salesforce_api.package_zip import UninstallPackageZipBuilder
 from cumulusci.utils import CUMULUSCI_PATH
-from cumulusci.utils import findReplaceRegex
+from cumulusci.utils import findReplace
 from cumulusci.utils import zip_subfolder
 
 
@@ -50,7 +56,8 @@ class BaseSalesforceMetadataApiTask(BaseSalesforceTask):
 
     def _run_task(self):
         api = self._get_api()
-        return api()
+        if api:
+            return api()
 
 
 class BaseSalesforceApiTask(BaseSalesforceTask):
@@ -149,7 +156,8 @@ class RetrieveUnpackaged(BaseRetrieveMetadata):
 
         if 'package_xml' in self.options:
             self.options['package_xml_path'] = self.options['package_xml']
-            self.options['package_xml'] = open(self.options['package_xml_path'], 'r').read()
+            with open(self.options['package_xml_path'], 'r') as f:
+                self.options['package_xml'] = f.read()
 
     def _get_api(self):
         return self.api_class(
@@ -201,9 +209,9 @@ class Deploy(BaseSalesforceMetadataApiTask):
         'path': {
             'description': 'The path to the metadata source to be deployed',
             'required': True,
-        }
+        },
     }
-
+        
     def _get_api(self, path=None):
         if not path:
             path = self.task_config.options__path
@@ -224,7 +232,7 @@ class Deploy(BaseSalesforceMetadataApiTask):
 
         os.chdir(pwd)
 
-        return self.api_class(self, package_zip)
+        return self.api_class(self, package_zip, purge_on_delete=False)
 
     def _write_zip_file(self, zipf, root, path):
         zipf.write(os.path.join(root, path))
@@ -251,7 +259,7 @@ class CreatePackage(Deploy):
 
     def _get_api(self, path=None):
         package_zip = CreatePackageZipBuilder(self.options['package'], self.options['api_version'])
-        return self.api_class(self, package_zip())
+        return self.api_class(self, package_zip(), purge_on_delete=False)
 
 class InstallPackageVersion(Deploy):
     task_options = {
@@ -263,12 +271,27 @@ class InstallPackageVersion(Deploy):
             'description': 'The version of the package to install.  "latest" and "latest_beta" can be used to trigger lookup via Github Releases on the repository.',
             'required': True,
         },
+        'retries': {
+            'description': 'Number of retries (default=5)',
+        },
+        'retry_interval': {
+            'description': 'Number of seconds to wait before the next retry (default=30),'
+        },
+        'retry_interval_add': {
+            'description': 'Number of seconds to add before each retry (default=60),'
+        },
     }
 
     def _init_options(self, kwargs):
         super(InstallPackageVersion, self)._init_options(kwargs)
         if 'namespace' not in self.options:
             self.options['namespace'] = self.project_config.project__package__namespace
+        if 'retries' not in self.options:
+            self.options['retries'] = 5
+        if 'retry_interval' not in self.options:
+            self.options['retry_interval'] = 5
+        if 'retry_interval_add' not in self.options:
+            self.options['retry_interval_add'] = 30
         if self.options.get('version') == 'latest':
             self.options['version'] = self.project_config.get_latest_version()
             self.logger.info('Installing latest release: {}'.format(self.options['version']))
@@ -278,12 +301,33 @@ class InstallPackageVersion(Deploy):
 
     def _get_api(self, path=None):
         package_zip = InstallPackageZipBuilder(self.options['namespace'], self.options['version'])
-        return self.api_class(self, package_zip())
+        return self.api_class(self, package_zip(), purge_on_delete=False)
+
+    def _run_task(self):
+        api = self._get_api()
+        try:
+            res = api()
+        except MetadataApiError as e:
+            if self.options['retries'] and ('This package is not yet available' in e.message or
+                'InstalledPackage version number' in e.message):
+                if self.options['retry_interval']:
+                    self.logger.warning('Sleeping for {} seconds before retry...'.format(self.options['retry_interval']))
+                    time.sleep(self.options['retry_interval'])
+                    if self.options['retry_interval_add']:
+                        self.options['retry_interval'] += self.options['retry_interval_add']
+                self.options['retries'] -= 1
+                self.logger.warning('Retrying deploy (%d attempts remaining)' % (self.options['retries']))
+                return self._run_task()
+            raise
 
 class UninstallPackage(Deploy):
     task_options = {
         'namespace': {
             'description': 'The namespace of the package to uninstall.  Defaults to project__package__namespace',
+            'required': True,
+        },
+        'purge_on_delete': {
+            'description': 'Sets the purgeOnDelete option for the deployment.  Defaults to True',
             'required': True,
         },
     }
@@ -292,10 +336,14 @@ class UninstallPackage(Deploy):
         super(UninstallPackage, self)._init_options(kwargs)
         if 'namespace' not in self.options:
             self.options['namespace'] = self.project_config.project__package__namespace
+        if 'purge_on_delete' not in self.options:
+            self.options['purge_on_delete'] = True
+        if self.options['purge_on_delete'] == 'False':
+            self.options['purge_on_delete'] = False
 
     def _get_api(self, path=None):
         package_zip = UninstallPackageZipBuilder(self.options['namespace'])
-        return self.api_class(self, package_zip())
+        return self.api_class(self, package_zip(), purge_on_delete=self.options['purge_on_delete'])
 
 class UpdateDependencies(BaseSalesforceMetadataApiTask):
     api_class = ApiDeploy
@@ -486,15 +534,22 @@ class DeployNamespacedBundles(DeployBundles):
         else:
             namespace = ''
 
-        path = path.replace(self.options['filename_token'], namespace)
-        content = open(os.path.join(root, path), 'r').read()
-        content = content.replace(self.options['namespace_token'], namespace)
-        zipf.writestr(path, content)
+        zip_path = path.replace(self.options['filename_token'], namespace)
+        with open(os.path.join(root, path), 'r') as f:
+            content = f.read().replace(self.options['namespace_token'], namespace)
+        if root == '.':
+            zipf.writestr(zip_path, content)
+        else:
+            # strip ./ from the start of root
+            root = root[2:]
+            zipf.writestr(os.path.join(root, zip_path), content)
 
 class BaseUninstallMetadata(Deploy):
 
     def _get_api(self, path=None):
         destructive_changes = self._get_destructive_changes(path=path)
+        if not destructive_changes:
+            return
         package_zip = DestructiveChangesZipBuilder(destructive_changes)
         api = self.api_class(self, package_zip())
         return api
@@ -520,12 +575,20 @@ class UninstallPackaged(UninstallLocal):
             'description': 'The package name to uninstall.  All metadata from the package will be retrieved and a custom destructiveChanges.xml package will be constructed and deployed to delete all deleteable metadata from the package.  Defaults to project__package__name',
             'required': True,
         },
+        'purge_on_delete': {
+            'description': 'Sets the purgeOnDelete option for the deployment.  Defaults to True',
+            'required': True,
+        },
     }
 
     def _init_options(self, kwargs):
         super(UninstallPackaged, self)._init_options(kwargs)
         if 'package' not in self.options:
             self.options['package'] = self.project_config.project__package__name
+        if 'purge_on_delete' not in self.options:
+            self.options['purge_on_delete'] = True
+        if self.options['purge_on_delete'] == 'False':
+            self.options['purge_on_delete'] = False
 
     def _retrieve_packaged(self):
         retrieve_api = ApiRetrievePackaged(
@@ -546,6 +609,8 @@ class UninstallPackaged(UninstallLocal):
 
         destructive_changes = super(UninstallPackaged, self)._get_destructive_changes(tempdir)
 
+        shutil.rmtree(tempdir)
+
         self.logger.info('Deleting metadata in package {} from target org'.format(self.options['package']))
         return destructive_changes
 
@@ -561,12 +626,20 @@ class UninstallPackagedIncremental(UninstallPackaged):
             'description': 'The package name to uninstall.  All metadata from the package will be retrieved and a custom destructiveChanges.xml package will be constructed and deployed to delete all deleteable metadata from the package.  Defaults to project__package__name',
             'required': True,
         },
+        'purge_on_delete': {
+            'description': 'Sets the purgeOnDelete option for the deployment.  Defaults to True',
+            'required': True,
+        },
     }
 
     def _init_options(self, kwargs):
         super(UninstallPackagedIncremental, self)._init_options(kwargs)
         if 'path' not in self.options:
             self.options['path'] = 'src'
+        if 'purge_on_delete' not in self.options:
+            self.options['purge_on_delete'] = True
+        if self.options['purge_on_delete'] == 'False':
+            self.options['purge_on_delete'] = False
 
     def _get_destructive_changes(self, path=None):
         self.logger.info('Retrieving metadata in package {} from target org'.format(self.options['package']))
@@ -580,7 +653,11 @@ class UninstallPackagedIncremental(UninstallPackaged):
             os.path.join(tempdir, 'package.xml'),
         )
 
-        self.logger.info('Deleting metadata in package {} from target org'.format(self.options['package']))
+        shutil.rmtree(tempdir)
+        if destructive_changes:
+            self.logger.info('Deleting metadata in package {} from target org'.format(self.options['package']))
+        else:
+            self.logger.info('No metadata found to delete')
         return destructive_changes
 
     def _package_xml_diff(self, master, compare):
@@ -623,8 +700,13 @@ class UninstallPackagedIncremental(UninstallPackaged):
                         delete[md_type] = []
                     delete[md_type].append(member)
 
-        destructive_changes = self._render_xml_from_items_dict(delete)
-        return destructive_changes
+        if delete:
+            self.logger.info('Deleting metadata:')
+            for md_type, members in delete.items():
+                for member in members:
+                    self.logger.info('    {}: {}'.format(md_type, member))
+            destructive_changes = self._render_xml_from_items_dict(delete)
+            return destructive_changes
 
     def _render_xml_from_items_dict(self, items):
         lines = []
@@ -693,6 +775,10 @@ class UninstallLocalNamespacedBundles(UninstallLocalBundles):
             'description': 'The path to the parent directory containing the metadata bundles directories',
             'required': True,
         },
+        'purge_on_delete': {
+            'description': 'Sets the purgeOnDelete option for the deployment.  Defaults to True',
+            'required': True,
+        },
     }
 
     def _init_options(self, kwargs):
@@ -703,6 +789,10 @@ class UninstallLocalNamespacedBundles(UninstallLocalBundles):
 
         if 'namespace' not in self.options:
             self.options['namespace'] = self.project_config.project__package__namespace
+        if 'purge_on_delete' not in self.options:
+            self.options['purge_on_delete'] = True
+        if self.options['purge_on_delete'] == 'False':
+            self.options['purge_on_delete'] = False
 
     def _get_destructive_changes(self, path=None):
         if not path:
@@ -719,7 +809,7 @@ class UninstallLocalNamespacedBundles(UninstallLocalBundles):
                 namespace = self.options['namespace'] + '__'
 
         destructive_changes = generator()
-        destructive_changes.replace(self.options['filename_token'], namespace)
+        destructive_changes = destructive_changes.replace(self.options['filename_token'], namespace)
 
         return destructive_changes
 
@@ -736,16 +826,18 @@ class UpdateAdminProfile(Deploy):
         super(UpdateAdminProfile, self)._init_options(kwargs)
 
         if 'package_xml' not in self.options:
-            self.options['package_xml'] = os.path.join(CUMULUSCI_PATH, 'build', 'admin_profile.xml')
+            self.options['package_xml'] = os.path.join(CUMULUSCI_PATH, 'cumulusci', 'files', 'admin_profile.xml')
 
         self.options['package_xml_path'] = self.options['package_xml']
-        self.options['package_xml'] = open(self.options['package_xml_path'], 'r').read()
+        with open(self.options['package_xml_path'], 'r') as f:
+            self.options['package_xml'] = f.read()
 
     def _run_task(self):
         self.tempdir = tempfile.mkdtemp()
         self._retrieve_unpackaged()
         self._process_metadata()
         self._deploy_metadata()
+        shutil.rmtree(self.tempdir)
 
     def _retrieve_unpackaged(self):
         self.logger.info('Retrieving metadata using {}'.format(self.options['package_xml_path']))
@@ -761,13 +853,13 @@ class UpdateAdminProfile(Deploy):
     def _process_metadata(self):
         self.logger.info('Processing retrieved metadata in {}'.format(self.tempdir))
 
-        findReplaceRegex(
+        findReplace(
             '<editable>false</editable>',
             '<editable>true</editable>',
             os.path.join(self.tempdir, 'profiles'),
             'Admin.profile',
         )
-        findReplaceRegex(
+        findReplace(
             '<readable>false</readable>',
             '<readable>true</readable>',
             os.path.join(self.tempdir, 'profiles'),
@@ -820,8 +912,9 @@ class PackageUpload(BaseSalesforceToolingApiTask):
         package_res = sf.query("select Id from MetadataPackage where NamespacePrefix='{}'".format(self.options['namespace']))
 
         if package_res['totalSize'] != 1:
-            self.logger.error('No package found with namespace {}'.format(self.options['namespace']))
-            return
+            message = 'No package found with namespace {}'.format(self.options['namespace'])
+            self.logger.error(message)
+            raise SalesforceException(message)
 
         package_id = package_res['records'][0]['Id']
 
@@ -849,28 +942,32 @@ class PackageUpload(BaseSalesforceToolingApiTask):
 
         upload = self.tooling.query(soql_check_upload)
         if upload['totalSize'] != 1:
-            self.logger.error("Failed to get info for upload with id {}".format(upload_id))
-            return
+            message = 'Failed to get info for upload with id {}'.format(upload_id)
+            self.logger.error(message)
+            raise SalesforceException(message)
         upload = upload['records'][0]
 
         while upload['Status'] == 'IN_PROGRESS':
             time.sleep(3)
             upload = self.tooling.query(soql_check_upload)
             if upload['totalSize'] != 1:
-                self.logger.error("Failed to get info for upload with id {}".format(upload_id))
-                return
+                message = 'Failed to get info for upload with id {}'.format(upload_id)
+                self.logger.error(message)
+                raise SalesforceException(message)
             upload = upload['records'][0]
 
         if upload['Status'] == 'ERROR':
             self.logger.error('Package upload failed with the following errors')
             for error in upload['Errors']['errors']:
                 self.logger.error('  {}'.format(error['message']))
+            raise SalesforceException('Package upload failed')
         else:
             version_id = upload['MetadataPackageVersionId']
             version_res = self.tooling.query("select MajorVersion, MinorVersion, PatchVersion, BuildNumber, ReleaseState from MetadataPackageVersion where Id = '{}'".format(version_id))
             if version_res['totalSize'] != 1:
-                self.logger.error('Version {} not found'.format(version_id))
-                return
+                message = 'Version {} not found'.format(version_id)
+                self.logger.error(message)
+                raise SalesforceException(message)
 
             version = version_res['records'][0]
             version_parts = [
@@ -940,6 +1037,8 @@ class RunApexTests(BaseSalesforceToolingApiTask):
                 self.options['managed'] = False
         if 'junit_output' not in self.options:
             self.options['junit_output'] = 'test_results.xml'
+
+        self.counts = {}
 
     def _init_class(self):
         self.classes_by_id = {}
@@ -1016,7 +1115,7 @@ class RunApexTests(BaseSalesforceToolingApiTask):
             "ApexLogId, AsyncApexJobId, MethodName, Outcome, ApexClassId, " +
             "TestTimestamp FROM ApexTestResult " +
             "WHERE AsyncApexJobId = '{}'".format(self.job_id))
-        counts = {
+        self.counts = {
             'Pass': 0,
             'Fail': 0,
             'CompileFail': 0,
@@ -1026,7 +1125,7 @@ class RunApexTests(BaseSalesforceToolingApiTask):
             class_name = self.classes_by_id[test_result['ApexClassId']]
             self.results_by_class_name[class_name][test_result[
                 'MethodName']] = test_result
-            counts[test_result['Outcome']] += 1
+            self.counts[test_result['Outcome']] += 1
             self._debug_get_results(test_result)
         self._debug_get_logs()
         test_results = []
@@ -1067,25 +1166,25 @@ class RunApexTests(BaseSalesforceToolingApiTask):
         self.logger.info('-' * 80)
         self.logger.info('Pass: {}  Fail: {}  CompileFail: {}  Skip: {}'
                          .format(
-                             counts['Pass'],
-                             counts['Fail'],
-                             counts['CompileFail'],
-                             counts['Skip'],
+                             self.counts['Pass'],
+                             self.counts['Fail'],
+                             self.counts['CompileFail'],
+                             self.counts['Skip'],
                          ))
         self.logger.info('-' * 80)
-        if counts['Fail'] or counts['CompileFail']:
-            self.logger.info('-' * 80)
-            self.logger.info('Failing Tests')
-            self.logger.info('-' * 80)
+        if self.counts['Fail'] or self.counts['CompileFail']:
+            self.logger.error('-' * 80)
+            self.logger.error('Failing Tests')
+            self.logger.error('-' * 80)
             counter = 0
             for result in test_results:
                 if result['Outcome'] not in ['Fail', 'CompileFail']:
                     continue
                 counter += 1
-                self.logger.info('{}: {}.{} - {}'.format(counter,
+                self.logger.error('{}: {}.{} - {}'.format(counter,
                     result['ClassName'], result['Method'], result['Outcome']))
-                self.logger.info('\tMessage: {}'.format(result['Message']))
-                self.logger.info('\tStackTrace: {}'.format(
+                self.logger.error('\tMessage: {}'.format(result['Message']))
+                self.logger.error('\tStackTrace: {}'.format(
                     result['StackTrace']))
         return test_results
 
@@ -1100,11 +1199,27 @@ class RunApexTests(BaseSalesforceToolingApiTask):
         self._debug_create_trace_flag()
         self.logger.info('Queuing tests for execution...')
         ids = self.classes_by_id.keys()
-        self.job_id = self.tooling.restful('runTestsAsynchronous',
-            params={'classids': ','.join(str(id) for id in ids)})
+        result = self.tooling._call_salesforce(
+            method='POST',
+            url=self.tooling.base_url + 'runTestsAsynchronous',
+            json={'classids': ','.join(str(id) for id in ids)},
+        )
+        if result.status_code != 200:
+            raise SalesforceGeneralError(url,
+                                         path,
+                                         result.status_code,
+                                         result.content)
+        self.job_id = result.json()
         self._wait_for_tests()
         test_results = self._get_test_results()
         self._write_output(test_results)
+        if self.counts.get('Fail') or self.counts.get('CompileFail'):
+            total = self.counts.get('Fail') + self.counts.get('CompileFail')
+            raise ApexTestException(
+                '{} tests failed and {} tests failed compilation'.format(
+                    self.counts.get('Fail'), self.counts.get('CompileFail')
+                )
+            )
 
     def _wait_for_tests(self):
         poll_interval = int(self.options.get('poll_interval', 1))
@@ -1158,6 +1273,9 @@ class RunApexTests(BaseSalesforceToolingApiTask):
 
 run_apex_tests_debug_options = RunApexTests.task_options.copy()
 run_apex_tests_debug_options.update({
+    'debug_log_dir': {
+        'description': 'Directory to store debug logs. Defaults to temp dir.',
+    },
     'json_output': {
         'description': ('The path to the json output file.  Defaults to ' +
                        'test_results.json'),
@@ -1166,7 +1284,7 @@ run_apex_tests_debug_options.update({
 
 class RunApexTestsDebug(RunApexTests):
     """Run Apex tests and collect debug info"""
-
+    api_version = '38.0'
     task_options = run_apex_tests_debug_options
 
     def _init_options(self, kwargs):
@@ -1181,35 +1299,64 @@ class RunApexTestsDebug(RunApexTests):
 
     def _debug_create_trace_flag(self):
         """Create a TraceFlag for a given user."""
+        self._delete_debug_levels()
         self._delete_trace_flags()
+        self.logger.info('Creating DebugLevel object')
+        DebugLevel = self._get_tooling_object('DebugLevel')
+        result = DebugLevel.create({
+            'ApexCode': 'Info',
+            'ApexProfiling': 'Debug',
+            'Callout': 'Info',
+            'Database': 'Info',
+            'DeveloperName': 'CumulusCI',
+            'MasterLabel': 'CumulusCI',
+            'System': 'Info',
+            'Validation': 'Info',
+            'Visualforce': 'Info',
+            'Workflow': 'Info',
+        })
+        self.debug_level_id = result['id']
         self.logger.info('Setting up trace flag to capture debug logs')
         # New TraceFlag expires 12 hours from now
         expiration_date = (datetime.datetime.now() +
             datetime.timedelta(seconds=60*60*12))
         TraceFlag = self._get_tooling_object('TraceFlag')
         result = TraceFlag.create({
-            'ApexCode': 'Info',
-            'ApexProfiling': 'Debug',
-            'Callout': 'Info',
-            'Database': 'Info',
+            'DebugLevelId': result['id'],
             'ExpirationDate': expiration_date.isoformat(),
-            'System': 'Info',
+            'LogType': 'USER_DEBUG',
             'TracedEntityId': self.org_config.user_id,
-            'Validation': 'Info',
-            'Visualforce': 'Info',
-            'Workflow': 'Info',
         })
         self.trace_id = result['id']
         self.logger.info('Created TraceFlag for user')
 
     def _delete_trace_flags(self):
-        """Delete existing TraceFlags."""
-        self.logger.info('Deleting existing TraceFlags')
-        traceflags = self.tooling.query('Select Id from TraceFlag')
-        if traceflags['totalSize']:
+        """
+        Delete existing DebugLevel objects.
+        This will automatically delete associated TraceFlags as well.
+        """
+        self.logger.info('Deleting existing TraceFlag objects')
+        result = self.tooling.query(
+            "Select Id from TraceFlag Where TracedEntityId = '{}'".format(
+                self.org_config.user_id
+            )
+        )
+        if result['totalSize']:
             TraceFlag = self._get_tooling_object('TraceFlag')
-            for traceflag in traceflags['records']:
-                TraceFlag.delete(str(traceflag['Id']))
+            for record in result['records']:
+                TraceFlag.delete(str(record['Id']))
+
+    def _delete_debug_levels(self):
+        """
+        Delete existing DebugLevel objects.
+        This will automatically delete associated TraceFlags as well.
+        """
+        self.logger.info('Deleting existing DebugLevel objects')
+        result = self.tooling.query('Select Id from DebugLevel')
+        if result['totalSize']:
+            DebugLevel = self._get_tooling_object('DebugLevel')
+            for record in result['records']:
+                DebugLevel.delete(str(record['Id']))
 
     def _debug_get_duration_class(self, class_id):
         if class_id in self.logs_by_class_id:
@@ -1227,6 +1374,16 @@ class RunApexTestsDebug(RunApexTests):
             'DurationMilliseconds, Location, LogLength, LogUserId, ' +
             'Operation, Request, StartTime, Status ' +
             'from ApexLog where Id in {}'.format(log_ids))
+        debug_log_dir = self.options.get('debug_log_dir')
+        if debug_log_dir:
+            tempdir = None
+            try:
+                os.makedirs(debug_log_dir)
+            except OSError as e:
+                if e.errno != errno.EEXIST:
+                    raise
+        else:
+            tempdir = tempfile.mkdtemp()
         for log in result['records']:
             class_id = self.classes_by_log_id[log['Id']]
             class_name = self.classes_by_id[class_id]
@@ -1236,19 +1393,26 @@ class RunApexTestsDebug(RunApexTests):
             response = self.tooling.request.get(body_url,
                 headers=self.tooling.headers)
             log_file = class_name + '.log'
-            debug_log_dir = self.options.get('debug_log_dir')
             if debug_log_dir:
                 log_file = os.path.join(debug_log_dir, log_file)
+            else:
+                log_file = os.path.join(tempdir, log_file)
             with io.open(log_file, mode='w', encoding='utf-8') as f:
-                f.write(unicode(response.content))
+                f.write(self._decode_to_unicode(response.content))
             with io.open(log_file, mode='r', encoding='utf-8') as f:
                 method_stats = self._parse_log(class_name, f)
             # Add method stats to results_by_class_name
             for method, info in method_stats.items():
+                if method not in self.results_by_class_name[class_name]:
+                    # Ignore lines that aren't from a test method such as the @testSetup decorated method
+                    continue
                 self.results_by_class_name[class_name][method].update(info)
-        # Delete the TraceFlag
-        TraceFlag = self._get_tooling_object('TraceFlag')
-        TraceFlag.delete(str(self.trace_id))
+        # Delete the DebugLevel
+        DebugLevel = self._get_tooling_object('DebugLevel')
+        DebugLevel.delete(str(self.debug_level_id))
+        # Clean up tempdir logs
+        if tempdir:
+            shutil.rmtree(tempdir)
 
     def _debug_get_results(self, result):
         if result['ApexLogId']:

@@ -1,5 +1,10 @@
+import time
+
 from datetime import datetime
 from github3 import login
+from github3 import GitHubError
+
+from cumulusci.core.exceptions import GithubException
 from cumulusci.core.tasks import BaseTask
 
 class BaseGithubTask(BaseTask):
@@ -42,8 +47,9 @@ class CloneTag(BaseGithubTask):
         ref = repo.ref('tags/{}'.format(self.options['src_tag']))
         src_tag = repo.tag(ref.object.sha)
         if not src_tag:
-            logger.error('Tag {} not found'.format(self.options['src_tag']))
-            return
+            message = 'Tag {} not found'.format(self.options['src_tag'])
+            logger.error(message)
+            raise GithubException(message)
 
         tag = repo.create_tag(
             tag = self.options['tag'],
@@ -73,9 +79,6 @@ class CreateRelease(BaseGithubTask):
         'commit': {
             'description': "Override the commit used to create the release.  Defaults to the current local HEAD commit",
         },
-        'draft': {
-            'description': "Set to True to create a draft release.  Defaults to False",
-        },
     }
     
     def _run_task(self):
@@ -83,53 +86,58 @@ class CreateRelease(BaseGithubTask):
 
         for release in repo.iter_releases():
             if release.name == self.options['version']:
-                self.logger.error('Release {} already exists at {}'.format(release.name, release.html_url))
-                return
+                message = 'Release {} already exists at {}'.format(release.name, release.html_url)
+                self.logger.error(message)
+                return GithubException(message)
 
         commit = self.options.get('commit', self.project_config.repo_commit)
         if not commit:
-            self.logger.error('Could not detect the current commit from the local repo')
-            return
+            message = 'Could not detect the current commit from the local repo'
+            self.logger.error(message)
+            return GithubException(message)
 
         version = self.options['version']
         self.tag_name = self.project_config.get_tag_for_version(version)
 
-        # Create the annotated tag
-        tag = repo.create_tag(
-            tag = self.tag_name,
-            message = 'Release of version {}'.format(version),
-            sha = commit,
-            obj_type = 'commit',
-            tagger = {
-                'name': self.github_config.username,
-                'email': self.github_config.email,
-                'date': '{}Z'.format(datetime.now().isoformat()),
-            },
-            lightweight = False,
-        )
-
-        # Get the ref created from the previous call that for some reason creates
-        # a ref to the commit sha rather than the tag sha.  Delete the ref so we
-        # can create the right one.  FIXME: Is this a bug in github3.py?
         ref = repo.ref('tags/{}'.format(self.tag_name))
-        if ref:
-            ref.delete()
 
-        # Create the ref linking to the tag
-        ref = repo.create_ref(
-            ref = 'refs/tags/{}'.format(self.tag_name),
-            sha = tag.sha,
-        )
+        if not ref:
+            # Create the annotated tag
+            tag = repo.create_tag(
+                tag = self.tag_name,
+                message = 'Release of version {}'.format(version),
+                sha = commit,
+                obj_type = 'commit',
+                tagger = {
+                    'name': self.github_config.username,
+                    'email': self.github_config.email,
+                    'date': '{}Z'.format(datetime.now().isoformat()),
+                },
+                lightweight = False,
+            )
+    
+            # Get the ref created from the previous call that for some reason creates
+            # a ref to the commit sha rather than the tag sha.  Delete the ref so we
+            # can create the right one.  FIXME: Is this a bug in github3.py?
+            ref = repo.ref('tags/{}'.format(self.tag_name))
+            if ref:
+                ref.delete()
+    
+            # Create the ref linking to the tag
+            ref = repo.create_ref(
+                ref = 'refs/tags/{}'.format(self.tag_name),
+                sha = tag.sha,
+            )
 
-        draft = self.options.get('draft', False) in [True, 'True', 'true']
+            # Sleep for Github to catch up with the fact that the tag actually exists!
+            time.sleep(3)
+
         prerelease = 'Beta' in version
 
-        # Create the Githbu Release
+        # Create the Github Release
         release = repo.create_release(
             tag_name = self.tag_name,
-            target_commitish = self.project_config.repo_branch,
             name = version,
-            draft = draft,
             prerelease = prerelease,
         )
 
@@ -183,9 +191,9 @@ class MergeBranch(BaseGithubTask):
             try: 
                 result = repo.merge(branch.name, source_branch)
                 self.logger.info('Merged {} commits into {}'.format(compare.behind_by, branch.name))
-            except GithubError as e:
+            except GitHubError as e:
                 if e.code != 409:
-                    raise e
+                    raise
 
                 if branch.name in existing_prs:
                     self.logger.info('Merge conflict on branch {}: merge PR already exists'.format(branch.name))

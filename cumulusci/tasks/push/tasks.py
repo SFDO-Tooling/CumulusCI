@@ -5,6 +5,7 @@ from cumulusci.tasks.push.push_api import SalesforcePushApi
 
 class BaseSalesforcePushTask(BaseSalesforceApiTask):
     completed_statuses = ['Succeeded','Failed','Cancelled']
+    api_version = '38.0'
 
     def _init_task(self):
         super(BaseSalesforcePushTask, self)._init_task()
@@ -72,10 +73,10 @@ class BaseSalesforcePushTask(BaseSalesforceApiTask):
         return package[0]
 
     def _load_orgs_file(self, path):
-        f_orgs = open(path, 'r')
         orgs = []
-        for org in f_orgs:
-            orgs.append(org.strip())
+        with open(path, 'r') as f_orgs:
+            for org in f_orgs:
+                orgs.append(org.strip())
         return orgs
 
     def _report_push_status(self, request_id):
@@ -180,7 +181,7 @@ class SchedulePushOrgList(BaseSalesforcePushTask):
             'description': "The managed package namespace to push. Defaults to project__package__namespace.",
         },
         'start_time': {
-            'description': "Set the start time to queue a future push. Ex: 2016-10-19T10:00",
+            'description': "Set the start time (UTC) to queue a future push. Ex: 2016-10-19T10:00",
         }
     }
 
@@ -237,7 +238,7 @@ class SchedulePushOrgQuery(SchedulePushOrgList):
             'description': "The managed package namespace to push. Defaults to project__package__namespace.",
         },
         'start_time': {
-            'description': "Set the start time to queue a future push. Ex: 2016-10-19T10:00",
+            'description': "Set the start time (UTC) to queue a future push. Ex: 2016-10-19T10:00",
         }
     }
 
@@ -249,10 +250,11 @@ class SchedulePushOrgQuery(SchedulePushOrgList):
 
         push_api = SalesforcePushApi(self.sf, self.logger, default_where=default_where.copy())
 
-        version = self._get_version(self.options.get('version'))
+        package = self._get_package(self.options.get('namespace')) 
+        version = self._get_version(package, self.options.get('version'))
         min_version = self.options.get('min_version')
         if min_version:
-            min_version = self._get_version(self.options.get('min_version'))
+            min_version = self._get_version(package, self.options.get('min_version'))
 
         orgs = []
 

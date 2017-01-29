@@ -36,6 +36,7 @@ class BaseMetadataApiCall(object):
         # the cumulucci context object contains logger, oauth, ID, secret, etc
         self.task = task
         self.status = None
+        self.check_num = 1
 
     def __call__(self):
         self.task.logger.info('Pending')
@@ -45,7 +46,7 @@ class BaseMetadataApiCall(object):
 
     def _build_endpoint_url(self):
         # Parse org id from id which ends in /ORGID/USERID
-        org_id = self.task.org_config.id.split('/')[-2]
+        org_id = self.task.org_config.org_id
         # If "My Domain" is configured in the org, the instance_url needs to be
         # parsed differently
         instance_url = self.task.org_config.instance_url
@@ -99,6 +100,9 @@ class BaseMetadataApiCall(object):
         if result:
             return result[0].firstChild.nodeValue
 
+    def _get_check_interval(self):
+        return self.check_interval * ((self.check_num / 3) + 1)
+
     def _get_response(self):
         if not self.soap_envelope_start:
             # where is this from?
@@ -128,7 +132,12 @@ class BaseMetadataApiCall(object):
                     self.soap_action_status, envelope)
                 response = self._call_mdapi(headers, envelope)
                 response = self._process_response_status(response)
-                time.sleep(self.check_interval)
+
+                # start increasing the check interval progressively to handle long pending jobs
+                check_interval = self._get_check_interval()
+                self.check_num += 1
+
+                time.sleep(check_interval)
             # Fetch the final result and return
             if self.soap_envelope_result:
                 envelope = self._build_envelope_result()
@@ -143,7 +152,11 @@ class BaseMetadataApiCall(object):
         else:
             # Check the result and return when done
             while self.status not in ['Succeeded', 'Failed', 'Cancelled']:
-                time.sleep(self.check_interval)
+                # start increasing the check interval progressively to handle long pending jobs
+                check_interval = self._get_check_interval()
+                self.check_num += 1
+                time.sleep(check_interval)
+
                 envelope = self._build_envelope_result()
                 envelope = envelope.encode('utf-8')
                 headers = self._build_headers(
@@ -170,7 +183,7 @@ class BaseMetadataApiCall(object):
             if refresh:
                 self.org_config.refresh_oauth_token()
                 return self._call_mdapi(headers, envelope, refresh=False)
-        # Log the error on the PackageInstallation
+        # Log the error
         message = '{}: {}'.format(faultcode, faultstring)
         self._set_status('Failed', message)
         raise MetadataApiError(message, response)
@@ -201,21 +214,32 @@ class BaseMetadataApiCall(object):
                 if state_detail:
                     log = state_detail[0].firstChild.nodeValue
                     self._set_status('InProgress', log)
+                    self.check_num = 1
+                elif self.status == 'InProgress':
+                    self.check_num = 1
+                    self._set_status('InProgress', 'next check in {} seconds'.format(self._get_check_interval()))
+                else:
+                    self._set_status('Pending', 'next check in {} seconds'.format(self._get_check_interval()))
         else:
             # If no done element was in the xml, fail logging the entire SOAP
             # envelope as the log
-            self._set_status('Failed', response.content)
+            self._set_status('Failed', response.content, response=response)
         return response
 
-    def _set_status(self, status, log=None, level=None):
+    def _set_status(self, status, log=None, level=None, response=None):
         if not level:
             level = 'info'
+            if status == 'Failed':
+                level = 'error'
         logger = getattr(self.task.logger, level)
         self.status = status
         if log:
             logger('[{}]: {}'.format(status, log))
         else:
             logger('[{}]'.format(status))
+
+        if level == 'error':
+            raise MetadataApiError(log, response)
 
 
 class ApiRetrieveUnpackaged(BaseMetadataApiCall):
@@ -336,8 +360,10 @@ class ApiDeploy(BaseMetadataApiCall):
     soap_action_start = 'deploy'
     soap_action_status = 'checkDeployStatus'
 
-    def __init__(self, task, package_zip, purge_on_delete=True):
+    def __init__(self, task, package_zip, purge_on_delete=None):
         super(ApiDeploy, self).__init__(task)
+        if purge_on_delete is None:
+            purge_on_delete = True
         self._set_purge_on_delete(purge_on_delete)
         self.package_zip = package_zip
 
@@ -375,11 +401,52 @@ class ApiDeploy(BaseMetadataApiCall):
             self._set_status('Success', status)
         else:
             # If failed, parse out the problem text and set as the log
-            problems = parseString(
-                response.content).getElementsByTagName('problem')
             messages = []
-            for problem in problems:
-                messages.append(problem.firstChild.nodeValue)
+            resp_xml = parseString(response.content)
+
+            component_failures = resp_xml.getElementsByTagName('componentFailures')
+            if component_failures:
+                messages.append('--- Component Failures ---\n')
+            for component_failure in component_failures:
+                failure_info = {
+                    'component_type': None,
+                    'file_name': None,
+                    'line_num': None,
+                    'problem': component_failure.getElementsByTagName('problem')[0].firstChild.nodeValue,
+                    'problem_type': component_failure.getElementsByTagName('problemType')[0].firstChild.nodeValue,
+                }
+                component_type = component_failure.getElementsByTagName('componentType')
+                if component_type:
+                    component_type = component_type[0].firstChild.nodeValue
+                file_name = component_failure.getElementsByTagName('fullName')
+                if file_name:
+                    file_name = file_name[0].firstChild.nodeValue
+                line_num = component_failure.getElementsByTagName('lineNumber')
+                if line_num:
+                    line_num = line_num[0].firstChild.nodeValue
+                
+                created = component_failure.getElementsByTagName('created')[0].firstChild.nodeValue == 'true'
+                deleted = component_failure.getElementsByTagName('deleted')[0].firstChild.nodeValue == 'true'
+                if deleted: 
+                    failure_info['action'] = 'delete'
+                elif created:
+                    failure_info['action'] = 'create'
+                else:
+                    failure_info['action'] = 'update'
+  
+                if failure_info['file_name'] and failure_info['line_num']: 
+                    messages.append('[{action}] {component_type} {file_name}: {problem_type} on line {line_num}: {problem}'.format(**failure_info))
+                elif failure_info['file_name']:
+                    messages.append('[{action}] {component_type} {file_name}: {problem_type}: {problem}'.format(**failure_info))
+                else:
+                    messages.append('[{action}] {problem_type}: {problem}'.format(**failure_info))
+
+            if not messages: 
+                problems = parseString(
+                    response.content).getElementsByTagName('problem')
+                for problem in problems:
+                    messages.append(problem.firstChild.nodeValue)
+
             # Parse out any failure text (from test failures in production
             # deployments) and add to log
             failures = parseString(

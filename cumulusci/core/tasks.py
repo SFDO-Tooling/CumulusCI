@@ -1,5 +1,5 @@
 import logging
-import coloredlogs
+
 from cumulusci.core.exceptions import TaskRequiresSalesforceOrg
 from cumulusci.core.exceptions import TaskOptionsError
 
@@ -21,20 +21,7 @@ class BaseTask(object):
 
     def _init_logger(self):
         """ Initializes self.logger """
-        self.logger = logging.getLogger(self.__class__.__name__)
-        self.logger.setLevel(logging.DEBUG)
-        self.logger.propagate = False
-
-        #import pdb; pdb.set_trace()
-        handler = logging.StreamHandler()
-        handler.setLevel(logging.DEBUG)
-
-        formatter = coloredlogs.ColoredFormatter(
-            fmt='%(asctime)s: %(message)s'
-        )
-        handler.setFormatter(formatter)
-
-        self.logger.addHandler(handler)
+        self.logger = logging.getLogger(__name__)
 
     def _init_options(self, kwargs):
         """ Initializes self.options """
@@ -66,8 +53,9 @@ class BaseTask(object):
         pass
 
     def __call__(self):
-        return self._run_task()
-
+        res = self._run_task()
+        return res
+    
     def _run_task(self):
         """ Subclasses should override to provide their implementation """
         pass

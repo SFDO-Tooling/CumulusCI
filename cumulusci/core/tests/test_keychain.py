@@ -72,41 +72,41 @@ class TestBaseProjectKeychain(unittest.TestCase):
     def test_set_connected_app(self):
         self._test_set_connected_app()
 
-    def _test_set_connected_app(self):
+    def _test_set_connected_app(self, project=False):
         keychain = self.keychain_class(self.project_config, self.key)
-        keychain.set_connected_app(self.connected_app_config)
+        keychain.set_connected_app(self.connected_app_config, project)
         self.assertEquals(keychain.get_connected_app().config, {'test': 'value'})
 
     def test_set_service_github(self):
         self._test_set_service_github()
 
-    def _test_set_service_github(self):
+    def _test_set_service_github(self, project=False):
         keychain = self.keychain_class(self.project_config, self.key)
-        keychain.set_service('github', self.services['github'])
+        keychain.set_service('github', self.services['github'], project)
         self.assertEquals(keychain.get_service('github').config, self.services['github'].config)
 
     def test_set_service_mrbelvedere(self):
         self._test_set_service_mrbelvedere()
 
-    def _test_set_service_mrbelvedere(self):
+    def _test_set_service_mrbelvedere(self, project=False):
         keychain = self.keychain_class(self.project_config, self.key)
-        keychain.set_service('mrbelvedere', self.services['mrbelvedere'])
+        keychain.set_service('mrbelvedere', self.services['mrbelvedere'], project)
         self.assertEquals(keychain.get_service('mrbelvedere').config, self.services['mrbelvedere'].config)
 
     def test_set_service_apextestsdb(self):
         self._test_set_service_apextestsdb()
 
-    def _test_set_service_apextestsdb(self):
+    def _test_set_service_apextestsdb(self, project=False):
         keychain = self.keychain_class(self.project_config, self.key)
-        keychain.set_service('apextestsdb', self.services['apextestsdb'])
+        keychain.set_service('apextestsdb', self.services['apextestsdb'], project)
         self.assertEquals(keychain.get_service('apextestsdb').config, self.services['apextestsdb'].config)
 
     def test_set_and_get_org(self):
         self._test_set_and_get_org()
 
-    def _test_set_and_get_org(self):
+    def _test_set_and_get_org(self, global_org=False):
         keychain = self.keychain_class(self.project_config, self.key)
-        keychain.set_org('test', self.org_config)
+        keychain.set_org('test', self.org_config, global_org)
         self.assertEquals(keychain.orgs.keys(), ['test'])
         self.assertEquals(keychain.get_org('test').config, self.org_config.config)
 
@@ -127,14 +127,14 @@ class TestBaseProjectKeychain(unittest.TestCase):
         org_config = OrgConfig(org_config)
         org_config.config['default'] = True
         keychain.set_org('test', org_config)
-        self.assertEquals(keychain.get_default_org().config, org_config.config)
+        self.assertEquals(keychain.get_default_org()[1].config, org_config.config)
 
     def test_get_default_org_no_default(self):
         self._test_get_default_org_no_default()
 
     def _test_get_default_org_no_default(self):
         keychain = self.keychain_class(self.project_config, self.key)
-        self.assertEquals(keychain.get_default_org(), None)
+        self.assertEquals(keychain.get_default_org()[1], None)
 
     def test_unset_default_org(self):
         self._test_unset_default_org()
@@ -146,7 +146,7 @@ class TestBaseProjectKeychain(unittest.TestCase):
         org_config.config['default'] = True
         keychain.set_org('test', org_config)
         keychain.unset_default_org()
-        self.assertEquals(keychain.get_default_org(), None)
+        self.assertEquals(keychain.get_default_org()[1], None)
 
     def test_list_orgs(self):
         self._test_list_orgs()
@@ -290,9 +290,8 @@ class TestEncryptedFileProjectKeychain(TestBaseProjectKeychain):
         self._write_file(filename, content)
 
     def _write_file(self, filename, content):
-        f = open(filename, 'w')
-        f.write(content)
-        f.close()
+        with open(filename, 'w') as f:
+            f.write(content)
 
     def test_init(self, mock_class):
         self._mk_temp_home()
@@ -315,12 +314,26 @@ class TestEncryptedFileProjectKeychain(TestBaseProjectKeychain):
         os.chdir(self.tempdir_project)
         self._test_set_connected_app()
 
+    def test_set_connected_app_project(self, mock_class):
+        self._mk_temp_home()
+        self._mk_temp_project()
+        mock_class.return_value = self.tempdir_home
+        os.chdir(self.tempdir_project)
+        self._test_set_connected_app(True)
+
     def test_set_service_github(self, mock_class):
         self._mk_temp_home()
         self._mk_temp_project()
         mock_class.return_value = self.tempdir_home
         os.chdir(self.tempdir_project)
         self._test_set_service_github()
+
+    def test_set_service_github_project(self, mock_class):
+        self._mk_temp_home()
+        self._mk_temp_project()
+        mock_class.return_value = self.tempdir_home
+        os.chdir(self.tempdir_project)
+        self._test_set_service_github(True)
 
     def test_set_service_mrbelvedere(self, mock_class):
         self._mk_temp_home()
@@ -329,6 +342,13 @@ class TestEncryptedFileProjectKeychain(TestBaseProjectKeychain):
         os.chdir(self.tempdir_project)
         self._test_set_service_mrbelvedere()
 
+    def test_set_service_mrbelvedere_project(self, mock_class):
+        self._mk_temp_home()
+        self._mk_temp_project()
+        mock_class.return_value = self.tempdir_home
+        os.chdir(self.tempdir_project)
+        self._test_set_service_mrbelvedere(True)
+
     def test_set_service_apextestsdb(self, mock_class):
         self._mk_temp_home()
         self._mk_temp_project()
@@ -336,12 +356,26 @@ class TestEncryptedFileProjectKeychain(TestBaseProjectKeychain):
         os.chdir(self.tempdir_project)
         self._test_set_service_apextestsdb()
 
+    def test_set_service_apextestsdb_project(self, mock_class):
+        self._mk_temp_home()
+        self._mk_temp_project()
+        mock_class.return_value = self.tempdir_home
+        os.chdir(self.tempdir_project)
+        self._test_set_service_apextestsdb(True)
+
     def test_set_and_get_org(self, mock_class):
         self._mk_temp_home()
         self._mk_temp_project()
         mock_class.return_value = self.tempdir_home
         os.chdir(self.tempdir_project)
         self._test_set_and_get_org()
+
+    def test_set_and_get_org_global(self, mock_class):
+        self._mk_temp_home()
+        self._mk_temp_project()
+        mock_class.return_value = self.tempdir_home
+        os.chdir(self.tempdir_project)
+        self._test_set_and_get_org(True)
 
     def test_get_org_not_found(self, mock_class):
         self._mk_temp_home()

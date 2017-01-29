@@ -23,6 +23,10 @@ class ServiceNotConfigured(CumulusCIException):
     """ Raised when no service configuration could be found by a given name in the project keychain """
     pass
 
+class ConfigError(CumulusCIException):
+    """ Raised when a configuration enounters an error """
+    pass
+
 class AntTargetException(CumulusCIException):
     """ Raised when a generic Ant target error occurs """
     pass
@@ -57,4 +61,44 @@ class MrbelvedereNotConfigured(CumulusCIException):
 
 class ApexTestsDBNotConfigured(CumulusCIException):
     """ Raise when attempting to get the ApexTestsDB configuration from the keychain and no configuration is set """
+    pass
+
+class TaskNotFoundError(CumulusCIException):
+    """ Raise when task is not found in project config """
+    pass
+
+class FlowNotFoundError(CumulusCIException):
+    """ Raise when flow is not found in project config """
+    pass
+
+class MrbelvedereError(CumulusCIException):
+    """ Raise for errors from mrbelvedere installer """
+    pass
+
+class ApextestsdbError(CumulusCIException):
+    """ Raise for errors from apextestsdb """
+    pass
+
+class ScratchOrgException(CumulusCIException):
+    """ Raise for errors related to scratch orgs """
+    pass
+
+class GithubException(CumulusCIException):
+    """ Raise for errors related to GitHub """
+    pass
+
+class SalesforceException(CumulusCIException):
+    """ Raise for errors related to Salesforce """
+    pass
+
+class SalesforceDXException(CumulusCIException):
+    """ Raise for errors related to Salesforce DX """
+    pass
+
+class SOQLQueryException(CumulusCIException):
+    """ Raise for errors related to Salesforce DX """
+    pass
+
+class CommandException(CumulusCIException):
+    """ Raise for errors coming from spawned CLI subprocesses """
     pass

@@ -3,7 +3,7 @@ from distutils.dir_util import copy_tree
 from distutils.dir_util import remove_tree
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.tasks import BaseTask
-from cumulusci.utils import findReplaceRegex
+from cumulusci.utils import removeXmlElement
 
 class CreateUnmanagedEESrc(BaseTask):
     task_options = {
@@ -17,8 +17,7 @@ class CreateUnmanagedEESrc(BaseTask):
         },
     }
 
-    replace_regex = ['<availableFields>.*</availableFields>.*\n']
-    fname_match = ['*.object']
+    elements = ['*.object:availableFields']
 
     def _run_task(self):
         # Check that path exists
@@ -44,10 +43,14 @@ class CreateUnmanagedEESrc(BaseTask):
         self.logger.info('Preparing metadata in {0} for unmanaged EE deployment'.format(
             self.options['path'],
         )) 
-        for replace_regex in self.replace_regex:
-            for fname_match in self.fname_match:
-                findReplaceRegex(
-                    os.path.join(self.options['path']), replace_regex, '', fname_match)
+        
+        for element in self.elements:
+            fname_match, element_name = element.split(':')
+            removeXmlElement(
+                element_name,
+                os.path.join(self.options['path']),
+                fname_match,
+            )
     
         self.logger.info('Metadata in {} is now prepared for unmanaged EE deployment'.format(
             self.options['path'],

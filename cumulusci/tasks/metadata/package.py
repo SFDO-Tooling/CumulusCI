@@ -32,7 +32,7 @@ def metadata_sort_key_section(name):
     if base_name.find('__') != -1:
         prefix = '8'
 
-    key = prefix + name 
+    key = prefix + name
     return key
 
 class MetadataParserMissingError(Exception):
@@ -41,8 +41,8 @@ class MetadataParserMissingError(Exception):
 class PackageXmlGenerator(object):
     def __init__(self, directory, api_version, package_name=None, managed=None, delete=None, install_class=None,
                  uninstall_class=None):
-        f_metadata_map = open(__location__ + '/metadata_map.yml', 'r')
-        self.metadata_map = yaml.load(f_metadata_map)
+        with open(__location__ + '/metadata_map.yml', 'r') as f_metadata_map:
+            self.metadata_map = yaml.load(f_metadata_map)
         self.directory = directory
         self.api_version = api_version
         self.package_name = package_name
@@ -104,8 +104,8 @@ class PackageXmlGenerator(object):
 
         if self.uninstall_class:
             lines.append(u'    <uninstallClass>{0}</uninstallClass>'.format(self.uninstall_class))
-   
-        # Print types sections 
+
+        # Print types sections
         self.types.sort(key=lambda x: x.metadata_type.upper())
         for parser in self.types:
             type_xml = parser()
@@ -135,10 +135,11 @@ class BaseMetadataParser(object):
         return self.render_xml()
 
     def get_delete_excludes(self):
-        f = open(__location__ + '/../../../build/whitelists/metadata.txt', 'r')
+        filename = os.path.join(__location__, '..', '..', 'files', 'metadata_whitelist.txt')
         excludes = []
-        for line in f:
-            excludes.append(line.strip())
+        with open(filename, 'r') as f:
+            for line in f:
+                excludes.append(line.strip())
         return excludes
 
     def parse_items(self):
@@ -156,7 +157,7 @@ class BaseMetadataParser(object):
 
             if self.check_delete_excludes(item):
                 continue
-            
+
             self.parse_item(item)
 
     def check_delete_excludes(self, item):
@@ -186,19 +187,19 @@ class BaseMetadataParser(object):
         self.members.sort(key=lambda x: metadata_sort_key(x))
         for member in self.members:
             output.append(u'        <members>{0}</members>'.format(member))
-        output.append(u'        <name>{0}</name>'.format(self.metadata_type)) 
+        output.append(u'        <name>{0}</name>'.format(self.metadata_type))
         output.append(u'    </types>')
         return output
-        
+
 
 class MetadataFilenameParser(BaseMetadataParser):
-    
+
     def _parse_item(self, item):
         return [self.strip_extension(item)]
 
 
 class MetadataFolderParser(BaseMetadataParser):
-    
+
     def _parse_item(self, item):
         members = []
         path = self.directory + '/' + item
@@ -210,7 +211,7 @@ class MetadataFolderParser(BaseMetadataParser):
         # Add the member if it is not namespaced
         if item.find('__') == -1:
             members.append(item)
-    
+
         for subitem in os.listdir(path):
             if subitem.endswith('-meta.xml') or subitem.startswith('.'):
                 continue
@@ -254,11 +255,11 @@ class MetadataXmlElementParser(BaseMetadataParser):
             members.append(self.get_item_name(item, parent))
 
         return members
-       
+
     def check_delete_excludes(self, item):
         return False
 
-    def get_item_elements(self, root): 
+    def get_item_elements(self, root):
         return root.findall(self.item_xpath, self.namespaces)
 
     def get_name_elements(self, item):
@@ -274,7 +275,7 @@ class MetadataXmlElementParser(BaseMetadataParser):
         prefix = self.item_name_prefix(parent)
         if prefix:
             name = prefix + name
-            
+
         return name
 
     def item_name_prefix(self, parent):
@@ -300,7 +301,7 @@ class CustomObjectParser(MetadataFilenameParser):
 
         members.append(self.strip_extension(item))
         return members
-    
+
 class RecordTypeParser(MetadataXmlElementParser):
     def check_delete_excludes(self, item):
         if self.delete:
@@ -317,7 +318,7 @@ class AuraBundleParser(MetadataFilenameParser):
             return []
         return [item]
 
-class DocumentParser(MetadataFolderParser):        
+class DocumentParser(MetadataFolderParser):
     def _parse_subitem(self, item, subitem):
         return [item + '/' + subitem]
 
@@ -353,6 +354,5 @@ class UpdatePackageXml(BaseTask):
         output = self.options.get('output', '{}/package.xml'.format(self.options.get('path')))
         self.logger.info('Generating {} from metadata in {}'.format(output, self.options.get('path')))
         package_xml = self.package_xml()
-        f = open(self.options.get('output', output), 'w')
-        f.write(package_xml)
-        f.close()
+        with open(self.options.get('output', output), 'w') as f:
+            f.write(package_xml)

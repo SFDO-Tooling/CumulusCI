@@ -536,7 +536,7 @@ class SalesforcePushApi(object):
                         if error['statusCode'] == 'INVALID_OPERATION':
                             self.logger.info('Skipping org, error message = {}'.format(error['message']))
                         else:
-                            raise e
+                            raise
 
         return request_id
 

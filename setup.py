@@ -22,19 +22,22 @@ with open('HISTORY.rst') as history_file:
 requirements = [
     'click>=6.2',
     'coloredlogs>=5.2',
+    'docutils>=0.13.1',
     'github3.py==0.9.6',
     'plaintable==0.1.1',
     'requests[security]>=2.9.1',
     'responses>=0.5.1',
+    'rst2ansi>=0.1.5',
     'sarge>=0.1.4',
     'selenium',
     'salesforce-bulk==1.1.0',
-    'simple-salesforce>=0.68.1',
+    'simple-salesforce>=0.72',
     'xmltodict==0.10.2',
     'HiYaPyCo>=0.4.8',
     'PyCrypto>=2.6.1',
     'PyGithub>=1.25.1',
     'PyYAML>=3.11',
+    'SQLAlchemy>=1.1.4',
 ]
 
 test_requirements = [
@@ -44,19 +47,19 @@ test_requirements = [
 
 setup(
     name='cumulusci',
-    version='2.0.0-alpha16',
+    version='2.0.0-beta10',
     description="Build and release tools for Salesforce developers",
     long_description=readme + '\n\n' + history,
     author="Jason Lantz",
     author_email='jlantz@salesforce.com',
-    url='https://github.com/SalesforceFoundation/CumulusCI/tree/feature/2.0',
+    url='https://github.com/SalesforceFoundation/CumulusCI',
     packages = list(find_packages(cumulusci.__path__, cumulusci.__name__)),
     package_dir={'cumulusci':
                  'cumulusci'},
     entry_points={
         'console_scripts': [
-            'cumulusci=cumulusci.cli.cli:cli',
-            'cumulusci2=cumulusci.newcli.cli:cli'
+            'cci=cumulusci.cli.cli:cli',
+            'cumulusci2=cumulusci.cli.cli:cli'
         ]
     },
     include_package_data=True,
