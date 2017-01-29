@@ -12,10 +12,10 @@ import base64
 # import dateutil.parser
 import httplib
 import re
-from tempfile import TemporaryFile
 import time
 from xml.dom.minidom import parseString
 from zipfile import ZipFile
+import StringIO
 
 import requests
 
@@ -277,9 +277,8 @@ class ApiRetrieveUnpackaged(BaseMetadataApiCall):
             zipstr = zipstr[0].firstChild.nodeValue
         else:
             return self.packages
-        zipfp = TemporaryFile()
-        zipfp.write(base64.b64decode(zipstr))
-        zipfile = ZipFile(zipfp, 'r')
+        zipstringio = StringIO.StringIO(base64.b64decode(zipstr))
+        zipfile = ZipFile(zipstringio, 'r')
         return zipfile
 
 class ApiRetrieveInstalledPackages(BaseMetadataApiCall):
@@ -302,9 +301,8 @@ class ApiRetrieveInstalledPackages(BaseMetadataApiCall):
             zipstr = zipstr[0].firstChild.nodeValue
         else:
             return self.packages
-        zipfp = TemporaryFile()
-        zipfp.write(base64.b64decode(zipstr))
-        zipfile = ZipFile(zipfp, 'r')
+        zipstringio = StringIO.StringIO(base64.b64decode(zipstr))
+        zipfile = ZipFile(zipstringio, 'r')
         packages = {}
         # Loop through all files in the zip skipping anything other than
         # InstalledPackages
@@ -348,9 +346,8 @@ class ApiRetrievePackaged(BaseMetadataApiCall):
             zipstr = zipstr[0].firstChild.nodeValue
         else:
             return self.packages
-        zipfp = TemporaryFile()
-        zipfp.write(base64.b64decode(zipstr))
-        zipfile = ZipFile(zipfp, 'r')
+        zipstringio = StringIO.StringIO(base64.b64decode(zipstr))
+        zipfile = ZipFile(zipstringio, 'r')
         return zipfile
 
 
@@ -504,8 +501,7 @@ class ApiInstallVersion(ApiDeploy):
             except:
                 raise ValueError('Failed to fetch zip from %s' %
                                  self.version.zip_url)
-            zipfp = TemporaryFile()
-            zipfp.write(zip_resp.content)
+            zipfp = StringIO.StringIO(zip_resp.content)
             zipfile = ZipFile(zipfp, 'r')
             if not self.version.subfolder and not self.version.repo_url:
                 zipfile.close()
