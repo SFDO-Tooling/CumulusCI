@@ -378,6 +378,21 @@ flows:
             8:
                 task: update_admin_profile
 
+services:
+  github:
+    description: Configure connection for github tasks, e.g. Create Release
+    attributes:
+      username:
+        description: The Github username to use for tasks
+        required: True
+      password:
+        description:  Github password to use for tasks.  It is recommended to use a Github Application Token instead of password to allow bypassing 2fa.
+         required: True
+      email:
+        description: The email address to used by Github tasks when an operation requires an email address.
+        required: True
+
+
 project:
     name:
     package:
