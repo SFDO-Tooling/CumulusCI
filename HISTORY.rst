@@ -2,6 +2,14 @@
 History
 =======
 
+2.0.0-beta11 (2017-02-01)
+------------------------
+
+* Fixes and new functionality for `update_package_xml_managed` task.
+
+  * Added support for project -> package -> name_managed in the cumulusci.yml file to specify a different package name to use when deploying to the packaging org.
+  * Fixed bug with install_class and uninstall_class handling
+
 2.0.0-beta10 (2017-01-20)
 ------------------------
 
