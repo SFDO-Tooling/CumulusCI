@@ -402,8 +402,11 @@ project.add_command(project_show_saucelabs)
 def service_list(config):
     headers = ['service','description','is_configured']
     data = []
-    for service,schema in config.project_config.services.iteritems():
-        data.append((service,schema['description'],''))
+    for serv,schema in config.project_config.services.iteritems():
+        is_configured = ''
+        if serv in config.keychain.list_services():
+            is_configured = '* '
+        data.append((serv,schema['description'],is_configured))
     table = Table(data, headers)
     click.echo(table)
 
