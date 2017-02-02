@@ -294,8 +294,7 @@ def service_list(config):
     click.echo(table)
 
 
-class ConnectService(click.MultiCommand):
-
+class ConnectServiceCommand(click.MultiCommand):
     def list_commands(self, ctx):
         rv = []
         config = ctx.ensure_object(CliConfig)
@@ -309,13 +308,15 @@ class ConnectService(click.MultiCommand):
         params = []
         config = ctx.ensure_object(CliConfig)
         for attribute,details in config.project_config.services[name]['attributes'].iteritems():
-            params.append(click.Option(("--"+attribute,), prompt=details['required'], required=details['required']))
+            req = details['required'] # is it required?
+            params.append(click.Option(("--"+attribute,), prompt=req, required=req))
         params.append(click.Option(('--project',),is_flag=True))
 
         @click.pass_context
         def callback(ctx,project=False,*args, **kwargs):
             check_keychain(config)
-            config.keychain.set_service(name, ServiceConfig(kwargs), project)
+            serv_conf = dict((k, v) for k, v in kwargs.iteritems() if v) # remove None values
+            config.keychain.set_service(name, ServiceConfig(serv_conf), project)
             if project:
                 click.echo('{0} is now configured for this project'.format(name))
             else:
@@ -324,7 +325,7 @@ class ConnectService(click.MultiCommand):
         ret = click.Command(name, params=params, callback=callback)
         return ret
 
-@click.command(cls=ConnectService,name='connect',help='Connect a CumulusCI task service')
+@click.command(cls=ConnectServiceCommand,name='connect',help='Connect a CumulusCI task service')
 @click.pass_context
 def service_connect(ctx, *args, **kvargs):
     pass
