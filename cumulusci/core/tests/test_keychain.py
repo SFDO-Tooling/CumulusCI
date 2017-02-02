@@ -33,6 +33,11 @@ class TestBaseProjectKeychain(unittest.TestCase):
     def setUp(self):
         self.global_config = BaseGlobalConfig()
         self.project_config = BaseProjectConfig(self.global_config)
+        self.project_config.services = {
+            'github':{'attributes':[{'name':'git'}]},
+            'mrbelvedere':{'attributes':[{'mr':'git'}]},
+            'apextestsdb':{'attributes':[{'name':'apex'}]},
+        }
         self.connected_app_config = ConnectedAppOAuthConfig({'test': 'value'})
         self.services = {
             'github': ServiceConfig({'git': 'hub'}),
@@ -254,6 +259,11 @@ class TestEncryptedFileProjectKeychain(TestBaseProjectKeychain):
     def setUp(self):
         self.global_config = BaseGlobalConfig()
         self.project_config = BaseProjectConfig(self.global_config)
+        self.project_config.services = {
+            'github':{'attributes':[{'name':'git'}]},
+            'mrbelvedere':{'attributes':[{'mr':'git'}]},
+            'apextestsdb':{'attributes':[{'name':'apex'}]},
+        }
         self.project_name = 'TestRepo'
         self.connected_app_config = ConnectedAppOAuthConfig({'test': 'value'})
         self.org_config = OrgConfig({'foo': 'bar'})

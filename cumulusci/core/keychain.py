@@ -13,6 +13,7 @@ from cumulusci.core.config import ScratchOrgConfig
 from cumulusci.core.config import ServiceConfig
 from cumulusci.core.exceptions import OrgNotFound
 from cumulusci.core.exceptions import ServiceNotConfigured
+from cumulusci.core.exceptions import ServiceNotValid
 from cumulusci.core.exceptions import KeychainConnectedAppNotFound
 
 class BaseProjectKeychain(BaseConfig):
@@ -115,6 +116,9 @@ class BaseProjectKeychain(BaseConfig):
         return orgs
 
     def set_service(self, name, service_config, project=False):
+        """ Store a ServiceConfig in the keychain """
+        if name not in self.project_config.services:
+            self._raise_service_not_valid(name)
         self._set_service(name, service_config, project)
         self._load_keychain()
 
@@ -122,6 +126,9 @@ class BaseProjectKeychain(BaseConfig):
         self.services[name] = service_config
 
     def get_service(self, name):
+        """ Retrieve a stored ServiceConfig from the keychain or exception """
+        if name not in self.project_config.services:
+            self._raise_service_not_valid(name)
         if name not in self.services:
             self._raise_service_not_configured(name)
         return self._get_service(name)
@@ -131,6 +138,9 @@ class BaseProjectKeychain(BaseConfig):
     
     def _raise_service_not_configured(self, name):
         raise ServiceNotConfigured('Service named {} is not configured for this project'.format(name))
+
+    def _raise_service_not_valid(self, name):
+        raise ServiceNotConfigured('Service named {} is not valid for this project'.format(name))
 
     def list_services(self):
         services = self.services.keys()
