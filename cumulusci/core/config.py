@@ -10,8 +10,8 @@ import sarge
 from simple_salesforce import Salesforce
 import yaml
 
-from distutils.version import LooseVersion
-from github3 import login
+from distutils.version import LooseVersion # pylint: disable=import-error,no-name-in-module
+from github3 import login 
 from Crypto import Random
 from Crypto.Cipher import AES
 

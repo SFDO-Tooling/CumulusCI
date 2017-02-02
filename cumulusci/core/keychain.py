@@ -140,7 +140,7 @@ class BaseProjectKeychain(BaseConfig):
         raise ServiceNotConfigured('Service named {} is not configured for this project'.format(name))
 
     def _raise_service_not_valid(self, name):
-        raise ServiceNotConfigured('Service named {} is not valid for this project'.format(name))
+        raise ServiceNotValid('Service named {} is not valid for this project'.format(name))
 
     def list_services(self):
         services = self.services.keys()
