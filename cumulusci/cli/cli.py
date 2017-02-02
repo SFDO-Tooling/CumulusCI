@@ -141,12 +141,18 @@ def task(config):
 def flow(config):
     pass
 
+@click.group('service',help="Commands for connecting services to the keychain")
+@pass_config
+def service(config):
+    pass
+
 cli.add_command(project)
 cli.add_command(org)
 cli.add_command(task)
 cli.add_command(flow)
 cli.add_command(version)
 cli.add_command(shell)
+cli.add_command(service)
 
 # Commands for group: project
 
@@ -389,6 +395,19 @@ project.add_command(project_show_mrbelvedere)
 project.add_command(project_show_saucelabs)
 #project.add_command(project_list)
 #project.add_command(project_cd)
+
+# Commands for group: service
+@click.command(name='list', help='List services available for configuration and use')
+@pass_config
+def service_list(config):
+    headers = ['service','description','is_configured']
+    data = []
+    for service,schema in config.project_config.services.iteritems():
+        data.append((service,schema['description'],''))
+    table = Table(data, headers)
+    click.echo(table)
+
+service.add_command(service_list)
 
 # Commands for group: org
 @click.command(name='browser', help="Opens a browser window and logs into the org using the stored OAuth credentials")

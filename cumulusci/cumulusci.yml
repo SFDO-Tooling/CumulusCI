@@ -391,36 +391,36 @@ services:
       email:
         description: The email address to used by Github tasks when an operation requires an email address.
         required: True
-    mrbelvedere:
-      description: Configure connection for mrbelvedere tasks, e.g. MrbelvederePublish
-      attributes:
-        base_url:
-          description: The base url for your mrbelvedere instance.
-          required: True
-        api_key:
-          description: The package api_key for the package in your mrbelvedere instance.  
-          required: True
-    apextestsdb:
-      description: Configure connection for ApexTestsDB tasks, e.g. ApextestsdbUpload
-      attributes:
-        base_url:
-          description: The base url for your ApexTestsDB instance.
-          required: True
-        user_id:
-          description: The user id to use when connecting to ApexTestsDB.  
-          required: True
-        token:
-          description: The api token to use when connecting to ApexTestsDB.
-          required: True
-    saucelabs:
-      description: Configure connection for saucelabs tasks.
-      attributes:
-        username:
-          description: The Saucelabs username to use for tasks.
-          required: True
-        api_key:
-          description: The Saucelabs api key to use for tasks  
-          required: True
+  mrbelvedere:
+    description: Configure connection for mrbelvedere tasks, e.g. MrbelvederePublish
+    attributes:
+      base_url:
+        description: The base url for your mrbelvedere instance.
+        required: True
+      api_key:
+        description: The package api_key for the package in your mrbelvedere instance.  
+        required: True
+  apextestsdb:
+    description: Configure connection for ApexTestsDB tasks, e.g. ApextestsdbUpload
+    attributes:
+      base_url:
+        description: The base url for your ApexTestsDB instance.
+        required: True
+      user_id:
+        description: The user id to use when connecting to ApexTestsDB.  
+        required: True
+      token:
+        description: The api token to use when connecting to ApexTestsDB.
+        required: True
+  saucelabs:
+    description: Configure connection for saucelabs tasks.
+    attributes:
+      username:
+        description: The Saucelabs username to use for tasks.
+        required: True
+      api_key:
+        description: The Saucelabs api key to use for tasks  
+        required: True
 
 project:
     name:
