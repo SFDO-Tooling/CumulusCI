@@ -315,7 +315,7 @@ class ConnectServiceCommand(click.MultiCommand):
         @click.pass_context
         def callback(ctx,project=False,*args, **kwargs):
             check_keychain(config)
-            serv_conf = dict((k, v) for k, v in kwargs.iteritems() if v) # remove None values
+            serv_conf = dict((k, v) for k, v in kwargs.iteritems() if v!=None) # remove None values
             config.keychain.set_service(name, ServiceConfig(serv_conf), project)
             if project:
                 click.echo('{0} is now configured for this project'.format(name))
