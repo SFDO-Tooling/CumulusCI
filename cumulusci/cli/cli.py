@@ -24,6 +24,7 @@ from cumulusci.core.exceptions import KeychainKeyNotFound
 from cumulusci.salesforce_api.exceptions import MetadataApiError
 from cumulusci.core.exceptions import NotInProject
 from cumulusci.core.exceptions import ProjectConfigNotFound
+from cumulusci.core.exceptions import ScratchOrgException
 from cumulusci.core.exceptions import ServiceNotConfigured
 from cumulusci.core.exceptions import TaskNotFoundError
 from cumulusci.core.exceptions import TaskOptionsError
@@ -496,7 +497,11 @@ def org_scratch_delete(config, org_name):
     if not org_config.scratch:
         raise click.UsageError('Org {} is not a scratch org'.format(org_name))
 
-    org_config.delete_org()
+    try:
+        org_config.delete_org()
+    except ScratchOrgException as e:
+        exception = click.UsageError(e.message)
+
     config.keychain.set_org(org_name, org_config)
 
 @click.command(name='connected_app', help="Displays the ConnectedApp info used for OAuth connections")

@@ -2,6 +2,11 @@
 History
 =======
 
+2.0.0-beta12 (2017-02-02)
+------------------------
+
+* Throw better exceptions if there are failures creating or deleting scratch orgs
+
 2.0.0-beta11 (2017-02-01)
 ------------------------
 

@@ -492,16 +492,18 @@ class ScratchOrgConfig(OrgConfig):
 
         org_info = None
         re_obj = re.compile('Successfully created workspace org: (.+), username: (.+)')
+        stdout = [] 
         for line in p.stdout:
             match = re_obj.search(line)
             if match:
                 self.config['org_id'] = match.group(1)
                 self.config['username'] = match.group(2)
+            stdout.append(line)
             self.logger.info(line)
 
         if p.returncode:
-            # FIXME: raise exception
-            raise ConfigError('Failed to create scratch org: {}'.format('\n'.join(p.stdout)))
+            message = 'Failed to create scratch org: \n{}'.format(''.join(stdout))
+            raise ScratchOrgException(message)
 
         # Flag that this org has been created
         self.config['created'] = True
@@ -518,16 +520,21 @@ class ScratchOrgConfig(OrgConfig):
         p.run()
 
         org_info = None
+        stdout = []
         for line in p.stdout:
-            self.logger.info(line)
+            stdout.append(line)
+            if line.startswith('An error occurred deleting this org'):
+                self.logger.error(line)
+            else:
+                self.logger.info(line)
 
         if p.returncode:
-            # FIXME: raise exception
-            raise ConfigError('Failed to delete scratch org')
+            message = 'Failed to delete scratch org: \n{}'.format(''.join(stdout))
+            raise ScratchOrgException(message)
 
         # Flag that this org has been created
         self.config['created'] = False
-        self.config['username'] = False
+        self.config['username'] = None
 
     def refresh_oauth_token(self, connected_app):
         """ Use heroku force:org:open to refresh token instead of built in OAuth handling """
