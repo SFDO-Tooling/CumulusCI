@@ -264,116 +264,6 @@ def project_info(config):
     check_project_config(config)
     click.echo(pretty_dict(config.project_config.project))
 
-@click.command(name='connect_github', help="Configure this project for Github tasks")
-@click.option('--username', help="The Github username to use for tasks", prompt=True)
-@click.option('--password', help="The Github password to use for tasks.  It is recommended to use a Github Application Token instead of password to allow bypassing 2fa.", prompt=True, hide_input=True)
-@click.option('--email', help="The email address to used by Github tasks when an operation requires an email address.", prompt=True)
-@click.option('--project', help='Set if storing encrypted keychain file in project directory', is_flag=True)
-@pass_config
-def project_connect_github(config, username, password, email, project):
-    check_keychain(config)
-    config.keychain.set_service('github', ServiceConfig({
-        'username': username,
-        'password': password,
-        'email': email,
-    }), project)
-    if project:
-        click.echo('Github is now configured for this project')
-    else:
-        click.echo('Github is now configured for global use')
-
-@click.command(name='show_github', help="Prints the current Github configuration for this project")
-@pass_config
-def project_show_github(config):
-    check_keychain(config)
-    try:
-        github = config.keychain.get_service('github')
-        click.echo(pretty_dict(github.config))
-    except ServiceNotConfigured:
-        click.echo('Github is not configured for this project.  Use project connect_github to configure.')
-
-@click.command(name='connect_saucelabs', help="Configure this project for Saucelabs tasks")
-@click.option('--username', help="The Saucelabs username to use for tasks", prompt=True)
-@click.option('--api-key', help="The Saucelabs username to use for tasks", prompt=True, hide_input=True)
-@click.option('--project', help='Set if storing encrypted keychain file in project directory', is_flag=True)
-@pass_config
-def project_connect_saucelabs(config, username, api_key, project):
-    check_keychain(config)
-    config.keychain.set_service('saucelabs', ServiceConfig({
-        'username': username,
-        'api_key': api_key,
-    }), project)
-    if project:
-        click.echo('Saucelabs is now configured for this project')
-    else:
-        click.echo('Saucelabs is now configured for global use')
-
-@click.command(name='show_saucelabs', help="Prints the current Saucelabs configuration for this project")
-@pass_config
-def project_show_saucelabs(config):
-    check_keychain(config)
-    try:
-        saucelabs = config.keychain.get_service('saucelabs')
-        click.echo(pretty_dict(saucelabs.config))
-    except ServiceNotConfigured:
-        click.echo('Saucelabs is not configured for this project.  Use project connect_saucelabs to configure.')
-
-
-@click.command(name='connect_mrbelvedere', help="Configure this project for mrbelvedere tasks")
-@click.option('--base_url', help="The base url for your mrbelvedere instance", prompt=True)
-@click.option('--api_key', help="The package api_key for the package in your mrbelvedere instance.", prompt=True, hide_input=True)
-@click.option('--project', help='Set if storing encrypted keychain file in project directory', is_flag=True)
-@pass_config
-def project_connect_mrbelvedere(config, base_url, api_key, project):
-    check_keychain(config)
-    config.keychain.set_service('mrbelvedere', ServiceConfig({
-        'base_url': base_url,
-        'api_key': api_key,
-    }), project)
-    if project:
-        click.echo('MrBelvedere is now configured for this project')
-    else:
-        click.echo('MrBelvedere is now configured for global use')
-
-@click.command(name='show_mrbelvedere', help="Prints the current mrbelvedere configuration for this project")
-@pass_config
-def project_show_mrbelvedere(config):
-    check_keychain(config)
-    try:
-        mrbelvedere = config.keychain.get_service('mrbelvedere')
-        click.echo(pretty_dict(mrbelvedere.config))
-    except ServiceNotConfigured:
-        click.echo('mrbelvedere is not configured for this project.  Use project connect_mrbelvedere to configure.')
-
-@click.command(name='connect_apextestsdb', help="Configure this project for ApexTestsDB tasks")
-@click.option('--base_url', help="The base url for your ApexTestsDB instance", prompt=True)
-@click.option('--user-id', help="The user id to use when connecting to ApexTestsDB.", prompt=True)
-@click.option('--token', help="The api token to use when connecting to ApexTestsDB.", prompt=True, hide_input=True)
-@click.option('--project', help='Set if storing encrypted keychain file in project directory', is_flag=True)
-@pass_config
-def project_connect_apextestsdb(config, base_url, user_id, token, project):
-    check_keychain(config)
-    config.keychain.set_service('apextestsdb', ServiceConfig({
-        'base_url': base_url,
-        'user_id': user_id,
-        'token': token,
-    }), project)
-    if project:
-        click.echo('ApexTestsDB is now configured for this project')
-    else:
-        click.echo('ApexTestsDB is now configured for global use')
-
-@click.command(name='show_apextestsdb', help="Prints the current ApexTestsDB configuration for this project")
-@pass_config
-def project_show_apextestsdb(config):
-    check_keychain(config)
-    try:
-        apextestsdb = config.keychain.get_service('apextestsdb')
-        click.echo(pretty_dict(apextestsdb.config))
-    except ServiceNotConfigured:
-        click.echo('ApexTestsDB is not configured for this project.  Use project connect_apextestsdb to configure.')
-
-
 @click.command(name='list', help="List projects and their locations")
 @pass_config
 def project_list(config):
@@ -384,16 +274,8 @@ def project_list(config):
 def project_cd(config):
     pass
 
-project.add_command(project_connect_apextestsdb)
-project.add_command(project_connect_github)
-project.add_command(project_connect_mrbelvedere)
-project.add_command(project_connect_saucelabs)
 project.add_command(project_init)
 project.add_command(project_info)
-project.add_command(project_show_apextestsdb)
-project.add_command(project_show_github)
-project.add_command(project_show_mrbelvedere)
-project.add_command(project_show_saucelabs)
 #project.add_command(project_list)
 #project.add_command(project_cd)
 
@@ -411,7 +293,57 @@ def service_list(config):
     table = Table(data, headers)
     click.echo(table)
 
+
+class ConnectService(click.MultiCommand):
+
+    def list_commands(self, ctx):
+        rv = []
+        config = ctx.ensure_object(CliConfig)
+        for serv,schema in config.project_config.services.iteritems():
+            rv.append(serv)
+        rv.sort()
+        return rv
+
+    def get_command(self, ctx, name):
+        ns = {}
+        params = []
+        config = ctx.ensure_object(CliConfig)
+        for attribute,details in config.project_config.services[name]['attributes'].iteritems():
+            params.append(click.Option(("--"+attribute,), prompt=details['required'], required=details['required']))
+        params.append(click.Option(('--project',),is_flag=True))
+
+        @click.pass_context
+        def callback(ctx,project=False,*args, **kwargs):
+            check_keychain(config)
+            config.keychain.set_service(name, ServiceConfig(kwargs), project)
+            if project:
+                click.echo('{0} is now configured for this project'.format(name))
+            else:
+                click.echo('{0} is now configured for global use'.format(name))
+
+        ret = click.Command(name, params=params, callback=callback)
+        return ret
+
+@click.command(cls=ConnectService,name='connect',help='Connect a CumulusCI task service')
+@click.pass_context
+def service_connect(ctx, *args, **kvargs):
+    pass
+
+
+@click.command(name='show',help='Show the details of a connected service')
+@click.argument('service_name')
+@pass_config
+def service_show(config,service_name):
+    check_keychain(config)
+    try:
+        service_config = config.keychain.get_service(service_name)
+        click.echo(pretty_dict(service_config.config))
+    except ServiceNotConfigured:
+        click.echo('{0} is not configured for this project.  Use service connect {0} to configure.'.format(service_name))
+
+service.add_command(service_connect)
 service.add_command(service_list)
+service.add_command(service_show)
 
 # Commands for group: org
 @click.command(name='browser', help="Opens a browser window and logs into the org using the stored OAuth credentials")
