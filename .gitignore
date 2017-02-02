@@ -14,3 +14,5 @@ dist/
 .idea/
 .tox/
 tags
+.vscode/
+.cache/
