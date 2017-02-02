@@ -117,7 +117,8 @@ def version():
 
 @click.command(name='shell', help='Drop into a python shell')
 @pass_config
-def shell(config):
+@click.pass_context
+def shell(ctx,config):
     code.interact(local=dict(globals(), **locals()))
 
 # Top Level Groups
