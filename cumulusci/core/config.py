@@ -542,9 +542,7 @@ class ScratchOrgConfig(OrgConfig):
 
 
 class ServiceConfig(BaseConfig):
-    """ Keychain service configuration """
-    def _validate_service(self,name):
-        pass
+    pass
 
 class YamlProjectConfig(BaseProjectConfig):
     config_filename = 'cumulusci.yml'
