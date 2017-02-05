@@ -119,6 +119,7 @@ class BaseProjectKeychain(BaseConfig):
         """ Store a ServiceConfig in the keychain """
         if name not in self.project_config.services:
             self._raise_service_not_valid(name)
+        self._validate_service(name, service_config)
         self._set_service(name, service_config, project)
         self._load_keychain()
 
@@ -126,7 +127,14 @@ class BaseProjectKeychain(BaseConfig):
         self.services[name] = service_config
 
     def get_service(self, name):
-        """ Retrieve a stored ServiceConfig from the keychain or exception """
+        """ Retrieve a stored ServiceConfig from the keychain or exception
+
+        :param name: the service name to retrieve
+        :type name: str
+
+        :rtype ServiceConfig
+        :return the configured Service
+        """
         if name not in self.project_config.services:
             self._raise_service_not_valid(name)
         if name not in self.services:
@@ -135,9 +143,21 @@ class BaseProjectKeychain(BaseConfig):
 
     def _get_service(self, name):
         return self.services.get(name)
+
+    def _validate_service(self, name, service_config):
+        missing_required = []
+        attr_key = 'services__{0}__attributes'.format(name)
+        for atr, config in getattr(self.project_config, attr_key).iteritems():
+            if config.get('required') is True and not getattr(service_config, atr):
+                missing_required.append(atr)
+
+        if missing_required:
+            self._raise_service_not_valid(name)
     
     def _raise_service_not_configured(self, name):
-        raise ServiceNotConfigured('Service named {} is not configured for this project'.format(name))
+        raise ServiceNotConfigured(
+            'Service named {} is not configured for this project'.format(name)
+        )
 
     def _raise_service_not_valid(self, name):
         raise ServiceNotValid('Service named {} is not valid for this project'.format(name))
