@@ -35,6 +35,9 @@ class BaseProjectKeychain(BaseConfig):
         pass
 
     def change_key(self, key):
+        """ re-encrypt stored services, orgs, and the connected_app
+        with the new key """
+
         connected_app = self.get_connected_app()
 
         services = {}
@@ -58,13 +61,17 @@ class BaseProjectKeychain(BaseConfig):
                 self.set_service(service_name, service_config)
 
     def set_connected_app(self, app_config, project=False):
+        """ store a connected_app configuration """
+
         self._set_connected_app(app_config, project)
         self._load_keychain()
-    
+
     def _set_connected_app(self, app_config, project):
         self.app = app_config
 
     def get_connected_app(self):
+        """ retrieve the connected app configuration """
+
         return self._get_connected_app()
 
     def _get_connected_app(self):
@@ -80,6 +87,7 @@ class BaseProjectKeychain(BaseConfig):
         self.orgs[name] = org_config
 
     def get_default_org(self):
+        """ retrieve the name and configuration of the default org """
         for org in self.list_orgs():
             org_config = self.get_org(org)
             if org_config.default:
@@ -87,12 +95,14 @@ class BaseProjectKeychain(BaseConfig):
         return None, None
 
     def set_default_org(self, name):
+        """ set the default org for tasks by name key """
         org = self.get_org(name)
         self.unset_default_org()
         org.config['default'] = True
         self.set_org(name, org)
-        
+
     def unset_default_org(self):
+        """ unset the default orgs for tasks """
         for org in self.list_orgs():
             org_config = self.get_org(org)
             if org_config.default:
@@ -100,6 +110,7 @@ class BaseProjectKeychain(BaseConfig):
                 self.set_org(org, org_config)
 
     def get_org(self, name):
+        """ retrieve an org configuration by name key """
         if name not in self.orgs:
             self._raise_org_not_found(name)
         return self._get_org(name)
@@ -111,6 +122,7 @@ class BaseProjectKeychain(BaseConfig):
         raise OrgNotFound('Org named {} was not found in keychain'.format(name))
 
     def list_orgs(self):
+        """ list the orgs configured in the keychain """
         orgs = self.orgs.keys()
         orgs.sort()
         return orgs
@@ -139,6 +151,7 @@ class BaseProjectKeychain(BaseConfig):
             self._raise_service_not_valid(name)
         if name not in self.services:
             self._raise_service_not_configured(name)
+
         return self._get_service(name)
 
     def _get_service(self, name):
@@ -153,7 +166,7 @@ class BaseProjectKeychain(BaseConfig):
 
         if missing_required:
             self._raise_service_not_valid(name)
-    
+
     def _raise_service_not_configured(self, name):
         raise ServiceNotConfigured(
             'Service named {} is not configured for this project'.format(name)
@@ -163,6 +176,7 @@ class BaseProjectKeychain(BaseConfig):
         raise ServiceNotValid('Service named {} is not valid for this project'.format(name))
 
     def list_services(self):
+        """ list the services configured in the keychain """
         services = self.services.keys()
         services.sort()
         return services
