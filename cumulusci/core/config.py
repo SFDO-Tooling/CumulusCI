@@ -356,7 +356,7 @@ class OrgConfig(BaseConfig):
             client_id,
             client_secret,
             connected_app.callback_url, # Callback url isn't really used for this call
-            auth_site=self.auth_site,
+            auth_site=self.instance_url,
         )
         resp = sf_oauth.refresh_token(self.refresh_token).json()
         if resp != self.config:
