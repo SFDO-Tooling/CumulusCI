@@ -296,20 +296,22 @@ def service_list(config):
 
 class ConnectServiceCommand(click.MultiCommand):
     def list_commands(self, ctx):
-        rv = []
+        """ list the services that can be configured """
         config = ctx.ensure_object(CliConfig)
-        for serv,schema in config.project_config.services.iteritems():
-            rv.append(serv)
-        rv.sort()
-        return rv
+        return sorted(config.project_config.services.keys())
+
+    def _build_param(self, attribute, details):
+        req = details['required']
+        return click.Option(('--{0}'.format(attribute),), prompt=req, required=req)
 
     def get_command(self, ctx, name):
-        ns = {}
-        params = []
         config = ctx.ensure_object(CliConfig)
-        for attribute,details in config.project_config.services[name]['attributes'].iteritems():
-            req = details['required'] # is it required?
-            params.append(click.Option(("--"+attribute,), prompt=req, required=req))
+
+        attributes = getattr(
+            config.project_config, 
+            'services__{0}__attributes'.format(name)
+        ).iteritems()
+        params = [self._build_param(attr,cnfg) for attr, cnfg in attributes]
         params.append(click.Option(('--project',),is_flag=True))
 
         @click.pass_context
