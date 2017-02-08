@@ -10,8 +10,8 @@ import sarge
 from simple_salesforce import Salesforce
 import yaml
 
-from distutils.version import LooseVersion
-from github3 import login
+from distutils.version import LooseVersion # pylint: disable=import-error,no-name-in-module
+from github3 import login 
 from Crypto import Random
 from Crypto.Cipher import AES
 
@@ -21,6 +21,7 @@ from cumulusci.core.exceptions import KeychainConnectedAppNotFound
 from cumulusci.core.exceptions import ProjectConfigNotFound
 from cumulusci.core.exceptions import ScratchOrgException
 from cumulusci.core.exceptions import SOQLQueryException
+from cumulusci.core.exceptions import KeychainNotFound
 from cumulusci.oauth.salesforce import SalesforceOAuth2
 
 __location__ = os.path.dirname(os.path.realpath(__file__))
@@ -541,7 +542,6 @@ class ScratchOrgConfig(OrgConfig):
 
 
 class ServiceConfig(BaseConfig):
-    """ Keychain service configuration """
     pass
 
 class YamlProjectConfig(BaseProjectConfig):

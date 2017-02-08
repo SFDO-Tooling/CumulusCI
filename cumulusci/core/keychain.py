@@ -13,6 +13,7 @@ from cumulusci.core.config import ScratchOrgConfig
 from cumulusci.core.config import ServiceConfig
 from cumulusci.core.exceptions import OrgNotFound
 from cumulusci.core.exceptions import ServiceNotConfigured
+from cumulusci.core.exceptions import ServiceNotValid
 from cumulusci.core.exceptions import KeychainConnectedAppNotFound
 
 class BaseProjectKeychain(BaseConfig):
@@ -34,6 +35,9 @@ class BaseProjectKeychain(BaseConfig):
         pass
 
     def change_key(self, key):
+        """ re-encrypt stored services, orgs, and the connected_app
+        with the new key """
+
         connected_app = self.get_connected_app()
 
         services = {}
@@ -57,13 +61,17 @@ class BaseProjectKeychain(BaseConfig):
                 self.set_service(service_name, service_config)
 
     def set_connected_app(self, app_config, project=False):
+        """ store a connected_app configuration """
+
         self._set_connected_app(app_config, project)
         self._load_keychain()
-    
+
     def _set_connected_app(self, app_config, project):
         self.app = app_config
 
     def get_connected_app(self):
+        """ retrieve the connected app configuration """
+
         return self._get_connected_app()
 
     def _get_connected_app(self):
@@ -79,6 +87,7 @@ class BaseProjectKeychain(BaseConfig):
         self.orgs[name] = org_config
 
     def get_default_org(self):
+        """ retrieve the name and configuration of the default org """
         for org in self.list_orgs():
             org_config = self.get_org(org)
             if org_config.default:
@@ -86,12 +95,14 @@ class BaseProjectKeychain(BaseConfig):
         return None, None
 
     def set_default_org(self, name):
+        """ set the default org for tasks by name key """
         org = self.get_org(name)
         self.unset_default_org()
         org.config['default'] = True
         self.set_org(name, org)
-        
+
     def unset_default_org(self):
+        """ unset the default orgs for tasks """
         for org in self.list_orgs():
             org_config = self.get_org(org)
             if org_config.default:
@@ -99,6 +110,7 @@ class BaseProjectKeychain(BaseConfig):
                 self.set_org(org, org_config)
 
     def get_org(self, name):
+        """ retrieve an org configuration by name key """
         if name not in self.orgs:
             self._raise_org_not_found(name)
         return self._get_org(name)
@@ -110,11 +122,16 @@ class BaseProjectKeychain(BaseConfig):
         raise OrgNotFound('Org named {} was not found in keychain'.format(name))
 
     def list_orgs(self):
+        """ list the orgs configured in the keychain """
         orgs = self.orgs.keys()
         orgs.sort()
         return orgs
 
     def set_service(self, name, service_config, project=False):
+        """ Store a ServiceConfig in the keychain """
+        if name not in self.project_config.services:
+            self._raise_service_not_valid(name)
+        self._validate_service(name, service_config)
         self._set_service(name, service_config, project)
         self._load_keychain()
 
@@ -122,17 +139,44 @@ class BaseProjectKeychain(BaseConfig):
         self.services[name] = service_config
 
     def get_service(self, name):
+        """ Retrieve a stored ServiceConfig from the keychain or exception
+
+        :param name: the service name to retrieve
+        :type name: str
+
+        :rtype ServiceConfig
+        :return the configured Service
+        """
+        if name not in self.project_config.services:
+            self._raise_service_not_valid(name)
         if name not in self.services:
             self._raise_service_not_configured(name)
+
         return self._get_service(name)
 
     def _get_service(self, name):
         return self.services.get(name)
-    
+
+    def _validate_service(self, name, service_config):
+        missing_required = []
+        attr_key = 'services__{0}__attributes'.format(name)
+        for atr, config in getattr(self.project_config, attr_key).iteritems():
+            if config.get('required') is True and not getattr(service_config, atr):
+                missing_required.append(atr)
+
+        if missing_required:
+            self._raise_service_not_valid(name)
+
     def _raise_service_not_configured(self, name):
-        raise ServiceNotConfigured('Service named {} is not configured for this project'.format(name))
+        raise ServiceNotConfigured(
+            'Service named {} is not configured for this project'.format(name)
+        )
+
+    def _raise_service_not_valid(self, name):
+        raise ServiceNotValid('Service named {} is not valid for this project'.format(name))
 
     def list_services(self):
+        """ list the services configured in the keychain """
         services = self.services.keys()
         services.sort()
         return services

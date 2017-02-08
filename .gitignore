@@ -13,3 +13,6 @@ dist/
 .eggs/
 .idea/
 .tox/
+tags
+.vscode/
+.cache/

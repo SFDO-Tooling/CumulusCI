@@ -20,6 +20,7 @@ from cumulusci.core.keychain import BaseEncryptedProjectKeychain
 from cumulusci.core.keychain import EncryptedFileProjectKeychain
 from cumulusci.core.keychain import EnvironmentProjectKeychain
 from cumulusci.core.exceptions import NotInProject
+from cumulusci.core.exceptions import ServiceNotValid
 from cumulusci.core.exceptions import OrgNotFound
 from cumulusci.core.exceptions import ProjectConfigNotFound
 
@@ -33,9 +34,14 @@ class TestBaseProjectKeychain(unittest.TestCase):
     def setUp(self):
         self.global_config = BaseGlobalConfig()
         self.project_config = BaseProjectConfig(self.global_config)
+        self.project_config.config['services'] = {
+            'github':{'attributes':{'name':{'required':True}, 'password':{}}},
+            'mrbelvedere':{'attributes':{'mr':{'required':True}}},
+            'apextestsdb':{'attributes':{'apex':{'required':True}}},
+        }
         self.connected_app_config = ConnectedAppOAuthConfig({'test': 'value'})
         self.services = {
-            'github': ServiceConfig({'git': 'hub'}),
+            'github': ServiceConfig({'name': 'hub'}),
             'mrbelvedere': ServiceConfig({'mr': 'belvedere'}),
             'apextestsdb': ServiceConfig({'apex': 'testsdb'}),
         }
@@ -49,6 +55,14 @@ class TestBaseProjectKeychain(unittest.TestCase):
         keychain = self.keychain_class(self.project_config, self.key)
         self.assertEquals(keychain.project_config, self.project_config)
         self.assertEquals(keychain.key, self.key)
+
+    def test_set_invalid_service(self):
+        self._test_set_invalid_service()
+
+    def _test_set_invalid_service(self, project=False):
+        keychain = self.keychain_class(self.project_config, self.key)
+        with self.assertRaises(ServiceNotValid) as context:
+            keychain.set_service('github', ServiceConfig({'name': ''}), project)
 
     def test_change_key(self):
         self._test_change_key()
@@ -254,6 +268,11 @@ class TestEncryptedFileProjectKeychain(TestBaseProjectKeychain):
     def setUp(self):
         self.global_config = BaseGlobalConfig()
         self.project_config = BaseProjectConfig(self.global_config)
+        self.project_config.config['services'] = {
+            'github':{'attributes':{'git':{'required':True}, 'password':{}}},
+            'mrbelvedere':{'attributes':{'mr':{'required':True}}},
+            'apextestsdb':{'attributes':{'apex':{'required':True}}},
+        }
         self.project_name = 'TestRepo'
         self.connected_app_config = ConnectedAppOAuthConfig({'test': 'value'})
         self.org_config = OrgConfig({'foo': 'bar'})
@@ -306,6 +325,13 @@ class TestEncryptedFileProjectKeychain(TestBaseProjectKeychain):
         mock_class.return_value = self.tempdir_home
         os.chdir(self.tempdir_project)
         self._test_change_key()
+    
+    def test_set_invalid_service(self, mock_class):
+        self._mk_temp_home()
+        self._mk_temp_project()
+        mock_class.return_value = self.tempdir_home
+        os.chdir(self.tempdir_project)
+        self._test_set_invalid_service()
 
     def test_set_connected_app(self, mock_class):
         self._mk_temp_home()
