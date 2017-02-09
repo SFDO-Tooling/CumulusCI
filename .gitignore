@@ -10,3 +10,9 @@ cli/help_clean.md
 pybuild
 cumulusci.egg-info
 dist/
+.eggs/
+.idea/
+.tox/
+tags
+.vscode/
+.cache/

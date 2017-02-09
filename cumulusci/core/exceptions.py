@@ -9,6 +9,10 @@ class ProjectConfigNotFound(CumulusCIException):
     """ Raised when a project is found in the current context but no configuration was found for the project """
     pass
 
+class KeychainNotFound(CumulusCIException):
+    """ Raised when no keychain could be found """
+    pass
+
 class KeychainKeyNotFound(CumulusCIException):
     """ Raised when the keychain key couldn't be found """
 
@@ -21,6 +25,10 @@ class OrgNotFound(CumulusCIException):
 
 class ServiceNotConfigured(CumulusCIException):
     """ Raised when no service configuration could be found by a given name in the project keychain """
+    pass
+
+class ServiceNotValid(CumulusCIException):
+    """ Raised when no service configuration could be found by a given name in the project configuration """
     pass
 
 class ConfigError(CumulusCIException):
