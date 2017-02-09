@@ -2,6 +2,23 @@
 History
 =======
 
+2.0.0-beta13 (2017-02-09)
+------------------------
+
+* New services registration support added by community contribution from @cdcarter
+
+  * Services and their schemas can now be defined in the cumulusci.yml file.  See https://github.com/SalesforceFoundation/CumulusCI/issues/224 for more details until docs are fully updated
+  * `cci services list`
+  * `cci services show github`
+  * `cci services connect github`
+
+* Improved error handling for metadata deployment failures:
+
+  * Metadata deployments now throw more specific errors when appropriate: MetadataComponentFailure, ApexTestFailure, or MetadataApiError
+  * Output for each component failure on a deploy now includes more information such as the column number of the error
+
+* `release_beta` now ignores errors in the `github_release_notes` process by default
+
 2.0.0-beta12 (2017-02-02)
 ------------------------
 
