@@ -7,6 +7,8 @@ class MetadataApiError(CumulusCIException):
         super(MetadataApiError, self).__init__(message)
         self.response = response
 
+class MetadataComponentFailure(MetadataApiError):
+    pass
 
 class MissingOAuthError(CumulusCIException):
     pass

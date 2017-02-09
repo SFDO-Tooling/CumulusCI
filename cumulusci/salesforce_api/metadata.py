@@ -20,6 +20,8 @@ from zipfile import ZipFile
 import requests
 
 from cumulusci.salesforce_api import soap_envelopes
+from cumulusci.core.exceptions import ApexTestException
+from cumulusci.salesforce_api.exceptions import MetadataComponentFailure
 from cumulusci.salesforce_api.exceptions import MetadataApiError
 
 
@@ -238,9 +240,6 @@ class BaseMetadataApiCall(object):
         else:
             logger('[{}]'.format(status))
 
-        if level == 'error':
-            raise MetadataApiError(log, response)
-
 
 class ApiRetrieveUnpackaged(BaseMetadataApiCall):
     check_interval = 1
@@ -400,48 +399,62 @@ class ApiDeploy(BaseMetadataApiCall):
         if status in ['Succeeded', 'SucceededPartial']:
             self._set_status('Success', status)
         else:
-            # If failed, parse out the problem text and set as the log
+            # If failed, parse out the problem text and raise appropriate exception
             messages = []
             resp_xml = parseString(response.content)
 
             component_failures = resp_xml.getElementsByTagName('componentFailures')
-            if component_failures:
-                messages.append('--- Component Failures ---\n')
             for component_failure in component_failures:
                 failure_info = {
                     'component_type': None,
                     'file_name': None,
                     'line_num': None,
+                    'column_num': None,
                     'problem': component_failure.getElementsByTagName('problem')[0].firstChild.nodeValue,
                     'problem_type': component_failure.getElementsByTagName('problemType')[0].firstChild.nodeValue,
                 }
                 component_type = component_failure.getElementsByTagName('componentType')
-                if component_type:
-                    component_type = component_type[0].firstChild.nodeValue
+                if component_type and component_type[0].firstChild:
+                    failure_info['component_type'] = component_type[0].firstChild.nodeValue
                 file_name = component_failure.getElementsByTagName('fullName')
-                if file_name:
-                    file_name = file_name[0].firstChild.nodeValue
+                if file_name and file_name[0].firstChild:
+                    failure_info['file_name'] = file_name[0].firstChild.nodeValue
+                if not failure_info['file_name']:
+                    file_name = component_failure.getElementsByTagName('fileName')
+                    if file_name and file_name[0].firstChild:
+                        failure_info['file_name'] = file_name[0].firstChild.nodeValue
+        
                 line_num = component_failure.getElementsByTagName('lineNumber')
-                if line_num:
-                    line_num = line_num[0].firstChild.nodeValue
+                if line_num and line_num[0].firstChild:
+                    failure_info['line_num'] = line_num[0].firstChild.nodeValue
+                
+                column_num = component_failure.getElementsByTagName('columnNumber')
+                if column_num and column_num[0].firstChild:
+                    failure_info['column_num'] = column_num[0].firstChild.nodeValue
                 
                 created = component_failure.getElementsByTagName('created')[0].firstChild.nodeValue == 'true'
                 deleted = component_failure.getElementsByTagName('deleted')[0].firstChild.nodeValue == 'true'
                 if deleted: 
-                    failure_info['action'] = 'delete'
+                    failure_info['action'] = 'Delete'
                 elif created:
-                    failure_info['action'] = 'create'
+                    failure_info['action'] = 'Create'
                 else:
-                    failure_info['action'] = 'update'
+                    failure_info['action'] = 'Update'
   
                 if failure_info['file_name'] and failure_info['line_num']: 
-                    messages.append('[{action}] {component_type} {file_name}: {problem_type} on line {line_num}: {problem}'.format(**failure_info))
+                    messages.append('{action} of {component_type} {file_name}: {problem_type} on line {line_num}, col {column_num}: {problem}'.format(**failure_info))
                 elif failure_info['file_name']:
-                    messages.append('[{action}] {component_type} {file_name}: {problem_type}: {problem}'.format(**failure_info))
+                    messages.append('{action} of {component_type} {file_name}: {problem_type}: {problem}'.format(**failure_info))
                 else:
-                    messages.append('[{action}] {problem_type}: {problem}'.format(**failure_info))
+                    messages.append('{action} of {problem_type}: {problem}'.format(**failure_info))
 
-            if not messages: 
+            if messages:
+                # Deploy failures due to a component failure should raise MetadataComponentFailure
+                log = '\n\n'.join(messages)
+                self._set_status('Failed', log)
+                raise MetadataComponentFailure(log, response)
+                
+            else:
                 problems = parseString(
                     response.content).getElementsByTagName('problem')
                 for problem in problems:
@@ -473,7 +486,16 @@ class ApiDeploy(BaseMetadataApiCall):
                 log = '\n\n'.join(messages)
             else:
                 log = response.content
+
+            if messages:
+                # Deploy failures due to a component failure should raise MetadataComponentFailure
+                log = '\n\n'.join(messages)
+                self._set_status('Failed', log)
+                raise ApexTestException(log)
+
             self._set_status('Failed', log)
+            raise MetadataApiError(log, response)
+
         return self.status
 
 
