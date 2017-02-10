@@ -9,6 +9,8 @@ import hiyapyco
 import sarge
 from simple_salesforce import Salesforce
 import yaml
+import requests
+
 
 from distutils.version import LooseVersion # pylint: disable=import-error,no-name-in-module
 from github3 import login 
@@ -102,6 +104,7 @@ class BaseTaskFlowConfig(BaseConfig):
     def get_task(self, name):
         """ Returns a TaskConfig """
         config = getattr(self, 'tasks__{}'.format(name))
+        config['name'] = name
         return TaskConfig(config)
 
     def list_flows(self):
@@ -362,6 +365,7 @@ class OrgConfig(BaseConfig):
         resp = sf_oauth.refresh_token(self.refresh_token).json()
         if resp != self.config:
             self.config.update(resp)
+        self._load_userinfo()
 
     @property
     def start_url(self):
@@ -375,6 +379,15 @@ class OrgConfig(BaseConfig):
     @property
     def org_id(self):
         return self.id.split('/')[-2]
+
+    def load_userinfo(self):
+        self._load_userinfo()
+
+    def _load_userinfo(self):
+        headers = {"Authorization":"Bearer " + self.access_token}
+        response = requests.get(self.instance_url+"/services/oauth2/userinfo", headers=headers)
+        if response != self.config.get('userinfo', {}):
+            self.config.update({'userinfo':response.json()})
 
 class ScratchOrgConfig(OrgConfig):
     """ Salesforce DX Scratch org configuration """

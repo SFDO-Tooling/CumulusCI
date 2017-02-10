@@ -385,6 +385,7 @@ def org_connect(config, org_name, sandbox, login_url, global_org):
     )
     oauth_dict = oauth_capture()
     org_config = OrgConfig(oauth_dict)
+    org_config.load_userinfo()
 
     config.keychain.set_org(org_name, org_config, global_org)
 
