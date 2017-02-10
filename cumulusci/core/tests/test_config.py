@@ -196,6 +196,7 @@ class TestYamlProjectConfig(unittest.TestCase):
         )
         content = (
             'project:\n' +
+            '    name: TestRepo\n' +
             '    package:\n' +
             '        name: TestProject\n' +
             '        namespace: testproject\n'
@@ -323,7 +324,7 @@ class TestYamlProjectConfig(unittest.TestCase):
         content = (
             'project:\n' +
             '    package:\n' +
-            '        name: TestProject2\n'
+            '        api_version: 10\n'
         )
         self._create_project_config_local(content)
 
@@ -331,5 +332,4 @@ class TestYamlProjectConfig(unittest.TestCase):
         global_config = YamlGlobalConfig()
         config = YamlProjectConfig(global_config)
         self.assertNotEqual(config.config_project_local, {})
-        self.assertEqual(config.project__package__name, 'TestProject2')
-        self.assertEqual(config.project__package__namespace, 'testproject')
+        self.assertEqual(config.project__package__api_version, 10)

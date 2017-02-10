@@ -270,10 +270,23 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
     @property
     def project_local_dir(self):
+        """ location of the user local directory for the project
+        e.g., ~/.cumulusci/NPSP-Extension-Test/ """
+
+        # depending on where we are in bootstrapping the YamlGlobalConfig
+        # the canonical projectname could be located in one of two places
+        if self.project__name:
+            name = self.project__name
+        else:
+            try:
+                name = self.config_project['project']['name']
+            except KeyError:
+                name = ''
+
         path = os.path.join(
             os.path.expanduser('~'),
             self.global_config_obj.config_local_dir,
-            self.repo_name,
+            name,
         )
         if not os.path.isdir(path):
             os.makedirs(path)
