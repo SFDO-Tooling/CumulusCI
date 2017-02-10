@@ -104,7 +104,6 @@ class BaseTaskFlowConfig(BaseConfig):
     def get_task(self, name):
         """ Returns a TaskConfig """
         config = getattr(self, 'tasks__{}'.format(name))
-        config['name'] = name
         return TaskConfig(config)
 
     def list_flows(self):
