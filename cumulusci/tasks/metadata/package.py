@@ -99,10 +99,10 @@ class PackageXmlGenerator(object):
             package_name_encoded = urllib.quote(self.package_name, safe=' ')
             lines.append(u'    <fullName>{0}</fullName>'.format(package_name_encoded))
 
-        if self.install_class:
+        if self.managed and self.install_class:
             lines.append(u'    <postInstallClass>{0}</postInstallClass>'.format(self.install_class))
 
-        if self.uninstall_class:
+        if self.managed and self.uninstall_class:
             lines.append(u'    <uninstallClass>{0}</uninstallClass>'.format(self.uninstall_class))
 
         # Print types sections
@@ -339,15 +339,29 @@ class UpdatePackageXml(BaseTask):
         },
     }
 
+    def _init_options(self, kwargs):
+        super(UpdatePackageXml, self)._init_options(kwargs)
+        if 'managed' not in self.options:
+            self.options['managed'] = False
+        if self.options['managed'] in [True, 'True']:
+            self.options['managed'] = True
+        
+
     def _init_task(self):
+        package_name = None
+        if self.options.get('managed') in [True, 'True', 'true']:
+            package_name = self.project_config.project__package__name_managed
+        if not package_name:
+            package_name = self.project_config.project__package__name
+
         self.package_xml = PackageXmlGenerator(
             directory = self.options.get('path'),
             api_version = self.project_config.project__package__api_version,
-            package_name = self.project_config.project__package__name,
+            package_name = package_name,
             managed = self.options.get('managed', False),
             delete = self.options.get('delete', False),
-            install_class = self.project_config.project__install_class,
-            uninstall_class = self.project_config.project__uninstall_class,
+            install_class = self.project_config.project__package__install_class,
+            uninstall_class = self.project_config.project__package__uninstall_class,
         )
 
     def _run_task(self):
