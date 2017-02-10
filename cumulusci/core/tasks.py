@@ -53,9 +53,18 @@ class BaseTask(object):
         pass
 
     def __call__(self):
+        self._log_begin()
         res = self._run_task()
         return res
     
     def _run_task(self):
         """ Subclasses should override to provide their implementation """
         pass
+
+    def _log_begin(self):
+        """ Log the beginning of the task execution """
+        self.logger.info('Beginning task: %s', self.__class__.__name__)
+        if self.org_config:
+            self.logger.info('As user:        %s', self.org_config.userinfo__preferred_username)
+            self.logger.info('On org:         %s', self.org_config.org_id)
+        self.logger.info('')
