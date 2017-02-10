@@ -39,7 +39,7 @@ class TestBaseProjectKeychain(unittest.TestCase):
             'mrbelvedere':{'attributes':{'mr':{'required':True}}},
             'apextestsdb':{'attributes':{'apex':{'required':True}}},
         }
-        self.project_config.config['name'] = 'TestProject'
+        self.project_config.project__name = 'TestProject'
         self.connected_app_config = ConnectedAppOAuthConfig({'test': 'value'})
         self.services = {
             'github': ServiceConfig({'name': 'hub'}),
@@ -274,7 +274,7 @@ class TestEncryptedFileProjectKeychain(TestBaseProjectKeychain):
             'mrbelvedere':{'attributes':{'mr':{'required':True}}},
             'apextestsdb':{'attributes':{'apex':{'required':True}}},
         }
-        self.project_config.config['name'] = 'TestProject'
+        self.project_config.project__name = 'TestProject'
         self.project_name = 'TestProject'
         self.connected_app_config = ConnectedAppOAuthConfig({'test': 'value'})
         self.org_config = OrgConfig({'foo': 'bar'})
