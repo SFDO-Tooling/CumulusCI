@@ -10,8 +10,8 @@ Requirements
 
 * You must have Python version 2.7.x installed
 * Ensure that you have the prequisite packages for cryptography installed: 
-  On Linux: https://cryptography.io/en/latest/installation/#building-cryptography-on-linux 
-  On Windows: Visual C++ Compiler for Python 2.7 - http://aka.ms/vcpython27
+  * On Linux: https://cryptography.io/en/latest/installation/#building-cryptography-on-linux 
+  * On Windows: Visual C++ Compiler for Python 2.7 - http://aka.ms/vcpython27
 * A local git repository containing Salesforce metadata in the `src/` subfolder OR fork then clone CumulusCI-Test for demo::
 
     git clone https://github.com/YOUR_GITHUB_FORK_USER/CumulusCI-Test
@@ -405,10 +405,9 @@ Flows are simply named sequences of tasks.  Flows are designed to be run against
 
 Listing Flows' Tasks
 --------------------
-To see the list of tasks a flow will run, use the flow info command:
+To see the list of tasks a flow will run, use the flow info command::
 
     $ cci flow info dev_org
-
     {
         "description": "Deploys the unmanaged package metadata and all dependencies to the target org",
         "tasks": {
