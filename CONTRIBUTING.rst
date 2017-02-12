@@ -15,7 +15,7 @@ Types of Contributions
 Report Bugs
 ~~~~~~~~~~~
 
-Report bugs at https://github.com/jlantz/cumulusci/issues.
+Report bugs at https://github.com/SalesforceFoundation/cumulusci/issues.
 
 If you are reporting a bug, please include:
 
@@ -45,7 +45,7 @@ articles, and such.
 Submit Feedback
 ~~~~~~~~~~~~~~~
 
-The best way to send feedback is to file an issue at https://github.com/jlantz/cumulusci/issues.
+The best way to send feedback is to file an issue at https://github.com/SalesforceFoundation/cumulusci/issues.
 
 If you are proposing a feature:
 
@@ -104,6 +104,9 @@ Before you submit a pull request, check that it meets these guidelines:
 3. The pull request should work for Python 2.6, 2.7, 3.3, 3.4 and 3.5, and for PyPy. Check
    https://travis-ci.org/jlantz/cumulusci/pull_requests
    and make sure that the tests pass for all supported Python versions.
+
+..  The Travis CI link above - https://travis-ci.org/jlantz/cumulusci/pull_requests - does not work,
+    but I couldn't determine the correct one. -tt
 
 Tips
 ----
