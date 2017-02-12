@@ -9,9 +9,11 @@ Requirements
 ------------
 
 * You must have Python version 2.7.x installed
-* Ensure that you have the prequisite packages for cryptography installed: 
+* Ensure that you have the prequisite packages for cryptography installed:
+
   * On Linux: https://cryptography.io/en/latest/installation/#building-cryptography-on-linux 
   * On Windows: Visual C++ Compiler for Python 2.7 - http://aka.ms/vcpython27
+
 * A local git repository containing Salesforce metadata in the `src/` subfolder OR fork then clone CumulusCI-Test for demo::
 
     git clone https://github.com/YOUR_GITHUB_FORK_USER/CumulusCI-Test
@@ -31,7 +33,7 @@ Run the following::
     virtualenv ~/cumulusci_venv
     source ~/cumulusci_venv/bin/activate
 
-On Windows:
+On Windows::
     
     cd ~
     virtualenv cumulusci_venv
