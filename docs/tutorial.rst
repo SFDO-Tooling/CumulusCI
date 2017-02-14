@@ -9,6 +9,11 @@ Requirements
 ------------
 
 * You must have Python version 2.7.x installed
+* Ensure that you have the prequisite packages for cryptography installed:
+
+  * On Linux: https://cryptography.io/en/latest/installation/#building-cryptography-on-linux 
+  * On Windows: Visual C++ Compiler for Python 2.7 - http://aka.ms/vcpython27
+
 * A local git repository containing Salesforce metadata in the `src/` subfolder OR fork then clone CumulusCI-Test for demo::
 
     git clone https://github.com/YOUR_GITHUB_FORK_USER/CumulusCI-Test
@@ -27,6 +32,12 @@ Run the following::
 
     virtualenv ~/cumulusci_venv
     source ~/cumulusci_venv/bin/activate
+
+On Windows::
+    
+    cd ~
+    virtualenv cumulusci_venv
+    cumulusci_venv\Scripts\activate
 
 Once activated, you will see (cumulusci_venv) at the start of your shell prompt to let you know the virtualenv is active.  From this point, any Python packages you install will be installed only into the virtualenv and leave your system's Python alone.
 
@@ -393,6 +404,38 @@ Flows are simply named sequences of tasks.  Flows are designed to be run against
     ci_release    Installs a production release version and runs tests
     release_beta  Uploads and releases a beta version of the metadata currently in packaging
     unmanaged_ee  Deploys the unmanaged package metadata and all dependencies to the target EE org
+
+Listing Flows' Tasks
+--------------------
+To see the list of tasks a flow will run, use the flow info command::
+
+    $ cci flow info dev_org
+    {
+        "description": "Deploys the unmanaged package metadata and all dependencies to the target org",
+        "tasks": {
+            "1": {
+                "task": "create_package"
+            },
+            "2": {
+                "task": "update_dependencies"
+            },
+            "3": {
+                "task": "deploy_pre"
+            },
+            "4": {
+                "task": "deploy"
+            },
+            "5": {
+                "task": "uninstall_packaged_incremental"
+            },
+            "6": {
+                "task": "deploy_post"
+            },
+            "7": {
+                "task": "update_admin_profile"
+            }
+        }
+    }
 
 Running a Flow
 --------------
