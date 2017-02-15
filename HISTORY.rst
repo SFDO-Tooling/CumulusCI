@@ -2,6 +2,14 @@
 History
 =======
 
+2.0.0-beta14 (2017-02-15)
+------------------------
+
+* The new `RetrieveReportsAndDashboards` task class that can retrieve all reports and dashboards from a specified list of folders
+* Documentation improvments contributed by @tet3
+* Include userinfo in the OrgConfig, and print username and org id at the beginning of every task run.  Contribution by @cdcarter
+* `project_local_dir` (e.g., `~/.cumulusci/NPSP-Extension-Template/`, home of the encrypted keychain and local override config) now rely on the project name configured in cumulusci.yml instead of the existence of a git remote named origin.  Contribution by @cdcarter
+
 2.0.0-beta13 (2017-02-09)
 ------------------------
 
