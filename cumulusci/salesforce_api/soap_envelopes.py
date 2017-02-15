@@ -108,6 +108,7 @@ LIST_METADATA = '''<?xml version="1.0" encoding="utf-8"?>
     <listMetadata xmlns="http://soap.sforce.com/2006/04/metadata">
       <queries>
         <type>%(metadata_type)s</type>
+        <folder>%(folder)s</folder>
       </queries>
     </listMetadata>
   </soap:Body>

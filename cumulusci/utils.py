@@ -132,3 +132,34 @@ def doc_task(task_name, task_config, project_config=None, org_config=None):
                 doc.append('* **{}**: {}{}'.format(name, option.get('description'), default))
 
     return '\n'.join(doc)
+
+def package_xml_from_dict(items, api_version, package_name=None):
+        lines = []
+
+        # Print header
+        lines.append(u'<?xml version="1.0" encoding="UTF-8"?>')
+        lines.append(u'<Package xmlns="http://soap.sforce.com/2006/04/metadata">')
+
+        # Include package name if specified
+        if package_name:
+            lines.append('    <fullName>{}</fullName'.format(package_name))
+
+        # Print types sections
+        md_types = items.keys()
+        md_types.sort()
+        for md_type in md_types:
+            members = items[md_type]
+            members.sort()
+            lines.append('    <types>')
+            for member in members:
+                lines.append('        <members>{}</members>'.format(member))
+            lines.append('        <name>{}</name>'.format(md_type))
+            lines.append('    </types>')
+
+        # Print footer
+        lines.append(u'    <version>{0}</version>'.format(
+            api_version
+        ))
+        lines.append(u'</Package>')
+
+        return u'\n'.join(lines)

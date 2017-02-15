@@ -20,10 +20,12 @@ import xmltodict
 
 from cumulusci.core.exceptions import ApexTestException
 from cumulusci.core.exceptions import SalesforceException
+from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.tasks import BaseTask
 from cumulusci.tasks.metadata.package import PackageXmlGenerator
 from cumulusci.salesforce_api.exceptions import MetadataApiError
 from cumulusci.salesforce_api.metadata import ApiDeploy
+from cumulusci.salesforce_api.metadata import ApiListMetadata
 from cumulusci.salesforce_api.metadata import ApiRetrieveInstalledPackages
 from cumulusci.salesforce_api.metadata import ApiRetrievePackaged
 from cumulusci.salesforce_api.metadata import ApiRetrieveUnpackaged
@@ -33,6 +35,7 @@ from cumulusci.salesforce_api.package_zip import InstallPackageZipBuilder
 from cumulusci.salesforce_api.package_zip import UninstallPackageZipBuilder
 from cumulusci.utils import CUMULUSCI_PATH
 from cumulusci.utils import findReplace
+from cumulusci.utils import package_xml_from_dict
 from cumulusci.utils import zip_subfolder
 
 
@@ -144,7 +147,6 @@ class RetrieveUnpackaged(BaseRetrieveMetadata):
         },
         'api_version': {
             'description': 'Override the default api version for the retrieve.  Defaults to project__package__api_version',
-            'required': True,
         },
     }
 
@@ -202,6 +204,59 @@ class RetrievePackaged(BaseRetrieveMetadata):
     def _extract_zip(self, src_zip):
         src_zip = zip_subfolder(src_zip, self.options.get('package'))
         super(RetrievePackaged, self)._extract_zip(src_zip)
+
+class RetrieveReportsAndDashboards(BaseRetrieveMetadata):
+    api_class = ApiRetrieveUnpackaged
+
+    task_options = {
+        'path': {
+            'description': 'The path where the retrieved metadata should be written',
+            'required': True,
+        },
+        'report_folders': {
+            'description': 'A list of the report folders to retrieve reports.  Separate by commas for multiple folders.',
+        },
+        'dashboard_folders': {
+            'description': 'A list of the dashboard folders to retrieve reports.  Separate by commas for multiple folders.',
+        },
+    }
+
+    def _validate_options(self):
+        super(RetrieveReportsAndDashboards, self)._validate_options()
+        if not 'report_folders' in self.options and not 'dashboard_folders' in self.options:
+            raise TaskOptionsError('You must provide at least one folder name for either report_folders or dashboard_folders')
+
+    def _get_api(self):
+        metadata = {}
+        if 'report_folders' in self.options:
+            for folder in self.options['report_folders']:
+                api_reports = ApiListMetadata(self, 'Report', metadata=metadata, folder=folder)
+                metadata = api_reports()
+        if 'dashboard_folders' in self.options:
+            for folder in self.options['dashboard_folders']:
+                api_dashboards = ApiListMetadata(self, 'Dashboard', metadata=metadata, folder=folder)
+                metadata = api_dashboards()
+
+        items = {}
+        if 'Report' in metadata:
+            items['Report'] = []
+            items['Report'].extend(self.options['report_folders'])
+            for report in metadata['Report']:
+                items['Report'].append(report['fullName'])
+        if 'Dashboard' in metadata:
+            items['Dashboard'] = []
+            items['Dashboard'].extend(self.options['dashboard_folders'])
+            for dashboard in metadata['Dashboard']:
+                items['Dashboard'].append(dashboard['fullName'])
+
+        api_version = self.project_config.project__package__api_version
+        package_xml = package_xml_from_dict(items, api_version)
+        print package_xml
+        return self.api_class(
+            self,
+            package_xml,
+            api_version,
+        )
 
 class Deploy(BaseSalesforceMetadataApiTask):
     api_class = ApiDeploy
@@ -709,31 +764,10 @@ class UninstallPackagedIncremental(UninstallPackaged):
             return destructive_changes
 
     def _render_xml_from_items_dict(self, items):
-        lines = []
-
-        # Print header
-        lines.append(u'<?xml version="1.0" encoding="UTF-8"?>')
-        lines.append(u'<Package xmlns="http://soap.sforce.com/2006/04/metadata">')
-
-        # Print types sections
-        md_types = items.keys()
-        md_types.sort()
-        for md_type in md_types:
-            members = items[md_type]
-            members.sort()
-            lines.append('    <types>')
-            for member in members:
-                lines.append('        <members>{}</members>'.format(member))
-            lines.append('        <name>{}</name>'.format(md_type))
-            lines.append('    </types>')
-
-        # Print footer
-        lines.append(u'    <version>{0}</version>'.format(
-            self.project_config.project__package__api_version
-        ))
-        lines.append(u'</Package>')
-
-        return u'\n'.join(lines)
+        return package_xml_from_dict(
+            items, 
+            api_version = self.project_config.project__package__api_version,
+        )
 
 class UninstallLocalBundles(UninstallLocal):
 

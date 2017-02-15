@@ -21,6 +21,7 @@ import requests
 
 from cumulusci.salesforce_api import soap_envelopes
 from cumulusci.core.exceptions import ApexTestException
+from cumulusci.utils import zip_subfolder
 from cumulusci.salesforce_api.exceptions import MetadataComponentFailure
 from cumulusci.salesforce_api.exceptions import MetadataApiError
 
@@ -99,7 +100,7 @@ class BaseMetadataApiCall(object):
 
     def _get_element_value(self, dom, tag):
         result = dom.getElementsByTagName(tag)
-        if result:
+        if result and result[0].firstChild:
             return result[0].firstChild.nodeValue
 
     def _get_check_interval(self):
@@ -278,6 +279,7 @@ class ApiRetrieveUnpackaged(BaseMetadataApiCall):
             return self.packages
         zipstringio = StringIO.StringIO(base64.b64decode(zipstr))
         zipfile = ZipFile(zipstringio, 'r')
+        zipfile = zip_subfolder(zipfile, 'unpackaged')
         return zipfile
 
 class ApiRetrieveInstalledPackages(BaseMetadataApiCall):
@@ -563,13 +565,19 @@ class ApiListMetadata(BaseMetadataApiCall):
     soap_envelope_start = soap_envelopes.LIST_METADATA
     soap_action_start = 'listMetadata'
 
-    def __init__(self, task, metadata_type, metadata):
+    def __init__(self, task, metadata_type, metadata=None, folder=None):
         super(ApiListMetadata, self).__init__(task)
         self.metadata_type = metadata_type
         self.metadata = metadata
+        self.folder = folder
+        if self.metadata is None:
+            self.metadata = {}
 
     def _build_envelope_start(self):
-        return self.soap_envelope_start % {'metadata_type': self.metadata_type}
+        folder = self.folder
+        if folder is None:
+            folder = ''
+        return self.soap_envelope_start % {'metadata_type': self.metadata_type, 'folder': self.folder}
 
     def _process_response(self, response):
         metadata = []
@@ -603,5 +611,8 @@ class ApiListMetadata(BaseMetadataApiCall):
             #    if result_data[key]:
             #        result_data[key] = dateutil.parser.parse(result_data[key])
             metadata.append(result_data)
-        self.metadata[self.metadata_type] = metadata
-        return metadata
+        if self.metadata_type in self.metadata:
+            self.metadata[self.metadata_type].extend(metadata)
+        else:
+            self.metadata[self.metadata_type] = metadata
+        return self.metadata
