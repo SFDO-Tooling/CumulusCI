@@ -881,7 +881,6 @@ class UpdateAdminProfile(Deploy):
             self.project_config.project__package__api_version,
         )
         unpackaged = api_retrieve()
-        unpackaged = zip_subfolder(unpackaged, 'unpackaged')
         unpackaged.extractall(self.tempdir)
 
     def _process_metadata(self):

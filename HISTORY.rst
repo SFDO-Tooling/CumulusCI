@@ -2,6 +2,11 @@
 History
 =======
 
+2.0.0-beta15 (2017-02-15)
+------------------------
+
+* Bug fix release for bug in `update_admin_profile` from the beta 14 release changes to the ApiRetrieveUnpackaged class
+
 2.0.0-beta14 (2017-02-15)
 ------------------------
 
