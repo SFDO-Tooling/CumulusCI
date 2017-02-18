@@ -65,6 +65,10 @@ class BaseTask(object):
         """ Log the beginning of the task execution """
         self.logger.info('Beginning task: %s', self.__class__.__name__)
         if self.org_config:
-            self.logger.info('As user:        %s', self.org_config.userinfo__preferred_username)
-            self.logger.info('On org:         %s', self.org_config.org_id)
+            self.logger.info(
+                '%15s %s',
+                'As user:',
+                self.org_config.username
+            )
+            self.logger.info('%15s %s', 'In org:', self.org_config.org_id)
         self.logger.info('')
