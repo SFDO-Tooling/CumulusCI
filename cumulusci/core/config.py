@@ -392,8 +392,9 @@ class OrgConfig(BaseConfig):
     def org_id(self):
         return self.id.split('/')[-2]
 
-    @property(doc="Username for this org connection")
+    @property
     def username(self):
+        """ Username for the org connection. """
         return self.userinfo__preferred_username
 
     def load_userinfo(self):
