@@ -1,5 +1,5 @@
 import copy
-from distutils.version import LooseVersion
+from distutils.version import LooseVersion  # pylint: disable=import-error,no-name-in-module
 import logging
 
 from cumulusci.core.config import TaskConfig
