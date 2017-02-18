@@ -31,6 +31,16 @@ class TestBaseFlow(unittest.TestCase):
     def setUp(self):
         self.global_config = BaseGlobalConfig()
         self.project_config = BaseProjectConfig(self.global_config)
+        self.project_config.config['tasks'] = {
+            'pass_name': {
+                'description': 'Pass the name',
+                'class_path': 'cumulusci.core.tests.test_flows._TaskReturnsStuff',
+            },
+            'name_response': {
+                'description': 'Pass the name',
+                'class_path': 'cumulusci.core.tests.test_flows._TaskResponseName',
+            },
+        }
         self.org_config = OrgConfig({'foo': 'bar'})
 
     def test_init(self):
@@ -49,17 +59,6 @@ class TestBaseFlow(unittest.TestCase):
 
     def test_pass_around_values(self):
         """ A flow's options reach into return values from other tasks. """
-
-        self.project_config.config['tasks'] = {
-            'pass_name': {
-                'description': 'Pass the name',
-                'class_path': 'cumulusci.core.tests.test_flows._TaskReturnsStuff',
-            },
-            'name_response': {
-                'description': 'Pass the name',
-                'class_path': 'cumulusci.core.tests.test_flows._TaskResponseName',
-            },
-        }
 
         # instantiate a flow with two tasks
         flow_config = FlowConfig({
@@ -80,13 +79,57 @@ class TestBaseFlow(unittest.TestCase):
         self.assertEquals('supername', flow.responses[1])
 
     def test_call_no_tasks(self):
-        pass
+        """ A flow with no tasks will have no responses. """
+        flow_config = FlowConfig({
+            'description': 'Run no tasks',
+            'tasks': {}
+        })
+        flow = BaseFlow(self.project_config, flow_config, self.org_config)
+        flow()
+
+        self.assertEqual([], flow.responses)
+        self.assertEqual([], flow.tasks)
 
     def test_call_one_task(self):
-        pass
+        """ A flow with one task will execute the task """
+        flow_config = FlowConfig({
+            'description': 'Run one task',
+            'tasks': {
+                1: {'task': 'pass_name'},
+            }
+        })
+        flow = BaseFlow(self.project_config, flow_config, self.org_config)
+        flow()
+
+        self.assertEqual([None], flow.responses)
+        self.assertEqual(1, len(flow.tasks))
 
     def test_call_many_tasks(self):
-        pass
+        """ A flow with many tasks will dispatch each task """
+        flow_config = FlowConfig({
+            'description': 'Run two tasks',
+            'tasks': {
+                1: {'task': 'pass_name'},
+                2: {'task': 'pass_name'},
+            }
+        })
+        flow = BaseFlow(self.project_config, flow_config, self.org_config)
+        flow()
+
+        self.assertEqual([None, None], flow.responses)
+        self.assertEqual(2, len(flow.tasks))
 
     def test_call_task_not_found(self):
-        pass
+        """ A flow with reference to a task that doesn't exist in the
+        project will throw an AttributeError """
+
+        flow_config = FlowConfig({
+            'description': 'Run two tasks',
+            'tasks': {
+                1: {'task': 'pass_name'},
+                2: {'task': 'do_delightulthings'},
+            }
+        })
+        flow = BaseFlow(self.project_config, flow_config, self.org_config)
+
+        self.assertRaises(AttributeError, flow)
