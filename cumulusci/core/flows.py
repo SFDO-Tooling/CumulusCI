@@ -14,7 +14,8 @@ class BaseFlow(object):
         self.project_config = project_config
         self.flow_config = flow_config
         self.org_config = org_config
-        self.responses = []
+        self.task_return_values = []
+        self.task_results = []
         self.tasks = []
         self._init_logger()
         self._init_flow()
@@ -122,10 +123,10 @@ class BaseFlow(object):
             self.logger.info(line)
 
         try:
-            response = task()
+            task()
             self.logger.info('Task complete: %s', task_name)
-            self.responses.append(response)
-            return response
+            self.task_results.append(task.result)
+            self.task_return_values.append(task.return_values)
         except Exception as e:
             self.logger.error('Task failed: %s', task_name)
             if not flow_task_config['flow_config'].get('ignore_failure'):
