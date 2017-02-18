@@ -1,9 +1,20 @@
+""" Tasks are the basic unit of execution in CumulusCI.
+
+Subclass BaseTask or a descendant to define custom task logic
+"""
+
 import logging
 
 from cumulusci.core.exceptions import TaskRequiresSalesforceOrg
 from cumulusci.core.exceptions import TaskOptionsError
 
+
 class BaseTask(object):
+    """ BaseTask provides the core execution logic for a Task
+
+    Subclass BaseTask and provide a `_run_task()` method with your
+    code.
+    """
     task_options = {}
     salesforce_task = False  # Does this task require a salesforce org?
 
@@ -11,8 +22,11 @@ class BaseTask(object):
         self.project_config = project_config
         self.task_config = task_config
         self.org_config = org_config
+        self.return_value = {}
         if self.salesforce_task and not self.org_config:
-            raise TaskRequiresSalesforceOrg('This task requires a Saleforce org_config but none was passed to __init__')
+            raise TaskRequiresSalesforceOrg('This task requires a Saleforce '
+                                            'org_config but none was passed '
+                                            'to the Task constructor')
         self._init_logger()
         self._init_options(kwargs)
         self._validate_options()
@@ -34,29 +48,31 @@ class BaseTask(object):
     def _validate_options(self):
         missing_required = []
         for name, config in self.task_options.items():
-            if config.get('required') == True and name not in self.options:
+            if config.get('required') is True and name not in self.options:
                 missing_required.append(name)
 
         if missing_required:
             raise TaskOptionsError(
-                'This task requires the options ({}) and no values were provided'.format(
+                '{} requires the options ({}) '
+                'and no values were provided'.format(
+                    self.__class__.__name__,
                     ', '.join(missing_required)
                 )
             )
 
     def _update_credentials(self):
-        """ Subclasses should override to do any logic necessary to refresh credentials """
+        """ Override to do any logic  to refresh credentials """
         pass
 
     def _init_task(self):
-        """ A method that subclasses can override to implement dynamic logic for initializing the task """
+        """ Override to implement dynamic logic for initializing the task. """
         pass
 
     def __call__(self):
         self._log_begin()
         res = self._run_task()
         return res
-    
+
     def _run_task(self):
         """ Subclasses should override to provide their implementation """
         pass
