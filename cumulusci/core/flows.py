@@ -15,7 +15,9 @@ class BaseFlow(object):
         self.flow_config = flow_config
         self.org_config = org_config
         self.task_return_values = []
+        """ A collection of return_values dicts in task execution order """
         self.task_results = []
+        """ A collection of result objects in task execution order """
         self.tasks = []
         self._init_logger()
         self._init_flow()

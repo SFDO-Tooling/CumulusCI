@@ -23,7 +23,9 @@ class BaseTask(object):
         self.task_config = task_config
         self.org_config = org_config
         self.return_values = {}
+        """ a dict of return_values that can be used by task callers """
         self.result = None
+        """ a simple result object for introspection """
         if self.salesforce_task and not self.org_config:
             raise TaskRequiresSalesforceOrg('This task requires a Saleforce '
                                             'org_config but none was passed '
