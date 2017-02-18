@@ -22,7 +22,8 @@ class BaseTask(object):
         self.project_config = project_config
         self.task_config = task_config
         self.org_config = org_config
-        self.return_value = {}
+        self.return_values = {}
+        self.result = None
         if self.salesforce_task and not self.org_config:
             raise TaskRequiresSalesforceOrg('This task requires a Saleforce '
                                             'org_config but none was passed '
@@ -70,8 +71,8 @@ class BaseTask(object):
 
     def __call__(self):
         self._log_begin()
-        res = self._run_task()
-        return res
+        self.result = self._run_task()
+        return self.return_values
 
     def _run_task(self):
         """ Subclasses should override to provide their implementation """
