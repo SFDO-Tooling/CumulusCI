@@ -1015,10 +1015,13 @@ class PackageUpload(BaseSalesforceToolingApiTask):
             if version['ReleaseState'] == 'Beta':
                 self.version_number += ' (Beta {})'.format(version['BuildNumber'])
 
+            self.return_values = {'version_number': self.version_number}
+
             self.logger.info('Uploaded package version {} with Id {}'.format(
                 self.version_number,
                 version_id
             ))
+
 
 
 class RunApexTests(BaseSalesforceToolingApiTask):

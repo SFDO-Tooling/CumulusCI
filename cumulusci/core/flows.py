@@ -103,7 +103,7 @@ class BaseFlow(object):
                 value_parts = value[2:].split('.')
                 parent = self._find_task_by_name(value_parts[0])
                 for attr in value_parts[1:]:
-                    parent = getattr(parent, attr)
+                    parent = parent.return_values.get(attr)
                 task_config.config['options'][option] = parent
 
         task_class = import_class(task_config.class_path)
