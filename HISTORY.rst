@@ -2,6 +2,11 @@
 History
 =======
 
+2.0.0-beta16 (2017-02-17)
+------------------------
+
+* Allow batch size to be configured for push jobs with the `batch_size` job
+
 2.0.0-beta15 (2017-02-15)
 ------------------------
 
