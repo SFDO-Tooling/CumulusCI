@@ -18,7 +18,8 @@ class BaseTask(object):
     task_options = {}
     salesforce_task = False  # Does this task require a salesforce org?
 
-    def __init__(self, project_config, task_config, org_config=None, flow=None, **kwargs):
+    def __init__(self, project_config, task_config,
+                 org_config=None, flow=None, **kwargs):
         self.project_config = project_config
         self.task_config = task_config
         self.org_config = org_config
