@@ -18,12 +18,19 @@ class _TaskHasResult(BaseTask):
         return -1
 
 
+class _SfdcTask(BaseTask):
+    salesforce_task = True
+
+    def _run_task(self):
+        return -1
+
+
 class TestBaseTaskCallable(unittest.TestCase):
     """ Tests for the BaseTask callable interface.
 
-    BaseTask is Callable.
-    Calling a BaseTask returns the return_values.
-    Task results are available.
+    BaseTask is a callable interface
+    BaseTask has return_values and results
+    BaseTask has basic logging
     """
 
     task_class = BaseTask
@@ -45,7 +52,7 @@ class TestBaseTaskCallable(unittest.TestCase):
         })
         self.task_config = TaskConfig()
         self._task_log_handler.reset()
-        self.task_messages = self._task_log_handler.messages
+        self.task_log = self._task_log_handler.messages
 
     def test_task_is_callable(self):
         """ BaseTask is Callable """
@@ -86,19 +93,29 @@ class TestBaseTaskCallable(unittest.TestCase):
         self.assertEqual(task.result, -1)
 
     def test_task_logs_name(self):
-        """ A task logs the task class name to info """
+        """ A task logs the task class name to info (and not creds) """
 
         task = _TaskHasResult(
             self.project_config,
             self.task_config,
             self.org_config
         )
-
         task()
 
-        task_name_logs = [log for
-                          log in
-                          self.task_messages['info'] if
-                          '_TaskHasResult' in log]
+        self.assertTrue(any(
+            "_TaskHasResult" in s for s in self.task_log['info']
+        ))
 
-        self.assertEquals(1, len(task_name_logs))
+    def test_salesforce_task_logs_org_id(self):
+        """ A salesforce_task will also log the org id & username """
+
+        task = _SfdcTask(
+            self.project_config,
+            self.task_config,
+            self.org_config
+        )
+        task()
+
+        self.assertTrue(any(
+            "00D000000000001" in s for s in self.task_log['info']
+        ))

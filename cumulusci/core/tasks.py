@@ -83,7 +83,7 @@ class BaseTask(object):
     def _log_begin(self):
         """ Log the beginning of the task execution """
         self.logger.info('Beginning task: %s', self.__class__.__name__)
-        if self.org_config:
+        if self.salesforce_task:
             self.logger.info(
                 '%15s %s',
                 'As user:',
