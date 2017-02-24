@@ -115,6 +115,10 @@ class TestBaseFlow(unittest.TestCase):
         flow = BaseFlow(self.project_config, flow_config, self.org_config)
         flow()
 
+        self.assertTrue(any(
+            "Flow Description: Run one task" in s for s in self.flow_log['info']
+        ))
+
         self.assertEqual([{'name': 'supername'}], flow.task_return_values)
         self.assertEqual(1, len(flow.tasks))
 
