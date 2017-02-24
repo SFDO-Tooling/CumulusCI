@@ -1,7 +1,7 @@
 """ Tests for the CumulusCI task module """
 
 import unittest
-
+import logging
 import collections
 
 from cumulusci.core.tasks import BaseTask
@@ -9,6 +9,13 @@ from cumulusci.core.config import BaseGlobalConfig
 from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.config import OrgConfig
+from cumulusci.core.utils import MockLoggingHandler
+import cumulusci.core
+
+
+class _TaskHasResult(BaseTask):
+    def _run_task(self):
+        return -1
 
 
 class TestBaseTaskCallable(unittest.TestCase):
@@ -24,7 +31,10 @@ class TestBaseTaskCallable(unittest.TestCase):
     def setUp(self):
         self.global_config = BaseGlobalConfig()
         self.project_config = BaseProjectConfig(self.global_config)
-        self.org_config = OrgConfig({'foo': 'bar'})
+        self.org_config = OrgConfig({
+            'username': 'sample@example',
+            'org_id': '00D000000000001'
+        })
         self.task_config = TaskConfig()
 
     def test_task_is_callable(self):
@@ -56,10 +66,6 @@ class TestBaseTaskCallable(unittest.TestCase):
     def test_get_task_result(self):
         """ Task results available as an instance member """
 
-        class _TaskHasResult(BaseTask):
-            def _run_task(self):
-                return -1
-
         task = _TaskHasResult(
             self.project_config,
             self.task_config,
@@ -68,3 +74,25 @@ class TestBaseTaskCallable(unittest.TestCase):
         task()
 
         self.assertEqual(task.result, -1)
+
+    def test_task_logs_name(self):
+        """ A task logs the task class name to info """
+
+        task = _TaskHasResult(
+            self.project_config,
+            self.task_config,
+            self.org_config
+        )
+        mock_logger = MockLoggingHandler(logging.DEBUG)
+        logger = logging.getLogger(cumulusci.core.tasks.__name__)
+        logger.setLevel(logging.DEBUG)
+        logger.addHandler(mock_logger)
+
+        task()
+
+        task_name_logs = [log for
+                          log in
+                          mock_logger.messages['info'] if
+                          '_TaskHasResult' in log]
+
+        self.assertEquals(1, len(task_name_logs))
