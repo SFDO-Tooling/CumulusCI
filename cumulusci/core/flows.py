@@ -72,6 +72,10 @@ class BaseFlow(object):
                 task_info['task_config'].description,
             ))
 
+        config.append('Organization:')
+        config.append('  {}: {}'.format('Username', self.org_config.username))
+        config.append('  {}: {}'.format('  Org Id', self.org_config.org_id))
+
         return config
 
     def __call__(self):
@@ -119,6 +123,7 @@ class BaseFlow(object):
             self.project_config,
             task_config,
             org_config=self.org_config,
+            flow=self
         )
         self.tasks.append(task)
 

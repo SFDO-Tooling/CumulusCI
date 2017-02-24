@@ -5,10 +5,12 @@ import logging
 import collections
 
 from cumulusci.core.tasks import BaseTask
+from cumulusci.core.flows import BaseFlow
 from cumulusci.core.config import BaseGlobalConfig
 from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.config import OrgConfig
+from cumulusci.core.config import FlowConfig
 from cumulusci.core.utils import MockLoggingHandler
 import cumulusci.core
 
@@ -117,5 +119,19 @@ class TestBaseTaskCallable(unittest.TestCase):
         task()
 
         self.assertTrue(any(
+            "00D000000000001" in s for s in self.task_log['info']
+        ))
+
+    def test_no_id_if_run_from_flow(self):
+        """ A salesforce_task will not log the org id if run from a flow """
+
+        task = _SfdcTask(
+            self.project_config,
+            self.task_config,
+            self.org_config,
+            flow=BaseFlow(self.project_config, FlowConfig(), self.org_config)
+        )
+        task()
+        self.assertFalse(any(
             "00D000000000001" in s for s in self.task_log['info']
         ))

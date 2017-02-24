@@ -18,14 +18,16 @@ class BaseTask(object):
     task_options = {}
     salesforce_task = False  # Does this task require a salesforce org?
 
-    def __init__(self, project_config, task_config, org_config=None, **kwargs):
+    def __init__(self, project_config, task_config, org_config=None, flow=None, **kwargs):
         self.project_config = project_config
         self.task_config = task_config
         self.org_config = org_config
         self.return_values = {}
         """ a dict of return_values that can be used by task callers """
         self.result = None
-        """ a simple result object for introspection """
+        """ a simple result object for introspection, often a return_code """
+        self.flow = flow
+        """ The flow for this task execution """
         if self.salesforce_task and not self.org_config:
             raise TaskRequiresSalesforceOrg('This task requires a Saleforce '
                                             'org_config but none was passed '
@@ -83,11 +85,7 @@ class BaseTask(object):
     def _log_begin(self):
         """ Log the beginning of the task execution """
         self.logger.info('Beginning task: %s', self.__class__.__name__)
-        if self.salesforce_task:
-            self.logger.info(
-                '%15s %s',
-                'As user:',
-                self.org_config.username
-            )
+        if self.salesforce_task and not self.flow:
+            self.logger.info('%15s %s', 'As user:', self.org_config.username)
             self.logger.info('%15s %s', 'In org:', self.org_config.org_id)
         self.logger.info('')

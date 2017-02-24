@@ -14,6 +14,8 @@ from cumulusci.core.config import OrgConfig
 from cumulusci.core.utils import MockLoggingHandler
 import cumulusci.core
 
+ORG_ID = "00D000000000001"
+
 
 class _TaskReturnsStuff(BaseTask):
     def _run_task(self):
@@ -27,13 +29,20 @@ class _TaskResponseName(BaseTask):
         return self.options['response']
 
 
+class _SfdcTask(BaseTask):
+    salesforce_task = True
+
+    def _run_task(self):
+        return -1
+
+
 class TestBaseFlow(unittest.TestCase):
     """ Tests the expectations of a BaseFlow caller """
 
     @classmethod
     def setUpClass(cls):
         super(TestBaseFlow, cls).setUpClass()
-        logger = logging.getLogger(cumulusci.core.flows.__name__)
+        logger = logging.getLogger(cumulusci.core.__name__)
         logger.setLevel(logging.DEBUG)
         cls._flow_log_handler = MockLoggingHandler(logging.DEBUG)
         logger.addHandler(cls._flow_log_handler)
@@ -52,8 +61,17 @@ class TestBaseFlow(unittest.TestCase):
                 'class_path':
                     'cumulusci.core.tests.test_flows._TaskResponseName',
             },
+            'sfdc_task': {
+                'description': 'An sfdc task',
+                'class_path':
+                    'cumulusci.core.tests.test_flows._SfdcTask'
+            }
         }
-        self.org_config = OrgConfig({'foo': 'bar'})
+        self.org_config = OrgConfig({
+            'username': 'sample@example',
+            'org_id': ORG_ID
+        })
+
         self._flow_log_handler.reset()
         self.flow_log = self._flow_log_handler.messages
 
@@ -154,3 +172,37 @@ class TestBaseFlow(unittest.TestCase):
         flow = BaseFlow(self.project_config, flow_config, self.org_config)
 
         self.assertRaises(AttributeError, flow)
+
+    def test_flow_prints_org_id(self):
+        """ A flow with an org prints the org ID """
+
+        flow_config = FlowConfig({
+            'description': 'Run two tasks',
+            'tasks': {
+                1: {'task': 'pass_name'},
+                2: {'task': 'pass_name'},
+            }
+        })
+        flow = BaseFlow(self.project_config, flow_config, self.org_config)
+        flow()
+
+        org_id_logs = [s for s in self.flow_log['info'] if ORG_ID in s]
+
+        self.assertEqual(1, len(org_id_logs))
+
+    def test_flow_prints_org_id_once_only(self):
+        """ A flow with sf tasks prints the org ID only once."""
+
+        flow_config = FlowConfig({
+            'description': 'Run two tasks',
+            'tasks': {
+                1: {'task': 'sfdc_task'},
+                2: {'task': 'sfdc_task'},
+            }
+        })
+        flow = BaseFlow(self.project_config, flow_config, self.org_config)
+        flow()
+
+        org_id_logs = [s for s in self.flow_log['info'] if ORG_ID in s]
+
+        self.assertEqual(1, len(org_id_logs))
