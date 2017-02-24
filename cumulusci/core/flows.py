@@ -19,6 +19,7 @@ class BaseFlow(object):
         self.task_results = []
         """ A collection of result objects in task execution order """
         self.tasks = []
+        """ A collection of configured task objects, either run or failed """
         self._init_logger()
         self._init_flow()
 
