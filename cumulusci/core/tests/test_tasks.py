@@ -28,6 +28,14 @@ class TestBaseTaskCallable(unittest.TestCase):
 
     task_class = BaseTask
 
+    @classmethod
+    def setUpClass(cls):
+        super(TestBaseTaskCallable, cls).setUpClass()
+        logger = logging.getLogger(cumulusci.core.tasks.__name__)
+        logger.setLevel(logging.DEBUG)
+        cls._task_log_handler = MockLoggingHandler(logging.DEBUG)
+        logger.addHandler(cls._task_log_handler)
+
     def setUp(self):
         self.global_config = BaseGlobalConfig()
         self.project_config = BaseProjectConfig(self.global_config)
@@ -36,6 +44,8 @@ class TestBaseTaskCallable(unittest.TestCase):
             'org_id': '00D000000000001'
         })
         self.task_config = TaskConfig()
+        self._task_log_handler.reset()
+        self.task_messages = self._task_log_handler.messages
 
     def test_task_is_callable(self):
         """ BaseTask is Callable """
@@ -83,16 +93,12 @@ class TestBaseTaskCallable(unittest.TestCase):
             self.task_config,
             self.org_config
         )
-        mock_logger = MockLoggingHandler(logging.DEBUG)
-        logger = logging.getLogger(cumulusci.core.tasks.__name__)
-        logger.setLevel(logging.DEBUG)
-        logger.addHandler(mock_logger)
 
         task()
 
         task_name_logs = [log for
                           log in
-                          mock_logger.messages['info'] if
+                          self.task_messages['info'] if
                           '_TaskHasResult' in log]
 
         self.assertEquals(1, len(task_name_logs))

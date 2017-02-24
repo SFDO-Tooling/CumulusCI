@@ -16,21 +16,30 @@ def import_class(path):
 
 
 class MockLoggingHandler(logging.Handler):
-    """Mock logging handler to check for expected logs."""
+    """Mock logging handler to check for expected logs.
+
+    Messages are available from an instance's ``messages`` dict, in order, indexed by
+    a lowercase log level string (e.g., 'debug', 'info', etc.).
+    """
 
     def __init__(self, *args, **kwargs):
-        self.reset()
-        logging.Handler.__init__(self, *args, **kwargs)
+        self.messages = {'debug': [], 'info': [], 'warning': [], 'error': [],
+                         'critical': []}
+        super(MockLoggingHandler, self).__init__(*args, **kwargs)
 
     def emit(self, record):
-        self.messages[record.levelname.lower()].append(record.getMessage())
+        "Store a message from ``record`` in the instance's ``messages`` dict."
+        self.acquire()
+        try:
+            self.messages[record.levelname.lower()].append(record.getMessage())
+        finally:
+            self.release()
 
     def reset(self):
-        """ Reset the handler for each test """
-        self.messages = {
-            'debug': [],
-            'info': [],
-            'warning': [],
-            'error': [],
-            'critical': [],
-        }
+        """ Reset the handler in TestCase.setUp() to clear the msg list """
+        self.acquire()
+        try:
+            for message_list in self.messages.values():
+                del message_list[:]
+        finally:
+            self.release()
