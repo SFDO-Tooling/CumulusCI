@@ -14,7 +14,10 @@ class BaseFlow(object):
         self.project_config = project_config
         self.flow_config = flow_config
         self.org_config = org_config
-        self.responses = []
+        self.task_return_values = []
+        """ A collection of return_values dicts in task execution order """
+        self.task_results = []
+        """ A collection of result objects in task execution order """
         self.tasks = []
         self._init_logger()
         self._init_flow()
@@ -103,7 +106,7 @@ class BaseFlow(object):
                 value_parts = value[2:].split('.')
                 parent = self._find_task_by_name(value_parts[0])
                 for attr in value_parts[1:]:
-                    parent = getattr(parent, attr)
+                    parent = parent.return_values.get(attr)
                 task_config.config['options'][option] = parent
 
         task_class = import_class(task_config.class_path)
@@ -122,10 +125,10 @@ class BaseFlow(object):
             self.logger.info(line)
 
         try:
-            response = task()
+            task()
             self.logger.info('Task complete: %s', task_name)
-            self.responses.append(response)
-            return response
+            self.task_results.append(task.result)
+            self.task_return_values.append(task.return_values)
         except Exception as e:
             self.logger.error('Task failed: %s', task_name)
             if not flow_task_config['flow_config'].get('ignore_failure'):

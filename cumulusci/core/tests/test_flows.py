@@ -15,7 +15,7 @@ from cumulusci.core.config import OrgConfig
 class _TaskReturnsStuff(BaseTask):
 
     def _run_task(self):
-        self.name = 'supername'
+        self.return_values = {'name': 'supername'}
 
 
 class _TaskResponseName(BaseTask):
@@ -76,7 +76,7 @@ class TestBaseFlow(unittest.TestCase):
         # run the flow
         flow()
         # the flow results for the second task should be 'name'
-        self.assertEquals('supername', flow.responses[1])
+        self.assertEquals('supername', flow.task_results[1])
 
     def test_call_no_tasks(self):
         """ A flow with no tasks will have no responses. """
@@ -87,7 +87,7 @@ class TestBaseFlow(unittest.TestCase):
         flow = BaseFlow(self.project_config, flow_config, self.org_config)
         flow()
 
-        self.assertEqual([], flow.responses)
+        self.assertEqual([], flow.task_return_values)
         self.assertEqual([], flow.tasks)
 
     def test_call_one_task(self):
@@ -101,7 +101,7 @@ class TestBaseFlow(unittest.TestCase):
         flow = BaseFlow(self.project_config, flow_config, self.org_config)
         flow()
 
-        self.assertEqual([None], flow.responses)
+        self.assertEqual([{'name': 'supername'}], flow.task_return_values)
         self.assertEqual(1, len(flow.tasks))
 
     def test_call_many_tasks(self):
@@ -116,7 +116,7 @@ class TestBaseFlow(unittest.TestCase):
         flow = BaseFlow(self.project_config, flow_config, self.org_config)
         flow()
 
-        self.assertEqual([None, None], flow.responses)
+        self.assertEqual([{'name': 'supername'}, {'name': 'supername'}], flow.task_return_values)
         self.assertEqual(2, len(flow.tasks))
 
     def test_call_task_not_found(self):
