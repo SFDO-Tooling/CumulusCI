@@ -1,6 +1,7 @@
 """ Tests for the Flow engine """
 
 import unittest
+import logging
 
 from collections import Callable
 
@@ -10,10 +11,11 @@ from cumulusci.core.config import BaseGlobalConfig
 from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.config import FlowConfig
 from cumulusci.core.config import OrgConfig
+from cumulusci.core.utils import MockLoggingHandler
+import cumulusci.core
 
 
 class _TaskReturnsStuff(BaseTask):
-
     def _run_task(self):
         self.return_values = {'name': 'supername'}
 
@@ -28,20 +30,32 @@ class _TaskResponseName(BaseTask):
 class TestBaseFlow(unittest.TestCase):
     """ Tests the expectations of a BaseFlow caller """
 
+    @classmethod
+    def setUpClass(cls):
+        super(TestBaseFlow, cls).setUpClass()
+        logger = logging.getLogger(cumulusci.core.flows.__name__)
+        logger.setLevel(logging.DEBUG)
+        cls._flow_log_handler = MockLoggingHandler(logging.DEBUG)
+        logger.addHandler(cls._flow_log_handler)
+
     def setUp(self):
         self.global_config = BaseGlobalConfig()
         self.project_config = BaseProjectConfig(self.global_config)
         self.project_config.config['tasks'] = {
             'pass_name': {
                 'description': 'Pass the name',
-                'class_path': 'cumulusci.core.tests.test_flows._TaskReturnsStuff',
+                'class_path':
+                    'cumulusci.core.tests.test_flows._TaskReturnsStuff',
             },
             'name_response': {
                 'description': 'Pass the name',
-                'class_path': 'cumulusci.core.tests.test_flows._TaskResponseName',
+                'class_path':
+                    'cumulusci.core.tests.test_flows._TaskResponseName',
             },
         }
         self.org_config = OrgConfig({'foo': 'bar'})
+        self._flow_log_handler.reset()
+        self.flow_log = self._flow_log_handler.messages
 
     def test_init(self):
         """ BaseFlow initializes and offers a logger """
@@ -116,7 +130,10 @@ class TestBaseFlow(unittest.TestCase):
         flow = BaseFlow(self.project_config, flow_config, self.org_config)
         flow()
 
-        self.assertEqual([{'name': 'supername'}, {'name': 'supername'}], flow.task_return_values)
+        self.assertEqual(
+            [{'name': 'supername'}, {'name': 'supername'}],
+            flow.task_return_values
+        )
         self.assertEqual(2, len(flow.tasks))
 
     def test_call_task_not_found(self):
