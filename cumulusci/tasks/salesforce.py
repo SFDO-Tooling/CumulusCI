@@ -359,10 +359,10 @@ class InstallPackageVersion(Deploy):
             'description': 'Number of retries (default=5)',
         },
         'retry_interval': {
-            'description': 'Number of seconds to wait before the next retry (default=30),'
+            'description': 'Number of seconds to wait before the next retry (default=5),'
         },
         'retry_interval_add': {
-            'description': 'Number of seconds to add before each retry (default=60),'
+            'description': 'Number of seconds to add before each retry (default=30),'
         },
     }
 
