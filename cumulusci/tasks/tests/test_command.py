@@ -13,6 +13,7 @@ from cumulusci.core.config import TaskConfig
 from cumulusci.core.utils import MockLoggingHandler
 
 from cumulusci.tasks.command import Command
+from cumulusci.tasks.command import CommandException
 
 
 class TestCommandTask(unittest.TestCase):
@@ -50,7 +51,12 @@ class TestCommandTask(unittest.TestCase):
         # try to run the command and handle the command Exception
         # if no exception, confirm that we logged
         # if exception, confirm exception matches expectations
-        task()
+        try:
+            task()
+        except CommandException:
+            self.assertTrue(any(
+                "Return code" in s for s in self.task_log['error']
+            ))
 
         self.assertTrue(any(
             "total" in s for s in self.task_log['info']
