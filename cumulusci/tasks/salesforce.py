@@ -76,8 +76,7 @@ class BaseSalesforceTask(BaseTask):
             'Subclasses should provide their own implementation')
 
     def _is_retry_valid(self, e):
-        raise NotImplementedError(
-            'Subclasses should provide their own implementation')
+        return True
 
 
 class BaseSalesforceMetadataApiTask(BaseSalesforceTask):
@@ -1075,6 +1074,15 @@ class RunApexTests(BaseSalesforceToolingApiTask):
             'description': ('Seconds to wait between polling for Apex test ' +
                             'results.  Defaults to 3'),
         },
+        'retries': {
+            'description': 'Number of retries (default=10)',
+        },
+        'retry_interval': {
+            'description': 'Number of seconds to wait before the next retry (default=5),'
+        },
+        'retry_interval_add': {
+            'description': 'Number of seconds to add before each retry (default=5),'
+        },
         'junit_output': {
             'description': 'File name for JUnit output.  Defaults to test_results.xml',
         },
@@ -1097,6 +1105,12 @@ class RunApexTests(BaseSalesforceToolingApiTask):
                 self.options['managed'] = True
             else:
                 self.options['managed'] = False
+        if 'retries' not in self.options:
+            self.options['retries'] = 10
+        if 'retry_interval' not in self.options:
+            self.options['retry_interval'] = 5
+        if 'retry_interval_add' not in self.options:
+            self.options['retry_interval_add'] = 5
         if 'junit_output' not in self.options:
             self.options['junit_output'] = 'test_results.xml'
 
@@ -1108,6 +1122,7 @@ class RunApexTests(BaseSalesforceToolingApiTask):
         self.job_id = None
         self.results_by_class_name = {}
         self._debug_init_class()
+        self.result = None
 
     # These are overridden in the debug version
     def _debug_init_class(self):
@@ -1286,9 +1301,7 @@ class RunApexTests(BaseSalesforceToolingApiTask):
     def _wait_for_tests(self):
         poll_interval = int(self.options.get('poll_interval', 1))
         while True:
-            result = self.tooling.query_all(
-                "SELECT Id, Status, ApexClassId FROM ApexTestQueueItem " +
-                "WHERE ParentJobId = '{}'".format(self.job_id))
+            self._retry()
             counts = {
                 'Aborted': 0,
                 'Completed': 0,
@@ -1298,7 +1311,7 @@ class RunApexTests(BaseSalesforceToolingApiTask):
                 'Processing': 0,
                 'Queued': 0,
             }
-            for test_queue_item in result['records']:
+            for test_queue_item in self.result['records']:
                 counts[test_queue_item['Status']] += 1
             self.logger.info('Completed: {}  Processing: {}  Queued: {}'
                              .format(
@@ -1310,6 +1323,11 @@ class RunApexTests(BaseSalesforceToolingApiTask):
                 self.logger.info('Apex tests completed')
                 break
             time.sleep(poll_interval)
+
+    def _try(self):
+        self.result = self.tooling.query_all(
+            "SELECT Id, Status, ApexClassId FROM ApexTestQueueItem " +
+            "WHERE ParentJobId = '{}'".format(self.job_id))
 
     def _write_output(self, test_results):
         junit_output = self.options['junit_output']
