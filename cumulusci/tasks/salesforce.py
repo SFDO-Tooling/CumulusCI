@@ -50,6 +50,36 @@ class BaseSalesforceTask(BaseTask):
     def _update_credentials(self):
         self.org_config.refresh_oauth_token(self.project_config.keychain.get_connected_app())
 
+    def _retry(self):
+        while True:
+            try:
+                self._try()
+                break
+            except Exception as e:
+                if not (self.options['retries'] and self._is_retry_valid(e)):
+                    raise
+                if self.options['retry_interval']:
+                    self.logger.warning(
+                        'Sleeping for {} seconds before retry...'.format(
+                        self.options['retry_interval']))
+                    time.sleep(self.options['retry_interval'])
+                    if self.options['retry_interval_add']:
+                        self.options['retry_interval'] += self.options[
+                            'retry_interval_add']
+                self.options['retries'] -= 1
+                self.logger.warning(
+                    'Retrying ({} attempts remaining)'.format(
+                    self.options['retries']))
+
+    def _try(self):
+        raise NotImplementedError(
+            'Subclasses should provide their own implementation')
+
+    def _is_retry_valid(self, e):
+        raise NotImplementedError(
+            'Subclasses should provide their own implementation')
+
+
 class BaseSalesforceMetadataApiTask(BaseSalesforceTask):
     api_class = None
     name = 'BaseSalesforceMetadataApiTask'
@@ -359,21 +389,17 @@ class InstallPackageVersion(Deploy):
         return self.api_class(self, package_zip(), purge_on_delete=False)
 
     def _run_task(self):
+        self._retry()
+
+    def _try(self):
         api = self._get_api()
-        try:
-            res = api()
-        except MetadataApiError as e:
-            if self.options['retries'] and ('This package is not yet available' in e.message or
-                'InstalledPackage version number' in e.message):
-                if self.options['retry_interval']:
-                    self.logger.warning('Sleeping for {} seconds before retry...'.format(self.options['retry_interval']))
-                    time.sleep(self.options['retry_interval'])
-                    if self.options['retry_interval_add']:
-                        self.options['retry_interval'] += self.options['retry_interval_add']
-                self.options['retries'] -= 1
-                self.logger.warning('Retrying deploy (%d attempts remaining)' % (self.options['retries']))
-                return self._run_task()
-            raise
+        api()
+
+    def _is_retry_valid(self, e):
+        if (isinstance(e, MetadataApiError) and
+            ('This package is not yet available' in e.message or
+            'InstalledPackage version number' in e.message)):
+            return True
 
 class UninstallPackage(Deploy):
     task_options = {
