@@ -50,34 +50,6 @@ class BaseSalesforceTask(BaseTask):
     def _update_credentials(self):
         self.org_config.refresh_oauth_token(self.project_config.keychain.get_connected_app())
 
-    def _retry(self):
-        while True:
-            try:
-                self._try()
-                break
-            except Exception as e:
-                if not (self.options['retries'] and self._is_retry_valid(e)):
-                    raise
-                if self.options['retry_interval']:
-                    self.logger.warning(
-                        'Sleeping for {} seconds before retry...'.format(
-                        self.options['retry_interval']))
-                    time.sleep(self.options['retry_interval'])
-                    if self.options['retry_interval_add']:
-                        self.options['retry_interval'] += self.options[
-                            'retry_interval_add']
-                self.options['retries'] -= 1
-                self.logger.warning(
-                    'Retrying ({} attempts remaining)'.format(
-                    self.options['retries']))
-
-    def _try(self):
-        raise NotImplementedError(
-            'Subclasses should provide their own implementation')
-
-    def _is_retry_valid(self, e):
-        return True
-
 
 class BaseSalesforceMetadataApiTask(BaseSalesforceTask):
     api_class = None
