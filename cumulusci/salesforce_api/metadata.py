@@ -337,7 +337,7 @@ class ApiRetrievePackaged(BaseMetadataApiCall):
     def _build_envelope_start(self):
         return self.soap_envelope_start.format(
             self.api_version,
-            self.package_name,
+            self.package_name.replace('&', '&amp;'),
         )
 
     def _process_response(self, response):
