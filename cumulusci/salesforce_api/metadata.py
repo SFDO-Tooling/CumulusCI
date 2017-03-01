@@ -7,6 +7,7 @@ based on mrbelvedere/mpinstaller/mdapi.py
 #   - add docstrings
 #   - parse dates from SOAP response
 #   - use format() instead of %
+#   - look at https://github.com/rholder/retrying
 
 import base64
 # import dateutil.parser

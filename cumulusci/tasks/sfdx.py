@@ -1,9 +1,22 @@
-""" Wrapper tasks for the SFDX CLI """
+""" Wrapper tasks for the SFDX CLI
+
+
+TODO: Instead of everyone overriding random attrs, especially as future
+users subclass these tasks, we should expose an api for the string format
+function. i.e. make it easy for subclasses to add to the string inherited
+from the base.
+
+Actually do this in Command. have it expose command segments.
+
+Then here in SFDX we will add an additional metalayer for
+how the CLI formats args opts commands etc.
+"""
 
 from cumulusci.tasks.command import Command
 from cumulusci.tasks.command import SalesforceCommand
 
 SFDX_CLI = 'sfdx'
+
 
 class SFDXBaseTask(Command):
     """ Call the sfdx cli with params and no org """
