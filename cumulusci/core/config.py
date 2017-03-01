@@ -395,7 +395,10 @@ class OrgConfig(BaseConfig):
     @property
     def username(self):
         """ Username for the org connection. """
-        return self.userinfo__preferred_username
+        username = self.config.get('username')
+        if not username:
+            username = self.userinfo__preferred_username
+        return username
 
     def load_userinfo(self):
         self._load_userinfo()
