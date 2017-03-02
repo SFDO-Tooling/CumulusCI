@@ -11,7 +11,7 @@ from cumulusci.core.config import BaseGlobalConfig
 from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.config import FlowConfig
 from cumulusci.core.config import OrgConfig
-from cumulusci.core.utils import MockLoggingHandler
+from cumulusci.core.tests.utils import MockLoggingHandler
 import cumulusci.core
 
 ORG_ID = "00D000000000001"
@@ -189,6 +189,23 @@ class TestBaseFlow(unittest.TestCase):
         org_id_logs = [s for s in self.flow_log['info'] if ORG_ID in s]
 
         self.assertEqual(1, len(org_id_logs))
+
+    def test_flow_no_org_no_org_id(self):
+        """ A flow without an org does not print the org ID """
+
+        flow_config = FlowConfig({
+            'description': 'Run two tasks',
+            'tasks': {
+                1: {'task': 'pass_name'},
+                2: {'task': 'pass_name'},
+            }
+        })
+        flow = BaseFlow(self.project_config, flow_config, None)
+        flow()
+
+        self.assertFalse(any(
+            ORG_ID in s for s in self.flow_log['info']
+        ))
 
     def test_flow_prints_org_id_once_only(self):
         """ A flow with sf tasks prints the org ID only once."""

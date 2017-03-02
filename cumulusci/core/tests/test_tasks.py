@@ -11,9 +11,11 @@ from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.config import OrgConfig
 from cumulusci.core.config import FlowConfig
-from cumulusci.core.utils import MockLoggingHandler
+from cumulusci.core.tests.utils import MockLoggingHandler
 import cumulusci.core
 
+ORG_ID = '00D000000000001'
+USERNAME = 'sample@example'
 
 class _TaskHasResult(BaseTask):
     def _run_task(self):
@@ -49,8 +51,8 @@ class TestBaseTaskCallable(unittest.TestCase):
         self.global_config = BaseGlobalConfig()
         self.project_config = BaseProjectConfig(self.global_config)
         self.org_config = OrgConfig({
-            'username': 'sample@example',
-            'org_id': '00D000000000001'
+            'username': USERNAME,
+            'org_id': ORG_ID
         })
         self.task_config = TaskConfig()
         self._task_log_handler.reset()
@@ -94,7 +96,7 @@ class TestBaseTaskCallable(unittest.TestCase):
 
         self.assertEqual(task.result, -1)
 
-    def test_task_logs_name(self):
+    def test_task_logs_name_not_org(self):
         """ A task logs the task class name to info (and not creds) """
 
         task = _TaskHasResult(
@@ -108,6 +110,10 @@ class TestBaseTaskCallable(unittest.TestCase):
             "_TaskHasResult" in s for s in self.task_log['info']
         ))
 
+        self.assertFalse(any(
+            ORG_ID in s for s in self.task_log['info']
+        ))
+
     def test_salesforce_task_logs_org_id(self):
         """ A salesforce_task will also log the org id & username """
 
@@ -119,7 +125,7 @@ class TestBaseTaskCallable(unittest.TestCase):
         task()
 
         self.assertTrue(any(
-            "00D000000000001" in s for s in self.task_log['info']
+            ORG_ID in s for s in self.task_log['info']
         ))
 
     def test_no_id_if_run_from_flow(self):
@@ -133,5 +139,5 @@ class TestBaseTaskCallable(unittest.TestCase):
         )
         task()
         self.assertFalse(any(
-            "00D000000000001" in s for s in self.task_log['info']
+            ORG_ID in s for s in self.task_log['info']
         ))

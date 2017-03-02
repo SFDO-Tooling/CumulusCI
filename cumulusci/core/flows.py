@@ -3,6 +3,7 @@
 import copy
 from distutils.version import LooseVersion  # pylint: disable=import-error,no-name-in-module
 import logging
+import traceback
 
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.utils import import_class
@@ -72,9 +73,10 @@ class BaseFlow(object):
                 task_info['task_config'].description,
             ))
 
-        config.append('Organization:')
-        config.append('  {}: {}'.format('Username', self.org_config.username))
-        config.append('  {}: {}'.format('  Org Id', self.org_config.org_id))
+        if self.org_config is not None:
+            config.append('Organization:')
+            config.append('  {}: {}'.format('Username', self.org_config.username))
+            config.append('  {}: {}'.format('  Org Id', self.org_config.org_id))
 
         return config
 
@@ -139,6 +141,7 @@ class BaseFlow(object):
             self.logger.error('Task failed: %s', task_name)
             if not flow_task_config['flow_config'].get('ignore_failure'):
                 self.logger.error('Failing flow due to exception in task')
+                traceback.print_exc()
                 raise e
             self.logger.info('Continuing flow')
 
