@@ -72,9 +72,10 @@ class BaseFlow(object):
                 task_info['task_config'].description,
             ))
 
-        config.append('Organization:')
-        config.append('  {}: {}'.format('Username', self.org_config.username))
-        config.append('  {}: {}'.format('  Org Id', self.org_config.org_id))
+        if self.org_config is not None:
+            config.append('Organization:')
+            config.append('  {}: {}'.format('Username', self.org_config.username))
+            config.append('  {}: {}'.format('  Org Id', self.org_config.org_id))
 
         return config
 
