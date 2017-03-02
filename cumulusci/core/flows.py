@@ -20,6 +20,7 @@ class BaseFlow(object):
         self.task_results = []
         """ A collection of result objects in task execution order """
         self.tasks = []
+        """ A collection of configured task objects, either run or failed """
         self._init_logger()
         self._init_flow()
 
@@ -72,6 +73,11 @@ class BaseFlow(object):
                 task_info['task_config'].description,
             ))
 
+        if self.org_config is not None:
+            config.append('Organization:')
+            config.append('  {}: {}'.format('Username', self.org_config.username))
+            config.append('  {}: {}'.format('  Org Id', self.org_config.org_id))
+
         return config
 
     def __call__(self):
@@ -119,6 +125,7 @@ class BaseFlow(object):
             self.project_config,
             task_config,
             org_config=self.org_config,
+            flow=self
         )
         self.tasks.append(task)
 
