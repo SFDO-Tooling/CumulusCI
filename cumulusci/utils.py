@@ -121,7 +121,7 @@ def doc_task(task_name, task_config, project_config=None, org_config=None):
         if not defaults:
             defaults = {}
         for name, option in task_class.task_options.items():
-            default = defaults.get('name')
+            default = defaults.get(name)
             if default:
                 default = ' **Default: {}**'.format(default)
             else:
