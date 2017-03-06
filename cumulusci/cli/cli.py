@@ -531,7 +531,6 @@ def task_info(config, task_name):
 
     task_config = TaskConfig(task_config)
     click.echo(rst2ansi(doc_task(task_name, task_config)))
-    return
 
 @click.command(name='run', help="Runs a task")
 @click.argument('task_name')
