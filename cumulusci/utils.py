@@ -107,10 +107,13 @@ def zip_subfolder(zip_src, path):
 
     return zip_dest
 
+
 def doc_task(task_name, task_config, project_config=None, org_config=None):
+    """ Document a (project specific) task configuration in RST format. """
     from cumulusci.core.utils import import_class
     doc = []
-    doc.append('{}\n==========================================\n'.format(task_name))
+    doc.append(
+        '{}\n==========================================\n'.format(task_name))
     doc.append('**Description:** {}\n'.format(task_config.description))
     doc.append('**Class::** {}\n'.format(task_config.class_path))
 
@@ -121,15 +124,21 @@ def doc_task(task_name, task_config, project_config=None, org_config=None):
         if not defaults:
             defaults = {}
         for name, option in task_class.task_options.items():
-            default = defaults.get('name')
+            default = defaults.get(name)
             if default:
                 default = ' **Default: {}**'.format(default)
             else:
                 default = ''
             if option.get('required'):
-                doc.append('* **{}** *(required)*: {}{}'.format(name, option.get('description'), default))
+                doc.append('* **{}** *(required)*: {}{}'.format(
+                    name,
+                    option.get('description'),
+                    default))
             else:
-                doc.append('* **{}**: {}{}'.format(name, option.get('description'), default))
+                doc.append('* **{}**: {}{}'.format(
+                    name,
+                    option.get('description'),
+                    default))
 
     return '\n'.join(doc)
 
