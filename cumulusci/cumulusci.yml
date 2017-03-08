@@ -122,6 +122,9 @@ tasks:
         class_path: cumulusci.tasks.salesforce.RetrievePackaged
         options:
             path: src
+    retrieve_unpackaged:
+        description: Retrieve the contents of a package.xml file.
+        class_path: cumulusci.tasks.salesforce.RetrieveUnpackaged
     revert_managed_src:
         description: Reverts the changes from create_managed_src
         class_path: cumulusci.tasks.metadata.managed_src.RevertManagedSrc

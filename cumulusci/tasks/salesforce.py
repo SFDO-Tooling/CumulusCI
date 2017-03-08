@@ -142,7 +142,7 @@ class RetrieveUnpackaged(BaseRetrieveMetadata):
             'required': True,
         },
         'package_xml': {
-            'description': 'The package.xml manifest to use for the retrieve.',
+            'description': 'The path to a package.xml manifest to use for the retrieve.',
             'required': True,
         },
         'api_version': {
