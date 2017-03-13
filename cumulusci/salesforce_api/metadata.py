@@ -263,7 +263,7 @@ class ApiRetrieveUnpackaged(BaseMetadataApiCall):
         self.package_xml = re.sub('<Package.*>', '', self.package_xml, 1)
         self.package_xml = re.sub('</Package>', '', self.package_xml, 1)
         self.package_xml = re.sub('\n', '', self.package_xml)
-        self.package_xml = re.sub(' *', '', self.package_xml)
+        self.package_xml = re.sub(' +<', '<', self.package_xml)
 
     def _build_envelope_start(self):
         return self.soap_envelope_start.format(
