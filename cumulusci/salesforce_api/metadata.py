@@ -14,6 +14,7 @@ import httplib
 import re
 import time
 from xml.dom.minidom import parseString
+from xml.sax.saxutils import escape
 from zipfile import ZipFile
 import StringIO
 
@@ -337,7 +338,7 @@ class ApiRetrievePackaged(BaseMetadataApiCall):
     def _build_envelope_start(self):
         return self.soap_envelope_start.format(
             self.api_version,
-            self.package_name,
+            escape(self.package_name),
         )
 
     def _process_response(self, response):
