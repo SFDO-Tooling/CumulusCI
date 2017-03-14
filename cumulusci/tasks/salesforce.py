@@ -668,7 +668,7 @@ class UninstallPackaged(UninstallLocal):
 
 class UninstallPackagedIncremental(UninstallPackaged):
     name = 'UninstallPackagedIncremental'
-
+    skip_types = ['Scontrol']
     task_options = {
         'path': {
             'description': 'The local path to compare to the retrieved packaged metadata from the org.  Defaults to src',
@@ -754,6 +754,8 @@ class UninstallPackagedIncremental(UninstallPackaged):
 
         if delete:
             self.logger.info('Deleting metadata:')
+            for skip_type in self.skip_types:
+                delete.pop(skip_type, None)
             for md_type, members in delete.items():
                 for member in members:
                     self.logger.info('    {}: {}'.format(md_type, member))
