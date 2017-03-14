@@ -1,5 +1,7 @@
 import time
 from datetime import datetime
+
+from cumulusci.core.tasks import BaseTask
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.tasks.push.push_api import SalesforcePushApi
 
@@ -309,7 +311,7 @@ class GetSubscriberList(BaseSalesforceApiTask):
     task_options = {
         'filename': {
             'description': 'File where org IDs will be written',
-            required: True,
+            'required': True,
         },
     }
 
@@ -322,11 +324,11 @@ class FilterSubscriberList(BaseTask):
     task_options = {
         'file_in': {
             'description': 'CSV file with full org info',
-            required: True,
+            'required': True,
         },
         'file_out': {
             'description': 'File where org IDs will be written',
-            required: True,
+            'required': True,
         },
         'org_type': {
             'description': 'Filter by org type'
