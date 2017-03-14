@@ -1,6 +1,7 @@
 from base64 import b64encode
 from zipfile import ZipFile
 from tempfile import TemporaryFile
+from xml.sax.saxutils import escape
 
 INSTALLED_PACKAGE_PACKAGE_XML = """<?xml version="1.0" encoding="utf-8"?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
@@ -63,7 +64,7 @@ class CreatePackageZipBuilder(BasePackageZipBuilder):
         self.api_version= api_version
 
     def _populate_zip(self):
-        package_xml = FULL_NAME_PACKAGE_XML.format(self.name, self.api_version)
+        package_xml = FULL_NAME_PACKAGE_XML.format(escape(self.name), self.api_version)
         self._write_package_xml(package_xml)
 
 class InstallPackageZipBuilder(BasePackageZipBuilder):
