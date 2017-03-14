@@ -2,6 +2,12 @@
 History
 =======
 
+2.0.0-beta18 (2017-03-14)
+------------------------
+
+* Skip deleting Scontrols in incremental delete
+* Escape package name when generating package.xml
+
 2.0.0-beta17 (2017-03-14)
 ------------------------
 
