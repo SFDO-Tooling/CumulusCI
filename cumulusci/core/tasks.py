@@ -4,6 +4,7 @@ Subclass BaseTask or a descendant to define custom task logic
 """
 
 import logging
+import time
 
 from cumulusci.core.exceptions import TaskRequiresSalesforceOrg
 from cumulusci.core.exceptions import TaskOptionsError
