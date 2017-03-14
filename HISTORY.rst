@@ -2,6 +2,24 @@
 History
 =======
 
+2.0.0-beta17 (2017-03-14)
+------------------------
+
+* OrgConfig and subclasses now support self.username to get the username
+* Flows no longer have access to task instance attributes for subsequent task options. Instead, custom task classes should set their task return_values member.
+* Improve printing of org info when running tasks from a flow by only printing once at the start of flow.  All tasks have an optional self.flow attribute now that contains the flow instance if the task is being run from a flow.
+* BaseTask now includes methods for handling retry logic.  Implemented in the InstallPackageVersion and RunApexTests
+* New task `retrieve_unpackaged` can be used to retrieve metadata from a package.xml manifest
+* Fixes #240 - CumulusCI should now properly handle escaping special characters in xml where appropriate
+* Fixes #245 - Show config values in task info
+* Fixes #251 - ApiRetrieveUnpackaged _clean_package_xml() can't handle metadata with spaces in names
+* Fixes #255 - ApiListMetadata does not list certain metadata types with default folder value
+
+2.0.0-beta16 (2017-02-17)
+------------------------
+
+* Allow batch size to be configured for push jobs with the `batch_size` job
+
 2.0.0-beta15 (2017-02-15)
 ------------------------
 
@@ -11,7 +29,7 @@ History
 ------------------------
 
 * The new `RetrieveReportsAndDashboards` task class that can retrieve all reports and dashboards from a specified list of folders
-* Documentation improvments contributed by @tet3
+* Documentation improvements contributed by @tet3
 * Include userinfo in the OrgConfig, and print username and org id at the beginning of every task run.  Contribution by @cdcarter
 * `project_local_dir` (e.g., `~/.cumulusci/NPSP-Extension-Template/`, home of the encrypted keychain and local override config) now rely on the project name configured in cumulusci.yml instead of the existence of a git remote named origin.  Contribution by @cdcarter
 

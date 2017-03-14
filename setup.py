@@ -47,7 +47,7 @@ test_requirements = [
 
 setup(
     name='cumulusci',
-    version='2.0.0-beta15',
+    version='2.0.0-beta17',
     description="Build and release tools for Salesforce developers",
     long_description=readme + '\n\n' + history,
     author="Jason Lantz",
