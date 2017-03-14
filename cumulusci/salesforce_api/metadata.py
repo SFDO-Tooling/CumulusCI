@@ -578,6 +578,8 @@ class ApiListMetadata(BaseMetadataApiCall):
         folder = self.folder
         if folder is None:
             folder = ''
+        else:
+            folder = '\n      <folder>{}</folder>'.format(folder)      
         return self.soap_envelope_start % {'metadata_type': self.metadata_type, 'folder': self.folder}
 
     def _process_response(self, response):
