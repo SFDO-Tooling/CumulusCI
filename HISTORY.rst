@@ -2,6 +2,11 @@
 History
 =======
 
+2.0.0-beta19 (2017-03-15)
+------------------------
+
+* Fixes #261: cci org info should refresh token first
+
 2.0.0-beta18 (2017-03-14)
 ------------------------
 
