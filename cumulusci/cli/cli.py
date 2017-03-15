@@ -411,7 +411,14 @@ def org_default(config, org_name, unset):
 @pass_config
 def org_info(config, org_name):
     check_connected_app(config)
-    click.echo(pretty_dict(config.keychain.get_org(org_name).config))
+    
+    org_config = config.keychain.get_org(org_name)
+    org_config.refresh_oauth_token(config.keychain.get_connected_app())
+
+    click.echo(pretty_dict(org_config.config))
+
+    # Save the org config in case it was modified
+    config.keychain.set_org(org_name, org_config)
 
 @click.command(name='list', help="Lists the connected orgs for the current project")
 @pass_config
