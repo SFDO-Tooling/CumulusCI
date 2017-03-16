@@ -6,6 +6,7 @@ from distutils.version import LooseVersion
 
 from cumulusci.tasks.release_notes.exceptions import LastReleaseTagNotFoundError
 from cumulusci.tasks.release_notes.github_api import GithubApiMixin
+from cumulusci.tasks.release_notes.exceptions import GithubApiError
 from cumulusci.tasks.release_notes.exceptions import GithubApiNoResultsError
 from cumulusci.tasks.release_notes.exceptions import GithubApiNotFoundError
 
@@ -134,6 +135,11 @@ class GithubChangeNotesProvider(BaseChangeNotesProvider, ProviderGithubApiMixin)
         tag_info = {
             'ref': self.call_api('/git/refs/tags/{}'.format(tag)),
         }
+        if tag_info['ref']['object']['type'] != 'tag':
+            raise GithubApiError(
+                'Tag {} '.format(tag_info['ref']['ref'][10:]) +
+                'is lightweight, must be annotated.'
+            )
         try:
             tag_info['tag'] = self.call_api(
                 '/git/tags/{}'.format(tag_info['ref']['object']['sha']))
