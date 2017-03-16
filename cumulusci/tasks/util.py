@@ -41,6 +41,6 @@ class Sleep(BaseTask):
     
     def _run_task(self):
         self.logger.info("Sleeping for {} seconds".format(self.options['seconds']))
-        time.sleep(self.options['seconds'])
+        time.sleep(float(self.options['seconds']))
         self.logger.info("Done")
 

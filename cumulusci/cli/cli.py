@@ -411,7 +411,14 @@ def org_default(config, org_name, unset):
 @pass_config
 def org_info(config, org_name):
     check_connected_app(config)
-    click.echo(pretty_dict(config.keychain.get_org(org_name).config))
+    
+    org_config = config.keychain.get_org(org_name)
+    org_config.refresh_oauth_token(config.keychain.get_connected_app())
+
+    click.echo(pretty_dict(org_config.config))
+
+    # Save the org config in case it was modified
+    config.keychain.set_org(org_name, org_config)
 
 @click.command(name='list', help="Lists the connected orgs for the current project")
 @pass_config
@@ -531,35 +538,6 @@ def task_info(config, task_name):
 
     task_config = TaskConfig(task_config)
     click.echo(rst2ansi(doc_task(task_name, task_config)))
-    return
-    class_path = task_config.get('class_path')
-    task_class = import_class(class_path)
-
-    # General task info
-    click.echo('Description: {}'.format(task_config.get('description')))
-    click.echo('Class: {}'.format(task_config.get('class_path')))
-
-    # Default options
-    default_options = task_config.get('options', {})
-    if default_options:
-        click.echo('')
-        click.echo('Default Option Values')
-        for key, value in default_options.items():
-            click.echo('    {}: {}'.format(key, value))
-
-    # Task options
-    task_options = getattr(task_class, 'task_options', {})
-    if task_options:
-        click.echo('')
-        data = []
-        headers = ['Option', 'Required', 'Description']
-        for key, option in task_options.items():
-            if option.get('required'):
-                data.append((key, '*', option.get('description')))
-            else:
-                data.append((key, '', option.get('description')))
-        table = Table(data, headers)
-        click.echo(table)
 
 @click.command(name='run', help="Runs a task")
 @click.argument('task_name')

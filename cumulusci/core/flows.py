@@ -1,18 +1,26 @@
+""" The flow engine allows a series of tasks to be run. """
+
 import copy
-from distutils.version import LooseVersion
+from distutils.version import LooseVersion  # pylint: disable=import-error,no-name-in-module
 import logging
+import traceback
 
 from cumulusci.core.config import TaskConfig
-from cumulusci.core.exceptions import CumulusCIException
 from cumulusci.core.utils import import_class
 
+
 class BaseFlow(object):
+    """ BaseFlow handles initializing and running a flow """
     def __init__(self, project_config, flow_config, org_config):
         self.project_config = project_config
         self.flow_config = flow_config
         self.org_config = org_config
-        self.responses = []
+        self.task_return_values = []
+        """ A collection of return_values dicts in task execution order """
+        self.task_results = []
+        """ A collection of result objects in task execution order """
         self.tasks = []
+        """ A collection of configured task objects, either run or failed """
         self._init_logger()
         self._init_flow()
 
@@ -21,10 +29,12 @@ class BaseFlow(object):
         self.logger = logging.getLogger(__name__)
 
     def _init_flow(self):
+        """ Initialize the flow and print flow details to info """
         self.logger.info('---------------------------------------')
-        self.logger.info('Initializing flow class {}:'.format(
+        self.logger.info(
+            'Initializing flow class %s:',
             self.__class__.__name__,
-        ))
+        )
         self.logger.info('---------------------------------------')
         for line in self._render_config():
             self.logger.info(line)
@@ -38,7 +48,9 @@ class BaseFlow(object):
                 LooseVersion(str(step_num)),
                 {
                     'flow_config': config,
-                    'task_config': self.project_config.get_task(config['task']),
+                    'task_config': self.project_config.get_task(
+                        config['task']
+                    ),
                 }
             ))
         tasks.sort()
@@ -47,7 +59,9 @@ class BaseFlow(object):
 
     def _render_config(self):
         config = []
-        config.append('Flow Description: {}'.format(self.flow_config.description))
+        config.append(
+            'Flow Description: {}'.format(self.flow_config.description)
+        )
 
         if not self.flow_config.tasks:
             return config
@@ -58,6 +72,11 @@ class BaseFlow(object):
                 task_info['flow_config']['task'],
                 task_info['task_config'].description,
             ))
+
+        if self.org_config is not None:
+            config.append('Organization:')
+            config.append('  {}: {}'.format('Username', self.org_config.username))
+            config.append('  {}: {}'.format('  Org Id', self.org_config.org_id))
 
         return config
 
@@ -79,12 +98,14 @@ class BaseFlow(object):
     def _run_task(self, flow_task_config):
         task_config = copy.deepcopy(flow_task_config['task_config'].config)
         task_config = TaskConfig(task_config)
-    
+
         task_name = flow_task_config['flow_config']['task']
 
         if 'options' not in task_config.config:
             task_config.config['options'] = {}
-        task_config.config['options'].update(flow_task_config['flow_config'].get('options', {}))
+        task_config.config['options'].update(
+            flow_task_config['flow_config'].get('options', {})
+        )
 
         # Handle dynamic value lookups in the format ^^task_name.attr1.attr2
         for option, value in task_config.options.items():
@@ -92,21 +113,19 @@ class BaseFlow(object):
                 value_parts = value[2:].split('.')
                 parent = self._find_task_by_name(value_parts[0])
                 for attr in value_parts[1:]:
-                    parent = getattr(parent, attr)
+                    parent = parent.return_values.get(attr)
                 task_config.config['options'][option] = parent
-
 
         task_class = import_class(task_config.class_path)
 
         self.logger.info('')
-        self.logger.info(
-            'Running task: {}'.format(task_name)
-        )
+        self.logger.info('Running task: %s', task_name)
 
         task = task_class(
             self.project_config,
             task_config,
-            org_config = self.org_config,
+            org_config=self.org_config,
+            flow=self
         )
         self.tasks.append(task)
 
@@ -114,15 +133,16 @@ class BaseFlow(object):
             self.logger.info(line)
 
         try:
-            response = task()
-            self.logger.info('Task complete: {}'.format(task_name))
-            self.responses.append(response)
-            return response
+            task()
+            self.logger.info('Task complete: %s', task_name)
+            self.task_results.append(task.result)
+            self.task_return_values.append(task.return_values)
         except Exception as e:
-            self.logger.error('Task failed: {}'.format(task_name))
+            self.logger.error('Task failed: %s', task_name)
             if not flow_task_config['flow_config'].get('ignore_failure'):
                 self.logger.error('Failing flow due to exception in task')
-                raise
+                traceback.print_exc()
+                raise e
             self.logger.info('Continuing flow')
 
     def _render_task_config(self, task):
@@ -130,7 +150,7 @@ class BaseFlow(object):
         if not task.task_options:
             return config
 
-        for option_name, option_info in task.task_options.items():
+        for option_name in list(task.task_options.keys()):
             config.append('  {}: {}'.format(
                 option_name,
                 task.options.get(option_name),

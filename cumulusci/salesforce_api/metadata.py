@@ -14,6 +14,7 @@ import httplib
 import re
 import time
 from xml.dom.minidom import parseString
+from xml.sax.saxutils import escape
 from zipfile import ZipFile
 import StringIO
 
@@ -262,7 +263,7 @@ class ApiRetrieveUnpackaged(BaseMetadataApiCall):
         self.package_xml = re.sub('<Package.*>', '', self.package_xml, 1)
         self.package_xml = re.sub('</Package>', '', self.package_xml, 1)
         self.package_xml = re.sub('\n', '', self.package_xml)
-        self.package_xml = re.sub(' *', '', self.package_xml)
+        self.package_xml = re.sub(' +<', '<', self.package_xml)
 
     def _build_envelope_start(self):
         return self.soap_envelope_start.format(
@@ -337,7 +338,7 @@ class ApiRetrievePackaged(BaseMetadataApiCall):
     def _build_envelope_start(self):
         return self.soap_envelope_start.format(
             self.api_version,
-            self.package_name,
+            escape(self.package_name),
         )
 
     def _process_response(self, response):
@@ -577,6 +578,8 @@ class ApiListMetadata(BaseMetadataApiCall):
         folder = self.folder
         if folder is None:
             folder = ''
+        else:
+            folder = '\n      <folder>{}</folder>'.format(folder)      
         return self.soap_envelope_start % {'metadata_type': self.metadata_type, 'folder': self.folder}
 
     def _process_response(self, response):
