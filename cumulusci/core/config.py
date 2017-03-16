@@ -504,7 +504,10 @@ class ScratchOrgConfig(OrgConfig):
         if not self.scratch_org_type:
             self.config['scratch_org_type'] = 'workspace'
 
-        command = 'sfdx force:org:create -f {}'.format(self.config_file)
+        # This feels a little dirty, but the use cases for extra args would mostly
+        # work best with env vars
+        extraargs = os.environ.get('SFDX_ORG_CREATE_ARGS', '')
+        command = 'sfdx force:org:create -f "{}" {}'.format(self.config_file, extraargs)
         self.logger.info('Creating scratch org with command {}'.format(command))
         p = sarge.Command(command, stdout=sarge.Capture(buffer_size=-1))
         p.run()
