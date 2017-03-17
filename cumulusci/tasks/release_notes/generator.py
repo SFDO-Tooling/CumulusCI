@@ -11,6 +11,7 @@ from cumulusci.tasks.release_notes.github_api import GithubApiMixin
 from cumulusci.tasks.release_notes.parser import ChangeNotesLinesParser
 from cumulusci.tasks.release_notes.parser import IssuesParser
 from cumulusci.tasks.release_notes.parser import GithubIssuesParser
+from cumulusci.tasks.release_notes.parser import GithubLinesParser
 from cumulusci.tasks.release_notes.parser import CommentingGithubIssuesParser
 from cumulusci.tasks.release_notes.provider import StaticChangeNotesProvider
 from cumulusci.tasks.release_notes.provider import DirectoryChangeNotesProvider
@@ -113,13 +114,13 @@ class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator):
 
     def _init_parsers(self):
         self.parsers.append(
-            ChangeNotesLinesParser(
+            GithubLinesParser(
                 self,
                 'Critical Changes',
             )
         )
         self.parsers.append(
-            ChangeNotesLinesParser(self, 'Changes')
+            GithubLinesParser(self, 'Changes')
         )
         self.parsers.append(
             GithubIssuesParser(self, 'Issues Closed')
@@ -141,13 +142,13 @@ class PublishingGithubReleaseNotesGenerator(GithubReleaseNotesGenerator, GithubA
 
     def _init_parsers(self):
         self.parsers.append(
-            ChangeNotesLinesParser(
+            GithubLinesParser(
                 self,
                 'Critical Changes',
             )
         )
         self.parsers.append(
-            ChangeNotesLinesParser(self, 'Changes')
+            GithubLinesParser(self, 'Changes')
         )
         self.parsers.append(
             CommentingGithubIssuesParser(self, 'Issues Closed')
