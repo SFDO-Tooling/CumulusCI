@@ -36,7 +36,7 @@ class GithubApiTestMixin(object):
         return {
             'ref': 'refs/tags/{}'.format(tag),
             'object': {
-                'type': 'tags',
+                'type': 'tag',
                 'sha': sha,
             }
         }

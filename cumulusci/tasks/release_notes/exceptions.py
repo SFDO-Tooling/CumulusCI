@@ -1,6 +1,10 @@
 from cumulusci.core.exceptions import CumulusCIException
 
 
+class GithubApiError(CumulusCIException):
+    pass
+
+
 class GithubApiNotFoundError(CumulusCIException):
     pass
 
