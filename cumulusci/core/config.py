@@ -445,7 +445,7 @@ class ScratchOrgConfig(OrgConfig):
             except Exception as e:
                 raise ScratchOrgException('Failed to parse json from output: {}\n{}'.format(''.join(stdout_list), e))
 
-            org_id = org_info['accessToken'].split(':')[0]
+            org_id = org_info['accessToken'].split('!')[0]
 
         self._scratch_info = {
             'instance_url': org_info['instanceUrl'],
