@@ -77,6 +77,7 @@ class GithubApiTestMixin(object):
 
         return {
             'id': pull_id,
+            'html_url': 'http://example.com/pulls/{}'.format(issue_number),
             'number': issue_number,
             'state': state,
             'title': 'Pull Request #{}'.format(issue_number),
