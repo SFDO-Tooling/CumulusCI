@@ -27,6 +27,8 @@ class ChangeNotesLinesParser(BaseChangeNotesParser):
         self.release_notes_generator = release_notes_generator
         self.title = title
         self._in_section = False
+        self.h2 = {} # dict of h2 sections - key=header, value is list of lines
+        self.h2_title = None # has value when in h2 section
 
     def parse(self, change_note):
         for line in change_note.splitlines():
@@ -35,6 +37,11 @@ class ChangeNotesLinesParser(BaseChangeNotesParser):
             # Look for the starting line of the section
             if self._is_start_line(line):
                 self._in_section = True
+                continue
+
+            # Look for h2
+            if line.startswith('## '):
+                self.h2_title = re.sub('\s+#+$', '', line[3:]).lstrip()
                 continue
 
             # Add all content once in the section
@@ -46,6 +53,7 @@ class ChangeNotesLinesParser(BaseChangeNotesParser):
                     if self._is_start_line(line):
                         continue
                     self._in_section = False
+                    self.h2_title = None
                     continue
 
                 # Skip excluded lines
@@ -77,6 +85,11 @@ class ChangeNotesLinesParser(BaseChangeNotesParser):
             return True
 
     def _add_line(self, line):
+        if self.h2_title:
+            if self.h2_title not in self.h2:
+                self.h2[self.h2_title] = []
+            self.h2[self.h2_title].append(line)
+            return
         self.content.append(line)
 
     def render(self):
@@ -85,6 +98,8 @@ class ChangeNotesLinesParser(BaseChangeNotesParser):
         content = []
         content.append(self._render_header())
         content.append(self._render_content())
+        if self.h2:
+            content.append(self._render_h2())
         return u'\r\n'.join(content)
 
     def _render_header(self):
@@ -92,6 +107,13 @@ class ChangeNotesLinesParser(BaseChangeNotesParser):
 
     def _render_content(self):
         return u'\r\n'.join(self.content)
+
+    def _render_h2(self):
+        content = []
+        for h2_title in self.h2.keys():
+            content.append(u'\r\n## {}\r\n'.format(h2_title))
+            content.append(u'\r\n'.join(self.h2[h2_title]))
+        return u'\r\n'.join(content)
 
 
 class IssuesParser(ChangeNotesLinesParser):
