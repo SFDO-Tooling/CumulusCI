@@ -184,8 +184,15 @@ class SchedulePushOrgList(BaseSalesforcePushTask):
         },
         'start_time': {
             'description': "Set the start time (UTC) to queue a future push. Ex: 2016-10-19T10:00",
-        }
+        },
+        'batch_size': {
+            'description': "Set batch size used to add individual orgs to the push request.  Defaults to 200",
+        },
     }
+
+    def _init_task(self):
+        super(SchedulePushOrgList, self)._init_task()
+        self.push = SalesforcePushApi(self.sf, self.logger, self.options['batch_size'])
 
     def _init_options(self, kwargs):
         super(SchedulePushOrgList, self)._init_options(kwargs)
@@ -193,6 +200,8 @@ class SchedulePushOrgList(BaseSalesforcePushTask):
         # Set the namespace option to the value from cumulusci.yml if not already set
         if not 'namespace' in self.options:
             self.options['namespace'] = self.project_config.project__package__namespace
+        if not 'batch_size' in self.options:
+            self.options['batch_size'] = 200
 
     def _get_orgs(self):
         return self._load_orgs_file(self.options.get('orgs'))
