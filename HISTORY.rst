@@ -2,6 +2,11 @@
 History
 =======
 
+2.0.0-beta21 (2017-03-17)
+------------------------
+
+* Fix parsing of OrgId from the access token using the new sfdx CLI
+
 2.0.0-beta20 (2017-03-17)
 ------------------------
 
