@@ -87,7 +87,7 @@ class GithubChangeNotesProvider(BaseChangeNotesProvider, ProviderGithubApiMixin)
 
     def __call__(self):
         for pull_request in self._get_pull_requests():
-            yield pull_request['body']
+            yield pull_request
 
     @property
     def last_tag(self):

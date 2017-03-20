@@ -389,7 +389,11 @@ class TestGithubChangeNotesProvider(unittest.TestCase, GithubApiTestMixin):
         generator = self._create_generator(self.current_tag, self.last_tag)
         provider = GithubChangeNotesProvider(
             generator, self.current_tag, self.last_tag)
-        self.assertEqual(list(provider()), ['pull 1'])
+        provider_list = list(provider())
+        pr_body_list = ['pull 1']
+        self.assertEqual(len(provider_list), len(pr_body_list))
+        for pr, pr_body in zip(provider_list, pr_body_list):
+            self.assertEqual(pr['body'], pr_body)
 
     @responses.activate
     def test_multiple_pull_requests_in_range(self):
@@ -405,4 +409,8 @@ class TestGithubChangeNotesProvider(unittest.TestCase, GithubApiTestMixin):
         generator = self._create_generator(self.current_tag, self.last_tag)
         provider = GithubChangeNotesProvider(
             generator, self.current_tag, self.last_tag)
-        self.assertEqual(list(provider()), ['pull 1', 'pull 2', 'pull 3'])
+        provider_list = list(provider())
+        pr_body_list = ['pull 1', 'pull 2', 'pull 3']
+        self.assertEqual(len(provider_list), len(pr_body_list))
+        for pr, pr_body in zip(provider_list, pr_body_list):
+            self.assertEqual(pr['body'], pr_body)

@@ -31,6 +31,7 @@ class ChangeNotesLinesParser(BaseChangeNotesParser):
         self.h2_title = None # has value when in h2 section
 
     def parse(self, change_note):
+        change_note = self._process_change_note(change_note)
         for line in change_note.splitlines():
             line = self._process_line(line)
 
@@ -64,6 +65,10 @@ class ChangeNotesLinesParser(BaseChangeNotesParser):
 
         self._in_section = False
 
+    def _process_change_note(self, change_note):
+        # subclasses override this if some manipulation is needed
+        return change_note
+
     def _process_line(self, line):
         try:
             line = unicode(line, 'utf-8')
@@ -85,12 +90,16 @@ class ChangeNotesLinesParser(BaseChangeNotesParser):
             return True
 
     def _add_line(self, line):
+        line = self._add_link(line)
         if self.h2_title:
             if self.h2_title not in self.h2:
                 self.h2[self.h2_title] = []
             self.h2[self.h2_title].append(line)
             return
         self.content.append(line)
+
+    def _add_link(self, line):
+        return line
 
     def render(self):
         if not self.content:
@@ -116,6 +125,25 @@ class ChangeNotesLinesParser(BaseChangeNotesParser):
         return u'\r\n'.join(content)
 
 
+class GithubLinesParser(ChangeNotesLinesParser):
+
+    def __init__(self, release_notes_generator, title):
+        super(GithubLinesParser, self).__init__(release_notes_generator, title)
+        self.pr_number = None
+        self.pr_url = None
+
+    def _process_change_note(self, pull_request):
+        self.pr_number = pull_request['number']
+        self.pr_url = pull_request['html_url']
+        return pull_request['body']
+
+
+class GithubLinkingLinesParser(GithubLinesParser):
+
+    def _add_link(self, line):
+        return line + ' [[PR{}]({})]'.format(self.pr_number, self.pr_url)
+
+
 class IssuesParser(ChangeNotesLinesParser):
 
     def __init__(self, release_notes_generator, title,
@@ -134,14 +162,13 @@ class IssuesParser(ChangeNotesLinesParser):
         issue_numbers = re.findall(self.issue_regex, line, flags=re.IGNORECASE)
         for issue_number in issue_numbers:
             self.content.append(int(issue_number))
-        self.content.sort()
 
     def _get_default_regex(self):
         return '#(\d+)'
 
     def _render_content(self):
         issues = []
-        for issue in self.content:
+        for issue in sorted(self.content):
             issues.append('#{}'.format(issue))
         return u'\r\n'.join(issues)
 
@@ -161,6 +188,26 @@ class ParserGithubApiMixin(GithubApiMixin):
 
 class GithubIssuesParser(IssuesParser, ParserGithubApiMixin):
 
+    def __init__(self, release_notes_generator, title, issue_regex=None, link_pr=False):
+        super(GithubIssuesParser, self).__init__(
+            release_notes_generator,
+            title,
+            issue_regex,
+        )
+        self.link_pr = link_pr
+        self.pr_number = None
+        self.pr_url = None
+
+    def _add_line(self, line):
+        # find issue numbers per line
+        issue_numbers = re.findall(self.issue_regex, line, flags=re.IGNORECASE)
+        for issue_number in issue_numbers:
+            self.content.append({
+                'issue_number': int(issue_number),
+                'pr_number': self.pr_number,
+                'pr_url': self.pr_url,
+            })
+
     def _get_default_regex(self):
         keywords = (
             'close',
@@ -177,14 +224,24 @@ class GithubIssuesParser(IssuesParser, ParserGithubApiMixin):
 
     def _render_content(self):
         content = []
-        for issue_number in self.content:
-            issue_info = self._get_issue_info(issue_number)
-            issue_title = issue_info['title']
-            content.append('#{}: {}'.format(issue_number, issue_title))
+        for item in sorted(self.content, key=lambda k: k['issue_number']):
+            issue_info = self._get_issue_info(item['issue_number'])
+            txt = '#{}: {}'.format(item['issue_number'], issue_info['title'])
+            if self.link_pr:
+                txt += ' [[PR{}]({})]'.format(
+                    item['pr_number'],
+                    item['pr_url'],
+                )
+            content.append(txt)
         return u'\r\n'.join(content)
 
     def _get_issue_info(self, issue_number):
         return self.call_api('/issues/{}'.format(issue_number))
+
+    def _process_change_note(self, pull_request):
+        self.pr_number = pull_request['number']
+        self.pr_url = pull_request['html_url']
+        return pull_request['body']
 
 
 class CommentingGithubIssuesParser(GithubIssuesParser):
