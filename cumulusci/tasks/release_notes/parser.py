@@ -107,15 +107,21 @@ class GithubLinesParser(ChangeNotesLinesParser):
         self.pr_url = None
 
     def _add_line(self, line):
-        self.content.append(
-            line +
-            ' [[PR{}]({})]'.format(self.pr_number, self.pr_url)
-        )
+        self.content.append(line)
 
     def _process_change_note(self, pull_request):
         self.pr_number = pull_request['number']
         self.pr_url = pull_request['html_url']
         return pull_request['body']
+
+
+class GithubLinkingLinesParser(GithubLinesParser):
+
+    def _add_line(self, line):
+        self.content.append(line + ' [[PR{}]({})]'.format(
+            self.pr_number,
+            self.pr_url,
+        ))
 
 
 class IssuesParser(ChangeNotesLinesParser):
@@ -162,12 +168,13 @@ class ParserGithubApiMixin(GithubApiMixin):
 
 class GithubIssuesParser(IssuesParser, ParserGithubApiMixin):
 
-    def __init__(self, release_notes_generator, title, issue_regex=None):
+    def __init__(self, release_notes_generator, title, issue_regex=None, link_pr=False):
         super(GithubIssuesParser, self).__init__(
             release_notes_generator,
             title,
             issue_regex,
         )
+        self.link_pr = link_pr
         self.pr_number = None
         self.pr_url = None
 
@@ -199,12 +206,13 @@ class GithubIssuesParser(IssuesParser, ParserGithubApiMixin):
         content = []
         for item in sorted(self.content, key=lambda k: k['issue_number']):
             issue_info = self._get_issue_info(item['issue_number'])
-            content.append('#{}: {} [[PR{}]({})]'.format(
-                item['issue_number'],
-                issue_info['title'],
-                item['pr_number'],
-                item['pr_url'],
-            ))
+            txt = '#{}: {}'.format(item['issue_number'], issue_info['title'])
+            if self.link_pr:
+                txt += ' [[PR{}]({})]'.format(
+                    item['pr_number'],
+                    item['pr_url'],
+                )
+            content.append(txt)
         return u'\r\n'.join(content)
 
     def _get_issue_info(self, issue_number):

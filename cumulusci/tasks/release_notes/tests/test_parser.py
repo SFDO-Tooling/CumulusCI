@@ -172,6 +172,7 @@ class TestGithubIssuesParser(unittest.TestCase, GithubApiTestMixin):
         expected_render = self._create_expected_render(
             self.issue_number_valid,
             expected_response['title'],
+            False,
         )
         self.assertEqual(parser.render(), expected_render)
 
@@ -206,14 +207,15 @@ class TestGithubIssuesParser(unittest.TestCase, GithubApiTestMixin):
             })
         return y
 
-    def _create_expected_render(self, issue_number, issue_title):
-        return '# {}\r\n\r\n#{}: {} [[PR{}]({})]'.format(
+    def _create_expected_render(self, issue_number, issue_title, link_pr):
+        render = '# {}\r\n\r\n#{}: {}'.format(
             self.title,
             issue_number,
             issue_title,
-            self.pr_number,
-            self.pr_url,
         )
+        if link_pr:
+            render += ' [[PR{}]({})]'.format(self.pr_number, self.pr_url)
+        return render
 
     def _create_generator(self):
         generator = GithubReleaseNotesGenerator(
@@ -290,6 +292,7 @@ class TestCommentingGithubIssuesParser(unittest.TestCase, GithubApiTestMixin):
         expected_render = self._create_expected_render(
             issue_number,
             expected_issue['title'],
+            False,
         )
         self.assertEqual(parser.render(), expected_render)
 
@@ -341,6 +344,7 @@ class TestCommentingGithubIssuesParser(unittest.TestCase, GithubApiTestMixin):
         expected_render = self._create_expected_render(
             issue_number,
             expected_issue['title'],
+            False,
         )
         self.assertEqual(parser.render(), expected_render)
 
@@ -410,6 +414,7 @@ class TestCommentingGithubIssuesParser(unittest.TestCase, GithubApiTestMixin):
         expected_render = self._create_expected_render(
             issue_number,
             expected_issue['title'],
+            False,
         )
         self.assertEqual(parser.render(), expected_render)
 
@@ -461,6 +466,7 @@ class TestCommentingGithubIssuesParser(unittest.TestCase, GithubApiTestMixin):
         expected_render = self._create_expected_render(
             issue_number,
             expected_issue['title'],
+            False,
         )
         self.assertEqual(parser.render(), expected_render)
 
@@ -530,6 +536,7 @@ class TestCommentingGithubIssuesParser(unittest.TestCase, GithubApiTestMixin):
         expected_render = self._create_expected_render(
             issue_number,
             expected_issue['title'],
+            False,
         )
         self.assertEqual(parser.render(), expected_render)
 
@@ -537,11 +544,12 @@ class TestCommentingGithubIssuesParser(unittest.TestCase, GithubApiTestMixin):
         # was attempted
         self.assertEqual(len(responses.calls._calls), 3)
 
-    def _create_expected_render(self, issue_number, issue_title):
-        return '# {}\r\n\r\n#{}: {} [[PR{}]({})]'.format(
+    def _create_expected_render(self, issue_number, issue_title, link_pr):
+        render = '# {}\r\n\r\n#{}: {}'.format(
             self.title,
             issue_number,
             issue_title,
-            self.pr_number,
-            self.pr_url,
         )
+        if link_pr:
+            render += ' [[PR{}]({})]'.format(self.pr_number, self.pr_url)
+        return render

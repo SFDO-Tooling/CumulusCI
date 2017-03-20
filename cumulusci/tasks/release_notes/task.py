@@ -15,6 +15,9 @@ class GithubReleaseNotes(BaseGithubTask):
         'last_tag': {
             'description': "Override the last release tag.  This is useful to generate release notes if you skipped one or more release",
         },
+        'link_pr': {
+            'description': 'If True, insert link to source pull request at end of each line.',
+        }
     }
     
     def _run_task(self):
@@ -29,6 +32,7 @@ class GithubReleaseNotes(BaseGithubTask):
         }
         
         publish = self.options.get('publish', False) in (True, 'True', 'true')
+        link_pr = self.options.get('link_pr', False) in (True, 'True', 'true')
         last_tag = self.options.get('last_tag', None)
 
         generator_class = GithubReleaseNotesGenerator
@@ -36,11 +40,11 @@ class GithubReleaseNotes(BaseGithubTask):
         if publish:
             generator_class = PublishingGithubReleaseNotesGenerator
 
-        
         generator = generator_class(
             github_info,
             self.options['tag'],
             last_tag,
+            link_pr,
         ) 
   
         release_notes = generator()
