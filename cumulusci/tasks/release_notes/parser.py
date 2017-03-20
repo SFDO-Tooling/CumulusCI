@@ -90,12 +90,16 @@ class ChangeNotesLinesParser(BaseChangeNotesParser):
             return True
 
     def _add_line(self, line):
+        line = self._add_link(line)
         if self.h2_title:
             if self.h2_title not in self.h2:
                 self.h2[self.h2_title] = []
             self.h2[self.h2_title].append(line)
             return
         self.content.append(line)
+
+    def _add_link(self, line):
+        return line
 
     def render(self):
         if not self.content:
@@ -128,9 +132,6 @@ class GithubLinesParser(ChangeNotesLinesParser):
         self.pr_number = None
         self.pr_url = None
 
-    def _add_line(self, line):
-        self.content.append(line)
-
     def _process_change_note(self, pull_request):
         self.pr_number = pull_request['number']
         self.pr_url = pull_request['html_url']
@@ -139,11 +140,8 @@ class GithubLinesParser(ChangeNotesLinesParser):
 
 class GithubLinkingLinesParser(GithubLinesParser):
 
-    def _add_line(self, line):
-        self.content.append(line + ' [[PR{}]({})]'.format(
-            self.pr_number,
-            self.pr_url,
-        ))
+    def _add_link(self, line):
+        return line + ' [[PR{}]({})]'.format(self.pr_number, self.pr_url)
 
 
 class IssuesParser(ChangeNotesLinesParser):
