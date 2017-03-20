@@ -400,6 +400,19 @@ class UninstallPackage(Deploy):
 class UpdateDependencies(BaseSalesforceMetadataApiTask):
     api_class = ApiDeploy
     name = 'UpdateDependencies'
+    task_options = {
+        'purge_on_delete': {
+            'description': 'Sets the purgeOnDelete option for the deployment. Defaults to True',
+        },
+    }
+
+    def _init_options(self, kwargs):
+        super(UpdateDependencies, self)._init_options(kwargs)
+        if 'purge_on_delete' not in self.options:
+            self.options['purge_on_delete'] = True
+        if (isinstance(self.options['purge_on_delete'], basestring) and
+            self.options['purge_on_delete'].lower() == 'false'):
+            self.options['purge_on_delete'] = False
 
     def _run_task(self):
         dependencies = self.project_config.project__dependencies
@@ -502,13 +515,13 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
             dependency['version'],
         ))
         package_zip = InstallPackageZipBuilder(dependency['namespace'], dependency['version'])
-        api = self.api_class(self, package_zip())
+        api = self.api_class(self, package_zip(), purge_on_delete=self.options['purge_on_delete'])
         return api()
 
     def _uninstall_dependency(self, dependency):
         self.logger.info('Uninstalling {}'.format(dependency['namespace']))
         package_zip = UninstallPackageZipBuilder(dependency['namespace'])
-        api = self.api_class(self, package_zip())
+        api = self.api_class(self, package_zip(), purge_on_delete=self.options['purge_on_delete'])
         return api()
 
 class DeployBundles(Deploy):
