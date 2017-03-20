@@ -234,7 +234,7 @@ class PackageSubscriber(object):
 class SalesforcePushApi(object):
     """ API Wrapper for the Salesforce Push API """
 
-    def __init__(self, sf, logger, lazy=None, default_where=None):
+    def __init__(self, sf, logger, lazy=None, default_where=None, batch_size=None):
         self.sf = sf
         self.logger = logger
 
@@ -245,6 +245,10 @@ class SalesforcePushApi(object):
         if not default_where:
             default_where = {}
         self.default_where = default_where
+
+        if not batch_size:
+            batch_size = 200
+        self.batch_size = batch_size
 
     def return_query_records(self, query):
         res = self.sf.query_all(query)

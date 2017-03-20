@@ -2,6 +2,19 @@
 History
 =======
 
+2.0.0-beta21 (2017-03-17)
+------------------------
+
+* Fix parsing of OrgId from the access token using the new sfdx CLI
+
+2.0.0-beta20 (2017-03-17)
+------------------------
+
+* Switch to using the `sfdx` CLI for interacting with scratch orgs.  If you use `cci` with scratch orgs, this release will no longer work with the `heroku force:*` commands from the prior Salesforce DX release.
+* Upgrades to release notes generator
+  * Content is now grouped by subheading under each heading
+  * Better error message is thrown if a lightweight tag is found when an annotated tag is needed
+
 2.0.0-beta19 (2017-03-15)
 ------------------------
 

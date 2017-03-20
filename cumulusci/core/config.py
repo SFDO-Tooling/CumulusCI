@@ -1,5 +1,6 @@
 import base64
 import datetime
+import json
 import logging
 import os
 import pickle
@@ -421,49 +422,36 @@ class ScratchOrgConfig(OrgConfig):
         self.logger.info('Getting scratch org info from Salesforce DX')
 
         # Call force:org:open and parse output to get instance_url and access_token
-        command = 'heroku force:org:open -d -u {}'.format(self.username)
+        command = 'sfdx force:org:describe -u {} --json'.format(self.username)
         p = sarge.Command(command, stdout=sarge.Capture(buffer_size=-1))
         p.run()
 
         org_info = None
         stdout_list = []
         for line in p.stdout:
-            if line.startswith('Access org'):
-                org_info = line.strip()
             stdout_list.append(line.strip())
 
         if p.returncode:
-            message = 'Return code: {}\nstdout: {}\nstderr: {}'.format(
-                p.returncode,
-                '\n'.join(stdout_list),
-                p.stderr,
-            )
-            self.logger.error(message)
+            self.logger.error('Return code: {}'.format(p.returncode))
+            for line in stdout_list:
+                self.logger.error(line)
             raise ScratchOrgException(message)
 
-        if not org_info:
-            message = 'Did not find org info in command output:\n{}'.format(p.stdout)
-            self.logger.error(message)
-            raise ScratchOrgException(message)
+        else:
+            json_txt = ''.join(stdout_list)
+            
+            try:
+                org_info = json.loads(''.join(stdout_list))
+            except Exception as e:
+                raise ScratchOrgException('Failed to parse json from output: {}\n{}'.format(''.join(stdout_list), e))
 
-        # OrgID is the third word of the output
-        org_id = org_info.split(' ')[2]
+            org_id = org_info['accessToken'].split('!')[0]
 
-        # Username is the sixth word of the output
-        username = org_info.split(' ')[5]
-
-        info_parts = org_info.split('following URL: ')
-        if len(info_parts) == 1:
-            message = 'Did not find org info in command output:\n{}'.format(p.stdout)
-            self.logger.error(message)
-            raise ScratchOrgException(message)
-
-        instance_url, access_token = info_parts[1].split('/secur/frontdoor.jsp?sid=')
         self._scratch_info = {
-            'instance_url': instance_url,
-            'access_token': access_token,
+            'instance_url': org_info['instanceUrl'],
+            'access_token': org_info['accessToken'],
             'org_id': org_id,
-            'username': username,
+            'username': org_info['username'],
         }
     
         self._scratch_info_date = datetime.datetime.now()
@@ -509,20 +497,23 @@ class ScratchOrgConfig(OrgConfig):
         return username
 
     def create_org(self):
-        """ Uses heroku force:org:create to create the org """
+        """ Uses sfdx force:org:create to create the org """
         if not self.config_file:
             # FIXME: raise exception
             return
         if not self.scratch_org_type:
             self.config['scratch_org_type'] = 'workspace'
 
-        command = 'heroku force:org:create -t {} -f {}'.format(self.scratch_org_type, self.config_file)
+        # This feels a little dirty, but the use cases for extra args would mostly
+        # work best with env vars
+        extraargs = os.environ.get('SFDX_ORG_CREATE_ARGS', '')
+        command = 'sfdx force:org:create -f {} {}'.format(self.config_file, extraargs)
         self.logger.info('Creating scratch org with command {}'.format(command))
         p = sarge.Command(command, stdout=sarge.Capture(buffer_size=-1))
         p.run()
 
         org_info = None
-        re_obj = re.compile('Successfully created workspace org: (.+), username: (.+)')
+        re_obj = re.compile('Successfully created scratch org: (.+), username: (.+)')
         stdout = [] 
         for line in p.stdout:
             match = re_obj.search(line)
@@ -540,12 +531,12 @@ class ScratchOrgConfig(OrgConfig):
         self.config['created'] = True
 
     def delete_org(self):
-        """ Uses heroku force:org:delete to create the org """
+        """ Uses sfdx force:org:delete to create the org """
         if not self.created:
             self.logger.info('Skipping org deletion: the scratch org has not been created')
             return
 
-        command = 'heroku force:org:delete --force -u {}'.format(self.username)
+        command = 'sfdx force:org:delete -p -u {}'.format(self.username)
         self.logger.info('Deleting scratch org with command {}'.format(command))
         p = sarge.Command(command, stdout=sarge.Capture(buffer_size=-1))
         p.run()
@@ -568,9 +559,9 @@ class ScratchOrgConfig(OrgConfig):
         self.config['username'] = None
 
     def refresh_oauth_token(self, connected_app):
-        """ Use heroku force:org:open to refresh token instead of built in OAuth handling """
+        """ Use sfdx force:org:describe to refresh token instead of built in OAuth handling """
         if hasattr(self, '_scratch_info'):
-            # Cache the scratch_info for 1 hour to avoid unnecessary calls out to heroku CLI
+            # Cache the scratch_info for 1 hour to avoid unnecessary calls out to sfdx CLI
             delta = datetime.datetime.now() - self._scratch_info_date
             if delta.total_seconds() > 3600:
                 del self._scratch_info
