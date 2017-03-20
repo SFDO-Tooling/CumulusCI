@@ -668,7 +668,7 @@ class UninstallPackaged(UninstallLocal):
 
 class UninstallPackagedIncremental(UninstallPackaged):
     name = 'UninstallPackagedIncremental'
-    skip_types = ['Scontrol']
+    skip_types = ['RecordType','Scontrol']
     task_options = {
         'path': {
             'description': 'The local path to compare to the retrieved packaged metadata from the org.  Defaults to src',
