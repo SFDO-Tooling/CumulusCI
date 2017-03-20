@@ -2,6 +2,13 @@
 History
 =======
 
+2.0.0-beta22 (2017-03-20)
+------------------------
+
+* `github_release_notes` now supports the `link_pr` option to add links to the pull request where each line of content came from
+* Fixes #266: `update_dependencies` now supports the `purge_on_delete` option to allow running against production orgs
+* Fixes #267: package.xml generation now skips RecordType when rendering in delete mode
+
 2.0.0-beta21 (2017-03-17)
 ------------------------
 
