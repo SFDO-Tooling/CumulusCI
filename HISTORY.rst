@@ -2,6 +2,11 @@
 History
 =======
 
+2.0.0-beta23 (2017-03-22)
+------------------------
+
+* Fixes #239: Add local path to import path when looking up classes.  This should fix an error that appeared only in Windows
+
 2.0.0-beta22 (2017-03-20)
 ------------------------
 

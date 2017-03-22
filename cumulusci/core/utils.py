@@ -12,6 +12,12 @@ def import_class(path):
     components = path.split('.')
     module = components[:-1]
     module = '.'.join(module)
-    sys.path.append(os.getcwd())
+       
+    # Attempt to add pwd to path
+    try:
+        sys.path.append(os.getcwd())
+    except OSError:
+        pass
+
     mod = __import__(module, fromlist=[components[-1]])
     return getattr(mod, components[-1])

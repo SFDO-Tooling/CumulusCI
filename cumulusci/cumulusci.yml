@@ -460,10 +460,7 @@ orgs:
             config_file: orgs/dev.json
         feature:
             config_file: orgs/feature.json
-            scratch_org_type: test
         beta:
             config_file: orgs/beta.json
-            scratch_org_type: test
         release:
             config_file: orgs/release.json
-            scratch_org_type: test
