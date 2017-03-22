@@ -137,15 +137,15 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
     @property
     def repo_root(self):
-        root = None
-        pwd = os.getcwd().split(os.sep)
-        while pwd:
-            if os.path.isdir(os.path.join(os.sep, os.path.join(*pwd),'.git')):
+        path = os.path.splitdrive(os.getcwd())[1]
+        while True:
+            if os.path.isdir(os.path.join(path, '.git')):
+                return path
+            head, tail = os.path.split(path)
+            if not tail:
+                # reached the root
                 break
-            else:
-                pwd.pop()
-        if pwd:
-            return os.path.join(os.sep, os.path.join(*pwd))
+            path = head
 
     @property
     def repo_name(self):
