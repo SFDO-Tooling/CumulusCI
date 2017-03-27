@@ -616,7 +616,7 @@ class BaseUninstallMetadata(Deploy):
         if not destructive_changes:
             return
         package_zip = DestructiveChangesZipBuilder(destructive_changes)
-        api = self.api_class(self, package_zip())
+        api = self.api_class(self, package_zip(), purge_on_delete=self.options['purge_on_delete'])
         return api
 
 
