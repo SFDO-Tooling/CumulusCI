@@ -2,6 +2,13 @@
 History
 =======
 
+2.0.0-beta24 (2017-03-27)
+------------------------
+
+* Fixes #231: Handle unicode in package.xml generation
+* Fixes #239: Replace fix for windows path issues from beta23 with a better implementation
+* Fixes #275: Properly pass purge_on_delete option value in uninstall_packaged_incremental
+
 2.0.0-beta23 (2017-03-22)
 ------------------------
 
