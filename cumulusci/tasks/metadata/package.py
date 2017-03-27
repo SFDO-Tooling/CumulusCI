@@ -1,3 +1,4 @@
+import io
 import os
 import re
 import urllib
@@ -186,6 +187,7 @@ class BaseMetadataParser(object):
         output.append(u'    <types>')
         self.members.sort(key=lambda x: metadata_sort_key(x))
         for member in self.members:
+            member = unicode(member, 'utf-8')
             output.append(u'        <members>{0}</members>'.format(member))
         output.append(u'        <name>{0}</name>'.format(self.metadata_type))
         output.append(u'    </types>')
@@ -368,5 +370,9 @@ class UpdatePackageXml(BaseTask):
         output = self.options.get('output', '{}/package.xml'.format(self.options.get('path')))
         self.logger.info('Generating {} from metadata in {}'.format(output, self.options.get('path')))
         package_xml = self.package_xml()
-        with open(self.options.get('output', output), 'w') as f:
+        with io.open(
+                self.options.get('output', output),
+                mode='w',
+                encoding='utf-8',
+            ) as f:
             f.write(package_xml)
