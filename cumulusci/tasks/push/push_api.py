@@ -502,7 +502,7 @@ class SalesforcePushApi(object):
     def create_push_request(self, version, orgs, start=None):
         if not start:
             # Delay the push start by 15 minutes to allow manual review
-            start = datetime.datetime.utcnow() + datetime.timedelta(0, 15*60)
+            start = datetime.datetime.utcnow() + datetime.timedelta(minutes=15)
 
         # Create the request
         res = self.sf.PackagePushRequest.create({
