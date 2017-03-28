@@ -512,14 +512,10 @@ class SalesforcePushApi(object):
         request_id = res['id']
 
         # Schedule the orgs
-        batch_size = 200
-        batch_offset = 0
-
-        for batch in batch_list(orgs, batch_size):
+        for batch in batch_list(orgs, self.batch_size):
 
             batch_data = {'records': []}
             i = 0
-
             for org in batch:
                 batch_data['records'].append({
                     'attributes': {'type': 'PackagePushJob', 'referenceId': 'org%s' % i},
