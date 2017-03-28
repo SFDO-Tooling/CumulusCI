@@ -532,11 +532,22 @@ class SalesforcePushApi(object):
                 for result in e.content['results']:
                     for error in result['errors']:
                         if error['statusCode'] == 'INVALID_OPERATION':
-                            self.logger.info('Skipping org, error message = {}'.format(error['message']))
+                            self.logger.info('Skipping org {} - {}'.format(
+                                self._get_org_id(
+                                    batch_data['records'],
+                                    result['referenceId'],
+                                ),
+                                error['message'],
+                            ))
                         else:
                             raise
 
         return request_id
+
+    def _get_org_id(self, records, ref_id):
+        for record in records:
+            if record['attributes']['referenceId'] == ref_id:
+                return record['SubscriberOrganizationKey']
 
     def run_push_request(self, request_id):
         # Set the request to Pending status
