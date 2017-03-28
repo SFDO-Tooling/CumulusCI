@@ -5,6 +5,9 @@ from simple_salesforce import Salesforce
 from simple_salesforce import SalesforceMalformedRequest
 from simple_salesforce.util import date_to_iso8601
 
+from cumulusci.core.exceptions import CumulusCIException
+
+
 def memoize(obj):
     cache = obj.cache = {}
 
@@ -499,17 +502,18 @@ class SalesforcePushApi(object):
             push_errors[push_error.sf_id] = push_error
         return push_errors
 
-    def create_push_request(self, version, orgs, start=None):
+    def create_push_request(self, version, orgs, start=None, request_id=None):
         if not start:
             # Delay the push start by 15 minutes to allow manual review
             start = datetime.datetime.utcnow() + datetime.timedelta(minutes=15)
 
-        # Create the request
-        res = self.sf.PackagePushRequest.create({
-            'PackageVersionId': version.sf_id,
-            'ScheduledStartTime': start.isoformat(),
-        })
-        request_id = res['id']
+        if not request_id:
+            # Create the request
+            res = self.sf.PackagePushRequest.create({
+                'PackageVersionId': version.sf_id,
+                'ScheduledStartTime': start.isoformat(),
+            })
+            request_id = res['id']
 
         # Schedule the orgs
         for batch in batch_list(orgs, self.batch_size):
@@ -528,20 +532,37 @@ class SalesforcePushApi(object):
                     self.sf.base_url + 'composite/tree/PackagePushJob', 
                     data=json.dumps(batch_data),
                 )
+                self.logger.info(
+                    'Push request {} is populated with {} orgs'.format(
+                        request_id,
+                        len(orgs),
+                    )
+                )
             except SalesforceMalformedRequest as e:
+                invalid_orgs = []
                 for result in e.content['results']:
                     for error in result['errors']:
                         if error['statusCode'] == 'INVALID_OPERATION':
+                            org_id = self._get_org_id(
+                                batch_data['records'],
+                                result['referenceId'],
+                            )
+                            invalid_orgs.append(org_id)
                             self.logger.info('Skipping org {} - {}'.format(
-                                self._get_org_id(
-                                    batch_data['records'],
-                                    result['referenceId'],
-                                ),
+                                org_id,
                                 error['message'],
                             ))
                         else:
                             raise
-
+                orgs = list(set(orgs) - set(invalid_orgs))
+                if not orgs:
+                    msg = 'No valid orgs for push'
+                    self.logger.error(msg)
+                    raise CumulusCIException(msg)
+                self.logger.warn(
+                    'Creating new push request without invalid orgs'
+                )
+                self.create_push_request(version, orgs, start, request_id)
         return request_id
 
     def _get_org_id(self, records, ref_id):

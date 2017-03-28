@@ -221,7 +221,6 @@ class SchedulePushOrgList(BaseSalesforcePushTask):
             self.logger.info("Delaying 30 seconds to allow all jobs to initialize...")
             time.sleep(30)
 
-        self.logger.info('Push Request {} is populated with {} orgs'.format(self.request_id, len(orgs)))
         self.logger.info('Setting status to Pending to queue execution.')
         if start_time:
             self.logger.info('The push request will start at {}'.format(start_time))
