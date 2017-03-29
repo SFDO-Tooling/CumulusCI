@@ -545,6 +545,7 @@ class SalesforcePushApi(object):
                         if error['statusCode'] in [
                                 'DUPLICATE_VALUE',
                                 'INVALID_OPERATION',
+                                'UNKNOWN_EXCEPTION',
                             ]:
                             org_id = self._get_org_id(
                                 batch_data['records'],
