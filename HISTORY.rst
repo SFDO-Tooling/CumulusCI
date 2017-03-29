@@ -2,6 +2,11 @@
 History
 =======
 
+2.0.0-beta26 (2017-03-29)
+------------------------
+
+* Fixes #278: Push upgrade raises exception for DUPLICATE_VALUE statusCode
+
 2.0.0-beta25 (2017-03-28)
 ------------------------
 
