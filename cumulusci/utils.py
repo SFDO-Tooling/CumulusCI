@@ -9,12 +9,7 @@ import requests
 from xml.etree.ElementTree import ElementTree
 
 CUMULUSCI_PATH = os.path.realpath(
-    os.path.join(
-        os.path.dirname(
-            os.path.realpath(__file__),
-        ),
-        '..'
-    )
+    os.path.join(os.path.dirname(os.path.realpath(__file__)), '..')
 )
 
 
