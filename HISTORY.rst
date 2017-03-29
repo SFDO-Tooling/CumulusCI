@@ -2,6 +2,11 @@
 History
 =======
 
+2.0.0-beta27 (2017-03-29)
+------------------------
+
+* Skip org in push if statusCode is UKNOWN_EXCEPTION
+
 2.0.0-beta26 (2017-03-29)
 ------------------------
 
