@@ -2,6 +2,11 @@
 History
 =======
 
+2.0.0-beta25 (2017-03-28)
+------------------------
+
+* Fixes #277: Push API tasks now correctly handle errors in individual orgs in a batch when scheduling a push job
+
 2.0.0-beta24 (2017-03-27)
 ------------------------
 
