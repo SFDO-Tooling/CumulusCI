@@ -17,6 +17,7 @@ CUMULUSCI_PATH = os.path.realpath(
     )
 )
 
+
 def findReplace(find, replace, directory, filePattern, logger=None, max=None):
     for path, dirs, files in os.walk(os.path.abspath(directory)):
         for filename in fnmatch.filter(files, filePattern):
@@ -33,6 +34,7 @@ def findReplace(find, replace, directory, filePattern, logger=None, max=None):
                 with open(filepath, "w") as f:
                     f.write(s_updated)
 
+
 def findReplaceRegex(find, replace, directory, filePattern, logger=None):
     for path, dirs, files in os.walk(os.path.abspath(directory)):
         for filename in fnmatch.filter(files, filePattern):
@@ -45,50 +47,62 @@ def findReplaceRegex(find, replace, directory, filePattern, logger=None):
                     logger.info('Updating {}'.format(filepath))
                 with open(filepath, "w") as f:
                     f.write(s_updated)
-                    
-def findRename(find,replace,directory,logger=None):
+
+
+def findRename(find, replace, directory, logger=None):
     for path, dirs, files in os.walk(os.path.abspath(directory)):
         for filename in files:
             filepath = os.path.join(path, filename)
             if logger:
                 logger.info('Renaming {}'.format(filepath))
-            os.rename(filepath, os.path.join(path,filename.replace(find,replace)))
+            os.rename(filepath, os.path.join(
+                path,
+                filename.replace(find, replace),
+            ))
 
-def removeXmlElement(name,directory,file_pattern,logger=None):
+
+def removeXmlElement(name, directory, file_pattern, logger=None):
     for path, dirs, files in os.walk(os.path.abspath(directory)):
         for filename in fnmatch.filter(files, file_pattern):
             filepath = os.path.join(path, filename)
             tree = ElementTree()
             tree.parse(filepath)
             root = tree.getroot()
-            remove = root.findall('.//{{http://soap.sforce.com/2006/04/metadata}}{}'.format(name))
+            remove = root.findall(
+                './/{{http://soap.sforce.com/2006/04/metadata}}{}'.format(name)
+            )
             if not remove:
                 continue
 
             if logger:
-                logger.info('Modifying {} to remove <{}> elements'.format(filepath, name))
+                logger.info(
+                    'Modifying {} to remove <{}> elements'.format(
+                        filepath,
+                        name,
+                    )
+                )
 
-            parent_map = {c:p for p in tree.iter() for c in p}
+            parent_map = {c: p for p in tree.iter() for c in p}
 
             for elem in remove:
                 parent = parent_map[elem]
                 parent.remove(elem)
 
-            tree.write(filepath, encoding="UTF-8", default_namespace='http://soap.sforce.com/2006/04/metadata')
+            tree.write(
+                filepath,
+                encoding="UTF-8",
+                default_namespace='http://soap.sforce.com/2006/04/metadata',
+            )
+
 
 def download_extract_zip(url, target, subfolder=None):
     resp = requests.get(url)
     zip_content = StringIO.StringIO(resp.content)
     zip_file = zipfile.ZipFile(zip_content)
-
     if subfolder:
         zip_file = zip_subfolder(zip_file, subfolder)
-   
-    #pwd = os.getcwd()
-    #os.chdir(target) 
     zip_file.extractall(target)
 
-    #os.chdir(pwd)
 
 def zip_subfolder(zip_src, path):
     if not path.endswith('/'):
@@ -142,33 +156,32 @@ def doc_task(task_name, task_config, project_config=None, org_config=None):
 
     return '\n'.join(doc)
 
+
 def package_xml_from_dict(items, api_version, package_name=None):
-        lines = []
+    lines = []
 
-        # Print header
-        lines.append(u'<?xml version="1.0" encoding="UTF-8"?>')
-        lines.append(u'<Package xmlns="http://soap.sforce.com/2006/04/metadata">')
+    # Print header
+    lines.append(u'<?xml version="1.0" encoding="UTF-8"?>')
+    lines.append(u'<Package xmlns="http://soap.sforce.com/2006/04/metadata">')
 
-        # Include package name if specified
-        if package_name:
-            lines.append('    <fullName>{}</fullName'.format(package_name))
+    # Include package name if specified
+    if package_name:
+        lines.append('    <fullName>{}</fullName'.format(package_name))
 
-        # Print types sections
-        md_types = items.keys()
-        md_types.sort()
-        for md_type in md_types:
-            members = items[md_type]
-            members.sort()
-            lines.append('    <types>')
-            for member in members:
-                lines.append('        <members>{}</members>'.format(member))
-            lines.append('        <name>{}</name>'.format(md_type))
-            lines.append('    </types>')
+    # Print types sections
+    md_types = items.keys()
+    md_types.sort()
+    for md_type in md_types:
+        members = items[md_type]
+        members.sort()
+        lines.append('    <types>')
+        for member in members:
+            lines.append('        <members>{}</members>'.format(member))
+        lines.append('        <name>{}</name>'.format(md_type))
+        lines.append('    </types>')
 
-        # Print footer
-        lines.append(u'    <version>{0}</version>'.format(
-            api_version
-        ))
-        lines.append(u'</Package>')
+    # Print footer
+    lines.append(u'    <version>{0}</version>'.format(api_version))
+    lines.append(u'</Package>')
 
-        return u'\n'.join(lines)
+    return u'\n'.join(lines)
