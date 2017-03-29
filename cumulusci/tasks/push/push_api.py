@@ -20,14 +20,16 @@ def memoize(obj):
     return memoizer
 
 def batch_list(data, batch_size):
+    batch_list = []
     batch_data = []
     for item in data:
         batch_data.append(item)
         if len(batch_data) == batch_size:
-            yield batch_data
+            batch_list.append(batch_data)
             batch_data = []
     if batch_data:
-        yield batch_data
+        batch_list.append(batch_data)
+    return batch_list
 
 class BasePushApiObject(object):
     def format_where(self, id_field, where=None):
@@ -516,7 +518,8 @@ class SalesforcePushApi(object):
             request_id = res['id']
 
         # Schedule the orgs
-        for batch in batch_list(orgs, self.batch_size):
+        batches = batch_list(orgs, self.batch_size)
+        for batch_num, batch in enumerate(batches):
 
             batch_data = {'records': []}
             for i, org in enumerate(batch):
@@ -532,12 +535,10 @@ class SalesforcePushApi(object):
                     self.sf.base_url + 'composite/tree/PackagePushJob', 
                     data=json.dumps(batch_data),
                 )
-                self.logger.info(
-                    'Push request {} is populated with {} orgs'.format(
-                        request_id,
-                        len(orgs),
-                    )
-                )
+                self.logger.info('Batch {} of {} added to push request'.format(
+                    batch_num + 1,
+                    len(batches),
+                ))
             except SalesforceMalformedRequest as e:
                 invalid_orgs = []
                 for result in e.content['results']:
@@ -567,6 +568,12 @@ class SalesforcePushApi(object):
                     'Creating new push request without invalid orgs'
                 )
                 self.create_push_request(version, orgs, start, request_id)
+        self.logger.info(
+            'Push request {} is populated with {} orgs'.format(
+                request_id,
+                len(orgs),
+            )
+        )
         return request_id
 
     def _get_org_id(self, records, ref_id):
