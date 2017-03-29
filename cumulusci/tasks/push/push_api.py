@@ -542,7 +542,10 @@ class SalesforcePushApi(object):
                 invalid_orgs = []
                 for result in e.content['results']:
                     for error in result['errors']:
-                        if error['statusCode'] == 'INVALID_OPERATION':
+                        if error['statusCode'] in [
+                                'DUPLICATE_VALUE',
+                                'INVALID_OPERATION',
+                            ]:
                             org_id = self._get_org_id(
                                 batch_data['records'],
                                 result['referenceId'],
