@@ -2,6 +2,11 @@
 History
 =======
 
+2.0.0-beta28 (2017-03-30)
+------------------------
+
+* Fix bug in Push API batch retry logic introduced in beta25
+
 2.0.0-beta27 (2017-03-29)
 ------------------------
 
