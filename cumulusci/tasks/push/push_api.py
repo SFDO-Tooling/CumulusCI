@@ -504,77 +504,92 @@ class SalesforcePushApi(object):
             push_errors[push_error.sf_id] = push_error
         return push_errors
 
-    def create_push_request(self, version, orgs, start=None, request_id=None):
+    def create_push_request(self, version, orgs, start=None):
         if not start:
             # Delay the push start by 15 minutes to allow manual review
             start = datetime.datetime.utcnow() + datetime.timedelta(minutes=15)
 
-        if not request_id:
-            # Create the request
-            res = self.sf.PackagePushRequest.create({
-                'PackageVersionId': version.sf_id,
-                'ScheduledStartTime': start.isoformat(),
-            })
-            request_id = res['id']
+        # Create the request
+        res = self.sf.PackagePushRequest.create({
+            'PackageVersionId': version.sf_id,
+            'ScheduledStartTime': start.isoformat(),
+        })
+        request_id = res['id']
 
         # Schedule the orgs
         batches = batch_list(orgs, self.batch_size)
+        scheduled_orgs = 0
         for batch_num, batch in enumerate(batches):
-
-            batch_data = {'records': []}
-            for i, org in enumerate(batch):
-                batch_data['records'].append({
-                    'attributes': {'type': 'PackagePushJob', 'referenceId': 'org%s' % i},
-                    'PackagePushRequestId': request_id,
-                    'SubscriberOrganizationKey': org,
-                })
-            
-            try:
-                res = self.sf._call_salesforce(
-                    'POST', 
-                    self.sf.base_url + 'composite/tree/PackagePushJob', 
-                    data=json.dumps(batch_data),
-                )
-                self.logger.info('Batch {} of {} added to push request'.format(
+            self.logger.info(
+                'Batch {} of {}: Attempting to add {} orgs'.format(
                     batch_num + 1,
                     len(batches),
-                ))
-            except SalesforceMalformedRequest as e:
-                invalid_orgs = []
-                for result in e.content['results']:
-                    for error in result['errors']:
-                        if error['statusCode'] in [
+                    len(batch),
+                )
+            )
+            valid_batch = self._add_batch(batch, request_id)
+            scheduled_orgs += len(valid_batch)
+            self.logger.info(
+                '{} orgs successfully added to batch'.format(len(valid_batch))
+            )
+        self.logger.info(
+            'Push request {} is populated with {} orgs'.format(
+                request_id,
+                scheduled_orgs,
+            )
+        )
+        return request_id
+
+    def _add_batch(self, batch, request_id):
+
+        # add orgs to batch data
+        batch = set(batch)
+        batch_data = {'records': []}
+        for i, org in enumerate(batch):
+            batch_data['records'].append({
+                'attributes': {
+                    'type': 'PackagePushJob',
+                    'referenceId': 'org{}'.format(i),
+                },
+                'PackagePushRequestId': request_id,
+                'SubscriberOrganizationKey': org,
+            })
+
+        # add batch to push request
+        try:
+            res = self.sf._call_salesforce(
+                'POST',
+                self.sf.base_url + 'composite/tree/PackagePushJob',
+                data=json.dumps(batch_data),
+            )
+        except SalesforceMalformedRequest as e:
+            invalid_orgs = set()
+            for result in e.content['results']:
+                for error in result['errors']:
+                    if error['statusCode'] in [
                                 'DUPLICATE_VALUE',
                                 'INVALID_OPERATION',
                                 'UNKNOWN_EXCEPTION',
                             ]:
-                            org_id = self._get_org_id(
-                                batch_data['records'],
-                                result['referenceId'],
-                            )
-                            invalid_orgs.append(org_id)
-                            self.logger.info('Skipping org {} - {}'.format(
-                                org_id,
-                                error['message'],
-                            ))
-                        else:
-                            raise
-                orgs = list(set(orgs) - set(invalid_orgs))
-                if not orgs:
-                    msg = 'No valid orgs for push'
-                    self.logger.error(msg)
-                    raise CumulusCIException(msg)
-                self.logger.warn(
-                    'Creating new push request without invalid orgs'
-                )
-                self.create_push_request(version, orgs, start, request_id)
-        self.logger.info(
-            'Push request {} is populated with {} orgs'.format(
-                request_id,
-                len(orgs),
-            )
-        )
-        return request_id
+                        org_id = self._get_org_id(
+                            batch_data['records'],
+                            result['referenceId'],
+                        )
+                        invalid_orgs.add(org_id)
+                        self.logger.info('Skipping org {} - {}'.format(
+                            org_id,
+                            error['message'],
+                        ))
+                    else:
+                        raise
+            # remove invalid orgs and retry
+            batch -= invalid_orgs
+            if batch:
+                self.logger.warn('Retrying batch without invalid orgs')
+                batch = self._add_batch(batch, request_id)
+            else:
+                self.logger.error('Skipping batch (no valid orgs)')
+        return batch
 
     def _get_org_id(self, records, ref_id):
         for record in records:
