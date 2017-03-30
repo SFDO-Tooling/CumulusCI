@@ -520,10 +520,9 @@ class SalesforcePushApi(object):
         n_orgs_pre = len(orgs)
         self.logger.info('Found {} orgs'.format(n_orgs_pre))
         orgs = set(orgs)
-        n_orgs_post = len(orgs)
-        if n_orgs_post < n_orgs_pre:
+        if len(orgs) < n_orgs_pre:
             self.logger.warn('Removed {} duplicate orgs ({} remain)'.format(
-                n_orgs_pre - n_orgs_post,
+                n_orgs_pre - len(orgs),
                 len(orgs),
             ))
 
