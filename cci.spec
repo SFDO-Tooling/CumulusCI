@@ -10,6 +10,7 @@ a = Analysis(
     hiddenimports=[
         'cumulusci.core.flows',
         'cumulusci.core.keychain',
+        'cumulusci.tasks.salesforce',
         'cumulusci.tasks.util',
     ],
     hookspath=[],
