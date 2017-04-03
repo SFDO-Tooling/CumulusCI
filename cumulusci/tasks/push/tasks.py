@@ -230,7 +230,8 @@ class SchedulePushOrgList(BaseSalesforcePushTask):
         self.logger.info('Push Request {} is queued for execution.'.format(self.request_id))
 
         # Report the status
-        self._report_push_status(self.request_id)
+        if not start_time:
+            self._report_push_status(self.request_id)
 
 class SchedulePushOrgQuery(SchedulePushOrgList):
     task_options = {
