@@ -6,7 +6,10 @@ block_cipher = None
 a = Analysis(
     ['cci.py'],
     binaries=[],
-    datas=[('cumulusci/cumulusci.yml', 'cumulusci')],
+    datas=[
+        ('cumulusci/cumulusci.yml', 'cumulusci'),
+        ('cumulusci/files/admin_profile.xml', 'cumulusci/files'),
+    ],
     hiddenimports=[
         'cumulusci.core.flows',
         'cumulusci.core.keychain',
