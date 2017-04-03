@@ -213,7 +213,12 @@ class SchedulePushOrgList(BaseSalesforcePushTask):
 
         start_time = self.options.get('start_time')
         if start_time:
-            start_time = datetime.strptime(start_time, "%Y-%m-%dT%H:%M") # Example: 2016-10-19T10:00
+            start_time = datetime.strptime(start_time, '%Y-%m-%dT%H:%M')
+        else:
+            # default to 5 minutes in the future to allow for review
+            start_time = (
+                datetime.datetime.utcnow() + datetime.timedelta(minutes=5)
+            )
 
         self.request_id = self.push.create_push_request(version, orgs, start_time)
 
@@ -222,15 +227,18 @@ class SchedulePushOrgList(BaseSalesforcePushTask):
             time.sleep(30)
 
         self.logger.info('Setting status to Pending to queue execution.')
-        if start_time:
-            self.logger.info('The push request will start at {}'.format(start_time))
+        self.logger.info('The push upgrade will start at {}'.format(
+            start_time
+        ))
 
         # Run the job
         self.logger.info(self.push.run_push_request(self.request_id))
         self.logger.info('Push Request {} is queued for execution.'.format(self.request_id))
 
-        # Report the status
-        if not start_time:
+        # Report the status if start time is less than 1 minute from now
+        if start_time - datetime.datetime.utcnow() > datetime.timedelta(
+                    minutes=1
+                ):
             self._report_push_status(self.request_id)
 
 class SchedulePushOrgQuery(SchedulePushOrgList):
