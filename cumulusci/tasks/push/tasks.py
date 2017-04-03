@@ -223,11 +223,16 @@ class SchedulePushOrgList(BaseSalesforcePushTask):
         self.request_id = self.push.create_push_request(version, orgs, start_time)
 
         if len(orgs) > 1000:
-            self.logger.info("Delaying 30 seconds to allow all jobs to initialize...")
-            time.sleep(30)
+            sleep_time_s = 30
+            self.logger.info(
+                'Delaying {} seconds to allow all jobs to initialize'.format(
+                    sleep_time_s
+                )
+            )
+            time.sleep(sleep_time_s)
 
         self.logger.info('Setting status to Pending to queue execution.')
-        self.logger.info('The push upgrade will start at {}'.format(
+        self.logger.info('The push upgrade will start at UTC {}'.format(
             start_time
         ))
 
