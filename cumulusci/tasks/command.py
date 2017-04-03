@@ -1,3 +1,11 @@
+""" Tasks for running a command in a subprocess
+
+Command - run a command with optional environment variables
+SalesforceCommand - run a command with credentials passed
+SalesforceBrowserTest - a task designed to wrap browser testing that could
+                        run locally or remotely
+"""
+
 import json
 import os
 import subprocess
@@ -7,20 +15,25 @@ from cumulusci.core.tasks import BaseTask
 
 
 class Command(BaseTask):
-
+    """ Execute a shell command in a subprocess """
     task_options = {
         'command': {
             'description': 'The command to execute',
             'required': True,
         },
         'dir': {
-            'description': 'If provided, the directory where the command should be run from.',
+            'description': 'If provided, the directory where the command '
+                           'should be run from.',
         },
         'env': {
-            'description': 'Environment variables to set for command. Must be flat dict, either as python dict from YAML or as JSON string.',
+            'description': 'Environment variables to set for command. Must '
+                           'be flat dict, either as python dict from YAML or '
+                           'as JSON string.',
         },
         'pass_env': {
-            'description': 'If False, the current environment variables will not be passed to the child process.  Defaults to True',
+            'description': 'If False, the current environment variables '
+                           'will not be passed to the child process. '
+                           'Defaults to True',
             'required': True,
         },
     }
@@ -45,7 +58,7 @@ class Command(BaseTask):
     def _run_task(self):
         env = self._get_env()
         self._run_command(env)
-        
+
     def _get_env(self):
         if self.options['pass_env']:
             env = os.environ.copy()
@@ -57,9 +70,9 @@ class Command(BaseTask):
 
     def _process_output(self, line):
         self.logger.info(line.rstrip())
-       
-    def _handle_returncode(self, returncode): 
-        if returncode:
+
+    def _handle_returncode(self, p):
+        if p.returncode:
             message = 'Return code: {}\nstderr: {}'.format(
                 p.returncode,
                 p.stderr,
@@ -81,20 +94,22 @@ class Command(BaseTask):
             self._process_output(line)
         p.stdout.close()
         p.wait()
-        if p.returncode:
-            message = 'Return code: {}\nstderr: {}'.format(
-                p.returncode,
-                p.stderr,
-            )
-            self.logger.error(message)
-            raise CommandException(message)
+        self._handle_returncode(p)
+
 
 class SalesforceCommand(Command):
-    """ A command that automatically gets a refreshed SF_ACCESS_TOKEN and SF_INSTANCE_URL passed as env vars """
+    """ Execute a Command with SF credentials provided on the environment.
+
+    Provides:
+     * SF_INSTANCE_URL
+     * SF_ACCESS_TOKEN
+    """
     salesforce_task = True
 
     def _update_credentials(self):
-        self.org_config.refresh_oauth_token(self.project_config.keychain.get_connected_app())
+        self.org_config.refresh_oauth_token(
+            self.project_config.keychain.get_connected_app()
+        )
 
     def _get_env(self):
         env = super(SalesforceCommand, self)._get_env()
@@ -104,19 +119,28 @@ class SalesforceCommand(Command):
 
 task_options = Command.task_options.copy()
 task_options['use_saucelabs'] = {
-    'description': 'If True, use SauceLabs to run the tests.  The SauceLabs credentials will be fetched from the saucelabs service in the keychain and passed as environment variables to the command.  Defaults to False to run tests in the local browser.',
+    'description': 'If True, use SauceLabs to run the tests. The '
+                   'SauceLabs credentials will be fetched from the '
+                   'saucelabs service in the keychain and passed as '
+                   'environment variables to the command.  Defaults to '
+                   'False to run tests in the local browser.',
     'required': True,
 }
+
+
 class SalesforceBrowserTest(SalesforceCommand):
-    """ A wrapper around browser test commands targetting a Salesforce org with support for running in local browser or on SauceLabs """
+    """ Execute a Browser Test command locally or on SauceLabs """
 
     task_options = task_options
 
     def _init_options(self, kwargs):
         super(SalesforceBrowserTest, self)._init_options(kwargs)
-        if 'use_saucelabs' not in self.options or self.options['use_saucelabs'] == 'False':
+        if (
+                'use_saucelabs' not in self.options or
+                self.options['use_saucelabs'] == 'False'
+        ):
             self.options['use_saucelabs'] = False
-    
+
     def _get_env(self):
         env = super(SalesforceBrowserTest, self)._get_env()
         if self.options['use_saucelabs']:
