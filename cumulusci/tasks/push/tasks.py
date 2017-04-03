@@ -298,10 +298,11 @@ class SchedulePushOrgList(BaseSalesforcePushTask):
         )
 
         # Report the status if start time is less than 1 minute from now
-        if start_time - datetime.datetime.utcnow() > datetime.timedelta(
-                    minutes=1
-                ):
+        if (start_time - datetime.datetime.utcnow() <
+                datetime.timedelta(minutes=1)):
             self._report_push_status(self.request_id)
+        else:
+            self.logger.info('Exiting early since request is in the future')
 
 
 class SchedulePushOrgQuery(SchedulePushOrgList):
