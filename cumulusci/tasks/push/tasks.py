@@ -6,7 +6,7 @@ from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.tasks.push.push_api import SalesforcePushApi
 
 class BaseSalesforcePushTask(BaseSalesforceApiTask):
-    completed_statuses = ['Succeeded','Failed','Cancelled']
+    completed_statuses = ['Succeeded','Failed','Canceled']
     api_version = '38.0'
 
     def _init_task(self):
@@ -127,7 +127,7 @@ class BaseSalesforcePushTask(BaseSalesforceApiTask):
 
         failed_jobs = []
         success_jobs = []
-        cancelled_jobs = []
+        canceled_jobs = []
 
         jobs = push_request.get_push_job_objs()
         for job in jobs:
@@ -135,14 +135,14 @@ class BaseSalesforcePushTask(BaseSalesforceApiTask):
                 failed_jobs.append(job)
             elif job.status == 'Succeeded':
                 success_jobs.append(job)
-            elif job.status == 'Cancelled':
-                cancelled_jobs.append(job)
+            elif job.status == 'Canceled':
+                canceled_jobs.append(job)
 
         self.logger.info(
-            "Push complete: {} succeeded, {} failed, {} cancelled".format(
+            "Push complete: {} succeeded, {} failed, {} canceled".format(
                 len(success_jobs),
                 len(failed_jobs),
-                len(cancelled_jobs),
+                len(canceled_jobs),
             )
         )
 

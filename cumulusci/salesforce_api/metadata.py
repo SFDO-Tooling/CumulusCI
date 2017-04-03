@@ -155,7 +155,7 @@ class BaseMetadataApiCall(object):
                 return response
         else:
             # Check the result and return when done
-            while self.status not in ['Succeeded', 'Failed', 'Cancelled']:
+            while self.status not in ['Succeeded', 'Failed', 'Canceled']:
                 # start increasing the check interval progressively to handle long pending jobs
                 check_interval = self._get_check_interval()
                 self.check_num += 1
