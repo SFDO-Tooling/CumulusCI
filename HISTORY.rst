@@ -2,6 +2,11 @@
 History
 =======
 
+2.0.0-beta29 (2017-04-04)
+------------------------
+
+* Report push status if start time is less than 1 minute in the future
+
 2.0.0-beta28 (2017-03-30)
 ------------------------
 
