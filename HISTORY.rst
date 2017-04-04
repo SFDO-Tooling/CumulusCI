@@ -2,6 +2,14 @@
 History
 =======
 
+2.0.0-beta30 (2017-04-04)
+------------------------
+
+* New task list_metadata_types
+* [push upgrades] Fix push request status Cancelled --> Canceled
+* [push upgrades] Fix datetime namespace issues
+* [pyinstaller] Import project-level modules with run-time hook
+
 2.0.0-beta29 (2017-04-04)
 ------------------------
 
