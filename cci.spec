@@ -35,7 +35,7 @@ a = Analysis(
         'cumulusci.tasks.util',
     ],
     hookspath=[],
-    runtime_hooks=[],
+    runtime_hooks=['cci_rth.py'],
     excludes=[],
     win_no_prefer_redirects=False,
     win_private_assemblies=False,
