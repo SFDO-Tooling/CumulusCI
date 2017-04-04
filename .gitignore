@@ -9,6 +9,7 @@ cli/help_clean.md
 .swp
 pybuild
 cumulusci.egg-info
+build/
 dist/
 .eggs/
 .idea/
@@ -16,3 +17,4 @@ dist/
 tags
 .vscode/
 .cache/
+

@@ -1,6 +1,6 @@
 import json
-import datetime
 import functools
+
 from simple_salesforce import Salesforce
 from simple_salesforce import SalesforceMalformedRequest
 from simple_salesforce.util import date_to_iso8601
@@ -504,10 +504,7 @@ class SalesforcePushApi(object):
             push_errors[push_error.sf_id] = push_error
         return push_errors
 
-    def create_push_request(self, version, orgs, start=None):
-        if not start:
-            # Delay the push start by 15 minutes to allow manual review
-            start = datetime.datetime.utcnow() + datetime.timedelta(minutes=15)
+    def create_push_request(self, version, orgs, start):
 
         # Create the request
         res = self.sf.PackagePushRequest.create({

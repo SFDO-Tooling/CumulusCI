@@ -675,7 +675,11 @@ class YamlGlobalConfig(BaseGlobalConfig):
 
     @property
     def config_global_path(self):
-        return os.path.join( __location__, '..', self.config_filename)
+        return os.path.abspath(os.path.join(
+            __location__,
+            '..',
+            self.config_filename,
+        ))
 
     def _load_global_config(self):
         """ Loads the configuration for the project """
