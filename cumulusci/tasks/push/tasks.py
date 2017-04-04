@@ -1,4 +1,5 @@
 from datetime import datetime
+from datetime import timedelta
 import time
 
 from cumulusci.core.tasks import BaseTask
@@ -268,9 +269,7 @@ class SchedulePushOrgList(BaseSalesforcePushTask):
             start_time = datetime.strptime(start_time, '%Y-%m-%dT%H:%M')
         else:
             # default to 5 minutes in the future to allow for review
-            start_time = (
-                datetime.datetime.utcnow() + datetime.timedelta(minutes=5)
-            )
+            start_time = datetime.utcnow() + timedelta(minutes=5)
 
         self.request_id = self.push.create_push_request(
             version, orgs,
@@ -298,8 +297,7 @@ class SchedulePushOrgList(BaseSalesforcePushTask):
         )
 
         # Report the status if start time is less than 1 minute from now
-        if (start_time - datetime.datetime.utcnow() <
-                datetime.timedelta(minutes=1)):
+        if start_time - datetime.utcnow() < timedelta(minutes=1):
             self._report_push_status(self.request_id)
         else:
             self.logger.info('Exiting early since request is in the future')
