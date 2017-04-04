@@ -1,6 +1,7 @@
 # -*- mode: python -*-
 
 block_cipher = None
+debug = False
 single_file = True
 
 a = Analysis(
@@ -56,7 +57,7 @@ if single_file:
         a.zipfiles,
         a.datas,
         name='cci',
-        debug=False,
+        debug=debug,
         strip=False,
         upx=True,
         console=True,
@@ -67,7 +68,7 @@ else:
         a.scripts,
         exclude_binaries=True,
         name='cci',
-        debug=False,
+        debug=debug,
         strip=False,
         upx=True,
         console=True,
