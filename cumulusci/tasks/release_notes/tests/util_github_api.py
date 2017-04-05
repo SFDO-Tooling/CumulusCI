@@ -43,7 +43,7 @@ class GithubApiTestMixin(object):
 
     def _get_expected_tag(self, tag, tag_sha, commit_sha, tag_date=None):
         if not tag_date:
-            tag_date = datetime.now()
+            tag_date = datetime.utcnow()
 
         tag_date = datetime.strftime(tag_date, date_format)
         return {

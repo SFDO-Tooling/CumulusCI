@@ -1385,7 +1385,7 @@ class RunApexTestsDebug(RunApexTests):
         self.debug_level_id = result['id']
         self.logger.info('Setting up trace flag to capture debug logs')
         # New TraceFlag expires 12 hours from now
-        expiration_date = (datetime.datetime.now() +
+        expiration_date = (datetime.datetime.utcnow() +
             datetime.timedelta(seconds=60*60*12))
         TraceFlag = self._get_tooling_object('TraceFlag')
         result = TraceFlag.create({
