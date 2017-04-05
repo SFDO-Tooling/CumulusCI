@@ -147,15 +147,15 @@ class RetrieveUnpackaged(BaseRetrieveMetadata):
             'required': True,
         },
         'api_version': {
-            'description': 'Override the default api version for the retrieve.  Defaults to project__package__api_version',
+            'description': (
+                'Override the default api version for the retrieve.' +
+                ' Defaults to project__package__api_version'
+            ),
         },
     }
 
     def _init_options(self, kwargs):
         super(RetrieveUnpackaged, self)._init_options(kwargs)
-
-        if 'api_version' not in self.options:
-            self.options['api_version'] = self.project_config.project__package__api_version
 
         if 'package_xml' in self.options:
             self.options['package_xml_path'] = self.options['package_xml']
@@ -166,7 +166,7 @@ class RetrieveUnpackaged(BaseRetrieveMetadata):
         return self.api_class(
             self,
             self.options['package_xml'],
-            self.options['api_version'],
+            self.options.get('api_version'),
         )
 
 
@@ -183,8 +183,10 @@ class RetrievePackaged(BaseRetrieveMetadata):
             'required': True,
         },
         'api_version': {
-            'description': 'Override the default api version for the retrieve.  Defaults to project__package__api_version',
-            'required': True,
+            'description': (
+                'Override the default api version for the retrieve.' +
+                ' Defaults to project__package__api_version'
+            ),
         },
     }
 
@@ -192,14 +194,12 @@ class RetrievePackaged(BaseRetrieveMetadata):
         super(RetrievePackaged, self)._init_options(kwargs)
         if 'package' not in self.options:
             self.options['package'] = self.project_config.project__package__name
-        if 'api_version' not in self.options:
-            self.options['api_version'] = self.project_config.project__package__api_version
 
     def _get_api(self):
         return self.api_class(
             self,
             self.options['package'],
-            self.options['api_version'],
+            self.options.get('api_version'),
         )
 
     def _extract_zip(self, src_zip):
