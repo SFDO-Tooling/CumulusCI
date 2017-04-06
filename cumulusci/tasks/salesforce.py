@@ -220,7 +220,17 @@ class RetrieveReportsAndDashboards(BaseRetrieveMetadata):
         'dashboard_folders': {
             'description': 'A list of the dashboard folders to retrieve reports.  Separate by commas for multiple folders.',
         },
+        'api_version': {
+            'description': 'Override the API version used to list metadata',
+        }
     }
+
+    def _init_options(self, kwargs):
+        super(RetrieveReportsAndDashboards, self)._init_options(kwargs)
+        if 'api_version' not in self.options:
+            self.options['api_version'] = (
+                self.project_config.project__package__api_version
+            )
 
     def _validate_options(self):
         super(RetrieveReportsAndDashboards, self)._validate_options()
@@ -231,11 +241,23 @@ class RetrieveReportsAndDashboards(BaseRetrieveMetadata):
         metadata = {}
         if 'report_folders' in self.options:
             for folder in self.options['report_folders']:
-                api_reports = ApiListMetadata(self, 'Report', metadata=metadata, folder=folder)
+                api_reports = ApiListMetadata(
+                    self,
+                    'Report',
+                    metadata=metadata,
+                    folder=folder,
+                    as_of_version=self.options['api_version'],
+                )
                 metadata = api_reports()
         if 'dashboard_folders' in self.options:
             for folder in self.options['dashboard_folders']:
-                api_dashboards = ApiListMetadata(self, 'Dashboard', metadata=metadata, folder=folder)
+                api_dashboards = ApiListMetadata(
+                    self,
+                    'Dashboard',
+                    metadata=metadata,
+                    folder=folder,
+                    as_of_version=self.options['api_version'],
+                )
                 metadata = api_dashboards()
 
         items = {}
