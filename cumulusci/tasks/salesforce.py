@@ -394,7 +394,10 @@ class UninstallPackage(Deploy):
             self.options['purge_on_delete'] = False
 
     def _get_api(self, path=None):
-        package_zip = UninstallPackageZipBuilder(self.options['namespace'])
+        package_zip = UninstallPackageZipBuilder(
+            self.options['namespace'],
+            self.project_config.project__package__api_version,
+        )
         return self.api_class(self, package_zip(), purge_on_delete=self.options['purge_on_delete'])
 
 class UpdateDependencies(BaseSalesforceMetadataApiTask):
@@ -520,7 +523,10 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
 
     def _uninstall_dependency(self, dependency):
         self.logger.info('Uninstalling {}'.format(dependency['namespace']))
-        package_zip = UninstallPackageZipBuilder(dependency['namespace'])
+        package_zip = UninstallPackageZipBuilder(
+            dependency['namespace'],
+            self.project_config.project__package__api_version,
+        )
         api = self.api_class(self, package_zip(), purge_on_delete=self.options['purge_on_delete'])
         return api()
 
@@ -615,7 +621,10 @@ class BaseUninstallMetadata(Deploy):
         destructive_changes = self._get_destructive_changes(path=path)
         if not destructive_changes:
             return
-        package_zip = DestructiveChangesZipBuilder(destructive_changes)
+        package_zip = DestructiveChangesZipBuilder(
+            destructive_changes,
+            self.project_config.project__package__api_version,
+        )
         api = self.api_class(self, package_zip(), purge_on_delete=self.options['purge_on_delete'])
         return api
 

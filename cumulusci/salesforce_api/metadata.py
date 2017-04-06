@@ -79,7 +79,9 @@ class BaseMetadataApiCall(object):
 
     def _build_envelope_start(self):
         if self.soap_envelope_start:
-            return self.soap_envelope_start
+            return self.soap_envelope_start.format(
+                api_version=self.api_version,
+            )
 
     def _build_envelope_status(self):
         if self.soap_envelope_status:

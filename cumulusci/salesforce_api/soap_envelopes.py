@@ -48,13 +48,13 @@ RETRIEVE_INSTALLEDPACKAGE = '''<?xml version="1.0" encoding="utf-8"?>
   <soap:Body>
     <retrieve xmlns="http://soap.sforce.com/2006/04/metadata">
       <retrieveRequest>
-        <apiVersion>33.0</apiVersion>
+        <apiVersion>{api_version}</apiVersion>
         <unpackaged>
           <types>
             <members>*</members>
             <name>InstalledPackage</name>
           </types>
-          <version>33.0</version>
+          <version>{api_version}</version>
         </unpackaged>
       </retrieveRequest>
     </retrieve>
