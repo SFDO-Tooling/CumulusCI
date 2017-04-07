@@ -30,6 +30,10 @@ class BaseTask(object):
         self.project_config = project_config
         self.task_config = task_config
         self.org_config = org_config
+        self.poll_count = 0
+        self.poll_response = None
+        self.poll_interval_level = 0
+        self.poll_interval_s = 1
 
         # dict of return_values that can be used by task callers
         self.return_values = {}
@@ -131,7 +135,42 @@ class BaseTask(object):
 
     def _try(self):
         raise NotImplementedError(
-            'Subclasses should provide their own implementation')
+            'Subclasses should provide their own implementation'
+        )
 
     def _is_retry_valid(self, e):
         return True
+
+    def _poll(self):
+        ''' poll for a result in a loop '''
+        while True:
+            self.poll_count += 1
+            self.logger.info('Poll count: {}'.format(self.poll_count))
+            self._poll_query()
+            if self._poll_is_done():
+                break
+            self.logger.info('Sleeping for {} seconds before next poll'.format(
+                self.poll_interval_s
+            ))
+            time.sleep(self.poll_interval_s)
+            self._poll_update_interval()
+
+    def _poll_query(self):
+        ''' override to make a polling request and get response '''
+        raise NotImplementedError(
+            'Subclasses should provide their own implementation'
+        )
+
+    def _poll_is_done(self):
+        ''' override to say when poll loop should break '''
+        # self.poll_response
+        raise NotImplementedError(
+            'Subclasses should provide their own implementation'
+        )
+
+    def _poll_update_interval(self):
+        ''' update the polling interval to be used next iteration '''
+        # Increase by 1 second every 3 polls
+        if self.poll_count / 3 > self.poll_interval_level:
+            self.poll_interval_level += 1
+            self.poll_interval_s += 1
