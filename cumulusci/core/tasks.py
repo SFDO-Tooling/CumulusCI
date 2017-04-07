@@ -31,9 +31,9 @@ class BaseTask(object):
         self.task_config = task_config
         self.org_config = org_config
         self.poll_count = 0
-        self.poll_response = None
         self.poll_interval_level = 0
         self.poll_interval_s = 1
+        self.poll_complete = False
 
         # dict of return_values that can be used by task callers
         self.return_values = {}
@@ -146,8 +146,8 @@ class BaseTask(object):
         while True:
             self.poll_count += 1
             self.logger.info('Poll count: {}'.format(self.poll_count))
-            self._poll_query()
-            if self._poll_is_done():
+            self._poll_action()
+            if self.poll_complete:
                 break
             self.logger.info('Sleeping for {} seconds before next poll'.format(
                 self.poll_interval_s
@@ -155,15 +155,11 @@ class BaseTask(object):
             time.sleep(self.poll_interval_s)
             self._poll_update_interval()
 
-    def _poll_query(self):
-        ''' override to make a polling request and get response '''
-        raise NotImplementedError(
-            'Subclasses should provide their own implementation'
-        )
-
-    def _poll_is_done(self):
-        ''' override to say when poll loop should break '''
-        # self.poll_response
+    def _poll_action(self):
+        '''
+        Poll something and process the response.
+        Set `self.poll_complete = True` to break polling loop.
+        '''
         raise NotImplementedError(
             'Subclasses should provide their own implementation'
         )
