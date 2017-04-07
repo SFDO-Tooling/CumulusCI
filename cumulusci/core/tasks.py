@@ -145,13 +145,9 @@ class BaseTask(object):
         ''' poll for a result in a loop '''
         while True:
             self.poll_count += 1
-            self.logger.info('Poll count: {}'.format(self.poll_count))
             self._poll_action()
             if self.poll_complete:
                 break
-            self.logger.info('Sleeping for {} seconds before next poll'.format(
-                self.poll_interval_s
-            ))
             time.sleep(self.poll_interval_s)
             self._poll_update_interval()
 
@@ -170,3 +166,7 @@ class BaseTask(object):
         if self.poll_count / 3 > self.poll_interval_level:
             self.poll_interval_level += 1
             self.poll_interval_s += 1
+            self.logger.info(
+                'Increased polling interval to %d seconds',
+                self.poll_interval_s,
+            )
