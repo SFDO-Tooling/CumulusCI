@@ -1311,30 +1311,30 @@ class RunApexTests(BaseSalesforceToolingApiTask):
             )
 
     def _wait_for_tests(self):
-        poll_interval = int(self.options.get('poll_interval', 1))
-        while True:
-            self._retry()
-            counts = {
-                'Aborted': 0,
-                'Completed': 0,
-                'Failed': 0,
-                'Holding': 0,
-                'Preparing': 0,
-                'Processing': 0,
-                'Queued': 0,
-            }
-            for test_queue_item in self.result['records']:
-                counts[test_queue_item['Status']] += 1
-            self.logger.info('Completed: {}  Processing: {}  Queued: {}'
-                             .format(
-                                 counts['Completed'],
-                                 counts['Processing'],
-                                 counts['Queued'],
-                             ))
-            if counts['Queued'] == 0 and counts['Processing'] == 0:
-                self.logger.info('Apex tests completed')
-                break
-            time.sleep(poll_interval)
+        self._poll_interval_s = int(self.options.get('poll_interval', 1))
+        self._poll()
+
+    def _poll_action(self):
+        self._retry()
+        counts = {
+            'Aborted': 0,
+            'Completed': 0,
+            'Failed': 0,
+            'Holding': 0,
+            'Preparing': 0,
+            'Processing': 0,
+            'Queued': 0,
+        }
+        for test_queue_item in self.result['records']:
+            counts[test_queue_item['Status']] += 1
+        self.logger.info('Completed: {}  Processing: {}  Queued: {}'.format(
+            counts['Completed'],
+            counts['Processing'],
+            counts['Queued'],
+        ))
+        if counts['Queued'] == 0 and counts['Processing'] == 0:
+            self.logger.info('Apex tests completed')
+            self.poll_complete = True
 
     def _try(self):
         self.result = self.tooling.query_all(
