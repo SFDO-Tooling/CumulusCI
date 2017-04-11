@@ -364,6 +364,7 @@ flows:
                 task: github_release_notes
                 ignore_failure: True  # Attempt to generate release notes but don't fail build
                 options:
+                    link_pr: True
                     publish: True
                     tag: ^^github_release.tag_name
             4:
