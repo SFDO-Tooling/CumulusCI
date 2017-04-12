@@ -273,12 +273,12 @@ class SchedulePushOrgList(BaseSalesforcePushTask):
             # default to 5 minutes in the future to allow for review
             start_time = datetime.utcnow() + timedelta(minutes=5)
 
-        self.request_id = self.push.create_push_request(
+        self.request_id, num_scheduled_orgs = self.push.create_push_request(
             version, orgs,
             start_time,
         )
 
-        if len(orgs) > 1000:
+        if num_scheduled_orgs > 1000:
             sleep_time_s = 30
             self.logger.info(
                 'Delaying {} seconds to allow all jobs to initialize'.format(
@@ -286,6 +286,10 @@ class SchedulePushOrgList(BaseSalesforcePushTask):
                 )
             )
             time.sleep(sleep_time_s)
+        elif num_scheduled_orgs == 0:
+            self.logger.warn('Canceling push request with 0 orgs')
+            self.push.cancel_push_request
+            return
 
         self.logger.info('Setting status to Pending to queue execution.')
         self.logger.info('The push upgrade will start at UTC {}'.format(

@@ -545,7 +545,7 @@ class SalesforcePushApi(object):
                 scheduled_orgs,
             )
         )
-        return request_id
+        return request_id, scheduled_orgs
 
     def _add_batch(self, batch, request_id):
 
@@ -602,6 +602,12 @@ class SalesforcePushApi(object):
         for record in records:
             if record['attributes']['referenceId'] == ref_id:
                 return record['SubscriberOrganizationKey']
+
+    def cancel_push_request(self, request_id):
+        return self.sf.PackagePushRequest.update(
+            request_id,
+            {'Status': 'Canceled'},
+        )
 
     def run_push_request(self, request_id):
         # Set the request to Pending status
