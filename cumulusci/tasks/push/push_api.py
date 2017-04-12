@@ -571,8 +571,12 @@ class SalesforcePushApi(object):
             )
         except SalesforceMalformedRequest as e:
             invalid_orgs = set()
+            retry_all = False
             for result in e.content['results']:
                 for error in result['errors']:
+                    if 'Something bad has happened' in error['message']:
+                        retry_all = True
+                        break
                     if error['statusCode'] in [
                                 'DUPLICATE_VALUE',
                                 'INVALID_OPERATION',
@@ -589,13 +593,18 @@ class SalesforcePushApi(object):
                         ))
                     else:
                         raise
-            # remove invalid orgs and retry
-            batch -= invalid_orgs
-            if batch:
-                self.logger.warn('Retrying batch without invalid orgs')
+                if retry_all:
+                    break
+            if retry_all:
+                self.logger.warn('Retrying batch')
                 batch = self._add_batch(batch, request_id)
             else:
-                self.logger.error('Skipping batch (no valid orgs)')
+                batch -= invalid_orgs
+                if batch:
+                    self.logger.warn('Retrying batch without invalid orgs')
+                    batch = self._add_batch(batch, request_id)
+                else:
+                    self.logger.error('Skipping batch (no valid orgs)')
         return batch
 
     def _get_org_id(self, records, ref_id):
