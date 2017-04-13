@@ -10,7 +10,7 @@ import cumulusci.core.tasks
 from cumulusci.core.config import BaseGlobalConfig
 from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.config import TaskConfig
-from cumulusci.core.utils import MockLoggingHandler
+from cumulusci.core.tests.utils import MockLoggingHandler
 
 from cumulusci.tasks.command import Command
 from cumulusci.tasks.command import CommandException

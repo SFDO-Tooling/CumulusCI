@@ -12,14 +12,13 @@ from cumulusci.core.config import BaseGlobalConfig
 from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.config import OrgConfig
-from cumulusci.core.utils import MockLoggingHandler
 from cumulusci.core.config import ConnectedAppOAuthConfig
 from cumulusci.core.keychain import BaseProjectKeychain
+from cumulusci.core.tests.utils import MockLoggingHandler
 
 from cumulusci.tasks.command import CommandException
 from cumulusci.tasks.sfdx import SFDXBaseTask
 from cumulusci.tasks.sfdx import SFDXOrgTask
-from cumulusci.tasks.sfdx import SFDXKeychainOrgTask
 
 
 class TestSFDXBaseTask(unittest.TestCase):
@@ -61,7 +60,7 @@ class TestSFDXBaseTask(unittest.TestCase):
 
         self.assertEqual('sfdx force:org --help', task.options['command'])
 
-    @patch('cumulusci.tasks.sfdx.SFDXKeychainOrgTask._update_credentials',
+    @patch('cumulusci.tasks.sfdx.SFDXOrgTask._update_credentials',
            MagicMock(return_value=None))
     @patch('cumulusci.tasks.command.Command._run_task',
            MagicMock(return_value=None))
@@ -77,7 +76,7 @@ class TestSFDXBaseTask(unittest.TestCase):
             'instance_url': 'https://test.salesforce.com'
         })
 
-        task = SFDXKeychainOrgTask(
+        task = SFDXOrgTask(
             self.project_config, self.task_config, org_config
         )
 

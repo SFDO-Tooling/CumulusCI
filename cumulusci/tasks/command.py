@@ -80,9 +80,11 @@ class Command(BaseTask):
             self.logger.error(message)
             raise CommandException(message)
 
-    def _run_command(self, env):
+    def _run_command(self, env, command=None, output_handler=None, return_code_handler=None):
+        if not command:
+            command = self.options['command']
         p = subprocess.Popen(
-            self.options['command'],
+            command,
             stdout=subprocess.PIPE,
             bufsize=1,
             shell=True,
@@ -90,11 +92,19 @@ class Command(BaseTask):
             env=env,
             cwd=self.options.get('dir'),
         )
+
+        # Handle output lines
+        if not output_handler:
+            output_handler = self._process_output
         for line in iter(p.stdout.readline, ''):
-            self._process_output(line)
+            output_handler(line)
         p.stdout.close()
         p.wait()
-        self._handle_returncode(p)
+        
+        # Handle return code
+        if not return_code_handler:
+            return_code_handler = self._handle_returncode
+        return_code_handler(p)
 
 
 class SalesforceCommand(Command):
