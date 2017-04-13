@@ -59,7 +59,7 @@ class CloneTag(BaseGithubTask):
             tagger = {
                 'name': self.github_config.username,
                 'email': self.github_config.email,
-                'date': '{}Z'.format(datetime.now().isoformat()),
+                'date': '{}Z'.format(datetime.utcnow().isoformat()),
             },
         )
         self.logger.info('Tag {} created by cloning {}'.format(self.options['tag'], self.options['src_tag']))
@@ -111,7 +111,7 @@ class CreateRelease(BaseGithubTask):
                 tagger = {
                     'name': self.github_config.username,
                     'email': self.github_config.email,
-                    'date': '{}Z'.format(datetime.now().isoformat()),
+                    'date': '{}Z'.format(datetime.utcnow().isoformat()),
                 },
                 lightweight = False,
             )

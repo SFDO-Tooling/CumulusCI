@@ -99,10 +99,10 @@ class TestGithubChangeNotesProvider(unittest.TestCase, GithubApiTestMixin):
 
         self.current_tag_sha = self._random_sha()
         self.current_tag_commit_sha = self._random_sha()
-        self.current_tag_commit_date = datetime.now()
+        self.current_tag_commit_date = datetime.utcnow()
         self.last_tag_sha = self._random_sha()
         self.last_tag_commit_sha = self._random_sha()
-        self.last_tag_commit_date = datetime.now() - timedelta(days=1)
+        self.last_tag_commit_date = datetime.utcnow() - timedelta(days=1)
         self.last2_tag_sha = self._random_sha()
 
         self.github_info = {
@@ -221,11 +221,11 @@ class TestGithubChangeNotesProvider(unittest.TestCase, GithubApiTestMixin):
         api_url = '{}/pulls'.format(self.repo_api_url)
         expected_response = [
             self._get_expected_pull_request(1, 101, 'pull 1',
-                datetime.now() - timedelta(seconds=60)),
+                datetime.utcnow() - timedelta(seconds=60)),
             self._get_expected_pull_request(2, 102, 'pull 2',
-                datetime.now() - timedelta(days=4)),
+                datetime.utcnow() - timedelta(days=4)),
             self._get_expected_pull_request(3, 103, 'pull 3',
-                datetime.now() - timedelta(days=5)),
+                datetime.utcnow() - timedelta(days=5)),
         ]
         responses.add(
             method=responses.GET,
@@ -237,15 +237,15 @@ class TestGithubChangeNotesProvider(unittest.TestCase, GithubApiTestMixin):
         api_url = '{}/pulls'.format(self.repo_api_url)
         expected_response = [
             self._get_expected_pull_request(1, 101, 'pull 1',
-                datetime.now() - timedelta(seconds=60)),
+                datetime.utcnow() - timedelta(seconds=60)),
             self._get_expected_pull_request(2, 102, 'pull 2',
-                datetime.now() - timedelta(seconds=90)),
+                datetime.utcnow() - timedelta(seconds=90)),
             self._get_expected_pull_request(3, 103, 'pull 3',
-                datetime.now() - timedelta(seconds=120)),
+                datetime.utcnow() - timedelta(seconds=120)),
             self._get_expected_pull_request(4, 104, 'pull 4',
-                datetime.now() - timedelta(days=4)),
+                datetime.utcnow() - timedelta(days=4)),
             self._get_expected_pull_request(5, 105, 'pull 5',
-                datetime.now() - timedelta(days=5)),
+                datetime.utcnow() - timedelta(days=5)),
         ]
         responses.add(
             method=responses.GET,
@@ -359,7 +359,7 @@ class TestGithubChangeNotesProvider(unittest.TestCase, GithubApiTestMixin):
             pull_id=1,
             issue_number=101,
             body='pull 1',
-            merged_date=datetime.now() - timedelta(days=2),
+            merged_date=datetime.utcnow() - timedelta(days=2),
         )
         expected_response_list_pull_requests = [
             expected_pull_request_1,

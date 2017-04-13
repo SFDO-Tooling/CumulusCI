@@ -2,6 +2,26 @@
 History
 =======
 
+2.0.0-beta31 (2017-04-12)
+------------------------
+
+* Use UTC for all Salesforce API date/time fields
+* Fix issue with listing metadata types
+* Add generic polling method to BaseTask
+
+2.0.0-beta30 (2017-04-04)
+------------------------
+
+* New task list_metadata_types
+* [push upgrades] Fix push request status Cancelled --> Canceled
+* [push upgrades] Fix datetime namespace issues
+* [pyinstaller] Import project-level modules with run-time hook
+
+2.0.0-beta29 (2017-04-04)
+------------------------
+
+* Report push status if start time is less than 1 minute in the future
+
 2.0.0-beta28 (2017-03-30)
 ------------------------
 

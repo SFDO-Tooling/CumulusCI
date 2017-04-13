@@ -457,7 +457,7 @@ class ScratchOrgConfig(OrgConfig):
             'username': org_info['username'],
         }
     
-        self._scratch_info_date = datetime.datetime.now()
+        self._scratch_info_date = datetime.datetime.utcnow()
 
         return self._scratch_info
 
@@ -565,7 +565,7 @@ class ScratchOrgConfig(OrgConfig):
         """ Use sfdx force:org:describe to refresh token instead of built in OAuth handling """
         if hasattr(self, '_scratch_info'):
             # Cache the scratch_info for 1 hour to avoid unnecessary calls out to sfdx CLI
-            delta = datetime.datetime.now() - self._scratch_info_date
+            delta = datetime.datetime.utcnow() - self._scratch_info_date
             if delta.total_seconds() > 3600:
                 del self._scratch_info
         # This triggers a refresh
@@ -678,7 +678,11 @@ class YamlGlobalConfig(BaseGlobalConfig):
 
     @property
     def config_global_path(self):
-        return os.path.join( __location__, '..', self.config_filename)
+        return os.path.abspath(os.path.join(
+            __location__,
+            '..',
+            self.config_filename,
+        ))
 
     def _load_global_config(self):
         """ Loads the configuration for the project """

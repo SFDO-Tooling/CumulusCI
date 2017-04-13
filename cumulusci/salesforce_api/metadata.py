@@ -156,7 +156,7 @@ class BaseMetadataApiCall(object):
                 return response
         else:
             # Check the result and return when done
-            while self.status not in ['Succeeded', 'Failed', 'Cancelled']:
+            while self.status not in ['Succeeded', 'Failed', 'Canceled']:
                 # start increasing the check interval progressively to handle long pending jobs
                 check_interval = self._get_check_interval()
                 self.check_num += 1
@@ -567,11 +567,22 @@ class ApiListMetadata(BaseMetadataApiCall):
     soap_envelope_start = soap_envelopes.LIST_METADATA
     soap_action_start = 'listMetadata'
 
-    def __init__(self, task, metadata_type, metadata=None, folder=None):
+    def __init__(
+                self,
+                task,
+                metadata_type,
+                metadata=None,
+                folder=None,
+                as_of_version=None
+            ):
         super(ApiListMetadata, self).__init__(task)
         self.metadata_type = metadata_type
         self.metadata = metadata
         self.folder = folder
+        self.as_of_version = (
+            as_of_version if as_of_version else
+            task.project_config.project__package__api_version
+        )
         if self.metadata is None:
             self.metadata = {}
 
@@ -581,7 +592,11 @@ class ApiListMetadata(BaseMetadataApiCall):
             folder = ''
         else:
             folder = '\n      <folder>{}</folder>'.format(folder)      
-        return self.soap_envelope_start % {'metadata_type': self.metadata_type, 'folder': self.folder}
+        return self.soap_envelope_start.format(
+            metadata_type=self.metadata_type,
+            folder=self.folder,
+            as_of_version=self.as_of_version,
+        )
 
     def _process_response(self, response):
         metadata = []

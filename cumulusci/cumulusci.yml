@@ -79,6 +79,9 @@ tasks:
         class_path: cumulusci.tasks.salesforce.InstallPackageVersion
         options:
             version: latest_beta
+    list_metadata_types:
+        description: Prints the metadata types in a project
+        class_path: cumulusci.tasks.util.ListMetadataTypes
     mrbelvedere_publish:
         description: Publishes a release to the mrbelvedere web installer
         class_path: cumulusci.tasks.mrbelvedere.MrbelvederePublish
@@ -349,6 +352,7 @@ flows:
                 task: github_release_notes
                 ignore_failure: True  # Attempt to generate release notes but don't fail build
                 options:
+                    link_pr: True
                     publish: True
                     tag: ^^github_release.tag_name
             4:
