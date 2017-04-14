@@ -99,9 +99,7 @@ class BaseSalesforcePushTask(BaseSalesforceApiTask):
             for line in f:
                 if line.isspace():
                     continue
-                org = line.split()[0]
-                if org:
-                    orgs.append(org)
+                orgs.append(line.split()[0])
         return orgs
 
     def _report_push_status(self, request_id):
