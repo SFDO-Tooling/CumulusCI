@@ -97,6 +97,8 @@ class BaseSalesforcePushTask(BaseSalesforceApiTask):
         orgs = []
         with open(path, 'r') as f:
             for line in f:
+                if line.isspace():
+                    continue
                 org = line.split()[0]
                 if org:
                     orgs.append(org)
