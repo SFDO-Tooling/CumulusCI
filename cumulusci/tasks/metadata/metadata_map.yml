@@ -177,6 +177,9 @@ settings:
 scontrols:
     - type: Scontrol
       class: MetadataFilenameParser
+standardValueSets:
+    - type: StandardValueSet
+      class: MetadataFilenameParser
 staticresources:
     - type: StaticResource
       class: MetadataFilenameParser
