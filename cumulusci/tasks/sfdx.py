@@ -82,19 +82,12 @@ class SFDXJsonTask(SFDXOrgTask):
     command = 'force:mdapi:deploy --json'
 
     def _process_output(self, line):
-        started = False
-        if hasattr(self, 'job_id'):
-            started = True
-
         try:
             data = json.loads(line)
         except:
             self.logger.error('Failed to parse json from line: {}'.format(line))
-
-        if not started:
-            self._process_data(data)
-        else:
-            self._process_poll_data(data)
+        
+        self._process_data(data)
 
     def _init_options(self, kwargs):
         kwargs['command'] = self._get_command()
@@ -108,9 +101,8 @@ class SFDXJsonTask(SFDXOrgTask):
         command = self._add_username(command)
         return command
 
-    def _run_task(self):
-        super(SFDXJsonTask, self)._run_task()
-        self.logger.info('JSON = {}'.format(self.data))
+    def _process_data(self, data):
+        self.logger.info('JSON = {}'.format(data))
 
 class SFDXJsonPollingTask(SFDXJsonTask):
 
@@ -118,15 +110,27 @@ class SFDXJsonPollingTask(SFDXJsonTask):
         super(SFDXJsonPollingTask, self)._init_task()
         self.job_id = None
 
-    def _run_command(self):
-        super(SFDXJsonPollingTask, self)._run_command()
-        self._poll()
+    def _process_output(self, line):
+        started = False
+        if hasattr(self, 'job_id'):
+            started = True
+
+        super(SFDXJsonPollingTask, self)._process_output(line)
+
+        if not started:
+            self._process_data(data)
+        else:
+            self._process_poll_data(data)
 
     def _process_data(self, data):
+        if self.job_id:
+            return self._process_poll_data(data) 
+
         self.job_id = data['id']
         self._poll()
 
     def _process_poll_data(self, data):
+        self.logger.info(data)
         if self._check_poll_done(data):
             self.poll_complete = True
 
@@ -134,7 +138,7 @@ class SFDXJsonPollingTask(SFDXJsonTask):
         command = self._get_poll_command()
         env = self._get_env()
         self._run_command(
-            env = env,
+            env,
             command = command,
         )
         
@@ -143,6 +147,7 @@ class SFDXJsonPollingTask(SFDXJsonTask):
         return data.get('done', True)
 
     def _process_poll_output(self, line):
+        pass
 
     def _get_poll_command(self):
         raise NotImplementedError(
