@@ -443,7 +443,14 @@ class ScratchOrgConfig(OrgConfig):
             try:
                 org_info = json.loads(''.join(stdout_list))
             except Exception as e:
-                raise ScratchOrgException('Failed to parse json from output: {}\n{}'.format(''.join(stdout_list), e))
+                raise ScratchOrgException(
+                    'Failed to parse json from output. This can happen if '
+                    'your scratch org gets deleted.\n  '
+                    'Exception: {}\n  Output: {}'.format(
+                        e.__class__.__name__, 
+                        ''.join(stdout_list),
+                    )
+                )
 
             org_id = org_info['accessToken'].split('!')[0]
 
@@ -452,7 +459,10 @@ class ScratchOrgConfig(OrgConfig):
             'access_token': org_info['accessToken'],
             'org_id': org_id,
             'username': org_info['username'],
+            'password': org_info.get('password',None),
         }
+
+        self.config.update(self._scratch_info)
     
         self._scratch_info_date = datetime.datetime.utcnow()
 
@@ -496,6 +506,13 @@ class ScratchOrgConfig(OrgConfig):
             username = self.scratch_info['username']
         return username
 
+    @property
+    def password(self):
+        password = self.config.get('password')
+        if not password:
+            password = self.scratch_info['password']
+        return password
+
     def create_org(self):
         """ Uses sfdx force:org:create to create the org """
         if not self.config_file:
@@ -525,6 +542,20 @@ class ScratchOrgConfig(OrgConfig):
 
         if p.returncode:
             message = 'Failed to create scratch org: \n{}'.format(''.join(stdout))
+            raise ScratchOrgException(message)
+
+        # Set a random password so it's available via cci org info
+        command = 'sfdx force:user:password:generate -u {}'.format(self.username)
+        self.logger.info('Generating scratch org user password with command {}'.format(command))
+        p = sarge.Command(command, stdout=sarge.Capture(buffer_size=-1))
+        p.run()
+        
+        stdout = [] 
+        for line in p.stdout:
+            stdout.append(line)
+
+        if p.returncode:
+            message = 'Failed to set password: \n{}'.format('\n'.join(stdout))
             raise ScratchOrgException(message)
 
         # Flag that this org has been created
