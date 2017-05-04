@@ -413,7 +413,11 @@ def org_info(config, org_name):
     check_connected_app(config)
     
     org_config = config.keychain.get_org(org_name)
-    org_config.refresh_oauth_token(config.keychain.get_connected_app())
+    
+    try:
+        org_config.refresh_oauth_token(config.keychain.get_connected_app())
+    except ScratchOrgException as e:
+        raise click.ClickException('ScratchOrgException: {}'.format(e.message))
 
     click.echo(pretty_dict(org_config.config))
 
