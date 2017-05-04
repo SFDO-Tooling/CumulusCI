@@ -2,6 +2,13 @@
 History
 =======
 
+2.0.0-beta32 (2017-05-04)
+------------------------
+
+* Scratch orgs now get an auto-generated password which is available via `cci org info`
+* Added metadata mapping for StandardValueSets to fix #310
+* Throw nicer exceptions when scratch org interaction fails
+
 2.0.0-beta31 (2017-04-12)
 ------------------------
 
