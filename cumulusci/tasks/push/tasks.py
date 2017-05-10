@@ -2,6 +2,7 @@ from datetime import datetime
 from datetime import timedelta
 import time
 
+from cumulusci.core.exceptions import CumulusCIException
 from cumulusci.core.tasks import BaseTask
 from cumulusci.tasks.push.push_api import SalesforcePushApi
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
@@ -269,9 +270,16 @@ class SchedulePushOrgList(BaseSalesforcePushTask):
         start_time = self.options.get('start_time')
         if start_time:
             start_time = datetime.strptime(start_time, '%Y-%m-%dT%H:%M')
+            if start_time < datetime.utcnow():
+                raise CumulusCIException('Start time cannot be in the past')
         else:
-            # default to 5 minutes in the future to allow for review
-            start_time = datetime.utcnow() + timedelta(minutes=5)
+            # delay a bit to allow for review
+            delay_minutes = 5
+            self.logger.warn(
+                'Scheduling push for %d minutes from now',
+                delay_minutes,
+            )
+            start_time = datetime.utcnow() + timedelta(minutes=delay_minutes)
 
         self.request_id, num_scheduled_orgs = self.push.create_push_request(
             version, orgs,
