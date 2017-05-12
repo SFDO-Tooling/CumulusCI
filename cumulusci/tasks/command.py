@@ -3,6 +3,7 @@ import os
 import subprocess
 
 from cumulusci.core.exceptions import CommandException
+from cumulusci.core.exceptions import BrowserTestException
 from cumulusci.core.tasks import BaseTask
 
 
@@ -121,3 +122,11 @@ class SalesforceBrowserTest(SalesforceCommand):
         else:
             env['RUN_LOCAL'] = 'True'
         return env
+
+    def _handle_returncode(self, returncode, stderr):
+        if returncode:
+            message = 'Return code: {}\nstderr: {}'.format(
+                returncode,
+                stderr,
+            )
+            raise BrowserTestException(message)
