@@ -36,11 +36,15 @@ class BaseMetadataApiCall(object):
     soap_action_status = None
     soap_action_result = None
 
-    def __init__(self, task):
+    def __init__(self, task, api_version=None):
         # the cumulucci context object contains logger, oauth, ID, secret, etc
         self.task = task
         self.status = None
         self.check_num = 1
+        self.api_version = (
+            api_version if api_version else
+            task.project_config.project__package__api_version
+        )
 
     def __call__(self):
         self.task.logger.info('Pending')
@@ -62,7 +66,11 @@ class BaseMetadataApiCall(object):
             instance_url = re.sub(
                 r'https://.*\.(\w+)\.my\.salesforce\.com', r'https://\1.salesforce.com', instance_url)
         # Build the endpoint url from the instance_url
-        endpoint = '%s/services/Soap/m/33.0/%s' % (instance_url, org_id)
+        endpoint = '{}/services/Soap/m/{}/{}'.format(
+            instance_url,
+            self.api_version,
+            org_id,
+        )
         return endpoint
 
     def _build_envelope_result(self):
@@ -71,7 +79,9 @@ class BaseMetadataApiCall(object):
 
     def _build_envelope_start(self):
         if self.soap_envelope_start:
-            return self.soap_envelope_start
+            return self.soap_envelope_start.format(
+                api_version=self.api_version,
+            )
 
     def _build_envelope_status(self):
         if self.soap_envelope_status:
@@ -253,9 +263,8 @@ class ApiRetrieveUnpackaged(BaseMetadataApiCall):
     soap_action_result = 'checkRetrieveStatus'
 
     def __init__(self, task, package_xml, api_version):
-        super(ApiRetrieveUnpackaged, self).__init__(task)
+        super(ApiRetrieveUnpackaged, self).__init__(task, api_version)
         self.package_xml = package_xml
-        self.api_version = api_version
         self._clean_package_xml()
 
     def _clean_package_xml(self):
@@ -331,9 +340,8 @@ class ApiRetrievePackaged(BaseMetadataApiCall):
     soap_action_result = 'checkRetrieveStatus'
 
     def __init__(self, task, package_name, api_version):
-        super(ApiRetrievePackaged, self).__init__(task)
+        super(ApiRetrievePackaged, self).__init__(task, api_version)
         self.package_name = package_name
-        self.api_version = api_version
 
     def _build_envelope_start(self):
         return self.soap_envelope_start.format(

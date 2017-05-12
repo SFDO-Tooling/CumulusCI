@@ -6,15 +6,15 @@ from xml.sax.saxutils import escape
 INSTALLED_PACKAGE_PACKAGE_XML = """<?xml version="1.0" encoding="utf-8"?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
   <types>
-    <members>{}</members>
+    <members>{namespace}</members>
     <name>InstalledPackage</name>
   </types>
-<version>33.0</version>
+<version>{version}</version>
 </Package>"""
 
 EMPTY_PACKAGE_XML = """<?xml version="1.0" encoding="utf-8"?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
-<version>33.0</version>
+<version>{version}</version>
 </Package>"""
 
 FULL_NAME_PACKAGE_XML = """<?xml version="1.0" encoding="utf-8"?>
@@ -78,7 +78,10 @@ class InstallPackageZipBuilder(BasePackageZipBuilder):
         self.version = version
 
     def _populate_zip(self):
-        package_xml = INSTALLED_PACKAGE_PACKAGE_XML.format(self.namespace)
+        package_xml = INSTALLED_PACKAGE_PACKAGE_XML.format(
+            namespace=self.namespace,
+            version=self.version,
+        )
         self._write_package_xml(package_xml)
 
         installed_package = INSTALLED_PACKAGE.format(self.version)
@@ -89,17 +92,22 @@ class InstallPackageZipBuilder(BasePackageZipBuilder):
 
 class DestructiveChangesZipBuilder(BasePackageZipBuilder):
 
-    def __init__(self, destructive_changes):
+    def __init__(self, destructive_changes, version):
         self.destructive_changes = destructive_changes
+        self.version = version
 
     def _populate_zip(self): 
-        self._write_package_xml(EMPTY_PACKAGE_XML)
+        self._write_package_xml(EMPTY_PACKAGE_XML.format(version=self.version))
         self._write_file('destructiveChanges.xml', self.destructive_changes)
 
 class UninstallPackageZipBuilder(DestructiveChangesZipBuilder):
 
-    def __init__(self, namespace):
+    def __init__(self, namespace, version):
         if not namespace:
             raise ValueError('You must provide a namespace to install a package')
         self.namespace = namespace
-        self.destructive_changes = INSTALLED_PACKAGE_PACKAGE_XML.format(self.namespace)
+        self.version = version
+        self.destructive_changes = INSTALLED_PACKAGE_PACKAGE_XML.format(
+            namespace=self.namespace,
+            version=self.version,
+        )

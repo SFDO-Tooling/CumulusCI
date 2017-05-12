@@ -147,15 +147,15 @@ class RetrieveUnpackaged(BaseRetrieveMetadata):
             'required': True,
         },
         'api_version': {
-            'description': 'Override the default api version for the retrieve.  Defaults to project__package__api_version',
+            'description': (
+                'Override the default api version for the retrieve.' +
+                ' Defaults to project__package__api_version'
+            ),
         },
     }
 
     def _init_options(self, kwargs):
         super(RetrieveUnpackaged, self)._init_options(kwargs)
-
-        if 'api_version' not in self.options:
-            self.options['api_version'] = self.project_config.project__package__api_version
 
         if 'package_xml' in self.options:
             self.options['package_xml_path'] = self.options['package_xml']
@@ -166,7 +166,7 @@ class RetrieveUnpackaged(BaseRetrieveMetadata):
         return self.api_class(
             self,
             self.options['package_xml'],
-            self.options['api_version'],
+            self.options.get('api_version'),
         )
 
 
@@ -183,8 +183,10 @@ class RetrievePackaged(BaseRetrieveMetadata):
             'required': True,
         },
         'api_version': {
-            'description': 'Override the default api version for the retrieve.  Defaults to project__package__api_version',
-            'required': True,
+            'description': (
+                'Override the default api version for the retrieve.' +
+                ' Defaults to project__package__api_version'
+            ),
         },
     }
 
@@ -192,14 +194,12 @@ class RetrievePackaged(BaseRetrieveMetadata):
         super(RetrievePackaged, self)._init_options(kwargs)
         if 'package' not in self.options:
             self.options['package'] = self.project_config.project__package__name
-        if 'api_version' not in self.options:
-            self.options['api_version'] = self.project_config.project__package__api_version
 
     def _get_api(self):
         return self.api_class(
             self,
             self.options['package'],
-            self.options['api_version'],
+            self.options.get('api_version'),
         )
 
     def _extract_zip(self, src_zip):
@@ -416,7 +416,10 @@ class UninstallPackage(Deploy):
             self.options['purge_on_delete'] = False
 
     def _get_api(self, path=None):
-        package_zip = UninstallPackageZipBuilder(self.options['namespace'])
+        package_zip = UninstallPackageZipBuilder(
+            self.options['namespace'],
+            self.project_config.project__package__api_version,
+        )
         return self.api_class(self, package_zip(), purge_on_delete=self.options['purge_on_delete'])
 
 class UpdateDependencies(BaseSalesforceMetadataApiTask):
@@ -542,7 +545,10 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
 
     def _uninstall_dependency(self, dependency):
         self.logger.info('Uninstalling {}'.format(dependency['namespace']))
-        package_zip = UninstallPackageZipBuilder(dependency['namespace'])
+        package_zip = UninstallPackageZipBuilder(
+            dependency['namespace'],
+            self.project_config.project__package__api_version,
+        )
         api = self.api_class(self, package_zip(), purge_on_delete=self.options['purge_on_delete'])
         return api()
 
@@ -637,7 +643,10 @@ class BaseUninstallMetadata(Deploy):
         destructive_changes = self._get_destructive_changes(path=path)
         if not destructive_changes:
             return
-        package_zip = DestructiveChangesZipBuilder(destructive_changes)
+        package_zip = DestructiveChangesZipBuilder(
+            destructive_changes,
+            self.project_config.project__package__api_version,
+        )
         api = self.api_class(self, package_zip(), purge_on_delete=self.options['purge_on_delete'])
         return api
 
