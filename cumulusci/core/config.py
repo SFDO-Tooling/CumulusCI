@@ -551,15 +551,21 @@ class ScratchOrgConfig(OrgConfig):
         # Set a random password so it's available via cci org info
         command = 'sfdx force:user:password:generate -u {}'.format(self.username)
         self.logger.info('Generating scratch org user password with command {}'.format(command))
-        p = sarge.Command(command, stdout=sarge.Capture(buffer_size=-1))
+        p = sarge.Command(command, stdout=sarge.Capture(buffer_size=-1), stderr=sarge.Capture(buffer_size=-1))
         p.run()
         
         stdout = [] 
         for line in p.stdout:
             stdout.append(line)
+        stderr = [] 
+        for line in p.stderr:
+            stderr.append(line)
 
         if p.returncode:
-            message = 'Failed to set password: \n{}'.format('\n'.join(stdout))
+            # Don't throw an exception because of failure creating the password, just notify in a log message
+            self.logger.warn(
+                'Failed to set password: \n{}\n{}'.format('\n'.join(stdout),'\n'.join(stderr))
+            )
             raise ScratchOrgException(message)
 
         # Flag that this org has been created
