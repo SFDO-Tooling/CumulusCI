@@ -369,9 +369,10 @@ def org_browser(config, org_name):
 @click.argument('org_name')
 @click.option('--sandbox', is_flag=True, help="If set, connects to a Salesforce sandbox org")
 @click.option('--login-url', help='If set, login to this hostname.', default= 'https://login.salesforce.com')
+@click.option('--default', is_flag=True, help='If set, sets the connected org as the new default org')
 @click.option('--global-org', help='Set True if org should be used by any project', is_flag=True)
 @pass_config
-def org_connect(config, org_name, sandbox, login_url, global_org):
+def org_connect(config, org_name, sandbox, login_url, default, global_org):
     check_connected_app(config)
 
     connected_app = config.keychain.get_connected_app()
@@ -390,6 +391,10 @@ def org_connect(config, org_name, sandbox, login_url, global_org):
     org_config.load_userinfo()
 
     config.keychain.set_org(org_name, org_config, global_org)
+
+    if default:
+        org = config.keychain.set_default_org(org_name)
+        click.echo('{} is now the default org'.format(org_name))
 
 @click.command(name='default', help="Sets an org as the default org for tasks and flows")
 @click.argument('org_name')
@@ -442,9 +447,11 @@ def org_list(config):
 @click.command(name='scratch', help="Connects a Salesforce DX Scratch Org to the keychain")
 @click.argument('config_name')
 @click.argument('org_name')
+@click.option('--default', is_flag=True, help='If set, sets the connected org as the new default org')
 @click.option('--delete', is_flag=True, help="If set, triggers a deletion of the current scratch org.  This can be used to reset the org as the org configuration remains to regenerate the org on the next task run.")
+@click.option('--devhub', help="If provided, overrides the devhub used to create the scratch org")
 @pass_config
-def org_scratch(config, config_name, org_name, delete):
+def org_scratch(config, config_name, org_name, default, delete, devhub):
     check_connected_app(config)
   
     scratch_configs = getattr(config.project_config, 'orgs__scratch')
@@ -456,8 +463,16 @@ def org_scratch(config, config_name, org_name, delete):
             'No scratch org config named {} found in the cumulusci.yml file'.format(config_name)
         )
 
+    if devhub:
+        scratch_config['devhub'] = devhub
+
     org_config = ScratchOrgConfig(scratch_config) 
+
     config.keychain.set_org(org_name, org_config)
+
+    if default:
+        org = config.keychain.set_default_org(org_name)
+        click.echo('{} is now the default org'.format(org_name))
 
 @click.command(name='scratch_delete', help="Deletes a Salesforce DX Scratch Org leaving the config in the keychain for regeneration")
 @click.argument('org_name')
