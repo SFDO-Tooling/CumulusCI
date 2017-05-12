@@ -2,6 +2,7 @@ from datetime import datetime
 from datetime import timedelta
 import time
 
+from cumulusci.core.exceptions import CumulusCIException
 from cumulusci.core.tasks import BaseTask
 from cumulusci.tasks.push.push_api import SalesforcePushApi
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
@@ -95,9 +96,11 @@ class BaseSalesforcePushTask(BaseSalesforceApiTask):
 
     def _load_orgs_file(self, path):
         orgs = []
-        with open(path, 'r') as f_orgs:
-            for org in f_orgs:
-                orgs.append(org.strip())
+        with open(path, 'r') as f:
+            for line in f:
+                if line.isspace():
+                    continue
+                orgs.append(line.split()[0])
         return orgs
 
     def _report_push_status(self, request_id):
@@ -267,16 +270,23 @@ class SchedulePushOrgList(BaseSalesforcePushTask):
         start_time = self.options.get('start_time')
         if start_time:
             start_time = datetime.strptime(start_time, '%Y-%m-%dT%H:%M')
+            if start_time < datetime.utcnow():
+                raise CumulusCIException('Start time cannot be in the past')
         else:
-            # default to 5 minutes in the future to allow for review
-            start_time = datetime.utcnow() + timedelta(minutes=5)
+            # delay a bit to allow for review
+            delay_minutes = 5
+            self.logger.warn(
+                'Scheduling push for %d minutes from now',
+                delay_minutes,
+            )
+            start_time = datetime.utcnow() + timedelta(minutes=delay_minutes)
 
-        self.request_id = self.push.create_push_request(
+        self.request_id, num_scheduled_orgs = self.push.create_push_request(
             version, orgs,
             start_time,
         )
 
-        if len(orgs) > 1000:
+        if num_scheduled_orgs > 1000:
             sleep_time_s = 30
             self.logger.info(
                 'Delaying {} seconds to allow all jobs to initialize'.format(
@@ -284,6 +294,10 @@ class SchedulePushOrgList(BaseSalesforcePushTask):
                 )
             )
             time.sleep(sleep_time_s)
+        elif num_scheduled_orgs == 0:
+            self.logger.warn('Canceling push request with 0 orgs')
+            self.push.cancel_push_request
+            return
 
         self.logger.info('Setting status to Pending to queue execution.')
         self.logger.info('The push upgrade will start at UTC {}'.format(
