@@ -3,6 +3,7 @@ import os
 import subprocess
 
 from cumulusci.core.exceptions import CommandException
+from cumulusci.core.exceptions import BrowserTestException
 from cumulusci.core.tasks import BaseTask
 
 
@@ -58,11 +59,11 @@ class Command(BaseTask):
     def _process_output(self, line):
         self.logger.info(line.rstrip())
        
-    def _handle_returncode(self, returncode): 
+    def _handle_returncode(self, returncode, stderr):
         if returncode:
             message = 'Return code: {}\nstderr: {}'.format(
-                p.returncode,
-                p.stderr,
+                returncode,
+                stderr,
             )
             self.logger.error(message)
             raise CommandException(message)
@@ -81,13 +82,7 @@ class Command(BaseTask):
             self._process_output(line)
         p.stdout.close()
         p.wait()
-        if p.returncode:
-            message = 'Return code: {}\nstderr: {}'.format(
-                p.returncode,
-                p.stderr,
-            )
-            self.logger.error(message)
-            raise CommandException(message)
+        self._handle_returncode(p.returncode, p.stderr)
 
 class SalesforceCommand(Command):
     """ A command that automatically gets a refreshed SF_ACCESS_TOKEN and SF_INSTANCE_URL passed as env vars """
@@ -127,3 +122,13 @@ class SalesforceBrowserTest(SalesforceCommand):
         else:
             env['RUN_LOCAL'] = 'True'
         return env
+
+    def _handle_returncode(self, returncode, stderr):
+        if returncode == 1:
+            message = 'Return code: {}\nstderr: {}'.format(
+                returncode,
+                stderr,
+            )
+            raise BrowserTestException(message)
+        elif returncode:
+            super(SalesforceBrowserTest, self)._handle_returncode(returncode, stderr)
