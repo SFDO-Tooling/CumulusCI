@@ -124,9 +124,11 @@ class SalesforceBrowserTest(SalesforceCommand):
         return env
 
     def _handle_returncode(self, returncode, stderr):
-        if returncode:
+        if returncode == 1:
             message = 'Return code: {}\nstderr: {}'.format(
                 returncode,
                 stderr,
             )
             raise BrowserTestException(message)
+        elif returncode:
+            super(SalesforceBrowserTest, self)._handle_returncode(returncode, stderr)
