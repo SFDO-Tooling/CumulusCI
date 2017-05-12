@@ -3,7 +3,7 @@ import os
 import subprocess
 
 from cumulusci.core.exceptions import CommandException
-from cumulusci.core.exceptions import BrowserTestException
+from cumulusci.core.exceptions import BrowserTestFailure
 from cumulusci.core.tasks import BaseTask
 
 
@@ -129,6 +129,6 @@ class SalesforceBrowserTest(SalesforceCommand):
                 returncode,
                 stderr,
             )
-            raise BrowserTestException(message)
+            raise BrowserTestFailure(message)
         elif returncode:
             super(SalesforceBrowserTest, self)._handle_returncode(returncode, stderr)

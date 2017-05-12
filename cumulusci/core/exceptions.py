@@ -111,6 +111,6 @@ class CommandException(CumulusCIException):
     """ Raise for errors coming from spawned CLI subprocesses """
     pass
 
-class BrowserTestException(CommandException):
+class BrowserTestFailure(CommandException):
     """ Raise when browser tests fail """
     pass
