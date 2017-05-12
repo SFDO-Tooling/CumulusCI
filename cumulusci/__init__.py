@@ -1,2 +1,2 @@
 __import__('pkg_resources').declare_namespace('cumulusci')
-__version__ = '2.0.0-beta32'
+__version__ = '2.0.0-beta33'

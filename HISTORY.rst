@@ -2,6 +2,20 @@
 History
 =======
 
+2.0.0-beta33 (2017-05-11)
+------------------------
+
+* cci org connect and cci org scratch now accept the --default option flag to set the newly connected org as the default org for the repo
+* cci org scratch now accepts a new option, --devhub <username>, which allows you to specify an alternate devhub username to use when creating the scratch org
+* The SalesforceBrowserTest class now throws a BrowserTestFailure if the command returns an exit status of 1
+* Scratch org creation no longer throws an exception if it fails to set a random password on the newly created org
+* Push API task enhancements:
+
+  * Push org lists (text files with one org ID per line) can now have comments and blank lines. The first word on the line is assumed to be the org ID and anything after that is ignored.
+  * Fixes #294
+  * Fixes #306
+  * Fixes #208
+
 2.0.0-beta32 (2017-05-04)
 ------------------------
 
