@@ -68,6 +68,7 @@ class CreatePackageZipBuilder(BasePackageZipBuilder):
         self._write_package_xml(package_xml)
 
 class InstallPackageZipBuilder(BasePackageZipBuilder):
+    api_version = '33.0'
 
     def __init__(self, namespace, version):
         if not namespace:
@@ -80,7 +81,7 @@ class InstallPackageZipBuilder(BasePackageZipBuilder):
     def _populate_zip(self):
         package_xml = INSTALLED_PACKAGE_PACKAGE_XML.format(
             namespace=self.namespace,
-            version=self.version,
+            version=self.api_version,
         )
         self._write_package_xml(package_xml)
 
