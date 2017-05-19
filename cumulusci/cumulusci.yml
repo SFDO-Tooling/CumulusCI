@@ -2,6 +2,9 @@ cumulusci:
     keychain: cumulusci.core.keychain.EncryptedFileProjectKeychain
 
 tasks:
+    execute_anon:
+        description: Execute a string of anonymous apex via the tooling api.
+        class_path: cumulusci.tasks.anonymous_apex.AnonymousApexTask
     apextestsdb_upload:
         description: Upload results from Apex tests to database
         class_path: cumulusci.tasks.apextestsdb.ApextestsdbUpload
