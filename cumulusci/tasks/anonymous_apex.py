@@ -1,7 +1,9 @@
+import pprint
+
 from cumulusci.tasks.salesforce import BaseSalesforceToolingApiTask
 
 class AnonymousApexTask(BaseSalesforceToolingApiTask):
-    """ Executes a block of anonymous apex. """
+    """ Executes a string of anonymous apex. """
     task_options = {
         'apex': {
             'description': 'The apex to run.',
@@ -21,4 +23,4 @@ class AnonymousApexTask(BaseSalesforceToolingApiTask):
                                          path,
                                          result.status_code,
                                          result.content)
-        self.logger.info(result.json())
+        self.logger.info(pprint.pprint(result.json()))
