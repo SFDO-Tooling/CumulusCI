@@ -2,6 +2,20 @@
 History
 =======
 
+2.0.0-beta36 (2017-05-19)
+------------------------
+
+* Flows can now accept arguments in the CLI to override task options
+
+  * `cci flow run install_beta -o install_managed_beta__version "1.0 (Beta 123)"`   
+
+* Flows can now accept arguments to in the CLI to skip tasks
+
+  * `cci flow run ci_feature --skip run_tests_debug --skip deploy_post`   
+  
+* Anonymous apex failures will now throw an exception and fail the build in `execute_anon`
+* Fixes #322: local variable 'message' referenced before assignment
+
 2.0.0-beta35 (2017-05-19)
 ------------------------
 
