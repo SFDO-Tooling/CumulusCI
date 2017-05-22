@@ -1,6 +1,8 @@
-import pprint
-
 from cumulusci.tasks.salesforce import BaseSalesforceToolingApiTask
+from cumulusci.core.exceptions import ApexCompilationException
+from cumulusci.core.exceptions import ApexException
+from cumulusci.core.exceptions import SalesforceException
+
 
 class AnonymousApexTask(BaseSalesforceToolingApiTask):
     """ Executes a string of anonymous apex. """
@@ -23,4 +25,16 @@ class AnonymousApexTask(BaseSalesforceToolingApiTask):
                                          path,
                                          result.status_code,
                                          result.content)
-        self.logger.info(pprint.pprint(result.json()))
+        # anon_results is an ExecuteAnonymous Result
+        # https://developer.salesforce.com/docs/atlas.en-us.apexcode.meta/apexcode/sforce_api_calls_executeanonymous_result.htm
+        
+        anon_results = result.json()
+        if not anon_results['compiled']:
+            raise ApexCompilationException(
+                anon_results['line'], anon_results['compileProblem'])
+
+        if not anon_results['success']:
+            raise ApexException(
+                anon_results['exceptionMessage'], anon_results['exceptionStackTrace'])
+
+        self.logger.info('Anonymous Apex Success')
