@@ -566,7 +566,6 @@ class ScratchOrgConfig(OrgConfig):
             self.logger.warn(
                 'Failed to set password: \n{}\n{}'.format('\n'.join(stdout),'\n'.join(stderr))
             )
-            raise ScratchOrgException(message)
 
         # Flag that this org has been created
         self.config['created'] = True
