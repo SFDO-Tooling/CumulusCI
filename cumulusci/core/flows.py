@@ -11,18 +11,37 @@ from cumulusci.core.utils import import_class
 
 class BaseFlow(object):
     """ BaseFlow handles initializing and running a flow """
-    def __init__(self, project_config, flow_config, org_config):
+    def __init__(self, project_config, flow_config, org_config, options=None, skip=None):
         self.project_config = project_config
         self.flow_config = flow_config
         self.org_config = org_config
+        self.task_options = {}
+        self.skip_tasks = []
         self.task_return_values = []
         """ A collection of return_values dicts in task execution order """
         self.task_results = []
         """ A collection of result objects in task execution order """
         self.tasks = []
         """ A collection of configured task objects, either run or failed """
+        self._init_options(options)
+        self._init_skip(skip)
         self._init_logger()
         self._init_flow()
+
+    def _init_options(self, options):
+        if not options:
+            return
+        for key, value in options.items():
+            task, option = key.split('__')
+            if task not in self.task_options:
+                self.task_options[task] = {}
+            self.task_options[task][option] = value
+        
+    def _init_skip(self, skip):
+        if not skip:
+            return
+        for task in skip:
+            self.skip_tasks.append(task)
 
     def _init_logger(self):
         """ Initializes self.logger """
@@ -68,7 +87,12 @@ class BaseFlow(object):
 
         config.append('Tasks:')
         for task_info in self._get_tasks():
-            config.append('  {}: {}'.format(
+            skipped = ''
+            if task_info['flow_config']['task'] in self.skip_tasks:
+                skipped = '[SKIPPED] '
+
+            config.append('  {}{}: {}'.format(
+                skipped,
                 task_info['flow_config']['task'],
                 task_info['task_config'].description,
             ))
@@ -106,6 +130,17 @@ class BaseFlow(object):
         task_config.config['options'].update(
             flow_task_config['flow_config'].get('options', {})
         )
+        # If there were task option overrides passed in, merge them
+        if task_name in self.task_options:
+            task_config.config['options'].update(
+                self.task_options[task_name]
+            )
+
+        # Skip the task if skip was requested
+        if task_name in self.skip_tasks:
+            self.logger.info('')
+            self.logger.info('Skipping task {}'.format(task_name))
+            return
 
         # Handle dynamic value lookups in the format ^^task_name.attr1.attr2
         for option, value in task_config.options.items():
