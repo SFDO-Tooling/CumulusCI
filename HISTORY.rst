@@ -2,7 +2,7 @@
 History
 =======
 
-2.0.0-beta34 (2017-05-19)
+2.0.0-beta35 (2017-05-19)
 ------------------------
 
 * New task `execute_anon` is available to run anonymous apex and takes the extra task option `apex`
