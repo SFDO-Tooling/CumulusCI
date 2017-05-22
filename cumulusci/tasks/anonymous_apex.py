@@ -1,6 +1,8 @@
 import pprint
 
 from cumulusci.tasks.salesforce import BaseSalesforceToolingApiTask
+from cumulusci.core.exceptions import SalesforceException
+
 
 class AnonymousApexTask(BaseSalesforceToolingApiTask):
     """ Executes a string of anonymous apex. """
@@ -23,4 +25,9 @@ class AnonymousApexTask(BaseSalesforceToolingApiTask):
                                          path,
                                          result.status_code,
                                          result.content)
+        
+        if not result.json()['success']:
+            raise SalesforceException(result.json())
+
         self.logger.info(pprint.pprint(result.json()))
+
