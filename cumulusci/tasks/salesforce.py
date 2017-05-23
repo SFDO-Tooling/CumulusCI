@@ -97,6 +97,10 @@ class BaseSalesforceApiTask(BaseSalesforceTask):
         obj.base_url = obj.base_url.replace('/sobjects/', '/tooling/sobjects/')
         return obj
 
+    def get_tooling_object(self, obj_name):
+        """ get a simple_salesforce tooling object """
+        return self._get_tooling_object(obj_name)
+
 class BaseSalesforceBulkApiTask(BaseSalesforceTask):
     name = 'BaseSalesforceBulkApiTask'
 
