@@ -21,6 +21,8 @@ class ApexLogger(object):
         results = l.get_logs()
 
     dostuffwith(results)
+
+    HUGE TODO: parse the logs
     """
 
     def __init__(self, task, **kwargs):
