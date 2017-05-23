@@ -1,10 +1,10 @@
-from cumulusci.tasks.salesforce import BaseSalesforceToolingApiTask
+from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.core.exceptions import ApexCompilationException
 from cumulusci.core.exceptions import ApexException
 from cumulusci.core.exceptions import SalesforceException
 
 
-class AnonymousApexTask(BaseSalesforceToolingApiTask):
+class AnonymousApexTask(BaseSalesforceApiTask):
     """ Executes a string of anonymous apex. """
     task_options = {
         'apex': {

@@ -10,7 +10,7 @@ from cumulusci.core.config import ConnectedAppOAuthConfig
 from cumulusci.core.config import OrgConfig
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.keychain import BaseProjectKeychain
-from cumulusci.tasks.salesforce import BaseSalesforceToolingApiTask
+from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.tasks.salesforce import RunApexTests
 from cumulusci.tasks.salesforce import RunApexTestsDebug
 
@@ -38,7 +38,7 @@ class TestBaseSalesforceToolingApiTask(unittest.TestCase):
             self.org_config.instance_url, self.api_version)
 
     def test_get_tooling_object(self):
-        task = BaseSalesforceToolingApiTask(
+        task = BaseSalesforceApiTask(
             self.project_config, self.task_config, self.org_config)
         obj = task._get_tooling_object('TestObject')
         url = self.base_tooling_url + 'sobjects/TestObject/'

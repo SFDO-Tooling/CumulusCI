@@ -70,6 +70,10 @@ class BaseSalesforceApiTask(BaseSalesforceTask):
 
     def _init_task(self):
         self.sf = self._init_api()
+        self.tooling = self._init_api()
+        self.tooling.base_url += 'tooling/'
+        self._init_class()
+
 
     def _init_api(self):
         if self.api_version:
@@ -83,16 +87,9 @@ class BaseSalesforceApiTask(BaseSalesforceTask):
             version=api_version,
         )
 
-
-class BaseSalesforceToolingApiTask(BaseSalesforceApiTask):
-    name = 'BaseSalesforceToolingApiTask'
-
-    def _init_task(self):
-        self.tooling = self._init_api()
-        self.tooling.base_url += 'tooling/'
-        self._init_class()
-
     def _init_class(self):
+        """  used by the apextests tasks to init instance vars """
+        #TODO: understand why
         pass
 
     def _get_tooling_object(self, obj_name):
@@ -951,7 +948,7 @@ class UpdateAdminProfile(Deploy):
         return api()
 
 
-class PackageUpload(BaseSalesforceToolingApiTask):
+class PackageUpload(BaseSalesforceApiTask):
     name = 'PackageUpload'
     api_version = '38.0'
     task_options = {
@@ -1070,7 +1067,7 @@ class PackageUpload(BaseSalesforceToolingApiTask):
 
 
 
-class RunApexTests(BaseSalesforceToolingApiTask):
+class RunApexTests(BaseSalesforceApiTask):
     task_options = {
         'test_name_match': {
             'description': ('Query to find Apex test classes to run ' +
