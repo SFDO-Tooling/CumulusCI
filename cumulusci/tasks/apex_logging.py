@@ -1,5 +1,6 @@
 
 import datetime
+import re
 
 
 def decode_to_unicode(content):
@@ -10,6 +11,33 @@ def decode_to_unicode(content):
         except UnicodeEncodeError:
             # Assume content is unicode already
             return content
+
+
+def _log_time_delta(self, start, end):
+    """
+    Returns microsecond difference between two debug log timestamps in the
+    format HH:MM:SS.micro.
+    """
+    dummy_date = datetime.date(2001, 1, 1)
+    dummy_date_next = datetime.date(2001, 1, 2)
+    # Split out the parts of the start and end string
+    start_parts = re.split(':|\.', start)
+    start_parts = [int(part) for part in start_parts]
+    start_parts[3] = start_parts[3] * 1000
+    t_start = datetime.time(*start_parts)
+    end_parts = re.split(':|\.', end)
+    end_parts = [int(part) for part in end_parts]
+    end_parts[3] = end_parts[3] * 1000
+    t_end = datetime.time(*end_parts)
+    # Combine with dummy date to do date math
+    d_start = datetime.datetime.combine(dummy_date, t_start)
+    # If end was on the next day, attach to next dummy day
+    if start_parts[0] > end_parts[0]:
+        d_end = datetime.datetime.combine(dummy_date_next, t_end)
+    else:
+        d_end = datetime.datetime.combine(dummy_date, t_end)
+    delta = d_end - d_start
+    return delta.total_seconds()
 
 
 class ApexLogger(object):
@@ -123,7 +151,7 @@ class ApexLogger(object):
     def _get_logs_since(self):
         """ Get the logs since the context manager was entered """
 
-        #TODO: is this the best way of adding this?
+        # TODO: is this the best way of adding this?
         extra_where = ''
         if self.most_recent_log_id:
             extra_where = 'AND Id > \'{}\''.format(self.most_recent_log_id)
