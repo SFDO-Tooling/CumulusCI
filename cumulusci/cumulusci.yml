@@ -148,13 +148,13 @@ tasks:
             revert_path: src.orig
     run_tests:
         description: Runs all apex tests
-        class_path: cumulusci.tasks.salesforce.RunApexTests
+        class_path: cumulusci.tasks.apex_tests.RunApexTests
     run_tests_debug:
         description: Runs all apex tests
-        class_path: cumulusci.tasks.salesforce.RunApexTestsDebug
+        class_path: cumulusci.tasks.apex_tests.RunApexTestsDebug
     run_tests_managed:
         description: Runs all apex tests in the packaging org or a managed package subscriber org
-        class_path: cumulusci.tasks.salesforce.RunApexTests
+        class_path: cumulusci.tasks.apex_tests.RunApexTests
         options:
             managed: True
     uninstall_managed:
