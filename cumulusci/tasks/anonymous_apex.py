@@ -7,7 +7,10 @@ import pprint
 
 
 class AnonymousApexTask(BaseSalesforceApiTask):
-    """ Executes a string of anonymous apex. """
+    """ Executes a string of anonymous apex. 
+    
+    cci task run execute_anon -o apex 'System.debug(1);' -o system finest does what you think it should
+    """
     task_options = {
         'apex': {
             'description': 'The apex to run.',
