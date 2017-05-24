@@ -16,11 +16,11 @@ class ApexLogger(object):
     """ Apex logging services as a context manager:
 
     example usage:
-    with ApexLogger(self.tooling, profiling='DEBUG') as l:
-        self._run_task()
-        results = l.get_logs()
 
-    dostuffwith(results)
+    with ApexLogger(self.tooling, profiling='DEBUG') as apexlog:
+        self._run_task()
+
+    pprint.pprint(apexlog.logs)
 
     HUGE TODO: parse the logs
     """
@@ -55,7 +55,6 @@ class ApexLogger(object):
             'Workflow': kwargs.get('workflow', 'Info'),
         }
 
-
     def __enter__(self):
         self._delete_debug_level()
         self._remove_trace_flags()
@@ -73,6 +72,8 @@ class ApexLogger(object):
         self.most_recent_log_id = None
 
     def _create_debug_level(self):
+
+        # TODO: could error if exists
         self.logger.info('Creating DebugLevel object')
         DebugLevel = self.task.get_tooling_object('DebugLevel')
         result = DebugLevel.create(self.debug_level)
@@ -94,10 +95,14 @@ class ApexLogger(object):
         self.logger.info('Created TraceFlag for user')
 
     def _delete_debug_level(self):
-        """ Remove all debug levels from the org """
-        # TODO: be more selective?
+        """ Remove existing debug level from the org """
+
         self.logger.info('Deleting existing DebugLevel objects')
-        result = self.task.tooling.query('Select Id from DebugLevel')
+        result = self.task.tooling.query(
+            'Select Id from DebugLevel WHERE DeveloperName = \'{}\''.format(
+                self.debug_level['DeveloperName']
+            )
+        )
         if result['totalSize']:
             DebugLevel = self.task.get_tooling_object('DebugLevel')
             for record in result['records']:
@@ -118,6 +123,7 @@ class ApexLogger(object):
     def _get_logs_since(self):
         """ Get the logs since the context manager was entered """
 
+        #TODO: is this the best way of adding this?
         extra_where = ''
         if self.most_recent_log_id:
             extra_where = 'AND Id > \'{}\''.format(self.most_recent_log_id)
