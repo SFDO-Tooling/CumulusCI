@@ -1,43 +1,10 @@
+""" CumulusCI helper to enable, retrieve, and parse salesforce debug logs."""
 
-import datetime
 import re
+import datetime
 
-
-def decode_to_unicode(content):
-    if content:
-        try:
-            # Try to decode ISO-8859-1 to unicode
-            return content.decode('ISO-8859-1')
-        except UnicodeEncodeError:
-            # Assume content is unicode already
-            return content
-
-
-def _log_time_delta(self, start, end):
-    """
-    Returns microsecond difference between two debug log timestamps in the
-    format HH:MM:SS.micro.
-    """
-    dummy_date = datetime.date(2001, 1, 1)
-    dummy_date_next = datetime.date(2001, 1, 2)
-    # Split out the parts of the start and end string
-    start_parts = re.split(':|\.', start)
-    start_parts = [int(part) for part in start_parts]
-    start_parts[3] = start_parts[3] * 1000
-    t_start = datetime.time(*start_parts)
-    end_parts = re.split(':|\.', end)
-    end_parts = [int(part) for part in end_parts]
-    end_parts[3] = end_parts[3] * 1000
-    t_end = datetime.time(*end_parts)
-    # Combine with dummy date to do date math
-    d_start = datetime.datetime.combine(dummy_date, t_start)
-    # If end was on the next day, attach to next dummy day
-    if start_parts[0] > end_parts[0]:
-        d_end = datetime.datetime.combine(dummy_date_next, t_end)
-    else:
-        d_end = datetime.datetime.combine(dummy_date, t_end)
-    delta = d_end - d_start
-    return delta.total_seconds()
+from cumulusci.tasks.util import decode_to_unicode
+from cumulusci.tasks.util import log_time_delta
 
 
 class ApexLogger(object):

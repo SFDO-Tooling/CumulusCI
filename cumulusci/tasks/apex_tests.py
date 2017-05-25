@@ -434,7 +434,9 @@ class RunApexTestsDebug(RunApexTests):
         return methods
 
     def _parse_log_by_method(self, class_name, f):
-        """Parse an Apex test log by method."""
+        """Parse an Apex test log by method.
+        
+        this is a generator and yields method,stats,children"""
         stats = {}
         last_stats = {}
         in_limits = False
