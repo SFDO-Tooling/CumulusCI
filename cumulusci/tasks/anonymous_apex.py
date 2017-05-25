@@ -29,7 +29,7 @@ class AnonymousApexTask(BaseSalesforceApiTask):
 
     def _run_task(self):
         self.logger.info('Executing Anonymous Apex')
-        with ApexLogger(self,
+        self.apex_logs = ApexLogger(self,
                         profiling=self.options.get('profiling', None),
                         apex=self.options.get('apexcode', None),
                         callout=self.options.get('callout', None),
@@ -37,7 +37,9 @@ class AnonymousApexTask(BaseSalesforceApiTask):
                         system=self.options.get('system', None),
                         validation=self.options.get('validation', None),
                         visualforce=self.options.get('visualforce', None),
-                        workflow=self.options.get('workflow', None),) as apex_logs:
+                        workflow=self.options.get('workflow', None),)
+                        
+        with self.apex_logs:
             result = self.tooling._call_salesforce(
                 method='GET',
                 url='{}executeAnonymous'.format(self.tooling.base_url),
@@ -63,5 +65,7 @@ class AnonymousApexTask(BaseSalesforceApiTask):
 
         self.logger.info('Anonymous Apex Success')
 
-        for log_id in apex_logs.logs:
-            self.logger.info(apex_logs.logs[log_id])
+        for log_id in self.apex_logs.logs:
+            self.logger.info(self.apex_logs.logs[log_id])
+
+        return self.apex_logs.logs
