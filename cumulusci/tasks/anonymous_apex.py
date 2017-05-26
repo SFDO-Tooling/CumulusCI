@@ -38,9 +38,9 @@ class AnonymousApexTask(BaseSalesforceApiTask):
                         validation=self.options.get('validation', None),
                         visualforce=self.options.get('visualforce', None),
                         workflow=self.options.get('workflow', None),)
-                        
+        # TODO: allow for manual apex log control instead                 
         with self.apex_logs:
-            result = self.tooling._call_salesforce(
+        result = self.tooling._call_salesforce(
                 method='GET',
                 url='{}executeAnonymous'.format(self.tooling.base_url),
                 params={'anonymousBody': self.options['apex']},
