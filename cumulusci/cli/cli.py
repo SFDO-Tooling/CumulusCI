@@ -579,10 +579,6 @@ def task_run(config, task_name, org, o, debug, debug_before, debug_after):
     if not task_config:
         raise TaskNotFoundError('Task not found: {}'.format(task_name))
     
-    # debug after implies debug
-    if debug_after:
-        debug = True
-
     # Get the class to look up options
     class_path = task_config.get('class_path')
     task_class = import_class(class_path)
@@ -654,12 +650,14 @@ def task_run(config, task_name, org, o, debug, debug_before, debug_after):
     if org and org_config:
         config.keychain.set_org(org, org_config)
 
-    if exception:
-        raise exception
-
     if debug_after:
         import pdb
         pdb.set_trace()
+
+
+    if exception:
+        raise exception
+
 
 # Add the task commands to the task group
 task.add_command(task_doc)
