@@ -2,6 +2,12 @@ cumulusci:
     keychain: cumulusci.core.keychain.EncryptedFileProjectKeychain
 
 tasks:
+    start_apex_logging:
+        description: Start apex logging in an org.
+        class_path: cumulusci.tasks.apex_logging.StartApexLoggingTask
+    Stop_apex_logging:
+        description: Stop apex logging in an org.
+        class_path: cumulusci.tasks.apex_logging.StopApexLoggingTask
     execute_anon:
         description: Execute a string of anonymous apex via the tooling api.
         class_path: cumulusci.tasks.anonymous_apex.AnonymousApexTask

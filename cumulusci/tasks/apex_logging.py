@@ -5,6 +5,7 @@ import datetime
 
 from cumulusci.tasks.util import decode_to_unicode
 from cumulusci.tasks.util import log_time_delta
+from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 
 
 class ApexLogger(object):
@@ -67,8 +68,7 @@ class ApexLogger(object):
         self.most_recent_log_id = None
 
     def _create_debug_level(self):
-
-        # TODO: could error if exists
+        """ create the DebugLevel sobject based on options """
         self.logger.info('Creating DebugLevel object')
         DebugLevel = self.task.get_tooling_object('DebugLevel')
         result = DebugLevel.create(self.debug_level)
@@ -154,14 +154,62 @@ class ApexLogger(object):
             for record in result['records']:
                 TraceFlag.delete(str(record['Id']))
 
+
+class StartApexLoggingTask(BaseSalesforceApiTask):
+    """Start apex logging in an org."""
+    task_options = {
+        'profiling': {'description': 'The ApexProfiling log level'},
+        'apexcode': {'description': 'The ApexCode log level'},
+        'callout': {'description': 'The Callout log level'},
+        'database': {'description': 'The database log level'},
+        'system': {'description': 'The System log level'},
+        'validation': {'description': 'The Validation log level'},
+        'visualforce': {'description': 'The Visualforce log level'},
+        'workflow': {'description': 'The Workflow log level'},
+    }
+
+    def _run_task(self):
+        self.apex_logs = ApexLogger(self,
+                                    profiling=self.options.get(
+                                        'profiling', None),
+                                    apex=self.options.get('apexcode', None),
+                                    callout=self.options.get('callout', None),
+                                    database=self.options.get(
+                                        'database', None),
+                                    system=self.options.get('system', None),
+                                    validation=self.options.get(
+                                        'validation', None),
+                                    visualforce=self.options.get(
+                                        'visualforce', None),
+                                    workflow=self.options.get('workflow', None),)
+        self.apex_logs.__enter__()
+
+
+class StopApexLoggingTask(BaseSalesforceApiTask):
+    """Stop apex logging in an org."""
+    def _run_task(self):
+        self.apex_logs = ApexLogger(self)
+        self.apex_logs._delete_debug_level()
+
+
 class SalesforceLog(object):
-    """ Represents a log. """
+    """ Represents a log. 
+
+    The log file format is described, loosely, at:
+    https://help.salesforce.com/articleView?id=code_setting_debug_log_levels.htm
+
+
+
+    """
+
     def _extract_profiling_info(self, log):
         """ given a log file, extract the cumulative limits and profiling """
         log_lines = log.split('\n')
         profiling_data = {}
         limits_data = {}
         in_limits = False
+        in_cumulative_limits = False
+        in_profiling = False
         for line in log_lines:
             if '|LIMIT_USAGE_FOR_NS|(default)|' in line:
                 # Parse the start of the limits section
@@ -176,6 +224,16 @@ class SalesforceLog(object):
                 limit, value = line.split(': ')
                 used, allowed = value.split(' out of ')
                 limits_data[limit] = {'used': used, 'allowed': allowed}
+                continue
+            if '|CUMULATIVE_PROFILING_BEGIN' in line:
+                # parse the start of the profiling limits
+                in_profiling = True
+                continue
+            if '|CUMULATIVE_PROFILING_END' in line:
+                in_profiling = False
+                continue
+            if in_profiling:
+
                 continue
         return (limits_data, profiling_data)
 
