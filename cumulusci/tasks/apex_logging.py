@@ -153,3 +153,140 @@ class ApexLogger(object):
             TraceFlag = self.task.get_tooling_object('TraceFlag')
             for record in result['records']:
                 TraceFlag.delete(str(record['Id']))
+
+class SalesforceLog(object):
+    """ Represents a log. """
+    def _extract_profiling_info(self, log):
+        """ given a log file, extract the cumulative limits and profiling """
+        log_lines = log.split('\n')
+        profiling_data = {}
+        limits_data = {}
+        in_limits = False
+        for line in log_lines:
+            if '|LIMIT_USAGE_FOR_NS|(default)|' in line:
+                # Parse the start of the limits section
+                in_limits = True
+                continue
+            if in_limits and ':' not in line:
+                # Parse the end of the limits section
+                in_limits = False
+                continue
+            if in_limits:
+                # Parse the limit name, used, and allowed values
+                limit, value = line.split(': ')
+                used, allowed = value.split(' out of ')
+                limits_data[limit] = {'used': used, 'allowed': allowed}
+                continue
+        return (limits_data, profiling_data)
+
+    def _parse_log_by_method(self, class_name, f):
+        """Parse an Apex test log by method.
+
+        this is a generator and yields method,stats,children"""
+        stats = {}
+        last_stats = {}
+        in_limits = False
+        in_cumulative_limits = False
+        in_testing_limits = False
+        unit = None
+        method = None
+        children = {}
+        parent = None
+        for line in f:
+            line = decode_to_unicode(line).strip()
+            if '|CODE_UNIT_STARTED|[EXTERNAL]|' in line:
+                unit, unit_type, unit_info = self._parse_unit_started(
+                    class_name, line)
+                if unit_type == 'test_method':
+                    method = decode_to_unicode(unit)
+                    method_unit_info = unit_info
+                    children = []
+                    stack = []
+                else:
+                    stack.append({
+                        'unit': unit,
+                        'unit_type': unit_type,
+                        'unit_info': unit_info,
+                        'stats': {},
+                        'children': [],
+                    })
+                continue
+            if '|CUMULATIVE_LIMIT_USAGE' in line and 'USAGE_END' not in line:
+                in_cumulative_limits = True
+                in_testing_limits = False
+                continue
+            if '|TESTING_LIMITS' in line:
+                in_testing_limits = True
+                in_cumulative_limits = False
+                continue
+            if '|LIMIT_USAGE_FOR_NS|(default)|' in line:
+                # Parse the start of the limits section
+                in_limits = True
+                continue
+            if in_limits and ':' not in line:
+                # Parse the end of the limits section
+                in_limits = False
+                in_cumulative_limits = False
+                in_testing_limits = False
+                continue
+            if in_limits:
+                # Parse the limit name, used, and allowed values
+                limit, value = line.split(': ')
+                if in_testing_limits:
+                    limit = 'TESTING_LIMITS: {}'.format(limit)
+                used, allowed = value.split(' out of ')
+                stats[limit] = {'used': used, 'allowed': allowed}
+                continue
+            if '|CODE_UNIT_FINISHED|{}.{}'.format(class_name, method) in line:
+                # Handle the finish of test methods
+                end_timestamp = line.split(' ')[0]
+                stats['duration'] = log_time_delta(
+                    method_unit_info['start_timestamp'], end_timestamp)
+                # Yield the stats for the method
+                yield method, stats, children
+                last_stats = stats.copy()
+                stats = {}
+                in_cumulative_limits = False
+                in_limits = False
+            elif '|CODE_UNIT_FINISHED|' in line:
+                # Handle all other code units finishing
+                end_timestamp = line.split(' ')[0]
+                stats['duration'] = log_time_delta(
+                    method_unit_info['start_timestamp'], end_timestamp)
+                try:
+                    child = stack.pop()
+                except:
+                    # Skip if there was no stack. This seems to have have
+                    # started in Spring 16 where the debug log will contain
+                    # CODE_UNIT_FINISHED lines which have no matching
+                    # CODE_UNIT_STARTED from earlier in the file.
+                    continue
+                child['stats'] = stats
+                if not stack:
+                    # Add the child to the main children list
+                    children.append(child)
+                else:
+                    # Add this child to its parent
+                    stack[-1]['children'].append(child)
+                stats = {}
+                in_cumulative_limits = False
+                in_limits = False
+            if '* MAXIMUM DEBUG LOG SIZE REACHED *' in line:
+                # If debug log size limit was reached, fail gracefully
+                break
+
+    def _parse_unit_started(self, class_name, line):
+        unit = line.split('|')[-1]
+        unit_type = 'other'
+        unit_info = {}
+        if unit.startswith(class_name + '.'):
+            unit_type = 'test_method'
+            unit = unit.split('.')[-1]
+        elif 'trigger event' in unit:
+            unit_type = 'trigger'
+            unit, obj, event = re.match(
+                r'(.*) on (.*) trigger event (.*) for.*', unit).groups()
+            unit_info = {'event': event, 'object': obj}
+        # Add the start timestamp to unit_info
+        unit_info['start_timestamp'] = line.split(' ')[0]
+        return unit, unit_type, unit_info
