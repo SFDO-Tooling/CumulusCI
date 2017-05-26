@@ -578,6 +578,10 @@ def task_run(config, task_name, org, o, debug, debug_before, debug_after):
     task_config = getattr(config.project_config, 'tasks__{}'.format(task_name))
     if not task_config:
         raise TaskNotFoundError('Task not found: {}'.format(task_name))
+    
+    # debug after implies debug
+    if debug_after:
+        debug = True
 
     # Get the class to look up options
     class_path = task_config.get('class_path')
@@ -605,8 +609,6 @@ def task_run(config, task_name, org, o, debug, debug_before, debug_after):
 
     task_config = TaskConfig(task_config)
     exception = None
-
-
 
     # Create and run the task
     try:
