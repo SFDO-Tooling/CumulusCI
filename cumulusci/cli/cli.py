@@ -563,8 +563,10 @@ def task_info(config, task_name):
 @click.option('--org', help="Specify the target org.  By default, runs against the current default org")
 @click.option('-o', nargs=2, multiple=True, help="Pass task specific options for the task as '-o option value'.  You can specify more than one option by using -o more than once.")
 @click.option('--debug', is_flag=True, help="Drops into pdb, the Python debugger, on an exception")
+@click.option('--debug-before', is_flag=True, help="Drops into the Python debugger right before task start.")
+@click.option('--debug-after', is_flag=True, help="Drops into the Python debugger at task completion.")
 @pass_config
-def task_run(config, task_name, org, o, debug):
+def task_run(config, task_name, org, o, debug, debug_before, debug_after):
     # Check environment
     check_keychain(config)
 
@@ -604,6 +606,8 @@ def task_run(config, task_name, org, o, debug):
     task_config = TaskConfig(task_config)
     exception = None
 
+
+
     # Create and run the task
     try:
         task = task_class(config.project_config, task_config, org_config = org_config)
@@ -619,6 +623,10 @@ def task_run(config, task_name, org, o, debug):
             pdb.post_mortem()
         else:
             raise
+            
+    if debug_before:
+        import pdb 
+        pdb.set_trace()
 
     if not exception:
         try:
@@ -646,6 +654,10 @@ def task_run(config, task_name, org, o, debug):
 
     if exception:
         raise exception
+
+    if debug_after:
+        import pdb
+        pdb.set_trace()
 
 # Add the task commands to the task group
 task.add_command(task_doc)
