@@ -1362,7 +1362,7 @@ class RunApexTests(BaseSalesforceToolingApiTask):
                     s += ' time="{}"'.format(result['Stats']['duration'])
                 if result['Outcome'] in ['Fail', 'CompileFail']:
                     s += '>\n'
-                    s += ('    <failure type="failure" ' +
+                    s += ('    <failure type="failed" ' +
                         'message="{}">{}</failure>\n'.format(
                             cgi.escape(result['Message']),
                             cgi.escape(result['StackTrace']),
