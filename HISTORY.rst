@@ -1,6 +1,13 @@
 =======
 History
 =======
+2.0.0-beta36 (2017-06-01)
+------------------------
+
+* `update_dependencies` now supports dynamically referencing other Github repositories configured with a cumulusci.yml file.  The referenced repository's cumulusci.yml is parsed and the dependencies are included.  Also, the Github API is used to find the latest release of the referenced repo if the cumulusci.yml has a namespace configured.  Welcome to dynamic package dependency management ;)
+* `cci task run` now supports the option flags `--debug-before` and `--debug-after`
+* Fix for JUnit output rendering in run_tests
+
 
 2.0.0-beta36 (2017-05-19)
 ------------------------
