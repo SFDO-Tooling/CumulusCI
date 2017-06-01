@@ -241,11 +241,15 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                         break
 
         return commit_sha
+    
+    def get_github_api(self):
+        github_config = self.keychain.get_service('github')
+        gh = login(github_config.username, github_config.password)
+        return gh
 
     def get_latest_version(self, beta=None):
         """ Query Github Releases to find the latest production or beta release """
-        github_config = self.keychain.get_service('github')
-        gh = login(github_config.username, github_config.password)
+        gh = self.get_github_api()
         repo = gh.repository(self.repo_owner, self.repo_name)
         latest_version = None
         for release in repo.iter_releases():

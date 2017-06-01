@@ -13,6 +13,8 @@ import tempfile
 import time
 import zipfile
 
+import hiyapyco
+from github3.repos.repo import Release
 from simple_salesforce import Salesforce
 from simple_salesforce import SalesforceGeneralError
 from salesforce_bulk import SalesforceBulk
@@ -461,8 +463,6 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
 
     def _process_dependencies(self, dependencies):
         for dependency in dependencies:
-            dependency_version = str(dependency['version'])
-
             # Process child dependencies
             dependency_uninstalled = False
             if 'dependencies' in dependency and dependency['dependencies']:
@@ -471,55 +471,130 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
                 if count_uninstall != len(self.uninstall_queue):
                     dependency_uninstalled = True
 
-            if dependency['namespace'] in self.installed:
-                # Some version is installed, check what to do
-                installed_version = self.installed[dependency['namespace']]
-                if dependency_version == installed_version:
-                    self.logger.info('  {}: version {} already installed'.format(
-                        dependency['namespace'],
-                        dependency_version,
-                    ))
-                    continue
+            # Process namespace dependencies (managed packages)
+            elif 'namespace' in dependency:
+                self._process_namespace_dependency(dependency)
 
-                required_version = LooseVersion(dependency_version)
-                installed_version = LooseVersion(installed_version)
+            # Process Github dependencies from other projects configured for CumulusCI
+            elif 'github' in dependency:
+                self._process_github_dependency(dependency)
 
-                if 'Beta' in installed_version.vstring:
-                    # Always uninstall Beta versions if required is different
-                    self.uninstall_queue.append(dependency)
-                    self.logger.info('  {}: Uninstall {} to upgrade to {}'.format(
-                        dependency['namespace'],
-                        installed_version,
-                        dependency['version'],
-                    ))
-                elif dependency_uninstalled:
-                    # If a dependency of this one needs to be uninstalled, always uninstall the package
-                    self.uninstall_queue.append(dependency)
-                    self.logger.info('  {}: Uninstall and Reinstall to allow downgrade of dependency'.format(
-                        dependency['namespace'],
-                    ))
-                elif required_version < installed_version:
-                    # Uninstall to downgrade
-                    self.uninstall_queue.append(dependency)
-                    self.logger.info('  {}: Downgrade from {} to {} (requires uninstall/install)'.format(
-                        dependency['namespace'],
-                        installed_version,
-                        dependency['version'],
-                    ))
-                else:
-                    self.logger.info('  {}: Upgrade from {} to {}'.format(
-                        dependency['namespace'],
-                        installed_version,
-                        dependency['version'],
-                    ))
-                self.install_queue.append(dependency)
-            else:
-                # Just a regular install
-                self.logger.info('  {}: Install version {}'.format(
-                        dependency['namespace'],
-                        dependency['version'],
+    def _process_github_dependency(self, dependency):
+        self.logger.info(
+            'Processing dependencies from Github repo {}'.format(
+                dependency['github'],
+            )
+        )
+        gh = self.project_config.get_github_api()
+        repo_owner, repo_name = dependency['github'].split('/')[3:5]
+        if repo_name.endswith('.git'):
+            repo_name = repo_name[:-4]
+        repo = gh.repository(repo_owner, repo_name)
+        contents = repo.contents('cumulusci.yml')
+        cumulusci_yml = hiyapyco.load(contents.decoded)
+
+        if 'project' not in cumulusci_yml:
+            self.logger.warn(
+                'No project: section found in cumulusci.yml from {}'.format(
+                    dependency['github'],
+                )
+            )
+            return
+
+        project = cumulusci_yml['project']
+       
+        # Process the project's dependencies 
+        if 'dependencies' not in project:
+            self.logger.info(
+                'No project -> dependencies section found in cumulusci.yml from {}'.format(
+                    dependency['github'],
+                )
+            )
+        else:
+            self._process_dependencies(project['dependencies'])
+
+        # Add the project's release if the project has a namespace configured
+        if 'package' not in project and not 'namespace' in project['package']:
+            # Don't emit log message b/c this might be normal
+            return
+
+        namespace = project['package']['namespace']
+
+        # Get version 
+        version = dependency.get('version')
+        if 'version' not in dependency or dependency['version'] == 'latest':
+            # github3.py doesn't support the latest release API so we hack it together here
+            url = repo._build_url('releases/latest', base_url=repo._api)
+            try:
+                version = repo._get(url).json()['name']
+            except Exception as e:
+                self.logger.warn('{}: {}'.format(e.__class__.__name__, e.message))
+
+        if not version:
+            self.logger.warn('Could not find latest release for {}'.format(namespace))
+            return
+
+        dependency = {'namespace': namespace, 'version': version}
+        self.logger.info(
+            'Using version {} for namespace {}'.format(
+                version,
+                namespace,
+            )
+        )
+        self._process_namespace_dependency(dependency)
+
+    def _process_namespace_dependency(self, dependency):
+        dependency_version = str(dependency['version'])
+
+        if dependency['namespace'] in self.installed:
+            # Some version is installed, check what to do
+            installed_version = self.installed[dependency['namespace']]
+            if dependency_version == installed_version:
+                self.logger.info('  {}: version {} already installed'.format(
+                    dependency['namespace'],
+                    dependency_version,
                 ))
-                self.install_queue.append(dependency)
+                return
+
+            required_version = LooseVersion(dependency_version)
+            installed_version = LooseVersion(installed_version)
+
+            if 'Beta' in installed_version.vstring:
+                # Always uninstall Beta versions if required is different
+                self.uninstall_queue.append(dependency)
+                self.logger.info('  {}: Uninstall {} to upgrade to {}'.format(
+                    dependency['namespace'],
+                    installed_version,
+                    dependency['version'],
+                ))
+            elif dependency_uninstalled:
+                # If a dependency of this one needs to be uninstalled, always uninstall the package
+                self.uninstall_queue.append(dependency)
+                self.logger.info('  {}: Uninstall and Reinstall to allow downgrade of dependency'.format(
+                    dependency['namespace'],
+                ))
+            elif required_version < installed_version:
+                # Uninstall to downgrade
+                self.uninstall_queue.append(dependency)
+                self.logger.info('  {}: Downgrade from {} to {} (requires uninstall/install)'.format(
+                    dependency['namespace'],
+                    installed_version,
+                    dependency['version'],
+                ))
+            else:
+                self.logger.info('  {}: Upgrade from {} to {}'.format(
+                    dependency['namespace'],
+                    installed_version,
+                    dependency['version'],
+                ))
+            self.install_queue.append(dependency)
+        else:
+            # Just a regular install
+            self.logger.info('  {}: Install version {}'.format(
+                    dependency['namespace'],
+                    dependency['version'],
+            ))
+            self.install_queue.append(dependency)
 
     def _get_installed(self):
         self.logger.info('Retrieving list of packages from target org')
