@@ -1437,9 +1437,11 @@ class RunApexTests(BaseSalesforceToolingApiTask):
                     s += ' time="{}"'.format(result['Stats']['duration'])
                 if result['Outcome'] in ['Fail', 'CompileFail']:
                     s += '>\n'
-                    s += '    <failure type="{}">{}</failure>\n'.format(
-                        cgi.escape(result['StackTrace']),
-                        cgi.escape(result['Message']),
+                    s += ('    <failure type="failed" ' +
+                        'message="{}"><![CDATA[{}]]></failure>\n'.format(
+                            cgi.escape(result['Message']),
+                            cgi.escape(result['StackTrace']),
+                        )
                     )
                     s += '  </testcase>\n'
                 else:
