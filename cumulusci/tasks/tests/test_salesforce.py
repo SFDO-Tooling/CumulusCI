@@ -10,9 +10,9 @@ from cumulusci.core.config import ConnectedAppOAuthConfig
 from cumulusci.core.config import OrgConfig
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.keychain import BaseProjectKeychain
-from cumulusci.tasks.salesforce import BaseSalesforceToolingApiTask
-from cumulusci.tasks.salesforce import RunApexTests
-from cumulusci.tasks.salesforce import RunApexTestsDebug
+from cumulusci.tasks.salesforce import BaseSalesforceApiTask
+from cumulusci.tasks.apex_tests import RunApexTests
+from cumulusci.tasks.apex_tests import RunApexTestsDebug
 
 
 @patch('cumulusci.tasks.salesforce.BaseSalesforceTask._update_credentials',
@@ -38,7 +38,7 @@ class TestBaseSalesforceToolingApiTask(unittest.TestCase):
             self.org_config.instance_url, self.api_version)
 
     def test_get_tooling_object(self):
-        task = BaseSalesforceToolingApiTask(
+        task = BaseSalesforceApiTask(
             self.project_config, self.task_config, self.org_config)
         obj = task._get_tooling_object('TestObject')
         url = self.base_tooling_url + 'sobjects/TestObject/'
@@ -166,6 +166,24 @@ class TestRunApexTestsDebug(TestRunApexTests):
         url = self.base_tooling_url + 'sobjects/TraceFlag/1'
         responses.add(responses.DELETE, url)
 
+    def _mock_most_recent_id(self):
+        url = (self.base_tooling_url + 'query/?q=SELECT+Id+FROM+ApexLog+WHERE+LogUserId+%3D+%271%27+ORDER+BY+SystemModstamp+DESC+LIMIT+1')
+        expected_response = {
+            'done': True,
+            'records': [{'Id': '0'}],
+            'totalSize': 1,
+        }
+        responses.add(responses.GET, url, match_querystring=True, json=expected_response)
+
+    def _mock_get_all_logs(self):
+        url  = (self.base_tooling_url + 'query/?q=SELECT+Id%2C+Application%2C+DurationMilliseconds%2C+Location%2C+LogLength%2C+LogUserId%2C+Operation%2C+Request%2C+StartTime%2C+Status+FROM+ApexLog+WHERE+LogUserId+%3D+%271%27+AND+Id+%3E+%270%27')
+        expected_response = {
+            'done': True,
+            'records': [{'Id': '1'}],
+            'totalSize': 1,
+        }
+        responses.add(responses.GET, url, match_querystring=True, json=expected_response)
+
     def _mock_get_duration(self):
         url = (self.base_tooling_url + 'query/?q=SELECT+Id%2C+' +
             'Application%2C+DurationMilliseconds%2C+Location%2C+LogLength%2C' +
@@ -196,7 +214,7 @@ class TestRunApexTestsDebug(TestRunApexTests):
             json=expected_response)
 
     def _mock_get_debug_levels(self):
-        url = self.base_tooling_url + 'query/?q=Select+Id+from+DebugLevel'
+        url = self.base_tooling_url + 'query/?q=Select+Id+from+DebugLevel+WHERE+DeveloperName+%3D+%27CumulusCI%27'
         expected_response = {
             'records': [{'Id': 1}],
             'totalSize': 1,
@@ -218,7 +236,9 @@ class TestRunApexTestsDebug(TestRunApexTests):
         self._mock_get_test_results()
         self._mock_get_duration()
         self._mock_get_log_body()
+        self._mock_most_recent_id()
+        self._mock_get_all_logs()
         task = RunApexTestsDebug(
             self.project_config, self.task_config, self.org_config)
         task()
-        self.assertEqual(len(responses.calls), 13)
+        self.assertEqual(len(responses.calls), 17)
