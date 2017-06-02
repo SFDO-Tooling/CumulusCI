@@ -90,13 +90,17 @@ def removeXmlElement(name, directory, file_pattern, logger=None):
             )
 
 
-def download_extract_zip(url, target, subfolder=None):
+def download_extract_zip(url, target=None, subfolder=None):
     resp = requests.get(url)
     zip_content = StringIO.StringIO(resp.content)
     zip_file = zipfile.ZipFile(zip_content)
     if subfolder:
         zip_file = zip_subfolder(zip_file, subfolder)
-    zip_file.extractall(target)
+    if target:
+        zip_file.extractall(target)
+        return
+    return zip_file
+    
 
 
 def zip_subfolder(zip_src, path):

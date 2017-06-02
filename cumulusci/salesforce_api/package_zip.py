@@ -53,6 +53,17 @@ class BasePackageZipBuilder(object):
         self.zip_file.seek(0)
         return b64encode(self.zip_file.read())
 
+class ZipfilePackageZipBuilder(BasePackageZipBuilder):
+    def __init__(self, zipfile):
+        self.zip = zipfile
+        self.zip_file = zipfile.fp
+
+    def _open_zip(self):
+        pass
+
+    def _populate_zip(self):
+        pass
+
 class CreatePackageZipBuilder(BasePackageZipBuilder):
 
     def __init__(self, name, api_version):

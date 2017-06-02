@@ -35,7 +35,9 @@ from cumulusci.salesforce_api.package_zip import CreatePackageZipBuilder
 from cumulusci.salesforce_api.package_zip import DestructiveChangesZipBuilder
 from cumulusci.salesforce_api.package_zip import InstallPackageZipBuilder
 from cumulusci.salesforce_api.package_zip import UninstallPackageZipBuilder
+from cumulusci.salesforce_api.package_zip import ZipfilePackageZipBuilder
 from cumulusci.utils import CUMULUSCI_PATH
+from cumulusci.utils import download_extract_zip
 from cumulusci.utils import findReplace
 from cumulusci.utils import package_xml_from_dict
 from cumulusci.utils import zip_subfolder
@@ -472,8 +474,12 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
                     dependency_uninstalled = True
 
             # Process namespace dependencies (managed packages)
-            elif 'namespace' in dependency:
+            if 'namespace' in dependency:
                 self._process_namespace_dependency(dependency)
+
+            # Process zip_url dependencies(managed packages)
+            elif 'zip_url' in dependency:
+                self._process_zip_dependency(dependency)
 
             # Process Github dependencies from other projects configured for CumulusCI
             elif 'github' in dependency:
@@ -485,13 +491,27 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
                 dependency['github'],
             )
         )
+
+        # Initialize github3.py API against repo
         gh = self.project_config.get_github_api()
         repo_owner, repo_name = dependency['github'].split('/')[3:5]
         if repo_name.endswith('.git'):
             repo_name = repo_name[:-4]
         repo = gh.repository(repo_owner, repo_name)
+
+        # Get the cumulusci.yml file
         contents = repo.contents('cumulusci.yml')
         cumulusci_yml = hiyapyco.load(contents.decoded)
+
+        # Look for subfolders under unpackaged/pre
+        unpackaged_pre = []
+        contents = repo.contents('unpackaged/pre')
+        if contents:
+            for dirname in contents.keys():
+                unpackaged_pre.append({
+                    'zip_url': "{}/archive/{}.zip".format(repo.html_url, repo.default_branch),
+                    'subfolder': "{}-{}/unpackaged/pre/{}".format(repo.name, repo.default_branch, dirname),
+                })
 
         if 'project' not in cumulusci_yml:
             self.logger.warn(
@@ -502,46 +522,53 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
             return
 
         project = cumulusci_yml['project']
-       
-        # Process the project's dependencies 
-        if 'dependencies' not in project:
-            self.logger.info(
-                'No project -> dependencies section found in cumulusci.yml from {}'.format(
-                    dependency['github'],
-                )
-            )
-        else:
-            self._process_dependencies(project['dependencies'])
 
+        dependencies = project.get('dependencies')
+        version = None
+       
         # Add the project's release if the project has a namespace configured
         if 'package' not in project and not 'namespace' in project['package']:
             # Don't emit log message b/c this might be normal
             return
 
-        namespace = project['package']['namespace']
+        namespace = project.get('package',{}).get('namespace')
 
-        # Get version 
-        version = dependency.get('version')
-        if 'version' not in dependency or dependency['version'] == 'latest':
-            # github3.py doesn't support the latest release API so we hack it together here
-            url = repo._build_url('releases/latest', base_url=repo._api)
-            try:
-                version = repo._get(url).json()['name']
-            except Exception as e:
-                self.logger.warn('{}: {}'.format(e.__class__.__name__, e.message))
+        if namespace:
+            # Get version 
+            version = dependency.get('version')
+            if 'version' not in dependency or dependency['version'] == 'latest':
+                # github3.py doesn't support the latest release API so we hack it together here
+                url = repo._build_url('releases/latest', base_url=repo._api)
+                try:
+                    version = repo._get(url).json()['name']
+                except Exception as e:
+                    self.logger.warn('{}: {}'.format(e.__class__.__name__, e.message))
+    
+            if not version:
+                self.logger.warn('Could not find latest release for {}'.format(namespace))
 
-        if not version:
-            self.logger.warn('Could not find latest release for {}'.format(namespace))
-            return
+        repo_dependencies = []
+        if unpackaged_pre:
+            repo_dependencies.extend(unpackaged_pre)
+                
+        if version:
+            # If a latest prod version was found, make the dependencies a child of that install
+            dependency = {
+                'namespace': namespace,
+                'version': version,
+            }
+            if dependencies:
+                dependency['dependencies'] = dependencies
 
-        dependency = {'namespace': namespace, 'version': version}
-        self.logger.info(
-            'Using version {} for namespace {}'.format(
-                version,
-                namespace,
-            )
-        )
-        self._process_namespace_dependency(dependency)
+            repo_dependencies.append(dependency)
+        elif dependencies:
+            repo_dependencies.extend(dependencies)
+
+        if repo_dependencies:
+            self._process_dependencies(repo_dependencies)
+
+    def _process_zip_dependency(self, dependency):
+        self.install_queue.append(dependency)    
 
     def _process_namespace_dependency(self, dependency):
         dependency_version = str(dependency['version'])
@@ -610,12 +637,24 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
             self._install_dependency(dependency)
 
     def _install_dependency(self, dependency):
-        self.logger.info('Installing {} version {}'.format(
-            dependency['namespace'],
-            dependency['version'],
-        ))
-        package_zip = InstallPackageZipBuilder(dependency['namespace'], dependency['version'])
-        api = self.api_class(self, package_zip(), purge_on_delete=self.options['purge_on_delete'])
+        if 'namespace' in dependency:
+            self.logger.info('Installing {} version {}'.format(
+                dependency['namespace'],
+                dependency['version'],
+            ))
+            package_zip = InstallPackageZipBuilder(dependency['namespace'], dependency['version'])()
+        elif 'zip_url' in dependency:
+            self.logger.info('Deploying unmanaged metadata from /{} of {}'.format(
+                dependency['subfolder'],
+                dependency['zip_url'],
+            ))
+            package_zip = download_extract_zip(
+                dependency['zip_url'],
+                subfolder=dependency.get('subfolder')
+            )
+            package_zip = ZipfilePackageZipBuilder(package_zip)()
+            
+        api = self.api_class(self, package_zip, purge_on_delete=self.options['purge_on_delete'])
         return api()
 
     def _uninstall_dependency(self, dependency):
