@@ -475,7 +475,7 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
 
             # Process namespace dependencies (managed packages)
             if 'namespace' in dependency:
-                self._process_namespace_dependency(dependency)
+                self._process_namespace_dependency(dependency, dependency_uninstalled)
 
             # Process zip_url dependencies(managed packages)
             elif 'zip_url' in dependency:
@@ -570,7 +570,7 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
     def _process_zip_dependency(self, dependency):
         self.install_queue.append(dependency)    
 
-    def _process_namespace_dependency(self, dependency):
+    def _process_namespace_dependency(self, dependency, dependency_uninstalled=None):
         dependency_version = str(dependency['version'])
 
         if dependency['namespace'] in self.installed:
