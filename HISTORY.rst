@@ -1,7 +1,15 @@
 =======
 History
 =======
-2.0.0-beta36 (2017-06-01)
+
+2.0.0-beta38 (2017-06-01)
+------------------------
+
+* `update_dependencies` now properly handles references to a github repository that itself contains dependencies in its cumulusci.yml file
+* `update_dependencies` now handles deploying unmanaged metadata from subfolders under unpackaged/pre of a referenced Github repository
+* The `dependencies` section of `cumulusci.yml` now supports installing from a zip of metadata hosted at a url if you provide a `zip_url` and optionally a `subfolder`
+
+2.0.0-beta37 (2017-06-01)
 ------------------------
 
 * `update_dependencies` now supports dynamically referencing other Github repositories configured with a cumulusci.yml file.  The referenced repository's cumulusci.yml is parsed and the dependencies are included.  Also, the Github API is used to find the latest release of the referenced repo if the cumulusci.yml has a namespace configured.  Welcome to dynamic package dependency management ;)
