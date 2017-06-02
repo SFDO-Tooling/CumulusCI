@@ -892,7 +892,11 @@ class UninstallPackagedIncremental(UninstallPackaged):
                 for item in md_type['members']:
                     master_items[md_type['name']].append(item)
 
-        for md_type in compare_xml['Package'].get('types',[]):
+        md_types = compare_xml['Package'].get('types', [])
+        if not isinstance(md_types, list):
+            # needed when only 1 metadata type is found
+            md_types = [md_types]
+        for md_type in md_types:
             compare_items[md_type['name']] = []
             if 'members' not in md_type:
                 continue
