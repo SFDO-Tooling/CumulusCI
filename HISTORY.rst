@@ -2,6 +2,11 @@
 History
 =======
 
+2.0.0-beta39 (2017-06-02)
+------------------------
+
+* Fix new bug in `update_dependencies` which caused failure when running against an org that already has a required package installed
+
 2.0.0-beta38 (2017-06-01)
 ------------------------
 
