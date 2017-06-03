@@ -2,6 +2,11 @@
 History
 =======
 
+2.0.0-beta40 (2017-06-03)
+------------------------
+
+* More enhancements to `update_dependencies` including the ability to handle namespace injection, namespace stripping, and unmanaged versions of managed repositories.  See the new doc at http://cumulusci.readthedocs.io/en/latest/dependencies.html
+
 2.0.0-beta39 (2017-06-02)
 ------------------------
 
