@@ -39,6 +39,7 @@ from cumulusci.salesforce_api.package_zip import ZipfilePackageZipBuilder
 from cumulusci.utils import CUMULUSCI_PATH
 from cumulusci.utils import download_extract_zip
 from cumulusci.utils import findReplace
+from cumulusci.utils import namespace_zip_file
 from cumulusci.utils import package_xml_from_dict
 from cumulusci.utils import zip_subfolder
 
@@ -455,6 +456,7 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
 
         self.logger.info('Dependencies:')
 
+        self.dependency_indent = None
         self._process_dependencies(dependencies)
 
         # Reverse the uninstall queue
@@ -463,7 +465,10 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
         self._uninstall_dependencies()
         self._install_dependencies()
 
-    def _process_dependencies(self, dependencies):
+    def _process_dependencies(self, dependencies, indent=None):
+        if not indent:
+            indent = ''
+
         for dependency in dependencies:
             # Process child dependencies
             dependency_uninstalled = False
@@ -473,21 +478,25 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
                 if count_uninstall != len(self.uninstall_queue):
                     dependency_uninstalled = True
 
-            # Process namespace dependencies (managed packages)
-            if 'namespace' in dependency:
-                self._process_namespace_dependency(dependency, dependency_uninstalled)
-
-            # Process zip_url dependencies(managed packages)
-            elif 'zip_url' in dependency:
-                self._process_zip_dependency(dependency)
-
             # Process Github dependencies from other projects configured for CumulusCI
-            elif 'github' in dependency:
-                self._process_github_dependency(dependency)
+            if 'github' in dependency:
+                self._process_github_dependency(dependency, indent)
 
-    def _process_github_dependency(self, dependency):
+            # Process zip_url dependencies (unmanaged metadata)
+            elif 'zip_url' in dependency:
+                self._process_zip_dependency(dependency, indent)
+
+            # Process namespace dependencies (managed packages)
+            elif 'namespace' in dependency:
+                self._process_namespace_dependency(dependency, dependency_uninstalled, indent)
+
+    def _process_github_dependency(self, dependency, indent=None):
+        if not indent:
+            indent = ''
+
         self.logger.info(
-            'Processing dependencies from Github repo {}'.format(
+            '{}Processing dependencies from Github repo {}'.format(
+                indent,
                 dependency['github'],
             )
         )
@@ -503,6 +512,12 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
         contents = repo.contents('cumulusci.yml')
         cumulusci_yml = hiyapyco.load(contents.decoded)
 
+        # Get the namespace from the cumulusci.yml if set
+        namespace = cumulusci_yml.get('project',{}).get('package',{}).get('namespace')
+
+        # Check for unmanaged flag on a namespaced package
+        unmanaged = namespace and dependency.get('unmanaged') is True
+
         # Look for subfolders under unpackaged/pre
         unpackaged_pre = []
         contents = repo.contents('unpackaged/pre')
@@ -513,27 +528,37 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
                     'subfolder': "{}-{}/unpackaged/pre/{}".format(repo.name, repo.default_branch, dirname),
                 })
 
-        if 'project' not in cumulusci_yml:
-            self.logger.warn(
-                'No project: section found in cumulusci.yml from {}'.format(
-                    dependency['github'],
-                )
-            )
-            return
+        # Look for metadata under src (deployed if no namespace)
+        unmanaged_src = None
+        if unmanaged or not namespace:
+            contents = repo.contents('src')
+            if contents:
+                unmanaged_src = {
+                    'zip_url': "{}/archive/{}.zip".format(repo.html_url, repo.default_branch),
+                    'subfolder': "{}-{}/src".format(repo.name, repo.default_branch),
+                }
 
-        project = cumulusci_yml['project']
+        # Look for subfolders under unpackaged/post
+        unpackaged_post = []
+        contents = repo.contents('unpackaged/post')
+        if contents:
+            for dirname in contents.keys():
+                dependency = {
+                    'zip_url': "{}/archive/{}.zip".format(repo.html_url, repo.default_branch),
+                    'subfolder': "{}-{}/unpackaged/post/{}".format(repo.name, repo.default_branch, dirname),
+                }
+                if namespace:
+                    if unmanaged:
+                        dependency['namespace'] = ''
+                    else:
+                        dependency['namespace'] = namespace
+                unpackaged_post.append(dependency)
 
+        project = cumulusci_yml.get('project', {})
         dependencies = project.get('dependencies')
         version = None
-       
-        # Add the project's release if the project has a namespace configured
-        if 'package' not in project and not 'namespace' in project['package']:
-            # Don't emit log message b/c this might be normal
-            return
 
-        namespace = project.get('package',{}).get('namespace')
-
-        if namespace:
+        if namespace and not unmanaged:
             # Get version 
             version = dependency.get('version')
             if 'version' not in dependency or dependency['version'] == 'latest':
@@ -542,42 +567,70 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
                 try:
                     version = repo._get(url).json()['name']
                 except Exception as e:
-                    self.logger.warn('{}: {}'.format(e.__class__.__name__, e.message))
+                    self.logger.warn('{}{}: {}'.format(indent, e.__class__.__name__, e.message))
     
             if not version:
-                self.logger.warn('Could not find latest release for {}'.format(namespace))
+                self.logger.warn('{}Could not find latest release for {}'.format(indent, namespace))
 
+        # Create the final ordered list of all parsed dependencies
         repo_dependencies = []
+
+        # unpackaged/pre/*
         if unpackaged_pre:
             repo_dependencies.extend(unpackaged_pre)
-                
-        if version:
-            # If a latest prod version was found, make the dependencies a child of that install
-            dependency = {
-                'namespace': namespace,
-                'version': version,
-            }
+               
+        # Latest managed release (if referenced repo has a namespace) 
+        if namespace and not unmanaged:
+            if version:
+                # If a latest prod version was found, make the dependencies a child of that install
+                dependency = {
+                    'namespace': namespace,
+                    'version': version,
+                }
+                if dependencies:
+                    dependency['dependencies'] = dependencies
+    
+                repo_dependencies.append(dependency)
+            elif dependencies:
+                repo_dependencies.extend(dependencies)
+
+        # Unmanaged metadata from src (if referenced repo doesn't have a namespace)
+        else:
             if dependencies:
-                dependency['dependencies'] = dependencies
+                repo_dependencies.extend(dependencies)
+            if unmanaged_src:
+                repo_dependencies.append(unmanaged_src)
 
-            repo_dependencies.append(dependency)
-        elif dependencies:
-            repo_dependencies.extend(dependencies)
-
+        # unpackaged/post/*
+        if unpackaged_post:
+            repo_dependencies.extend(unpackaged_post)
+               
+        # Process dependencies if any found 
         if repo_dependencies:
-            self._process_dependencies(repo_dependencies)
+            if not indent:
+                indent = '  '
+            else:
+                indent += '  '
+            self._process_dependencies(repo_dependencies, indent=indent)
 
-    def _process_zip_dependency(self, dependency):
+    def _process_zip_dependency(self, dependency, indent=None):
+        if not indent:
+            indent = ''
+
         self.install_queue.append(dependency)    
 
-    def _process_namespace_dependency(self, dependency, dependency_uninstalled=None):
+    def _process_namespace_dependency(self, dependency, dependency_uninstalled=None, indent=None):
+        if not indent:
+            indent = ''
+
         dependency_version = str(dependency['version'])
 
         if dependency['namespace'] in self.installed:
             # Some version is installed, check what to do
             installed_version = self.installed[dependency['namespace']]
             if dependency_version == installed_version:
-                self.logger.info('  {}: version {} already installed'.format(
+                self.logger.info('{}  {}: version {} already installed'.format(
+                    indent,
                     dependency['namespace'],
                     dependency_version,
                 ))
@@ -589,7 +642,8 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
             if 'Beta' in installed_version.vstring:
                 # Always uninstall Beta versions if required is different
                 self.uninstall_queue.append(dependency)
-                self.logger.info('  {}: Uninstall {} to upgrade to {}'.format(
+                self.logger.info('{}  {}: Uninstall {} to upgrade to {}'.format(
+                    indent,
                     dependency['namespace'],
                     installed_version,
                     dependency['version'],
@@ -597,19 +651,22 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
             elif dependency_uninstalled:
                 # If a dependency of this one needs to be uninstalled, always uninstall the package
                 self.uninstall_queue.append(dependency)
-                self.logger.info('  {}: Uninstall and Reinstall to allow downgrade of dependency'.format(
+                self.logger.info('{}  {}: Uninstall and Reinstall to allow downgrade of dependency'.format(
+                    indent,
                     dependency['namespace'],
                 ))
             elif required_version < installed_version:
                 # Uninstall to downgrade
                 self.uninstall_queue.append(dependency)
-                self.logger.info('  {}: Downgrade from {} to {} (requires uninstall/install)'.format(
+                self.logger.info('{}  {}: Downgrade from {} to {} (requires uninstall/install)'.format(
+                    indent,
                     dependency['namespace'],
                     installed_version,
                     dependency['version'],
                 ))
             else:
-                self.logger.info('  {}: Upgrade from {} to {}'.format(
+                self.logger.info('{}  {}: Upgrade from {} to {}'.format(
+                    indent,
                     dependency['namespace'],
                     installed_version,
                     dependency['version'],
@@ -617,7 +674,8 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
             self.install_queue.append(dependency)
         else:
             # Just a regular install
-            self.logger.info('  {}: Install version {}'.format(
+            self.logger.info('{}  {}: Install version {}'.format(
+                    indent,
                     dependency['namespace'],
                     dependency['version'],
             ))
@@ -637,13 +695,7 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
             self._install_dependency(dependency)
 
     def _install_dependency(self, dependency):
-        if 'namespace' in dependency:
-            self.logger.info('Installing {} version {}'.format(
-                dependency['namespace'],
-                dependency['version'],
-            ))
-            package_zip = InstallPackageZipBuilder(dependency['namespace'], dependency['version'])()
-        elif 'zip_url' in dependency:
+        if 'zip_url' in dependency:
             self.logger.info('Deploying unmanaged metadata from /{} of {}'.format(
                 dependency['subfolder'],
                 dependency['zip_url'],
@@ -652,7 +704,24 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
                 dependency['zip_url'],
                 subfolder=dependency.get('subfolder')
             )
+            if 'namespace' in dependency:
+                self.logger.info('Replacing namespace tokens with {}'.format(
+                    '{}__'.format(dependency['namespace']),
+                ))
+                package_zip = namespace_zip_file(
+                    package_zip,
+                    namespace = dependency['namespace'],
+                    managed = True,
+                )
+                
             package_zip = ZipfilePackageZipBuilder(package_zip)()
+
+        elif 'namespace' in dependency:
+            self.logger.info('Installing {} version {}'.format(
+                dependency['namespace'],
+                dependency['version'],
+            ))
+            package_zip = InstallPackageZipBuilder(dependency['namespace'], dependency['version'])()
             
         api = self.api_class(self, package_zip, purge_on_delete=self.options['purge_on_delete'])
         return api()
@@ -700,32 +769,28 @@ class DeployBundles(Deploy):
         api = self._get_api(path)
         return api()
 
-class DeployNamespacedBundles(DeployBundles):
-    name = 'DeployNamespacedBundles'
+deploy_namespaced_options = Deploy.task_options.copy()
+deploy_namespaced_options.update({
+    'managed': {
+        'description': 'If True, will insert the actual namespace prefix.  Defaults to False or no namespace',
+    },
+    'namespace': {
+        'description': 'The namespace to replace the token with if in managed mode. Defaults to project__package__namespace',
+    },
+    'namespace_token': {
+        'description': 'The string token to replace with the namespace.  Defaults to %%%NAMESPACE%%%',
+    },
+    'filename_token': {
+        'description': 'The path to the parent directory containing the metadata bundles directories. Defaults to ___NAMESPACE___',
+    },
+})
 
+class DeployNamespaced(Deploy):
     task_options = {
-        'path': {
-            'description': 'The path to the parent directory containing the metadata bundles directories',
-            'required': True,
-        },
-        'managed': {
-            'description': 'If True, will insert the actual namespace prefix.  Defaults to False or no namespace',
-        },
-        'namespace': {
-            'description': 'The namespace to replace the token with if in managed mode. Defaults to project__package__namespace',
-        },
-        'namespace_token': {
-            'description': 'The string token to replace with the namespace',
-            'required': True,
-        },
-        'filename_token': {
-            'description': 'The path to the parent directory containing the metadata bundles directories',
-            'required': True,
-        },
     }
 
     def _init_options(self, kwargs):
-        super(DeployNamespacedBundles, self)._init_options(kwargs)
+        super(DeployNamespaced, self)._init_options(kwargs)
 
         if 'managed' not in self.options:
             self.options['managed'] = False
@@ -750,6 +815,11 @@ class DeployNamespacedBundles(DeployBundles):
             # strip ./ from the start of root
             root = root[2:]
             zipf.writestr(os.path.join(root, zip_path), content)
+
+
+class DeployNamespacedBundles(DeployNamespaced, DeployBundles):
+    name = 'DeployNamespacedBundles'
+
 
 class BaseUninstallMetadata(Deploy):
 

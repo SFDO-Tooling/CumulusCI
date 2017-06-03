@@ -121,6 +121,26 @@ def zip_subfolder(zip_src, path):
     return zip_dest
 
 
+def namespace_zip_file(zip_src, namespace=None, managed=None, filename_token=None, namespace_token=None):
+    if not filename_token:
+        filename_token = '___NAMESPACE___'
+    if not namespace_token:
+        namespace_token = '%%%NAMESPACE%%%'
+    if managed is True and namespace:
+        namespace = namespace + '__'
+    else:
+        namespace = ''
+
+    zip_dest = zipfile.ZipFile(StringIO.StringIO(), 'w', zipfile.ZIP_DEFLATED)
+
+    for name in zip_src.namelist():
+        content = zip_src.read(name).replace(namespace_token, namespace)
+        name = name.replace(filename_token, namespace)
+        zip_dest.writestr(name, content)
+
+    return zip_dest
+
+
 def doc_task(task_name, task_config, project_config=None, org_config=None):
     """ Document a (project specific) task configuration in RST format. """
     from cumulusci.core.utils import import_class
