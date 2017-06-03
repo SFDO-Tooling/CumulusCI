@@ -39,8 +39,10 @@ from cumulusci.salesforce_api.package_zip import ZipfilePackageZipBuilder
 from cumulusci.utils import CUMULUSCI_PATH
 from cumulusci.utils import download_extract_zip
 from cumulusci.utils import findReplace
-from cumulusci.utils import namespace_zip_file
 from cumulusci.utils import package_xml_from_dict
+from cumulusci.utils import zip_inject_namespace
+from cumulusci.utils import zip_strip_namespace
+from cumulusci.utils import zip_tokenize_namespace
 from cumulusci.utils import zip_subfolder
 
 
@@ -126,7 +128,19 @@ class BaseRetrieveMetadata(BaseSalesforceMetadataApiTask):
         'path': {
             'description': 'The path to write the retrieved metadata',
             'required': True,
-        }
+        },
+        'unmanaged': {
+            'description': "If True, changes namespace_inject to replace tokens with a blank string",
+        },
+        'namespace_inject': {
+            'description': "If set, the namespace tokens in files and filenames are replaced with the namespace's prefix",
+        },
+        'namespace_strip': {
+            'description': "If set, all namespace prefixes for the namespace specified are stripped from files and filenames",
+        },
+        'namespace_tokenize': {
+            'description': "If set, all namespace prefixes for the namespace specified are replaced with tokens for use with namespace_inject",
+        },
     }
 
     def _run_task(self):
@@ -135,29 +149,40 @@ class BaseRetrieveMetadata(BaseSalesforceMetadataApiTask):
         self._extract_zip(src_zip)
         self.logger.info('Extracted retrieved metadata into {}'.format(self.options['path']))
 
+    def _process_namespace(self, src_zip):
+        if self.options.get('namespace_inject'):
+            if self.options.get('unmanaged'):
+                src_zip = zip_inject_namespace(src_zip, self.options['namespace_inject'])
+            else:
+                src_zip = zip_inject_namespace(src_zip, self.options['namespace_inject'], True)
+        if self.options.get('namespace_strip'):
+            src_zip = zip_strip_namespace(src_zip, self.options['namespace_strip'])
+        if self.options.get('namespace_tokenize'):
+            src_zip = zip_tokenize_namespace(src_zip, self.options['namespace_tokenize'])
+        return src_zip
+
     def _extract_zip(self, src_zip):
+        src_zip = self._process_namespace(src_zip)
         src_zip.extractall(self.options['path'])
 
 
+retrieve_unpackaged_options = BaseRetrieveMetadata.task_options.copy()
+retrieve_unpackaged_options.update({
+    'package_xml': {
+        'description': 'The path to a package.xml manifest to use for the retrieve.',
+        'required': True,
+    },
+    'api_version': {
+        'description': (
+            'Override the default api version for the retrieve.' +
+            ' Defaults to project__package__api_version'
+        ),
+    },
+})
 class RetrieveUnpackaged(BaseRetrieveMetadata):
     api_class = ApiRetrieveUnpackaged
 
-    task_options = {
-        'path': {
-            'description': 'The path where the retrieved metadata should be written',
-            'required': True,
-        },
-        'package_xml': {
-            'description': 'The path to a package.xml manifest to use for the retrieve.',
-            'required': True,
-        },
-        'api_version': {
-            'description': (
-                'Override the default api version for the retrieve.' +
-                ' Defaults to project__package__api_version'
-            ),
-        },
-    }
+    task_options = retrieve_unpackaged_options
 
     def _init_options(self, kwargs):
         super(RetrieveUnpackaged, self)._init_options(kwargs)
@@ -174,26 +199,24 @@ class RetrieveUnpackaged(BaseRetrieveMetadata):
             self.options.get('api_version'),
         )
 
+retrieve_packaged_options = BaseRetrieveMetadata.task_options.copy()
+retrieve_packaged_options.update({
+    'package': {
+        'description': 'The package name to retrieve.  Defaults to project__package__name',
+        'required': True,
+    },
+    'api_version': {
+        'description': (
+            'Override the default api version for the retrieve.' +
+            ' Defaults to project__package__api_version'
+        ),
+    },
+})
 
 class RetrievePackaged(BaseRetrieveMetadata):
     api_class = ApiRetrievePackaged
 
-    task_options = {
-        'path': {
-            'description': 'The path where the retrieved metadata should be written',
-            'required': True,
-        },
-        'package': {
-            'description': 'The package name to retrieve.  Defaults to project__package__name',
-            'required': True,
-        },
-        'api_version': {
-            'description': (
-                'Override the default api version for the retrieve.' +
-                ' Defaults to project__package__api_version'
-            ),
-        },
-    }
+    task_options = retrieve_packaged_options
 
     def _init_options(self, kwargs):
         super(RetrievePackaged, self)._init_options(kwargs)
@@ -211,24 +234,24 @@ class RetrievePackaged(BaseRetrieveMetadata):
         src_zip = zip_subfolder(src_zip, self.options.get('package'))
         super(RetrievePackaged, self)._extract_zip(src_zip)
 
+
+retrieve_reportsanddashboards_options = BaseRetrieveMetadata.task_options.copy()
+retrieve_reportsanddashboards_options.update({
+    'report_folders': {
+        'description': 'A list of the report folders to retrieve reports.  Separate by commas for multiple folders.',
+    },
+    'dashboard_folders': {
+        'description': 'A list of the dashboard folders to retrieve reports.  Separate by commas for multiple folders.',
+    },
+    'api_version': {
+        'description': 'Override the API version used to list metadata',
+    }
+})
+
 class RetrieveReportsAndDashboards(BaseRetrieveMetadata):
     api_class = ApiRetrieveUnpackaged
 
-    task_options = {
-        'path': {
-            'description': 'The path where the retrieved metadata should be written',
-            'required': True,
-        },
-        'report_folders': {
-            'description': 'A list of the report folders to retrieve reports.  Separate by commas for multiple folders.',
-        },
-        'dashboard_folders': {
-            'description': 'A list of the dashboard folders to retrieve reports.  Separate by commas for multiple folders.',
-        },
-        'api_version': {
-            'description': 'Override the API version used to list metadata',
-        }
-    }
+    task_options = retrieve_reportsanddashboards_options
 
     def _init_options(self, kwargs):
         super(RetrieveReportsAndDashboards, self)._init_options(kwargs)
@@ -293,6 +316,18 @@ class Deploy(BaseSalesforceMetadataApiTask):
             'description': 'The path to the metadata source to be deployed',
             'required': True,
         },
+        'unmanaged': {
+            'description': "If True, changes namespace_inject to replace tokens with a blank string",
+        },
+        'namespace_inject': {
+            'description': "If set, the namespace tokens in files and filenames are replaced with the namespace's prefix",
+        },
+        'namespace_strip': {
+            'description': "If set, all namespace prefixes for the namespace specified are stripped from files and filenames",
+        },
+        'namespace_tokenize': {
+            'description': "If set, all namespace prefixes for the namespace specified are replaced with tokens for use with namespace_inject",
+        },
     }
         
     def _get_api(self, path=None):
@@ -309,6 +344,7 @@ class Deploy(BaseSalesforceMetadataApiTask):
         for root, dirs, files in os.walk('.'):
             for f in files:
                 self._write_zip_file(zipf, root, f)
+        zipf = self._process_zip_file(zipf)
         zipf.close()
         zip_file.seek(0)
         package_zip = base64.b64encode(zip_file.read())
@@ -316,6 +352,22 @@ class Deploy(BaseSalesforceMetadataApiTask):
         os.chdir(pwd)
 
         return self.api_class(self, package_zip, purge_on_delete=False)
+
+    def _process_zip_file(self, zipf):
+        zipf = self._process_namespace(zipf)
+        return zipf
+        
+    def _process_namespace(self, zipf):
+        if self.options.get('namespace_inject'):
+            if self.options.get('unmanaged'):
+                zipf = zip_inject_namespace(zipf, self.options['namespace_inject'])
+            else:
+                zipf = zip_inject_namespace(zipf, self.options['namespace_inject'], True)
+        if self.options.get('namespace_strip'):
+            zipf = zip_strip_namespace(zipf, self.options['namespace_strip'])
+        if self.options.get('namespace_tokenize'):
+            zipf = zip_tokenize_namespace(zipf, self.options['namespace_tokenize'])
+        return zipf
 
     def _write_zip_file(self, zipf, root, path):
         zipf.write(os.path.join(root, path))
@@ -548,10 +600,8 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
                     'subfolder': "{}-{}/unpackaged/post/{}".format(repo.name, repo.default_branch, dirname),
                 }
                 if namespace:
-                    if unmanaged:
-                        dependency['namespace'] = ''
-                    else:
-                        dependency['namespace'] = namespace
+                    dependency['namespace_inject'] = namespace
+                    dependency['unmananged'] = unmanaged
                 unpackaged_post.append(dependency)
 
         project = cumulusci_yml.get('project', {})
@@ -611,7 +661,7 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
                 indent = '  '
             else:
                 indent += '  '
-            self._process_dependencies(repo_dependencies, indent=indent)
+            self._process_dependencies(repo_dependencies, indent)
 
     def _process_zip_dependency(self, dependency, indent=None):
         if not indent:
@@ -704,14 +754,14 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
                 dependency['zip_url'],
                 subfolder=dependency.get('subfolder')
             )
-            if 'namespace' in dependency:
+            if 'namespace_inject' in dependency:
                 self.logger.info('Replacing namespace tokens with {}'.format(
-                    '{}__'.format(dependency['namespace']),
+                    '{}__'.format(dependency['namespace_inject']),
                 ))
-                package_zip = namespace_zip_file(
+                package_zip = zip_inject_namespace(
                     package_zip,
-                    namespace = dependency['namespace'],
-                    managed = True,
+                    namespace = dependency['namespace_inject'],
+                    managed = not dependency.get('unmanaged'),
                 )
                 
             package_zip = ZipfilePackageZipBuilder(package_zip)()
@@ -786,8 +836,7 @@ deploy_namespaced_options.update({
 })
 
 class DeployNamespaced(Deploy):
-    task_options = {
-    }
+    task_options = deploy_namespaced_options
 
     def _init_options(self, kwargs):
         super(DeployNamespaced, self)._init_options(kwargs)

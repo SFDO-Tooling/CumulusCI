@@ -14,6 +14,7 @@ Contents:
    tutorial
    cookbook
    tasks
+   dependencies
    history
    authors
 
