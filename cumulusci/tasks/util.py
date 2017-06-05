@@ -1,6 +1,7 @@
 import os
 import shutil
 import time
+import glob
 from xml.dom.minidom import parse
 
 from cumulusci.core.tasks import BaseTask
@@ -113,7 +114,8 @@ class Delete(BaseTask):
         path = self.options['path']
         if isinstance(path, list):
             for path_item in path:
-                self._delete(path_item)
+                for match in glob.glob(path_item):
+                    self._delete(match)
    
         if chdir: 
             os.chdir(cwd)
