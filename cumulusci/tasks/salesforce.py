@@ -150,6 +150,8 @@ class BaseRetrieveMetadata(BaseSalesforceMetadataApiTask):
         self.logger.info('Extracted retrieved metadata into {}'.format(self.options['path']))
 
     def _process_namespace(self, src_zip):
+        if self.options.get('namespace_tokenize'):
+            src_zip = zip_tokenize_namespace(src_zip, self.options['namespace_tokenize'])
         if self.options.get('namespace_inject'):
             if self.options.get('unmanaged'):
                 src_zip = zip_inject_namespace(src_zip, self.options['namespace_inject'])
@@ -157,8 +159,6 @@ class BaseRetrieveMetadata(BaseSalesforceMetadataApiTask):
                 src_zip = zip_inject_namespace(src_zip, self.options['namespace_inject'], True)
         if self.options.get('namespace_strip'):
             src_zip = zip_strip_namespace(src_zip, self.options['namespace_strip'])
-        if self.options.get('namespace_tokenize'):
-            src_zip = zip_tokenize_namespace(src_zip, self.options['namespace_tokenize'])
         return src_zip
 
     def _extract_zip(self, src_zip):
@@ -345,9 +345,8 @@ class Deploy(BaseSalesforceMetadataApiTask):
             for f in files:
                 self._write_zip_file(zipf, root, f)
         zipf = self._process_zip_file(zipf)
-        zipf.close()
-        zip_file.seek(0)
-        package_zip = base64.b64encode(zip_file.read())
+        zipf.fp.seek(0)
+        package_zip = base64.b64encode(zipf.fp.read())
 
         os.chdir(pwd)
 
@@ -358,15 +357,28 @@ class Deploy(BaseSalesforceMetadataApiTask):
         return zipf
         
     def _process_namespace(self, zipf):
+        if self.options.get('namespace_tokenize'):
+            self.logger.info(
+                'Tokenizing namespace prefix {}__'.format(
+                    self.options['namespace_tokenize'],
+                )
+            )
+            zipf = zip_tokenize_namespace(zipf, self.options['namespace_tokenize'])
         if self.options.get('namespace_inject'):
             if self.options.get('unmanaged'):
+                self.logger.info(
+                    'Stripping namespace tokens from metadata for unmanaged deployment'
+                )
                 zipf = zip_inject_namespace(zipf, self.options['namespace_inject'])
             else:
+                self.logger.info(
+                    'Replacing namespace tokens from metadata with namespace prefix {}__'.format(
+                        self.options['namespace_inject'],
+                    )
+                )
                 zipf = zip_inject_namespace(zipf, self.options['namespace_inject'], True)
         if self.options.get('namespace_strip'):
             zipf = zip_strip_namespace(zipf, self.options['namespace_strip'])
-        if self.options.get('namespace_tokenize'):
-            zipf = zip_tokenize_namespace(zipf, self.options['namespace_tokenize'])
         return zipf
 
     def _write_zip_file(self, zipf, root, path):
@@ -575,9 +587,18 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
         contents = repo.contents('unpackaged/pre')
         if contents:
             for dirname in contents.keys():
+                subfolder = "{}-{}/unpackaged/pre/{}".format(repo.name, repo.default_branch, dirname)
+                zip_url = "{}/archive/{}.zip".format(repo.html_url, repo.default_branch)
+
+                self.logger.info('{}Deploy {} of {}'.format(indent, subfolder, zip_url))
+                    
                 unpackaged_pre.append({
-                    'zip_url': "{}/archive/{}.zip".format(repo.html_url, repo.default_branch),
-                    'subfolder': "{}-{}/unpackaged/pre/{}".format(repo.name, repo.default_branch, dirname),
+                    'zip_url': zip_url,
+                    'subfolder': subfolder,
+                    'unmanaged': dependency.get('unmanaged'),
+                    'namespace_tokenize': dependency.get('namespace_tokenize'),
+                    'namespace_inject': dependency.get('namespace_inject'),
+                    'namespace_strip': dependency.get('namespace_strip'),
                 })
 
         # Look for metadata under src (deployed if no namespace)
@@ -585,9 +606,18 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
         if unmanaged or not namespace:
             contents = repo.contents('src')
             if contents:
+                zip_url = "{}/archive/{}.zip".format(repo.html_url, repo.default_branch)
+                subfolder = "{}-{}/src".format(repo.name, repo.default_branch)
+
+                self.logger.info('{}Deploy {} of {}'.format(indent, subfolder, zip_url))
+
                 unmanaged_src = {
-                    'zip_url': "{}/archive/{}.zip".format(repo.html_url, repo.default_branch),
-                    'subfolder': "{}-{}/src".format(repo.name, repo.default_branch),
+                    'zip_url': zip_url,
+                    'subfolder': subfolder,
+                    'unmanaged': dependency.get('unmanaged'),
+                    'namespace_tokenize': dependency.get('namespace_tokenize'),
+                    'namespace_inject': dependency.get('namespace_inject'),
+                    'namespace_strip': dependency.get('namespace_strip'),
                 }
 
         # Look for subfolders under unpackaged/post
@@ -595,11 +625,21 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
         contents = repo.contents('unpackaged/post')
         if contents:
             for dirname in contents.keys():
+                zip_url = "{}/archive/{}.zip".format(repo.html_url, repo.default_branch)
+                subfolder = "{}-{}/unpackaged/post/{}".format(repo.name, repo.default_branch, dirname)
+
+                self.logger.info('{}Deploy {} of {}'.format(indent, subfolder, zip_url))
+
                 dependency = {
-                    'zip_url': "{}/archive/{}.zip".format(repo.html_url, repo.default_branch),
-                    'subfolder': "{}-{}/unpackaged/post/{}".format(repo.name, repo.default_branch, dirname),
+                    'zip_url': zip_url,
+                    'subfolder': subfolder,
+                    'unmanaged': dependency.get('unmanaged'),
+                    'namespace_tokenize': dependency.get('namespace_tokenize'),
+                    'namespace_inject': dependency.get('namespace_inject'),
+                    'namespace_strip': dependency.get('namespace_strip'),
                 }
-                if namespace:
+                # By default, we always inject the project's namespace into unpackaged/post metadata
+                if namespace and not dependency.get('namespace_inject'):
                     dependency['namespace_inject'] = namespace
                     dependency['unmananged'] = unmanaged
                 unpackaged_post.append(dependency)
@@ -754,7 +794,16 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
                 dependency['zip_url'],
                 subfolder=dependency.get('subfolder')
             )
-            if 'namespace_inject' in dependency:
+            if dependency.get('namespace_tokenize'):
+                self.logger.info('Replacing namespace prefix {}__ in files and filenames with namespace token strings'.format(
+                    '{}__'.format(dependency['namespace_tokenize']),
+                ))
+                package_zip = zip_tokenize_namespace(
+                    package_zip,
+                    namespace = dependency['namespace_tokenize'],
+                )
+                
+            if dependency.get('namespace_inject'):
                 self.logger.info('Replacing namespace tokens with {}'.format(
                     '{}__'.format(dependency['namespace_inject']),
                 ))
@@ -762,6 +811,15 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
                     package_zip,
                     namespace = dependency['namespace_inject'],
                     managed = not dependency.get('unmanaged'),
+                )
+                
+            if dependency.get('namespace_strip'):
+                self.logger.info('Removing namespace prefix {}__ from all files and filenames'.format(
+                    '{}__'.format(dependency['namespace_strip']),
+                ))
+                package_zip = zip_strip_namespace(
+                    package_zip,
+                    namespace = dependency['namespace_strip'],
                 )
                 
             package_zip = ZipfilePackageZipBuilder(package_zip)()
