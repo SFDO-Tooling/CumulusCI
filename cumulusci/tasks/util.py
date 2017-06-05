@@ -1,4 +1,5 @@
 import os
+import shutil
 import time
 from xml.dom.minidom import parse
 
@@ -87,3 +88,48 @@ class Sleep(BaseTask):
         )
         time.sleep(float(self.options['seconds']))
         self.logger.info('Done')
+
+class Delete(BaseTask):
+    name = 'Delete'
+    task_options = {
+        'path': {
+            'description': 'The path to delete.  If path is a directory, recursively deletes the directory: BE CAREFUL!!!  If path is a list, all paths will be deleted',
+            'required': True,
+        },
+        'chdir': {
+            'description': 'Change directories before deleting path(s).  This is useful if you have a common list of relative paths to delete that you want to call against different directories.',
+        }
+    }
+
+    def _run_task(self):
+        chdir = self.options.get('chdir')
+        cwd = os.getcwd()
+        if chdir:
+            self.logger.info(
+                'Changing directory to {}'.format(chdir)
+            )
+            os.chdir(chdir)
+
+        path = self.options['path']
+        if isinstance(path, list):
+            for path_item in path:
+                self._delete(path_item)
+   
+        if chdir: 
+            os.chdir(cwd)
+
+    def _delete(self, path):
+        if not os.path.exists(path):
+            self.logger.info(
+                '{} does not exist, skipping delete'.format(path)
+            )
+        if os.path.isdir(path):
+            self.logger.info(
+                'Recursively deleting directory {}'.format(path)
+            )
+            shutil.rmtree(path)
+        else:
+            self.logger.info(
+                'Deleting file {}'.format(path)
+            )
+            os.remove(path)
