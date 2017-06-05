@@ -132,7 +132,7 @@ def zip_inject_namespace(zip_src, namespace=None, managed=None, filename_token=N
         namespace_token = '%%%NAMESPACE%%%'
     if managed is True and namespace:
         namespace = namespace + '__'
-    if not namespace:
+    else:
         namespace = ''
 
     zip_dest = zipfile.ZipFile(StringIO.StringIO(), 'w', zipfile.ZIP_DEFLATED)
@@ -158,11 +158,14 @@ def zip_tokenize_namespace(zip_src, namespace):
     """ Given a namespace, replaces 'namespace__' with %%%NAMESPACE%%% for all 
         files and ___NAMESPACE___ in all filenames in the zip 
     """
+    if not namespace:
+        return zip_dest
+
     namespace_prefix = '{}__'.format(namespace)
     zip_dest = zipfile.ZipFile(StringIO.StringIO(), 'w', zipfile.ZIP_DEFLATED)
     for name in zip_src.namelist():
-        content = zip_src.read(name).replace(namespace_prefix, '___NAMESPACE___')
-        name = name.replace(filename_token, namespace)
+        content = zip_src.read(name).replace(namespace_prefix, '%%%NAMESPACE%%%')
+        name = name.replace(namespace_prefix, '___NAMESPACE___')
         zip_dest.writestr(name, content)
     return zip_dest
 
