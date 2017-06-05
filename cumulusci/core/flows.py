@@ -184,11 +184,13 @@ class BaseFlow(object):
         config = ['Options:']
         if not task.task_options:
             return config
-
-        for option_name in list(task.task_options.keys()):
+        for option, info in task.task_options.items():
+            value = task.options.get(option)
+            if value is None:
+                continue
             config.append('  {}: {}'.format(
-                option_name,
-                task.options.get(option_name),
+                option,
+                value,
             ))
 
         return config
