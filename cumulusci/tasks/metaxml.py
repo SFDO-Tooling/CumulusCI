@@ -20,8 +20,14 @@ class MetaXmlBaseTask(BaseTask):
     def _run_task(self):
         for root, dirs, files in os.walk(self.options['dir']):
             for filename in files:
+                filename = os.path.join(root, filename)
                 if filename.endswith('-meta.xml'):
-                    self._process_file(os.path.join(root, filename))
+                    tree = ET.parse(filename)
+                    if self._process_xml(tree.getroot()):
+                        self._write_file(tree, filename)
+                        self.logger.info('Processed file %s', filename)
+                    else:
+                        self.logger.info('No changes for file %s', filename)
 
     def _write_file(self, tree, filename):
         tree.write(
@@ -49,21 +55,15 @@ class UpdateApi(MetaXmlBaseTask):
         },
     }
 
-    def _process_file(self, filename):
-        tree = ET.parse(filename)
-        root = tree.getroot()
-        xmlns = re.search('({.+}).+', root.tag).group(1)
+    def _process_xml(self, root):
         changed = False
+        xmlns = re.search('({.+}).+', root.tag).group(1)
         api_version = root.find('{}apiVersion'.format(xmlns))
         if (api_version is not None and
                 api_version.text != self.options['version']):
             api_version.text = self.options['version']
             changed = True
-        if changed:
-            self._write_file(tree, filename)
-            self.logger.info('Processed file %s', filename)
-        else:
-            self.logger.info('No changes for file %s', filename)
+        return changed
 
 
 class UpdateDependencies(MetaXmlBaseTask):
@@ -81,11 +81,9 @@ class UpdateDependencies(MetaXmlBaseTask):
         },
     }
 
-    def _process_file(self, filename):
-        tree = ET.parse(filename)
-        root = tree.getroot()
-        xmlns = re.search('({.+}).+', root.tag).group(1)
+    def _process_xml(self, root):
         changed = False
+        xmlns = re.search('({.+}).+', root.tag).group(1)
         v_major, v_minor = self.options['version'].split('.')
         for package_version in root.findall('{}packageVersions'.format(xmlns)):
             namespace = package_version.find('{}namespace'.format(xmlns)).text
@@ -99,8 +97,4 @@ class UpdateDependencies(MetaXmlBaseTask):
             if minor.text != v_minor:
                 minor.text = v_minor
                 changed = True
-        if changed:
-            self._write_file(tree, filename)
-            self.logger.info('Processed file %s', filename)
-        else:
-            self.logger.info('No changes for file %s', filename)
+        return changed
