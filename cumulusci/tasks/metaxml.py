@@ -1,6 +1,8 @@
+import fileinput
 import os
 import re
 from lxml import etree as ET
+import sys
 
 from cumulusci.core.tasks import BaseTask
 
@@ -20,6 +22,20 @@ class MetaXmlBaseTask(BaseTask):
             for filename in files:
                 if filename.endswith('-meta.xml'):
                     self._process_file(os.path.join(root, filename))
+
+    def _write_file(self, tree, filename):
+        tree.write(
+            filename,
+            xml_declaration=True,
+            encoding='UTF-8',
+            pretty_print=True,
+        )
+        # change back to double quotes in header to minimize diffs
+        for line in fileinput.input(filename, inplace=1):
+            if line.startswith('<?xml'):
+                sys.stdout.write(line.replace("'", '"'))
+            else:
+                sys.stdout.write(line)
 
 
 class UpdateApi(MetaXmlBaseTask):
@@ -44,12 +60,7 @@ class UpdateApi(MetaXmlBaseTask):
             api_version.text = self.options['version']
             changed = True
         if changed:
-            tree.write(
-                filename,
-                xml_declaration=True,
-                encoding='UTF-8',
-                pretty_print=True,
-            )
+            self._write_file(tree, filename)
             self.logger.info('Processed file %s', filename)
         else:
             self.logger.info('No changes for file %s', filename)
@@ -89,12 +100,7 @@ class UpdateDependencies(MetaXmlBaseTask):
                 minor.text = v_minor
                 changed = True
         if changed:
-            tree.write(
-                filename,
-                xml_declaration=True,
-                encoding='UTF-8',
-                pretty_print=True,
-            )
+            self._write_file(tree, filename)
             self.logger.info('Processed file %s', filename)
         else:
             self.logger.info('No changes for file %s', filename)
