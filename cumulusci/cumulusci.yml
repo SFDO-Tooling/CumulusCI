@@ -97,6 +97,9 @@ tasks:
     list_metadata_types:
         description: Prints the metadata types in a project
         class_path: cumulusci.tasks.util.ListMetadataTypes
+    meta_xml_apiversion:
+        description: Set the API version in *meta.xml files
+        class_path: cumulusci.tasks.metaxml.UpdateApi
     meta_xml_dependencies:
         description: Set the version for dependent packages
         class_path: cumulusci.tasks.metaxml.UpdateDependencies
