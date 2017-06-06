@@ -97,6 +97,9 @@ tasks:
     list_metadata_types:
         description: Prints the metadata types in a project
         class_path: cumulusci.tasks.util.ListMetadataTypes
+    meta_xml_dependencies:
+        description: Set the version for dependent packages
+        class_path: cumulusci.tasks.metaxml.UpdateDependencies
     mrbelvedere_publish:
         description: Publishes a release to the mrbelvedere web installer
         class_path: cumulusci.tasks.mrbelvedere.MrbelvederePublish
