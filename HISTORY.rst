@@ -2,6 +2,14 @@
 History
 =======
 
+2.0.0-beta41 (2017-06-07)
+------------------------
+
+* The `dependencies` section in cumulusci.yml now supports the `skip` option for Github dependencies which can be used to skip specific subfolders under `unpackaged/` in the target repository
+* New task class BulkDataQuery reverses the BulkDataLoad and uses the mapping to build SOQL queries to capture the data in the mapping from the target org.  The data is written to a database that can then be used by BulkDataLoad to load into a different org.
+* The Delete util task now uses the glob library so it can support paths with wildcards like src/*
+* New tasks `meta_xml_api` and `meta_xml_dependencies` handle updating `*-meta.xml` files with api versions or underlying package versions.
+
 2.0.0-beta40 (2017-06-03)
 ------------------------
 
