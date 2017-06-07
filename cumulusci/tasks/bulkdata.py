@@ -417,11 +417,11 @@ class QueryData(BaseSalesforceBulkApiTask):
                 kwargs = { lookup['value_field']: value }
                 res = self.session.query(lookup_model).filter_by(**kwargs).first()
                 if res:
-                    mapped_row[field_map[key]] = res.id
+                    mapped_row[field_map[key]] = res.id.decode('utf-8')
                 else:
                     mapped_row[field_map[key]] = None
             else:
-                mapped_row[field_map[key]] = value
+                mapped_row[field_map[key]] = value.decode('utf-8')
         instance = model()
         for key, value in mapped_row.items():
             setattr(instance, key, value)
