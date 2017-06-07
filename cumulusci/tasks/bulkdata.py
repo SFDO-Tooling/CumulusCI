@@ -9,13 +9,20 @@ import datetime
 import requests
 import tempfile
 
+from collections import OrderedDict
+
 from salesforce_bulk import CsvDictsAdapter
 
 from sqlalchemy.ext.automap import automap_base
+from sqlalchemy.orm import create_session
+from sqlalchemy.orm import mapper
 from sqlalchemy.orm import Session
 from sqlalchemy import create_engine
+from sqlalchemy import Column
+from sqlalchemy import Integer
 from sqlalchemy import MetaData
 from sqlalchemy import Table
+from sqlalchemy import Unicode
 from sqlalchemy import text
 from sqlalchemy import types
 from sqlalchemy import event
@@ -309,3 +316,148 @@ class LoadData(BaseSalesforceBulkApiTask):
 
     def _init_mapping(self):
         self.mapping = hiyapyco.load(self.options['mapping'])
+
+class QueryData(BaseSalesforceBulkApiTask):
+    task_options = {
+        'database_url': {
+            'description': 'A DATABASE_URL where the query output should be written',
+            'required': True,
+        },
+        'mapping': {
+            'description': 'The path to a yaml file containing mappings of the database fields to Salesforce object fields',
+            'required': True,
+        },
+    }
+
+    def _run_task(self):
+        self._init_mapping()
+        self._init_db()
+
+        for name, mapping in self.mappings.items():
+            fields = self._fields_for_mapping(mapping)
+            soql = self._soql_for_mapping(mapping)
+            self._run_query(soql, mapping)
+
+    def _init_db(self):
+        self.models = {}
+
+        # initialize the DB engine
+        self.engine = create_engine(self.options['database_url'])
+
+        # initialize DB metadata
+        self.metadata = MetaData()
+        self.metadata.bind = self.engine
+
+        # Create the tables
+        self._create_tables()
+
+        # initialize the automap mapping
+        self.base = automap_base(bind=self.engine, metadata=self.metadata)
+        self.base.prepare(self.engine, reflect=True)
+
+        # Loop through mappings and reflect each referenced table
+        self.tables = {}
+        #for name, mapping in self.mapping.items():
+            #if 'table' in mapping and mapping['table'] not in self.tables:
+                #self.tables[mapping['table']] = self.base.classes[mapping['table']]
+
+        # initialize session
+        self.session = create_session(bind=self.engine, autocommit=False)
+
+    def _init_mapping(self):
+        self.mappings = hiyapyco.load(self.options['mapping'])
+        self.mappings = [(name, mapping) for name, mapping in self.mappings.items()]
+        self.mappings.reverse()
+        rev_mappings = OrderedDict()
+        for mapping_item in self.mappings:
+            rev_mappings[mapping_item[0]] = mapping_item[1]
+        self.mappings = rev_mappings
+
+    def _soql_for_mapping(self, mapping):
+        sf_object = mapping['sf_object']
+        fields = [field['sf'] for field in self._fields_for_mapping(mapping)]
+        soql = "SELECT {fields} FROM {sf_object}".format(**{
+            'fields': ', '.join(fields),
+            'sf_object': sf_object,
+        })
+        return soql
+
+    def _run_query(self, soql, mapping):
+        self.logger.info('Creating bulk job for: {sf_object}'.format(**mapping))
+        job = self.bulk.create_query_job(mapping['sf_object'], contentType='CSV')
+        self.logger.info('Job id: {0}'.format(job))
+        self.logger.info('Submitting query: {}'.format(soql))
+        batch = self.bulk.query(job, soql)
+        self.logger.info('Batch id: {0}'.format(batch))
+        self.bulk.wait_for_batch(job, batch)
+        self.logger.info('Batch {0} finished'.format(batch))
+        self.bulk.close_job(job)
+        self.logger.info('Job {0} closed'.format(job))
+
+        field_map = {}
+        for field in self._fields_for_mapping(mapping):
+            field_map[field['sf']] = field['db']
+
+        for row in self.bulk.get_batch_result_iter(job, batch, parse_csv=True):
+            self._import_row(row, mapping, field_map)
+
+        self.session.commit()
+
+    def _import_row(self, row, mapping, field_map):
+        model = self.models[mapping['table']]
+        mapped_row = {}
+        for key, value in row.items():
+            if key in mapping.get('lookups', {}):
+                if not value:
+                    mapped_row[field_map[key]] = None
+                    continue
+                # For lookup fields, the value should be the local db id instead of the sf id
+                lookup = mapping['lookups'][key]
+                lookup_model = self.models[lookup['table']]
+                kwargs = { lookup['value_field']: value }
+                res = self.session.query(lookup_model).filter_by(**kwargs).first()
+                if res:
+                    mapped_row[field_map[key]] = res.id
+                else:
+                    mapped_row[field_map[key]] = None
+            else:
+                mapped_row[field_map[key]] = value
+        instance = model()
+        for key, value in mapped_row.items():
+            setattr(instance, key, value)
+        self.session.add(instance)
+
+    def _create_tables(self):
+        for name, mapping in self.mappings.items():
+            self._create_table(mapping)
+
+    def _fields_for_mapping(self, mapping):
+        fields = []
+        for sf_field, db_field in mapping.get('fields', {}).items():
+            fields.append({ 'sf': sf_field, 'db': db_field })
+        for sf_field, lookup in mapping.get('lookups', {}).items():
+            fields.append({ 'sf': sf_field, 'db': lookup['key_field'] })
+        return fields
+
+    def _create_table(self, mapping):
+        model_name = '{}Model'.format(mapping['table'])
+        mapper_kwargs = {}
+        table_kwargs = {}
+        if mapping['table'] in self.models:
+            mapper_kwargs['non_primary'] = True
+            table_kwargs['extend_existing'] = True
+        else:
+            self.models[mapping['table']] = type(model_name, (object,), {})
+        
+        fields = []
+        fields.append(Column('id', Integer, primary_key=True))
+        for field in self._fields_for_mapping(mapping):
+            fields.append(Column(field['db'], Unicode(255)))
+        t = Table(
+            mapping['table'],
+            self.metadata,
+            *fields,
+            **table_kwargs
+        )
+        self.metadata.create_all()
+        mapper(self.models[mapping['table']], t, **mapper_kwargs)
