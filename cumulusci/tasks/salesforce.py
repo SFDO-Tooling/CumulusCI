@@ -565,6 +565,10 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
             )
         )
 
+        skip = dependency.get('skip')
+        if not isinstance(skip, list):
+            skip = [skip,]
+
         # Initialize github3.py API against repo
         gh = self.project_config.get_github_api()
         repo_owner, repo_name = dependency['github'].split('/')[3:5]
@@ -587,6 +591,8 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
         contents = repo.contents('unpackaged/pre')
         if contents:
             for dirname in contents.keys():
+                if 'unpackaged/pre/{}'.format(dirname) in skip:
+                    continue
                 subfolder = "{}-{}/unpackaged/pre/{}".format(repo.name, repo.default_branch, dirname)
                 zip_url = "{}/archive/{}.zip".format(repo.html_url, repo.default_branch)
 
@@ -625,6 +631,8 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
         contents = repo.contents('unpackaged/post')
         if contents:
             for dirname in contents.keys():
+                if 'unpackaged/post/{}'.format(dirname) in skip:
+                    continue
                 zip_url = "{}/archive/{}.zip".format(repo.html_url, repo.default_branch)
                 subfolder = "{}-{}/unpackaged/post/{}".format(repo.name, repo.default_branch, dirname)
 
