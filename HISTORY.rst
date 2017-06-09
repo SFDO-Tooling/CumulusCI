@@ -2,6 +2,14 @@
 History
 =======
 
+2.0.0-beta42 (2017-06-09)
+------------------------
+
+* Move github dependency resolution logic into project_config.get_static_dependencies() for reuse in tasks other than UpdateDependencies
+* Fixed the mrbelvedere_publish task when using github references
+* Improved output from parsing github dependencies
+* Fix issue in `BulkDataQuery` character encoding when value contains utf8 special characters
+
 2.0.0-beta41 (2017-06-07)
 ------------------------
 
