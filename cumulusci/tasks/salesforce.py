@@ -543,7 +543,7 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
                     dependency_uninstalled = True
 
             # Process zip_url dependencies (unmanaged metadata)
-            elif 'zip_url' in dependency:
+            if 'zip_url' in dependency:
                 self._process_zip_dependency(dependency)
 
             # Process namespace dependencies (managed packages)

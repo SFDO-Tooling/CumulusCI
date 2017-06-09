@@ -343,12 +343,14 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         self._check_keychain()
         return self.keychain.set_org(name, org_config)
 
-    def get_static_dependencies(self):
+    def get_static_dependencies(self, dependencies=None):
         """ Resolves the project -> dependencies section of cumulusci.yml
             to convert dynamic github dependencies into static dependencies
             by inspecting the referenced repositories
         """
-        dependencies = self.project__dependencies
+        if not dependencies:
+            dependencies = self.project__dependencies
+            
         if not dependencies:
             return
    
@@ -477,6 +479,8 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
         project = cumulusci_yml.get('project', {})
         dependencies = project.get('dependencies')
+        if dependencies:
+            dependencies = self.get_static_dependencies(dependencies)
         version = None
 
         if namespace and not unmanaged:
