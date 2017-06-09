@@ -3,6 +3,7 @@ import os
 import sys
 import webbrowser
 import code
+import yaml
 
 import click
 from plaintable import Table
@@ -266,6 +267,14 @@ def project_info(config):
     check_project_config(config)
     click.echo(pretty_dict(config.project_config.project))
 
+@click.command(name="dependencies", help="Displays the current dependencies for the project.  If the dependencies section has references to other github repositories, the repositories are inspected and a static list of dependencies is created")
+@pass_config
+def project_dependencies(config):
+    check_project_config(config)
+    dependencies = config.project_config.get_static_dependencies()
+    for line in config.project_config.pretty_dependencies(dependencies):
+        click.echo(line)
+
 @click.command(name='list', help="List projects and their locations")
 @pass_config
 def project_list(config):
@@ -278,6 +287,7 @@ def project_cd(config):
 
 project.add_command(project_init)
 project.add_command(project_info)
+project.add_command(project_dependencies)
 #project.add_command(project_list)
 #project.add_command(project_cd)
 

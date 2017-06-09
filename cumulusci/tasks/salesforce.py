@@ -509,18 +509,21 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
             self.options['purge_on_delete'] = False
 
     def _run_task(self):
-        dependencies = self.project_config.project__dependencies
-        if not dependencies:
+        if not self.project_config.project__dependencies:
             self.logger.info('Project has no dependencies, doing nothing')
             return
+
+        self.logger.info('Preparing static dependencies map')
+        dependencies = self.project_config.get_static_dependencies()
 
         self.installed = self._get_installed()
         self.uninstall_queue = []
         self.install_queue = []
 
         self.logger.info('Dependencies:')
+        for line in self.project_config.pretty_dependencies(dependencies):
+            self.logger.info(line)
 
-        self.dependency_indent = None
         self._process_dependencies(dependencies)
 
         # Reverse the uninstall queue
@@ -529,10 +532,7 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
         self._uninstall_dependencies()
         self._install_dependencies()
 
-    def _process_dependencies(self, dependencies, indent=None):
-        if not indent:
-            indent = ''
-
+    def _process_dependencies(self, dependencies):
         for dependency in dependencies:
             # Process child dependencies
             dependency_uninstalled = False
@@ -542,193 +542,25 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
                 if count_uninstall != len(self.uninstall_queue):
                     dependency_uninstalled = True
 
-            # Process Github dependencies from other projects configured for CumulusCI
-            if 'github' in dependency:
-                self._process_github_dependency(dependency, indent)
-
             # Process zip_url dependencies (unmanaged metadata)
             elif 'zip_url' in dependency:
-                self._process_zip_dependency(dependency, indent)
+                self._process_zip_dependency(dependency)
 
             # Process namespace dependencies (managed packages)
             elif 'namespace' in dependency:
-                self._process_namespace_dependency(dependency, dependency_uninstalled, indent)
+                self._process_namespace_dependency(dependency, dependency_uninstalled)
 
-    def _process_github_dependency(self, dependency, indent=None):
-        if not indent:
-            indent = ''
-
-        self.logger.info(
-            '{}Processing dependencies from Github repo {}'.format(
-                indent,
-                dependency['github'],
-            )
-        )
-
-        skip = dependency.get('skip')
-        if not isinstance(skip, list):
-            skip = [skip,]
-
-        # Initialize github3.py API against repo
-        gh = self.project_config.get_github_api()
-        repo_owner, repo_name = dependency['github'].split('/')[3:5]
-        if repo_name.endswith('.git'):
-            repo_name = repo_name[:-4]
-        repo = gh.repository(repo_owner, repo_name)
-
-        # Get the cumulusci.yml file
-        contents = repo.contents('cumulusci.yml')
-        cumulusci_yml = hiyapyco.load(contents.decoded)
-
-        # Get the namespace from the cumulusci.yml if set
-        namespace = cumulusci_yml.get('project',{}).get('package',{}).get('namespace')
-
-        # Check for unmanaged flag on a namespaced package
-        unmanaged = namespace and dependency.get('unmanaged') is True
-
-        # Look for subfolders under unpackaged/pre
-        unpackaged_pre = []
-        contents = repo.contents('unpackaged/pre')
-        if contents:
-            for dirname in contents.keys():
-                if 'unpackaged/pre/{}'.format(dirname) in skip:
-                    continue
-                subfolder = "{}-{}/unpackaged/pre/{}".format(repo.name, repo.default_branch, dirname)
-                zip_url = "{}/archive/{}.zip".format(repo.html_url, repo.default_branch)
-
-                self.logger.info('{}Deploy {} of {}'.format(indent, subfolder, zip_url))
-                    
-                unpackaged_pre.append({
-                    'zip_url': zip_url,
-                    'subfolder': subfolder,
-                    'unmanaged': dependency.get('unmanaged'),
-                    'namespace_tokenize': dependency.get('namespace_tokenize'),
-                    'namespace_inject': dependency.get('namespace_inject'),
-                    'namespace_strip': dependency.get('namespace_strip'),
-                })
-
-        # Look for metadata under src (deployed if no namespace)
-        unmanaged_src = None
-        if unmanaged or not namespace:
-            contents = repo.contents('src')
-            if contents:
-                zip_url = "{}/archive/{}.zip".format(repo.html_url, repo.default_branch)
-                subfolder = "{}-{}/src".format(repo.name, repo.default_branch)
-
-                self.logger.info('{}Deploy {} of {}'.format(indent, subfolder, zip_url))
-
-                unmanaged_src = {
-                    'zip_url': zip_url,
-                    'subfolder': subfolder,
-                    'unmanaged': dependency.get('unmanaged'),
-                    'namespace_tokenize': dependency.get('namespace_tokenize'),
-                    'namespace_inject': dependency.get('namespace_inject'),
-                    'namespace_strip': dependency.get('namespace_strip'),
-                }
-
-        # Look for subfolders under unpackaged/post
-        unpackaged_post = []
-        contents = repo.contents('unpackaged/post')
-        if contents:
-            for dirname in contents.keys():
-                if 'unpackaged/post/{}'.format(dirname) in skip:
-                    continue
-                zip_url = "{}/archive/{}.zip".format(repo.html_url, repo.default_branch)
-                subfolder = "{}-{}/unpackaged/post/{}".format(repo.name, repo.default_branch, dirname)
-
-                self.logger.info('{}Deploy {} of {}'.format(indent, subfolder, zip_url))
-
-                dependency = {
-                    'zip_url': zip_url,
-                    'subfolder': subfolder,
-                    'unmanaged': dependency.get('unmanaged'),
-                    'namespace_tokenize': dependency.get('namespace_tokenize'),
-                    'namespace_inject': dependency.get('namespace_inject'),
-                    'namespace_strip': dependency.get('namespace_strip'),
-                }
-                # By default, we always inject the project's namespace into unpackaged/post metadata
-                if namespace and not dependency.get('namespace_inject'):
-                    dependency['namespace_inject'] = namespace
-                    dependency['unmananged'] = unmanaged
-                unpackaged_post.append(dependency)
-
-        project = cumulusci_yml.get('project', {})
-        dependencies = project.get('dependencies')
-        version = None
-
-        if namespace and not unmanaged:
-            # Get version 
-            version = dependency.get('version')
-            if 'version' not in dependency or dependency['version'] == 'latest':
-                # github3.py doesn't support the latest release API so we hack it together here
-                url = repo._build_url('releases/latest', base_url=repo._api)
-                try:
-                    version = repo._get(url).json()['name']
-                except Exception as e:
-                    self.logger.warn('{}{}: {}'.format(indent, e.__class__.__name__, e.message))
-    
-            if not version:
-                self.logger.warn('{}Could not find latest release for {}'.format(indent, namespace))
-
-        # Create the final ordered list of all parsed dependencies
-        repo_dependencies = []
-
-        # unpackaged/pre/*
-        if unpackaged_pre:
-            repo_dependencies.extend(unpackaged_pre)
-               
-        # Latest managed release (if referenced repo has a namespace) 
-        if namespace and not unmanaged:
-            if version:
-                # If a latest prod version was found, make the dependencies a child of that install
-                dependency = {
-                    'namespace': namespace,
-                    'version': version,
-                }
-                if dependencies:
-                    dependency['dependencies'] = dependencies
-    
-                repo_dependencies.append(dependency)
-            elif dependencies:
-                repo_dependencies.extend(dependencies)
-
-        # Unmanaged metadata from src (if referenced repo doesn't have a namespace)
-        else:
-            if dependencies:
-                repo_dependencies.extend(dependencies)
-            if unmanaged_src:
-                repo_dependencies.append(unmanaged_src)
-
-        # unpackaged/post/*
-        if unpackaged_post:
-            repo_dependencies.extend(unpackaged_post)
-               
-        # Process dependencies if any found 
-        if repo_dependencies:
-            if not indent:
-                indent = '  '
-            else:
-                indent += '  '
-            self._process_dependencies(repo_dependencies, indent)
-
-    def _process_zip_dependency(self, dependency, indent=None):
-        if not indent:
-            indent = ''
-
+    def _process_zip_dependency(self, dependency):
         self.install_queue.append(dependency)    
 
-    def _process_namespace_dependency(self, dependency, dependency_uninstalled=None, indent=None):
-        if not indent:
-            indent = ''
-
+    def _process_namespace_dependency(self, dependency, dependency_uninstalled=None):
         dependency_version = str(dependency['version'])
 
         if dependency['namespace'] in self.installed:
             # Some version is installed, check what to do
             installed_version = self.installed[dependency['namespace']]
             if dependency_version == installed_version:
-                self.logger.info('{}  {}: version {} already installed'.format(
-                    indent,
+                self.logger.info('  {}: version {} already installed'.format(
                     dependency['namespace'],
                     dependency_version,
                 ))
@@ -740,8 +572,7 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
             if 'Beta' in installed_version.vstring:
                 # Always uninstall Beta versions if required is different
                 self.uninstall_queue.append(dependency)
-                self.logger.info('{}  {}: Uninstall {} to upgrade to {}'.format(
-                    indent,
+                self.logger.info('  {}: Uninstall {} to upgrade to {}'.format(
                     dependency['namespace'],
                     installed_version,
                     dependency['version'],
@@ -749,22 +580,19 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
             elif dependency_uninstalled:
                 # If a dependency of this one needs to be uninstalled, always uninstall the package
                 self.uninstall_queue.append(dependency)
-                self.logger.info('{}  {}: Uninstall and Reinstall to allow downgrade of dependency'.format(
-                    indent,
+                self.logger.info('  {}: Uninstall and Reinstall to allow downgrade of dependency'.format(
                     dependency['namespace'],
                 ))
             elif required_version < installed_version:
                 # Uninstall to downgrade
                 self.uninstall_queue.append(dependency)
-                self.logger.info('{}  {}: Downgrade from {} to {} (requires uninstall/install)'.format(
-                    indent,
+                self.logger.info('  {}: Downgrade from {} to {} (requires uninstall/install)'.format(
                     dependency['namespace'],
                     installed_version,
                     dependency['version'],
                 ))
             else:
-                self.logger.info('{}  {}: Upgrade from {} to {}'.format(
-                    indent,
+                self.logger.info('  {}: Upgrade from {} to {}'.format(
                     dependency['namespace'],
                     installed_version,
                     dependency['version'],
@@ -772,8 +600,7 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
             self.install_queue.append(dependency)
         else:
             # Just a regular install
-            self.logger.info('{}  {}: Install version {}'.format(
-                    indent,
+            self.logger.info('  {}: Install version {}'.format(
                     dependency['namespace'],
                     dependency['version'],
             ))
