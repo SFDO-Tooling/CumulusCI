@@ -89,6 +89,8 @@ class MrbelvederePublish(BaseMrbelvedereTask):
         if not dependency_list:
             return cleaned_dependencies
         for dependency in dependency_list:
+            if 'namespace' not in dependency:
+                continue
             if 'dependencies' in dependency:
                 cleaned_dependencies.extend(
                     self._clean_dependencies(dependency['dependencies']))
