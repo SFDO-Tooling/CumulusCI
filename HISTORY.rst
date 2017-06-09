@@ -2,6 +2,11 @@
 History
 =======
 
+2.0.0-beta43 (2017-06-09)
+------------------------
+
+* Fix issue in `mrbelvedere_publish` where the new zip_url dependencies weren't being skipped
+
 2.0.0-beta42 (2017-06-09)
 ------------------------
 
