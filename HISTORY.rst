@@ -2,6 +2,11 @@
 History
 =======
 
+2.0.0-beta44 (2017-06-09)
+------------------------
+
+* Fix issue in `update_dependencies` when a github dependency depends on another github dependency
+
 2.0.0-beta43 (2017-06-09)
 ------------------------
 
