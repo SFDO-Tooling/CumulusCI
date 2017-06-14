@@ -3,7 +3,7 @@
     "test": {
       "scripts": {
         "test-setup": "pip install --upgrade -r requirements_dev.txt",
-        "test": "nosetests"
+        "test": "nosetests --with-tap --tap-stream"
       }
     }
   }
