@@ -107,13 +107,14 @@ class BaseSalesforceToolingApiTask(BaseSalesforceApiTask):
         obj.base_url = obj.base_url.replace('/sobjects/', '/tooling/sobjects/')
         return obj
 
-class BaseSalesforceBulkApiTask(BaseSalesforceTask):
+class BaseSalesforceBulkApiTask(BaseSalesforceApiTask):
     name = 'BaseSalesforceBulkApiTask'
 
     def _init_task(self):
-        self.bulk = self._init_api()
+        super(BaseSalesforceBulkApiTask, self)._init_task()
+        self.bulk = self._init_bulk()
 
-    def _init_api(self):
+    def _init_bulk(self):
         return SalesforceBulk(
             host=self.org_config.instance_url.replace('https://', ''),
             sessionId=self.org_config.access_token,

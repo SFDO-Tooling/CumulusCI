@@ -229,11 +229,19 @@ class LoadData(BaseSalesforceBulkApiTask):
 
         # Build the list of fields to import
         import_fields = fields.keys() + static.keys() + lookups.keys()
-        
+
         if record_type:
             import_fields.append('RecordTypeId')
-            # query for record type by dev name
-            record_type_id = None
+            # default to the profile assigned recordtype if we can't find any
+            # query for the RT by developer name
+            try:
+                query = "SELECT Id FROM RecordType WHERE SObjectType='{0}'" \
+                    "AND DeveloperName = '{1}' LIMIT 1"
+                record_type_id = self.sf.query(
+                    query.format(mapping.get('sf_object'), record_type)
+                )['records'][0]['Id']
+            except (KeyError, IndexError):
+                record_type_id = None
 
         query = self._query_db(mapping)
 
