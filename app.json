@@ -2,7 +2,7 @@
   "environments": {
     "test": {
       "scripts": {
-        "test-setup": "pip install -r requirements.txt",
+        "test-setup": "pip install --upgrade -r requirements_dev.txt",
         "test": "nosetests"
       }
     }
