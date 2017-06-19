@@ -2,8 +2,8 @@
   "environments": {
     "test": {
       "scripts": {
-        "test-setup": "pip install -r requirements.txt",
-        "test": "nosetests"
+        "test-setup": "pip install --upgrade -r requirements_dev.txt",
+        "test": "nosetests --with-tap --tap-stream"
       }
     }
   }
