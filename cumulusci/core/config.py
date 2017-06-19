@@ -616,8 +616,8 @@ class ScratchOrgConfig(OrgConfig):
 
         self.logger.info('Getting scratch org info from Salesforce DX')
 
-        # Call force:org:open and parse output to get instance_url and access_token
-        command = 'sfdx force:org:describe -u {} --json'.format(self.username)
+        # Call force:org:display and parse output to get instance_url and access_token
+        command = 'sfdx force:org:display -u {} --json'.format(self.username)
         p = sarge.Command(command, stdout=sarge.Capture(buffer_size=-1))
         p.run()
 
@@ -646,15 +646,14 @@ class ScratchOrgConfig(OrgConfig):
                         ''.join(stdout_list),
                     )
                 )
-
-            org_id = org_info['accessToken'].split('!')[0]
+            org_id = org_info['result']['accessToken'].split('!')[0]
 
         self._scratch_info = {
-            'instance_url': org_info['instanceUrl'],
-            'access_token': org_info['accessToken'],
+            'instance_url': org_info['result']['instanceUrl'],
+            'access_token': org_info['result']['accessToken'],
             'org_id': org_id,
-            'username': org_info['username'],
-            'password': org_info.get('password',None),
+            'username': org_info['result']['username'],
+            'password': org_info['result'].get('password',None),
         }
 
         self.config.update(self._scratch_info)
