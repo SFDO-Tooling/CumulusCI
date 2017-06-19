@@ -366,12 +366,12 @@ class QueryData(BaseSalesforceBulkApiTask):
 
     def _init_mapping(self):
         self.mappings = hiyapyco.load(self.options['mapping'])
-        self.mappings = [(name, mapping) for name, mapping in self.mappings.items()]
-        self.mappings.reverse()
-        rev_mappings = OrderedDict()
-        for mapping_item in self.mappings:
-            rev_mappings[mapping_item[0]] = mapping_item[1]
-        self.mappings = rev_mappings
+        #self.mappings = [(name, mapping) for name, mapping in self.mappings.items()]
+        #self.mappings.reverse()
+        #rev_mappings = OrderedDict()
+        #for mapping_item in self.mappings:
+        #    rev_mappings[mapping_item[0]] = mapping_item[1]
+        #self.mappings = rev_mappings
 
     def _soql_for_mapping(self, mapping):
         sf_object = mapping['sf_object']
@@ -417,7 +417,7 @@ class QueryData(BaseSalesforceBulkApiTask):
                 kwargs = { lookup['value_field']: value }
                 res = self.session.query(lookup_model).filter_by(**kwargs).first()
                 if res:
-                    mapped_row[field_map[key]] = res.id.decode('utf-8')
+                    mapped_row[field_map[key]] = res.id
                 else:
                     mapped_row[field_map[key]] = None
             else:
