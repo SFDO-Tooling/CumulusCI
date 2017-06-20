@@ -1,18 +1,21 @@
 slides = [
     {
-        'scale': [.95, .95],
+        'translate': [195,46],
+        'scale': [.44, .44],
         'opacity_speed': 1,
         'transform_speed': 1
     },
     {
-        'scale': [.95, .95],
+        'translate': [195,46],
+        'scale': [.44, .44],
         'visible': [
             'layer-master'
         ],
         'step_layer': 'layer-master'
     },
     {
-        'scale': [.95, .95],
+        'translate': [195,46],
+        'scale': [.44, .44],
         'visible': [
             'layer-master',
             'layer-long_feature'
@@ -20,7 +23,8 @@ slides = [
         'step_layer': 'layer-long_feature'
     },
     {
-        'scale': [.95, .95],
+        'translate': [195,46],
+        'scale': [.44, .44],
         'visible': [
             'layer-1_1_beta1',
             'layer-master',
@@ -29,7 +33,8 @@ slides = [
         'step_layer': 'layer-1_1_beta1'
     },
     {
-        'scale': [.95, .95],
+        'translate': [195,46],
+        'scale': [.44, .44],
         'visible': [
             'layer-1_1_beta1',
             'layer-1_1_beta1_merge',
@@ -38,7 +43,8 @@ slides = [
         ]
     },
     {
-        'scale': [.95, .95],
+        'translate': [195,46],
+        'scale': [.44, .44],
         'visible': [
             'layer-1_1_beta1',
             'layer-1_1_beta1_merge',
@@ -49,7 +55,8 @@ slides = [
         'step_layer': 'layer-1_1_beta2'
     },
     {
-        'scale': [.95, .95],
+        'translate': [195,46],
+        'scale': [.44, .44],
         'visible': [
             'layer-1_1_beta1',
             'layer-1_1_beta1_merge',
@@ -60,7 +67,8 @@ slides = [
         ]
     },
     {
-        'scale': [.95, .95],
+        'translate': [195,46],
+        'scale': [.44, .44],
         'visible': [
             'layer-1_1_beta1',
             'layer-1_1_beta1_merge',
@@ -73,7 +81,8 @@ slides = [
         'step_layer': 'layer-1_1_beta3'
     },
     {
-        'scale': [.95, .95],
+        'translate': [195,46],
+        'scale': [.44, .44],
         'visible': [
             'layer-1_1_beta1',
             'layer-1_1_beta1_merge',
@@ -86,7 +95,8 @@ slides = [
         ]
     },
     {
-        'scale': [.95, .95],
+        'translate': [195,46],
+        'scale': [.44, .44],
         'visible': [
             'layer-1_1',
             'layer-1_1_beta1',
