@@ -1,0 +1,8 @@
+title: Cumulus CI
+description: Documentation and scripts used in the Continuous Integration process for Project Cumulus
+google_analytics: 
+show_downloads: true
+theme: jekyll-theme-tactile
+
+gems:
+  - jekyll-mentions
