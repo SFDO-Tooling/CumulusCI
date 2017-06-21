@@ -1,4 +1,4 @@
-from cumulusci.tasks.salesforce import BaseSalesforceBulkApiTask
+from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 
 import csv
 import time
@@ -46,7 +46,7 @@ def setup_epoch(inspector, table, column_info):
     if isinstance(column_info['type'], types.DateTime):
         column_info['type'] = EpochType()
 
-class DeleteData(BaseSalesforceBulkApiTask):
+class DeleteData(BaseSalesforceApiTask):
 
     task_options = {
         'objects': {
@@ -88,7 +88,7 @@ class DeleteData(BaseSalesforceBulkApiTask):
             for batch in self._upload_batch(delete_job, delete_rows):
                 self.logger.info('    Uploaded batch {}'.format(batch))
                 while not self.bulk.is_batch_done(delete_job, batch):
-                    self.logger.info('      Checking status of batch'.format(batch_num))
+                    self.logger.info('      Checking status of batch {0}'.format(batch_num))
                     time.sleep(10)
                 self.logger.info('      Batch {} complete'.format(batch))
                 batch_num += 1
@@ -120,7 +120,7 @@ class DeleteData(BaseSalesforceBulkApiTask):
 
             yield batch_id
         
-class LoadData(BaseSalesforceBulkApiTask):
+class LoadData(BaseSalesforceApiTask):
 
     task_options = {
         'database_url': {
@@ -325,7 +325,7 @@ class LoadData(BaseSalesforceBulkApiTask):
     def _init_mapping(self):
         self.mapping = hiyapyco.load(self.options['mapping'])
 
-class QueryData(BaseSalesforceBulkApiTask):
+class QueryData(BaseSalesforceApiTask):
     task_options = {
         'database_url': {
             'description': 'A DATABASE_URL where the query output should be written',
