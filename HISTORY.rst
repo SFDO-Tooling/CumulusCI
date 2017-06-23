@@ -2,6 +2,26 @@
 History
 =======
 
+2.0.0-beta45 (2017-06-23)
+------------------------
+
+* The new `BaseSalesforceApiTask` class replaces `BaseSalesforceApiTask`, `BaseSalesforceBulkApiTask`, and `BaseSalesforceToolingApiTask` by combining them into a single task class with access to all 3 API's via `self.sf`, `self.tooling`, and `self.bulk` from inside a task instance.
+* Added integration with sentry.io
+
+  * Use `cci service connect sentry` to enable the sentry service
+  * All task execution exceptions will be logged as error events in sentry
+  * `cci task run` and `cci flow run` will now show you the url to the sentry event if one was registered and prompt to open in a browser.
+  * `cci task run` and `cci flow run` now accept the `--no-prompt` option flag for running in non-interactive mode with the sentry service configured.  Use this if you want to log build errors in sentry but not have builds fail due to a hanging prompt.
+
+* If a scratch org password has expired, it is now regenerated when calling `cci org info`
+* New task `unschedule_apex` was added to unschedule background jobs and added to the start of the `dev_org` flow
+* `update_meta_xml` task now uses the project's dependencies as the namespace/version to update in the meta.xml files
+* The bulkdata mapping now properly supports Record Types
+* Fixed a bug with BulkDataQuery where local references weren't getting properly set
+* New CumulusCI Branch & Release Overview diagram presention is available at http://developer.salesforce.org/CumulusCI/diagram/process_overview.html  Use left/right arrow buttons on your keyboard to navigate through the presentation.
+* CumulusCI is now being built by Heroku CI using the config in `app.json`
+
+
 2.0.0-beta44 (2017-06-09)
 ------------------------
 
