@@ -108,7 +108,7 @@ def check_project_config(config):
     if not config.project_config:
         raise click.UsageError('No project configuration found.  You can use the "project init" command to initilize the project for use with CumulusCI')
 
-def handle_sentry_event(config):
+def handle_sentry_event(config, no_prompt):
     event = config.project_config.sentry_event
     if not event:
         return
@@ -122,7 +122,7 @@ def handle_sentry_event(config):
     )
     click.echo('An error event was recorded in sentry.io and can be viewed at the url:\n{}'.format(event_url))
 
-    if click.confirm('Do you want to open a browser to view the error in sentry.io?'):
+    if not no_prompt and click.confirm('Do you want to open a browser to view the error in sentry.io?'):
         webbrowser.open(event_url)
 
 # Root command
