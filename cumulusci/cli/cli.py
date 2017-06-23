@@ -592,8 +592,9 @@ def task_info(config, task_name):
 @click.option('--debug', is_flag=True, help="Drops into pdb, the Python debugger, on an exception")
 @click.option('--debug-before', is_flag=True, help="Drops into the Python debugger right before task start.")
 @click.option('--debug-after', is_flag=True, help="Drops into the Python debugger at task completion.")
+@click.option('--no-prompt', is_flag=True, help="Disables all prompts.  Set for non-interactive mode use such as calling from scripts or CI systems")
 @pass_config
-def task_run(config, task_name, org, o, debug, debug_before, debug_after):
+def task_run(config, task_name, org, o, debug, debug_before, debug_after, no_prompt):
     # Check environment
     check_keychain(config)
 
@@ -647,7 +648,7 @@ def task_run(config, task_name, org, o, debug, debug_before, debug_after):
             traceback.print_exc()
             pdb.post_mortem()
         else:
-            handle_sentry_event(config)
+            handle_sentry_event(config, no_prompt)
             raise
             
     if debug_before:
@@ -672,7 +673,7 @@ def task_run(config, task_name, org, o, debug, debug_before, debug_after):
                 traceback.print_exc()
                 pdb.post_mortem()
             else:
-                handle_sentry_event(config)
+                handle_sentry_event(config, no_prompt)
                 raise
 
     # Save the org config in case it was modified in the task
@@ -685,7 +686,7 @@ def task_run(config, task_name, org, o, debug, debug_before, debug_after):
 
 
     if exception:
-        handle_sentry_event(config)
+        handle_sentry_event(config, no_prompt)
         raise exception
 
 
@@ -725,8 +726,9 @@ def flow_info(config, flow_name):
 @click.option('--debug', is_flag=True, help="Drops into pdb, the Python debugger, on an exception")
 @click.option('-o', nargs=2, multiple=True, help="Pass task specific options for the task as '-o taskname__option value'.  You can specify more than one option by using -o more than once.")
 @click.option('--skip', multiple=True, help="Specify task names that should be skipped in the flow.  Specify multiple by repeating the --skip option")
+@click.option('--no-prompt', is_flag=True, help="Disables all prompts.  Set for non-interactive mode use such as calling from scripts or CI systems")
 @pass_config
-def flow_run(config, flow_name, org, delete_org, debug, o, skip):
+def flow_run(config, flow_name, org, delete_org, debug, o, skip, no_prompt):
     # Check environment
     check_keychain(config)
 
@@ -793,7 +795,7 @@ def flow_run(config, flow_name, org, delete_org, debug, o, skip):
                 traceback.print_exc()
                 pdb.post_mortem()
             else:
-                handle_sentry_event(config)
+                handle_sentry_event(config, no_prompt)
                 raise
 
     # Delete the scratch org if --delete-org was set
@@ -809,7 +811,7 @@ def flow_run(config, flow_name, org, delete_org, debug, o, skip):
         config.keychain.set_org(org, org_config)
 
     if exception:
-        handle_sentry_event(config)
+        handle_sentry_event(config, no_prompt)
         raise exception
 
 flow.add_command(flow_list)
