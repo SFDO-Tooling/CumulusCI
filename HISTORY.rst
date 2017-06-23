@@ -2,6 +2,11 @@
 History
 =======
 
+2.0.0-beta46 (2017-06-23)
+------------------------
+
+* Fix bug in implementation of the `--no-prompt` flag when sentry is configured
+
 2.0.0-beta45 (2017-06-23)
 ------------------------
 
