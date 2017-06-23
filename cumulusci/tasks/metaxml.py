@@ -71,30 +71,35 @@ class UpdateDependencies(MetaXmlBaseTask):
         'dir': {
             'description': 'Base directory to search for *-meta.xml files',
         },
-        'namespace': {
-            'description': 'Package namespace e.g. npe01',
-            'required': True,
-        },
-        'version': {
-            'description': 'Package version number e.g. 1.2',
-            'required': True,
-        },
     }
+
+    def _init_task(self):
+        self.dependencies = []
+        dependencies = self.project_config.get_static_dependencies()
+        self._process_dependencies(dependencies)
+
+    def _process_dependencies(self, dependencies):
+        for dependency in dependencies:
+            if 'dependencies' in dependency:
+                self._process_dependencies(dependency['dependencies'])
+            self.dependencies.append(
+                (dependency['namespace'], str(dependency['version']))
+            )
 
     def _process_xml(self, root):
         changed = False
         xmlns = re.search('({.+}).+', root.tag).group(1)
-        v_major, v_minor = self.options['version'].split('.')
-        for package_version in root.findall('{}packageVersions'.format(xmlns)):
-            namespace = package_version.find('{}namespace'.format(xmlns)).text
-            if namespace != self.options['namespace']:
-                continue
-            major = package_version.find('{}majorNumber'.format(xmlns))
-            if major.text != v_major:
-                major.text = v_major
-                changed = True
-            minor = package_version.find('{}minorNumber'.format(xmlns))
-            if minor.text != v_minor:
-                minor.text = v_minor
-                changed = True
+        for namespace, version in self.dependencies:
+            v_major, v_minor = version.split('.')
+            for package_version in root.findall('{}packageVersions'.format(xmlns)):
+                if package_version.find('{}namespace'.format(xmlns)).text != namespace:
+                    continue
+                major = package_version.find('{}majorNumber'.format(xmlns))
+                if major.text != v_major:
+                    major.text = v_major
+                    changed = True
+                minor = package_version.find('{}minorNumber'.format(xmlns))
+                if minor.text != v_minor:
+                    minor.text = v_minor
+                    changed = True
         return changed
