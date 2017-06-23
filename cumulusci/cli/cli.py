@@ -108,6 +108,23 @@ def check_project_config(config):
     if not config.project_config:
         raise click.UsageError('No project configuration found.  You can use the "project init" command to initilize the project for use with CumulusCI')
 
+def handle_sentry_event(config):
+    event = config.project_config.sentry_event
+    if not event:
+        return
+
+    sentry_config = config.project_config.keychain.get_service('sentry')
+    event_url = '{}/{}/{}/?query={}'.format(
+        config.project_config.sentry.remote.base_url,
+        sentry_config.org_slug,
+        sentry_config.project_slug,
+        event,
+    )
+    click.echo('An error event was recorded in sentry.io and can be viewed at the url:\n{}'.format(event_url))
+
+    if click.confirm('Do you want to open a browser to view the error in sentry.io?'):
+        webbrowser.open(event_url)
+
 # Root command
 @click.group('cli')
 @pass_config
@@ -630,6 +647,7 @@ def task_run(config, task_name, org, o, debug, debug_before, debug_after):
             traceback.print_exc()
             pdb.post_mortem()
         else:
+            handle_sentry_event(config)
             raise
             
     if debug_before:
@@ -654,6 +672,7 @@ def task_run(config, task_name, org, o, debug, debug_before, debug_after):
                 traceback.print_exc()
                 pdb.post_mortem()
             else:
+                handle_sentry_event(config)
                 raise
 
     # Save the org config in case it was modified in the task
@@ -666,6 +685,7 @@ def task_run(config, task_name, org, o, debug, debug_before, debug_after):
 
 
     if exception:
+        handle_sentry_event(config)
         raise exception
 
 
@@ -773,6 +793,7 @@ def flow_run(config, flow_name, org, delete_org, debug, o, skip):
                 traceback.print_exc()
                 pdb.post_mortem()
             else:
+                handle_sentry_event(config)
                 raise
 
     # Delete the scratch org if --delete-org was set
@@ -788,6 +809,7 @@ def flow_run(config, flow_name, org, delete_org, debug, o, skip):
         config.keychain.set_org(org, org_config)
 
     if exception:
+        handle_sentry_event(config)
         raise exception
 
 flow.add_command(flow_list)

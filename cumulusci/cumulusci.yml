@@ -447,6 +447,21 @@ services:
       api_key:
         description: The Saucelabs api key to use for tasks  
         required: True
+  sentry:
+    description: Configure connection to sentry.io for error tracking
+    attributes:
+      dsn:
+        description: "The sentry DSN for connecting to the API, see https://docs.sentry.io/quickstart/#configure-the-dsn"
+        required: True
+      api_key:
+        description: "The sentry web api auth key for your account, see https://docs.sentry.io/api/auth/"
+        required: True
+      org_slug:
+        description: "The abbreviated organization name used in the your sentry urls"
+        required: True
+      project_slug:
+        description: "The abbreviated project slug used in sentry urls to the project"
+        required: True
 
 project:
     name:

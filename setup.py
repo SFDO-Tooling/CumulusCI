@@ -25,6 +25,7 @@ requirements = [
     'docutils>=0.13.1',
     'github3.py==0.9.6',
     'plaintable==0.1.1',
+    'raven>=0.6.1',
     'requests[security]>=2.9.1',
     'responses>=0.5.1',
     'rst2ansi>=0.1.5',

@@ -6,6 +6,7 @@ lxml==3.8.0
 mock
 plaintable==0.1.1
 sarge==0.1.4
+raven==6.1.0
 requests[security]==2.9.1
 responses==0.5.1
 rst2ansi==0.1.5
