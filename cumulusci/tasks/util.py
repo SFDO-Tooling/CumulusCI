@@ -135,3 +135,80 @@ class Delete(BaseTask):
                 'Deleting file {}'.format(path)
             )
             os.remove(path)
+
+
+class FindReplace(BaseTask):
+    task_options = {
+        'find': {
+            'description': "The string to search for",
+            'required': True,
+        },
+        'replace': {
+            'description': "The string to replace matches with. Defaults to an empty string",
+            'required': True,
+        },
+        'path': {
+            'description': "The path to recursively search",
+            'required': True,
+        },
+        'file_pattern': {
+            'description': "A UNIX like filename pattern used for matching filenames.  See python fnmatch docs for syntax.  Defaults to *",
+            'required': True,
+        },
+        'max': {
+            'description': "The max number of matches to replace.  Defaults to replacing all matches.",
+        },
+    }
+    
+    def _init_options(self):
+        if 'replace' not in self.options:
+            self.options['replace'] = ''
+        if 'file_pattern' not in self.options:
+            self.options['file_pattern'] = '*'
+
+    def _run_task(self):
+        kwargs = {}
+        if 'max' in self.options:
+            kwargs['max'] = self.options['max']
+        findReplace(
+            find = self.options['find'],
+            replace = self.options['replace'],
+            directory = self.options['path'],
+            filePattern = self.options['file_pattern'],
+            logger = self.logger,
+            **kwargs
+        )
+
+find_replace_regex_options = FindReplace.task_options.copy()
+del find_repalce_regex_options['max']
+
+class FindReplaceRegex(FindReplace):
+    task_options = find_replace_regex_options
+            
+    def _run_task(self):
+        findReplaceRegex(
+            find = self.options['find'],
+            replace = self.options['replace'],
+            directory = self.options['path'],
+            filePattern = self.options['file_pattern'],
+            logger = self.logger,
+        )
+
+class CopyFile(BaseTask):
+    task_options = {
+        'src': {
+            'description': 'The path to the source file to copy',
+            'required': True,
+        },
+        'dest': {
+            'description': 'The destination path where the src file should be copied',
+            'required': True,
+        },
+    }
+
+    def _run_task(self):
+        self.logger.info('Copying file {src} to {dest}'.format(**self.options))
+        shutil.copyfile(
+            src = self.options['src'],
+            dst = self.options['dest'],
+        )

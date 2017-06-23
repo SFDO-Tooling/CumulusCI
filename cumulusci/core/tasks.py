@@ -91,9 +91,32 @@ class BaseTask(object):
         pass
 
     def __call__(self):
-        self._log_begin()
-        self.result = self._run_task()
-        return self.return_values
+        # If sentry is configured, initialize sentry for error capture
+        self.project_config.init_sentry()
+
+        try:
+            self._log_begin()
+            self.result = self._run_task()
+            return self.return_values
+        except Exception as e:
+            self._process_exception(e)
+            raise
+
+    def _process_exception(self, e):
+        if self.project_config.use_sentry:
+            self.logger.info('Logging error to sentry.io')
+
+            tags = {
+                'task class': self.__class__.__name__,
+                'org username': self.org_config.username,
+                'scratch org': self.org_config.scratch == True,
+            }
+            for key, value in self.options.items():
+                tags['option_' + key] = value
+            self.project_config.sentry.tags_context(tags)
+
+            resp = self.project_config.sentry.captureException()
+            self.project_config.sentry_event = resp
 
     def _run_task(self):
         """ Subclasses should override to provide their implementation """

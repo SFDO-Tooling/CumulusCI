@@ -9,6 +9,7 @@ import re
 from collections import OrderedDict
 
 import hiyapyco
+import raven
 import sarge
 from simple_salesforce import Salesforce
 import yaml
@@ -20,11 +21,14 @@ from github3 import login
 from Crypto import Random
 from Crypto.Cipher import AES
 
+import cumulusci
 from cumulusci.core.exceptions import ConfigError
 from cumulusci.core.exceptions import NotInProject
 from cumulusci.core.exceptions import KeychainConnectedAppNotFound
 from cumulusci.core.exceptions import ProjectConfigNotFound
 from cumulusci.core.exceptions import ScratchOrgException
+from cumulusci.core.exceptions import ServiceNotConfigured
+from cumulusci.core.exceptions import ServiceNotValid
 from cumulusci.core.exceptions import SOQLQueryException
 from cumulusci.core.exceptions import KeychainNotFound
 from cumulusci.oauth.salesforce import SalesforceOAuth2
@@ -243,6 +247,42 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                         break
 
         return commit_sha
+
+    @property
+    def use_sentry(self):
+        try:
+            self.keychain.get_service('sentry') 
+            return True
+        except ServiceNotConfigured:
+            return False
+        except ServiceNotValid:
+            return False
+
+    def init_sentry(self, ):
+        """ Initializes sentry.io error logging for this session """
+        if not self.use_sentry:
+            return
+            
+        sentry_config = self.keychain.get_service('sentry') 
+
+        tags = {
+            'repo': self.repo_name,
+            'branch': self.repo_branch,
+            'commit': self.repo_commit,
+            'cci version': cumulusci.__version__,
+        }
+        tags.update(self.config.get('sentry_tags',{}))
+
+        env = self.config.get('sentry_environment', 'CumulusCI CLI')
+
+        self.sentry = raven.Client(
+            dsn = sentry_config.dsn,
+            environment = env,
+            tags = tags,
+            processors = (
+                'raven.processors.SanitizePasswordsProcessor',
+            ),
+        )
     
     def get_github_api(self):
         github_config = self.keychain.get_service('github')

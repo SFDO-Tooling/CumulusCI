@@ -129,7 +129,7 @@ class BaseProjectKeychain(BaseConfig):
 
     def set_service(self, name, service_config, project=False):
         """ Store a ServiceConfig in the keychain """
-        if name not in self.project_config.services:
+        if not self.project_config.services or name not in self.project_config.services:
             self._raise_service_not_valid(name)
         self._validate_service(name, service_config)
         self._set_service(name, service_config, project)
@@ -147,7 +147,7 @@ class BaseProjectKeychain(BaseConfig):
         :rtype ServiceConfig
         :return the configured Service
         """
-        if name not in self.project_config.services:
+        if not self.project_config.services or name not in self.project_config.services:
             self._raise_service_not_valid(name)
         if name not in self.services:
             self._raise_service_not_configured(name)
