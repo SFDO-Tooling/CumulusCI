@@ -649,6 +649,10 @@ class ScratchOrgConfig(OrgConfig):
 
             org_id = org_info['accessToken'].split('!')[0]
 
+        if org_info.get('password', None) is None:
+            self.generate_password()
+            return self.scratch_info
+
         self._scratch_info = {
             'instance_url': org_info['instanceUrl'],
             'access_token': org_info['accessToken'],
@@ -743,6 +747,14 @@ class ScratchOrgConfig(OrgConfig):
             message = 'Failed to create scratch org: \n{}'.format(''.join(stdout))
             raise ScratchOrgException(message)
 
+        
+        self.generate_password()
+
+        # Flag that this org has been created
+        self.config['created'] = True
+
+    def generate_password(self):
+        """Generates an org password with the sfdx utility. """
         # Set a random password so it's available via cci org info
         command = 'sfdx force:user:password:generate -u {}'.format(self.username)
         self.logger.info('Generating scratch org user password with command {}'.format(command))
@@ -761,9 +773,6 @@ class ScratchOrgConfig(OrgConfig):
             self.logger.warn(
                 'Failed to set password: \n{}\n{}'.format('\n'.join(stdout),'\n'.join(stderr))
             )
-
-        # Flag that this org has been created
-        self.config['created'] = True
 
     def delete_org(self):
         """ Uses sfdx force:org:delete to create the org """
