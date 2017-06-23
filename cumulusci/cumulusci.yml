@@ -195,6 +195,11 @@ tasks:
             path: unpackaged/post
             filename_token: ___NAMESPACE___
             managed: True
+    unschedule_apex:
+        description: Unschedule all scheduled apex jobs (CronTriggers).
+        class_path: cumulusci.tasks.anonymous_apex.AnonymousApexTask
+        options:
+            apex: 'for (CronTrigger t : [SELECT Id FROM CronTrigger]) { System.abortJob(t.Id); }'
     update_admin_profile:
         description: Retrieves, edits, and redeploys the Admin.profile with full FLS perms for all objects/fields
         class_path: cumulusci.tasks.salesforce.UpdateAdminProfile
@@ -230,6 +235,8 @@ flows:
     dev_org:
         description: Deploys the unmanaged package metadata and all dependencies to the target org
         tasks:
+            0.5:
+                task: unschedule_apex
             1:
                 task: create_package
             2:
