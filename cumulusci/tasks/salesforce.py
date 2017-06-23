@@ -77,27 +77,31 @@ class BaseSalesforceApiTask(BaseSalesforceTask):
 
     def _init_task(self):
         self.sf = self._init_api()
+        self.bulk = self._init_bulk()
+        self.tooling = self._init_api('tooling/')
+        self._init_class()
+    
 
-    def _init_api(self):
+    def _init_api(self, base_url=None):
         if self.api_version:
             api_version = self.api_version
         else:
             api_version = self.project_config.project__package__api_version
 
-        return Salesforce(
+        rv = Salesforce(
             instance=self.org_config.instance_url.replace('https://', ''),
             session_id=self.org_config.access_token,
             version=api_version,
         )
+        if base_url is not None:
+            rv.base_url += base_url
+        return rv
 
-
-class BaseSalesforceToolingApiTask(BaseSalesforceApiTask):
-    name = 'BaseSalesforceToolingApiTask'
-
-    def _init_task(self):
-        self.tooling = self._init_api()
-        self.tooling.base_url += 'tooling/'
-        self._init_class()
+    def _init_bulk(self):
+        return SalesforceBulk(
+            host=self.org_config.instance_url.replace('https://', ''),
+            sessionId=self.org_config.access_token,
+        )
 
     def _init_class(self):
         pass
@@ -107,18 +111,6 @@ class BaseSalesforceToolingApiTask(BaseSalesforceApiTask):
         obj.base_url = obj.base_url.replace('/sobjects/', '/tooling/sobjects/')
         return obj
 
-class BaseSalesforceBulkApiTask(BaseSalesforceApiTask):
-    name = 'BaseSalesforceBulkApiTask'
-
-    def _init_task(self):
-        super(BaseSalesforceBulkApiTask, self)._init_task()
-        self.bulk = self._init_bulk()
-
-    def _init_bulk(self):
-        return SalesforceBulk(
-            host=self.org_config.instance_url.replace('https://', ''),
-            sessionId=self.org_config.access_token,
-        )
 
 class GetInstalledPackages(BaseSalesforceMetadataApiTask):
     api_class = ApiRetrieveInstalledPackages
@@ -1082,7 +1074,7 @@ class UpdateAdminProfile(Deploy):
         return api()
 
 
-class PackageUpload(BaseSalesforceToolingApiTask):
+class PackageUpload(BaseSalesforceApiTask):
     name = 'PackageUpload'
     api_version = '38.0'
     task_options = {
@@ -1201,7 +1193,7 @@ class PackageUpload(BaseSalesforceToolingApiTask):
 
 
 
-class RunApexTests(BaseSalesforceToolingApiTask):
+class RunApexTests(BaseSalesforceApiTask):
     task_options = {
         'test_name_match': {
             'description': ('Query to find Apex test classes to run ' +
@@ -1806,7 +1798,7 @@ class RunApexTestsDebug(RunApexTests):
         with io.open(json_output, mode='w', encoding='utf-8') as f:
             f.write(unicode(json.dumps(test_results)))
 
-class SOQLQuery(BaseSalesforceBulkApiTask):
+class SOQLQuery(BaseSalesforceApiTask):
     name = 'SOQLQuery'
 
     task_options = {
