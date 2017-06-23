@@ -27,6 +27,8 @@ from cumulusci.core.exceptions import NotInProject
 from cumulusci.core.exceptions import KeychainConnectedAppNotFound
 from cumulusci.core.exceptions import ProjectConfigNotFound
 from cumulusci.core.exceptions import ScratchOrgException
+from cumulusci.core.exceptions import ServiceNotConfigured
+from cumulusci.core.exceptions import ServiceNotValid
 from cumulusci.core.exceptions import SOQLQueryException
 from cumulusci.core.exceptions import KeychainNotFound
 from cumulusci.oauth.salesforce import SalesforceOAuth2
@@ -252,6 +254,8 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             self.keychain.get_service('sentry') 
             return True
         except ServiceNotConfigured:
+            return False
+        except ServiceNotValid:
             return False
 
     def init_sentry(self, ):
