@@ -180,7 +180,7 @@ class FindReplace(BaseTask):
         )
 
 find_replace_regex_options = FindReplace.task_options.copy()
-del find_repalce_regex_options['max']
+del find_replace_regex_options['max']
 
 class FindReplaceRegex(FindReplace):
     task_options = find_replace_regex_options
