@@ -110,3 +110,15 @@ class SOQLQueryException(CumulusCIException):
 class CommandException(CumulusCIException):
     """ Raise for errors coming from spawned CLI subprocesses """
     pass
+
+class BrowserTestFailure(CommandException):
+    """ Raise when browser tests fail """
+    pass
+
+class ApexCompilationException(CumulusCIException):
+    """ Raise when apex compilation fails """
+    pass
+
+class ApexException(CumulusCIException):
+    """ Raise when an Apex Exception is raised in an org """
+    pass

@@ -13,6 +13,8 @@ import tempfile
 import time
 import zipfile
 
+import hiyapyco
+from github3.repos.repo import Release
 from simple_salesforce import Salesforce
 from simple_salesforce import SalesforceGeneralError
 from salesforce_bulk import SalesforceBulk
@@ -33,9 +35,14 @@ from cumulusci.salesforce_api.package_zip import CreatePackageZipBuilder
 from cumulusci.salesforce_api.package_zip import DestructiveChangesZipBuilder
 from cumulusci.salesforce_api.package_zip import InstallPackageZipBuilder
 from cumulusci.salesforce_api.package_zip import UninstallPackageZipBuilder
+from cumulusci.salesforce_api.package_zip import ZipfilePackageZipBuilder
 from cumulusci.utils import CUMULUSCI_PATH
+from cumulusci.utils import download_extract_zip
 from cumulusci.utils import findReplace
 from cumulusci.utils import package_xml_from_dict
+from cumulusci.utils import zip_inject_namespace
+from cumulusci.utils import zip_strip_namespace
+from cumulusci.utils import zip_tokenize_namespace
 from cumulusci.utils import zip_subfolder
 
 
@@ -70,27 +77,31 @@ class BaseSalesforceApiTask(BaseSalesforceTask):
 
     def _init_task(self):
         self.sf = self._init_api()
+        self.bulk = self._init_bulk()
+        self.tooling = self._init_api('tooling/')
+        self._init_class()
+    
 
-    def _init_api(self):
+    def _init_api(self, base_url=None):
         if self.api_version:
             api_version = self.api_version
         else:
             api_version = self.project_config.project__package__api_version
 
-        return Salesforce(
+        rv = Salesforce(
             instance=self.org_config.instance_url.replace('https://', ''),
             session_id=self.org_config.access_token,
             version=api_version,
         )
+        if base_url is not None:
+            rv.base_url += base_url
+        return rv
 
-
-class BaseSalesforceToolingApiTask(BaseSalesforceApiTask):
-    name = 'BaseSalesforceToolingApiTask'
-
-    def _init_task(self):
-        self.tooling = self._init_api()
-        self.tooling.base_url += 'tooling/'
-        self._init_class()
+    def _init_bulk(self):
+        return SalesforceBulk(
+            host=self.org_config.instance_url.replace('https://', ''),
+            sessionId=self.org_config.access_token,
+        )
 
     def _init_class(self):
         pass
@@ -100,17 +111,6 @@ class BaseSalesforceToolingApiTask(BaseSalesforceApiTask):
         obj.base_url = obj.base_url.replace('/sobjects/', '/tooling/sobjects/')
         return obj
 
-class BaseSalesforceBulkApiTask(BaseSalesforceTask):
-    name = 'BaseSalesforceBulkApiTask'
-
-    def _init_task(self):
-        self.bulk = self._init_api()
-
-    def _init_api(self):
-        return SalesforceBulk(
-            host=self.org_config.instance_url.replace('https://', ''),
-            sessionId=self.org_config.access_token,
-        )
 
 class GetInstalledPackages(BaseSalesforceMetadataApiTask):
     api_class = ApiRetrieveInstalledPackages
@@ -121,7 +121,19 @@ class BaseRetrieveMetadata(BaseSalesforceMetadataApiTask):
         'path': {
             'description': 'The path to write the retrieved metadata',
             'required': True,
-        }
+        },
+        'unmanaged': {
+            'description': "If True, changes namespace_inject to replace tokens with a blank string",
+        },
+        'namespace_inject': {
+            'description': "If set, the namespace tokens in files and filenames are replaced with the namespace's prefix",
+        },
+        'namespace_strip': {
+            'description': "If set, all namespace prefixes for the namespace specified are stripped from files and filenames",
+        },
+        'namespace_tokenize': {
+            'description': "If set, all namespace prefixes for the namespace specified are replaced with tokens for use with namespace_inject",
+        },
     }
 
     def _run_task(self):
@@ -130,32 +142,43 @@ class BaseRetrieveMetadata(BaseSalesforceMetadataApiTask):
         self._extract_zip(src_zip)
         self.logger.info('Extracted retrieved metadata into {}'.format(self.options['path']))
 
+    def _process_namespace(self, src_zip):
+        if self.options.get('namespace_tokenize'):
+            src_zip = zip_tokenize_namespace(src_zip, self.options['namespace_tokenize'])
+        if self.options.get('namespace_inject'):
+            if self.options.get('unmanaged'):
+                src_zip = zip_inject_namespace(src_zip, self.options['namespace_inject'])
+            else:
+                src_zip = zip_inject_namespace(src_zip, self.options['namespace_inject'], True)
+        if self.options.get('namespace_strip'):
+            src_zip = zip_strip_namespace(src_zip, self.options['namespace_strip'])
+        return src_zip
+
     def _extract_zip(self, src_zip):
+        src_zip = self._process_namespace(src_zip)
         src_zip.extractall(self.options['path'])
 
 
+retrieve_unpackaged_options = BaseRetrieveMetadata.task_options.copy()
+retrieve_unpackaged_options.update({
+    'package_xml': {
+        'description': 'The path to a package.xml manifest to use for the retrieve.',
+        'required': True,
+    },
+    'api_version': {
+        'description': (
+            'Override the default api version for the retrieve.' +
+            ' Defaults to project__package__api_version'
+        ),
+    },
+})
 class RetrieveUnpackaged(BaseRetrieveMetadata):
     api_class = ApiRetrieveUnpackaged
 
-    task_options = {
-        'path': {
-            'description': 'The path where the retrieved metadata should be written',
-            'required': True,
-        },
-        'package_xml': {
-            'description': 'The path to a package.xml manifest to use for the retrieve.',
-            'required': True,
-        },
-        'api_version': {
-            'description': 'Override the default api version for the retrieve.  Defaults to project__package__api_version',
-        },
-    }
+    task_options = retrieve_unpackaged_options
 
     def _init_options(self, kwargs):
         super(RetrieveUnpackaged, self)._init_options(kwargs)
-
-        if 'api_version' not in self.options:
-            self.options['api_version'] = self.project_config.project__package__api_version
 
         if 'package_xml' in self.options:
             self.options['package_xml_path'] = self.options['package_xml']
@@ -166,64 +189,62 @@ class RetrieveUnpackaged(BaseRetrieveMetadata):
         return self.api_class(
             self,
             self.options['package_xml'],
-            self.options['api_version'],
+            self.options.get('api_version'),
         )
 
+retrieve_packaged_options = BaseRetrieveMetadata.task_options.copy()
+retrieve_packaged_options.update({
+    'package': {
+        'description': 'The package name to retrieve.  Defaults to project__package__name',
+        'required': True,
+    },
+    'api_version': {
+        'description': (
+            'Override the default api version for the retrieve.' +
+            ' Defaults to project__package__api_version'
+        ),
+    },
+})
 
 class RetrievePackaged(BaseRetrieveMetadata):
     api_class = ApiRetrievePackaged
 
-    task_options = {
-        'path': {
-            'description': 'The path where the retrieved metadata should be written',
-            'required': True,
-        },
-        'package': {
-            'description': 'The package name to retrieve.  Defaults to project__package__name',
-            'required': True,
-        },
-        'api_version': {
-            'description': 'Override the default api version for the retrieve.  Defaults to project__package__api_version',
-            'required': True,
-        },
-    }
+    task_options = retrieve_packaged_options
 
     def _init_options(self, kwargs):
         super(RetrievePackaged, self)._init_options(kwargs)
         if 'package' not in self.options:
             self.options['package'] = self.project_config.project__package__name
-        if 'api_version' not in self.options:
-            self.options['api_version'] = self.project_config.project__package__api_version
 
     def _get_api(self):
         return self.api_class(
             self,
             self.options['package'],
-            self.options['api_version'],
+            self.options.get('api_version'),
         )
 
     def _extract_zip(self, src_zip):
         src_zip = zip_subfolder(src_zip, self.options.get('package'))
         super(RetrievePackaged, self)._extract_zip(src_zip)
 
+
+retrieve_reportsanddashboards_options = BaseRetrieveMetadata.task_options.copy()
+retrieve_reportsanddashboards_options.update({
+    'report_folders': {
+        'description': 'A list of the report folders to retrieve reports.  Separate by commas for multiple folders.',
+    },
+    'dashboard_folders': {
+        'description': 'A list of the dashboard folders to retrieve reports.  Separate by commas for multiple folders.',
+    },
+    'api_version': {
+        'description': 'Override the API version used to list metadata',
+    }
+})
+
 class RetrieveReportsAndDashboards(BaseRetrieveMetadata):
     api_class = ApiRetrieveUnpackaged
 
-    task_options = {
-        'path': {
-            'description': 'The path where the retrieved metadata should be written',
-            'required': True,
-        },
-        'report_folders': {
-            'description': 'A list of the report folders to retrieve reports.  Separate by commas for multiple folders.',
-        },
-        'dashboard_folders': {
-            'description': 'A list of the dashboard folders to retrieve reports.  Separate by commas for multiple folders.',
-        },
-        'api_version': {
-            'description': 'Override the API version used to list metadata',
-        }
-    }
+    task_options = retrieve_reportsanddashboards_options
 
     def _init_options(self, kwargs):
         super(RetrieveReportsAndDashboards, self)._init_options(kwargs)
@@ -288,6 +309,18 @@ class Deploy(BaseSalesforceMetadataApiTask):
             'description': 'The path to the metadata source to be deployed',
             'required': True,
         },
+        'unmanaged': {
+            'description': "If True, changes namespace_inject to replace tokens with a blank string",
+        },
+        'namespace_inject': {
+            'description': "If set, the namespace tokens in files and filenames are replaced with the namespace's prefix",
+        },
+        'namespace_strip': {
+            'description': "If set, all namespace prefixes for the namespace specified are stripped from files and filenames",
+        },
+        'namespace_tokenize': {
+            'description': "If set, all namespace prefixes for the namespace specified are replaced with tokens for use with namespace_inject",
+        },
     }
         
     def _get_api(self, path=None):
@@ -304,13 +337,42 @@ class Deploy(BaseSalesforceMetadataApiTask):
         for root, dirs, files in os.walk('.'):
             for f in files:
                 self._write_zip_file(zipf, root, f)
-        zipf.close()
-        zip_file.seek(0)
-        package_zip = base64.b64encode(zip_file.read())
+        zipf = self._process_zip_file(zipf)
+        zipf.fp.seek(0)
+        package_zip = base64.b64encode(zipf.fp.read())
 
         os.chdir(pwd)
 
         return self.api_class(self, package_zip, purge_on_delete=False)
+
+    def _process_zip_file(self, zipf):
+        zipf = self._process_namespace(zipf)
+        return zipf
+        
+    def _process_namespace(self, zipf):
+        if self.options.get('namespace_tokenize'):
+            self.logger.info(
+                'Tokenizing namespace prefix {}__'.format(
+                    self.options['namespace_tokenize'],
+                )
+            )
+            zipf = zip_tokenize_namespace(zipf, self.options['namespace_tokenize'])
+        if self.options.get('namespace_inject'):
+            if self.options.get('unmanaged'):
+                self.logger.info(
+                    'Stripping namespace tokens from metadata for unmanaged deployment'
+                )
+                zipf = zip_inject_namespace(zipf, self.options['namespace_inject'])
+            else:
+                self.logger.info(
+                    'Replacing namespace tokens from metadata with namespace prefix {}__'.format(
+                        self.options['namespace_inject'],
+                    )
+                )
+                zipf = zip_inject_namespace(zipf, self.options['namespace_inject'], True)
+        if self.options.get('namespace_strip'):
+            zipf = zip_strip_namespace(zipf, self.options['namespace_strip'])
+        return zipf
 
     def _write_zip_file(self, zipf, root, path):
         zipf.write(os.path.join(root, path))
@@ -416,7 +478,10 @@ class UninstallPackage(Deploy):
             self.options['purge_on_delete'] = False
 
     def _get_api(self, path=None):
-        package_zip = UninstallPackageZipBuilder(self.options['namespace'])
+        package_zip = UninstallPackageZipBuilder(
+            self.options['namespace'],
+            self.project_config.project__package__api_version,
+        )
         return self.api_class(self, package_zip(), purge_on_delete=self.options['purge_on_delete'])
 
 class UpdateDependencies(BaseSalesforceMetadataApiTask):
@@ -437,16 +502,20 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
             self.options['purge_on_delete'] = False
 
     def _run_task(self):
-        dependencies = self.project_config.project__dependencies
-        if not dependencies:
+        if not self.project_config.project__dependencies:
             self.logger.info('Project has no dependencies, doing nothing')
             return
+
+        self.logger.info('Preparing static dependencies map')
+        dependencies = self.project_config.get_static_dependencies()
 
         self.installed = self._get_installed()
         self.uninstall_queue = []
         self.install_queue = []
 
         self.logger.info('Dependencies:')
+        for line in self.project_config.pretty_dependencies(dependencies):
+            self.logger.info(line)
 
         self._process_dependencies(dependencies)
 
@@ -458,8 +527,6 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
 
     def _process_dependencies(self, dependencies):
         for dependency in dependencies:
-            dependency_version = str(dependency['version'])
-
             # Process child dependencies
             dependency_uninstalled = False
             if 'dependencies' in dependency and dependency['dependencies']:
@@ -468,55 +535,69 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
                 if count_uninstall != len(self.uninstall_queue):
                     dependency_uninstalled = True
 
-            if dependency['namespace'] in self.installed:
-                # Some version is installed, check what to do
-                installed_version = self.installed[dependency['namespace']]
-                if dependency_version == installed_version:
-                    self.logger.info('  {}: version {} already installed'.format(
-                        dependency['namespace'],
-                        dependency_version,
-                    ))
-                    continue
+            # Process zip_url dependencies (unmanaged metadata)
+            if 'zip_url' in dependency:
+                self._process_zip_dependency(dependency)
 
-                required_version = LooseVersion(dependency_version)
-                installed_version = LooseVersion(installed_version)
+            # Process namespace dependencies (managed packages)
+            elif 'namespace' in dependency:
+                self._process_namespace_dependency(dependency, dependency_uninstalled)
 
-                if 'Beta' in installed_version.vstring:
-                    # Always uninstall Beta versions if required is different
-                    self.uninstall_queue.append(dependency)
-                    self.logger.info('  {}: Uninstall {} to upgrade to {}'.format(
-                        dependency['namespace'],
-                        installed_version,
-                        dependency['version'],
-                    ))
-                elif dependency_uninstalled:
-                    # If a dependency of this one needs to be uninstalled, always uninstall the package
-                    self.uninstall_queue.append(dependency)
-                    self.logger.info('  {}: Uninstall and Reinstall to allow downgrade of dependency'.format(
-                        dependency['namespace'],
-                    ))
-                elif required_version < installed_version:
-                    # Uninstall to downgrade
-                    self.uninstall_queue.append(dependency)
-                    self.logger.info('  {}: Downgrade from {} to {} (requires uninstall/install)'.format(
-                        dependency['namespace'],
-                        installed_version,
-                        dependency['version'],
-                    ))
-                else:
-                    self.logger.info('  {}: Upgrade from {} to {}'.format(
-                        dependency['namespace'],
-                        installed_version,
-                        dependency['version'],
-                    ))
-                self.install_queue.append(dependency)
-            else:
-                # Just a regular install
-                self.logger.info('  {}: Install version {}'.format(
-                        dependency['namespace'],
-                        dependency['version'],
+    def _process_zip_dependency(self, dependency):
+        self.install_queue.append(dependency)    
+
+    def _process_namespace_dependency(self, dependency, dependency_uninstalled=None):
+        dependency_version = str(dependency['version'])
+
+        if dependency['namespace'] in self.installed:
+            # Some version is installed, check what to do
+            installed_version = self.installed[dependency['namespace']]
+            if dependency_version == installed_version:
+                self.logger.info('  {}: version {} already installed'.format(
+                    dependency['namespace'],
+                    dependency_version,
                 ))
-                self.install_queue.append(dependency)
+                return
+
+            required_version = LooseVersion(dependency_version)
+            installed_version = LooseVersion(installed_version)
+
+            if 'Beta' in installed_version.vstring:
+                # Always uninstall Beta versions if required is different
+                self.uninstall_queue.append(dependency)
+                self.logger.info('  {}: Uninstall {} to upgrade to {}'.format(
+                    dependency['namespace'],
+                    installed_version,
+                    dependency['version'],
+                ))
+            elif dependency_uninstalled:
+                # If a dependency of this one needs to be uninstalled, always uninstall the package
+                self.uninstall_queue.append(dependency)
+                self.logger.info('  {}: Uninstall and Reinstall to allow downgrade of dependency'.format(
+                    dependency['namespace'],
+                ))
+            elif required_version < installed_version:
+                # Uninstall to downgrade
+                self.uninstall_queue.append(dependency)
+                self.logger.info('  {}: Downgrade from {} to {} (requires uninstall/install)'.format(
+                    dependency['namespace'],
+                    installed_version,
+                    dependency['version'],
+                ))
+            else:
+                self.logger.info('  {}: Upgrade from {} to {}'.format(
+                    dependency['namespace'],
+                    installed_version,
+                    dependency['version'],
+                ))
+            self.install_queue.append(dependency)
+        else:
+            # Just a regular install
+            self.logger.info('  {}: Install version {}'.format(
+                    dependency['namespace'],
+                    dependency['version'],
+            ))
+            self.install_queue.append(dependency)
 
     def _get_installed(self):
         self.logger.info('Retrieving list of packages from target org')
@@ -532,17 +613,61 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
             self._install_dependency(dependency)
 
     def _install_dependency(self, dependency):
-        self.logger.info('Installing {} version {}'.format(
-            dependency['namespace'],
-            dependency['version'],
-        ))
-        package_zip = InstallPackageZipBuilder(dependency['namespace'], dependency['version'])
-        api = self.api_class(self, package_zip(), purge_on_delete=self.options['purge_on_delete'])
+        if 'zip_url' in dependency:
+            self.logger.info('Deploying unmanaged metadata from /{} of {}'.format(
+                dependency['subfolder'],
+                dependency['zip_url'],
+            ))
+            package_zip = download_extract_zip(
+                dependency['zip_url'],
+                subfolder=dependency.get('subfolder')
+            )
+            if dependency.get('namespace_tokenize'):
+                self.logger.info('Replacing namespace prefix {}__ in files and filenames with namespace token strings'.format(
+                    '{}__'.format(dependency['namespace_tokenize']),
+                ))
+                package_zip = zip_tokenize_namespace(
+                    package_zip,
+                    namespace = dependency['namespace_tokenize'],
+                )
+                
+            if dependency.get('namespace_inject'):
+                self.logger.info('Replacing namespace tokens with {}'.format(
+                    '{}__'.format(dependency['namespace_inject']),
+                ))
+                package_zip = zip_inject_namespace(
+                    package_zip,
+                    namespace = dependency['namespace_inject'],
+                    managed = not dependency.get('unmanaged'),
+                )
+                
+            if dependency.get('namespace_strip'):
+                self.logger.info('Removing namespace prefix {}__ from all files and filenames'.format(
+                    '{}__'.format(dependency['namespace_strip']),
+                ))
+                package_zip = zip_strip_namespace(
+                    package_zip,
+                    namespace = dependency['namespace_strip'],
+                )
+                
+            package_zip = ZipfilePackageZipBuilder(package_zip)()
+
+        elif 'namespace' in dependency:
+            self.logger.info('Installing {} version {}'.format(
+                dependency['namespace'],
+                dependency['version'],
+            ))
+            package_zip = InstallPackageZipBuilder(dependency['namespace'], dependency['version'])()
+            
+        api = self.api_class(self, package_zip, purge_on_delete=self.options['purge_on_delete'])
         return api()
 
     def _uninstall_dependency(self, dependency):
         self.logger.info('Uninstalling {}'.format(dependency['namespace']))
-        package_zip = UninstallPackageZipBuilder(dependency['namespace'])
+        package_zip = UninstallPackageZipBuilder(
+            dependency['namespace'],
+            self.project_config.project__package__api_version,
+        )
         api = self.api_class(self, package_zip(), purge_on_delete=self.options['purge_on_delete'])
         return api()
 
@@ -580,32 +705,27 @@ class DeployBundles(Deploy):
         api = self._get_api(path)
         return api()
 
-class DeployNamespacedBundles(DeployBundles):
-    name = 'DeployNamespacedBundles'
+deploy_namespaced_options = Deploy.task_options.copy()
+deploy_namespaced_options.update({
+    'managed': {
+        'description': 'If True, will insert the actual namespace prefix.  Defaults to False or no namespace',
+    },
+    'namespace': {
+        'description': 'The namespace to replace the token with if in managed mode. Defaults to project__package__namespace',
+    },
+    'namespace_token': {
+        'description': 'The string token to replace with the namespace.  Defaults to %%%NAMESPACE%%%',
+    },
+    'filename_token': {
+        'description': 'The path to the parent directory containing the metadata bundles directories. Defaults to ___NAMESPACE___',
+    },
+})
 
-    task_options = {
-        'path': {
-            'description': 'The path to the parent directory containing the metadata bundles directories',
-            'required': True,
-        },
-        'managed': {
-            'description': 'If True, will insert the actual namespace prefix.  Defaults to False or no namespace',
-        },
-        'namespace': {
-            'description': 'The namespace to replace the token with if in managed mode. Defaults to project__package__namespace',
-        },
-        'namespace_token': {
-            'description': 'The string token to replace with the namespace',
-            'required': True,
-        },
-        'filename_token': {
-            'description': 'The path to the parent directory containing the metadata bundles directories',
-            'required': True,
-        },
-    }
+class DeployNamespaced(Deploy):
+    task_options = deploy_namespaced_options
 
     def _init_options(self, kwargs):
-        super(DeployNamespacedBundles, self)._init_options(kwargs)
+        super(DeployNamespaced, self)._init_options(kwargs)
 
         if 'managed' not in self.options:
             self.options['managed'] = False
@@ -631,13 +751,21 @@ class DeployNamespacedBundles(DeployBundles):
             root = root[2:]
             zipf.writestr(os.path.join(root, zip_path), content)
 
+
+class DeployNamespacedBundles(DeployNamespaced, DeployBundles):
+    name = 'DeployNamespacedBundles'
+
+
 class BaseUninstallMetadata(Deploy):
 
     def _get_api(self, path=None):
         destructive_changes = self._get_destructive_changes(path=path)
         if not destructive_changes:
             return
-        package_zip = DestructiveChangesZipBuilder(destructive_changes)
+        package_zip = DestructiveChangesZipBuilder(
+            destructive_changes,
+            self.project_config.project__package__api_version,
+        )
         api = self.api_class(self, package_zip(), purge_on_delete=self.options['purge_on_delete'])
         return api
 
@@ -769,7 +897,11 @@ class UninstallPackagedIncremental(UninstallPackaged):
                 for item in md_type['members']:
                     master_items[md_type['name']].append(item)
 
-        for md_type in compare_xml['Package'].get('types',[]):
+        md_types = compare_xml['Package'].get('types', [])
+        if not isinstance(md_types, list):
+            # needed when only 1 metadata type is found
+            md_types = [md_types]
+        for md_type in md_types:
             compare_items[md_type['name']] = []
             if 'members' not in md_type:
                 continue
@@ -942,7 +1074,7 @@ class UpdateAdminProfile(Deploy):
         return api()
 
 
-class PackageUpload(BaseSalesforceToolingApiTask):
+class PackageUpload(BaseSalesforceApiTask):
     name = 'PackageUpload'
     api_version = '38.0'
     task_options = {
@@ -1061,7 +1193,7 @@ class PackageUpload(BaseSalesforceToolingApiTask):
 
 
 
-class RunApexTests(BaseSalesforceToolingApiTask):
+class RunApexTests(BaseSalesforceApiTask):
     task_options = {
         'test_name_match': {
             'description': ('Query to find Apex test classes to run ' +
@@ -1353,9 +1485,11 @@ class RunApexTests(BaseSalesforceToolingApiTask):
                     s += ' time="{}"'.format(result['Stats']['duration'])
                 if result['Outcome'] in ['Fail', 'CompileFail']:
                     s += '>\n'
-                    s += '    <failure type="{}">{}</failure>\n'.format(
-                        cgi.escape(result['StackTrace']),
-                        cgi.escape(result['Message']),
+                    s += ('    <failure type="failed" ' +
+                        'message="{}"><![CDATA[{}]]></failure>\n'.format(
+                            cgi.escape(result['Message']),
+                            cgi.escape(result['StackTrace']),
+                        )
                     )
                     s += '  </testcase>\n'
                 else:
@@ -1664,7 +1798,7 @@ class RunApexTestsDebug(RunApexTests):
         with io.open(json_output, mode='w', encoding='utf-8') as f:
             f.write(unicode(json.dumps(test_results)))
 
-class SOQLQuery(BaseSalesforceBulkApiTask):
+class SOQLQuery(BaseSalesforceApiTask):
     name = 'SOQLQuery'
 
     task_options = {

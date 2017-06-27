@@ -2,6 +2,132 @@
 History
 =======
 
+2.0.0-beta47 (2017-06-26)
+------------------------
+
+* Fix typo in tasks.util
+
+2.0.0-beta46 (2017-06-23)
+------------------------
+
+* Fix bug in implementation of the `--no-prompt` flag when sentry is configured
+
+2.0.0-beta45 (2017-06-23)
+------------------------
+
+* The new `BaseSalesforceApiTask` class replaces `BaseSalesforceApiTask`, `BaseSalesforceBulkApiTask`, and `BaseSalesforceToolingApiTask` by combining them into a single task class with access to all 3 API's via `self.sf`, `self.tooling`, and `self.bulk` from inside a task instance.
+* Added integration with sentry.io
+
+  * Use `cci service connect sentry` to enable the sentry service
+  * All task execution exceptions will be logged as error events in sentry
+  * `cci task run` and `cci flow run` will now show you the url to the sentry event if one was registered and prompt to open in a browser.
+  * `cci task run` and `cci flow run` now accept the `--no-prompt` option flag for running in non-interactive mode with the sentry service configured.  Use this if you want to log build errors in sentry but not have builds fail due to a hanging prompt.
+
+* If a scratch org password has expired, it is now regenerated when calling `cci org info`
+* New task `unschedule_apex` was added to unschedule background jobs and added to the start of the `dev_org` flow
+* `update_meta_xml` task now uses the project's dependencies as the namespace/version to update in the meta.xml files
+* The bulkdata mapping now properly supports Record Types
+* Fixed a bug with BulkDataQuery where local references weren't getting properly set
+* New CumulusCI Branch & Release Overview diagram presention is available at http://developer.salesforce.org/CumulusCI/diagram/process_overview.html  Use left/right arrow buttons on your keyboard to navigate through the presentation.
+* CumulusCI is now being built by Heroku CI using the config in `app.json`
+
+
+2.0.0-beta44 (2017-06-09)
+------------------------
+
+* Fix issue in `update_dependencies` when a github dependency depends on another github dependency
+
+2.0.0-beta43 (2017-06-09)
+------------------------
+
+* Fix issue in `mrbelvedere_publish` where the new zip_url dependencies weren't being skipped
+
+2.0.0-beta42 (2017-06-09)
+------------------------
+
+* Move github dependency resolution logic into project_config.get_static_dependencies() for reuse in tasks other than UpdateDependencies
+* Fixed the mrbelvedere_publish task when using github references
+* Improved output from parsing github dependencies
+* Fix issue in `BulkDataQuery` character encoding when value contains utf8 special characters
+
+2.0.0-beta41 (2017-06-07)
+------------------------
+
+* The `dependencies` section in cumulusci.yml now supports the `skip` option for Github dependencies which can be used to skip specific subfolders under `unpackaged/` in the target repository
+* New task class BulkDataQuery reverses the BulkDataLoad and uses the mapping to build SOQL queries to capture the data in the mapping from the target org.  The data is written to a database that can then be used by BulkDataLoad to load into a different org.
+* The Delete util task now uses the glob library so it can support paths with wildcards like src/*
+* New tasks `meta_xml_api` and `meta_xml_dependencies` handle updating `*-meta.xml` files with api versions or underlying package versions.
+
+2.0.0-beta40 (2017-06-03)
+------------------------
+
+* More enhancements to `update_dependencies` including the ability to handle namespace injection, namespace stripping, and unmanaged versions of managed repositories.  See the new doc at http://cumulusci.readthedocs.io/en/latest/dependencies.html
+
+2.0.0-beta39 (2017-06-02)
+------------------------
+
+* Fix new bug in `update_dependencies` which caused failure when running against an org that already has a required package installed
+
+2.0.0-beta38 (2017-06-01)
+------------------------
+
+* `update_dependencies` now properly handles references to a github repository that itself contains dependencies in its cumulusci.yml file
+* `update_dependencies` now handles deploying unmanaged metadata from subfolders under unpackaged/pre of a referenced Github repository
+* The `dependencies` section of `cumulusci.yml` now supports installing from a zip of metadata hosted at a url if you provide a `zip_url` and optionally a `subfolder`
+
+2.0.0-beta37 (2017-06-01)
+------------------------
+
+* `update_dependencies` now supports dynamically referencing other Github repositories configured with a cumulusci.yml file.  The referenced repository's cumulusci.yml is parsed and the dependencies are included.  Also, the Github API is used to find the latest release of the referenced repo if the cumulusci.yml has a namespace configured.  Welcome to dynamic package dependency management ;)
+* `cci task run` now supports the option flags `--debug-before` and `--debug-after`
+* Fix for JUnit output rendering in run_tests
+
+
+2.0.0-beta36 (2017-05-19)
+------------------------
+
+* Flows can now accept arguments in the CLI to override task options
+
+  * `cci flow run install_beta -o install_managed_beta__version "1.0 (Beta 123)"`   
+
+* Flows can now accept arguments to in the CLI to skip tasks
+
+  * `cci flow run ci_feature --skip run_tests_debug --skip deploy_post`   
+  
+* Anonymous apex failures will now throw an exception and fail the build in `execute_anon`
+* Fixes #322: local variable 'message' referenced before assignment
+
+2.0.0-beta35 (2017-05-19)
+------------------------
+
+* New task `execute_anon` is available to run anonymous apex and takes the extra task option `apex`
+
+2.0.0-beta34 (2017-05-16)
+------------------------
+
+* Fixes #317: ERROR: Invalid version specified
+
+2.0.0-beta33 (2017-05-11)
+------------------------
+
+* cci org connect and cci org scratch now accept the --default option flag to set the newly connected org as the default org for the repo
+* cci org scratch now accepts a new option, --devhub <username>, which allows you to specify an alternate devhub username to use when creating the scratch org
+* The SalesforceBrowserTest class now throws a BrowserTestFailure if the command returns an exit status of 1
+* Scratch org creation no longer throws an exception if it fails to set a random password on the newly created org
+* Push API task enhancements:
+
+  * Push org lists (text files with one org ID per line) can now have comments and blank lines. The first word on the line is assumed to be the org ID and anything after that is ignored.
+  * Fixes #294
+  * Fixes #306
+  * Fixes #208
+
+2.0.0-beta32 (2017-05-04)
+------------------------
+
+* Scratch orgs now get an auto-generated password which is available via `cci org info`
+* Added metadata mapping for StandardValueSets to fix #310
+* Throw nicer exceptions when scratch org interaction fails
+
 2.0.0-beta31 (2017-04-12)
 ------------------------
 

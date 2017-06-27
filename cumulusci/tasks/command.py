@@ -11,6 +11,7 @@ import os
 import subprocess
 
 from cumulusci.core.exceptions import CommandException
+from cumulusci.core.exceptions import BrowserTestFailure
 from cumulusci.core.tasks import BaseTask
 
 
@@ -41,7 +42,7 @@ class Command(BaseTask):
     def _init_options(self, kwargs):
         super(Command, self)._init_options(kwargs)
         if 'pass_env' not in self.options:
-            self.options['pass_env'] = True
+            self.options['pass_env'] = False
         if self.options['pass_env'] == 'False':
             self.options['pass_env'] = False
         if 'dir' not in self.options or not self.options['dir']:
@@ -70,12 +71,12 @@ class Command(BaseTask):
 
     def _process_output(self, line):
         self.logger.info(line.rstrip())
-
-    def _handle_returncode(self, p):
-        if p.returncode:
+       
+    def _handle_returncode(self, returncode, stderr):
+        if returncode:
             message = 'Return code: {}\nstderr: {}'.format(
-                p.returncode,
-                p.stderr,
+                returncode,
+                stderr,
             )
             self.logger.error(message)
             raise CommandException(message)
@@ -104,7 +105,7 @@ class Command(BaseTask):
         # Handle return code
         if not return_code_handler:
             return_code_handler = self._handle_returncode
-        return_code_handler(p)
+        return_code_handler(p.returncode, p.stderr)
 
 
 class SalesforceCommand(Command):
@@ -161,3 +162,13 @@ class SalesforceBrowserTest(SalesforceCommand):
         else:
             env['RUN_LOCAL'] = 'True'
         return env
+
+    def _handle_returncode(self, returncode, stderr):
+        if returncode == 1:
+            message = 'Return code: {}\nstderr: {}'.format(
+                returncode,
+                stderr,
+            )
+            raise BrowserTestFailure(message)
+        elif returncode:
+            super(SalesforceBrowserTest, self)._handle_returncode(returncode, stderr)

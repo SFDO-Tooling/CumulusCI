@@ -180,13 +180,13 @@ Verify that the task shows up::
 Query the Tooling API
 ---------------------
 
-For this example, we'll use `BaseSalesforceToolingApiTask` to query ApexClasses via the Tooling API.  This base class initializes a modified version of `simple-salesforce` that points to the Tooling API.  The initalized API wrapper is `self.tooling`.
+In this example, we'll use another API exposed by the `BaseSalesforceApiTask`, the Tooling API! The base task class initializes a wrapper to the enterprise api (`self.sf`), to the bulk api (`self.bulk`), and to the tooling api (`self.tooling`). With a modified `simple-salesforce` instance pointing to the tooling API, we can query for Apex Classes in our org.
 
 Create the file `tasks/tooling.py`::
 
-    from cumulusci.tasks.salesforce import BaseSalesforceToolingApiTask
+    from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 
-    class ListApexClasses(BaseSalesforceToolingApiTask):
+    class ListApexClasses(BaseSalesforceApiTask):
         def _run_task(self):
             res = self.tooling.query('Select Id, Name, NamespacePrefix from ApexClass LIMIT 10')
             for apexclass in res['records']:

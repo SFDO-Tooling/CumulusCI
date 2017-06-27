@@ -96,7 +96,8 @@ class TestSFDXBaseTask(unittest.TestCase):
             'command': 'force:org --help',
         }
         org_config = OrgConfig({
-            'username': 'default scratch org'
+            'access_token': 'test access token',
+            'instance_url': 'test instance url',
         })
 
         task = SFDXOrgTask(
@@ -108,5 +109,7 @@ class TestSFDXBaseTask(unittest.TestCase):
         except CommandException:
             pass
 
-        self.assertIn('default scratch org', task.options['command'])
-        self.assertIn('-u', task.options['command'])
+        env = task._get_env()
+        print env
+        self.assertEquals(env.get('SFDX_USERNAME'), 'test access token')
+        self.assertEquals(env.get('SFDX_INSTANCE_URL'), 'test instance url')

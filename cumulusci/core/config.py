@@ -6,7 +6,10 @@ import os
 import pickle
 import re
 
+from collections import OrderedDict
+
 import hiyapyco
+import raven
 import sarge
 from simple_salesforce import Salesforce
 import yaml
@@ -18,11 +21,14 @@ from github3 import login
 from Crypto import Random
 from Crypto.Cipher import AES
 
+import cumulusci
 from cumulusci.core.exceptions import ConfigError
 from cumulusci.core.exceptions import NotInProject
 from cumulusci.core.exceptions import KeychainConnectedAppNotFound
 from cumulusci.core.exceptions import ProjectConfigNotFound
 from cumulusci.core.exceptions import ScratchOrgException
+from cumulusci.core.exceptions import ServiceNotConfigured
+from cumulusci.core.exceptions import ServiceNotValid
 from cumulusci.core.exceptions import SOQLQueryException
 from cumulusci.core.exceptions import KeychainNotFound
 from cumulusci.oauth.salesforce import SalesforceOAuth2
@@ -242,10 +248,50 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
         return commit_sha
 
-    def get_latest_version(self, beta=None):
-        """ Query Github Releases to find the latest production or beta release """
+    @property
+    def use_sentry(self):
+        try:
+            self.keychain.get_service('sentry') 
+            return True
+        except ServiceNotConfigured:
+            return False
+        except ServiceNotValid:
+            return False
+
+    def init_sentry(self, ):
+        """ Initializes sentry.io error logging for this session """
+        if not self.use_sentry:
+            return
+            
+        sentry_config = self.keychain.get_service('sentry') 
+
+        tags = {
+            'repo': self.repo_name,
+            'branch': self.repo_branch,
+            'commit': self.repo_commit,
+            'cci version': cumulusci.__version__,
+        }
+        tags.update(self.config.get('sentry_tags',{}))
+
+        env = self.config.get('sentry_environment', 'CumulusCI CLI')
+
+        self.sentry = raven.Client(
+            dsn = sentry_config.dsn,
+            environment = env,
+            tags = tags,
+            processors = (
+                'raven.processors.SanitizePasswordsProcessor',
+            ),
+        )
+    
+    def get_github_api(self):
         github_config = self.keychain.get_service('github')
         gh = login(github_config.username, github_config.password)
+        return gh
+
+    def get_latest_version(self, beta=None):
+        """ Query Github Releases to find the latest production or beta release """
+        gh = self.get_github_api()
         repo = gh.repository(self.repo_owner, self.repo_name)
         latest_version = None
         for release in repo.iter_releases():
@@ -336,6 +382,195 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         """ Creates or updates an org's oauth info """
         self._check_keychain()
         return self.keychain.set_org(name, org_config)
+
+    def get_static_dependencies(self, dependencies=None):
+        """ Resolves the project -> dependencies section of cumulusci.yml
+            to convert dynamic github dependencies into static dependencies
+            by inspecting the referenced repositories
+        """
+        if not dependencies:
+            dependencies = self.project__dependencies
+            
+        if not dependencies:
+            return
+   
+        static_dependencies = []
+        for dependency in dependencies:
+            if 'github' not in dependency:
+                static_dependencies.append(dependency)
+            else:
+                static = self.process_github_dependency(dependency)
+                static_dependencies.extend(static)
+        return static_dependencies
+
+    def pretty_dependencies(self, dependencies, indent=None):
+        if not indent:
+            indent = 0
+        pretty = []
+        for dependency in dependencies:
+            prefix = '{}  - '.format(" " * indent)
+            for key, value in dependency.items():
+                extra = []
+                if value is None or value is False:
+                    continue
+                if key == 'dependencies':
+                    extra = self.pretty_dependencies(dependency['dependencies'], indent=indent+4)
+                    if not extra:
+                        continue
+                    value = '\n{}'.format(" " * (indent + 4))
+    
+                pretty.append('{}{}: {}'.format(prefix, key, value))
+                if extra:
+                    pretty.extend(extra)
+                prefix = '{}    '.format(" " * indent)
+        return pretty
+        
+    def process_github_dependency(self, dependency, indent=None):
+        if not indent:
+            indent = ''
+
+        self.logger.info(
+            '{}Processing dependencies from Github repo {}'.format(
+                indent,
+                dependency['github'],
+            )
+        )
+
+        skip = dependency.get('skip')
+        if not isinstance(skip, list):
+            skip = [skip,]
+
+        # Initialize github3.py API against repo
+        gh = self.get_github_api()
+        repo_owner, repo_name = dependency['github'].split('/')[3:5]
+        if repo_name.endswith('.git'):
+            repo_name = repo_name[:-4]
+        repo = gh.repository(repo_owner, repo_name)
+
+        # Get the cumulusci.yml file
+        contents = repo.contents('cumulusci.yml')
+        cumulusci_yml = hiyapyco.load(contents.decoded)
+
+        # Get the namespace from the cumulusci.yml if set
+        namespace = cumulusci_yml.get('project',{}).get('package',{}).get('namespace')
+
+        # Check for unmanaged flag on a namespaced package
+        unmanaged = namespace and dependency.get('unmanaged') is True
+
+        # Look for subfolders under unpackaged/pre
+        unpackaged_pre = []
+        contents = repo.contents('unpackaged/pre')
+        if contents:
+            for dirname in contents.keys():
+                if 'unpackaged/pre/{}'.format(dirname) in skip:
+                    continue
+                subfolder = "{}-{}/unpackaged/pre/{}".format(repo.name, repo.default_branch, dirname)
+                zip_url = "{}/archive/{}.zip".format(repo.html_url, repo.default_branch)
+
+                unpackaged_pre.append({
+                    'zip_url': zip_url,
+                    'subfolder': subfolder,
+                    'unmanaged': dependency.get('unmanaged'),
+                    'namespace_tokenize': dependency.get('namespace_tokenize'),
+                    'namespace_inject': dependency.get('namespace_inject'),
+                    'namespace_strip': dependency.get('namespace_strip'),
+                })
+
+        # Look for metadata under src (deployed if no namespace)
+        unmanaged_src = None
+        if unmanaged or not namespace:
+            contents = repo.contents('src')
+            if contents:
+                zip_url = "{}/archive/{}.zip".format(repo.html_url, repo.default_branch)
+                subfolder = "{}-{}/src".format(repo.name, repo.default_branch)
+
+                unmanaged_src = {
+                    'zip_url': zip_url,
+                    'subfolder': subfolder,
+                    'unmanaged': dependency.get('unmanaged'),
+                    'namespace_tokenize': dependency.get('namespace_tokenize'),
+                    'namespace_inject': dependency.get('namespace_inject'),
+                    'namespace_strip': dependency.get('namespace_strip'),
+                }
+
+        # Look for subfolders under unpackaged/post
+        unpackaged_post = []
+        contents = repo.contents('unpackaged/post')
+        if contents:
+            for dirname in contents.keys():
+                if 'unpackaged/post/{}'.format(dirname) in skip:
+                    continue
+                zip_url = "{}/archive/{}.zip".format(repo.html_url, repo.default_branch)
+                subfolder = "{}-{}/unpackaged/post/{}".format(repo.name, repo.default_branch, dirname)
+
+                dependency = {
+                    'zip_url': zip_url,
+                    'subfolder': subfolder,
+                    'unmanaged': dependency.get('unmanaged'),
+                    'namespace_tokenize': dependency.get('namespace_tokenize'),
+                    'namespace_inject': dependency.get('namespace_inject'),
+                    'namespace_strip': dependency.get('namespace_strip'),
+                }
+                # By default, we always inject the project's namespace into unpackaged/post metadata
+                if namespace and not dependency.get('namespace_inject'):
+                    dependency['namespace_inject'] = namespace
+                    dependency['unmananged'] = unmanaged
+                unpackaged_post.append(dependency)
+
+        project = cumulusci_yml.get('project', {})
+        dependencies = project.get('dependencies')
+        if dependencies:
+            dependencies = self.get_static_dependencies(dependencies)
+        version = None
+
+        if namespace and not unmanaged:
+            # Get version 
+            version = dependency.get('version')
+            if 'version' not in dependency or dependency['version'] == 'latest':
+                # github3.py doesn't support the latest release API so we hack it together here
+                url = repo._build_url('releases/latest', base_url=repo._api)
+                try:
+                    version = repo._get(url).json()['name']
+                except Exception as e:
+                    self.logger.warn('{}{}: {}'.format(indent, e.__class__.__name__, e.message))
+    
+            if not version:
+                self.logger.warn('{}Could not find latest release for {}'.format(indent, namespace))
+
+        # Create the final ordered list of all parsed dependencies
+        repo_dependencies = []
+
+        # unpackaged/pre/*
+        if unpackaged_pre:
+            repo_dependencies.extend(unpackaged_pre)
+               
+        # Latest managed release (if referenced repo has a namespace) 
+        if namespace and not unmanaged:
+            if version:
+                # If a latest prod version was found, make the dependencies a child of that install
+                dependency = {
+                    'namespace': namespace,
+                    'version': version,
+                }
+                if dependencies:
+                    dependency['dependencies'] = dependencies
+    
+                repo_dependencies.append(dependency)
+            elif dependencies:
+                repo_dependencies.extend(dependencies)
+
+        # Unmanaged metadata from src (if referenced repo doesn't have a namespace)
+        else:
+            if dependencies:
+                repo_dependencies.extend(dependencies)
+            if unmanaged_src:
+                repo_dependencies.append(unmanaged_src)
+
+        # unpackaged/post/*
+        if unpackaged_post:
+            repo_dependencies.extend(unpackaged_post)
+
+        return repo_dependencies               
 
 
 class BaseGlobalConfig(BaseTaskFlowConfig):
@@ -438,6 +673,7 @@ class ScratchOrgConfig(OrgConfig):
             self.logger.error('Return code: {}'.format(p.returncode))
             for line in stdout_list:
                 self.logger.error(line)
+            message = 'Message: {}'.format('\n'.join(stdout_list))
             raise ScratchOrgException(message)
 
         else:
@@ -446,16 +682,30 @@ class ScratchOrgConfig(OrgConfig):
             try:
                 org_info = json.loads(''.join(stdout_list))
             except Exception as e:
-                raise ScratchOrgException('Failed to parse json from output: {}\n{}'.format(''.join(stdout_list), e))
+                raise ScratchOrgException(
+                    'Failed to parse json from output. This can happen if '
+                    'your scratch org gets deleted.\n  '
+                    'Exception: {}\n  Output: {}'.format(
+                        e.__class__.__name__, 
+                        ''.join(stdout_list),
+                    )
+                )
 
             org_id = org_info['accessToken'].split('!')[0]
+
+        if org_info.get('password', None) is None:
+            self.generate_password()
+            return self.scratch_info
 
         self._scratch_info = {
             'instance_url': org_info['instanceUrl'],
             'access_token': org_info['accessToken'],
             'org_id': org_id,
             'username': org_info['username'],
+            'password': org_info.get('password',None),
         }
+
+        self.config.update(self._scratch_info)
     
         self._scratch_info_date = datetime.datetime.utcnow()
 
@@ -499,6 +749,13 @@ class ScratchOrgConfig(OrgConfig):
             username = self.scratch_info['username']
         return username
 
+    @property
+    def password(self):
+        password = self.config.get('password')
+        if not password:
+            password = self.scratch_info['password']
+        return password
+
     def create_org(self):
         """ Uses sfdx force:org:create to create the org """
         if not self.config_file:
@@ -507,10 +764,14 @@ class ScratchOrgConfig(OrgConfig):
         if not self.scratch_org_type:
             self.config['scratch_org_type'] = 'workspace'
 
+        devhub = ''
+        if self.devhub:
+            devhub = ' --targetdevhubusername {}'.format(self.devhub)
+
         # This feels a little dirty, but the use cases for extra args would mostly
         # work best with env vars
         extraargs = os.environ.get('SFDX_ORG_CREATE_ARGS', '')
-        command = 'sfdx force:org:create -f {} {}'.format(self.config_file, extraargs)
+        command = 'sfdx force:org:create -f {}{} {}'.format(self.config_file, devhub, extraargs)
         self.logger.info('Creating scratch org with command {}'.format(command))
         p = sarge.Command(command, stdout=sarge.Capture(buffer_size=-1))
         p.run()
@@ -530,8 +791,32 @@ class ScratchOrgConfig(OrgConfig):
             message = 'Failed to create scratch org: \n{}'.format(''.join(stdout))
             raise ScratchOrgException(message)
 
+        
+        self.generate_password()
+
         # Flag that this org has been created
         self.config['created'] = True
+
+    def generate_password(self):
+        """Generates an org password with the sfdx utility. """
+        # Set a random password so it's available via cci org info
+        command = 'sfdx force:user:password:generate -u {}'.format(self.username)
+        self.logger.info('Generating scratch org user password with command {}'.format(command))
+        p = sarge.Command(command, stdout=sarge.Capture(buffer_size=-1), stderr=sarge.Capture(buffer_size=-1))
+        p.run()
+        
+        stdout = [] 
+        for line in p.stdout:
+            stdout.append(line)
+        stderr = [] 
+        for line in p.stderr:
+            stderr.append(line)
+
+        if p.returncode:
+            # Don't throw an exception because of failure creating the password, just notify in a log message
+            self.logger.warn(
+                'Failed to set password: \n{}\n{}'.format('\n'.join(stdout),'\n'.join(stderr))
+            )
 
     def delete_org(self):
         """ Uses sfdx force:org:delete to create the org """

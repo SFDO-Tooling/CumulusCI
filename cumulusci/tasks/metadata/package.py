@@ -187,7 +187,11 @@ class BaseMetadataParser(object):
         output.append(u'    <types>')
         self.members.sort(key=lambda x: metadata_sort_key(x))
         for member in self.members:
-            member = unicode(member, 'utf-8')
+            try:
+                member = unicode(member, 'utf-8')
+            except TypeError:
+                # Assume member is already unicode
+                pass
             output.append(u'        <members>{0}</members>'.format(member))
         output.append(u'        <name>{0}</name>'.format(self.metadata_type))
         output.append(u'    </types>')
@@ -333,6 +337,9 @@ class UpdatePackageXml(BaseTask):
         'output': {
             'description': 'The output file, defaults to <path>/package.xml',
         },
+        'package_name': {
+            'description': 'If set, overrides the package name inserted into the <fullName> element',
+        },
         'managed': {
             'description': 'If True, generate a package.xml for deployment to the managed package packaging org',
         },
@@ -351,10 +358,13 @@ class UpdatePackageXml(BaseTask):
 
     def _init_task(self):
         package_name = None
-        if self.options.get('managed') in [True, 'True', 'true']:
-            package_name = self.project_config.project__package__name_managed
-        if not package_name:
-            package_name = self.project_config.project__package__name
+        if 'package_name' in self.options:
+            package_name = self.options['package_name']
+        else:
+            if self.options.get('managed') in [True, 'True', 'true']:
+                package_name = self.project_config.project__package__name_managed
+            if not package_name:
+                package_name = self.project_config.project__package__name
 
         self.package_xml = PackageXmlGenerator(
             directory = self.options.get('path'),

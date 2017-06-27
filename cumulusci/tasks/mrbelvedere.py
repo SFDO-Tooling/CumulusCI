@@ -55,7 +55,7 @@ class MrbelvederePublish(BaseMrbelvedereTask):
     def _get_diffs(self):
         # flatten dependency tree, resolve duplicates
         dependencies = self._clean_dependencies(
-            self.project_config.project__dependencies)
+            self.project_config.get_static_dependencies())
         # determine diffs vs current dependencies
         diffs = []
         for current_dependency in self.current_dependencies:
@@ -89,6 +89,8 @@ class MrbelvederePublish(BaseMrbelvedereTask):
         if not dependency_list:
             return cleaned_dependencies
         for dependency in dependency_list:
+            if 'namespace' not in dependency:
+                continue
             if 'dependencies' in dependency:
                 cleaned_dependencies.extend(
                     self._clean_dependencies(dependency['dependencies']))

@@ -1,5 +1,7 @@
 import os
+import shutil
 import time
+import glob
 from xml.dom.minidom import parse
 
 from cumulusci.core.tasks import BaseTask
@@ -87,3 +89,126 @@ class Sleep(BaseTask):
         )
         time.sleep(float(self.options['seconds']))
         self.logger.info('Done')
+
+class Delete(BaseTask):
+    name = 'Delete'
+    task_options = {
+        'path': {
+            'description': 'The path to delete.  If path is a directory, recursively deletes the directory: BE CAREFUL!!!  If path is a list, all paths will be deleted',
+            'required': True,
+        },
+        'chdir': {
+            'description': 'Change directories before deleting path(s).  This is useful if you have a common list of relative paths to delete that you want to call against different directories.',
+        }
+    }
+
+    def _run_task(self):
+        chdir = self.options.get('chdir')
+        cwd = os.getcwd()
+        if chdir:
+            self.logger.info(
+                'Changing directory to {}'.format(chdir)
+            )
+            os.chdir(chdir)
+
+        path = self.options['path']
+        if isinstance(path, list):
+            for path_item in path:
+                for match in glob.glob(path_item):
+                    self._delete(match)
+   
+        if chdir: 
+            os.chdir(cwd)
+
+    def _delete(self, path):
+        if not os.path.exists(path):
+            self.logger.info(
+                '{} does not exist, skipping delete'.format(path)
+            )
+        if os.path.isdir(path):
+            self.logger.info(
+                'Recursively deleting directory {}'.format(path)
+            )
+            shutil.rmtree(path)
+        else:
+            self.logger.info(
+                'Deleting file {}'.format(path)
+            )
+            os.remove(path)
+
+
+class FindReplace(BaseTask):
+    task_options = {
+        'find': {
+            'description': "The string to search for",
+            'required': True,
+        },
+        'replace': {
+            'description': "The string to replace matches with. Defaults to an empty string",
+            'required': True,
+        },
+        'path': {
+            'description': "The path to recursively search",
+            'required': True,
+        },
+        'file_pattern': {
+            'description': "A UNIX like filename pattern used for matching filenames.  See python fnmatch docs for syntax.  Defaults to *",
+            'required': True,
+        },
+        'max': {
+            'description': "The max number of matches to replace.  Defaults to replacing all matches.",
+        },
+    }
+    
+    def _init_options(self):
+        if 'replace' not in self.options:
+            self.options['replace'] = ''
+        if 'file_pattern' not in self.options:
+            self.options['file_pattern'] = '*'
+
+    def _run_task(self):
+        kwargs = {}
+        if 'max' in self.options:
+            kwargs['max'] = self.options['max']
+        findReplace(
+            find = self.options['find'],
+            replace = self.options['replace'],
+            directory = self.options['path'],
+            filePattern = self.options['file_pattern'],
+            logger = self.logger,
+            **kwargs
+        )
+
+find_replace_regex_options = FindReplace.task_options.copy()
+del find_replace_regex_options['max']
+
+class FindReplaceRegex(FindReplace):
+    task_options = find_replace_regex_options
+            
+    def _run_task(self):
+        findReplaceRegex(
+            find = self.options['find'],
+            replace = self.options['replace'],
+            directory = self.options['path'],
+            filePattern = self.options['file_pattern'],
+            logger = self.logger,
+        )
+
+class CopyFile(BaseTask):
+    task_options = {
+        'src': {
+            'description': 'The path to the source file to copy',
+            'required': True,
+        },
+        'dest': {
+            'description': 'The destination path where the src file should be copied',
+            'required': True,
+        },
+    }
+
+    def _run_task(self):
+        self.logger.info('Copying file {src} to {dest}'.format(**self.options))
+        shutil.copyfile(
+            src = self.options['src'],
+            dst = self.options['dest'],
+        )

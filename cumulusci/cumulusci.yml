@@ -2,6 +2,9 @@ cumulusci:
     keychain: cumulusci.core.keychain.EncryptedFileProjectKeychain
 
 tasks:
+    execute_anon:
+        description: Execute a string of anonymous apex via the tooling api.
+        class_path: cumulusci.tasks.anonymous_apex.AnonymousApexTask
     apextestsdb_upload:
         description: Upload results from Apex tests to database
         class_path: cumulusci.tasks.apextestsdb.ApextestsdbUpload
@@ -82,6 +85,12 @@ tasks:
     list_metadata_types:
         description: Prints the metadata types in a project
         class_path: cumulusci.tasks.util.ListMetadataTypes
+    meta_xml_apiversion:
+        description: Set the API version in *meta.xml files
+        class_path: cumulusci.tasks.metaxml.UpdateApi
+    meta_xml_dependencies:
+        description: Set the version for dependent packages
+        class_path: cumulusci.tasks.metaxml.UpdateDependencies
     mrbelvedere_publish:
         description: Publishes a release to the mrbelvedere web installer
         class_path: cumulusci.tasks.mrbelvedere.MrbelvederePublish
@@ -174,6 +183,11 @@ tasks:
             path: unpackaged/post
             filename_token: ___NAMESPACE___
             managed: True
+    unschedule_apex:
+        description: Unschedule all scheduled apex jobs (CronTriggers).
+        class_path: cumulusci.tasks.anonymous_apex.AnonymousApexTask
+        options:
+            apex: 'for (CronTrigger t : [SELECT Id FROM CronTrigger]) { System.abortJob(t.Id); }'
     update_admin_profile:
         description: Retrieves, edits, and redeploys the Admin.profile with full FLS perms for all objects/fields
         class_path: cumulusci.tasks.salesforce.UpdateAdminProfile
@@ -209,6 +223,8 @@ flows:
     dev_org:
         description: Deploys the unmanaged package metadata and all dependencies to the target org
         tasks:
+            0.5:
+                task: unschedule_apex
             1:
                 task: create_package
             2:
@@ -425,6 +441,21 @@ services:
         required: True
       api_key:
         description: The Saucelabs api key to use for tasks  
+        required: True
+  sentry:
+    description: Configure connection to sentry.io for error tracking
+    attributes:
+      dsn:
+        description: "The sentry DSN for connecting to the API, see https://docs.sentry.io/quickstart/#configure-the-dsn"
+        required: True
+      api_key:
+        description: "The sentry web api auth key for your account, see https://docs.sentry.io/api/auth/"
+        required: True
+      org_slug:
+        description: "The abbreviated organization name used in the your sentry urls"
+        required: True
+      project_slug:
+        description: "The abbreviated project slug used in sentry urls to the project"
         required: True
 
 project:

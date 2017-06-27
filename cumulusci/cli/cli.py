@@ -3,6 +3,7 @@ import os
 import sys
 import webbrowser
 import code
+import yaml
 
 import click
 from plaintable import Table
@@ -106,6 +107,23 @@ def check_keychain(config):
 def check_project_config(config):
     if not config.project_config:
         raise click.UsageError('No project configuration found.  You can use the "project init" command to initilize the project for use with CumulusCI')
+
+def handle_sentry_event(config, no_prompt):
+    event = config.project_config.sentry_event
+    if not event:
+        return
+
+    sentry_config = config.project_config.keychain.get_service('sentry')
+    event_url = '{}/{}/{}/?query={}'.format(
+        config.project_config.sentry.remote.base_url,
+        sentry_config.org_slug,
+        sentry_config.project_slug,
+        event,
+    )
+    click.echo('An error event was recorded in sentry.io and can be viewed at the url:\n{}'.format(event_url))
+
+    if not no_prompt and click.confirm('Do you want to open a browser to view the error in sentry.io?'):
+        webbrowser.open(event_url)
 
 # Root command
 @click.group('cli')
@@ -266,6 +284,14 @@ def project_info(config):
     check_project_config(config)
     click.echo(pretty_dict(config.project_config.project))
 
+@click.command(name="dependencies", help="Displays the current dependencies for the project.  If the dependencies section has references to other github repositories, the repositories are inspected and a static list of dependencies is created")
+@pass_config
+def project_dependencies(config):
+    check_project_config(config)
+    dependencies = config.project_config.get_static_dependencies()
+    for line in config.project_config.pretty_dependencies(dependencies):
+        click.echo(line)
+
 @click.command(name='list', help="List projects and their locations")
 @pass_config
 def project_list(config):
@@ -278,6 +304,7 @@ def project_cd(config):
 
 project.add_command(project_init)
 project.add_command(project_info)
+project.add_command(project_dependencies)
 #project.add_command(project_list)
 #project.add_command(project_cd)
 
@@ -369,9 +396,10 @@ def org_browser(config, org_name):
 @click.argument('org_name')
 @click.option('--sandbox', is_flag=True, help="If set, connects to a Salesforce sandbox org")
 @click.option('--login-url', help='If set, login to this hostname.', default= 'https://login.salesforce.com')
+@click.option('--default', is_flag=True, help='If set, sets the connected org as the new default org')
 @click.option('--global-org', help='Set True if org should be used by any project', is_flag=True)
 @pass_config
-def org_connect(config, org_name, sandbox, login_url, global_org):
+def org_connect(config, org_name, sandbox, login_url, default, global_org):
     check_connected_app(config)
 
     connected_app = config.keychain.get_connected_app()
@@ -390,6 +418,10 @@ def org_connect(config, org_name, sandbox, login_url, global_org):
     org_config.load_userinfo()
 
     config.keychain.set_org(org_name, org_config, global_org)
+
+    if default:
+        org = config.keychain.set_default_org(org_name)
+        click.echo('{} is now the default org'.format(org_name))
 
 @click.command(name='default', help="Sets an org as the default org for tasks and flows")
 @click.argument('org_name')
@@ -413,7 +445,11 @@ def org_info(config, org_name):
     check_connected_app(config)
     
     org_config = config.keychain.get_org(org_name)
-    org_config.refresh_oauth_token(config.keychain.get_connected_app())
+    
+    try:
+        org_config.refresh_oauth_token(config.keychain.get_connected_app())
+    except ScratchOrgException as e:
+        raise click.ClickException('ScratchOrgException: {}'.format(e.message))
 
     click.echo(pretty_dict(org_config.config))
 
@@ -438,9 +474,11 @@ def org_list(config):
 @click.command(name='scratch', help="Connects a Salesforce DX Scratch Org to the keychain")
 @click.argument('config_name')
 @click.argument('org_name')
+@click.option('--default', is_flag=True, help='If set, sets the connected org as the new default org')
 @click.option('--delete', is_flag=True, help="If set, triggers a deletion of the current scratch org.  This can be used to reset the org as the org configuration remains to regenerate the org on the next task run.")
+@click.option('--devhub', help="If provided, overrides the devhub used to create the scratch org")
 @pass_config
-def org_scratch(config, config_name, org_name, delete):
+def org_scratch(config, config_name, org_name, default, delete, devhub):
     check_connected_app(config)
   
     scratch_configs = getattr(config.project_config, 'orgs__scratch')
@@ -452,8 +490,16 @@ def org_scratch(config, config_name, org_name, delete):
             'No scratch org config named {} found in the cumulusci.yml file'.format(config_name)
         )
 
+    if devhub:
+        scratch_config['devhub'] = devhub
+
     org_config = ScratchOrgConfig(scratch_config) 
+
     config.keychain.set_org(org_name, org_config)
+
+    if default:
+        org = config.keychain.set_default_org(org_name)
+        click.echo('{} is now the default org'.format(org_name))
 
 @click.command(name='scratch_delete', help="Deletes a Salesforce DX Scratch Org leaving the config in the keychain for regeneration")
 @click.argument('org_name')
@@ -544,8 +590,11 @@ def task_info(config, task_name):
 @click.option('--org', help="Specify the target org.  By default, runs against the current default org")
 @click.option('-o', nargs=2, multiple=True, help="Pass task specific options for the task as '-o option value'.  You can specify more than one option by using -o more than once.")
 @click.option('--debug', is_flag=True, help="Drops into pdb, the Python debugger, on an exception")
+@click.option('--debug-before', is_flag=True, help="Drops into the Python debugger right before task start.")
+@click.option('--debug-after', is_flag=True, help="Drops into the Python debugger at task completion.")
+@click.option('--no-prompt', is_flag=True, help="Disables all prompts.  Set for non-interactive mode use such as calling from scripts or CI systems")
 @pass_config
-def task_run(config, task_name, org, o, debug):
+def task_run(config, task_name, org, o, debug, debug_before, debug_after, no_prompt):
     # Check environment
     check_keychain(config)
 
@@ -557,7 +606,7 @@ def task_run(config, task_name, org, o, debug):
     task_config = getattr(config.project_config, 'tasks__{}'.format(task_name))
     if not task_config:
         raise TaskNotFoundError('Task not found: {}'.format(task_name))
-
+    
     # Get the class to look up options
     class_path = task_config.get('class_path')
     task_class = import_class(class_path)
@@ -599,7 +648,12 @@ def task_run(config, task_name, org, o, debug):
             traceback.print_exc()
             pdb.post_mortem()
         else:
+            handle_sentry_event(config, no_prompt)
             raise
+            
+    if debug_before:
+        import pdb 
+        pdb.set_trace()
 
     if not exception:
         try:
@@ -619,14 +673,22 @@ def task_run(config, task_name, org, o, debug):
                 traceback.print_exc()
                 pdb.post_mortem()
             else:
+                handle_sentry_event(config, no_prompt)
                 raise
 
     # Save the org config in case it was modified in the task
     if org and org_config:
         config.keychain.set_org(org, org_config)
 
+    if debug_after:
+        import pdb
+        pdb.set_trace()
+
+
     if exception:
+        handle_sentry_event(config, no_prompt)
         raise exception
+
 
 # Add the task commands to the task group
 task.add_command(task_doc)
@@ -662,8 +724,11 @@ def flow_info(config, flow_name):
 @click.option('--org', help="Specify the target org.  By default, runs against the current default org")
 @click.option('--delete-org', is_flag=True, help="If set, deletes the scratch org after the flow completes")
 @click.option('--debug', is_flag=True, help="Drops into pdb, the Python debugger, on an exception")
+@click.option('-o', nargs=2, multiple=True, help="Pass task specific options for the task as '-o taskname__option value'.  You can specify more than one option by using -o more than once.")
+@click.option('--skip', multiple=True, help="Specify task names that should be skipped in the flow.  Specify multiple by repeating the --skip option")
+@click.option('--no-prompt', is_flag=True, help="Disables all prompts.  Set for non-interactive mode use such as calling from scripts or CI systems")
 @pass_config
-def flow_run(config, flow_name, org, delete_org, debug):
+def flow_run(config, flow_name, org, delete_org, debug, o, skip, no_prompt):
     # Check environment
     check_keychain(config)
 
@@ -689,9 +754,15 @@ def flow_run(config, flow_name, org, delete_org, debug):
 
     exception = None
 
+    # Parse command line options and add to task config
+    options = {}
+    if o:
+        for option in o:
+            options[option[0]] = option[1]
+
     # Create the flow and handle initialization exceptions
     try:
-        flow = flow_class(config.project_config, flow_config, org_config)
+        flow = flow_class(config.project_config, flow_config, org_config, options, skip)
     except TaskRequiresSalesforceOrg as e:
         exception = click.UsageError('This flow requires a salesforce org.  Use org default <name> to set a default org or pass the org name with the --org option')
     except TaskOptionsError as e:
@@ -724,6 +795,7 @@ def flow_run(config, flow_name, org, delete_org, debug):
                 traceback.print_exc()
                 pdb.post_mortem()
             else:
+                handle_sentry_event(config, no_prompt)
                 raise
 
     # Delete the scratch org if --delete-org was set
@@ -739,6 +811,7 @@ def flow_run(config, flow_name, org, delete_org, debug):
         config.keychain.set_org(org, org_config)
 
     if exception:
+        handle_sentry_event(config, no_prompt)
         raise exception
 
 flow.add_command(flow_list)
