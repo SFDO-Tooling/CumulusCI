@@ -24,6 +24,7 @@ requirements = [
     'coloredlogs>=5.2',
     'docutils>=0.13.1',
     'github3.py==0.9.6',
+    'lxml>=3.8.0',
     'plaintable==0.1.1',
     'raven>=0.6.1',
     'requests[security]>=2.9.1',
