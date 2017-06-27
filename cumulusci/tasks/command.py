@@ -42,7 +42,7 @@ class Command(BaseTask):
     def _init_options(self, kwargs):
         super(Command, self)._init_options(kwargs)
         if 'pass_env' not in self.options:
-            self.options['pass_env'] = False
+            self.options['pass_env'] = True
         if self.options['pass_env'] == 'False':
             self.options['pass_env'] = False
         if 'dir' not in self.options or not self.options['dir']:
