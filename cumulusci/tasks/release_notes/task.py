@@ -1,25 +1,31 @@
 from cumulusci.tasks.github import BaseGithubTask
-from cumulusci.tasks.release_notes.generator import GithubReleaseNotesGenerator
-from cumulusci.tasks.release_notes.generator import PublishingGithubReleaseNotesGenerator
+from generator import GithubReleaseNotesGenerator
+from generator import PublishingGithubReleaseNotesGenerator
+
 
 class GithubReleaseNotes(BaseGithubTask):
 
     task_options = {
         'tag': {
-            'description': "The tag to generate release notes for.  Ex: release/1.2",
+            'description': ('The tag to generate release notes for.' +
+                ' Ex: release/1.2'),
             'required': True,
         },
         'publish': {
-            'description': "If True, publishes to the release matching the tag release notes were generated for.",
+            'description': ('If True, publishes to the release matching the' +
+                ' tag release notes were generated for.'),
         },
         'last_tag': {
-            'description': "Override the last release tag.  This is useful to generate release notes if you skipped one or more release",
+            'description': ('Override the last release tag. This is useful' +
+                ' to generate release notes if you skipped one or more' +
+                ' releases.'),
         },
         'link_pr': {
-            'description': 'If True, insert link to source pull request at end of each line.',
+            'description': ('If True, insert link to source pull request at' +
+                ' end of each line.'),
         }
     }
-    
+
     def _run_task(self):
         github_info = {
             'github_owner': self.project_config.repo_owner,
@@ -30,22 +36,22 @@ class GithubReleaseNotes(BaseGithubTask):
             'prefix_beta': self.project_config.project__git__prefix_beta,
             'prefix_prod': self.project_config.project__git__prefix_release,
         }
-        
+
         publish = self.options.get('publish', False) in (True, 'True', 'true')
         link_pr = self.options.get('link_pr', False) in (True, 'True', 'true')
         last_tag = self.options.get('last_tag', None)
 
-        generator_class = GithubReleaseNotesGenerator
-
         if publish:
             generator_class = PublishingGithubReleaseNotesGenerator
+        else:
+            generator_class = GithubReleaseNotesGenerator
 
         generator = generator_class(
             github_info,
             self.options['tag'],
             last_tag,
             link_pr,
-        ) 
-  
+        )
+
         release_notes = generator()
         self.logger.info('\n' + release_notes)
