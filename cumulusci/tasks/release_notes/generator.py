@@ -107,11 +107,19 @@ class DirectoryReleaseNotesGenerator(BaseReleaseNotesGenerator):
 
 class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator):
 
-    def __init__(self, github_info, current_tag, last_tag=None, link_pr=False):
+    def __init__(
+            self,
+            github_info,
+            current_tag,
+            last_tag=None,
+            link_pr=False,
+            issues_enabled=True,
+        ):
         self.github_info = github_info
         self.current_tag = current_tag
         self.last_tag = last_tag
         self.link_pr = link_pr
+        self.issues_enabled = issues_enabled
         self.lines_parser_class = None
         self.issues_parser_class = None
         super(GithubReleaseNotesGenerator, self).__init__()
@@ -126,11 +134,12 @@ class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator):
             self,
             'Changes',
         ))
-        self.parsers.append(self.issues_parser_class(
-            self,
-            'Issues Closed',
-            link_pr=self.link_pr,
-        ))
+        if self.issues_enabled:
+            self.parsers.append(self.issues_parser_class(
+                self,
+                'Issues Closed',
+                link_pr=self.link_pr,
+            ))
 
     def _init_change_notes(self):
         return GithubChangeNotesProvider(

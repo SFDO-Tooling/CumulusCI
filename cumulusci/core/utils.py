@@ -12,3 +12,16 @@ def import_class(path):
     module = '.'.join(module)
     mod = __import__(module, fromlist=[components[-1]])
     return getattr(mod, components[-1])
+
+
+def process_bool_arg(arg, default):
+    """ Determine true/false from command line argument """
+    if arg is None:
+        return default
+    elif isinstance(arg, bool):
+        return arg
+    elif isinstance(arg, str):
+        if arg.lower() == 'true':
+            return True
+        elif arg.lower() == 'false':
+            return False

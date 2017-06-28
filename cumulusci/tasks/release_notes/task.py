@@ -1,3 +1,4 @@
+from cumulusci.core.utils import process_bool_arg
 from cumulusci.tasks.github import BaseGithubTask
 from generator import GithubReleaseNotesGenerator
 from generator import PublishingGithubReleaseNotesGenerator
@@ -23,7 +24,11 @@ class GithubReleaseNotes(BaseGithubTask):
         'link_pr': {
             'description': ('If True, insert link to source pull request at' +
                 ' end of each line.'),
-        }
+        },
+        'issues_enabled': {
+            'description': ('Set to False if issues have been disabled in' +
+                ' the GitHub repo. Defaults to True.'),
+        },
     }
 
     def _run_task(self):
@@ -51,6 +56,10 @@ class GithubReleaseNotes(BaseGithubTask):
             self.options['tag'],
             last_tag,
             link_pr,
+            process_bool_arg(
+                self.options.get('issues_enabled'),
+                True,
+            ),
         )
 
         release_notes = generator()
