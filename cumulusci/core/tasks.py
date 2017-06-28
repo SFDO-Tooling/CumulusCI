@@ -108,9 +108,10 @@ class BaseTask(object):
 
             tags = {
                 'task class': self.__class__.__name__,
-                'org username': self.org_config.username,
-                'scratch org': self.org_config.scratch == True,
             }
+            if self.org_config:
+                tags['org username'] = self.org_config.username
+                tags['scratch org'] = self.org_config.scratch == True
             for key, value in self.options.items():
                 tags['option_' + key] = value
             self.project_config.sentry.tags_context(tags)
