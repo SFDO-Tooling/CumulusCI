@@ -42,11 +42,7 @@ class GithubReleaseNotes(BaseGithubTask):
             'prefix_prod': self.project_config.project__git__prefix_release,
         }
 
-        publish = self.options.get('publish', False) in (True, 'True', 'true')
-        link_pr = self.options.get('link_pr', False) in (True, 'True', 'true')
-        last_tag = self.options.get('last_tag', None)
-
-        if publish:
+        if process_bool_arg(self.options.get('publish', False)):
             generator_class = PublishingGithubReleaseNotesGenerator
         else:
             generator_class = GithubReleaseNotesGenerator
@@ -54,12 +50,9 @@ class GithubReleaseNotes(BaseGithubTask):
         generator = generator_class(
             github_info,
             self.options['tag'],
-            last_tag,
-            link_pr,
-            process_bool_arg(
-                self.options.get('issues_enabled'),
-                True,
-            ),
+            self.options.get('last_tag'),
+            process_bool_arg(self.options.get('link_pr', False)),
+            process_bool_arg(self.options.get('issues_enabled', True)),
         )
 
         release_notes = generator()

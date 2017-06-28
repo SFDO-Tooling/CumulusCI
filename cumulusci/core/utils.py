@@ -14,14 +14,12 @@ def import_class(path):
     return getattr(mod, components[-1])
 
 
-def process_bool_arg(arg, default):
-    """ Determine true/false from command line argument """
-    if arg is None:
-        return default
-    elif isinstance(arg, bool):
+def process_bool_arg(arg):
+    """ Determine True/False from argument """
+    if isinstance(arg, bool):
         return arg
     elif isinstance(arg, str):
-        if arg.lower() == 'true':
+        if arg.lower() in ['true', '1']:
             return True
-        elif arg.lower() == 'false':
+        elif arg.lower() in ['false', '0']:
             return False
