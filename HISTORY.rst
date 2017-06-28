@@ -2,6 +2,25 @@
 History
 =======
 
+2.0.0-beta48 (2017-06-28)
+------------------------
+
+* Upgraded to the Salesforce DX Beta (thanks to @Szandor72 for the contribution!)
+
+  * NOTE: CumulusCI will no longer work with the sfdx pilot release after this version!
+  * Replaced call to `force:org:describe` with `force:org:display`
+  * Changed json response parsing to match beta format
+
+* New SFDX wrapper tasks
+
+  * `SFDXBaseTask`: Use for tasks that don't need org access
+  * `SFDXOrgTask`: Use for sfdx tasks that need org access.  The task will refresh the cci keychain org's token and pass it to sfdx as the target org for the command
+  * `SFDXJsonTask`: Use for building tasks that interact with sfdx via json responses
+  * `SFDXJsonPollingTask`: Use for building tasks that wrap sfdx json responses including polling for task completion
+  * `SFDXDeploy`: An example of using `SFDXJsonPollingTask` to wrap `force:mdapi:deploy`
+
+* Fixed infinite loop if setting scratch org password fails
+
 2.0.0-beta47 (2017-06-26)
 ------------------------
 
