@@ -666,6 +666,8 @@ def task_run(config, task_name, org, o, debug, debug_before, debug_after, no_pro
             exception = click.ClickException('Failed: MetadataComponentFailure')
         except MetadataApiError as e:
             exception = click.ClickException('Failed: MetadataApiError')
+        except ScratchOrgException as e:
+            exception = click.ClickException('ScratchOrgException: {}'.format(e.message))
         except Exception as e:
             if debug:
                 import pdb
@@ -788,6 +790,8 @@ def flow_run(config, flow_name, org, delete_org, debug, o, skip, no_prompt):
             exception = click.ClickException('Failed: MetadataComponentFailure')
         except MetadataApiError as e:
             exception = click.ClickException('Failed: MetadataApiError')
+        except ScratchOrgException as e:
+            exception = click.ClickException('ScratchOrgException: {}'.format(e.message))
         except Exception as e:
             if debug:
                 import pdb

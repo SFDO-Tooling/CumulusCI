@@ -45,6 +45,7 @@ requirements = [
 test_requirements = [
     'nose>=1.3.7',
     'mock',
+    'testfixtures>=4.13.5',
 ]
 
 setup(

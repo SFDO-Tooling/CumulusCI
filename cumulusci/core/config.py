@@ -631,7 +631,10 @@ class OrgConfig(BaseConfig):
     @property
     def username(self):
         """ Username for the org connection. """
-        return self.userinfo__preferred_username
+        username = self.config.get('username')
+        if not username:
+            username = self.userinfo__preferred_username
+        return username
 
     def load_userinfo(self):
         self._load_userinfo()
@@ -670,6 +673,7 @@ class ScratchOrgConfig(OrgConfig):
             self.logger.error('Return code: {}'.format(p.returncode))
             for line in stdout_list:
                 self.logger.error(line)
+            message = 'Message: {}'.format('\n'.join(stdout_list))
             raise ScratchOrgException(message)
 
         else:
