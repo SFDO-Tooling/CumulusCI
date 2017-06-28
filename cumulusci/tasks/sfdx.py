@@ -15,7 +15,6 @@ import json
 
 from cumulusci.core.config import ScratchOrgConfig
 from cumulusci.tasks.command import Command
-from cumulusci.tasks.command import SalesforceCommand
 
 SFDX_CLI = 'sfdx'
 

@@ -2,9 +2,6 @@ cumulusci:
     keychain: cumulusci.core.keychain.EncryptedFileProjectKeychain
 
 tasks:
-    execute_anon:
-        description: Execute a string of anonymous apex via the tooling api.
-        class_path: cumulusci.tasks.anonymous_apex.AnonymousApexTask
     apextestsdb_upload:
         description: Upload results from Apex tests to database
         class_path: cumulusci.tasks.apextestsdb.ApextestsdbUpload
@@ -51,12 +48,15 @@ tasks:
             managed: True
             namespace_token: '%%%NAMESPACE%%%'
             filename_token: '___NAMESPACE___'
+    execute_anon:
+        description: Execute a string of anonymous apex via the tooling api.
+        class_path: cumulusci.tasks.anonymous_apex.AnonymousApexTask
+    generate_apex_docs:
+        description: Generate documentation for local code
+        class_path: cumulusci.tasks.apexdoc.GenerateApexDocs
     get_installed_packages:
         description: Retrieves a list of the currently installed managed package namespaces and their versions
         class_path: cumulusci.tasks.salesforce.GetInstalledPackages
-    get_subscribers:
-        description: Creates a CSV file with info on subscribed orgs
-        class_path: cumulusci.tasks.push.tasks.GetSubscriberList
     github_clone_tag:
         description: Lists open pull requests in project Github repository
         class_path: cumulusci.tasks.github.CloneTag
