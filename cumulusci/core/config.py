@@ -692,7 +692,7 @@ class ScratchOrgConfig(OrgConfig):
                 )
             org_id = org_info['result']['accessToken'].split('!')[0]
 
-        if org_info.get('password', None) is None:
+        if org_info['result'].get('password', None) is None:
             self.generate_password()
             return self.scratch_info
 
@@ -789,7 +789,6 @@ class ScratchOrgConfig(OrgConfig):
         if p.returncode:
             message = 'Failed to create scratch org: \n{}'.format(''.join(stdout))
             raise ScratchOrgException(message)
-
         
         self.generate_password()
 
@@ -798,6 +797,11 @@ class ScratchOrgConfig(OrgConfig):
 
     def generate_password(self):
         """Generates an org password with the sfdx utility. """
+
+        if self.password_failed:
+            self.logger.warn('Skipping resetting password since last attempt failed')
+            return
+
         # Set a random password so it's available via cci org info
         command = 'sfdx force:user:password:generate -u {}'.format(self.username)
         self.logger.info('Generating scratch org user password with command {}'.format(command))
@@ -812,6 +816,7 @@ class ScratchOrgConfig(OrgConfig):
             stderr.append(line)
 
         if p.returncode:
+            self.config['password_failed'] = True     
             # Don't throw an exception because of failure creating the password, just notify in a log message
             self.logger.warn(
                 'Failed to set password: \n{}\n{}'.format('\n'.join(stdout),'\n'.join(stderr))
