@@ -82,9 +82,10 @@ class UpdateDependencies(MetaXmlBaseTask):
         for dependency in dependencies:
             if 'dependencies' in dependency:
                 self._process_dependencies(dependency['dependencies'])
-            self.dependencies.append(
-                (dependency['namespace'], str(dependency['version']))
-            )
+            if 'namespace' in dependency:
+                self.dependencies.append(
+                    (dependency['namespace'], str(dependency['version']))
+                )
 
     def _process_xml(self, root):
         changed = False
