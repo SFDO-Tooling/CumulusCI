@@ -5,6 +5,9 @@ tasks:
     apextestsdb_upload:
         description: Upload results from Apex tests to database
         class_path: cumulusci.tasks.apextestsdb.ApextestsdbUpload
+    batch_apex_wait:
+        description: Waits on a batch apex job to finish.
+        class_path: cumulusci.tasks.batch_apex.BatchApexWait
     command:
         description: Run an arbitrary command
         class_path: cumulusci.tasks.command.Command
