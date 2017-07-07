@@ -113,13 +113,13 @@ class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator):
             current_tag,
             last_tag=None,
             link_pr=False,
-            issues_enabled=True,
+            has_issues=True,
         ):
         self.github_info = github_info
         self.current_tag = current_tag
         self.last_tag = last_tag
         self.link_pr = link_pr
-        self.issues_enabled = issues_enabled
+        self.has_issues = has_issues
         self.lines_parser_class = None
         self.issues_parser_class = None
         super(GithubReleaseNotesGenerator, self).__init__()
@@ -134,7 +134,7 @@ class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator):
             self,
             'Changes',
         ))
-        if self.issues_enabled:
+        if self.has_issues:
             self.parsers.append(self.issues_parser_class(
                 self,
                 'Issues Closed',
@@ -149,9 +149,12 @@ class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator):
         )
 
     def _set_classes(self):
-        self.lines_parser_class = (GithubLinkingLinesParser if self.link_pr
-                            else GithubLinesParser)
-        self.issues_parser_class = GithubIssuesParser
+        self.lines_parser_class = (
+            GithubLinkingLinesParser if self.link_pr else GithubLinesParser
+        )
+        self.issues_parser_class = (
+            GithubIssuesParser if self.has_issues else IssuesParser
+        )
 
 
 class PublishingGithubReleaseNotesGenerator(GithubReleaseNotesGenerator, GithubApiMixin):
@@ -169,9 +172,12 @@ class PublishingGithubReleaseNotesGenerator(GithubReleaseNotesGenerator, GithubA
         return self.call_api('/releases/tags/{}'.format(self.current_tag))
 
     def _set_classes(self):
-        self.lines_parser_class = (GithubLinkingLinesParser if self.link_pr
-                            else GithubLinesParser)
-        self.issues_parser_class = CommentingGithubIssuesParser
+        self.lines_parser_class = (
+            GithubLinkingLinesParser if self.link_pr else GithubLinesParser
+        )
+        self.issues_parser_class = (
+            CommentingGithubIssuesParser if self.has_issues else IssuesParser
+        )
 
     def _update_release(self, release, content):
 
