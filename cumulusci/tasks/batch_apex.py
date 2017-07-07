@@ -81,9 +81,3 @@ class BatchApexWait(BaseSalesforceApiTask):
                   'AND ApexClass.Name=\'{}\' ' \
                   'ORDER BY CreatedDate DESC ' \
                   'LIMIT 1'.format(self.options['class_name'])
-
-
-    def _try(self):
-        raise NotImplementedError(
-            'BatchApexWait is not retryable.'
-        )
