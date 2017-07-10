@@ -129,6 +129,11 @@ class SalesforceCommand(Command):
         return env
 
 task_options = Command.task_options.copy()
+task_options['extra'] = {
+    'description': 'If provided, will be appended to the end of the '
+                   'command.  Use to pass extra args to the command.',
+    'required': False,
+}
 task_options['use_saucelabs'] = {
     'description': 'If True, use SauceLabs to run the tests. The '
                    'SauceLabs credentials will be fetched from the '
@@ -151,6 +156,11 @@ class SalesforceBrowserTest(SalesforceCommand):
                 self.options['use_saucelabs'] == 'False'
         ):
             self.options['use_saucelabs'] = False
+
+        if 'extra' in self.options and self.options['extra']:
+            self.options['command'] = '{command} {extra}'.format(
+                **self.options
+            )
 
     def _get_env(self):
         env = super(SalesforceBrowserTest, self)._get_env()
