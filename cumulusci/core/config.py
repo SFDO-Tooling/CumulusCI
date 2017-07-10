@@ -850,6 +850,24 @@ class ScratchOrgConfig(OrgConfig):
         self.config['created'] = False
         self.config['username'] = None
 
+    def force_refresh_oauth_token(self):
+        # Call force:org:display and parse output to get instance_url and access_token
+        command = 'sfdx force:org:open -r -u {}'.format(self.username)
+        self.logger.info('Refreshing OAuth token with command: {}'.format(command))
+        p = sarge.Command(command, stdout=sarge.Capture(buffer_size=-1))
+        p.run()
+
+        stdout_list = []
+        for line in p.stdout:
+            stdout_list.append(line.strip())
+
+        if p.returncode:
+            self.logger.error('Return code: {}'.format(p.returncode))
+            for line in stdout_list:
+                self.logger.error(line)
+            message = 'Message: {}'.format('\n'.join(stdout_list))
+            raise ScratchOrgException(message)
+
     def refresh_oauth_token(self, connected_app):
         """ Use sfdx force:org:describe to refresh token instead of built in OAuth handling """
         if hasattr(self, '_scratch_info'):
@@ -857,7 +875,11 @@ class ScratchOrgConfig(OrgConfig):
             delta = datetime.datetime.utcnow() - self._scratch_info_date
             if delta.total_seconds() > 3600:
                 del self._scratch_info
-        # This triggers a refresh
+
+            # Force a token refresh
+            self.force_refresh_oauth_token()
+
+        # Get org info via sfdx force:org:display
         self.scratch_info
 
 
