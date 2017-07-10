@@ -1,6 +1,7 @@
 import re
 import os
 
+from exceptions import GithubIssuesError
 from cumulusci.tasks.release_notes.github_api import GithubApiMixin
 
 
@@ -236,7 +237,10 @@ class GithubIssuesParser(IssuesParser, ParserGithubApiMixin):
         return u'\r\n'.join(content)
 
     def _get_issue_info(self, issue_number):
-        return self.call_api('/issues/{}'.format(issue_number))
+        response = self.call_api('/issues/{}'.format(issue_number))
+        if 'message' in response:
+            raise GithubIssuesError(response['message'])
+        return response
 
     def _process_change_note(self, pull_request):
         self.pr_number = pull_request['number']

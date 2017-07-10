@@ -17,5 +17,8 @@ class GithubApiUnauthorized(CumulusCIException):
     pass
 
 
+class GithubIssuesError(CumulusCIException):
+    pass
+
 class LastReleaseTagNotFoundError(CumulusCIException):
     pass
