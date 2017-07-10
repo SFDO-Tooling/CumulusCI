@@ -2,6 +2,14 @@
 History
 =======
 
+2.0.0-beta49 (2017-07-10)
+-------------------------
+
+* New task `batch_apex_wait` allows pausing until an Apex batch job completes.  More details at https://github.com/SalesforceFoundation/CumulusCI/pull/372
+* SalesforceBrowserTest task now accepts `extra` argument for specifying extra command line arguments separate from the command itself
+* Resolved #369: Scratch org tokens expiring after upgrade to SFDX beta
+
+
 2.0.0-beta48 (2017-06-28)
 ------------------------
 
