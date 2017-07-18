@@ -18,7 +18,7 @@ def process_bool_arg(arg):
     """ Determine True/False from argument """
     if isinstance(arg, bool):
         return arg
-    elif isinstance(arg, str):
+    elif isinstance(arg, basestring):
         if arg.lower() in ['true', '1']:
             return True
         elif arg.lower() in ['false', '0']:
