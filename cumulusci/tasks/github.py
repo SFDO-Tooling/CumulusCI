@@ -253,7 +253,7 @@ class CommitApexDocs(BaseGithubTask):
 
         # commit
         author = {
-            'name': self.github_config.username,
+            'name': self.github.user().name,
             'email': self.github_config.email,
         }
         commit_dir = CommitDir(repo, self.logger, author)
