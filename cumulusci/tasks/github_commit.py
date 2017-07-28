@@ -78,14 +78,7 @@ class CommitDir(object):
                     self.logger.info(
                         'Creating blob for updated file: {}'.format(local_file)
                     )
-                    try:
-                        content = content.decode('utf-8')
-                        blob_sha = self.repo.create_blob(content, 'utf-8')
-                    except UnicodeDecodeError:
-                        content = base64.b64encode(content)
-                        blob_sha = self.repo.create_blob(content, 'base64')
-                    if not blob_sha:
-                        raise GithubException('Failed to create blob')
+                    blob_sha = self._create_blob(content)
                     self.logger.debug('Blob created: {}'.format(blob_sha))
                 new_item['sha'] = blob_sha
                 changed = True
@@ -119,14 +112,7 @@ class CommitDir(object):
                         self.logger.info(
                             'Creating blob for new file: {}'.format(local_file)
                         )
-                        try:
-                            content = content.decode('utf-8')
-                            blob_sha = self.repo.create_blob(content, 'utf-8')
-                        except UnicodeDecodeError:
-                            content = base64.b64encode(content)
-                            blob_sha = self.repo.create_blob(content, 'base64')
-                        if not blob_sha:
-                            raise GithubException('Failed to create blob')
+                        blob_sha = self._create_blob(content)
                         self.logger.debug('Blob created: {}'.format(blob_sha))
                     new_item = {
                         'path': '{}/{}'.format(repo_dir, local_file_subpath),
@@ -190,4 +176,13 @@ class CommitDir(object):
             if not success:
                 raise GithubException('Failed to update HEAD')
 
-        
+    def _create_blob(self, content):
+        try:
+            content = content.decode('utf-8')
+            blob_sha = self.repo.create_blob(content, 'utf-8')
+        except UnicodeDecodeError:
+            content = base64.b64encode(content)
+            blob_sha = self.repo.create_blob(content, 'base64')
+        if not blob_sha:
+            raise GithubException('Failed to create blob')
+        return blob_sha
