@@ -1,3 +1,4 @@
+import os
 import time
 
 from datetime import datetime
@@ -6,6 +7,8 @@ from github3 import GitHubError
 
 from cumulusci.core.exceptions import GithubException
 from cumulusci.core.tasks import BaseTask
+from cumulusci.core.utils import process_bool_arg
+from cumulusci.tasks.github_commit import CommitDir
 
 class BaseGithubTask(BaseTask):
 
@@ -207,3 +210,51 @@ class MergeBranch(BaseGithubTask):
                 )
 
                 self.logger.info('Merge conflict on branch {}: created pull request #{}'.format(branch.name, pull.number))
+
+
+class CommitApexDocs(BaseGithubTask):
+
+    task_options = {
+        'branch': {
+            'description': 'branch name',
+            'required': True,
+        },
+        'dir_local': {
+            'description': 'local dir of ApexDocs (contains index.html)',
+            'required': True,
+        },
+        'dir_repo': {
+            'description': 'location relative to repo root',
+            'required': True,
+        },
+        'dry_run': {
+            'description': 'execute a dry run if True (default=False)',
+        },
+    }
+
+    def _run_task(self):
+
+        # args
+        branch = self.options['branch']
+        local_dir = self.options['dir_local']
+        if not os.path.isdir(local_dir):
+            raise GithubException('{} is not a directory'.format(local_dir))
+        repo_dir = self.options['dir_repo']
+        if repo_dir.startswith('.'):
+            repo_dir = repo_dir[1:]
+        if repo_dir.startswith('/'):
+            repo_dir = repo_dir[1:]
+        if repo_dir.endswith('/'):
+            repo_dir = repo_dir[:-1]
+        dry_run = process_bool_arg(self.options.get('dry_run', False))
+
+        # get API
+        repo = self.get_repo()
+
+        # commit
+        author = {
+            'name': self.github_config.username,
+            'email': self.github_config.email,
+        }
+        commit_dir = CommitDir(repo, self.logger, author)
+        commit_dir(local_dir, branch, repo_dir, dry_run)

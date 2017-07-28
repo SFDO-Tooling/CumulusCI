@@ -11,6 +11,9 @@ tasks:
     command:
         description: Run an arbitrary command
         class_path: cumulusci.tasks.command.Command
+    commit_apex_docs:
+        description: commit local ApexDocs to GitHub branch
+        class_path: cumulusci.tasks.github.CommitApexDocs
     create_package:
         description: Creates a package in the target org with the default package name for the project
         class_path: cumulusci.tasks.salesforce.CreatePackage
