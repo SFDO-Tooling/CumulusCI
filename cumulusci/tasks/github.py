@@ -223,8 +223,8 @@ class CommitApexDocs(BaseGithubTask):
             'default=repo_root/ApexDocumentation',
         },
         'dir_repo': {
-            'description': 'Location relative to repo root',
-            'required': True,
+            'description': 'Location relative to repo root. ' +
+            'default=project__apexdoc__repo_dir',
         },
         'dry_run': {
             'description': 'Execute a dry run if True (default=True)',
@@ -252,7 +252,10 @@ class CommitApexDocs(BaseGithubTask):
                 else self.project_config.repo_root
             )
             local_dir = os.path.join(local_base_dir, 'ApexDocumentation')
-        repo_dir = self.options['dir_repo']
+        repo_dir = self.options.get(
+            'dir_repo',
+            self.project_config.project__apexdoc__repo_dir,
+        )
         dry_run = process_bool_arg(self.options.get('dry_run', True))
         commit_message = self.options.get('commit_message', 'Update Apex docs')
 
