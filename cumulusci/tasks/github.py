@@ -243,10 +243,15 @@ class CommitApexDocs(BaseGithubTask):
         )
         if not branch:
             raise GithubException('Unable to determine branch name')
-        local_dir = self.options.get(
-            'dir_local',
-            os.path.join(self.repo_root, 'ApexDocumentation'),
-        )
+        if 'dir_local' in self.options:
+            local_dir = self.options['dir_local']
+        else:
+            local_base_dir = (
+                self.project_config.project__apexdoc__dir
+                if self.project_config.project__apexdoc__dir
+                else self.project_config.repo_root
+            )
+            local_dir = os.path.join(local_base_dir, 'ApexDocumentation')
         if not os.path.isdir(local_dir):
             raise GithubException('{} is not a directory'.format(local_dir))
         repo_dir = self.options['dir_repo']

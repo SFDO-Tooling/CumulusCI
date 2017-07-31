@@ -26,7 +26,11 @@ class GenerateApexDocs(Command):
         super(GenerateApexDocs, self)._init_options(kwargs)
         self.options['command'] = None
         if 'out_dir' not in self.options:
-            self.options['out_dir'] = self.repo_root
+            self.options['out_dir'] = (
+                self.project_config.project__apexdoc__dir
+                if self.project_config.project__apexdoc__dir
+                else self.project_config.repo_root
+            )
 
     def _init_task(self):
         super(GenerateApexDocs, self)._init_task()
