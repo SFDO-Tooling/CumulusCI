@@ -10,7 +10,7 @@ from cumulusci.core.config import ConnectedAppOAuthConfig
 from cumulusci.core.config import OrgConfig
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.keychain import BaseProjectKeychain
-from cumulusci.tasks.apex.test_runner import RunApexTests
+from cumulusci.tasks.apex.testrunner import RunApexTests
 
 @patch('cumulusci.tasks.salesforce.BaseSalesforceTask._update_credentials',
     MagicMock(return_value=None))
