@@ -165,8 +165,10 @@ class CommitDir(object):
 
         # create new commit
         if commit_message is None:
-            commit_message = 'Commit directory {} to {} via CumulusCI'.format(
+            commit_message = 'Commit dir {} to {}/{}/{} via CumulusCI'.format(
                 local_dir,
+                self.repo.owner,
+                self.repo.name,
                 repo_dir,
             )
         if dry_run:
