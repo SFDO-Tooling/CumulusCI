@@ -226,6 +226,13 @@ tasks:
             seconds: 5
 
 flows:
+    apex_docs:
+        description: Generate and commit documentation using ApexDoc
+        tasks:
+            1:
+                task: generate_apex_docs
+            2:
+                task: commit_apex_docs
     dev_org:
         description: Deploys the unmanaged package metadata and all dependencies to the target org
         tasks:
