@@ -10,7 +10,7 @@ from cumulusci.core.exceptions import GithubException
 class CommitDir(object):
     """Commit all changes in local_dir to branch/repo_dir"""
 
-    def __init__(self, repo, logger=None, author={}):
+    def __init__(self, repo, logger=None, author=None):
         """
         repo: github3.py Repository object, authenticated
         logger (optional): python logger object
@@ -20,7 +20,7 @@ class CommitDir(object):
         if not logger:
             logger = logging.getLogger(os.path.basename(__file__))
         self.logger = logger
-        self.author = author
+        self.author = author if author else {}
 
     def __call__(self, local_dir, branch, repo_dir, dry_run=False):
         """
