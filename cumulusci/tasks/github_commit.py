@@ -29,6 +29,17 @@ class CommitDir(object):
         repo_dir: target path within repo - use '' for repo root
         """
 
+        # prepare dir args
+        local_dir = os.path.abspath(local_dir)
+        if not os.path.isdir(local_dir):
+            raise GithubException('Not a dir: {}'.format(local_dir))
+        if repo_dir.startswith('.'):
+            repo_dir = repo_dir[1:]
+        if repo_dir.startswith('/'):
+            repo_dir = repo_dir[1:]
+        if repo_dir.endswith('/'):
+            repo_dir = repo_dir[:-1]
+
         # get ref to branch HEAD
         head = self.repo.ref('heads/{}'.format(branch))
 
@@ -99,7 +110,7 @@ class CommitDir(object):
                     # skip hidden files
                     continue
                 local_file = os.path.join(root, filename)
-                local_file_subpath = local_file[len(local_dir):]
+                local_file_subpath = local_file[(len(local_dir) + 1):]
                 if local_file_subpath not in new_tree_target_subpaths:
                     with io.open(local_file, 'rb') as f:
                         content = f.read()

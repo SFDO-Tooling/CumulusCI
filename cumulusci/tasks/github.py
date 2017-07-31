@@ -252,15 +252,7 @@ class CommitApexDocs(BaseGithubTask):
                 else self.project_config.repo_root
             )
             local_dir = os.path.join(local_base_dir, 'ApexDocumentation')
-        if not os.path.isdir(local_dir):
-            raise GithubException('{} is not a directory'.format(local_dir))
         repo_dir = self.options['dir_repo']
-        if repo_dir.startswith('.'):
-            repo_dir = repo_dir[1:]
-        if repo_dir.startswith('/'):
-            repo_dir = repo_dir[1:]
-        if repo_dir.endswith('/'):
-            repo_dir = repo_dir[:-1]
         dry_run = process_bool_arg(self.options.get('dry_run', False))
         commit_message = self.options.get('commit_message', 'Update Apex docs')
 
