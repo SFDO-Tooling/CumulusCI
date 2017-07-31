@@ -63,7 +63,6 @@ class CommitDir(object):
 
         # create new tree (delete, update)
         new_tree_list = []
-        changed = False
         for item in tree['tree']:
             if item['type'] == 'tree':
                 # remove sub-trees as they are implied by blob paths
@@ -82,7 +81,6 @@ class CommitDir(object):
             if not os.path.isfile(local_file):
                 # delete blob from tree
                 self.logger.debug('Delete: {}'.format(item['path']))
-                changed = True
                 continue
             with io.open(local_file, 'rb') as f:
                 content = f.read()
@@ -103,7 +101,6 @@ class CommitDir(object):
                     blob_sha = self._create_blob(content)
                     self.logger.debug('Blob created: {}'.format(blob_sha))
                 new_item['sha'] = blob_sha
-                changed = True
             else:
                 self.logger.debug('Unchanged: {}'.format(item['path']))
             new_tree_list.append(new_item)
@@ -145,20 +142,17 @@ class CommitDir(object):
                         'sha': blob_sha,
                     }
                     new_tree_list.append(new_item)
-                    changed = True
-
-        if not changed:
-            self.logger.warning('No changes found, aborting commit')
-            return
 
         # generate summary of changes
         self.logger.info('Summary of changes:')
         new_shas = [item['sha'] for item in new_tree_list]
         new_paths = [item['path'] for item in new_tree_list]
         old_paths = [item['path'] for item in tree['tree']]
+        old_tree_list = []
         for item in tree['tree']:
             if item['type'] == 'tree':
                 continue
+            old_tree_list.append(item)
             if item['path'] not in new_paths:
                 self.logger.warning('Delete:\t{}'.format(item['path']))
             elif item['sha'] not in new_shas:
@@ -166,6 +160,10 @@ class CommitDir(object):
         for item in new_tree_list:
             if item['path'] not in old_paths:
                 self.logger.info('Add:\t{}'.format(item['path']))
+        if new_tree_list == old_tree_list:
+            self.logger.warning('No changes found, aborting commit')
+            return
+
 
         # create new tree
         if dry_run:
