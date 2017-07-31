@@ -22,7 +22,7 @@ class CommitDir(object):
         self.logger = logger
         self.author = author if author else {}
 
-    def __call__(self, local_dir, branch, repo_dir, dry_run=False):
+    def __call__(self, local_dir, branch, repo_dir, commit_message=None, dry_run=False):
         """
         local_dir: path to local directory to commit
         branch: target branch name
@@ -153,12 +153,17 @@ class CommitDir(object):
                 raise GithubException('Failed to create tree')
 
         # create new commit
+        if commit_message is None:
+            commit_message = 'Commit directory {} to {} via CumulusCI'.format(
+                local_dir,
+                repo_dir,
+            )
         if dry_run:
             self.logger.info('[dry_run] Skipping creation of new commit')
         else:
             self.logger.info('Creating new commit')
             new_commit = self.repo.create_commit(
-                message='Update Apex docs',
+                message=commit_message,
                 tree=new_tree.sha,
                 parents=[commit.sha],
                 author=self.author,
