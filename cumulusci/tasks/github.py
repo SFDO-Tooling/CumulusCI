@@ -216,21 +216,21 @@ class CommitApexDocs(BaseGithubTask):
 
     task_options = {
         'branch': {
-            'description': 'branch name; default=project__apexdoc__branch',
+            'description': 'Branch name; default=project__apexdoc__branch',
         },
         'dir_local': {
-            'description': 'local dir of ApexDocs (contains index.html)',
-            'required': True,
+            'description': 'Local dir of ApexDocs (contains index.html). ' +
+            'default=repo_root/ApexDocumentation',
         },
         'dir_repo': {
-            'description': 'location relative to repo root',
+            'description': 'Location relative to repo root',
             'required': True,
         },
         'dry_run': {
-            'description': 'execute a dry run if True (default=False)',
+            'description': 'Execute a dry run if True (default=False)',
         },
         'commit_message': {
-            'description': 'message for commit; default="Update Apex docs"',
+            'description': 'Message for commit; default="Update Apex docs"',
         },
     }
 
@@ -243,7 +243,10 @@ class CommitApexDocs(BaseGithubTask):
         )
         if not branch:
             raise GithubException('Unable to determine branch name')
-        local_dir = self.options['dir_local']
+        local_dir = self.options.get(
+            'dir_local',
+            os.path.join(self.repo_root, 'ApexDocumentation'),
+        )
         if not os.path.isdir(local_dir):
             raise GithubException('{} is not a directory'.format(local_dir))
         repo_dir = self.options['dir_repo']

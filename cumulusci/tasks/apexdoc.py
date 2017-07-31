@@ -16,14 +16,17 @@ class GenerateApexDocs(Command):
             'required': True,
         },
         'out_dir': {
-            'description': 'Directory to write Apex docs',
-            'required': True,
+            'description': 'Directory to write Apex docs. ApexDoc tool will ' +
+            'write files to a subdirectory called ApexDocumentation which ' +
+            'will be created if it does not exist. default=repo_root',
         },
     }
     
     def _init_options(self, kwargs):
         super(GenerateApexDocs, self)._init_options(kwargs)
         self.options['command'] = None
+        if 'out_dir' not in self.options:
+            self.options['out_dir'] = self.repo_root
 
     def _init_task(self):
         super(GenerateApexDocs, self)._init_task()
