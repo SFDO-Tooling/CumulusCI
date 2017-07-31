@@ -216,8 +216,7 @@ class CommitApexDocs(BaseGithubTask):
 
     task_options = {
         'branch': {
-            'description': 'branch name',
-            'required': True,
+            'description': 'branch name; default=project__apexdoc__branch',
         },
         'dir_local': {
             'description': 'local dir of ApexDocs (contains index.html)',
@@ -238,7 +237,12 @@ class CommitApexDocs(BaseGithubTask):
     def _run_task(self):
 
         # args
-        branch = self.options['branch']
+        branch = self.options.get(
+            'branch',
+            self.project_config.project__apexdoc__branch,
+        )
+        if not branch:
+            raise GithubException('Unable to determine branch name')
         local_dir = self.options['dir_local']
         if not os.path.isdir(local_dir):
             raise GithubException('{} is not a directory'.format(local_dir))
