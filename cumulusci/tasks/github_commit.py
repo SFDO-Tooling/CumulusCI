@@ -25,7 +25,7 @@ class CommitDir(object):
     def __call__(self,
             local_dir,
             branch,
-            repo_dir,
+            repo_dir=None,
             commit_message=None,
             dry_run=True,
         ):
@@ -41,6 +41,8 @@ class CommitDir(object):
         local_dir = os.path.abspath(local_dir)
         if not os.path.isdir(local_dir):
             raise GithubException('Not a dir: {}'.format(local_dir))
+        if repo_dir is None:
+            repo_dir = ''
         if repo_dir.startswith('.'):
             repo_dir = repo_dir[1:]
         if repo_dir.startswith('/'):
@@ -74,7 +76,8 @@ class CommitDir(object):
                 )
                 new_tree_list.append(item)
                 continue
-            item_subpath = item['path'][(len(repo_dir) + 1):]
+            len_path = (len(repo_dir) + 1) if repo_dir else 0
+            item_subpath = item['path'][len_path:]
             local_file = os.path.join(local_dir, item_subpath)
             if not os.path.isfile(local_file):
                 # delete blob from tree
@@ -111,7 +114,8 @@ class CommitDir(object):
             if not item['path'].startswith(repo_dir):
                 # skip items not in target dir
                 continue
-            new_tree_target_subpaths.append(item['path'][(len(repo_dir) + 1):])
+            len_path = (len(repo_dir) + 1) if repo_dir else 0
+            new_tree_target_subpaths.append(item['path'][len_path:])
         for root, dirs, files in os.walk(local_dir):
             for filename in files:
                 if filename.startswith('.'):
@@ -133,8 +137,9 @@ class CommitDir(object):
                         )
                         blob_sha = self._create_blob(content)
                         self.logger.debug('Blob created: {}'.format(blob_sha))
+                    repo_path = (repo_dir + '/') if repo_dir else ''
                     new_item = {
-                        'path': '{}/{}'.format(repo_dir, local_file_subpath),
+                        'path': '{}{}'.format(repo_path, local_file_subpath),
                         'mode': '100644',
                         'type': 'blob',
                         'sha': blob_sha,
