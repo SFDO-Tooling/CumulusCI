@@ -22,11 +22,19 @@ class CommitDir(object):
         self.logger = logger
         self.author = author if author else {}
 
-    def __call__(self, local_dir, branch, repo_dir, commit_message=None, dry_run=False):
+    def __call__(self,
+            local_dir,
+            branch,
+            repo_dir,
+            commit_message=None,
+            dry_run=True,
+        ):
         """
         local_dir: path to local directory to commit
         branch: target branch name
         repo_dir: target path within repo - use '' for repo root
+        commit_message: message for git commit
+        dry_run: skip creating GitHub data if True
         """
 
         # prepare dir args
