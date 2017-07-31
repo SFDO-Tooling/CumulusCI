@@ -78,7 +78,7 @@ class RunApexTests(BaseSalesforceApiTask):
             'description': 'File name for JUnit output.  Defaults to test_results.xml',
         },
         'json_output': {
-            'description': 'File name for json output.  Defaults to test_results.xml',
+            'description': 'File name for json output.  Defaults to test_results.json',
         },
     }
 
