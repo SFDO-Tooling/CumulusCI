@@ -11,7 +11,7 @@ from cumulusci.core.exceptions import TaskOptionsError, ApexTestException
 from cumulusci.core.utils import process_bool_arg
 
 APEX_LIMITS = {
-    'Soql' : {'Label': 'TESTING_LIMITS: Number of SOQL queries', 'SYNC': 100, 'ASYNC': 200},
+    'Soql': {'Label': 'TESTING_LIMITS: Number of SOQL queries', 'SYNC': 100, 'ASYNC': 200},
     'Email': {'Label': 'TESTING_LIMITS: Number of Email Invocations', 'SYNC': 10, 'ASYNC': 10},
     'AsyncCalls': {'Label': 'TESTING_LIMITS: Number of future calls', 'SYNC': 50, 'ASYNC': 50},
     'DmlRows': {'Label': 'TESTING_LIMITS: Number of DML rows', 'SYNC': 10000, 'ASYNC': 10000},
@@ -84,28 +84,34 @@ class RunApexTests(BaseSalesforceApiTask):
 
     def _init_options(self, kwargs):
         super(RunApexTests, self)._init_options(kwargs)
-        if 'test_name_match' not in self.options:
-            self.options['test_name_match'] = self.project_config.project__test__name_match
-        if 'test_name_exclude' not in self.options:
-            self.options['test_name_exclude'] = self.project_config.project__test__name_exclude
+
+        self.options['test_name_match'] = self.options.get(
+            'test_name_match', self.project_config.project__test__name_match)
+
+        self.options['test_name_exclude'] = self.options.get(
+            'test_name_exclude', self.project_config.project__test__name_exclude)
+
         if self.options['test_name_exclude'] is None:
             self.options['test_name_exclude'] = ''
-        if 'namespace' not in self.options:
-            self.options['namespace'] = self.project_config.project__package__namespace
-        if 'managed' not in self.options:
-            self.options['managed'] = False
-        else:
-            self.options['managed'] = process_bool_arg(self.options['managed'])
-        if 'retries' not in self.options:
-            self.options['retries'] = 10
-        if 'retry_interval' not in self.options:
-            self.options['retry_interval'] = 5
-        if 'retry_interval_add' not in self.options:
-            self.options['retry_interval_add'] = 5
-        if 'junit_output' not in self.options:
-            self.options['junit_output'] = 'test_results.xml'
-        if 'json_output' not in self.options:
-            self.options['json_output'] = 'test_results.json'
+
+        self.options['namespace'] = self.options.get(
+            'namespace', self.project_config.project__package__namespace)
+
+        self.options['retries'] = self.options.get('retries', 10)
+
+        self.options['retry_interval'] = self.options.get('retry_interval', 5)
+
+        self.options['retry_interval_add'] = self.options.get(
+            'retry_interval_add', 5)
+
+        self.options['junit_output'] = self.options.get(
+            'junit_output', 'test_results.xml')
+
+        self.options['json_output'] = self.options.get(
+            'json_output', 'test_results.json')
+
+        self.options['managed'] = process_bool_arg(
+            self.options.get('managed', False))
 
         self.counts = {}
 
@@ -242,8 +248,10 @@ class RunApexTests(BaseSalesforceApiTask):
         if result['ApexTestResults']:
             for limit_name, details in APEX_LIMITS.items():
                 limit_use = result['ApexTestResults']['records'][0][limit_name]
-                limit_allowed = details[result['ApexTestResults']['records'][0]['LimitContext']]
-                stats[details['Label']] = {'used': limit_use, 'allowed': limit_allowed}
+                limit_allowed = details[result['ApexTestResults']
+                                        ['records'][0]['LimitContext']]
+                stats[details['Label']] = {
+                    'used': limit_use, 'allowed': limit_allowed}
 
         return stats
 
@@ -327,7 +335,7 @@ class RunApexTests(BaseSalesforceApiTask):
                               cgi.escape(result['Message']),
                               cgi.escape(result['StackTrace']),
                           )
-                         )
+                          )
                     s += '  </testcase>\n'
                 else:
                     s += ' />\n'
