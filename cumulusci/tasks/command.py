@@ -84,6 +84,7 @@ class Command(BaseTask):
     def _run_command(self, env, command=None, output_handler=None, return_code_handler=None):
         if not command:
             command = self.options['command']
+        self.logger.info('Running command: %s', command)
         p = subprocess.Popen(
             command,
             stdout=subprocess.PIPE,
