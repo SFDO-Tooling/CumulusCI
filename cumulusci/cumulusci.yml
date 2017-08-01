@@ -7,7 +7,7 @@ tasks:
         class_path: cumulusci.tasks.apextestsdb.ApextestsdbUpload
     batch_apex_wait:
         description: Waits on a batch apex job to finish.
-        class_path: cumulusci.tasks.batch_apex.BatchApexWait
+        class_path: cumulusci.tasks.apex.batch.BatchApexWait
     command:
         description: Run an arbitrary command
         class_path: cumulusci.tasks.command.Command
@@ -56,7 +56,7 @@ tasks:
             filename_token: '___NAMESPACE___'
     execute_anon:
         description: Execute a string of anonymous apex via the tooling api.
-        class_path: cumulusci.tasks.anonymous_apex.AnonymousApexTask
+        class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
     generate_apex_docs:
         description: Generate documentation for local code
         class_path: cumulusci.tasks.apexdoc.GenerateApexDocs
@@ -148,13 +148,13 @@ tasks:
             revert_path: src.orig
     run_tests:
         description: Runs all apex tests
-        class_path: cumulusci.tasks.salesforce.RunApexTests
+        class_path: cumulusci.tasks.apex.testrunner.RunApexTests
     run_tests_debug:
         description: Runs all apex tests
-        class_path: cumulusci.tasks.salesforce.RunApexTestsDebug
+        class_path: cumulusci.tasks.apex.testrunner.RunApexTests
     run_tests_managed:
         description: Runs all apex tests in the packaging org or a managed package subscriber org
-        class_path: cumulusci.tasks.salesforce.RunApexTests
+        class_path: cumulusci.tasks.apex.testrunner.RunApexTests
         options:
             managed: True
     uninstall_managed:
@@ -191,7 +191,7 @@ tasks:
             managed: True
     unschedule_apex:
         description: Unschedule all scheduled apex jobs (CronTriggers).
-        class_path: cumulusci.tasks.anonymous_apex.AnonymousApexTask
+        class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
         options:
             apex: 'for (CronTrigger t : [SELECT Id FROM CronTrigger]) { System.abortJob(t.Id); }'
     update_admin_profile:
