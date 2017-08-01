@@ -41,6 +41,7 @@ class CommitDir(object):
         local_dir = os.path.abspath(local_dir)
         if not os.path.isdir(local_dir):
             raise GithubException('Not a dir: {}'.format(local_dir))
+        # do not use os.path because repo_dir is not local
         if repo_dir is None:
             repo_dir = ''
         if repo_dir.startswith('.'):
