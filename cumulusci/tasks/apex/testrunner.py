@@ -186,9 +186,6 @@ class RunApexTests(BaseSalesforceApiTask):
         class_names.sort()
         for class_name in class_names:
             message = 'Class: {}'.format(class_name)
-            duration = None  # TODO: Get class total runtime
-            if duration:
-                message += '({}s)'.format(duration)
             self.logger.info(message)
             method_names = self.results_by_class_name[class_name].keys()
             method_names.sort()
