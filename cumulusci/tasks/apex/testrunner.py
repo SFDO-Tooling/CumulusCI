@@ -9,7 +9,7 @@ from simple_salesforce import SalesforceGeneralError
 
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.core.exceptions import TaskOptionsError, ApexTestException
-from cumulusci.core.utils import process_bool_arg
+from cumulusci.core.utils import process_bool_arg, decode_to_unicode
 
 APEX_LIMITS = {
     'Soql': {'Label': 'TESTING_LIMITS: Number of SOQL queries', 'SYNC': 100, 'ASYNC': 200},
@@ -124,15 +124,6 @@ class RunApexTests(BaseSalesforceApiTask):
         self.results_by_class_name = {}
         self.result = None
 
-    def _decode_to_unicode(self, content):
-        if content:
-            try:
-                # Try to decode ISO-8859-1 to unicode
-                return content.decode('ISO-8859-1')
-            except UnicodeEncodeError:
-                # Assume content is unicode already
-                return content
-
     def _get_test_classes(self):
         if self.options['managed']:
             namespace = self.options.get('namespace')
@@ -200,11 +191,11 @@ class RunApexTests(BaseSalesforceApiTask):
                 self.logger.info(message)
                 test_results.append({
                     'Children': result.get('children', None),
-                    'ClassName': self._decode_to_unicode(class_name),
-                    'Method': self._decode_to_unicode(result['MethodName']),
-                    'Message': self._decode_to_unicode(result['Message']),
-                    'Outcome': self._decode_to_unicode(result['Outcome']),
-                    'StackTrace': self._decode_to_unicode(
+                    'ClassName': decode_to_unicode(class_name),
+                    'Method': decode_to_unicode(result['MethodName']),
+                    'Message': decode_to_unicode(result['Message']),
+                    'Outcome': decode_to_unicode(result['Outcome']),
+                    'StackTrace': decode_to_unicode(
                         result['StackTrace']),
                     'Stats': result.get('stats', None),
                     'TestTimestamp': result.get('TestTimestamp', None),
@@ -331,9 +322,7 @@ class RunApexTests(BaseSalesforceApiTask):
                     s += ('    <failure type="failed" ' +
                           'message="{}"><![CDATA[{}]]></failure>\n'.format(
                               cgi.escape(result['Message']),
-                              cgi.escape(result['StackTrace']),
-                          )
-                          )
+                              cgi.escape(result['StackTrace'])))
                     s += '  </testcase>\n'
                 else:
                     s += ' />\n'
