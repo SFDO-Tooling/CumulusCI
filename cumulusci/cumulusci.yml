@@ -11,6 +11,9 @@ tasks:
     command:
         description: Run an arbitrary command
         class_path: cumulusci.tasks.command.Command
+    commit_apex_docs:
+        description: commit local ApexDocs to GitHub branch
+        class_path: cumulusci.tasks.github.CommitApexDocs
     create_package:
         description: Creates a package in the target org with the default package name for the project
         class_path: cumulusci.tasks.salesforce.CreatePackage
@@ -223,6 +226,13 @@ tasks:
             seconds: 5
 
 flows:
+    apex_docs:
+        description: Generate and commit documentation using ApexDoc
+        tasks:
+            1:
+                task: generate_apex_docs
+            2:
+                task: commit_apex_docs
     dev_org:
         description: Deploys the unmanaged package metadata and all dependencies to the target org
         tasks:
