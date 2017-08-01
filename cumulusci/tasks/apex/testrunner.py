@@ -3,6 +3,7 @@
 import io
 import cgi
 import json
+import httplib
 
 from simple_salesforce import SalesforceGeneralError
 
@@ -270,7 +271,7 @@ class RunApexTests(BaseSalesforceApiTask):
             url=self.tooling.base_url + 'runTestsAsynchronous',
             json={'classids': ','.join(str(id) for id in ids)},
         )
-        if result.status_code != 200:
+        if result.status_code != httplib.OK:
 
             raise SalesforceGeneralError(result.url,
                                          result.path,
