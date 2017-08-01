@@ -1162,7 +1162,11 @@ class PackageUpload(BaseSalesforceApiTask):
             self.logger.error('Package upload failed with the following errors')
             for error in upload['Errors']['errors']:
                 self.logger.error('  {}'.format(error['message']))
-            raise SalesforceException('Package upload failed')
+            if error['message'] == 'ApexTestFailure':
+                e = ApexTestException
+            else:
+                e = SalesforceException
+            raise e('Package upload failed')
         else:
             version_id = upload['MetadataPackageVersionId']
             version_res = self.tooling.query("select MajorVersion, MinorVersion, PatchVersion, BuildNumber, ReleaseState from MetadataPackageVersion where Id = '{}'".format(version_id))
