@@ -11,10 +11,6 @@ class GithubReleaseNotes(BaseGithubTask):
                 ' Ex: release/1.2'),
             'required': True,
         },
-        'publish': {
-            'description': ('If True, publish to the release matching the' +
-                ' given tag and comment on issues with release info.'),
-        },
         'last_tag': {
             'description': ('Override the last release tag. This is useful' +
                 ' to generate release notes if you skipped one or more' +
@@ -23,6 +19,9 @@ class GithubReleaseNotes(BaseGithubTask):
         'link_pr': {
             'description': ('If True, insert link to source pull request at' +
                 ' end of each line.'),
+        },
+        'dry_run': {
+            'description': 'Execute a dry run if True (default=True)',
         },
     }
 
@@ -43,7 +42,7 @@ class GithubReleaseNotes(BaseGithubTask):
             self.options['tag'],
             self.options.get('last_tag'),
             process_bool_arg(self.options.get('link_pr', False)),
-            process_bool_arg(self.options.get('publish', False)),
+            process_bool_arg(self.options.get('dry_run', True)),
             self.get_repo().has_issues,
         )
 

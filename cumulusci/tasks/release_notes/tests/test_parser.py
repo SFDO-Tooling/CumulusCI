@@ -275,7 +275,7 @@ class TestCommentingGithubIssuesParser(unittest.TestCase, GithubApiTestMixin):
             self.github_info.copy(),
             PARSER_CONFIG,
             tag,
-            publish=True,
+            dry_run=False,
         )
         return generator
 
@@ -349,7 +349,7 @@ class TestCommentingGithubIssuesParser(unittest.TestCase, GithubApiTestMixin):
             issue_number,
         )
         expected_comment_1 = self._get_expected_issue_comment(
-            GithubIssuesParser.message_beta,
+            GithubIssuesParser.ISSUE_COMMENT['beta'],
         )
         expected_comments = [
             expected_comment_1,
@@ -420,7 +420,7 @@ class TestCommentingGithubIssuesParser(unittest.TestCase, GithubApiTestMixin):
         )
         expected_comment_1 = self._get_expected_issue_comment(
             '{} {}'.format(
-                GithubIssuesParser.message_beta,
+                GithubIssuesParser.ISSUE_COMMENT['beta'],
                 self.version_number_beta,
             )
         )
@@ -471,7 +471,7 @@ class TestCommentingGithubIssuesParser(unittest.TestCase, GithubApiTestMixin):
             issue_number,
         )
         expected_comment_1 = self._get_expected_issue_comment(
-            GithubIssuesParser.message_prod,
+            GithubIssuesParser.ISSUE_COMMENT['prod'],
         )
         expected_comments = [
             expected_comment_1,
@@ -542,7 +542,7 @@ class TestCommentingGithubIssuesParser(unittest.TestCase, GithubApiTestMixin):
         )
         expected_comment_1 = self._get_expected_issue_comment(
             '{} {}'.format(
-                GithubIssuesParser.message_prod,
+                GithubIssuesParser.ISSUE_COMMENT['prod'],
                 self.version_number_prod,
             )
         )
