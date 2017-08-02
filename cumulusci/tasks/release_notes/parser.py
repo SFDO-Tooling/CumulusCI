@@ -187,8 +187,10 @@ class ParserGithubApiMixin(GithubApiMixin):
 
 
 class GithubIssuesParser(IssuesParser, ParserGithubApiMixin):
-    message_prod = 'Included in production release'
-    message_beta = 'Included in beta release'
+    ISSUE_COMMENT = {
+        'beta': 'Included in beta release',
+        'prod': 'Included in production release',
+    }
 
     def __init__(self, release_notes_generator, title, issue_regex=None):
         super(GithubIssuesParser, self).__init__(
@@ -266,22 +268,22 @@ class GithubIssuesParser(IssuesParser, ParserGithubApiMixin):
 
         for comment in gh_issue_comments:
             if current_tag_info['is_prod']:
-                if comment['body'].startswith(self.message_prod):
+                if comment['body'].startswith(self.ISSUE_COMMENT['prod']):
                     has_comment = True
             elif current_tag_info['is_beta']:
-                if comment['body'].startswith(self.message_beta):
+                if comment['body'].startswith(self.ISSUE_COMMENT['beta']):
                     has_comment = True
 
         if not has_comment:
             data = {}
             if current_tag_info['is_prod']:
                 data['body'] = '{} {}'.format(
-                    self.message_prod,
+                    self.ISSUE_COMMENT['prod'],
                     current_tag_info['version_number'],
                 )
             elif current_tag_info['is_beta']:
                 data['body'] = '{} {}'.format(
-                    self.message_beta,
+                    self.ISSUE_COMMENT['beta'],
                     current_tag_info['version_number'],
                 )
 
