@@ -2,6 +2,12 @@
 History
 =======
 
+2.0.0-beta51 (2017-08-01)
+-------------------------
+
+* New task to commit ApexDoc output
+* New test runner uses Tooling API to get limits data
+
 2.0.0-beta50 (2017-07-18)
 -------------------------
 
