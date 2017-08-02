@@ -382,7 +382,7 @@ flows:
                 ignore_failure: True  # Attempt to generate release notes but don't fail build
                 options:
                     link_pr: True
-                    publish: True
+                    dry_run: False
                     tag: ^^github_release.tag_name
             4:
                 task: github_master_to_feature
@@ -485,6 +485,17 @@ project:
         prefix_feature: feature/
         prefix_beta: beta/
         prefix_release: release/
+        release_notes:
+            parsers:
+                1:
+                    class_path: cumulusci.tasks.release_notes.parser.GithubLinesParser
+                    title: Critical Changes
+                2:
+                    class_path: cumulusci.tasks.release_notes.parser.GithubLinesParser
+                    title: Changes
+                3:
+                    class_path: cumulusci.tasks.release_notes.parser.GithubIssuesParser
+                    title: Issues Closed
     test:
         name_match: '%_TEST%'
     apexdoc:

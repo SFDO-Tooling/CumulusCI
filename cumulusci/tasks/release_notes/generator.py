@@ -7,13 +7,10 @@ import json
 from datetime import datetime
 from distutils.version import LooseVersion
 
+from cumulusci.core.utils import import_class
 from cumulusci.tasks.release_notes.github_api import GithubApiMixin
 from cumulusci.tasks.release_notes.parser import ChangeNotesLinesParser
 from cumulusci.tasks.release_notes.parser import IssuesParser
-from cumulusci.tasks.release_notes.parser import GithubIssuesParser
-from cumulusci.tasks.release_notes.parser import GithubLinesParser
-from cumulusci.tasks.release_notes.parser import GithubLinkingLinesParser
-from cumulusci.tasks.release_notes.parser import CommentingGithubIssuesParser
 from cumulusci.tasks.release_notes.provider import StaticChangeNotesProvider
 from cumulusci.tasks.release_notes.provider import DirectoryChangeNotesProvider
 from cumulusci.tasks.release_notes.provider import GithubChangeNotesProvider
@@ -105,41 +102,39 @@ class DirectoryReleaseNotesGenerator(BaseReleaseNotesGenerator):
         return DirectoryChangeNotesProvider(self, self.directory)
 
 
-class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator):
+class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator, GithubApiMixin):
 
     def __init__(
             self,
             github_info,
+            parser_config,
             current_tag,
             last_tag=None,
             link_pr=False,
+            dry_run=True,
             has_issues=True,
         ):
         self.github_info = github_info
+        self.parser_config = parser_config
         self.current_tag = current_tag
         self.last_tag = last_tag
         self.link_pr = link_pr
+        self.dry_run = dry_run
         self.has_issues = has_issues
         self.lines_parser_class = None
         self.issues_parser_class = None
         super(GithubReleaseNotesGenerator, self).__init__()
 
+    def __call__(self):
+        content = super(GithubReleaseNotesGenerator, self).__call__()
+        if not self.dry_run:
+            content = self.publish(content)
+        return content
+
     def _init_parsers(self):
-        self._set_classes()
-        self.parsers.append(self.lines_parser_class(
-            self,
-            'Critical Changes',
-        ))
-        self.parsers.append(self.lines_parser_class(
-            self,
-            'Changes',
-        ))
-        if self.has_issues:
-            self.parsers.append(self.issues_parser_class(
-                self,
-                'Issues Closed',
-                link_pr=self.link_pr,
-            ))
+        for cfg in self.parser_config:
+            parser_class = import_class(cfg['class_path'])
+            self.parsers.append(parser_class(self, cfg['title']))
 
     def _init_change_notes(self):
         return GithubChangeNotesProvider(
@@ -148,36 +143,9 @@ class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator):
             self.last_tag
         )
 
-    def _set_classes(self):
-        self.lines_parser_class = (
-            GithubLinkingLinesParser if self.link_pr else GithubLinesParser
-        )
-        self.issues_parser_class = (
-            GithubIssuesParser if self.has_issues else IssuesParser
-        )
-
-
-class PublishingGithubReleaseNotesGenerator(GithubReleaseNotesGenerator, GithubApiMixin):
-
-    def __call__(self):
-        content = super(PublishingGithubReleaseNotesGenerator, self).__call__()
-        return self.publish(content)
-
-    def publish(self, content):
-        release = self._get_release()
-        return self._update_release(release, content)
-
     def _get_release(self):
         # Query for the release
         return self.call_api('/releases/tags/{}'.format(self.current_tag))
-
-    def _set_classes(self):
-        self.lines_parser_class = (
-            GithubLinkingLinesParser if self.link_pr else GithubLinesParser
-        )
-        self.issues_parser_class = (
-            CommentingGithubIssuesParser if self.has_issues else IssuesParser
-        )
 
     def _update_release(self, release, content):
 
@@ -237,3 +205,7 @@ class PublishingGithubReleaseNotesGenerator(GithubReleaseNotesGenerator, GithubA
             resp = self.call_api('/releases', data=release)
 
         return release['body']
+
+    def publish(self, content):
+        release = self._get_release()
+        return self._update_release(release, content)

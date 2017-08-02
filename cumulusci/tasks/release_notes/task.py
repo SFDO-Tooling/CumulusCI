@@ -1,7 +1,6 @@
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.tasks.github import BaseGithubTask
-from generator import GithubReleaseNotesGenerator
-from generator import PublishingGithubReleaseNotesGenerator
+from cumulusci.tasks.release_notes.generator import GithubReleaseNotesGenerator
 
 
 class GithubReleaseNotes(BaseGithubTask):
@@ -12,10 +11,6 @@ class GithubReleaseNotes(BaseGithubTask):
                 ' Ex: release/1.2'),
             'required': True,
         },
-        'publish': {
-            'description': ('If True, publishes to the release matching the' +
-                ' tag release notes were generated for.'),
-        },
         'last_tag': {
             'description': ('Override the last release tag. This is useful' +
                 ' to generate release notes if you skipped one or more' +
@@ -24,6 +19,9 @@ class GithubReleaseNotes(BaseGithubTask):
         'link_pr': {
             'description': ('If True, insert link to source pull request at' +
                 ' end of each line.'),
+        },
+        'dry_run': {
+            'description': 'Execute a dry run if True (default=True)',
         },
     }
 
@@ -38,16 +36,13 @@ class GithubReleaseNotes(BaseGithubTask):
             'prefix_prod': self.project_config.project__git__prefix_release,
         }
 
-        if process_bool_arg(self.options.get('publish', False)):
-            generator_class = PublishingGithubReleaseNotesGenerator
-        else:
-            generator_class = GithubReleaseNotesGenerator
-
-        generator = generator_class(
+        generator = GithubReleaseNotesGenerator(
             github_info,
+            self.project_config.project__git__release_notes__parsers.values(),
             self.options['tag'],
             self.options.get('last_tag'),
             process_bool_arg(self.options.get('link_pr', False)),
+            process_bool_arg(self.options.get('dry_run', True)),
             self.get_repo().has_issues,
         )
 
