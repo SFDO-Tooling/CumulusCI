@@ -2,6 +2,11 @@
 History
 =======
 
+2.0.0-beta52 (2017-08-02)
+-------------------------
+
+* Release notes parsers now specified in cumulusci.yml
+
 2.0.0-beta51 (2017-08-01)
 -------------------------
 
