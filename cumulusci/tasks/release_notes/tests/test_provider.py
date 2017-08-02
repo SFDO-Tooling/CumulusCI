@@ -20,6 +20,20 @@ from cumulusci.tasks.release_notes.tests.util_github_api import GithubApiTestMix
 
 __location__ = os.path.split(os.path.realpath(__file__))[0]
 date_format = '%Y-%m-%dT%H:%M:%SZ'
+PARSER_CONFIG = [
+    {
+        'class_path': 'cumulusci.tasks.release_notes.parser.GithubLinesParser',
+        'title': 'Critical Changes',
+    },
+    {
+        'class_path': 'cumulusci.tasks.release_notes.parser.GithubLinesParser',
+        'title': 'Changes',
+    },
+    {
+        'class_path': 'cumulusci.tasks.release_notes.parser.GithubIssuesParser',
+        'title': 'Issues Closed',
+    },
+]
 
 
 class TestBaseChangeNotesProvider(unittest.TestCase):
@@ -115,6 +129,7 @@ class TestGithubChangeNotesProvider(unittest.TestCase, GithubApiTestMixin):
     def _create_generator(self, current_tag, last_tag=None):
         generator = GithubReleaseNotesGenerator(
             self.github_info.copy(),
+            PARSER_CONFIG,
             current_tag,
             last_tag=last_tag
         )

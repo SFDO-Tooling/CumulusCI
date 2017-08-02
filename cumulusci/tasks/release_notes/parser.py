@@ -130,6 +130,7 @@ class GithubLinesParser(ChangeNotesLinesParser):
 
     def __init__(self, release_notes_generator, title):
         super(GithubLinesParser, self).__init__(release_notes_generator, title)
+        self.link_pr = release_notes_generator.link_pr
         self.pr_number = None
         self.pr_url = None
 
@@ -138,17 +139,15 @@ class GithubLinesParser(ChangeNotesLinesParser):
         self.pr_url = pull_request['html_url']
         return pull_request['body']
 
-
-class GithubLinkingLinesParser(GithubLinesParser):
-
     def _add_link(self, line):
-        return line + ' [[PR{}]({})]'.format(self.pr_number, self.pr_url)
+        if self.link_pr:
+            line += ' [[PR{}]({})]'.format(self.pr_number, self.pr_url)
+        return line
 
 
 class IssuesParser(ChangeNotesLinesParser):
 
-    def __init__(self, release_notes_generator, title,
-                 issue_regex=None):
+    def __init__(self, release_notes_generator, title, issue_regex=None):
         super(IssuesParser, self).__init__(
             release_notes_generator,
             title,
@@ -188,16 +187,24 @@ class ParserGithubApiMixin(GithubApiMixin):
 
 
 class GithubIssuesParser(IssuesParser, ParserGithubApiMixin):
+    message_prod = 'Included in production release'
+    message_beta = 'Included in beta release'
 
-    def __init__(self, release_notes_generator, title, issue_regex=None, link_pr=False):
+    def __init__(self, release_notes_generator, title, issue_regex=None):
         super(GithubIssuesParser, self).__init__(
             release_notes_generator,
             title,
             issue_regex,
         )
-        self.link_pr = link_pr
+        if not release_notes_generator.has_issues:
+            raise GithubIssuesError(
+                'Cannot use {}'.format(self.__class__.__name__) +
+                ' because issues are disabled for this repository.'
+            )
+        self.link_pr = release_notes_generator.link_pr
         self.pr_number = None
         self.pr_url = None
+        self.do_publish = release_notes_generator.do_publish
 
     def _add_line(self, line):
         # find issue numbers per line
@@ -237,6 +244,8 @@ class GithubIssuesParser(IssuesParser, ParserGithubApiMixin):
         return u'\r\n'.join(content)
 
     def _get_issue_info(self, issue_number):
+        if self.do_publish:
+            self._add_issue_comment(issue_number)
         response = self.call_api('/issues/{}'.format(issue_number))
         if 'message' in response:
             raise GithubIssuesError(response['message'])
@@ -246,16 +255,6 @@ class GithubIssuesParser(IssuesParser, ParserGithubApiMixin):
         self.pr_number = pull_request['number']
         self.pr_url = pull_request['html_url']
         return pull_request['body']
-
-
-class CommentingGithubIssuesParser(GithubIssuesParser):
-
-    message_prod = 'Included in production release'
-    message_beta = 'Included in beta release'
-
-    def _get_issue_info(self, issue_number):
-        self._add_issue_comment(issue_number)
-        return super(CommentingGithubIssuesParser, self)._get_issue_info(issue_number)
 
     def _add_issue_comment(self, issue_number):
         # Ensure all issues have a comment on which release they were fixed

@@ -12,12 +12,25 @@ from cumulusci.tasks.release_notes.generator import BaseReleaseNotesGenerator
 from cumulusci.tasks.release_notes.generator import StaticReleaseNotesGenerator
 from cumulusci.tasks.release_notes.generator import DirectoryReleaseNotesGenerator
 from cumulusci.tasks.release_notes.generator import GithubReleaseNotesGenerator
-from cumulusci.tasks.release_notes.generator import PublishingGithubReleaseNotesGenerator
 from cumulusci.tasks.release_notes.parser import BaseChangeNotesParser
 from cumulusci.tasks.release_notes.tests.util_github_api import GithubApiTestMixin
 
 __location__ = os.path.split(os.path.realpath(__file__))[0]
 
+PARSER_CONFIG = [
+    {
+        'class_path': 'cumulusci.tasks.release_notes.parser.GithubLinesParser',
+        'title': 'Critical Changes',
+    },
+    {
+        'class_path': 'cumulusci.tasks.release_notes.parser.GithubLinesParser',
+        'title': 'Changes',
+    },
+    {
+        'class_path': 'cumulusci.tasks.release_notes.parser.GithubIssuesParser',
+        'title': 'Issues Closed',
+    },
+]
 
 class DummyParser(BaseChangeNotesParser):
 
@@ -90,7 +103,11 @@ class TestGithubReleaseNotesGenerator(unittest.TestCase):
 
     def test_init_without_last_tag(self):
         github_info = self.github_info.copy()
-        generator = GithubReleaseNotesGenerator(github_info, self.current_tag)
+        generator = GithubReleaseNotesGenerator(
+            github_info,
+            PARSER_CONFIG,
+            self.current_tag,
+        )
         self.assertEqual(generator.github_info, github_info)
         self.assertEqual(generator.current_tag, self.current_tag)
         self.assertEqual(generator.last_tag, None)
@@ -100,7 +117,11 @@ class TestGithubReleaseNotesGenerator(unittest.TestCase):
     def test_init_with_last_tag(self):
         github_info = self.github_info.copy()
         generator = GithubReleaseNotesGenerator(
-            github_info, self.current_tag, self.last_tag)
+            github_info,
+            PARSER_CONFIG,
+            self.current_tag,
+            self.last_tag,
+        )
         self.assertEqual(generator.github_info, github_info)
         self.assertEqual(generator.current_tag, self.current_tag)
         self.assertEqual(generator.last_tag, self.last_tag)
@@ -236,8 +257,13 @@ class TestPublishingGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTest
             '# Zoo\r\nzoo')
 
     def _create_generator(self, current_tag, last_tag=None):
-        generator = PublishingGithubReleaseNotesGenerator(
-            self.github_info.copy(), current_tag, last_tag)
+        generator = GithubReleaseNotesGenerator(
+            self.github_info.copy(),
+            PARSER_CONFIG,
+            current_tag,
+            last_tag,
+            publish=True,
+        )
         return generator
 
     def _mock_release(self, beta, tag, update, body):

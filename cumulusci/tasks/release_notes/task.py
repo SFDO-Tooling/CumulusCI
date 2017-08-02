@@ -1,7 +1,6 @@
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.tasks.github import BaseGithubTask
-from generator import GithubReleaseNotesGenerator
-from generator import PublishingGithubReleaseNotesGenerator
+from cumulusci.tasks.release_notes.generator import GithubReleaseNotesGenerator
 
 
 class GithubReleaseNotes(BaseGithubTask):
@@ -13,8 +12,8 @@ class GithubReleaseNotes(BaseGithubTask):
             'required': True,
         },
         'publish': {
-            'description': ('If True, publishes to the release matching the' +
-                ' tag release notes were generated for.'),
+            'description': ('If True, publish to the release matching the' +
+                ' given tag and comment on issues with release info.'),
         },
         'last_tag': {
             'description': ('Override the last release tag. This is useful' +
@@ -38,16 +37,13 @@ class GithubReleaseNotes(BaseGithubTask):
             'prefix_prod': self.project_config.project__git__prefix_release,
         }
 
-        if process_bool_arg(self.options.get('publish', False)):
-            generator_class = PublishingGithubReleaseNotesGenerator
-        else:
-            generator_class = GithubReleaseNotesGenerator
-
-        generator = generator_class(
+        generator = GithubReleaseNotesGenerator(
             github_info,
+            self.project_config.project__git__release_notes__parsers.values(),
             self.options['tag'],
             self.options.get('last_tag'),
             process_bool_arg(self.options.get('link_pr', False)),
+            process_bool_arg(self.options.get('publish', False)),
             self.get_repo().has_issues,
         )
 
