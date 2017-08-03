@@ -42,7 +42,7 @@ Windows::
     virtualenv VENV_DIR
     VENV_DIR\Scripts\activate
 
-Once activated, you will see the venv name at the start of your shell prompt to let you know it is active.  From this point, any Python packages you install will be installed only into the venv and leave your system's Python alone.
+Once activated, you will see the venv name at the start of your shell prompt to let you know it is active. From this point, any Python packages you install will be installed only into the venv and leave your system's Python alone.
 
 If you are using bash and want to always have the CumulusCI commands available, you can add the following line to your .bash_profile::
 
@@ -58,7 +58,7 @@ With your virtualenv activated::
 
     pip install cumulusci
 
-This will install the latest version of CumulusCI and all its dependencies into the virtualenv.  You can verify the installation by running::
+This will install the latest version of CumulusCI and all its dependencies into the virtualenv. You can verify the installation by running::
 
     $ cci
     Usage: cci [OPTIONS] COMMAND [ARGS]...
@@ -80,14 +80,14 @@ Part 2: Project Configuration
 Keychain Key
 ------------
 
-The cci command stores all credentials in AES encrypted files under the ~/.cumulusci folder.  To use the CLI, you must set the environment variable `CUMULUSCI_KEY` to a 16 character string which is your password to access your keychain.  Do not forget this password!::
+The cci command stores all credentials in AES encrypted files under the ~/.cumulusci folder. To use the CLI, you must set the environment variable `CUMULUSCI_KEY` to a 16 character string which is your password to access your keychain. Do not forget this password!::
 
     $ export CUMULUSCI_KEY=0a2b4c6d8e0f2g4h  # Must be 16 characters long
 
 Project Initialization
 ----------------------
 
-The `cci` command is git repository aware.  Changing directories from one local git repository to another will change the project context.  Each project context isolates the following:
+The `cci` command is git repository aware. Changing directories from one local git repository to another will change the project context. Each project context isolates the following:
 
 * Connected App: The Salesforce Connected App to use for OAuth authentication
 * Orgs: Connected Salesforce Orgs are stored in a project specific keychain
@@ -131,7 +131,7 @@ If you run the same command from inside a git repository that has not yet been s
 
     $ cci project info
     Usage: cci project info [OPTIONS]
-    Error: No project configuration found.  You can use the "project init" command to initilize the project for use with CumulusCI
+    Error: No project configuration found. You can use the "project init" command to initilize the project for use with CumulusCI
 
 As the instructions say, you can use the `cci project init` command to initialize the configuration::
 
@@ -155,7 +155,7 @@ As the instructions say, you can use the `cci project init` command to initializ
             name: My Repo Name
             namespace: mynamespace
 
-The newly created `cumulusci.yml` file is the configuration file for wiring up any project specific tasks, flows, and CumulusCI customizations for this project.  You can add and commit it to your git repository::
+The newly created `cumulusci.yml` file is the configuration file for wiring up any project specific tasks, flows, and CumulusCI customizations for this project. You can add and commit it to your git repository::
 
     $ git add cumulusci.yml
     $ git commit -m "Initialized CumulusCI Configuration"
@@ -193,7 +193,7 @@ Configure the Connected App in your project's keychain::
 Connecting an Org
 -----------------
 
-Configuring the Connected App is a one time operation per project.  Once configured, you can start connecting Salesforce Orgs to your project's keychain::
+Configuring the Connected App is a one time operation per project. Once configured, you can start connecting Salesforce Orgs to your project's keychain::
 
     $ cci org connect dev
 
@@ -201,7 +201,7 @@ Configuring the Connected App is a one time operation per project.  Once configu
     Spawning HTTP server at http://localhost:8080/callback with timeout of 300 seconds.
     If you are unable to log in to Salesforce you can press ctrl+c to kill the server and return to the command line.
 
-This should open a browser on your computer pointed to the Salesforce login page.  Log in and then grant access to the app.  Note that since the login to capture credentials occurs in your normal browser, you can use browser password managers such as LastPass to log in.  Once access is granted and you see a browser page that says `OK` you can close the browser tab and return to the terminal.  Your org is now connected via OAuth and CumulusCI never needs to know your actual user password.  As an added benefit, OAuth authentication remains valid even after password changes::
+This should open a browser on your computer pointed to the Salesforce login page. Log in and then grant access to the app. Note that since the login to capture credentials occurs in your normal browser, you can use browser password managers such as LastPass to log in. Once access is granted and you see a browser page that says `OK` you can close the browser tab and return to the terminal. Your org is now connected via OAuth and CumulusCI never needs to know your actual user password. As an added benefit, OAuth authentication remains valid even after password changes::
 
     $ cci org list
 
@@ -226,7 +226,7 @@ You can set a default org on your project which will then be used as the org for
 
     $ cci org default dev --unset
 
-    dev is no longer the default org.  No default org set.
+    dev is no longer the default org. No default org set.
 
     $ cci org list
 
@@ -241,14 +241,14 @@ So we can start running some tasks, let's set dev as our default again::
 Part 4: Running Tasks
 =====================
 
-Once you have some orgs connected, you can start running tasks against them.  First, you'll want to get a list of tasks available to run::
+Once you have some orgs connected, you can start running tasks against them. First, you'll want to get a list of tasks available to run::
 
     $ cci task list
 
     task                            description
     ------------------------------  -------------------------------------------------------------------------------------------------------
     create_package                  Creates a package in the target org with the default package name for the project
-    create_managed_src              Modifies the src directory for managed deployment.  Strips //cumulusci-managed from all Apex code
+    create_managed_src              Modifies the src directory for managed deployment. Strips //cumulusci-managed from all Apex code
     create_unmanaged_ee_src         Modifies the src directory for unmanaged deployment to an EE org
     deploy                          Deploys the src directory of the repository to the org
     deploy_pre                      Deploys all metadata bundles under unpackaged/pre/
@@ -329,7 +329,7 @@ And you can run a task passing any of the options via the command line::
 Running Tasks Against a Salesforce Org
 --------------------------------------
 
-The update_package_xml task works only on local files and does not require a connection to a Salesforce org.  The deploy task uses the Metadata API to deploy the src directory to the target org and thus requires a Salesforce org.  Since we already made dev our default org, we can still just run the task against our dev org by calling it without any options::
+The update_package_xml task works only on local files and does not require a connection to a Salesforce org. The deploy task uses the Metadata API to deploy the src directory to the target org and thus requires a Salesforce org. Since we already made dev our default org, we can still just run the task against our dev org by calling it without any options::
 
     $ cci task info deploy
 
@@ -361,12 +361,12 @@ Now that the metadata is deployed, you can run the tests::
 
     Option             Required  Description
     -----------------  --------  ------------------------------------------------------------------------------------------------------
-    test_name_exclude            Query to find Apex test classes to exclude ("%" is wildcard).  Defaults to project__test__name_exclude
-    managed                      If True, search for tests in the namespace only.  Defaults to False
-    test_name_match    *         Query to find Apex test classes to run ("%" is wildcard).  Defaults to project__test__name_match
-    poll_interval                Seconds to wait between polling for Apex test results.  Defaults to 3
-    namespace                    Salesforce project namespace.  Defaults to project__package__namespace
-    junit_output                 File name for JUnit output.  Defaults to test_results.xml
+    test_name_exclude            Query to find Apex test classes to exclude ("%" is wildcard). Defaults to project__test__name_exclude
+    managed                      If True, search for tests in the namespace only. Defaults to False
+    test_name_match    *         Query to find Apex test classes to run ("%" is wildcard). Defaults to project__test__name_match
+    poll_interval                Seconds to wait between polling for Apex test results. Defaults to 3
+    namespace                    Salesforce project namespace. Defaults to project__package__namespace
+    junit_output                 File name for JUnit output. Defaults to test_results.xml
 
     $ cci task run run_tests
     2016-11-03 12:01:04: Running query: SELECT Id, Name FROM ApexClass WHERE NamespacePrefix = null AND (Name LIKE '%_TEST%')
@@ -389,7 +389,7 @@ Part 5: Flows
 Listing Flows
 -------------
 
-Flows are simply named sequences of tasks.  Flows are designed to be run against a single target org.  CumulusCI comes with a number of best practice flows out of the box.::
+Flows are simply named sequences of tasks. Flows are designed to be run against a single target org. CumulusCI comes with a number of best practice flows out of the box.::
 
     $ cci flow list
 
@@ -611,7 +611,7 @@ These will be filled out in more detail in the future but are a brief overview o
 Environment Keychain
 --------------------
 
-The keychain class can be overridden to change storage implementations.  The default keychain for the cci CLI stores AES encrypted files under `~/.cumulusci`.  The EnvironmentProjectKeychain class provides a keychain implementation which receives its credentials from environment variables.  This is useful for using the CLI on CI servers such as Jenkins or CircleCI.::
+The keychain class can be overridden to change storage implementations. The default keychain for the cci CLI stores AES encrypted files under `~/.cumulusci`. The EnvironmentProjectKeychain class provides a keychain implementation which receives its credentials from environment variables. This is useful for using the CLI on CI servers such as Jenkins or CircleCI.::
 
     $ cci org connected_app
     $ cci org info feature
