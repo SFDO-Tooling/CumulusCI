@@ -215,7 +215,7 @@ tasks:
         description: Uploads a beta release of the metadata currently in the packaging org
         class_path: cumulusci.tasks.salesforce.PackageUpload
     upload_production:
-        description: Uploads a beta release of the metadata currently in the packaging org
+        description: Uploads a production release of the metadata currently in the packaging org
         class_path: cumulusci.tasks.salesforce.PackageUpload
         options:
             production: True
