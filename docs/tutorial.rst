@@ -28,24 +28,27 @@ If you are using the CumulusCI-Test repo, enable Chatter in your dev org.
 Using virtualenv
 ----------------
 
-Run the following::
+virtualenv creates a virtual environment where python dependencies will be installed, keeping your system nice and clean. More information about using virtualenv is available at: http://docs.python-guide.org/en/latest/dev/virtualenvs/
 
-    virtualenv ~/cumulusci_venv
-    source ~/cumulusci_venv/bin/activate
+Run the following, where VENV_DIR is a new dir name of your choosing. The dir will be created by the virtualenv command. We recommend "cumulusci_venv" inside the user's home directory (~ on POSIX, %USERPROFILE% on Windows).
 
-On Windows::
+POSIX::
+
+    virtualenv VENV_DIR
+    source VENV_DIR/bin/activate
+
+Windows::
     
-    cd ~
-    virtualenv cumulusci_venv
-    cumulusci_venv\Scripts\activate
+    virtualenv VENV_DIR
+    VENV_DIR\Scripts\activate
 
-Once activated, you will see (cumulusci_venv) at the start of your shell prompt to let you know the virtualenv is active.  From this point, any Python packages you install will be installed only into the virtualenv and leave your system's Python alone.
+Once activated, you will see the venv name at the start of your shell prompt to let you know it is active.  From this point, any Python packages you install will be installed only into the venv and leave your system's Python alone.
 
-If you want to always have the CumulusCI commands available, you can add the following line to your ~/.bash_profile::
+If you are using bash and want to always have the CumulusCI commands available, you can add the following line to your .bash_profile::
 
-    source ~/cumulusci_venv/bin/activate
+    source ~/cumulusci_venv/bin/activate # POSIX
+    cumulusci_venv\Scripts\activate # Windows
 
-More information about using virtualenv is available at: http://docs.python-guide.org/en/latest/dev/virtualenvs/
 
 
 Installation
@@ -90,12 +93,7 @@ The `cci` command is git repository aware.  Changing directories from one local 
 * Orgs: Connected Salesforce Orgs are stored in a project specific keychain
 * Services: Named service connections such as Github, ApexTestsDB, and mrbelvedere
 
-If you run the `cci` command from outside a git repository, it will generate an error::
-
-    $ cd ~
-
-    $ cci
-    No repository found in current path.  You must be inside a repository to initialize the project configuration
+If you run the `cci` command from outside a git repository, it will generate an error.
 
 If you run the `cci project info` command from inside a git repository that has already been set up for CumulusCI, it will print the project info::
 
