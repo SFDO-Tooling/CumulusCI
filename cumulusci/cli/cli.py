@@ -526,7 +526,7 @@ def org_connected_app(config):
 
 @click.command(name='config_connected_app', help="Configures the connected app used for connecting to Salesforce orgs")
 @click.option('--client_id', help="The Client ID from the connected app", prompt=True)
-@click.option('--client_secret', help="The Client Secret from the connected app", prompt=True, hide_input=True)
+@click.option('--client_secret', help="The Client Secret from the connected app", prompt=True, hide_input=(False if os.name == 'nt' else True))
 @click.option('--callback_url', help="The callback_url configured on the Connected App", default='http://localhost:8080/callback')
 @click.option('--project', help='Set if storing encrypted keychain file in project directory', is_flag=True)
 @pass_config
