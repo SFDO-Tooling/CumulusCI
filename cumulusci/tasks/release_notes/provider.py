@@ -193,7 +193,7 @@ class GithubChangeNotesProvider(BaseChangeNotesProvider, ProviderGithubApiMixin)
         except GithubApiNoResultsError:
             pull_requests = []
 
-        for pull_request in pull_requests:
+        for pull_request in reversed(pull_requests):
             if self._include_pull_request(pull_request):
                 yield pull_request
 
