@@ -2,6 +2,13 @@
 History
 =======
 
+2.0.0-beta53 (2017-08-04)
+-------------------------
+
+* Fix "cci org config_connected_app" for Windows
+* Update tutorial for Windows usage
+* Reverse pull request order for release notes
+
 2.0.0-beta52 (2017-08-02)
 -------------------------
 
