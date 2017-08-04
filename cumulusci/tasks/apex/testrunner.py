@@ -322,6 +322,8 @@ class RunApexTests(BaseSalesforceApiTask):
                     s += '    <failure type="failed" ' 
                     if result['Message']:      
                         s += 'message="{}">'.format(cgi.escape(result['Message']))
+                    else:
+                        s += '>'
                     
                     if result['StackTrace']:
                         s += '<![CDATA[{}]]>'.format(cgi.escape(result['StackTrace']))
