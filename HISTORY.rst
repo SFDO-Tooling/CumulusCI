@@ -2,6 +2,11 @@
 History
 =======
 
+2.0.0-beta54 (2017-08-04)
+-------------------------
+
+* Fix issue in parsing test failure details when org has objects that need to be recompiled.
+
 2.0.0-beta53 (2017-08-04)
 -------------------------
 
