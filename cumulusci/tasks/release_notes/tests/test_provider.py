@@ -425,7 +425,9 @@ class TestGithubChangeNotesProvider(unittest.TestCase, GithubApiTestMixin):
         provider = GithubChangeNotesProvider(
             generator, self.current_tag, self.last_tag)
         provider_list = list(provider())
-        pr_body_list = ['pull 1', 'pull 2', 'pull 3']
+        pr_body_list = []
+        for n in range(3, 0, -1):
+            pr_body_list.append('pull {}'.format(n))
         self.assertEqual(len(provider_list), len(pr_body_list))
         for pr, pr_body in zip(provider_list, pr_body_list):
             self.assertEqual(pr['body'], pr_body)
