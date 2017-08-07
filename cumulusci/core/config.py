@@ -661,19 +661,25 @@ class ScratchOrgConfig(OrgConfig):
 
         # Call force:org:display and parse output to get instance_url and access_token
         command = 'sfdx force:org:display -u {} --json'.format(self.username)
-        p = sarge.Command(command, stdout=sarge.Capture(buffer_size=-1))
+        p = sarge.Command(
+            command,
+            stderr=sarge.Capture(buffer_size=-1),
+            stdout=sarge.Capture(buffer_size=-1),
+        )
         p.run()
 
         org_info = None
-        stdout_list = []
-        for line in p.stdout:
-            stdout_list.append(line.strip())
+        stderr_list = [line.strip() for line in p.stderr]
+        stdout_list = [line.strip() for line in p.stdout]
 
         if p.returncode:
             self.logger.error('Return code: {}'.format(p.returncode))
+            for line in stderr_list:
+                self.logger.error(line)
             for line in stdout_list:
                 self.logger.error(line)
-            message = 'Message: {}'.format('\n'.join(stdout_list))
+            message = '\nstderr:\n{}'.format('\n'.join(stderr_list))
+            message += '\nstdout:\n{}'.format('\n'.join(stdout_list))
             raise ScratchOrgException(message)
 
         else:
