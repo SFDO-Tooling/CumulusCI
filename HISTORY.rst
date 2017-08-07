@@ -2,6 +2,11 @@
 History
 =======
 
+2.0.0-beta56 (2017-08-07)
+-------------------------
+
+* Add stderr logging to scratch org info command
+
 2.0.0-beta55 (2017-08-07)
 -------------------------
 
