@@ -42,6 +42,8 @@ WHERE AsyncApexJobId='{}'
 
 class RunApexTests(BaseSalesforceApiTask):
     """ Task to run Apex tests with the Tooling API and report results """
+    api_version = '38.0'
+    name = 'RunApexTests'
     task_options = {
         'test_name_match': {
             'description': ('Query to find Apex test classes to run ' +
