@@ -17,7 +17,9 @@ import cumulusci.core
 ORG_ID = '00D000000000001'
 USERNAME = 'sample@example'
 
+
 class _TaskHasResult(BaseTask):
+
     def _run_task(self):
         return -1
 
@@ -72,6 +74,7 @@ class TestBaseTaskCallable(unittest.TestCase):
         """ Callable interface returns retvals """
 
         class _TaskReturnsStuff(BaseTask):
+
             def _run_task(self):
                 self.return_values['name'] = 'return!'
 

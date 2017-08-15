@@ -11,6 +11,7 @@ from cumulusci.core.utils import import_class
 
 class BaseFlow(object):
     """ BaseFlow handles initializing and running a flow """
+
     def __init__(self, project_config, flow_config, org_config, options=None, skip=None):
         self.project_config = project_config
         self.flow_config = flow_config
@@ -36,7 +37,7 @@ class BaseFlow(object):
             if task not in self.task_options:
                 self.task_options[task] = {}
             self.task_options[task][option] = value
-        
+
     def _init_skip(self, skip):
         if not skip:
             return
@@ -99,8 +100,10 @@ class BaseFlow(object):
 
         if self.org_config is not None:
             config.append('Organization:')
-            config.append('  {}: {}'.format('Username', self.org_config.username))
-            config.append('  {}: {}'.format('  Org Id', self.org_config.org_id))
+            config.append('  {}: {}'.format(
+                'Username', self.org_config.username))
+            config.append('  {}: {}'.format(
+                '  Org Id', self.org_config.org_id))
 
         return config
 

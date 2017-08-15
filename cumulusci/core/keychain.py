@@ -16,14 +16,15 @@ from cumulusci.core.exceptions import ServiceNotConfigured
 from cumulusci.core.exceptions import ServiceNotValid
 from cumulusci.core.exceptions import KeychainConnectedAppNotFound
 
+
 class BaseProjectKeychain(BaseConfig):
     encrypted = False
 
     def __init__(self, project_config, key):
         super(BaseProjectKeychain, self).__init__()
         self.config = {
-            'orgs': {}, 
-            'app': None, 
+            'orgs': {},
+            'app': None,
             'services': {},
         }
         self.project_config = project_config
@@ -117,9 +118,10 @@ class BaseProjectKeychain(BaseConfig):
 
     def _get_org(self, name):
         return self.orgs.get(name)
-    
+
     def _raise_org_not_found(self, name):
-        raise OrgNotFound('Org named {} was not found in keychain'.format(name))
+        raise OrgNotFound(
+            'Org named {} was not found in keychain'.format(name))
 
     def list_orgs(self):
         """ list the orgs configured in the keychain """
@@ -173,7 +175,8 @@ class BaseProjectKeychain(BaseConfig):
         )
 
     def _raise_service_not_valid(self, name):
-        raise ServiceNotValid('Service named {} is not valid for this project'.format(name))
+        raise ServiceNotValid(
+            'Service named {} is not valid for this project'.format(name))
 
     def list_services(self):
         """ list the services configured in the keychain """
@@ -181,14 +184,15 @@ class BaseProjectKeychain(BaseConfig):
         services.sort()
         return services
 
+
 class EnvironmentProjectKeychain(BaseProjectKeychain):
-    """ A project keychain that stores org credentials in environment variables """ 
+    """ A project keychain that stores org credentials in environment variables """
     encrypted = False
     org_var_prefix = 'CUMULUSCI_ORG_'
     app_var = 'CUMULUSCI_CONNECTED_APP'
     service_var_prefix = 'CUMULUSCI_SERVICE_'
-   
-    def _load_keychain(self): 
+
+    def _load_keychain(self):
         self._load_keychain_app()
         self._load_keychain_orgs()
         self._load_keychain_services()
@@ -203,19 +207,23 @@ class EnvironmentProjectKeychain(BaseProjectKeychain):
             if key.startswith(self.org_var_prefix):
                 org_config = json.loads(value)
                 if org_config.get('scratch'):
-                    self.orgs[key[len(self.org_var_prefix):]] = ScratchOrgConfig(json.loads(value))
+                    self.orgs[key[len(self.org_var_prefix):]
+                              ] = ScratchOrgConfig(json.loads(value))
                 else:
-                    self.orgs[key[len(self.org_var_prefix):]] = OrgConfig(json.loads(value))
+                    self.orgs[key[len(self.org_var_prefix):]
+                              ] = OrgConfig(json.loads(value))
 
     def _load_keychain_services(self):
         for key, value in os.environ.items():
             if key.startswith(self.service_var_prefix):
-                self.services[key[len(self.service_var_prefix):]] = ServiceConfig(json.loads(value))
+                self.services[key[len(self.service_var_prefix):]] = ServiceConfig(
+                    json.loads(value))
 
 
 BS = 16
 pad = lambda s: s + (BS - len(s) % BS) * chr(BS - len(s) % BS)
-unpad = lambda s : s[0:-ord(s[-1])]
+unpad = lambda s: s[0:-ord(s[-1])]
+
 
 class BaseEncryptedProjectKeychain(BaseProjectKeychain):
     """ Base class for building project keychains that use AES encryption for securing stored org credentials """
@@ -278,6 +286,7 @@ class BaseEncryptedProjectKeychain(BaseProjectKeychain):
             config_class = ScratchOrgConfig
         return config_class(pickle.loads(pickled))
 
+
 class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
     """ An encrypted project keychain that stores in the project's local directory """
 
@@ -312,7 +321,7 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
                     self.config['app'] = app_config
 
         load_files(self.config_local_dir)
-        if not self.project_local_dir: 
+        if not self.project_local_dir:
             return
         load_files(self.project_local_dir)
 
@@ -327,24 +336,28 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
 
     def _set_encrypted_org(self, name, encrypted, global_org):
         if global_org:
-            filename = os.path.join(self.config_local_dir, '{}.org'.format(name))
+            filename = os.path.join(
+                self.config_local_dir, '{}.org'.format(name))
         else:
-            filename = os.path.join(self.project_local_dir, '{}.org'.format(name))
+            filename = os.path.join(
+                self.project_local_dir, '{}.org'.format(name))
         with open(filename, 'w') as f_org:
             f_org.write(encrypted)
 
     def _set_encrypted_service(self, name, encrypted, project):
         if project:
-            filename = os.path.join(self.project_local_dir, '{}.service'.format(name))
+            filename = os.path.join(
+                self.project_local_dir, '{}.service'.format(name))
         else:
-            filename = os.path.join(self.config_local_dir, '{}.service'.format(name))
+            filename = os.path.join(
+                self.config_local_dir, '{}.service'.format(name))
         with open(filename, 'w') as f_service:
             f_service.write(encrypted)
 
     def _raise_org_not_found(self, name):
         raise OrgNotFound(
             'Org information could not be found.  Expected to find encrypted file at {}/{}.org'.format(
-                self.project_local_dir, 
+                self.project_local_dir,
                 name
             )
         )
@@ -352,7 +365,7 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
     def _raise_service_not_configured(self, name):
         raise ServiceNotConfigured(
             'Service configuration could not be found.  Expected to find encrypted file at {}/{}.org'.format(
-                self.project_local_dir, 
+                self.project_local_dir,
                 name
             )
         )
