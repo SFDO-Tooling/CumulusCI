@@ -163,7 +163,8 @@ class TestYamlGlobalConfig(unittest.TestCase):
         with open(__location__ + '/../../cumulusci.yml', 'r') as f_expected_config:
             expected_config = yaml.load(f_expected_config)
         expected_config['tasks']['newtesttask'] = {}
-        expected_config['tasks']['newtesttask']['description'] = 'test description'
+        expected_config['tasks']['newtesttask'][
+            'description'] = 'test description'
         self.assertEquals(config.config, expected_config)
 
 

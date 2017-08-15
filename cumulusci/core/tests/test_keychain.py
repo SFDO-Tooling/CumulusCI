@@ -35,9 +35,9 @@ class TestBaseProjectKeychain(unittest.TestCase):
         self.global_config = BaseGlobalConfig()
         self.project_config = BaseProjectConfig(self.global_config)
         self.project_config.config['services'] = {
-            'github':{'attributes':{'name':{'required':True}, 'password':{}}},
-            'mrbelvedere':{'attributes':{'mr':{'required':True}}},
-            'apextestsdb':{'attributes':{'apex':{'required':True}}},
+            'github': {'attributes': {'name': {'required': True}, 'password': {}}},
+            'mrbelvedere': {'attributes': {'mr': {'required': True}}},
+            'apextestsdb': {'attributes': {'apex': {'required': True}}},
         }
         self.project_config.project__name = 'TestProject'
         self.connected_app_config = ConnectedAppOAuthConfig({'test': 'value'})
@@ -63,7 +63,8 @@ class TestBaseProjectKeychain(unittest.TestCase):
     def _test_set_invalid_service(self, project=False):
         keychain = self.keychain_class(self.project_config, self.key)
         with self.assertRaises(ServiceNotValid) as context:
-            keychain.set_service('github', ServiceConfig({'name': ''}), project)
+            keychain.set_service(
+                'github', ServiceConfig({'name': ''}), project)
 
     def test_change_key(self):
         self._test_change_key()
@@ -78,11 +79,16 @@ class TestBaseProjectKeychain(unittest.TestCase):
         keychain.set_service('apextestsdb', self.services['apextestsdb'])
         keychain.change_key(new_key)
         self.assertEquals(keychain.key, new_key)
-        self.assertEquals(keychain.get_connected_app().config, self.connected_app_config.config)
-        self.assertEquals(keychain.get_service('github').config, self.services['github'].config)
-        self.assertEquals(keychain.get_service('mrbelvedere').config, self.services['mrbelvedere'].config)
-        self.assertEquals(keychain.get_service('apextestsdb').config, self.services['apextestsdb'].config)
-        self.assertEquals(keychain.get_org('test').config, self.org_config.config)
+        self.assertEquals(keychain.get_connected_app().config,
+                          self.connected_app_config.config)
+        self.assertEquals(keychain.get_service(
+            'github').config, self.services['github'].config)
+        self.assertEquals(keychain.get_service(
+            'mrbelvedere').config, self.services['mrbelvedere'].config)
+        self.assertEquals(keychain.get_service(
+            'apextestsdb').config, self.services['apextestsdb'].config)
+        self.assertEquals(keychain.get_org(
+            'test').config, self.org_config.config)
 
     def test_set_connected_app(self):
         self._test_set_connected_app()
@@ -90,7 +96,8 @@ class TestBaseProjectKeychain(unittest.TestCase):
     def _test_set_connected_app(self, project=False):
         keychain = self.keychain_class(self.project_config, self.key)
         keychain.set_connected_app(self.connected_app_config, project)
-        self.assertEquals(keychain.get_connected_app().config, {'test': 'value'})
+        self.assertEquals(
+            keychain.get_connected_app().config, {'test': 'value'})
 
     def test_set_service_github(self):
         self._test_set_service_github()
@@ -98,23 +105,28 @@ class TestBaseProjectKeychain(unittest.TestCase):
     def _test_set_service_github(self, project=False):
         keychain = self.keychain_class(self.project_config, self.key)
         keychain.set_service('github', self.services['github'], project)
-        self.assertEquals(keychain.get_service('github').config, self.services['github'].config)
+        self.assertEquals(keychain.get_service(
+            'github').config, self.services['github'].config)
 
     def test_set_service_mrbelvedere(self):
         self._test_set_service_mrbelvedere()
 
     def _test_set_service_mrbelvedere(self, project=False):
         keychain = self.keychain_class(self.project_config, self.key)
-        keychain.set_service('mrbelvedere', self.services['mrbelvedere'], project)
-        self.assertEquals(keychain.get_service('mrbelvedere').config, self.services['mrbelvedere'].config)
+        keychain.set_service('mrbelvedere', self.services[
+                             'mrbelvedere'], project)
+        self.assertEquals(keychain.get_service(
+            'mrbelvedere').config, self.services['mrbelvedere'].config)
 
     def test_set_service_apextestsdb(self):
         self._test_set_service_apextestsdb()
 
     def _test_set_service_apextestsdb(self, project=False):
         keychain = self.keychain_class(self.project_config, self.key)
-        keychain.set_service('apextestsdb', self.services['apextestsdb'], project)
-        self.assertEquals(keychain.get_service('apextestsdb').config, self.services['apextestsdb'].config)
+        keychain.set_service('apextestsdb', self.services[
+                             'apextestsdb'], project)
+        self.assertEquals(keychain.get_service(
+            'apextestsdb').config, self.services['apextestsdb'].config)
 
     def test_set_and_get_org(self):
         self._test_set_and_get_org()
@@ -123,7 +135,8 @@ class TestBaseProjectKeychain(unittest.TestCase):
         keychain = self.keychain_class(self.project_config, self.key)
         keychain.set_org('test', self.org_config, global_org)
         self.assertEquals(keychain.orgs.keys(), ['test'])
-        self.assertEquals(keychain.get_org('test').config, self.org_config.config)
+        self.assertEquals(keychain.get_org(
+            'test').config, self.org_config.config)
 
     def test_get_org_not_found(self):
         self._test_get_org_not_found()
@@ -142,7 +155,8 @@ class TestBaseProjectKeychain(unittest.TestCase):
         org_config = OrgConfig(org_config)
         org_config.config['default'] = True
         keychain.set_org('test', org_config)
-        self.assertEquals(keychain.get_default_org()[1].config, org_config.config)
+        self.assertEquals(keychain.get_default_org()[
+                          1].config, org_config.config)
 
     def test_get_default_org_no_default(self):
         self._test_get_default_org_no_default()
@@ -170,13 +184,14 @@ class TestBaseProjectKeychain(unittest.TestCase):
         keychain = self.keychain_class(self.project_config, self.key)
         keychain.set_org('test', self.org_config)
         self.assertEquals(keychain.list_orgs(), ['test'])
-    
+
     def test_list_orgs_empty(self):
         self._test_list_orgs_empty()
 
     def _test_list_orgs_empty(self):
         keychain = self.keychain_class(self.project_config, self.key)
         self.assertEquals(keychain.list_orgs(), [])
+
 
 class TestEnvironmentProjectKeychain(TestBaseProjectKeychain):
     keychain_class = EnvironmentProjectKeychain
@@ -219,7 +234,8 @@ class TestEnvironmentProjectKeychain(TestBaseProjectKeychain):
     def test_get_org(self):
         keychain = self.keychain_class(self.project_config, self.key)
         self.assertEquals(keychain.orgs.keys(), ['test'])
-        self.assertEquals(keychain.get_org('test').config, self.org_config.config)
+        self.assertEquals(keychain.get_org(
+            'test').config, self.org_config.config)
 
     def _test_list_orgs(self):
         with self.env:
@@ -259,8 +275,10 @@ class TestEnvironmentProjectKeychain(TestBaseProjectKeychain):
             )
             self._test_get_default_org()
 
+
 class TestBaseEncryptedProjectKeychain(TestBaseProjectKeychain):
     keychain_class = BaseEncryptedProjectKeychain
+
 
 @mock.patch('os.path.expanduser')
 class TestEncryptedFileProjectKeychain(TestBaseProjectKeychain):
@@ -270,9 +288,9 @@ class TestEncryptedFileProjectKeychain(TestBaseProjectKeychain):
         self.global_config = BaseGlobalConfig()
         self.project_config = BaseProjectConfig(self.global_config)
         self.project_config.config['services'] = {
-            'github':{'attributes':{'git':{'required':True}, 'password':{}}},
-            'mrbelvedere':{'attributes':{'mr':{'required':True}}},
-            'apextestsdb':{'attributes':{'apex':{'required':True}}},
+            'github': {'attributes': {'git': {'required': True}, 'password': {}}},
+            'mrbelvedere': {'attributes': {'mr': {'required': True}}},
+            'apextestsdb': {'attributes': {'apex': {'required': True}}},
         }
         self.project_config.project__name = 'TestProject'
         self.project_name = 'TestProject'
@@ -327,7 +345,7 @@ class TestEncryptedFileProjectKeychain(TestBaseProjectKeychain):
         mock_class.return_value = self.tempdir_home
         os.chdir(self.tempdir_project)
         self._test_change_key()
-    
+
     def test_set_invalid_service(self, mock_class):
         self._mk_temp_home()
         self._mk_temp_project()
