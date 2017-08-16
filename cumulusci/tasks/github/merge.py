@@ -1,5 +1,6 @@
 from github3 import GitHubError
 
+from cumulusci.core.exceptions import GithubApiNotFoundError
 from cumulusci.tasks.github.base import BaseGithubTask
 
 class MergeBranch(BaseGithubTask):
@@ -24,8 +25,10 @@ class MergeBranch(BaseGithubTask):
         source_branch = self.options.get('source_branch', self.project_config.project__git__default_branch)
 
         head_branch = repo.branch(source_branch)
-        if not repo:
-            self.logger.error('Branch {} not found'.format(source_branch))
+        if not head_branch:
+            message = 'Branch {} not found'.format(source_branch)
+            self.logger.error(message)
+            raise GithubApiNotFoundError(message)
 
         # Get existing pull requests targeting a target branch
         existing_prs = []
