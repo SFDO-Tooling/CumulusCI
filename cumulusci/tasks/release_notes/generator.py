@@ -111,7 +111,7 @@ class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator, GithubApiMixin):
             current_tag,
             last_tag=None,
             link_pr=False,
-            dry_run=True,
+            dry_run=False,
             has_issues=True,
         ):
         self.github_info = github_info
