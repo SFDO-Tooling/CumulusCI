@@ -119,6 +119,17 @@ class GithubException(CumulusCIException):
     """ Raise for errors related to GitHub """
     pass
 
+class GithubApiError(CumulusCIException):
+    pass
+
+class GithubApiNotFoundError(CumulusCIException):
+    pass
+
+class GithubApiNoResultsError(CumulusCIException):
+    pass
+
+class GithubApiUnauthorized(CumulusCIException):
+    pass
 
 class SalesforceException(CumulusCIException):
     """ Raise for errors related to Salesforce """

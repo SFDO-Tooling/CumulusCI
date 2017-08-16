@@ -9,12 +9,12 @@ import unittest
 import requests
 import responses
 
+from cumulusci.core.exceptions import GithubApiNotFoundError
 from cumulusci.tasks.release_notes.generator import GithubReleaseNotesGenerator
 from cumulusci.tasks.release_notes.provider import BaseChangeNotesProvider
 from cumulusci.tasks.release_notes.provider import StaticChangeNotesProvider
 from cumulusci.tasks.release_notes.provider import DirectoryChangeNotesProvider
 from cumulusci.tasks.release_notes.provider import GithubChangeNotesProvider
-from cumulusci.tasks.release_notes.exceptions import GithubApiNotFoundError
 from cumulusci.tasks.release_notes.exceptions import LastReleaseTagNotFoundError
 from cumulusci.tasks.release_notes.tests.util_github_api import GithubApiTestMixin
 

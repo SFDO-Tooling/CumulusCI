@@ -4,9 +4,9 @@ import re
 
 import requests
 
-from .exceptions import GithubApiNotFoundError
-from .exceptions import GithubApiNoResultsError
-from .exceptions import GithubApiUnauthorized
+from cumulusci.core.exceptions import GithubApiNotFoundError
+from cumulusci.core.exceptions import GithubApiNoResultsError
+from cumulusci.core.exceptions import GithubApiUnauthorized
 
 
 class GithubApiMixin(object):
