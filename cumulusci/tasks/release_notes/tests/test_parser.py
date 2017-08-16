@@ -240,7 +240,6 @@ class TestGithubIssuesParser(unittest.TestCase, GithubApiTestMixin):
             self.github_info.copy(),
             PARSER_CONFIG,
             'prod/1.1',
-            dry_run=True,
         )
         return generator
 
@@ -276,6 +275,7 @@ class TestCommentingGithubIssuesParser(unittest.TestCase, GithubApiTestMixin):
             self.github_info.copy(),
             PARSER_CONFIG,
             tag,
+            publish=True,
         )
         return generator
 

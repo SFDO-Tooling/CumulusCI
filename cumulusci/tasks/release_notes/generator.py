@@ -111,7 +111,7 @@ class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator, GithubApiMixin):
             current_tag,
             last_tag=None,
             link_pr=False,
-            dry_run=False,
+            publish=False,
             has_issues=True,
         ):
         self.github_info = github_info
@@ -119,7 +119,7 @@ class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator, GithubApiMixin):
         self.current_tag = current_tag
         self.last_tag = last_tag
         self.link_pr = link_pr
-        self.dry_run = dry_run
+        self.do_publish = publish
         self.has_issues = has_issues
         self.lines_parser_class = None
         self.issues_parser_class = None
@@ -127,7 +127,7 @@ class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator, GithubApiMixin):
 
     def __call__(self):
         content = super(GithubReleaseNotesGenerator, self).__call__()
-        if not self.dry_run:
+        if self.do_publish:
             content = self.publish(content)
         return content
 

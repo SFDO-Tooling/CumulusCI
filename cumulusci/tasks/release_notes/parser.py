@@ -206,7 +206,7 @@ class GithubIssuesParser(IssuesParser, ParserGithubApiMixin):
         self.link_pr = release_notes_generator.link_pr
         self.pr_number = None
         self.pr_url = None
-        self.dry_run = release_notes_generator.dry_run
+        self.publish = release_notes_generator.do_publish
 
     def _add_line(self, line):
         # find issue numbers per line
@@ -246,7 +246,7 @@ class GithubIssuesParser(IssuesParser, ParserGithubApiMixin):
         return u'\r\n'.join(content)
 
     def _get_issue_info(self, issue_number):
-        if not self.dry_run:
+        if self.publish:
             self._add_issue_comment(issue_number)
         response = self.call_api('/issues/{}'.format(issue_number))
         if 'message' in response:
