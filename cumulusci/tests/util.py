@@ -54,7 +54,7 @@ class DummyProjectConfig(BaseProjectConfig):
     def repo_commit(self):
         if not self._repo_commit:
             self._repo_commit = random_sha()
-        return self._repo_owner
+        return self._repo_commit
         
 class DummyOrgConfig(OrgConfig):
     def refresh_oauth_token(self):
