@@ -1,6 +1,7 @@
 import os
+import random
 
-import hiyapyco
+import yaml
 
 from cumulusci.core.config import BaseGlobalConfig
 from cumulusci.core.config import BaseProjectConfig
@@ -8,31 +9,37 @@ from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.core.config import OrgConfig
 from cumulusci import __location__
 
+def random_sha():
+    hash = random.getrandbits(128)
+    return "%032x" % hash
 
 def get_base_config():
     path = os.path.abspath(os.path.join(
             __location__,
             'cumulusci.yml'
         ))
-    return hiyapyco.load(path)
+    f = open(path, 'r')
+    return yaml.load(f)
 
 def create_project_config(repo_name, repo_owner):
     base_config = get_base_config()
     global_config = BaseGlobalConfig(base_config)
     project_config = DummyProjectConfig(
-        global_config, 
-        repo_name,
-        repo_owner,
-        base_config,
+        global_config = global_config, 
+        repo_name = repo_name,
+        repo_owner = repo_owner,
+        config = base_config,
     )
     keychain = BaseProjectKeychain(project_config, None)
     project_config.set_keychain(keychain)
     return project_config
 
 class DummyProjectConfig(BaseProjectConfig):
-    def __init__(self, global_config, repo_name, repo_owner, config=None):
+    def __init__(self, global_config, repo_name, repo_owner, repo_commit=None, config=None):
         self._repo_name = repo_name
         self._repo_owner = repo_owner
+        self._repo_commit = repo_commit
+        self._init_config = config
         super(DummyProjectConfig, self).__init__(global_config, config)
 
     @property
@@ -41,6 +48,12 @@ class DummyProjectConfig(BaseProjectConfig):
 
     @property
     def repo_owner(self):
+        return self._repo_owner
+        
+    @property
+    def repo_commit(self):
+        if not self._repo_commit:
+            self._repo_commit = random_sha()
         return self._repo_owner
         
 class DummyOrgConfig(OrgConfig):

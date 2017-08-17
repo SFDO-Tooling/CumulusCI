@@ -5,6 +5,8 @@ from datetime import timedelta
 
 import responses
 
+from cumulusci.tests.util import random_sha
+
 date_format = '%Y-%m-%dT%H:%M:%SZ'
 
 class GithubApiTestMixin(object):
@@ -12,12 +14,6 @@ class GithubApiTestMixin(object):
 
     def init_github(self):
         self.repo_api_url = 'https://api.github.com/repos/TestOwner/TestRepo'
-        self.github_info = {
-            'github_owner': 'TestOwner',
-            'github_repo': 'TestRepo',
-            'github_username': 'TestUser',
-            'github_password': 'TestPass',
-        }
 
     def _get_expected_repo(self, owner, name):
         response_body = {
@@ -87,6 +83,8 @@ class GithubApiTestMixin(object):
             'mergeable': not merged_date,
         }
 
+    def _random_sha(self):
+        return random_sha()
 
     def _get_expected_not_found(self):
         return {
