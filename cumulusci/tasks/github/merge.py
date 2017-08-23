@@ -63,7 +63,7 @@ class MergeBranch(BaseGithubTask):
                 branches_dict[branch.name] = branch
                 continue
             if not branch.name.startswith(branch_prefix):
-                self.logger.info('Skipping branch {}: does not match prefix {}'.format(branch.name, branch_prefix))
+                self.logger.debug('Skipping branch {}: does not match prefix {}'.format(branch.name, branch_prefix))
                 continue
             branches.append(branch)
             branches_dict[branch.name] = branch
@@ -108,13 +108,14 @@ class MergeBranch(BaseGithubTask):
         for branch_item in branch_tree:
             branch = branch_item['branch']
             self._merge_recursive(
-                branch_item['branch'],
-                branches_dict[source_branch],
-                branch_item['children'],
+                branch = branch_item['branch'].name,
+                source = source_branch,
+                commit = commit,
+                children = branch_item['children'],
             )
                 
   
-    def _merge_recursive(self, branch, source, children=None, indent=None): 
+    def _merge_recursive(self, branch, source, commit, children=None, indent=None): 
         if not indent:
             indent = ''
         if not children:
@@ -123,50 +124,51 @@ class MergeBranch(BaseGithubTask):
         if children:
             branch_type = 'parent branch'
 
-        compare = self.repo.compare_commits(branch.commit.sha, source.commit.sha)
-        if not compare.files:
+        compare = self.repo.compare_commits(branch, commit)
+        if not compare or not compare.files:
             self.logger.info(
                 'Skipping {} {}: no file diffs found'.format(
                     branch_type,
-                    branch.name,
+                    branch,
                 )
             )
             return
 
         try: 
-            result = self.repo.merge(branch.name, source.name)
+            result = self.repo.merge(branch, commit)
             self.logger.info('{}Merged {} commits into {} {}'.format(
                 indent,
                 compare.behind_by,
                 branch_type,
-                branch.name,
+                branch,
             ))
             if children:
                 self.logger.info('  Merging into child branches:')
                 for child in children:
                     self._merge_recursive(
-                        child,
-                        branch,
-                        indent = '    '
+                        branch = child.name,
+                        source = branch,
+                        commit = result.sha,
+                        indent = '    ',
                     )
 
         except GitHubError as e:
             if e.code != 409:
                 raise
 
-            if branch.name in self.existing_prs:
+            if branch in self.existing_prs:
                 self.logger.info(
                     'Merge conflict on {} {}: merge PR already exists'.format(
                         branch_type,
-                        branch.name,
+                        branch,
                     )
                 )
                 return
 
             pull = self.repo.create_pull(
-                title = 'Merge {} into {}'.format(source, branch.name),
-                base = branch.name,
-                head = source.name,
+                title = 'Merge {} into {}'.format(source, branch),
+                base = branch,
+                head = source,
                 body = 'This pull request was automatically generated because '
                        'an automated merge hit a merge conflict',
             )
@@ -174,7 +176,7 @@ class MergeBranch(BaseGithubTask):
             self.logger.info(
                 'Merge conflict on {} {}: created pull request #{}'.format(
                     branch_type,
-                    branch.name,
+                    branch,
                     pull.number,
                 )
             )

@@ -124,7 +124,7 @@ class TestMergeBranch(unittest.TestCase, GithubApiTestMixin):
     def _mock_merge(self, conflict=None):
         api_url = '{}/merges'.format(self.repo_api_url)
         expected_response = self._get_expected_merge(conflict)
-        status = 200
+        status = 201
         if conflict:
             status = 409
         
@@ -134,6 +134,7 @@ class TestMergeBranch(unittest.TestCase, GithubApiTestMixin):
             json = expected_response,
             status = status,
         )
+        return expected_response
 
     def _mock_pull_create(self, pull_id, issue_id):
         api_url = '{}/pulls'.format(self.repo_api_url)
@@ -188,8 +189,9 @@ class TestMergeBranch(unittest.TestCase, GithubApiTestMixin):
     def test_no_feature_branch(self):
         self._mock_repo()
         self._mock_branch(self.branch)
+        other_branch = self._get_expected_branch('not-a-feature-branch')
         self._mock_pulls()
-        branches = []
+        branches = [other_branch]
         branches = self._mock_branches(branches)
         with LogCapture() as l:
             task = self._create_task()
@@ -200,6 +202,7 @@ class TestMergeBranch(unittest.TestCase, GithubApiTestMixin):
                 ('INFO', 'Beginning task: MergeBranch'),
                 ('INFO', ''),
                 ('DEBUG', 'Skipping branch master: is source branch'),
+                ('DEBUG', 'Skipping branch not-a-feature-branch: does not match prefix feature/'),
             ]
             self.assertEquals(log_lines, expected)
 
@@ -213,7 +216,7 @@ class TestMergeBranch(unittest.TestCase, GithubApiTestMixin):
         branches.append(self._get_expected_branch(branch_name))
         branches = self._mock_branches(branches)
         self._mock_compare(
-            base = branches[1]['commit']['sha'],
+            base = branches[1]['name'],
             head = self.project_config.repo_commit,
         )
         with LogCapture() as l:
@@ -239,7 +242,7 @@ class TestMergeBranch(unittest.TestCase, GithubApiTestMixin):
         branches.append(self._get_expected_branch(branch_name))
         branches = self._mock_branches(branches)
         self._mock_compare(
-            base = branches[1]['commit']['sha'],
+            base = branches[1]['name'],
             head = self.project_config.repo_commit,
             files = [
                 {'filename': 'test.txt'},
@@ -269,7 +272,7 @@ class TestMergeBranch(unittest.TestCase, GithubApiTestMixin):
         branches.append(self._get_expected_branch(branch_name))
         branches = self._mock_branches(branches)
         self._mock_compare(
-            base = branches[1]['commit']['sha'],
+            base = branches[1]['name'],
             head = self.project_config.repo_commit,
             files = [
                 {'filename': 'test.txt'},
@@ -306,7 +309,7 @@ class TestMergeBranch(unittest.TestCase, GithubApiTestMixin):
         self._mock_pulls([pull])
 
         self._mock_compare(
-            base = branches[1]['commit']['sha'],
+            base = branches[1]['name'],
             head = self.project_config.repo_commit,
             files = [
                 {'filename': 'test.txt'},
@@ -335,29 +338,42 @@ class TestMergeBranch(unittest.TestCase, GithubApiTestMixin):
         self._mock_branch(self.branch)
 
         parent_branch_name = 'feature/a-test'
-        child_branch_name = 'feature/a-test__a-child'
+        child1_branch_name = 'feature/a-test__a-child1'
+        child2_branch_name = 'feature/a-test__a-child2'
         branches = []
         branches.append(self._get_expected_branch(parent_branch_name))
-        branches.append(self._get_expected_branch(child_branch_name))
+        branches.append(self._get_expected_branch(child1_branch_name))
+        branches.append(self._get_expected_branch(child2_branch_name))
         branches = self._mock_branches(branches)
 
         self._mock_pulls()
 
         self._mock_compare(
-            base = branches[1]['commit']['sha'],
+            base = branches[1]['name'],
             head = self.project_config.repo_commit,
             files = [
                 {'filename': 'test.txt'},
             ]
         )
+        merges = []
+        merges.append(self._mock_merge())
+        merges.append(self._mock_merge())
+        merges.append(self._mock_merge())
+
         self._mock_compare(
-            base = branches[2]['commit']['sha'],
-            head = branches[1]['commit']['sha'],
+            base = branches[2]['name'],
+            head = merges[0]['sha'],
             files = [
                 {'filename': 'test.txt'},
             ]
         )
-        self._mock_merge()
+        self._mock_compare(
+            base = branches[3]['name'],
+            head = merges[0]['sha'],
+            files = [
+                {'filename': 'test.txt'},
+            ]
+        )
 
         with LogCapture() as l:
             task = self._create_task()
@@ -374,7 +390,10 @@ class TestMergeBranch(unittest.TestCase, GithubApiTestMixin):
                 )),
                 ('INFO', '  Merging into child branches:'),
                 ('INFO', '    Merged 1 commits into branch {}'.format(
-                    child_branch_name
+                    child1_branch_name
+                )),
+                ('INFO', '    Merged 1 commits into branch {}'.format(
+                    child2_branch_name
                 )),
             ]
             self.assertEquals(log_lines, expected)
