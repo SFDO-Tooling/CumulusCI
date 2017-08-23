@@ -27,7 +27,7 @@ class CommitDir(object):
             branch,
             repo_dir=None,
             commit_message=None,
-            dry_run=True,
+            dry_run=False,
         ):
         """
         local_dir: path to local directory to commit

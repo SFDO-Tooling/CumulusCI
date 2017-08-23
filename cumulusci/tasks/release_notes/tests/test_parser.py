@@ -275,7 +275,7 @@ class TestCommentingGithubIssuesParser(unittest.TestCase, GithubApiTestMixin):
             self.github_info.copy(),
             PARSER_CONFIG,
             tag,
-            dry_run=False,
+            publish=True,
         )
         return generator
 

@@ -262,7 +262,6 @@ class TestPublishingGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTest
             PARSER_CONFIG,
             current_tag,
             last_tag,
-            dry_run=False,
         )
         return generator
 

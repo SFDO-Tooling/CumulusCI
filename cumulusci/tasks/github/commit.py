@@ -19,7 +19,7 @@ class CommitApexDocs(BaseGithubTask):
             'default=project__apexdoc__repo_dir',
         },
         'dry_run': {
-            'description': 'Execute a dry run if True (default=True)',
+            'description': 'Execute a dry run if True (default=False)',
         },
         'commit_message': {
             'description': 'Message for commit; default="Update Apex docs"',
@@ -48,7 +48,7 @@ class CommitApexDocs(BaseGithubTask):
             'dir_repo',
             self.project_config.project__apexdoc__repo_dir,
         )
-        dry_run = process_bool_arg(self.options.get('dry_run', True))
+        dry_run = process_bool_arg(self.options.get('dry_run', False))
         commit_message = self.options.get('commit_message', 'Update Apex docs')
 
         # get API

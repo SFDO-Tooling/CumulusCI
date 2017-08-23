@@ -382,7 +382,7 @@ flows:
                 ignore_failure: True  # Attempt to generate release notes but don't fail build
                 options:
                     link_pr: True
-                    dry_run: False
+                    publish: True
                     tag: ^^github_release.tag_name
             4:
                 task: github_master_to_feature
