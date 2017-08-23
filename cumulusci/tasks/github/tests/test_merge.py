@@ -98,11 +98,18 @@ class TestMergeBranch(unittest.TestCase, GithubApiTestMixin):
         else:
             expected_response = []
         
+        master = self._get_expected_branch(
+            'master', 
+            self.project_config.repo_commit
+        )
+        expected_response = [master] + expected_response
+
         responses.add(
             method = responses.GET,
             url = api_url,
             json = expected_response,
         )
+        return expected_response
 
     def _mock_branch_does_not_exist(self, branch):
         api_url = '{}/branches/{}'.format(self.repo_api_url, branch)
@@ -182,7 +189,8 @@ class TestMergeBranch(unittest.TestCase, GithubApiTestMixin):
         self._mock_repo()
         self._mock_branch(self.branch)
         self._mock_pulls()
-        self._mock_branches()
+        branches = []
+        branches = self._mock_branches(branches)
         with LogCapture() as l:
             task = self._create_task()
             task()
@@ -191,6 +199,7 @@ class TestMergeBranch(unittest.TestCase, GithubApiTestMixin):
             expected = [
                 ('INFO', 'Beginning task: MergeBranch'),
                 ('INFO', ''),
+                ('DEBUG', 'Skipping branch master: is source branch'),
             ]
             self.assertEquals(log_lines, expected)
 
@@ -202,9 +211,9 @@ class TestMergeBranch(unittest.TestCase, GithubApiTestMixin):
         branch_name = 'feature/a-test'
         branches = []
         branches.append(self._get_expected_branch(branch_name))
-        self._mock_branches(branches)
+        branches = self._mock_branches(branches)
         self._mock_compare(
-            base = branches[0]['commit']['sha'],
+            base = branches[1]['commit']['sha'],
             head = self.project_config.repo_commit,
         )
         with LogCapture() as l:
@@ -215,6 +224,7 @@ class TestMergeBranch(unittest.TestCase, GithubApiTestMixin):
             expected = [
                 ('INFO', 'Beginning task: MergeBranch'),
                 ('INFO', ''),
+                ('DEBUG', 'Skipping branch master: is source branch'),
                 ('INFO', 'Skipping branch feature/a-test: no file diffs found'),
             ]
             self.assertEquals(log_lines, expected)
@@ -227,9 +237,9 @@ class TestMergeBranch(unittest.TestCase, GithubApiTestMixin):
         branch_name = 'feature/a-test'
         branches = []
         branches.append(self._get_expected_branch(branch_name))
-        self._mock_branches(branches)
+        branches = self._mock_branches(branches)
         self._mock_compare(
-            base = branches[0]['commit']['sha'],
+            base = branches[1]['commit']['sha'],
             head = self.project_config.repo_commit,
             files = [
                 {'filename': 'test.txt'},
@@ -244,7 +254,8 @@ class TestMergeBranch(unittest.TestCase, GithubApiTestMixin):
             expected = [
                 ('INFO', 'Beginning task: MergeBranch'),
                 ('INFO', ''),
-                ('INFO', 'Merged 1 commits into feature/a-test'),
+                ('DEBUG', 'Skipping branch master: is source branch'),
+                ('INFO', 'Merged 1 commits into branch feature/a-test'),
             ]
             self.assertEquals(log_lines, expected)
     
@@ -256,9 +267,9 @@ class TestMergeBranch(unittest.TestCase, GithubApiTestMixin):
         branch_name = 'feature/a-test'
         branches = []
         branches.append(self._get_expected_branch(branch_name))
-        self._mock_branches(branches)
+        branches = self._mock_branches(branches)
         self._mock_compare(
-            base = branches[0]['commit']['sha'],
+            base = branches[1]['commit']['sha'],
             head = self.project_config.repo_commit,
             files = [
                 {'filename': 'test.txt'},
@@ -274,6 +285,7 @@ class TestMergeBranch(unittest.TestCase, GithubApiTestMixin):
             expected = [
                 ('INFO', 'Beginning task: MergeBranch'),
                 ('INFO', ''),
+                ('DEBUG', 'Skipping branch master: is source branch'),
                 ('INFO', 'Merge conflict on branch feature/a-test: created pull request #2')
             ]
             self.assertEquals(log_lines, expected)
@@ -286,15 +298,15 @@ class TestMergeBranch(unittest.TestCase, GithubApiTestMixin):
         branch_name = 'feature/a-test'
         branches = []
         branches.append(self._get_expected_branch(branch_name))
-        self._mock_branches(branches)
+        branches = self._mock_branches(branches)
 
         pull = self._get_expected_pull_request(1, 2)
         pull['base']['ref'] = branch_name
-        pull['base']['sha'] = branches[0]['commit']['sha']
+        pull['base']['sha'] = branches[1]['commit']['sha']
         self._mock_pulls([pull])
 
         self._mock_compare(
-            base = branches[0]['commit']['sha'],
+            base = branches[1]['commit']['sha'],
             head = self.project_config.repo_commit,
             files = [
                 {'filename': 'test.txt'},
@@ -311,6 +323,58 @@ class TestMergeBranch(unittest.TestCase, GithubApiTestMixin):
             expected = [
                 ('INFO', 'Beginning task: MergeBranch'),
                 ('INFO', ''),
+                ('DEBUG', 'Skipping branch master: is source branch'),
                 ('INFO', 'Merge conflict on branch feature/a-test: merge PR already exists'),
+            ]
+            self.assertEquals(log_lines, expected)
+
+
+    @responses.activate
+    def test_feature_branch_parent_child(self):
+        self._mock_repo()
+        self._mock_branch(self.branch)
+
+        parent_branch_name = 'feature/a-test'
+        child_branch_name = 'feature/a-test__a-child'
+        branches = []
+        branches.append(self._get_expected_branch(parent_branch_name))
+        branches.append(self._get_expected_branch(child_branch_name))
+        branches = self._mock_branches(branches)
+
+        self._mock_pulls()
+
+        self._mock_compare(
+            base = branches[1]['commit']['sha'],
+            head = self.project_config.repo_commit,
+            files = [
+                {'filename': 'test.txt'},
+            ]
+        )
+        self._mock_compare(
+            base = branches[2]['commit']['sha'],
+            head = branches[1]['commit']['sha'],
+            files = [
+                {'filename': 'test.txt'},
+            ]
+        )
+        self._mock_merge()
+
+        with LogCapture() as l:
+            task = self._create_task()
+            task()
+
+            log_lines = self._get_log_lines(l)
+
+            expected = [
+                ('INFO', 'Beginning task: MergeBranch'),
+                ('INFO', ''),
+                ('DEBUG', 'Skipping branch master: is source branch'),
+                ('INFO', 'Merged 1 commits into parent branch {}'.format(
+                    parent_branch_name
+                )),
+                ('INFO', '  Merging into child branches:'),
+                ('INFO', '    Merged 1 commits into branch {}'.format(
+                    child_branch_name
+                )),
             ]
             self.assertEquals(log_lines, expected)
