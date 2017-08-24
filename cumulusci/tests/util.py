@@ -18,8 +18,8 @@ def get_base_config():
             __location__,
             'cumulusci.yml'
         ))
-    f = open(path, 'r')
-    return yaml.load(f)
+    with open(path, 'r') as f:
+        return yaml.load(f)
 
 def create_project_config(repo_name, repo_owner):
     base_config = get_base_config()
