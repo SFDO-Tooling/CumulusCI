@@ -1,8 +1,6 @@
 from github3 import login
 
-from cumulusci.core.exceptions import GithubException
 from cumulusci.core.tasks import BaseTask
-from cumulusci.core.utils import process_bool_arg
 
 class BaseGithubTask(BaseTask):
 
