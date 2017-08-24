@@ -5,6 +5,8 @@ from datetime import timedelta
 
 import responses
 
+from cumulusci.tests.util import random_sha
+
 date_format = '%Y-%m-%dT%H:%M:%SZ'
 
 class GithubApiTestMixin(object):
@@ -58,8 +60,7 @@ class GithubApiTestMixin(object):
         }
 
     def _random_sha(self):
-        hash = random.getrandbits(128)
-        return "%032x" % hash
+        return random_sha()
 
     def _get_expected_pull_request(self, pull_id, issue_number, body, merged_date=None):
         if merged_date:

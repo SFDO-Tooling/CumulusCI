@@ -133,10 +133,12 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
     search_path = ['config']
 
-    def __init__(self, global_config_obj):
+    def __init__(self, global_config_obj, config=None):
         self.global_config_obj = global_config_obj
         self.keychain = None
-        super(BaseProjectConfig, self).__init__()
+        if not config:
+            config = {}
+        super(BaseProjectConfig, self).__init__(config=config)
 
     @property
     def config_global_local(self):
