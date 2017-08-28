@@ -446,3 +446,42 @@ class TestMergeBranch(unittest.TestCase, GithubApiTestMixin):
             ]
             self.assertEquals(expected, log_lines)
         self.assertEquals(7, len(responses.calls))
+
+    @responses.activate
+    def test_parent_merge_no_children(self):
+        branch = 'feature/a-test'
+        self._mock_repo()
+        self._mock_branch(branch)
+
+        parent_branch_name = 'feature/a-test'
+        child1_branch_name = 'feature/b-test'
+        branches = []
+        branches.append(self._get_expected_branch(parent_branch_name))
+        branches.append(self._get_expected_branch(child1_branch_name))
+        branches = self._mock_branches(branches)
+
+        self._mock_pulls()
+
+        with LogCapture() as l:
+            task = self._create_task(task_config={
+                'options': {
+                    'source_branch': 'feature/a-test',
+                    'children_only': True,
+                }
+            })
+            task()
+
+            log_lines = self._get_log_lines(l)
+
+            expected = [
+                ('INFO', 'Beginning task: MergeBranch'),
+                ('INFO', ''),
+                (
+                    'INFO', 
+                    'No children found for branch {}'.format(
+                        branches[1]['name'],
+                    ),
+                ),
+            ]
+            self.assertEquals(expected, log_lines)
+        self.assertEquals(4, len(responses.calls))

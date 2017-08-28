@@ -108,11 +108,19 @@ class MergeBranch(BaseGithubTask):
         # Process merge on all branches
         for branch_item in branch_tree:
             if self.options['children_only']:
-                self.logger.info(
-                    'Performing merge from parent branch {} to children'.format(
-                        self.options['source_branch'],
+                if branch_item['children']:
+                    self.logger.info(
+                        'Performing merge from parent branch {} to children'.format(
+                            self.options['source_branch'],
+                        )
                     )
-                )
+                else:
+                    self.logger.info(
+                        'No children found for branch {}'.format(
+                            self.options['source_branch'],
+                        )
+                    )
+                    continue
                 for child in branch_item['children']:
                     self._merge(
                         branch = child.name,
