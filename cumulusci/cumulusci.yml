@@ -69,6 +69,12 @@ tasks:
     github_master_to_feature:
         description: Merges the latest commit on the master branch into all open feature branches
         class_path: cumulusci.tasks.github.MergeBranch
+    github_parent_to_children:
+        description: Merges the latest commit on a parent feature branch into all child feature branches
+        class_path: cumulusci.tasks.github.MergeBranch
+        options:
+            children_only: True
+            source_branch: $project_config.repo_branch
     github_pull_requests:
         description: Lists open pull requests in project Github repository
         class_path: cumulusci.tasks.github.PullRequests
@@ -252,6 +258,7 @@ flows:
                 task: deploy_post
             7:
                 task: update_admin_profile
+
     ci_feature:
         description: Deploys the unmanaged package metadata and all dependencies to the target org and runs tests
         tasks:
@@ -271,6 +278,9 @@ flows:
                 task: update_admin_profile
             8:
                 task: run_tests_debug
+            9:
+                task: github_parent_to_children
+                    
     ci_master:
         description: Deploys the managed package metadata and all dependencies to the packaging org
         tasks:
