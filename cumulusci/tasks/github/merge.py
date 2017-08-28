@@ -39,18 +39,26 @@ class MergeBranch(BaseGithubTask):
     def _run_task(self):
         self.repo = self.get_repo()
 
+        self._validate_branch()
+        self._get_existing_prs()
+        branch_tree = self._get_branch_tree()
+        self._merge_branches(branch_tree)
+
+    def _validate_branch(self):
         head_branch = self.repo.branch(self.options['source_branch'])
         if not head_branch:
             message = 'Branch {} not found'.format(self.options['source_branch'])
             self.logger.error(message)
             raise GithubApiNotFoundError(message)
 
+    def _get_existing_prs(self):
         # Get existing pull requests targeting a target branch
         self.existing_prs = []
         for pr in self.repo.iter_pulls(state='open'):
             if pr.base.ref.startswith(self.options['branch_prefix']):
                 self.existing_prs.append(pr.base.ref)
-       
+      
+    def _get_branch_tree(self): 
         # Create list and dict of all target branches 
         branches = []
         branches_dict = {}
@@ -107,6 +115,9 @@ class MergeBranch(BaseGithubTask):
             
             branch_tree.append(branch_item)
 
+        return branch_tree
+
+    def _merge_branches(self, branch_tree):
         # Process merge on all branches
         for branch_item in branch_tree:
             if self.options['children_only']:
@@ -137,7 +148,6 @@ class MergeBranch(BaseGithubTask):
                     commit = self.options['commit'],
                     children = branch_item['children'],
                 )
-                
   
     def _merge(self, branch, source, commit, children=None): 
         if not children:
