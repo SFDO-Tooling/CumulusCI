@@ -24,12 +24,14 @@ class GithubApiTestMixin(object):
         }
         return response_body
 
-    def _get_expected_branch(self, branch):
+    def _get_expected_branch(self, branch, commit=None):
+        if not commit:
+            commit = self._random_sha()
         response_body = {
             "id": 1234567890,
             "name": branch,
             "commit": {
-                "sha": self._random_sha(),
+                "sha": commit,
             }
         }
         return response_body
@@ -70,8 +72,13 @@ class GithubApiTestMixin(object):
     def _get_expected_merge(self, conflict=None):
         if conflict:
             return {'message': 'Merge Conflict'}
-       
-        response_body = {} 
+      
+        new_commit = self._random_sha() 
+        response_body = {
+            'sha': new_commit,
+            'merged': True,
+            'message': 'Merged',
+        } 
         return response_body 
 
     def _get_expected_pull_request(self, pull_id, issue_number, merged_date=None):

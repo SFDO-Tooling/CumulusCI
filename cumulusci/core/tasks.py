@@ -67,6 +67,16 @@ class BaseTask(object):
         if kwargs:
             self.options.update(kwargs)
 
+        # Handle dynamic lookup of project_config values via $project_config.attr
+        for option, value in self.options.items():
+            try:
+                if value.startswith('$project_config.'):
+                    attr = value.replace('$project_config.', '', 1)
+                    self.options[option] = getattr(self.project_config, attr, None)
+            except AttributeError:
+                pass
+                
+
     def _validate_options(self):
         missing_required = []
         for name, config in self.task_options.items():

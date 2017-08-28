@@ -70,6 +70,19 @@ class TestBaseTaskCallable(unittest.TestCase):
 
         self.assertIsInstance(task, collections.Callable)
 
+    def test_dynamic_options(self):
+        """ Option values can lookup values from project_config """
+        self.project_config.config['foo'] = {'bar': 'baz'}
+        self.task_config.config['options'] = {
+            'test_option': '$project_config.foo__bar',
+        }
+        task = self.__class__.task_class(
+            self.project_config,
+            self.task_config,
+            self.org_config
+        )
+        self.assertEquals('baz', task.options['test_option'])
+
     def test_get_return_values(self):
         """ Callable interface returns retvals """
 
