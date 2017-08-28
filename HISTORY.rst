@@ -2,6 +2,17 @@
 History
 =======
 
+2.0.0-beta57 (2017-08-28)
+-------------------------
+
+* Task options can now dynamically reference attributes from the project_config using the syntax `$project_config.attr_name`.  For example, `$project_config.repo_branch` will resolve to the current branch when the task options are initialized.
+* New task `github_parent_to_children` uses new functionality in `MergeBranch` to support merging from a parent feature branch (ex. `feature/parent`) into all child branches (ex. `feature/parent__child`).
+* `github_master_to_feature` task will now skip child branches if their corresponding parent branch exists
+* `ci_feature` flow now runs `github_parent_to_children` at the end of the flow
+* Github task classes were restructured but the `class_path` used in `cumulusci.yml` remains the same
+* New test coverage for github tasks
+
+
 2.0.0-beta56 (2017-08-07)
 -------------------------
 
