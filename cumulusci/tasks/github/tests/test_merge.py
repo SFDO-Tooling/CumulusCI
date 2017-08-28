@@ -184,7 +184,7 @@ class TestMergeBranch(unittest.TestCase, GithubApiTestMixin):
         task = self._create_task()
         with self.assertRaises(GithubApiNotFoundError):
             task()
-        self.assertEquals(len(responses.calls), 2)
+        self.assertEquals(2, len(responses.calls))
 
     @responses.activate
     def test_no_feature_branch(self):
@@ -205,8 +205,8 @@ class TestMergeBranch(unittest.TestCase, GithubApiTestMixin):
                 ('DEBUG', 'Skipping branch master: is source branch'),
                 ('DEBUG', 'Skipping branch not-a-feature-branch: does not match prefix feature/'),
             ]
-            self.assertEquals(log_lines, expected)
-        self.assertEquals(len(responses.calls), 4)
+            self.assertEquals(expected, log_lines)
+        self.assertEquals(4, len(responses.calls))
 
     @responses.activate
     def test_feature_branch_no_diff(self):
@@ -232,8 +232,8 @@ class TestMergeBranch(unittest.TestCase, GithubApiTestMixin):
                 ('DEBUG', 'Skipping branch master: is source branch'),
                 ('INFO', 'Skipping branch feature/a-test: no file diffs found'),
             ]
-            self.assertEquals(log_lines, expected)
-        self.assertEquals(len(responses.calls), 5)
+            self.assertEquals(expected, log_lines)
+        self.assertEquals(5, len(responses.calls))
 
     @responses.activate
     def test_feature_branch_merge(self):
@@ -263,8 +263,8 @@ class TestMergeBranch(unittest.TestCase, GithubApiTestMixin):
                 ('DEBUG', 'Skipping branch master: is source branch'),
                 ('INFO', 'Merged 1 commits into branch feature/a-test'),
             ]
-            self.assertEquals(log_lines, expected)
-        self.assertEquals(len(responses.calls), 6)
+            self.assertEquals(expected, log_lines)
+        self.assertEquals(6, len(responses.calls))
     
     @responses.activate
     def test_feature_branch_merge_conflict(self):
@@ -295,8 +295,8 @@ class TestMergeBranch(unittest.TestCase, GithubApiTestMixin):
                 ('DEBUG', 'Skipping branch master: is source branch'),
                 ('INFO', 'Merge conflict on branch feature/a-test: created pull request #2')
             ]
-            self.assertEquals(log_lines, expected)
-        self.assertEquals(len(responses.calls), 7)
+            self.assertEquals(expected, log_lines)
+        self.assertEquals(7, len(responses.calls))
 
     @responses.activate
     def test_feature_branch_existing_pull(self):
@@ -333,12 +333,12 @@ class TestMergeBranch(unittest.TestCase, GithubApiTestMixin):
                 ('DEBUG', 'Skipping branch master: is source branch'),
                 ('INFO', 'Merge conflict on branch feature/a-test: merge PR already exists'),
             ]
-            self.assertEquals(log_lines, expected)
-        self.assertEquals(len(responses.calls), 6)
+            self.assertEquals(expected, log_lines)
+        self.assertEquals(6, len(responses.calls))
 
 
     @responses.activate
-    def test_feature_branch_parent_child(self):
+    def test_master_parent_does_not_merge_child(self):
         self._mock_repo()
         self._mock_branch(self.branch)
 
@@ -362,23 +362,6 @@ class TestMergeBranch(unittest.TestCase, GithubApiTestMixin):
         )
         merges = []
         merges.append(self._mock_merge())
-        merges.append(self._mock_merge())
-        merges.append(self._mock_merge())
-
-        self._mock_compare(
-            base = branches[2]['name'],
-            head = merges[0]['sha'],
-            files = [
-                {'filename': 'test.txt'},
-            ]
-        )
-        self._mock_compare(
-            base = branches[3]['name'],
-            head = merges[0]['sha'],
-            files = [
-                {'filename': 'test.txt'},
-            ]
-        )
 
         with LogCapture() as l:
             task = self._create_task()
@@ -393,13 +376,73 @@ class TestMergeBranch(unittest.TestCase, GithubApiTestMixin):
                 ('INFO', 'Merged 1 commits into parent branch {}'.format(
                     parent_branch_name
                 )),
-                ('INFO', '  Merging into child branches:'),
-                ('INFO', '    Merged 1 commits into branch {}'.format(
-                    child1_branch_name
+                ('INFO', '  Skipping merge into the following child branches:'),
+                ('INFO', '    {}'.format(child1_branch_name)),
+                ('INFO', '    {}'.format(child2_branch_name)),
+            ]
+            self.assertEquals(expected, log_lines)
+        self.assertEquals(6, len(responses.calls))
+
+
+    @responses.activate
+    def test_parent_merge_to_children(self):
+        branch = 'feature/a-test'
+        self._mock_repo()
+        self._mock_branch(branch)
+
+        parent_branch_name = 'feature/a-test'
+        child1_branch_name = 'feature/a-test__a-child1'
+        child2_branch_name = 'feature/a-test__a-child2'
+        branches = []
+        branches.append(self._get_expected_branch(parent_branch_name))
+        branches.append(self._get_expected_branch(child1_branch_name))
+        branches.append(self._get_expected_branch(child2_branch_name))
+        branches = self._mock_branches(branches)
+
+        self._mock_pulls()
+
+        merges = []
+        merges.append(self._mock_merge())
+
+        self._mock_compare(
+            base = branches[2]['name'],
+            head = self.project_config.repo_commit,
+            files = [
+                {'filename': 'test.txt'},
+            ]
+        )
+        self._mock_compare(
+            base = branches[3]['name'],
+            head = self.project_config.repo_commit,
+            files = []
+        )
+
+        with LogCapture() as l:
+            task = self._create_task(task_config={
+                'options': {
+                    'source_branch': 'feature/a-test',
+                    'children_only': True,
+                }
+            })
+            task()
+
+            log_lines = self._get_log_lines(l)
+
+            expected = [
+                ('INFO', 'Beginning task: MergeBranch'),
+                ('INFO', ''),
+                (
+                    'INFO', 
+                    'Performing merge from parent branch {} to children'.format(
+                        branches[1]['name'],
+                    ),
+                ),
+                ('INFO', 'Merged 1 commits into child branch {}'.format(
+                    branches[2]['name']
                 )),
-                ('INFO', '    Merged 1 commits into branch {}'.format(
-                    child2_branch_name
+                ('INFO', 'Skipping child branch {}: no file diffs found'.format(
+                    branches[3]['name']
                 )),
             ]
-            self.assertEquals(log_lines, expected)
-        self.assertEquals(len(responses.calls), 10)
+            self.assertEquals(expected, log_lines)
+        self.assertEquals(7, len(responses.calls))

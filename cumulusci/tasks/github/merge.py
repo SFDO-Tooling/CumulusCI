@@ -15,8 +15,8 @@ class MergeBranch(BaseGithubTask):
         'branch_prefix': {
             'description': "The prefix of branches that should receive the merge.  Defaults to project__git__prefix_feature",
         },
-        'parent_child_only': {
-            'description': "If True, only the parent to child branch merge is run.  Defaults to False",
+        'children_only': {
+            'description': "If True, merge will only be done to child branches.  This assumes source branch is a parent feature branch.  Defaults to False",
         },
     }
 
@@ -29,41 +29,38 @@ class MergeBranch(BaseGithubTask):
             self.options['branch_prefix'] = self.project_config.project__git__prefix_feature
         if 'source_branch' not in self.options:
             self.options['source_branch'] = self.project_config.project__git__default_branch
-        if 'parent_child_only' not in self.options:
-            self.options['parent_child_only'] = False
-        elif self.options['parent_child_only'] in [True, 'True']:
-            self.options['parent_child_only'] = True
+        if 'children_only' not in self.options:
+            self.options['children_only'] = False
+        elif self.options['children_only'] in [True, 'True']:
+            self.options['children_only'] = True
 
     def _run_task(self):
         self.repo = self.get_repo()
 
-        commit = self.options['commit']
-        branch_prefix = self.options['branch_prefix']
-        source_branch = self.options['source_branch']
-        parent_child_only = self.options['parent_child_only']
-
-        head_branch = self.repo.branch(source_branch)
+        head_branch = self.repo.branch(self.options['source_branch'])
         if not head_branch:
-            message = 'Branch {} not found'.format(source_branch)
+            message = 'Branch {} not found'.format(self.options['source_branch'])
             self.logger.error(message)
             raise GithubApiNotFoundError(message)
 
         # Get existing pull requests targeting a target branch
         self.existing_prs = []
         for pr in self.repo.iter_pulls(state='open'):
-            if pr.base.ref.startswith(branch_prefix):
+            if pr.base.ref.startswith(self.options['branch_prefix']):
                 self.existing_prs.append(pr.base.ref)
        
         # Create list and dict of all target branches 
         branches = []
         branches_dict = {}
         for branch in self.repo.iter_branches():
-            if branch.name == source_branch:
-                self.logger.debug('Skipping branch {}: is source branch'.format(branch.name))
-                branches_dict[branch.name] = branch
-                continue
-            if not branch.name.startswith(branch_prefix):
-                self.logger.debug('Skipping branch {}: does not match prefix {}'.format(branch.name, branch_prefix))
+            if branch.name == self.options['source_branch']:
+                if not self.options['children_only']:
+                    self.logger.debug('Skipping branch {}: is source branch'.format(branch.name))
+                    branches_dict[branch.name] = branch
+                    continue
+            if not branch.name.startswith(self.options['branch_prefix']):
+                if not self.options['children_only']:
+                    self.logger.debug('Skipping branch {}: does not match prefix {}'.format(branch.name, self.options['branch_prefix']))
                 continue
             branches.append(branch)
             branches_dict[branch.name] = branch
@@ -74,17 +71,17 @@ class MergeBranch(BaseGithubTask):
         parents = {}
         children = []
         for branch in branches:
-            parts = branch.name.replace(branch_prefix, '', 1).split('__', 1)
+            parts = branch.name.replace(self.options['branch_prefix'], '', 1).split('__', 1)
             if len(parts) == 2:
                 possible_children.append(parts)
             else:
                 possible_parents.append(branch.name)
 
         for possible_child in possible_children:
-            parent = '{}{}'.format(branch_prefix, possible_child[0])
+            parent = '{}{}'.format(self.options['branch_prefix'], possible_child[0])
             if parent in possible_parents:
                 child = '__'.join(possible_child)
-                child = branch_prefix + child
+                child = self.options['branch_prefix'] + child
                 if parent not in parents:
                     parents[parent] = []
                 parents[parent].append(child)
@@ -94,6 +91,10 @@ class MergeBranch(BaseGithubTask):
         branch_tree = []
         for branch in branches:
             if branch.name in children:
+                # Skip child branches
+                continue
+            if self.options['children_only'] and branch.name != self.options['source_branch']:
+                # If merging to children only, skip any branches other than source
                 continue
             branch_item = {
                 'branch': branch,
@@ -106,16 +107,29 @@ class MergeBranch(BaseGithubTask):
 
         # Process merge on all branches
         for branch_item in branch_tree:
-            branch = branch_item['branch']
-            self._merge_recursive(
-                branch = branch_item['branch'].name,
-                source = source_branch,
-                commit = commit,
-                children = branch_item['children'],
-            )
+            if self.options['children_only']:
+                self.logger.info(
+                    'Performing merge from parent branch {} to children'.format(
+                        self.options['source_branch'],
+                    )
+                )
+                for child in branch_item['children']:
+                    self._merge(
+                        branch = child.name,
+                        source = self.options['source_branch'],
+                        commit = self.options['commit'],
+                        children = [],
+                    )
+            else:
+                self._merge(
+                    branch = branch_item['branch'].name,
+                    source = self.options['source_branch'],
+                    commit = self.options['commit'],
+                    children = branch_item['children'],
+                )
                 
   
-    def _merge_recursive(self, branch, source, commit, children=None, indent=None): 
+    def _merge(self, branch, source, commit, children=None, indent=None): 
         if not indent:
             indent = ''
         if not children:
@@ -123,6 +137,8 @@ class MergeBranch(BaseGithubTask):
         branch_type = 'branch'
         if children:
             branch_type = 'parent branch'
+        if self.options['children_only']:
+            branch_type = 'child branch'
 
         compare = self.repo.compare_commits(branch, commit)
         if not compare or not compare.files:
@@ -142,15 +158,10 @@ class MergeBranch(BaseGithubTask):
                 branch_type,
                 branch,
             ))
-            if children:
-                self.logger.info('  Merging into child branches:')
+            if children and not self.options['children_only']:
+                self.logger.info('  Skipping merge into the following child branches:')
                 for child in children:
-                    self._merge_recursive(
-                        branch = child.name,
-                        source = branch,
-                        commit = result.sha,
-                        indent = '    ',
-                    )
+                    self.logger.info('    {}'.format(child.name))
 
         except GitHubError as e:
             if e.code != 409:
