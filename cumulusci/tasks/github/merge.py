@@ -139,9 +139,7 @@ class MergeBranch(BaseGithubTask):
                 )
                 
   
-    def _merge(self, branch, source, commit, children=None, indent=None): 
-        if not indent:
-            indent = ''
+    def _merge(self, branch, source, commit, children=None): 
         if not children:
             children = []
         branch_type = 'branch'
@@ -162,8 +160,7 @@ class MergeBranch(BaseGithubTask):
 
         try: 
             result = self.repo.merge(branch, commit)
-            self.logger.info('{}Merged {} commits into {} {}'.format(
-                indent,
+            self.logger.info('Merged {} commits into {} {}'.format(
                 compare.behind_by,
                 branch_type,
                 branch,
