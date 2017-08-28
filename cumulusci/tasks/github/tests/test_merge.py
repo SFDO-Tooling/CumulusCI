@@ -184,6 +184,7 @@ class TestMergeBranch(unittest.TestCase, GithubApiTestMixin):
         task = self._create_task()
         with self.assertRaises(GithubApiNotFoundError):
             task()
+        self.assertEquals(len(responses.calls), 2)
 
     @responses.activate
     def test_no_feature_branch(self):
@@ -205,6 +206,7 @@ class TestMergeBranch(unittest.TestCase, GithubApiTestMixin):
                 ('DEBUG', 'Skipping branch not-a-feature-branch: does not match prefix feature/'),
             ]
             self.assertEquals(log_lines, expected)
+        self.assertEquals(len(responses.calls), 4)
 
     @responses.activate
     def test_feature_branch_no_diff(self):
@@ -231,6 +233,7 @@ class TestMergeBranch(unittest.TestCase, GithubApiTestMixin):
                 ('INFO', 'Skipping branch feature/a-test: no file diffs found'),
             ]
             self.assertEquals(log_lines, expected)
+        self.assertEquals(len(responses.calls), 5)
 
     @responses.activate
     def test_feature_branch_merge(self):
@@ -261,6 +264,7 @@ class TestMergeBranch(unittest.TestCase, GithubApiTestMixin):
                 ('INFO', 'Merged 1 commits into branch feature/a-test'),
             ]
             self.assertEquals(log_lines, expected)
+        self.assertEquals(len(responses.calls), 6)
     
     @responses.activate
     def test_feature_branch_merge_conflict(self):
@@ -292,6 +296,7 @@ class TestMergeBranch(unittest.TestCase, GithubApiTestMixin):
                 ('INFO', 'Merge conflict on branch feature/a-test: created pull request #2')
             ]
             self.assertEquals(log_lines, expected)
+        self.assertEquals(len(responses.calls), 7)
 
     @responses.activate
     def test_feature_branch_existing_pull(self):
@@ -316,7 +321,6 @@ class TestMergeBranch(unittest.TestCase, GithubApiTestMixin):
             ]
         )
         self._mock_merge(True)
-        self._mock_pull_create(1, 2)
 
         with LogCapture() as l:
             task = self._create_task()
@@ -330,6 +334,7 @@ class TestMergeBranch(unittest.TestCase, GithubApiTestMixin):
                 ('INFO', 'Merge conflict on branch feature/a-test: merge PR already exists'),
             ]
             self.assertEquals(log_lines, expected)
+        self.assertEquals(len(responses.calls), 6)
 
 
     @responses.activate
@@ -397,3 +402,4 @@ class TestMergeBranch(unittest.TestCase, GithubApiTestMixin):
                 )),
             ]
             self.assertEquals(log_lines, expected)
+        self.assertEquals(len(responses.calls), 10)

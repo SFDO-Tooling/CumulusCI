@@ -20,8 +20,8 @@ class GithubReleaseNotes(BaseGithubTask):
             'description': ('If True, insert link to source pull request at' +
                 ' end of each line.'),
         },
-        'dry_run': {
-            'description': 'Execute a dry run if True (default=True)',
+        'publish': {
+            'description': 'Publish to GitHub release if True (default=False)',
         },
     }
 
@@ -42,7 +42,7 @@ class GithubReleaseNotes(BaseGithubTask):
             self.options['tag'],
             self.options.get('last_tag'),
             process_bool_arg(self.options.get('link_pr', False)),
-            process_bool_arg(self.options.get('dry_run', True)),
+            process_bool_arg(self.options.get('publish', False)),
             self.get_repo().has_issues,
         )
 
