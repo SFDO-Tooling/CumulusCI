@@ -1,6 +1,7 @@
 from github3 import GitHubError
 
 from cumulusci.core.exceptions import GithubApiNotFoundError
+from cumulusci.core.utils import process_bool_arg
 from cumulusci.tasks.github.base import BaseGithubTask
 
 class MergeBranch(BaseGithubTask):
@@ -29,10 +30,9 @@ class MergeBranch(BaseGithubTask):
             self.options['branch_prefix'] = self.project_config.project__git__prefix_feature
         if 'source_branch' not in self.options:
             self.options['source_branch'] = self.project_config.project__git__default_branch
-        if 'children_only' not in self.options:
-            self.options['children_only'] = False
-        elif self.options['children_only'] in [True, 'True']:
-            self.options['children_only'] = True
+        self.options['children_only'] = process_bool_arg(
+            self.options.get('children_only', False)
+        )
 
     def _run_task(self):
         self.repo = self.get_repo()
