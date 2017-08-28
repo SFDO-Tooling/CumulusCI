@@ -1,3 +1,5 @@
+import httplib
+
 from github3 import GitHubError
 
 from cumulusci.core.exceptions import GithubApiNotFoundError
@@ -172,7 +174,7 @@ class MergeBranch(BaseGithubTask):
                     self.logger.info('    {}'.format(child.name))
 
         except GitHubError as e:
-            if e.code != 409:
+            if e.code != httplib.CONFLICT:
                 raise
 
             if branch in self.existing_prs:
