@@ -1,5 +1,5 @@
 from cumulusci.core.utils import process_bool_arg
-from cumulusci.tasks.github import BaseGithubTask
+from cumulusci.tasks.github.base import BaseGithubTask
 from cumulusci.tasks.release_notes.generator import GithubReleaseNotesGenerator
 
 
