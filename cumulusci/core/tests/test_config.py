@@ -165,7 +165,7 @@ class TestYamlGlobalConfig(unittest.TestCase):
         expected_config['tasks']['newtesttask'] = {}
         expected_config['tasks']['newtesttask'][
             'description'] = 'test description'
-        self.assertEquals(config.config, expected_config)
+        self.assertEquals(config.config, expected_config)        
 
 
 @mock.patch('os.path.expanduser')
@@ -333,4 +333,25 @@ class TestYamlProjectConfig(unittest.TestCase):
         global_config = YamlGlobalConfig()
         config = YamlProjectConfig(global_config)
         self.assertNotEqual(config.config_project_local, {})
+        self.assertEqual(config.project__package__api_version, 10)
+
+    def test_load_additional_yaml(self, mock_class):
+        mock_class.return_value = self.tempdir_home
+        os.mkdir(os.path.join(self.tempdir_project, '.git'))
+        self._create_git_config()
+
+        # create valid project config file
+        self._create_project_config()
+
+        # create local project config file
+        content = (
+            'project:\n' +
+            '    package:\n' +
+            '        api_version: 10\n'
+        )
+
+        os.chdir(self.tempdir_project)
+        global_config = YamlGlobalConfig()
+        config = YamlProjectConfig(global_config, additional_yaml = content)
+        self.assertNotEqual(config.config_additional_yaml, {})
         self.assertEqual(config.project__package__api_version, 10)
