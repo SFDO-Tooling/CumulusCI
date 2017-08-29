@@ -2,6 +2,11 @@
 History
 =======
 
+2.0.0-beta58 (2017-08-29)
+-------------------------
+
+* Fix import error in `github_release_notes` task introduced in beta57
+
 2.0.0-beta57 (2017-08-28)
 -------------------------
 
