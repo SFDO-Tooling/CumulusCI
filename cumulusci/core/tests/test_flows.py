@@ -110,7 +110,7 @@ class TestBaseFlow(unittest.TestCase):
         # the flow results for the second task should be 'name'
         self.assertEquals('supername', flow.task_results[1])
 
-    def test_pass_task_options(self):
+    def test_task_options(self):
         """ A flow can accept task options and pass them to the task. """
 
         # instantiate a flow with two tasks
@@ -134,6 +134,33 @@ class TestBaseFlow(unittest.TestCase):
         flow()
         # the flow results for the second task should be 'name'
         self.assertEquals('bar', flow.task_results[0])
+
+    def test_skip_task(self):
+        """ A flow can receive during init a list of tasks to skip """
+
+        # instantiate a flow with two tasks
+        flow_config = FlowConfig({
+            'description': 'Run two tasks',
+            'tasks': {
+                1: {'task': 'pass_name'},
+                2: {'task': 'name_response', 'options': {
+                    'response': '^^pass_name.name'
+                }},
+            }
+        })
+
+        flow = BaseFlow(
+            self.project_config,
+            flow_config,
+            self.org_config,
+            skip=['name_response'],
+        )
+
+        # run the flow
+        flow()
+
+        # the flow results for the second task should be 'name'
+        self.assertEquals(1, len(flow.task_results))
 
     def test_call_no_tasks(self):
         """ A flow with no tasks will have no responses. """
