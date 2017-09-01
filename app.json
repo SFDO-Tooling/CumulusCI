@@ -2,7 +2,6 @@
   "environments": {
     "test": {
       "scripts": {
-        "test-setup": "pip install -r requirements_test.txt",
         "test": "./heroku_ci.sh"
       }
     }
