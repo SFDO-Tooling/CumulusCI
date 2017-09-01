@@ -941,6 +941,20 @@ class ServiceConfig(BaseConfig):
 class YamlProjectConfig(BaseProjectConfig):
     config_filename = 'cumulusci.yml'
 
+    def __init__(self, *args, **kwargs):
+        # Initialize the dictionaries for the individual configs
+        self.config_project = {}
+        self.config_project_local = {}
+        self.config_additional_yaml = {}
+
+        # optionally pass in a kwarg named 'additional_yaml' that will
+        # be added to the YAML merge stack.
+        self.additional_yaml = None
+        if kwargs.has_key('additional_yaml'):
+            self.additional_yaml = kwargs.pop('additional_yaml')
+
+        super(YamlProjectConfig, self).__init__(*args, **kwargs)
+
     @property
     def config_project_local_path(self):
         path = os.path.join(
@@ -952,11 +966,6 @@ class YamlProjectConfig(BaseProjectConfig):
 
     def _load_config(self):
         """ Loads the configuration for the project """
-
-        # Initialize the dictionaries for the individual configs
-        self.config_project = {}
-        self.config_project_local = {}
-
         # Verify that we're in a project
         repo_root = self.repo_root
         if not repo_root:
@@ -991,6 +1000,13 @@ class YamlProjectConfig(BaseProjectConfig):
             if local_config:
                 self.config_project_local.update(local_config)
                 merge_yaml.append(self.config_project_local_path)
+
+        # merge in any additional yaml that was passed along
+        if self.additional_yaml:
+            additional_yaml_config = yaml.load(self.additional_yaml)
+            if additional_yaml_config:
+                self.config_additional_yaml.update(additional_yaml_config)
+                merge_yaml.append(self.additional_yaml)
 
         self.config = hiyapyco.load(*merge_yaml, method=hiyapyco.METHOD_MERGE)
 
