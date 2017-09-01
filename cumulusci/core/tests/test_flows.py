@@ -29,7 +29,6 @@ class _TaskResponseName(BaseTask):
     def _run_task(self):
         return self.options['response']
 
-
 class _SfdcTask(BaseTask):
     salesforce_task = True
 
@@ -110,6 +109,31 @@ class TestBaseFlow(unittest.TestCase):
         flow()
         # the flow results for the second task should be 'name'
         self.assertEquals('supername', flow.task_results[1])
+
+    def test_pass_task_options(self):
+        """ A flow can accept task options and pass them to the task. """
+
+        # instantiate a flow with two tasks
+        flow_config = FlowConfig({
+            'description': 'Run two tasks',
+            'tasks': {
+                1: {'task': 'name_response', 'options': {
+                    'response': 'foo'
+                }},
+            }
+        })
+
+        flow = BaseFlow(
+            self.project_config,
+            flow_config,
+            self.org_config,
+            options={'name_response__response': 'bar'},
+        )
+
+        # run the flow
+        flow()
+        # the flow results for the second task should be 'name'
+        self.assertEquals('bar', flow.task_results[0])
 
     def test_call_no_tasks(self):
         """ A flow with no tasks will have no responses. """
