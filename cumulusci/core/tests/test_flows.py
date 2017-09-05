@@ -297,7 +297,7 @@ class TestBaseFlow(unittest.TestCase):
         self.assertRaises(Exception, flow)
 
     def test_task_raises_exception_ignore(self):
-        """ A flow aborts when a task raises an exception """
+        """ A flow continues when a task configured with ignore_failure raises an exception """
 
         flow_config = FlowConfig({
             'description': 'Run a task',
