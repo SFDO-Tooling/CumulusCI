@@ -250,15 +250,15 @@ class TestBaseFlow(unittest.TestCase):
         )
 
     def test_render_task_config_empty_value(self):
-        """ The _find_task_by_name method skips tasks that don't exist """
+        """ The _render_task_config method skips option values of None """
 
         # instantiate a flow with two tasks
         flow_config = FlowConfig({
             'description': 'Run a tasks',
             'tasks': {
-                1: {'task': 'pass_name',
+                1: {'task': 'name_response',
                     'options': {
-                        'name': None,
+                        'response': None,
                     },
             
                    },
@@ -273,7 +273,7 @@ class TestBaseFlow(unittest.TestCase):
 
         flow()
 
-        task = flow._find_task_by_name('pass_name')
+        task = flow._find_task_by_name('name_response')
         config = flow._render_task_config(task)
         self.assertEquals(['Options:'], config)
 
