@@ -149,6 +149,23 @@ class TestBaseProjectKeychain(unittest.TestCase):
         self.assertEquals(keychain.get_org(
             'test').config, self.org_config.config)
 
+    def test_set_and_get_scratch_org(self):
+        self._test_set_and_get_org()
+
+    def _test_set_and_get_scratch_org(self, global_org=False):
+        keychain = self.keychain_class(self.project_config, self.key)
+        keychain.set_org('test', self.scratch_org_config, global_org)
+        self.assertEquals(keychain.orgs.keys(), ['test'])
+        org = keychain.get_org('test')
+        self.assertEquals(
+            org.config,
+            self.scratch_org_config.config,
+        )
+        self.assertEquals(
+            org.__class__,
+            ScratchOrgConfig,
+        )
+
     def test_get_org_not_found(self):
         self._test_get_org_not_found()
 
@@ -348,6 +365,7 @@ class TestEncryptedFileProjectKeychain(TestBaseProjectKeychain):
         self.project_name = 'TestProject'
         self.connected_app_config = ConnectedAppOAuthConfig({'test': 'value'})
         self.org_config = OrgConfig({'foo': 'bar'})
+        self.scratch_org_config = ScratchOrgConfig({'foo': 'bar'})
         self.services = {
             'github': ServiceConfig({'git': 'hub'}),
             'mrbelvedere': ServiceConfig({'mr': 'belvedere'}),
@@ -474,6 +492,13 @@ class TestEncryptedFileProjectKeychain(TestBaseProjectKeychain):
         mock_class.return_value = self.tempdir_home
         os.chdir(self.tempdir_project)
         self._test_set_and_get_org()
+
+    def test_set_and_get_scratch_org(self, mock_class):
+        self._mk_temp_home()
+        self._mk_temp_project()
+        mock_class.return_value = self.tempdir_home
+        os.chdir(self.tempdir_project)
+        self._test_set_and_get_scratch_org()
 
     def test_set_and_get_org_global(self, mock_class):
         self._mk_temp_home()
