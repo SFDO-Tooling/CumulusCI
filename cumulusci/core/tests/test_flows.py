@@ -132,10 +132,10 @@ class TestBaseFlow(unittest.TestCase):
 
         # run the flow
         flow()
-        # the flow results for the second task should be 'name'
+        # the flow results for the first task should be 'bar'
         self.assertEquals('bar', flow.task_results[0])
 
-    def test_skip_task(self):
+    def test_skip_kwarg(self):
         """ A flow can receive during init a list of tasks to skip """
 
         # instantiate a flow with two tasks
@@ -143,9 +143,7 @@ class TestBaseFlow(unittest.TestCase):
             'description': 'Run two tasks',
             'tasks': {
                 1: {'task': 'pass_name'},
-                2: {'task': 'name_response', 'options': {
-                    'response': '^^pass_name.name'
-                }},
+                2: {'task': 'name_response'},
             }
         })
 
@@ -159,7 +157,32 @@ class TestBaseFlow(unittest.TestCase):
         # run the flow
         flow()
 
-        # the flow results for the second task should be 'name'
+        # the number of tasks in the flow should be 1 instead of 2
+        self.assertEquals(1, len(flow.task_results))
+
+    def test_skip_task_value_none(self):
+        """ A flow skips any tasks whose name is None to allow override via yaml """
+
+        # instantiate a flow with two tasks
+        flow_config = FlowConfig({
+            'description': 'Run two tasks',
+            'tasks': {
+                1: {'task': 'pass_name'},
+                2: {'task': 'None'},
+            }
+        })
+
+        flow = BaseFlow(
+            self.project_config,
+            flow_config,
+            self.org_config,
+            skip=['name_response'],
+        )
+
+        # run the flow
+        flow()
+
+        # the number of tasks in the flow should be 1 instead of 2
         self.assertEquals(1, len(flow.task_results))
 
     def test_call_no_tasks(self):
