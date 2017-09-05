@@ -48,7 +48,7 @@ class TestBaseProjectKeychain(unittest.TestCase):
             'apextestsdb': ServiceConfig({'apex': 'testsdb'}),
         }
         self.org_config = OrgConfig({'foo': 'bar'})
-        self.scratch_org_config = ScratchOrgConfig({'foo': 'bar'})
+        self.scratch_org_config = ScratchOrgConfig({'foo': 'bar', 'scratch': True})
         self.key = '0123456789123456'
 
     def test_init(self):
