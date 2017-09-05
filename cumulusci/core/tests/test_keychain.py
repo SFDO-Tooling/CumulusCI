@@ -14,6 +14,7 @@ from cumulusci.core.config import BaseGlobalConfig
 from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.config import ConnectedAppOAuthConfig
 from cumulusci.core.config import OrgConfig
+from cumulusci.core.config import ScratchOrgConfig
 from cumulusci.core.config import ServiceConfig
 from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.core.keychain import BaseEncryptedProjectKeychain
@@ -47,6 +48,7 @@ class TestBaseProjectKeychain(unittest.TestCase):
             'apextestsdb': ServiceConfig({'apex': 'testsdb'}),
         }
         self.org_config = OrgConfig({'foo': 'bar'})
+        self.scratch_org_config = ScratchOrgConfig({'foo': 'bar'})
         self.key = '0123456789123456'
 
     def test_init(self):
@@ -165,6 +167,23 @@ class TestBaseProjectKeychain(unittest.TestCase):
         keychain = self.keychain_class(self.project_config, self.key)
         self.assertEquals(keychain.get_default_org()[1], None)
 
+    def test_set_default_org(self):
+        self._test_set_default_org()
+
+    def _test_set_default_org(self):
+        keychain = self.keychain_class(self.project_config, self.key)
+        org_config = self.org_config.config.copy()
+        org_config = OrgConfig(org_config)
+        keychain.set_org('test', org_config)
+        keychain.set_default_org('test')
+        expected_org_config = org_config.config.copy()
+        expected_org_config['default'] = True
+        
+        self.assertEquals(
+            expected_org_config,
+            keychain.get_default_org()[1].config,
+        )
+
     def test_unset_default_org(self):
         self._test_unset_default_org()
 
@@ -274,6 +293,30 @@ class TestEnvironmentProjectKeychain(TestBaseProjectKeychain):
                 json.dumps(self.connected_app_config.config)
             )
             self._test_get_default_org()
+
+    def test_set_default_org(self):
+        """ The EnvironmentProjectKeychain does not persist default org settings """
+        with EnvironmentVarGuard() as env:
+            self._clean_env(env)
+            org_config = self.org_config.config.copy()
+            self.env.set(
+                '{}test'.format(self.keychain_class.org_var_prefix),
+                json.dumps(org_config)
+            )
+            env.set(
+                self.keychain_class.app_var,
+                json.dumps(self.connected_app_config.config)
+            )
+            keychain = self.keychain_class(self.project_config, self.key)
+            keychain.set_default_org('test')
+            expected_org_config = self.org_config.config.copy()
+            expected_org_config['default'] = True
+        
+            self.assertEquals(
+                None,
+                keychain.get_default_org()[1],
+            )
+            
 
 
 class TestBaseEncryptedProjectKeychain(TestBaseProjectKeychain):
@@ -443,6 +486,13 @@ class TestEncryptedFileProjectKeychain(TestBaseProjectKeychain):
         mock_class.return_value = self.tempdir_home
         os.chdir(self.tempdir_project)
         self._test_get_default_org_no_default()
+
+    def test_set_default_org(self, mock_class):
+        self._mk_temp_home()
+        self._mk_temp_project()
+        mock_class.return_value = self.tempdir_home
+        os.chdir(self.tempdir_project)
+        self._test_set_default_org()
 
     def test_unset_default_org(self, mock_class):
         self._mk_temp_home()
