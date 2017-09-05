@@ -238,6 +238,34 @@ class TestBaseFlow(unittest.TestCase):
             task.task_config.class_path,
         )
 
+    def test_render_task_config_empty_value(self):
+        """ The _find_task_by_name method skips tasks that don't exist """
+
+        # instantiate a flow with two tasks
+        flow_config = FlowConfig({
+            'description': 'Run a tasks',
+            'tasks': {
+                1: {'task': 'pass_name',
+                    'options': {
+                        'response': None,
+                    },
+            
+                   },
+            },
+        })
+
+        flow = BaseFlow(
+            self.project_config,
+            flow_config,
+            self.org_config,
+        )
+
+        flow()
+
+        task = flow._find_task_by_name('pass_name')
+        config = flow._render_task_config(task)
+        self.assertEquals(['Options:'], config)
+
     def test_call_no_tasks(self):
         """ A flow with no tasks will have no responses. """
         flow_config = FlowConfig({
