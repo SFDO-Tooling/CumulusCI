@@ -59,6 +59,15 @@ class TestBaseProjectKeychain(unittest.TestCase):
         self.assertEquals(keychain.project_config, self.project_config)
         self.assertEquals(keychain.key, self.key)
 
+    def test_set_non_existant_service(self):
+        self._test_set_non_existant_service()
+
+    def _test_set_non_existant_service(self, project=False):
+        keychain = self.keychain_class(self.project_config, self.key)
+        with self.assertRaises(ServiceNotValid) as context:
+            keychain.set_service(
+                'doesnotexist', ServiceConfig({'name': ''}), project)
+
     def test_set_invalid_service(self):
         self._test_set_invalid_service()
 
@@ -395,6 +404,13 @@ class TestEncryptedFileProjectKeychain(TestBaseProjectKeychain):
         mock_class.return_value = self.tempdir_home
         os.chdir(self.tempdir_project)
         self._test_set_invalid_service()
+
+    def test_set_non_existant_service(self, mock_class):
+        self._mk_temp_home()
+        self._mk_temp_project()
+        mock_class.return_value = self.tempdir_home
+        os.chdir(self.tempdir_project)
+        self._test_set_non_existant_service()
 
     def test_set_connected_app(self, mock_class):
         self._mk_temp_home()
