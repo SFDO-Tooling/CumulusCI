@@ -321,8 +321,6 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
                     self.config['app'] = app_config
 
         load_files(self.config_local_dir)
-        if not self.project_local_dir:
-            return
         load_files(self.project_local_dir)
 
     def _set_encrypted_connected_app(self, encrypted, project):
