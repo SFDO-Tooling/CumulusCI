@@ -29,6 +29,14 @@ class _TaskResponseName(BaseTask):
     def _run_task(self):
         return self.options['response']
 
+class _TaskRaisesException(BaseTask):
+    task_options = {
+        'exception': {'description': 'The exception to raise'},
+        'message': {'description': 'The exception message'},
+    }
+
+    def _run_task(self):
+        raise self.options['exception'](self.options['message'])
 
 class _SfdcTask(BaseTask):
     salesforce_task = True
@@ -62,11 +70,20 @@ class TestBaseFlow(unittest.TestCase):
                 'class_path':
                     'cumulusci.core.tests.test_flows._TaskResponseName',
             },
+            'raise_exception': {
+                'description': 'Raises an exception',
+                'class_path':
+                    'cumulusci.core.tests.test_flows._TaskRaisesException',
+                'options': {
+                    'exception': Exception,
+                    'message': 'An error occurred',
+                }
+            },
             'sfdc_task': {
                 'description': 'An sfdc task',
                 'class_path':
                     'cumulusci.core.tests.test_flows._SfdcTask'
-            }
+            },
         }
         self.org_config = OrgConfig({
             'username': 'sample@example',
@@ -110,6 +127,181 @@ class TestBaseFlow(unittest.TestCase):
         flow()
         # the flow results for the second task should be 'name'
         self.assertEquals('supername', flow.task_results[1])
+
+    def test_task_options(self):
+        """ A flow can accept task options and pass them to the task. """
+
+        # instantiate a flow with two tasks
+        flow_config = FlowConfig({
+            'description': 'Run two tasks',
+            'tasks': {
+                1: {'task': 'name_response', 'options': {
+                    'response': 'foo'
+                }},
+            }
+        })
+
+        flow = BaseFlow(
+            self.project_config,
+            flow_config,
+            self.org_config,
+            options={'name_response__response': 'bar'},
+        )
+
+        # run the flow
+        flow()
+        # the flow results for the first task should be 'bar'
+        self.assertEquals('bar', flow.task_results[0])
+
+    def test_skip_kwarg(self):
+        """ A flow can receive during init a list of tasks to skip """
+
+        # instantiate a flow with two tasks
+        flow_config = FlowConfig({
+            'description': 'Run two tasks',
+            'tasks': {
+                1: {'task': 'pass_name'},
+                2: {'task': 'name_response', 'options': {
+                    'response': '^^pass_name.name'
+                }},
+            }
+        })
+
+        flow = BaseFlow(
+            self.project_config,
+            flow_config,
+            self.org_config,
+            skip=['name_response'],
+        )
+
+        # run the flow
+        flow()
+
+        # the number of tasks in the flow should be 1 instead of 2
+        self.assertEquals(1, len(flow.task_results))
+
+    def test_skip_task_value_none(self):
+        """ A flow skips any tasks whose name is None to allow override via yaml """
+
+        # instantiate a flow with two tasks
+        flow_config = FlowConfig({
+            'description': 'Run two tasks',
+            'tasks': {
+                1: {'task': 'pass_name'},
+                2: {'task': 'None'},
+            }
+        })
+
+        flow = BaseFlow(
+            self.project_config,
+            flow_config,
+            self.org_config,
+            skip=['name_response'],
+        )
+
+        # run the flow
+        flow()
+
+        # the number of tasks in the flow should be 1 instead of 2
+        self.assertEquals(1, len(flow.task_results))
+
+    def test_find_task_by_name_no_tasks(self):
+        """ The _find_task_by_name method skips tasks that don't exist """
+
+        # instantiate a flow with two tasks
+        flow_config = FlowConfig({
+            'description': 'Run two tasks',
+        })
+
+        flow = BaseFlow(
+            self.project_config,
+            flow_config,
+            self.org_config,
+        )
+
+        self.assertEquals(None, flow._find_task_by_name('missing'))
+
+    def test_find_task_by_name_not_first(self):
+        """ The _find_task_by_name method skips tasks that don't exist """
+
+        # instantiate a flow with two tasks
+        flow_config = FlowConfig({
+            'description': 'Run two tasks',
+            'tasks': {
+                1: {'task': 'pass_name'},
+                2: {'task': 'name_response', 'options': {
+                    'response': '^^pass_name.name'
+                }},
+            }
+        })
+
+        flow = BaseFlow(
+            self.project_config,
+            flow_config,
+            self.org_config,
+        )
+
+        flow()
+
+        task = flow._find_task_by_name('name_response')
+        self.assertEquals(
+            'cumulusci.core.tests.test_flows._TaskResponseName',
+            task.task_config.class_path,
+        )
+
+    def test_render_task_config_empty_value(self):
+        """ The _render_task_config method skips option values of None """
+
+        # instantiate a flow with two tasks
+        flow_config = FlowConfig({
+            'description': 'Run a tasks',
+            'tasks': {
+                1: {'task': 'name_response',
+                    'options': {
+                        'response': None,
+                    },
+            
+                   },
+            },
+        })
+
+        flow = BaseFlow(
+            self.project_config,
+            flow_config,
+            self.org_config,
+        )
+
+        flow()
+
+        task = flow._find_task_by_name('name_response')
+        config = flow._render_task_config(task)
+        self.assertEquals(['Options:'], config)
+
+    def test_task_raises_exception_fail(self):
+        """ A flow aborts when a task raises an exception """
+
+        flow_config = FlowConfig({
+            'description': 'Run a task',
+            'tasks': {
+                1: {'task': 'raise_exception'},
+            }
+        })
+        flow = BaseFlow(self.project_config, flow_config, self.org_config)
+        self.assertRaises(Exception, flow)
+
+    def test_task_raises_exception_ignore(self):
+        """ A flow continues when a task configured with ignore_failure raises an exception """
+
+        flow_config = FlowConfig({
+            'description': 'Run a task',
+            'tasks': {
+                1: {'task': 'raise_exception', 'ignore_failure': True},
+                2: {'task': 'pass_name'},
+            }
+        })
+        flow = BaseFlow(self.project_config, flow_config, self.org_config)
+        flow()
+        self.assertEquals(2, len(flow.tasks))
 
     def test_call_no_tasks(self):
         """ A flow with no tasks will have no responses. """
