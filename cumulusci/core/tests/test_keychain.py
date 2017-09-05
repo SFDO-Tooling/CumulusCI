@@ -365,7 +365,7 @@ class TestEncryptedFileProjectKeychain(TestBaseProjectKeychain):
         self.project_name = 'TestProject'
         self.connected_app_config = ConnectedAppOAuthConfig({'test': 'value'})
         self.org_config = OrgConfig({'foo': 'bar'})
-        self.scratch_org_config = ScratchOrgConfig({'foo': 'bar'})
+        self.scratch_org_config = ScratchOrgConfig({'foo': 'bar', 'scratch': True})
         self.services = {
             'github': ServiceConfig({'git': 'hub'}),
             'mrbelvedere': ServiceConfig({'mr': 'belvedere'}),
