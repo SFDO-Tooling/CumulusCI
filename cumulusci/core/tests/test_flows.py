@@ -258,7 +258,7 @@ class TestBaseFlow(unittest.TestCase):
             'tasks': {
                 1: {'task': 'pass_name',
                     'options': {
-                        'response': None,
+                        'name': None,
                     },
             
                    },
