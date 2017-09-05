@@ -143,7 +143,9 @@ class TestBaseFlow(unittest.TestCase):
             'description': 'Run two tasks',
             'tasks': {
                 1: {'task': 'pass_name'},
-                2: {'task': 'name_response'},
+                2: {'task': 'name_response', 'options': {
+                    'response': '^^pass_name.name'
+                }},
             }
         })
 
@@ -184,6 +186,57 @@ class TestBaseFlow(unittest.TestCase):
 
         # the number of tasks in the flow should be 1 instead of 2
         self.assertEquals(1, len(flow.task_results))
+
+    def test_find_task_by_name_missing(self):
+        """ The _find_task_by_name method skips tasks that don't exist """
+
+        # instantiate a flow with two tasks
+        flow_config = FlowConfig({
+            'description': 'Run two tasks',
+            'tasks': {
+                1: {'task': 'pass_name'},
+                2: {'task': 'name_response', 'options': {
+                    'response': '^^pass_name.name'
+                }},
+            }
+        })
+
+        flow = BaseFlow(
+            self.project_config,
+            flow_config,
+            self.org_config,
+        )
+
+        self.assertEquals(None, flow._find_task_by_name('missing'))
+        self.assertEquals(None, flow._find_task_by_name('name_response'))
+
+    def test_find_task_by_name_not_first(self):
+        """ The _find_task_by_name method skips tasks that don't exist """
+
+        # instantiate a flow with two tasks
+        flow_config = FlowConfig({
+            'description': 'Run two tasks',
+            'tasks': {
+                1: {'task': 'pass_name'},
+                2: {'task': 'name_response', 'options': {
+                    'response': '^^pass_name.name'
+                }},
+            }
+        })
+
+        flow = BaseFlow(
+            self.project_config,
+            flow_config,
+            self.org_config,
+        )
+
+        flow()
+
+        task = flow._find_task_by_name('name_response')
+        self.assertEquals(
+            'cumulusci.core.tests.test_flows._TaskResponseName',
+            task.task_config.class_path,
+        )
 
     def test_call_no_tasks(self):
         """ A flow with no tasks will have no responses. """
