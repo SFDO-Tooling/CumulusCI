@@ -29,6 +29,15 @@ class _TaskResponseName(BaseTask):
     def _run_task(self):
         return self.options['response']
 
+class _TaskRaisesException(BaseTask):
+    task_options = {
+        'exception': {'description': 'The exception to raise'},
+        'message': {'description': 'The exception message'},
+    }
+
+    def _run_task(self):
+        raise self.options['exception'](self.options['message'])
+
 class _SfdcTask(BaseTask):
     salesforce_task = True
 
@@ -61,11 +70,20 @@ class TestBaseFlow(unittest.TestCase):
                 'class_path':
                     'cumulusci.core.tests.test_flows._TaskResponseName',
             },
+            'raise_exception': {
+                'description': 'Raises an exception',
+                'class_path':
+                    'cumulusci.core.tests.test_flows._TaskRaisesException',
+                'options': {
+                    'exception': Exception,
+                    'message': 'An error occurred',
+                }
+            },
             'sfdc_task': {
                 'description': 'An sfdc task',
                 'class_path':
                     'cumulusci.core.tests.test_flows._SfdcTask'
-            }
+            },
         }
         self.org_config = OrgConfig({
             'username': 'sample@example',
@@ -265,6 +283,32 @@ class TestBaseFlow(unittest.TestCase):
         task = flow._find_task_by_name('pass_name')
         config = flow._render_task_config(task)
         self.assertEquals(['Options:'], config)
+
+    def test_task_raises_exception_fail(self):
+        """ A flow aborts when a task raises an exception """
+
+        flow_config = FlowConfig({
+            'description': 'Run a task',
+            'tasks': {
+                1: {'task': 'raise_exception'},
+            }
+        })
+        flow = BaseFlow(self.project_config, flow_config, self.org_config)
+        self.assertRaises(Exception, flow)
+
+    def test_task_raises_exception_ignore(self):
+        """ A flow aborts when a task raises an exception """
+
+        flow_config = FlowConfig({
+            'description': 'Run a task',
+            'tasks': {
+                1: {'task': 'raise_exception', 'ignore_failure': True},
+                2: {'task': 'pass_name'},
+            }
+        })
+        flow = BaseFlow(self.project_config, flow_config, self.org_config)
+        flow()
+        self.assertEquals(2, len(flow.tasks))
 
     def test_call_no_tasks(self):
         """ A flow with no tasks will have no responses. """
