@@ -295,6 +295,17 @@ class TestEnvironmentProjectKeychain(TestBaseProjectKeychain):
                 json.dumps(self.connected_app_config.config)
             )
             self._test_list_orgs_empty()
+   
+    def test_load_scratch_org_config(self):
+        with EnvironmentVarGuard() as env:
+            self._clean_env(env)
+            env.set(
+                '{}test'.format(self.keychain_class.org_var_prefix),
+                json.dumps(self.scratch_org_config.config)
+            )
+            keychain = self.keychain_class(self.project_config, self.key)
+            self.assertEquals(keychain.list_orgs(), ['test'])
+            self.assertEquals(keychain.orgs['test'].__class__, ScratchOrgConfig)
 
     def test_get_org_not_found(self):
         with EnvironmentVarGuard() as env:
