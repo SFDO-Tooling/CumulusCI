@@ -348,6 +348,12 @@ class TestEnvironmentProjectKeychain(TestBaseProjectKeychain):
 class TestBaseEncryptedProjectKeychain(TestBaseProjectKeychain):
     keychain_class = BaseEncryptedProjectKeychain
 
+    def test_decrypt_config_no_config(self):
+        keychain = self.keychain_class(self.project_config, self.key)
+        config = keychain._decrypt_config(OrgConfig, None)
+        self.assertEquals(config.__class__, OrgConfig)
+        self.assertEquals(config.config, {})
+
 
 @mock.patch('os.path.expanduser')
 class TestEncryptedFileProjectKeychain(TestBaseProjectKeychain):
