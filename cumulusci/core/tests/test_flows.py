@@ -76,7 +76,7 @@ class TestBaseFlow(unittest.TestCase):
                     'cumulusci.core.tests.test_flows._TaskRaisesException',
                 'options': {
                     'exception': Exception,
-                    'message': 'An error occurred',
+                    'message': 'Test raised exception as expected',
                 }
             },
             'sfdc_task': {

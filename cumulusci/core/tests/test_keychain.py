@@ -14,12 +14,14 @@ from cumulusci.core.config import BaseGlobalConfig
 from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.config import ConnectedAppOAuthConfig
 from cumulusci.core.config import OrgConfig
+from cumulusci.core.config import ScratchOrgConfig
 from cumulusci.core.config import ServiceConfig
 from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.core.keychain import BaseEncryptedProjectKeychain
 from cumulusci.core.keychain import EncryptedFileProjectKeychain
 from cumulusci.core.keychain import EnvironmentProjectKeychain
 from cumulusci.core.exceptions import NotInProject
+from cumulusci.core.exceptions import ServiceNotConfigured
 from cumulusci.core.exceptions import ServiceNotValid
 from cumulusci.core.exceptions import OrgNotFound
 from cumulusci.core.exceptions import ProjectConfigNotFound
@@ -38,6 +40,7 @@ class TestBaseProjectKeychain(unittest.TestCase):
             'github': {'attributes': {'name': {'required': True}, 'password': {}}},
             'mrbelvedere': {'attributes': {'mr': {'required': True}}},
             'apextestsdb': {'attributes': {'apex': {'required': True}}},
+            'not_configured': {'attributes': {'foo': {'required': True}}},
         }
         self.project_config.project__name = 'TestProject'
         self.connected_app_config = ConnectedAppOAuthConfig({'test': 'value'})
@@ -47,6 +50,7 @@ class TestBaseProjectKeychain(unittest.TestCase):
             'apextestsdb': ServiceConfig({'apex': 'testsdb'}),
         }
         self.org_config = OrgConfig({'foo': 'bar'})
+        self.scratch_org_config = ScratchOrgConfig({'foo': 'bar', 'scratch': True})
         self.key = '0123456789123456'
 
     def test_init(self):
@@ -57,6 +61,15 @@ class TestBaseProjectKeychain(unittest.TestCase):
         self.assertEquals(keychain.project_config, self.project_config)
         self.assertEquals(keychain.key, self.key)
 
+    def test_set_non_existant_service(self):
+        self._test_set_non_existant_service()
+
+    def _test_set_non_existant_service(self, project=False):
+        keychain = self.keychain_class(self.project_config, self.key)
+        with self.assertRaises(ServiceNotValid) as context:
+            keychain.set_service(
+                'doesnotexist', ServiceConfig({'name': ''}), project)
+
     def test_set_invalid_service(self):
         self._test_set_invalid_service()
 
@@ -65,6 +78,14 @@ class TestBaseProjectKeychain(unittest.TestCase):
         with self.assertRaises(ServiceNotValid) as context:
             keychain.set_service(
                 'github', ServiceConfig({'name': ''}), project)
+
+    def test_get_service_not_configured(self):
+        self._test_get_service_not_configured()
+
+    def _test_get_service_not_configured(self, project=False):
+        keychain = self.keychain_class(self.project_config, self.key)
+        with self.assertRaises(ServiceNotConfigured) as context:
+            keychain.get_service('not_configured')
 
     def test_change_key(self):
         self._test_change_key()
@@ -138,6 +159,23 @@ class TestBaseProjectKeychain(unittest.TestCase):
         self.assertEquals(keychain.get_org(
             'test').config, self.org_config.config)
 
+    def test_set_and_get_scratch_org(self):
+        self._test_set_and_get_org()
+
+    def _test_set_and_get_scratch_org(self, global_org=False):
+        keychain = self.keychain_class(self.project_config, self.key)
+        keychain.set_org('test', self.scratch_org_config, global_org)
+        self.assertEquals(keychain.orgs.keys(), ['test'])
+        org = keychain.get_org('test')
+        self.assertEquals(
+            org.config,
+            self.scratch_org_config.config,
+        )
+        self.assertEquals(
+            org.__class__,
+            ScratchOrgConfig,
+        )
+
     def test_get_org_not_found(self):
         self._test_get_org_not_found()
 
@@ -164,6 +202,23 @@ class TestBaseProjectKeychain(unittest.TestCase):
     def _test_get_default_org_no_default(self):
         keychain = self.keychain_class(self.project_config, self.key)
         self.assertEquals(keychain.get_default_org()[1], None)
+
+    def test_set_default_org(self):
+        self._test_set_default_org()
+
+    def _test_set_default_org(self):
+        keychain = self.keychain_class(self.project_config, self.key)
+        org_config = self.org_config.config.copy()
+        org_config = OrgConfig(org_config)
+        keychain.set_org('test', org_config)
+        keychain.set_default_org('test')
+        expected_org_config = org_config.config.copy()
+        expected_org_config['default'] = True
+        
+        self.assertEquals(
+            expected_org_config,
+            keychain.get_default_org()[1].config,
+        )
 
     def test_unset_default_org(self):
         self._test_unset_default_org()
@@ -250,6 +305,17 @@ class TestEnvironmentProjectKeychain(TestBaseProjectKeychain):
                 json.dumps(self.connected_app_config.config)
             )
             self._test_list_orgs_empty()
+   
+    def test_load_scratch_org_config(self):
+        with EnvironmentVarGuard() as env:
+            self._clean_env(env)
+            env.set(
+                '{}test'.format(self.keychain_class.org_var_prefix),
+                json.dumps(self.scratch_org_config.config)
+            )
+            keychain = self.keychain_class(self.project_config, self.key)
+            self.assertEquals(keychain.list_orgs(), ['test'])
+            self.assertEquals(keychain.orgs['test'].__class__, ScratchOrgConfig)
 
     def test_get_org_not_found(self):
         with EnvironmentVarGuard() as env:
@@ -275,9 +341,39 @@ class TestEnvironmentProjectKeychain(TestBaseProjectKeychain):
             )
             self._test_get_default_org()
 
+    def test_set_default_org(self):
+        """ The EnvironmentProjectKeychain does not persist default org settings """
+        with EnvironmentVarGuard() as env:
+            self._clean_env(env)
+            org_config = self.org_config.config.copy()
+            self.env.set(
+                '{}test'.format(self.keychain_class.org_var_prefix),
+                json.dumps(org_config)
+            )
+            env.set(
+                self.keychain_class.app_var,
+                json.dumps(self.connected_app_config.config)
+            )
+            keychain = self.keychain_class(self.project_config, self.key)
+            keychain.set_default_org('test')
+            expected_org_config = self.org_config.config.copy()
+            expected_org_config['default'] = True
+        
+            self.assertEquals(
+                None,
+                keychain.get_default_org()[1],
+            )
+            
+
 
 class TestBaseEncryptedProjectKeychain(TestBaseProjectKeychain):
     keychain_class = BaseEncryptedProjectKeychain
+
+    def test_decrypt_config_no_config(self):
+        keychain = self.keychain_class(self.project_config, self.key)
+        config = keychain._decrypt_config(OrgConfig, None)
+        self.assertEquals(config.__class__, OrgConfig)
+        self.assertEquals(config.config, {})
 
 
 @mock.patch('os.path.expanduser')
@@ -291,11 +387,13 @@ class TestEncryptedFileProjectKeychain(TestBaseProjectKeychain):
             'github': {'attributes': {'git': {'required': True}, 'password': {}}},
             'mrbelvedere': {'attributes': {'mr': {'required': True}}},
             'apextestsdb': {'attributes': {'apex': {'required': True}}},
+            'not_configured': {'attributes': {'foo': {'required': True}}},
         }
         self.project_config.project__name = 'TestProject'
         self.project_name = 'TestProject'
         self.connected_app_config = ConnectedAppOAuthConfig({'test': 'value'})
         self.org_config = OrgConfig({'foo': 'bar'})
+        self.scratch_org_config = ScratchOrgConfig({'foo': 'bar', 'scratch': True})
         self.services = {
             'github': ServiceConfig({'git': 'hub'}),
             'mrbelvedere': ServiceConfig({'mr': 'belvedere'}),
@@ -352,6 +450,20 @@ class TestEncryptedFileProjectKeychain(TestBaseProjectKeychain):
         mock_class.return_value = self.tempdir_home
         os.chdir(self.tempdir_project)
         self._test_set_invalid_service()
+
+    def test_set_non_existant_service(self, mock_class):
+        self._mk_temp_home()
+        self._mk_temp_project()
+        mock_class.return_value = self.tempdir_home
+        os.chdir(self.tempdir_project)
+        self._test_set_non_existant_service()
+
+    def test_get_service_not_configured(self, mock_class):
+        self._mk_temp_home()
+        self._mk_temp_project()
+        mock_class.return_value = self.tempdir_home
+        os.chdir(self.tempdir_project)
+        self._test_get_service_not_configured()
 
     def test_set_connected_app(self, mock_class):
         self._mk_temp_home()
@@ -416,6 +528,13 @@ class TestEncryptedFileProjectKeychain(TestBaseProjectKeychain):
         os.chdir(self.tempdir_project)
         self._test_set_and_get_org()
 
+    def test_set_and_get_scratch_org(self, mock_class):
+        self._mk_temp_home()
+        self._mk_temp_project()
+        mock_class.return_value = self.tempdir_home
+        os.chdir(self.tempdir_project)
+        self._test_set_and_get_scratch_org()
+
     def test_set_and_get_org_global(self, mock_class):
         self._mk_temp_home()
         self._mk_temp_project()
@@ -443,6 +562,13 @@ class TestEncryptedFileProjectKeychain(TestBaseProjectKeychain):
         mock_class.return_value = self.tempdir_home
         os.chdir(self.tempdir_project)
         self._test_get_default_org_no_default()
+
+    def test_set_default_org(self, mock_class):
+        self._mk_temp_home()
+        self._mk_temp_project()
+        mock_class.return_value = self.tempdir_home
+        os.chdir(self.tempdir_project)
+        self._test_set_default_org()
 
     def test_unset_default_org(self, mock_class):
         self._mk_temp_home()
