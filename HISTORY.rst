@@ -2,6 +2,11 @@
 History
 =======
 
+2.0.0-beta60 (2017-09-06)
+-------------------------
+
+* Add support for Platform Events with `__e` suffix in `update_package_xml` and `update_package_xml_managed`
+
 2.0.0-beta59 (2017-09-06)
 -------------------------
 
