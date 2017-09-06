@@ -6,6 +6,7 @@ History
 -------------------------
 
 * `YamlProjectConfig` can now accept an `additional_yaml` keyword argument on initialization.  This allows a 5th level of layering to the `cumulusci.yml` config.  This change is not wired up to the CLI yet but is available for application built on top of cumulusci to use.
+* `cumulusci.core.flow` and `cumulusci.core.keychain` now have 100% test coverage
 
 2.0.0-beta58 (2017-08-29)
 -------------------------
