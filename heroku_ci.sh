@@ -1,13 +1,14 @@
 #!/bin/bash
 # This script runs the tests on Heroku CI
 
+# Install the checked out version of CumulusCI so coverage reports are always against the same code
+pip install -r requirements_dev.txt
+
 # Run the CumulusCI Unit Tests
 git clone -b "$HEROKU_TEST_RUN_BRANCH" --single-branch https://github.com/SalesforceFoundation/CumulusCI 
 cd CumulusCI
 git reset --hard $HEROKU_TEST_RUN_COMMIT_VERSION
 nosetests --with-tap --tap-stream --with-coverage --cover-package=cumulusci
-
-pip install -r requirements_dev.txt
 
 # Clone the CumulusCI-Test repo to run test builds against it with cci
 echo "------------------------------------------"
@@ -61,6 +62,7 @@ else
 fi
 
 # Combine the CumulusCI-Test test coverage with the nosetest coverage
+echo "Combining .coverage files"
 cd ..
 coverage combine .coverage CumulusCI-Test/.coverage
 
