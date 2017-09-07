@@ -20,7 +20,7 @@ if [ $HEROKU_TEST_RUN_BRANCH -eq "master" ]; then
     echo "1...4"
     cci flow run ci_feature --org scratch --delete-org | tee cci.log
     exit_status=$?
-    if [ $exit_status -eq 0 ]; then
+    if [ "$exit_status" -eq "0" ]; then
         echo "ok 1 - Successfully ran ci_feature"
     else
         echo "not ok 1 - Failed ci_feature: `tail -1 cci.log`"
@@ -28,21 +28,21 @@ if [ $HEROKU_TEST_RUN_BRANCH -eq "master" ]; then
         
     cci flow run ci_master --org packaging | tee -a cci.log
     exit_status=$?
-    if [ $exit_status -eq 0 ]; then
+    if [ "$exit_status" -eq "0" ]; then
         echo "ok 2 - Successfully ran ci_master"
     else
         echo "not ok 2 - Failed ci_master: `tail -1 cci.log`"
     fi
     cci flow run release_beta --org packaging | tee -a cci.log
     exit_status=$?
-    if [ $exit_status -eq 0 ]; then
+    if [ "$exit_status" -eq "0" ]; then
         echo "ok 3 - Successfully ran release_beta"
     else
         echo "not ok 3 - Failed release_beta: `tail -1 cci.log`"
     fi
     cci flow run ci_beta --org scratch --delete-org | tee -a cci.log
     exit_status=$?
-    if [ $exit_status -eq 0 ]; then
+    if [ "$exit_status" -eq "0" ]; then
         echo "ok 4 - Successfully ran ci_beta"
     else
         echo "not ok 4 - Failed ci_beta: `tail -1 cci.log`"
@@ -52,7 +52,7 @@ else
     echo "1...1"
     cci flow run ci_feature --org scratch --delete-org
     exit_status=$?
-    if [ $exit_status -eq 0 ]; then
+    if [ "$exit_status" -eq "0" ]; then
         echo "ok 1 - Successfully ran ci_feature"
     else
         echo "not ok 1 - Failed ci_feature: `tail -1 cci.log`"
