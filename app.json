@@ -1,14 +1,16 @@
 {
-  "buildpacks": [
-     {"url": "heroku/python"},
-     {"url": "https://github.com/SalesforceFoundation/simple-salesforce-dx-buildpack.git"}
-  ],
   "environments": {
     "test": {
       "buildpacks": [
         {"url": "heroku/python"},
         {"url": "https://github.com/SalesforceFoundation/simple-salesforce-dx-buildpack.git"}
       ],
+      "formation": {
+        "test": {
+          "quantity": 1,
+          "size": "standard-1x"
+        }
+      },
       "scripts": {
         "test-setup": "pip install --upgrade -r requirements_dev.txt",
         "test": "./heroku_ci.sh"
