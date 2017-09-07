@@ -7,8 +7,7 @@ cd CumulusCI
 git reset --hard $HEROKU_TEST_RUN_COMMIT_VERSION
 nosetests --with-tap --tap-stream --with-coverage --cover-package=cumulusci
 
-python setup.py build
-python setup.py install
+python setup.py develop
 
 # Clone the CumulusCI-Test repo to run test builds against it with cci
 echo "------------------------------------------"
