@@ -46,7 +46,10 @@ git clone https://github.com/SalesforceFoundation/CumulusCI-Test
 cd CumulusCI-Test
 if [ "$HEROKU_TEST_RUN_BRANCH" == "master" ] ||\
    [[ "$HEROKU_TEST_RUN_BRANCH" == feature/* ]] ; then
+    # Start TAP output
     echo "1...4"
+
+    # Run ci_feature
     coverage run --append --source=../cumulusci `which cci` flow run ci_feature --org scratch --delete-org | tee cci.log
     exit_status=$?
     if [ "$exit_status" == "0" ]; then
@@ -55,6 +58,16 @@ if [ "$HEROKU_TEST_RUN_BRANCH" == "master" ] ||\
         echo "not ok 1 - Failed ci_feature: `tail -1 cci.log`"
     fi
         
+    # Run ci_beta
+    coverage run --append --source=../cumulusci `which cci` flow run ci_beta --org scratch --delete-org | tee -a cci.log
+    exit_status=$?
+    if [ "$exit_status" == "0" ]; then
+        echo "ok 4 - Successfully ran ci_beta"
+    else
+        echo "not ok 4 - Failed ci_beta: `tail -1 cci.log`"
+    fi
+
+    # Run ci_master
     coverage run --append --source=../cumulusci `which cci` flow run ci_master --org packaging | tee -a cci.log
     exit_status=$?
     if [ "$exit_status" == "0" ]; then
@@ -62,19 +75,14 @@ if [ "$HEROKU_TEST_RUN_BRANCH" == "master" ] ||\
     else
         echo "not ok 2 - Failed ci_master: `tail -1 cci.log`"
     fi
+
+    # Run release_beta
     coverage run --append --source=../cumulusci `which cci` flow run release_beta --org packaging | tee -a cci.log
     exit_status=$?
     if [ "$exit_status" == "0" ]; then
         echo "ok 3 - Successfully ran release_beta"
     else
         echo "not ok 3 - Failed release_beta: `tail -1 cci.log`"
-    fi
-    coverage run --append --source=../cumulusci `which cci` flow run ci_beta --org scratch --delete-org | tee -a cci.log
-    exit_status=$?
-    if [ "$exit_status" == "0" ]; then
-        echo "ok 4 - Successfully ran ci_beta"
-    else
-        echo "not ok 4 - Failed ci_beta: `tail -1 cci.log`"
     fi
 
 fi
