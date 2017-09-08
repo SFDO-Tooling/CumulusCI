@@ -927,8 +927,8 @@ class ScratchOrgConfig(OrgConfig):
             if delta.total_seconds() > 3600:
                 del self._scratch_info
 
-            # Force a token refresh
-            self.force_refresh_oauth_token()
+                # Force a token refresh
+                self.force_refresh_oauth_token()
 
         # Get org info via sfdx force:org:display
         self.scratch_info
