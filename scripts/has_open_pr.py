@@ -21,6 +21,9 @@ class HasOpenPull(object):
         )
    
     def __call__(self, branch): 
+        # Since the head parameter doesn't seem to work in the Github pulls API,
+        # loop through the open PR's and compare the actual head ref.  Otherwise,
+        # this whole script could have been done with a simple curl command :/
         for pull in self.repo.iter_pulls(state='open', base='master'):
             if pull.head.ref == branch:
                 return pull
