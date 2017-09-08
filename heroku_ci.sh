@@ -11,6 +11,31 @@ mv CumulusCI/.git .
 # Run the CumulusCI Unit Tests
 nosetests --with-tap --tap-stream --with-coverage --cover-package=cumulusci
 
+# If the last commit message contains [skip CumulusCI-Test], skip running any test flows
+git log -n 1 | grep '\[skip CumulusCI-Test\]' > /dev/null
+exit_status=$?
+if [ "$exit_status" == "0" ]; then
+    echo "Found [skip CumulusCI-Test] in the commit message, skipping cci flow test runs"
+    coveralls
+    exit
+
+fi
+
+# For feature branches, skip running the CumulusCI-Test flows if there is not an open PR unless the last commit message contains [run CumulusCI-Test]
+if [ "$HEROKU_TEST_RUN_BRANCH" != "master" ] &&\
+   [[ "$HEROKU_TEST_RUN_BRANCH" == feature/* ]]; then
+    echo "Checking for open pull request to determine next testing steps"
+    pr=`python scripts/has_open_pr.py "$HEROKU_TEST_RUN_BRANCH"`
+    git log -n 1 | grep '\[run CumulusCI-Test\]' > /dev/null
+    exit_status=$?
+    if [ "$pr" == ""] && [ "$exit_status" != "0"]; then
+        # If there is not an open PR, don't run the CumulusCI-Test flows
+        coveralls
+        exit
+    fi
+fi
+
+
 # Clone the CumulusCI-Test repo to run test builds against it with cci
 echo "------------------------------------------"
 echo "Running test builds against CumulusCI-Test"
@@ -19,7 +44,8 @@ echo ""
 echo "Cloning https://github.com/SalesforceFoundation/CumulusCI-Test"
 git clone https://github.com/SalesforceFoundation/CumulusCI-Test
 cd CumulusCI-Test
-if [ $HEROKU_TEST_RUN_BRANCH == "master" ]; then
+if [ "$HEROKU_TEST_RUN_BRANCH" == "master" ] ||\
+   [[ "$HEROKU_TEST_RUN_BRANCH" == feature/* ]] ; then
     echo "1...4"
     coverage run --append --source=../cumulusci `which cci` flow run ci_feature --org scratch --delete-org | tee cci.log
     exit_status=$?
@@ -51,15 +77,6 @@ if [ $HEROKU_TEST_RUN_BRANCH == "master" ]; then
         echo "not ok 4 - Failed ci_beta: `tail -1 cci.log`"
     fi
 
-else
-    echo "1...1"
-    coverage run --append --source=../cumulusci `which cci` flow run ci_feature --org scratch --delete-org
-    exit_status=$?
-    if [ "$exit_status" == "0" ]; then
-        echo "ok 1 - Successfully ran ci_feature"
-    else
-        echo "not ok 1 - Failed ci_feature: `tail -1 cci.log`"
-    fi
 fi
 
 # Combine the CumulusCI-Test test coverage with the nosetest coverage
