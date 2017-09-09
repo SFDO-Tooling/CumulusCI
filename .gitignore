@@ -17,4 +17,4 @@ dist/
 tags
 .vscode/
 .cache/
-
+.coverage
