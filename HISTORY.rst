@@ -6,6 +6,7 @@ History
 -------------------------
 
 * Fix bug that was causing a forced token refresh with `sfdx force:org:open` at the start of a flow or task run against a freshly created scratch org.
+* Add support for Big Objects with `__b` suffix in `update_package_xml` and `update_package_xml_managed`
 
 2.0.0-beta60 (2017-09-06)
 -------------------------
