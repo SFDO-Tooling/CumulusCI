@@ -103,11 +103,12 @@ class ChangeNotesLinesParser(BaseChangeNotesParser):
         return line
 
     def render(self):
-        if not self.content:
+        if not self.content and not self.h2:
             return None
         content = []
         content.append(self._render_header())
-        content.append(self._render_content())
+        if self.content:
+            content.append(self._render_content())
         if self.h2:
             content.append(self._render_h2())
         return u'\r\n'.join(content)
