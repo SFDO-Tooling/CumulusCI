@@ -2,6 +2,13 @@
 History
 =======
 
+2.0.0-beta61 (2017-09-12)
+-------------------------
+
+* Fix bug that was causing a forced token refresh with `sfdx force:org:open` at the start of a flow or task run against a freshly created scratch org.
+* Add support for Big Objects with `__b` suffix in `update_package_xml` and `update_package_xml_managed`
+* Fix bug that caused release notes sections to not render if only h2 content found
+
 2.0.0-beta60 (2017-09-06)
 -------------------------
 
