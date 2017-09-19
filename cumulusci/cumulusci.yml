@@ -506,6 +506,12 @@ project:
                 3:
                     class_path: cumulusci.tasks.release_notes.parser.GithubIssuesParser
                     title: Issues Closed
+                4:
+                    class_path: cumulusci.tasks.release_notes.parser.GithubLinesParser
+                    title: New Metadata
+                5:
+                    class_path: cumulusci.tasks.release_notes.parser.GithubLinesParser
+                    title: Deleted Metadata
     test:
         name_match: '%_TEST%'
     apexdoc:
