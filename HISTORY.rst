@@ -2,6 +2,12 @@
 History
 =======
 
+2.0.0-beta62 (2017-09-19)
+-------------------------
+
+* BREAKING CHANGE: The `cci org scratch` command has changed.  It used to be `cci org scratch <config_name> <org_name>` which often led most users to run the command `cci org scratch dev dev` which is redundant.  The new command format is `cci org scratch <config_name>` which will set the org name to the config name.  If you want to set a different name than the config name, you can do that with `cci org scratch <config_name> --org <org_name>`
+* `cci org connect` and `cci org scratch` will now prompt for overwrite confirmation before overwriting an existing keychain org.  The `--overwrite` option flag can be passed to bypass the prompt and force overwrite an existing org.
+
 2.0.0-beta61 (2017-09-12)
 -------------------------
 

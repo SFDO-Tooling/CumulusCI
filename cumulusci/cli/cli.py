@@ -22,6 +22,7 @@ from cumulusci.core.exceptions import ApexTestException
 from cumulusci.core.exceptions import FlowNotFoundError
 from cumulusci.core.exceptions import KeychainConnectedAppNotFound
 from cumulusci.core.exceptions import KeychainKeyNotFound
+from cumulusci.core.exceptions import OrgNotFound
 from cumulusci.salesforce_api.exceptions import MetadataApiError
 from cumulusci.salesforce_api.exceptions import MetadataComponentFailure
 from cumulusci.core.exceptions import NotInProject
@@ -432,16 +433,29 @@ def org_browser(config, org_name):
     # Save the org config in case it was modified
     config.keychain.set_org(org_name, org_config)
 
+def check_org_overwrite(config, org_name, overwrite):
+    try:
+        org = config.keychain.get_org(org_name)
+        if not overwrite and not click.confirm('Org {} already exists, overwrite it?'.format(org_name)):
+            click.echo('Exiting')
+            return False
+    except OrgNotFound:
+        pass
+    return True
 
 @click.command(name='connect', help="Connects a new org's credentials using OAuth Web Flow")
 @click.argument('org_name')
 @click.option('--sandbox', is_flag=True, help="If set, connects to a Salesforce sandbox org")
 @click.option('--login-url', help='If set, login to this hostname.', default='https://login.salesforce.com')
 @click.option('--default', is_flag=True, help='If set, sets the connected org as the new default org')
-@click.option('--global-org', help='Set True if org should be used by any project', is_flag=True)
+@click.option('--global-org', is_flag=True, help='Org should be available to all projects')
+@click.option('--overwrite', is_flag=True, help='Overwrite org if it already exists in the keychain instead of prompting for overwrite verification')
 @pass_config
-def org_connect(config, org_name, sandbox, login_url, default, global_org):
+def org_connect(config, org_name, sandbox, login_url, default, global_org, overwrite):
     check_connected_app(config)
+
+    if not check_org_overwrite(config, org_name, overwrite):
+        return
 
     connected_app = config.keychain.get_connected_app()
     if sandbox:
@@ -518,13 +532,22 @@ def org_list(config):
 
 @click.command(name='scratch', help="Connects a Salesforce DX Scratch Org to the keychain")
 @click.argument('config_name')
-@click.argument('org_name')
+@click.option('--name', help='Use an org name different than the config name')
 @click.option('--default', is_flag=True, help='If set, sets the connected org as the new default org')
 @click.option('--delete', is_flag=True, help="If set, triggers a deletion of the current scratch org.  This can be used to reset the org as the org configuration remains to regenerate the org on the next task run.")
 @click.option('--devhub', help="If provided, overrides the devhub used to create the scratch org")
+@click.option('--overwrite', is_flag=True, help='Overwrite org if it already exists in the keychain instead of prompting for overwrite verification')
 @pass_config
-def org_scratch(config, config_name, org_name, default, delete, devhub):
+def org_scratch(config, config_name, name, default, delete, devhub, overwrite):
     check_connected_app(config)
+
+    if name:
+        org_name = name
+    else:
+        org_name = config_name
+
+    if not check_org_overwrite(config, org_name, overwrite):
+        return
 
     scratch_configs = getattr(config.project_config, 'orgs__scratch')
     if not scratch_configs:
