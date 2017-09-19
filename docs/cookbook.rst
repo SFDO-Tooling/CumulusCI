@@ -379,8 +379,8 @@ You'll first need to setup some prerequirements:
 * Your project's workspace-config.json should have `"EnableTokenEncryption": false`
 * Once encryption is disabled, authorize DX to your Environment Hub org
 * Your packaging org should be connected to your keychain already, verify with `cci org info packaging`
-* Run `cci org scratch dev feature` to create the configuration for the scratch org in your cci keychain.  You should be able to run `cci org info feature` to see the config.
-* Run `cci org scratch dev beta` to create the configuration for the scratch org in your cci keychain.  You should be able to run `cci org info beta` to see the config.
+* Run `cci org scratch dev` to create the configuration for the scratch org in your cci keychain.  You should be able to run `cci org info dev` to see the config.
+* Run `cci org scratch beta` to create the configuration for the scratch org in your cci keychain.  You should be able to run `cci org info beta` to see the config.
 
 Once your project is set up in CircleCI, add the following additional environment variables in addition to the ones listed above:
 
