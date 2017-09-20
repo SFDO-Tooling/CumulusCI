@@ -2,6 +2,11 @@
 History
 =======
 
+2.0.0-beta62 (2017-09-19)
+-------------------------
+
+* cci now supports both namespaced and non-namespaced scratch org configurations in the same project.  The default behavior changes slightly with this release.  Before, if the `sfdx-project.json` had a namespace configured, all scratch orgs created via `cci org scratch` would get the namespace.  With the new functionality, all orgs would by default not have the namespace.  You can configure individual org configs in your project's `cumulusci.yml` file by setting `namespace: True` under `orgs -> scratch -> <org_name>`
+
 2.0.0-beta61 (2017-09-12)
 -------------------------
 
