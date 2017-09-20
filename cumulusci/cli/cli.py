@@ -539,6 +539,8 @@ def org_scratch(config, config_name, org_name, default, delete, devhub):
     if devhub:
         scratch_config['devhub'] = devhub
 
+    scratch_config['namespaced'] = scratch_config.get('namespaced', False)
+
     org_config = ScratchOrgConfig(scratch_config)
 
     config.keychain.set_org(org_name, org_config)
