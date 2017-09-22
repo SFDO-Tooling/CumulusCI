@@ -140,6 +140,17 @@ The newly created `cumulusci.yml` file is the configuration file for wiring up a
     $ git add cumulusci.yml
     $ git commit -m "Initialized CumulusCI Configuration"
 
+GitHub Service
+--------------
+
+If your project uses GitHub for dependency resolution, or if you want to use any of the GitHub tasks, you will need to connect GitHub as a service in cci.
+
+Go to https://github.com/settings/tokens/new and create a new personal access token with the "repo" scope. Copy the access token to use as the password when configuring the GitHub service.
+
+Run the following and provide your GitHub username and use the access token as the password::
+
+    $ cci service connect github
+
 Part 3: Connecting Salesforce Orgs
 ==================================
 
