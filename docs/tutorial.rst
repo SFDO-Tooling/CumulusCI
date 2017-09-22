@@ -24,7 +24,7 @@ Due to an issue regarding TLS support in the Python included in macOS it is nece
 Create Virtual Environment
 --------------------------
 
-#. Install virtualenv::
+#. Install `virtualenv <https://virtualenv.pypa.io/en/stable/>`_::
 
     $ pip2 install virtualenv
 
