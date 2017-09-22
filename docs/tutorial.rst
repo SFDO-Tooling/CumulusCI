@@ -2,80 +2,60 @@
 Tutorial
 ========
 
+This tutorial is for macOS. Linux and Windows are not yet officially supported but should work for the most part.
+
 Part 1: Installing CumulusCI
 ============================
 
-Requirements
-------------
+Install Requirements
+--------------------
 
-* You must have Python version 2.7.x installed
-* Ensure that you have the prequisite packages for cryptography installed:
+Due to an issue regarding TLS support in the Python included in macOS it is necessary to install Python with OpenSSL support using Homebrew. For more info on the TLS issue see here: http://pyfound.blogspot.com/2017/01/time-to-upgrade-your-python-tls-v12.html
 
-  * On Linux: https://cryptography.io/en/latest/installation/#building-cryptography-on-linux 
-  * On Windows: Visual C++ Compiler for Python 2.7 - http://aka.ms/vcpython27
+#. Install Homebrew: https://docs.brew.sh/Installation.html
+#. Use Homebrew to install OpenSSL::
 
-* A local git repository containing Salesforce metadata in the `src/` subfolder OR fork then clone CumulusCI-Test for demo::
+    $ brew install openssl
 
-    git clone https://github.com/YOUR_GITHUB_FORK_USER/CumulusCI-Test
+#. Use Homebrew to install Python 2 (make note of the installed path that is printed after successful installation)::
 
-If you are using the CumulusCI-Test repo, enable Chatter in your dev org.
+    $ brew install python
 
-* Ensure you have virtualenv installed by either installing a package for your OS or installing with pip::
+Create Virtual Environment
+--------------------------
 
-    pip install virtualenv
+#. Install virtualenv::
 
+    $ pip2 install virtualenv
 
-Using virtualenv
-----------------
+#. Create a virtual environment using the Python executable path that was printed after installing Python 2 with Homebrew::
 
-virtualenv creates a virtual environment where python dependencies will be installed, keeping your system nice and clean. More information about using virtualenv is available at: http://docs.python-guide.org/en/latest/dev/virtualenvs/
+    $ # Creates a new directory at ~/venvs/cumulusci/ - You can change this path to something else if you like but we recommend the final part of the path to be "cumulusci" so that it shows in the shell session when the virtual environment is activated.
+    $ virtualenv --python=/usr/local/opt/python/libexec/bin/python ~/venvs/cumulusci/
 
-Run the following, where VENV_DIR is a new dir name of your choosing. The dir will be created by the virtualenv command. We recommend "cumulusci_venv" inside the user's home directory (~ on POSIX, %USERPROFILE% on Windows).
+#. Activate the newly created virtual environment::
 
-POSIX::
+    $ source ~/venvs/cumulusci/bin/activate
 
-    virtualenv VENV_DIR
-    source VENV_DIR/bin/activate
+You may want to put the activation line in your ~/.bash_profile file so that the virtual environment is automatically activated for you every time you start a new shell session.
 
-Windows::
-    
-    virtualenv VENV_DIR
-    VENV_DIR\Scripts\activate
+Install CumulusCI
+-----------------
 
-Once activated, you will see the venv name at the start of your shell prompt to let you know it is active. From this point, any Python packages you install will be installed only into the venv and leave your system's Python alone.
+With the virtual environment now activated, install cumulusci using pip::
 
-If you are using bash and want to always have the CumulusCI commands available, you can add the following line to your .bash_profile::
-
-    source ~/cumulusci_venv/bin/activate # POSIX
-    cumulusci_venv\Scripts\activate # Windows
-
-
-
-Installation
-------------
-
-With your virtualenv activated::
-
-    pip install cumulusci
-
-This will install the latest version of CumulusCI and all its dependencies into the virtualenv. You can verify the installation by running::
-
-    $ cci
-    Usage: cci [OPTIONS] COMMAND [ARGS]...
-
-    Options:
-    --help  Show this message and exit.
-
-    Commands:
-    flow     Commands for finding and running flows for a...
-    org      Commands for connecting and interacting with...
-    project  Commands for interacting with project...
-    shell    Drop into a python shell
-    task     Commands for finding and running tasks for a...
-    version  Print the current version of CumulusCI
+    $ pip install cumulusci
 
 Part 2: Project Configuration
 =============================
+
+In order to use CumulusCI you will need a local git repository containing Salesforce metadata in the `src/` subfolder.
+
+If you want to use our example project, fork our CumulusCI-Test repo::
+
+    $ git clone https://github.com/YOUR_GITHUB_FORK_USER/CumulusCI-Test
+
+If you are using the CumulusCI-Test repo, enable Chatter in your target org.
 
 Keychain Key
 ------------
