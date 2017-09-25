@@ -109,8 +109,14 @@ class CliConfig(object):
 
 
 try:
-    CLI_CONFIG = CliConfig()
     check_latest_version()
+except requests.exceptions.RequestException as e:
+    click.echo('Error checking cci version:')
+    click.echo(e.message) 
+
+# explicitly try to validate the cli config  before starting click.
+try:
+    CLI_CONFIG = CliConfig()
 except click.UsageError as e:
     click.echo(e.message)
     sys.exit(1)
