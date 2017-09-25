@@ -6,6 +6,8 @@ import code
 import yaml
 
 import click
+import pkg_resources
+import requests
 from plaintable import Table
 from rst2ansi import rst2ansi
 
@@ -36,6 +38,25 @@ from cumulusci.utils import doc_task
 from cumulusci.oauth.salesforce import CaptureSalesforceOAuth
 from logger import init_logger
 
+
+def get_installed_version():
+    """ returns the version name (e.g. 2.0.0b58) that is installed """
+    req = pkg_resources.Requirement.parse('cumulusci')
+    dist = pkg_resources.WorkingSet().find(req)
+    return pkg_resources.parse_version(dist.version)
+
+
+def get_latest_version():
+    """ return the latest version of cumulusci in pypi, be defensive """
+    # use the pypi json api https://wiki.python.org/moin/PyPIJSON
+    res = requests.get('https://pypi.python.org/pypi/cumulusci/json').json()
+    return pkg_resources.parse_version(res['info']['version'])
+
+def check_latest_version():
+    result = get_latest_version() > get_installed_version()
+    click.echo('Checking the version!')
+    if result:
+        click.echo("An update to CumulusCI is available. Use pip install --upgrade cumulusci to update.")
 
 def pretty_dict(data):
     if not data:
@@ -89,6 +110,7 @@ class CliConfig(object):
 
 try:
     CLI_CONFIG = CliConfig()
+    check_latest_version()
 except click.UsageError as e:
     click.echo(e.message)
     sys.exit(1)
