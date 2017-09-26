@@ -149,7 +149,119 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         return self.global_config_obj.config_global
 
     @property
+    def repo_info(self):
+        if hasattr(self, '_repo_info'):
+            return self._repo_info
+
+        # Detect if we are running in a CI environment and get repo info
+        # from env vars for the enviornment instead of .git files
+        info = {
+            'ci': None
+        }
+
+        # Heroku CI
+        heroku_ci = os.environ.get('HEROKU_TEST_RUN_ID')
+        if heroku_ci:
+            info = {
+                'branch': os.environ.get('HEROKU_TEST_RUN_BRANCH'),
+                'commit': os.environ.get('HEROKU_TEST_RUN_COMMIT_VERSION'),
+                'ci': 'heroku',
+                'root': '/app',
+            }
+
+        # Other CI environment implementations can be implemented here...
+
+        # Apply CUMULUSCI_REPO_* environment variables last so they can
+        # override and fill in missing values from the CI environment
+        repo_branch = os.environ.get('CUMULUSCI_REPO_BRANCH')
+        if repo_branch:
+            if repo_branch != info.get('branch'):
+                self.logger.info(
+                    'CUMULUSCI_REPO_BRANCH found, using its value as the branch'
+                )
+            info['branch'] = repo_branch
+        repo_commit = os.environ.get('CUMULUSCI_REPO_COMMIT')
+        if repo_commit:
+            if repo_commit != info.get('commit'):
+                self.logger.info(
+                    'CUMULUSCI_REPO_COMMIT found, using its value as the commit'
+                )
+            info['commit'] = repo_commit
+        repo_root = os.environ.get('CUMULUSCI_REPO_ROOT')
+        if repo_root:
+            if repo_root != info.get('root'):
+                self.logger.info(
+                    'CUMULUSCI_REPO_ROOT found, using its value as the repo root'
+                )
+            info['root'] = repo_root
+        repo_url = os.environ.get('CUMULUSCI_REPO_URL')
+        if repo_url:
+            if repo_url != info.get('url'):
+                self.logger.info(
+                    'CUMULUSCI_REPO_URL found, using its value as the repo url, owner, and name'
+                )
+            url_info = self._split_repo_url(repo_url)
+            info.update(url_info)
+
+        # If running in a CI environment, make sure we have all the needed
+        # git info or throw a ConfigError
+        if info['ci']:
+            validate = OrderedDict((
+                # <key>, <env var to manually override>
+                ('branch', 'CUMULUSCI_REPO_BRANCH'),
+                ('commit', 'CUMULUSCI_REPO_COMMIT'),
+                ('name', 'CUMULUSCI_REPO_URL'),
+                ('owner', 'CUMULUSCI_REPO_URL'),
+                ('root', 'CUMULUSCI_REPO_ROOT'),
+                ('url', 'CUMULUSCI_REPO_URL'),
+            ))
+            for key, env_var in validate.items():
+                if key not in info or not info[key]:
+                    message = 'Detected CI on {} but could not determine the repo {}'.format(
+                        info['ci'],
+                        key,
+                    )
+                    if env_var:
+                        message += '. You can manually pass in the {} with'.format(key)
+                        message += ' with the {} environment variable.'.format(env_var)
+                    raise ConfigError(message)
+
+        # Log any overrides detected through the environment as a warning
+        if len(info) > 1:
+            self.logger.info('')
+            self.logger.warn(
+                'Using environment variables to override repo info:'
+            )
+            keys = info.keys()
+            keys.sort()
+            for key in keys:
+                self.logger.warn(
+                    '  {}: {}'.format(key, info[key])
+                )
+            self.logger.info('')
+
+        self._repo_info = info
+        return self._repo_info
+
+    def _split_repo_url(self, url):
+        url_parts = url.split('/')
+        name = url_parts[-1]
+        owner = url_parts[-2]
+        if name.endswith('.git'):
+            name = name[:-4]
+        git_info = {
+            'url': url,
+            'owner': owner,
+            'name': name,
+        }
+        return git_info
+
+    @property
     def repo_root(self):
+        path = self.repo_info.get('root')
+        if path:
+            return path
+
         path = os.path.splitdrive(os.getcwd())[1]
         while True:
             if os.path.isdir(os.path.join(path, '.git')):
@@ -162,6 +274,10 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
     @property
     def repo_name(self):
+        name = self.repo_info.get('name')
+        if name:
+            return name
+
         if not self.repo_root:
             return
 
@@ -173,16 +289,17 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                     in_remote_origin = True
                     continue
                 if in_remote_origin and line.find('url =') != -1:
-                    line_parts = line.split('/')
-                    repo_name = line_parts[-1]
-                    if repo_name.endswith('.git'):
-                        repo_name = repo_name[:-4]
-                    return repo_name
+                    return self._split_repo_url(line)['name']
 
     @property
     def repo_url(self):
+        url = self.repo_info.get('url')
+        if url:
+            return url
+
         if not self.repo_root:
             return
+
         git_config_file = os.path.join(self.repo_root, '.git', 'config')
         with open(git_config_file, 'r') as f:
             in_remote_origin = False
@@ -196,6 +313,10 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
     @property
     def repo_owner(self):
+        owner = self.repo_info.get('owner')
+        if owner:
+            return owner
+
         if not self.repo_root:
             return
 
@@ -212,6 +333,10 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
     @property
     def repo_branch(self):
+        branch = self.repo_info.get('branch')
+        if branch:
+            return branch
+
         if not self.repo_root:
             return
 
@@ -222,6 +347,10 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
     @property
     def repo_commit(self):
+        commit = self.repo_info.get('commit')
+        if commit:
+            return commit
+
         if not self.repo_root:
             return
 
