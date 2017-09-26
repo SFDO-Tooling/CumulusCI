@@ -2,6 +2,12 @@
 History
 =======
 
+2.0.0-beta63 (2017-09-26)
+-------------------------
+
+* Documentation has been updated!
+* CumulusCI now supports auto detection of repository information from CI environments.  This release includes an implementation for Heroku CI
+
 2.0.0-beta62 (2017-09-19)
 -------------------------
 
