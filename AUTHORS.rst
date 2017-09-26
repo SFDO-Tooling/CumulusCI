@@ -7,8 +7,4 @@ Development Leads
 
 * Jason Lantz <jlantz@salesforce.com>
 * Chris Polcyn <cpolcyn@salesforce.com>
-
-Contributors
-------------
-
-* Christian Carter <christian@biggerboatconsulting.com>
+* Christian Carter <christian.carter@salesforce.com>
