@@ -19,6 +19,7 @@ from cumulusci.core.config import TaskConfig
 from cumulusci.core.config import YamlGlobalConfig
 from cumulusci.core.config import YamlProjectConfig
 from cumulusci.core.exceptions import ApexTestException
+from cumulusci.core.exceptions import BrowserTestException
 from cumulusci.core.exceptions import ConfigError
 from cumulusci.core.exceptions import FlowNotFoundError
 from cumulusci.core.exceptions import KeychainConnectedAppNotFound
@@ -741,6 +742,8 @@ def task_run(config, task_name, org, o, debug, debug_before, debug_after, no_pro
             exception = click.UsageError(e.message)
         except ApexTestException as e:
             exception = click.ClickException('Failed: ApexTestFailure')
+        except BrowserTestFailure as e:
+            exception = click.ClickException('Failed: BrowserTestFailure')
         except MetadataComponentFailure as e:
             exception = click.ClickException(
                 'Failed: MetadataComponentFailure')
@@ -876,6 +879,8 @@ def flow_run(config, flow_name, org, delete_org, debug, o, skip, no_prompt):
             exception = click.UsageError(e.message)
         except ApexTestException as e:
             exception = click.ClickException('Failed: ApexTestException')
+        except BrowserTestFailure as e:
+            exception = click.ClickException('Failed: BrowserTestFailure')
         except MetadataComponentFailure as e:
             exception = click.ClickException(
                 'Failed: MetadataComponentFailure')
