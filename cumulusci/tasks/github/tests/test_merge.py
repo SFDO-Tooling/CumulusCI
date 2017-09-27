@@ -311,6 +311,7 @@ class TestMergeBranch(unittest.TestCase, GithubApiTestMixin):
         pull = self._get_expected_pull_request(1, 2)
         pull['base']['ref'] = branch_name
         pull['base']['sha'] = branches[1]['commit']['sha']
+        pull['head']['ref'] = self.branch
         self._mock_pulls([pull])
 
         self._mock_compare(
