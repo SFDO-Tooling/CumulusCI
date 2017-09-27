@@ -339,6 +339,50 @@ class TestMergeBranch(unittest.TestCase, GithubApiTestMixin):
 
 
     @responses.activate
+    def test_master_parent_with_child_pr(self):
+        self._mock_repo()
+        self._mock_branch(self.branch)
+        # branches
+        parent_branch_name = 'feature/a-test'
+        child_branch_name = 'feature/a-test__a-child'
+        branches = []
+        branches.append(self._get_expected_branch(parent_branch_name))
+        branches.append(self._get_expected_branch(child_branch_name))
+        branches = self._mock_branches(branches)
+        # pull request
+        pull = self._get_expected_pull_request(1, 2)
+        pull['base']['ref'] = parent_branch_name
+        pull['base']['sha'] = branches[1]['commit']['sha']
+        pull['head']['ref'] = child_branch_name
+        self._mock_pulls([pull])
+        # compare
+        self._mock_compare(
+            base = parent_branch_name,
+            head = self.project_config.repo_commit,
+            files = [
+                {'filename': 'test.txt'},
+            ]
+        )
+        # merge
+        self._mock_merge(True)
+        # create PR
+        self._mock_pull_create(1, 2)
+        with LogCapture() as l:
+            task = self._create_task()
+            task()
+            log_lines = self._get_log_lines(l)
+        expected = [
+            ('INFO', 'Beginning task: MergeBranch'),
+            ('INFO', ''),
+            ('DEBUG', 'Skipping branch master: is source branch'),
+            ('INFO', 'Merge conflict on parent branch {}: created pull request #2'.format(
+                parent_branch_name
+            )),
+        ]
+        self.assertEquals(expected, log_lines)
+        self.assertEquals(7, len(responses.calls))
+
+    @responses.activate
     def test_master_parent_does_not_merge_child(self):
         self._mock_repo()
         self._mock_branch(self.branch)
