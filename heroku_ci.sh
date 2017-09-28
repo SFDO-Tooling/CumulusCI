@@ -13,7 +13,7 @@ failed=0
 # Run the CumulusCI Unit Tests
 nosetests --with-tap --tap-stream --with-coverage --cover-package=cumulusci
 exit_status=$?
-if [ "$exit_status" == "0" ]; then
+if [ "$exit_status" != "0" ]; then
     failed=1
 fi
 
