@@ -19,7 +19,7 @@ from cumulusci.core.config import TaskConfig
 from cumulusci.core.config import YamlGlobalConfig
 from cumulusci.core.config import YamlProjectConfig
 from cumulusci.core.exceptions import ApexTestException
-from cumulusci.core.exceptions import BrowserTestException
+from cumulusci.core.exceptions import BrowserTestFailure
 from cumulusci.core.exceptions import ConfigError
 from cumulusci.core.exceptions import FlowNotFoundError
 from cumulusci.core.exceptions import KeychainConnectedAppNotFound
