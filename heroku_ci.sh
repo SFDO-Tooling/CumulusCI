@@ -34,7 +34,7 @@ if [ "$HEROKU_TEST_RUN_BRANCH" != "master" ] &&\
     pr=`python scripts/has_open_pr.py "$HEROKU_TEST_RUN_BRANCH"`
     git log -n 1 | grep '\[run CumulusCI-Test\]' > /dev/null
     exit_status=$?
-    if [ "$pr" == "" ] && [ "$exit_status" != "0"]; then
+    if [ "$pr" == "" ] && [ "$exit_status" != "0" ]; then
         # If there is not an open PR, don't run the CumulusCI-Test flows
         coveralls
         exit $failed
