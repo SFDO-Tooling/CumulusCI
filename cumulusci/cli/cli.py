@@ -5,7 +5,11 @@ import webbrowser
 import code
 import yaml
 import time
-import anydbm
+
+try:
+    import anydbm as dbm
+except ImportError:
+    import dbm
 
 from contextlib import contextmanager
 
@@ -49,11 +53,11 @@ def dbm_cache():
     context manager for accessing simple dbm cache
     located at ~/.cumlusci/cache.dbm
     """
-    db = anydbm.open(os.path.join(
+    db = dbm.open(os.path.join(
         os.path.expanduser('~'),
         YamlGlobalConfig.config_local_dir,
         'cache.dbm'
-    ), 'c', mode=0666)
+    ), 'c',)
     yield db
     db.close()
 
