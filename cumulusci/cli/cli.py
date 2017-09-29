@@ -29,6 +29,8 @@ from cumulusci.core.config import TaskConfig
 from cumulusci.core.config import YamlGlobalConfig
 from cumulusci.core.config import YamlProjectConfig
 from cumulusci.core.exceptions import ApexTestException
+from cumulusci.core.exceptions import BrowserTestFailure
+from cumulusci.core.exceptions import ConfigError
 from cumulusci.core.exceptions import FlowNotFoundError
 from cumulusci.core.exceptions import KeychainConnectedAppNotFound
 from cumulusci.core.exceptions import KeychainKeyNotFound
@@ -130,6 +132,8 @@ class CliConfig(object):
             pass
         except NotInProject as e:
             raise click.UsageError(e.message)
+        except ConfigError as e:
+            raise click.UsageError('Config Error: {}'.format(e.message))
 
     def _load_keychain(self):
         self.keychain_key = os.environ.get('CUMULUSCI_KEY')
@@ -143,6 +147,27 @@ class CliConfig(object):
                 self.project_config, self.keychain_key)
             self.project_config.set_keychain(self.keychain)
 
+def make_pass_instance_decorator(obj, ensure=False):
+    """Given an object type this creates a decorator that will work
+    similar to :func:`pass_obj` but instead of passing the object of the
+    current context, it will inject the passed object instance.
+
+    This generates a decorator that works roughly like this::
+        from functools import update_wrapper
+        def decorator(f):
+            @pass_context
+            def new_func(ctx, *args, **kwargs):
+                return ctx.invoke(f, obj, *args, **kwargs)
+            return update_wrapper(new_func, f)
+        return decorator
+    :param obj: the object instance to pass.
+    """
+    def decorator(f):
+        def new_func(*args, **kwargs):
+            ctx = click.get_current_context()
+            return ctx.invoke(f, obj, *args[1:], **kwargs)
+        return click.decorators.update_wrapper(new_func, f)
+    return decorator
 
 try:
     check_latest_version()
@@ -156,9 +181,7 @@ except click.UsageError as e:
     click.echo(e.message)
     sys.exit(1)
 
-
-pass_config = click.make_pass_decorator(CliConfig, ensure=True)
-
+pass_config = make_pass_instance_decorator(CLI_CONFIG)
 
 def check_connected_app(config):
     check_keychain(config)
@@ -782,6 +805,8 @@ def task_run(config, task_name, org, o, debug, debug_before, debug_after, no_pro
             exception = click.UsageError(e.message)
         except ApexTestException as e:
             exception = click.ClickException('Failed: ApexTestFailure')
+        except BrowserTestFailure as e:
+            exception = click.ClickException('Failed: BrowserTestFailure')
         except MetadataComponentFailure as e:
             exception = click.ClickException(
                 'Failed: MetadataComponentFailure')
@@ -917,6 +942,8 @@ def flow_run(config, flow_name, org, delete_org, debug, o, skip, no_prompt):
             exception = click.UsageError(e.message)
         except ApexTestException as e:
             exception = click.ClickException('Failed: ApexTestException')
+        except BrowserTestFailure as e:
+            exception = click.ClickException('Failed: BrowserTestFailure')
         except MetadataComponentFailure as e:
             exception = click.ClickException(
                 'Failed: MetadataComponentFailure')

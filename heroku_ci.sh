@@ -8,8 +8,15 @@ git reset --hard $HEROKU_TEST_RUN_COMMIT_VERSION
 cd /app
 mv CumulusCI/.git .
 
+failed=0
+
 # Run the CumulusCI Unit Tests
 nosetests --with-tap --tap-stream --with-coverage --cover-package=cumulusci
+exit_status=$?
+if [ "$exit_status" != "0" ]; then
+    failed=1
+fi
+
 
 # If the last commit message contains [skip CumulusCI-Test], skip running any test flows
 git log -n 1 | grep '\[skip CumulusCI-Test\]' > /dev/null
@@ -17,8 +24,7 @@ exit_status=$?
 if [ "$exit_status" == "0" ]; then
     echo "Found [skip CumulusCI-Test] in the commit message, skipping cci flow test runs"
     coveralls
-    exit
-
+    exit $failed
 fi
 
 # For feature branches, skip running the CumulusCI-Test flows if there is not an open PR unless the last commit message contains [run CumulusCI-Test]
@@ -28,10 +34,10 @@ if [ "$HEROKU_TEST_RUN_BRANCH" != "master" ] &&\
     pr=`python scripts/has_open_pr.py "$HEROKU_TEST_RUN_BRANCH"`
     git log -n 1 | grep '\[run CumulusCI-Test\]' > /dev/null
     exit_status=$?
-    if [ "$pr" == ""] && [ "$exit_status" != "0"]; then
+    if [ "$pr" == "" ] && [ "$exit_status" != "0" ]; then
         # If there is not an open PR, don't run the CumulusCI-Test flows
         coveralls
-        exit
+        exit $failed
     fi
 fi
 
@@ -56,6 +62,7 @@ if [ "$HEROKU_TEST_RUN_BRANCH" == "master" ] ||\
         echo "ok 1 - Successfully ran ci_feature"
     else
         echo "not ok 1 - Failed ci_feature: `tail -1 cci.log`"
+        failed=1
     fi
         
     # Run ci_beta
@@ -65,6 +72,7 @@ if [ "$HEROKU_TEST_RUN_BRANCH" == "master" ] ||\
         echo "ok 4 - Successfully ran ci_beta"
     else
         echo "not ok 4 - Failed ci_beta: `tail -1 cci.log`"
+        failed=1
     fi
 
     # Run ci_master
@@ -74,6 +82,7 @@ if [ "$HEROKU_TEST_RUN_BRANCH" == "master" ] ||\
         echo "ok 2 - Successfully ran ci_master"
     else
         echo "not ok 2 - Failed ci_master: `tail -1 cci.log`"
+        failed=1
     fi
 
     # Run release_beta
@@ -83,6 +92,7 @@ if [ "$HEROKU_TEST_RUN_BRANCH" == "master" ] ||\
         echo "ok 3 - Successfully ran release_beta"
     else
         echo "not ok 3 - Failed release_beta: `tail -1 cci.log`"
+        failed=1
     fi
 
 fi
@@ -94,3 +104,5 @@ coverage combine .coverage CumulusCI-Test/.coverage
 
 # Record to coveralls.io
 coveralls
+
+exit $failed
