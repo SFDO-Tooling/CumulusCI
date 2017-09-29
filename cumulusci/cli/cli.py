@@ -4,6 +4,9 @@ import sys
 import webbrowser
 import code
 import yaml
+import time
+import anydbm
+import datetime
 
 import click
 import pkg_resources
@@ -39,6 +42,13 @@ from cumulusci.oauth.salesforce import CaptureSalesforceOAuth
 from logger import init_logger
 
 
+def get_dbm_cache():
+    return anydbm.open(os.path.join(
+        os.path.expanduser('~'),
+        YamlGlobalConfig.config_local_dir,
+        'cache.dbm'
+    ), 'c', mode=0666)
+
 def get_installed_version():
     """ returns the version name (e.g. 2.0.0b58) that is installed """
     req = pkg_resources.Requirement.parse('cumulusci')
@@ -50,19 +60,32 @@ def get_latest_version():
     """ return the latest version of cumulusci in pypi, be defensive """
     # use the pypi json api https://wiki.python.org/moin/PyPIJSON
     res = requests.get('https://pypi.python.org/pypi/cumulusci/json').json()
-    return pkg_resources.parse_version(res['info']['version'])
+    ver = res['info']['version']
+    cache = get_dbm_cache()
+    cache['cumulusci-latest'] = ver
+    cache['cumulusci-latest-timestamp'] = str(time.time())
+    cache.close()
+    return pkg_resources.parse_version(ver)
 
 def check_latest_version():
-    result = get_latest_version() > get_installed_version()
-    click.echo('Checking the version!')
-    if result:
-        click.echo("An update to CumulusCI is available. Use pip install --upgrade cumulusci to update.")
+    cache = get_dbm_cache()
+    check = True
+    if cache.has_key('cumulusci-latest-timestamp'):
+        tstamp = cache['cumulusci-latest-timestamp']
+        now = time.time()
+        delta = now - float(tstamp)
+        check = delta > 3600
+    cache.close()
+    if check:
+        result = get_latest_version() > get_installed_version()
+        click.echo('Checking the version!')
+        if result:
+            click.echo("An update to CumulusCI is available. Use pip install --upgrade cumulusci to update.")
 
 def pretty_dict(data):
     if not data:
         return ''
     return json.dumps(data, sort_keys=True, indent=4, separators=(',', ': '))
-
 
 class CliConfig(object):
 
