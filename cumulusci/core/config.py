@@ -159,6 +159,12 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             'ci': None
         }
 
+        # Make sure that the CUMULUSCI_AUTO_DETECT environment variable is 
+        # set before trying to auto-detect anything from the environment
+        if not os.environ.get('CUMULUSCI_AUTO_DETECT'):
+            self._repo_info = info
+            return self._repo_info
+
         # Heroku CI
         heroku_ci = os.environ.get('HEROKU_TEST_RUN_ID')
         if heroku_ci:
