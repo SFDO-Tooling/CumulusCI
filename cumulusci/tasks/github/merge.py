@@ -55,7 +55,10 @@ class MergeBranch(BaseGithubTask):
         # Get existing pull requests targeting a target branch
         self.existing_prs = []
         for pr in self.repo.iter_pulls(state='open'):
-            if pr.base.ref.startswith(self.options['branch_prefix']):
+            if (
+                pr.base.ref.startswith(self.options['branch_prefix']) and
+                pr.head.ref == self.options['source_branch']
+            ):
                 self.existing_prs.append(pr.base.ref)
       
     def _get_branch_tree(self): 
