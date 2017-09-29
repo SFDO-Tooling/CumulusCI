@@ -2,6 +2,13 @@
 History
 =======
 
+2.0.0-beta64 (2017-09-29)
+-------------------------
+
+* Show proper exit status for failed tests in heroku_ci.sh
+* Handle BrowserTestFailure in CLI
+* Fix issue that prevented auto-merging master to parent branch
+
 2.0.0-beta63 (2017-09-26)
 -------------------------
 
