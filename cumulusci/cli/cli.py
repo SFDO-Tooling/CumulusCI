@@ -95,6 +95,7 @@ def pretty_dict(data):
         return ''
     return json.dumps(data, sort_keys=True, indent=4, separators=(',', ': '))
 
+
 class CliConfig(object):
 
     def __init__(self):
