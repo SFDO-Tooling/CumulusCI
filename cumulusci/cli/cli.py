@@ -74,7 +74,7 @@ def get_installed_version():
 def get_latest_version():
     """ return the latest version of cumulusci in pypi, be defensive """
     # use the pypi json api https://wiki.python.org/moin/PyPIJSON
-    res = requests.get('https://pypi.python.org/pypi/cumulusci/json').json()
+    res = requests.get('https://pypi.python.org/pypi/cumulusci/json', timeout=5).json()
     with dbm_cache() as cache:
         cache['cumulusci-latest-timestamp'] = str(time.time())
     return pkg_resources.parse_version(res['info']['version'])
