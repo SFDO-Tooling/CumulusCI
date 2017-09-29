@@ -42,8 +42,13 @@ from cumulusci.utils import doc_task
 from cumulusci.oauth.salesforce import CaptureSalesforceOAuth
 from logger import init_logger
 
+
 @contextmanager
 def dbm_cache():
+    """
+    context manager for accessing simple dbm cache
+    located at ~/.cumlusci/cache.dbm
+    """
     db = anydbm.open(os.path.join(
         os.path.expanduser('~'),
         YamlGlobalConfig.config_local_dir,
@@ -51,6 +56,7 @@ def dbm_cache():
     ), 'c', mode=0666)
     yield db
     db.close()
+
 
 def get_installed_version():
     """ returns the version name (e.g. 2.0.0b58) that is installed """
@@ -63,12 +69,13 @@ def get_latest_version():
     """ return the latest version of cumulusci in pypi, be defensive """
     # use the pypi json api https://wiki.python.org/moin/PyPIJSON
     res = requests.get('https://pypi.python.org/pypi/cumulusci/json').json()
-    ver = res['info']['version']
     with dbm_cache() as cache:
         cache['cumulusci-latest-timestamp'] = str(time.time())
-    return pkg_resources.parse_version(ver)
+    return pkg_resources.parse_version(res['info']['version'])
+
 
 def check_latest_version():
+    """ checks for the latest version of cumulusci from pypi, max once per hour """
     check = True
 
     with dbm_cache() as cache:
@@ -80,7 +87,8 @@ def check_latest_version():
         result = get_latest_version() > get_installed_version()
         click.echo('Checking the version!')
         if result:
-            click.echo("An update to CumulusCI is available. Use pip install --upgrade cumulusci to update.")
+            click.echo(
+                "An update to CumulusCI is available. Use pip install --upgrade cumulusci to update.")
 
 def pretty_dict(data):
     if not data:
@@ -137,7 +145,6 @@ except requests.exceptions.RequestException as e:
     click.echo('Error checking cci version:')
     click.echo(e.message) 
 
-# explicitly try to validate the cli config  before starting click.
 try:
     CLI_CONFIG = CliConfig()
 except click.UsageError as e:
