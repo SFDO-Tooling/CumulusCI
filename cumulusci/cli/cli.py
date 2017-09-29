@@ -4,8 +4,18 @@ import sys
 import webbrowser
 import code
 import yaml
+import time
+
+try:
+    import anydbm as dbm
+except ImportError:
+    import dbm
+
+from contextlib import contextmanager
 
 import click
+import pkg_resources
+import requests
 from plaintable import Table
 from rst2ansi import rst2ansi
 
@@ -38,6 +48,53 @@ from cumulusci.utils import doc_task
 from cumulusci.oauth.salesforce import CaptureSalesforceOAuth
 from logger import init_logger
 
+
+@contextmanager
+def dbm_cache():
+    """
+    context manager for accessing simple dbm cache
+    located at ~/.cumlusci/cache.dbm
+    """
+    db = dbm.open(os.path.join(
+        os.path.expanduser('~'),
+        YamlGlobalConfig.config_local_dir,
+        'cache.dbm'
+    ), 'c',)
+    yield db
+    db.close()
+
+
+def get_installed_version():
+    """ returns the version name (e.g. 2.0.0b58) that is installed """
+    req = pkg_resources.Requirement.parse('cumulusci')
+    dist = pkg_resources.WorkingSet().find(req)
+    return pkg_resources.parse_version(dist.version)
+
+
+def get_latest_version():
+    """ return the latest version of cumulusci in pypi, be defensive """
+    # use the pypi json api https://wiki.python.org/moin/PyPIJSON
+    res = requests.get('https://pypi.python.org/pypi/cumulusci/json').json()
+    with dbm_cache() as cache:
+        cache['cumulusci-latest-timestamp'] = str(time.time())
+    return pkg_resources.parse_version(res['info']['version'])
+
+
+def check_latest_version():
+    """ checks for the latest version of cumulusci from pypi, max once per hour """
+    check = True
+
+    with dbm_cache() as cache:
+        if cache.has_key('cumulusci-latest-timestamp'):
+            delta = time.time() - float(cache['cumulusci-latest-timestamp'])
+            check = delta > 3600
+
+    if check:
+        result = get_latest_version() > get_installed_version()
+        click.echo('Checking the version!')
+        if result:
+            click.echo(
+                "An update to CumulusCI is available. Use pip install --upgrade cumulusci to update.")
 
 def pretty_dict(data):
     if not data:
@@ -111,6 +168,12 @@ def make_pass_instance_decorator(obj, ensure=False):
             return ctx.invoke(f, obj, *args[1:], **kwargs)
         return click.decorators.update_wrapper(new_func, f)
     return decorator
+
+try:
+    check_latest_version()
+except requests.exceptions.RequestException as e:
+    click.echo('Error checking cci version:')
+    click.echo(e.message) 
 
 try:
     CLI_CONFIG = CliConfig()
