@@ -6,7 +6,8 @@ import code
 import yaml
 import time
 import anydbm
-import datetime
+
+from contextlib import contextmanager
 
 import click
 import pkg_resources
@@ -41,13 +42,15 @@ from cumulusci.utils import doc_task
 from cumulusci.oauth.salesforce import CaptureSalesforceOAuth
 from logger import init_logger
 
-
-def get_dbm_cache():
-    return anydbm.open(os.path.join(
+@contextmanager
+def dbm_cache():
+    db = anydbm.open(os.path.join(
         os.path.expanduser('~'),
         YamlGlobalConfig.config_local_dir,
         'cache.dbm'
     ), 'c', mode=0666)
+    yield db
+    db.close()
 
 def get_installed_version():
     """ returns the version name (e.g. 2.0.0b58) that is installed """
@@ -61,21 +64,18 @@ def get_latest_version():
     # use the pypi json api https://wiki.python.org/moin/PyPIJSON
     res = requests.get('https://pypi.python.org/pypi/cumulusci/json').json()
     ver = res['info']['version']
-    cache = get_dbm_cache()
-    cache['cumulusci-latest'] = ver
-    cache['cumulusci-latest-timestamp'] = str(time.time())
-    cache.close()
+    with dbm_cache() as cache:
+        cache['cumulusci-latest-timestamp'] = str(time.time())
     return pkg_resources.parse_version(ver)
 
 def check_latest_version():
-    cache = get_dbm_cache()
     check = True
-    if cache.has_key('cumulusci-latest-timestamp'):
-        tstamp = cache['cumulusci-latest-timestamp']
-        now = time.time()
-        delta = now - float(tstamp)
-        check = delta > 3600
-    cache.close()
+
+    with dbm_cache() as cache:
+        if cache.has_key('cumulusci-latest-timestamp'):
+            delta = time.time() - float(cache['cumulusci-latest-timestamp'])
+            check = delta > 3600
+
     if check:
         result = get_latest_version() > get_installed_version()
         click.echo('Checking the version!')
