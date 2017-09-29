@@ -2,7 +2,6 @@
 -e .
 nose>=1.3.7
 nose-tap>=1.9
-pip==8.1.2
 bumpversion==0.5.3
 coverage==4.1
 coveralls==1.2.0
