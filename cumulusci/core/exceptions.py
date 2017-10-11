@@ -164,3 +164,8 @@ class ApexCompilationException(CumulusCIException):
 class ApexException(CumulusCIException):
     """ Raise when an Apex Exception is raised in an org """
     pass
+
+
+class PushApiObjectNotFound(CumulusCIException):
+    """ Raise when Salesforce Push API object is not found """
+    pass

@@ -3,6 +3,7 @@ from datetime import timedelta
 import time
 
 from cumulusci.core.exceptions import CumulusCIException
+from cumulusci.core.exceptions import PushApiObjectNotFound
 from cumulusci.core.tasks import BaseTask
 from cumulusci.tasks.push.push_api import SalesforcePushApi
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
