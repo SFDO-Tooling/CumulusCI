@@ -8,7 +8,7 @@ import unittest
 
 import mock
 import nose
-from . import yaml
+import yaml
 
 try:
     from test.test_support import EnvironmentVarGuard
