@@ -109,6 +109,9 @@ tasks:
     push_all:
         description: Schedules a push upgrade of a package version to all subscribers
         class_path: cumulusci.tasks.push.tasks.SchedulePushOrgQuery
+    push_list:
+        description: Schedules a push upgrade of a package version to all orgs listed in the specified file
+        class_path: cumulusci.tasks.push.tasks.SchedulePushOrgList
     push_qa:
         description: Schedules a push upgrade of a package version to all orgs listed in push/orgs_qa.txt
         class_path: cumulusci.tasks.push.tasks.SchedulePushOrgList
