@@ -56,11 +56,14 @@ def dbm_cache():
     context manager for accessing simple dbm cache
     located at ~/.cumlusci/cache.dbm
     """
-    db = dbm.open(os.path.join(
+    config_dir = os.path.join(
         os.path.expanduser('~'),
         YamlGlobalConfig.config_local_dir,
-        'cache.dbm'
-    ), 'c',)
+        
+    if not os.path.exists(config_dir):
+        os.mkdir(config_dir)
+
+    db = dbm.open(os.path.join(config_dir, 'cache.dbm'), 'c',)
     yield db
     db.close()
 
