@@ -57,7 +57,7 @@ if [ "$HEROKU_TEST_RUN_BRANCH" == "master" ] ||\
 
     # Run ci_feature
     coverage run --append --source=../cumulusci `which cci` flow run ci_feature --org scratch --delete-org | tee cci.log
-    exit_status=$?
+    exit_status=${PIPESTATUS[0]}
     if [ "$exit_status" == "0" ]; then
         echo "ok 1 - Successfully ran ci_feature"
     else
@@ -67,7 +67,7 @@ if [ "$HEROKU_TEST_RUN_BRANCH" == "master" ] ||\
         
     # Run ci_beta
     coverage run --append --source=../cumulusci `which cci` flow run ci_beta --org scratch --delete-org | tee -a cci.log
-    exit_status=$?
+    exit_status=${PIPESTATUS[0]}
     if [ "$exit_status" == "0" ]; then
         echo "ok 4 - Successfully ran ci_beta"
     else
@@ -77,7 +77,7 @@ if [ "$HEROKU_TEST_RUN_BRANCH" == "master" ] ||\
 
     # Run ci_master
     coverage run --append --source=../cumulusci `which cci` flow run ci_master --org packaging | tee -a cci.log
-    exit_status=$?
+    exit_status=${PIPESTATUS[0]}
     if [ "$exit_status" == "0" ]; then
         echo "ok 2 - Successfully ran ci_master"
     else
@@ -87,7 +87,7 @@ if [ "$HEROKU_TEST_RUN_BRANCH" == "master" ] ||\
 
     # Run release_beta
     coverage run --append --source=../cumulusci `which cci` flow run release_beta --org packaging | tee -a cci.log
-    exit_status=$?
+    exit_status=${PIPESTATUS[0]}
     if [ "$exit_status" == "0" ]; then
         echo "ok 3 - Successfully ran release_beta"
     else

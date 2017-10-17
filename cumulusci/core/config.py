@@ -941,11 +941,15 @@ class ScratchOrgConfig(OrgConfig):
         if not self.namespaced:
             namespaced = ' -n'
 
+        alias = ''
+        if self.sfdx_alias:
+            alias = ' -a "{}"'.format(self.sfdx_alias)
+
         # This feels a little dirty, but the use cases for extra args would mostly
         # work best with env vars
         extraargs = os.environ.get('SFDX_ORG_CREATE_ARGS', '')
-        command = 'sfdx force:org:create -f {}{}{} {}'.format(
-            self.config_file, devhub, namespaced, extraargs)
+        command = 'sfdx force:org:create -f {}{}{}{} {}'.format(
+            self.config_file, devhub, namespaced, alias, extraargs)
         self.logger.info(
             'Creating scratch org with command {}'.format(command))
         p = sarge.Command(command, stdout=sarge.Capture(buffer_size=-1))

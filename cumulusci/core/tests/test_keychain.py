@@ -176,6 +176,36 @@ class TestBaseProjectKeychain(unittest.TestCase):
             ScratchOrgConfig,
         )
 
+    def test_load_scratch_orgs_none(self):
+        self._test_load_scratch_orgs_none()
+
+    def _test_load_scratch_orgs_none(self):
+        keychain = self.keychain_class(self.project_config, self.key)
+        self.assertEquals(keychain.orgs.keys(), [])
+
+    def test_load_scratch_orgs_create_one(self):
+        self._test_load_scratch_orgs_create_one()
+
+    def _test_load_scratch_orgs_create_one(self):
+        self.project_config.config['orgs'] = {}
+        self.project_config.config['orgs']['scratch'] = {}
+        self.project_config.config['orgs']['scratch']['test_scratch_auto'] = {}
+        keychain = self.keychain_class(self.project_config, self.key)
+        self.assertEquals(keychain.orgs.keys(), ['test_scratch_auto'])
+
+    def test_load_scratch_orgs_existing_org(self):
+        self._test_load_scratch_orgs_existing_org()
+
+    def _test_load_scratch_orgs_existing_org(self):
+        self.project_config.config['orgs'] = {}
+        self.project_config.config['orgs']['scratch'] = {}
+        self.project_config.config['orgs']['scratch']['test'] = {}
+        keychain = self.keychain_class(self.project_config, self.key)
+        keychain.set_org('test', OrgConfig())
+        self.assertEquals(keychain.orgs.keys(), ['test'])
+        org = keychain.get_org('test')
+        self.assertEquals(org.scratch, None)
+
     def test_get_org_not_found(self):
         self._test_get_org_not_found()
 
@@ -316,6 +346,24 @@ class TestEnvironmentProjectKeychain(TestBaseProjectKeychain):
             keychain = self.keychain_class(self.project_config, self.key)
             self.assertEquals(keychain.list_orgs(), ['test'])
             self.assertEquals(keychain.orgs['test'].__class__, ScratchOrgConfig)
+
+    def test_load_scratch_orgs_none(self):
+        with EnvironmentVarGuard() as env:
+            self._clean_env(env)
+            env.set(
+                self.keychain_class.app_var,
+                json.dumps(self.connected_app_config.config)
+            )
+            self._test_load_scratch_orgs_none()
+
+    def test_load_scratch_orgs_create_one(self):
+        with EnvironmentVarGuard() as env:
+            self._clean_env(env)
+            env.set(
+                self.keychain_class.app_var,
+                json.dumps(self.connected_app_config.config)
+            )
+            self._test_load_scratch_orgs_create_one()
 
     def test_get_org_not_found(self):
         with EnvironmentVarGuard() as env:
@@ -534,6 +582,27 @@ class TestEncryptedFileProjectKeychain(TestBaseProjectKeychain):
         mock_class.return_value = self.tempdir_home
         os.chdir(self.tempdir_project)
         self._test_set_and_get_scratch_org()
+
+    def test_load_scratch_orgs_none(self, mock_class):
+        self._mk_temp_home()
+        self._mk_temp_project()
+        mock_class.return_value = self.tempdir_home
+        os.chdir(self.tempdir_project)
+        self._test_load_scratch_orgs_none()
+
+    def test_load_scratch_orgs_create_one(self, mock_class):
+        self._mk_temp_home()
+        self._mk_temp_project()
+        mock_class.return_value = self.tempdir_home
+        os.chdir(self.tempdir_project)
+        self._test_load_scratch_orgs_create_one()
+
+    def test_load_scratch_orgs_existing_org(self, mock_class):
+        self._mk_temp_home()
+        self._mk_temp_project()
+        mock_class.return_value = self.tempdir_home
+        os.chdir(self.tempdir_project)
+        self._test_load_scratch_orgs_existing_org()
 
     def test_set_and_get_org_global(self, mock_class):
         self._mk_temp_home()
