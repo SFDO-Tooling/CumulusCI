@@ -1,8 +1,12 @@
-import httplib
+from __future__ import print_function
+from __future__ import unicode_literals
+from future import standard_library
+standard_library.install_aliases()
+import http.client
 import threading
 import time
 import unittest
-import urllib2
+import urllib.request, urllib.error, urllib.parse
 
 import mock
 import responses
@@ -37,7 +41,7 @@ class TestCaptureSalesforceOAuth(unittest.TestCase):
         responses.add(
             responses.GET,
             'https://login.salesforce.com/services/oauth2/authorize',
-            status=httplib.OK,
+            status=http.client.OK,
         )
 
         # mock response for SalesforceOAuth2.get_token()
@@ -55,7 +59,7 @@ class TestCaptureSalesforceOAuth(unittest.TestCase):
         responses.add(
             responses.POST,
             'https://login.salesforce.com/services/oauth2/token',
-            status=httplib.OK,
+            status=http.client.OK,
             json=expected_response,
         )
 
@@ -68,18 +72,18 @@ class TestCaptureSalesforceOAuth(unittest.TestCase):
         while True:
             if o.httpd:
                 break
-            print 'waiting for o.httpd'
+            print('waiting for o.httpd')
             time.sleep(0.01)
 
         # simulate callback from browser
-        response = urllib2.urlopen(self.callback_url + '?code=123')
+        response = urllib.request.urlopen(self.callback_url + '?code=123')
 
         # wait for thread to complete
         t.join()
 
         # verify
         self.assertEqual(o.response.json(), expected_response)
-        self.assertEqual(response.read(), 'OK')
+        self.assertEqual(response.read(), b'OK')
 
     @responses.activate
     def test_bad_request(self):
@@ -88,7 +92,7 @@ class TestCaptureSalesforceOAuth(unittest.TestCase):
         responses.add(
             responses.GET,
             'https://login.salesforce.com/services/oauth2/authorize',
-            status=httplib.BAD_REQUEST,
+            status=http.client.BAD_REQUEST,
         )
 
         # create CaptureSalesforceOAuth instance

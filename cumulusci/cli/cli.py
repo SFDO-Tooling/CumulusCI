@@ -1,3 +1,9 @@
+from __future__ import absolute_import
+from __future__ import unicode_literals
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
+from builtins import object
 import json
 import os
 import sys
@@ -9,7 +15,7 @@ import time
 try:
     import anydbm as dbm
 except ImportError:
-    import dbm
+    import dbm.ndbm
 
 from contextlib import contextmanager
 
@@ -46,7 +52,7 @@ from cumulusci.core.exceptions import TaskRequiresSalesforceOrg
 from cumulusci.core.utils import import_class
 from cumulusci.utils import doc_task
 from cumulusci.oauth.salesforce import CaptureSalesforceOAuth
-from logger import init_logger
+from .logger import init_logger
 
 
 @contextmanager
@@ -55,7 +61,7 @@ def dbm_cache():
     context manager for accessing simple dbm cache
     located at ~/.cumlusci/cache.dbm
     """
-    db = dbm.open(os.path.join(
+    db = dbm.ndbm.open(os.path.join(
         os.path.expanduser('~'),
         YamlGlobalConfig.config_local_dir,
         'cache.dbm'
@@ -85,7 +91,7 @@ def check_latest_version():
     check = True
 
     with dbm_cache() as cache:
-        if cache.has_key('cumulusci-latest-timestamp'):
+        if 'cumulusci-latest-timestamp' in cache:
             delta = time.time() - float(cache['cumulusci-latest-timestamp'])
             check = delta > 3600
 
@@ -432,7 +438,7 @@ project.add_command(project_dependencies)
 def service_list(config):
     headers = ['service', 'description', 'is_configured']
     data = []
-    for serv, schema in config.project_config.services.iteritems():
+    for serv, schema in list(config.project_config.services.items()):
         is_configured = ''
         if serv in config.keychain.list_services():
             is_configured = '* '
@@ -455,17 +461,17 @@ class ConnectServiceCommand(click.MultiCommand):
     def get_command(self, ctx, name):
         config = ctx.ensure_object(CliConfig)
 
-        attributes = getattr(
+        attributes = iter(list(getattr(
             config.project_config,
             'services__{0}__attributes'.format(name)
-        ).iteritems()
+        ).items()))
         params = [self._build_param(attr, cnfg) for attr, cnfg in attributes]
         params.append(click.Option(('--project',), is_flag=True))
 
         @click.pass_context
         def callback(ctx, project=False, *args, **kwargs):
             check_keychain(config)
-            serv_conf = dict((k, v) for k, v in kwargs.iteritems()
+            serv_conf = dict((k, v) for k, v in list(kwargs.items())
                              if v != None)  # remove None values
             config.keychain.set_service(
                 name, ServiceConfig(serv_conf), project)
@@ -706,7 +712,7 @@ def task_list(config):
 def task_doc(config):
     config_src = config.global_config
 
-    for name, options in config_src.tasks.items():
+    for name, options in list(config_src.tasks.items()):
         task_config = TaskConfig(options)
         doc = doc_task(name, task_config)
         click.echo(doc)

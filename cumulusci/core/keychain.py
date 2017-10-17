@@ -1,3 +1,5 @@
+from __future__ import unicode_literals
+from builtins import chr
 import base64
 import json
 import os
@@ -54,11 +56,11 @@ class BaseProjectKeychain(BaseConfig):
             self.set_connected_app(connected_app)
 
         if orgs:
-            for org_name, org_config in orgs.items():
+            for org_name, org_config in list(orgs.items()):
                 self.set_org(org_name, org_config)
 
         if services:
-            for service_name, service_config in services.items():
+            for service_name, service_config in list(services.items()):
                 self.set_service(service_name, service_config)
 
     def set_connected_app(self, app_config, project=False):
@@ -125,7 +127,7 @@ class BaseProjectKeychain(BaseConfig):
 
     def list_orgs(self):
         """ list the orgs configured in the keychain """
-        orgs = self.orgs.keys()
+        orgs = list(self.orgs.keys())
         orgs.sort()
         return orgs
 
@@ -162,7 +164,7 @@ class BaseProjectKeychain(BaseConfig):
     def _validate_service(self, name, service_config):
         missing_required = []
         attr_key = 'services__{0}__attributes'.format(name)
-        for atr, config in getattr(self.project_config, attr_key).iteritems():
+        for atr, config in list(getattr(self.project_config, attr_key).items()):
             if config.get('required') is True and not getattr(service_config, atr):
                 missing_required.append(atr)
 
@@ -180,7 +182,7 @@ class BaseProjectKeychain(BaseConfig):
 
     def list_services(self):
         """ list the services configured in the keychain """
-        services = self.services.keys()
+        services = list(self.services.keys())
         services.sort()
         return services
 
@@ -203,7 +205,7 @@ class EnvironmentProjectKeychain(BaseProjectKeychain):
             self.app = ConnectedAppOAuthConfig(json.loads(app))
 
     def _load_keychain_orgs(self):
-        for key, value in os.environ.items():
+        for key, value in list(os.environ.items()):
             if key.startswith(self.org_var_prefix):
                 org_config = json.loads(value)
                 if org_config.get('scratch'):
@@ -214,14 +216,14 @@ class EnvironmentProjectKeychain(BaseProjectKeychain):
                               ] = OrgConfig(json.loads(value))
 
     def _load_keychain_services(self):
-        for key, value in os.environ.items():
+        for key, value in list(os.environ.items()):
             if key.startswith(self.service_var_prefix):
                 self.services[key[len(self.service_var_prefix):]] = ServiceConfig(
                     json.loads(value))
 
 
 BS = 16
-pad = lambda s: s + (BS - len(s) % BS) * chr(BS - len(s) % BS)
+pad = lambda s: s + (BS - len(s) % BS) * chr(BS - len(s) % BS).encode('ascii')
 unpad = lambda s: s[0:-ord(s[-1])]
 
 
@@ -328,7 +330,7 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
             filename = os.path.join(self.project_local_dir, 'connected.app')
         else:
             filename = os.path.join(self.config_local_dir, 'connected.app')
-        with open(filename, 'w') as f_org:
+        with open(filename, 'wb') as f_org:
             f_org.write(encrypted)
         self.app = encrypted
 
@@ -339,7 +341,7 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
         else:
             filename = os.path.join(
                 self.project_local_dir, '{}.org'.format(name))
-        with open(filename, 'w') as f_org:
+        with open(filename, 'wb') as f_org:
             f_org.write(encrypted)
 
     def _set_encrypted_service(self, name, encrypted, project):
@@ -349,7 +351,7 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
         else:
             filename = os.path.join(
                 self.config_local_dir, '{}.service'.format(name))
-        with open(filename, 'w') as f_service:
+        with open(filename, 'wb') as f_service:
             f_service.write(encrypted)
 
     def _raise_org_not_found(self, name):

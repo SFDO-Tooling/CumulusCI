@@ -3,8 +3,10 @@
 import_class: task class defn import helper
 process_bool_arg: determine true/false for a commandline arg
 decode_to_unicode: get unicode string from sf api """
+from __future__ import unicode_literals
 
 
+from past.builtins import basestring
 def import_class(path):
     """ Import a class from a string module class path """
     components = path.split('.')

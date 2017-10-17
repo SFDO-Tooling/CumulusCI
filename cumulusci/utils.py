@@ -1,7 +1,10 @@
+from __future__ import unicode_literals
+from future import standard_library
+standard_library.install_aliases()
 import fnmatch
 import os
 import re
-import StringIO
+import io
 import zipfile
 
 import requests
@@ -92,7 +95,7 @@ def removeXmlElement(name, directory, file_pattern, logger=None):
 
 def download_extract_zip(url, target=None, subfolder=None):
     resp = requests.get(url)
-    zip_content = StringIO.StringIO(resp.content)
+    zip_content = io.StringIO(resp.content)
     zip_file = zipfile.ZipFile(zip_content)
     if subfolder:
         zip_file = zip_subfolder(zip_file, subfolder)
@@ -107,7 +110,7 @@ def zip_subfolder(zip_src, path):
     if not path.endswith('/'):
         path = path + '/'
 
-    zip_dest = zipfile.ZipFile(StringIO.StringIO(), 'w', zipfile.ZIP_DEFLATED)
+    zip_dest = zipfile.ZipFile(io.StringIO(), 'w', zipfile.ZIP_DEFLATED)
     for name in zip_src.namelist():
         if not name.startswith(path):
             continue
@@ -135,7 +138,7 @@ def zip_inject_namespace(zip_src, namespace=None, managed=None, filename_token=N
     else:
         namespace = ''
 
-    zip_dest = zipfile.ZipFile(StringIO.StringIO(), 'w', zipfile.ZIP_DEFLATED)
+    zip_dest = zipfile.ZipFile(io.StringIO(), 'w', zipfile.ZIP_DEFLATED)
     for name in zip_src.namelist():
         content = zip_src.read(name).replace(namespace_token, namespace)
         name = name.replace(filename_token, namespace)
@@ -147,7 +150,7 @@ def zip_strip_namespace(zip_src, namespace):
         in the zip 
     """
     namespace_prefix = '{}__'.format(namespace)
-    zip_dest = zipfile.ZipFile(StringIO.StringIO(), 'w', zipfile.ZIP_DEFLATED)
+    zip_dest = zipfile.ZipFile(io.StringIO(), 'w', zipfile.ZIP_DEFLATED)
     for name in zip_src.namelist():
         content = zip_src.read(name).replace(namespace_prefix, '')
         name = name.replace(namespace_prefix, '')
@@ -162,7 +165,7 @@ def zip_tokenize_namespace(zip_src, namespace):
         return zip_dest
 
     namespace_prefix = '{}__'.format(namespace)
-    zip_dest = zipfile.ZipFile(StringIO.StringIO(), 'w', zipfile.ZIP_DEFLATED)
+    zip_dest = zipfile.ZipFile(io.StringIO(), 'w', zipfile.ZIP_DEFLATED)
     for name in zip_src.namelist():
         content = zip_src.read(name).replace(namespace_prefix, '%%%NAMESPACE%%%')
         name = name.replace(namespace_prefix, '___NAMESPACE___')
@@ -184,7 +187,7 @@ def doc_task(task_name, task_config, project_config=None, org_config=None):
         defaults = task_config.options
         if not defaults:
             defaults = {}
-        for name, option in task_class.task_options.items():
+        for name, option in list(task_class.task_options.items()):
             default = defaults.get(name)
             if default:
                 default = ' **Default: {}**'.format(default)
@@ -216,7 +219,7 @@ def package_xml_from_dict(items, api_version, package_name=None):
         lines.append('    <fullName>{}</fullName'.format(package_name))
 
     # Print types sections
-    md_types = items.keys()
+    md_types = list(items.keys())
     md_types.sort()
     for md_type in md_types:
         members = items[md_type]
