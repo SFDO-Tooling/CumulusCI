@@ -59,6 +59,7 @@ def dbm_cache():
     config_dir = os.path.join(
         os.path.expanduser('~'),
         YamlGlobalConfig.config_local_dir,
+    )
         
     if not os.path.exists(config_dir):
         os.mkdir(config_dir)
