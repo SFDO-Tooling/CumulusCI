@@ -1,5 +1,4 @@
 from __future__ import absolute_import
-from __future__ import unicode_literals
 from future import standard_library
 standard_library.install_aliases()
 from builtins import str
@@ -15,7 +14,7 @@ import time
 try:
     import anydbm as dbm
 except ImportError:
-    import dbm.ndbm
+    import dbm.ndbm as dbm
 
 from contextlib import contextmanager
 
@@ -61,7 +60,7 @@ def dbm_cache():
     context manager for accessing simple dbm cache
     located at ~/.cumlusci/cache.dbm
     """
-    db = dbm.ndbm.open(os.path.join(
+    db = dbm.open(os.path.join(
         os.path.expanduser('~'),
         YamlGlobalConfig.config_local_dir,
         'cache.dbm'
