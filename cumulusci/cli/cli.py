@@ -39,6 +39,7 @@ from cumulusci.core.exceptions import ConfigError
 from cumulusci.core.exceptions import FlowNotFoundError
 from cumulusci.core.exceptions import KeychainConnectedAppNotFound
 from cumulusci.core.exceptions import KeychainKeyNotFound
+from cumulusci.core.exceptions import OrgNotFound
 from cumulusci.salesforce_api.exceptions import MetadataApiError
 from cumulusci.salesforce_api.exceptions import MetadataComponentFailure
 from cumulusci.core.exceptions import NotInProject
@@ -60,11 +61,15 @@ def dbm_cache():
     context manager for accessing simple dbm cache
     located at ~/.cumlusci/cache.dbm
     """
-    db = dbm.open(os.path.join(
+    config_dir = os.path.join(
         os.path.expanduser('~'),
         YamlGlobalConfig.config_local_dir,
-        'cache.dbm'
-    ), 'c',)
+    )
+        
+    if not os.path.exists(config_dir):
+        os.mkdir(config_dir)
+
+    db = dbm.open(os.path.join(config_dir, 'cache.dbm'), 'c',)
     yield db
     db.close()
 
@@ -596,16 +601,30 @@ def org_info(config, org_name):
 def org_list(config):
     check_connected_app(config)
     data = []
-    headers = ['org', 'is_default']
+    headers = ['org', 'default', 'scratch', 'config_name', 'username']
     for org in config.project_config.list_orgs():
         org_config = config.project_config.get_org(org)
-        if org_config.default:
-            data.append((org, '*'))
-        else:
-            data.append((org, ''))
+        row = [org]
+        row.append('*' if org_config.default else '')
+        row.append('*' if org_config.scratch else '')
+        row.append(org_config.config_name if org_config.config_name else '')
+        username = org_config.config.get('username', org_config.userinfo__preferred_username)
+        row.append(username if username else '')
+        data.append(row)
     table = Table(data, headers)
     click.echo(table)
 
+@click.command(name='remove', help="Removes an org from the keychain")
+@click.argument('org_name')
+@click.option('--global-org', is_flag=True, help="Set this option to force remove a global org.  Default behavior is to error if you attempt to delete a global org.")
+@pass_config
+def org_remove(config, org_name, global_org):
+    check_connected_app(config)
+    try:
+        org_config = config.keychain.get_org(org_name)
+    except OrgNotFound:
+        raise click.ClickException('Org {} does not exist in the keychain'.format(org_name))
+    config.keychain.remove_org(org_name, global_org)
 
 @click.command(name='scratch', help="Connects a Salesforce DX Scratch Org to the keychain")
 @click.argument('config_name')
@@ -630,11 +649,7 @@ def org_scratch(config, config_name, org_name, default, delete, devhub):
     if devhub:
         scratch_config['devhub'] = devhub
 
-    scratch_config['namespaced'] = scratch_config.get('namespaced', False)
-
-    org_config = ScratchOrgConfig(scratch_config)
-
-    config.keychain.set_org(org_name, org_config)
+    config.keychain.create_scratch_org(org_name, config_name, scratch_config)
 
     if default:
         org = config.keychain.set_default_org(org_name)
@@ -688,6 +703,7 @@ org.add_command(org_connected_app)
 org.add_command(org_default)
 org.add_command(org_info)
 org.add_command(org_list)
+org.add_command(org_remove)
 org.add_command(org_scratch)
 org.add_command(org_scratch_delete)
 

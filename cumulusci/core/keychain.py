@@ -34,8 +34,42 @@ class BaseProjectKeychain(BaseConfig):
         self._load_keychain()
 
     def _load_keychain(self):
-        """ Subclasses can override to implement logic to load the keychain """
+        self._load_app()
+        self._load_orgs()
+        self._load_scratch_orgs()
+        self._load_services()
+
+    def _load_app(self):
         pass
+
+    def _load_orgs(self):
+        pass
+
+    def _load_scratch_orgs(self):
+        """ Creates all scratch org configs for the project in the keychain if
+            a keychain org doesn't already exist """
+        current_orgs = self.list_orgs()
+        if not self.project_config.orgs__scratch:
+            return
+        for org_name, scratch_config in self.project_config.orgs__scratch.items():
+            if org_name in current_orgs:
+                # Don't overwrite an existing keychain org
+                continue
+            self.create_scratch_org(org_name, org_name, scratch_config)
+
+    def _load_services(self):
+        pass
+            
+    def create_scratch_org(self, org_name, config_name, scratch_config):
+        """ Adds/Updates a scratch org config to the keychain from a named config """
+        scratch_config['namespaced'] = scratch_config.get('namespaced', False)
+        scratch_config['config_name'] = config_name
+        scratch_config['sfdx_alias'] = '{}__{}'.format(
+            self.project_config.project__name,
+            org_name,
+        )
+        org_config = ScratchOrgConfig(scratch_config)
+        self.set_org(org_name, org_config)
 
     def change_key(self, key):
         """ re-encrypt stored services, orgs, and the connected_app
@@ -67,7 +101,7 @@ class BaseProjectKeychain(BaseConfig):
         """ store a connected_app configuration """
 
         self._set_connected_app(app_config, project)
-        self._load_keychain()
+        self._load_app()
 
     def _set_connected_app(self, app_config, project):
         self.app = app_config
@@ -80,11 +114,19 @@ class BaseProjectKeychain(BaseConfig):
     def _get_connected_app(self):
         return self.app
 
+    def remove_org(self, name, global_org=None):
+        if name in self.orgs.keys():
+            self._remove_org(name, global_org)
+
+    def _remove_org(self, name, global_org):
+        del self.orgs[name]
+        self._load_orgs()
+
     def set_org(self, name, org_config, global_org=False):
         if isinstance(org_config, ScratchOrgConfig):
             org_config.config['scratch'] = True
         self._set_org(name, org_config, global_org)
-        self._load_keychain()
+        self._load_orgs()
 
     def _set_org(self, name, org_config, global_org):
         self.orgs[name] = org_config
@@ -137,7 +179,7 @@ class BaseProjectKeychain(BaseConfig):
             self._raise_service_not_valid(name)
         self._validate_service(name, service_config)
         self._set_service(name, service_config, project)
-        self._load_keychain()
+        self._load_services()
 
     def _set_service(self, name, service_config, project):
         self.services[name] = service_config
@@ -194,12 +236,7 @@ class EnvironmentProjectKeychain(BaseProjectKeychain):
     app_var = 'CUMULUSCI_CONNECTED_APP'
     service_var_prefix = 'CUMULUSCI_SERVICE_'
 
-    def _load_keychain(self):
-        self._load_keychain_app()
-        self._load_keychain_orgs()
-        self._load_keychain_services()
-
-    def _load_keychain_app(self):
+    def _load_app(self):
         app = os.environ.get(self.app_var)
         if app:
             self.app = ConnectedAppOAuthConfig(json.loads(app))
@@ -303,27 +340,49 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
     def project_local_dir(self):
         return self.project_config.project_local_dir
 
-    def _load_keychain(self):
+    def _load_files(self, dirname, extension, key):
+        for item in os.listdir(dirname):
+            if item.endswith(extension):
+                with open(os.path.join(dirname, item), 'r') as f_item:
+                    config = f_item.read()
+                name = item.replace(extension, '')
+                if not key in self.config:
+                    self.config[key] = []
+                self.config[key][name] = config
 
-        def load_files(dirname):
-            for item in os.listdir(dirname):
-                if item.endswith('.org'):
-                    with open(os.path.join(dirname, item), 'r') as f_item:
-                        org_config = f_item.read()
-                    org_name = item.replace('.org', '')
-                    self.config['orgs'][org_name] = org_config
-                elif item.endswith('.service'):
-                    with open(os.path.join(dirname, item), 'r') as f_item:
-                        service_config = f_item.read()
-                    service_name = item.replace('.service', '')
-                    self.config['services'][service_name] = service_config
-                elif item == 'connected.app':
-                    with open(os.path.join(dirname, item), 'r') as f_item:
-                        app_config = f_item.read()
-                    self.config['app'] = app_config
+    def _load_file(self, dirname, filename, key):
+        full_path = os.path.join(dirname, filename)
+        if not os.path.exists(full_path):
+            return
+        with open(os.path.join(dirname, filename), 'r') as f_item:
+            config = f_item.read()
+        self.config[key] = config
 
-        load_files(self.config_local_dir)
-        load_files(self.project_local_dir)
+    def _load_app(self):
+        self._load_file(self.config_local_dir, 'connected.app', 'app')
+        self._load_file(self.project_local_dir, 'connected.app', 'app')
+
+    def _load_orgs(self):
+        self._load_files(self.config_local_dir, '.org', 'orgs')
+        self._load_files(self.project_local_dir, '.org', 'orgs')
+
+    def _load_services(self):
+        self._load_files(self.config_local_dir, '.service', 'services')
+        self._load_files(self.project_local_dir, '.service', 'services')
+
+    def _remove_org(self, name, global_org):
+        if global_org:
+            full_path = os.path.join(self.config_local_dir, '{}.org'.format(name))
+        else:
+            full_path = os.path.join(self.project_local_dir, '{}.org'.format(name))
+        if not os.path.exists(full_path):
+            kwargs = {'name': name}
+            if not global_org:
+                raise OrgNotFound('Could not find org named {name} to delete.  Deleting in project org mode.  Is {name} a global org?'.format(**kwargs))
+            raise OrgNotFound('Could not find org named {name} to delete.  Deleting in global org mode.  Is {name} a project org instead of a global org?'.format(**kwargs))
+           
+        os.remove(full_path) 
+        self._load_orgs()
 
     def _set_encrypted_connected_app(self, encrypted, project):
         if project:
