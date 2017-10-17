@@ -603,7 +603,7 @@ def org_list(config):
         row.append('*' if org_config.default else '')
         row.append('*' if org_config.scratch else '')
         row.append(org_config.config_name if org_config.config_name else '')
-        username = org_config.config.get('username')
+        username = org_config.config.get('username', org_config.userinfo__preferred_username)
         if not username:
             username = org_config.userinfo__preferred_username
         row.append(username if username else '')
