@@ -121,7 +121,7 @@ def zip_subfolder(zip_src, path):
     return zip_dest
 
 
-def zip_inject_namespace(zip_src, namespace=None, managed=None, filename_token=None, namespace_token=None):
+def zip_inject_namespace(zip_src, namespace=None, managed=None, filename_token=None, namespace_token=None, namespaced_org=None):
     """ Replaces %%%NAMESPACE%%% for all files and ___NAMESPACE___ in all 
         filenames in the zip with the either '' if no namespace is provided
         or 'namespace__' if provided.
@@ -135,10 +135,17 @@ def zip_inject_namespace(zip_src, namespace=None, managed=None, filename_token=N
     else:
         namespace = ''
 
+    # Handle tokens %%%NAMESPACED_ORG%%% and ___NAMESPACED_ORG___
+    namespaced_org_token = '%%%NAMESPACED_ORG%%%'
+    namespaced_org_file_token = '___NAMESPACED_ORG___'
+    namespaced_org = namespace if namespaced_org else ''
+
     zip_dest = zipfile.ZipFile(StringIO.StringIO(), 'w', zipfile.ZIP_DEFLATED)
     for name in zip_src.namelist():
         content = zip_src.read(name).replace(namespace_token, namespace)
+        content = content.replace(namespaced_org_token, namespaced_org)
         name = name.replace(filename_token, namespace)
+        name = name.replace(namespaced_org_file_token, namespaced_org)
         zip_dest.writestr(name, content)
     return zip_dest
 
