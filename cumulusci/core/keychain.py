@@ -237,21 +237,12 @@ class EnvironmentProjectKeychain(BaseProjectKeychain):
     service_var_prefix = 'CUMULUSCI_SERVICE_'
 
     def _load_app(self):
-        print('CDC:DEBUG:STRUGGLING TO GET CI BUILD TO DEBUG SO JUST SETTLING TO DO THIS')
-        print(list(os.environ.items()))
         app = os.environ.get(self.app_var)
         if app:
             self.app = ConnectedAppOAuthConfig(json.loads(app))
 
-    def _load_keychain_orgs(self):
+    def _load_orgs(self):
         for key, value in list(os.environ.items()):
-            try:
-                print(key, type(key))
-                print(value, type(value))
-                key = key.decode('utf8')
-                value = value.decode('utf8')
-            except AttributeError:
-                pass
             if key.startswith(self.org_var_prefix):
                 org_config = json.loads(value)
                 if org_config.get('scratch'):
