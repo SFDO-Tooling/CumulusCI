@@ -110,7 +110,7 @@ def zip_subfolder(zip_src, path):
     if not path.endswith('/'):
         path = path + '/'
 
-    zip_dest = zipfile.ZipFile(io.StringIO(), 'w', zipfile.ZIP_DEFLATED)
+    zip_dest = zipfile.ZipFile(io.BytesIO(), 'w', zipfile.ZIP_DEFLATED)
     for name in zip_src.namelist():
         if not name.startswith(path):
             continue
@@ -138,7 +138,7 @@ def zip_inject_namespace(zip_src, namespace=None, managed=None, filename_token=N
     else:
         namespace = ''
 
-    zip_dest = zipfile.ZipFile(io.StringIO(), 'w', zipfile.ZIP_DEFLATED)
+    zip_dest = zipfile.ZipFile(io.BytesIO(), 'w', zipfile.ZIP_DEFLATED)
     for name in zip_src.namelist():
         content = zip_src.read(name).replace(namespace_token, namespace)
         name = name.replace(filename_token, namespace)
@@ -150,7 +150,7 @@ def zip_strip_namespace(zip_src, namespace):
         in the zip 
     """
     namespace_prefix = '{}__'.format(namespace)
-    zip_dest = zipfile.ZipFile(io.StringIO(), 'w', zipfile.ZIP_DEFLATED)
+    zip_dest = zipfile.ZipFile(io.BytesIO(), 'w', zipfile.ZIP_DEFLATED)
     for name in zip_src.namelist():
         content = zip_src.read(name).replace(namespace_prefix, '')
         name = name.replace(namespace_prefix, '')
@@ -165,7 +165,7 @@ def zip_tokenize_namespace(zip_src, namespace):
         return zip_dest
 
     namespace_prefix = '{}__'.format(namespace)
-    zip_dest = zipfile.ZipFile(io.StringIO(), 'w', zipfile.ZIP_DEFLATED)
+    zip_dest = zipfile.ZipFile(io.BytesIO(), 'w', zipfile.ZIP_DEFLATED)
     for name in zip_src.namelist():
         content = zip_src.read(name).replace(namespace_prefix, '%%%NAMESPACE%%%')
         name = name.replace(namespace_prefix, '___NAMESPACE___')
