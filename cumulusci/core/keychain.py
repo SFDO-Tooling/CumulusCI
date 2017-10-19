@@ -245,6 +245,13 @@ class EnvironmentProjectKeychain(BaseProjectKeychain):
 
     def _load_keychain_orgs(self):
         for key, value in list(os.environ.items()):
+            try:
+                print(key, type(key))
+                print(value, type(value))
+                key = key.decode('utf8')
+                value = value.decode('utf8')
+            except AttributeError:
+                pass
             if key.startswith(self.org_var_prefix):
                 org_config = json.loads(value)
                 if org_config.get('scratch'):
