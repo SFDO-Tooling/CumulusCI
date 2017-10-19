@@ -1,4 +1,4 @@
-from __future__ import unicode_literals
+from __future__ import unicode_literals, print_function
 from builtins import chr
 import base64
 import json
@@ -237,6 +237,8 @@ class EnvironmentProjectKeychain(BaseProjectKeychain):
     service_var_prefix = 'CUMULUSCI_SERVICE_'
 
     def _load_app(self):
+        print('CDC:DEBUG:STRUGGLING TO GET CI BUILD TO DEBUG SO JUST SETTLING TO DO THIS')
+        print(list(os.environ.items()))
         app = os.environ.get(self.app_var)
         if app:
             self.app = ConnectedAppOAuthConfig(json.loads(app))
