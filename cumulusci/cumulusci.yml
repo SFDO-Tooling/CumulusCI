@@ -45,6 +45,7 @@ tasks:
         options:
             path: unpackaged/post
             unmanaged: True
+            namespace_inject: $project_config.project__package__namespace
             namespace_token: '%%%NAMESPACE%%%'
             filename_token: '___NAMESPACE___'
     deploy_post_managed:

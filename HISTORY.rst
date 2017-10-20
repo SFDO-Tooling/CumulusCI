@@ -2,6 +2,12 @@
 History
 =======
 
+2.0.0-beta66 (2017-10-20)
+-------------------------
+
+* Configure `namespace_inject` for `deploy_post`
+* Fix the `--debug` flag on `cci task run` and `cci flow run` to allow debugging of exceptions which are caught by the CLI such as MetadataApiError, MetadataComponentError, etc.
+
 2.0.0-beta65 (2017-10-18)
 -------------------------
 
