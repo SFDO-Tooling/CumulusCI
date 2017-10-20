@@ -4,7 +4,6 @@ import_class: task class defn import helper
 process_bool_arg: determine true/false for a commandline arg
 decode_to_unicode: get unicode string from sf api """
 from __future__ import unicode_literals
-from future.utils import bytes_to_native_str as n
 
 from past.builtins import basestring
 def import_class(path):
@@ -13,8 +12,8 @@ def import_class(path):
     module = components[:-1]
     module = '.'.join(module)
     # __import__ needs a native str() on py2
-    mod = __import__(module, fromlist=[n(components[-1])])
-    return getattr(mod, n(components[-1]))
+    mod = __import__(module, fromlist=[str(components[-1])])
+    return getattr(mod, str(components[-1]))
 
 
 def process_bool_arg(arg):
