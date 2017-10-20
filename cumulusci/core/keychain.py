@@ -236,24 +236,27 @@ class EnvironmentProjectKeychain(BaseProjectKeychain):
     app_var = 'CUMULUSCI_CONNECTED_APP'
     service_var_prefix = 'CUMULUSCI_SERVICE_'
 
+    def _get_env(self):
+        """ loads the environment variables as unicode if ascii """
+        return [(k.decode(), v.decode()) for k,v in list(os.environ.items())]
+
     def _load_app(self):
-        app = os.environ.get(self.app_var)
+        app = os.environ.get(self.app_var.encode('ascii'))
         if app:
             self.app = ConnectedAppOAuthConfig(json.loads(app))
 
     def _load_orgs(self):
-        for key, value in list(os.environ.items()):
+        for key, value in self._get_env():
             if key.startswith(self.org_var_prefix):
                 org_config = json.loads(value)
+                org_name = key[len(self.org_var_prefix):]
                 if org_config.get('scratch'):
-                    self.orgs[key[len(self.org_var_prefix):]
-                              ] = ScratchOrgConfig(json.loads(value))
+                    self.orgs[org_name] = ScratchOrgConfig(json.loads(value))
                 else:
-                    self.orgs[key[len(self.org_var_prefix):]
-                              ] = OrgConfig(json.loads(value))
+                    self.orgs[org_name] = OrgConfig(json.loads(value))
 
     def _load_keychain_services(self):
-        for key, value in list(os.environ.items()):
+        for key, value in self._get_env():
             if key.startswith(self.service_var_prefix):
                 self.services[key[len(self.service_var_prefix):]] = ServiceConfig(
                     json.loads(value))
