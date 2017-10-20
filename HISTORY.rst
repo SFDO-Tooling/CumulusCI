@@ -2,6 +2,12 @@
 History
 =======
 
+2.0.0-beta67 (2017-10-20)
+-------------------------
+
+* Fix bug where auto-created scratch orgs weren't getting the `scratch` attribute set properly on their `ScratchOrgConfig` instance.
+
+
 2.0.0-beta66 (2017-10-20)
 -------------------------
 
