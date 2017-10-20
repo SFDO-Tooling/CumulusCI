@@ -2,6 +2,11 @@
 History
 =======
 
+2.0.0-beta68 (2017-10-20)
+-------------------------
+
+* Configure `namespace_inject` for `deploy_post_managed`
+
 2.0.0-beta67 (2017-10-20)
 -------------------------
 

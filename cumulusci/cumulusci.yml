@@ -54,6 +54,7 @@ tasks:
         options:
             path: unpackaged/post
             unmanaged: False
+            namespace_inject: $project_config.project__package__namespace
             namespace_token: '%%%NAMESPACE%%%'
             filename_token: '___NAMESPACE___'
     execute_anon:
