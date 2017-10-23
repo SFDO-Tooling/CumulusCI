@@ -186,7 +186,7 @@ class TestBaseProjectKeychain(unittest.TestCase):
 
     def _test_load_scratch_orgs_none(self):
         keychain = self.keychain_class(self.project_config, self.key)
-        self.assertEquals(keychain.orgs.keys(), [])
+        self.assertEquals(list(keychain.orgs), [])
 
     def test_load_scratch_orgs_create_one(self):
         self._test_load_scratch_orgs_create_one()
@@ -196,7 +196,7 @@ class TestBaseProjectKeychain(unittest.TestCase):
         self.project_config.config['orgs']['scratch'] = {}
         self.project_config.config['orgs']['scratch']['test_scratch_auto'] = {}
         keychain = self.keychain_class(self.project_config, self.key)
-        self.assertEquals(keychain.orgs.keys(), ['test_scratch_auto'])
+        self.assertEquals(list(keychain.orgs), ['test_scratch_auto'])
 
     def test_load_scratch_orgs_existing_org(self):
         self._test_load_scratch_orgs_existing_org()
@@ -207,7 +207,7 @@ class TestBaseProjectKeychain(unittest.TestCase):
         self.project_config.config['orgs']['scratch']['test'] = {}
         keychain = self.keychain_class(self.project_config, self.key)
         keychain.set_org('test', OrgConfig())
-        self.assertEquals(keychain.orgs.keys(), ['test'])
+        self.assertEquals(list(keychain.orgs), ['test'])
         org = keychain.get_org('test')
         self.assertEquals(org.scratch, None)
 

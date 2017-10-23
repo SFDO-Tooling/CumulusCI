@@ -196,7 +196,7 @@ class BaseProjectKeychain(BaseConfig):
         # this can't be a good idea
         try: 
             name = name.decode()
-        except:
+        except AttributeError:
             pass
         if not self.project_config.services or name not in self.project_config.services:
             self._raise_service_not_valid(name)
@@ -243,10 +243,16 @@ class EnvironmentProjectKeychain(BaseProjectKeychain):
 
     def _get_env(self):
         """ loads the environment variables as unicode if ascii """
-        return [(k.decode(), v.decode()) for k,v in list(os.environ.items())]
+        try:
+            return [(k.decode(), v.decode()) for k,v in list(os.environ.items())]
+        except AttributeError:
+            return list(os.environ.items())
 
     def _load_app(self):
-        app = os.environ.get(self.app_var.encode('ascii'))
+        try:
+            app = os.environ.get(self.app_var.encode('ascii'))
+        except TypeError:
+            app = os.environ.get(self.app_var)
         if app:
             self.app = ConnectedAppOAuthConfig(json.loads(app))
 
