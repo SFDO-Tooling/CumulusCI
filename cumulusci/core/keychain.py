@@ -181,7 +181,7 @@ class BaseProjectKeychain(BaseConfig):
         self._set_service(name, service_config, project)
         self._load_services()
 
-    def _set_service(self, name, service_config, project):
+    def _set_service(self, name, service_config, project=False):
         self.services[name] = service_config
 
     def get_service(self, name):
@@ -261,19 +261,13 @@ class EnvironmentProjectKeychain(BaseProjectKeychain):
                 else:
                     self.orgs[org_name] = OrgConfig(json.loads(value))
 
-    def _load_keychain_services(self):
-        self._debug_for_herokuci_env()
+    def _load_services(self):
         for key, value in self._get_env():
             if key.startswith(self.service_var_prefix):
-                self.services[key[len(self.service_var_prefix):]] = ServiceConfig(
-                    json.loads(value))
+                service_config = json.loads(value)
+                service_name = key[len(self.service_var_prefix):]
+                self._set_service(service_name, ServiceConfig(service_config))
 
-    def _debug_for_herokuci_env(self):
-        for key,value in self._get_env():
-            print(key)
-            print(type(key))
-            print(value)
-            print(type(value))
 
 
 BS = 16
