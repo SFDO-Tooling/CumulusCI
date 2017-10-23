@@ -262,10 +262,18 @@ class EnvironmentProjectKeychain(BaseProjectKeychain):
                     self.orgs[org_name] = OrgConfig(json.loads(value))
 
     def _load_keychain_services(self):
+        self._debug_for_herokuci_env()
         for key, value in self._get_env():
             if key.startswith(self.service_var_prefix):
                 self.services[key[len(self.service_var_prefix):]] = ServiceConfig(
                     json.loads(value))
+
+    def _debug_for_herokuci_env(self):
+        for key,value in self._get_env():
+            print(key)
+            print(type(key))
+            print(value)
+            print(type(value))
 
 
 BS = 16
