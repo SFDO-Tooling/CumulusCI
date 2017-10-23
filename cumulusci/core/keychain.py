@@ -193,11 +193,6 @@ class BaseProjectKeychain(BaseConfig):
         :rtype ServiceConfig
         :return the configured Service
         """
-        # this can't be a good idea
-        try: 
-            name = name.decode()
-        except AttributeError:
-            pass
         if not self.project_config.services or name not in self.project_config.services:
             self._raise_service_not_valid(name)
         if name not in self.services:
@@ -220,7 +215,7 @@ class BaseProjectKeychain(BaseConfig):
 
     def _raise_service_not_configured(self, name):
         raise ServiceNotConfigured(
-            'Service named {} is not configured for this project'.format(name)
+            'Service named {} is not configured for this project. Configured services are: {}'.format(name, ', '.join(list(self.services)))
         )
 
     def _raise_service_not_valid(self, name):
