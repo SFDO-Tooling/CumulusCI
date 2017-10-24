@@ -41,17 +41,20 @@ tasks:
             path: unpackaged/pre
     deploy_post:
         description: Deploys all metadata bundles under unpackaged/post/
-        class_path: cumulusci.tasks.salesforce.DeployNamespacedBundles
+        class_path: cumulusci.tasks.salesforce.DeployBundles
         options:
             path: unpackaged/post
+            unmanaged: True
+            namespace_inject: $project_config.project__package__namespace
             namespace_token: '%%%NAMESPACE%%%'
             filename_token: '___NAMESPACE___'
     deploy_post_managed:
         description: Deploys all metadata bundles under unpackaged/post/
-        class_path: cumulusci.tasks.salesforce.DeployNamespacedBundles
+        class_path: cumulusci.tasks.salesforce.DeployBundles
         options:
             path: unpackaged/post
-            managed: True
+            unmanaged: False
+            namespace_inject: $project_config.project__package__namespace
             namespace_token: '%%%NAMESPACE%%%'
             filename_token: '___NAMESPACE___'
     execute_anon:
@@ -109,6 +112,9 @@ tasks:
     push_all:
         description: Schedules a push upgrade of a package version to all subscribers
         class_path: cumulusci.tasks.push.tasks.SchedulePushOrgQuery
+    push_list:
+        description: Schedules a push upgrade of a package version to all orgs listed in the specified file
+        class_path: cumulusci.tasks.push.tasks.SchedulePushOrgList
     push_qa:
         description: Schedules a push upgrade of a package version to all orgs listed in push/orgs_qa.txt
         class_path: cumulusci.tasks.push.tasks.SchedulePushOrgList
@@ -259,6 +265,27 @@ flows:
             7:
                 task: update_admin_profile
 
+    dev_org_namespaced:
+        description: Deploys the unmanaged package metadata and all dependencies to a namespaced org (scratch or packaging)
+        tasks:
+            1:
+                task: unschedule_apex
+            2:
+                task: update_dependencies
+                options:
+                    namespaced_org: True
+            3:
+                task: deploy_pre
+            4:
+                task: deploy
+            5:
+                task: deploy_post
+                options:
+                    unmanaged: False
+                    namespaced_org: True
+            6:
+                task: update_admin_profile
+                    
     ci_feature:
         description: Deploys the unmanaged package metadata and all dependencies to the target org and runs tests
         tasks:

@@ -111,6 +111,19 @@ def pretty_dict(data):
         return ''
     return json.dumps(data, sort_keys=True, indent=4, separators=(',', ': '))
 
+def handle_exception_debug(config, debug, e, throw_exception=None, no_prompt=None):
+    if debug:
+        import pdb
+        import traceback
+        traceback.print_exc()
+        pdb.post_mortem()
+    else:
+        if throw_exception:
+            raise throw_exception
+        else:
+            handle_sentry_event(config, no_prompt)
+            raise
+
 
 class CliConfig(object):
 
@@ -805,15 +818,9 @@ def task_run(config, task_name, org, o, debug, debug_before, debug_after, no_pro
             'This task requires a salesforce org.  Use org default <name> to set a default org or pass the org name with the --org option')
     except TaskOptionsError as e:
         exception = click.UsageError(e.message)
+        handle_exception_debug(config, debug, e, throw_exception=exception)
     except Exception as e:
-        if debug:
-            import pdb
-            import traceback
-            traceback.print_exc()
-            pdb.post_mortem()
-        else:
-            handle_sentry_event(config, no_prompt)
-            raise
+        handle_exception_debug(config, debug, e, no_prompt=no_prompt)
 
     if debug_before:
         import pdb
@@ -824,27 +831,27 @@ def task_run(config, task_name, org, o, debug, debug_before, debug_after, no_pro
             task()
         except TaskOptionsError as e:
             exception = click.UsageError(e.message)
+            handle_exception_debug(config, debug, e, throw_exception=exception)
         except ApexTestException as e:
             exception = click.ClickException('Failed: ApexTestFailure')
+            handle_exception_debug(config, debug, e, throw_exception=exception)
         except BrowserTestFailure as e:
             exception = click.ClickException('Failed: BrowserTestFailure')
+            handle_exception_debug(config, debug, e, throw_exception=exception)
         except MetadataComponentFailure as e:
             exception = click.ClickException(
-                'Failed: MetadataComponentFailure')
+                'Failed: MetadataComponentFailure'
+            )
+            handle_exception_debug(config, debug, e, throw_exception=exception)
         except MetadataApiError as e:
             exception = click.ClickException('Failed: MetadataApiError')
+            handle_exception_debug(config, debug, e, throw_exception=exception)
         except ScratchOrgException as e:
             exception = click.ClickException(
                 'ScratchOrgException: {}'.format(e.message))
+            handle_exception_debug(config, debug, e, throw_exception=exception)
         except Exception as e:
-            if debug:
-                import pdb
-                import traceback
-                traceback.print_exc()
-                pdb.post_mortem()
-            else:
-                handle_sentry_event(config, no_prompt)
-                raise
+            handle_exception_debug(config, debug, e, no_prompt=no_prompt)
 
     # Save the org config in case it was modified in the task
     if org and org_config:
@@ -946,14 +953,9 @@ def flow_run(config, flow_name, org, delete_org, debug, o, skip, no_prompt):
             'This flow requires a salesforce org.  Use org default <name> to set a default org or pass the org name with the --org option')
     except TaskOptionsError as e:
         exception = click.UsageError(e.message)
+        handle_exception_debug(config, debug, e, throw_exception=exception)
     except Exception as e:
-        if debug:
-            import pdb
-            import traceback
-            traceback.print_exc()
-            pdb.post_mortem()
-        else:
-            raise
+        handle_exception_debug(config, debug, e, no_prompt=no_prompt)
 
     if not exception:
         # Run the flow and handle exceptions
@@ -961,27 +963,28 @@ def flow_run(config, flow_name, org, delete_org, debug, o, skip, no_prompt):
             flow()
         except TaskOptionsError as e:
             exception = click.UsageError(e.message)
+            handle_exception_debug(config, debug, e, throw_exception=exception)
         except ApexTestException as e:
             exception = click.ClickException('Failed: ApexTestException')
+            handle_exception_debug(config, debug, e, throw_exception=exception)
         except BrowserTestFailure as e:
             exception = click.ClickException('Failed: BrowserTestFailure')
+            handle_exception_debug(config, debug, e, throw_exception=exception)
         except MetadataComponentFailure as e:
             exception = click.ClickException(
-                'Failed: MetadataComponentFailure')
+                'Failed: MetadataComponentFailure'
+            )
+            handle_exception_debug(config, debug, e, throw_exception=exception)
         except MetadataApiError as e:
             exception = click.ClickException('Failed: MetadataApiError')
+            handle_exception_debug(config, debug, e, throw_exception=exception)
         except ScratchOrgException as e:
             exception = click.ClickException(
-                'ScratchOrgException: {}'.format(e.message))
+                'ScratchOrgException: {}'.format(e.message)
+            )
+            handle_exception_debug(config, debug, e, throw_exception=exception)
         except Exception as e:
-            if debug:
-                import pdb
-                import traceback
-                traceback.print_exc()
-                pdb.post_mortem()
-            else:
-                handle_sentry_event(config, no_prompt)
-                raise
+            handle_exception_debug(config, debug, e, no_prompt=no_prompt)
 
     # Delete the scratch org if --delete-org was set
     if delete_org:

@@ -2,6 +2,51 @@
 History
 =======
 
+2.0.0-beta68 (2017-10-20)
+-------------------------
+
+* Configure `namespace_inject` for `deploy_post_managed`
+
+2.0.0-beta67 (2017-10-20)
+-------------------------
+
+* Fix bug where auto-created scratch orgs weren't getting the `scratch` attribute set properly on their `ScratchOrgConfig` instance.
+
+
+2.0.0-beta66 (2017-10-20)
+-------------------------
+
+* Configure `namespace_inject` for `deploy_post`
+* Fix the `--debug` flag on `cci task run` and `cci flow run` to allow debugging of exceptions which are caught by the CLI such as MetadataApiError, MetadataComponentError, etc.
+
+2.0.0-beta65 (2017-10-18)
+-------------------------
+
+Breaking Changes
+================
+
+* If you created custom tasks off of `DeployNamespaced` or `DeployNamespacedBundles`, you will need to switch to using `Deploy` and `DeployBundles`.  The recommended configuration for such custom tasks is represented below.  In flows that need to inject the actual namespace prefix, override the `unmanaged` option .. ::
+
+    custom_deploy_task:
+        class_path: cumulusci.tasks.salesforce.Deploy
+        options:
+            path: your/custom/metadata
+            namespace_inject: $project_config.project__package__namespace
+            unmanaged: False
+
+Enhancements
+============
+
+* The `cci` CLI will now check for new versions and print output at the top of the log if a new version is available
+* The `cci` keychain now automatically creates orgs for all named scratch org configs in the project.  The orgs are created with the same name as the config.  Out of the box, CumulusCI comes with 4 org configs: `dev`, `feature`, `beta`, and `release`.  You can add additional org configs per project using the `orgs` -> `scratch` section of the project's `cumulusci.yml`.  With this change, `cci org list` will always show at least 4 orgs for any project.  If an org already exists in the keychain, it is not touched and no scratch org config is auto-created for that config.  The goal is to eliminate the need to call `cci org scratch` in most cases and make it easier for new users to get up and running with scratch orgs and CumulusCI.
+* `cci org remove <org_name>` is now available to remove orgs from the keychain
+* Scratch orgs created by CumulusCI are now aliased using the naming format `ProjectName__org_name` so you can easily run sfdx commands against scratch orgs created by CumulusCI
+* `cci org list` now shows more information including `scratch`, `config_name`, and `username`.  NOTE: config_name will only be populated for newly created scratch configs.  You can use `cci org scratch` to recreate the config in the keychain.
+* The new flow `dev_org_namespaced` provides a base flow for deploying unmanaged metadata into a namespaced org such as a namespaced scratch org
+* All tasks which previously supported `namespace_inject` now support a new option, `namespaced_org`.  This option is designed to handle use cases of namespaced orgs such as a namespaced scratch org.  In namespaced orgs, all unmanaged metadata gets the namespace prefix even if it is not included in the package.  You can now use the `namespaced_org` option along with the file content token `%%%NAMESPACED_ORG%%%` and the file name token `___NAMESPACED_ORG___` to inject the namespace when deploying to a namespaced org.  `namespaced_org` defaults to False to be backwards compatible with previous functionality.
+* New task `push_list` supports easily pushing a list of OrgIds via the Push API from the CLI: `cci task run push_list -o file <file_path> -o version 1.2 --org packaging`
+
+
 2.0.0-beta64 (2017-09-29)
 -------------------------
 

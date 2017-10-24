@@ -24,6 +24,7 @@ from cumulusci.core.exceptions import ApexTestException
 from cumulusci.core.exceptions import SalesforceException
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.tasks import BaseTask
+from cumulusci.core.utils import process_bool_arg
 from cumulusci.tasks.metadata.package import PackageXmlGenerator
 from cumulusci.salesforce_api.exceptions import MetadataApiError
 from cumulusci.salesforce_api.metadata import ApiDeploy
@@ -134,6 +135,9 @@ class BaseRetrieveMetadata(BaseSalesforceMetadataApiTask):
         'namespace_tokenize': {
             'description': "If set, all namespace prefixes for the namespace specified are replaced with tokens for use with namespace_inject",
         },
+        'namespaced_org': {
+            'description': "If True, the tokens %%%NAMESPACED_ORG%%% and ___NAMESPACED_ORG___ will get replaced with the namespace.  The default is false causing those tokens to get stripped and replaced with an empty string.  Set this if deploying to a namespaced scratch org or packaging org.",
+        },
     }
 
     def _run_task(self):
@@ -146,10 +150,10 @@ class BaseRetrieveMetadata(BaseSalesforceMetadataApiTask):
         if self.options.get('namespace_tokenize'):
             src_zip = zip_tokenize_namespace(src_zip, self.options['namespace_tokenize'])
         if self.options.get('namespace_inject'):
-            if self.options.get('unmanaged'):
-                src_zip = zip_inject_namespace(src_zip, self.options['namespace_inject'])
-            else:
-                src_zip = zip_inject_namespace(src_zip, self.options['namespace_inject'], True)
+            kwargs = {}
+            kwargs['unmanaged'] = process_bool_arg(self.options.get('unmanaged', True))
+            kwargs['namespaced_org'] = process_bool_arg(self.options.get('namespaced_org', False))
+            src_zip = zip_inject_namespace(src_zip, self.options['namespace_inject'], **kwargs)
         if self.options.get('namespace_strip'):
             src_zip = zip_strip_namespace(src_zip, self.options['namespace_strip'])
         return src_zip
@@ -321,6 +325,9 @@ class Deploy(BaseSalesforceMetadataApiTask):
         'namespace_tokenize': {
             'description': "If set, all namespace prefixes for the namespace specified are replaced with tokens for use with namespace_inject",
         },
+        'namespaced_org': {
+            'description': "If True, the tokens %%%NAMESPACED_ORG%%% and ___NAMESPACED_ORG___ will get replaced with the namespace.  The default is false causing those tokens to get stripped and replaced with an empty string.  Set this if deploying to a namespaced scratch org or packaging org.",
+        },
     }
         
     def _get_api(self, path=None):
@@ -358,18 +365,20 @@ class Deploy(BaseSalesforceMetadataApiTask):
             )
             zipf = zip_tokenize_namespace(zipf, self.options['namespace_tokenize'])
         if self.options.get('namespace_inject'):
-            if self.options.get('unmanaged'):
+            kwargs = {}
+            kwargs['managed'] = not process_bool_arg(self.options.get('unmanaged', True))
+            kwargs['namespaced_org'] = process_bool_arg(self.options.get('namespaced_org', False))
+            if kwargs['managed']:
                 self.logger.info(
                     'Stripping namespace tokens from metadata for unmanaged deployment'
                 )
-                zipf = zip_inject_namespace(zipf, self.options['namespace_inject'])
             else:
                 self.logger.info(
                     'Replacing namespace tokens from metadata with namespace prefix {}__'.format(
                         self.options['namespace_inject'],
                     )
                 )
-                zipf = zip_inject_namespace(zipf, self.options['namespace_inject'], True)
+            zipf = zip_inject_namespace(zipf, self.options['namespace_inject'], **kwargs)
         if self.options.get('namespace_strip'):
             zipf = zip_strip_namespace(zipf, self.options['namespace_strip'])
         return zipf
@@ -488,6 +497,9 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
     api_class = ApiDeploy
     name = 'UpdateDependencies'
     task_options = {
+        'namespaced_org': {
+            'description': "If True, the changes namespace token injection on any dependencies so tokens %%%NAMESPACED_ORG%%% and ___NAMESPACED_ORG___ will get replaced with the namespace.  The default is false causing those tokens to get stripped and replaced with an empty string.  Set this if deploying to a namespaced scratch org or packaging org.",
+        },
         'purge_on_delete': {
             'description': 'Sets the purgeOnDelete option for the deployment. Defaults to True',
         },
@@ -500,6 +512,7 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
         if (isinstance(self.options['purge_on_delete'], basestring) and
             self.options['purge_on_delete'].lower() == 'false'):
             self.options['purge_on_delete'] = False
+        self.options['namespaced_org'] = process_bool_arg(self.options.get('namespaced_org', False))
 
     def _run_task(self):
         if not self.project_config.project__dependencies:
@@ -639,6 +652,7 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
                     package_zip,
                     namespace = dependency['namespace_inject'],
                     managed = not dependency.get('unmanaged'),
+                    namespaced_org = self.options['namespaced_org'],
                 )
                 
             if dependency.get('namespace_strip'):
@@ -671,13 +685,10 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
         api = self.api_class(self, package_zip(), purge_on_delete=self.options['purge_on_delete'])
         return api()
 
+deploy_options = Deploy.task_options.copy()
+deploy_options['path']['description'] = 'The path to the parent directory containing the metadata bundles directories'
 class DeployBundles(Deploy):
-    task_options = {
-        'path': {
-            'description': 'The path to the parent directory containing the metadata bundles directories',
-            'required': True,
-        }
-    }
+    task_options = deploy_options
 
     def _run_task(self):
         path = self.options['path']
@@ -713,6 +724,9 @@ deploy_namespaced_options.update({
     'namespace': {
         'description': 'The namespace to replace the token with if in managed mode. Defaults to project__package__namespace',
     },
+    'namespaced_org': {
+        'description': "If True, the tokens %%%NAMESPACED_ORG%%% and ___NAMESPACED_ORG___ will get replaced with the namespace.  The default is false causing those tokens to get stripped and replaced with an empty string.  Set this if deploying to a namespaced scratch org or packaging org.",
+    },
     'namespace_token': {
         'description': 'The string token to replace with the namespace.  Defaults to %%%NAMESPACE%%%',
     },
@@ -722,39 +736,21 @@ deploy_namespaced_options.update({
 })
 
 class DeployNamespaced(Deploy):
-    task_options = deploy_namespaced_options
+    """ DEPRECATED: This is no longer necessary now that namespace_* options exist on Deploy itself """
+    name = 'DeployNamespaced'
 
-    def _init_options(self, kwargs):
-        super(DeployNamespaced, self)._init_options(kwargs)
+    def _run_task(self):
+        self.logger.warning('DEPRECATED: The DeployNamespaced task class is deprecated.  Please switch to using the Deploy task and the namespace_inject option to accomplish the same functionality.  This class will be removed in a future release')
+        super(DeployNamespaced, self)._run_task()
+    
 
-        if 'managed' not in self.options:
-            self.options['managed'] = False
-
-        if 'namespace' not in self.options:
-            self.options['namespace'] = self.project_config.project__package__namespace
-
-    def _write_zip_file(self, zipf, root, path):
-        if self.options['managed'] in [True, 'True', 'true']:
-            namespace = self.options['namespace']
-            if namespace:
-                namespace = namespace + '__'
-        else:
-            namespace = ''
-
-        zip_path = path.replace(self.options['filename_token'], namespace)
-        with open(os.path.join(root, path), 'r') as f:
-            content = f.read().replace(self.options['namespace_token'], namespace)
-        if root == '.':
-            zipf.writestr(zip_path, content)
-        else:
-            # strip ./ from the start of root
-            root = root[2:]
-            zipf.writestr(os.path.join(root, zip_path), content)
-
-
-class DeployNamespacedBundles(DeployNamespaced, DeployBundles):
+class DeployNamespacedBundles(DeployBundles):
+    """ DEPRECATED: This is no longer necessary now that namespace_* options exist on DeployBundles itself """
     name = 'DeployNamespacedBundles'
 
+    def _run_task(self):
+        self.logger.warning('DEPRECATED: The DeployNamespacedBundles task class is deprecated.  Please switch to using the DeployBundles task and the namespace_inject option to accomplish the same functionality.  This class will be removed in a future release')
+        super(DeployNamespacedBundles, self)._run_task()
 
 class BaseUninstallMetadata(Deploy):
 

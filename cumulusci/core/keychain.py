@@ -62,6 +62,7 @@ class BaseProjectKeychain(BaseConfig):
             
     def create_scratch_org(self, org_name, config_name, scratch_config):
         """ Adds/Updates a scratch org config to the keychain from a named config """
+        scratch_config['scratch'] = True
         scratch_config['namespaced'] = scratch_config.get('namespaced', False)
         scratch_config['config_name'] = config_name
         scratch_config['sfdx_alias'] = '{}__{}'.format(
