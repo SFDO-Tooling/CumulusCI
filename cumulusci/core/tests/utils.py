@@ -1,6 +1,7 @@
 """ Utilities for testing CumulusCI
 
 MockLoggingHandler: a logging handler that we can assert"""
+from __future__ import unicode_literals
 
 import logging
 
@@ -29,7 +30,7 @@ class MockLoggingHandler(logging.Handler):
         """ Reset the handler in TestCase.setUp() to clear the msg list """
         self.acquire()
         try:
-            for message_list in self.messages.values():
+            for message_list in list(self.messages.values()):
                 del message_list[:]
         finally:
             self.release()

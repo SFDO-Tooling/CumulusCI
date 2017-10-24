@@ -1,10 +1,16 @@
-from BaseHTTPServer import BaseHTTPRequestHandler
-from BaseHTTPServer import HTTPServer
-import httplib
+from __future__ import print_function
+from __future__ import unicode_literals
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
+from builtins import object
+from http.server import BaseHTTPRequestHandler
+from http.server import HTTPServer
+import http.client
 import requests
-from urllib import quote
-from urlparse import parse_qs
-from urlparse import urlparse
+from urllib.parse import quote
+from urllib.parse import parse_qs
+from urllib.parse import urlparse
 import webbrowser
 
 from cumulusci.oauth.exceptions import SalesforceOAuthError
@@ -31,7 +37,7 @@ class SalesforceOAuth2(object):
         }
         data.update(request_data)
         response = requests.post(url, headers=HTTP_HEADERS, data=data)
-        if response.status_code >= httplib.BAD_REQUEST:
+        if response.status_code >= http.client.BAD_REQUEST:
             message = '{}: {}'.format(response.status_code, response.content)
             raise RequestOauthTokenError(message, response)
         return response
@@ -75,11 +81,11 @@ class OAuthCallbackHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         args = parse_qs(urlparse(self.path).query, keep_blank_values=True)
         if 'error' in args:
-            http_status = httplib.BAD_REQUEST
+            http_status = http.client.BAD_REQUEST
             http_body = 'error: {}\nerror description: {}'.format(
                 args['error'], args['error_description'])
         else:
-            http_status = httplib.OK
+            http_status = http.client.OK
             http_body = 'OK'
             code = args['code']
             self.parent.response = self.parent.oauth_api.get_token(code)
@@ -87,10 +93,10 @@ class OAuthCallbackHandler(BaseHTTPRequestHandler):
                 self.parent._check_response(self.parent.response)
             except SalesforceOAuthError as e:
                 http_status = self.parent.response.status_code
-                http_body = unicode(e)
+                http_body = str(e)
         self.send_response(http_status)
         self.end_headers()
-        self.wfile.write(http_body)
+        self.wfile.write(http_body.encode('ascii'))
 
 
 class CaptureSalesforceOAuth(object):
@@ -121,7 +127,7 @@ class CaptureSalesforceOAuth(object):
         return self.response.json()
 
     def _check_response(self, response):
-        if response.status_code == httplib.OK:
+        if response.status_code == http.client.OK:
             return
         raise SalesforceOAuthError('status_code:{} content:{}'.format(
             response.status_code, response.content))
@@ -148,5 +154,5 @@ class CaptureSalesforceOAuth(object):
         return url
 
     def _launch_browser(self, url):
-        print 'Launching web browser for URL {}'.format(url)
+        print('Launching web browser for URL {}'.format(url))
         webbrowser.open(url, new=1)

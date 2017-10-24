@@ -1,4 +1,5 @@
 """ Tests for the Flow engine """
+from __future__ import unicode_literals
 
 import unittest
 import logging

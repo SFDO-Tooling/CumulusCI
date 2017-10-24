@@ -1,3 +1,5 @@
+from __future__ import unicode_literals
+from builtins import object
 import base64
 import datetime
 import json
@@ -102,7 +104,7 @@ class BaseTaskFlowConfig(BaseConfig):
     def list_tasks(self):
         """ Returns a list of task info dictionaries with keys 'name' and 'description' """
         tasks = []
-        for task in self.tasks.keys():
+        for task in list(self.tasks.keys()):
             task_info = self.tasks[task]
             if not task_info:
                 task_info = {}
@@ -221,7 +223,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                 ('root', 'CUMULUSCI_REPO_ROOT'),
                 ('url', 'CUMULUSCI_REPO_URL'),
             ))
-            for key, env_var in validate.items():
+            for key, env_var in list(validate.items()):
                 if key not in info or not info[key]:
                     message = 'Detected CI on {} but could not determine the repo {}'.format(
                         info['ci'],
@@ -238,7 +240,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             self.logger.warn(
                 'Using environment variables to override repo info:'
             )
-            keys = info.keys()
+            keys = list(info.keys())
             keys.sort()
             for key in keys:
                 self.logger.warn(
@@ -554,7 +556,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         pretty = []
         for dependency in dependencies:
             prefix = '{}  - '.format(" " * indent)
-            for key, value in dependency.items():
+            for key, value in list(dependency.items()):
                 extra = []
                 if value is None or value is False:
                     continue
@@ -608,7 +610,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         unpackaged_pre = []
         contents = repo.contents('unpackaged/pre')
         if contents:
-            for dirname in contents.keys():
+            for dirname in list(contents.keys()):
                 if 'unpackaged/pre/{}'.format(dirname) in skip:
                     continue
                 subfolder = "{}-{}/unpackaged/pre/{}".format(
@@ -647,7 +649,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         unpackaged_post = []
         contents = repo.contents('unpackaged/post')
         if contents:
-            for dirname in contents.keys():
+            for dirname in list(contents.keys()):
                 if 'unpackaged/post/{}'.format(dirname) in skip:
                     continue
                 zip_url = "{}/archive/{}.zip".format(
@@ -1093,7 +1095,7 @@ class YamlProjectConfig(BaseProjectConfig):
         # optionally pass in a kwarg named 'additional_yaml' that will
         # be added to the YAML merge stack.
         self.additional_yaml = None
-        if kwargs.has_key('additional_yaml'):
+        if 'additional_yaml' in kwargs:
             self.additional_yaml = kwargs.pop('additional_yaml')
 
         super(YamlProjectConfig, self).__init__(*args, **kwargs)
