@@ -106,11 +106,6 @@ def check_latest_version():
             click.echo(
                 "An update to CumulusCI is available. Use pip install --upgrade cumulusci to update.")
 
-def pretty_dict(data):
-    if not data:
-        return ''
-    return json.dumps(data, sort_keys=True, indent=4, separators=(',', ': '))
-
 def handle_exception_debug(config, debug, e, throw_exception=None, no_prompt=None):
     if debug:
         import pdb
@@ -124,6 +119,23 @@ def handle_exception_debug(config, debug, e, throw_exception=None, no_prompt=Non
             handle_sentry_event(config, no_prompt)
             raise
 
+def render_recursive(data, indent=None):
+    if indent is None:
+        indent = 0
+    indent_str = ' ' * indent
+    if isinstance(data, list):
+        for item in data:
+            render_recursive(item, indent=indent+4)
+    elif isinstance(data, dict):
+        for key, value in data.items():
+            key_str = click.style(unicode(key) + ':', bold=True)
+            if isinstance(value, list):
+                render_recursive(value, indent=indent+4)
+            elif isinstance(value, dict):
+                click.echo('{}{}'.format(indent_str, key_str))
+                render_recursive(value, indent=indent+4)
+            else:
+                click.echo('{}{} {}'.format(indent_str, key_str, value))
 
 class CliConfig(object):
 
@@ -241,7 +253,7 @@ def handle_sentry_event(config, no_prompt):
     click.echo(
         'An error event was recorded in sentry.io and can be viewed at the url:\n{}'.format(event_url))
 
-    if not no_prompt and click.confirm('Do you want to open a browser to view the error in sentry.io?'):
+    if not no_prompt and click.confirm(click.style('Do you want to open a browser to view the error in sentry.io?', bold=True)):
         webbrowser.open(event_url)
 
 # Root command
@@ -310,115 +322,153 @@ cli.add_command(service)
 @click.command(name='init',
                help="Initialize a new project for use with the cumulusci toolbelt",
                )
-@click.option('--name',
-              help="The project's package name",
-              prompt=True,
-              )
-@click.option('--package-name',
-              help="The project's package name",
-              prompt=True,
-              )
-@click.option('--package-namespace',
-              help="The project's package namespace",
-              prompt=True,
-              )
-@click.option('--package-api-version',
-              help="The Salesforce API verson for the package",
-              prompt=True,
-              default=CLI_CONFIG.global_config.project__package__api_version,
-              )
-@click.option('--git-prefix-feature',
-              help="The branch prefix for all feature branches",
-              prompt=True,
-              default=CLI_CONFIG.global_config.project__git__prefix_feature,
-              )
-@click.option('--git-default-branch',
-              help="The default branch in the repository",
-              prompt=True,
-              default=CLI_CONFIG.global_config.project__git__default_branch,
-              )
-@click.option('--git-prefix-beta',
-              help="The tag prefix for beta release tags",
-              prompt=True,
-              default=CLI_CONFIG.global_config.project__git__prefix_beta,
-              )
-@click.option('--git-prefix-release',
-              help="The tag prefix for production release tags",
-              prompt=True,
-              default=CLI_CONFIG.global_config.project__git__prefix_release,
-              )
-@click.option('--test-name-match',
-              help="The SOQL format like query for selecting Apex tests.  % is wildcard",
-              prompt=True,
-              default=CLI_CONFIG.global_config.project__test__name_match,
-              )
+@click.option('--extend', help="If set to the url of another Github repository configured for CumulusCI, creates this project as an extension which depends on the other Github project and all its dependencies")
 @pass_config
-def project_init(config, name, package_name, package_namespace, package_api_version, git_prefix_feature, git_default_branch, git_prefix_beta, git_prefix_release, test_name_match):
+def project_init(config, extend):
     if not os.path.isdir('.git'):
-        click.echo("You are not in the root of a Git repository")
+        raise click.ClickException("You are not in the root of a Git repository")
 
     if os.path.isfile('cumulusci.yml'):
-        click.echo("This project already has a cumulusci.yml file")
+        raise click.ClickException("This project already has a cumulusci.yml file")
 
     yml_config = []
-    # project:
+
+    click.echo()
+    click.echo(click.style('# Project Info', bold=True, fg='blue'))
+    click.echo('The following prompts will collect general information about the project')
+    package_config = []
+
+    name = os.path.split(os.getcwd())[-1:][0]
+    click.echo()
+    click.echo('Enter the project name.  The name is usually the same as your repository name')
+    name = click.prompt(click.style('Project Name', bold=True), default=name)
     yml_config.append('project:')
     yml_config.append('    name: {}'.format(name))
 
-    #     package:
-    package_config = []
+    click.echo()
+    click.echo("CumulusCI uses an unmanaged package as a container for your project's metadata.  Enter the name of the package you want to use.")
+    package_name = click.prompt(click.style('Package Name', bold=True), default=name)
     if package_name and package_name != config.global_config.project__package__name:
         package_config.append('        name: {}'.format(package_name))
-    if package_namespace and package_namespace != config.global_config.project__package__namespace:
-        package_config.append(
-            '        namespace: {}'.format(package_namespace))
+
+    click.echo()
+    package_namespace = None
+    if click.confirm(click.style("Is this a managed package project?", bold=True), default=False):
+        click.echo('Enter the namespace assigned to the managed package for this project')
+        package_name = click.prompt(click.style('Package Namespace', bold=True), default=name)
+        if package_namespace and package_namespace != config.global_config.project__package__namespace:
+            package_config.append(
+                '        namespace: {}'.format(package_namespace))
+
+    click.echo()
+    package_api_version = click.prompt(click.style('Salesforce API Version', bold=True), default=config.global_config.project__package__api_version)
     if package_api_version and package_api_version != config.global_config.project__package__api_version:
         package_config.append(
             '        api_version: {}'.format(package_api_version))
+
     if package_config:
         yml_config.append('    package:')
         yml_config.extend(package_config)
 
+    if extend:
+        yml_config.append('    dependencies:')
+        yml_config.append('        github: {}'.format(extend))
+
     #     git:
     git_config = []
-    if git_prefix_feature and git_prefix_feature != config.global_config.project__git__prefix_feature:
-        git_config.append(
-            '        prefix_feature: {}'.format(git_prefix_feature))
+    click.echo()
+    click.echo(click.style('# Git Configuration', bold=True, fg='blue'))
+    click.echo('CumulusCI assumes your default branch is master, your feature branches are named feature/*, your beta release tags are named beta/*, and your release tags are release/*.  If you want to use a different branch/tag naming scheme, you can configure the overrides here.  Otherwise, just accept the defaults.')
+
+    git_default_branch = click.prompt(click.style('Default Branch', bold=True), default='master')
     if git_default_branch and git_default_branch != config.global_config.project__git__default_branch:
         git_config.append(
             '        default_branch: {}'.format(git_default_branch))
+
+    git_prefix_feature = click.prompt(click.style('Feature Branch Prefix', bold=True), default='feature/')
+    if git_prefix_feature and git_prefix_feature != config.global_config.project__git__prefix_feature:
+        git_config.append(
+            '        prefix_feature: {}'.format(git_prefix_feature))
+
+    git_prefix_beta = click.prompt(click.style('Beta Tag Prefix', bold=True), default='beta/')
     if git_prefix_beta and git_prefix_beta != config.global_config.project__git__prefix_beta:
         git_config.append('        prefix_beta: {}'.format(git_prefix_beta))
+
+    git_prefix_release = click.prompt(click.style('Release Tag Prefix', bold=True), default='release/')
     if git_prefix_release and git_prefix_release != config.global_config.project__git__prefix_release:
         git_config.append(
             '        prefix_release: {}'.format(git_prefix_release))
+
     if git_config:
         yml_config.append('    git:')
         yml_config.extend(git_config)
 
     #     test:
     test_config = []
+    click.echo()
+    click.echo(click.style('# Apex Tests Configuration', bold=True, fg='blue'))
+    click.echo('The CumulusCI Apex test runner uses a SOQL where clause to select which tests to run.  Enter the SOQL pattern to use to match test class names.')
+    
+    test_name_match = click.prompt(click.style('Test Name Match', bold=True), default=config.global_config.project__test__name_match)
     if test_name_match and test_name_match != config.global_config.project__test__name_match:
         test_config.append('        name_match: {}'.format(test_name_match))
     if test_config:
         yml_config.append('    test:')
         yml_config.extend(test_config)
 
+    if package_namespace:
+        yam_config.append('orgs:')
+        yam_config.append('    scratch:')
+        yam_config.append('        dev_namespaced:')
+        yam_config.append('            config_file: orgs/dev.json')
+        yam_config.append('            namespaced: True')
+
     yml_config.append('')
 
     with open('cumulusci.yml', 'w') as f_yml:
         f_yml.write('\n'.join(yml_config))
 
-    click.echo("Your project is now initialized for use with CumulusCI")
-    click.echo(
-        "You can use the project edit command to edit the project's config file")
+    click.echo(click.style("Your project is now initialized for use with CumulusCI", bold=True, fg='green'))
+    click.echo(click.style(
+        "You can use the project edit command to edit the project's config file", fg='yellow'
+    ))
 
+    if os.path.isfile('sfdx-project.json'):
+        return
+
+    if not os.path.isdir('src'):
+        os.mkdir('src')
+
+    sfdx_project = {
+        "packageDirectories": [
+            {
+                "path": "src",
+                "default": True,
+            }
+        ],
+        "namespace": package_namespace,
+        "sourceApiVersion": package_api_version,
+}
+    with open('sfdx-project.json','w') as f:
+        f.write(json.dumps(sfdx_project))
+
+    if not os.path.isdir('orgs'):
+        os.mkdir('orgs')
+      
+    org_content_url = 'https://raw.githubusercontent.com/SalesforceFoundation/sfdo-package-cookiecutter/master/%7B%7Bcookiecutter.project_name%7D%7D/orgs/{}.json' 
+    for org in ['beta', 'dev', 'feature', 'release']:
+        with open('orgs/{}.json'.format(org), 'w') as f:
+            resp = requests.get(org_content_url.format(org))
+            content = resp.content.replace('{{cookiecutter.package_name}}', package_name)
+            f.write(content) 
+    
+        
 
 @click.command(name='info', help="Display information about the current project's configuration")
 @pass_config
 def project_info(config):
     check_project_config(config)
-    click.echo(pretty_dict(config.project_config.project))
+    click.echo(render_recursive(config.project_config.project))
 
 
 @click.command(name="dependencies", help="Displays the current dependencies for the project.  If the dependencies section has references to other github repositories, the repositories are inspected and a static list of dependencies is created")
@@ -515,7 +565,7 @@ def service_show(config, service_name):
     check_keychain(config)
     try:
         service_config = config.keychain.get_service(service_name)
-        click.echo(pretty_dict(service_config.config))
+        click.echo(render_recursive(service_config.config))
     except ServiceNotConfigured:
         click.echo('{0} is not configured for this project.  Use service connect {0} to configure.'.format(
             service_name))
@@ -603,7 +653,7 @@ def org_info(config, org_name):
     except ScratchOrgException as e:
         raise click.ClickException('ScratchOrgException: {}'.format(e.message))
 
-    click.echo(pretty_dict(org_config.config))
+    click.echo(render_recursive(org_config.config))
 
     # Save the org config in case it was modified
     config.keychain.set_org(org_name, org_config)
@@ -690,7 +740,7 @@ def org_scratch_delete(config, org_name):
 @pass_config
 def org_connected_app(config):
     check_connected_app(config)
-    click.echo(pretty_dict(config.keychain.get_connected_app().config))
+    click.echo(render_recursive(config.keychain.get_connected_app().config))
 
 
 @click.command(name='config_connected_app', help="Configures the connected app used for connecting to Salesforce orgs")
@@ -897,7 +947,7 @@ def flow_info(config, flow_name):
     flow = getattr(config.project_config, 'flows__{}'.format(flow_name))
     if not flow:
         raise FlowNotFoundError('Flow not found: {}'.format(flow_name))
-    click.echo(pretty_dict(flow))
+    click.echo(render_recursive(flow))
 
 
 @click.command(name='run', help="Runs a flow")
