@@ -270,7 +270,10 @@ class SchedulePushOrgList(BaseSalesforcePushTask):
 
         start_time = self.options.get('start_time')
         if start_time:
-            start_time = datetime.strptime(start_time, '%Y-%m-%dT%H:%M')
+            if start_time.lower() == 'now':
+                start_time = datetime.utcnow() + timedelta(seconds=5)
+            else:
+                start_time = datetime.strptime(start_time, '%Y-%m-%dT%H:%M')
             if start_time < datetime.utcnow():
                 raise CumulusCIException('Start time cannot be in the past')
         else:
