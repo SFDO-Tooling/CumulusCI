@@ -2,6 +2,12 @@
 History
 =======
 
+2.0.0-beta69 (2017-10-27)
+-------------------------
+
+* cumulusci.core has been made compatible with Python 3!
+* Fix issue with namespace injection
+
 2.0.0-beta68 (2017-10-20)
 -------------------------
 
