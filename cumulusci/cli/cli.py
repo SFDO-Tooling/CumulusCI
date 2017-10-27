@@ -317,8 +317,9 @@ cli.add_command(service)
 @click.command(name='init',
                help="Initialize a new project for use with the cumulusci toolbelt",
                )
+@click.option('--extend', help="If set to the url of another Github repository configured for CumulusCI, creates this project as an extension which depends on the other Github project and all its dependencies")
 @pass_config
-def project_init(config):
+def project_init(config, extend):
     if not os.path.isdir('.git'):
         raise click.ClickException("You are not in the root of a Git repository")
 
@@ -363,6 +364,10 @@ def project_init(config):
     if package_config:
         yml_config.append('    package:')
         yml_config.extend(package_config)
+
+    if extend:
+        yml_config.append('    dependencies:')
+        yml_config.append('        github: {}'.format(extend))
 
     #     git:
     git_config = []
