@@ -6,7 +6,15 @@ History
 -------------------------
 
 * cumulusci.core has been made compatible with Python 3!
+* `cci project init` has been upgraded
+
+  * Better prompt driven user experience with explanations of each prompt
+  * `--extend <repo_url>` option to set up a recursive dependency on another CumulusCI project's Github repository
+  * Creates `sfdx-project.json` if it doesn't already exist
+  * Creates and populates the `orgs/` directory if it does not already exist.  The directory is populated with starter scratch org shape files for the 4 main scratch org configs in CumulusCI: `beta.json`, `dev.json`, `feature.json`, `release.json`
+  
 * Fix issue with namespace injection
+* `push_*` tasks now accept `now` for the `start_time` option which will start the push upgrade now (technically 5 seconds from now but that's better than 5 minutes).
 
 2.0.0-beta68 (2017-10-20)
 -------------------------
