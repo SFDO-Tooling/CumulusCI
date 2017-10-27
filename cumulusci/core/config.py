@@ -37,6 +37,9 @@ from cumulusci.oauth.salesforce import SalesforceOAuth2
 
 __location__ = os.path.dirname(os.path.realpath(__file__))
 
+# constants used by MetaCI
+FAILED_TO_CREATE_SCRATCH_ORG = 'Failed to create scratch org'
+
 
 class BaseConfig(object):
     """ Base class for all configuration objects """
@@ -970,8 +973,10 @@ class ScratchOrgConfig(OrgConfig):
             self.logger.info(line)
 
         if p.returncode:
-            message = 'Failed to create scratch org: \n{}'.format(
-                ''.join(stdout))
+            message = '{}: \n{}'.format(
+                FAILED_TO_CREATE_SCRATCH_ORG,
+                ''.join(stdout),
+            )
             raise ScratchOrgException(message)
 
         self.generate_password()
