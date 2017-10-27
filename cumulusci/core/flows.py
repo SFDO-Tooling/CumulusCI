@@ -1,5 +1,8 @@
 """ The flow engine allows a series of tasks to be run. """
+from __future__ import unicode_literals
 
+from builtins import str
+from builtins import object
 import copy
 from distutils.version import LooseVersion  # pylint: disable=import-error,no-name-in-module
 import logging
@@ -32,7 +35,7 @@ class BaseFlow(object):
     def _init_options(self, options):
         if not options:
             return
-        for key, value in options.items():
+        for key, value in list(options.items()):
             task, option = key.split('__')
             if task not in self.task_options:
                 self.task_options[task] = {}
@@ -61,7 +64,7 @@ class BaseFlow(object):
 
     def _get_tasks(self):
         tasks = []
-        for step_num, config in self.flow_config.tasks.items():
+        for step_num, config in list(self.flow_config.tasks.items()):
             if config['task'] == 'None':
                 continue
             tasks.append((
@@ -146,8 +149,8 @@ class BaseFlow(object):
             return
 
         # Handle dynamic value lookups in the format ^^task_name.attr1.attr2
-        for option, value in task_config.options.items():
-            if unicode(value).startswith('^^'):
+        for option, value in list(task_config.options.items()):
+            if str(value).startswith('^^'):
                 value_parts = value[2:].split('.')
                 parent = self._find_task_by_name(value_parts[0])
                 for attr in value_parts[1:]:
@@ -187,7 +190,7 @@ class BaseFlow(object):
         config = ['Options:']
         if not task.task_options:
             return config
-        for option, info in task.task_options.items():
+        for option, info in list(task.task_options.items()):
             value = task.options.get(option)
             if value is None:
                 continue

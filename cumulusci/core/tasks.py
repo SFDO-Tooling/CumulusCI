@@ -2,7 +2,11 @@
 
 Subclass BaseTask or a descendant to define custom task logic
 """
+from __future__ import division
+from __future__ import unicode_literals
 
+from builtins import object
+from past.utils import old_div
 import logging
 import time
 
@@ -68,7 +72,7 @@ class BaseTask(object):
             self.options.update(kwargs)
 
         # Handle dynamic lookup of project_config values via $project_config.attr
-        for option, value in self.options.items():
+        for option, value in list(self.options.items()):
             try:
                 if value.startswith('$project_config.'):
                     attr = value.replace('$project_config.', '', 1)
@@ -79,7 +83,7 @@ class BaseTask(object):
 
     def _validate_options(self):
         missing_required = []
-        for name, config in self.task_options.items():
+        for name, config in list(self.task_options.items()):
             if config.get('required') is True and name not in self.options:
                 missing_required.append(name)
 
@@ -122,7 +126,7 @@ class BaseTask(object):
             if self.org_config:
                 tags['org username'] = self.org_config.username
                 tags['scratch org'] = self.org_config.scratch == True
-            for key, value in self.options.items():
+            for key, value in list(self.options.items()):
                 tags['option_' + key] = value
             self.project_config.sentry.tags_context(tags)
 
@@ -197,7 +201,7 @@ class BaseTask(object):
     def _poll_update_interval(self):
         ''' update the polling interval to be used next iteration '''
         # Increase by 1 second every 3 polls
-        if self.poll_count / 3 > self.poll_interval_level:
+        if old_div(self.poll_count, 3) > self.poll_interval_level:
             self.poll_interval_level += 1
             self.poll_interval_s += 1
             self.logger.info(

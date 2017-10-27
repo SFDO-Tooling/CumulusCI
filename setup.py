@@ -40,7 +40,8 @@ requirements = [
     'PyGithub>=1.25.1',
     'PyYAML>=3.11',
     'SQLAlchemy>=1.1.4',
-    'arrow>=0.10.0'
+    'arrow>=0.10.0',
+    'future==0.16.0'
 ]
 
 test_requirements = [

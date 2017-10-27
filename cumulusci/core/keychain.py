@@ -1,3 +1,5 @@
+from __future__ import unicode_literals, print_function
+from builtins import chr
 import base64
 import json
 import os
@@ -89,11 +91,11 @@ class BaseProjectKeychain(BaseConfig):
             self.set_connected_app(connected_app)
 
         if orgs:
-            for org_name, org_config in orgs.items():
+            for org_name, org_config in list(orgs.items()):
                 self.set_org(org_name, org_config)
 
         if services:
-            for service_name, service_config in services.items():
+            for service_name, service_config in list(services.items()):
                 self.set_service(service_name, service_config)
 
     def set_connected_app(self, app_config, project=False):
@@ -168,7 +170,7 @@ class BaseProjectKeychain(BaseConfig):
 
     def list_orgs(self):
         """ list the orgs configured in the keychain """
-        orgs = self.orgs.keys()
+        orgs = list(self.orgs.keys())
         orgs.sort()
         return orgs
 
@@ -180,7 +182,7 @@ class BaseProjectKeychain(BaseConfig):
         self._set_service(name, service_config, project)
         self._load_services()
 
-    def _set_service(self, name, service_config, project):
+    def _set_service(self, name, service_config, project=False):
         self.services[name] = service_config
 
     def get_service(self, name):
@@ -205,7 +207,7 @@ class BaseProjectKeychain(BaseConfig):
     def _validate_service(self, name, service_config):
         missing_required = []
         attr_key = 'services__{0}__attributes'.format(name)
-        for atr, config in getattr(self.project_config, attr_key).iteritems():
+        for atr, config in list(getattr(self.project_config, attr_key).items()):
             if config.get('required') is True and not getattr(service_config, atr):
                 missing_required.append(atr)
 
@@ -214,7 +216,7 @@ class BaseProjectKeychain(BaseConfig):
 
     def _raise_service_not_configured(self, name):
         raise ServiceNotConfigured(
-            'Service named {} is not configured for this project'.format(name)
+            'Service named {} is not configured for this project. Configured services are: {}'.format(name, ', '.join(list(self.services)))
         )
 
     def _raise_service_not_valid(self, name):
@@ -223,7 +225,7 @@ class BaseProjectKeychain(BaseConfig):
 
     def list_services(self):
         """ list the services configured in the keychain """
-        services = self.services.keys()
+        services = list(self.services.keys())
         services.sort()
         return services
 
@@ -235,31 +237,42 @@ class EnvironmentProjectKeychain(BaseProjectKeychain):
     app_var = 'CUMULUSCI_CONNECTED_APP'
     service_var_prefix = 'CUMULUSCI_SERVICE_'
 
+    def _get_env(self):
+        """ loads the environment variables as unicode if ascii """
+        try:
+            return [(k.decode(), v.decode()) for k,v in list(os.environ.items())]
+        except AttributeError:
+            return list(os.environ.items())
+
     def _load_app(self):
-        app = os.environ.get(self.app_var)
+        try:
+            app = os.environ.get(self.app_var.encode('ascii'))
+        except TypeError:
+            app = os.environ.get(self.app_var)
         if app:
             self.app = ConnectedAppOAuthConfig(json.loads(app))
 
     def _load_orgs(self):
-        for key, value in os.environ.items():
+        for key, value in self._get_env():
             if key.startswith(self.org_var_prefix):
                 org_config = json.loads(value)
+                org_name = key[len(self.org_var_prefix):]
                 if org_config.get('scratch'):
-                    self.orgs[key[len(self.org_var_prefix):]
-                              ] = ScratchOrgConfig(json.loads(value))
+                    self.orgs[org_name] = ScratchOrgConfig(json.loads(value))
                 else:
-                    self.orgs[key[len(self.org_var_prefix):]
-                              ] = OrgConfig(json.loads(value))
+                    self.orgs[org_name] = OrgConfig(json.loads(value))
 
     def _load_services(self):
-        for key, value in os.environ.items():
+        for key, value in self._get_env():
             if key.startswith(self.service_var_prefix):
-                self.services[key[len(self.service_var_prefix):]] = ServiceConfig(
-                    json.loads(value))
+                service_config = json.loads(value)
+                service_name = key[len(self.service_var_prefix):]
+                self._set_service(service_name, ServiceConfig(service_config))
+
 
 
 BS = 16
-pad = lambda s: s + (BS - len(s) % BS) * chr(BS - len(s) % BS)
+pad = lambda s: s + (BS - len(s) % BS) * chr(BS - len(s) % BS).encode('ascii')
 unpad = lambda s: s[0:-ord(s[-1])]
 
 
@@ -388,7 +401,7 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
             filename = os.path.join(self.project_local_dir, 'connected.app')
         else:
             filename = os.path.join(self.config_local_dir, 'connected.app')
-        with open(filename, 'w') as f_org:
+        with open(filename, 'wb') as f_org:
             f_org.write(encrypted)
         self.app = encrypted
 
@@ -399,7 +412,7 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
         else:
             filename = os.path.join(
                 self.project_local_dir, '{}.org'.format(name))
-        with open(filename, 'w') as f_org:
+        with open(filename, 'wb') as f_org:
             f_org.write(encrypted)
 
     def _set_encrypted_service(self, name, encrypted, project):
@@ -409,7 +422,7 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
         else:
             filename = os.path.join(
                 self.config_local_dir, '{}.service'.format(name))
-        with open(filename, 'w') as f_service:
+        with open(filename, 'wb') as f_service:
             f_service.write(encrypted)
 
     def _raise_org_not_found(self, name):

@@ -3,15 +3,17 @@
 import_class: task class defn import helper
 process_bool_arg: determine true/false for a commandline arg
 decode_to_unicode: get unicode string from sf api """
+from __future__ import unicode_literals
 
-
+from past.builtins import basestring
 def import_class(path):
     """ Import a class from a string module class path """
     components = path.split('.')
     module = components[:-1]
     module = '.'.join(module)
-    mod = __import__(module, fromlist=[components[-1]])
-    return getattr(mod, components[-1])
+    # __import__ needs a native str() on py2
+    mod = __import__(module, fromlist=[str(components[-1])])
+    return getattr(mod, str(components[-1]))
 
 
 def process_bool_arg(arg):
