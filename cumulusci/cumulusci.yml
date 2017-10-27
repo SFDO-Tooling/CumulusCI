@@ -475,7 +475,7 @@ services:
         description: Your API token to the MetaCI site (get from SITE_URL/api/token)
         required: True
   mrbelvedere:
-    descript: Configure connection for mrbelvedere tasks, e.g. MrbelvederePublish
+    description: Configure connection for mrbelvedere tasks, e.g. MrbelvederePublish
     attributes:
       base_url:
         description: The base url for your mrbelvedere instance.
