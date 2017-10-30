@@ -2,6 +2,11 @@
 History
 =======
 
+2.0.0-beta70 (2017-10-30)
+-------------------------
+
+* Fix issue in zip file processing that was introduced in v2.0.0b69
+
 2.0.0-beta69 (2017-10-27)
 -------------------------
 
