@@ -2,9 +2,51 @@
 Tutorial
 ========
 
-This tutorial is for macOS. Linux and Windows are not yet officially supported but should work for the most part.
+This tutorial is for macOS and Windows. Linux is not yet officially supported but should work for the most part.
 
-Part 1: Installing CumulusCI
+Part 1: Installing CumulusCI (macOS)
+============================
+
+Install Requirements
+--------------------
+
+Due to an issue regarding TLS support in the Python included in macOS it is necessary to install Python with OpenSSL support using Homebrew. For more info on the TLS issue see here: http://pyfound.blogspot.com/2017/01/time-to-upgrade-your-python-tls-v12.html
+
+#. Install Homebrew: https://docs.brew.sh/Installation.html
+#. Use Homebrew to install OpenSSL::
+
+    $ brew install openssl
+
+#. Use Homebrew to install Python 2 (make note of the installed path that is printed after successful installation)::
+
+    $ brew install python
+
+Create Virtual Environment
+--------------------------
+
+#. Install `virtualenv <https://virtualenv.pypa.io/en/stable/>`_::
+
+    $ pip2 install virtualenv
+
+#. Create a virtual environment using the Python executable path that was printed after installing Python 2 with Homebrew::
+
+    $ # Creates a new directory at ~/venvs/cumulusci/ - You can change this path to something else if you like but we recommend the final part of the path to be "cumulusci" so that it shows in the shell session when the virtual environment is activated.
+    $ virtualenv --python=/usr/local/opt/python/libexec/bin/python ~/venvs/cumulusci/
+
+#. Activate the newly created virtual environment::
+
+    $ source ~/venvs/cumulusci/bin/activate
+
+You may want to put the activation line in your ~/.bash_profile file so that the virtual environment is automatically activated for you every time you start a new shell session.
+
+Install CumulusCI
+-----------------
+
+With the virtual environment now activated, install cumulusci using pip::
+
+    $ pip install cumulusci
+
+Part 1: Installing CumulusCI (Windows)
 ============================
 
 Install Requirements
