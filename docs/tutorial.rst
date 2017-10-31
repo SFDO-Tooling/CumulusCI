@@ -52,16 +52,11 @@ Part 1: Installing CumulusCI (Windows)
 Install Requirements
 --------------------
 
-Due to an issue regarding TLS support in the Python included in macOS it is necessary to install Python with OpenSSL support using Homebrew. For more info on the TLS issue see here: http://pyfound.blogspot.com/2017/01/time-to-upgrade-your-python-tls-v12.html
+#. Install Python 2: https://www.python.org/downloads/windows/ 
+	**Be sure to select latest Python 2 not Python 3 since CumulusCI is based on Python 2
 
-#. Install Homebrew: https://docs.brew.sh/Installation.html
-#. Use Homebrew to install OpenSSL::
-
-    $ brew install openssl
-
-#. Use Homebrew to install Python 2 (make note of the installed path that is printed after successful installation)::
-
-    $ brew install python
+#. Update Environment Path to include Python root and Scripts folder.  
+	**Current Python 2.7 default install is C:\Python27 so update Path to include C:\Python27 and C:\Python27\Scripts
 
 Create Virtual Environment
 --------------------------
@@ -70,14 +65,14 @@ Create Virtual Environment
 
     $ pip2 install virtualenv
 
-#. Create a virtual environment using the Python executable path that was printed after installing Python 2 with Homebrew::
+#. Create a virtual environment using the Python executable path based on the Python version you installed::
 
-    $ # Creates a new directory at ~/venvs/cumulusci/ - You can change this path to something else if you like but we recommend the final part of the path to be "cumulusci" so that it shows in the shell session when the virtual environment is activated.
-    $ virtualenv --python=/usr/local/opt/python/libexec/bin/python ~/venvs/cumulusci/
+    $ mkdir C:\Python27\venvs\cumulusci\ - You can change this path to something else if you like but we recommend the final part of the path to be "cumulusci" so that it shows in the shell session when the virtual environment is activated.
+    $ virtualenv --python=C:\Python27\python.exe C:\Python27\venvs\cumulusci\
 
 #. Activate the newly created virtual environment::
 
-    $ source ~/venvs/cumulusci/bin/activate
+    $ source C:\Python27\venvs\cumulusci\Scripts\activate
 
 You may want to put the activation line in your ~/.bash_profile file so that the virtual environment is automatically activated for you every time you start a new shell session.
 
@@ -87,6 +82,10 @@ Install CumulusCI
 With the virtual environment now activated, install cumulusci using pip::
 
     $ pip install cumulusci
+    
+	PyCrypto Error during install?  To resolve install Microsoft Visual Studio C++ 9.0 (http://aka.ms/vcpython27) then try the install again.
+	Other Error? Check the error details in the console window for recommendations.
+	Still need help? Search issues on CumulusCI GitHub https://github.com/SalesforceFoundation/CumulusCI/issues
 
 Part 2: Project Configuration
 =============================
