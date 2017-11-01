@@ -2,9 +2,9 @@
 Tutorial
 ========
 
-This tutorial is for macOS. Linux and Windows are not yet officially supported but should work for the most part.
+This tutorial is for macOS and Windows. Linux is not yet officially supported but should work for the most part.
 
-Part 1: Installing CumulusCI
+Part 1: Installing CumulusCI (macOS)
 ============================
 
 Install Requirements
@@ -45,6 +45,47 @@ Install CumulusCI
 With the virtual environment now activated, install cumulusci using pip::
 
     $ pip install cumulusci
+
+Part 1: Installing CumulusCI (Windows)
+============================
+
+Install Requirements
+--------------------
+
+#. Install Python 2: https://www.python.org/downloads/windows/ 
+	**Be sure to select latest Python 2 not Python 3 since CumulusCI is based on Python 2
+
+#. Update Environment Path to include Python root and Scripts folder.  
+	**Current Python 2.7 default install is C:\Python27 so update Path to include C:\Python27 and C:\Python27\Scripts
+
+Create Virtual Environment
+--------------------------
+
+#. Install `virtualenv <https://virtualenv.pypa.io/en/stable/>`_::
+
+    $ pip2 install virtualenv
+
+#. Create a virtual environment using the Python executable path based on the Python version you installed::
+
+    $ mkdir C:\Python27\venvs\cumulusci\ - You can change this path to something else if you like but we recommend the final part of the path to be "cumulusci" so that it shows in the shell session when the virtual environment is activated.
+    $ virtualenv --python=C:\Python27\python.exe C:\Python27\venvs\cumulusci\
+
+#. Activate the newly created virtual environment::
+
+    $ source C:\Python27\venvs\cumulusci\Scripts\activate
+
+You may want to put the activation line in your ~/.bash_profile file so that the virtual environment is automatically activated for you every time you start a new shell session.
+
+Install CumulusCI
+-----------------
+
+With the virtual environment now activated, install cumulusci using pip::
+
+    $ pip install cumulusci
+    
+	PyCrypto Error during install?  To resolve install Microsoft Visual Studio C++ 9.0 (http://aka.ms/vcpython27) then try the install again.
+	Other Error? Check the error details in the console window for recommendations.
+	Still need help? Search issues on CumulusCI GitHub https://github.com/SalesforceFoundation/CumulusCI/issues
 
 Part 2: Project Configuration
 =============================
