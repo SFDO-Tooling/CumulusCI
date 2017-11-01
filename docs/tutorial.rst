@@ -31,7 +31,7 @@ Windows
 
 #. Install Python 2: https://www.python.org/downloads/release/python-2714/
 
-#. Update Environment Path to include Python 2.7 install folders (C:\Python27 and C:\Python27\Scripts)
+#. Update Environment Path to include Python 2.7 install folders (C:\\Python27 and C:\\Python27\Scripts)
 
 Create Virtual Environment
 --------------------------
