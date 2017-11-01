@@ -2,7 +2,7 @@
 Tutorial
 ========
 
-This tutorial is for macOS and Windows. Linux is not yet officially supported but should work for the most part.
+This tutorial is for macOS. Linux and Windows are not yet officially supported but should work for the most part. We have added some Windows info where possible.
 
 Part 1: Installing CumulusCI
 ============================
