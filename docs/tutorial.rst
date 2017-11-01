@@ -4,7 +4,7 @@ Tutorial
 
 This tutorial is for macOS and Windows. Linux is not yet officially supported but should work for the most part.
 
-Part 1: Installing CumulusCI (macOS)
+Part 1: Installing CumulusCI
 ============================
 
 Install Requirements
