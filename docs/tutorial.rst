@@ -55,7 +55,7 @@ If you want to use our example project, fork our CumulusCI-Test repo::
 
     $ git clone https://github.com/YOUR_GITHUB_FORK_USER/CumulusCI-Test
 
-If you are using the CumulusCI-Test repo, enable Chatter in your target org.
+If you are using the CumulusCI-Test repo with a Developer Edition Salesforce org, you will need to enable Chatter in the org if it is not already enabled.  With Salesforce DX Scratch Orgs, this is handled for you.
 
 Keychain Key
 ------------
@@ -75,46 +75,66 @@ The `cci` command is git repository aware. Changing directories from one local g
 
 If you run the `cci` command from outside a git repository, it will generate an error.
 
-If you run the `cci project info` command from inside a git repository that has already been set up for CumulusCI, it will print the project info::
+If you run the `cci project info` command from inside a git repository that has already been set up for CumulusCI, it will print the project info:
 
+.. code-block::console
     $ cd path/to/your/repo
 
+.. code-block::console
     $ cci project info
-    {
-        "apexdoc": {
-            "banner": null,
-            "homepage": null,
-            "url": "https://github.com/SalesforceFoundation/ApexDoc/releases/download/1.7/apexdoc.jar"
-        },
-        "dependencies": null,
-        "git": {
-            "default_branch": "master",
-            "prefix_beta": "beta/",
-            "prefix_feature": "feature/",
-            "prefix_release": "release/"
-        },
-        "name": "MyRepoName",
-        "package": {
-            "api_version": 38.0,
-            "install_class": null,
-            "name": "My Repo Name",
-            "name_managed": null,
-            "namespace": "mynamespace",
-            "uninstall_class": null
-        },
-        "test": {
-            "name_match": "%_TEST%"
-        }
-    }
+    name: CumulusCI Test
+    package:
+        name: CumulusCI Test
+        name_managed: None
+        namespace: ccitest
+        install_class: None
+        uninstall_class: None
+        api_version: 33.0
+    git:
+        default_branch: master
+        prefix_feature: feature/
+        prefix_beta: beta/
+        prefix_release: release/
+        release_notes:
+            parsers:
+                1:
+                    class_path: cumulusci.tasks.release_notes.parser.GithubLinesParser
+                    title: Critical Changes
+                2:
+                    class_path: cumulusci.tasks.release_notes.parser.GithubLinesParser
+                    title: Changes
+                3:
+                    class_path: cumulusci.tasks.release_notes.parser.GithubIssuesParser
+                    title: Issues Closed
+                4:
+                    class_path: cumulusci.tasks.release_notes.parser.GithubLinesParser
+                    title: New Metadata
+                5:
+                    class_path: cumulusci.tasks.release_notes.parser.GithubLinesParser
+                    title: Deleted Metadata
+        repo_url: https://github.com/SalesforceFoundation/CumulusCI-Test
+    test:
+        name_match: %_TEST%
+    apexdoc:
+        homepage: None
+        banner: None
+        version: 1.1.7
+        scope: global;public;private;testmethod;webService
+        branch: gh-pages
+        repo_dir: ApexDocumentation
+            namespace: pub
+            version: 1.5
 
-If you run the same command from inside a git repository that has not yet been set up for CumulusCI, you will get an error::
+If you run the same command from inside a git repository that has not yet been set up for CumulusCI, you will get an error:
 
+.. code-block::console
     $ cci project info
     Usage: cci project info [OPTIONS]
     Error: No project configuration found. You can use the "project init" command to initilize the project for use with CumulusCI
 
-As the instructions say, you can use the `cci project init` command to initialize the configuration::
+As the instructions say, you can use the `cci project init` command to initialize the configuration:
 
+.. code-block::console
     $ cci project init
     Name: MyRepoName
     Package name: My Repo Name
@@ -128,6 +148,7 @@ As the instructions say, you can use the `cci project init` command to initializ
     Your project is now initialized for use with CumulusCI
     You can use the project edit command to edit the project's config file
 
+.. code-block::console
     $ cat cumulusci.yml
     project:
         name: MyRepoName
@@ -135,8 +156,9 @@ As the instructions say, you can use the `cci project init` command to initializ
             name: My Repo Name
             namespace: mynamespace
 
-The newly created `cumulusci.yml` file is the configuration file for wiring up any project specific tasks, flows, and CumulusCI customizations for this project. You can add and commit it to your git repository::
+The newly created `cumulusci.yml` file is the configuration file for wiring up any project specific tasks, flows, and CumulusCI customizations for this project. You can add and commit it to your git repository:
 
+.. code-block::console
     $ git add cumulusci.yml
     $ git commit -m "Initialized CumulusCI Configuration"
 
@@ -147,12 +169,20 @@ If your project uses GitHub for dependency resolution, or if you want to use any
 
 Go to https://github.com/settings/tokens/new and create a new personal access token with the "repo" scope. Copy the access token to use as the password when configuring the GitHub service.
 
-Run the following and provide your GitHub username and use the access token as the password::
+Run the following and provide your GitHub username and use the access token as the password:
 
+.. code-block::console
     $ cci service connect github
 
 Part 3: Connecting Salesforce Orgs
 ==================================
+
+CumulusCI's Project Keychain
+----------------------------
+
+The project keychain in CumulusCI allows you to store credentials to persistent (Production, Sandbox, Developer) orgs or to scratch orgs.  All files are stored under `~/.cumulusci/ProjectName` as AES encrypted files.
+
+CumulusCI's Project Keychain is aware of your local repository and each repository configured for CumulusCI gets its own project keychain.  This means you can name your dev org for ProjectA `dev` and your dev org for ProjectB `dev` instead of `ProjectA_dev` and `ProjectB_dev`.  When you change directories between ProjectA and ProjectB's local git repositories, CumulusCI automatically switches your project keychain for you.  This allows you to keep your org names short, easy to read, and most important, easy to type.
 
 Creating a Connected App
 ------------------------
@@ -175,58 +205,177 @@ First, you will need to create a Salesforce Connected App with the following ste
 Configuring the Project's Connected App
 ---------------------------------------
 
-Configure the Connected App in your project's keychain::
+Configure the Connected App in your project's keychain:
 
+.. code-block::console
     $ cci org config_connected_app
     client_id:
     client_secret:
 
-Connecting an Org
------------------
+Configuring the Connected App is a one time operation per project. Once configured, you can start connecting Salesforce Orgs to your project's keychain.
 
-Configuring the Connected App is a one time operation per project. Once configured, you can start connecting Salesforce Orgs to your project's keychain::
+Using Salesforce DX Scratch Orgs
+--------------------------------
 
-    $ cci org connect dev
+While it is possible to use `cci org connect <org_name>` to connect to a Developer Edition org, the real fun is using CumulusCI along with Salesforce DX.  If you already have the `sfdx` command installed, have connected to your devhub, and have set the `defaultdevhubusername` config settting (use `sfdx force:config:list` to verify), you're ready to start using `cci` with `sfdx`.  If you haven't already set up Salesforce DX, you can learn how at https://developer.salesforce.com/platform/dx.
 
+CumulusCI wraps the creation of scratch orgs to provide a some useful extra features:
+
+* Each project starts with 4 scratch org configs meant for different phases of the development process: `beta`, `dev`, `feature`, `release`
+* Scratch org configs for each project can be overridden in the project's cumulusci.yml
+* New named scratch org configs can be added to projects for scratch configs unique to the project
+* Scratch org configs can specify whether the org should be created with or without a namespace
+* Scratch org configs persist in your keychain meaning you can easily spin up another instance of the same config if your org expires
+* Scratch orgs are created automatically with an alias using the pattern 'ProjectName__orgname'
+* Scratch orgs automatically get a password generated which is available via `cci org info <org_name>`
+
+So, let's try that all out.  One important thing to note is that CumulusCI automatically creates all named scratch org configs in your project's keychain for you.  You can see this by running:
+
+.. code-block::console
+    $ cci org list
+    org        default  scratch  config_name  username
+    ---------  -------  -------  -----------  ------------------------------------
+    beta                *        beta
+    dev                 *        dev
+    feature             *        feature
+    release             *        release
+    
+Although CumulusCI has those scratch org configs in its org list, no actual scratch orgs have been created yet.  The reason why is that scratch orgs in the CumulusCI keychain are really just a lazy configuration to create a scratch org.  An actual scratch org will be created when you try to do something against that org name (i.e. `dev`) for the first time.  If you run an action against a scratch org config that hasn't yet generated a scratch org, it will create the org and remember that it has now created the org:
+
+.. code-block::console
+    $ cci org info dev
+    2017-11-02 15:20:04: Creating scratch org with command sfdx force:org:create -f orgs/dev.json -n -a "CumulusCI Test__dev" 
+    2017-11-02 15:20:15: Successfully created scratch org: 00D..., username: test-...@cumulusci-test_dev_workspace.net
+    2017-11-02 15:20:15: Generating scratch org user password with command sfdx force:user:password:generate -u test-...@cumulusci-test_dev_workspace.net
+    2017-11-02 15:20:18: Getting scratch org info from Salesforce DX
+    config_file: orgs/dev.json
+    scratch: True
+    namespaced: False
+    config_name: dev
+    sfdx_alias: CumulusCI Test__dev
+    scratch_org_type: workspace
+    org_id: 00D...
+    username: test-atve4xqm8zji@cumulusci-test_dev_workspace.net
+    created: True
+    access_token: 00D...!.............
+    password: Random Password Would be Here
+    instance_url: https://inspiration-speed-3192-dev-ed.cs66.my.salesforce.com
+
+Now, if we look at the org list, we can see a username for our scratch org.  That means `dev` now has a real scratch org connect to it:
+
+.. code-block::console
+    $ cci org list
+    org        default  scratch  config_name  username
+    ---------  -------  -------  -----------  --------------------------------------------------
+    beta                *        beta
+    dev                 *        dev          test-...@cumulusci-test_dev_workspace.net
+    feature             *        feature
+    packaging                                 mrbelvedere@cumulusci-test.packaging
+    release             *        release
+
+The new scratch org persists under the same name to CumulusCI.  The next time you call it, the same org is reused instead of a new scratch org being created:
+
+.. code-block::console
+    $ cci org info dev
+    2017-11-02 15:24:25: Getting scratch org info from Salesforce DX
+    config_file: orgs/dev.json
+    scratch: True
+    namespaced: False
+    config_name: dev
+    sfdx_alias: CumulusCI Test__dev
+    scratch_org_type: workspace
+    org_id: 00D****
+    username: test-******@cumulusci-test_dev_workspace.net
+    created: True
+    access_token: 00D******
+    password: Random Password Would Be Here
+    instance_url: https://inspiration-speed-3192-dev-ed.cs66.my.salesforce.com
+
+If you want to delete the scratch org, use `cci org scratch_delete <org_name>`:
+
+.. code-block::console
+    $ cci org scratch_delete dev
+    2017-11-02 15:26:13: Deleting scratch org with command sfdx force:org:delete -p -u test-...@cumulusci-test_dev_workspace.net
+    2017-11-02 15:26:17: Successfully marked scratch org test-...@cumulusci-test_dev_workspace.net for deletion
+
+If for some reason the whole scratch org config misbehaves, you can easily recreate it with `cci org scratch <config_name> <org_name>`:
+
+.. code-block::console
+    $ cci org scratch dev dev
+
+You can hop into a browser logged into any org in your keychain with `cci org browser <org_name>`.
+
+
+Connecting a Packaging Org
+--------------------------
+
+To really show the power of CumulusCI, we'll automate the entire process of releasing and testing a beta managed package.  We'll need to set up a packaging org.  The steps you'll need to do are:
+
+* Create a new Developer Edition org
+* Log into the org
+* Go to Setup -> Packages and create an Unmanaged Package named whatever you want to call your package
+* Assign a namespace to the org and point it at the Unmanaged Package you created
+
+Once you have the org, connect it to `cci`'s project keychain with `cci org connect <org_name>`:
+
+.. code-block::console
+    $ cci org connect packaging
     Launching web browser for URL https://login.salesforce.com/services/oauth2/authorize?response_type=code&client_id=YOUR_CLIENT_ID&redirect_uri=http://localhost:8080/callback&scope=web%20full%20refresh_token&prompt=login
     Spawning HTTP server at http://localhost:8080/callback with timeout of 300 seconds.
     If you are unable to log in to Salesforce you can press ctrl+c to kill the server and return to the command line.
 
-This should open a browser on your computer pointed to the Salesforce login page. Log in and then grant access to the app. Note that since the login to capture credentials occurs in your normal browser, you can use browser password managers such as LastPass to log in. Once access is granted and you see a browser page that says `OK` you can close the browser tab and return to the terminal. Your org is now connected via OAuth and CumulusCI never needs to know your actual user password. As an added benefit, OAuth authentication remains valid even after password changes::
+This should open a browser on your computer pointed to the Salesforce login page. Log in and then grant access to the app. Note that since the login to capture credentials occurs in your normal browser, you can use browser password managers such as LastPass to log in. Once access is granted and you see a browser page that says `OK` you can close the browser tab and return to the terminal. Your org is now connected via OAuth and CumulusCI never needs to know your actual user password. As an added benefit, OAuth authentication remains valid even after password changes.
 
+You should now see the packaging org available in `cci org list`:
+
+.. code-block::console
     $ cci org list
+    org        default  scratch  config_name  username
+    ---------  -------  -------  -----------  ------------------------------------
+    beta                *        beta
+    dev                 *        dev
+    feature             *        feature
+    packaging                                 mrbelvedere@cumulusci-test.packaging
+    release             *        release
 
-    org        is_default
-    ---------  ----------
-    dev
 
 Default Org
 -----------
 
-You can set a default org on your project which will then be used as the org for all tasks and flows.::
+You can set a default org on your project which will then be used as the org for all tasks and flows.:
 
+.. code-block::console
     $ cci org default dev
-
     dev is now the default org
 
+.. code-block::console
     $ cci org list
+    org        default  scratch  config_name  username
+    ---------  -------  -------  -----------  ------------------------------------
+    beta                *        beta
+    dev        *        *        dev
+    feature             *        feature
+    packaging                                 mrbelvedere@cumulusci-test.packaging
+    release             *        release
 
-    org        is_default
-    ---------  ----------
-    dev        *
 
+.. code-block::console
     $ cci org default dev --unset
-
     dev is no longer the default org. No default org set.
 
+.. code-block::console
     $ cci org list
-
-    org        is_default
-    ---------  ----------
-    dev
+    org        default  scratch  config_name  username
+    ---------  -------  -------  -----------  ------------------------------------
+    beta                *        beta
+    dev                 *        dev
+    feature             *        feature
+    packaging                                 mrbelvedere@cumulusci-test.packaging
+    release             *        release
 
 So we can start running some tasks, let's set dev as our default again::
 
+.. code-block::console
     $ cci org default dev
 
 Part 4: Running Tasks
@@ -399,32 +548,25 @@ Listing Flows' Tasks
 To see the list of tasks a flow will run, use the flow info command::
 
     $ cci flow info dev_org
-    {
-        "description": "Deploys the unmanaged package metadata and all dependencies to the target org",
-        "tasks": {
-            "1": {
-                "task": "create_package"
-            },
-            "2": {
-                "task": "update_dependencies"
-            },
-            "3": {
-                "task": "deploy_pre"
-            },
-            "4": {
-                "task": "deploy"
-            },
-            "5": {
-                "task": "uninstall_packaged_incremental"
-            },
-            "6": {
-                "task": "deploy_post"
-            },
-            "7": {
-                "task": "update_admin_profile"
-            }
-        }
-    }
+    description: Deploys the unmanaged package metadata and all dependencies to the target org
+    tasks:
+        0.5:
+            task: unschedule_apex
+        1:
+            task: create_package
+        2:
+            task: update_dependencies
+        3:
+            task: deploy_pre
+        4:
+            task: deploy
+        5:
+            task: uninstall_packaged_incremental
+        6:
+            task: deploy_post
+        7:
+            task: update_admin_profile
+
 
 Running a Flow
 --------------
@@ -510,8 +652,49 @@ To set up our newly connected dev org, run the dev_org flow::
     2016-11-03 12:02:43: Pending
     2016-11-03 12:02:50: [Done]
     2016-11-03 12:02:51: [Success]: Succeeded
+
+Part 6: Running Feature and Beta Builds
+=======================================
+
+Now that we have everything connected and working, let's try running the 3 core builds that make up our development build workflow at Salesforce.org:
+
+Feature Test
+------------
+
+The `ci_feature` flow is meant to be run against the `feature` scratch org config.  It installs all dependencies, deploys the package metadata, and runs all apex tests.  You can run the same build that your CI system would run locally:
+
+.. code-block::console
+   $ cci flow run ci_feature --org feature
+
+Upload Beta
+-----------
+
+The `ci_master` flow deploys your package metadata to the packaging org.  The `release_beta` flow creates a Github Release along with automatically generated release notes created by parsing the Pull Request bodies of all PR's merged since the last production release.  You can run this locally with:
+
+.. code-block::console
+   $ cci flow run ci_master --org packaging
+   $ cci flow run release_beta --org packaging
+
+Beta Test
+---------
+
+The `ci_beta` flow uses the Github API to determine the latest beta release for the project.  NOTE: This requires that you're using `release_beta` to create Github Releases:
+
+.. code-block::console
+   $ cci flow run ci_beta --org beta
+
+You can also pass the version number:
+
+.. code-block::console
+   $ cci flow run ci_beta --org beta -o install_managed_beta__version "1.1 (Beta 12)"
+
+Automate it with MetaCI
+-----------------------
+
+Once you have these flows set up, you can now use MetaCI to run these same builds against your project automatically on Heroku.  For more information, check out http://metaci-cli.readthedocs.io
+
     
-Part 6: Digging Deeper
+Part 7: Digging Deeper
 ======================
 
 Custom Tasks
