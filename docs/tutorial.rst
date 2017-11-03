@@ -2,13 +2,18 @@
 Tutorial
 ========
 
-This tutorial is for macOS. Linux and Windows are not yet officially supported but should work for the most part.
+This tutorial is for macOS. Linux and Windows are not yet officially supported but should work for the most part. We have added some Windows info where possible.
 
 Part 1: Installing CumulusCI
 ============================
 
 Install Requirements
 --------------------
+
+Please note that CumulusCI does not fully support Python 3 yet. Make sure to use Python 2.
+
+macOS
+^^^^^
 
 Due to an issue regarding TLS support in the Python included in macOS it is necessary to install Python with OpenSSL support using Homebrew. For more info on the TLS issue see here: http://pyfound.blogspot.com/2017/01/time-to-upgrade-your-python-tls-v12.html
 
@@ -21,6 +26,13 @@ Due to an issue regarding TLS support in the Python included in macOS it is nece
 
     $ brew install python
 
+Windows
+^^^^^^^
+
+#. Install Python 2: https://www.python.org/downloads/release/python-2714/
+
+#. Update Environment Path to include Python 2.7 install folders (C:\\Python27 and C:\\Python27\\Scripts)
+
 Create Virtual Environment
 --------------------------
 
@@ -28,16 +40,25 @@ Create Virtual Environment
 
     $ pip2 install virtualenv
 
-#. Create a virtual environment using the Python executable path that was printed after installing Python 2 with Homebrew::
+#. Create a virtual environment using the Python executable path::
 
-    $ # Creates a new directory at ~/venvs/cumulusci/ - You can change this path to something else if you like but we recommend the final part of the path to be "cumulusci" so that it shows in the shell session when the virtual environment is activated.
+    The final part of the virtualenv path should be "cumulusci" so that it shows in the shell session when the virtual environment is activated. You could change this to something else if you want.
+
+    $ # macOS
     $ virtualenv --python=/usr/local/opt/python/libexec/bin/python ~/venvs/cumulusci/
+    $
+    $ # Windows
+    $ mkdir C:\Python27\venvs\cumulusci\
+    $ virtualenv --python=C:\Python27\python.exe C:\Python27\venvs\cumulusci\
 
 #. Activate the newly created virtual environment::
 
+    $ # macOS
+    $ # Copy the following line to ~/.bash_profile to automatically activate the virtual environment in all new shells.
     $ source ~/venvs/cumulusci/bin/activate
-
-You may want to put the activation line in your ~/.bash_profile file so that the virtual environment is automatically activated for you every time you start a new shell session.
+    $
+    $ # Windows
+    $ source C:\Python27\venvs\cumulusci\Scripts\activate
 
 Install CumulusCI
 -----------------
@@ -45,6 +66,10 @@ Install CumulusCI
 With the virtual environment now activated, install cumulusci using pip::
 
     $ pip install cumulusci
+
+PyCrypto Error during install?  To resolve install Microsoft Visual Studio C++ 9.0 (http://aka.ms/vcpython27) then try the install again.
+Other Error? Check the error details in the console window for recommendations.
+Still need help? Search issues on CumulusCI GitHub https://github.com/SalesforceFoundation/CumulusCI/issues
 
 Part 2: Project Configuration
 =============================
@@ -60,7 +85,7 @@ If you are using the CumulusCI-Test repo, enable Chatter in your target org.
 Keychain Key
 ------------
 
-The cci command stores all credentials in AES encrypted files under the ~/.cumulusci folder. To use the CLI, you must set the environment variable `CUMULUSCI_KEY` to a 16 character string which is your password to access your keychain. Do not forget this password!::
+The cci command stores all credentials in AES encrypted files under the ~/.cumulusci folder (macOS). To use the CLI, you must set the environment variable `CUMULUSCI_KEY` to a 16 character string which is your password to access your keychain. Do not forget this password!::
 
     $ export CUMULUSCI_KEY=0a2b4c6d8e0f2g4h  # Must be 16 characters long
 
@@ -602,7 +627,7 @@ These will be filled out in more detail in the future but are a brief overview o
 Environment Keychain
 --------------------
 
-The keychain class can be overridden to change storage implementations. The default keychain for the cci CLI stores AES encrypted files under `~/.cumulusci`. The EnvironmentProjectKeychain class provides a keychain implementation which receives its credentials from environment variables. This is useful for using the CLI on CI servers such as Jenkins or CircleCI.::
+The keychain class can be overridden to change storage implementations. The default keychain for the cci CLI stores AES encrypted files under `~/.cumulusci` (macOS). The EnvironmentProjectKeychain class provides a keychain implementation which receives its credentials from environment variables. This is useful for using the CLI on CI servers such as Jenkins or CircleCI.::
 
     $ cci org connected_app
     $ cci org info feature
