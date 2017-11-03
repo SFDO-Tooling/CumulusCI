@@ -17,14 +17,15 @@ macOS
 
 Due to an issue regarding TLS support in the Python included in macOS it is necessary to install Python with OpenSSL support using Homebrew. For more info on the TLS issue see here: http://pyfound.blogspot.com/2017/01/time-to-upgrade-your-python-tls-v12.html
 
-#. Install Homebrew: https://docs.brew.sh/Installation.html
-#. Use Homebrew to install OpenSSL:
+Install Homebrew: https://docs.brew.sh/Installation.html
+
+Use Homebrew to install OpenSSL:
 
 .. code-block:: console
 
     $ brew install openssl
 
-#. Use Homebrew to install Python 2 (make note of the installed path that is printed after successful installation):
+Use Homebrew to install Python 2 (make note of the installed path that is printed after successful installation):
 
 .. code-block:: console
 
@@ -33,42 +34,36 @@ Due to an issue regarding TLS support in the Python included in macOS it is nece
 Windows
 ^^^^^^^
 
-#. Install Python 2: https://www.python.org/downloads/release/python-2714/
+Install Python 2: https://www.python.org/downloads/release/python-2714/
 
-#. Update Environment Path to include Python 2.7 install folders (C:\\Python27 and C:\\Python27\\Scripts)
+Update Environment Path to include Python 2.7 install folders (C:\\Python27 and C:\\Python27\\Scripts)
 
 Create Virtual Environment
 --------------------------
 
-#. Install `virtualenv <https://virtualenv.pypa.io/en/stable/>`_:
+Install `virtualenv <https://virtualenv.pypa.io/en/stable/>`_:
 
 .. code-block:: console
 
     $ pip2 install virtualenv
 
+Create a virtual environment using the Python executable path, then activate the virtual environment. The final part of the virtualenv path should be "cumulusci" so that it shows in the shell session when the virtual environment is activated. You could change this to something else if you want.
 
-#. Create a virtual environment using the Python executable path::
-
-    The final part of the virtualenv path should be "cumulusci" so that it shows in the shell session when the virtual environment is activated. You could change this to something else if you want.
+macOS
 
 .. code-block:: console
-    $ # macOS
+
     $ virtualenv --python=/usr/local/opt/python/libexec/bin/python ~/venvs/cumulusci/
-    $
-    $ # Windows
-    $ mkdir C:\Python27\venvs\cumulusci\
-    $ virtualenv --python=C:\Python27\python.exe C:\Python27\venvs\cumulusci\
-
-#. Activate the newly created virtual environment:
-
-.. code-block:: console
-
-    $ # macOS
     $ # Copy the following line to ~/.bash_profile to automatically activate the virtual environment in all new shells.
     $ source ~/venvs/cumulusci/bin/activate
-    $
-    $ # Windows
-    $ source C:\Python27\venvs\cumulusci\Scripts\activate
+    
+Windows
+
+.. code-block:: powershell
+
+    mkdir C:\Python27\venvs\cumulusci\
+    virtualenv --python=C:\Python27\python.exe C:\Python27\venvs\cumulusci\
+    source C:\Python27\venvs\cumulusci\Scripts\activate
 
 Install CumulusCI
 -----------------
