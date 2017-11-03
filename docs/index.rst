@@ -15,6 +15,7 @@ Contents:
    cookbook
    tasks
    dependencies
+   api_reference
    history
    authors
 
