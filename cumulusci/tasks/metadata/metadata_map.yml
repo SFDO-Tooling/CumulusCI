@@ -46,15 +46,13 @@ documents:
 email:
     - type: EmailTemplate
       class: MetadataFolderParser
-featureParameterBoolean:
+featureParameter:
     - type: FeatureParameterBoolean
       class: MetadataFilenameParser
       extension: featureParameterBoolean
-featureParameterDate:
     - type: FeatureParameterDate
       class: MetadataFilenameParser
       extension: featureParameterDate
-featureParameterInteger:
     - type: FeatureParameterInteger
       class: MetadataFilenameParser
       extension: featureParameterInteger
