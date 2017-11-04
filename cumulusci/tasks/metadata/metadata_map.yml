@@ -46,7 +46,7 @@ documents:
 email:
     - type: EmailTemplate
       class: MetadataFolderParser
-featureParameter:
+featureParameters:
     - type: FeatureParameterBoolean
       class: MetadataFilenameParser
       extension: featureParameterBoolean
