@@ -752,7 +752,19 @@ class DeployNamespacedBundles(DeployBundles):
         self.logger.warning('DEPRECATED: The DeployNamespacedBundles task class is deprecated.  Please switch to using the DeployBundles task and the namespace_inject option to accomplish the same functionality.  This class will be removed in a future release')
         super(DeployNamespacedBundles, self)._run_task()
 
+uninstall_task_options = Deploy.task_options.copy()
+uninstall_task_options['purge_on_delete'] = {
+    'description': 'Sets the purgeOnDelete option for the deployment. Defaults to True',
+}
 class BaseUninstallMetadata(Deploy):
+    task_options = uninstall_task_options
+
+    def _init_options(self, kwargs):
+        super(BaseUninstallMetadata, self)._init_options(kwargs)
+        self.options['purge_on_delete'] = process_bool_arg(self.options.get(
+            'purge_on_delete',
+            True,
+        ))
 
     def _get_api(self, path=None):
         destructive_changes = self._get_destructive_changes(path=path)
