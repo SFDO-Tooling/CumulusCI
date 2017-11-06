@@ -2,6 +2,19 @@
 History
 =======
 
+2.0.0-beta71 (2017-11-06)
+-------------------------
+
+* Update docs, including tutorial for Windows (thanks Dave Boyce!)
+* Add missing "purge on delete" option for BaseUninstallMetadata
+* Fix crash when decoding certain strings from the Metadata API response
+* Add support for featureParameter* metadata types (thanks Christian Szandor Knapp!)
+
+2.0.0-beta70 (2017-10-30)
+-------------------------
+
+* Fix issue in zip file processing that was introduced in v2.0.0b69
+
 2.0.0-beta69 (2017-10-27)
 -------------------------
 

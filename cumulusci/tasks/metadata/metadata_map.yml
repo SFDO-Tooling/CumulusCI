@@ -46,6 +46,16 @@ documents:
 email:
     - type: EmailTemplate
       class: MetadataFolderParser
+featureParameters:
+    - type: FeatureParameterBoolean
+      class: MetadataFilenameParser
+      extension: featureParameterBoolean
+    - type: FeatureParameterDate
+      class: MetadataFilenameParser
+      extension: featureParameterDate
+    - type: FeatureParameterInteger
+      class: MetadataFilenameParser
+      extension: featureParameterInteger
 flexipages:
     - type: FlexiPage
       class: MetadataFilenameParser

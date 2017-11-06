@@ -9,6 +9,7 @@ based on mrbelvedere/mpinstaller/mdapi.py
 #   - use format() instead of %
 #   - look at https://github.com/rholder/retrying
 
+from __future__ import unicode_literals
 import base64
 # import dateutil.parser
 import httplib
