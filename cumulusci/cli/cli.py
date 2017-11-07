@@ -355,7 +355,7 @@ def project_init(config, extend):
     package_namespace = None
     if click.confirm(click.style("Is this a managed package project?", bold=True), default=False):
         click.echo('Enter the namespace assigned to the managed package for this project')
-        package_name = click.prompt(click.style('Package Namespace', bold=True), default=name)
+        package_namespace = click.prompt(click.style('Package Namespace', bold=True), default=name)
         if package_namespace and package_namespace != config.global_config.project__package__namespace:
             package_config.append(
                 '        namespace: {}'.format(package_namespace))
@@ -417,11 +417,11 @@ def project_init(config, extend):
         yml_config.extend(test_config)
 
     if package_namespace:
-        yam_config.append('orgs:')
-        yam_config.append('    scratch:')
-        yam_config.append('        dev_namespaced:')
-        yam_config.append('            config_file: orgs/dev.json')
-        yam_config.append('            namespaced: True')
+        yml_config.append('orgs:')
+        yml_config.append('    scratch:')
+        yml_config.append('        dev_namespaced:')
+        yml_config.append('            config_file: orgs/dev.json')
+        yml_config.append('            namespaced: True')
 
     yml_config.append('')
 
