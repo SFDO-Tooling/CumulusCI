@@ -355,7 +355,7 @@ def project_init(config, extend):
     package_namespace = None
     if click.confirm(click.style("Is this a managed package project?", bold=True), default=False):
         click.echo('Enter the namespace assigned to the managed package for this project')
-        package_name = click.prompt(click.style('Package Namespace', bold=True), default=name)
+        package_namespace = click.prompt(click.style('Package Namespace', bold=True), default=name)
         if package_namespace and package_namespace != config.global_config.project__package__namespace:
             package_config.append(
                 '        namespace: {}'.format(package_namespace))
