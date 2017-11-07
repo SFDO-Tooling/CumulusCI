@@ -2,6 +2,11 @@
 History
 =======
 
+2.0.0-beta73 (2017-11-07)
+-------------------------
+
+* Fix bug in creating the `dev_namespaced` scratch org config from `cci project init`
+
 2.0.0-beta72 (2017-11-06)
 -------------------------
 
