@@ -2,6 +2,11 @@
 History
 =======
 
+2.0.0-beta72 (2017-11-06)
+-------------------------
+
+* Fix bug in setting namespace from `cci project init`
+
 2.0.0-beta71 (2017-11-06)
 -------------------------
 
