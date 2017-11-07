@@ -417,11 +417,11 @@ def project_init(config, extend):
         yml_config.extend(test_config)
 
     if package_namespace:
-        yam_config.append('orgs:')
-        yam_config.append('    scratch:')
-        yam_config.append('        dev_namespaced:')
-        yam_config.append('            config_file: orgs/dev.json')
-        yam_config.append('            namespaced: True')
+        yml_config.append('orgs:')
+        yml_config.append('    scratch:')
+        yml_config.append('        dev_namespaced:')
+        yml_config.append('            config_file: orgs/dev.json')
+        yml_config.append('            namespaced: True')
 
     yml_config.append('')
 
