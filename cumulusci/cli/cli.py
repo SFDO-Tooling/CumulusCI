@@ -642,8 +642,9 @@ def org_default(config, org_name, unset):
 
 @click.command(name='info', help="Display information for a connected org")
 @click.argument('org_name')
+@click.option('print_json', '--json', is_flag=True, help="Print as JSON")
 @pass_config
-def org_info(config, org_name):
+def org_info(config, org_name, print_json):
     check_connected_app(config)
 
     org_config = config.keychain.get_org(org_name)
@@ -653,7 +654,10 @@ def org_info(config, org_name):
     except ScratchOrgException as e:
         raise click.ClickException('ScratchOrgException: {}'.format(e.message))
 
-    click.echo(render_recursive(org_config.config))
+    if print_json:
+        click.echo(json.dumps(org_config.config, sort_keys=True, indent=4))
+    else:
+        click.echo(render_recursive(org_config.config))
 
     # Save the org config in case it was modified
     config.keychain.set_org(org_name, org_config)
