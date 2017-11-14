@@ -2,6 +2,11 @@
 History
 =======
 
+2.0.0-beta75 (2017-11-07)
+-------------------------
+
+* Fix syntax for github dependency with `--extend` option on `cci project init`
+
 2.0.0-beta74 (2017-11-07)
 -------------------------
 
