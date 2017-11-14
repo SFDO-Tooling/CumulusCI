@@ -372,7 +372,7 @@ def project_init(config, extend):
 
     if extend:
         yml_config.append('    dependencies:')
-        yml_config.append('        github: {}'.format(extend))
+        yml_config.append('        - github: {}'.format(extend))
 
     #     git:
     git_config = []
