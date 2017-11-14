@@ -2,6 +2,12 @@
 History
 =======
 
+2.0.0-beta76 (2017-11-14)
+-------------------------
+
+* Fix bug in namespace injection
+* Add option to print org info as JSON
+
 2.0.0-beta75 (2017-11-07)
 -------------------------
 
