@@ -20,52 +20,10 @@ Key Features
 * Flexible and pluggable system for running tasks (single actions) and flows (sequences of tasks)
 * OAuth based org keychain allowing easy connection to Salesforce orgs and stored in local files using AES encryption
 
-Requirements
-------------
+If you just want a quick intro, watch this screencast demo of using CumulusCI to configure a Salesforce project from a GitHub repository:
+https://asciinema.org/a/91555
 
-* Python 2.7.x
-* stdbuf - for passing through stdout from Ant
-* Ant - for using some task commands
+CumulusCI 1.0 (Ant based) Users, **PLEASE READ**
+------------------------------------------------
 
-Installation
-------------
-
-* pip install cumulusci
-
-Quick Start
------------
-
-This section provide a brief example of the commands you'd use to start a new project once you have CumulusCI installed::
-
-    $ cd <Your_Local_Repo>
-    $ cci project init
-        project_name: MyProject
-    $ cat cumulusci.yml
-        project:
-            name: MyProject
-    $ cci org config_connected_app
-        client_id: 12345890
-        client_secret:
-    $ cci org connect dev
-        *** Opens a browser at the Salesforce login prompt to complete OAuth grant
-    $ cci org list
-        dev
-    $ cci org info dev
-        *** Displays the OAuth configuration info for the org named "dev"
-    $ cci org browser dev
-        *** Opens a browser tab to the org using OAuth to bypass login
-    $ cci org connect --sandbox test
-        *** Opens a browser at the Salesforce login prompt to complete OAuth grant
-    $ cci org list
-        dev
-        test
-    $ cci task list
-        *** List all available tasks
-        deploy: Deploys the src directory to the target Salesforce org
-    $ cci task run --org dev deploy
-        *** Runs the "deploy" task against the "dev" org
-    $ cci flow list
-        *** List all available flows
-        deploy_dev_org: Runs a complete deployment against a dev org including dependencies but not running tests
-    $ cci flow run --org test deploy_dev_org
-        *** Runs the "dev_org" flow against the "test" org
+The master branch now contains CumulusCI 2 which is not backwards compatible with the previous CumulusCI that was based on Ant. If you are using the Ant targets, please switch to using the `legacy-1.0` branch of the repository which contains the Ant based version. Or, consider upgrading to CumulusCI 2.
