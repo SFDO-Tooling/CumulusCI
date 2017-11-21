@@ -138,6 +138,10 @@ def zip_inject_namespace(zip_src, namespace=None, managed=None, filename_token=N
     else:
         namespace = ''
 
+    # Handle token %%%NAMESPACE_OR_C%%% for lightning components
+    namespace_or_c_token = '%%%NAMESPACE_OR_C%%%'
+    namespace_or_c = namespace if namespace else 'c'
+
     # Handle tokens %%%NAMESPACED_ORG%%% and ___NAMESPACED_ORG___
     namespaced_org_token = '%%%NAMESPACED_ORG%%%'
     namespaced_org_file_token = '___NAMESPACED_ORG___'
@@ -148,6 +152,7 @@ def zip_inject_namespace(zip_src, namespace=None, managed=None, filename_token=N
     for name in zip_src.namelist():
         try:
             content = zip_src.read(name).replace(namespace_token, namespace)
+            content = content.replace(namespace_or_c_token, namespace_or_c)
             content = content.replace(namespaced_org_token, namespaced_org)
             name = name.replace(filename_token, namespace)
             name = name.replace(namespaced_org_file_token, namespaced_org)
@@ -162,10 +167,12 @@ def zip_strip_namespace(zip_src, namespace):
         in the zip 
     """
     namespace_prefix = '{}__'.format(namespace)
+    lightning_namespace = '{}:'.format(namespace)
     zip_dest = zipfile.ZipFile(io.BytesIO(), 'w', zipfile.ZIP_DEFLATED)
     for name in zip_src.namelist():
         try:
             content = zip_src.read(name).replace(namespace_prefix, '')
+            content = content.replace(lightning_namespace, 'c')
             name = name.replace(namespace_prefix, '')
             zip_dest.writestr(name, content)
         except UnicodeDecodeError:
@@ -181,10 +188,12 @@ def zip_tokenize_namespace(zip_src, namespace):
         return zip_src
 
     namespace_prefix = '{}__'.format(namespace)
+    lightning_namespace = '{}:'.format(namespace)
     zip_dest = zipfile.ZipFile(io.BytesIO(), 'w', zipfile.ZIP_DEFLATED)
     for name in zip_src.namelist():
         try:
             content = zip_src.read(name).replace(namespace_prefix, '%%%NAMESPACE%%%')
+            content = content.replace(lightning_namespace, '%%%NAMESPACE_OR_C%%%')
             name = name.replace(namespace_prefix, '___NAMESPACE___')
             zip_dest.writestr(name, content)
         except UnicodeDecodeError:
