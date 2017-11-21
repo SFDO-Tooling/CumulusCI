@@ -56,7 +56,7 @@ class TestBaseTaskCallable(unittest.TestCase):
         self.org_config = OrgConfig({
             'username': USERNAME,
             'org_id': ORG_ID
-        })
+        }, 'test')
         self.task_config = TaskConfig()
         self._task_log_handler.reset()
         self.task_log = self._task_log_handler.messages

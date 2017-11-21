@@ -69,8 +69,8 @@ class BaseProjectKeychain(BaseConfig):
             self.project_config.project__name,
             org_name,
         )
-        org_config = ScratchOrgConfig(scratch_config)
-        self.set_org(org_name, org_config)
+        org_config = ScratchOrgConfig(scratch_config, org_name)
+        self.set_org(org_config)
 
     def change_key(self, key):
         """ re-encrypt stored services, orgs, and the connected_app
@@ -92,7 +92,7 @@ class BaseProjectKeychain(BaseConfig):
 
         if orgs:
             for org_name, org_config in list(orgs.items()):
-                self.set_org(org_name, org_config)
+                self.set_org(org_config)
 
         if services:
             for service_name, service_config in list(services.items()):
@@ -123,14 +123,14 @@ class BaseProjectKeychain(BaseConfig):
         del self.orgs[name]
         self._load_orgs()
 
-    def set_org(self, name, org_config, global_org=False):
+    def set_org(self, org_config, global_org=False):
         if isinstance(org_config, ScratchOrgConfig):
             org_config.config['scratch'] = True
-        self._set_org(name, org_config, global_org)
+        self._set_org(org_config, global_org)
         self._load_orgs()
 
-    def _set_org(self, name, org_config, global_org):
-        self.orgs[name] = org_config
+    def _set_org(self, org_config, global_org):
+        self.orgs[org_config.name] = org_config
 
     def get_default_org(self):
         """ retrieve the name and configuration of the default org """
@@ -145,7 +145,7 @@ class BaseProjectKeychain(BaseConfig):
         org = self.get_org(name)
         self.unset_default_org()
         org.config['default'] = True
-        self.set_org(name, org)
+        self.set_org(org)
 
     def unset_default_org(self):
         """ unset the default orgs for tasks """
@@ -153,7 +153,7 @@ class BaseProjectKeychain(BaseConfig):
             org_config = self.get_org(org)
             if org_config.default:
                 del org_config.config['default']
-                self.set_org(org, org_config)
+                self.set_org(org_config)
 
     def get_org(self, name):
         """ retrieve an org configuration by name key """
@@ -258,9 +258,9 @@ class EnvironmentProjectKeychain(BaseProjectKeychain):
                 org_config = json.loads(value)
                 org_name = key[len(self.org_var_prefix):]
                 if org_config.get('scratch'):
-                    self.orgs[org_name] = ScratchOrgConfig(json.loads(value))
+                    self.orgs[org_name] = ScratchOrgConfig(json.loads(value), org_name)
                 else:
-                    self.orgs[org_name] = OrgConfig(json.loads(value))
+                    self.orgs[org_name] = OrgConfig(json.loads(value), org_name)
 
     def _load_services(self):
         for key, value in self._get_env():
@@ -301,15 +301,15 @@ class BaseEncryptedProjectKeychain(BaseProjectKeychain):
     def _set_encrypted_service(self, service, encrypted, project):
         self.services[service] = encrypted
 
-    def _set_org(self, name, org_config, global_org):
+    def _set_org(self, org_config, global_org):
         encrypted = self._encrypt_config(org_config)
-        self._set_encrypted_org(name, encrypted, global_org)
+        self._set_encrypted_org(org_config.name, encrypted, global_org)
 
     def _set_encrypted_org(self, name, encrypted, global_org):
         self.orgs[name] = encrypted
 
     def _get_org(self, name):
-        return self._decrypt_config(OrgConfig, self.orgs[name])
+        return self._decrypt_config(OrgConfig, self.orgs[name], extra=[name])
 
     def _get_cipher(self, iv=None):
         if iv is None:
@@ -325,17 +325,27 @@ class BaseEncryptedProjectKeychain(BaseProjectKeychain):
         encrypted = base64.b64encode(iv + cipher.encrypt(pickled))
         return encrypted
 
-    def _decrypt_config(self, config_class, encrypted_config):
+    def _decrypt_config(self, config_class, encrypted_config, extra=None):
         if not encrypted_config:
-            return config_class()
+            if extra:
+                return config_class(None, *extra)
+            else:
+                return config_class()
         encrypted_config = base64.b64decode(encrypted_config)
         iv = encrypted_config[:16]
         cipher, iv = self._get_cipher(iv)
         pickled = cipher.decrypt(encrypted_config[16:])
         config_dict = pickle.loads(pickled)
-        if config_dict.get('scratch'):
+        args = [config_dict]
+        if extra:
+            args += extra
+        return self._construct_config(config_class, args)
+
+    def _construct_config(self, config_class, args):
+        if args[0].get('scratch'):
             config_class = ScratchOrgConfig
-        return config_class(pickle.loads(pickled))
+        
+        return config_class(*args)
 
 
 class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):

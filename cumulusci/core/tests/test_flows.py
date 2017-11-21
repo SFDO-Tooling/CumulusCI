@@ -89,7 +89,7 @@ class TestBaseFlow(unittest.TestCase):
         self.org_config = OrgConfig({
             'username': 'sample@example',
             'org_id': ORG_ID
-        })
+        }, 'test')
 
         self._flow_log_handler.reset()
         self.flow_log = self._flow_log_handler.messages
