@@ -56,11 +56,11 @@ class BaseSalesforceTask(BaseTask):
             'Subclasses should provide their own implementation')
 
     def _update_credentials(self):
-        orig_config = self.org_config.copy()
+        orig_config = self.org_config.config.copy()
         self.org_config.refresh_oauth_token(self.project_config.keychain.get_connected_app())
         if self.org_config.config != orig_config:
+            self.logger.info('Org info updated, writing to keychain')
             self.project_config.keychain.set_org(self.org_config)
-
 
 class BaseSalesforceMetadataApiTask(BaseSalesforceTask):
     api_class = None

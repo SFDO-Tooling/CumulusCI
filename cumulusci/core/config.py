@@ -1087,7 +1087,6 @@ class ScratchOrgConfig(OrgConfig):
         # Get org info via sfdx force:org:display
         self.scratch_info
 
-
 class ServiceConfig(BaseConfig):
     pass
 
