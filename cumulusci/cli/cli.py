@@ -106,6 +106,26 @@ def check_latest_version():
             click.echo(
                 "An update to CumulusCI is available. Use pip install --upgrade cumulusci to update.")
 
+def check_org_expired(config, org_name, org_config):
+    if org_config.scratch and org_config.expires and org_config.expired:
+        click.echo(click.style('The scratch org is expired', fg='yellow'))
+        if click.confirm('Attempt to recreate the scratch org?', default=True):
+            config.keychain.set_org(
+                org_name,
+                config.keychain.create_scratch_org(
+                    org_name,
+                    org_config.config_name,
+                    {'namespaced': org_config.namespaced},
+                    org_config.days,
+                )
+            )
+            click.echo('Org config was refreshed and should be ready to create a new scratch org')
+            return config.keychain.get_org(org_name)
+        else:
+            raise click.ClickException('The target scratch org is expired.  You can use cci org remove {} to remove the org and then recreate the config manually'.format(org.name))
+
+    return org_config
+
 def handle_exception_debug(config, debug, e, throw_exception=None, no_prompt=None):
     if debug:
         import pdb
@@ -584,6 +604,7 @@ def org_browser(config, org_name):
     check_connected_app(config)
 
     org_config = config.project_config.get_org(org_name)
+    org_config = check_org_expired(config, org_name, org_config)
     org_config.refresh_oauth_token(config.keychain.get_connected_app())
 
     webbrowser.open(org_config.start_url)
@@ -648,6 +669,7 @@ def org_info(config, org_name, print_json):
     check_connected_app(config)
 
     org_config = config.keychain.get_org(org_name)
+    org_config = check_org_expired(config, org_name, org_config)
 
     try:
         org_config.refresh_oauth_token(config.keychain.get_connected_app())
@@ -659,6 +681,9 @@ def org_info(config, org_name, print_json):
     else:
         click.echo(render_recursive(org_config.config))
 
+    if org_config.scratch and org_config.expires:
+        click.echo('Org expires on {}'.format(org_config.expires.strftime('%c')))
+        
     # Save the org config in case it was modified
     config.keychain.set_org(org_name, org_config)
 
@@ -668,12 +693,17 @@ def org_info(config, org_name, print_json):
 def org_list(config):
     check_connected_app(config)
     data = []
-    headers = ['org', 'default', 'scratch', 'config_name', 'username']
+    headers = ['org', 'default', 'scratch', 'days', 'expired', 'config_name', 'username']
     for org in config.project_config.list_orgs():
         org_config = config.project_config.get_org(org)
         row = [org]
         row.append('*' if org_config.default else '')
         row.append('*' if org_config.scratch else '')
+        if org_config.days_alive:
+            row.append('{} of {}'.format(org_config.days_alive, org_config.days) if org_config.scratch else '')
+        else:
+            row.append(org_config.days if org_config.scratch else '')
+        row.append('*' if org_config.scratch and org_config.expired else '')
         row.append(org_config.config_name if org_config.config_name else '')
         username = org_config.config.get('username', org_config.userinfo__preferred_username)
         row.append(username if username else '')
@@ -699,8 +729,9 @@ def org_remove(config, org_name, global_org):
 @click.option('--default', is_flag=True, help='If set, sets the connected org as the new default org')
 @click.option('--delete', is_flag=True, help="If set, triggers a deletion of the current scratch org.  This can be used to reset the org as the org configuration remains to regenerate the org on the next task run.")
 @click.option('--devhub', help="If provided, overrides the devhub used to create the scratch org")
+@click.option('--days', help="If provided, overrides the scratch config default days value for how many days the scratch org should persist")
 @pass_config
-def org_scratch(config, config_name, org_name, default, delete, devhub):
+def org_scratch(config, config_name, org_name, default, delete, devhub, days):
     check_connected_app(config)
 
     scratch_configs = getattr(config.project_config, 'orgs__scratch')
@@ -716,7 +747,7 @@ def org_scratch(config, config_name, org_name, default, delete, devhub):
     if devhub:
         scratch_config['devhub'] = devhub
 
-    config.keychain.create_scratch_org(org_name, config_name, scratch_config)
+    config.keychain.create_scratch_org(org_name, config_name, scratch_config, days)
 
     if default:
         org = config.keychain.set_default_org(org_name)
@@ -832,6 +863,7 @@ def task_run(config, task_name, org, o, debug, debug_before, debug_after, no_pro
         org_config = config.project_config.get_org(org)
     else:
         org, org_config = config.project_config.keychain.get_default_org()
+    org_config = check_org_expired(config, org, org_config)
     task_config = getattr(config.project_config, 'tasks__{}'.format(task_name))
     if not task_config:
         raise TaskNotFoundError('Task not found: {}'.format(task_name))
@@ -973,6 +1005,8 @@ def flow_run(config, flow_name, org, delete_org, debug, o, skip, no_prompt):
     else:
         org, org_config = config.project_config.keychain.get_default_org()
 
+    org_config = check_org_expired(config, org, org_config)
+    
     if delete_org and not org_config.scratch:
         raise click.UsageError(
             '--delete-org can only be used with a scratch org')
