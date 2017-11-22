@@ -679,7 +679,7 @@ def org_info(config, org_name, print_json):
         click.echo(render_recursive(org_config.config))
 
     if org_config.scratch and org_config.expires:
-        click.echo('Org expires on {}'.format(org_config.expires.strftime('%c')))
+        click.echo('Org expires on {:%c}'.format(org_config.expires))
         
     # Save the org config in case it was modified
     config.keychain.set_org(org_name, org_config)
