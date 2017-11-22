@@ -116,8 +116,8 @@ def check_org_expired(config, org_name, org_config):
                 org_config.days,
             )
             click.echo('Org config was refreshed, attempting to recreate scratch org')
-            org = config.keychain.get_org(org_name)
-            org.create_org()
+            org_config = config.keychain.get_org(org_name)
+            org_config.create_org()
         else:
             raise click.ClickException('The target scratch org is expired.  You can use cci org remove {} to remove the org and then recreate the config manually'.format(org_name))
 
