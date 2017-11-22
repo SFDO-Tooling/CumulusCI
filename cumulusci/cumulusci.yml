@@ -564,6 +564,7 @@ orgs:
     scratch:
         dev:
             config_file: orgs/dev.json
+            days: 7
         feature:
             config_file: orgs/feature.json
         beta:

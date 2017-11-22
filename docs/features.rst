@@ -1,4 +1,197 @@
-=====================
+========
+Features
+========
+
+This section provides more detail on some of the features of CumulusCI.
+
+Org Keychain
+============
+
+CumulusCI uses OAuth connections to Salesforce orgs stored in a configurable keychain which by default stores in AES encrypted files in the user's home directory.  A few important things to note about CumulusCI's keychain:
+
+* The keychain is specific to your local git repository.  Thus, there is no need to have orgs named `ProjectA_dev` since CumulusCI's keychain is already specific to `ProjectA` by being inside the local repo.  You can keep your org names simple like `dev`.
+* CumulusCI's keychain can handle both persistent orgs (Prod, Sandbox, Packaging, DE) and Salesforce DX Scratch Orgs.
+* The keychain class is pluggable allowing different keychain implementations such as `EnvironmentProjectKeychain`
+
+Org List
+--------
+
+When inside a local project repository, you can see all the orgs you have configured:
+
+.. code-block:: console
+
+    $ cci org list
+
+Logging into an Org
+-------------------
+
+You can log into any org in the keychain in a new browser tab:
+
+.. code-block:: console
+
+    $ cci org browser <org_name>
+
+Persistent Orgs
+---------------
+
+The CumulusCI keychain can capture and store OAuth credentials to persistent orgs (Prod, Sandbox, Packaging, DE) using the `cci org connect` command:
+
+.. code-block:: console
+
+    $ cci org connect <org_name>
+
+This command will open a browser window where you log into the org you want to connect as the org_name you specified.  Once you log in successfully, you'll get a blank browser window saying "OK".  You can close the window.  At this point, your org is specified.
+
+Specifying a Different Login URL
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In some cases, such as Sandboxes, you need to specify a different login url when connecting to the org.  You can use the `--sandbox` or `--login-url` options:
+
+.. code-block:: console
+
+    $ cci org connect <org_name> --sandbox
+
+    OR
+
+    $ cci org connect <org_name> --login-url https://test.salesforce.com
+
+Global Orgs
+^^^^^^^^^^^
+
+Thus far we've talked about orgs being confined to an individual project's keychain.  However, in some use cases it is helpful to have an org defined globally for all projects to use under the same name.  You can connect a global org with:
+
+.. code-block:: console
+
+    $ cci org connect <org_name> --global
+
+With the `--global` flag, the org is created in CumulusCI's global keychain and thus available to all projects under the same org_name.
+
+Individual projects can also override the global org by defining a project org with the same org_name.
+
+
+CumulusCI & Salesforce DX Scratch Orgs
+--------------------------------------
+
+CumulusCI takes a different approach to creating and using scratch orgs that aims to make the process easier and more portable.  In short, a scratch org in CumulusCI's keychain starts out as simply a lazy configuration to generate a scratch org with certain parameters.  The scratch org is only actually generated the first time you attempt to use the scratch org from CumulusCI's keychain.
+
+Some other key differences between CumulusCI scratch orgs and orgs created directly via `sfdx force:org:create`:
+
+* CumulusCI created scratch orgs default to 1 day unless the scratch config used specifies a different default.  Our default dev config is set to 7 days expiration.  The goal is to help keep your active scratch org count as low as possible while still allowing flexibility to specify different scratch orgs.
+* CumulusCI sets an alias on all scratch orgs created using the format `ProjectName__org_name` so the orgs can easily be used with the `sfdx` command.
+* CumulusCI defaults to creating non-namespaced scratch orgs but individual scratch configs can specify that they want to be namespaced.  We've found this to be a better default than always having namespaced orgs which have issues, for example, when trying to install a managed version of the package.
+
+Scratch Org Configs
+^^^^^^^^^^^^^^^^^^^
+
+Scratch org configs in CumulusCI are named configurations to create a scratch org with parameters useful to a particular dev/test use case for your particular project.  By default CumulusCI comes with 4 scratch configs:
+
+* **dev**: Intended to be used for development work.  Defaults to a duration of 7 days
+* **feature**: Intended to be used for testing a feature branch as unmanaged metadata.  Defaults to 1 day
+* **beta**: Intended to be used for testing a beta managed package version.  Defaults to 1 day
+* **release**: Intended to be used for testing a production managed package version.  Defaults to 1 day
+
+You can define your own scratch org configs in your project's `cumulusci.yml` file:
+
+.. code-block:: yaml
+
+    orgs:
+        scratch:
+            test_env1:
+                config_file: orgs/test_env1.json
+                days: 3
+                namespaced: True
+
+In the example above, we've defined a new scratch org config named `test_env1` which points to a scratch org definition file located at `orgs/test_env1.json` in the project repository.  We've also overridden the default expiration days from 1 to 3 and specified that we want this org to have the project's namespace applied.
+
+Auto-Created Scratch Org
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+CumulusCI will automatically add all defined scratch org configs from your project to your project's keychain for you.  This does not cause any scratch orgs to be created, but it does make it a lot easier for you to use the scratch orgs configs defined on your project.  If you run `cci org list` in a CumulusCI project using only the default scratch configs, you'll see:
+
+.. code-block:: console
+
+    $ cci org list
+    org        default  scratch  config_name  username
+    ---------  -------  -------  -----------  ------------------------------------
+    beta                *        beta
+    dev                 *        dev
+    feature             *        feature
+    release             *        release
+
+Note that the scratch orgs don't have a username.  This is because they're just lazy configs that haven't been used yet and thus haven't actually created a scratch org.
+
+With the example above of defining the `test_env1` scratch config in our project's `cumulusci.yml`, we should see the following by default in the org list:
+
+.. code-block:: console
+
+    $ cci org list
+    org        default  scratch  config_name  username
+    ---------  -------  -------  -----------  ------------------------------------
+    beta                *        beta
+    dev                 *        dev
+    feature             *        feature
+    release             *        release
+    test_env1           *        test_env1
+
+
+Adding a Scratch Org to the Keychain
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In most cases, you can just use the auto-created scratch orgs in the keychain.  However, sometimes it's helpful to define a different scratch org config in the keychain.  Some possible use cases:
+
+* Create a scratch org in the keychain for a particular feature branch
+* Create a scratch org in the keychain with a different expiration days value
+
+Adding a new scratch org config to the keychain is easy:
+
+.. code-block:: console
+
+    $ cci org scratch feature feature-123
+
+    $ cci org list
+    org        default  scratch  config_name  username
+    ---------  -------  -------  -----------  ------------------------------------
+    beta                *        beta
+    dev                 *        dev
+    feature             *        feature
+    feature-123         *        feature
+    release             *        release
+
+Now you can run any `cci` commands against the new `feature-123` org.  A few commands you could try:
+
+.. code-block:: console
+
+    $ cci org browser feature-123
+    $ cci org info feature-123
+    $ cci flow run dev_org --org feature-123
+
+Deleting Scratch Orgs
+^^^^^^^^^^^^^^^^^^^^^
+
+If a scratch org in the keychain has actually created a scratch org, you can use `cci org scratch_delete` to delete the scratch org but leave the config to regenerate it in the keychain:
+
+.. code-block:: console
+    $ cci org scratch_delete feature-123
+
+Using `scratch_delete` will not remove the feature-123 org from your org list.  This is the intended behavior allowing you to easily recreate scratch orgs from a stored config instead of searching your command history to remember how you last created the org.
+
+If you want to permanently remove an org from the org list, you can use `cci org remove` which will completely remove the org from the list.  If the a scratch org has already been created from the config, an attempt to delete the scratch org will be made before removing the org from the keychain:
+
+.. code-block:: console
+    $ cci org remove feature-123
+
+Expired Scratch Orgs
+^^^^^^^^^^^^^^^^^^^^
+
+Since CumulusCI wraps sfdx for generating scratch orgs, there is a possibility for things to get out of sync between the two keychains.  We try to detect when an org is expired and prompt you to attempt to recreate the org config and spin up a new scratch org.
+
+If for some reason recreating the org doesn't work, you can resolve the issue with:
+
+.. code-block:: console
+    $ cci org remove <org_name>
+    $ cci org scratch <config_name> <org_name>
+
+
 Managing Dependencies
 =====================
 
@@ -11,7 +204,7 @@ From the beginning, CumulusCI was built to automate the complexities of dependen
 The `update_dependencies` task handles deploying the dependencies to the target org and is included in all flows designed to deploy or install to an org.  The task can also be run individually with `cci task run update_dependencies`.
 
 Managed Package Dependencies
-============================
+----------------------------
 
 Managed package dependencies are rather simple.  You need the namespace and the version number you want to require::
 
@@ -21,7 +214,7 @@ Managed package dependencies are rather simple.  You need the namespace and the 
               version: 3.6
 
 Automatic Install, Upgrade, or Uninstall/Install
-------------------------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 When the `update_dependencies` task runs, it first retrieves a list of all managed packages in the target org and creates a list of the installed packages and their version numbers.  With the example cumulusci.yml shown above, the following will happen depending on what if npe01 is currently installed:
 
@@ -31,7 +224,7 @@ When the `update_dependencies` task runs, it first retrieves a list of all manag
 * If the org has a newer version or a beta version installed, it will be uninstalled and then version 3.6 will be installed
 
 Hierachical Dependencies
-------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^
 
 Managed Package dependencies can handle a hierarchy of dependencies between packages.  An example use case is Salesforce.org's Nonprofit Success Pack, an extension of 5 other managed packages and one of those packages (npo02) is an extension of another (npe01).  This is expressed in cumulusci.yml as::
 
@@ -53,7 +246,7 @@ In the example above, the project requires npo02 version 3.8 which requires npe0
 
 
 Unmanaged Metadata Dependencies
-===============================
+-------------------------------
 
 You can specify unmanaged metadata to be deployed by specifying a `zip_url` and optionally `subfolder`, `namespace_inject`, `namespace_strip`, and `unmanaged`::
 
@@ -64,7 +257,7 @@ You can specify unmanaged metadata to be deployed by specifying a `zip_url` and 
 When `update_dependencies` runs, it will download the zip file and deploy it via the Metadata API's Deploy method.  The zip file must contain valid metadata for use with a deploy including a package.xml file in the root.
 
 Specifying a Subfolder of the Zip File
---------------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 You can use the `subfolder` option to specify a subfolder of the zip file you want to use for the deployment.  This is particularly handy when referring to metadata stored in a Github repository::
 
@@ -76,7 +269,7 @@ You can use the `subfolder` option to specify a subfolder of the zip file you wa
 When `update_dependencies` runs, it will still download the zip from `zip_url` but it will then build a new zip containing only the content of `subfolder` starting inside `subfolder` as the zip's root.
 
 Injecting Namespace Prefixes
-----------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 CumulusCI has support for tokenizing references to the namespace prefix in code.  When tokenized, all occurrences of the namespace prefix (i.e. npsp__), will be replaced with `%%%NAMESPACE%%%` inside of files and `___NAMESPACE___` in file names.  If the metadata you are deploying has been tokenized, you can use the `namespace_inject` and `unmanaged` options to inject the namespace::
 
@@ -100,7 +293,7 @@ If you want to deploy tokenized metadata without any namespace references, you h
 In the above example, the namespace tokens would be replaced with an empty string instead of the namespace effectively stripping the tokens from the files and filenames.
 
 Stripping Namespace Prefixes
-----------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 If the metadata in the zip you want to deploy has references to a namespace prefix and you want to remove them, use the `namespace_strip` option::
 
@@ -114,7 +307,7 @@ When `update_dependencies` runs, the zip will be retrieved and the string `npsp_
 
 
 Github Repository Dependencies
-==============================
+------------------------------
 
 Github Repository dependencies create a dynamic dependency between the current project and another project on Github that uses CumulusCI to manage its dependencies::
 
@@ -133,7 +326,7 @@ When `update_dependencies` runs, the following is doing against the referenced r
 * Determine if the project has subfolders under unpackaged/post.  If found, deploys them next.  Namespace tokens are replaced with namespace__ or an empty string depending on if the dependency is considered managed or unmanaged.
 
 Referencing Unmanaged Projects
-------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 If the referenced repository does not have a namespace configured or if the dependency specifies the `unmanaged` option as true (see example below), the repository is treated as an unmanaged repository::
 
@@ -266,4 +459,3 @@ You can see how complex a single repository dependency can be with the following
     2017-06-03 17:02:01: [InProgress]: Processing Type: QuickAction
     2017-06-03 17:02:03: [Done]
     2017-06-03 17:02:04: [Success]: Succeeded
-
