@@ -929,10 +929,6 @@ def task_run(config, task_name, org, o, debug, debug_before, debug_after, no_pro
         except Exception as e:
             handle_exception_debug(config, debug, e, no_prompt=no_prompt)
 
-    # Save the org config in case it was modified in the task
-    if org and org_config:
-        config.keychain.set_org(org_config)
-
     if debug_after:
         import pdb
         pdb.set_trace()
@@ -1070,10 +1066,6 @@ def flow_run(config, flow_name, org, delete_org, debug, o, skip, no_prompt):
             click.echo(
                 'Scratch org deletion failed.  Ignoring the error below to complete the flow:')
             click.echo(e.message)
-
-    # Save the org config in case it was modified in a task
-    if org and org_config:
-        config.keychain.set_org(org, org_config)
 
     if exception:
         handle_sentry_event(config, no_prompt)
