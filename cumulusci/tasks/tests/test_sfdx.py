@@ -74,7 +74,7 @@ class TestSFDXBaseTask(unittest.TestCase):
         org_config = OrgConfig({
             'access_token': access_token,
             'instance_url': 'https://test.salesforce.com'
-        })
+        },'test')
 
         task = SFDXOrgTask(
             self.project_config, self.task_config, org_config
@@ -98,7 +98,7 @@ class TestSFDXBaseTask(unittest.TestCase):
         org_config = OrgConfig({
             'access_token': 'test access token',
             'instance_url': 'test instance url',
-        })
+        }, 'test')
 
         task = SFDXOrgTask(
             self.project_config, self.task_config, org_config

@@ -52,8 +52,8 @@ class TestBaseProjectKeychain(unittest.TestCase):
             'github': ServiceConfig({'name': 'hub'}),
             'mrbelvedere': ServiceConfig({'mr': 'belvedere'}),
         }
-        self.org_config = OrgConfig({'foo': 'bar'})
-        self.scratch_org_config = ScratchOrgConfig({'foo': 'bar', 'scratch': True})
+        self.org_config = OrgConfig({'foo': 'bar'}, 'test')
+        self.scratch_org_config = ScratchOrgConfig({'foo': 'bar', 'scratch': True}, 'test_scratch')
         self.key = '0123456789123456'
 
     def test_init(self):
@@ -96,7 +96,7 @@ class TestBaseProjectKeychain(unittest.TestCase):
     def _test_change_key(self):
         new_key = '9876543210987654'
         keychain = self.keychain_class(self.project_config, self.key)
-        keychain.set_org('test', self.org_config)
+        keychain.set_org(self.org_config)
         keychain.set_connected_app(self.connected_app_config)
         keychain.set_service('github', self.services['github'])
         keychain.set_service('mrbelvedere', self.services['mrbelvedere'])
@@ -144,7 +144,7 @@ class TestBaseProjectKeychain(unittest.TestCase):
 
     def _test_set_and_get_org(self, global_org=False):
         keychain = self.keychain_class(self.project_config, self.key)
-        keychain.set_org('test', self.org_config, global_org)
+        keychain.set_org(self.org_config, global_org)
         self.assertEquals(list(keychain.orgs.keys()), ['test'])
         self.assertEquals(keychain.get_org(
             'test').config, self.org_config.config)
@@ -154,9 +154,9 @@ class TestBaseProjectKeychain(unittest.TestCase):
 
     def _test_set_and_get_scratch_org(self, global_org=False):
         keychain = self.keychain_class(self.project_config, self.key)
-        keychain.set_org('test', self.scratch_org_config, global_org)
-        self.assertEquals(list(keychain.orgs.keys()), ['test'])
-        org = keychain.get_org('test')
+        keychain.set_org(self.scratch_org_config, global_org)
+        self.assertEquals(list(keychain.orgs.keys()), ['test_scratch'])
+        org = keychain.get_org('test_scratch')
         self.assertEquals(
             org.config,
             self.scratch_org_config.config,
@@ -191,7 +191,7 @@ class TestBaseProjectKeychain(unittest.TestCase):
         self.project_config.config['orgs']['scratch'] = {}
         self.project_config.config['orgs']['scratch']['test'] = {}
         keychain = self.keychain_class(self.project_config, self.key)
-        keychain.set_org('test', OrgConfig())
+        keychain.set_org(OrgConfig({}, 'test'))
         self.assertEquals(list(keychain.orgs), ['test'])
         org = keychain.get_org('test')
         self.assertEquals(org.scratch, None)
@@ -210,9 +210,9 @@ class TestBaseProjectKeychain(unittest.TestCase):
     def _test_get_default_org(self):
         keychain = self.keychain_class(self.project_config, self.key)
         org_config = self.org_config.config.copy()
-        org_config = OrgConfig(org_config)
+        org_config = OrgConfig(org_config, 'test')
         org_config.config['default'] = True
-        keychain.set_org('test', org_config)
+        keychain.set_org(org_config)
         self.assertEquals(keychain.get_default_org()[
                           1].config, org_config.config)
 
@@ -229,8 +229,8 @@ class TestBaseProjectKeychain(unittest.TestCase):
     def _test_set_default_org(self):
         keychain = self.keychain_class(self.project_config, self.key)
         org_config = self.org_config.config.copy()
-        org_config = OrgConfig(org_config)
-        keychain.set_org('test', org_config)
+        org_config = OrgConfig(org_config, 'test')
+        keychain.set_org(org_config)
         keychain.set_default_org('test')
         expected_org_config = org_config.config.copy()
         expected_org_config['default'] = True
@@ -246,9 +246,9 @@ class TestBaseProjectKeychain(unittest.TestCase):
     def _test_unset_default_org(self):
         keychain = self.keychain_class(self.project_config, self.key)
         org_config = self.org_config.config.copy()
-        org_config = OrgConfig(org_config)
+        org_config = OrgConfig(org_config, 'test')
         org_config.config['default'] = True
-        keychain.set_org('test', org_config)
+        keychain.set_org(org_config)
         keychain.unset_default_org()
         self.assertEquals(keychain.get_default_org()[1], None)
 
@@ -257,7 +257,7 @@ class TestBaseProjectKeychain(unittest.TestCase):
 
     def _test_list_orgs(self):
         keychain = self.keychain_class(self.project_config, self.key)
-        keychain.set_org('test', self.org_config)
+        keychain.set_org(self.org_config)
         self.assertEquals(keychain.list_orgs(), ['test'])
 
     def test_list_orgs_empty(self):
@@ -405,7 +405,7 @@ class TestBaseEncryptedProjectKeychain(TestBaseProjectKeychain):
 
     def test_decrypt_config_no_config(self):
         keychain = self.keychain_class(self.project_config, self.key)
-        config = keychain._decrypt_config(OrgConfig, None)
+        config = keychain._decrypt_config(OrgConfig, None, extra=['test'])
         self.assertEquals(config.__class__, OrgConfig)
         self.assertEquals(config.config, {})
 
@@ -425,8 +425,8 @@ class TestEncryptedFileProjectKeychain(TestBaseProjectKeychain):
         self.project_config.project__name = 'TestProject'
         self.project_name = 'TestProject'
         self.connected_app_config = ConnectedAppOAuthConfig({'test': 'value'})
-        self.org_config = OrgConfig({'foo': 'bar'})
-        self.scratch_org_config = ScratchOrgConfig({'foo': 'bar', 'scratch': True})
+        self.org_config = OrgConfig({'foo': 'bar'}, 'test')
+        self.scratch_org_config = ScratchOrgConfig({'foo': 'bar', 'scratch': True}, 'test_scratch')
         self.services = {
             'github': ServiceConfig({'git': 'hub'}),
             'mrbelvedere': ServiceConfig({'mr': 'belvedere'}),

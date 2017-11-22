@@ -58,5 +58,10 @@ class DummyProjectConfig(BaseProjectConfig):
         return self._repo_commit
         
 class DummyOrgConfig(OrgConfig):
+    def __init__(self, config=None, name=None):
+        if not name:
+            name = 'test'
+        super(DummyOrgConfig, self).__init__(config, name)
+
     def refresh_oauth_token(self):
         pass

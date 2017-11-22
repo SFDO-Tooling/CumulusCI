@@ -137,6 +137,16 @@ def render_recursive(data, indent=None):
             else:
                 click.echo('{}{} {}'.format(indent_str, key_str, value))
 
+def check_org_overwrite(config, org_name):
+    try:
+        org = config.keychain.get_org(org_name)
+        raise click.ClickException(
+            'Org {} already exists.  Use `cci org remove` to delete it.'.format(org_name)
+        )
+    except OrgNotFound:
+        pass
+    return True
+
 class CliConfig(object):
 
     def __init__(self):
@@ -589,7 +599,7 @@ def org_browser(config, org_name):
     webbrowser.open(org_config.start_url)
 
     # Save the org config in case it was modified
-    config.keychain.set_org(org_name, org_config)
+    config.keychain.set_org(org_config)
 
 
 @click.command(name='connect', help="Connects a new org's credentials using OAuth Web Flow")
@@ -601,6 +611,7 @@ def org_browser(config, org_name):
 @pass_config
 def org_connect(config, org_name, sandbox, login_url, default, global_org):
     check_connected_app(config)
+    check_org_overwrite(config, org_name)
 
     connected_app = config.keychain.get_connected_app()
     if sandbox:
@@ -614,10 +625,10 @@ def org_connect(config, org_name, sandbox, login_url, default, global_org):
         scope='web full refresh_token'
     )
     oauth_dict = oauth_capture()
-    org_config = OrgConfig(oauth_dict)
+    org_config = OrgConfig(oauth_dict, org_name)
     org_config.load_userinfo()
 
-    config.keychain.set_org(org_name, org_config, global_org)
+    config.keychain.set_org(org_config, global_org)
 
     if default:
         org = config.keychain.set_default_org(org_name)
@@ -660,7 +671,7 @@ def org_info(config, org_name, print_json):
         click.echo(render_recursive(org_config.config))
 
     # Save the org config in case it was modified
-    config.keychain.set_org(org_name, org_config)
+    config.keychain.set_org(org_config)
 
 
 @click.command(name='list', help="Lists the connected orgs for the current project")
@@ -687,8 +698,18 @@ def org_list(config):
 @pass_config
 def org_remove(config, org_name, global_org):
     check_connected_app(config)
+
     try:
         org_config = config.keychain.get_org(org_name)
+        if isinstance(org_config, ScratchOrgConfig):
+            if 'username' in org_config:
+                # attempt to delete the org
+                try:
+                    click.echo("A scratch org was already created, attempting to delete...")
+                    org.delete_org()
+                except Exception as e:
+                    click.echo("Deleting scratch org failed with error:")
+                    click.echo(e)
     except OrgNotFound:
         raise click.ClickException('Org {} does not exist in the keychain'.format(org_name))
     config.keychain.remove_org(org_name, global_org)
@@ -702,6 +723,7 @@ def org_remove(config, org_name, global_org):
 @pass_config
 def org_scratch(config, config_name, org_name, default, delete, devhub):
     check_connected_app(config)
+    check_org_overwrite(config, org_name)
 
     scratch_configs = getattr(config.project_config, 'orgs__scratch')
     if not scratch_configs:
@@ -737,7 +759,7 @@ def org_scratch_delete(config, org_name):
     except ScratchOrgException as e:
         exception = click.UsageError(e.message)
 
-    config.keychain.set_org(org_name, org_config)
+    config.keychain.set_org(org_config)
 
 
 @click.command(name='connected_app', help="Displays the ConnectedApp info used for OAuth connections")
@@ -907,10 +929,6 @@ def task_run(config, task_name, org, o, debug, debug_before, debug_after, no_pro
         except Exception as e:
             handle_exception_debug(config, debug, e, no_prompt=no_prompt)
 
-    # Save the org config in case it was modified in the task
-    if org and org_config:
-        config.keychain.set_org(org, org_config)
-
     if debug_after:
         import pdb
         pdb.set_trace()
@@ -1048,10 +1066,6 @@ def flow_run(config, flow_name, org, delete_org, debug, o, skip, no_prompt):
             click.echo(
                 'Scratch org deletion failed.  Ignoring the error below to complete the flow:')
             click.echo(e.message)
-
-    # Save the org config in case it was modified in a task
-    if org and org_config:
-        config.keychain.set_org(org, org_config)
 
     if exception:
         handle_sentry_event(config, no_prompt)

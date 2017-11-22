@@ -56,8 +56,11 @@ class BaseSalesforceTask(BaseTask):
             'Subclasses should provide their own implementation')
 
     def _update_credentials(self):
+        orig_config = self.org_config.config.copy()
         self.org_config.refresh_oauth_token(self.project_config.keychain.get_connected_app())
-
+        if self.org_config.config != orig_config:
+            self.logger.info('Org info updated, writing to keychain')
+            self.project_config.keychain.set_org(self.org_config)
 
 class BaseSalesforceMetadataApiTask(BaseSalesforceTask):
     api_class = None
@@ -148,14 +151,15 @@ class BaseRetrieveMetadata(BaseSalesforceMetadataApiTask):
 
     def _process_namespace(self, src_zip):
         if self.options.get('namespace_tokenize'):
-            src_zip = zip_tokenize_namespace(src_zip, self.options['namespace_tokenize'])
+            src_zip = zip_tokenize_namespace(src_zip, self.options['namespace_tokenize'], logger=self.logger)
         if self.options.get('namespace_inject'):
             kwargs = {}
             kwargs['unmanaged'] = process_bool_arg(self.options.get('unmanaged', True))
             kwargs['namespaced_org'] = process_bool_arg(self.options.get('namespaced_org', False))
+            kwargs['logger'] = self.logger
             src_zip = zip_inject_namespace(src_zip, self.options['namespace_inject'], **kwargs)
         if self.options.get('namespace_strip'):
-            src_zip = zip_strip_namespace(src_zip, self.options['namespace_strip'])
+            src_zip = zip_strip_namespace(src_zip, self.options['namespace_strip'], logger=self.logger)
         return src_zip
 
     def _extract_zip(self, src_zip):
@@ -363,24 +367,25 @@ class Deploy(BaseSalesforceMetadataApiTask):
                     self.options['namespace_tokenize'],
                 )
             )
-            zipf = zip_tokenize_namespace(zipf, self.options['namespace_tokenize'])
+            zipf = zip_tokenize_namespace(zipf, self.options['namespace_tokenize'], logger=self.logger)
         if self.options.get('namespace_inject'):
             kwargs = {}
             kwargs['managed'] = not process_bool_arg(self.options.get('unmanaged', True))
             kwargs['namespaced_org'] = process_bool_arg(self.options.get('namespaced_org', False))
+            kwargs['logger'] = self.logger
             if kwargs['managed']:
-                self.logger.info(
-                    'Stripping namespace tokens from metadata for unmanaged deployment'
-                )
-            else:
                 self.logger.info(
                     'Replacing namespace tokens from metadata with namespace prefix {}__'.format(
                         self.options['namespace_inject'],
                     )
                 )
+            else:
+                self.logger.info(
+                    'Stripping namespace tokens from metadata for unmanaged deployment'
+                )
             zipf = zip_inject_namespace(zipf, self.options['namespace_inject'], **kwargs)
         if self.options.get('namespace_strip'):
-            zipf = zip_strip_namespace(zipf, self.options['namespace_strip'])
+            zipf = zip_strip_namespace(zipf, self.options['namespace_strip'], logger=self.logger)
         return zipf
 
     def _write_zip_file(self, zipf, root, path):
@@ -642,6 +647,7 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
                 package_zip = zip_tokenize_namespace(
                     package_zip,
                     namespace = dependency['namespace_tokenize'],
+                    logger = self.logger,
                 )
                 
             if dependency.get('namespace_inject'):
@@ -653,6 +659,7 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
                     namespace = dependency['namespace_inject'],
                     managed = not dependency.get('unmanaged'),
                     namespaced_org = self.options['namespaced_org'],
+                    logger = self.logger,
                 )
                 
             if dependency.get('namespace_strip'):
@@ -662,6 +669,7 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
                 package_zip = zip_strip_namespace(
                     package_zip,
                     namespace = dependency['namespace_strip'],
+                    logger = self.logger,
                 )
                 
             package_zip = ZipfilePackageZipBuilder(package_zip)()
