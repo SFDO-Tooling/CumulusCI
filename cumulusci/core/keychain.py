@@ -51,18 +51,20 @@ class BaseProjectKeychain(BaseConfig):
         current_orgs = self.list_orgs()
         if not self.project_config.orgs__scratch:
             return
-        for org_name, scratch_config in self.project_config.orgs__scratch.items():
+        for org_name in self.project_config.orgs__scratch.keys():
             if org_name in current_orgs:
                 # Don't overwrite an existing keychain org
                 continue
-            days = scratch_config.get('days', 7)
-            self.create_scratch_org(org_name, org_name, scratch_config, days)
+            self.create_scratch_org(org_name, config_name)
 
     def _load_services(self):
         pass
             
-    def create_scratch_org(self, org_name, config_name, scratch_config, days):
+    def create_scratch_org(self, org_name, config_name, scratch_config, days=None):
         """ Adds/Updates a scratch org config to the keychain from a named config """
+        scratch_config = getattr(self.project_config, 'orgs__scratch__{}'.format(config_name))
+        if days is None:
+            days = scratch_config.get('days', 7)
         scratch_config['scratch'] = True
         scratch_config['namespaced'] = scratch_config.get('namespaced', False)
         scratch_config['config_name'] = config_name

@@ -107,22 +107,20 @@ def check_latest_version():
                 "An update to CumulusCI is available. Use pip install --upgrade cumulusci to update.")
 
 def check_org_expired(config, org_name, org_config):
-    if org_config.scratch and org_config.expires and org_config.expired:
+    if org_config.scratch and org_config.date_created and org_config.expired:
         click.echo(click.style('The scratch org is expired', fg='yellow'))
         if click.confirm('Attempt to recreate the scratch org?', default=True):
-            config.keychain.set_org(
+            config.keychain.create_scratch_org(
                 org_name,
-                config.keychain.create_scratch_org(
-                    org_name,
-                    org_config.config_name,
-                    {'namespaced': org_config.namespaced},
-                    org_config.days,
-                )
+                org_config.config_name,
+                {'namespaced': org_config.namespaced},
+                org_config.days,
             )
-            click.echo('Org config was refreshed and should be ready to create a new scratch org')
-            return config.keychain.get_org(org_name)
+            click.echo('Org config was refreshed, attempting to recreate scratch org')
+            org = config.keychain.get_org(org_name)
+            org.create_org()
         else:
-            raise click.ClickException('The target scratch org is expired.  You can use cci org remove {} to remove the org and then recreate the config manually'.format(org.name))
+            raise click.ClickException('The target scratch org is expired.  You can use cci org remove {} to remove the org and then recreate the config manually'.format(org_name))
 
     return org_config
 

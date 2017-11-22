@@ -829,7 +829,7 @@ class ScratchOrgConfig(OrgConfig):
 
         # Call force:org:display and parse output to get instance_url and
         # access_token
-        command = 'sfdx force:org:display -u {} --json'.format(self.alias_or_username)
+        command = 'sfdx force:org:display -u {} --json'.format(self.username)
         p = sarge.Command(
             command,
             stderr=sarge.Capture(buffer_size=-1),
@@ -949,13 +949,6 @@ class ScratchOrgConfig(OrgConfig):
             delta = datetime.datetime.now() - self.date_created 
             return delta.days + 1
 
-    @property
-    def alias_or_username(self):
-        # FIXME: Commenting out for now to get through 7 days from the fix for aliases not being quoted
-        #if self.sfdx_alias:
-        #    return self.sfdx_alias
-        return self.username
-
     def create_org(self):
         """ Uses sfdx force:org:create to create the org """
         if not self.config_file:
@@ -1026,7 +1019,7 @@ class ScratchOrgConfig(OrgConfig):
 
         # Set a random password so it's available via cci org info
         command = 'sfdx force:user:password:generate -u {}'.format(
-            self.alias_or_username)
+            self.username)
         self.logger.info(
             'Generating scratch org user password with command {}'.format(command))
         p = sarge.Command(command, stdout=sarge.Capture(
@@ -1056,7 +1049,7 @@ class ScratchOrgConfig(OrgConfig):
                 'Skipping org deletion: the scratch org has not been created')
             return
 
-        command = 'sfdx force:org:delete -p -u {}'.format(self.alias_or_username)
+        command = 'sfdx force:org:delete -p -u {}'.format(self.username)
         self.logger.info(
             'Deleting scratch org with command {}'.format(command))
         p = sarge.Command(command, stdout=sarge.Capture(buffer_size=-1))
@@ -1083,7 +1076,7 @@ class ScratchOrgConfig(OrgConfig):
     def force_refresh_oauth_token(self):
         # Call force:org:display and parse output to get instance_url and
         # access_token
-        command = 'sfdx force:org:open -r -u {}'.format(self.alias_or_username)
+        command = 'sfdx force:org:open -r -u {}'.format(self.username)
         self.logger.info(
             'Refreshing OAuth token with command: {}'.format(command))
         p = sarge.Command(command, stdout=sarge.Capture(buffer_size=-1))
