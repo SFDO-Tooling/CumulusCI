@@ -599,7 +599,7 @@ def org_browser(config, org_name):
     webbrowser.open(org_config.start_url)
 
     # Save the org config in case it was modified
-    config.keychain.set_org(org_name, org_config)
+    config.keychain.set_org(org_config)
 
 
 @click.command(name='connect', help="Connects a new org's credentials using OAuth Web Flow")
