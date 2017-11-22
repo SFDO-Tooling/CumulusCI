@@ -2,6 +2,19 @@
 History
 =======
 
+2.0.0-beta77 (2017-11-22)
+-------------------------
+
+* New Salesforce DX tasks: `dx_convert_from`, `dx_convert_to`, `dx_pull`, and `dx_push`
+* New flow for creating production releases (use with caution!): `release_production`
+* Scratch org configs can now specify `days` as an option which defaults to 1.  The default for a scratch config can be overridden in `cci org scratch` with the `--days N` option
+* `cci org remove` will now attempt to first delete a scratch org if one was already created
+* `cci org scratch` will prevent you from overwritting a scratch config that has already created a scratch org (which would create an orphaned scratch org) and direct you to use `cci org remove` instead.
+* `cci org list` now shows the duration days, elapsed days, and if an org is expired.
+* `cci org info` now shows the expiration date for scratch orgs
+* All `cci` commands that update an org config will now attept to automatically recreate an expired scratch org
+* Deleted all tasks and code related to `apextestsdb` since its functionality is now integrated into MetaCI and no longer used
+
 2.0.0-beta76 (2017-11-14)
 -------------------------
 
