@@ -130,9 +130,6 @@ def zip_inject_namespace(zip_src, namespace=None, managed=None, filename_token=N
         filenames in the zip with the either '' if no namespace is provided
         or 'namespace__' if provided.
     """
-    # Handle token %%%NAMESPACE_OR_C%%% for lightning components
-    namespace_or_c_token = '%%%NAMESPACE_OR_C%%%'
-    namespace_or_c = namespace if namespace else 'c'
 
     # Handle namespace and filename tokens
     if not filename_token:
@@ -140,14 +137,22 @@ def zip_inject_namespace(zip_src, namespace=None, managed=None, filename_token=N
     if not namespace_token:
         namespace_token = '%%%NAMESPACE%%%'
     if managed is True and namespace:
-        namespace = namespace + '__'
+        namespace_prefix = namespace + '__'
     else:
-        namespace = ''
+        namespace_prefix = ''
 
     # Handle tokens %%%NAMESPACED_ORG%%% and ___NAMESPACED_ORG___
     namespaced_org_token = '%%%NAMESPACED_ORG%%%'
     namespaced_org_file_token = '___NAMESPACED_ORG___'
-    namespaced_org = namespace if namespaced_org else ''
+    namespaced_org = namespace_prefix if namespaced_org else ''
+
+    # Handle token %%%NAMESPACE_OR_C%%% for lightning components
+    namespace_or_c_token = '%%%NAMESPACE_OR_C%%%'
+    namespace_or_c = namespace if managed and namespace else 'c'
+
+    # Handle token %%%NAMESPACED_ORG_OR_C%%%
+    namespaced_org_or_c_token = '%%%NAMESPACE_OR_C%%%'
+    namespaced_org_or_c = namespace if namespaced_org else 'c'
 
     zip_dest = zipfile.ZipFile(io.BytesIO(), 'w', zipfile.ZIP_DEFLATED)
 
@@ -158,7 +163,7 @@ def zip_inject_namespace(zip_src, namespace=None, managed=None, filename_token=N
         try:
             content = zip_src.read(name)
             orig_content = unicode(content)
-            content = content.replace(namespace_token, namespace)
+            content = content.replace(namespace_token, namespace_prefix)
             if logger and content != orig_content:
                 logger.info('  {}: Replaced %%%NAMESPACE%%% with {}'.format(name, namespace))
 
@@ -172,12 +177,17 @@ def zip_inject_namespace(zip_src, namespace=None, managed=None, filename_token=N
             if logger and content != prev_content:
                 logger.info('  {}: Replaced %%%NAMESPACED_ORG%%% with {}'.format(name, namespaced_org))
 
+            prev_content = unicode(content)
+            content = content.replace(namespaced_org_or_c_token, namespaced_org_or_c)
+            if logger and content != prev_content:
+                logger.info('  {}: Replaced %%%NAMESPACE_OR_C%%% with {}'.format(name, namespaced_org_or_c))
+
         except UnicodeDecodeError:
             # if we cannot decode the content, don't try and replace it.
             pass
 
         # Replace namespace token in file name
-        name = name.replace(filename_token, namespace)
+        name = name.replace(filename_token, namespace_prefix)
         name = name.replace(namespaced_org_file_token, namespaced_org)
         if logger and name != orig_name:
             logger.info('  {}: renamed to {}'.format(orig_name, name))
