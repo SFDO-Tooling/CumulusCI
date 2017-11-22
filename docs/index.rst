@@ -12,9 +12,9 @@ Contents:
    :maxdepth: 2
 
    tutorial
+   features
    cookbook
    tasks
-   dependencies
    api_reference
    history
    authors

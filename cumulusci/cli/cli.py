@@ -744,7 +744,7 @@ def org_scratch(config, config_name, org_name, default, delete, devhub, days):
     if devhub:
         scratch_config['devhub'] = devhub
 
-    config.keychain.create_scratch_org(org_name, config_name, scratch_config, days)
+    config.keychain.create_scratch_org(org_name, config_name, days)
 
     if default:
         org = config.keychain.set_default_org(org_name)
