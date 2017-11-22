@@ -729,11 +729,11 @@ def org_remove(config, org_name, global_org):
     try:
         org_config = config.keychain.get_org(org_name)
         if isinstance(org_config, ScratchOrgConfig):
-            if 'username' in org_config:
+            if org_config.date_created:
                 # attempt to delete the org
                 try:
                     click.echo("A scratch org was already created, attempting to delete...")
-                    org.delete_org()
+                    org_config.delete_org()
                 except Exception as e:
                     click.echo("Deleting scratch org failed with error:")
                     click.echo(e)
