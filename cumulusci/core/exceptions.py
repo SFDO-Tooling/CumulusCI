@@ -106,11 +106,6 @@ class MrbelvedereError(CumulusCIException):
     pass
 
 
-class ApextestsdbError(CumulusCIException):
-    """ Raise for errors from apextestsdb """
-    pass
-
-
 class ScratchOrgException(CumulusCIException):
     """ Raise for errors related to scratch orgs """
     pass

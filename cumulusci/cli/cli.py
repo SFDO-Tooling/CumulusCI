@@ -469,7 +469,7 @@ def project_init(config, extend):
     sfdx_project = {
         "packageDirectories": [
             {
-                "path": "src",
+                "path": "force-app",
                 "default": True,
             }
         ],
