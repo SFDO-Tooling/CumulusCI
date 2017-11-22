@@ -171,6 +171,7 @@ Deleting Scratch Orgs
 If a scratch org in the keychain has actually created a scratch org, you can use `cci org scratch_delete` to delete the scratch org but leave the config to regenerate it in the keychain:
 
 .. code-block:: console
+
     $ cci org scratch_delete feature-123
 
 Using `scratch_delete` will not remove the feature-123 org from your org list.  This is the intended behavior allowing you to easily recreate scratch orgs from a stored config instead of searching your command history to remember how you last created the org.
@@ -178,6 +179,7 @@ Using `scratch_delete` will not remove the feature-123 org from your org list.  
 If you want to permanently remove an org from the org list, you can use `cci org remove` which will completely remove the org from the list.  If the a scratch org has already been created from the config, an attempt to delete the scratch org will be made before removing the org from the keychain:
 
 .. code-block:: console
+
     $ cci org remove feature-123
 
 Expired Scratch Orgs
@@ -188,6 +190,7 @@ Since CumulusCI wraps sfdx for generating scratch orgs, there is a possibility f
 If for some reason recreating the org doesn't work, you can resolve the issue with:
 
 .. code-block:: console
+
     $ cci org remove <org_name>
     $ cci org scratch <config_name> <org_name>
 
