@@ -37,7 +37,7 @@ class TestRunApexTests(unittest.TestCase):
             'id': 'foo/1',
             'instance_url': 'example.com',
             'access_token': 'abc123',
-        })
+        }, 'test')
         self.base_tooling_url = 'https://{}/services/data/v{}/tooling/'.format(
             self.org_config.instance_url, self.api_version)
 

@@ -763,6 +763,10 @@ class ConnectedAppOAuthConfig(BaseConfig):
 class OrgConfig(BaseConfig):
     """ Salesforce org configuration (i.e. org credentials) """
 
+    def __init__(self, config, name):
+        self.name = name
+        super(OrgConfig, self).__init__(config)
+
     def refresh_oauth_token(self, connected_app):
         client_id = self.client_id
         client_secret = self.client_secret
@@ -1098,7 +1102,6 @@ class ScratchOrgConfig(OrgConfig):
 
         # Get org info via sfdx force:org:display
         self.scratch_info
-
 
 class ServiceConfig(BaseConfig):
     pass

@@ -3,16 +3,16 @@ from __future__ import unicode_literals
 
 import unittest
 import logging
+import mock
 
 from collections import Callable
 
 from cumulusci.core.flows import BaseFlow
 from cumulusci.core.tasks import BaseTask
-from cumulusci.core.config import BaseGlobalConfig
-from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.config import FlowConfig
 from cumulusci.core.config import OrgConfig
 from cumulusci.core.tests.utils import MockLoggingHandler
+from cumulusci.tests.util import create_project_config
 import cumulusci.core
 
 ORG_ID = "00D000000000001"
@@ -45,7 +45,7 @@ class _SfdcTask(BaseTask):
     def _run_task(self):
         return -1
 
-
+@mock.patch('cumulusci.core.flows.BaseFlow._init_org')
 class TestBaseFlow(unittest.TestCase):
     """ Tests the expectations of a BaseFlow caller """
 
@@ -58,8 +58,7 @@ class TestBaseFlow(unittest.TestCase):
         logger.addHandler(cls._flow_log_handler)
 
     def setUp(self):
-        self.global_config = BaseGlobalConfig()
-        self.project_config = BaseProjectConfig(self.global_config)
+        self.project_config = create_project_config('TestOwner', 'TestRepo')
         self.project_config.config['tasks'] = {
             'pass_name': {
                 'description': 'Pass the name',
@@ -89,28 +88,30 @@ class TestBaseFlow(unittest.TestCase):
         self.org_config = OrgConfig({
             'username': 'sample@example',
             'org_id': ORG_ID
-        })
+        }, 'test')
 
         self._flow_log_handler.reset()
         self.flow_log = self._flow_log_handler.messages
 
-    def test_init(self):
+    def test_init(self, mock_class):
         """ BaseFlow initializes and offers a logger """
         flow_config = FlowConfig({})
+        mock_class.return_value = None
         flow = BaseFlow(self.project_config, flow_config, self.org_config)
 
         self.assertEquals(hasattr(flow, 'logger'), True)
 
-    def test_is_callable(self):
+    def test_is_callable(self, mock_class):
         """ BaseFlow exposes itself as a callable for use """
         flow_config = FlowConfig({})
         flow = BaseFlow(self.project_config, flow_config, self.org_config)
 
         self.assertIsInstance(flow, Callable)
 
-    def test_pass_around_values(self):
+    def test_pass_around_values(self, mock_class):
         """ A flow's options reach into return values from other tasks. """
 
+        mock_class.return_value = None
         # instantiate a flow with two tasks
         flow_config = FlowConfig({
             'description': 'Run two tasks',
@@ -129,9 +130,10 @@ class TestBaseFlow(unittest.TestCase):
         # the flow results for the second task should be 'name'
         self.assertEquals('supername', flow.task_results[1])
 
-    def test_task_options(self):
+    def test_task_options(self, mock_class):
         """ A flow can accept task options and pass them to the task. """
 
+        mock_class.return_value = None
         # instantiate a flow with two tasks
         flow_config = FlowConfig({
             'description': 'Run two tasks',
@@ -154,7 +156,7 @@ class TestBaseFlow(unittest.TestCase):
         # the flow results for the first task should be 'bar'
         self.assertEquals('bar', flow.task_results[0])
 
-    def test_skip_kwarg(self):
+    def test_skip_kwarg(self, mock_class):
         """ A flow can receive during init a list of tasks to skip """
 
         # instantiate a flow with two tasks
@@ -181,7 +183,7 @@ class TestBaseFlow(unittest.TestCase):
         # the number of tasks in the flow should be 1 instead of 2
         self.assertEquals(1, len(flow.task_results))
 
-    def test_skip_task_value_none(self):
+    def test_skip_task_value_none(self, mock_class):
         """ A flow skips any tasks whose name is None to allow override via yaml """
 
         # instantiate a flow with two tasks
@@ -206,7 +208,7 @@ class TestBaseFlow(unittest.TestCase):
         # the number of tasks in the flow should be 1 instead of 2
         self.assertEquals(1, len(flow.task_results))
 
-    def test_find_task_by_name_no_tasks(self):
+    def test_find_task_by_name_no_tasks(self, mock_class):
         """ The _find_task_by_name method skips tasks that don't exist """
 
         # instantiate a flow with two tasks
@@ -222,7 +224,7 @@ class TestBaseFlow(unittest.TestCase):
 
         self.assertEquals(None, flow._find_task_by_name('missing'))
 
-    def test_find_task_by_name_not_first(self):
+    def test_find_task_by_name_not_first(self, mock_class):
         """ The _find_task_by_name method skips tasks that don't exist """
 
         # instantiate a flow with two tasks
@@ -250,7 +252,7 @@ class TestBaseFlow(unittest.TestCase):
             task.task_config.class_path,
         )
 
-    def test_render_task_config_empty_value(self):
+    def test_render_task_config_empty_value(self, mock_class):
         """ The _render_task_config method skips option values of None """
 
         # instantiate a flow with two tasks
@@ -278,7 +280,7 @@ class TestBaseFlow(unittest.TestCase):
         config = flow._render_task_config(task)
         self.assertEquals(['Options:'], config)
 
-    def test_task_raises_exception_fail(self):
+    def test_task_raises_exception_fail(self, mock_class):
         """ A flow aborts when a task raises an exception """
 
         flow_config = FlowConfig({
@@ -290,7 +292,7 @@ class TestBaseFlow(unittest.TestCase):
         flow = BaseFlow(self.project_config, flow_config, self.org_config)
         self.assertRaises(Exception, flow)
 
-    def test_task_raises_exception_ignore(self):
+    def test_task_raises_exception_ignore(self, mock_class):
         """ A flow continues when a task configured with ignore_failure raises an exception """
 
         flow_config = FlowConfig({
@@ -304,7 +306,7 @@ class TestBaseFlow(unittest.TestCase):
         flow()
         self.assertEquals(2, len(flow.tasks))
 
-    def test_call_no_tasks(self):
+    def test_call_no_tasks(self, mock_class):
         """ A flow with no tasks will have no responses. """
         flow_config = FlowConfig({
             'description': 'Run no tasks',
@@ -316,7 +318,7 @@ class TestBaseFlow(unittest.TestCase):
         self.assertEqual([], flow.task_return_values)
         self.assertEqual([], flow.tasks)
 
-    def test_call_one_task(self):
+    def test_call_one_task(self, mock_class):
         """ A flow with one task will execute the task """
         flow_config = FlowConfig({
             'description': 'Run one task',
@@ -334,7 +336,7 @@ class TestBaseFlow(unittest.TestCase):
         self.assertEqual([{'name': 'supername'}], flow.task_return_values)
         self.assertEqual(1, len(flow.tasks))
 
-    def test_call_many_tasks(self):
+    def test_call_many_tasks(self, mock_class):
         """ A flow with many tasks will dispatch each task """
         flow_config = FlowConfig({
             'description': 'Run two tasks',
@@ -352,7 +354,7 @@ class TestBaseFlow(unittest.TestCase):
         )
         self.assertEqual(2, len(flow.tasks))
 
-    def test_call_task_not_found(self):
+    def test_call_task_not_found(self, mock_class):
         """ A flow with reference to a task that doesn't exist in the
         project will throw an AttributeError """
 
@@ -367,7 +369,7 @@ class TestBaseFlow(unittest.TestCase):
 
         self.assertRaises(AttributeError, flow)
 
-    def test_flow_prints_org_id(self):
+    def test_flow_prints_org_id(self, mock_class):
         """ A flow with an org prints the org ID """
 
         flow_config = FlowConfig({
@@ -384,7 +386,7 @@ class TestBaseFlow(unittest.TestCase):
 
         self.assertEqual(1, len(org_id_logs))
 
-    def test_flow_no_org_no_org_id(self):
+    def test_flow_no_org_no_org_id(self, mock_class):
         """ A flow without an org does not print the org ID """
 
         flow_config = FlowConfig({
@@ -401,7 +403,7 @@ class TestBaseFlow(unittest.TestCase):
             ORG_ID in s for s in self.flow_log['info']
         ))
 
-    def test_flow_prints_org_id_once_only(self):
+    def test_flow_prints_org_id_once_only(self, mock_class):
         """ A flow with sf tasks prints the org ID only once."""
 
         flow_config = FlowConfig({

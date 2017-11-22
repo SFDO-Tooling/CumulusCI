@@ -51,6 +51,17 @@ class BaseFlow(object):
         """ Initializes self.logger """
         self.logger = logging.getLogger(__name__)
 
+    def _init_org(self):
+        """ Refresh the token on the org """
+        self.logger.info('Verifying and refreshing credentials for target org {}'.format(self.org_config.name))
+        orig_config = self.org_config.config.copy()
+        self.org_config.refresh_oauth_token(
+            self.project_config.keychain.get_connected_app()
+        )
+        if self.org_config.config != orig_config:
+            self.logger.info('Org info has changed, updating org in keychain')
+            self.project_config.keychain.set_org(self.org_config)
+
     def _init_flow(self):
         """ Initialize the flow and print flow details to info """
         self.logger.info('---------------------------------------')
@@ -59,6 +70,9 @@ class BaseFlow(object):
             self.__class__.__name__,
         )
         self.logger.info('---------------------------------------')
+
+        self.logger.info('')
+        self._init_org()
         for line in self._render_config():
             self.logger.info(line)
 
