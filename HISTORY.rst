@@ -13,6 +13,10 @@ History
 * `cci org list` now shows the duration days, elapsed days, and if an org is expired.
 * `cci org info` now shows the expiration date for scratch orgs
 * All `cci` commands that update an org config will now attept to automatically recreate an expired scratch org
+* New namespace inject token strings are supported for injecting namespaces into Lightning Component references:
+
+  * **%%%NAMESPACE_OR_C%%%***: Replaced with either 'your_namespace' (unmanaged = False) or 'c' (unmanaged = True)
+  * **%%%NAMESPACED_ORG_OR_C%%%***: Replaced with either 'your_namespace' (namespaced_org = True) or 'c' (namespaced_org = False)
 * Deleted all tasks and code related to `apextestsdb` since its functionality is now integrated into MetaCI and no longer used
 
 2.0.0-beta76 (2017-11-14)
