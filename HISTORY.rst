@@ -2,6 +2,16 @@
 History
 =======
 
+2.0.0-beta78 (2017-11-22)
+-------------------------
+
+Resolving a few issues from beta77:
+
+* A bug in BaseKeychain.create_scratch_org was causing the creation of ScratchOrgConfig's with a days value of None.  This caused issues with subsequent calls against the org.
+* Fixed output from new logging in namespace injection
+* Switch to using org_config.date_created to check if an org has been created
+* Fix bug in recreation of an expired scratch org
+
 2.0.0-beta77 (2017-11-22)
 -------------------------
 
