@@ -63,11 +63,15 @@ class BaseProjectKeychain(BaseConfig):
     def create_scratch_org(self, org_name, config_name, days=None):
         """ Adds/Updates a scratch org config to the keychain from a named config """
         scratch_config = getattr(self.project_config, 'orgs__scratch__{}'.format(config_name))
-        scratch_config.setdefault('days', 7)
+        if days is not None:
+            # Allow override of scratch config's default days
+            scratch_config['days'] = days
+        else:
+            # Use scratch config days or default of 1 day
+            scratch_config.setdefault('days', 1)
         scratch_config['scratch'] = True
         scratch_config.setdefault('namespaced', False)
         scratch_config['config_name'] = config_name
-        scratch_config['days'] = days
         scratch_config['sfdx_alias'] = '{}__{}'.format(
             self.project_config.project__name,
             org_name,
