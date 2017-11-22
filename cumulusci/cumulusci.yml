@@ -57,6 +57,26 @@ tasks:
             namespace_inject: $project_config.project__package__namespace
             namespace_token: '%%%NAMESPACE%%%'
             filename_token: '___NAMESPACE___'
+    dx_convert_to:
+        description: Converts src directory metadata format into sfdx format under force-app
+        class_path: cumulusci.tasks.sfdx.SFDXBaseTask
+        options:
+            command: 'force:mdapi:convert -r src'
+    dx_convert_from:
+        description: Converts force-app directory in sfdx format into metadata format under src
+        class_path: cumulusci.tasks.sfdx.SFDXBaseTask
+        options:
+            command: 'force:mdapi:convert -r force-app -d src'
+    dx_pull:
+        description: Uses sfdx to pull from a scratch org into the force-app directory
+        class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+        options:
+            command: 'force:source:pull'
+    dx_push:
+        description: Uses sfdx to push the force-app directory metadata into a scratch org
+        class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+        options:
+            command: 'force:source:push'
     execute_anon:
         description: Execute a string of anonymous apex via the tooling api.
         class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
@@ -423,6 +443,23 @@ flows:
                     tag: ^^github_release.tag_name
             4:
                 task: github_master_to_feature
+    release_production:
+        description: Uploads and releases a production version of the metadata currently in packaging
+        tasks:
+            1:
+                task: upload_production
+                options:
+                    name: $project_config.project__package__name
+            2:
+                task: github_release
+                options:
+                    version: ^^upload_production.version_number
+            3:
+                task: github_release_notes
+                ignore_failure: True  # Attempt to generate release notes but don't fail build
+                options:
+                    publish: True
+                    tag: ^^github_release.tag_name
     unmanaged_ee:
         description: Deploys the unmanaged package metadata and all dependencies to the target EE org
         tasks:
