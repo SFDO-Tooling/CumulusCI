@@ -51,20 +51,23 @@ class BaseProjectKeychain(BaseConfig):
         current_orgs = self.list_orgs()
         if not self.project_config.orgs__scratch:
             return
-        for org_name, scratch_config in self.project_config.orgs__scratch.items():
-            if org_name in current_orgs:
+        for config_name in self.project_config.orgs__scratch.keys():
+            if config_name in current_orgs:
                 # Don't overwrite an existing keychain org
                 continue
-            self.create_scratch_org(org_name, org_name, scratch_config)
+            self.create_scratch_org(config_name, config_name)
 
     def _load_services(self):
         pass
             
-    def create_scratch_org(self, org_name, config_name, scratch_config):
+    def create_scratch_org(self, org_name, config_name, days=None):
         """ Adds/Updates a scratch org config to the keychain from a named config """
+        scratch_config = getattr(self.project_config, 'orgs__scratch__{}'.format(config_name))
+        scratch_config.setdefault('days', 7)
         scratch_config['scratch'] = True
-        scratch_config['namespaced'] = scratch_config.get('namespaced', False)
+        scratch_config.setdefault('namespaced', False)
         scratch_config['config_name'] = config_name
+        scratch_config['days'] = days
         scratch_config['sfdx_alias'] = '{}__{}'.format(
             self.project_config.project__name,
             org_name,
