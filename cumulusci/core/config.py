@@ -932,7 +932,7 @@ class ScratchOrgConfig(OrgConfig):
 
     @property
     def days(self):
-        return self.config.get('days', 7)
+        return self.config.setdefault('days', 7)
 
     @property
     def expired(self):
@@ -957,27 +957,18 @@ class ScratchOrgConfig(OrgConfig):
         if not self.scratch_org_type:
             self.config['scratch_org_type'] = 'workspace'
 
-        devhub = ''
-        if self.devhub:
-            devhub = ' --targetdevhubusername {}'.format(self.devhub)
-
-        namespaced = ''
-        if not self.namespaced:
-            namespaced = ' -n'
-
-        days = ''
-        if self.days:
-            days = ' --durationdays {}'.format(self.days)
-
-        alias = ''
-        if self.sfdx_alias:
-            alias = ' -a {}'.format(self.sfdx_alias)
+        options = {
+            'config_file': self.config_file,
+            'devhub': ' --targetdevhubusername {}'.format(self.devhub) if self.devhub else '',
+            'namespaced': ' -n' if not self.namespaced else '',
+            'days': ' --durationdays {}'.format(self.days) if self.days else '',
+            'alias': ' -a {}'.format(self.sfdx_alias) if self.sfdx_alias else '',
+            'extraargs': os.environ.get('SFDX_ORG_CREATE_ARGS', ''),
+        }
 
         # This feels a little dirty, but the use cases for extra args would mostly
         # work best with env vars
-        extraargs = os.environ.get('SFDX_ORG_CREATE_ARGS', '')
-        command = 'sfdx force:org:create -f {}{}{}{}{} {}'.format(
-            self.config_file, devhub, namespaced, alias, days, extraargs)
+        command = 'sfdx force:org:create -f {config_file}{devhub}{namespaced}{days}{alias} {extraargs}'.format(**options)
         self.logger.info(
             'Creating scratch org with command {}'.format(command))
         p = sarge.Command(command, stdout=sarge.Capture(buffer_size=-1))
