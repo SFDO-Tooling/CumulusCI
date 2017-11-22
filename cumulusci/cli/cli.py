@@ -113,7 +113,6 @@ def check_org_expired(config, org_name, org_config):
             config.keychain.create_scratch_org(
                 org_name,
                 org_config.config_name,
-                {'namespaced': org_config.namespaced},
                 org_config.days,
             )
             click.echo('Org config was refreshed, attempting to recreate scratch org')
