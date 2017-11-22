@@ -932,7 +932,7 @@ class ScratchOrgConfig(OrgConfig):
 
     @property
     def days(self):
-        return self.config.setdefault('days', 7)
+        return self.config.setdefault('days', 1)
 
     @property
     def expired(self):

@@ -57,21 +57,6 @@ tasks:
             namespace_inject: $project_config.project__package__namespace
             namespace_token: '%%%NAMESPACE%%%'
             filename_token: '___NAMESPACE___'
-    dx_convert_to:
-        description: Converts src directory metadata format into sfdx format under force-app
-        class_path: cumulusci.tasks.sfdx.SFDXBaseTask
-        options:
-            command: 'force:mdapi:convert -r src'
-    dx_convert_from:
-        description: Converts force-app directory in sfdx format into metadata format under src
-        class_path: cumulusci.tasks.sfdx.SFDXBaseTask
-        options:
-            command: 'force:mdapi:convert -r force-app -d src'
-    dx_push:
-        description: Uses sfdx to push the force-app directory metadata into a scratch org
-        class_path: cumulusci.tasks.sfdx.SFDXOrgTask
-        options:
-            command: 'force:source:push'
     execute_anon:
         description: Execute a string of anonymous apex via the tooling api.
         class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
@@ -582,10 +567,7 @@ orgs:
             days: 7
         feature:
             config_file: orgs/feature.json
-            days: 1
         beta:
             config_file: orgs/beta.json
-            days: 1
         release:
             config_file: orgs/release.json
-            days: 1
