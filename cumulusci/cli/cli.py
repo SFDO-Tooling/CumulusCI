@@ -882,7 +882,8 @@ def task_run(config, task_name, org, o, debug, debug_before, debug_after, no_pro
         org_config = config.project_config.get_org(org)
     else:
         org, org_config = config.project_config.keychain.get_default_org()
-    org_config = check_org_expired(config, org, org_config)
+    if org_config:
+        org_config = check_org_expired(config, org, org_config)
     task_config = getattr(config.project_config, 'tasks__{}'.format(task_name))
     if not task_config:
         raise TaskNotFoundError('Task not found: {}'.format(task_name))
