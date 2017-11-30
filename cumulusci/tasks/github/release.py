@@ -23,8 +23,11 @@ class CreateRelease(BaseGithubTask):
     def _run_task(self):
         repo = self.get_repo()
 
+        version = self.options['version']
+        self.tag_name = self.project_config.get_tag_for_version(version)
+
         for release in repo.iter_releases():
-            if release.name == self.options['version']:
+            if release.tag_name == self.tag_name:
                 message = 'Release {} already exists at {}'.format(release.name, release.html_url)
                 self.logger.error(message)
                 raise GithubException(message)
@@ -35,8 +38,6 @@ class CreateRelease(BaseGithubTask):
             self.logger.error(message)
             raise GithubException(message)
 
-        version = self.options['version']
-        self.tag_name = self.project_config.get_tag_for_version(version)
 
         ref = repo.ref('tags/{}'.format(self.tag_name))
 
