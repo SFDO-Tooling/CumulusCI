@@ -2,6 +2,11 @@
 History
 =======
 
+2.0.0-beta79 (2017-11-30)
+-------------------------
+
+* Fixes #540: Using a custom `prefix_beta` fails if releases with the same version but different prefix already exist in the repository.  Changed to use `tag_name` instead of `name` to check if the release already exists in Github.
+
 2.0.0-beta78 (2017-11-22)
 -------------------------
 
