@@ -121,8 +121,7 @@ class BaseMetadataApiCall(object):
 
     def _get_response(self):
         if not self.soap_envelope_start:
-            # where is this from?
-            raise NotImplemented('No soap_start template was provided')
+            raise NotImplementedError('No soap_start template was provided')
         # Start the call
         envelope = self._build_envelope_start()
         if not envelope:
@@ -197,7 +196,7 @@ class BaseMetadataApiCall(object):
         if faultcode == 'sf:INVALID_SESSION_ID' and self.task.org_config and self.task.org_config.refresh_token:
             # Attempt to refresh token and recall request
             if refresh:
-                self.org_config.refresh_oauth_token()
+                self.task.org_config.refresh_oauth_token()
                 return self._call_mdapi(headers, envelope, refresh=False)
         # Log the error
         message = '{}: {}'.format(faultcode, faultstring)
@@ -213,13 +212,15 @@ class BaseMetadataApiCall(object):
 
     def _process_response_start(self, response):
         if response.status_code == httplib.INTERNAL_SERVER_ERROR:
-            return response
+            raise MetadataApiError('HTTP ERROR {}: {}'.format(response.status_code, response.content), response)
         ids = parseString(response.content).getElementsByTagName('id')
         if ids:
             self.process_id = ids[0].firstChild.nodeValue
         return response
 
     def _process_response_status(self, response):
+        if response.status_code == httplib.INTERNAL_SERVER_ERROR:
+            raise MetadataApiError('HTTP ERROR {}: {}'.format(response.status_code, response.content), response)
         resp_xml = parseString(response.content)
         done = resp_xml.getElementsByTagName('done')
         if done:
