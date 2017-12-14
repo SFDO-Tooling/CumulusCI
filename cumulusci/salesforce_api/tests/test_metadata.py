@@ -18,12 +18,27 @@ from cumulusci.tests.util import DummyOrgConfig
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.tasks import BaseTask
 from cumulusci.salesforce_api.metadata import BaseMetadataApiCall
+from cumulusci.salesforce_api.metadata import ApiDeploy
+from cumulusci.salesforce_api.metadata import ApiListMetadata
+from cumulusci.salesforce_api.metadata import ApiRetrieveUnpackaged
+from cumulusci.salesforce_api.metadata import ApiRetrieveInstalledPackages
+from cumulusci.salesforce_api.metadata import ApiRetrievePackaged
 from cumulusci.salesforce_api.exceptions import MetadataApiError
+from cumulusci.salesforce_api.tests.metadata_test_strings import deploy_status_envelope
+from cumulusci.salesforce_api.tests.metadata_test_strings import list_metadata_start_envelope
+from cumulusci.salesforce_api.tests.metadata_test_strings import retrieve_unpackaged_start_envelope
+from cumulusci.salesforce_api.tests.metadata_test_strings import result_envelope
+from cumulusci.salesforce_api.tests.metadata_test_strings import status_envelope
 
 class DummyResponse(object):
     pass
 
-class TestBaseMetadataApiCall(unittest.TestCase):
+
+class BaseTestMetadataApi(unittest.TestCase):
+    api_class = BaseMetadataApiCall
+    envelope_start = None
+    envelope_status = status_envelope
+    envelope_result = result_envelope
 
     def setUp(self):
 
@@ -41,6 +56,9 @@ class TestBaseMetadataApiCall(unittest.TestCase):
             self.repo_name,
             self.repo_owner,
         )
+
+        if not self.envelope_start:
+            self.envelope_start = self.api_class.soap_envelope_start
 
     def _create_task(self, task_config=None, org_config=None):
         if not task_config:
@@ -67,7 +85,7 @@ class TestBaseMetadataApiCall(unittest.TestCase):
         return response
 
     def _create_instance(self, task, api_version=None):
-        return BaseMetadataApiCall(
+        return self.api_class(
             task,
             api_version = api_version,
         )
@@ -129,54 +147,53 @@ class TestBaseMetadataApiCall(unittest.TestCase):
     def test_build_envelope_result(self):
         task = self._create_task()
         api = self._create_instance(task)
-        api.soap_envelope_result = '%(process_id)s'
+        if not self.api_class.soap_envelope_result:
+            api.soap_envelope_result = '{process_id}'
+            expected_response = '123'
+        else:
+            expected_response = self.envelope_result.format(
+                process_id = '123'
+            )
         api.process_id = '123'
         self.assertEquals(
             api._build_envelope_result(),
-            api.process_id,
+            expected_response,
         )
 
-    def test_build_envelope_result_no_envelope(self):
-        task = self._create_task()
-        api = self._create_instance(task)
-        self.assertEquals(
-            api._build_envelope_result(),
-            None,
-        )
-        
     def test_build_envelope_start(self):
         task = self._create_task()
         api = self._create_instance(task)
-        api.soap_envelope_start = '{api_version}'
+        if not self.api_class.soap_envelope_start:
+            api.soap_envelope_start = '{api_version}'
+            expected_response = str(self.project_config.project__package__api_version)
+        else:
+            expected_response = self._build_expected_envelope_start()
+        
         self.assertEquals(
             api._build_envelope_start(),
-            str(self.project_config.project__package__api_version),
+            expected_response,
         )
 
-    def test_build_envelope_start_no_envelope(self):
-        task = self._create_task()
-        api = self._create_instance(task)
-        self.assertEquals(
-            api._build_envelope_start(),
-            None,
+    def _build_expected_envelope_start(self):
+        return self.envelope_start.format(
+            api_version = self.project_config.project__package__api_version
         )
 
     def test_build_envelope_status(self):
         task = self._create_task()
         api = self._create_instance(task)
-        api.soap_envelope_status = '%(process_id)s'
-        api.process_id = '123'
+        process_id = '123'
+        if not self.api_class.soap_envelope_status:
+            api.soap_envelope_status = '{process_id}'
+            expected_response = process_id
+        else:
+            expected_response = self.envelope_status.format(
+                process_id = process_id,
+            )
+        api.process_id = process_id
         self.assertEquals(
             api._build_envelope_status(),
-            api.process_id,
-        )
-
-    def test_build_envelope_status_no_envelope(self):
-        task = self._create_task()
-        api = self._create_instance(task)
-        self.assertEquals(
-            api._build_envelope_status(),
-            None,
+            expected_response,
         )
 
     def test_build_headers(self):
@@ -234,30 +251,6 @@ class TestBaseMetadataApiCall(unittest.TestCase):
             4,
         )
         
-    @raises(NotImplementedError)    
-    def test_get_response_no_start_env(self):
-        task = self._create_task()
-        api = self._create_instance(task)
-        api._get_response()
-       
-    @responses.activate 
-    def test_get_response_no_status(self):
-        org_config = {
-            'instance_url': 'https://na12.salesforce.com',
-            'id': 'https://login.salesforce.com/id/00D000000000000ABC/005000000000000ABC',
-            'access_token': '0123456789',
-        }
-        task = self._create_task(org_config=org_config)
-        api = self._create_instance(task)
-        api.soap_envelope_start = '{api_version}'
-        response = '<?xml version="1.0" encoding="UTF-8"?><foo />'
-        self._mock_call_mdapi(api, response)
-        resp = api._get_response()
-        self.assertEquals(
-            resp.content,
-            response
-        )
-        
     @responses.activate
     @raises(MetadataApiError) 
     def test_get_response_faultcode(self):
@@ -268,7 +261,8 @@ class TestBaseMetadataApiCall(unittest.TestCase):
         }
         task = self._create_task(org_config=org_config)
         api = self._create_instance(task)
-        api.soap_envelope_start = '{api_version}'
+        if not self.api_class.soap_envelope_start:
+            api.soap_envelope_start = '{api_version}'
         response = '<?xml version="1.0" encoding="UTF-8"?><faultcode>foo</faultcode>'
         self._mock_call_mdapi(api, response)
         resp = api._get_response()
@@ -283,7 +277,8 @@ class TestBaseMetadataApiCall(unittest.TestCase):
         }
         task = self._create_task(org_config=org_config)
         api = self._create_instance(task)
-        api.soap_envelope_start = '{api_version}'
+        if not self.api_class.soap_envelope_start:
+            api.soap_envelope_start = '{api_version}'
         response = '<?xml version="1.0" encoding="UTF-8"?>'
         response += '\n<test>'
         response += '\n  <faultcode>foo</faultcode>'
@@ -302,7 +297,8 @@ class TestBaseMetadataApiCall(unittest.TestCase):
         }
         task = self._create_task(org_config=org_config)
         api = self._create_instance(task)
-        api.soap_envelope_start = '{api_version}'
+        if not self.api_class.soap_envelope_start:
+            api.soap_envelope_start = '{api_version}'
         response = '<?xml version="1.0" encoding="UTF-8"?><faultcode>sf:INVALID_SESSION_ID</faultcode>'
         self._mock_call_mdapi(api, response)
         resp = api._get_response()
@@ -321,15 +317,28 @@ class TestBaseMetadataApiCall(unittest.TestCase):
         }
         task = self._create_task(org_config=org_config)
         api = self._create_instance(task)
-        api.soap_envelope_start = '{api_version}'
-        response1 = '<?xml version="1.0" encoding="UTF-8"?><faultcode>sf:INVALID_SESSION_ID</faultcode>'
-        self._mock_call_mdapi(api, response1)
-        response2 = '<?xml version="1.0" encoding="UTF-8"?><foo>bar</foo>'
-        self._mock_call_mdapi(api, response2)
+        if not self.api_class.soap_envelope_start:
+            api.soap_envelope_start = '{api_version}'
+        if not self.api_class.soap_envelope_status:
+            api.soap_envelope_status = '{process_id}'
+
+        mock_responses = []
+        mock_responses.append(
+            '<?xml version="1.0" encoding="UTF-8"?><id>123</id>'
+        )
+        mock_responses.append(
+            '<?xml version="1.0" encoding="UTF-8"?><faultcode>sf:INVALID_SESSION_ID</faultcode>'
+        )
+        mock_responses.append(
+            '<?xml version="1.0" encoding="UTF-8"?><foo>bar</foo>'
+        )
+        for response in mock_responses:
+            self._mock_call_mdapi(api, response)
+
         resp = api._get_response()
         self.assertEquals(
             resp.content,
-            response2,
+            mock_responses[2],
         )
 
     @responses.activate
@@ -343,8 +352,10 @@ class TestBaseMetadataApiCall(unittest.TestCase):
         status_code = httplib.INTERNAL_SERVER_ERROR # HTTP Error 500
         task = self._create_task(org_config=org_config)
         api = self._create_instance(task)
-        api.soap_envelope_start = '{api_version}'
-        api.soap_envelope_status = '%(process_id)s'
+        if not self.api_class.soap_envelope_start:
+            api.soap_envelope_start = '{api_version}'
+        if not self.api_class.soap_envelope_status:
+            api.soap_envelope_status = '{process_id}'
 
         response = '<?xml version="1.0" encoding="UTF-8"?><foo>start</foo>'
         self._mock_call_mdapi(api, response, status_code)
@@ -362,8 +373,10 @@ class TestBaseMetadataApiCall(unittest.TestCase):
         status_code = httplib.INTERNAL_SERVER_ERROR # HTTP Error 500
         task = self._create_task(org_config=org_config)
         api = self._create_instance(task)
-        api.soap_envelope_start = '{api_version}'
-        api.soap_envelope_status = '%(process_id)s'
+        if not self.api_class.soap_envelope_start:
+            api.soap_envelope_start = '{api_version}'
+        if not self.api_class.soap_envelope_status:
+            api.soap_envelope_status = '{process_id}'
 
         response = '<?xml version="1.0" encoding="UTF-8"?><id>1234567890</id>'
         self._mock_call_mdapi(api, response)
@@ -383,8 +396,10 @@ class TestBaseMetadataApiCall(unittest.TestCase):
         status_code = httplib.INTERNAL_SERVER_ERROR # HTTP Error 500
         task = self._create_task(org_config=org_config)
         api = self._create_instance(task)
-        api.soap_envelope_start = '{api_version}'
-        api.soap_envelope_status = '%(process_id)s'
+        if not self.api_class.soap_envelope_start:
+            api.soap_envelope_start = '{api_version}'
+        if not self.api_class.soap_envelope_status:
+            api.soap_envelope_status = '{process_id}'
 
         response = '<?xml version="1.0" encoding="UTF-8"?><id>1234567890</id>'
         self._mock_call_mdapi(api, response)
@@ -403,9 +418,12 @@ class TestBaseMetadataApiCall(unittest.TestCase):
         status_code = httplib.INTERNAL_SERVER_ERROR # HTTP Error 500
         task = self._create_task(org_config=org_config)
         api = self._create_instance(task)
-        api.soap_envelope_start = '{api_version}'
-        api.soap_envelope_status = '%(process_id)s'
-        api.soap_envelope_result = '%(process_id)s'
+        if not self.api_class.soap_envelope_start:
+            api.soap_envelope_start = '{api_version}'
+        if not self.api_class.soap_envelope_status:
+            api.soap_envelope_status = '{process_id}'
+        if not self.api_class.soap_envelope_result:
+            api.soap_envelope_result = '{process_id}'
 
         response = '<?xml version="1.0" encoding="UTF-8"?><id>1234567890</id>'
         self._mock_call_mdapi(api, response)
@@ -431,9 +449,12 @@ class TestBaseMetadataApiCall(unittest.TestCase):
         status_code = httplib.INTERNAL_SERVER_ERROR # HTTP Error 500
         task = self._create_task(org_config=org_config)
         api = self._create_instance(task)
-        api.soap_envelope_start = '{api_version}'
-        api.soap_envelope_status = '%(process_id)s'
-        api.soap_envelope_result = '%(process_id)s'
+        if not self.api_class.soap_envelope_start:
+            api.soap_envelope_start = '{api_version}'
+        if not self.api_class.soap_envelope_status:
+            api.soap_envelope_status = '{process_id}'
+        if not self.api_class.soap_envelope_result:
+            api.soap_envelope_result = '{process_id}'
         api.check_interval = 0
 
         response = '<?xml version="1.0" encoding="UTF-8"?><id>1234567890</id>'
@@ -544,4 +565,146 @@ class TestBaseMetadataApiCall(unittest.TestCase):
         self.assertEquals(
             res.content,
             response.content,
+        )
+
+
+class TestBaseMetadataApiCall(BaseTestMetadataApi):
+
+    def test_build_envelope_start_no_envelope(self):
+        task = self._create_task()
+        api = self._create_instance(task)
+        self.assertEquals(
+            api._build_envelope_start(),
+            None,
+        )
+
+    def test_build_envelope_status_no_envelope(self):
+        task = self._create_task()
+        api = self._create_instance(task)
+        self.assertEquals(
+            api._build_envelope_status(),
+            None,
+        )
+
+
+    def test_build_envelope_result_no_envelope(self):
+        task = self._create_task()
+        api = self._create_instance(task)
+        self.assertEquals(
+            api._build_envelope_result(),
+            None,
+        )
+        
+    @raises(NotImplementedError)    
+    def test_get_response_no_start_env(self):
+        task = self._create_task()
+        api = self._create_instance(task)
+        api._get_response()
+       
+    @responses.activate 
+    def test_get_response_no_status(self):
+        org_config = {
+            'instance_url': 'https://na12.salesforce.com',
+            'id': 'https://login.salesforce.com/id/00D000000000000ABC/005000000000000ABC',
+            'access_token': '0123456789',
+        }
+        task = self._create_task(org_config=org_config)
+        api = self._create_instance(task)
+        api.soap_envelope_start = '{api_version}'
+        response = '<?xml version="1.0" encoding="UTF-8"?><foo />'
+        self._mock_call_mdapi(api, response)
+        resp = api._get_response()
+        self.assertEquals(
+            resp.content,
+            response
+        )
+        
+class TestApiDeploy(BaseTestMetadataApi):
+    api_class = ApiDeploy
+    envelope_status = deploy_status_envelope
+
+    def setUp(self):
+        super(TestApiDeploy, self).setUp()
+        self.package_zip = 'zipfoo'
+
+    def _build_expected_envelope_start(self):
+        return self.envelope_start.format(
+            package_zip = self.package_zip,
+            purge_on_delete = 'true',
+        )
+
+    def _create_instance(self, task, api_version=None, purge_on_delete=None):
+        return self.api_class(
+            task,
+            self.package_zip,
+            api_version = api_version,
+        )
+
+class TestApiListMetadata(BaseTestMetadataApi):
+    api_class = ApiListMetadata
+    envelope_start = list_metadata_start_envelope
+    
+    def setUp(self):
+        super(TestApiListMetadata, self).setUp()
+        self.metadata_type = 'CustomObject'
+        self.metadata = None
+        self.folder = None
+        self.api_version = self.project_config.project__package__api_version
+
+    def _create_instance(self, task, api_version=None):
+        if api_version is None:
+            api_version = self.api_version
+        return self.api_class(
+            task,
+            metadata_type = self.metadata_type,
+            metadata = self.metadata,
+            folder = self.folder,
+            as_of_version = api_version,
+        )
+
+class TestApiRetrieveUnpackaged(BaseTestMetadataApi):
+    api_class = ApiRetrieveUnpackaged
+    envelope_start = retrieve_unpackaged_start_envelope
+
+    def setUp(self):
+        super(TestApiRetrieveUnpackaged, self).setUp()
+        self.package_xml = """<?xml version="1.0" encoding="UTF-8"?>
+<Package xmlns="http://soap.sforce.com/2006/04/metadata">
+    <version>41.0</version>
+</Package>"""
+
+    def _create_instance(self, task, api_version=None):
+        return self.api_class(
+            task,
+            self.package_xml,
+            api_version = api_version,
+        )
+
+class TestApiRetrieveInstalledPackages(BaseTestMetadataApi):
+    api_class = ApiRetrieveInstalledPackages
+
+    def _create_instance(self, task, api_version=None):
+        api = self.api_class(
+            task,
+        )
+        return api
+
+class TestApiRetrievePackaged(BaseTestMetadataApi):
+    api_class = ApiRetrievePackaged
+
+    def setUp(self):
+        super(TestApiRetrievePackaged, self).setUp()
+        self.package_name = 'Test Package'
+
+    def _build_expected_envelope_start(self):
+        return self.envelope_start.format(
+            api_version = self.project_config.project__package__api_version,
+            package_name = self.package_name,
+        )
+
+    def _create_instance(self, task, api_version=None):
+        return self.api_class(
+            task,
+            self.package_name,
+            api_version,
         )
