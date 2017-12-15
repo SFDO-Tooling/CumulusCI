@@ -208,7 +208,7 @@ class BaseMetadataApiCall(object):
         raise MetadataApiError(message, response)
 
     def _process_response(self, response):
-        return response
+        return response.content
 
     def _process_response_result(self, response):
         self._set_status('Succeeded')
@@ -292,8 +292,6 @@ class ApiRetrieveUnpackaged(BaseMetadataApiCall):
         zipstr = parseString(response.content).getElementsByTagName('zipFile')
         if zipstr:
             zipstr = zipstr[0].firstChild.nodeValue
-        else:
-            return self.packages
         zipstringio = StringIO.StringIO(base64.b64decode(zipstr))
         zipfile = ZipFile(zipstringio, 'r')
         zipfile = zip_subfolder(zipfile, 'unpackaged')
@@ -361,8 +359,6 @@ class ApiRetrievePackaged(BaseMetadataApiCall):
         zipstr = parseString(response.content).getElementsByTagName('zipFile')
         if zipstr:
             zipstr = zipstr[0].firstChild.nodeValue
-        else:
-            return self.packages
         zipstringio = StringIO.StringIO(base64.b64decode(zipstr))
         zipfile = ZipFile(zipstringio, 'r')
         return zipfile

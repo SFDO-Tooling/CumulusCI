@@ -17,22 +17,30 @@ from cumulusci.tests.util import create_project_config
 from cumulusci.tests.util import DummyOrgConfig
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.tasks import BaseTask
+from cumulusci.salesforce_api.exceptions import MetadataApiError
 from cumulusci.salesforce_api.metadata import BaseMetadataApiCall
 from cumulusci.salesforce_api.metadata import ApiDeploy
 from cumulusci.salesforce_api.metadata import ApiListMetadata
 from cumulusci.salesforce_api.metadata import ApiRetrieveUnpackaged
 from cumulusci.salesforce_api.metadata import ApiRetrieveInstalledPackages
 from cumulusci.salesforce_api.metadata import ApiRetrievePackaged
-from cumulusci.salesforce_api.exceptions import MetadataApiError
+from cumulusci.salesforce_api.package_zip import BasePackageZipBuilder
 from cumulusci.salesforce_api.tests.metadata_test_strings import deploy_status_envelope
+from cumulusci.salesforce_api.tests.metadata_test_strings import deploy_result
 from cumulusci.salesforce_api.tests.metadata_test_strings import list_metadata_start_envelope
+from cumulusci.salesforce_api.tests.metadata_test_strings import retrieve_packaged_start_envelope
 from cumulusci.salesforce_api.tests.metadata_test_strings import retrieve_unpackaged_start_envelope
+from cumulusci.salesforce_api.tests.metadata_test_strings import retrieve_result
 from cumulusci.salesforce_api.tests.metadata_test_strings import result_envelope
 from cumulusci.salesforce_api.tests.metadata_test_strings import status_envelope
 
 class DummyResponse(object):
     pass
 
+class DummyPackageZipBuilder(BasePackageZipBuilder):
+
+    def _populate_zip(self):
+        return
 
 class BaseTestMetadataApi(unittest.TestCase):
     api_class = BaseMetadataApiCall
@@ -167,14 +175,14 @@ class BaseTestMetadataApi(unittest.TestCase):
             api.soap_envelope_start = '{api_version}'
             expected_response = str(self.project_config.project__package__api_version)
         else:
-            expected_response = self._build_expected_envelope_start()
+            expected_response = self._expected_envelope_start()
         
         self.assertEquals(
             api._build_envelope_start(),
             expected_response,
         )
 
-    def _build_expected_envelope_start(self):
+    def _expected_envelope_start(self):
         return self.envelope_start.format(
             api_version = self.project_config.project__package__api_version
         )
@@ -209,6 +217,61 @@ class BaseTestMetadataApi(unittest.TestCase):
                 u'SOAPAction': u'foo',
             }
         )
+
+    @responses.activate
+    @raises(MetadataApiError) 
+    def test_call_faultcode(self):
+        org_config = {
+            'instance_url': 'https://na12.salesforce.com',
+            'id': 'https://login.salesforce.com/id/00D000000000000ABC/005000000000000ABC',
+            'access_token': '0123456789',
+        }
+        task = self._create_task(org_config=org_config)
+        api = self._create_instance(task)
+        if not self.api_class.soap_envelope_start:
+            api.soap_envelope_start = '{api_version}'
+        response = '<?xml version="1.0" encoding="UTF-8"?><faultcode>foo</faultcode>'
+        self._mock_call_mdapi(api, response)
+        resp = api()
+
+    @responses.activate
+    def test_call_success(self):
+        org_config = {
+            'instance_url': 'https://na12.salesforce.com',
+            'id': 'https://login.salesforce.com/id/00D000000000000ABC/005000000000000ABC',
+            'access_token': '0123456789',
+        }
+        status_code = httplib.INTERNAL_SERVER_ERROR # HTTP Error 500
+        task = self._create_task(org_config=org_config)
+        api = self._create_instance(task)
+        if not self.api_class.soap_envelope_start:
+            api.soap_envelope_start = '{api_version}'
+        if not self.api_class.soap_envelope_status:
+            api.soap_envelope_status = '{process_id}'
+        if not self.api_class.soap_envelope_result:
+            api.soap_envelope_result = '{process_id}'
+
+        response = '<?xml version="1.0" encoding="UTF-8"?><id>1234567890</id>'
+        self._mock_call_mdapi(api, response)
+        response_status = '<?xml version="1.0" encoding="UTF-8"?><done>true</done>'
+        self._mock_call_mdapi(api, response_status)
+        response_result = '<?xml version="1.0" encoding="UTF-8"?><foo>bar</foo>'
+        response_result = self._response_call_success_result(response_result)
+        self._mock_call_mdapi(api, response_result)
+
+        resp = api()
+
+        self.assertEquals(
+            resp,
+            self._expected_call_success_result(response_result),
+        )
+
+    def _expected_call_success_result(self, response_result):
+        return response_result
+
+    def _response_call_success_result(self, response_result):
+        return response_result
+        
 
     def test_get_element_value(self):
         task = self._create_task()
@@ -618,20 +681,29 @@ class TestBaseMetadataApiCall(BaseTestMetadataApi):
             resp.content,
             response
         )
-        
+
 class TestApiDeploy(BaseTestMetadataApi):
     api_class = ApiDeploy
     envelope_status = deploy_status_envelope
 
     def setUp(self):
         super(TestApiDeploy, self).setUp()
-        self.package_zip = 'zipfoo'
+        self.package_zip = DummyPackageZipBuilder()()
 
-    def _build_expected_envelope_start(self):
+    def _expected_envelope_start(self):
         return self.envelope_start.format(
             package_zip = self.package_zip,
             purge_on_delete = 'true',
         )
+
+    def _response_call_success_result(self, response_result):
+        return deploy_result.format(
+            status = 'Succeeded',
+            extra = '',
+        )
+
+    def _expected_call_success_result(self, response_result):
+        return 'Success'
 
     def _create_instance(self, task, api_version=None, purge_on_delete=None):
         return self.api_class(
@@ -650,6 +722,9 @@ class TestApiListMetadata(BaseTestMetadataApi):
         self.metadata = None
         self.folder = None
         self.api_version = self.project_config.project__package__api_version
+
+    def _expected_call_success_result(self, result_response):
+        return {'CustomObject': []}
 
     def _create_instance(self, task, api_version=None):
         if api_version is None:
@@ -672,12 +747,51 @@ class TestApiRetrieveUnpackaged(BaseTestMetadataApi):
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
     <version>41.0</version>
 </Package>"""
+        self.result_zip = DummyPackageZipBuilder()
+
+    def _response_call_success_result(self, response_result):
+        return retrieve_result.format(zip = self.result_zip(), extra = '')
+
+    def _expected_call_success_result(self, response_result):
+        return self.result_zip.zip
 
     def _create_instance(self, task, api_version=None):
         return self.api_class(
             task,
             self.package_xml,
             api_version = api_version,
+        )
+
+    @responses.activate
+    def test_call_success(self):
+        org_config = {
+            'instance_url': 'https://na12.salesforce.com',
+            'id': 'https://login.salesforce.com/id/00D000000000000ABC/005000000000000ABC',
+            'access_token': '0123456789',
+        }
+        status_code = httplib.INTERNAL_SERVER_ERROR # HTTP Error 500
+        task = self._create_task(org_config=org_config)
+        api = self._create_instance(task)
+        if not self.api_class.soap_envelope_start:
+            api.soap_envelope_start = '{api_version}'
+        if not self.api_class.soap_envelope_status:
+            api.soap_envelope_status = '{process_id}'
+        if not self.api_class.soap_envelope_result:
+            api.soap_envelope_result = '{process_id}'
+
+        response = '<?xml version="1.0" encoding="UTF-8"?><id>1234567890</id>'
+        self._mock_call_mdapi(api, response)
+        response_status = '<?xml version="1.0" encoding="UTF-8"?><done>true</done>'
+        self._mock_call_mdapi(api, response_status)
+        response_result = '<?xml version="1.0" encoding="UTF-8"?><foo>bar</foo>'
+        response_result = self._response_call_success_result(response_result)
+        self._mock_call_mdapi(api, response_result)
+
+        zip_file = api()
+
+        self.assertEquals(
+            zip_file.namelist(),
+            self._expected_call_success_result(response_result).namelist(),
         )
 
 class TestApiRetrieveInstalledPackages(BaseTestMetadataApi):
@@ -689,14 +803,18 @@ class TestApiRetrieveInstalledPackages(BaseTestMetadataApi):
         )
         return api
 
-class TestApiRetrievePackaged(BaseTestMetadataApi):
+    def _expected_call_success_result(self, result_response):
+        return []
+
+class TestApiRetrievePackaged(TestApiRetrieveUnpackaged):
     api_class = ApiRetrievePackaged
+    envelope_start = retrieve_packaged_start_envelope
 
     def setUp(self):
         super(TestApiRetrievePackaged, self).setUp()
         self.package_name = 'Test Package'
 
-    def _build_expected_envelope_start(self):
+    def _expected_envelope_start(self):
         return self.envelope_start.format(
             api_version = self.project_config.project__package__api_version,
             package_name = self.package_name,
