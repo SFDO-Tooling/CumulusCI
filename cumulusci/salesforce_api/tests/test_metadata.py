@@ -25,6 +25,8 @@ from cumulusci.salesforce_api.metadata import ApiRetrieveUnpackaged
 from cumulusci.salesforce_api.metadata import ApiRetrieveInstalledPackages
 from cumulusci.salesforce_api.metadata import ApiRetrievePackaged
 from cumulusci.salesforce_api.package_zip import BasePackageZipBuilder
+from cumulusci.salesforce_api.package_zip import CreatePackageZipBuilder
+from cumulusci.salesforce_api.package_zip import InstallPackageZipBuilder
 from cumulusci.salesforce_api.tests.metadata_test_strings import deploy_status_envelope
 from cumulusci.salesforce_api.tests.metadata_test_strings import deploy_result
 from cumulusci.salesforce_api.tests.metadata_test_strings import list_metadata_start_envelope
@@ -804,7 +806,53 @@ class TestApiRetrieveInstalledPackages(BaseTestMetadataApi):
         return api
 
     def _expected_call_success_result(self, result_response):
-        return []
+        return {}
+
+    def test_process_response_no_zipstr(self):
+        task = self._create_task()
+        api = self._create_instance(task)
+        response = DummyResponse
+        response.status_code = 200
+        response.content = deploy_result.format(
+            status = 'testing',
+            extra = '',
+        )
+        resp = api._process_response(response)
+        self.assertEquals(
+            resp,
+            {},
+        )
+
+    def _process_response_zipstr_no_packages(self):
+        task = self._create_task()
+        api = self._create_instance(task)
+        response = DummyResponse
+        response.status_code = 200
+        response.content = deploy_result.format(
+            zip = CreatePackageZipBuilder('testing'),
+            extra = '',
+        )
+        resp = api._process_response(response)
+        self.assertEquals(
+            resp,
+            {},
+        )
+
+    def _process_response_zipstr_one_package(self):
+        task = self._create_task()
+        api = self._create_instance(task)
+        response = DummyResponse
+        response.status_code = 200
+        response.content = deploy_result.format(
+            zip = InstallPackageZipBuilder('foo', '1.1'),
+            extra = '',
+        )
+        resp = api._process_response(response)
+        self.assertEquals(
+            resp,
+            {'foo': '1.1'},
+        )
+    
 
 class TestApiRetrievePackaged(TestApiRetrieveUnpackaged):
     api_class = ApiRetrievePackaged

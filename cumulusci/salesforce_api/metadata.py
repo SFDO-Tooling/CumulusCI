@@ -128,13 +128,11 @@ class BaseMetadataApiCall(object):
             raise NotImplementedError('No soap_start template was provided')
         # Start the call
         envelope = self._build_envelope_start()
-        if not envelope:
-            return
         envelope = envelope.encode('utf-8')
         headers = self._build_headers(self.soap_action_start, envelope)
         response = self._call_mdapi(headers, envelope)
-        # If no status or result calls are configured, return the result
-        if not self.soap_envelope_status and not self.soap_envelope_result:
+        # If no status envelope is configured, return the response directly
+        if not self.soap_envelope_status:
             return response
         # Process the response to set self.process_id with the process id
         # started
@@ -144,8 +142,6 @@ class BaseMetadataApiCall(object):
             while self.status not in ['Done', 'Failed']:
                 # Check status in a loop until done
                 envelope = self._build_envelope_status()
-                if not envelope:
-                    return
                 envelope = envelope.encode('utf-8')
                 headers = self._build_headers(
                     self.soap_action_status, envelope)
@@ -160,28 +156,12 @@ class BaseMetadataApiCall(object):
             # Fetch the final result and return
             if self.soap_envelope_result:
                 envelope = self._build_envelope_result()
-                if not envelope:
-                    return
                 envelope = envelope.encode('utf-8')
                 headers = self._build_headers(
                     self.soap_action_result, envelope)
                 response = self._call_mdapi(headers, envelope)
             else:
                 return response
-        else:
-            # Check the result and return when done
-            while self.status not in ['Succeeded', 'Failed', 'Canceled']:
-                # start increasing the check interval progressively to handle long pending jobs
-                check_interval = self._get_check_interval()
-                self.check_num += 1
-                time.sleep(check_interval)
-
-                envelope = self._build_envelope_result()
-                envelope = envelope.encode('utf-8')
-                headers = self._build_headers(
-                    self.soap_action_result, envelope)
-                response = self._call_mdapi(headers, envelope)
-                response = _process_response_result(response)
         return response
 
     def _handle_soap_error(self, headers, envelope, refresh, response):
@@ -189,8 +169,6 @@ class BaseMetadataApiCall(object):
             response.content).getElementsByTagName('faultcode')
         if faultcode:
             faultcode = faultcode[0].firstChild.nodeValue
-        else:
-            faultcode = ''
         faultstring = parseString(
             response.content).getElementsByTagName('faultstring')
         if faultstring:
@@ -209,10 +187,6 @@ class BaseMetadataApiCall(object):
 
     def _process_response(self, response):
         return response.content
-
-    def _process_response_result(self, response):
-        self._set_status('Succeeded')
-        return response
 
     def _process_response_start(self, response):
         if response.status_code == httplib.INTERNAL_SERVER_ERROR:
@@ -308,7 +282,7 @@ class ApiRetrieveInstalledPackages(BaseMetadataApiCall):
 
     def __init__(self, task):
         super(ApiRetrieveInstalledPackages, self).__init__(task)
-        self.packages = []
+        self.packages = {}
 
     def _process_response(self, response):
         # Parse the metadata zip file from the response
@@ -319,7 +293,6 @@ class ApiRetrieveInstalledPackages(BaseMetadataApiCall):
             return self.packages
         zipstringio = StringIO.StringIO(base64.b64decode(zipstr))
         zipfile = ZipFile(zipstringio, 'r')
-        packages = {}
         # Loop through all files in the zip skipping anything other than
         # InstalledPackages
         for path in zipfile.namelist():
@@ -330,8 +303,7 @@ class ApiRetrieveInstalledPackages(BaseMetadataApiCall):
                 path).read()).getElementsByTagName('versionNumber')
             if version:
                 version = version[0].firstChild.nodeValue
-            packages[namespace] = version
-        self.packages = packages
+            self.packages[namespace] = version
         return self.packages
 
 
