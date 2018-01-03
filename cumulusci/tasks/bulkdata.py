@@ -28,6 +28,10 @@ from sqlalchemy import types
 from sqlalchemy import event
 from StringIO import StringIO
 
+# TODO: Record Type Filter
+# TODO: UserID Catcher
+# TODO: Dater
+
 # Create a custom sqlalchemy field type for sqlite datetime fields which are stored as integer of epoch time
 class EpochType(types.TypeDecorator):
     impl = types.Integer
@@ -388,6 +392,8 @@ class QueryData(BaseSalesforceApiTask):
             'fields': ', '.join(fields),
             'sf_object': sf_object,
         })
+        if 'record_type' in mapping:
+            soql += ' WHERE RecordType.DeveloperName = \'{}\''.format(mapping['record_type'])
         return soql
 
     def _run_query(self, soql, mapping):
