@@ -16,10 +16,10 @@ Step Name: (must be unique)
         API Name: sqlite3 name
     lookups:
         ForeignKeyAPIName (e.g. AccountId):
-            key_field
-            table
-            join_field
-            value_field
+            key_field (field on CURRENT table (specified in step.table) that contains the foreign key)
+            table (table to join to)
+            join_field (field on table just specified that contains the referenced key. usually id/pk)
+            value_field (field on the joined table to use as value, usually sf_id)
     static:
         FieldAPIName: True
         AnotherFieldAPIName: MonthlyLiteral

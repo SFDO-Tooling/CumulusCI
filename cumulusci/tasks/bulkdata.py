@@ -28,7 +28,6 @@ from sqlalchemy import types
 from sqlalchemy import event
 from StringIO import StringIO
 
-# TODO: Record Type Filter
 # TODO: UserID Catcher
 # TODO: Dater
 
@@ -444,6 +443,7 @@ class QueryData(BaseSalesforceApiTask):
     def _create_tables(self):
         for name, mapping in self.mappings.items():
             self._create_table(mapping)
+        self.metadata.create_all()
 
     def _fields_for_mapping(self, mapping):
         fields = []
@@ -473,5 +473,6 @@ class QueryData(BaseSalesforceApiTask):
             *fields,
             **table_kwargs
         )
-        self.metadata.create_all()
+        
+        
         mapper(self.models[mapping['table']], t, **mapper_kwargs)
