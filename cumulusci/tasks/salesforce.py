@@ -41,6 +41,7 @@ from cumulusci.utils import CUMULUSCI_PATH
 from cumulusci.utils import download_extract_zip
 from cumulusci.utils import findReplace
 from cumulusci.utils import package_xml_from_dict
+from cumulusci.utils import zip_clean_metaxml
 from cumulusci.utils import zip_inject_namespace
 from cumulusci.utils import zip_strip_namespace
 from cumulusci.utils import zip_tokenize_namespace
@@ -332,6 +333,9 @@ class Deploy(BaseSalesforceMetadataApiTask):
         'namespaced_org': {
             'description': "If True, the tokens %%%NAMESPACED_ORG%%% and ___NAMESPACED_ORG___ will get replaced with the namespace.  The default is false causing those tokens to get stripped and replaced with an empty string.  Set this if deploying to a namespaced scratch org or packaging org.",
         },
+        'clean_meta_xml': {
+            'description': "Defaults to True which strips the <packageVersions/> element from all meta.xml files.  The packageVersion element gets added automatically by the target org and is set to whatever version is installed in the org.  To disable this, set this option to False",
+        },
     }
         
     def _get_api(self, path=None):
@@ -358,6 +362,7 @@ class Deploy(BaseSalesforceMetadataApiTask):
 
     def _process_zip_file(self, zipf):
         zipf = self._process_namespace(zipf)
+        zipf = self._process_meta_xml(zipf)
         return zipf
         
     def _process_namespace(self, zipf):
@@ -386,6 +391,16 @@ class Deploy(BaseSalesforceMetadataApiTask):
             zipf = zip_inject_namespace(zipf, self.options['namespace_inject'], **kwargs)
         if self.options.get('namespace_strip'):
             zipf = zip_strip_namespace(zipf, self.options['namespace_strip'], logger=self.logger)
+        return zipf
+
+    def _process_meta_xml(self, zipf):
+        if not process_bool_arg(self.options.get('clean_meta_xml', True)):
+            return zipf
+
+        self.logger.info(
+            'Cleaning meta.xml files of packageVersion elements for deploy'
+        )
+        zipf = zip_clean_metaxml(zipf, logger=self.logger)
         return zipf
 
     def _write_zip_file(self, zipf, root, path):
