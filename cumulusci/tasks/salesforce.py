@@ -394,7 +394,7 @@ class Deploy(BaseSalesforceMetadataApiTask):
         return zipf
 
     def _process_meta_xml(self, zipf):
-        if self.options.get('clean_meta_xml') == 'False':
+        if not process_bool_arg(self.options.get('clean_meta_xml', True)):
             return zipf
 
         self.logger.info(
