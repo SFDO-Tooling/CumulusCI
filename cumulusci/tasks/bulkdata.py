@@ -141,9 +141,21 @@ class LoadData(BaseSalesforceApiTask):
         self._init_db()
 
         for name, mapping in self.mapping.items():
-            self.logger.info('Running Job: {}'.format(name))
+            api = mapping.get('api', 'bulk')
+            if mapping.get('retrieve_only', False):
+                continue
+
+            self.logger.info('Running Job: {} with {} API'.format(name, api))
             rows = self._get_batches(mapping)
-            res = self._upload_batches(mapping, rows)
+
+            if api is 'bulk':
+                return self._upload_batches(mapping, rows)
+            elif api is 'sobject':
+                return self._sobject_api_upload_batches(mapping, rows)
+
+    def _sobject_api_upload_batches(self, mapping, batches):
+        for batch, batch_rows in batches:
+            pass
 
     def _create_job(self, mapping):
         action = mapping.get('action', 'insert')
@@ -159,9 +171,7 @@ class LoadData(BaseSalesforceApiTask):
 
         return job_id
 
-
     def _upload_batches(self, mapping, batches):
-      
         job_id = None
         table = self.tables[mapping.get('table')]
 
@@ -219,7 +229,10 @@ class LoadData(BaseSalesforceApiTask):
         return query
 
 
-    def _get_batches(self, mapping):
+    def _get_batches(self, mapping, batch_size=None):
+        if batch_size is None:
+            batch_size = 10000
+
         action = mapping.get('action', 'insert')
         fields = mapping.get('fields', {}).copy()
         static = mapping.get('static', {})
@@ -252,7 +265,7 @@ class LoadData(BaseSalesforceApiTask):
         batch_num = 1
         batch = []
         batch_rows = []
-    
+
         for row in query:
             total_rows += 1
 
@@ -263,7 +276,6 @@ class LoadData(BaseSalesforceApiTask):
             for key, value in static.items():
                 csv_row[key] = value
             for key, lookup in lookups.items():
-                lookup_table = lookup['table']
                 kwargs = {lookup['join_field']: getattr(row, lookup['key_field'])}
                 try:
                     res = self.session.query(self.tables[lookup['table']]).filter_by(**kwargs).one()
@@ -271,7 +283,7 @@ class LoadData(BaseSalesforceApiTask):
                 except:
                     csv_row[key] = None
             if record_type:
-                csv_row['RecordTypeId'] = record_type_id 
+                csv_row['RecordTypeId'] = record_type_id
 
             # utf-8 encode row values
             for key, value in csv_row.items():
@@ -286,11 +298,11 @@ class LoadData(BaseSalesforceApiTask):
 
             # Write to csv file
             batch.append(csv_row)
-        
+
             batch_rows.append(row)
 
             # Slice into batches
-            if len(batch) == 10000:
+            if len(batch) == batch_size:
                 self.logger.info('    Processing batch {}'.format(batch_num))
                 yield batch, batch_rows
 

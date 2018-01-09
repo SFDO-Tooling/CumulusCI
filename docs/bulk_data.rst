@@ -6,6 +6,7 @@ Mapping File
 ===========
 
 Step Name: (must be unique)
+    api: [(bulk)|sobject]
     sf_object: API Name for sfdc object
     table: full table name in sqlite3
     filters: used to filter the sqlite3 table when loading data
