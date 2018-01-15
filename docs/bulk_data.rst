@@ -40,6 +40,7 @@ Mapping File
             FieldAPIName: True
             AnotherFieldAPIName: MonthlyLiteral
 
+
 Example
 ^^^^^^^
 
@@ -77,3 +78,4 @@ Example
                 table: organizations
                 join_field: organization_id
                 value_field: sf_id
+
