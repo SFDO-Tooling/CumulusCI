@@ -20,6 +20,7 @@ Mapping File
 ============
 
 .. code-block:: yaml
+
     Step Name: (must be unique)
         api: [(bulk)|sobject] (not yet implemented, specify which API to use to load data)
         sf_object: API Name for sfdc object
@@ -45,6 +46,7 @@ Example
 ^^^^^^^
 
 .. code-block:: yaml    
+
     Insert Organizations:
         sf_object: Account
         table: organizations
