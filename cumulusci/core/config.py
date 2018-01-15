@@ -25,14 +25,15 @@ from Crypto.Cipher import AES
 
 import cumulusci
 from cumulusci.core.exceptions import ConfigError
-from cumulusci.core.exceptions import NotInProject
+from cumulusci.core.exceptions import DependencyResolutionError
 from cumulusci.core.exceptions import KeychainConnectedAppNotFound
+from cumulusci.core.exceptions import KeychainNotFound
+from cumulusci.core.exceptions import NotInProject
 from cumulusci.core.exceptions import ProjectConfigNotFound
 from cumulusci.core.exceptions import ScratchOrgException
 from cumulusci.core.exceptions import ServiceNotConfigured
 from cumulusci.core.exceptions import ServiceNotValid
 from cumulusci.core.exceptions import SOQLQueryException
-from cumulusci.core.exceptions import KeychainNotFound
 from cumulusci.oauth.salesforce import SalesforceOAuth2
 
 __location__ = os.path.dirname(os.path.realpath(__file__))
@@ -498,15 +499,19 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             tag_name = self.project__git__prefix_release + version
         return tag_name
 
-    def get_version_for_tag(self, tag):
-        if not tag.startswith(self.project__git__prefix_beta) and not tag.startswith(self.project__git__prefix_release):
+    def get_version_for_tag(self, tag, prefix_beta=None, prefix_release=None):
+        if prefix_beta is None:
+            prefix_beta = self.project__git__prefix_beta
+        if prefix_release is None:
+            prefix_release = self.project__git__prefix_release
+        if not tag.startswith(prefix_beta) and not tag.startswith(prefix_release):
             return None
 
         if 'Beta' in tag:
-            version = tag[len(self.project__git__prefix_beta):]
+            version = tag[len(prefix_beta):]
             version = version.replace('-', ' (').replace('_', ' ') + ')'
         else:
-            version = tag[len(self.project__git__prefix_release):]
+            version = tag[len(prefix_release):]
         return version
 
     def set_keychain(self, keychain):
@@ -598,8 +603,16 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             repo_name = repo_name[:-4]
         repo = gh.repository(repo_owner, repo_name)
 
+        # Determine the ref if specified
+        kwargs = {}
+        if 'tag' in dependency:
+            tag = dependency['tag']
+            kwargs['ref'] = tag
+        else:
+            tag = None
+
         # Get the cumulusci.yml file
-        contents = repo.contents('cumulusci.yml')
+        contents = repo.contents('cumulusci.yml', **kwargs)
         cumulusci_yml = hiyapyco.load(contents.decoded)
 
         # Get the namespace from the cumulusci.yml if set
@@ -611,7 +624,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
         # Look for subfolders under unpackaged/pre
         unpackaged_pre = []
-        contents = repo.contents('unpackaged/pre')
+        contents = repo.contents('unpackaged/pre', **kwargs)
         if contents:
             for dirname in list(contents.keys()):
                 if 'unpackaged/pre/{}'.format(dirname) in skip:
@@ -633,7 +646,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         # Look for metadata under src (deployed if no namespace)
         unmanaged_src = None
         if unmanaged or not namespace:
-            contents = repo.contents('src')
+            contents = repo.contents('src', **kwargs)
             if contents:
                 zip_url = "{}/archive/{}.zip".format(
                     repo.html_url, repo.default_branch)
@@ -650,7 +663,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
         # Look for subfolders under unpackaged/post
         unpackaged_post = []
-        contents = repo.contents('unpackaged/post')
+        contents = repo.contents('unpackaged/post', **kwargs)
         if contents:
             for dirname in list(contents.keys()):
                 if 'unpackaged/post/{}'.format(dirname) in skip:
@@ -675,16 +688,26 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                     dependency['unmananged'] = unmanaged
                 unpackaged_post.append(dependency)
 
+        # Parse values from the repo's cumulusci.yml
         project = cumulusci_yml.get('project', {})
+        prefix_beta = project.get('git', {}).get('prefix_beta', 'beta/')
+        prefix_release = project.get('git', {}).get('prefix_release', 'release/')
         dependencies = project.get('dependencies')
         if dependencies:
             dependencies = self.get_static_dependencies(dependencies)
-        version = None
+
+        # Create the final ordered list of all parsed dependencies
+        repo_dependencies = []
+
+        # unpackaged/pre/*
+        if unpackaged_pre:
+            repo_dependencies.extend(unpackaged_pre)
 
         if namespace and not unmanaged:
-            # Get version
-            version = dependency.get('version')
-            if 'version' not in dependency or dependency['version'] == 'latest':
+            version = None
+            if tag:
+                version = self.get_version_for_tag(tag, prefix_beta, prefix_release)
+            else:
                 # github3.py doesn't support the latest release API so we hack
                 # it together here
                 url = repo._build_url('releases/latest', base_url=repo._api)
@@ -695,31 +718,19 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                         indent, e.__class__.__name__, e.message))
 
             if not version:
-                self.logger.warn(
-                    '{}Could not find latest release for {}'.format(indent, namespace))
-
-        # Create the final ordered list of all parsed dependencies
-        repo_dependencies = []
-
-        # unpackaged/pre/*
-        if unpackaged_pre:
-            repo_dependencies.extend(unpackaged_pre)
-
-        # Latest managed release (if referenced repo has a namespace)
-        if namespace and not unmanaged:
-            if version:
-                # If a latest prod version was found, make the dependencies a
-                # child of that install
-                dependency = {
-                    'namespace': namespace,
-                    'version': version,
-                }
-                if dependencies:
-                    dependency['dependencies'] = dependencies
-
+                raise DependencyResolutionError(
+                    '{}Could not find latest release for {}'.format(indent, namespace)
+                )
+            # If a latest prod version was found, make the dependencies a
+            # child of that install
+            dependency = {
+                'namespace': namespace,
+                'version': version,
+            }
+            if dependencies:
+                dependency['dependencies'] = dependencies
                 repo_dependencies.append(dependency)
-            elif dependencies:
-                repo_dependencies.extend(dependencies)
+            repo_dependencies.append(dependency)
 
         # Unmanaged metadata from src (if referenced repo doesn't have a
         # namespace)

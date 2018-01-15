@@ -340,6 +340,19 @@ If the referenced repository does not have a namespace configured or if the depe
 
 In the above example, the HEDAP repository is configured for a namespace but the dependency specifies `unmanaged: True` so the dependency would deploy unmanaged HEDAP and its dependencies. 
 
+Referencing a Specific Tag
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+If you want to reference a version other than HEAD and the latest production release, you can use the `tag` option to specify a particular tag from the target repository.  This is most useful for testing against beta versions of underyling packages or recreating specific org environments for debugging:
+
+    project:
+        dependencies:
+            - github: https://github.com/SalesforceFoundation/HEDAP
+              tag: beta/1.47-Beta_2
+
+In the above example, the HEDAP repository's tag `beta/1.47-Beta_2` will be used instead of the latest production release of HEDAP (1.46 for this example).  This allows a build environment to use features in the next production release of HEDAP which are already merged but not yet included in a production release.
+
+
 Case Study: SalesforceFoundation/Cumulus
 ----------------------------------------
 
@@ -462,3 +475,18 @@ You can see how complex a single repository dependency can be with the following
     2017-06-03 17:02:01: [InProgress]: Processing Type: QuickAction
     2017-06-03 17:02:03: [Done]
     2017-06-03 17:02:04: [Success]: Succeeded
+
+Automatic Cleaning of meta.xml files on Deploy
+----------------------------------------------
+
+In order to allow CumulusCI to fully manage the project's dependencies, the `deploy` task (and other tasks based on `cumulusci.tasks.salesforce.Deploy` or subclasses of it) will automatically remove the `<packageVersion>` element and its children from all meta.xml files in the deployed metadata.  This does not affect the files on the filesystem.
+
+The reason for stripping `<packageVersion>` elements on deploy is that the target Salesforce org will automatically add them back using the installed version of the referenced namespace.  This allows CumulusCI to fully manage dependencies and avoids the need to rush a new commit of meta.xml files when a new underlying package version is available.
+
+If the metadata being deployed references namespaced metadata that does not exist in the currently installed package, the deployment will still throw an error as expected.
+
+The automatic cleaning of meta.xml files can be disabled using by setting the `clean_meta_xml` task option to `False`.
+
+Prior to the addition of this functionality, we often experienced unnecessary delays in our release cycle due to the need to create a new commit on master (and thus a feature branch, PR, code review, etc) just to update the meta.xml files.  CumulusCI's Github Dependency functionality already handles requiring a new production release so the only reason we needed to do this commit was the meta.xml files.  Automatically cleaning the meta.xml files on deploy eliminates the need for this commit.
+
+One drawback of this approach is that there may be diffs in the meta.xml files that developers need to handle by either ignoring them or commiting them as part of their work in a feature branch.  The diffs come from a scenario of Package B which extends Package A.  When a new production release of Package A is published, the `update_dependencies` task for Package B will install the new version.  When metadata is then retrieved from the org, the meta.xml files will reference the new version while the repository's meta.xml files reference an older version.  The main difference between this situation and the previous situation without automatically cleaning the meta.xml is that avoiding the diffs in meta.xml files is a convenience for developers rather than a requirement for builds and releases.  Developers can also use the `meta_xml_dependencies` task to update the meta.xml files locally using the versions from CumulusCI's calculated project dependencies.

@@ -10,7 +10,7 @@ import zipfile
 
 import requests
 
-from xml.etree.ElementTree import ElementTree
+import xml.etree.ElementTree as ET
 
 CUMULUSCI_PATH = os.path.realpath(
     os.path.join(os.path.dirname(os.path.realpath(__file__)), '..')
@@ -61,37 +61,49 @@ def findRename(find, replace, directory, logger=None):
 
 
 def removeXmlElement(name, directory, file_pattern, logger=None):
+    """ Recursively walk a directory and remove XML elements """
     for path, dirs, files in os.walk(os.path.abspath(directory)):
         for filename in fnmatch.filter(files, file_pattern):
             filepath = os.path.join(path, filename)
-            tree = ElementTree()
-            tree.parse(filepath)
-            root = tree.getroot()
-            remove = root.findall(
-                './/{{http://soap.sforce.com/2006/04/metadata}}{}'.format(name)
-            )
-            if not remove:
-                continue
+            remove_xml_element_file(name, filepath)
 
-            if logger:
-                logger.info(
-                    'Modifying {} to remove <{}> elements'.format(
-                        filepath,
-                        name,
-                    )
-                )
+def remove_xml_element_file(name, path):
+    """ Remove XML elements from a single file """
+    ET.register_namespace('', 'http://soap.sforce.com/2006/04/metadata')
+    tree = ET.parse(path)
+    tree = remove_xml_element(name, tree)
+    return tree.write(
+        filepath,
+        encoding="UTF-8",
+    )
 
-            parent_map = {c: p for p in tree.iter() for c in p}
+def remove_xml_element_string(name, content):
+    """ Remove XML elements from a string """
+    ET.register_namespace('', 'http://soap.sforce.com/2006/04/metadata')
+    tree = ET.fromstring(content)
+    tree = remove_xml_element(name, tree)
+    clean_content = ET.tostring(
+        tree,
+        encoding="UTF-8",
+    )
+    return clean_content
 
-            for elem in remove:
-                parent = parent_map[elem]
-                parent.remove(elem)
+def remove_xml_element(name, tree):
+    """ Removes XML elements from an ElementTree content tree """
+    #root = tree.getroot()
+    remove = tree.findall(
+        './/{{http://soap.sforce.com/2006/04/metadata}}{}'.format(name)
+    )
+    if not remove:
+        return tree
 
-            tree.write(
-                filepath,
-                encoding="UTF-8",
-                default_namespace='http://soap.sforce.com/2006/04/metadata',
-            )
+    parent_map = {c: p for p in tree.iter() for c in p}
+
+    for elem in remove:
+        parent = parent_map[elem]
+        parent.remove(elem)
+
+    return tree
 
 
 def download_extract_zip(url, target=None, subfolder=None):
@@ -232,6 +244,37 @@ def zip_tokenize_namespace(zip_src, namespace, logger=None):
         except UnicodeDecodeError:
             # if we cannot decode the content, don't try and replace it.
             pass
+    return zip_dest
+
+def zip_clean_metaxml(zip_src, logger=None):
+    """ Given a zipfile, cleans all *-meta.xml files in the zip for 
+        deployment by stripping all <packageVersions/> elements
+    """
+    zip_dest = zipfile.ZipFile(io.BytesIO(), 'w', zipfile.ZIP_DEFLATED)
+    changed = []
+    for name in zip_src.namelist():
+        content = zip_src.read(name)
+        if not name.endswith('-meta.xml'):
+            zip_dest.writestr(name, content)
+            continue
+        try:
+            clean_content = remove_xml_element_string(
+                'packageVersions',
+                zip_src.read(name),
+            )
+            if clean_content != content:
+                changed.append(name)
+
+            zip_dest.writestr(name, clean_content)
+        except UnicodeDecodeError:
+            # if we cannot decode the content, don't try and replace it.
+            pass
+    if changed and logger:
+        logger.info(
+            'Cleaned namespace references from {} meta.xml files'.format(
+                len(changed)
+            )
+        )
     return zip_dest
 
 def doc_task(task_name, task_config, project_config=None, org_config=None):

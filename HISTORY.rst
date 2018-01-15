@@ -2,6 +2,13 @@
 History
 =======
 
+2.0.0-beta80 (2018-1-8)
+-------------------------
+
+* The deploy tasks now automatically clean all meta.xml files in the deployed metadata of any namespace references by removing the <packageVersions> element and children.  This allows CumulusCI to fully manage the dependencies and avoids the need for new commits to change referenced versions in meta.xml files.
+    * The default functionality can be disabled with the by setting `clean_meta_xml` to False
+* Github dependencies can now point to a specific tag in the repository.  The tag is used to determine the version to install for the dependency if the repository has a namespace configured and will be used to determine which unpackaged metadata to deploy.
+
 2.0.0-beta79 (2017-11-30)
 -------------------------
 
