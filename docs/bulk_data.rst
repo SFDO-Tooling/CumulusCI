@@ -11,6 +11,9 @@ Runs the mapping YAML in order, from top to bottom, selecting data from the spec
 sf_object and inserting it into the local table.
 
 LoadData
+^^^^^^^^
+Runs the mapping YAML in order, selecting data from the local table and inserting into the
+specified sf_object 
 
 
 Mapping File
@@ -18,7 +21,7 @@ Mapping File
 
 .. code-block:: yaml
     Step Name: (must be unique)
-        api: [(bulk)|sobject] (not yet implemented)
+        api: [(bulk)|sobject] (not yet implemented, specify which API to use to load data)
         sf_object: API Name for sfdc object
         table: full table name in sqlite3
         filters: used to filter the sqlite3 table when loading data
