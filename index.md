@@ -1,3 +1,3 @@
-# CumulusCI Documentation has moved!
+# CumulusCI
 
-# [Read the Docs](http://cumulusci.readthedocs.io)
+Documentation has moved to [Read the Docs](http://cumulusci.readthedocs.io).
