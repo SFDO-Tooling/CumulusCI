@@ -1,8 +1,4 @@
-title: Cumulus CI
-description: Documentation and scripts used in the Continuous Integration process for Project Cumulus
-google_analytics: 
+title: CumulusCI
+description: Python framework for building portable automation for Salesforce projects
 show_downloads: true
 theme: jekyll-theme-tactile
-
-gems:
-  - jekyll-mentions
