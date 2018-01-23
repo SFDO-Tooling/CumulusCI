@@ -139,6 +139,7 @@ class LoadData(BaseSalesforceApiTask):
     def _run_task(self):
         self._init_mapping()
         self._init_db()
+        self.logger.debug('here')
 
         for name, mapping in self.mapping.items():
             api = mapping.get('api', 'bulk')
@@ -149,9 +150,9 @@ class LoadData(BaseSalesforceApiTask):
             rows = self._get_batches(mapping)
 
             if api is 'bulk':
-                return self._upload_batches(mapping, rows)
+                self._upload_batches(mapping, rows)
             elif api is 'sobject':
-                return self._sobject_api_upload_batches(mapping, rows)
+                self._sobject_api_upload_batches(mapping, rows)
 
     def _sobject_api_upload_batches(self, mapping, batches):
         for batch, batch_rows in batches:
