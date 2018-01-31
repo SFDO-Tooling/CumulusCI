@@ -139,7 +139,6 @@ class LoadData(BaseSalesforceApiTask):
     def _run_task(self):
         self._init_mapping()
         self._init_db()
-        self.logger.debug('here')
 
         for name, mapping in self.mapping.items():
             api = mapping.get('api', 'bulk')
