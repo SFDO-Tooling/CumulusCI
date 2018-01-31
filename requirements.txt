@@ -11,8 +11,7 @@ requests[security]==2.9.1
 responses==0.5.1
 rst2ansi==0.1.5
 selenium
-salesforce-bulk==1.1.0
-simple-salesforce==0.72
+salesforce-bulk==2.0.0
 xmltodict==0.10.2
 HiYaPyCo==0.4.8
 PyCrypto==2.6.1
