@@ -8,6 +8,7 @@ import xml.etree.ElementTree as ET
 import datetime
 import requests
 import tempfile
+import unicodecsv
 
 from collections import OrderedDict
 
@@ -68,17 +69,19 @@ class DeleteData(BaseSalesforceApiTask):
     def _run_task(self):
         for obj in self.options['objects']:
             self.logger.info('Deleting all {} records'.format(obj))
+            # import pdb; pdb.set_trace()
             # Query for all record ids
             self.logger.info('  Querying for all {} objects'.format(obj))
             query_job = self.bulk.create_query_job(obj, contentType='CSV')
             batch = self.bulk.query(query_job, "select Id from {}".format(obj))
-            while not self.bulk.is_batch_done(query_job, batch):
+            while not self.bulk.is_batch_done(batch, query_job):
                 time.sleep(10)
             self.bulk.close_job(query_job)
-
             delete_rows = []
-            for row in self.bulk.get_batch_result_iter(query_job, batch, parse_csv=True):
-                delete_rows.append(row)
+            for result in self.bulk.get_all_results_for_query_batch(batch,query_job):
+                reader = unicodecsv.DictReader(result, encoding='utf-8')
+                for row in reader:
+                    delete_rows.append(row)
 
             if not delete_rows:
                 self.logger.info('  No {} objects found, skipping delete'.format(obj))
@@ -90,7 +93,7 @@ class DeleteData(BaseSalesforceApiTask):
             batch_num = 1
             for batch in self._upload_batch(delete_job, delete_rows):
                 self.logger.info('    Uploaded batch {}'.format(batch))
-                while not self.bulk.is_batch_done(delete_job, batch):
+                while not self.bulk.is_batch_done(batch, delete_job):
                     self.logger.info('      Checking status of batch {0}'.format(batch_num))
                     time.sleep(10)
                 self.logger.info('      Batch {} complete'.format(batch))
@@ -187,7 +190,7 @@ class LoadData(BaseSalesforceApiTask):
             # Create the batch
             batch_id = self.bulk.post_bulk_batch(job_id, rows)
             self.logger.info('    Uploaded batch {}'.format(batch_id))
-            while not self.bulk.is_batch_done(job_id, batch_id):
+            while not self.bulk.is_batch_done(batch_id, job_id):
                 self.logger.info('      Checking batch status...')
                 time.sleep(10)
             
