@@ -427,8 +427,10 @@ class QueryData(BaseSalesforceApiTask):
         for field in self._fields_for_mapping(mapping):
             field_map[field['sf']] = field['db']
 
-        for row in self.bulk.get_batch_result_iter(job, batch, parse_csv=True):
-            self._import_row(row, mapping, field_map)
+        for result in self.bulk.get_all_results_for_query_batch(batch, job):
+            reader = unicodecsv.DictReader(result, encoding='utf-8')
+            for row in reader:
+                self._import_row(row, mapping, field_map)
 
         self.session.commit()
 
@@ -450,7 +452,7 @@ class QueryData(BaseSalesforceApiTask):
                 else:
                     mapped_row[field_map[key]] = None
             else:
-                mapped_row[field_map[key]] = value.decode('utf-8')
+                mapped_row[field_map[key]] = value
         instance = model()
         for key, value in mapped_row.items():
             setattr(instance, key, value)
