@@ -69,7 +69,6 @@ class DeleteData(BaseSalesforceApiTask):
     def _run_task(self):
         for obj in self.options['objects']:
             self.logger.info('Deleting all {} records'.format(obj))
-            # import pdb; pdb.set_trace()
             # Query for all record ids
             self.logger.info('  Querying for all {} objects'.format(obj))
             query_job = self.bulk.create_query_job(obj, contentType='CSV')
