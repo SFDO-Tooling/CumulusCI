@@ -188,7 +188,7 @@ class LoadData(BaseSalesforceApiTask):
             rows = CsvDictsAdapter(iter(batch))
 
             # Create the batch
-            batch_id = self.bulk.post_bulk_batch(job_id, rows)
+            batch_id = self.bulk.post_batch(job_id, rows)
             self.logger.info('    Uploaded batch {}'.format(batch_id))
             while not self.bulk.is_batch_done(batch_id, job_id):
                 self.logger.info('      Checking batch status...')
