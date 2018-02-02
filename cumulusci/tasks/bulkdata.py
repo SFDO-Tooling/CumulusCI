@@ -455,6 +455,8 @@ class QueryData(BaseSalesforceApiTask):
         instance = model()
         for key, value in mapped_row.items():
             setattr(instance, key, value)
+        if 'record_type' in mapping:
+            instance.record_type = mapping['record_type']
         self.session.add(instance)
 
     def _create_tables(self):
@@ -482,6 +484,8 @@ class QueryData(BaseSalesforceApiTask):
         
         fields = []
         fields.append(Column('id', Integer, primary_key=True))
+        if 'record_type' in mapping:
+            fields.append(Column('record_type', Unicode(255)))
         for field in self._fields_for_mapping(mapping):
             fields.append(Column(field['db'], Unicode(255)))
         t = Table(
