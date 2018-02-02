@@ -141,7 +141,6 @@ class LoadData(BaseSalesforceApiTask):
     def _run_task(self):
         self._init_mapping()
         self._init_db()
-        self.logger.debug('here')
 
         for name, mapping in self.mapping.items():
             api = mapping.get('api', 'bulk')
@@ -217,8 +216,9 @@ class LoadData(BaseSalesforceApiTask):
             # Commit to the db
             self.session.commit()
                 
+        
         self.bulk.close_job(job_id)
- 
+        status = self.bulk.job_status(job_id)
         
     def _query_db(self, mapping):
         table = self.tables[mapping.get('table')]
