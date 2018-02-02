@@ -2,6 +2,12 @@
 History
 =======
 
+2.0.0-beta82 (2018-02-02)
+-------------------------
+
+* Update salesforce-bulk package to version 2.0.0
+* Fix issue in bulk load data task
+
 2.0.0-beta81 (2018-01-18)
 -------------------------
 
