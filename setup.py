@@ -32,7 +32,7 @@ requirements = [
     'rst2ansi>=0.1.5',
     'sarge>=0.1.4',
     'selenium',
-    'salesforce-bulk==1.1.0',
+    'salesforce-bulk==2.0.0',
     'simple-salesforce>=0.72',
     'xmltodict==0.10.2',
     'HiYaPyCo>=0.4.8',

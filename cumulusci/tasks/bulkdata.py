@@ -8,6 +8,7 @@ import xml.etree.ElementTree as ET
 import datetime
 import requests
 import tempfile
+import unicodecsv
 
 from collections import OrderedDict
 
@@ -72,13 +73,14 @@ class DeleteData(BaseSalesforceApiTask):
             self.logger.info('  Querying for all {} objects'.format(obj))
             query_job = self.bulk.create_query_job(obj, contentType='CSV')
             batch = self.bulk.query(query_job, "select Id from {}".format(obj))
-            while not self.bulk.is_batch_done(query_job, batch):
+            while not self.bulk.is_batch_done(batch, query_job):
                 time.sleep(10)
             self.bulk.close_job(query_job)
-
             delete_rows = []
-            for row in self.bulk.get_batch_result_iter(query_job, batch, parse_csv=True):
-                delete_rows.append(row)
+            for result in self.bulk.get_all_results_for_query_batch(batch,query_job):
+                reader = unicodecsv.DictReader(result, encoding='utf-8')
+                for row in reader:
+                    delete_rows.append(row)
 
             if not delete_rows:
                 self.logger.info('  No {} objects found, skipping delete'.format(obj))
@@ -90,7 +92,7 @@ class DeleteData(BaseSalesforceApiTask):
             batch_num = 1
             for batch in self._upload_batch(delete_job, delete_rows):
                 self.logger.info('    Uploaded batch {}'.format(batch))
-                while not self.bulk.is_batch_done(delete_job, batch):
+                while not self.bulk.is_batch_done(batch, delete_job):
                     self.logger.info('      Checking status of batch {0}'.format(batch_num))
                     time.sleep(10)
                 self.logger.info('      Batch {} complete'.format(batch))
@@ -184,9 +186,9 @@ class LoadData(BaseSalesforceApiTask):
             rows = CsvDictsAdapter(iter(batch))
 
             # Create the batch
-            batch_id = self.bulk.post_bulk_batch(job_id, rows)
+            batch_id = self.bulk.post_batch(job_id, rows)
             self.logger.info('    Uploaded batch {}'.format(batch_id))
-            while not self.bulk.is_batch_done(job_id, batch_id):
+            while not self.bulk.is_batch_done(batch_id, job_id):
                 self.logger.info('      Checking batch status...')
                 time.sleep(10)
             
@@ -214,8 +216,9 @@ class LoadData(BaseSalesforceApiTask):
             # Commit to the db
             self.session.commit()
                 
+        
         self.bulk.close_job(job_id)
- 
+        status = self.bulk.job_status(job_id)
         
     def _query_db(self, mapping):
         table = self.tables[mapping.get('table')]
@@ -423,8 +426,10 @@ class QueryData(BaseSalesforceApiTask):
         for field in self._fields_for_mapping(mapping):
             field_map[field['sf']] = field['db']
 
-        for row in self.bulk.get_batch_result_iter(job, batch, parse_csv=True):
-            self._import_row(row, mapping, field_map)
+        for result in self.bulk.get_all_results_for_query_batch(batch, job):
+            reader = unicodecsv.DictReader(result, encoding='utf-8')
+            for row in reader:
+                self._import_row(row, mapping, field_map)
 
         self.session.commit()
 
@@ -446,10 +451,12 @@ class QueryData(BaseSalesforceApiTask):
                 else:
                     mapped_row[field_map[key]] = None
             else:
-                mapped_row[field_map[key]] = value.decode('utf-8')
+                mapped_row[field_map[key]] = value
         instance = model()
         for key, value in mapped_row.items():
             setattr(instance, key, value)
+        if 'record_type' in mapping:
+            instance.record_type = mapping['record_type']
         self.session.add(instance)
 
     def _create_tables(self):
@@ -477,6 +484,8 @@ class QueryData(BaseSalesforceApiTask):
         
         fields = []
         fields.append(Column('id', Integer, primary_key=True))
+        if 'record_type' in mapping:
+            fields.append(Column('record_type', Unicode(255)))
         for field in self._fields_for_mapping(mapping):
             fields.append(Column(field['db'], Unicode(255)))
         t = Table(
