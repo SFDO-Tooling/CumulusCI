@@ -9,6 +9,8 @@ sarge==0.1.4
 raven==6.1.0
 requests[security]==2.9.1
 responses==0.5.1
+robotframework==3.0.2
+robotframework-seleniumlibrary==3.0.1
 rst2ansi==0.1.5
 selenium
 salesforce-bulk==2.0.0
