@@ -2,6 +2,11 @@
 History
 =======
 
+2.0.0-beta83 (2018-02-08)
+-------------------------
+
+* Add a sleep in between successful PackageUploadRequest and querying for MetadataPackageVersion to address issue in Spring '18 packaging orgs.
+
 2.0.0-beta82 (2018-02-02)
 -------------------------
 
