@@ -50,6 +50,7 @@ from cumulusci.core.exceptions import TaskNotFoundError
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.exceptions import TaskRequiresSalesforceOrg
 from cumulusci.core.utils import import_class
+from cumulusci.cli.config import CliConfig
 from cumulusci.utils import doc_task
 from cumulusci.oauth.salesforce import CaptureSalesforceOAuth
 from .logger import init_logger
@@ -164,51 +165,6 @@ def check_org_overwrite(config, org_name):
         pass
     return True
 
-class CliConfig(object):
-
-    def __init__(self):
-        self.global_config = None
-        self.project_config = None
-        self.keychain = None
-
-        init_logger()
-        self._load_global_config()
-        self._load_project_config()
-        self._load_keychain()
-        self._add_repo_to_path()
-
-    def _add_repo_to_path(self):
-        if self.project_config:
-            sys.path.append(self.project_config.repo_root)
-
-    def _load_global_config(self):
-        try:
-            self.global_config = YamlGlobalConfig()
-        except NotInProject as e:
-            raise click.UsageError(e.message)
-
-    def _load_project_config(self):
-        try:
-            self.project_config = self.global_config.get_project_config()
-        except ProjectConfigNotFound:
-            pass
-        except NotInProject as e:
-            raise click.UsageError(e.message)
-        except ConfigError as e:
-            raise click.UsageError('Config Error: {}'.format(e.message))
-
-    def _load_keychain(self):
-        self.keychain_key = os.environ.get('CUMULUSCI_KEY')
-        if self.project_config:
-            keychain_class = os.environ.get(
-                'CUMULUSCI_KEYCHAIN_CLASS',
-                self.project_config.cumulusci__keychain,
-            )
-            self.keychain_class = import_class(keychain_class)
-            self.keychain = self.keychain_class(
-                self.project_config, self.keychain_key)
-            self.project_config.set_keychain(self.keychain)
-
 def make_pass_instance_decorator(obj, ensure=False):
     """Given an object type this creates a decorator that will work
     similar to :func:`pass_obj` but instead of passing the object of the
@@ -286,9 +242,9 @@ def handle_sentry_event(config, no_prompt):
 # Root command
 
 
-@click.group('cli')
+@click.group('main')
 @pass_config
-def cli(config):
+def main(config):
     pass
 
 
@@ -335,13 +291,13 @@ def flow(config):
 def service(config):
     pass
 
-cli.add_command(project)
-cli.add_command(org)
-cli.add_command(task)
-cli.add_command(flow)
-cli.add_command(version)
-cli.add_command(shell)
-cli.add_command(service)
+main.add_command(project)
+main.add_command(org)
+main.add_command(task)
+main.add_command(flow)
+main.add_command(version)
+main.add_command(shell)
+main.add_command(service)
 
 # Commands for group: project
 

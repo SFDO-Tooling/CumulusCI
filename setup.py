@@ -29,6 +29,8 @@ requirements = [
     'raven>=0.6.1',
     'requests[security]>=2.9.1',
     'responses>=0.5.1',
+    'robotframework>=3.0.2',
+    'robotframework-seleniumlibrary>=3.0.1',
     'rst2ansi>=0.1.5',
     'sarge>=0.1.4',
     'selenium',
@@ -63,8 +65,7 @@ setup(
                  'cumulusci'},
     entry_points={
         'console_scripts': [
-            'cci=cumulusci.cli.cli:cli',
-            'cumulusci2=cumulusci.cli.cli:cli'
+            'cci=cumulusci.cli.cci:main',
         ]
     },
     include_package_data=True,
