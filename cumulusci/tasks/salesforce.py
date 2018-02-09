@@ -1199,7 +1199,7 @@ class PackageUpload(BaseSalesforceApiTask):
                 e = SalesforceException
             raise e('Package upload failed')
         else:
-            time.sleep(20)
+            time.sleep(2400)
             version_id = upload['MetadataPackageVersionId']
             version_res = self.tooling.query("select MajorVersion, MinorVersion, PatchVersion, BuildNumber, ReleaseState from MetadataPackageVersion where Id = '{}'".format(version_id))
             if version_res['totalSize'] != 1:
