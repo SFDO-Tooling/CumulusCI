@@ -1180,7 +1180,7 @@ class PackageUpload(BaseSalesforceApiTask):
             raise SalesforceException(message)
         upload = upload['records'][0]
 
-        while upload['Status'] == 'IN_PROGRESS':
+        while upload['Status'] == 'IN_PROGRESS' or upload['Status'] == 'QUEUED':
             time.sleep(3)
             upload = self.tooling.query(soql_check_upload)
             if upload['totalSize'] != 1:
