@@ -1180,7 +1180,7 @@ class PackageUpload(BaseSalesforceApiTask):
             raise SalesforceException(message)
         upload = upload['records'][0]
 
-        while upload['Status'] == 'IN_PROGRESS':
+        while upload['Status'] == 'IN_PROGRESS' or upload['Status'] == 'QUEUED':
             time.sleep(3)
             upload = self.tooling.query(soql_check_upload)
             if upload['totalSize'] != 1:
@@ -1199,7 +1199,7 @@ class PackageUpload(BaseSalesforceApiTask):
                 e = SalesforceException
             raise e('Package upload failed')
         else:
-            time.sleep(120)
+            time.sleep(5)
             version_id = upload['MetadataPackageVersionId']
             version_res = self.tooling.query("select MajorVersion, MinorVersion, PatchVersion, BuildNumber, ReleaseState from MetadataPackageVersion where Id = '{}'".format(version_id))
             if version_res['totalSize'] != 1:
