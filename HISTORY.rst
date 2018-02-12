@@ -2,6 +2,11 @@
 History
 =======
 
+2.0.0-beta84 (2018-02-12)
+-------------------------
+
+* Add new Status 'Queued' to PackageUploadRequest check
+
 2.0.0-beta83 (2018-02-08)
 -------------------------
 
