@@ -1,17 +1,18 @@
 *** Settings ***
+
 Library        Selenium2Library                    implicit_wait=5.0
 Library        cumulusci.robotframework.CumulusCI  ${ORG}
-Test Setup     Test Set Up
+Suite Setup    Set Login Url
 Test Teardown  Close Browser
 
-*** Keywords ***
+*** Variables ***
 
-Test Set Up
-    Set Login Url
+${BROWSER}  chrome
 
 *** Test Cases ***
+
 Test Log In
-    Open Browser  ${LOGIN_URL}  chrome
     Run Task  create_package  package=TestPackage
+    Open Browser  ${LOGIN_URL}  ${BROWSER}
     Capture Page Screenshot
     Page Should Contain  Home

@@ -45,7 +45,7 @@ class CumulusCI(object):
     
             Typically, this is run during Suite Setup
         """ 
-        BuiltIn.set_suite_variable('LOGIN_URL', self.org.start_url)
+        BuiltIn().set_suite_variable('${LOGIN_URL}', self.org.start_url)
 
     def login_url(self, org=None):
         """ Returns the login url which will automatically log into the target
