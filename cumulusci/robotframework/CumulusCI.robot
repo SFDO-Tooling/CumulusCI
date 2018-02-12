@@ -1,6 +1,6 @@
 *** Settings ***
 
-Library        Selenium2Library                    implicit_wait=5.0
+Library        SeleniumLibrary                    implicit_wait=5.0
 Library        cumulusci.robotframework.CumulusCI  ${ORG}
 Suite Setup    Set Login Url
 Test Teardown  Close Browser
