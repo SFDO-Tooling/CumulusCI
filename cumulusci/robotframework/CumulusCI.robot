@@ -10,11 +10,25 @@ Suite Setup    Set Login Url
 
 ${BROWSER}  chrome
 
+*** Keywords ***
+
+Open Test Browser
+    Run Keyword If  '${BROWSER}' == 'chrome'  Open Test Browser Chrome
+    ...    ELSE IF  '${BROWSER}' == 'firefox'  Open Test Browser Firefox
+    Go To  ${LOGIN_URL}
+
+Open Test Browser Chrome
+    ${chrome_options} =  Evaluate  sys.modules['selenium.webdriver'].ChromeOptions()  sys
+    Call Method  ${chrome_options}  add_argument  --disable-notifications
+    Create Webdriver  Chrome  chrome_options=${chrome_options}
+
+Open Test Browser Firefox
+    Create Webdriver  Firefox
+
 *** Test Cases ***
 
 Test Log In
-    #Run Task  create_package  package=TestPackage
-    Open Browser  ${LOGIN_URL}  ${BROWSER}
+    Open Test Browser
     Capture Page Screenshot
     Page Should Contain  Home
     Open App Launcher
