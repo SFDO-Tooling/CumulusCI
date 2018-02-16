@@ -4,23 +4,26 @@ Library        SeleniumLibrary                    implicit_wait=5.0
 Library        cumulusci.robotframework.CumulusCI  ${ORG}
 Library        cumulusci.robotframework.Salesforce
 Suite Setup    Set Login Url
-#Test Teardown  Close Browser
+Test Setup     Open Test Browser
+Test Teardown  Close Browser
 
 *** Variables ***
 
 ${BROWSER}  chrome
+${IMPLICIT_WAIT}  5.0
 
 *** Keywords ***
 
 Open Test Browser
-    Run Keyword If  '${BROWSER}' == 'chrome'  Open Test Browser Chrome
-    ...    ELSE IF  '${BROWSER}' == 'firefox'  Open Test Browser Firefox
-    Go To  ${LOGIN_URL}
+    Open Browser  ${LOGIN_URL}  ${BROWSER}
+    #Run Keyword If  '${BROWSER}' == 'chrome'  Open Test Browser Chrome
+    #...    ELSE IF  '${BROWSER}' == 'firefox'  Open Test Browser Firefox
+    #Go To  ${LOGIN_URL}
 
 Open Test Browser Chrome
     ${chrome_options} =  Evaluate  sys.modules['selenium.webdriver'].ChromeOptions()  sys
     Call Method  ${chrome_options}  add_argument  --disable-notifications
-    Create Webdriver  Chrome  chrome_options=${chrome_options}
+    Create Webdriver  Chrome  timeout=${IMPLICIT_WAIT}  chrome_options=${chrome_options}
 
 Open Test Browser Firefox
     Create Webdriver  Firefox
@@ -28,10 +31,12 @@ Open Test Browser Firefox
 *** Test Cases ***
 
 Test Log In
-    Open Test Browser
-    Capture Page Screenshot
     Page Should Contain  Home
+
+Test App Launcher App
     Open App Launcher
     Select App Launcher App  Service
+
+Test App Launcher Tab
     Open App Launcher
     Select App Launcher Tab  Contracts
