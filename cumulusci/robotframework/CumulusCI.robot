@@ -1,14 +1,13 @@
 *** Settings ***
 
-Library        SeleniumLibrary                    implicit_wait=5.0
+Library        SeleniumLibrary                    implicit_wait=${IMPLICIT_WAIT}
 Library        cumulusci.robotframework.CumulusCI  ${ORG}
 Library        cumulusci.robotframework.Salesforce
 Suite Setup    Set Login Url
 Test Setup     Open Test Browser
 Test Teardown  Close Browser
 
-*** Variables ***
-
+*** Variables *** 
 ${BROWSER}  chrome
 ${IMPLICIT_WAIT}  5.0
 
@@ -36,7 +35,15 @@ Test Log In
 Test App Launcher App
     Open App Launcher
     Select App Launcher App  Service
+    Current App Should Be  Service
 
 Test App Launcher Tab
+    Open App Launcher
+    Select App Launcher Tab  Contracts
+
+Test App Launcher App and Tab
+    Open App Launcher
+    Select App Launcher App  Service
+    Current App Should Be  Service
     Open App Launcher
     Select App Launcher Tab  Contracts
