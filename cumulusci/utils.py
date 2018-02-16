@@ -73,7 +73,7 @@ def remove_xml_element_file(name, path):
     tree = ET.parse(path)
     tree = remove_xml_element(name, tree)
     return tree.write(
-        filepath,
+        path,
         encoding="UTF-8",
     )
 
