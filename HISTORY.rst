@@ -2,7 +2,29 @@
 History
 =======
 
-2.0.0-beta80 (2018-1-8)
+2.0.0-beta84 (2018-02-12)
+-------------------------
+
+* Add new Status 'Queued' to PackageUploadRequest check
+
+2.0.0-beta83 (2018-02-08)
+-------------------------
+
+* Add a sleep in between successful PackageUploadRequest and querying for MetadataPackageVersion to address issue in Spring '18 packaging orgs.
+
+2.0.0-beta82 (2018-02-02)
+-------------------------
+
+* Update salesforce-bulk package to version 2.0.0
+* Fix issue in bulk load data task
+
+2.0.0-beta81 (2018-01-18)
+-------------------------
+
+* Filter SObjects by record type in bulk data retrieve
+* Fix issue in removing XML elements from file
+
+2.0.0-beta80 (2018-01-08)
 -------------------------
 
 * The deploy tasks now automatically clean all meta.xml files in the deployed metadata of any namespace references by removing the <packageVersions> element and children.  This allows CumulusCI to fully manage the dependencies and avoids the need for new commits to change referenced versions in meta.xml files.
