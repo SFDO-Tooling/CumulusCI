@@ -257,6 +257,9 @@ def zip_clean_metaxml(zip_src, logger=None):
         if not name.endswith('-meta.xml'):
             zip_dest.writestr(name, content)
             continue
+        if not name.startswith('classes/') and not name.startswith('triggers/'):
+            zip_dest.writestr(name, content)
+            continue
         try:
             clean_content = remove_xml_element_string(
                 'packageVersions',
