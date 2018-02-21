@@ -102,10 +102,7 @@ class CumulusCI(object):
         return self._run_task(task_class, task_config)
 
     def _init_api(self, base_url=None):
-        if self.api_version:
-            api_version = self.api_version
-        else:
-            api_version = self.config.project_config.project__package__api_version
+        api_version = self.config.project_config.project__package__api_version
 
         rv = Salesforce(
             instance=self.org.instance_url.replace('https://', ''),

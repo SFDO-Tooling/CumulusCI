@@ -4,10 +4,10 @@ from cumulusci.robotframework.selectors import selectors
 class Salesforce(object):
     def __init__(self):
         self.selenium = BuiltIn().get_library_instance('SeleniumLibrary')
+        self.cumulusci = BuiltIn().get_library_instance('cumulusci.robotframework.CumulusCI')
 
     def current_app_should_be(self, app_name):
         locator = selectors['app_launcher']['current_app'].format(app_name)
-        #self.selenium.wait_until_page_contains_element(locator)
         elem = self.selenium.get_webelement(locator)
         return elem.text
 
@@ -24,5 +24,7 @@ class Salesforce(object):
 
     def select_app_launcher_tab(self, tab_name):
         locator = selectors['app_launcher']['tab_link'].format(tab_name)
-        #self.selenium.wait_until_page_contains_element(locator)
         self.selenium.click_link(locator)
+
+    def soql_query(self, query):
+        return self.cumulusci.sf.query(query)

@@ -32,6 +32,9 @@ Open Test Browser Firefox
 Test Log In
     Page Should Contain  Home
 
+Test SOQL Query
+    ${result} =  Soql Query  Select Id, FirstName, LastName from Contact
+
 Test App Launcher App
     Open App Launcher
     Select App Launcher App  Service
