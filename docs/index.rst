@@ -14,6 +14,7 @@ Contents:
    tutorial
    features
    cookbook
+   cumulusci_flow
    tasks
    api_reference
    history
