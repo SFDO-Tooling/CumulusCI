@@ -4,6 +4,7 @@ from cumulusci.core.exceptions import TaskNotFoundError
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.config import TaskConfig
 from robot.libraries.BuiltIn import BuiltIn
+from simple_salesforce import Salesforce
 
 class CumulusCI(object):
     """ Library for accessing CumulusCI for the local git project
@@ -28,7 +29,9 @@ class CumulusCI(object):
 
     def __init__(self, org_name):
         self.org_name = org_name
-    
+        self.sf = self._init_api()
+        self.tooling = self._init_api('tooling/')
+
     @property
     def config(self):
         if not hasattr(self, '_config'):
@@ -46,6 +49,12 @@ class CumulusCI(object):
             Typically, this is run during Suite Setup
         """ 
         BuiltIn().set_suite_variable('${LOGIN_URL}', self.org.start_url)
+
+    def get_org_info(self):
+        """ Returns a dictionary of the org information for the current target
+            Salesforce org
+        """
+        return self.org.config
 
     def login_url(self, org=None):
         """ Returns the login url which will automatically log into the target
@@ -91,6 +100,21 @@ class CumulusCI(object):
             
         task_class, task_config = self._init_task(class_path, options, task_config)
         return self._run_task(task_class, task_config)
+
+    def _init_api(self, base_url=None):
+        if self.api_version:
+            api_version = self.api_version
+        else:
+            api_version = self.config.project_config.project__package__api_version
+
+        rv = Salesforce(
+            instance=self.org.instance_url.replace('https://', ''),
+            session_id=self.org.access_token,
+            version=api_version,
+        )
+        if base_url is not None:
+            rv.base_url += base_url
+        return rv
 
     def _init_config(self):
         config = CliConfig()
