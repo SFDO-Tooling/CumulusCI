@@ -2,6 +2,15 @@
 Why CumulusCI?
 ==============
 
+CumulusCI was built to solve common challenges faced the development and release of Salesforce managed package projects such as:
+
+* Integration of Salesforce DX into the package release cycle
+* Reducing the burden and risk of cutting managed package releases
+* Agile development based on best practices of isolation and continuous integration
+* Reducing the pain of creating usable environments for QA, Doc, PM, etc
+* Scalability to handle new projects and growing project teams
+* Avoiding technical debt by encouraging reuse through portable automation
+
 CumulusCI is a framework for building portable automation for Salesforce projects on Github.  The automation is controlled by a simple **cumulusci.yml** file which is version controlled in the project repository and is available to anyone with CumulusCI configured on their system and able to access the repository.
 
 We've used CumulusCI every day at Salesforce.org to run over 17k+ builds of 12 Github managed package repositories for our products.  The goal of making CumulusCI available as open source is to empower other Salesforce developers to benefit from the solutions to common challenges faced in managing the development and release cycle of Saleforce managed packages.
@@ -123,3 +132,10 @@ CumulusCI has a number of unique capabilities that you won't find in any other t
 * **Push API**: Automate push upgrades of your product using the Push API and CumulusCI's built in tasks: **push_all**, **push_sandbox**, **push_trial**, and **push_qa**
 * **meta.xml File Management**: Unmanaged deploys automatically strip namespace, majorVersion, and minorVersion elements from the meta.xml file allowing CumulusCI's dependency management to handle your dependencies.  Also, the **meta_xml_dependencies** and **meta_xml_apiversion** tasks automate updating all local meta.xml files with the api_version specified in **cumulusci.yml** and the namespace, majorVersion, and minorVersion of the currently resolved dependencies.
 * **MetaCI**: MetaCI is our custom CI app run on Heroku to automate the execution of builds using CumulusCI flows.  It is Salesforce aware and can handle burst capacity for builds by leveraging Heroku's scalability.
+
+Next Steps
+==========
+
+Interested in trying it out?  Check out the CumulusCI :doc:`tutorial`
+
+Want to find out more about our development and release process?  Check out :doc:`cumulusci_flow`
