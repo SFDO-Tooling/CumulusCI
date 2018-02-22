@@ -367,6 +367,7 @@ To really show the power of CumulusCI, we'll automate the entire process of rele
 * Log into the org
 * Go to Setup -> Packages and create an Unmanaged Package named whatever you want to call your package
 * Assign a namespace to the org and point it at the Unmanaged Package you created
+* Request the `Push API` permission be enabled in your packaging org through Salesforce Partner Support.  The Push API is necessary to use the `release_beta` flow in the example below.
 
 Once you have the org, connect it to `cci`'s project keychain with `cci org connect <org_name>`:
 
