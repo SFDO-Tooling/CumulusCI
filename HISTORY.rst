@@ -2,6 +2,14 @@
 History
 =======
 
+2.0.0-beta85 (2018-02-21)
+-------------------------
+
+* Support bigobject index element in .object
+* Only run meta.xml file cleaning on classes/* and triggers/* directory
+* Add docs on CumulusCI Flow
+* Add reference to needing the Push API to run release_beta in tutorial doc
+
 2.0.0-beta84 (2018-02-12)
 -------------------------
 
