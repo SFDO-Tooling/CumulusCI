@@ -2,7 +2,7 @@
 Why CumulusCI?
 ==============
 
-CumulusCI is a framework for building portable automation for Salesforce projects on Github.  The automation is controlled by a simple `cumulusci.yml` file which is version controlled in the project repository and is available to anyone with CumulusCI configured on their system and able to access the repository.
+CumulusCI is a framework for building portable automation for Salesforce projects on Github.  The automation is controlled by a simple **cumulusci.yml** file which is version controlled in the project repository and is available to anyone with CumulusCI configured on their system and able to access the repository.
 
 We've used CumulusCI every day at Salesforce.org to run over 17k+ builds of 12 Github managed package repositories for our products.  The goal of making CumulusCI available as open source is to empower other Salesforce developers to benefit from the solutions to common challenges faced in managing the development and release cycle of Saleforce managed packages.
 
@@ -31,7 +31,7 @@ We work with CumulusCI every day.  When we started work on the rewrite of Cumulu
 Common Names Across Repositories
 --------------------------------
 
-By providing a set of common tasks and flows to all projects, CumulusCI makes it easier to work across multiple project repositories.  For example, every CumulusCI project has a flow named `dev_org` which is used to deploy a development instance of unmanaged code from the repository (typically a feature branch).  Since projects are able to modify the `dev_org` flow, developers never have to remember flow names like `dev_org_projectA` and `dev_org_projectB`.
+By providing a set of common tasks and flows to all projects, CumulusCI makes it easier to work across multiple project repositories.  For example, every CumulusCI project has a flow named **dev_org** which is used to deploy a development instance of unmanaged code from the repository (typically a feature branch).  Since projects are able to modify the **dev_org** flow, developers never have to remember flow names like **dev_org_projectA** and **dev_org_projectB**.
 
 Similarly, CumulusCI provides 4 scratch org definitions by default to all projects which are useful for different phases of a typical project's development lifecycle:
 
@@ -45,29 +45,29 @@ Developers always have these 4 org types available to create and use in any Cumu
 Local Repository Aware
 ----------------------
 
-CumulusCI knows what local repository you are inside of and tries to create the best user experience possible.  For example, we automatically namespace your orgs by your project name for you so rather than typing `ProjectRepoA_dev` to access the dev org for `ProjectRepoA`, you just change directories into your local clone of `ProjectRepoA` and access an org named `dev`.
+CumulusCI knows what local repository you are inside of and tries to create the best user experience possible.  For example, we automatically namespace your orgs by your project name for you so rather than typing **ProjectRepoA_dev** to access the dev org for **ProjectRepoA**, you just change directories into your local clone of **ProjectRepoA** and access an org named **dev**.
 
-CumulusCI's core project_config object provides access to a lot of information about your project including the local repo root, current commit, current branch, and an authenticated instance of the `github3.py` wrapper for the Github API, all of which are available for use in custom task classes.
+CumulusCI's core project_config object provides access to a lot of information about your project including the local repo root, current commit, current branch, and an authenticated instance of the **github3.py** wrapper for the Github API, all of which are available for use in custom task classes.
 
 Override Based Configuration
 ----------------------------
 
-CumulusCI aims to reduce the amount of skeleton code required to configure a project.  This is accomplished by a merged yaml file, `cumulusci.yml` which starts from the global yaml from CumulusCI with all the standard project, task, flow, and org configurations.  Projects can then override the default values in their `cumulusci.yml`.  This means that by looking at the `cumulusci.yml` of a repository using CumulusCI, you can easily see all customization of CumulusCI done for the project.
+CumulusCI aims to reduce the amount of skeleton code required to configure a project.  This is accomplished by a merged yaml file, **cumulusci.yml** which starts from the global yaml from CumulusCI with all the standard project, task, flow, and org configurations.  Projects can then override the default values in their **cumulusci.yml**.  This means that by looking at the **cumulusci.yml** of a repository using CumulusCI, you can easily see all customization of CumulusCI done for the project.
 
-The following example is of a simple `cumulusci.yml` file with only a few overrides:
+The following example is of a simple **cumulusci.yml** file with only a few overrides:
 https://github.com/SalesforceFoundation/CumulusCI-Test/blob/master/cumulusci.yml
 
-The following example is from the Nonprofit Success Pack and shows a heavily configured `cumulusci.yml` file: 
+The following example is from the Nonprofit Success Pack and shows a heavily configured **cumulusci.yml** file: 
 https://github.com/SalesforceFoundation/Cumulus/blob/master/cumulusci.yml
 
-Both of these projects have all the standard CumulusCI tasks, flows, and orgs available to them in addition to project specific custom tasks, flows, and orgs defined in the `cumulusci.yml` for the project.
+Both of these projects have all the standard CumulusCI tasks, flows, and orgs available to them in addition to project specific custom tasks, flows, and orgs defined in the **cumulusci.yml** for the project.
 
 Yaml Over Python, Where Possible
 --------------------------------
 
-Although CumulusCI is written in Python, the framework for CumulusCI was designed to allow the majority of automation use cases to be handled solely in the `cumulusci.yml` file.  All tasks are implemented in Python classes, but each task can define its own task specific options.  We've tried to design all the included tasks with a number of options to allow easy reuse through yaml configuration.
+Although CumulusCI is written in Python, the framework for CumulusCI was designed to allow the majority of automation use cases to be handled solely in the **cumulusci.yml** file.  All tasks are implemented in Python classes, but each task can define its own task specific options.  We've tried to design all the included tasks with a number of options to allow easy reuse through yaml configuration.
 
-For example, if you want to deploy a custom directory of metadata named `dev_config` after your `src` directory's metadata is deployed, you could create the task and wire it into the default `dev_org` flow with the following yaml
+For example, if you want to deploy a custom directory of metadata named **dev_config** after your **src** directory's metadata is deployed, you could create the task and wire it into the default **dev_org** flow with the following yaml
 
 .. code-block:: yaml 
 
@@ -89,7 +89,7 @@ While the goal is to make as much available via yaml, it's still possible and qu
 Friendly Logging Output
 -----------------------
 
-We invested a lot in making the logging output from running CumulusCI tasks as useful as possible.  For example, we progressively increase the polling interval every 3 polling attempts on polling processes which are known to take a while such as the `Pending` stage of a Metadata API deployment.  For a deploy which is pending for 5 minutes, this could mean the difference of 600 lines of output (1 poll/sec) vs 60 lines of output.  When run through a CI system, this makes our build logs much shorter and easier to read.
+We invested a lot in making the logging output from running CumulusCI tasks as useful as possible.  For example, we progressively increase the polling interval every 3 polling attempts on polling processes which are known to take a while such as the **Pending** stage of a Metadata API deployment.  For a deploy which is pending for 5 minutes, this could mean the difference of 600 lines of output (1 poll/sec) vs 60 lines of output.  When run through a CI system, this makes our build logs much shorter and easier to read.
 
 As a bonus, features like progressively increasing polling intervals also help reduce the risk of hitting an API Limit in your Salesforce Org!
 
@@ -106,7 +106,7 @@ There are some key differentiators to how CumulusCI works in comparison to Sales
 * CumulusCI is more focused on defining portable automation and orchestration for projects
 * CumulusCI provides a complete development process out of the box which can be easily customized by each project
 * CumulusCI is open source, licensed under a BSD 3-Clause License
-* CumulusCI's ability to encapsulate more complex commands into a single named task via the `cumulusci.yml` creates a cleaner CLI user experience that reduces risk of human error from forgetting an option flag
+* CumulusCI's ability to encapsulate more complex commands into a single named task via the **cumulusci.yml** creates a cleaner CLI user experience that reduces risk of human error from forgetting an option flag
 
 We've been running CumulusCI with Salesforce DX for over a year in over 17k+ production builds at Salesforce.org.  The combination provides us the best of both worlds while allowing us to incrementally migrate pieces of our orchestration to Salesforce DX where it makes sense.
 
@@ -115,11 +115,11 @@ Only in CumulusCI
 
 CumulusCI has a number of unique capabilities that you won't find in any other tooling to work with Salesforce projects:
 
-* **Automated Release Notes**: CumulusCI's `release_beta` flow uses the `github_release_notes` task to automatically parse the bodies of pull requests merged since the last production release and generate combined release notes from the content.
+* **Automated Release Notes**: CumulusCI's **release_beta** flow uses the **github_release_notes** task to automatically parse the bodies of pull requests merged since the last production release and generate combined release notes from the content.
 * **Bulk API Query/Load**: CumulusCI includes Python task classes allowing for the creation of multi-object relational data set mappings used to query data from a Salesforce org into a local sqlite database and insert that relational data into another Salesforce org.
 * **Dependency Management**: CumulusCI includes robust support for project dependencies including managed packages, unmanaged metadata, and references to other CumulusCI project repositories to dynamically and recursively inherit the referenced project's dependencies
-* **Apex Limit Reports for Tests**: CumulusCI's Apex test runner outputs a `test_results.json` file which includes the duration and Apex limits usage for each test method executed
-* **Update Admin Profile**: All CumulusCI flows run the `update_admin_profile` task to retrieve the Admin.profile from the target org after deploying the package or the package source, grant FLS permissions on all fields and classes, and deploy the updated profile.  This makes it easier to get up an running with a useable environment from a fresh scratch org.
-* **Push API**: Automate push upgrades of your product using the Push API and CumulusCI's built in tasks: `push_all`, `push_sandbox`, `push_trial`, and `push_qa`
-* **meta.xml File Management**: Unmanaged deploys automatically strip namespace, majorVersion, and minorVersion elements from the meta.xml file allowing CumulusCI's dependency management to handle your dependencies.  Also, the `meta_xml_dependencies` and `meta_xml_apiversion` tasks automate updating all local meta.xml files with the api_version specified in `cumulusci.yml` and the namespace, majorVersion, and minorVersion of the currently resolved dependencies.
+* **Apex Limit Reports for Tests**: CumulusCI's Apex test runner outputs a **test_results.json** file which includes the duration and Apex limits usage for each test method executed
+* **Update Admin Profile**: All CumulusCI flows run the **update_admin_profile** task to retrieve the Admin.profile from the target org after deploying the package or the package source, grant FLS permissions on all fields and classes, and deploy the updated profile.  This makes it easier to get up an running with a useable environment from a fresh scratch org.
+* **Push API**: Automate push upgrades of your product using the Push API and CumulusCI's built in tasks: **push_all**, **push_sandbox**, **push_trial**, and **push_qa**
+* **meta.xml File Management**: Unmanaged deploys automatically strip namespace, majorVersion, and minorVersion elements from the meta.xml file allowing CumulusCI's dependency management to handle your dependencies.  Also, the **meta_xml_dependencies** and **meta_xml_apiversion** tasks automate updating all local meta.xml files with the api_version specified in **cumulusci.yml** and the namespace, majorVersion, and minorVersion of the currently resolved dependencies.
 * **MetaCI**: MetaCI is our custom CI app run on Heroku to automate the execution of builds using CumulusCI flows.  It is Salesforce aware and can handle burst capacity for builds by leveraging Heroku's scalability.
