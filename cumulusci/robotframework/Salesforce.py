@@ -41,8 +41,8 @@ class Salesforce(object):
 
         if exception:
             self.selenium.capture_page_screenshot()
-            self.selenium.log_source()
             if self.debug:
+                self.selenium.log_source()
                 from cumulusci.robotframework.utils import set_pdb_trace
                 set_pdb_trace()
             else:
