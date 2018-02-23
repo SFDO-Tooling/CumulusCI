@@ -60,14 +60,14 @@ class Salesforce(object):
         BuiltIn().log('Focusing on App Launcher button')
         self.selenium.set_focus_to_element(locator)
         BuiltIn().log('Clicking App Launcher button')
-        self.selenium.click_button(locator)
+        self.selenium.get_webelement(locator).click()
         try:
             BuiltIn().log('Waiting for modal to open')
             self.wait_until_modal_is_open()
         except:
             # Retry the click one time if the first click fails
             BuiltIn().log('Failed to open App Launcher, retrying the button click')
-            self.selenium.click_button(locator)
+            self.selenium.get_webelement(locator).click()
             BuiltIn().log('Waiting for modal to open')
             self.wait_until_modal_is_open()
             
@@ -99,7 +99,7 @@ class Salesforce(object):
     def _select_app_launcher_tab(self, locator):
         BuiltIn().log('Clicking App Tab')
         self.selenium.set_focus_to_element(locator)
-        self.selenium.click_link(locator)
+        self.selenium.get_webelement(locator).click()
         BuiltIn().log('Waiting for modal to close')
         self.wait_until_modal_is_closed()
 
