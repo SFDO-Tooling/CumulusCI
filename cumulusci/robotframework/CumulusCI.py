@@ -40,7 +40,9 @@ class CumulusCI(object):
 
     @property
     def org(self):
-        return self.config.keychain.get_org(self.org_name)
+        if not hasattr(self, '_org'):
+            self._org = self.config.keychain.get_org(self.org_name)
+        return self._org
 
     def set_login_url(self):
         """ Sets the LOGIN_URL variable in the suite scope which will

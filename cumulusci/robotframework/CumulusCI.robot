@@ -1,15 +1,17 @@
 *** Settings ***
 
-Library        SeleniumLibrary                    implicit_wait=${IMPLICIT_WAIT}
+Library        SeleniumLibrary  implicit_wait=${IMPLICIT_WAIT}  timeout=${TIMEOUT}
 Library        cumulusci.robotframework.CumulusCI  ${ORG}
-Library        cumulusci.robotframework.Salesforce
+Library        cumulusci.robotframework.Salesforce  debug=${DEBUG}
 Suite Setup    Set Login Url
 Test Setup     Open Test Browser
 Test Teardown  Close Browser
 
 *** Variables *** 
 ${BROWSER}  chrome
-${IMPLICIT_WAIT}  5.0
+${DEBUG}  ${false}
+${IMPLICIT_WAIT}  7.0
+${TIMEOUT}  7.0
 
 *** Keywords ***
 
@@ -35,18 +37,14 @@ Test Log In
 Test SOQL Query
     ${result} =  Soql Query  Select Id, FirstName, LastName from Contact
 
-Test App Launcher App
-    Open App Launcher
-    Select App Launcher App  Service
-    Current App Should Be  Service
-
 Test App Launcher Tab
-    Open App Launcher
     Select App Launcher Tab  Contracts
 
-Test App Launcher App and Tab
-    Open App Launcher
+Test App Launcher App
     Select App Launcher App  Service
     Current App Should Be  Service
-    Open App Launcher
+
+Test App Launcher App and Tab
+    Select App Launcher App  Service
+    Current App Should Be  Service
     Select App Launcher Tab  Contracts
