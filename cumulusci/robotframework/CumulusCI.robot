@@ -10,7 +10,7 @@ Test Teardown  Close Browser
 *** Variables *** 
 ${BROWSER}  chrome
 ${DEBUG}  ${false}
-${IMPLICIT_WAIT}  7.0
+${IMPLICIT_WAIT}  5.0
 ${TIMEOUT}  7.0
 
 *** Keywords ***

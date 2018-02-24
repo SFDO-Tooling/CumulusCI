@@ -6,6 +6,7 @@ from selenium.common.exceptions import StaleElementReferenceException
 class Salesforce(object):
     def __init__(self, debug=False):
         self.debug = debug
+        self.current_page = None
         self.selenium = BuiltIn().get_library_instance('SeleniumLibrary')
         self.cumulusci = BuiltIn().get_library_instance('cumulusci.robotframework.CumulusCI')
 
@@ -17,9 +18,16 @@ class Salesforce(object):
 
     def _call_selenium(self, method_name, retry, *args, **kwargs):
         """ A wrapper that catches common exceptions and handles them """
-        #from cumulusci.robotframework.utils import set_pdb_trace; set_pdb_trace()
         exception = None
         retry_call = False
+
+        # If at a new url, call self._handle_current_page() to inject JS into
+        # the page to handle Lightning events
+        current_page = self.selenium.get_location()
+        if current_page != self.current_page:
+            self.current_page = current_page
+            self._handle_page_load()
+
         try:
             self.wait_until_loading_is_complete()
             method = getattr(self, method_name)
@@ -61,15 +69,8 @@ class Salesforce(object):
         self.selenium.set_focus_to_element(locator)
         BuiltIn().log('Clicking App Launcher button')
         self.selenium.get_webelement(locator).click()
-        try:
-            BuiltIn().log('Waiting for modal to open')
-            self.wait_until_modal_is_open()
-        except:
-            # Retry the click one time if the first click fails
-            BuiltIn().log('Failed to open App Launcher, retrying the button click')
-            self.selenium.get_webelement(locator).click()
-            BuiltIn().log('Waiting for modal to open')
-            self.wait_until_modal_is_open()
+        BuiltIn().log('Waiting for modal to open')
+        self.wait_until_modal_is_open()
             
 
     def select_app_launcher_app(self, app_name):
@@ -107,19 +108,42 @@ class Salesforce(object):
         return self.cumulusci.sf.query(query)
 
     def wait_until_modal_is_open(self):
+        self._call_selenium('_wait_until_modal_is_open', True)
+
+    def _wait_until_modal_is_open(self):
         self.selenium.wait_until_element_is_visible(
             selectors['lex']['modal'],
         )
 
     def wait_until_modal_is_closed(self):
+        self._call_selenium('_wait_until_modal_is_closed', True)
+
+    def _wait_until_modal_is_closed(self):
         self.selenium.wait_until_element_is_not_visible(
             selectors['lex']['modal'],
         )
 
     def wait_until_loading_is_complete(self):
+        self._call_selenium('_wait_until_loading_is_complete', True)
+
+    def _wait_until_loading_is_complete(self):
         self.selenium.wait_until_element_is_not_visible(
             "css: div.auraLoadingBox.oneLoadingBox"
         )
         self.selenium.wait_until_page_contains_element(
             "css: div.desktop.container.oneOne.oneAppLayoutHost[data-aura-rendered-by]"
         )
+
+    def _handle_page_load(self):
+        self._wait_until_loading_is_complete()
+        self.selenium.execute_javascript("""
+            function cumulusciDoneRenderingHandler(e) {
+                elements = $A.getComponent(e.source.getGlobalId()).getElements()
+                if (elements.length > 0) {
+                    elements[0].classList.add('cumulusci-done-rendering');
+                }
+            }
+            return $A.getRoot().addEventHandler('aura:doneRendering', cumulusciDoneRenderingHandler);
+            """
+        )
+            
