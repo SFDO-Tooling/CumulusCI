@@ -74,6 +74,36 @@ class Salesforce(object):
             BuiltIn().log('Retrying call to method {}'.format(method_name), level='WARN')
             self._call_selenium(method_name, False, *args, **kwargs)
 
+    def go_to_setup_home(self):
+        """ Navigates to the Home tab of Salesforce Setup """
+        url = self.cumulusci.org.lightning_base_url
+        self.selenium.go_to(url + '/one/one.app#/setup/SetupOneHome/home')
+
+    def go_to_setup_object_manager(self):
+        """ Navigates to the Object Manager tab of Salesforce Setup """
+        url = self.cumulusci.org.lightning_base_url
+        self.selenium.go_to(url + '/one/one.app#/setup/ObjectManager/home')
+
+    def go_to_object_home(self, obj_name):
+        """ Navigates to the Home view of a Salesforce Object """
+        url = self.cumulusci.org.lightning_base_url
+        url = '{}/one/one.app#/sObject/{}/home'.format(url, obj_name)
+        self.selenium.go_to(url)
+    
+    def go_to_object_list(self, obj_name, filter_name=None):
+        """ Navigates to the Home view of a Salesforce Object """
+        url = self.cumulusci.org.lightning_base_url
+        url = '{}/one/one.app#/sObject/{}/list'.format(url, obj_name)
+        if filter_name:
+            url += '?filterName={}'.format(filter_name)
+        self.selenium.go_to(url)
+
+    def go_to_record_home(self, obj_id, filter_name=None):
+        """ Navigates to the Home view of a Salesforce Object """
+        url = self.cumulusci.org.lightning_base_url
+        url = '{}/one/one.app#/sObject/{}/view'.format(url, obj_id)
+        self.selenium.go_to(url)
+
     def open_app_launcher(self):
         """ EXPERIMENTAL!!! """
         locator = selectors['app_launcher']['button']
