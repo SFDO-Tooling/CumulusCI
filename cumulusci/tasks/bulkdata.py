@@ -341,7 +341,10 @@ class LoadData(BaseSalesforceApiTask):
         self.session = Session(self.engine)
 
     def _init_mapping(self):
-        self.mapping = hiyapyco.load(self.options['mapping'])
+        self.mapping = hiyapyco.load(
+            self.options['mapping'],
+            loglevel='INFO',
+        )
 
 class QueryData(BaseSalesforceApiTask):
     task_options = {
@@ -391,7 +394,10 @@ class QueryData(BaseSalesforceApiTask):
         self.session = create_session(bind=self.engine, autocommit=False)
 
     def _init_mapping(self):
-        self.mappings = hiyapyco.load(self.options['mapping'])
+        self.mappings = hiyapyco.load(
+            self.options['mapping'],
+            loglevel='INFO',
+        )
         #self.mappings = [(name, mapping) for name, mapping in self.mappings.items()]
         #self.mappings.reverse()
         #rev_mappings = OrderedDict()
