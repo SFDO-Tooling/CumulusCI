@@ -15,6 +15,7 @@ class Salesforce(object):
         logging.getLogger('requests.packages.urllib3.connectionpool').setLevel(logging.WARN)
 
     def current_app_should_be(self, app_name):
+        """ EXPERIMENTAL!!! """
         locator = selectors['app_launcher']['current_app'].format(app_name)
         elem = self.selenium.set_focus_to_element(locator)
         elem = self.selenium.get_webelement(locator)
@@ -74,6 +75,7 @@ class Salesforce(object):
             self._call_selenium(method_name, False, *args, **kwargs)
 
     def open_app_launcher(self):
+        """ EXPERIMENTAL!!! """
         locator = selectors['app_launcher']['button']
         self._call_selenium('_open_app_launcher', True, locator)
 
@@ -86,6 +88,7 @@ class Salesforce(object):
         self.wait_until_modal_is_open()
 
     def select_app_launcher_app(self, app_name):
+        """ EXPERIMENTAL!!! """
         locator = selectors['app_launcher']['app_link'].format(app_name)
         BuiltIn().log('Opening the App Launcher')
         self.open_app_launcher()
@@ -104,6 +107,7 @@ class Salesforce(object):
         self.wait_until_modal_is_closed()
 
     def select_app_launcher_tab(self, tab_name):
+        """ EXPERIMENTAL!!! """
         locator = selectors['app_launcher']['tab_link'].format(tab_name)
         BuiltIn().log('Opening the App Launcher')
         self.open_app_launcher()
@@ -117,22 +121,26 @@ class Salesforce(object):
         self.wait_until_modal_is_closed()
 
     def salesforce_delete(self, obj_name, obj_id):
+        """ Deletes a Saleforce object by id and returns the dict result """
         BuiltIn().log('Deleting {} with Id {}'.format(obj_name, obj_id))
         obj_class = getattr(self.cumulusci.sf, obj_name)
         return obj_class.delete(obj_id)
 
     def salesforce_get(self, obj_name, obj_id):
+        """ Gets a Salesforce object by id and returns the dict result """
         BuiltIn().log('Getting {} with Id {}'.format(obj_name, obj_id))
         obj_class = getattr(self.cumulusci.sf, obj_name)
         return obj_class.get(obj_id)
 
     def salesforce_insert(self, obj_name, **kwargs):
+        """ Inserts a Salesforce object setting fields using kwargs and returns the id """
         BuiltIn().log('Inserting {} with values {}'.format(obj_name, kwargs))
         obj_class = getattr(self.cumulusci.sf, obj_name)
         res = obj_class.create(kwargs)
         return res['id']
 
     def salesforce_query(self, obj_name, **kwargs):
+        """ Constructs and runs a simple SOQL query and returns the dict results """
         query = 'SELECT '
         if 'select' in kwargs:
             query += kwargs['select']
@@ -150,15 +158,18 @@ class Salesforce(object):
         return self.cumulusci.sf.query_all(query)
 
     def salesforce_update(self, obj_name, obj_id, **kwargs):
+        """ Updates a Salesforce object by id and returns the dict results """
         BuiltIn().log('Updating {} {} with values {}'.format(obj_name, obj_id, kwargs))
         obj_class = getattr(self.cumulusci.sf, obj_name)
         return obj_class.update(obj_id, kwargs)
         
     def soql_query(self, query):
+        """ Runs a simple SOQL query and returns the dict results """
         BuiltIn().log('Running SOQL Query: {}'.format(query))
         return self.cumulusci.sf.query_all(query)
 
     def wait_until_modal_is_open(self):
+        """ EXPERIMENTAL!!! """
         self._call_selenium('_wait_until_modal_is_open', True)
 
     def _wait_until_modal_is_open(self):
@@ -167,6 +178,7 @@ class Salesforce(object):
         )
 
     def wait_until_modal_is_closed(self):
+        """ EXPERIMENTAL!!! """
         self._call_selenium('_wait_until_modal_is_closed', True)
 
     def _wait_until_modal_is_closed(self):
@@ -175,6 +187,7 @@ class Salesforce(object):
         )
 
     def wait_until_loading_is_complete(self):
+        """ EXPERIMENTAL!!! """
         self._call_selenium('_wait_until_loading_is_complete', True)
 
     def _wait_until_loading_is_complete(self):
@@ -186,6 +199,7 @@ class Salesforce(object):
         )
 
     def _handle_page_load(self):
+        """ EXPERIMENTAL!!! """
         # Bypass this method for now and just return.  This is here as a prototype
         return
         self._wait_until_loading_is_complete()
