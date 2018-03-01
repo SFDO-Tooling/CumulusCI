@@ -1,3 +1,4 @@
+import logging
 from cumulusci.cli.config import CliConfig
 from cumulusci.core.utils import import_class
 from cumulusci.core.exceptions import TaskNotFoundError
@@ -31,6 +32,8 @@ class CumulusCI(object):
         self.org_name = org_name
         self.sf = self._init_api()
         self.tooling = self._init_api('tooling/')
+        # Turn off info logging of all http requests 
+        logging.getLogger('requests.packages.urllib3.connectionpool').setLevel(logging.WARN)
 
     @property
     def config(self):
@@ -99,8 +102,7 @@ class CumulusCI(object):
             | =Keyword=      | =task_class=                     | =task_options=                            |
             | Run Task Class | cumulusci.task.utils.DownloadZip | url=http://test.com/test.zip dir=test_zip |
         """ 
-            
-        task_class, task_config = self._init_task(class_path, options, task_config)
+        task_class, task_config = self._init_task(class_path, options, {})
         return self._run_task(task_class, task_config)
 
     def _init_api(self, base_url=None):

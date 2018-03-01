@@ -1,7 +1,9 @@
+import logging
 from robot.libraries.BuiltIn import BuiltIn
 from cumulusci.robotframework.selectors import selectors
 from SeleniumLibrary.errors import ElementNotFound
 from selenium.common.exceptions import StaleElementReferenceException
+from selenium.common.exceptions import WebDriverException
 
 class Salesforce(object):
     def __init__(self, debug=False):
@@ -9,6 +11,8 @@ class Salesforce(object):
         self.current_page = None
         self.selenium = BuiltIn().get_library_instance('SeleniumLibrary')
         self.cumulusci = BuiltIn().get_library_instance('cumulusci.robotframework.CumulusCI')
+        # Turn off info logging of all http requests 
+        logging.getLogger('requests.packages.urllib3.connectionpool').setLevel(logging.WARN)
 
     def current_app_should_be(self, app_name):
         locator = selectors['app_launcher']['current_app'].format(app_name)
@@ -29,7 +33,7 @@ class Salesforce(object):
             self._handle_page_load()
 
         try:
-            self.wait_until_loading_is_complete()
+            self._wait_until_loading_is_complete()
             method = getattr(self, method_name)
             method(*args, **kwargs)
         except ElementNotFound as e:
@@ -44,6 +48,14 @@ class Salesforce(object):
                 retry_call = True
             else:
                 exception = e
+        except WebDriverException as e:
+            if e.message.contains('Other element would receive the click'):
+                if retry is True:
+                    retry_call = True
+                else:
+                    exception = e
+            else:
+                exception = e
         except Exception as e:
             exception = e
 
@@ -53,6 +65,7 @@ class Salesforce(object):
                 self.selenium.log_source()
                 from cumulusci.robotframework.utils import set_pdb_trace
                 set_pdb_trace()
+                raise e
             else:
                 raise e
 
@@ -65,13 +78,12 @@ class Salesforce(object):
         self._call_selenium('_open_app_launcher', True, locator)
 
     def _open_app_launcher(self, locator):
-        BuiltIn().log('Focusing on App Launcher button')
-        self.selenium.set_focus_to_element(locator)
+        BuiltIn().log('Hovering over App Launcher button')
+        self.selenium.mouse_over(locator)
         BuiltIn().log('Clicking App Launcher button')
         self.selenium.get_webelement(locator).click()
         BuiltIn().log('Waiting for modal to open')
         self.wait_until_modal_is_open()
-            
 
     def select_app_launcher_app(self, app_name):
         locator = selectors['app_launcher']['app_link'].format(app_name)
@@ -104,8 +116,47 @@ class Salesforce(object):
         BuiltIn().log('Waiting for modal to close')
         self.wait_until_modal_is_closed()
 
+    def salesforce_delete(self, obj_name, obj_id):
+        BuiltIn().log('Deleting {} with Id {}'.format(obj_name, obj_id))
+        obj_class = getattr(self.cumulusci.sf, obj_name)
+        return obj_class.delete(obj_id)
+
+    def salesforce_get(self, obj_name, obj_id):
+        BuiltIn().log('Getting {} with Id {}'.format(obj_name, obj_id))
+        obj_class = getattr(self.cumulusci.sf, obj_name)
+        return obj_class.get(obj_id)
+
+    def salesforce_insert(self, obj_name, **kwargs):
+        BuiltIn().log('Inserting {} with values {}'.format(obj_name, kwargs))
+        obj_class = getattr(self.cumulusci.sf, obj_name)
+        res = obj_class.create(kwargs)
+        return res['id']
+
+    def salesforce_query(self, obj_name, **kwargs):
+        query = 'SELECT '
+        if 'select' in kwargs:
+            query += kwargs['select']
+        else:
+            query += 'Id'
+        query += ' FROM {}'.format(obj_name)
+        where = []
+        for key, value in kwargs.items():
+            if key == 'select':
+                continue
+            where.append("{} = '{}'".format(key, value))
+        if where:
+            query += ' WHERE ' + ' AND '.join(where)
+        BuiltIn().log('Running SOQL Query: {}'.format(query))
+        return self.cumulusci.sf.query_all(query)
+
+    def salesforce_update(self, obj_name, obj_id, **kwargs):
+        BuiltIn().log('Updating {} {} with values {}'.format(obj_name, obj_id, kwargs))
+        obj_class = getattr(self.cumulusci.sf, obj_name)
+        return obj_class.update(obj_id, kwargs)
+        
     def soql_query(self, query):
-        return self.cumulusci.sf.query(query)
+        BuiltIn().log('Running SOQL Query: {}'.format(query))
+        return self.cumulusci.sf.query_all(query)
 
     def wait_until_modal_is_open(self):
         self._call_selenium('_wait_until_modal_is_open', True)
@@ -135,6 +186,8 @@ class Salesforce(object):
         )
 
     def _handle_page_load(self):
+        # Bypass this method for now and just return.  This is here as a prototype
+        return
         self._wait_until_loading_is_complete()
         self.selenium.execute_javascript("""
             function cumulusciDoneRenderingHandler(e) {
@@ -143,7 +196,7 @@ class Salesforce(object):
                     elements[0].classList.add('cumulusci-done-rendering');
                 }
             }
-            return $A.getRoot().addEventHandler('aura:doneRendering', cumulusciDoneRenderingHandler);
+            $A.getRoot().addEventHandler('aura:doneRendering', cumulusciDoneRenderingHandler);
             """
         )
             

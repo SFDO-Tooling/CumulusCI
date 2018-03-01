@@ -18,3 +18,4 @@ tags
 .vscode/
 .cache/
 .coverage
+selenium-screenshot-*
