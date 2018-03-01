@@ -343,7 +343,7 @@ class LoadData(BaseSalesforceApiTask):
     def _init_mapping(self):
         self.mapping = hiyapyco.load(
             self.options['mapping'],
-            loglevel='INFO',
+            loglevel='INFO'
         )
 
 class QueryData(BaseSalesforceApiTask):
@@ -396,7 +396,7 @@ class QueryData(BaseSalesforceApiTask):
     def _init_mapping(self):
         self.mappings = hiyapyco.load(
             self.options['mapping'],
-            loglevel='INFO',
+            loglevel='INFO'
         )
         #self.mappings = [(name, mapping) for name, mapping in self.mappings.items()]
         #self.mappings.reverse()

@@ -1191,7 +1191,7 @@ class YamlProjectConfig(BaseProjectConfig):
         self.config = hiyapyco.load(
             *merge_yaml,
             method=hiyapyco.METHOD_MERGE,
-            loglevel='INFO',
+            loglevel='INFO'
         )
 
 
@@ -1240,7 +1240,7 @@ class YamlGlobalConfig(BaseGlobalConfig):
         self.config = hiyapyco.load(
             *merge_yaml,
             method=hiyapyco.METHOD_MERGE,
-            loglevel='INFO',
+            loglevel='INFO'
         )
 
     @property
