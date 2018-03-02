@@ -74,21 +74,30 @@ class Salesforce(object):
             BuiltIn().log('Retrying call to method {}'.format(method_name), level='WARN')
             self._call_selenium(method_name, False, *args, **kwargs)
 
+    def click_object_button(self, title):
+        locator = selectors['object']['button']
+        button = self.selenium.get_webelement(locator)
+        button.click()
+        self._wait_until_modal_is_open()
+
     def go_to_setup_home(self):
         """ Navigates to the Home tab of Salesforce Setup """
         url = self.cumulusci.org.lightning_base_url
         self.selenium.go_to(url + '/one/one.app#/setup/SetupOneHome/home')
+        self._wait_until_loading_is_complete()
 
     def go_to_setup_object_manager(self):
         """ Navigates to the Object Manager tab of Salesforce Setup """
         url = self.cumulusci.org.lightning_base_url
         self.selenium.go_to(url + '/one/one.app#/setup/ObjectManager/home')
+        self._wait_until_loading_is_complete()
 
     def go_to_object_home(self, obj_name):
         """ Navigates to the Home view of a Salesforce Object """
         url = self.cumulusci.org.lightning_base_url
         url = '{}/one/one.app#/sObject/{}/home'.format(url, obj_name)
         self.selenium.go_to(url)
+        self._wait_until_loading_is_complete()
     
     def go_to_object_list(self, obj_name, filter_name=None):
         """ Navigates to the Home view of a Salesforce Object """
@@ -97,12 +106,14 @@ class Salesforce(object):
         if filter_name:
             url += '?filterName={}'.format(filter_name)
         self.selenium.go_to(url)
+        self._wait_until_loading_is_complete()
 
     def go_to_record_home(self, obj_id, filter_name=None):
         """ Navigates to the Home view of a Salesforce Object """
         url = self.cumulusci.org.lightning_base_url
         url = '{}/one/one.app#/sObject/{}/view'.format(url, obj_id)
         self.selenium.go_to(url)
+        self._wait_until_loading_is_complete()
 
     def open_app_launcher(self):
         """ EXPERIMENTAL!!! """
@@ -227,6 +238,9 @@ class Salesforce(object):
         self.selenium.wait_until_page_contains_element(
             "css: div.desktop.container.oneOne.oneAppLayoutHost[data-aura-rendered-by]"
         )
+        #self.selenium.wait_until_page_contains_element(
+        #    selectors['lex']['body'],
+        #)
 
     def _handle_page_load(self):
         """ EXPERIMENTAL!!! """

@@ -4,7 +4,7 @@ from robot.run import run
 class Robot(BaseSalesforceTask):
     task_options = {
         'suites': {
-            'description': 'Paths to test case files/directories to be executed similarly as when running the robot command on the command line.',
+            'description': 'Paths to test case files/directories to be executed similarly as when running the robot command on the command line.  Defaults to "tests" to run all tests in the tests directory',
             'required': True,
         },
         'test': {
@@ -26,6 +26,10 @@ class Robot(BaseSalesforceTask):
 
     def _init_options(self, kwargs):
         super(Robot, self)._init_options(kwargs)
+
+        # Set default for suites
+        if 'suites' not in self.options:
+            self.options['suites'] = 'tests'
 
         # Initialize the vars list and add the org name to it
         if 'vars' in self.options:

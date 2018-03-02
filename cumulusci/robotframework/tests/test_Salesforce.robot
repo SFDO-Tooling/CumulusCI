@@ -15,41 +15,57 @@ Create Random Contact
 
 *** Test Cases ***
 
+Test Click Object Button
+    Open Test Browser
+    Go To Object Home  Contact
+    Click Object Button  New
+    Page Should Contain  New Contact
+    Capture Page Screenshot
+    [Teardown]  Close Browser
+
 Test Go To Setup Home
     Open Test Browser
     Go To Setup Home
+    Capture Page Screenshot
     [Teardown]  Close Browser
 
 Test Go To Setup Object Manager
     Open Test Browser
     Go To Setup Object Manager
+    Capture Page Screenshot
     [Teardown]  Close Browser
 
 Test Go To Object Home
     Open Test Browser
     Go To Object List  Contact
+    Capture Page Screenshot
     [Teardown]  Close Browser
 
 Test Go To Object List
     Open Test Browser
     Go To Object List  Contact
+    Capture Page Screenshot
     [Teardown]  Close Browser
 
 Test Go To Object List With Filter
     Open Test Browser
     Go To Object List  Contact  filter=Recent
+    Capture Page Screenshot
     [Teardown]  Close Browser
 
 Test Go To Record Home
     Open Test Browser
     Create Random Contact
     Go To Record Home  ${contact_id}
+    Capture Page Screenshot
     Salesforce Delete  Contact  ${contact_id}
     [Teardown]  Close Browser
 
 Test Log In
     Open Test Browser
+    Wait Until Loading Is Complete
     Page Should Contain  Home
+    Capture Page Screenshot
     [Teardown]  Close Browser
 
 Test Salesforce Delete

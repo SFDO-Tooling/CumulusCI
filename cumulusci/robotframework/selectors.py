@@ -7,7 +7,10 @@ selectors = {
         'tab_link': "css: a.app-launcher-link[title='{}']",
     },
     'lex': {
-        'modal': 'css: div.DESKTOP.uiModal.forceModal.open.active',
+        'modal': "css: div.DESKTOP.uiModal.forceModal.open.active",
+    },
+    'object': {
+        'button': "css: ul.forceActionsContainer.oneActionsRibbon a[title='New']",
     },
     'tabs': {
         'tab': '',
