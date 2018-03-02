@@ -2,3 +2,8 @@ project:
     name: CumulusCI
     package:
         name: CumulusCI
+
+tasks:
+    robot:
+        options:
+            suites: cumulusci/robotframework/tests
