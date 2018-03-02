@@ -797,7 +797,7 @@ class OrgConfig(BaseConfig):
 
     @property
     def lightning_base_url(self):
-        return self.instance_url.split('.')[0] + 'lightning.force.com'
+        return self.instance_url.split('.')[0] + '.lightning.force.com'
 
     @property
     def start_url(self):
