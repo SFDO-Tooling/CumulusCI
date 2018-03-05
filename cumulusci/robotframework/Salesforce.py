@@ -1,6 +1,6 @@
 import logging
 from robot.libraries.BuiltIn import BuiltIn
-from cumulusci.robotframework.selectors import selectors
+from cumulusci.robotframework.locators import locators
 from SeleniumLibrary.errors import ElementNotFound
 from selenium.common.exceptions import StaleElementReferenceException
 from selenium.common.exceptions import WebDriverException
@@ -16,7 +16,7 @@ class Salesforce(object):
 
     def current_app_should_be(self, app_name):
         """ EXPERIMENTAL!!! """
-        locator = selectors['app_launcher']['current_app'].format(app_name)
+        locator = locators['app_launcher']['current_app'].format(app_name)
         elem = self.selenium.set_focus_to_element(locator)
         elem = self.selenium.get_webelement(locator)
         assert app_name == elem.text
@@ -50,7 +50,7 @@ class Salesforce(object):
             else:
                 exception = e
         except WebDriverException as e:
-            if e.message.contains('Other element would receive the click'):
+            if 'Other element would receive the click' in e.message:
                 if retry is True:
                     retry_call = True
                 else:
@@ -75,7 +75,7 @@ class Salesforce(object):
             self._call_selenium(method_name, False, *args, **kwargs)
 
     def click_object_button(self, title):
-        locator = selectors['object']['button'].format(title)
+        locator = locators['object']['button'].format(title)
         self._call_selenium('_click_object_button', True, locator)
 
     def _click_object_button(self, locator):
@@ -84,13 +84,63 @@ class Salesforce(object):
         self._wait_until_modal_is_open()
 
     def click_modal_button(self, title):
-        locator = selectors['modal']['button'].format(title)
+        locator = locators['modal']['button'].format(title)
         self._call_selenium('_click_modal_button', True, locator)
 
     def _click_modal_button(self, locator):
         button = self.selenium.get_webelement(locator)
         button.click()
         self._wait_until_modal_is_closed()
+
+    def get_locator(self, path, *args, **kwargs):
+        """ Returns a rendered locator string from the Salesforce locators
+            dictionary.  This can be useful if you want to use an element in
+            a different way than the built in keywords allow.
+        """
+        locator = locators
+        for key in path.split('.'):
+            locator = locator[key]
+        return locator.format(*args, **kwargs)
+
+    def header_field_should_have_value(self, label):
+        """ Validates that a field in the record header has a text value.
+            NOTE: Use other keywords for non-string value types
+        """
+        locator = locators['record']['header']['field_value'].format(label)
+        self._call_selenium('_header_field_value_should_exist', True, locator)
+
+    def header_field_should_not_have_value(self, label):
+        """ Validates that a field in the record header does not have a value.
+            NOTE: Use other keywords for non-string value types
+        """
+        locator = locators['record']['header']['field_value'].format(label)
+        self._call_selenium('_header_field_value_should_not_exist', True, locator)
+
+    def header_field_should_have_link(self, label):
+        """ Validates that a field in the record header has a link as its value """
+        locator = locators['record']['header']['field_value_link'].format(label)
+        self._call_selenium('_header_field_value_should_exist', True, locator)
+    
+    def header_field_should_not_have_link(self, label):
+        """ Validates that a field in the record header does not have a link as its value """
+        locator = locators['record']['header']['field_value_link'].format(label)
+        self._call_selenium('_header_field_value_should_not_exist', True, locator)
+
+    def header_field_should_be_checked(self, label):
+        """ Validates that a checkbox field in the record header is checked """
+        locator = locators['record']['header']['field_value_checked'].format(label)
+        self._call_selenium('_header_field_value_should_exist', True, locator)
+
+    def header_field_should_be_unchecked(self, label):
+        """ Validates that a checkbox field in the record header is unchecked """
+        locator = locators['record']['header']['field_value_unchecked'].format(label)
+        self._call_selenium('_header_field_value_should_exist', True, locator)
+
+    def _header_field_value_should_exist(self, locator):
+        self.selenium.page_should_contain_element(locator)
+    
+    def _header_field_value_should_not_exist(self, locator):
+        self.selenium.page_should_not_contain_element(locator)
 
     def go_to_setup_home(self):
         """ Navigates to the Home tab of Salesforce Setup """
@@ -129,7 +179,7 @@ class Salesforce(object):
 
     def open_app_launcher(self):
         """ EXPERIMENTAL!!! """
-        locator = selectors['app_launcher']['button']
+        locator = locators['app_launcher']['button']
         self._call_selenium('_open_app_launcher', True, locator)
 
     def _open_app_launcher(self, locator):
@@ -144,7 +194,7 @@ class Salesforce(object):
         self._call_selenium('_populate_field', True, name, value)
 
     def _populate_field(self, name, value):
-        locator = selectors['object']['field'].format(name)
+        locator = locators['object']['field'].format(name)
         field = self.selenium.get_webelement(locator)
         field.clear()
         field.send_keys(value)
@@ -155,7 +205,7 @@ class Salesforce(object):
 
     def select_app_launcher_app(self, app_name):
         """ EXPERIMENTAL!!! """
-        locator = selectors['app_launcher']['app_link'].format(app_name)
+        locator = locators['app_launcher']['app_link'].format(app_name)
         BuiltIn().log('Opening the App Launcher')
         self.open_app_launcher()
         self._call_selenium('_select_app_launcher_app', True, locator)
@@ -174,7 +224,7 @@ class Salesforce(object):
 
     def select_app_launcher_tab(self, tab_name):
         """ EXPERIMENTAL!!! """
-        locator = selectors['app_launcher']['tab_link'].format(tab_name)
+        locator = locators['app_launcher']['tab_link'].format(tab_name)
         BuiltIn().log('Opening the App Launcher')
         self.open_app_launcher()
         self._call_selenium('_select_app_launcher_tab', True, locator)
@@ -240,7 +290,7 @@ class Salesforce(object):
 
     def _wait_until_modal_is_open(self):
         self.selenium.wait_until_element_is_visible(
-            selectors['modal']['is_open'],
+            locators['modal']['is_open'],
         )
 
     def wait_until_modal_is_closed(self):
@@ -249,7 +299,7 @@ class Salesforce(object):
 
     def _wait_until_modal_is_closed(self):
         self.selenium.wait_until_element_is_not_visible(
-            selectors['modal']['is_open'],
+            locators['modal']['is_open'],
         )
 
     def wait_until_loading_is_complete(self):
