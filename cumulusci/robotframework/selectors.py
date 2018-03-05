@@ -6,11 +6,13 @@ selectors = {
         'current_app': "//div[contains(@class,'navLeft')]//span[contains(@class,'appName')]/span[text()='{}']",
         'tab_link': "css: a.app-launcher-link[title='{}']",
     },
-    'lex': {
-        'modal': "css: div.DESKTOP.uiModal.forceModal.open.active",
+    'modal': {
+        'is_open': "css: div.DESKTOP.uiModal.forceModal.open.active",
+        'button': "css: div.uiModal div.forceModalActionContainer button[title='{}']",
     },
     'object': {
-        'button': "css: ul.forceActionsContainer.oneActionsRibbon a[title='New']",
+        'button': "css: ul.forceActionsContainer.oneActionsRibbon a[title='{}']",
+        'field': "//div[contains(@class, 'uiInput')][.//label[contains(@class, 'uiLabel')][.//span[text()='{}']]]//input"
     },
     'tabs': {
         'tab': '',

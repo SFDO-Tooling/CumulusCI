@@ -75,10 +75,22 @@ class Salesforce(object):
             self._call_selenium(method_name, False, *args, **kwargs)
 
     def click_object_button(self, title):
-        locator = selectors['object']['button']
+        locator = selectors['object']['button'].format(title)
+        self._call_selenium('_click_object_button', True, locator)
+
+    def _click_object_button(self, locator):
         button = self.selenium.get_webelement(locator)
         button.click()
         self._wait_until_modal_is_open()
+
+    def click_modal_button(self, title):
+        locator = selectors['modal']['button'].format(title)
+        self._call_selenium('_click_modal_button', True, locator)
+
+    def _click_modal_button(self, locator):
+        button = self.selenium.get_webelement(locator)
+        button.click()
+        self._wait_until_modal_is_closed()
 
     def go_to_setup_home(self):
         """ Navigates to the Home tab of Salesforce Setup """
@@ -127,6 +139,19 @@ class Salesforce(object):
         self.selenium.get_webelement(locator).click()
         BuiltIn().log('Waiting for modal to open')
         self.wait_until_modal_is_open()
+
+    def _populate_field(self, name, value):
+        self._call_selenium('_populate_field', True, name, value)
+
+    def _populate_field(self, name, value):
+        locator = selectors['object']['field'].format(name)
+        field = self.selenium.get_webelement(locator)
+        field.clear()
+        field.send_keys(value)
+
+    def populate_form(self, **kwargs):
+        for name, value in kwargs.items():
+            self._call_selenium('_populate_field', True, name, value)
 
     def select_app_launcher_app(self, app_name):
         """ EXPERIMENTAL!!! """
@@ -215,7 +240,7 @@ class Salesforce(object):
 
     def _wait_until_modal_is_open(self):
         self.selenium.wait_until_element_is_visible(
-            selectors['lex']['modal'],
+            selectors['modal']['is_open'],
         )
 
     def wait_until_modal_is_closed(self):
@@ -224,7 +249,7 @@ class Salesforce(object):
 
     def _wait_until_modal_is_closed(self):
         self.selenium.wait_until_element_is_not_visible(
-            selectors['lex']['modal'],
+            selectors['modal']['is_open'],
         )
 
     def wait_until_loading_is_complete(self):
@@ -238,9 +263,6 @@ class Salesforce(object):
         self.selenium.wait_until_page_contains_element(
             "css: div.desktop.container.oneOne.oneAppLayoutHost[data-aura-rendered-by]"
         )
-        #self.selenium.wait_until_page_contains_element(
-        #    selectors['lex']['body'],
-        #)
 
     def _handle_page_load(self):
         """ EXPERIMENTAL!!! """
