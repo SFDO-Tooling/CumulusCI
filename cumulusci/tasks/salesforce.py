@@ -1141,8 +1141,7 @@ class PackageUpload(BaseSalesforceApiTask):
             self.options['namespace'] = self.project_config.project__package__namespace
 
     def _run_task(self):
-        sf = self._init_api()
-        package_res = sf.query("select Id from MetadataPackage where NamespacePrefix='{}'".format(self.options['namespace']))
+        package_res = self.tooling.query("select Id from MetadataPackage where NamespacePrefix='{}'".format(self.options['namespace']))
 
         if package_res['totalSize'] != 1:
             message = 'No package found with namespace {}'.format(self.options['namespace'])

@@ -126,6 +126,11 @@ objects:
       extension: object
       options:
             item_xpath: './sf:fieldSets'
+    - type: Index
+      class: MetadataXmlElementParser
+      extension: object
+      options:
+            item_xpath: './sf:indexes'
     - type: ListView
       class: MetadataXmlElementParser
       extension: object
