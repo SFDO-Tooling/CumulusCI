@@ -1,10 +1,13 @@
 import logging
 import re
+import time
 from robot.libraries.BuiltIn import BuiltIn
-from cumulusci.robotframework.locators import locators
-from SeleniumLibrary.errors import ElementNotFound
+from selenium.common.exceptions import ElementNotInteractableException
 from selenium.common.exceptions import StaleElementReferenceException
 from selenium.common.exceptions import WebDriverException
+from selenium.webdriver.common.keys import Keys
+from SeleniumLibrary.errors import ElementNotFound
+from cumulusci.robotframework.locators import locators
 
 OID_REGEX = r'[a-zA-Z0-9]{15,18}'
 
@@ -36,10 +39,11 @@ class Salesforce(object):
             self.current_page = current_page
             self._handle_page_load()
 
+        result = None
         try:
             self._wait_until_loading_is_complete()
             method = getattr(self, method_name)
-            method(*args, **kwargs)
+            result = method(*args, **kwargs)
         except ElementNotFound as e:
             # Retry once if we fail to find an element
             if retry is True:
@@ -60,6 +64,11 @@ class Salesforce(object):
                     exception = e
             else:
                 exception = e
+        except ElementNotInteractableException as e:
+            if retry is True:
+                retry_call = True
+            else:
+                exception = e
         except Exception as e:
             exception = e
 
@@ -77,6 +86,16 @@ class Salesforce(object):
             BuiltIn().log('Retrying call to method {}'.format(method_name), level='WARN')
             self._call_selenium(method_name, False, *args, **kwargs)
 
+        return result
+
+    def click_modal_button(self, title):
+        locator = locators['modal']['button'].format(title)
+        self._call_selenium('_click_modal_button', True, locator)
+
+    def _click_modal_button(self, locator):
+        button = self.selenium.get_webelement(locator)
+        button.click()
+
     def click_object_button(self, title):
         locator = locators['object']['button'].format(title)
         self._call_selenium('_click_object_button', True, locator)
@@ -86,13 +105,23 @@ class Salesforce(object):
         button.click()
         self._wait_until_modal_is_open()
 
-    def click_modal_button(self, title):
-        locator = locators['modal']['button'].format(title)
-        self._call_selenium('_click_modal_button', True, locator)
+    def click_related_list_button(self, heading, button_title):
+        locator = locators['record']['related']['button'].format(heading, button_title)
+        self._call_selenium('_click_related_list_button', True, locator)
 
-    def _click_modal_button(self, locator):
-        button = self.selenium.get_webelement(locator)
-        button.click()
+    def _click_related_list_button(self, locator):
+        self.selenium.get_webelement(locator).click()
+        self._wait_until_modal_is_open()
+        
+    def get_current_record_id(self):
+        """ Parses the current url to get the object id of the current record.
+            Expects url format like: [a-zA-Z0-9]{15,18}
+        """
+        url = self.selenium.get_location()
+        for part in url.split('/'):
+            if re.match(OID_REGEX, part):
+                return part
+        raise AssertionError("Could not parse record id from url: {}".format(url))
 
     def get_locator(self, path, *args, **kwargs):
         """ Returns a rendered locator string from the Salesforce locators
@@ -104,16 +133,15 @@ class Salesforce(object):
             locator = locator[key]
         return locator.format(*args, **kwargs)
 
-    def get_current_record_id(self):
-        """ Parses the current url to get the object id of the current record.
-            Expects url format like: [a-zA-Z0-9]{15,18}
-        """
-        url = self.selenium.get_location()
-        for part in url.split('/'):
-            if re.match(OID_REGEX, part):
-                return part
-        raise AssertionError("Could not parse record id from url: {}".format(url))
+    def get_related_list_count(self, heading):
+        locator = locators['record']['related']['count'].format(heading)
+        return self._call_selenium('_get_related_list_count', True, locator)
 
+    def _get_related_list_count(self, locator):
+        count = self.selenium.get_webelement(locator).text
+        count = count.replace('(','').replace(')','')
+        return int(count)
+        
     def header_field_should_have_value(self, label):
         """ Validates that a field in the record header has a text value.
             NOTE: Use other keywords for non-string value types
@@ -154,23 +182,12 @@ class Salesforce(object):
     def _header_field_value_should_not_exist(self, locator):
         self.selenium.page_should_not_contain_element(locator)
 
-    def go_to_setup_home(self):
-        """ Navigates to the Home tab of Salesforce Setup """
-        url = self.cumulusci.org.lightning_base_url
-        self.selenium.go_to(url + '/one/one.app#/setup/SetupOneHome/home')
-        self._wait_until_loading_is_complete()
-
-    def go_to_setup_object_manager(self):
-        """ Navigates to the Object Manager tab of Salesforce Setup """
-        url = self.cumulusci.org.lightning_base_url
-        self.selenium.go_to(url + '/one/one.app#/setup/ObjectManager/home')
-        self._wait_until_loading_is_complete()
-
     def go_to_object_home(self, obj_name):
         """ Navigates to the Home view of a Salesforce Object """
         url = self.cumulusci.org.lightning_base_url
         url = '{}/one/one.app#/sObject/{}/home'.format(url, obj_name)
         self.selenium.go_to(url)
+        time.sleep(3)
         self._wait_until_loading_is_complete()
     
     def go_to_object_list(self, obj_name, filter_name=None):
@@ -180,6 +197,7 @@ class Salesforce(object):
         if filter_name:
             url += '?filterName={}'.format(filter_name)
         self.selenium.go_to(url)
+        time.sleep(3)
         self._wait_until_loading_is_complete()
 
     def go_to_record_home(self, obj_id, filter_name=None):
@@ -187,6 +205,21 @@ class Salesforce(object):
         url = self.cumulusci.org.lightning_base_url
         url = '{}/one/one.app#/sObject/{}/view'.format(url, obj_id)
         self.selenium.go_to(url)
+        time.sleep(3)
+        self._wait_until_loading_is_complete()
+
+    def go_to_setup_home(self):
+        """ Navigates to the Home tab of Salesforce Setup """
+        url = self.cumulusci.org.lightning_base_url
+        self.selenium.go_to(url + '/one/one.app#/setup/SetupOneHome/home')
+        time.sleep(3)
+        self._wait_until_loading_is_complete()
+
+    def go_to_setup_object_manager(self):
+        """ Navigates to the Object Manager tab of Salesforce Setup """
+        url = self.cumulusci.org.lightning_base_url
+        self.selenium.go_to(url + '/one/one.app#/setup/ObjectManager/home')
+        time.sleep(3)
         self._wait_until_loading_is_complete()
 
     def open_app_launcher(self):
@@ -208,8 +241,10 @@ class Salesforce(object):
     def _populate_field(self, name, value):
         locator = locators['object']['field'].format(name)
         field = self.selenium.get_webelement(locator)
-        field.clear()
+        #field.clear()
+        #time.sleep(.5)
         field.send_keys(value)
+        time.sleep(.5)
 
     def populate_form(self, **kwargs):
         for name, value in kwargs.items():
@@ -222,8 +257,10 @@ class Salesforce(object):
 
     def _select_record_type(self, locator):
         self.selenium.get_webelement(locator).click()
+        time.sleep(1)
         locator = locators['modal']['button'].format('Next')
         self.selenium.click_button('Next')
+        time.sleep(5)
 
     def select_app_launcher_app(self, app_name):
         """ EXPERIMENTAL!!! """
@@ -314,6 +351,7 @@ class Salesforce(object):
         self.selenium.wait_until_element_is_visible(
             locators['modal']['is_open'],
         )
+        time.sleep(3)
 
     def wait_until_modal_is_closed(self):
         """ EXPERIMENTAL!!! """
@@ -323,6 +361,7 @@ class Salesforce(object):
         self.selenium.wait_until_element_is_not_visible(
             locators['modal']['is_open'],
         )
+        time.sleep(3)
 
     def wait_until_loading_is_complete(self):
         """ EXPERIMENTAL!!! """

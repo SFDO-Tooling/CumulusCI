@@ -9,13 +9,14 @@ Library        cumulusci.robotframework.Salesforce  debug=${DEBUG}
 *** Variables *** 
 ${BROWSER}  chrome
 ${DEBUG}  ${false}
-${IMPLICIT_WAIT}  10.0
-${TIMEOUT}  10.0
+${IMPLICIT_WAIT}  5.0
+${TIMEOUT}  5.0
 
 *** Keywords ***
 
 Open Test Browser
     Open Browser  ${LOGIN_URL}  ${BROWSER}
+    Sleep  2
     #Run Keyword If  '${BROWSER}' == 'chrome'  Open Test Browser Chrome
     #...    ELSE IF  '${BROWSER}' == 'firefox'  Open Test Browser Firefox
     #Go To  ${LOGIN_URL}

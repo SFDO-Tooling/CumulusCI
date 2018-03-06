@@ -23,6 +23,10 @@ locators = {
             'field_value_checked': "//li[contains(@class, 'slds-page-header__detail')][.//p[contains(@class, 'slds-text-heading--label')][@title='{}']]//span[contains(@class, 'uiOutputCheckbox')]//img[@alt='True']",
             'field_value_unchecked': "//li[contains(@class, 'slds-page-header__detail')][.//p[contains(@class, 'slds-text-heading--label')][@title='{}']]//span[contains(@class, 'uiOutputCheckbox')]//img[@alt='False']",
         },
+        'related': {
+            'button': "//article[contains(@class, 'forceRelatedListCardDesktop')][.//img[@title='{}']]//a[@title='{}']",
+            'count': "//article[contains(@class, 'forceRelatedListCardDesktop')][.//img]//span[@title='{}']/following-sibling::span",
+        },
     },
     'tabs': {
         'tab': '',
