@@ -1,9 +1,12 @@
 import logging
+import re
 from robot.libraries.BuiltIn import BuiltIn
 from cumulusci.robotframework.locators import locators
 from SeleniumLibrary.errors import ElementNotFound
 from selenium.common.exceptions import StaleElementReferenceException
 from selenium.common.exceptions import WebDriverException
+
+OID_REGEX = r'[a-zA-Z0-9]{15,18}'
 
 class Salesforce(object):
     def __init__(self, debug=False):
@@ -90,7 +93,6 @@ class Salesforce(object):
     def _click_modal_button(self, locator):
         button = self.selenium.get_webelement(locator)
         button.click()
-        self._wait_until_modal_is_closed()
 
     def get_locator(self, path, *args, **kwargs):
         """ Returns a rendered locator string from the Salesforce locators
@@ -101,6 +103,16 @@ class Salesforce(object):
         for key in path.split('.'):
             locator = locator[key]
         return locator.format(*args, **kwargs)
+
+    def get_current_record_id(self):
+        """ Parses the current url to get the object id of the current record.
+            Expects url format like: [a-zA-Z0-9]{15,18}
+        """
+        url = self.selenium.get_location()
+        for part in url.split('/'):
+            if re.match(OID_REGEX, part):
+                return part
+        raise AssertionError("Could not parse record id from url: {}".format(url))
 
     def header_field_should_have_value(self, label):
         """ Validates that a field in the record header has a text value.
@@ -190,7 +202,7 @@ class Salesforce(object):
         BuiltIn().log('Waiting for modal to open')
         self.wait_until_modal_is_open()
 
-    def _populate_field(self, name, value):
+    def populate_field(self, name, value):
         self._call_selenium('_populate_field', True, name, value)
 
     def _populate_field(self, name, value):
@@ -202,6 +214,16 @@ class Salesforce(object):
     def populate_form(self, **kwargs):
         for name, value in kwargs.items():
             self._call_selenium('_populate_field', True, name, value)
+
+    def select_record_type(self, label):
+        self._wait_until_modal_is_open()
+        locator = locators['object']['record_type_option'].format(label)
+        self._call_selenium('_select_record_type', True, locator)
+
+    def _select_record_type(self, locator):
+        self.selenium.get_webelement(locator).click()
+        locator = locators['modal']['button'].format('Next')
+        self.selenium.click_button('Next')
 
     def select_app_launcher_app(self, app_name):
         """ EXPERIMENTAL!!! """

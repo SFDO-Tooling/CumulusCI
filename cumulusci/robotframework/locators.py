@@ -8,11 +8,12 @@ locators = {
     },
     'modal': {
         'is_open': "css: div.DESKTOP.uiModal.forceModal.open.active",
-        'button': "css: div.uiModal div.forceModalActionContainer button[title='{}']",
+        'button': "css: div.uiModal div.modal-footer button[title='{}']",
     },
     'object': {
         'button': "css: ul.forceActionsContainer.oneActionsRibbon a[title='{}']",
-        'field': "//div[contains(@class, 'uiInput')][.//label[contains(@class, 'uiLabel')][.//span[text()='{}']]]//input"
+        'field': "//div[contains(@class, 'uiInput')][.//label[contains(@class, 'uiLabel')][.//span[text()='{}']]]//input",
+        'record_type_option': "//div[contains(@class, 'changeRecordTypeOptionRightColumn')]//span[text()='{}']",
     },
     'record': {
         'header': {
