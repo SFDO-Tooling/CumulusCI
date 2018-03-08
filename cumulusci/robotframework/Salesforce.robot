@@ -15,6 +15,10 @@ ${TIMEOUT}          7.0
 
 *** Keywords ***
 
+Delete Records and Close Browser
+    Delete Session Records
+    Close Browser
+
 Open Test Browser
     ${login_url} =  Login Url
     Open Browser  ${login_url}  ${BROWSER}  desired_capabilities=version:${BROWSER_VERSION}

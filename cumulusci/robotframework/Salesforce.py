@@ -12,11 +12,15 @@ from cumulusci.robotframework.locators import locators
 OID_REGEX = r'[a-zA-Z0-9]{15,18}'
 
 class Salesforce(object):
+    ROBOT_LIBRARY_SCOPE = 'GLOBAL'
+
     def __init__(self, debug=False):
         self.debug = debug
         self.current_page = None
-        self.selenium = BuiltIn().get_library_instance('SeleniumLibrary')
-        self.cumulusci = BuiltIn().get_library_instance('cumulusci.robotframework.CumulusCI')
+        self.builtin = BuiltIn()
+        self.selenium = self.builtin.get_library_instance('SeleniumLibrary')
+        self.cumulusci = self.builtin.get_library_instance('cumulusci.robotframework.CumulusCI')
+        self._session_records = []
         # Turn off info logging of all http requests 
         logging.getLogger('requests.packages.urllib3.connectionpool').setLevel(logging.WARN)
 
@@ -83,7 +87,7 @@ class Salesforce(object):
                 raise e
 
         if retry_call:
-            BuiltIn().log('Retrying call to method {}'.format(method_name), level='WARN')
+            self.builtin.log('Retrying call to method {}'.format(method_name), level='WARN')
             self._call_selenium(method_name, False, *args, **kwargs)
 
         return result
@@ -115,6 +119,12 @@ class Salesforce(object):
         self.selenium.set_focus_to_element(locator)
         self.selenium.get_webelement(locator).click()
         self._wait_until_modal_is_open()
+
+    def delete_session_records(self):
+        self.builtin.log('Deleting {} records'.format(len(self._session_records)))
+        for record in self._session_records:
+            self.builtin.log('  Deleting {type} {id}'.format(**record))
+            self.salesforce_delete(record['type'], record['id'])
         
     def get_current_record_id(self):
         """ Parses the current url to get the object id of the current record.
@@ -190,7 +200,7 @@ class Salesforce(object):
         url = self.cumulusci.org.lightning_base_url
         url = '{}/one/one.app#/sObject/{}/home'.format(url, obj_name)
         self.selenium.go_to(url)
-        time.sleep(3)
+        time.sleep(5)
         self._wait_until_loading_is_complete()
     
     def go_to_object_list(self, obj_name, filter_name=None):
@@ -200,7 +210,7 @@ class Salesforce(object):
         if filter_name:
             url += '?filterName={}'.format(filter_name)
         self.selenium.go_to(url)
-        time.sleep(3)
+        time.sleep(5)
         self._wait_until_loading_is_complete()
 
     def go_to_record_home(self, obj_id, filter_name=None):
@@ -208,21 +218,21 @@ class Salesforce(object):
         url = self.cumulusci.org.lightning_base_url
         url = '{}/one/one.app#/sObject/{}/view'.format(url, obj_id)
         self.selenium.go_to(url)
-        time.sleep(3)
+        time.sleep(5)
         self._wait_until_loading_is_complete()
 
     def go_to_setup_home(self):
         """ Navigates to the Home tab of Salesforce Setup """
         url = self.cumulusci.org.lightning_base_url
         self.selenium.go_to(url + '/one/one.app#/setup/SetupOneHome/home')
-        time.sleep(3)
+        time.sleep(5)
         self._wait_until_loading_is_complete()
 
     def go_to_setup_object_manager(self):
         """ Navigates to the Object Manager tab of Salesforce Setup """
         url = self.cumulusci.org.lightning_base_url
         self.selenium.go_to(url + '/one/one.app#/setup/ObjectManager/home')
-        time.sleep(3)
+        time.sleep(5)
         self._wait_until_loading_is_complete()
 
     def open_app_launcher(self):
@@ -231,11 +241,11 @@ class Salesforce(object):
         self._call_selenium('_open_app_launcher', True, locator)
 
     def _open_app_launcher(self, locator):
-        BuiltIn().log('Hovering over App Launcher button')
+        self.builtin.log('Hovering over App Launcher button')
         self.selenium.mouse_over(locator)
-        BuiltIn().log('Clicking App Launcher button')
+        self.builtin.log('Clicking App Launcher button')
         self.selenium.get_webelement(locator).click()
-        BuiltIn().log('Waiting for modal to open')
+        self.builtin.log('Waiting for modal to open')
         self.wait_until_modal_is_open()
 
     def populate_field(self, name, value):
@@ -254,6 +264,12 @@ class Salesforce(object):
         for name, value in kwargs.items():
             self._call_selenium('_populate_field', True, name, value)
 
+    def remove_session_record(self, obj_type, obj_id):
+        self._session_records.remove({
+            'type': obj_type,
+            'id': obj_id,
+        })
+
     def select_record_type(self, label):
         self._wait_until_modal_is_open()
         locator = locators['object']['record_type_option'].format(label)
@@ -269,53 +285,55 @@ class Salesforce(object):
     def select_app_launcher_app(self, app_name):
         """ EXPERIMENTAL!!! """
         locator = locators['app_launcher']['app_link'].format(app_name)
-        BuiltIn().log('Opening the App Launcher')
+        self.builtin.log('Opening the App Launcher')
         self.open_app_launcher()
         self._call_selenium('_select_app_launcher_app', True, locator)
 
     def _select_app_launcher_app(self, locator):
-        BuiltIn().log('Getting the web element for the app')
+        self.builtin.log('Getting the web element for the app')
         self.selenium.set_focus_to_element(locator)
         elem = self.selenium.get_webelement(locator)
-        BuiltIn().log('Getting the parent link from the web element')
+        self.builtin.log('Getting the parent link from the web element')
         link = elem.find_element_by_xpath('../../..')
         self.selenium.set_focus_to_element(link)
-        BuiltIn().log('Clicking the link')
+        self.builtin.log('Clicking the link')
         link.click()
-        BuiltIn().log('Waiting for modal to close')
+        self.builtin.log('Waiting for modal to close')
         self.wait_until_modal_is_closed()
 
     def select_app_launcher_tab(self, tab_name):
         """ EXPERIMENTAL!!! """
         locator = locators['app_launcher']['tab_link'].format(tab_name)
-        BuiltIn().log('Opening the App Launcher')
+        self.builtin.log('Opening the App Launcher')
         self.open_app_launcher()
         self._call_selenium('_select_app_launcher_tab', True, locator)
 
     def _select_app_launcher_tab(self, locator):
-        BuiltIn().log('Clicking App Tab')
+        self.builtin.log('Clicking App Tab')
         self.selenium.set_focus_to_element(locator)
         self.selenium.get_webelement(locator).click()
-        BuiltIn().log('Waiting for modal to close')
+        self.builtin.log('Waiting for modal to close')
         self.wait_until_modal_is_closed()
 
     def salesforce_delete(self, obj_name, obj_id):
         """ Deletes a Saleforce object by id and returns the dict result """
-        BuiltIn().log('Deleting {} with Id {}'.format(obj_name, obj_id))
+        self.builtin.log('Deleting {} with Id {}'.format(obj_name, obj_id))
         obj_class = getattr(self.cumulusci.sf, obj_name)
-        return obj_class.delete(obj_id)
+        res = obj_class.delete(obj_id)
+        self.remove_session_record(obj_name, obj_id)
 
     def salesforce_get(self, obj_name, obj_id):
         """ Gets a Salesforce object by id and returns the dict result """
-        BuiltIn().log('Getting {} with Id {}'.format(obj_name, obj_id))
+        self.builtin.log('Getting {} with Id {}'.format(obj_name, obj_id))
         obj_class = getattr(self.cumulusci.sf, obj_name)
         return obj_class.get(obj_id)
 
     def salesforce_insert(self, obj_name, **kwargs):
         """ Inserts a Salesforce object setting fields using kwargs and returns the id """
-        BuiltIn().log('Inserting {} with values {}'.format(obj_name, kwargs))
+        self.builtin.log('Inserting {} with values {}'.format(obj_name, kwargs))
         obj_class = getattr(self.cumulusci.sf, obj_name)
         res = obj_class.create(kwargs)
+        self.store_session_record(obj_name, res['id'])
         return res['id']
 
     def salesforce_query(self, obj_name, **kwargs):
@@ -333,19 +351,27 @@ class Salesforce(object):
             where.append("{} = '{}'".format(key, value))
         if where:
             query += ' WHERE ' + ' AND '.join(where)
-        BuiltIn().log('Running SOQL Query: {}'.format(query))
+        self.builtin.log('Running SOQL Query: {}'.format(query))
         return self.cumulusci.sf.query_all(query).get('records', [])
 
     def salesforce_update(self, obj_name, obj_id, **kwargs):
         """ Updates a Salesforce object by id and returns the dict results """
-        BuiltIn().log('Updating {} {} with values {}'.format(obj_name, obj_id, kwargs))
+        self.builtin.log('Updating {} {} with values {}'.format(obj_name, obj_id, kwargs))
         obj_class = getattr(self.cumulusci.sf, obj_name)
         return obj_class.update(obj_id, kwargs)
         
     def soql_query(self, query):
         """ Runs a simple SOQL query and returns the dict results """
-        BuiltIn().log('Running SOQL Query: {}'.format(query))
+        self.builtin.log('Running SOQL Query: {}'.format(query))
         return self.cumulusci.sf.query_all(query)
+
+    def store_session_record(self, obj_type, obj_id):
+        """ Stores a Salesforce record's id for use in the Delete Session Records keyword """
+        self.builtin.log('Storing {} {} to session records'.format(obj_type, obj_id))
+        self._session_records.append({
+            'type': obj_type,
+            'id': obj_id,
+        })
 
     def wait_until_modal_is_open(self):
         """ EXPERIMENTAL!!! """
