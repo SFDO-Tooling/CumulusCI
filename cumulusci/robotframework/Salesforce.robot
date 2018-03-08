@@ -10,8 +10,8 @@ Library        cumulusci.robotframework.Salesforce  debug=${DEBUG}
 ${BROWSER}          chrome
 ${BROWSER_VERSION}  63
 ${DEBUG}            ${false}
-${IMPLICIT_WAIT}    5.0
-${TIMEOUT}          5.0
+${IMPLICIT_WAIT}    7.0
+${TIMEOUT}          7.0
 
 *** Keywords ***
 
