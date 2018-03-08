@@ -16,8 +16,8 @@ ${TIMEOUT}          7.0
 *** Keywords ***
 
 Delete Records and Close Browser
-    Delete Session Records
     Close Browser
+    Delete Session Records
 
 Open Test Browser
     ${login_url} =  Login Url

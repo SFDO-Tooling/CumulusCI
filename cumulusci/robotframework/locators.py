@@ -15,6 +15,7 @@ locators = {
     'object': {
         'button': "css: ul.forceActionsContainer.oneActionsRibbon a[title='{}']",
         'field': "//div[contains(@class, 'uiInput')][.//label[contains(@class, 'uiLabel')][.//span[text()='{}']]]//input",
+        'field_lookup_value': "//a[@role='option'][.//div[@title='{}']]",
         'record_type_option': "//div[contains(@class, 'changeRecordTypeOptionRightColumn')]//span[text()='{}']",
     },
     'record': {

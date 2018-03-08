@@ -7,6 +7,7 @@ from selenium.common.exceptions import StaleElementReferenceException
 from selenium.common.exceptions import WebDriverException
 from selenium.webdriver.common.keys import Keys
 from SeleniumLibrary.errors import ElementNotFound
+from simple_salesforce import SalesforceResourceNotFound
 from cumulusci.robotframework.locators import locators
 
 OID_REGEX = r'[a-zA-Z0-9]{15,18}'
@@ -106,10 +107,10 @@ class Salesforce(object):
         self._call_selenium('_click_object_button', True, locator)
 
     def _click_object_button(self, locator):
-        self.selenium.set_focus_to_element(locator)
+        self.selenium.wait_until_element_is_visible(locator)
         button = self.selenium.get_webelement(locator)
         button.click()
-        self._wait_until_modal_is_open()
+        self.wait_until_modal_is_open()
 
     def click_related_list_button(self, heading, button_title):
         locator = locators['record']['related']['button'].format(heading, button_title)
@@ -118,13 +119,17 @@ class Salesforce(object):
     def _click_related_list_button(self, locator):
         self.selenium.set_focus_to_element(locator)
         self.selenium.get_webelement(locator).click()
-        self._wait_until_modal_is_open()
+        self.wait_until_modal_is_open()
 
     def delete_session_records(self):
+        self._session_records.reverse()
         self.builtin.log('Deleting {} records'.format(len(self._session_records)))
         for record in self._session_records:
             self.builtin.log('  Deleting {type} {id}'.format(**record))
-            self.salesforce_delete(record['type'], record['id'])
+            try:
+                self.salesforce_delete(record['type'], record['id'])
+            except SalesforceResourceNotFound:
+                self.builtin.log('    {type} {id} is already deleted'.format(**record))
         
     def get_current_record_id(self):
         """ Parses the current url to get the object id of the current record.
@@ -146,6 +151,14 @@ class Salesforce(object):
             locator = locator[key]
         return locator.format(*args, **kwargs)
 
+    def get_record_type_id(self, obj_type, developer_name):
+        soql = "SELECT Id FROM RecordType WHERE SObjectType='{}' and DeveloperName='{}'".format(
+            obj_type,
+            developer_name,
+        )
+        res = self.cumulusci.sf.query_all(soql)
+        return res['records'][0]['Id']
+
     def get_related_list_count(self, heading):
         locator = locators['record']['related']['count'].format(heading)
         return self._call_selenium('_get_related_list_count', True, locator)
@@ -155,46 +168,6 @@ class Salesforce(object):
         count = count.replace('(','').replace(')','')
         return int(count)
         
-    def header_field_should_have_value(self, label):
-        """ Validates that a field in the record header has a text value.
-            NOTE: Use other keywords for non-string value types
-        """
-        locator = locators['record']['header']['field_value'].format(label)
-        self._call_selenium('_header_field_value_should_exist', True, locator)
-
-    def header_field_should_not_have_value(self, label):
-        """ Validates that a field in the record header does not have a value.
-            NOTE: Use other keywords for non-string value types
-        """
-        locator = locators['record']['header']['field_value'].format(label)
-        self._call_selenium('_header_field_value_should_not_exist', True, locator)
-
-    def header_field_should_have_link(self, label):
-        """ Validates that a field in the record header has a link as its value """
-        locator = locators['record']['header']['field_value_link'].format(label)
-        self._call_selenium('_header_field_value_should_exist', True, locator)
-    
-    def header_field_should_not_have_link(self, label):
-        """ Validates that a field in the record header does not have a link as its value """
-        locator = locators['record']['header']['field_value_link'].format(label)
-        self._call_selenium('_header_field_value_should_not_exist', True, locator)
-
-    def header_field_should_be_checked(self, label):
-        """ Validates that a checkbox field in the record header is checked """
-        locator = locators['record']['header']['field_value_checked'].format(label)
-        self._call_selenium('_header_field_value_should_exist', True, locator)
-
-    def header_field_should_be_unchecked(self, label):
-        """ Validates that a checkbox field in the record header is unchecked """
-        locator = locators['record']['header']['field_value_unchecked'].format(label)
-        self._call_selenium('_header_field_value_should_exist', True, locator)
-
-    def _header_field_value_should_exist(self, locator):
-        self.selenium.page_should_contain_element(locator)
-    
-    def _header_field_value_should_not_exist(self, locator):
-        self.selenium.page_should_not_contain_element(locator)
-
     def go_to_object_home(self, obj_name):
         """ Navigates to the Home view of a Salesforce Object """
         url = self.cumulusci.org.lightning_base_url
@@ -235,6 +208,46 @@ class Salesforce(object):
         time.sleep(5)
         self._wait_until_loading_is_complete()
 
+    def header_field_should_have_value(self, label):
+        """ Validates that a field in the record header has a text value.
+            NOTE: Use other keywords for non-string value types
+        """
+        locator = locators['record']['header']['field_value'].format(label)
+        self._call_selenium('_header_field_value_should_exist', True, locator)
+
+    def header_field_should_not_have_value(self, label):
+        """ Validates that a field in the record header does not have a value.
+            NOTE: Use other keywords for non-string value types
+        """
+        locator = locators['record']['header']['field_value'].format(label)
+        self._call_selenium('_header_field_value_should_not_exist', True, locator)
+
+    def header_field_should_have_link(self, label):
+        """ Validates that a field in the record header has a link as its value """
+        locator = locators['record']['header']['field_value_link'].format(label)
+        self._call_selenium('_header_field_value_should_exist', True, locator)
+    
+    def header_field_should_not_have_link(self, label):
+        """ Validates that a field in the record header does not have a link as its value """
+        locator = locators['record']['header']['field_value_link'].format(label)
+        self._call_selenium('_header_field_value_should_not_exist', True, locator)
+
+    def header_field_should_be_checked(self, label):
+        """ Validates that a checkbox field in the record header is checked """
+        locator = locators['record']['header']['field_value_checked'].format(label)
+        self._call_selenium('_header_field_value_should_exist', True, locator)
+
+    def header_field_should_be_unchecked(self, label):
+        """ Validates that a checkbox field in the record header is unchecked """
+        locator = locators['record']['header']['field_value_unchecked'].format(label)
+        self._call_selenium('_header_field_value_should_exist', True, locator)
+
+    def _header_field_value_should_exist(self, locator):
+        self.selenium.page_should_contain_element(locator)
+    
+    def _header_field_value_should_not_exist(self, locator):
+        self.selenium.page_should_not_contain_element(locator)
+
     def open_app_launcher(self):
         """ EXPERIMENTAL!!! """
         locator = locators['app_launcher']['button']
@@ -249,10 +262,19 @@ class Salesforce(object):
         self.wait_until_modal_is_open()
 
     def populate_field(self, name, value):
-        self._call_selenium('_populate_field', True, name, value)
-
-    def _populate_field(self, name, value):
         locator = locators['object']['field'].format(name)
+        self._call_selenium('_populate_field', True, locator, value)
+
+    def populate_lookup_field(self, name, value):
+        self.populate_field(name, value)
+        locator = locators['object']['field_lookup_value'].format(value)
+        self._call_selenium('_populate_lookup_field', True, locator)
+    
+    def _populate_lookup_field(self, locator):
+        self.selenium.set_focus_to_element(locator)
+        return self.selenium.get_webelement(locator).click()
+
+    def _populate_field(self, locator, value):
         self.selenium.set_focus_to_element(locator)
         field = self.selenium.get_webelement(locator)
         #field.clear()
@@ -262,7 +284,8 @@ class Salesforce(object):
 
     def populate_form(self, **kwargs):
         for name, value in kwargs.items():
-            self._call_selenium('_populate_field', True, name, value)
+            locator = locators['object']['field'].format(name)
+            self._call_selenium('_populate_field', True, locator, value)
 
     def remove_session_record(self, obj_type, obj_id):
         self._session_records.remove({
@@ -271,7 +294,7 @@ class Salesforce(object):
         })
 
     def select_record_type(self, label):
-        self._wait_until_modal_is_open()
+        self.wait_until_modal_is_open()
         locator = locators['object']['record_type_option'].format(label)
         self._call_selenium('_select_record_type', True, locator)
 
