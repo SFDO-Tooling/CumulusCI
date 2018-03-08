@@ -23,7 +23,7 @@ class Salesforce(object):
     def current_app_should_be(self, app_name):
         """ EXPERIMENTAL!!! """
         locator = locators['app_launcher']['current_app'].format(app_name)
-        elem = self.selenium.set_focus_to_element(locator)
+        self.selenium.set_focus_to_element(locator)
         elem = self.selenium.get_webelement(locator)
         assert app_name == elem.text
 
@@ -93,6 +93,7 @@ class Salesforce(object):
         self._call_selenium('_click_modal_button', True, locator)
 
     def _click_modal_button(self, locator):
+        self.selenium.set_focus_to_element(locator)
         button = self.selenium.get_webelement(locator)
         button.click()
 
@@ -101,6 +102,7 @@ class Salesforce(object):
         self._call_selenium('_click_object_button', True, locator)
 
     def _click_object_button(self, locator):
+        self.selenium.set_focus_to_element(locator)
         button = self.selenium.get_webelement(locator)
         button.click()
         self._wait_until_modal_is_open()
@@ -110,6 +112,7 @@ class Salesforce(object):
         self._call_selenium('_click_related_list_button', True, locator)
 
     def _click_related_list_button(self, locator):
+        self.selenium.set_focus_to_element(locator)
         self.selenium.get_webelement(locator).click()
         self._wait_until_modal_is_open()
         
@@ -240,6 +243,7 @@ class Salesforce(object):
 
     def _populate_field(self, name, value):
         locator = locators['object']['field'].format(name)
+        self.selenium.set_focus_to_element(locator)
         field = self.selenium.get_webelement(locator)
         #field.clear()
         #time.sleep(.5)
@@ -271,7 +275,7 @@ class Salesforce(object):
 
     def _select_app_launcher_app(self, locator):
         BuiltIn().log('Getting the web element for the app')
-        elem = self.selenium.set_focus_to_element(locator)
+        self.selenium.set_focus_to_element(locator)
         elem = self.selenium.get_webelement(locator)
         BuiltIn().log('Getting the parent link from the web element')
         link = elem.find_element_by_xpath('../../..')
@@ -330,7 +334,7 @@ class Salesforce(object):
         if where:
             query += ' WHERE ' + ' AND '.join(where)
         BuiltIn().log('Running SOQL Query: {}'.format(query))
-        return self.cumulusci.sf.query_all(query)
+        return self.cumulusci.sf.query_all(query).get('records', [])
 
     def salesforce_update(self, obj_name, obj_id, **kwargs):
         """ Updates a Salesforce object by id and returns the dict results """

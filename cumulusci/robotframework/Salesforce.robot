@@ -7,15 +7,17 @@ Library        cumulusci.robotframework.CumulusCI  ${ORG}
 Library        cumulusci.robotframework.Salesforce  debug=${DEBUG}
 
 *** Variables *** 
-${BROWSER}  chrome
-${DEBUG}  ${false}
-${IMPLICIT_WAIT}  5.0
-${TIMEOUT}  5.0
+${BROWSER}          chrome
+${BROWSER_VERSION}  63
+${DEBUG}            ${false}
+${IMPLICIT_WAIT}    5.0
+${TIMEOUT}          5.0
 
 *** Keywords ***
 
 Open Test Browser
-    Open Browser  ${LOGIN_URL}  ${BROWSER}
+    ${login_url} =  Login Url
+    Open Browser  ${login_url}  ${BROWSER}  desired_capabilities=version:${BROWSER_VERSION}
     Sleep  2
     #Run Keyword If  '${BROWSER}' == 'chrome'  Open Test Browser Chrome
     #...    ELSE IF  '${BROWSER}' == 'firefox'  Open Test Browser Firefox

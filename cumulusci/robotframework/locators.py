@@ -9,6 +9,8 @@ locators = {
     'modal': {
         'is_open': "css: div.DESKTOP.uiModal.forceModal.open.active",
         'button': "css: div.uiModal div.modal-footer button[title='{}']",
+        'has_error': "css: div.pageLevelErrors",
+        'error_messages': "css: div.pageLevelErrors ul.errorsList li",
     },
     'object': {
         'button': "css: ul.forceActionsContainer.oneActionsRibbon a[title='{}']",
@@ -24,7 +26,7 @@ locators = {
             'field_value_unchecked': "//li[contains(@class, 'slds-page-header__detail')][.//p[contains(@class, 'slds-text-heading--label')][@title='{}']]//span[contains(@class, 'uiOutputCheckbox')]//img[@alt='False']",
         },
         'related': {
-            'button': "//article[contains(@class, 'forceRelatedListCardDesktop')][.//img[@title='{}']]//a[@title='{}']",
+            'button': "//article[contains(@class, 'forceRelatedListCardDesktop')][.//img][.//span[@title='{}']]//a[@title='{}']",
             'count': "//article[contains(@class, 'forceRelatedListCardDesktop')][.//img]//span[@title='{}']/following-sibling::span",
         },
     },
