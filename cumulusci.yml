@@ -12,25 +12,25 @@ tasks:
             path: cumulusci/robotframework/tests
             output: docs/robot/Test_Suite.html
     robot_libdoc_cumulusci:
-        description: 
+        description: Generates html documentation for the CumulusCI Robot Library
         class_path: cumulusci.tasks.robotframework.RobotLibDoc
         options:
             path: cumulusci/robotframework/CumulusCI.py
             output: docs/robot/CumulusCI_Library.html
     robot_libdoc_cumulusci_resource:
-        description: 
+        description: Generates html documentation for the CumulusCI Robot Resource
         class_path: cumulusci.tasks.robotframework.RobotLibDoc
         options:
             path: cumulusci/robotframework/CumulusCI.robot
             output: docs/robot/CumulusCI_Resource.html
     robot_libdoc_salesforce:
-        description: 
+        description: Generates html documentation for the Salesforce Robot Library
         class_path: cumulusci.tasks.robotframework.RobotLibDoc
         options:
             path: cumulusci/robotframework/Salesforce.py
             output: docs/robot/Salesforce_Library.html
     robot_libdoc_salesforce_resource:
-        description: 
+        description: Generates html documentation for the Salesforce Robot Resource
         class_path: cumulusci.tasks.robotframework.RobotLibDoc
         options:
             path: cumulusci/robotframework/Salesforce.robot

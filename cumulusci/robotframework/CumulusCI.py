@@ -28,7 +28,9 @@ class CumulusCI(object):
 
     ROBOT_LIBRARY_SCOPE = "GLOBAL"
 
-    def __init__(self, org_name):
+    def __init__(self, org_name=None):
+        if not org_name:
+            org_name = 'dev'
         self.org_name = org_name
         self.sf = self._init_api()
         self.tooling = self._init_api('tooling/')
