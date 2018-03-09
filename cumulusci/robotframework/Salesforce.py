@@ -19,12 +19,21 @@ class Salesforce(object):
     def __init__(self, debug=False):
         self.debug = debug
         self.current_page = None
-        self.builtin = BuiltIn()
-        self.selenium = self.builtin.get_library_instance('SeleniumLibrary')
-        self.cumulusci = self.builtin.get_library_instance('cumulusci.robotframework.CumulusCI')
         self._session_records = []
         # Turn off info logging of all http requests 
         logging.getLogger('requests.packages.urllib3.connectionpool').setLevel(logging.WARN)
+
+    @property
+    def builtin(self):
+        return BuiltIn()   
+
+    @property
+    def cumulusci(self):
+        return self.builtin.get_library_instance('cumulusci.robotframework.CumulusCI')
+ 
+    @property
+    def selenium(self):
+        return self.builtin.get_library_instance('SeleniumLibrary')
 
     def current_app_should_be(self, app_name):
         """ EXPERIMENTAL!!! """

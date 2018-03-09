@@ -1,5 +1,8 @@
+from cumulusci.core.tasks import BaseTask
 from cumulusci.tasks.salesforce import BaseSalesforceTask
 from robot.run import run
+from robot.libdoc import libdoc
+from robot.testdoc import testdoc
 
 class Robot(BaseSalesforceTask):
     task_options = {
@@ -59,4 +62,40 @@ class Robot(BaseSalesforceTask):
             self.options['suites'], 
             variable=self.options['vars'],
             **self.options['options']
+        )
+
+class RobotLibDoc(BaseTask):
+    task_options = {
+        'path': {
+            'description': "The path to the robot library to be documented.  Can be a python file or a .robot file.",
+            'required': True,
+        },
+        'output': {
+            'description': "The output file where the documentation will be written",
+            'required': True,
+        },
+    }
+
+    def _run_task(self):
+        return libdoc(
+            self.options['path'],
+            self.options['output'],
+        )
+
+class RobotTestDoc(BaseTask):
+    task_options = {
+        'path': {
+            'description': "The path containing .robot test files",
+            'required': True,
+        },
+        'output': {
+            'description': "The output html file where the documentation will be written",
+            'required': True,
+        },
+    }
+
+    def _run_task(self):
+        return testdoc(
+            self.options['path'],
+            self.options['output'],
         )
