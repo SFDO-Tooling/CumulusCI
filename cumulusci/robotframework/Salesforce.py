@@ -303,10 +303,13 @@ class Salesforce(object):
             self._call_selenium('_populate_field', True, locator, value)
 
     def remove_session_record(self, obj_type, obj_id):
-        self._session_records.remove({
-            'type': obj_type,
-            'id': obj_id,
-        })
+        try:
+            self._session_records.remove({
+                'type': obj_type,
+                'id': obj_id,
+            })
+        except ValueError:
+            self.builtin.log('Did not find record {} {} in the session records list'.format(obj_type, obj_id))
 
     def select_record_type(self, label):
         self.wait_until_modal_is_open()
