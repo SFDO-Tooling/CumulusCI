@@ -108,10 +108,8 @@ class Salesforce(object):
         self._call_selenium('_click_object_button', True, locator)
 
     def _click_object_button(self, locator):
-        #self.selenium.wait_until_element_is_visible(locator)
-        #self.selenium.set_focus_to_element(locator)
+        self.selenium.wait_until_element_is_visible(locator)
         button = self.selenium.get_webelement(locator)
-        time.sleep(1)
         button.click()
         self.wait_until_modal_is_open()
 
@@ -416,6 +414,7 @@ class Salesforce(object):
             locators['modal']['is_open'],
             timeout=15,
         )
+        time.sleep(3)
 
     def wait_until_modal_is_closed(self):
         """ EXPERIMENTAL!!! """
@@ -430,6 +429,7 @@ class Salesforce(object):
             locators['modal']['is_open'],
             timeout=15,
         )
+        time.sleep(3)
 
     def wait_until_loading_is_complete(self):
         """ EXPERIMENTAL!!! """
