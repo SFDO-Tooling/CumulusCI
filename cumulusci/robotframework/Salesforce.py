@@ -282,13 +282,14 @@ class Salesforce(object):
     def _populate_field(self, locator, value):
         self.selenium.set_focus_to_element(locator)
         field = self.selenium.get_webelement(locator)
-        #field.clear()
-        #time.sleep(.5)
+        field.clear()
+        time.sleep(.5)
         field.send_keys(value)
         time.sleep(.5)
 
     def populate_form(self, **kwargs):
         for name, value in kwargs.items():
+            time.sleep(.5)
             locator = locators['object']['field'].format(name)
             self._call_selenium('_populate_field', True, locator, value)
 
