@@ -7,6 +7,7 @@ from selenium.common.exceptions import StaleElementReferenceException
 from selenium.common.exceptions import WebDriverException
 from selenium.webdriver.common.keys import Keys
 from SeleniumLibrary.errors import ElementNotFound
+from simple_salesforce import SalesforceMalformedRequest
 from simple_salesforce import SalesforceResourceNotFound
 from cumulusci.robotframework.locators import locators
 
@@ -107,8 +108,10 @@ class Salesforce(object):
         self._call_selenium('_click_object_button', True, locator)
 
     def _click_object_button(self, locator):
-        self.selenium.wait_until_element_is_visible(locator)
+        #self.selenium.wait_until_element_is_visible(locator)
+        #self.selenium.set_focus_to_element(locator)
         button = self.selenium.get_webelement(locator)
+        time.sleep(1)
         button.click()
         self.wait_until_modal_is_open()
 
@@ -130,6 +133,9 @@ class Salesforce(object):
                 self.salesforce_delete(record['type'], record['id'])
             except SalesforceResourceNotFound:
                 self.builtin.log('    {type} {id} is already deleted'.format(**record))
+            except SalesforceMalformedRequest as e:
+                self.builtin.log('    {type} {id} could not be deleted:'.format(**record), level='WARN')
+                self.builtin.log('      {}'.format(e), level='WARN')
         
     def get_current_record_id(self):
         """ Parses the current url to get the object id of the current record.
@@ -272,7 +278,8 @@ class Salesforce(object):
     
     def _populate_lookup_field(self, locator):
         self.selenium.set_focus_to_element(locator)
-        return self.selenium.get_webelement(locator).click()
+        self.selenium.get_webelement(locator).click()
+        time.sleep(.5)
 
     def _populate_field(self, locator, value):
         self.selenium.set_focus_to_element(locator)
@@ -401,10 +408,14 @@ class Salesforce(object):
         self._call_selenium('_wait_until_modal_is_open', True)
 
     def _wait_until_modal_is_open(self):
+        self.selenium.wait_until_element_is_not_visible(
+            "css: div.slds-spinner",
+            timeout=15,
+        )
         self.selenium.wait_until_element_is_visible(
             locators['modal']['is_open'],
+            timeout=15,
         )
-        time.sleep(3)
 
     def wait_until_modal_is_closed(self):
         """ EXPERIMENTAL!!! """
@@ -412,9 +423,13 @@ class Salesforce(object):
 
     def _wait_until_modal_is_closed(self):
         self.selenium.wait_until_element_is_not_visible(
-            locators['modal']['is_open'],
+            "css: div.slds-spinner",
+            timeout=15,
         )
-        time.sleep(3)
+        self.selenium.wait_until_element_is_not_visible(
+            locators['modal']['is_open'],
+            timeout=15,
+        )
 
     def wait_until_loading_is_complete(self):
         """ EXPERIMENTAL!!! """
@@ -423,6 +438,9 @@ class Salesforce(object):
     def _wait_until_loading_is_complete(self):
         self.selenium.wait_until_element_is_not_visible(
             "css: div.auraLoadingBox.oneLoadingBox"
+        )
+        self.selenium.wait_until_element_is_not_visible(
+            "css: div.slds-spinner"
         )
         self.selenium.wait_until_page_contains_element(
             "css: div.desktop.container.oneOne.oneAppLayoutHost[data-aura-rendered-by]"

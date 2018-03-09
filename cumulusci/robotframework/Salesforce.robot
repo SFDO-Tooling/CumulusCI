@@ -23,6 +23,7 @@ Open Test Browser
     ${login_url} =  Login Url
     Open Browser  ${login_url}  ${BROWSER}  desired_capabilities=version:${BROWSER_VERSION}
     Sleep  2
+    Wait Until Loading Is Complete
     #Run Keyword If  '${BROWSER}' == 'chrome'  Open Test Browser Chrome
     #...    ELSE IF  '${BROWSER}' == 'firefox'  Open Test Browser Firefox
     #Go To  ${LOGIN_URL}
