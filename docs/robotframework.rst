@@ -71,34 +71,8 @@ The following test file placed under **tests/create_contact.robot** in your proj
        Should Be Equal  ${first_name}  &{contact}[FirstName]
        Should Be Equal  ${last_name}  &{contact}[LastName]
 
-This simple test file can then be run via the **robot** task in CumulusCI:
 
-.. code-block:: console
-
-   $ cci task run robot -o suites tests/create_contact.robot -o vars BROWSER:firefox
-   2018-03-12 12:43:35: Getting scratch org info from Salesforce DX
-   2018-03-12 12:43:37: Beginning task: Robot
-   2018-03-12 12:43:37:        As user: test-zel2batn5wud@example.com
-   2018-03-12 12:43:37:         In org: 00D3B0000004X9z
-   2018-03-12 12:43:37:
-   2018-03-12 12:43:38: Getting scratch org info from Salesforce DX
-   ==============================================================================
-   Create Contact
-   ==============================================================================
-   Via API                                                               | PASS |
-   ------------------------------------------------------------------------------
-   [ WARN ] Retrying call to method _wait_until_modal_is_closed
-   Via UI                                                                | PASS |
-   ------------------------------------------------------------------------------
-   Create Contact                                                        | PASS |
-   2 critical tests, 2 passed, 0 failed
-   2 tests total, 2 passed, 0 failed
-   ==============================================================================
-   Output:  /Users/jlantz/dev/HEDAP/output.xml
-   Log:     /Users/jlantz/dev/HEDAP/log.html
-   Report:  /Users/jlantz/dev/HEDAP/report.html
-
-NOTE: In the example output, the WARN line shows functionality from the Salesforce Library which helps handle common retry scenarios common to testing against Salesforce's Lightning UI.  In this case, it automatically retried the wait for the modal window to close after creating a contact in a browser.
+NOTE: In the example output, the WARN line shows functionality from the Salesforce Library which helps handle retry scenarios common to testing against Salesforce's Lightning UI.  In this case, it automatically retried the wait for the modal window to close after creating a contact in a browser.
 
 Settings
 --------
@@ -125,6 +99,41 @@ Via UI
 This test case also uses **Generate Random String** for the first and last name, but instead uses the test browser to create a Contact via the Salesforce UI.  Using keywords from the Salesforce Library, it navigates to the Contact home page and clicks the **New** button to open a modal form.  It then uses **Populate Form** to fill in the First Name and Last Name fields (selected by field label) and uses **Click Modal Button** to click the **Save** button and **Wait Until Modal Is Closed** to wait for the modal to close.
 
 At this point, we should be on the record view for the new Contact.  We use the **Get Current Record Id** keyword to parse the Contact's ID from the url in the browser and the **Store Session Record** keyword to register the Contact in the session records list.  The session records list stores the type and id of all records created in the session which is used by the **Delete Records and Close Browser** keyword on Suite Teardown to delete all the records created during the test.  In the **Via API** test, we didn't have to register the record since the **Salesforce Insert** keyword does that for us automatically.  In the **Via UI** test, we created the Contact in the browser and thus need to store its ID manually for it to be deleted.
+
+Keywords
+--------
+
+The **Keywords** section allows you to define keywords useful in the context of the current test suite.  This allows you to encapsulate logic you want to reuse in multiple tests.  In this case, we've defined the **Validate Contact** keyword which accepts the contact id, first, and last names as argument and validates the Contact via the UI in a browser and via the API via **Salesforce Get**.  By abstracting out this keyword, we avoid duplication of logic in the test file and ensure that we're validating the same thing in both test scenarios.
+
+Running the Test Suite
+----------------------
+
+This simple test file can then be run via the **robot** task in CumulusCI:
+
+.. code-block:: console
+
+   $ cci task run robot -o suites tests/create_contact.robot -o vars BROWSER:firefox
+   2018-03-12 12:43:35: Getting scratch org info from Salesforce DX
+   2018-03-12 12:43:37: Beginning task: Robot
+   2018-03-12 12:43:37:        As user: test-zel2batn5wud@example.com
+   2018-03-12 12:43:37:         In org: 00D3B0000004X9z
+   2018-03-12 12:43:37:
+   2018-03-12 12:43:38: Getting scratch org info from Salesforce DX
+   ==============================================================================
+   Create Contact
+   ==============================================================================
+   Via API                                                               | PASS |
+   ------------------------------------------------------------------------------
+   [ WARN ] Retrying call to method _wait_until_modal_is_closed
+   Via UI                                                                | PASS |
+   ------------------------------------------------------------------------------
+   Create Contact                                                        | PASS |
+   2 critical tests, 2 passed, 0 failed
+   2 tests total, 2 passed, 0 failed
+   ==============================================================================
+   Output:  /Users/jlantz/dev/HEDAP/output.xml
+   Log:     /Users/jlantz/dev/HEDAP/log.html
+   Report:  /Users/jlantz/dev/HEDAP/report.html
 
 CumulusCI Library
 =================
