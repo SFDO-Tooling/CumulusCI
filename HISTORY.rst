@@ -2,6 +2,24 @@
 History
 =======
 
+2.0.0-beta85 (2018-02-21)
+-------------------------
+
+* Support bigobject index element in .object
+* Only run meta.xml file cleaning on classes/* and triggers/* directory
+* Add docs on CumulusCI Flow
+* Add reference to needing the Push API to run release_beta in tutorial doc
+
+2.0.0-beta84 (2018-02-12)
+-------------------------
+
+* Add new Status 'Queued' to PackageUploadRequest check
+
+2.0.0-beta83 (2018-02-08)
+-------------------------
+
+* Add a sleep in between successful PackageUploadRequest and querying for MetadataPackageVersion to address issue in Spring '18 packaging orgs.
+
 2.0.0-beta82 (2018-02-02)
 -------------------------
 

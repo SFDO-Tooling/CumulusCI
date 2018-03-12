@@ -209,7 +209,9 @@ The `update_dependencies` task handles deploying the dependencies to the target 
 Managed Package Dependencies
 ----------------------------
 
-Managed package dependencies are rather simple.  You need the namespace and the version number you want to require::
+Managed package dependencies are rather simple.  You need the namespace and the version number you want to require:
+
+.. code-block:: yaml
 
     project:
         dependencies:
@@ -229,7 +231,9 @@ When the `update_dependencies` task runs, it first retrieves a list of all manag
 Hierachical Dependencies
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-Managed Package dependencies can handle a hierarchy of dependencies between packages.  An example use case is Salesforce.org's Nonprofit Success Pack, an extension of 5 other managed packages and one of those packages (npo02) is an extension of another (npe01).  This is expressed in cumulusci.yml as::
+Managed Package dependencies can handle a hierarchy of dependencies between packages.  An example use case is Salesforce.org's Nonprofit Success Pack, an extension of 5 other managed packages and one of those packages (npo02) is an extension of another (npe01).  This is expressed in cumulusci.yml as:
+
+.. code-block:: yaml
 
     project:
         dependencies:
@@ -251,7 +255,9 @@ In the example above, the project requires npo02 version 3.8 which requires npe0
 Unmanaged Metadata Dependencies
 -------------------------------
 
-You can specify unmanaged metadata to be deployed by specifying a `zip_url` and optionally `subfolder`, `namespace_inject`, `namespace_strip`, and `unmanaged`::
+You can specify unmanaged metadata to be deployed by specifying a `zip_url` and optionally `subfolder`, `namespace_inject`, `namespace_strip`, and `unmanaged`:
+
+.. code-block:: yaml
 
     project:
         dependencies:
@@ -262,7 +268,9 @@ When `update_dependencies` runs, it will download the zip file and deploy it via
 Specifying a Subfolder of the Zip File
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-You can use the `subfolder` option to specify a subfolder of the zip file you want to use for the deployment.  This is particularly handy when referring to metadata stored in a Github repository::
+You can use the `subfolder` option to specify a subfolder of the zip file you want to use for the deployment.  This is particularly handy when referring to metadata stored in a Github repository:
+
+.. code-block:: yaml
 
     project:
         dependencies:
@@ -274,7 +282,9 @@ When `update_dependencies` runs, it will still download the zip from `zip_url` b
 Injecting Namespace Prefixes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-CumulusCI has support for tokenizing references to the namespace prefix in code.  When tokenized, all occurrences of the namespace prefix (i.e. npsp__), will be replaced with `%%%NAMESPACE%%%` inside of files and `___NAMESPACE___` in file names.  If the metadata you are deploying has been tokenized, you can use the `namespace_inject` and `unmanaged` options to inject the namespace::
+CumulusCI has support for tokenizing references to the namespace prefix in code.  When tokenized, all occurrences of the namespace prefix (i.e. npsp__), will be replaced with `%%%NAMESPACE%%%` inside of files and `___NAMESPACE___` in file names.  If the metadata you are deploying has been tokenized, you can use the `namespace_inject` and `unmanaged` options to inject the namespace:
+
+.. code-block:: yaml
 
     project:
         dependencies:
@@ -284,7 +294,9 @@ CumulusCI has support for tokenizing references to the namespace prefix in code.
 
 In the above example, the metadata in the zip contains the string tokens `%%%NAMESPACE%%%` and `___NAMESPACE___` which will be replaced with `hed__` before the metadata is deployed.
 
-If you want to deploy tokenized metadata without any namespace references, you have to specify both `namespace_inject` and `unmanaged`::
+If you want to deploy tokenized metadata without any namespace references, you have to specify both `namespace_inject` and `unmanaged`:
+
+.. code-block:: yaml
 
     project:
         dependencies:
@@ -298,7 +310,9 @@ In the above example, the namespace tokens would be replaced with an empty strin
 Stripping Namespace Prefixes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-If the metadata in the zip you want to deploy has references to a namespace prefix and you want to remove them, use the `namespace_strip` option::
+If the metadata in the zip you want to deploy has references to a namespace prefix and you want to remove them, use the `namespace_strip` option:
+
+.. code-block:: yaml
 
     project:
         dependencies:
@@ -312,7 +326,9 @@ When `update_dependencies` runs, the zip will be retrieved and the string `npsp_
 Github Repository Dependencies
 ------------------------------
 
-Github Repository dependencies create a dynamic dependency between the current project and another project on Github that uses CumulusCI to manage its dependencies::
+Github Repository dependencies create a dynamic dependency between the current project and another project on Github that uses CumulusCI to manage its dependencies:
+
+.. code-block:: yaml
 
     project:
         dependencies:
@@ -331,7 +347,9 @@ When `update_dependencies` runs, the following is doing against the referenced r
 Referencing Unmanaged Projects
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-If the referenced repository does not have a namespace configured or if the dependency specifies the `unmanaged` option as true (see example below), the repository is treated as an unmanaged repository::
+If the referenced repository does not have a namespace configured or if the dependency specifies the `unmanaged` option as true (see example below), the repository is treated as an unmanaged repository:
+
+.. code-block:: yaml
 
     project:
         dependencies:
@@ -345,6 +363,8 @@ Referencing a Specific Tag
 
 If you want to reference a version other than HEAD and the latest production release, you can use the `tag` option to specify a particular tag from the target repository.  This is most useful for testing against beta versions of underyling packages or recreating specific org environments for debugging:
 
+.. code-block:: yaml
+
     project:
         dependencies:
             - github: https://github.com/SalesforceFoundation/HEDAP
@@ -352,11 +372,24 @@ If you want to reference a version other than HEAD and the latest production rel
 
 In the above example, the HEDAP repository's tag `beta/1.47-Beta_2` will be used instead of the latest production release of HEDAP (1.46 for this example).  This allows a build environment to use features in the next production release of HEDAP which are already merged but not yet included in a production release.
 
+Skipping unpackaged/* in Reference Repositories
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+If the repository you are referring to has dependency metadata under unpackaged/pre or unpackaged/post and you want to skip deploying that metadata with the dependency, use the **skip** option:
+
+.. code-block:: yaml
+
+    project:
+        dependencies:
+            - github: https://github.com/SalesforceFoundation/HEDAP
+              skip: unpackaged/post/course_connection_record_types
 
 Case Study: SalesforceFoundation/Cumulus
 ----------------------------------------
 
-The following will create a dependency against the open source repository for Salesforce.org's Nonprofit Success Pack::
+The following will create a dependency against the open source repository for Salesforce.org's Nonprofit Success Pack:
+
+.. code-block:: yaml
 
     project:
         dependencies:
@@ -374,7 +407,9 @@ With this one simple line in the project's dependencies, the following dependenc
 * npsp 3.99
 * unpackaged/post/first from SalesforceFoundation/Cumulus with namespace tokens replaced with `npsp__`
 
-This happens because of the following from the cumulusci.yml in the the Cumulus (npsp) repository::
+This happens because of the following from the cumulusci.yml in the the Cumulus (npsp) repository:
+
+.. code-block:: yaml
 
     dependencies:
         # npo02 (includes npe01)
@@ -386,7 +421,9 @@ This happens because of the following from the cumulusci.yml in the the Cumulus 
         # npe5
         - github: https://github.com/SalesforceFoundation/Affiliations
 
-Note that npo02 includes npe01.  This is because the dependencies for SaleforceFoundation/Households (npo02) contains the following::
+Note that npo02 includes npe01.  This is because the dependencies for SaleforceFoundation/Households (npo02) contains the following:
+
+.. code-block:: yaml
 
     dependencies:
         # npe01
@@ -394,7 +431,9 @@ Note that npo02 includes npe01.  This is because the dependencies for SaleforceF
 
 As a result, npe01 is included because the repository for npo02 refers to npe01's repository as a dependency and Cumulus refers to npo02's repository as a dependency.
 
-You can see how complex a single repository dependency can be with the following command output from the single depedency reference to the Cumulus repository::
+You can see how complex a single repository dependency can be with the following command output from the single depedency reference to the Cumulus repository:
+
+.. code-block:: console
 
     $ cci task run update_dependencies
     2017-06-03 16:55:29: Getting scratch org info from Salesforce DX
