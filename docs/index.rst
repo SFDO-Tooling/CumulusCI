@@ -14,6 +14,7 @@ Contents:
    why_cumulusci
    tutorial
    features
+   robotframework
    cookbook
    cumulusci_flow
    tasks
