@@ -30,7 +30,7 @@ requirements = [
     'requests[security]>=2.9.1',
     'responses>=0.5.1',
     'robotframework>=3.0.2',
-    'robotframework-seleniumlibrary>=3.0.1',
+    'robotframework-seleniumlibrary>=3.1.1',
     'rst2ansi>=0.1.5',
     'sarge>=0.1.4',
     'selenium',
