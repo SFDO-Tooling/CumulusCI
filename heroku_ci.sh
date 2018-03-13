@@ -43,7 +43,7 @@ fi
 
 # Run the robot tests for the CumulusCI and Salesforce library
 echo "--------------------------------------------"
-echo "Running CumulusCI and Salesforce robot tests
+echo "Running CumulusCI and Salesforce robot tests"
 echo "--------------------------------------------"
 # Start TAP output
 echo "1...2"
