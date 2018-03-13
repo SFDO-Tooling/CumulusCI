@@ -2,6 +2,15 @@
 History
 =======
 
+2.0.0-beta86 (2018-03-13)
+-------------------------
+
+* Initial Integration with Robot Framework (see here for details: http://cumulusci.readthedocs.io/en/latest/robotframework.html)
+* Add support for GlobalValueSetTranslation Metadata Type (thanks Christian Szandor Knapp!)
+* Use Tooling API for PackageUploadRequest
+* New doc "Why CumulusCI?"
+* Add documentation for the skip option on GitHub dependencies
+
 2.0.0-beta85 (2018-02-21)
 -------------------------
 
