@@ -178,6 +178,15 @@ tasks:
         options:
             path: src
             revert_path: src.orig
+    robot:
+        description: Runs a Robot Framework test from a .robot file
+        class_path: cumulusci.tasks.robotframework.Robot
+    robot_testdoc:
+        description: 
+        class_path: cumulusci.tasks.robotframework.RobotTestDoc
+        options:
+            path: tests
+            output: tests/test_suites.html
     run_tests:
         description: Runs all apex tests
         class_path: cumulusci.tasks.apex.testrunner.RunApexTests

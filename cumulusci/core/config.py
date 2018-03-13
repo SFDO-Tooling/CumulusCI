@@ -796,6 +796,10 @@ class OrgConfig(BaseConfig):
         self._load_userinfo()
 
     @property
+    def lightning_base_url(self):
+        return self.instance_url.split('.')[0] + '.lightning.force.com'
+
+    @property
     def start_url(self):
         start_url = '%s/secur/frontdoor.jsp?sid=%s' % (
             self.instance_url, self.access_token)

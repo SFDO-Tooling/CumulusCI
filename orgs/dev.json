@@ -1,0 +1,11 @@
+{
+  "orgName": "CumulusCI - Dev Workspace",
+  "edition": "Developer",
+  "orgPreferences" : {
+    "enabled": [
+      "S1DesktopEnabled",
+      "Translation",
+      "ChatterEnabled"
+    ]
+  }
+}
