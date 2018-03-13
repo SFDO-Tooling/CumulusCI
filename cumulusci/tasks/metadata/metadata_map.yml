@@ -68,6 +68,10 @@ globalValueSets:
     - type: GlobalValueSet
       class: MetadataFilenameParser
       extension: globalValueSet
+globalValueSetTranslations:
+    - type: GlobalValueSetTranslation
+      class: MetadataFilenameParser
+      extension: globalValueSetTranslation
 homePageComponents:
     - type: HomePageComponent
       class: MetadataFilenameParser
