@@ -9,7 +9,7 @@ from selenium.webdriver.common.keys import Keys
 from SeleniumLibrary.errors import ElementNotFound
 from simple_salesforce import SalesforceMalformedRequest
 from simple_salesforce import SalesforceResourceNotFound
-from cumulusci.robotframework.locators import locators
+from cumulusci.robotframework.locators import lex_locators
 
 OID_REGEX = r'[a-zA-Z0-9]{15,18}'
 
@@ -37,7 +37,7 @@ class Salesforce(object):
 
     def current_app_should_be(self, app_name):
         """ EXPERIMENTAL!!! """
-        locator = locators['app_launcher']['current_app'].format(app_name)
+        locator = lex_locators['app_launcher']['current_app'].format(app_name)
         self.selenium.set_focus_to_element(locator)
         elem = self.selenium.get_webelement(locator)
         assert app_name == elem.text
@@ -104,7 +104,7 @@ class Salesforce(object):
         return result
 
     def click_modal_button(self, title):
-        locator = locators['modal']['button'].format(title)
+        locator = lex_locators['modal']['button'].format(title)
         self._call_selenium('_click_modal_button', True, locator)
 
     def _click_modal_button(self, locator):
@@ -113,7 +113,7 @@ class Salesforce(object):
         button.click()
 
     def click_object_button(self, title):
-        locator = locators['object']['button'].format(title)
+        locator = lex_locators['object']['button'].format(title)
         self._call_selenium('_click_object_button', True, locator)
 
     def _click_object_button(self, locator):
@@ -123,7 +123,7 @@ class Salesforce(object):
         self.wait_until_modal_is_open()
 
     def click_related_list_button(self, heading, button_title):
-        locator = locators['record']['related']['button'].format(heading, button_title)
+        locator = lex_locators['record']['related']['button'].format(heading, button_title)
         self._call_selenium('_click_related_list_button', True, locator)
 
     def _click_related_list_button(self, locator):
@@ -155,11 +155,11 @@ class Salesforce(object):
         raise AssertionError("Could not parse record id from url: {}".format(url))
 
     def get_locator(self, path, *args, **kwargs):
-        """ Returns a rendered locator string from the Salesforce locators
+        """ Returns a rendered locator string from the Salesforce lex_locators
             dictionary.  This can be useful if you want to use an element in
             a different way than the built in keywords allow.
         """
-        locator = locators
+        locator = lex_locators
         for key in path.split('.'):
             locator = locator[key]
         return locator.format(*args, **kwargs)
@@ -173,7 +173,7 @@ class Salesforce(object):
         return res['records'][0]['Id']
 
     def get_related_list_count(self, heading):
-        locator = locators['record']['related']['count'].format(heading)
+        locator = lex_locators['record']['related']['count'].format(heading)
         return self._call_selenium('_get_related_list_count', True, locator)
 
     def _get_related_list_count(self, locator):
@@ -225,34 +225,34 @@ class Salesforce(object):
         """ Validates that a field in the record header has a text value.
             NOTE: Use other keywords for non-string value types
         """
-        locator = locators['record']['header']['field_value'].format(label)
+        locator = lex_locators['record']['header']['field_value'].format(label)
         self._call_selenium('_header_field_value_should_exist', True, locator)
 
     def header_field_should_not_have_value(self, label):
         """ Validates that a field in the record header does not have a value.
             NOTE: Use other keywords for non-string value types
         """
-        locator = locators['record']['header']['field_value'].format(label)
+        locator = lex_locators['record']['header']['field_value'].format(label)
         self._call_selenium('_header_field_value_should_not_exist', True, locator)
 
     def header_field_should_have_link(self, label):
         """ Validates that a field in the record header has a link as its value """
-        locator = locators['record']['header']['field_value_link'].format(label)
+        locator = lex_locators['record']['header']['field_value_link'].format(label)
         self._call_selenium('_header_field_value_should_exist', True, locator)
     
     def header_field_should_not_have_link(self, label):
         """ Validates that a field in the record header does not have a link as its value """
-        locator = locators['record']['header']['field_value_link'].format(label)
+        locator = lex_locators['record']['header']['field_value_link'].format(label)
         self._call_selenium('_header_field_value_should_not_exist', True, locator)
 
     def header_field_should_be_checked(self, label):
         """ Validates that a checkbox field in the record header is checked """
-        locator = locators['record']['header']['field_value_checked'].format(label)
+        locator = lex_locators['record']['header']['field_value_checked'].format(label)
         self._call_selenium('_header_field_value_should_exist', True, locator)
 
     def header_field_should_be_unchecked(self, label):
         """ Validates that a checkbox field in the record header is unchecked """
-        locator = locators['record']['header']['field_value_unchecked'].format(label)
+        locator = lex_locators['record']['header']['field_value_unchecked'].format(label)
         self._call_selenium('_header_field_value_should_exist', True, locator)
 
     def _header_field_value_should_exist(self, locator):
@@ -263,7 +263,7 @@ class Salesforce(object):
 
     def open_app_launcher(self):
         """ EXPERIMENTAL!!! """
-        locator = locators['app_launcher']['button']
+        locator = lex_locators['app_launcher']['button']
         self._call_selenium('_open_app_launcher', True, locator)
 
     def _open_app_launcher(self, locator):
@@ -275,12 +275,12 @@ class Salesforce(object):
         self.wait_until_modal_is_open()
 
     def populate_field(self, name, value):
-        locator = locators['object']['field'].format(name)
+        locator = lex_locators['object']['field'].format(name)
         self._call_selenium('_populate_field', True, locator, value)
 
     def populate_lookup_field(self, name, value):
         self.populate_field(name, value)
-        locator = locators['object']['field_lookup_value'].format(value)
+        locator = lex_locators['object']['field_lookup_value'].format(value)
         self._call_selenium('_populate_lookup_field', True, locator)
     
     def _populate_lookup_field(self, locator):
@@ -299,7 +299,7 @@ class Salesforce(object):
     def populate_form(self, **kwargs):
         for name, value in kwargs.items():
             time.sleep(.5)
-            locator = locators['object']['field'].format(name)
+            locator = lex_locators['object']['field'].format(name)
             self._call_selenium('_populate_field', True, locator, value)
 
     def remove_session_record(self, obj_type, obj_id):
@@ -313,19 +313,19 @@ class Salesforce(object):
 
     def select_record_type(self, label):
         self.wait_until_modal_is_open()
-        locator = locators['object']['record_type_option'].format(label)
+        locator = lex_locators['object']['record_type_option'].format(label)
         self._call_selenium('_select_record_type', True, locator)
 
     def _select_record_type(self, locator):
         self.selenium.get_webelement(locator).click()
         time.sleep(1)
-        locator = locators['modal']['button'].format('Next')
+        locator = lex_locators['modal']['button'].format('Next')
         self.selenium.click_button('Next')
         time.sleep(5)
 
     def select_app_launcher_app(self, app_name):
         """ EXPERIMENTAL!!! """
-        locator = locators['app_launcher']['app_link'].format(app_name)
+        locator = lex_locators['app_launcher']['app_link'].format(app_name)
         self.builtin.log('Opening the App Launcher')
         self.open_app_launcher()
         self._call_selenium('_select_app_launcher_app', True, locator)
@@ -344,7 +344,7 @@ class Salesforce(object):
 
     def select_app_launcher_tab(self, tab_name):
         """ EXPERIMENTAL!!! """
-        locator = locators['app_launcher']['tab_link'].format(tab_name)
+        locator = lex_locators['app_launcher']['tab_link'].format(tab_name)
         self.builtin.log('Opening the App Launcher')
         self.open_app_launcher()
         self._call_selenium('_select_app_launcher_tab', True, locator)
@@ -420,11 +420,11 @@ class Salesforce(object):
 
     def _wait_until_modal_is_open(self):
         self.selenium.wait_until_element_is_not_visible(
-            "css: div.slds-spinner",
+            lex_locators['spinner'],
             timeout=15,
         )
         self.selenium.wait_until_element_is_visible(
-            locators['modal']['is_open'],
+            lex_locators['modal']['is_open'],
             timeout=15,
         )
         time.sleep(3)
@@ -435,11 +435,11 @@ class Salesforce(object):
 
     def _wait_until_modal_is_closed(self):
         self.selenium.wait_until_element_is_not_visible(
-            "css: div.slds-spinner",
+            lex_locators['spinner'],
             timeout=15,
         )
         self.selenium.wait_until_element_is_not_visible(
-            locators['modal']['is_open'],
+            lex_locators['modal']['is_open'],
             timeout=15,
         )
         time.sleep(3)
@@ -450,13 +450,13 @@ class Salesforce(object):
 
     def _wait_until_loading_is_complete(self):
         self.selenium.wait_until_element_is_not_visible(
-            "css: div.auraLoadingBox.oneLoadingBox"
+            lex_locators['loading_box'],
         )
         self.selenium.wait_until_element_is_not_visible(
-            "css: div.slds-spinner"
+            lex_locators['spinner'],
         )
         self.selenium.wait_until_page_contains_element(
-            "css: div.desktop.container.oneOne.oneAppLayoutHost[data-aura-rendered-by]"
+            lex_locators['desktop_rendered'],
         )
 
     def _handle_page_load(self):

@@ -1,11 +1,13 @@
 
-locators = {
+lex_locators = {
     'app_launcher': {
         'app_link': "//div[@class='slds-section slds-is-open salesforceIdentityAppLauncherDesktopInternal']//section[@id='cards']//div[@class='appTileTitle' and text()='{}']",
         'button': "css: nav.appLauncher button div.slds-icon-waffle",
         'current_app': "//div[contains(@class,'navLeft')]//span[contains(@class,'appName')]/span[text()='{}']",
         'tab_link': "css: a.app-launcher-link[title='{}']",
     },
+    'desktop_rendered': 'css: div.desktop.container.oneOne.oneAppLayoutHost[data-aura-rendered-by]',
+    'loading_box': 'css: div.auraLoadingBox.oneLoadingBox',
     'modal': {
         'is_open': "css: div.DESKTOP.uiModal.forceModal.open.active",
         'button': "css: div.uiModal div.modal-footer button[title='{}']",
@@ -31,6 +33,7 @@ locators = {
             'count': "//article[contains(@class, 'forceRelatedListCardDesktop')][.//img]//span[@title='{}']/following-sibling::span",
         },
     },
+    'spinner': 'css: div.slds-spinner',
     'tabs': {
         'tab': '',
     },
