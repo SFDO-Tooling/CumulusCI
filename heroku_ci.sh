@@ -45,6 +45,9 @@ fi
 echo "--------------------------------------------"
 echo "Running CumulusCI and Salesforce robot tests"
 echo "--------------------------------------------"
+
+cci org info dev
+
 # Start TAP output
 echo "1...2"
 
@@ -66,6 +69,7 @@ else
     failed=1
 fi
 
+cci org scratch_delete dev
 
 # Clone the CumulusCI-Test repo to run test builds against it with cci
 echo "------------------------------------------"
