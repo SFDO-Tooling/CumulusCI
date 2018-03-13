@@ -34,20 +34,20 @@ Open Test Browser
 Open Test Browser Chrome
     [Arguments]     ${login_url}
     Run Keyword If  '${CHROME_BINARY}' == ''  Open Browser  ${login_url}  chrome  desired_capabilities=version:${BROWSER_VERSION}
-    ...       ELSE  Open Browser  ${login_url}  chrome  desired_capabilities=version:${BROWSER_VERSION},binary=${CHROME_BINARY}
+    ...       ELSE  Open Browser  ${login_url}  chrome  desired_capabilities=version:${BROWSER_VERSION},binary:${CHROME_BINARY}
 
 Open Test Browser Firefox
     [Arguments]     ${login_url}
     Run Keyword If  '${FIREFOX_BINARY}' == ''  Open Browser  ${login_url}  firefox  desired_capabilities=version:${BROWSER_VERSION}
-    ...       ELSE  Open Browser  ${login_url}  firefox  desired_capabilities=version:${BROWSER_VERSION},firefox_binary=${FIREFOX_BINARY}
+    ...       ELSE  Open Browser  ${login_url}  firefox  desired_capabilities=version:${BROWSER_VERSION},firefox_binary:${FIREFOX_BINARY}
 
 Open Test Browser Headless Chrome
     [Arguments]     ${login_url}
     Run Keyword If  '${CHROME_BINARY}' == ''  Open Browser  ${login_url}  headlesschrome  desired_capabilities=version:${BROWSER_VERSION}
-    ...       ELSE  Open Browser  ${login_url}  headlesschrome  desired_capabilities=version:${BROWSER_VERSION},binary=${CHROME_BINARY}
+    ...       ELSE  Open Browser  ${login_url}  headlesschrome  desired_capabilities=version:${BROWSER_VERSION},binary:${CHROME_BINARY}
  
 Open Test Browser Headless Firefox
     [Arguments]     ${login_url}
     Run Keyword If  '${FIREFOX_BINARY}' == ''  Open Browser  ${login_url}  headlessfirefox  desired_capabilities=version:${BROWSER_VERSION}
-    ...       ELSE  Open Browser  ${login_url}  headlessfirefox  desired_capabilities=version:${BROWSER_VERSION},firefox_binary=${FIREFOX_BINARY}
+    ...       ELSE  Open Browser  ${login_url}  headlessfirefox  desired_capabilities=version:${BROWSER_VERSION},firefox_binary:${FIREFOX_BINARY}
  
