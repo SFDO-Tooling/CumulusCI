@@ -8,8 +8,9 @@ Library        cumulusci.robotframework.Salesforce  debug=${DEBUG}
 
 *** Variables *** 
 ${BROWSER}          chrome
-${BROWSER_VERSION}  63
+${BROWSER_VERSION}  latest
 ${DEBUG}            ${false}
+${CAPABILITIES}     ${empty}
 ${IMPLICIT_WAIT}    7.0
 ${TIMEOUT}          7.0
 
@@ -21,7 +22,7 @@ Delete Records and Close Browser
 
 Open Test Browser
     ${login_url} =  Login Url
-    Open Browser  ${login_url}  ${BROWSER}  desired_capabilities=version:${BROWSER_VERSION}
+    Open Browser  ${login_url}  ${BROWSER}  desired_capabilities=version:${BROWSER_VERSION}${CAPABILITIES}
     Sleep  2
     Wait Until Loading Is Complete
     #Run Keyword If  '${BROWSER}' == 'chrome'  Open Test Browser Chrome

@@ -50,3 +50,7 @@ flows:
                 task: robot_libdoc_salesforce_resource
             5:
                 task: robot_testdoc
+
+orgs:
+    dev:
+        days: 1
