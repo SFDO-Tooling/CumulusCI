@@ -1141,8 +1141,7 @@ class PackageUpload(BaseSalesforceApiTask):
             self.options['namespace'] = self.project_config.project__package__namespace
 
     def _run_task(self):
-        sf = self._init_api()
-        package_res = sf.query("select Id from MetadataPackage where NamespacePrefix='{}'".format(self.options['namespace']))
+        package_res = self.tooling.query("select Id from MetadataPackage where NamespacePrefix='{}'".format(self.options['namespace']))
 
         if package_res['totalSize'] != 1:
             message = 'No package found with namespace {}'.format(self.options['namespace'])
@@ -1180,7 +1179,7 @@ class PackageUpload(BaseSalesforceApiTask):
             raise SalesforceException(message)
         upload = upload['records'][0]
 
-        while upload['Status'] == 'IN_PROGRESS':
+        while upload['Status'] == 'IN_PROGRESS' or upload['Status'] == 'QUEUED':
             time.sleep(3)
             upload = self.tooling.query(soql_check_upload)
             if upload['totalSize'] != 1:
@@ -1199,6 +1198,7 @@ class PackageUpload(BaseSalesforceApiTask):
                 e = SalesforceException
             raise e('Package upload failed')
         else:
+            time.sleep(5)
             version_id = upload['MetadataPackageVersionId']
             version_res = self.tooling.query("select MajorVersion, MinorVersion, PatchVersion, BuildNumber, ReleaseState from MetadataPackageVersion where Id = '{}'".format(version_id))
             if version_res['totalSize'] != 1:
