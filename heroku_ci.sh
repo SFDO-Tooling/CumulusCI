@@ -60,7 +60,7 @@ else
     failed=1
 fi
 
-coverage run --append --source=cumulusci `which cci` task run robot --org dev -o vars BROWSER:headlesschrome,CAPABILITIES:binary:$GOOGLE_CHROME_BIN -o suites cumulusci/robotframework/tests/salesforce | tee robot_salesforce.log
+coverage run --append --source=cumulusci `which cci` task run robot --org dev -o vars BROWSER:headlesschrome,CHROME_BINARY:$GOOGLE_CHROME_BIN -o suites cumulusci/robotframework/tests/salesforce | tee robot_salesforce.log
 exit_status=${PIPESTATUS[0]}
 if [ "$exit_status" == "0" ]; then
     echo "ok 2 - Salesforce robot tests passed"
