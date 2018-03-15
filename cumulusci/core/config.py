@@ -438,18 +438,14 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         gh = login(github_config.username, github_config.password)
         return gh
 
-    def get_latest_version(self, beta=None):
+    def get_latest_version(self, beta=False):
         """ Query Github Releases to find the latest production or beta release """
         gh = self.get_github_api()
         repo = gh.repository(self.repo_owner, self.repo_name)
         latest_version = None
         for release in repo.iter_releases():
-            if beta:
-                if 'Beta' not in release.tag_name:
-                    continue
-            else:
-                if 'Beta' in release.tag_name:
-                    continue
+            if beta != release.tag_name.startswith(self.project__git__prefix_beta):
+                continue
             version = self.get_version_for_tag(release.tag_name)
             if version is None:
                 continue
