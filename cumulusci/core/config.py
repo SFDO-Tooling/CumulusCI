@@ -500,15 +500,16 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             prefix_beta = self.project__git__prefix_beta
         if prefix_release is None:
             prefix_release = self.project__git__prefix_release
-        if not tag.startswith(prefix_beta) and not tag.startswith(prefix_release):
-            return None
-
-        if 'Beta' in tag:
-            version = tag[len(prefix_beta):]
-            version = version.replace('-', ' (').replace('_', ' ') + ')'
-        else:
-            version = tag[len(prefix_release):]
-        return version
+        if tag.startswith(prefix_beta):
+            version = tag.replace(prefix_beta, '')
+            if '-Beta_' in version:
+                # Beta tags are expected to be like "beta/1.0-Beta_1"
+                # which is returned as "1.0 (Beta 1)"
+                return version.replace('-', ' (').replace('_', ' ') + ')'
+            else:
+                return
+        elif tag.startswith(prefix_release):
+            return tag.replace(prefix_release, '')
 
     def set_keychain(self, keychain):
         self.keychain = keychain
