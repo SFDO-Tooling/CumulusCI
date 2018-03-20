@@ -2,7 +2,7 @@
 History
 =======
 
-2.0.0-beta87 (2018-03-20)
+2.0.0-beta88 (2018-03-20)
 -------------------------
 
 * Fix issue in parsing version from tag name
