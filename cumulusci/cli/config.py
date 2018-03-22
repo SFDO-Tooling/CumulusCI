@@ -1,5 +1,6 @@
 import os
 import sys
+import click
 
 from cumulusci.core.config import YamlGlobalConfig
 from cumulusci.core.config import YamlProjectConfig
