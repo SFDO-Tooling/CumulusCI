@@ -2,6 +2,16 @@
 History
 =======
 
+2.0.0-beta89 (2018-03-23)
+-------------------------
+
+- Improved cci project init
+    - Prompt for extending a repository with HEDA and NPSP as selectable options
+    - Use jinja2 templates included with cumulusci to create files
+    - Include a default Robot test
+- update_package_xml now ignores CODEOWNERS files used by Github
+- Fixed an import error for click in cci
+
 2.0.0-beta88 (2018-03-20)
 -------------------------
 
