@@ -17,12 +17,15 @@ except ImportError:
     import dbm.ndbm as dbm
 
 from contextlib import contextmanager
+from shutil import copyfile
 
 import click
 import pkg_resources
 import requests
 from plaintable import Table
 from rst2ansi import rst2ansi
+from jinja2 import Environment
+from jinja2 import PackageLoader
 
 import cumulusci
 from cumulusci.core.config import ConnectedAppOAuthConfig
@@ -314,77 +317,81 @@ def project_init(config, extend):
     if os.path.isfile('cumulusci.yml'):
         raise click.ClickException("This project already has a cumulusci.yml file")
 
-    yml_config = []
+    context = {}
 
+    # Prep jinja2 environment for rendering files
+    env = Environment(
+        loader = PackageLoader('cumulusci', os.path.join('files', 'templates', 'project')),
+        trim_blocks = True,
+        lstrip_blocks = True,
+    )
+
+    # Project and Package Info
     click.echo()
     click.echo(click.style('# Project Info', bold=True, fg='blue'))
     click.echo('The following prompts will collect general information about the project')
-    package_config = []
 
-    name = os.path.split(os.getcwd())[-1:][0]
+    project_name = os.path.split(os.getcwd())[-1:][0]
     click.echo()
-    click.echo('Enter the project name.  The name is usually the same as your repository name')
-    name = click.prompt(click.style('Project Name', bold=True), default=name)
-    yml_config.append('project:')
-    yml_config.append('    name: {}'.format(name))
+    click.echo('Enter the project name.  The name is usually the same as your repository name.  NOTE: Do not use spaces in the project name!')
+    context['project_name'] = click.prompt(click.style('Project Name', bold=True), default=project_name)
 
     click.echo()
     click.echo("CumulusCI uses an unmanaged package as a container for your project's metadata.  Enter the name of the package you want to use.")
-    package_name = click.prompt(click.style('Package Name', bold=True), default=name)
-    if package_name and package_name != config.global_config.project__package__name:
-        package_config.append('        name: {}'.format(package_name))
+    context['package_name'] = click.prompt(click.style('Package Name', bold=True), default=project_name)
 
     click.echo()
-    package_namespace = None
+    context['package_namespace'] = None
     if click.confirm(click.style("Is this a managed package project?", bold=True), default=False):
         click.echo('Enter the namespace assigned to the managed package for this project')
-        package_namespace = click.prompt(click.style('Package Namespace', bold=True), default=name)
-        if package_namespace and package_namespace != config.global_config.project__package__namespace:
-            package_config.append(
-                '        namespace: {}'.format(package_namespace))
+        context['package_namespace'] = click.prompt(click.style('Package Namespace', bold=True), default=project_name)
 
     click.echo()
-    package_api_version = click.prompt(click.style('Salesforce API Version', bold=True), default=config.global_config.project__package__api_version)
-    if package_api_version and package_api_version != config.global_config.project__package__api_version:
-        package_config.append(
-            '        api_version: {}'.format(package_api_version))
+    context['api_version'] = click.prompt(click.style('Salesforce API Version', bold=True), default=config.global_config.project__package__api_version)
 
-    if package_config:
-        yml_config.append('    package:')
-        yml_config.extend(package_config)
+    # Dependencies
+    dependencies = []
+    click.echo(click.style('# Extend Project', bold=True, fg='blue'))
+    click.echo("CumulusCI makes it easy to build extensions of other projects configured for CumulusCI like Salesforce.org's NPSP and HEDA.  If you are building an extension of another project using CumulusCI and have access to its Github repository, use this section to configure this project as an extension.")
+    if click.confirm(click.style("Are you extending another CumulusCI project such as NPSP or HEDA?", bold=True), default=False):
+        click.echo("Please select from the following options:")
+        click.echo("  1: HEDA (https://github.com/SalesforceFoundation/HEDAP)")
+        click.echo("  2: NPSP (https://github.com/SalesforceFoundation/Cumulus)")
+        click.echo("  3: Github URL (provide a URL to a Github repository configured for CumulusCI)")
+        selection = click.prompt(click.style('Enter your selection', bold=True))
+        if selection == '1':
+            dependencies.append({'type': 'github', 'url': 'https://github.com/SalesforceFoundation/HEDAP'})
+        elif selection == '2':
+            dependencies.append({'type': 'github', 'url': 'https://github.com/SalesforceFoundation/Cumulus'})
+        else:
+            print selection
+            github_url = click.prompt(click.style('Enter the Github Repository URL', bold=True))
+            dependencies.append({'type': 'github', 'url': github_url})
+    context['dependencies'] = dependencies
 
-    if extend:
-        yml_config.append('    dependencies:')
-        yml_config.append('        - github: {}'.format(extend))
-
-    #     git:
-    git_config = []
+    # Git Configuration
+    git_config = {}
     click.echo()
     click.echo(click.style('# Git Configuration', bold=True, fg='blue'))
     click.echo('CumulusCI assumes your default branch is master, your feature branches are named feature/*, your beta release tags are named beta/*, and your release tags are release/*.  If you want to use a different branch/tag naming scheme, you can configure the overrides here.  Otherwise, just accept the defaults.')
 
     git_default_branch = click.prompt(click.style('Default Branch', bold=True), default='master')
     if git_default_branch and git_default_branch != config.global_config.project__git__default_branch:
-        git_config.append(
-            '        default_branch: {}'.format(git_default_branch))
+        git_config['default_branch'] = git_default_branch
 
     git_prefix_feature = click.prompt(click.style('Feature Branch Prefix', bold=True), default='feature/')
     if git_prefix_feature and git_prefix_feature != config.global_config.project__git__prefix_feature:
-        git_config.append(
-            '        prefix_feature: {}'.format(git_prefix_feature))
+        git_config['prefix_feature'] = git_prefix_feature
 
     git_prefix_beta = click.prompt(click.style('Beta Tag Prefix', bold=True), default='beta/')
     if git_prefix_beta and git_prefix_beta != config.global_config.project__git__prefix_beta:
-        git_config.append('        prefix_beta: {}'.format(git_prefix_beta))
+        git_config['prefix_beta'] = git_prefix_beta
 
     git_prefix_release = click.prompt(click.style('Release Tag Prefix', bold=True), default='release/')
     if git_prefix_release and git_prefix_release != config.global_config.project__git__prefix_release:
-        git_config.append(
-            '        prefix_release: {}'.format(git_prefix_release))
+        git_config['prefix_release'] = git_prefix_release
 
-    if git_config:
-        yml_config.append('    git:')
-        yml_config.extend(git_config)
+    context['git'] = git_config
 
     #     test:
     test_config = []
@@ -393,59 +400,89 @@ def project_init(config, extend):
     click.echo('The CumulusCI Apex test runner uses a SOQL where clause to select which tests to run.  Enter the SOQL pattern to use to match test class names.')
     
     test_name_match = click.prompt(click.style('Test Name Match', bold=True), default=config.global_config.project__test__name_match)
-    if test_name_match and test_name_match != config.global_config.project__test__name_match:
-        test_config.append('        name_match: {}'.format(test_name_match))
-    if test_config:
-        yml_config.append('    test:')
-        yml_config.extend(test_config)
+    if test_name_match and test_name_match == config.global_config.project__test__name_match:
+        test_name_match = None
+    context['test_name_match'] = test_name_match
 
-    if package_namespace:
-        yml_config.append('orgs:')
-        yml_config.append('    scratch:')
-        yml_config.append('        dev_namespaced:')
-        yml_config.append('            config_file: orgs/dev.json')
-        yml_config.append('            namespaced: True')
+    # Render the cumulusci.yml file
+    template = env.get_template('cumulusci.yml')
+    with open('cumulusci.yml','w') as f:
+        f.write(template.render(**context))
+    
+    # Create src directory
+    if not os.path.isdir('src'):
+        os.mkdir('src')
 
-    yml_config.append('')
+    # Create sfdx-project.json
+    if not os.path.isfile('sfdx-project.json'):
 
-    with open('cumulusci.yml', 'w') as f_yml:
-        f_yml.write('\n'.join(yml_config))
-
+        sfdx_project = {
+            "packageDirectories": [
+                {
+                    "path": "force-app",
+                    "default": True,
+                }
+            ],
+            "namespace": context['package_namespace'],
+            "sourceApiVersion": context['api_version'],
+        }
+        with open('sfdx-project.json','w') as f:
+            f.write(json.dumps(sfdx_project))
+    
+    # Create orgs subdir
+    if not os.path.isdir('orgs'):
+        os.mkdir('orgs')
+      
+    org_content_url = 'https://raw.githubusercontent.com/SalesforceFoundation/sfdo-package-cookiecutter/master/%7B%7Bcookiecutter.project_name%7D%7D/orgs/{}.json' 
+    template = env.get_template('scratch_def.json')
+    with open(os.path.join('orgs', 'beta.json'), 'w') as f:
+        f.write(template.render(
+            package_name = context['package_name'],
+            org_name = 'Beta Test Org',
+            edition = 'Developer',
+        ))
+    with open(os.path.join('orgs', 'dev.json'), 'w') as f:
+        f.write(template.render(
+            package_name = context['package_name'],
+            org_name = 'Dev Org',
+            edition = 'Developer',
+        ))
+    with open(os.path.join('orgs', 'feature.json'), 'w') as f:
+        f.write(template.render(
+            package_name = context['package_name'],
+            org_name = 'Feature Test Org',
+            edition = 'Developer',
+        ))
+    with open(os.path.join('orgs', 'release.json'), 'w') as f:
+        f.write(template.render(
+            package_name = context['package_name'],
+            org_name = 'Release Test Org',
+            edition = 'Enterprise',
+        ))
+   
+    # Create initial create_contact.robot test 
+    if not os.path.isdir('tests'):
+        os.mkdir('tests')
+        test_folder = os.path.join('tests','standard_objects')
+        os.mkdir(test_folder)
+        test_src = os.path.join(
+            cumulusci.__location__,
+            'robotframework',
+            'tests',
+            'salesforce',
+            'create_contact.robot',
+        )
+        test_dest = os.path.join(
+            test_folder,
+            'create_contact.robot',
+        )
+        copyfile(test_src, test_dest)
+        
     click.echo(click.style("Your project is now initialized for use with CumulusCI", bold=True, fg='green'))
     click.echo(click.style(
         "You can use the project edit command to edit the project's config file", fg='yellow'
     ))
 
-    if os.path.isfile('sfdx-project.json'):
-        return
-
-    if not os.path.isdir('src'):
-        os.mkdir('src')
-
-    sfdx_project = {
-        "packageDirectories": [
-            {
-                "path": "force-app",
-                "default": True,
-            }
-        ],
-        "namespace": package_namespace,
-        "sourceApiVersion": package_api_version,
-}
-    with open('sfdx-project.json','w') as f:
-        f.write(json.dumps(sfdx_project))
-
-    if not os.path.isdir('orgs'):
-        os.mkdir('orgs')
-      
-    org_content_url = 'https://raw.githubusercontent.com/SalesforceFoundation/sfdo-package-cookiecutter/master/%7B%7Bcookiecutter.project_name%7D%7D/orgs/{}.json' 
-    for org in ['beta', 'dev', 'feature', 'release']:
-        with open('orgs/{}.json'.format(org), 'w') as f:
-            resp = requests.get(org_content_url.format(org))
-            content = resp.content.replace('{{cookiecutter.package_name}}', package_name)
-            f.write(content) 
-    
-        
 
 @click.command(name='info', help="Display information about the current project's configuration")
 @pass_config
