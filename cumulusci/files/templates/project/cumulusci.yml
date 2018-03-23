@@ -22,26 +22,24 @@ project:
       {% endif %}
     {% endfor %}
     {% endif %}
+
     {% if git %}
-    git:
+    git:{% endif %}
       {% if git.default_branch %} 
-        default_branch: '{{ default_branch }}'
-      {% endif %}
+        default_branch: '{{ git.default_branch }}'{% endif %}
       {% if git.prefix_feature %} 
-        prefix_feature: '{{ prefix_feature }}'
-      {% endif %}
+        prefix_feature: '{{ git.prefix_feature }}'{% endif %}
       {% if git.prefix_beta %} 
-        prefix_beta: '{{ prefix_beta }}'
-      {% endif %}
+        prefix_beta: '{{ git.prefix_beta }}'{% endif %}
       {% if git.prefix_release %} 
-        prefix_release: '{{ prefix_release }}'
-      {% endif %}
-    {% endif %}
+        prefix_release: '{{ git.prefix_release }}'{% endif %}
+
     {% if test_name_match %}
     test:
         name_match: '{{ test_name_match }}'
     {% endif %}
 {% if package_namespace %}
+
 orgs:
     scratch:
         dev_namespaced:
