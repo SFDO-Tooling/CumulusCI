@@ -2,6 +2,11 @@
 History
 =======
 
+2.0.0-beta90 (2018-03-26)
+-------------------------
+
+- Include missing scratch_def.json template file needed by cci project init
+
 2.0.0-beta89 (2018-03-23)
 -------------------------
 
