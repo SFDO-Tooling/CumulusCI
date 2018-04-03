@@ -352,9 +352,10 @@ class Deploy(BaseSalesforceMetadataApiTask):
         for root, dirs, files in os.walk('.'):
             for f in files:
                 self._write_zip_file(zipf, root, f)
-        zipf = self._process_zip_file(zipf)
-        zipf.fp.seek(0)
-        package_zip = base64.b64encode(zipf.fp.read())
+        zipf.close()
+        zipf2 = self._process_zip_file(zipfile.ZipFile(zip_file))
+        zipf2.fp.seek(0)
+        package_zip = base64.b64encode(zipf2.fp.read())
 
         os.chdir(pwd)
 
