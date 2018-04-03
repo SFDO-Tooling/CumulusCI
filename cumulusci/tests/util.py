@@ -1,8 +1,6 @@
 from __future__ import unicode_literals
 import os
 import random
-import tempfile
-import zipfile
 
 import yaml
 
@@ -11,33 +9,6 @@ from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.core.config import OrgConfig
 from cumulusci import __location__
-
-
-def create_source_files():
-    """."""
-    path = tempfile.mkdtemp()
-    with open(os.path.join(path, 'cumulusci.yml'), 'w') as f:
-        f.write('foo')
-    d = os.path.join(path, 'src', 'classes')
-    os.makedirs(d)
-    with open(os.path.join(d, 'foo.cls'), 'w') as f:
-        f.write('foo')
-    with open(os.path.join(d, 'foo-meta.xml'), 'w') as f:
-        f.write('foo')
-    return path
-
-def create_zip_file(path):
-    """Create a zip file in memory from a given path."""
-    f_temp = tempfile.TemporaryFile()
-    zip = zipfile.ZipFile(f_temp, 'w', zipfile.ZIP_DEFLATED)
-    pwd = os.getcwd()
-    os.chdir(path)
-    for root, dirs, files in os.walk('.'):
-        for file in files:
-            zip.write(os.path.join(root, file))
-    zip.close()
-    os.chdir(pwd)
-    return f_temp
 
 def random_sha():
     hash = random.getrandbits(128)
