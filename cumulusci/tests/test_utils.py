@@ -1,4 +1,5 @@
 import unittest
+import zipfile
 
 from cumulusci.tests.util import create_source_files
 from cumulusci.tests.util import create_zip_file
@@ -9,10 +10,12 @@ class TestZipCleanMetaXml(unittest.TestCase):
 
     def setUp(self):
         self.path = create_source_files()
-        self.zip = create_zip_file(self.path)
+        self.f_zip = create_zip_file(self.path)
 
     def tearDown(self):
-        self.zip.close()
+        self.f_zip.close()
 
     def test_zip_clean_metaxml_1(self):
-        zip_cleaned = zip_clean_metaxml(self.zip)
+        zip = zipfile.ZipFile(self.f_zip)
+        zip_cleaned = zip_clean_metaxml(zip)
+        zip.close()

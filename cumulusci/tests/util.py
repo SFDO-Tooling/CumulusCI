@@ -35,8 +35,9 @@ def create_zip_file(path):
     for root, dirs, files in os.walk('.'):
         for file in files:
             zip.write(os.path.join(root, file))
+    zip.close()
     os.chdir(pwd)
-    return zip
+    return f_temp
 
 def random_sha():
     hash = random.getrandbits(128)
