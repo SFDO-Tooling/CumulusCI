@@ -2,6 +2,12 @@
 History
 =======
 
+2.0.0-beta92 (2018-04-04)
+-------------------------
+
+- Ignore OWNERS file in package.xml generation
+- Pipe stderr in command tasks
+
 2.0.0-beta91 (2018-04-03)
 -------------------------
 
