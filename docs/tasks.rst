@@ -46,6 +46,7 @@ Options:
 * **env**: Environment variables to set for command. Must be flat dict, either as python dict from YAML or as JSON string.
 * **dir**: If provided, the directory where the command should be run from.
 * **pass_env** *(required)*: If False, the current environment variables will not be passed to the child process. Defaults to True
+* **use_std**: If True, the command will use stdout, stderr, and stdin of the main process. Defaults to False
 
 commit_apex_docs
 ==========================================
