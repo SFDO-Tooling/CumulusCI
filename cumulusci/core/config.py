@@ -610,7 +610,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
         # Get the cumulusci.yml file
         contents = repo.contents('cumulusci.yml', **kwargs)
-        cumulusci_yml = hiyapyco.load(contents.decoded)
+        cumulusci_yml = hiyapyco.load(contents.decoded, loglevel='INFO')
 
         # Get the namespace from the cumulusci.yml if set
         namespace = cumulusci_yml.get('project', {}).get(
@@ -1189,7 +1189,11 @@ class YamlProjectConfig(BaseProjectConfig):
                 self.config_additional_yaml.update(additional_yaml_config)
                 merge_yaml.append(self.additional_yaml)
 
-        self.config = hiyapyco.load(*merge_yaml, method=hiyapyco.METHOD_MERGE)
+        self.config = hiyapyco.load(
+            *merge_yaml,
+            method=hiyapyco.METHOD_MERGE,
+            loglevel='INFO'
+        )
 
 
 class YamlGlobalConfig(BaseGlobalConfig):
@@ -1234,7 +1238,11 @@ class YamlGlobalConfig(BaseGlobalConfig):
             if config:
                 merge_yaml.append(self.config_global_local_path)
 
-        self.config = hiyapyco.load(*merge_yaml, method=hiyapyco.METHOD_MERGE)
+        self.config = hiyapyco.load(
+            *merge_yaml,
+            method=hiyapyco.METHOD_MERGE,
+            loglevel='INFO'
+        )
 
     @property
     def config_global_path(self):

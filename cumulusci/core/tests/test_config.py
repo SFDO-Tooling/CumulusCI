@@ -229,8 +229,7 @@ class TestYamlProjectConfig(unittest.TestCase):
         self.current_branch = 'master'
 
     def tearDown(self):
-        shutil.rmtree(self.tempdir_home)
-        shutil.rmtree(self.tempdir_project)
+        pass
 
     @nose.tools.raises(NotInProject)
     def test_load_project_config_not_repo(self, mock_class):
