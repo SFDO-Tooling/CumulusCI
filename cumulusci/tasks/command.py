@@ -87,6 +87,7 @@ class Command(BaseTask):
         p = subprocess.Popen(
             command,
             stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
             bufsize=1,
             shell=True,
             executable='/bin/bash',
