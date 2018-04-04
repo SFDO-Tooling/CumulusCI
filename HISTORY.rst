@@ -2,6 +2,11 @@
 History
 =======
 
+2.0.0-beta91 (2018-04-03)
+-------------------------
+
+- Fix issue in ZIP functionality for Windows
+
 2.0.0-beta90 (2018-03-26)
 -------------------------
 
