@@ -13,6 +13,7 @@ import subprocess
 from cumulusci.core.exceptions import CommandException
 from cumulusci.core.exceptions import BrowserTestFailure
 from cumulusci.core.tasks import BaseTask
+from cumulusci.core.utils import process_bool_arg
 
 
 class Command(BaseTask):
@@ -41,10 +42,8 @@ class Command(BaseTask):
 
     def _init_options(self, kwargs):
         super(Command, self)._init_options(kwargs)
-        if 'pass_env' not in self.options or self.options['pass_env'] == 'True':
+        if 'pass_env' not in self.options:
             self.options['pass_env'] = True
-        elif self.options['pass_env'] == 'False':
-            self.options['pass_env'] = False
         if 'dir' not in self.options or not self.options['dir']:
             self.options['dir'] = '.'
         if 'env' not in self.options:
@@ -61,7 +60,7 @@ class Command(BaseTask):
         self._run_command(env)
 
     def _get_env(self):
-        if self.options['pass_env']:
+        if process_bool_arg(self.options['pass_env']):
             env = os.environ.copy()
         else:
             env = {}
