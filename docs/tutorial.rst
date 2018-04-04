@@ -25,11 +25,18 @@ Use Homebrew to install OpenSSL:
 
     $ brew install openssl
 
-Use Homebrew to install Python 2 (make note of the installed path that is printed after successful installation):
+Use Homebrew to install pyenv-virtualenv: 
 
 .. code-block:: console
 
-    $ brew install python
+    $ brew install pyenv-virtualenv
+
+After installing pyenv-virtualenv, edit your ~/.bash_profile and add the following lines at the end of the file to activate pyenv in your shell by default:
+
+.. code-block:: console
+
+    eval "$(pyenv init -)"
+    eval "$(pyenv virtualenv-init -)"
 
 Windows
 ^^^^^^^
@@ -43,29 +50,35 @@ For Windows, go to Control Panel -> System and Security -> System -> Advanced Sy
 Create Virtual Environment
 --------------------------
 
-Install `virtualenv <https://virtualenv.pypa.io/en/stable/>`_:
-
-.. code-block:: console
-
-    $ pip2 install virtualenv
-
-Create a virtual environment using the Python executable path, then activate the virtual environment. The final part of the virtualenv path should be "cumulusci" so that it shows in the shell session when the virtual environment is activated. You could change this to something else if you want.
+A Python Virtual Environment (virtualenv) is an isolated Python environment where you can install packages without modifying the system Python.  Using a virtualenv for cumulusci is recommended to avoid issues and conflicts with other applications using your system Python.
 
 macOS
+^^^^^
 
 .. code-block:: console
 
-    $ virtualenv --python=/usr/local/opt/python/libexec/bin/python ~/venvs/cumulusci/
+    $ pyenv install 2.7.14
+    $ pyenv virtualenv 2.7.14 cci
     $ # Copy the following line to ~/.bash_profile to automatically activate the virtual environment in all new shells.
-    $ source ~/venvs/cumulusci/bin/activate
+    $ pyenv activate cci
+
+Your shell prompt should change once you are in the virtual env to show (cci) at the start of the prompt.  You can exit the cci virtualenv with the following command:
+
+.. code-block:: console
     
+    (cci) $ pyenv deactivate
+
+For more information about pyenv-virtualenv, see the project's README: https://github.com/pyenv/pyenv-virtualenv/blob/master/README.md
+
 Windows
+^^^^^^^
 
 .. code-block:: powershell
 
-    mkdir C:\Python27\venvs\cumulusci\
-    virtualenv --python=C:\Python27\python.exe C:\Python27\venvs\cumulusci\
-    source C:\Python27\venvs\cumulusci\Scripts\activate
+    pip2 install virtualenv
+    mkdir C:\Python27\venvs\cci\
+    virtualenv --python=C:\Python27\python.exe C:\Python27\venvs\cci\
+    source C:\Python27\venvs\cci\Scripts\activate
 
 Install CumulusCI
 -----------------
