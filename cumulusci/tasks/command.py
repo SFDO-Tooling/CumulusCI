@@ -39,7 +39,7 @@ class Command(BaseTask):
                            'Defaults to True',
             'required': True,
         },
-        'use_std': {
+        'interactive': {
             'description': 'If True, the command will use stderr, stdout, '
                            'and stdin of the main process.'
                            'Defaults to False.',
@@ -52,8 +52,8 @@ class Command(BaseTask):
             self.options['pass_env'] = True
         if 'dir' not in self.options or not self.options['dir']:
             self.options['dir'] = '.'
-        if 'use_std' not in self.options:
-            self.options['use_std'] = False
+        if 'interactive' not in self.options:
+            self.options['interactive'] = False
         if 'env' not in self.options:
             self.options['env'] = {}
         else:
@@ -91,13 +91,13 @@ class Command(BaseTask):
     def _run_command(self, env, command=None, output_handler=None, return_code_handler=None):
         if not command:
             command = self.options['command']
-        use_std = process_bool_arg(self.options['use_std'])
+        interactive_mode = process_bool_arg(self.options['interactive'])
         self.logger.info('Running command: %s', command)
         p = subprocess.Popen(
             command,
-            stdout=sys.stdout if use_std else subprocess.PIPE,
-            stderr=sys.stderr if use_std else subprocess.PIPE,
-            stdin=sys.stdin if use_std else subprocess.PIPE,
+            stdout=sys.stdout if interactive_mode else subprocess.PIPE,
+            stderr=sys.stderr if interactive_mode else subprocess.PIPE,
+            stdin=sys.stdin if interactive_mode else subprocess.PIPE,
             bufsize=1,
             shell=True,
             executable='/bin/bash',
@@ -105,7 +105,7 @@ class Command(BaseTask):
             cwd=self.options.get('dir'),
         )
 
-        if not use_std:
+        if not interactive_mode:
             # Handle output lines
             if not output_handler:
                 output_handler = self._process_output
