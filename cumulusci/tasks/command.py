@@ -100,7 +100,6 @@ class Command(BaseTask):
             stdin=sys.stdin if interactive_mode else subprocess.PIPE,
             bufsize=1,
             shell=True,
-            executable='/bin/bash',
             env=env,
             cwd=self.options.get('dir'),
         )
