@@ -600,8 +600,6 @@ project:
     test:
         name_match: '%_TEST%'
     apexdoc:
-        homepage:
-        banner:
         version: 1.1.7
         scope: global;public;private;testmethod;webService
     dependencies:
