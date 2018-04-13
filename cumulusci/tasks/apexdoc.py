@@ -46,16 +46,20 @@ class GenerateApexDocs(Command):
     def _run_task(self):
         self._get_jar()
         self.options['command'] = ('java ' +
-            '-jar {} -s {} -t {} -g {} -h {} -a {} -p "{}"'.format(
+            '-jar {} -s {} -t {} -g {} -p "{}"'.format(
                 self.jar_path,
                 os.path.join(self.project_config.repo_root, 'src', 'classes'),
                 self.options['out_dir'],
                 self.source_url,
-                self.project_config.project__apexdoc__homepage,
-                self.project_config.project__apexdoc__banner,
                 self.project_config.project__apexdoc__scope,
             )
         )
+        homepage = self.project_config.project__apexdoc__homepage
+        if homepage:
+            self.options['command'] += ' -h {}'.format(homepage)
+        header = self.project_config.project__apexdoc__banner
+        if header:
+            self.options['command'] += ' -a {}'.format(header)
         self._run_command({})
 
     def _get_jar(self):
