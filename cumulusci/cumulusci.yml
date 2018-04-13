@@ -81,7 +81,7 @@ tasks:
         description: Execute a string of anonymous apex via the tooling api.
         class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
     generate_apex_docs:
-        description: Generate documentation for local code
+        description: Generate documentation for local code. Configure settings in cumulusci.yml/project/apexdoc: homepage, banner, branch, repo_dir
         class_path: cumulusci.tasks.apexdoc.GenerateApexDocs
     get_installed_packages:
         description: Retrieves a list of the currently installed managed package namespaces and their versions
