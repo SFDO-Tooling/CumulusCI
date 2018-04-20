@@ -2,6 +2,14 @@
 History
 =======
 
+2.0.0-beta93 (2018-04-20)
+-------------------------
+
+- Fix issue in command task for Windows
+- Support interactive in command task (thanks Chris Landry!)
+- Search more pull requests (100 vs 30) when generating release notes
+- Add options to Apex documentation generator task
+
 2.0.0-beta92 (2018-04-04)
 -------------------------
 
