@@ -175,7 +175,12 @@ class BaseFlow(object):
             self._run_task(flow_task_config)
 
     def _run_flow(self, flow_task_config):
-        flow = BaseFlow(
+        class_path = flow_task_config['task_config'].config.get(
+            'class_path',
+            'cumulusci.core.flows.BaseFlow',
+        )
+        flow_class = import_class(class_path)
+        flow = flow_class(
             self.project_config,
             flow_task_config['task_config'],
             self.org_config,
