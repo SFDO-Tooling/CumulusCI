@@ -188,7 +188,7 @@ class GithubChangeNotesProvider(BaseChangeNotesProvider, ProviderGithubApiMixin)
         date merged search """
         try:
             pull_requests = self.call_api(
-                '/pulls?state=closed&base={}'.format(self.master_branch)
+                '/pulls?page=1&per_page=100&state=closed&base={}'.format(self.master_branch)
             )
         except GithubApiNoResultsError:
             pull_requests = []
