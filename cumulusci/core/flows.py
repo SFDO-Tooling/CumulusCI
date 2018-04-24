@@ -163,7 +163,11 @@ class BaseFlow(object):
 
         i = 0
         for task in self._get_tasks():
-            if 'task' in task['flow_config'] and task['flow_config']['task'] == name:
+            if 'flow' in task['flow_config']:
+                item = task['flow_config']['flow']
+            elif 'task' in task['flow_config']:
+                item = task['flow_config']['task']
+            if item == name:
                 if len(self.tasks) > i:
                     return self.tasks[i]
             i += 1
@@ -189,6 +193,8 @@ class BaseFlow(object):
             nested=True,
         )
         flow()
+        self.tasks.append(flow)
+        self.task_return_values.append(flow.task_return_values)
 
     def _run_task(self, flow_task_config):
         task_config = copy.deepcopy(flow_task_config['task_config'].config)
@@ -218,8 +224,15 @@ class BaseFlow(object):
             if str(value).startswith('^^'):
                 value_parts = value[2:].split('.')
                 parent = self._find_task_by_name(value_parts[0])
-                for attr in value_parts[1:]:
-                    parent = parent.return_values.get(attr)
+                n = 0
+                while isinstance(parent, BaseFlow):
+                    n += 1
+                    parent = parent._find_task_by_name(value_parts[n])
+                for attr in value_parts[(n + 1):]:
+                    if getattr(parent, 'nested', None):
+                        parent = parent._find_task_by_name()
+                    else:
+                        parent = parent.return_values.get(attr)
                 task_config.config['options'][option] = parent
 
         task_class = import_class(task_config.class_path)
