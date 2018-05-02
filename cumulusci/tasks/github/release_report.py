@@ -1,4 +1,3 @@
-from datetime import datetime
 import json
 import re
 
@@ -43,11 +42,12 @@ class ReleaseReport(BaseGithubTask):
         releases = []
         last_time = None
         repo = self.get_repo()
-        regex_compiled = re.compile(
-            r'^((?P<sandbox>{})|(?P<production>{}))\s*(?P<date>\d\d\d\d-\d\d-\d\d)'.format(
+        regex_compiled_prefix = re.compile(
+            r'^((?P<sandbox>{})|(?P<production>{}))(?P<remaining>.*)$'.format(
                 self.project_config.project__git__push_prefix_sandbox,
                 self.project_config.project__git__push_prefix_production,
             ))
+        regex_compiled_date = re.compile(r'\s*(?P<date>\d\d\d\d-\d\d-\d\d)')
         for release in repo.iter_releases():
             if release.prerelease and not self.options['include_beta']:
                 continue
@@ -67,14 +67,32 @@ class ReleaseReport(BaseGithubTask):
                 'time_push_production': None,
             }
             for line in release.body.splitlines():
-                m = regex_compiled.match(line)
+                m = regex_compiled_prefix.match(line)
                 if m:
+                    if not m.group('remaining'):
+                        self.logger.warning(
+                            '[%s] Nothing found after push date prefix: %s',
+                            release_info['url'],
+                            line,
+                        )
+                        continue
+                    m2 = regex_compiled_date.match(m.group('remaining'))
+                    if not m2:
+                        self.logger.warning(
+                            (
+                                '[%s] Could not find date in line: %s\n'
+                                'Use the format YYYY-MM-DD'
+                            ),
+                            release_info['url'],
+                            line,
+                        )
+                        continue
                     if m.group('sandbox'):
                         key = 'time_push_sandbox'
                     else:
                         key = 'time_push_production'
                     release_info[key] = parse_datetime(
-                        m.group('date'),
+                        m2.group('date'),
                         self.DATE_FORMAT,
                     )
             releases.append(release_info)
