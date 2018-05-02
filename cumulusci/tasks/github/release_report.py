@@ -46,7 +46,7 @@ class ReleaseReport(BaseGithubTask):
         releases = []
         last_time = None
         repo = self.get_repo()
-        prog = re.compile(
+        regex_compiled = re.compile(
             r'^((?P<sandbox>{})|(?P<production>{}))\s*(?P<date>\d\d\d\d-\d\d-\d\d)'.format(
                 self.project_config.project__git__push_prefix_sandbox,
                 self.project_config.project__git__push_prefix_production,
@@ -70,7 +70,7 @@ class ReleaseReport(BaseGithubTask):
                 'time_push_production': None,
             }
             for line in release.body.splitlines():
-                m = prog.match(line)
+                m = regex_compiled.match(line)
                 if m:
                     if m.group('sandbox'):
                         key = 'time_push_sandbox'
