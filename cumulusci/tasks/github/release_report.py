@@ -1,10 +1,9 @@
 from datetime import datetime
 import json
-import pytz
 import re
-import time
 
 from cumulusci.core.utils import process_bool_arg
+from cumulusci.core.utils import parse_datetime
 from cumulusci.tasks.github.base import BaseGithubTask
 
 
@@ -23,24 +22,22 @@ class ReleaseReport(BaseGithubTask):
             'description': 'Print info to screen as JSON [default=False]',
         },
     }
+    DATE_FORMAT = '%Y-%m-%d'
 
     def _init_options(self, kwargs):
         super(ReleaseReport, self)._init_options(kwargs)
-        self.options['date_start'] = self._parse_datetime(
+        self.options['date_start'] = parse_datetime(
             self.options['date_start'],
+            self.DATE_FORMAT,
         ) if 'date_start' in self.options else None
-        self.options['date_end'] = self._parse_datetime(
+        self.options['date_end'] = parse_datetime(
             self.options['date_end'],
+            self.DATE_FORMAT,
         ) if 'date_end' in self.options else None
         self.options['include_beta'] = process_bool_arg(
             self.options.get('include_beta', False))
         self.options['print'] = process_bool_arg(
             self.options.get('print', False))
-
-    @staticmethod
-    def _parse_datetime(dt_str):
-        t = time.strptime(dt_str, '%Y-%m-%d')
-        return datetime(t[0], t[1], t[2], t[3], t[4], t[5], t[6], pytz.UTC)
 
     def _run_task(self):
         releases = []
@@ -76,7 +73,10 @@ class ReleaseReport(BaseGithubTask):
                         key = 'time_push_sandbox'
                     else:
                         key = 'time_push_production'
-                    release_info[key] = self._parse_datetime(m.group('date'))
+                    release_info[key] = parse_datetime(
+                        m.group('date'),
+                        self.DATE_FORMAT,
+                    )
             releases.append(release_info)
         self.return_values = {'releases': releases}
         if self.options['print']:
