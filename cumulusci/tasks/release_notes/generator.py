@@ -10,7 +10,7 @@ from distutils.version import LooseVersion
 from cumulusci.core.exceptions import GithubApiNotFoundError
 
 from cumulusci.core.utils import import_class
-from cumulusci.tasks.release_notes.github_api import GithubApiMixin
+from cumulusci.tasks.release_notes.exceptions import CumulusCIException
 from cumulusci.tasks.release_notes.parser import ChangeNotesLinesParser
 from cumulusci.tasks.release_notes.parser import IssuesParser
 from cumulusci.tasks.release_notes.provider import StaticChangeNotesProvider
@@ -103,10 +103,11 @@ class DirectoryReleaseNotesGenerator(BaseReleaseNotesGenerator):
         return DirectoryChangeNotesProvider(self, self.directory)
 
 
-class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator, GithubApiMixin):
+class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator):
 
     def __init__(
             self,
+            github,
             github_info,
             parser_config,
             current_tag,
@@ -115,6 +116,7 @@ class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator, GithubApiMixin):
             publish=False,
             has_issues=True,
         ):
+        self.github = github
         self.github_info = github_info
         self.parser_config = parser_config
         self.current_tag = current_tag
@@ -145,12 +147,14 @@ class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator, GithubApiMixin):
         )
 
     def _get_release(self):
-        # Query for the release
-        return self.call_api('/releases/tags/{}'.format(self.current_tag))
+        repo = self.get_repo()
+        for release in repo.iter_releases():
+            if release.tag_name == self.current_tag:
+                return release
 
     def _update_release(self, release, content):
 
-        if release['body']:
+        if release.body:
             new_body = []
             current_parser = None
             is_start_line = False
@@ -158,7 +162,7 @@ class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator, GithubApiMixin):
                 parser.replaced = False
 
             # update existing sections
-            for line in release['body'].splitlines():
+            for line in release.body.splitlines():
 
                 if current_parser:
                     if current_parser._is_end_line(current_parser._process_line(line)):
@@ -195,18 +199,21 @@ class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator, GithubApiMixin):
                 if parser_content and not parser.replaced:
                     new_body.append(parser_content + '\r\n')
 
-            release['body'] = u'\r\n'.join(new_body)
-        else:
-            release['body'] = content
+            content = u'\r\n'.join(new_body)
 
-        if release.get('id'):
-            resp = self.call_api(
-                '/releases/{}'.format(release['id']), data=release)
-        else:
-            resp = self.call_api('/releases', data=release)
+        release.edit(body=content)
+        return content
 
-        return release['body']
+    def get_repo(self):
+        return self.github.repository(
+            self.github_info['github_owner'],
+            self.github_info['github_repo'],
+        )
 
     def publish(self, content):
         release = self._get_release()
+        if not release:
+            raise CumulusCIException(
+                'Release not found for tag: {}'.format(self.current_tag)
+            )
         return self._update_release(release, content)
