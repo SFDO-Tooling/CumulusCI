@@ -100,6 +100,7 @@ class BaseFlow(object):
                 raise ConfigError('"flow" and "task" in same config item')
             if (('flow' in config and config['flow'] == 'None') or
                 ('task' in config and config['task'] == 'None')):
+                # allows skipping flows/tasks using YAML overrides
                 continue
             if 'flow' in config:  # nested flow
                 task_config = self.project_config.get_flow(config['flow'])
