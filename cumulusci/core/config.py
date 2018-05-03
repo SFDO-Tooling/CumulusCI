@@ -726,7 +726,6 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             }
             if dependencies:
                 dependency['dependencies'] = dependencies
-                repo_dependencies.append(dependency)
             repo_dependencies.append(dependency)
 
         # Unmanaged metadata from src (if referenced repo doesn't have a
