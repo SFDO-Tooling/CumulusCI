@@ -88,7 +88,16 @@ class TestBaseFlow(unittest.TestCase):
         self.project_config.config['flows'] = {
             'nested_flow': {
                 'description': 'A flow that runs inside another flow',
-                'tasks': {1: {'task': 'pass_name'}},
+                'tasks': {
+                    1: {'task': 'pass_name'},
+                },
+            },
+            'nested_flow_2': {
+                'description': 'A flow that runs inside another flow, and calls another flow',
+                'tasks': {
+                    1: {'task': 'pass_name'},
+                    2: {'flow': 'nested_flow'},
+                },
             },
         }
         self.org_config = OrgConfig({
@@ -437,3 +446,29 @@ class TestBaseFlow(unittest.TestCase):
         })
         flow = BaseFlow(self.project_config, flow_config, self.org_config)
         flow()
+        self.assertEqual(2, len(flow.tasks))
+        self.assertEqual(
+            flow.task_return_values[0],
+            flow.task_return_values[1][0],
+        )
+
+    def test_nested_flow_2(self, mock_class):
+        """ Flows can run inside other flows and call other flows """
+        flow_config = FlowConfig({
+            'description': 'Run a task and a flow',
+            'tasks': {
+                1: {'task': 'pass_name'},
+                2: {'flow': 'nested_flow_2'},
+            },
+        })
+        flow = BaseFlow(self.project_config, flow_config, self.org_config)
+        flow()
+        self.assertEqual(2, len(flow.tasks))
+        self.assertEqual(
+            flow.task_return_values[0],
+            flow.task_return_values[1][0],
+        )
+        self.assertEqual(
+            flow.task_return_values[0],
+            flow.task_return_values[1][1][0],
+        )
