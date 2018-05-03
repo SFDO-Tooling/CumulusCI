@@ -25,13 +25,10 @@ class BaseFlow(object):
         self.skip = skip
         self.task_options = {}
         self.skip_tasks = []
-        self.task_return_values = []
-        """ A collection of return_values dicts in task execution order """
-        self.task_results = []
-        """ A collection of result objects in task execution order """
-        self.tasks = []
-        """ A collection of configured task objects, either run or failed """
-        self.nested = nested
+        self.task_return_values = []  # A collection of return_values dicts in task execution order
+        self.task_results = []  # A collection of result objects in task execution order
+        self.tasks = []  # A collection of configured task objects, either run or failed
+        self.nested = nested  # indicates if flow is called from another flow
         self._init_options()
         self._init_skip(skip)
         self._init_logger()
