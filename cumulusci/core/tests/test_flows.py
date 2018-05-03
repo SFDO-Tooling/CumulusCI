@@ -85,6 +85,12 @@ class TestBaseFlow(unittest.TestCase):
                     'cumulusci.core.tests.test_flows._SfdcTask'
             },
         }
+        self.project_config.config['flows'] = {
+            'nested_flow': {
+                'description': 'A flow that runs inside another flow',
+                'tasks': {1: {'task': 'pass_name'}},
+            },
+        }
         self.org_config = OrgConfig({
             'username': 'sample@example',
             'org_id': ORG_ID
@@ -419,3 +425,15 @@ class TestBaseFlow(unittest.TestCase):
         org_id_logs = [s for s in self.flow_log['info'] if ORG_ID in s]
 
         self.assertEqual(1, len(org_id_logs))
+
+    def test_nested_flow(self, mock_class):
+        """ Flows can run inside other flows """
+        flow_config = FlowConfig({
+            'description': 'Run a task and a flow',
+            'tasks': {
+                1: {'task': 'pass_name'},
+                2: {'flow': 'nested_flow'},
+            },
+        })
+        flow = BaseFlow(self.project_config, flow_config, self.org_config)
+        flow()
