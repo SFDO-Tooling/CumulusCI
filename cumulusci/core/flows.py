@@ -216,15 +216,15 @@ class BaseFlow(object):
         # NOW TRY TO RUN THE TASK
         self.logger.info('')
         self.logger.info('Running task: %s', task.name)
-        self.pre_task(task)
+        self._pre_task(task)
         try:
             task()
             self.logger.info('Task complete: %s', task.name)
             self.task_results.append(task.result)
             self.task_return_values.append(task.return_values)
-            self.post_task(task)
+            self._post_task(task)
         except Exception as e:
-            self.post_task_exception(task, e)
+            self._post_task_exception(task, e)
             self.logger.error('Task failed: %s', task.name)
             if not flow_task_config['flow_config'].get('ignore_failure'):
                 self.logger.error('Failing flow due to exception in task')
@@ -232,13 +232,13 @@ class BaseFlow(object):
                 raise e
             self.logger.info('Continuing flow')
 
-    def pre_task(self, task):
+    def _pre_task(self, task):
         pass
 
-    def post_task(self, task):
+    def _post_task(self, task):
         pass
 
-    def post_task_exception(self, task, exception):
+    def _post_task_exception(self, task, exception):
         pass
 
     def _get_task(self, stepnum, flow_task_config):
