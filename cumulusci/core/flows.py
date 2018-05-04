@@ -92,6 +92,11 @@ class BaseFlow(object):
                 self._check_infinite_flows(flow_config.tasks, flows)
 
     def _get_tasks(self):
+        tasks = self._get_tasks_ordered()
+        tasks = [task[1] for task in tasks]  # drop the sort keys
+        return tasks
+
+    def _get_tasks_ordered(self):
         if not self.nested:
             self._check_infinite_flows(self.flow_config.tasks)
         tasks = []
@@ -114,7 +119,6 @@ class BaseFlow(object):
                 }
             ))
         tasks.sort()  # sort by step number
-        tasks = [task[1] for task in tasks]  # drop the sort keys
         return tasks
 
     def _render_config(self):
@@ -152,8 +156,8 @@ class BaseFlow(object):
         return config
 
     def __call__(self):
-        for flow_task_config in self._get_tasks():
-            self._run_step(flow_task_config)
+        for stepnum, flow_task_config in self._get_tasks_ordered():
+            self._run_step(stepnum, flow_task_config)
 
     def _find_task_by_name(self, name):
         if not self.flow_config.tasks:
@@ -170,13 +174,13 @@ class BaseFlow(object):
                     return self.tasks[i]
             i += 1
 
-    def _run_step(self, flow_task_config):
+    def _run_step(self, stepnum, flow_task_config):
         if isinstance(flow_task_config['task_config'], FlowConfig):
-            self._run_flow(flow_task_config)
+            self._run_flow(stepnum, flow_task_config)
         elif isinstance(flow_task_config['task_config'], TaskConfig):
-            self._run_task(flow_task_config)
+            self._run_task(stepnum, flow_task_config)
 
-    def _run_flow(self, flow_task_config):
+    def _run_flow(self, stepnum, flow_task_config):
         class_path = flow_task_config['task_config'].config.get(
             'class_path',
             'cumulusci.core.flows.BaseFlow',
@@ -194,7 +198,50 @@ class BaseFlow(object):
         self.tasks.append(flow)
         self.task_return_values.append(flow.task_return_values)
 
-    def _run_task(self, flow_task_config):
+    def _run_task(self, stepnum, flow_task_config):
+
+        task = self._get_task(stepnum, flow_task_config)
+
+        # Skip the task if skip was requested
+        if task.name in self.skip_tasks:
+            self.logger.info('')
+            self.logger.info('Skipping task {}'.format(task.name))
+            return
+
+        self.tasks.append(task)
+
+        for line in self._render_task_config(task):
+            self.logger.info(line)
+
+        # NOW TRY TO RUN THE TASK
+        self.logger.info('')
+        self.logger.info('Running task: %s', task.name)
+        self.pre_task(task)
+        try:
+            task()
+            self.logger.info('Task complete: %s', task.name)
+            self.task_results.append(task.result)
+            self.task_return_values.append(task.return_values)
+            self.post_task(task)
+        except Exception as e:
+            self.post_task_exception(task, e)
+            self.logger.error('Task failed: %s', task.name)
+            if not flow_task_config['flow_config'].get('ignore_failure'):
+                self.logger.error('Failing flow due to exception in task')
+                traceback.print_exc()
+                raise e
+            self.logger.info('Continuing flow')
+
+    def pre_task(self, task):
+        pass
+
+    def post_task(self, task):
+        pass
+
+    def post_task_exception(self, task, exception):
+        pass
+
+    def _get_task(self, stepnum, flow_task_config):
         task_config = copy.deepcopy(flow_task_config['task_config'].config)
         task_config = TaskConfig(task_config)
 
@@ -210,12 +257,6 @@ class BaseFlow(object):
             task_config.config['options'].update(
                 self.task_options[task_name]
             )
-
-        # Skip the task if skip was requested
-        if task_name in self.skip_tasks:
-            self.logger.info('')
-            self.logger.info('Skipping task {}'.format(task_name))
-            return
 
         # Handle dynamic value lookups in the format ^^task_name.attr1.attr2
         for option, value in list(task_config.options.items()):
@@ -235,32 +276,16 @@ class BaseFlow(object):
 
         task_class = import_class(task_config.class_path)
 
-        self.logger.info('')
-        self.logger.info('Running task: %s', task_name)
-
         task = task_class(
             self.project_config,
             task_config,
             org_config=self.org_config,
+            name = task_name,
+            stepnum=stepnum,
             flow=self
         )
-        self.tasks.append(task)
+        return task
 
-        for line in self._render_task_config(task):
-            self.logger.info(line)
-
-        try:
-            task()
-            self.logger.info('Task complete: %s', task_name)
-            self.task_results.append(task.result)
-            self.task_return_values.append(task.return_values)
-        except Exception as e:
-            self.logger.error('Task failed: %s', task_name)
-            if not flow_task_config['flow_config'].get('ignore_failure'):
-                self.logger.error('Failing flow due to exception in task')
-                traceback.print_exc()
-                raise e
-            self.logger.info('Continuing flow')
 
     def _render_task_config(self, task):
         config = ['Options:']
