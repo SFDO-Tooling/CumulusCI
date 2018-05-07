@@ -277,6 +277,15 @@ flows:
                 task: generate_apex_docs
             2:
                 task: commit_apex_docs
+                
+    dev_deploy:
+        description: Unschedule apex and deploy the latest unmanaged metadata.
+        tasks:
+            1:
+                task: unschedule_apex
+            2:
+                task: deploy
+
     dev_org:
         description: Deploys the unmanaged package metadata and all dependencies to the target org
         tasks:
