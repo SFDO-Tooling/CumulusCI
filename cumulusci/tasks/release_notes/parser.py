@@ -1,6 +1,7 @@
 import re
 import os
 
+from cumulusci.core.exceptions import GithubApiNotFoundError
 from exceptions import GithubIssuesError
 
 
@@ -236,11 +237,14 @@ class GithubIssuesParser(IssuesParser):
         return u'\r\n'.join(content)
 
     def _get_issue(self, issue_number):
-        return self.github.issue(
+        issue = self.github.issue(
             self.release_notes_generator.github_info['github_owner'],
             self.release_notes_generator.github_info['github_repo'],
             issue_number,
         )
+        if not issue:
+            raise GithubApiNotFoundError('Issue #{} not found'.format(issue_number))
+        return issue
 
     def _process_change_note(self, pull_request):
         self.pr_number = pull_request.number
