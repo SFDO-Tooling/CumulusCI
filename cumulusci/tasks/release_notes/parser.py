@@ -253,8 +253,11 @@ class GithubIssuesParser(IssuesParser):
         prefix_prod = self.release_notes_generator.github_info['prefix_prod']
         if self.release_notes_generator.current_tag.startswith(prefix_beta):
             is_beta = True
-        else:
+        elif self.release_notes_generator.current_tag.startswith(prefix_prod):
             is_beta = False
+        else:
+            # not production or beta tag, don't comment
+            return
         if is_beta:
             comment_prefix = self.ISSUE_COMMENT['beta']
             version_parts = re.findall(
