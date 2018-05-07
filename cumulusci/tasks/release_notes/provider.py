@@ -125,6 +125,8 @@ class GithubChangeNotesProvider(BaseChangeNotesProvider):
 
     def _get_tag_info(self, tag_name):
         tag = self.repo.ref('tags/{}'.format(tag_name))
+        if not tag:
+            raise GithubApiNotFoundError('Tag not found: {}'.format(tag_name))
         if tag.object.type != 'tag':
             raise GithubApiError(
                 'Tag {} is lightweight, must be annotated.'.format(tag_name)
