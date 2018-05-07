@@ -129,9 +129,15 @@ class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator):
         super(GithubReleaseNotesGenerator, self).__init__()
 
     def __call__(self):
+        release = self._get_release()
+        if not release:
+            raise CumulusCIException(
+                'Release not found for tag: {}'.format(self.current_tag)
+            )
         content = super(GithubReleaseNotesGenerator, self).__call__()
+        content = self._update_release_content(release, content)
         if self.do_publish:
-            content = self.publish(content)
+            release.edit(body=content)
         return content
 
     def _init_parsers(self):
@@ -152,8 +158,8 @@ class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator):
             if release.tag_name == self.current_tag:
                 return release
 
-    def _update_release(self, release, content):
-
+    def _update_release_content(self, release, content):
+        """Merge existing and new release content."""
         if release.body:
             new_body = []
             current_parser = None
@@ -201,7 +207,6 @@ class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator):
 
             content = u'\r\n'.join(new_body)
 
-        release.edit(body=content)
         return content
 
     def get_repo(self):
@@ -209,11 +214,3 @@ class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator):
             self.github_info['github_owner'],
             self.github_info['github_repo'],
         )
-
-    def publish(self, content):
-        release = self._get_release()
-        if not release:
-            raise CumulusCIException(
-                'Release not found for tag: {}'.format(self.current_tag)
-            )
-        return self._update_release(release, content)
