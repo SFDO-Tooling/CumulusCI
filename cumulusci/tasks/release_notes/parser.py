@@ -223,19 +223,19 @@ class GithubIssuesParser(IssuesParser):
     def _render_content(self):
         content = []
         for item in sorted(self.content, key=lambda k: k['issue_number']):
-            issue_info = self._get_issue_info(item['issue_number'])
-            txt = '#{}: {}'.format(item['issue_number'], issue_info.title)
+            issue = self._get_issue(item['issue_number'])
+            txt = '#{}: {}'.format(item['issue_number'], issue.title)
             if self.link_pr:
                 txt += ' [[PR{}]({})]'.format(
                     item['pr_number'],
                     item['pr_url'],
                 )
             content.append(txt)
+            if self.publish:
+                self._add_issue_comment(issue)
         return u'\r\n'.join(content)
 
-    def _get_issue_info(self, issue_number):
-        if self.publish:
-            self._add_issue_comment(issue_number)
+    def _get_issue(self, issue_number):
         return self.github.issue(
             self.release_notes_generator.github_info['github_owner'],
             self.release_notes_generator.github_info['github_repo'],
@@ -247,7 +247,7 @@ class GithubIssuesParser(IssuesParser):
         self.pr_url = pull_request.html_url
         return pull_request.body
 
-    def _add_issue_comment(self, issue_number):
+    def _add_issue_comment(self, issue):
         # Ensure all issues have a comment on which release they were fixed
         prefix_beta = self.release_notes_generator.github_info['prefix_beta']
         prefix_prod = self.release_notes_generator.github_info['prefix_prod']
@@ -268,8 +268,6 @@ class GithubIssuesParser(IssuesParser):
                 prefix_prod,
                 '',
             )
-        repo = self.release_notes_generator.get_repo()
-        issue = repo.issue(issue_number)
         has_comment = False
         for comment in issue.iter_comments():
             if comment.body.startswith(comment_prefix):
