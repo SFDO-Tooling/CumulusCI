@@ -120,7 +120,7 @@ class GithubChangeNotesProvider(BaseChangeNotesProvider):
             return self._get_commit_date(self.last_tag_info['commit'])
 
     def _get_commit_date(self, commit):
-        t = time.strptime(commit.last_modified, '%a, %d %b %Y %H:%M:%S GMT')
+        t = time.strptime(commit.commit.author['date'], '%Y-%m-%dT%H:%M:%SZ')
         return datetime(t[0], t[1], t[2], t[3], t[4], t[5], t[6], pytz.UTC)
 
     def _get_tag_info(self, tag_name):
