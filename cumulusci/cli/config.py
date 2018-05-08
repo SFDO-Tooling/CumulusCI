@@ -8,6 +8,7 @@ from cumulusci.core.exceptions import ConfigError
 from cumulusci.core.exceptions import NotInProject
 from cumulusci.core.exceptions import ProjectConfigNotFound
 from cumulusci.core.utils import import_class
+from cumulusci.utils import validate_cci_key
 from .logger import init_logger
 
 
@@ -46,6 +47,7 @@ class CliConfig(object):
 
     def _load_keychain(self):
         self.keychain_key = os.environ.get('CUMULUSCI_KEY')
+        validate_cci_key(self.keychain_key)
         if self.project_config:
             keychain_class = os.environ.get(
                 'CUMULUSCI_KEYCHAIN_CLASS',
