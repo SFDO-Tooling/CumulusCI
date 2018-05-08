@@ -1,8 +1,8 @@
 import re
 import os
 
+from cumulusci.core.exceptions import GithubApiNotFoundError
 from exceptions import GithubIssuesError
-from cumulusci.tasks.release_notes.github_api import GithubApiMixin
 
 
 class BaseChangeNotesParser(object):
@@ -136,9 +136,9 @@ class GithubLinesParser(ChangeNotesLinesParser):
         self.pr_url = None
 
     def _process_change_note(self, pull_request):
-        self.pr_number = pull_request['number']
-        self.pr_url = pull_request['html_url']
-        return pull_request['body']
+        self.pr_number = pull_request.number
+        self.pr_url = pull_request.html_url
+        return pull_request.body
 
     def _add_link(self, line):
         if self.link_pr:
@@ -174,20 +174,7 @@ class IssuesParser(ChangeNotesLinesParser):
         return u'\r\n'.join(issues)
 
 
-class ParserGithubApiMixin(GithubApiMixin):
-
-    @property
-    def current_tag(self):
-        return self.release_notes_generator.current_tag
-
-    @property
-    def github_info(self):
-        # By default, look for github config info in the release_notes
-        # property.  Subclasses can override this if needed
-        return self.release_notes_generator.github_info
-
-
-class GithubIssuesParser(IssuesParser, ParserGithubApiMixin):
+class GithubIssuesParser(IssuesParser):
     ISSUE_COMMENT = {
         'beta': 'Included in beta release',
         'prod': 'Included in production release',
@@ -208,6 +195,7 @@ class GithubIssuesParser(IssuesParser, ParserGithubApiMixin):
         self.pr_number = None
         self.pr_url = None
         self.publish = release_notes_generator.do_publish
+        self.github = release_notes_generator.github
 
     def _add_line(self, line):
         # find issue numbers per line
@@ -236,60 +224,61 @@ class GithubIssuesParser(IssuesParser, ParserGithubApiMixin):
     def _render_content(self):
         content = []
         for item in sorted(self.content, key=lambda k: k['issue_number']):
-            issue_info = self._get_issue_info(item['issue_number'])
-            txt = '#{}: {}'.format(item['issue_number'], issue_info['title'])
+            issue = self._get_issue(item['issue_number'])
+            txt = '#{}: {}'.format(item['issue_number'], issue.title)
             if self.link_pr:
                 txt += ' [[PR{}]({})]'.format(
                     item['pr_number'],
                     item['pr_url'],
                 )
             content.append(txt)
+            if self.publish:
+                self._add_issue_comment(issue)
         return u'\r\n'.join(content)
 
-    def _get_issue_info(self, issue_number):
-        if self.publish:
-            self._add_issue_comment(issue_number)
-        response = self.call_api('/issues/{}'.format(issue_number))
-        if 'message' in response:
-            raise GithubIssuesError(response['message'])
-        return response
+    def _get_issue(self, issue_number):
+        issue = self.github.issue(
+            self.release_notes_generator.github_info['github_owner'],
+            self.release_notes_generator.github_info['github_repo'],
+            issue_number,
+        )
+        if not issue:
+            raise GithubApiNotFoundError('Issue #{} not found'.format(issue_number))
+        return issue
 
     def _process_change_note(self, pull_request):
-        self.pr_number = pull_request['number']
-        self.pr_url = pull_request['html_url']
-        return pull_request['body']
+        self.pr_number = pull_request.number
+        self.pr_url = pull_request.html_url
+        return pull_request.body
 
-    def _add_issue_comment(self, issue_number):
+    def _add_issue_comment(self, issue):
         # Ensure all issues have a comment on which release they were fixed
-        gh_issue_comments = self.call_api(
-            '/issues/{}/comments'.format(issue_number))
+        prefix_beta = self.release_notes_generator.github_info['prefix_beta']
+        prefix_prod = self.release_notes_generator.github_info['prefix_prod']
+        if self.release_notes_generator.current_tag.startswith(prefix_beta):
+            is_beta = True
+        elif self.release_notes_generator.current_tag.startswith(prefix_prod):
+            is_beta = False
+        else:
+            # not production or beta tag, don't comment
+            return
+        if is_beta:
+            comment_prefix = self.ISSUE_COMMENT['beta']
+            version_parts = re.findall(
+                '{}(\d+\.\d+)-Beta_(\d+)'.format(prefix_beta),
+                self.release_notes_generator.current_tag,
+            )
+            version_str = '{} (Beta {})'.format(*version_parts[0])
+        else:
+            comment_prefix = self.ISSUE_COMMENT['prod']
+            version_str = self.release_notes_generator.current_tag.replace(
+                prefix_prod,
+                '',
+            )
         has_comment = False
-
-        current_tag_info = self.current_tag_info
-
-        for comment in gh_issue_comments:
-            if current_tag_info['is_prod']:
-                if comment['body'].startswith(self.ISSUE_COMMENT['prod']):
-                    has_comment = True
-            elif current_tag_info['is_beta']:
-                if comment['body'].startswith(self.ISSUE_COMMENT['beta']):
-                    has_comment = True
-
+        for comment in issue.iter_comments():
+            if comment.body.startswith(comment_prefix):
+                has_comment = True
+                break
         if not has_comment:
-            data = {}
-            if current_tag_info['is_prod']:
-                data['body'] = '{} {}'.format(
-                    self.ISSUE_COMMENT['prod'],
-                    current_tag_info['version_number'],
-                )
-            elif current_tag_info['is_beta']:
-                data['body'] = '{} {}'.format(
-                    self.ISSUE_COMMENT['beta'],
-                    current_tag_info['version_number'],
-                )
-
-            if data:
-                self.call_api(
-                    '/issues/{}/comments'.format(issue_number),
-                    data=data,
-                )
+            issue.create_comment('{} {}'.format(comment_prefix, version_str))

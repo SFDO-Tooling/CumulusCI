@@ -1,6 +1,7 @@
 import re
 import os
-
+import pytz
+import time
 from datetime import datetime
 from distutils.version import LooseVersion
 
@@ -8,7 +9,6 @@ from cumulusci.core.exceptions import GithubApiError
 from cumulusci.core.exceptions import GithubApiNoResultsError
 from cumulusci.core.exceptions import GithubApiNotFoundError
 from cumulusci.tasks.release_notes.exceptions import LastReleaseTagNotFoundError
-from cumulusci.tasks.release_notes.github_api import GithubApiMixin
 
 
 class BaseChangeNotesProvider(object):
@@ -46,20 +46,7 @@ class DirectoryChangeNotesProvider(BaseChangeNotesProvider):
             yield open('{}/{}'.format(self.directory, item)).read()
 
 
-class ProviderGithubApiMixin(GithubApiMixin):
-
-    @property
-    def current_tag(self):
-        return self.release_notes_generator.current_tag
-
-    @property
-    def github_info(self):
-        # By default, look for github config info in the release_notes
-        # property.  Subclasses can override this if needed
-        return self.release_notes_generator.github_info
-
-
-class GithubChangeNotesProvider(BaseChangeNotesProvider, ProviderGithubApiMixin):
+class GithubChangeNotesProvider(BaseChangeNotesProvider):
     """ Provides changes notes by finding all merged pull requests to
         the default branch between two tags.
 
@@ -80,10 +67,12 @@ class GithubChangeNotesProvider(BaseChangeNotesProvider, ProviderGithubApiMixin)
     def __init__(self, release_notes_generator, current_tag, last_tag=None):
         super(GithubChangeNotesProvider, self).__init__(
             release_notes_generator)
-        #self.current_tag = current_tag
+        self.current_tag = current_tag
         self._last_tag = last_tag
         self._start_date = None
         self._end_date = None
+        self.repo = release_notes_generator.get_repo()
+        self.github_info = release_notes_generator.github_info
 
     def __call__(self):
         for pull_request in self._get_pull_requests():
@@ -98,25 +87,28 @@ class GithubChangeNotesProvider(BaseChangeNotesProvider, ProviderGithubApiMixin)
     @property
     def current_tag_info(self):
         if not hasattr(self, '_current_tag_info'):
-            self._current_tag_info = self._get_tag_info(self.current_tag)
-            self._current_tag_info['commit'] = self._get_commit_info(
-                self._current_tag_info)
+            tag = self._get_tag_info(self.current_tag)
+            self._current_tag_info = {
+                'tag': tag,
+                'commit': self._get_commit_info(tag),
+            }
         return self._current_tag_info
 
     @property
     def last_tag_info(self):
         if not hasattr(self, '_last_tag_info'):
             if self.last_tag:
-                self._last_tag_info = self._get_tag_info(self.last_tag)
-                self._last_tag_info['commit'] = self._get_commit_info(
-                    self._last_tag_info)
+                tag = self._get_tag_info(self.last_tag)
+                self._last_tag_info = {
+                    'tag': tag,
+                    'commit': self._get_commit_info(tag),
+                }
             else:
                 self._last_tag_info = None
         return self._last_tag_info
 
-    def _get_commit_info(self, tag_info):
-        commit_sha = tag_info['tag']['object']['sha']
-        return self.call_api('/git/commits/{}'.format(commit_sha))
+    def _get_commit_info(self, tag):
+        return self.repo.commit(tag.object.sha)
 
     @property
     def start_date(self):
@@ -127,31 +119,25 @@ class GithubChangeNotesProvider(BaseChangeNotesProvider, ProviderGithubApiMixin)
         if self.last_tag_info:
             return self._get_commit_date(self.last_tag_info['commit'])
 
-    def _get_commit_date(self, commit_info):
-        commit_date = commit_info['author']['date']
-        return datetime.strptime(commit_date, "%Y-%m-%dT%H:%M:%SZ")
+    def _get_commit_date(self, commit):
+        t = time.strptime(commit.commit.author['date'], '%Y-%m-%dT%H:%M:%SZ')
+        return datetime(t[0], t[1], t[2], t[3], t[4], t[5], t[6], pytz.UTC)
 
-    def _get_tag_info(self, tag):
-        tag_info = {
-            'ref': self.call_api('/git/refs/tags/{}'.format(tag)),
-        }
-        if tag_info['ref']['object']['type'] != 'tag':
+    def _get_tag_info(self, tag_name):
+        tag = self.repo.ref('tags/{}'.format(tag_name))
+        if not tag:
+            raise GithubApiNotFoundError('Tag not found: {}'.format(tag_name))
+        if tag.object.type != 'tag':
             raise GithubApiError(
-                'Tag {} '.format(tag_info['ref']['ref'][10:]) +
-                'is lightweight, must be annotated.'
+                'Tag {} is lightweight, must be annotated.'.format(tag_name)
             )
-        try:
-            tag_info['tag'] = self.call_api(
-                '/git/tags/{}'.format(tag_info['ref']['object']['sha']))
-        except GithubApiNotFoundError:
-            tag_info['tag'] = None
-        return tag_info
+        return self.repo.tag(tag.object.sha)
 
     def _get_version_from_tag(self, tag):
-        if tag.startswith(self.prefix_prod):
-            return tag.replace(self.prefix_prod, '')
-        elif tag.startswith(self.prefix_beta):
-            return tag.replace(self.prefix_beta, '')
+        if tag.startswith(self.github_info['prefix_prod']):
+            return tag.replace(self.github_info['prefix_prod'], '')
+        elif tag.startswith(self.github_info['prefix_beta']):
+            return tag.replace(self.github_info['prefix_beta'], '')
         raise ValueError(
             'Could not determine version number from tag {}'.format(tag))
 
@@ -159,76 +145,53 @@ class GithubChangeNotesProvider(BaseChangeNotesProvider, ProviderGithubApiMixin)
         """ Gets the last release tag before self.current_tag """
 
         current_version = LooseVersion(
-            self._get_version_from_tag(self.current_tag))
+            self._get_version_from_tag(self.release_notes_generator.current_tag))
 
         versions = []
-        try:
-            refs = self.call_api('/git/refs/tags/{}'.format(self.prefix_prod))
-        except GithubApiNotFoundError:
-            # no production tags exist
-            refs = []
-        for ref in refs:
-            ref_prefix = 'refs/tags/{}'.format(self.prefix_prod)
-
-            # If possible to match a version number, extract the version number
-            if re.search('%s[0-9][0-9]*\.[0-9][0-9]*' % ref_prefix, ref['ref']):
-                version = LooseVersion(ref['ref'].replace(ref_prefix, ''))
-                # Skip the current_version and any newer releases
-                if version >= current_version:
-                    continue
-                versions.append(version)
-
+        for tag in self.repo.iter_tags():
+            if not tag.name.startswith(self.github_info['prefix_prod']):
+                continue
+            version = LooseVersion(self._get_version_from_tag(tag.name))
+            if version >= current_version:
+                continue
+            versions.append(version)
         if versions:
             versions.sort()
-            versions.reverse()
-            return '%s%s' % (self.prefix_prod, versions[0])
+            return '{}{}'.format(self.github_info['prefix_prod'], versions[-1])
 
     def _get_pull_requests(self):
         """ Gets all pull requests from the repo since we can't do a filtered
         date merged search """
-        try:
-            pull_requests = self.call_api(
-                '/pulls?page=1&per_page=100&state=closed&base={}'.format(self.master_branch)
-            )
-        except GithubApiNoResultsError:
-            pull_requests = []
-
-        for pull_request in reversed(pull_requests):
-            if self._include_pull_request(pull_request):
-                yield pull_request
+        for pull in self.repo.iter_pulls(
+            state='closed',
+            base=self.github_info['master_branch'],
+            direction='asc',
+        ):
+            if self._include_pull_request(pull):
+                yield pull
 
     def _include_pull_request(self, pull_request):
         """ Checks if the given pull_request was merged to the default branch
         between self.start_date and self.end_date """
 
-        if pull_request['state'] == 'open':
-            return False
-
-        if pull_request['base']['ref'] != self.master_branch:
-            return False
-
-        merged_date = pull_request.get('merged_at')
+        merged_date = pull_request.merged_at
         if not merged_date:
             return False
-
-        merged_date = datetime.strptime(merged_date, "%Y-%m-%dT%H:%M:%SZ")
-
-        merge_sha = pull_request['merge_commit_sha']
         if self.last_tag:
-            last_tag_sha = self.last_tag_info['commit']['sha']
-            if merge_sha == last_tag_sha:
+            last_tag_sha = self.last_tag_info['commit'].sha
+            if pull_request.merge_commit_sha == last_tag_sha:
                 # Github commit dates can be different from the merged_at date
                 return False
 
-        current_tag_sha = self.current_tag_info['commit']['sha']
-        if merge_sha == current_tag_sha:
+        current_tag_sha = self.current_tag_info['commit'].sha
+        if pull_request.merge_commit_sha == current_tag_sha:
             return True
 
         # include PRs before current tag
         if merged_date <= self.start_date:
             if self.end_date:
                 # include PRs after last tag
-                if merged_date > self.end_date and merge_sha != last_tag_sha:
+                if merged_date > self.end_date and pull_request.merge_commit_sha != last_tag_sha:
                     return True
             else:
                 # no last tag, include all PRs before current tag
