@@ -727,7 +727,7 @@ class DeployBundles(Deploy):
             self.logger.warn('Path {} not found, skipping'.format(path))
             return
 
-        for item in os.listdir(path):
+        for item in sorted(os.listdir(path)):
             item_path = os.path.join(path, item)
             if not os.path.isdir(item_path):
                 continue
@@ -980,7 +980,7 @@ class UninstallLocalBundles(UninstallLocal):
 
         self.logger.info('Deleting all metadata from bundles in {} from target org'.format(path))
 
-        for item in os.listdir(path):
+        for item in sorted(os.listdir(path)):
             item_path = os.path.join(path, item)
             if not os.path.isdir(item_path):
                 continue
