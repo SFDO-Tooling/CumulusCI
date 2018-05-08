@@ -370,7 +370,7 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
         return self.project_config.project_local_dir
 
     def _load_files(self, dirname, extension, key):
-        for item in os.listdir(dirname):
+        for item in sorted(os.listdir(dirname)):
             if item.endswith(extension):
                 with open(os.path.join(dirname, item), 'r') as f_item:
                     config = f_item.read()

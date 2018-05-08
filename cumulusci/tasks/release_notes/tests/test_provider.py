@@ -72,7 +72,7 @@ class TestDirectoryChangeNotesProvider(unittest.TestCase):
 
     def get_dir_content(self, path):
         dir_content = []
-        for item in os.listdir(path):
+        for item in sorted(os.listdir(path)):
             item_path = '{}/{}'.format(path, item)
             dir_content.append(open(item_path, 'r').read())
         return dir_content
