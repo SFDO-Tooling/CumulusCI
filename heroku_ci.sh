@@ -41,36 +41,6 @@ if [ "$HEROKU_TEST_RUN_BRANCH" != "master" ] &&\
     fi
 fi
 
-# Run the robot tests for the CumulusCI and Salesforce library
-echo "--------------------------------------------"
-echo "Running CumulusCI and Salesforce robot tests"
-echo "--------------------------------------------"
-
-cci org info dev
-
-# Start TAP output
-echo "1...2"
-
-coverage run --append --source=cumulusci `which cci` task run robot --org dev -o suites cumulusci/robotframework/tests/cumulusci | tee robot_cumulusci.log
-exit_status=${PIPESTATUS[0]}
-if [ "$exit_status" == "0" ]; then
-    echo "ok 1 - CumulusCI robot tests passed"
-else
-    echo "not ok 1 - Failed CumulusCI robot tests: `cat robot_cumulusci.log`"
-    failed=1
-fi
-
-coverage run --append --source=cumulusci `which cci` task run robot --org dev -o vars BROWSER:headlesschrome,CHROME_BINARY:$GOOGLE_CHROME_BIN -o suites cumulusci/robotframework/tests/salesforce | tee robot_salesforce.log
-exit_status=${PIPESTATUS[0]}
-if [ "$exit_status" == "0" ]; then
-    echo "ok 2 - Salesforce robot tests passed"
-else
-    echo "not ok 2 - Failed Salesforce robot tests: `cat robot_salesforce.log`"
-    failed=1
-fi
-
-cci org scratch_delete dev
-
 # Clone the CumulusCI-Test repo to run test builds against it with cci
 echo "------------------------------------------"
 echo "Running test builds against CumulusCI-Test"
