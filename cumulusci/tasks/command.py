@@ -9,10 +9,12 @@ SalesforceBrowserTest - a task designed to wrap browser testing that could
 import json
 import os
 import subprocess
+import sys
 
 from cumulusci.core.exceptions import CommandException
 from cumulusci.core.exceptions import BrowserTestFailure
 from cumulusci.core.tasks import BaseTask
+from cumulusci.core.utils import process_bool_arg
 
 
 class Command(BaseTask):
@@ -37,16 +39,21 @@ class Command(BaseTask):
                            'Defaults to True',
             'required': True,
         },
+        'interactive': {
+            'description': 'If True, the command will use stderr, stdout, '
+                           'and stdin of the main process.'
+                           'Defaults to False.',
+        },
     }
 
     def _init_options(self, kwargs):
         super(Command, self)._init_options(kwargs)
         if 'pass_env' not in self.options:
             self.options['pass_env'] = True
-        if self.options['pass_env'] == 'False':
-            self.options['pass_env'] = False
         if 'dir' not in self.options or not self.options['dir']:
             self.options['dir'] = '.'
+        if 'interactive' not in self.options:
+            self.options['interactive'] = False
         if 'env' not in self.options:
             self.options['env'] = {}
         else:
@@ -61,7 +68,7 @@ class Command(BaseTask):
         self._run_command(env)
 
     def _get_env(self):
-        if self.options['pass_env']:
+        if process_bool_arg(self.options['pass_env']):
             env = os.environ.copy()
         else:
             env = {}
@@ -84,23 +91,27 @@ class Command(BaseTask):
     def _run_command(self, env, command=None, output_handler=None, return_code_handler=None):
         if not command:
             command = self.options['command']
+        interactive_mode = process_bool_arg(self.options['interactive'])
         self.logger.info('Running command: %s', command)
         p = subprocess.Popen(
             command,
-            stdout=subprocess.PIPE,
+            stdout=sys.stdout if interactive_mode else subprocess.PIPE,
+            stderr=sys.stderr if interactive_mode else subprocess.PIPE,
+            stdin=sys.stdin if interactive_mode else subprocess.PIPE,
             bufsize=1,
             shell=True,
-            executable='/bin/bash',
             env=env,
             cwd=self.options.get('dir'),
         )
 
-        # Handle output lines
-        if not output_handler:
-            output_handler = self._process_output
-        for line in iter(p.stdout.readline, ''):
-            output_handler(line)
-        p.stdout.close()
+        if not interactive_mode:
+            # Handle output lines
+            if not output_handler:
+                output_handler = self._process_output
+            for line in iter(p.stdout.readline, ''):
+                output_handler(line)
+            p.stdout.close()
+
         p.wait()
         
         # Handle return code

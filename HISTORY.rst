@@ -2,6 +2,40 @@
 History
 =======
 
+2.0.0-beta93 (2018-04-20)
+-------------------------
+
+- Fix issue in command task for Windows
+- Support interactive in command task (thanks Chris Landry!)
+- Search more pull requests (100 vs 30) when generating release notes
+- Add options to Apex documentation generator task
+
+2.0.0-beta92 (2018-04-04)
+-------------------------
+
+- Ignore OWNERS file in package.xml generation
+- Pipe stderr in command tasks
+
+2.0.0-beta91 (2018-04-03)
+-------------------------
+
+- Fix issue in ZIP functionality for Windows
+
+2.0.0-beta90 (2018-03-26)
+-------------------------
+
+- Include missing scratch_def.json template file needed by cci project init
+
+2.0.0-beta89 (2018-03-23)
+-------------------------
+
+- Improved cci project init
+    - Prompt for extending a repository with HEDA and NPSP as selectable options
+    - Use jinja2 templates included with cumulusci to create files
+    - Include a default Robot test
+- update_package_xml now ignores CODEOWNERS files used by Github
+- Fixed an import error for click in cci
+
 2.0.0-beta88 (2018-03-20)
 -------------------------
 

@@ -150,6 +150,10 @@ class BaseMetadataParser(object):
             if item.startswith('.'):
                 continue
 
+            # Ignore the CODEOWNERS file which is special to Github
+            if item in ['CODEOWNERS','OWNERS']:
+                continue
+
             if self.extension and not item.endswith('.' + self.extension):
                 continue
 

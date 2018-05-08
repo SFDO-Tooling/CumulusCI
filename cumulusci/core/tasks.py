@@ -29,6 +29,8 @@ class BaseTask(object):
         task_config,
         org_config=None,
         flow=None,
+        name=None,
+        stepnum=None,
         **kwargs
     ):
         self.project_config = project_config
@@ -38,6 +40,7 @@ class BaseTask(object):
         self.poll_interval_level = 0
         self.poll_interval_s = 1
         self.poll_complete = False
+        
 
         # dict of return_values that can be used by task callers
         self.return_values = {}
@@ -47,6 +50,12 @@ class BaseTask(object):
 
         # the flow for this task execution
         self.flow = flow
+        
+        # the tasks name in the flow
+        self.name = name
+
+        # the tasks stepnumber in the flow
+        self.stepnum = stepnum
 
         if self.salesforce_task and not self.org_config:
             raise TaskRequiresSalesforceOrg(

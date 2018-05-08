@@ -6,6 +6,12 @@ decode_to_unicode: get unicode string from sf api """
 from __future__ import unicode_literals
 
 from past.builtins import basestring
+
+from datetime import datetime
+import pytz
+import time
+
+
 def import_class(path):
     """ Import a class from a string module class path """
     components = path.split('.')
@@ -14,6 +20,12 @@ def import_class(path):
     # __import__ needs a native str() on py2
     mod = __import__(module, fromlist=[str(components[-1])])
     return getattr(mod, str(components[-1]))
+
+
+def parse_datetime(dt_str, format):
+    """Create a timezone-aware datetime object from a datetime string."""
+    t = time.strptime(dt_str, format)
+    return datetime(t[0], t[1], t[2], t[3], t[4], t[5], t[6], pytz.UTC)
 
 
 def process_bool_arg(arg):

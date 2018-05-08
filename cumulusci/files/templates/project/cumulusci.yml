@@ -1,0 +1,49 @@
+project:
+    name: {{ project_name }}
+    package:
+        name:  {{ package_name }}
+        {% if package_namespace %}
+        namespace: {{ package_namespace }}
+        {% endif %}
+        api_version: '{{ api_version }}'
+    {% if dependencies %}
+    dependencies:
+    {% for dep in dependencies %}
+      {% if dep.type == 'github' %}
+        - github: '{{ dep.url }}'
+      {% elif dep.type == 'managed' %}
+        - namespace: {{ dep.namespace }}
+          version: {{ dep.version }}
+      {% elif dep.type == 'unmanaged' %}
+        - zip_url: '{{ dep.url }}'
+          {% if dep.subfolder %}
+          subfolder: '{{ dep.subfolder }}'
+          {% endif %}
+      {% endif %}
+    {% endfor %}
+    {% endif %}
+
+    {% if git %}
+    git:{% endif %}
+      {% if git.default_branch %} 
+        default_branch: '{{ git.default_branch }}'{% endif %}
+      {% if git.prefix_feature %} 
+        prefix_feature: '{{ git.prefix_feature }}'{% endif %}
+      {% if git.prefix_beta %} 
+        prefix_beta: '{{ git.prefix_beta }}'{% endif %}
+      {% if git.prefix_release %} 
+        prefix_release: '{{ git.prefix_release }}'{% endif %}
+
+    {% if test_name_match %}
+    test:
+        name_match: '{{ test_name_match }}'
+    {% endif %}
+{% if package_namespace %}
+
+orgs:
+    scratch:
+        dev_namespaced:
+            config_file: orgs/dev.json
+            days: 7
+            namespaced: True
+{% endif %}
