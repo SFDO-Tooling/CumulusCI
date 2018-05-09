@@ -42,7 +42,7 @@ class DirectoryChangeNotesProvider(BaseChangeNotesProvider):
         self.directory = directory
 
     def __call__(self):
-        for item in os.listdir(self.directory):
+        for item in sorted(os.listdir(self.directory)):
             yield open('{}/{}'.format(self.directory, item)).read()
 
 
