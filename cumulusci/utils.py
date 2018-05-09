@@ -12,8 +12,6 @@ import requests
 
 import xml.etree.ElementTree as ET
 
-from cumulusci.core.exceptions import ConfigError
-
 CUMULUSCI_PATH = os.path.realpath(
     os.path.join(os.path.dirname(os.path.realpath(__file__)), '..')
 )
@@ -118,16 +116,7 @@ def download_extract_zip(url, target=None, subfolder=None):
         zip_file.extractall(target)
         return
     return zip_file
-
-
-def validate_cci_key(key):
-    """Raise an exception if the CUMULUSCI_KEY has issues."""
-    if not key:
-        raise ConfigError('Environment variable CUMULUSCI_KEY not set')
-    if len(key) != 16:
-        raise ConfigError('CUMULUSCI_KEY must be 16 characters long')
-
-
+    
 def zip_subfolder(zip_src, path):
     if not path.endswith('/'):
         path = path + '/'
