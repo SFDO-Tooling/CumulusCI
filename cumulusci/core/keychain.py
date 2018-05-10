@@ -214,10 +214,7 @@ class BaseProjectKeychain(BaseConfig):
         return self.services.get(name)
 
     def _validate_key(self):
-        if not self.key:
-            raise ConfigError('CUMULUSCI_KEY not set')
-        if len(self.key) != 16:
-            raise ConfigError('CUMULUSCI_KEY must be 16 characters long')
+        pass
 
     def _validate_service(self, name, service_config):
         missing_required = []
@@ -283,9 +280,6 @@ class EnvironmentProjectKeychain(BaseProjectKeychain):
                 service_config = json.loads(value)
                 service_name = key[len(self.service_var_prefix):]
                 self._set_service(service_name, ServiceConfig(service_config))
-
-    def _validate_key(self):
-        pass
 
 
 BS = 16
@@ -363,6 +357,12 @@ class BaseEncryptedProjectKeychain(BaseProjectKeychain):
             config_class = ScratchOrgConfig
         
         return config_class(*args)
+
+    def _validate_key(self):
+        if not self.key:
+            raise ConfigError('CUMULUSCI_KEY not set')
+        if len(self.key) != 16:
+            raise ConfigError('CUMULUSCI_KEY must be 16 characters long')
 
 
 class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
