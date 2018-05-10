@@ -13,6 +13,7 @@ from cumulusci.core.config import ConnectedAppOAuthConfig
 from cumulusci.core.config import OrgConfig
 from cumulusci.core.config import ScratchOrgConfig
 from cumulusci.core.config import ServiceConfig
+from cumulusci.core.exceptions import ConfigError
 from cumulusci.core.exceptions import OrgNotFound
 from cumulusci.core.exceptions import ServiceNotConfigured
 from cumulusci.core.exceptions import ServiceNotValid
@@ -31,6 +32,7 @@ class BaseProjectKeychain(BaseConfig):
         }
         self.project_config = project_config
         self.key = key
+        self._validate_key()
         self._load_keychain()
 
     def _load_keychain(self):
@@ -211,6 +213,9 @@ class BaseProjectKeychain(BaseConfig):
     def _get_service(self, name):
         return self.services.get(name)
 
+    def _validate_key(self):
+        pass
+
     def _validate_service(self, name, service_config):
         missing_required = []
         attr_key = 'services__{0}__attributes'.format(name)
@@ -275,7 +280,6 @@ class EnvironmentProjectKeychain(BaseProjectKeychain):
                 service_config = json.loads(value)
                 service_name = key[len(self.service_var_prefix):]
                 self._set_service(service_name, ServiceConfig(service_config))
-
 
 
 BS = 16
@@ -353,6 +357,12 @@ class BaseEncryptedProjectKeychain(BaseProjectKeychain):
             config_class = ScratchOrgConfig
         
         return config_class(*args)
+
+    def _validate_key(self):
+        if not self.key:
+            raise ConfigError('CUMULUSCI_KEY not set')
+        if len(self.key) != 16:
+            raise ConfigError('CUMULUSCI_KEY must be 16 characters long')
 
 
 class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
