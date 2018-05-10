@@ -8,7 +8,7 @@ History
 - Support added for nested flows. Specify a flow instead of a task inside another flow in cumulusci.yml
 - Add new task github_release_report to report info from GitHub release notes
 - Add new flow dev_deploy for minimal deploy (tasks: unschedule_jobs, deploy)
-- Enhance BaseFlow to be more easily subclassed/overridden/observed. Preserves task step number and adds several hook methods for subclasses (pre_task, post_task, post_task_exception)
+- Enhance BaseFlow to be more easily subclassed/overridden/observed. Preserves task step number and adds several hook methods for subclasses (_pre_task, _post_task, _post_task_exception)
 - Refactor github_release_notes task to use github3.py instead of calling the GitHub API directly. Includes these minor changes to functionality:
     - Cannot create release with this task (use github_create_release instead)
     - Merge existing release notes even when not publishing
