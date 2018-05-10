@@ -24,7 +24,7 @@ requirements = [
     'click>=6.2',
     'coloredlogs>=5.2',
     'docutils>=0.13.1',
-    'future==0.16.0'
+    'future==0.16.0',
     'github3.py==0.9.6',
     'HiYaPyCo>=0.4.8',
     'lxml>=3.8.0',
