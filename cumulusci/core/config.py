@@ -977,7 +977,7 @@ class ScratchOrgConfig(OrgConfig):
             'devhub': ' --targetdevhubusername {}'.format(self.devhub) if self.devhub else '',
             'namespaced': ' -n' if not self.namespaced else '',
             'days': ' --durationdays {}'.format(self.days) if self.days else '',
-            'alias': ' -a {}'.format(self.sfdx_alias) if self.sfdx_alias else '',
+            'alias': ' -a "{}"'.format(self.sfdx_alias) if self.sfdx_alias else '',
             'extraargs': os.environ.get('SFDX_ORG_CREATE_ARGS', ''),
         }
 
