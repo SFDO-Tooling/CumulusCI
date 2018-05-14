@@ -882,7 +882,7 @@ class ScratchOrgConfig(OrgConfig):
                 )
             org_id = org_info['result']['accessToken'].split('!')[0]
 
-        if org_info['result'].get('password', None) is None:
+        if self.config['set_password'] and org_info['result'].get('password', None) is None:
             self.generate_password()
             return self.scratch_info
 
@@ -1010,7 +1010,8 @@ class ScratchOrgConfig(OrgConfig):
             )
             raise ScratchOrgException(message)
 
-        self.generate_password()
+        if self.config['set_password']:
+            self.generate_password()
 
         # Flag that this org has been created
         self.config['created'] = True
