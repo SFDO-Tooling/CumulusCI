@@ -1,4 +1,4 @@
-from __future__ import unicode_literals, print_function
+from __future__ import print_function
 from builtins import chr
 import base64
 import json
@@ -268,7 +268,7 @@ class EnvironmentProjectKeychain(BaseProjectKeychain):
         for key, value in self._get_env():
             if key.startswith(self.org_var_prefix):
                 org_config = json.loads(value)
-                org_name = key[len(self.org_var_prefix):]
+                org_name = key[len(self.org_var_prefix):].lower()
                 if org_config.get('scratch'):
                     self.orgs[org_name] = ScratchOrgConfig(json.loads(value), org_name)
                 else:
@@ -278,7 +278,7 @@ class EnvironmentProjectKeychain(BaseProjectKeychain):
         for key, value in self._get_env():
             if key.startswith(self.service_var_prefix):
                 service_config = json.loads(value)
-                service_name = key[len(self.service_var_prefix):]
+                service_name = key[len(self.service_var_prefix):].lower()
                 self._set_service(service_name, ServiceConfig(service_config))
 
 
