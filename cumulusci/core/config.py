@@ -882,12 +882,17 @@ class ScratchOrgConfig(OrgConfig):
                 )
             org_id = org_info['result']['accessToken'].split('!')[0]
 
+        if self.config.get('password'):
+            password = self.config['password']
+        else:
+            password = org_info['result'].get('password')
+
         self._scratch_info = {
             'instance_url': org_info['result']['instanceUrl'],
             'access_token': org_info['result']['accessToken'],
             'org_id': org_id,
             'username': org_info['result']['username'],
-            'password': org_info['result'].get('password', None),
+            'password': password,
         }
 
         self.config.update(self._scratch_info)
