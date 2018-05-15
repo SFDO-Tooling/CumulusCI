@@ -1011,7 +1011,7 @@ class ScratchOrgConfig(OrgConfig):
             )
             raise ScratchOrgException(message)
 
-        if self.config['set_password']:
+        if self.config.get('set_password'):
             self.generate_password()
 
         # Flag that this org has been created
