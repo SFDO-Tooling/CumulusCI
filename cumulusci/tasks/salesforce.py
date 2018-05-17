@@ -1178,7 +1178,7 @@ class PackageUpload(BaseSalesforceApiTask):
 
         if self.upload['Status'] == 'ERROR':
                 self.logger.error('Package upload failed with the following errors')
-            for error in upload['Errors']['errors']:
+            for error in self.upload['Errors']['errors']:
                 self.logger.error('  {}'.format(error['message']))
             # error is outside the for loop. whats the value of error here and why?  
             if error['message'] == 'ApexTestFailure':
@@ -1187,7 +1187,7 @@ class PackageUpload(BaseSalesforceApiTask):
                 e = SalesforceException
             raise e('Package upload failed')
         else:
-            version_id = upload['MetadataPackageVersionId']
+            version_id = self.upload['MetadataPackageVersionId']
             version_res = self.tooling.query("select MajorVersion, MinorVersion, PatchVersion, BuildNumber, ReleaseState from MetadataPackageVersion where Id = '{}'".format(version_id))
             if version_res['totalSize'] != 1:
                 message = 'Version {} not found'.format(version_id)
