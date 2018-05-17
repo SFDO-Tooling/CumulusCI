@@ -161,9 +161,13 @@ def render_recursive(data, indent=None):
 def check_org_overwrite(config, org_name):
     try:
         org = config.keychain.get_org(org_name)
-        raise click.ClickException(
-            'Org {} already exists.  Use `cci org remove` to delete it.'.format(org_name)
-        )
+        if org.scratch:
+            if org.created:
+                raise click.ClickException('Scratch org has already been created. Use `cci org scratch_delete {}`'.format(org_name))
+        else:
+            raise click.ClickException(
+                'Org {} already exists.  Use `cci org remove` to delete it.'.format(org_name)
+            )
     except OrgNotFound:
         pass
     return True
@@ -741,8 +745,9 @@ def org_remove(config, org_name, global_org):
 @click.option('--delete', is_flag=True, help="If set, triggers a deletion of the current scratch org.  This can be used to reset the org as the org configuration remains to regenerate the org on the next task run.")
 @click.option('--devhub', help="If provided, overrides the devhub used to create the scratch org")
 @click.option('--days', help="If provided, overrides the scratch config default days value for how many days the scratch org should persist")
+@click.option('--no-password', is_flag=True, help="If set, don't set a password for the org")
 @pass_config
-def org_scratch(config, config_name, org_name, default, delete, devhub, days):
+def org_scratch(config, config_name, org_name, default, delete, devhub, days, no_password):
     check_connected_app(config)
     check_org_overwrite(config, org_name)
 
@@ -759,7 +764,12 @@ def org_scratch(config, config_name, org_name, default, delete, devhub, days):
     if devhub:
         scratch_config['devhub'] = devhub
 
-    config.keychain.create_scratch_org(org_name, config_name, days)
+    config.keychain.create_scratch_org(
+        org_name,
+        config_name,
+        days,
+        set_password=not(no_password),
+    )
 
     if default:
         org = config.keychain.set_default_org(org_name)
