@@ -1137,6 +1137,8 @@ class PackageUpload(BaseSalesforceApiTask):
     def _init_options(self, kwargs):
         super(PackageUpload, self)._init_options(kwargs)
 
+        self.upload = None
+
         # Set the namespace option to the value from cumulusci.yml if not already set
         if not 'namespace' in self.options:
             self.options['namespace'] = self.project_config.project__package__namespace
@@ -1171,35 +1173,20 @@ class PackageUpload(BaseSalesforceApiTask):
         upload = PackageUploadRequest.create(package_info)
         upload_id = upload['id']
 
-        soql_check_upload = "select Status, Errors, MetadataPackageVersionId from PackageUploadRequest where Id = '{}'".format(upload['id'])
+        self.logger.info('Created PackageUploadRequest {} for Package {}'.format(upload_id, package_id))
+        self._poll()
 
-        upload = self.tooling.query(soql_check_upload)
-        if upload['totalSize'] != 1:
-            message = 'Failed to get info for upload with id {}'.format(upload_id)
-            self.logger.error(message)
-            raise SalesforceException(message)
-        upload = upload['records'][0]
-
-        while upload['Status'] == 'IN_PROGRESS' or upload['Status'] == 'QUEUED':
-            time.sleep(3)
-            upload = self.tooling.query(soql_check_upload)
-            if upload['totalSize'] != 1:
-                message = 'Failed to get info for upload with id {}'.format(upload_id)
-                self.logger.error(message)
-                raise SalesforceException(message)
-            upload = upload['records'][0]
-
-        if upload['Status'] == 'ERROR':
-            self.logger.error('Package upload failed with the following errors')
+        if self.upload['Status'] == 'ERROR':
+                self.logger.error('Package upload failed with the following errors')
             for error in upload['Errors']['errors']:
                 self.logger.error('  {}'.format(error['message']))
+            # error is outside the for loop. whats the value of error here and why?  
             if error['message'] == 'ApexTestFailure':
                 e = ApexTestException
             else:
                 e = SalesforceException
             raise e('Package upload failed')
         else:
-            time.sleep(5)
             version_id = upload['MetadataPackageVersionId']
             version_res = self.tooling.query("select MajorVersion, MinorVersion, PatchVersion, BuildNumber, ReleaseState from MetadataPackageVersion where Id = '{}'".format(version_id))
             if version_res['totalSize'] != 1:
@@ -1226,6 +1213,21 @@ class PackageUpload(BaseSalesforceApiTask):
                 self.version_number,
                 version_id
             ))
+
+    def _poll_action(self,):
+        soql_check_upload = "select Status, Errors, MetadataPackageVersionId from PackageUploadRequest where Id = '{}'".format(upload['id'])
+
+        upload = self.tooling.query(soql_check_upload)
+        if upload['totalSize'] != 1:
+            message = 'Failed to get info for upload with id {}'.format(upload_id)
+            self.logger.error(message)
+            raise SalesforceException(message)
+        self.upload = upload['records'][0]
+
+        self.poll_complete = not self._poll_again(upload['Status'])
+
+    def _poll_again(self, upload_status):
+        return upload_status in ['IN_PROGRESS', 'QUEUED']
 
 
 class SOQLQuery(BaseSalesforceApiTask):
