@@ -62,7 +62,7 @@ class BaseProjectKeychain(BaseConfig):
     def _load_services(self):
         pass
             
-    def create_scratch_org(self, org_name, config_name, days=None):
+    def create_scratch_org(self, org_name, config_name, days=None, set_password=False):
         """ Adds/Updates a scratch org config to the keychain from a named config """
         scratch_config = getattr(self.project_config, 'orgs__scratch__{}'.format(config_name))
         if days is not None:
@@ -71,6 +71,7 @@ class BaseProjectKeychain(BaseConfig):
         else:
             # Use scratch config days or default of 1 day
             scratch_config.setdefault('days', 1)
+        scratch_config['set_password'] = bool(set_password)
         scratch_config['scratch'] = True
         scratch_config.setdefault('namespaced', False)
         scratch_config['config_name'] = config_name
