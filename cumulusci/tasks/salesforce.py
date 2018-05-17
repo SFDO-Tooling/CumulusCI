@@ -1170,16 +1170,17 @@ class PackageUpload(BaseSalesforceApiTask):
             package_info['ReleaseNotesUrl'] = self.options['release_notes_url']
 
         PackageUploadRequest = self._get_tooling_object('PackageUploadRequest')
-        upload = PackageUploadRequest.create(package_info)
-        upload_id = upload['id']
+        self.upload = PackageUploadRequest.create(package_info)
+        upload_id = self.upload['id']
 
         self.logger.info('Created PackageUploadRequest {} for Package {}'.format(upload_id, package_id))
         self._poll()
 
         if self.upload['Status'] == 'ERROR':
-                self.logger.error('Package upload failed with the following errors')
+            self.logger.error('Package upload failed with the following errors')
             for error in self.upload['Errors']['errors']:
                 self.logger.error('  {}'.format(error['message']))
+
             # error is outside the for loop. whats the value of error here and why?  
             if error['message'] == 'ApexTestFailure':
                 e = ApexTestException
@@ -1215,16 +1216,18 @@ class PackageUpload(BaseSalesforceApiTask):
             ))
 
     def _poll_action(self,):
-        soql_check_upload = "select Status, Errors, MetadataPackageVersionId from PackageUploadRequest where Id = '{}'".format(upload['id'])
+        soql_check_upload = "select Id, Status, Errors, MetadataPackageVersionId from PackageUploadRequest where Id = '{}'".format(self.upload['id'])
 
-        upload = self.tooling.query(soql_check_upload)
-        if upload['totalSize'] != 1:
-            message = 'Failed to get info for upload with id {}'.format(upload_id)
+        uploadresult = self.tooling.query(soql_check_upload)
+        if uploadresult['totalSize'] != 1:
+            message = 'Failed to get info for upload with id {}'.format(self.upload['id'])
             self.logger.error(message)
             raise SalesforceException(message)
-        self.upload = upload['records'][0]
+        
+        self.upload = uploadresult['records'][0]
+        self.logger.info('PackageUploadRequest {} is {}'.format(self.upload['Id'], self.upload['Status']))
 
-        self.poll_complete = not self._poll_again(upload['Status'])
+        self.poll_complete = not self._poll_again(self.upload['Status'])
 
     def _poll_again(self, upload_status):
         return upload_status in ['IN_PROGRESS', 'QUEUED']
