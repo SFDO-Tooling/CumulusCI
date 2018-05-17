@@ -882,16 +882,17 @@ class ScratchOrgConfig(OrgConfig):
                 )
             org_id = org_info['result']['accessToken'].split('!')[0]
 
-        if org_info['result'].get('password', None) is None:
-            self.generate_password()
-            return self.scratch_info
+        if self.config.get('password'):
+            password = self.config['password']
+        else:
+            password = org_info['result'].get('password')
 
         self._scratch_info = {
             'instance_url': org_info['result']['instanceUrl'],
             'access_token': org_info['result']['accessToken'],
             'org_id': org_id,
             'username': org_info['result']['username'],
-            'password': org_info['result'].get('password', None),
+            'password': password,
         }
 
         self.config.update(self._scratch_info)
@@ -977,7 +978,7 @@ class ScratchOrgConfig(OrgConfig):
             'devhub': ' --targetdevhubusername {}'.format(self.devhub) if self.devhub else '',
             'namespaced': ' -n' if not self.namespaced else '',
             'days': ' --durationdays {}'.format(self.days) if self.days else '',
-            'alias': ' -a {}'.format(self.sfdx_alias) if self.sfdx_alias else '',
+            'alias': ' -a "{}"'.format(self.sfdx_alias) if self.sfdx_alias else '',
             'extraargs': os.environ.get('SFDX_ORG_CREATE_ARGS', ''),
         }
 
@@ -1010,7 +1011,8 @@ class ScratchOrgConfig(OrgConfig):
             )
             raise ScratchOrgException(message)
 
-        self.generate_password()
+        if self.config.get('set_password'):
+            self.generate_password()
 
         # Flag that this org has been created
         self.config['created'] = True
