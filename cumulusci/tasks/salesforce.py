@@ -1171,9 +1171,9 @@ class PackageUpload(BaseSalesforceApiTask):
 
         PackageUploadRequest = self._get_tooling_object('PackageUploadRequest')
         self.upload = PackageUploadRequest.create(package_info)
-        upload_id = self.upload['id']
+        self.upload_id = self.upload['id']
 
-        self.logger.info('Created PackageUploadRequest {} for Package {}'.format(upload_id, package_id))
+        self.logger.info('Created PackageUploadRequest {} for Package {}'.format(self.upload_id, package_id))
         self._poll()
 
         if self.upload['Status'] == 'ERROR':
@@ -1216,16 +1216,16 @@ class PackageUpload(BaseSalesforceApiTask):
             ))
 
     def _poll_action(self,):
-        soql_check_upload = "select Id, Status, Errors, MetadataPackageVersionId from PackageUploadRequest where Id = '{}'".format(self.upload['id'])
+        soql_check_upload = "select Id, Status, Errors, MetadataPackageVersionId from PackageUploadRequest where Id = '{}'".format(self.upload_id)
 
         uploadresult = self.tooling.query(soql_check_upload)
         if uploadresult['totalSize'] != 1:
-            message = 'Failed to get info for upload with id {}'.format(self.upload['id'])
+            message = 'Failed to get info for upload with id {}'.format(self.upload_id)
             self.logger.error(message)
             raise SalesforceException(message)
         
         self.upload = uploadresult['records'][0]
-        self.logger.info('PackageUploadRequest {} is {}'.format(self.upload['Id'], self.upload['Status']))
+        self.logger.info('PackageUploadRequest {} is {}'.format(self.upload_id, self.upload['Status']))
 
         self.poll_complete = not self._poll_again(self.upload['Status'])
 
