@@ -1,5 +1,3 @@
-import time
-
 from cumulusci.core.exceptions import ApexTestException
 from cumulusci.core.exceptions import SalesforceException
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
@@ -36,21 +34,27 @@ class PackageUpload(BaseSalesforceApiTask):
     def _init_options(self, kwargs):
         super(PackageUpload, self)._init_options(kwargs)
 
+        self.upload = None
+        self.upload_id = None
+
         # Set the namespace option to the value from cumulusci.yml if not already set
         if not 'namespace' in self.options:
             self.options['namespace'] = self.project_config.project__package__namespace
 
     def _run_task(self):
-        package_res = self.tooling.query("select Id from MetadataPackage where NamespacePrefix='{}'".format(self.options['namespace']))
+        package_res = self.tooling.query(
+            "select Id from MetadataPackage where NamespacePrefix='{}'".format(self.options['namespace']))
 
         if package_res['totalSize'] != 1:
-            message = 'No package found with namespace {}'.format(self.options['namespace'])
+            message = 'No package found with namespace {}'.format(
+                self.options['namespace'])
             self.logger.error(message)
             raise SalesforceException(message)
 
         package_id = package_res['records'][0]['Id']
 
-        production = self.options.get('production', False) in [True, 'True', 'true']
+        production = self.options.get('production', False) in [
+            True, 'True', 'true']
         package_info = {
             'VersionName': self.options['name'],
             'IsReleaseVersion': production,
@@ -67,40 +71,29 @@ class PackageUpload(BaseSalesforceApiTask):
             package_info['ReleaseNotesUrl'] = self.options['release_notes_url']
 
         PackageUploadRequest = self._get_tooling_object('PackageUploadRequest')
-        upload = PackageUploadRequest.create(package_info)
-        upload_id = upload['id']
+        self.upload = PackageUploadRequest.create(package_info)
+        self.upload_id = self.upload['id']
 
-        soql_check_upload = "select Status, Errors, MetadataPackageVersionId from PackageUploadRequest where Id = '{}'".format(upload['id'])
+        self.logger.info('Created PackageUploadRequest {} for Package {}'.format(
+            self.upload_id, package_id))
+        self._poll()
 
-        upload = self.tooling.query(soql_check_upload)
-        if upload['totalSize'] != 1:
-            message = 'Failed to get info for upload with id {}'.format(upload_id)
-            self.logger.error(message)
-            raise SalesforceException(message)
-        upload = upload['records'][0]
-
-        while upload['Status'] == 'IN_PROGRESS' or upload['Status'] == 'QUEUED':
-            time.sleep(3)
-            upload = self.tooling.query(soql_check_upload)
-            if upload['totalSize'] != 1:
-                message = 'Failed to get info for upload with id {}'.format(upload_id)
-                self.logger.error(message)
-                raise SalesforceException(message)
-            upload = upload['records'][0]
-
-        if upload['Status'] == 'ERROR':
-            self.logger.error('Package upload failed with the following errors')
-            for error in upload['Errors']['errors']:
+        if self.upload['Status'] == 'ERROR':
+            self.logger.error(
+                'Package upload failed with the following errors')
+            for error in self.upload['Errors']['errors']:
                 self.logger.error('  {}'.format(error['message']))
+
+            # use the last error in the batch, but log them all.
             if error['message'] == 'ApexTestFailure':
                 e = ApexTestException
             else:
                 e = SalesforceException
             raise e('Package upload failed')
         else:
-            time.sleep(5)
-            version_id = upload['MetadataPackageVersionId']
-            version_res = self.tooling.query("select MajorVersion, MinorVersion, PatchVersion, BuildNumber, ReleaseState from MetadataPackageVersion where Id = '{}'".format(version_id))
+            version_id = self.upload['MetadataPackageVersionId']
+            version_res = self.tooling.query(
+                "select MajorVersion, MinorVersion, PatchVersion, BuildNumber, ReleaseState from MetadataPackageVersion where Id = '{}'".format(version_id))
             if version_res['totalSize'] != 1:
                 message = 'Version {} not found'.format(version_id)
                 self.logger.error(message)
@@ -117,7 +110,8 @@ class PackageUpload(BaseSalesforceApiTask):
             self.version_number = '.'.join(version_parts)
 
             if version['ReleaseState'] == 'Beta':
-                self.version_number += ' (Beta {})'.format(version['BuildNumber'])
+                self.version_number += ' (Beta {})'.format(
+                    version['BuildNumber'])
 
             self.return_values = {'version_number': self.version_number}
 
@@ -125,3 +119,23 @@ class PackageUpload(BaseSalesforceApiTask):
                 self.version_number,
                 version_id
             ))
+
+    def _poll_action(self,):
+        soql_check_upload = "select Id, Status, Errors, MetadataPackageVersionId from PackageUploadRequest where Id = '{}'".format(
+            self.upload_id)
+
+        uploadresult = self.tooling.query(soql_check_upload)
+        if uploadresult['totalSize'] != 1:
+            message = 'Failed to get info for upload with id {}'.format(
+                self.upload_id)
+            self.logger.error(message)
+            raise SalesforceException(message)
+
+        self.upload = uploadresult['records'][0]
+        self.logger.info('PackageUploadRequest {} is {}'.format(
+            self.upload_id, self.upload['Status']))
+
+        self.poll_complete = not self._poll_again(self.upload['Status'])
+
+    def _poll_again(self, upload_status):
+        return upload_status in ['IN_PROGRESS', 'QUEUED']
