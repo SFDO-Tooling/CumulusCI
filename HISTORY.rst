@@ -2,6 +2,13 @@
 History
 =======
 
+2.0.0-beta96 (2018-05-18)
+-------------------------
+
+- Fixes for CumulusCI on Windows - CumulusCI 2 now supports Windows environments!
+- Support skipping scratch org password creation by specifying `--no-password` to `cci org scratch`
+- Add additional logging to PackageUpload
+
 2.0.0-beta95 (2018-05-10)
 -------------------------
 
