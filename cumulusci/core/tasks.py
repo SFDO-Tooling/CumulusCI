@@ -57,6 +57,9 @@ class BaseTask(object):
         # the tasks stepnumber in the flow
         self.stepnum = stepnum
 
+        # the metrics collector
+        self.metrics = {}
+
         if self.salesforce_task and not self.org_config:
             raise TaskRequiresSalesforceOrg(
                 'This task requires a Saleforce org_config but' +
@@ -145,6 +148,11 @@ class BaseTask(object):
     def _run_task(self):
         """ Subclasses should override to provide their implementation """
         pass
+
+    def _emit_metric(self, metric_bucket, metric_type, metric_value):
+        """ Called by task implementation to emit a metric for collection. """
+        bucket = self.metrics.setdefault(metric_bucket, [])
+        bucket.append()
 
     def _log_begin(self):
         """ Log the beginning of the task execution """
