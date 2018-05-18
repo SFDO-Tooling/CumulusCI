@@ -5,10 +5,10 @@ Subclass BaseTask or a descendant to define custom task logic
 from __future__ import division
 from __future__ import unicode_literals
 
-from builtins import object
-from past.utils import old_div
 import logging
 import time
+from future.builtins import object
+from past.utils import old_div
 
 from cumulusci.core.exceptions import TaskRequiresSalesforceOrg
 from cumulusci.core.exceptions import TaskOptionsError
@@ -24,14 +24,14 @@ class BaseTask(object):
     salesforce_task = False  # Does this task require a salesforce org?
 
     def __init__(
-        self,
-        project_config,
-        task_config,
-        org_config=None,
-        flow=None,
-        name=None,
-        stepnum=None,
-        **kwargs
+            self,
+            project_config,
+            task_config,
+            org_config=None,
+            flow=None,
+            name=None,
+            stepnum=None,
+            **kwargs
     ):
         self.project_config = project_config
         self.task_config = task_config
@@ -40,7 +40,7 @@ class BaseTask(object):
         self.poll_interval_level = 0
         self.poll_interval_s = 1
         self.poll_complete = False
-        
+
 
         # dict of return_values that can be used by task callers
         self.return_values = {}
@@ -50,7 +50,7 @@ class BaseTask(object):
 
         # the flow for this task execution
         self.flow = flow
-        
+
         # the tasks name in the flow
         self.name = name
 
@@ -88,7 +88,7 @@ class BaseTask(object):
                     self.options[option] = getattr(self.project_config, attr, None)
             except AttributeError:
                 pass
-                
+
 
     def _validate_options(self):
         missing_required = []
@@ -134,7 +134,7 @@ class BaseTask(object):
             }
             if self.org_config:
                 tags['org username'] = self.org_config.username
-                tags['scratch org'] = self.org_config.scratch == True
+                tags['scratch org'] = self.org_config.scratch is True
             for key, value in list(self.options.items()):
                 tags['option_' + key] = value
             self.project_config.sentry.tags_context(tags)
@@ -186,7 +186,9 @@ class BaseTask(object):
         )
 
     def _is_retry_valid(self, e):
-        return True
+        raise NotImplementedError(
+            'Subclasses should provide their own implementation'
+        )
 
     def _poll(self):
         ''' poll for a result in a loop '''
