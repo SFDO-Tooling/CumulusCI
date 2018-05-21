@@ -38,10 +38,6 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
             config = f_item.read()
         self.config[key] = config
 
-    def _load_app(self):
-        self._load_file(self.config_local_dir, 'connected.app', 'app')
-        self._load_file(self.project_local_dir, 'connected.app', 'app')
-
     def _load_orgs(self):
         self._load_files(self.config_local_dir, '.org', 'orgs')
         self._load_files(self.project_local_dir, '.org', 'orgs')
@@ -63,15 +59,6 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
            
         os.remove(full_path) 
         self._load_orgs()
-
-    def _set_encrypted_connected_app(self, encrypted, project):
-        if project:
-            filename = os.path.join(self.project_local_dir, 'connected.app')
-        else:
-            filename = os.path.join(self.config_local_dir, 'connected.app')
-        with open(filename, 'wb') as f_org:
-            f_org.write(encrypted)
-        self.app = encrypted
 
     def _set_encrypted_org(self, name, encrypted, global_org):
         if global_org:

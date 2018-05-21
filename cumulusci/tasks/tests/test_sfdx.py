@@ -12,7 +12,6 @@ from cumulusci.core.config import BaseGlobalConfig
 from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.config import OrgConfig
-from cumulusci.core.config import ConnectedAppOAuthConfig
 from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.core.tests.utils import MockLoggingHandler
 

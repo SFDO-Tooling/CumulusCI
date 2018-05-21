@@ -309,7 +309,7 @@ Building a project configured for CumulusCI on CircleCI is fairly easy to get se
 
 First, set up your project in CircleCI and add the following Environment Variables in the project's config:
 
-* CUMULUSCI_CONNECTED_APP: The output from `cci org connected_app`
+* CUMULUSCI_SERVICE_connected_app: The output from `cci service show connected_app`
 * CUMULUSCI_ORG_feature: The output from `cci org info feature`, assuming you've already connected your feature org to your local toolbelt.
     
 
@@ -384,7 +384,7 @@ You'll first need to setup some prerequirements:
 
 Once your project is set up in CircleCI, add the following additional environment variables in addition to the ones listed above:
 
-* CUMULUSCI_CONNECTED_APP: The output from `cci org connected_app`
+* CUMULUSCI_SERVICE_connected_app: The output from `cci service show connected_app`
 * CUMULUSCI_ORG_feature: The output from `cci org info feature`, assuming you've already connected your feature org to your local toolbelt.
 * SFDX_HUB_ORG: The contents of ~/.appcloud/hubOrg.json
 * SFDX_CONFIG: The contents of ~/.appcloud/workspace_config.json

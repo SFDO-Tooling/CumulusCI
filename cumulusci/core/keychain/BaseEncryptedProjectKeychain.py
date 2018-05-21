@@ -6,7 +6,6 @@ import pickle
 from Crypto import Random
 from Crypto.Cipher import AES
 
-from cumulusci.core.config import ConnectedAppOAuthConfig
 from cumulusci.core.config import OrgConfig
 from cumulusci.core.config import ScratchOrgConfig
 from cumulusci.core.config import ServiceConfig
@@ -20,17 +19,6 @@ unpad = lambda s: s[0:-ord(s[-1])]
 class BaseEncryptedProjectKeychain(BaseProjectKeychain):
     """ Base class for building project keychains that use AES encryption for securing stored org credentials """
     encrypted = True
-
-    def _set_connected_app(self, app_config, project):
-        encrypted = self._encrypt_config(app_config)
-        self._set_encrypted_connected_app(encrypted, project)
-
-    def _set_encrypted_connected_app(self, encrypted, project):
-        self.app = encrypted
-
-    def _get_connected_app(self):
-        if self.app:
-            return self._decrypt_config(ConnectedAppOAuthConfig, self.app)
 
     def _get_service(self, name):
         return self._decrypt_config(ServiceConfig, self.services[name])

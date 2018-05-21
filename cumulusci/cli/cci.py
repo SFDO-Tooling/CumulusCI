@@ -39,7 +39,6 @@ from cumulusci.core.exceptions import ApexTestException
 from cumulusci.core.exceptions import BrowserTestFailure
 from cumulusci.core.exceptions import ConfigError
 from cumulusci.core.exceptions import FlowNotFoundError
-from cumulusci.core.exceptions import KeychainConnectedAppNotFound
 from cumulusci.core.exceptions import KeychainKeyNotFound
 from cumulusci.core.exceptions import OrgNotFound
 from cumulusci.salesforce_api.exceptions import MetadataApiError
@@ -785,32 +784,8 @@ def org_scratch_delete(config, org_name):
     config.keychain.set_org(org_config)
 
 
-@click.command(name='connected_app', help="Displays the ConnectedApp info used for OAuth connections")
-@pass_config
-def org_connected_app(config):
-    click.echo(render_recursive(config.keychain.get_connected_app().config))
-
-
-@click.command(name='config_connected_app', help="Configures the connected app used for connecting to Salesforce orgs")
-@click.option('--client_id', help="The Client ID from the connected app", prompt=True)
-@click.option('--client_secret', help="The Client Secret from the connected app", prompt=True, hide_input=(False if os.name == 'nt' else True))
-@click.option('--callback_url', help="The callback_url configured on the Connected App", default='http://localhost:8080/callback')
-@click.option('--project', help='Set if storing encrypted keychain file in project directory', is_flag=True)
-@pass_config
-def org_config_connected_app(config, client_id, client_secret, callback_url, project):
-    check_keychain(config)
-    app_config = ConnectedAppOAuthConfig()
-    app_config.config = {
-        'client_id': client_id,
-        'client_secret': client_secret,
-        'callback_url': callback_url,
-    }
-    config.keychain.set_connected_app(app_config, project)
-
 org.add_command(org_browser)
-org.add_command(org_config_connected_app)
 org.add_command(org_connect)
-org.add_command(org_connected_app)
 org.add_command(org_default)
 org.add_command(org_info)
 org.add_command(org_list)

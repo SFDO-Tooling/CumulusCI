@@ -16,7 +16,6 @@ except ImportError:
 
 from cumulusci.core.config import BaseGlobalConfig
 from cumulusci.core.config import BaseProjectConfig
-from cumulusci.core.config import ConnectedAppOAuthConfig
 from cumulusci.core.config import OrgConfig
 from cumulusci.core.config import ScratchOrgConfig
 from cumulusci.core.config import ServiceConfig
@@ -41,6 +40,7 @@ class TestBaseProjectKeychain(unittest.TestCase):
         self.global_config = BaseGlobalConfig()
         self.project_config = BaseProjectConfig(self.global_config)
         self.project_config.config['services'] = {
+            'connected_app': {'attributes': {'test': {'required': True}}},
             'github': {'attributes': {'name': {'required': True}, 'password': {}}},
             'mrbelvedere': {'attributes': {'mr': {'required': True}}},
             'not_configured': {'attributes': {'foo': {'required': True}}},
@@ -96,10 +96,13 @@ class TestBaseProjectKeychain(unittest.TestCase):
         new_key = '9876543210987654'
         keychain = self.keychain_class(self.project_config, self.key)
         keychain.set_org(self.org_config)
+        keychain.set_service('connected_app', self.services['connected_app'])
         keychain.set_service('github', self.services['github'])
         keychain.set_service('mrbelvedere', self.services['mrbelvedere'])
         keychain.change_key(new_key)
         self.assertEquals(keychain.key, new_key)
+        self.assertEquals(keychain.get_service(
+            'connected_app').config, self.services['connected_app'].config)
         self.assertEquals(keychain.get_service(
             'github').config, self.services['github'].config)
         self.assertEquals(keychain.get_service(
@@ -267,7 +270,7 @@ class TestEnvironmentProjectKeychain(TestBaseProjectKeychain):
             json.dumps(self.org_config.config)
         )
         self.env.set(
-            self.keychain_class.app_var,
+            '{}connected_app'.format(self.keychain_class.service_var_prefix),
             json.dumps(self.services['connected_app'].config)
         )
         self.env.set(
@@ -286,8 +289,6 @@ class TestEnvironmentProjectKeychain(TestBaseProjectKeychain):
         for key, value in list(env.items()):
             if key.startswith(self.keychain_class.service_var_prefix):
                 del env[key]
-        if self.keychain_class.app_var in env:
-            del env[self.keychain_class.app_var]
 
     def test_get_org(self):
         keychain = self.keychain_class(self.project_config, self.key)
@@ -304,7 +305,7 @@ class TestEnvironmentProjectKeychain(TestBaseProjectKeychain):
         with EnvironmentVarGuard() as env:
             self._clean_env(env)
             env.set(
-                self.keychain_class.app_var,
+                '{}connected_app'.format(self.keychain_class.service_var_prefix),
                 json.dumps(self.services['connected_app'].config)
             )
             self._test_list_orgs_empty()
@@ -385,6 +386,7 @@ class TestEncryptedFileProjectKeychain(TestBaseProjectKeychain):
         self.global_config = BaseGlobalConfig()
         self.project_config = BaseProjectConfig(self.global_config)
         self.project_config.config['services'] = {
+            'connected_app': {'attributes': {'test': {'required': True}}},
             'github': {'attributes': {'git': {'required': True}, 'password': {}}},
             'mrbelvedere': {'attributes': {'mr': {'required': True}}},
             'not_configured': {'attributes': {'foo': {'required': True}}},
