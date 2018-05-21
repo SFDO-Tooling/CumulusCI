@@ -276,7 +276,7 @@ Configure the Connected App as a service:
     Client secret: <input>
     connected_app is now configured for global use
 
-Configuring the Connected App is a one time operation per project. Once configured, you can start connecting Salesforce Orgs to your project's keychain.
+Configuring the Connected App is a one time operation. Once configured, you can start connecting Salesforce Orgs to your project's keychain.
 
 Using Salesforce DX Scratch Orgs
 --------------------------------
