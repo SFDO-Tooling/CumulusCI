@@ -508,6 +508,18 @@ flows:
                 task: update_admin_profile
 
 services:
+  connected_app:
+    description: Configure connected app for connecting to Salesforce orgs
+    attributes:
+      callback_url:
+        description: Callback URL configured on the Connected App
+        required: True
+      client_id:
+        description: Client ID from the Connected App
+        required: True
+      client_secret:
+        description: Client Secret from the Connected App
+        required: True
   github:
     description: Configure connection for github tasks, e.g. Create Release
     attributes:

@@ -11,7 +11,7 @@ class BaseSalesforceTask(BaseTask):
 
     def _update_credentials(self):
         orig_config = self.org_config.config.copy()
-        self.org_config.refresh_oauth_token(self.project_config.keychain.get_connected_app())
+        self.org_config.refresh_oauth_token(self.project_config.keychain)
         if self.org_config.config != orig_config:
             self.logger.info('Org info updated, writing to keychain')
             self.project_config.keychain.set_org(self.org_config)

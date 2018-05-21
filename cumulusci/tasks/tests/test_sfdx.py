@@ -38,8 +38,6 @@ class TestSFDXBaseTask(unittest.TestCase):
         self.task_config = TaskConfig()
 
         keychain = BaseProjectKeychain(self.project_config, '')
-        app_config = ConnectedAppOAuthConfig()
-        keychain.set_connected_app(app_config)
         self.project_config.set_keychain(keychain)
 
         self._task_log_handler.reset()

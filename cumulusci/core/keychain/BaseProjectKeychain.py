@@ -70,10 +70,7 @@ class BaseProjectKeychain(BaseConfig):
         self.set_org(org_config)
 
     def change_key(self, key):
-        """ re-encrypt stored services, orgs, and the connected_app
-        with the new key """
-
-        connected_app = self.get_connected_app()
+        """ re-encrypt stored services and orgs with the new key """
 
         services = {}
         for service_name in self.list_services():
@@ -84,8 +81,6 @@ class BaseProjectKeychain(BaseConfig):
             orgs[org_name] = self.get_org(org_name)
 
         self.key = key
-        if connected_app:
-            self.set_connected_app(connected_app)
 
         if orgs:
             for org_name, org_config in list(orgs.items()):
@@ -94,23 +89,6 @@ class BaseProjectKeychain(BaseConfig):
         if services:
             for service_name, service_config in list(services.items()):
                 self.set_service(service_name, service_config)
-
-    def set_connected_app(self, app_config, project=False):
-        """ store a connected_app configuration """
-
-        self._set_connected_app(app_config, project)
-        self._load_app()
-
-    def _set_connected_app(self, app_config, project):
-        self.app = app_config
-
-    def get_connected_app(self):
-        """ retrieve the connected app configuration """
-
-        return self._get_connected_app()
-
-    def _get_connected_app(self):
-        return self.app
 
     def remove_org(self, name, global_org=None):
         if name in self.orgs.keys():

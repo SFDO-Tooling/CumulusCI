@@ -122,7 +122,6 @@ Project Initialization
 
 The `cci` command is git repository aware. Changing directories from one local git repository to another will change the project context. Each project context isolates the following:
 
-* Connected App: The Salesforce Connected App to use for OAuth authentication
 * Orgs: Connected Salesforce Orgs are stored in a project specific keychain
 * Services: Named service connections such as Github, ApexTestsDB, and mrbelvedere
 
@@ -267,13 +266,15 @@ First, you will need to create a Salesforce Connected App with the following ste
 Configuring the Project's Connected App
 ---------------------------------------
 
-Configure the Connected App in your project's keychain:
+Configure the Connected App as a service:
 
 .. code-block:: console
 
-    $ cci org config_connected_app
-    client_id:
-    client_secret:
+    $ cci service connect connected_app
+    Callback url: <input>
+    Client id: <input>
+    Client secret: <input>
+    connected_app is now configured for global use
 
 Configuring the Connected App is a one time operation per project. Once configured, you can start connecting Salesforce Orgs to your project's keychain.
 

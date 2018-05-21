@@ -130,9 +130,7 @@ class SalesforceCommand(Command):
     salesforce_task = True
 
     def _update_credentials(self):
-        self.org_config.refresh_oauth_token(
-            self.project_config.keychain.get_connected_app()
-        )
+        self.org_config.refresh_oauth_token(self.project_config.keychain)
 
     def _get_env(self):
         env = super(SalesforceCommand, self)._get_env()
