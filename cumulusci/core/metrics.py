@@ -27,4 +27,7 @@ could import them into django models.
 
 First, we'll add a metrics collection to BaseTask, and define an emitter.
 
+BaseTask._emit_event(metric_bucket, metric_type, metric_value)
+BaseTask.metrics = {}
+
 """
