@@ -2,6 +2,7 @@ from __future__ import print_function
 
 from cumulusci.core.config import BaseConfig
 from cumulusci.core.config import ScratchOrgConfig
+from cumulusci.core.config import ServiceConfig
 from cumulusci.core.exceptions import OrgNotFound
 from cumulusci.core.exceptions import ServiceNotConfigured
 from cumulusci.core.exceptions import ServiceNotValid
@@ -21,6 +22,22 @@ class BaseProjectKeychain(BaseConfig):
         self.key = key
         self._validate_key()
         self._load_keychain()
+
+    def _convert_connected_app(self):
+        """Convert Connected App to service"""
+        if self.services and 'connected_app' in self.services:
+            # already a service
+            return
+        connected_app = self.get_connected_app()
+        if not connected_app:
+            # not configured
+            return
+        ca_config = ServiceConfig({
+            'callback_url': connected_app.callback_url,
+            'client_id': connected_app.client_id,
+            'client_secret': connected_app.client_secret,
+        })
+        self.set_service('connected_app', ca_config)
 
     def _load_keychain(self):
         self._load_app()
@@ -89,6 +106,16 @@ class BaseProjectKeychain(BaseConfig):
         if services:
             for service_name, service_config in list(services.items()):
                 self.set_service(service_name, service_config)
+
+        self._convert_connected_app()
+
+    def get_connected_app(self):
+        """ retrieve the connected app configuration """
+
+        return self._get_connected_app()
+
+    def _get_connected_app(self):
+        return self.app
 
     def remove_org(self, name, global_org=None):
         if name in self.orgs.keys():
@@ -169,6 +196,7 @@ class BaseProjectKeychain(BaseConfig):
         :rtype ServiceConfig
         :return the configured Service
         """
+        self._convert_connected_app()
         if not self.project_config.services or name not in self.project_config.services:
             self._raise_service_not_valid(name)
         if name not in self.services:

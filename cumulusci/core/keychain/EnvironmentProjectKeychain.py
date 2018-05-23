@@ -2,6 +2,7 @@ from __future__ import print_function
 import json
 import os
 
+from cumulusci.core.config import ConnectedAppOAuthConfig
 from cumulusci.core.config import OrgConfig
 from cumulusci.core.config import ScratchOrgConfig
 from cumulusci.core.config import ServiceConfig
@@ -12,6 +13,7 @@ class EnvironmentProjectKeychain(BaseProjectKeychain):
     """ A project keychain that stores org credentials in environment variables """
     encrypted = False
     org_var_prefix = 'CUMULUSCI_ORG_'
+    app_var = 'CUMULUSCI_CONNECTED_APP'
     service_var_prefix = 'CUMULUSCI_SERVICE_'
 
     def _get_env(self):
@@ -20,6 +22,14 @@ class EnvironmentProjectKeychain(BaseProjectKeychain):
             return [(k.decode(), v.decode()) for k,v in list(os.environ.items())]
         except AttributeError:
             return list(os.environ.items())
+
+    def _load_app(self):
+        try:
+            app = os.environ.get(self.app_var.encode('ascii'))
+        except TypeError:
+            app = os.environ.get(self.app_var)
+        if app:
+            self.app = ConnectedAppOAuthConfig(json.loads(app))
 
     def _load_orgs(self):
         for key, value in self._get_env():

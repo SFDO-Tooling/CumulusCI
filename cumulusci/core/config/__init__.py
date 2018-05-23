@@ -7,6 +7,7 @@ from cumulusci.core.config.BaseConfig import BaseConfig
 
 # inherit from BaseConfig
 from cumulusci.core.config.BaseTaskFlowConfig import BaseTaskFlowConfig
+from cumulusci.core.config.ConnectedAppOAuthConfig import ConnectedAppOAuthConfig
 from cumulusci.core.config.FlowConfig import FlowConfig
 from cumulusci.core.config.OrgConfig import OrgConfig
 from cumulusci.core.config.ServiceConfig import ServiceConfig
