@@ -377,6 +377,18 @@ class Salesforce(object):
         self.store_session_record(obj_name, res['id'])
         return res['id']
 
+    def salesforce_insert_perf(self, obj_name, **kwargs):
+        self.builtin.log('PERF Inserting {} with values {}'.format(obj_name, kwargs))
+
+        self.cumulusci.sf.session.headers['Sforce-Call-Options'] = 'perfOption=basic'
+        
+        obj_class = getattr(self.cumulusci.sf, obj_name)
+        res = obj_class.create(kwargs)
+        self.store_session_record(obj_name, res['id'])
+
+        self.cumulusci.sf.session.headers['Sforce-Call-Options'] = ''
+        return res['id']
+
     def salesforce_query(self, obj_name, **kwargs):
         """ Constructs and runs a simple SOQL query and returns the dict results """
         query = 'SELECT '

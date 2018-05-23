@@ -1,4 +1,5 @@
 import logging
+import json
 from cumulusci.cli.config import CliConfig
 from cumulusci.core.utils import import_class
 from cumulusci.core.exceptions import TaskNotFoundError
@@ -6,6 +7,7 @@ from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.config import TaskConfig
 from robot.libraries.BuiltIn import BuiltIn
 from simple_salesforce import Salesforce
+from requests import Session
 
 class CumulusCI(object):
     """ Library for accessing CumulusCI for the local git project
@@ -48,6 +50,11 @@ class CumulusCI(object):
         if not hasattr(self, '_org'):
             self._org = self.config.keychain.get_org(self.org_name)
         return self._org
+
+    @property
+    def builtin(self):
+        return BuiltIn()   
+
 
     def set_login_url(self):
         """ Sets the LOGIN_URL variable in the suite scope which will
@@ -107,17 +114,32 @@ class CumulusCI(object):
         task_class, task_config = self._init_task(class_path, options, {})
         return self._run_task(task_class, task_config)
 
+    def _callback(self, response, **kwargs):
+        if 'perfmetrics' in response.headers.keys():
+            #import sys, pdb; pdb.Pdb(stdout=sys.__stdout__).set_trace()
+            metric_str = response.headers['perfmetrics']
+            metrics = json.loads(metric_str)
+            metric = metrics['callTree']['totalTime']
+            self.builtin.log('PERF {}ns'.format(metric))
+            
+
+
     def _init_api(self, base_url=None):
         api_version = self.config.project_config.project__package__api_version
 
-        rv = Salesforce(
+        session = Session()
+        session.hooks = {'response': [self._callback]}
+
+        sf = Salesforce(
             instance=self.org.instance_url.replace('https://', ''),
             session_id=self.org.access_token,
             version=api_version,
+            session=session
         )
+
         if base_url is not None:
-            rv.base_url += base_url
-        return rv
+            sf.base_url += base_url
+        return sf
 
     def _init_config(self):
         config = CliConfig()

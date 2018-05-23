@@ -24,7 +24,7 @@ Salesforce Delete
 Salesforce Insert
     ${first_name} =  Generate Random String
     ${last_name} =  Generate Random String
-    ${contact_id} =  Salesforce Insert  Contact
+    ${contact_id} =  Salesforce Insert Perf  Contact
     ...  FirstName=${first_name}
     ...  LastName=${last_name}
     &{contact} =  Salesforce Get  Contact  ${contact_id}
