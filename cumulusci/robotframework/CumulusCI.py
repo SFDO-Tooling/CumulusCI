@@ -9,6 +9,8 @@ from robot.libraries.BuiltIn import BuiltIn
 from simple_salesforce import Salesforce
 from requests import Session
 
+PERF_TOKEN = 'PERF'
+
 class CumulusCI(object):
     """ Library for accessing CumulusCI for the local git project
 
@@ -114,13 +116,14 @@ class CumulusCI(object):
         task_class, task_config = self._init_task(class_path, options, {})
         return self._run_task(task_class, task_config)
 
-    def _callback(self, response, **kwargs):
+    def _session_callback(self, response, **kwargs):
         if 'perfmetrics' in response.headers.keys():
-            #import sys, pdb; pdb.Pdb(stdout=sys.__stdout__).set_trace()
-            metric_str = response.headers['perfmetrics']
-            metrics = json.loads(metric_str)
+            # so, there were perfmetrics! we're gonna assume/expect the caller
+            # will clean up the header afterward....
+            metrics = json.loads(response.headers['perfmetrics'])
+            # grab the top level totalTime
             metric = metrics['callTree']['totalTime']
-            self.builtin.log('PERF {}ns'.format(metric))
+            self.builtin.log('{} {}ns'.format(PERF_TOKEN, metric))
             
 
 
@@ -128,7 +131,7 @@ class CumulusCI(object):
         api_version = self.config.project_config.project__package__api_version
 
         session = Session()
-        session.hooks = {'response': [self._callback]}
+        session.hooks = {'response': [self._session_callback]}
 
         sf = Salesforce(
             instance=self.org.instance_url.replace('https://', ''),

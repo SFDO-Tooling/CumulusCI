@@ -10,6 +10,7 @@ from SeleniumLibrary.errors import ElementNotFound
 from simple_salesforce import SalesforceMalformedRequest
 from simple_salesforce import SalesforceResourceNotFound
 from cumulusci.robotframework.locators import lex_locators
+from cumulusci.robotframework.CumulusCI import PERF_TOKEN
 
 OID_REGEX = r'[a-zA-Z0-9]{15,18}'
 
@@ -377,11 +378,12 @@ class Salesforce(object):
         self.store_session_record(obj_name, res['id'])
         return res['id']
 
-    def salesforce_insert_perf(self, obj_name, **kwargs):
-        self.builtin.log('PERF Inserting {} with values {}'.format(obj_name, kwargs))
-
-        self.cumulusci.sf.session.headers['Sforce-Call-Options'] = 'perfOption=basic'
+    def salesforce_insert_perf(self, bucket, obj_name, **kwargs):
         
+        self.builtin.log('Inserting {} with values {}'.format(obj_name, kwargs))
+        self.builtin.log('{} {}'.format(PERF_TOKEN, bucket))
+        self.cumulusci.sf.session.headers['Sforce-Call-Options'] = 'perfOption=basic'
+
         obj_class = getattr(self.cumulusci.sf, obj_name)
         res = obj_class.create(kwargs)
         self.store_session_record(obj_name, res['id'])

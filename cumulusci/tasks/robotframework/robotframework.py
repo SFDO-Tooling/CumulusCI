@@ -1,5 +1,6 @@
 from cumulusci.core.tasks import BaseTask
 from cumulusci.tasks.salesforce import BaseSalesforceTask
+from cumulusci.robotframework.listeners import PerfListener
 from robot.run import run
 from robot.libdoc import libdoc
 from robot.testdoc import testdoc
@@ -61,6 +62,7 @@ class Robot(BaseSalesforceTask):
         run(
             self.options['suites'], 
             variable=self.options['vars'],
+            listener=PerfListener(),
             **self.options['options']
         )
 
