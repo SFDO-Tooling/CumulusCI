@@ -1023,9 +1023,11 @@ def flow_run(config, flow_name, org, delete_org, debug, o, skip, no_prompt):
         org_config = config.project_config.get_org(org)
     else:
         org, org_config = config.project_config.keychain.get_default_org()
-        if org_config is None:
-          raise click.UsageError(
-            'No org specified and no default org set.')
+        if not org_config:
+            raise click.UsageError(
+                '`cci flow run` requires an org.'
+                ' No org was specified and default org is not set.'
+            )
 
     org_config = check_org_expired(config, org, org_config)
     
