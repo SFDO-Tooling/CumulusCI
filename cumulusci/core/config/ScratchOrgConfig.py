@@ -285,7 +285,7 @@ class ScratchOrgConfig(OrgConfig):
             message = 'Message: {}'.format('\n'.join(stdout_list))
             raise ScratchOrgException(message)
 
-    def refresh_oauth_token(self, connected_app):
+    def refresh_oauth_token(self, keychain=None):
         """ Use sfdx force:org:describe to refresh token instead of built in OAuth handling """
         if hasattr(self, '_scratch_info'):
             # Cache the scratch_info for 1 hour to avoid unnecessary calls out

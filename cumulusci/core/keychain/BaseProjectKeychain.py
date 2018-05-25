@@ -2,6 +2,7 @@ from __future__ import print_function
 
 from cumulusci.core.config import BaseConfig
 from cumulusci.core.config import ScratchOrgConfig
+from cumulusci.core.config import ServiceConfig
 from cumulusci.core.exceptions import OrgNotFound
 from cumulusci.core.exceptions import ServiceNotConfigured
 from cumulusci.core.exceptions import ServiceNotValid
@@ -21,6 +22,29 @@ class BaseProjectKeychain(BaseConfig):
         self.key = key
         self._validate_key()
         self._load_keychain()
+
+    def _convert_connected_app(self):
+        """Convert Connected App to service"""
+        if self.services and 'connected_app' in self.services:
+            # already a service
+            return
+        connected_app = self.get_connected_app()
+        if not connected_app:
+            # not configured
+            return
+        self.logger.warning(
+            'Reading Connected App info from deprecated config.'
+            ' Connected App should be changed to a service.'
+            ' If using environment keychain, update the environment variable.'
+            ' Otherwise, it has been handled automatically and you should not'
+            ' see this message again.'
+        )
+        ca_config = ServiceConfig({
+            'callback_url': connected_app.callback_url,
+            'client_id': connected_app.client_id,
+            'client_secret': connected_app.client_secret,
+        })
+        self.set_service('connected_app', ca_config)
 
     def _load_keychain(self):
         self._load_app()
@@ -70,10 +94,7 @@ class BaseProjectKeychain(BaseConfig):
         self.set_org(org_config)
 
     def change_key(self, key):
-        """ re-encrypt stored services, orgs, and the connected_app
-        with the new key """
-
-        connected_app = self.get_connected_app()
+        """ re-encrypt stored services and orgs with the new key """
 
         services = {}
         for service_name in self.list_services():
@@ -84,8 +105,6 @@ class BaseProjectKeychain(BaseConfig):
             orgs[org_name] = self.get_org(org_name)
 
         self.key = key
-        if connected_app:
-            self.set_connected_app(connected_app)
 
         if orgs:
             for org_name, org_config in list(orgs.items()):
@@ -95,14 +114,7 @@ class BaseProjectKeychain(BaseConfig):
             for service_name, service_config in list(services.items()):
                 self.set_service(service_name, service_config)
 
-    def set_connected_app(self, app_config, project=False):
-        """ store a connected_app configuration """
-
-        self._set_connected_app(app_config, project)
-        self._load_app()
-
-    def _set_connected_app(self, app_config, project):
-        self.app = app_config
+        self._convert_connected_app()
 
     def get_connected_app(self):
         """ retrieve the connected app configuration """
@@ -191,6 +203,7 @@ class BaseProjectKeychain(BaseConfig):
         :rtype ServiceConfig
         :return the configured Service
         """
+        self._convert_connected_app()
         if not self.project_config.services or name not in self.project_config.services:
             self._raise_service_not_valid(name)
         if name not in self.services:

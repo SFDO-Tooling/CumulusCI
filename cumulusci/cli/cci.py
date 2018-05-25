@@ -28,7 +28,6 @@ from jinja2 import Environment
 from jinja2 import PackageLoader
 
 import cumulusci
-from cumulusci.core.config import ConnectedAppOAuthConfig
 from cumulusci.core.config import FlowConfig
 from cumulusci.core.config import OrgConfig
 from cumulusci.core.config import ScratchOrgConfig
@@ -40,7 +39,6 @@ from cumulusci.core.exceptions import ApexTestException
 from cumulusci.core.exceptions import BrowserTestFailure
 from cumulusci.core.exceptions import ConfigError
 from cumulusci.core.exceptions import FlowNotFoundError
-from cumulusci.core.exceptions import KeychainConnectedAppNotFound
 from cumulusci.core.exceptions import KeychainKeyNotFound
 from cumulusci.core.exceptions import OrgNotFound
 from cumulusci.salesforce_api.exceptions import MetadataApiError
@@ -207,13 +205,6 @@ except click.UsageError as e:
     sys.exit(1)
 
 pass_config = make_pass_instance_decorator(CLI_CONFIG)
-
-def check_connected_app(config):
-    check_keychain(config)
-    if not config.keychain.get_connected_app():
-        raise click.UsageError(
-            "Please use the 'org config_connected_app' command to configure the OAuth Connected App to use for this project's keychain")
-
 
 def check_keychain(config):
     check_project_config(config)
@@ -605,11 +596,10 @@ service.add_command(service_show)
 @click.argument('org_name')
 @pass_config
 def org_browser(config, org_name):
-    check_connected_app(config)
 
     org_config = config.project_config.get_org(org_name)
     org_config = check_org_expired(config, org_name, org_config)
-    org_config.refresh_oauth_token(config.keychain.get_connected_app())
+    org_config.refresh_oauth_token(config.keychain)
 
     webbrowser.open(org_config.start_url)
 
@@ -625,10 +615,17 @@ def org_browser(config, org_name):
 @click.option('--global-org', help='Set True if org should be used by any project', is_flag=True)
 @pass_config
 def org_connect(config, org_name, sandbox, login_url, default, global_org):
-    check_connected_app(config)
     check_org_overwrite(config, org_name)
 
-    connected_app = config.keychain.get_connected_app()
+    try:
+        connected_app = config.keychain.get_service('connected_app')
+    except ServiceNotConfigured as e:
+        raise ServiceNotConfigured(
+            'Connected App is required but not configured. ' +
+            'Configure the Connected App service:\n' +
+            'http://cumulusci.readthedocs.io/en/latest/' +
+            'tutorial.html#configuring-the-project-s-connected-app'
+        )
     if sandbox:
         login_url = 'https://test.salesforce.com'
 
@@ -655,7 +652,6 @@ def org_connect(config, org_name, sandbox, login_url, default, global_org):
 @click.option('--unset', is_flag=True, help="Unset the org as the default org leaving no default org selected")
 @pass_config
 def org_default(config, org_name, unset):
-    check_connected_app(config)
 
     if unset:
         org = config.keychain.unset_default_org()
@@ -671,13 +667,12 @@ def org_default(config, org_name, unset):
 @click.option('print_json', '--json', is_flag=True, help="Print as JSON")
 @pass_config
 def org_info(config, org_name, print_json):
-    check_connected_app(config)
 
     org_config = config.keychain.get_org(org_name)
     org_config = check_org_expired(config, org_name, org_config)
 
     try:
-        org_config.refresh_oauth_token(config.keychain.get_connected_app())
+        org_config.refresh_oauth_token(config.keychain)
     except ScratchOrgException as e:
         raise click.ClickException('ScratchOrgException: {}'.format(e.message))
 
@@ -696,7 +691,6 @@ def org_info(config, org_name, print_json):
 @click.command(name='list', help="Lists the connected orgs for the current project")
 @pass_config
 def org_list(config):
-    check_connected_app(config)
     data = []
     headers = ['org', 'default', 'scratch', 'days', 'expired', 'config_name', 'username']
     for org in config.project_config.list_orgs():
@@ -721,7 +715,6 @@ def org_list(config):
 @click.option('--global-org', is_flag=True, help="Set this option to force remove a global org.  Default behavior is to error if you attempt to delete a global org.")
 @pass_config
 def org_remove(config, org_name, global_org):
-    check_connected_app(config)
 
     try:
         org_config = config.keychain.get_org(org_name)
@@ -748,7 +741,6 @@ def org_remove(config, org_name, global_org):
 @click.option('--no-password', is_flag=True, help="If set, don't set a password for the org")
 @pass_config
 def org_scratch(config, config_name, org_name, default, delete, devhub, days, no_password):
-    check_connected_app(config)
     check_org_overwrite(config, org_name)
 
     scratch_configs = getattr(config.project_config, 'orgs__scratch')
@@ -780,7 +772,6 @@ def org_scratch(config, config_name, org_name, default, delete, devhub, days, no
 @click.argument('org_name')
 @pass_config
 def org_scratch_delete(config, org_name):
-    check_connected_app(config)
     org_config = config.keychain.get_org(org_name)
     if not org_config.scratch:
         raise click.UsageError('Org {} is not a scratch org'.format(org_name))
@@ -793,33 +784,8 @@ def org_scratch_delete(config, org_name):
     config.keychain.set_org(org_config)
 
 
-@click.command(name='connected_app', help="Displays the ConnectedApp info used for OAuth connections")
-@pass_config
-def org_connected_app(config):
-    check_connected_app(config)
-    click.echo(render_recursive(config.keychain.get_connected_app().config))
-
-
-@click.command(name='config_connected_app', help="Configures the connected app used for connecting to Salesforce orgs")
-@click.option('--client_id', help="The Client ID from the connected app", prompt=True)
-@click.option('--client_secret', help="The Client Secret from the connected app", prompt=True, hide_input=(False if os.name == 'nt' else True))
-@click.option('--callback_url', help="The callback_url configured on the Connected App", default='http://localhost:8080/callback')
-@click.option('--project', help='Set if storing encrypted keychain file in project directory', is_flag=True)
-@pass_config
-def org_config_connected_app(config, client_id, client_secret, callback_url, project):
-    check_keychain(config)
-    app_config = ConnectedAppOAuthConfig()
-    app_config.config = {
-        'client_id': client_id,
-        'client_secret': client_secret,
-        'callback_url': callback_url,
-    }
-    config.keychain.set_connected_app(app_config, project)
-
 org.add_command(org_browser)
-org.add_command(org_config_connected_app)
 org.add_command(org_connect)
-org.add_command(org_connected_app)
 org.add_command(org_default)
 org.add_command(org_info)
 org.add_command(org_list)
