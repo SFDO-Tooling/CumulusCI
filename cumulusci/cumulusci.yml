@@ -509,16 +509,16 @@ flows:
 
 services:
   connected_app:
-    description: Configure connected app for connecting to Salesforce orgs
+    description: A Connected App is required to connect to and run commands against persistent orgs. See http://cumulusci.readthedocs.io/en/latest/tutorial.html#creating-a-connected-app for more info.
     attributes:
       callback_url:
         description: Callback URL configured on the Connected App
         required: True
       client_id:
-        description: Client ID from the Connected App
+        description: Client ID/Consumer Key from the Connected App
         required: True
       client_secret:
-        description: Client Secret from the Connected App
+        description: Client Secret/Consumer Secret from the Connected App
         required: True
   github:
     description: Configure connection for github tasks, e.g. Create Release
