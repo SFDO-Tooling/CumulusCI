@@ -66,7 +66,7 @@ class ScratchOrgConfig(OrgConfig):
                 )
             org_id = org_info['result']['accessToken'].split('!')[0]
 
-        if 'password' in org_info['result']:
+        if 'password' in org_info['result'] and org_info['result']['password']:
             password = org_info['result']['password']
         else:
             password = self.config.get('password')
