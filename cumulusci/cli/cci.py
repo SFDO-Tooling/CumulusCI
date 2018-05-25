@@ -359,7 +359,7 @@ def project_init(config, extend):
         elif selection == '2':
             dependencies.append({'type': 'github', 'url': 'https://github.com/SalesforceFoundation/Cumulus'})
         else:
-            print selection
+            print(selection)
             github_url = click.prompt(click.style('Enter the Github Repository URL', bold=True))
             dependencies.append({'type': 'github', 'url': github_url})
     context['dependencies'] = dependencies

@@ -65,7 +65,7 @@ class Command(BaseTask):
 
     def _run_task(self):
         env = self._get_env()
-        self._run_command(env)
+        #self._run_command(env)
 
     def _get_env(self):
         if process_bool_arg(self.options['pass_env']):
