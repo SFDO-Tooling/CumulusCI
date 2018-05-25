@@ -32,7 +32,13 @@ class BaseProjectKeychain(BaseConfig):
         if not connected_app:
             # not configured
             return
-        print('Using old-style Connected App info. Set the connected_app service using the same info.')
+        self.logger.warning(
+            'Reading Connected App info from deprecated config.'
+            ' Connected App should be changed to a service.'
+            ' If using environment keychain, update the environment variable.'
+            ' Otherwise, it has been handled automatically and you should not'
+            ' see this message again.'
+        )
         ca_config = ServiceConfig({
             'callback_url': connected_app.callback_url,
             'client_id': connected_app.client_id,
