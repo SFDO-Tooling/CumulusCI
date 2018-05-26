@@ -17,7 +17,7 @@ from cumulusci.core.utils import import_class
 class BaseFlow(object):
     """ BaseFlow handles initializing and running a flow """
 
-    def __init__(self, project_config, flow_config, org_config, options=None, skip=None, nested=False):
+    def __init__(self, project_config, flow_config, org_config, options=None, skip=None, nested=False, parent=None):
         self.project_config = project_config # a subclass of BaseTaskFlowConfig, tho tasks may expect more than that
         self.flow_config = flow_config
         self.org_config = org_config
@@ -29,6 +29,7 @@ class BaseFlow(object):
         self.task_results = []  # A collection of result objects in task execution order
         self.tasks = []  # A collection of configured task objects, either run or failed
         self.nested = nested  # indicates if flow is called from another flow
+        self.parent = parent # parent flow, if nested
         self._init_options()
         self._init_skip(skip)
         self._init_logger()
@@ -189,6 +190,7 @@ class BaseFlow(object):
             options=self.options,
             skip=self.skip,
             nested=True,
+            parent=self
         )
         flow()
         self.tasks.append(flow)
