@@ -5,7 +5,7 @@ import glob
 from xml.dom.minidom import parse
 
 from cumulusci.core.tasks import BaseTask
-from cumulusci.utils import download_extract_zip
+from cumulusci.utils import download_extract_zip, findReplace, findReplaceRegex
 
 
 class DownloadZip(BaseTask):
@@ -90,6 +90,7 @@ class Sleep(BaseTask):
         time.sleep(float(self.options['seconds']))
         self.logger.info('Done')
 
+
 class Delete(BaseTask):
     name = 'Delete'
     task_options = {
@@ -116,8 +117,8 @@ class Delete(BaseTask):
             for path_item in path:
                 for match in glob.glob(path_item):
                     self._delete(match)
-   
-        if chdir: 
+
+        if chdir:
             os.chdir(cwd)
 
     def _delete(self, path):
@@ -159,8 +160,9 @@ class FindReplace(BaseTask):
             'description': "The max number of matches to replace.  Defaults to replacing all matches.",
         },
     }
-    
-    def _init_options(self):
+
+    def _init_options(self, kwargs):
+        super(FindReplace, self)._init_options(kwargs)
         if 'replace' not in self.options:
             self.options['replace'] = ''
         if 'file_pattern' not in self.options:
@@ -171,28 +173,31 @@ class FindReplace(BaseTask):
         if 'max' in self.options:
             kwargs['max'] = self.options['max']
         findReplace(
-            find = self.options['find'],
-            replace = self.options['replace'],
-            directory = self.options['path'],
-            filePattern = self.options['file_pattern'],
-            logger = self.logger,
+            find=self.options['find'],
+            replace=self.options['replace'],
+            directory=self.options['path'],
+            filePattern=self.options['file_pattern'],
+            logger=self.logger,
             **kwargs
         )
+
 
 find_replace_regex_options = FindReplace.task_options.copy()
 del find_replace_regex_options['max']
 
+
 class FindReplaceRegex(FindReplace):
     task_options = find_replace_regex_options
-            
+
     def _run_task(self):
         findReplaceRegex(
-            find = self.options['find'],
-            replace = self.options['replace'],
-            directory = self.options['path'],
-            filePattern = self.options['file_pattern'],
-            logger = self.logger,
+            find=self.options['find'],
+            replace=self.options['replace'],
+            directory=self.options['path'],
+            filePattern=self.options['file_pattern'],
+            logger=self.logger,
         )
+
 
 class CopyFile(BaseTask):
     task_options = {
