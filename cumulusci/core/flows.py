@@ -18,7 +18,7 @@ class BaseFlow(object):
     """ BaseFlow handles initializing and running a flow """
 
     def __init__(self, project_config, flow_config, org_config, options=None, skip=None, nested=False):
-        self.project_config = project_config
+        self.project_config = project_config # a subclass of BaseTaskFlowConfig, tho tasks may expect more than that
         self.flow_config = flow_config
         self.org_config = org_config
         self.options = options
@@ -179,11 +179,9 @@ class BaseFlow(object):
             self._run_task(stepnum, flow_task_config)
 
     def _run_flow(self, stepnum, flow_task_config):
-        class_path = flow_task_config['task_config'].config.get(
-            'class_path',
-            'cumulusci.core.flows.BaseFlow',
-        )
-        flow_class = import_class(class_path)
+        flow_class = self.__class__
+        if 'class_path' in flow_task_config['task_config'].config:
+            flow_class = import_class(flow_task_config['task_config'].config['class_path'])
         flow = flow_class(
             self.project_config,
             flow_task_config['task_config'],

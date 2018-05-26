@@ -50,7 +50,7 @@ requirements = [
 test_requirements = [
     'coverage==4.1',
     'coveralls==1.2.0',
-    'flake8==2.6.0'
+    'flake8==2.6.0',
     'mock==2.0.0',
     'nose==1.3.7',
     'nose-tap==1.9',
