@@ -214,6 +214,32 @@ class CopyFile(BaseTask):
     def _run_task(self):
         self.logger.info('Copying file {src} to {dest}'.format(**self.options))
         shutil.copyfile(
-            src = self.options['src'],
-            dst = self.options['dest'],
+            src=self.options['src'],
+            dst=self.options['dest'],
         )
+
+
+class LogLine(BaseTask):
+    task_options = {
+        'level': {
+            'description': 'The logger level to use',
+            'required': True
+        },
+        'line': {
+            'description': 'A formatstring like line to log',
+            'required': True
+        },
+        'format_vars': {
+            'description': 'A Dict of format vars',
+            'required': False
+        }
+    }
+
+    def _init_options(self, kwargs):
+        super(LogLine, self)._init_options(kwargs)
+        if 'format_vars' not in self.options:
+            self.options['format_vars'] = {}
+
+    def _run_task(self):
+        log = getattr(self.logger, self.options['level'])
+        log(self.options['line'].format(**self.options['format_vars']))
