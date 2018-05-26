@@ -243,3 +243,23 @@ class LogLine(BaseTask):
     def _run_task(self):
         log = getattr(self.logger, self.options['level'])
         log(self.options['line'].format(**self.options['format_vars']))
+
+class PassOptionAsResult(BaseTask):
+    task_options = {
+        'result': {
+            'description': 'The result for the task',
+            'required': True
+        }
+    }
+
+    def _run_task(self):
+        return self.options['result']
+
+class PassOptionAsReturnValue(BaseTask):
+    task_options = {
+        'key':{'required': True, 'description': 'The return value key to use.'},
+        'value':{'required': True, 'description': 'The value to set.'}
+    }
+
+    def _run_task(self):
+        self.return_values[self.options['key']] = self.options['value']
