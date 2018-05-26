@@ -159,10 +159,18 @@ class BaseFlow(object):
         return config
 
     def __call__(self):
+        self._pre_flow()
         if not self.prepped:
             raise FlowNotReadyError('Flow executed before init_flow was called')
         for stepnum, flow_task_config in self._get_tasks_ordered():
             self._run_step(stepnum, flow_task_config)
+        self._post_flow()
+
+    def _pre_flow(self):
+        pass
+    
+    def _post_flow(self):
+        pass
 
     def _find_task_by_name(self, name):
         if not self.flow_config.tasks:
@@ -198,7 +206,9 @@ class BaseFlow(object):
             nested=True,
             parent=self
         )
+        self._pre_subflow(flow)
         flow()
+        self._post_subflow(flow)
         self.tasks.append(flow)
         self.task_return_values.append(flow.task_return_values)
 
@@ -243,6 +253,12 @@ class BaseFlow(object):
         pass
 
     def _post_task_exception(self, task, exception):
+        pass
+
+    def _pre_subflow(self, flow):
+        pass
+
+    def _post_subflow(self, flow):
         pass
 
     def _get_task(self, stepnum, flow_task_config):
