@@ -10,14 +10,14 @@ import traceback
 
 from cumulusci.core.config import FlowConfig
 from cumulusci.core.config import TaskConfig
-from cumulusci.core.exceptions import ConfigError
+from cumulusci.core.exceptions import ConfigError, FlowNotReadyError
 from cumulusci.core.utils import import_class
 
 
 class BaseFlow(object):
     """ BaseFlow handles initializing and running a flow """
 
-    def __init__(self, project_config, flow_config, org_config, options=None, skip=None, nested=False, parent=None):
+    def __init__(self, project_config, flow_config, org_config, options=None, skip=None, nested=False, parent=None, prep=True):
         self.project_config = project_config # a subclass of BaseTaskFlowConfig, tho tasks may expect more than that
         self.flow_config = flow_config
         self.org_config = org_config
@@ -33,7 +33,9 @@ class BaseFlow(object):
         self._init_options()
         self._init_skip(skip)
         self._init_logger()
-        self._init_flow()
+        self.prepped = False
+        if prep:
+            self._init_flow()
 
     def _init_options(self):
         if not self.options:
@@ -77,6 +79,8 @@ class BaseFlow(object):
             self._init_org()
         for line in self._render_config():
             self.logger.info(line)
+
+        self.prepped = True
 
     def _check_infinite_flows(self, tasks, flows=None):
         if flows == None:
@@ -155,6 +159,8 @@ class BaseFlow(object):
         return config
 
     def __call__(self):
+        if not self.prepped:
+            raise FlowNotReadyError('Flow executed before init_flow was called')
         for stepnum, flow_task_config in self._get_tasks_ordered():
             self._run_step(stepnum, flow_task_config)
 
