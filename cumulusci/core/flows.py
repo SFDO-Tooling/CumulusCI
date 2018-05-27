@@ -17,7 +17,18 @@ from cumulusci.core.utils import import_class
 class BaseFlow(object):
     """ BaseFlow handles initializing and running a flow """
 
-    def __init__(self, project_config, flow_config, org_config, options=None, skip=None, nested=False, parent=None, prep=True):
+    def __init__(
+        self,
+        project_config,
+        flow_config,
+        org_config,
+        options=None,
+        skip=None,
+        nested=False,
+        parent=None,
+        prep=True,
+        name=None
+    ):
         self.project_config = project_config # a subclass of BaseTaskFlowConfig, tho tasks may expect more than that
         self.flow_config = flow_config
         self.org_config = org_config
@@ -30,6 +41,7 @@ class BaseFlow(object):
         self.tasks = []  # A collection of configured task objects, either run or failed
         self.nested = nested  # indicates if flow is called from another flow
         self.parent = parent # parent flow, if nested
+        self.name = name # the flows name.
         self._init_options()
         self._init_skip(skip)
         self._init_logger()
@@ -159,12 +171,14 @@ class BaseFlow(object):
         return config
 
     def __call__(self):
-        self._pre_flow()
+        if not self.nested:
+            self._pre_flow()
         if not self.prepped:
             raise FlowNotReadyError('Flow executed before init_flow was called')
         for stepnum, flow_task_config in self._get_tasks_ordered():
             self._run_step(stepnum, flow_task_config)
-        self._post_flow()
+        if not self.nested:
+            self._post_flow()
 
     def _pre_flow(self):
         pass
@@ -204,7 +218,8 @@ class BaseFlow(object):
             options=self.options,
             skip=self.skip,
             nested=True,
-            parent=self
+            parent=self,
+            name=flow_task_config['flow_config']['flow']
         )
         self._pre_subflow(flow)
         flow()

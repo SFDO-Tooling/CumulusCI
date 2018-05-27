@@ -1026,7 +1026,7 @@ def flow_run(config, flow_name, org, delete_org, debug, o, skip, no_prompt):
     # Create the flow and handle initialization exceptions
     try:
         flow = flow_class(config.project_config, flow_config,
-                          org_config, options, skip)
+                          org_config, options, skip, name=flow_name)
     except TaskRequiresSalesforceOrg as e:
         exception = click.UsageError(
             'This flow requires a salesforce org.  Use org default <name> to set a default org or pass the org name with the --org option')
