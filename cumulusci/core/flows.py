@@ -27,7 +27,8 @@ class BaseFlow(object):
         nested=False,
         parent=None,
         prep=True,
-        name=None
+        name=None,
+        stepnum=None
     ):
         self.project_config = project_config # a subclass of BaseTaskFlowConfig, tho tasks may expect more than that
         self.flow_config = flow_config
@@ -42,6 +43,7 @@ class BaseFlow(object):
         self.nested = nested  # indicates if flow is called from another flow
         self.parent = parent # parent flow, if nested
         self.name = name # the flows name.
+        self.stepnum = stepnum # a nested flow has a stepnum
         self._init_options()
         self._init_skip(skip)
         self._init_logger()
@@ -219,7 +221,8 @@ class BaseFlow(object):
             skip=self.skip,
             nested=True,
             parent=self,
-            name=flow_task_config['flow_config']['flow']
+            name=flow_task_config['flow_config']['flow'],
+            stepnum=stepnum
         )
         self._pre_subflow(flow)
         flow()
