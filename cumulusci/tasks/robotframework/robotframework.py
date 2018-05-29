@@ -1,6 +1,5 @@
 from cumulusci.core.tasks import BaseTask
 from cumulusci.tasks.salesforce import BaseSalesforceTask
-from robot.api import SuiteVisitor
 from robot.conf import RobotSettings
 from robot.running import TestSuiteBuilder
 from robot.reporting import ResultWriter
