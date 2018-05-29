@@ -13,7 +13,8 @@ class OrgConfig(BaseConfig):
         self.name = name
         super(OrgConfig, self).__init__(config)
 
-    def refresh_oauth_token(self, connected_app):
+    def refresh_oauth_token(self, keychain):
+        connected_app = keychain.get_service('connected_app')
         client_id = self.client_id
         client_secret = self.client_secret
         if not client_id:

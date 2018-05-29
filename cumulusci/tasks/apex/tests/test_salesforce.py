@@ -6,7 +6,6 @@ import responses
 
 from cumulusci.core.config import BaseGlobalConfig
 from cumulusci.core.config import BaseProjectConfig
-from cumulusci.core.config import ConnectedAppOAuthConfig
 from cumulusci.core.config import OrgConfig
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.keychain import BaseProjectKeychain
@@ -30,8 +29,6 @@ class TestRunApexTests(unittest.TestCase):
         self.project_config.config['project'] = {'package': {
             'api_version': self.api_version}}
         keychain = BaseProjectKeychain(self.project_config, '')
-        app_config = ConnectedAppOAuthConfig()
-        keychain.set_connected_app(app_config)
         self.project_config.set_keychain(keychain)
         self.org_config = OrgConfig({
             'id': 'foo/1',

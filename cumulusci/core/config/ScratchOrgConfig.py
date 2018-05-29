@@ -66,10 +66,10 @@ class ScratchOrgConfig(OrgConfig):
                 )
             org_id = org_info['result']['accessToken'].split('!')[0]
 
-        if self.config.get('password'):
-            password = self.config['password']
+        if 'password' in org_info['result'] and org_info['result']['password']:
+            password = org_info['result']['password']
         else:
-            password = org_info['result'].get('password')
+            password = self.config.get('password')
 
         self._scratch_info = {
             'instance_url': org_info['result']['instanceUrl'],
@@ -285,7 +285,7 @@ class ScratchOrgConfig(OrgConfig):
             message = 'Message: {}'.format('\n'.join(stdout_list))
             raise ScratchOrgException(message)
 
-    def refresh_oauth_token(self, connected_app):
+    def refresh_oauth_token(self, keychain=None):
         """ Use sfdx force:org:describe to refresh token instead of built in OAuth handling """
         if hasattr(self, '_scratch_info'):
             # Cache the scratch_info for 1 hour to avoid unnecessary calls out
