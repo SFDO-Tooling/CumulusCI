@@ -18,17 +18,17 @@ class BaseFlow(object):
     """ BaseFlow handles initializing and running a flow """
 
     def __init__(
-        self,
-        project_config,
-        flow_config,
-        org_config,
-        options=None,
-        skip=None,
-        nested=False,
-        parent=None,
-        prep=True,
-        name=None,
-        stepnum=None
+            self,
+            project_config,
+            flow_config,
+            org_config,
+            options=None,
+            skip=None,
+            nested=False,
+            parent=None,
+            prep=True,
+            name=None,
+            stepnum=None
     ):
         self.project_config = project_config # a subclass of BaseTaskFlowConfig, tho tasks may expect more than that
         self.flow_config = flow_config
@@ -44,6 +44,7 @@ class BaseFlow(object):
         self.parent = parent # parent flow, if nested
         self.name = name # the flows name.
         self.stepnum = stepnum # a nested flow has a stepnum
+        self._skip_next = False # internal only control flow option for subclasses to override a step execution in their pre.
         self._init_options()
         self._init_skip(skip)
         self._init_logger()
@@ -225,6 +226,11 @@ class BaseFlow(object):
             stepnum=stepnum
         )
         self._pre_subflow(flow)
+        
+        if self._skip_next:
+            self._skip_next = False
+            return
+
         flow()
         self._post_subflow(flow)
         self.tasks.append(flow)
@@ -249,6 +255,9 @@ class BaseFlow(object):
         self.logger.info('')
         self.logger.info('Running task: %s', task.name)
         self._pre_task(task)
+        if self._skip_next:
+            self._skip_next = False
+            return
         try:
             task()
             self.logger.info('Task complete: %s', task.name)
