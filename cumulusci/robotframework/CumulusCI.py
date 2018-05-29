@@ -32,22 +32,37 @@ class CumulusCI(object):
         if not org_name:
             org_name = 'dev'
         self.org_name = org_name
-        self.sf = self._init_api()
-        self.tooling = self._init_api('tooling/')
         # Turn off info logging of all http requests 
         logging.getLogger('requests.packages.urllib3.connectionpool').setLevel(logging.WARN)
 
     @property
-    def config(self):
-        if not hasattr(self, '_config'):
-            self._config = self._init_config()
-        return self._config
+    def project_config(self):
+        if not hasattr(self, '_project_config'):
+            self._project_config = CliConfig().project_config
+        return self._project_config
+    
+    @property
+    def keychain(self):
+        return self.project_config.keychain
 
     @property
     def org(self):
         if not hasattr(self, '_org'):
-            self._org = self.config.keychain.get_org(self.org_name)
+            self._org = self.keychain.get_org(self.org_name)
         return self._org
+
+    @property
+    def sf(self):
+        if not hasattr(self, '_sf'):
+            self._sf = self._init_api()
+        return self._sf
+
+    @property
+    def tooling(self):
+        if not hasattr(self, '_tooling'):
+            self._tooling = self._init_api('tooling/')
+        return self._tooling
+        
 
     def set_login_url(self):
         """ Sets the LOGIN_URL variable in the suite scope which will
@@ -72,7 +87,7 @@ class CumulusCI(object):
         if org is None:
             org = self.org
         else:
-            org = self.config.keychain.get_org(org)
+            org = self.keychain.get_org(org)
         return org.start_url
 
     def run_task(self, task_name, **options):
@@ -84,7 +99,7 @@ class CumulusCI(object):
             | Run Task  | deploy      |                            | Run deploy with standard options |
             | Run Task  | deploy      | path=path/to/some/metadata | Run deploy with custom path      |
         """
-        task_config = getattr(self.config.project_config, 'tasks__{}'.format(task_name))
+        task_config = getattr(self.project_config, 'tasks__{}'.format(task_name))
         if not task_config:
             raise TaskNotFoundError('Task not found: {}'.format(task_name))
         class_path = task_config.get('class_path')
@@ -108,7 +123,7 @@ class CumulusCI(object):
         return self._run_task(task_class, task_config)
 
     def _init_api(self, base_url=None):
-        api_version = self.config.project_config.project__package__api_version
+        api_version = self.project_config.project__package__api_version
 
         rv = Salesforce(
             instance=self.org.instance_url.replace('https://', ''),
@@ -118,10 +133,6 @@ class CumulusCI(object):
         if base_url is not None:
             rv.base_url += base_url
         return rv
-
-    def _init_config(self):
-        config = CliConfig()
-        return config
 
     def _init_task(self, class_path, options, task_config):
         task_class = import_class(class_path)
@@ -152,7 +163,7 @@ class CumulusCI(object):
         task_config = TaskConfig(task_config)
         exception = None
 
-        task = task_class(self.config.project_config,
+        task = task_class(self.project_config,
                           task_config, org_config=self.org)
 
         task()

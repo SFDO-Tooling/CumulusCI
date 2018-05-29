@@ -12,6 +12,7 @@ ${BROWSER_VERSION}  ${empty}
 ${DEBUG}            ${false}
 ${CHROME_BINARY}    ${empty}
 ${FIREFOX_BINARY}   ${empty}
+${ORG}              ${empty}
 ${IMPLICIT_WAIT}    7.0
 ${TIMEOUT}          7.0
 

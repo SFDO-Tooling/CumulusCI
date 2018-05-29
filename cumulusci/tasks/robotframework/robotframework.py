@@ -1,7 +1,12 @@
 from cumulusci.core.tasks import BaseTask
 from cumulusci.tasks.salesforce import BaseSalesforceTask
-from robot.run import run
+from robot.api import SuiteVisitor
+from robot.conf import RobotSettings
+from robot.running import TestSuiteBuilder
+from robot.reporting import ResultWriter
 from robot.libdoc import libdoc
+from robot.libraries.BuiltIn import BuiltIn
+from robot.output import pyloggingconf
 from robot.testdoc import testdoc
 
 class Robot(BaseSalesforceTask):
@@ -34,6 +39,22 @@ class Robot(BaseSalesforceTask):
         if 'suites' not in self.options:
             self.options['suites'] = 'tests'
 
+        # Initialize the include list and add the org name to it
+        if 'include' in self.options:
+            if not isinstance(self.options['include'], list):
+                new_includes = []
+                for include in self.options['include'].split(','):
+                    new_includes.append(include.strip())
+                self.options['include'] = new_includes
+
+        # Initialize the exclude list and add the org name to it
+        if 'exclude' in self.options:
+            if not isinstance(self.options['exclude'], list):
+                new_excludes = []
+                for exclude in self.options['exclude'].split(','):
+                    new_excludes.append(exclude.strip())
+                self.options['exclude'] = new_excludes
+
         # Initialize the vars list and add the org name to it
         if 'vars' in self.options:
             if not isinstance(self.options['vars'], list):
@@ -51,13 +72,33 @@ class Robot(BaseSalesforceTask):
 
     def _run_task(self):
         options = self.options['options'].copy()
-        if 'test' in self.options:
-            options['test'] = self.options['test']
-        if 'include' in self.options:
-            options['include_tag'] = self.options['include']
-        if 'exclude' in self.options:
-            options['exclude_tag'] = self.options['exclude']
+        options['SuiteNames'] = self.options['suites']
 
+        settings = RobotSettings(options)
+        if 'test' in self.options:
+            settings['TestNames'] = self.options['test']
+        if 'include' in self.options:
+            settings['Include'] = self.options['include']
+        if 'exclude' in self.options:
+            settings['Exclude'] = self.options['exclude']
+
+        # Inject CumulusCIRobotListener to build the CumulusCI library instance
+        # from self.project_config instead of reinitializing CumulusCI's config
+        listener = CumulusCIRobotListener(self.project_config, self.org_config.name)
+        settings['Listeners'] = [listener]
+
+        # Build the top level test suite
+        suite = TestSuiteBuilder().build(options['SuiteNames'])
+        suite.configure(**settings.suite_config)
+
+        # Run the test suite
+        with pyloggingconf.robot_handler_enabled(settings.log_level):
+            result = suite.run(settings)
+            self.logger.info("Tests execution ended. Statistics:\n{}".format(result.suite.stat_message))
+            if settings.log or settings.report or settings.xunit:
+                writer = ResultWriter(settings.output if settings.log else result)
+                writer.write_results(settings.get_rebot_settings())
+        return result.return_code
         run(
             self.options['suites'], 
             variable=self.options['vars'],
@@ -99,3 +140,17 @@ class RobotTestDoc(BaseTask):
             self.options['path'],
             self.options['output'],
         )
+
+class CumulusCIRobotListener(object):
+    ROBOT_LISTENER_API_VERSION = 3
+
+    def __init__(self, project_config, org_name):
+        self.project_config = project_config
+        self.org_name = org_name
+
+    def start_suite(self, name, attributes):
+        cumuluscilib = BuiltIn().import_library('cumulusci.robotframework.CumulusCI', self.org_name)
+        cumuluscilib = BuiltIn().get_library_instance('cumulusci.robotframework.CumulusCI')
+        if not hasattr(cumuluscilib, '_project_config'):
+            cumuluscilib._project_config = self.project_config
+
