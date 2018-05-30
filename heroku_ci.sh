@@ -50,17 +50,17 @@ else
 fi
 
 # Run Salesforce Library API Tests
-coverage run --append `which cci` task run robot -o suites cumulusci/robotframework/tests/salesforce/api.robot -o vars BROWSER:headlesschrome,CHROME_BINARY:$GOOGLE_CHROME_SHIM | tee cci.log
+coverage run --append `which cci` task run robot -o suites cumulusci/robotframework/tests/salesforce/api.robot | tee cci.log
 exit_status=${PIPESTATUS[0]}
 if [ "$exit_status" == "0" ]; then
-    echo "ok 1 - Successfully ran Salesforce Robot Library API"
+    echo "ok 2 - Successfully ran Salesforce Robot Library API"
 else
-    echo "not ok 1 - Failed Salesforce Robot Library API: `tail -1 cci.log`"
+    echo "not ok 2 - Failed Salesforce Robot Library API: `tail -1 cci.log`"
     failed=1
 fi
 
 # Run Salesforce Library UI Tests
-coverage run --append `which cci` task run robot -o suites cumulusci/robotframework/tests/salesforce/ui.robot | tee cci.log
+coverage run --append `which cci` task run robot -o suites cumulusci/robotframework/tests/salesforce/ui.robot -o vars BROWSER:headlesschrome,CHROME_BINARY:$GOOGLE_CHROME_SHIM | tee cci.log
 exit_status=${PIPESTATUS[0]}
 if [ "$exit_status" == "0" ]; then
     echo "ok 3 - Successfully ran Salesforce Robot Library UI"

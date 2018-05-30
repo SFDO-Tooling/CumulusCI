@@ -164,3 +164,7 @@ class ApexException(CumulusCIException):
 class PushApiObjectNotFound(CumulusCIException):
     """ Raise when Salesforce Push API object is not found """
     pass
+
+class RobotTestFailure(CumulusCIException):
+    """ Raise when a robot test fails in a test suite """
+    pass

@@ -1,3 +1,4 @@
+from cumulusci.core.exceptions import RobotTestFailure
 from cumulusci.core.tasks import BaseTask
 from cumulusci.core.utils import process_list_arg
 from cumulusci.tasks.salesforce import BaseSalesforceTask
@@ -68,7 +69,9 @@ class Robot(BaseSalesforceTask):
             options['listener'] = []
         options['listener'].append(listener)
 
-        robot_run(self.options['suites'], **options)
+        num_failed = robot_run(self.options['suites'], **options)
+        if num_failed:
+            raise RobotTestFailure("{} tests failed".format(num_failed))
 
 
 class RobotLibDoc(BaseTask):
