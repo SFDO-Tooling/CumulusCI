@@ -56,7 +56,7 @@ Get Chrome Options
 
 Chrome Set Binary
     [Arguments]  ${options}
-    ${options.binary_location} =  ${CHROME_BINARY}
+    ${options.binary_location} =  Set Variable  ${CHROME_BINARY}
     [return]  ${options}
 
 Chrome Set Headless
