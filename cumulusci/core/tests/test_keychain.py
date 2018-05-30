@@ -1,5 +1,4 @@
 from __future__ import absolute_import
-from __future__ import unicode_literals
 import json
 import os
 import shutil
@@ -17,7 +16,6 @@ except ImportError:
 
 from cumulusci.core.config import BaseGlobalConfig
 from cumulusci.core.config import BaseProjectConfig
-from cumulusci.core.config import ConnectedAppOAuthConfig
 from cumulusci.core.config import OrgConfig
 from cumulusci.core.config import ScratchOrgConfig
 from cumulusci.core.config import ServiceConfig
@@ -42,13 +40,14 @@ class TestBaseProjectKeychain(unittest.TestCase):
         self.global_config = BaseGlobalConfig()
         self.project_config = BaseProjectConfig(self.global_config)
         self.project_config.config['services'] = {
+            'connected_app': {'attributes': {'test': {'required': True}}},
             'github': {'attributes': {'name': {'required': True}, 'password': {}}},
             'mrbelvedere': {'attributes': {'mr': {'required': True}}},
             'not_configured': {'attributes': {'foo': {'required': True}}},
         }
         self.project_config.project__name = 'TestProject'
-        self.connected_app_config = ConnectedAppOAuthConfig({'test': 'value'})
         self.services = {
+            'connected_app': ServiceConfig({'test': 'value'}),
             'github': ServiceConfig({'name': 'hub'}),
             'mrbelvedere': ServiceConfig({'mr': 'belvedere'}),
         }
@@ -97,28 +96,19 @@ class TestBaseProjectKeychain(unittest.TestCase):
         new_key = '9876543210987654'
         keychain = self.keychain_class(self.project_config, self.key)
         keychain.set_org(self.org_config)
-        keychain.set_connected_app(self.connected_app_config)
+        keychain.set_service('connected_app', self.services['connected_app'])
         keychain.set_service('github', self.services['github'])
         keychain.set_service('mrbelvedere', self.services['mrbelvedere'])
         keychain.change_key(new_key)
         self.assertEquals(keychain.key, new_key)
-        self.assertEquals(keychain.get_connected_app().config,
-                          self.connected_app_config.config)
+        self.assertEquals(keychain.get_service(
+            'connected_app').config, self.services['connected_app'].config)
         self.assertEquals(keychain.get_service(
             'github').config, self.services['github'].config)
         self.assertEquals(keychain.get_service(
             'mrbelvedere').config, self.services['mrbelvedere'].config)
         self.assertEquals(keychain.get_org(
             'test').config, self.org_config.config)
-
-    def test_set_connected_app(self):
-        self._test_set_connected_app()
-
-    def _test_set_connected_app(self, project=False):
-        keychain = self.keychain_class(self.project_config, self.key)
-        keychain.set_connected_app(self.connected_app_config, project)
-        self.assertEquals(
-            keychain.get_connected_app().config, {'test': 'value'})
 
     def test_set_service_github(self):
         self._test_set_service_github()
@@ -280,8 +270,8 @@ class TestEnvironmentProjectKeychain(TestBaseProjectKeychain):
             json.dumps(self.org_config.config)
         )
         self.env.set(
-            self.keychain_class.app_var,
-            json.dumps(self.connected_app_config.config)
+            '{}connected_app'.format(self.keychain_class.service_var_prefix),
+            json.dumps(self.services['connected_app'].config)
         )
         self.env.set(
             '{}github'.format(self.keychain_class.service_var_prefix),
@@ -299,8 +289,6 @@ class TestEnvironmentProjectKeychain(TestBaseProjectKeychain):
         for key, value in list(env.items()):
             if key.startswith(self.keychain_class.service_var_prefix):
                 del env[key]
-        if self.keychain_class.app_var in env:
-            del env[self.keychain_class.app_var]
 
     def test_get_org(self):
         keychain = self.keychain_class(self.project_config, self.key)
@@ -317,8 +305,8 @@ class TestEnvironmentProjectKeychain(TestBaseProjectKeychain):
         with EnvironmentVarGuard() as env:
             self._clean_env(env)
             env.set(
-                self.keychain_class.app_var,
-                json.dumps(self.connected_app_config.config)
+                '{}connected_app'.format(self.keychain_class.service_var_prefix),
+                json.dumps(self.services['connected_app'].config)
             )
             self._test_list_orgs_empty()
    
@@ -336,28 +324,16 @@ class TestEnvironmentProjectKeychain(TestBaseProjectKeychain):
     def test_load_scratch_orgs_none(self):
         with EnvironmentVarGuard() as env:
             self._clean_env(env)
-            env.set(
-                self.keychain_class.app_var,
-                json.dumps(self.connected_app_config.config)
-            )
             self._test_load_scratch_orgs_none()
 
     def test_load_scratch_orgs_create_one(self):
         with EnvironmentVarGuard() as env:
             self._clean_env(env)
-            env.set(
-                self.keychain_class.app_var,
-                json.dumps(self.connected_app_config.config)
-            )
             self._test_load_scratch_orgs_create_one()
 
     def test_get_org_not_found(self):
         with EnvironmentVarGuard() as env:
             self._clean_env(env)
-            env.set(
-                self.keychain_class.app_var,
-                json.dumps(self.connected_app_config.config)
-            )
             self._test_get_org_not_found()
 
     def test_get_default_org(self):
@@ -369,10 +345,6 @@ class TestEnvironmentProjectKeychain(TestBaseProjectKeychain):
                 '{}test'.format(self.keychain_class.org_var_prefix),
                 json.dumps(org_config)
             )
-            env.set(
-                self.keychain_class.app_var,
-                json.dumps(self.connected_app_config.config)
-            )
             self._test_get_default_org()
 
     def test_set_default_org(self):
@@ -383,10 +355,6 @@ class TestEnvironmentProjectKeychain(TestBaseProjectKeychain):
             self.env.set(
                 '{}test'.format(self.keychain_class.org_var_prefix),
                 json.dumps(org_config)
-            )
-            env.set(
-                self.keychain_class.app_var,
-                json.dumps(self.connected_app_config.config)
             )
             keychain = self.keychain_class(self.project_config, self.key)
             keychain.set_default_org('test')
@@ -418,16 +386,17 @@ class TestEncryptedFileProjectKeychain(TestBaseProjectKeychain):
         self.global_config = BaseGlobalConfig()
         self.project_config = BaseProjectConfig(self.global_config)
         self.project_config.config['services'] = {
+            'connected_app': {'attributes': {'test': {'required': True}}},
             'github': {'attributes': {'git': {'required': True}, 'password': {}}},
             'mrbelvedere': {'attributes': {'mr': {'required': True}}},
             'not_configured': {'attributes': {'foo': {'required': True}}},
         }
         self.project_config.project__name = 'TestProject'
         self.project_name = 'TestProject'
-        self.connected_app_config = ConnectedAppOAuthConfig({'test': 'value'})
         self.org_config = OrgConfig({'foo': 'bar'}, 'test')
         self.scratch_org_config = ScratchOrgConfig({'foo': 'bar', 'scratch': True}, 'test_scratch')
         self.services = {
+            'connected_app': ServiceConfig({'test': 'value'}),
             'github': ServiceConfig({'git': 'hub'}),
             'mrbelvedere': ServiceConfig({'mr': 'belvedere'}),
         }
@@ -496,20 +465,6 @@ class TestEncryptedFileProjectKeychain(TestBaseProjectKeychain):
         mock_class.return_value = self.tempdir_home
         os.chdir(self.tempdir_project)
         self._test_get_service_not_configured()
-
-    def test_set_connected_app(self, mock_class):
-        self._mk_temp_home()
-        self._mk_temp_project()
-        mock_class.return_value = self.tempdir_home
-        os.chdir(self.tempdir_project)
-        self._test_set_connected_app()
-
-    def test_set_connected_app_project(self, mock_class):
-        self._mk_temp_home()
-        self._mk_temp_project()
-        mock_class.return_value = self.tempdir_home
-        os.chdir(self.tempdir_project)
-        self._test_set_connected_app(True)
 
     def test_set_service_github(self, mock_class):
         self._mk_temp_home()

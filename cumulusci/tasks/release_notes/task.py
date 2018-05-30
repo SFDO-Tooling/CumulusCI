@@ -37,6 +37,7 @@ class GithubReleaseNotes(BaseGithubTask):
         }
 
         generator = GithubReleaseNotesGenerator(
+            self.github,
             github_info,
             self.project_config.project__git__release_notes__parsers.values(),
             self.options['tag'],

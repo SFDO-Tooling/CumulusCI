@@ -1,7 +1,6 @@
 """ Utilities for testing CumulusCI
 
 MockLoggingHandler: a logging handler that we can assert"""
-from __future__ import unicode_literals
 
 import logging
 

@@ -1,5 +1,4 @@
 """ Tests for the CumulusCI task module """
-from __future__ import unicode_literals
 
 import unittest
 import logging

@@ -81,7 +81,7 @@ tasks:
         description: Execute a string of anonymous apex via the tooling api.
         class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
     generate_apex_docs:
-        description: Generate documentation for local code
+        description: Generate documentation for local code. Configure settings in cumulusci.yml/project/apexdoc - homepage, banner, branch, repo_dir
         class_path: cumulusci.tasks.apexdoc.GenerateApexDocs
     get_installed_packages:
         description: Retrieves a list of the currently installed managed package namespaces and their versions
@@ -107,6 +107,9 @@ tasks:
     github_release_notes:
         description: Generates release notes by parsing pull request bodies of merged pull requests between two tags
         class_path: cumulusci.tasks.release_notes.task.GithubReleaseNotes
+    github_release_report:
+        description: Parses GitHub release notes to report various info
+        class_path: cumulusci.tasks.github.ReleaseReport
     install_managed:
         description: Install the latest managed production release
         class_path: cumulusci.tasks.salesforce.InstallPackageVersion
@@ -274,6 +277,15 @@ flows:
                 task: generate_apex_docs
             2:
                 task: commit_apex_docs
+                
+    dev_deploy:
+        description: Unschedule apex and deploy the latest unmanaged metadata.
+        tasks:
+            1:
+                task: unschedule_apex
+            2:
+                task: deploy
+
     dev_org:
         description: Deploys the unmanaged package metadata and all dependencies to the target org
         tasks:
@@ -496,6 +508,18 @@ flows:
                 task: update_admin_profile
 
 services:
+  connected_app:
+    description: A Connected App is required to connect to and run commands against persistent orgs. See http://cumulusci.readthedocs.io/en/latest/tutorial.html#creating-a-connected-app for more info.
+    attributes:
+      callback_url:
+        description: Callback URL configured on the Connected App
+        required: True
+      client_id:
+        description: Client ID/Consumer Key from the Connected App
+        required: True
+      client_secret:
+        description: Client Secret/Consumer Secret from the Connected App
+        required: True
   github:
     description: Configure connection for github tasks, e.g. Create Release
     attributes:
@@ -580,6 +604,8 @@ project:
         prefix_feature: feature/
         prefix_beta: beta/
         prefix_release: release/
+        push_prefix_sandbox: 'Sandbox orgs: '
+        push_prefix_production: 'Production orgs: '
         release_notes:
             parsers:
                 1:
@@ -600,8 +626,6 @@ project:
     test:
         name_match: '%_TEST%'
     apexdoc:
-        homepage:
-        banner:
         version: 1.1.7
         scope: global;public;private;testmethod;webService
     dependencies:

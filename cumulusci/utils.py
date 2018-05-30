@@ -117,8 +117,6 @@ def download_extract_zip(url, target=None, subfolder=None):
         return
     return zip_file
     
-
-
 def zip_subfolder(zip_src, path):
     if not path.endswith('/'):
         path = path + '/'

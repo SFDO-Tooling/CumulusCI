@@ -2,6 +2,40 @@
 History
 =======
 
+2.0.0-beta96 (2018-05-18)
+-------------------------
+
+- Fixes for CumulusCI on Windows - CumulusCI 2 now supports Windows environments!
+- Support skipping scratch org password creation by specifying `--no-password` to `cci org scratch`
+- Add additional logging to PackageUpload
+
+2.0.0-beta95 (2018-05-10)
+-------------------------
+
+- Add pytz to requirements
+
+2.0.0-beta94 (2018-05-10)
+-------------------------
+
+- Support added for nested flows. Specify a flow instead of a task inside another flow in cumulusci.yml
+- Add new task github_release_report to report info from GitHub release notes
+- Add new flow dev_deploy for minimal deploy (tasks: unschedule_jobs, deploy)
+- Enhance BaseFlow to be more easily subclassed/overridden/observed. Preserves task step number and adds several hook methods for subclasses (_pre_task, _post_task, _post_task_exception)
+- Refactor github_release_notes task to use github3.py instead of calling the GitHub API directly. Includes these minor changes to functionality:
+    - Cannot create release with this task (use github_create_release instead)
+    - Merge existing release notes even when not publishing
+- Fix issue that caused duplicate entries in the dependency tree
+- Sort output of os.listdir in all occurrences. Guarantees ordered iteration over files on disk
+- Validate CUMULUSCI_KEY value and raise more helpful exceptions if invalid
+
+2.0.0-beta93 (2018-04-20)
+-------------------------
+
+- Fix issue in command task for Windows
+- Support interactive in command task (thanks Chris Landry!)
+- Search more pull requests (100 vs 30) when generating release notes
+- Add options to Apex documentation generator task
+
 2.0.0-beta92 (2018-04-04)
 -------------------------
 
