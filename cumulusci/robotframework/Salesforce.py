@@ -414,7 +414,18 @@ class Salesforce(object):
         self.builtin.log('Updating {} {} with values {}'.format(obj_name, obj_id, kwargs))
         obj_class = getattr(self.cumulusci.sf, obj_name)
         return obj_class.update(obj_id, kwargs)
-        
+
+    def salesforce_update_perf(self, bucket, obj_name, obj_id, **kwargs):
+        self.builtin.log('Updating {} {} with values {}'.format(obj_name, obj_id, kwargs))
+        self.builtin.log('{} {}'.format(PERF_TOKEN, bucket))
+        self.cumulusci.sf.session.headers['Sforce-Call-Options'] = 'perfOption=basic'
+
+        obj_class = getattr(self.cumulusci.sf, obj_name)
+        res = obj_class.update(obj_id, kwargs)
+
+        self.cumulusci.sf.session.headers['Sforce-Call-Options'] = ''
+        return result
+
     def soql_query(self, query):
         """ Runs a simple SOQL query and returns the dict results """
         self.builtin.log('Running SOQL Query: {}'.format(query))
