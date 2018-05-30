@@ -593,13 +593,24 @@ service.add_command(service_show)
 
 
 @click.command(name='browser', help="Opens a browser window and logs into the org using the stored OAuth credentials")
-@click.argument('org_name')
+@click.argument('org_name', required=False)
 @pass_config
 def org_browser(config, org_name):
 
-    org_config = config.project_config.get_org(org_name)
+    if org_name:
+      org_config = config.keychain.get_org(org_name)
+    else:
+      org_name, org_config = config.project_config.keychain.get_default_org()
+      if org_config is None:
+        raise click.UsageError(
+          'No org specified and no default org set.')
+
     org_config = check_org_expired(config, org_name, org_config)
-    org_config.refresh_oauth_token(config.keychain)
+
+    try:
+        org_config.refresh_oauth_token(config.keychain)
+    except ScratchOrgException as e:
+        raise click.ClickException('ScratchOrgException: {}'.format(e.message))
 
     webbrowser.open(org_config.start_url)
 
@@ -663,12 +674,19 @@ def org_default(config, org_name, unset):
 
 
 @click.command(name='info', help="Display information for a connected org")
-@click.argument('org_name')
+@click.argument('org_name', required=False)
 @click.option('print_json', '--json', is_flag=True, help="Print as JSON")
 @pass_config
 def org_info(config, org_name, print_json):
 
-    org_config = config.keychain.get_org(org_name)
+    if org_name:
+      org_config = config.keychain.get_org(org_name)
+    else:
+      org_name, org_config = config.project_config.keychain.get_default_org()
+      if org_config is None:
+        raise click.UsageError(
+          'No org specified and no default org set.')
+
     org_config = check_org_expired(config, org_name, org_config)
 
     try:
