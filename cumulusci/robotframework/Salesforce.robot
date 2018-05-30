@@ -46,10 +46,10 @@ Open Test Browser Headless Firefox
     Open Browser  ${login_url}  headlessfirefox
  
 Get Chrome Options
-    ${options} =    Evaluate  selenium.webdriver.ChromeOptions()  modules=selenium
-    Run Keyword If  '${CHROME_BINARY}' != '${empty}'
-    ...             ${options.binary_location} =  Set Variable  ${CHROME_BINARY} 
-    Run Keyword If  '${BROWSER}' == 'headlesschrome'
-    ...             Call Method  ${options}  set_headless  ${true}
+    ${options} =     Evaluate  selenium.webdriver.ChromeOptions()  modules=selenium
+    Set Variable If  '${CHROME_BINARY}' != '${empty}'
+    ...              ${options.binary_location}  ${CHROME_BINARY} 
+    Run Keyword If   '${BROWSER}' == 'headlesschrome'
+    ...              Call Method  ${options}  set_headless  ${true}
     [return]  ${options}
 
