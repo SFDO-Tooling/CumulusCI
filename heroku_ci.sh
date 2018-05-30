@@ -29,7 +29,7 @@ fi
 
 # Run the robot test suite
 echo "------------------------------------------"
-echo "Running Robot Framework library tests
+echo "Running Robot Framework library tests"
 echo "------------------------------------------"
 
 # Start TAP output
