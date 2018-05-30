@@ -8,10 +8,8 @@ Library        cumulusci.robotframework.Salesforce  debug=${DEBUG}
 
 *** Variables *** 
 ${BROWSER}          chrome
-${BROWSER_VERSION}  ${empty}
 ${DEBUG}            ${false}
 ${CHROME_BINARY}    ${empty}
-${FIREFOX_BINARY}   ${empty}
 ${ORG}              ${empty}
 ${IMPLICIT_WAIT}    7.0
 ${TIMEOUT}          7.0
@@ -26,7 +24,7 @@ Open Test Browser
     ${login_url} =  Login Url
     Run Keyword If  '${BROWSER}' == 'chrome'  Open Test Browser Chrome  ${login_url}
     ...    ELSE IF  '${BROWSER}' == 'firefox'  Open Test Browser Firefox  ${login_url}
-    ...    ELSE IF  '${BROWSER}' == 'headlesschrome'  Open Test Browser Headless Chrome  ${login_url}
+    ...    ELSE IF  '${BROWSER}' == 'headlesschrome'  Open Test Browser Chrome  ${login_url}
     ...    ELSE IF  '${BROWSER}' == 'headlessfirefox'  Open Test Browser Headless Firefox  ${login_url}
     ...    ELSE  Open Browser  ${login_url}  ${BROWSER}  desired_capabilities=version:${BROWSER_VERSION}
     Sleep  2
@@ -34,21 +32,25 @@ Open Test Browser
 
 Open Test Browser Chrome
     [Arguments]     ${login_url}
-    Run Keyword If  '${CHROME_BINARY}' == ''  Open Browser  ${login_url}  chrome  desired_capabilities=version:${BROWSER_VERSION}
-    ...       ELSE  Open Browser  ${login_url}  chrome  desired_capabilities=version:${BROWSER_VERSION},binary:${CHROME_BINARY}
+    ${options} =                Get Chrome Options
+    Create Webdriver            Chrome  options=${options}
+    Set Selenium Implicit Wait  ${IMPLICIT_WAIT}
+    Set Selenium Timeout        ${TIMEOUT}
+    Go To                       ${login_url}
 
 Open Test Browser Firefox
     [Arguments]     ${login_url}
-    Run Keyword If  '${FIREFOX_BINARY}' == ''  Open Browser  ${login_url}  firefox  desired_capabilities=version:${BROWSER_VERSION}
-    ...       ELSE  Open Browser  ${login_url}  firefox  desired_capabilities=version:${BROWSER_VERSION},firefox_binary:${FIREFOX_BINARY}
-
-Open Test Browser Headless Chrome
-    [Arguments]     ${login_url}
-    Run Keyword If  '${CHROME_BINARY}' == ''  Open Browser  ${login_url}  headlesschrome  desired_capabilities=version:${BROWSER_VERSION}
-    ...       ELSE  Open Browser  ${login_url}  headlesschrome  desired_capabilities=version:${BROWSER_VERSION},binary:${CHROME_BINARY}
+    Open Browser  ${login_url}  firefox
  
 Open Test Browser Headless Firefox
     [Arguments]     ${login_url}
-    Run Keyword If  '${FIREFOX_BINARY}' == ''  Open Browser  ${login_url}  headlessfirefox  desired_capabilities=version:${BROWSER_VERSION}
-    ...       ELSE  Open Browser  ${login_url}  headlessfirefox  desired_capabilities=version:${BROWSER_VERSION},firefox_binary:${FIREFOX_BINARY}
+    Open Browser  ${login_url}  headlessfirefox
  
+Get Chrome Options
+    ${options} =     Evaluate  selenium.webdriver.ChromeOptions()  modules=selenium
+    Set Variable If  '${CHROME_BINARY}' != '${empty}'
+    ...              ${options.binary_location}  ${CHROME_BINARY} 
+    Run Keyword If   '${BROWSER}' == 'headlesschrome'
+    ...              Call Method  ${options}  set_headless  ${true}
+    [return]  ${options}
+
