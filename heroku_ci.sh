@@ -27,6 +27,50 @@ if [ "$exit_status" == "0" ]; then
     exit $failed
 fi
 
+# Run the robot test suite
+echo "------------------------------------------"
+echo "Running Robot Framework library tests
+echo "------------------------------------------"
+
+# Start TAP output
+echo "1...3"
+
+# Create dev org
+coverage run --append `which cci` org info dev | tee cci.log
+coverage run --append `which cci` org default dev | tee cci.log
+
+# Run CumulusCI Library Tests
+coverage run --append `which cci` task run robot -o suites cumulusci/robotframework/tests/cumulusci/base.robot | tee cci.log
+exit_status=${PIPESTATUS[0]}
+if [ "$exit_status" == "0" ]; then
+    echo "ok 1 - Successfully ran CumulusCI Robot Library"
+else
+    echo "not ok 1 - Failed CumulusCI Robot Library: `tail -1 cci.log`"
+    failed=1
+fi
+
+# Run Salesforce Library API Tests
+coverage run --append `which cci` task run robot -o suites cumulusci/robotframework/tests/salesforce/api.robot | tee cci.log
+exit_status=${PIPESTATUS[0]}
+if [ "$exit_status" == "0" ]; then
+    echo "ok 1 - Successfully ran Salesforce Robot Library API"
+else
+    echo "not ok 1 - Failed Salesforce Robot Library API: `tail -1 cci.log`"
+    failed=1
+fi
+
+# Run Salesforce Library UI Tests
+coverage run --append `which cci` task run robot -o suites cumulusci/robotframework/tests/salesforce/ui.robot | tee cci.log
+exit_status=${PIPESTATUS[0]}
+if [ "$exit_status" == "0" ]; then
+    echo "ok 3 - Successfully ran Salesforce Robot Library UI"
+else
+    echo "not ok 3 - Failed Salesforce Robot Library UI: `tail -1 cci.log`"
+    # FIXME: Not making the UI tests required at this point until they are fully stable
+    #failed=1
+fi
+
+
 # For feature branches, skip running the CumulusCI-Test flows if there is not an open PR unless the last commit message contains [run CumulusCI-Test]
 if [ "$HEROKU_TEST_RUN_BRANCH" != "master" ] &&\
    [[ "$HEROKU_TEST_RUN_BRANCH" == feature/* ]]; then
@@ -40,6 +84,8 @@ if [ "$HEROKU_TEST_RUN_BRANCH" != "master" ] &&\
         exit $failed
     fi
 fi
+
+export CUMULUSCI_KEYCHAIN_CLASS=cumulusci.core.keychain.EnvironmentProjectKeychain
 
 # Clone the CumulusCI-Test repo to run test builds against it with cci
 echo "------------------------------------------"
