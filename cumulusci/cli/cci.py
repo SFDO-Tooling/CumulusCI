@@ -92,6 +92,16 @@ def get_latest_version():
     return pkg_resources.parse_version(res['info']['version'])
 
 
+def get_org(config, org_name=None):
+    if org_name:
+        org_config = config.keychain.get_org(org_name)
+    else:
+        org_name, org_config = config.project_config.keychain.get_default_org()
+        if not org_config:
+            raise click.UsageError('No org specified and no default org set.')
+    return org_name, org_config
+
+
 def check_latest_version():
     """ checks for the latest version of cumulusci from pypi, max once per hour """
     check = True
@@ -597,14 +607,7 @@ service.add_command(service_show)
 @pass_config
 def org_browser(config, org_name):
 
-    if org_name:
-      org_config = config.keychain.get_org(org_name)
-    else:
-      org_name, org_config = config.project_config.keychain.get_default_org()
-      if org_config is None:
-        raise click.UsageError(
-          'No org specified and no default org set.')
-
+    org_name, org_config = get_org(config, org_name)
     org_config = check_org_expired(config, org_name, org_config)
 
     try:
@@ -679,14 +682,7 @@ def org_default(config, org_name, unset):
 @pass_config
 def org_info(config, org_name, print_json):
 
-    if org_name:
-      org_config = config.keychain.get_org(org_name)
-    else:
-      org_name, org_config = config.project_config.keychain.get_default_org()
-      if org_config is None:
-        raise click.UsageError(
-          'No org specified and no default org set.')
-
+    org_name, org_config = get_org(config, org_name)
     org_config = check_org_expired(config, org_name, org_config)
 
     try:
