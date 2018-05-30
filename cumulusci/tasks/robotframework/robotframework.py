@@ -1,5 +1,7 @@
 from cumulusci.core.tasks import BaseTask
+from cumulusci.core.utils import process_list_arg
 from cumulusci.tasks.salesforce import BaseSalesforceTask
+import robot
 from robot.conf import RobotSettings
 from robot.running import TestSuiteBuilder
 from robot.reporting import ResultWriter
@@ -14,10 +16,9 @@ class Robot(BaseSalesforceTask):
             'description': 'Paths to test case files/directories to be executed similarly as when running the robot command on the command line.  Defaults to "tests" to run all tests in the tests directory',
             'required': True,
         },
-        'test': {
-            'description': 'Run a specific test by name',
-        },
-        'include': {
+        'tests': {
+            'description': 'Run only tests matching name patterns.  Can be comma separated and use robot wildcards like *',
+        }, 'include': {
             'description': 'Includes tests with a given tag',
         },
         'exclude': {
@@ -34,36 +35,19 @@ class Robot(BaseSalesforceTask):
     def _init_options(self, kwargs):
         super(Robot, self)._init_options(kwargs)
 
-        # Set default for suites
-        if 'suites' not in self.options:
-            self.options['suites'] = 'tests'
+        if 'tests' in self.options:
+            self.options['tests'] = process_list_arg(self.options['tests'])
 
-        # Initialize the include list and add the org name to it
         if 'include' in self.options:
-            if not isinstance(self.options['include'], list):
-                new_includes = []
-                for include in self.options['include'].split(','):
-                    new_includes.append(include.strip())
-                self.options['include'] = new_includes
+            self.options['include'] = process_list_arg(self.options['include'])
 
-        # Initialize the exclude list and add the org name to it
         if 'exclude' in self.options:
-            if not isinstance(self.options['exclude'], list):
-                new_excludes = []
-                for exclude in self.options['exclude'].split(','):
-                    new_excludes.append(exclude.strip())
-                self.options['exclude'] = new_excludes
+            self.options['exclude'] = process_list_arg(self.options['exclude'])
 
-        # Initialize the vars list and add the org name to it
         if 'vars' in self.options:
-            if not isinstance(self.options['vars'], list):
-                new_vars = []
-                for var in self.options['vars'].split(','):
-                    new_vars.append(var.strip())
-                self.options['vars'] = new_vars
+            self.options['vars'] = process_list_arg(self.options['vars'])
         else:
             self.options['vars'] = []
-        self.options['vars'].append('ORG:{}'.format(self.org_config.name))
 
         # Initialize options as a dict
         if 'options' not in self.options:
@@ -71,15 +55,19 @@ class Robot(BaseSalesforceTask):
 
     def _run_task(self):
         options = self.options['options'].copy()
-        options['SuiteNames'] = self.options['suites']
+        options['suites'] = self.options['suites']
 
         settings = RobotSettings(options)
-        if 'test' in self.options:
-            settings['TestNames'] = self.options['test']
+        if 'tests' in self.options:
+            settings['TestNames'] = self.options['tests']
         if 'include' in self.options:
             settings['Include'] = self.options['include']
         if 'exclude' in self.options:
             settings['Exclude'] = self.options['exclude']
+
+        # NOTE: We bypass using robot.run here because it doesn't seem possible to
+        # pass an initialized instance of a listener, only the class path, and we
+        # need a listener instance so we can pass the project_config and org_name
 
         # Inject CumulusCIRobotListener to build the CumulusCI library instance
         # from self.project_config instead of reinitializing CumulusCI's config
@@ -87,7 +75,7 @@ class Robot(BaseSalesforceTask):
         settings['Listeners'] = [listener]
 
         # Build the top level test suite
-        suite = TestSuiteBuilder().build(options['SuiteNames'])
+        suite = TestSuiteBuilder().build(options['suites'])
         suite.configure(**settings.suite_config)
 
         # Run the test suite
@@ -98,11 +86,6 @@ class Robot(BaseSalesforceTask):
                 writer = ResultWriter(settings.output if settings.log else result)
                 writer.write_results(settings.get_rebot_settings())
         return result.return_code
-        run(
-            self.options['suites'], 
-            variable=self.options['vars'],
-            **self.options['options']
-        )
 
 class RobotLibDoc(BaseTask):
     task_options = {

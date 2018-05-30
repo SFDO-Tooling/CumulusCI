@@ -4,6 +4,7 @@ from cumulusci.core.utils import import_class
 from cumulusci.core.exceptions import TaskNotFoundError
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.config import TaskConfig
+from robot.api import logger
 from robot.libraries.BuiltIn import BuiltIn
 from simple_salesforce import Salesforce
 
@@ -32,12 +33,16 @@ class CumulusCI(object):
         if not org_name:
             org_name = 'dev'
         self.org_name = org_name
+        self._project_config = None
+        self._org = None
+        self._sf = None
+        self._tooling = None
         # Turn off info logging of all http requests 
         logging.getLogger('requests.packages.urllib3.connectionpool').setLevel(logging.WARN)
 
     @property
     def project_config(self):
-        if not hasattr(self, '_project_config'):
+        if self._project_config is None:
             self._project_config = CliConfig().project_config
         return self._project_config
     
@@ -47,19 +52,20 @@ class CumulusCI(object):
 
     @property
     def org(self):
-        if not hasattr(self, '_org'):
+        if self._org is None:
+            logger.console('\n')
             self._org = self.keychain.get_org(self.org_name)
         return self._org
 
     @property
     def sf(self):
-        if not hasattr(self, '_sf'):
+        if self._sf is None:
             self._sf = self._init_api()
         return self._sf
 
     @property
     def tooling(self):
-        if not hasattr(self, '_tooling'):
+        if self._tooling is None:
             self._tooling = self._init_api('tooling/')
         return self._tooling
         
@@ -99,10 +105,9 @@ class CumulusCI(object):
             | Run Task  | deploy      |                            | Run deploy with standard options |
             | Run Task  | deploy      | path=path/to/some/metadata | Run deploy with custom path      |
         """
-        task_config = getattr(self.project_config, 'tasks__{}'.format(task_name))
-        if not task_config:
-            raise TaskNotFoundError('Task not found: {}'.format(task_name))
-        class_path = task_config.get('class_path')
+        task_config = self.project_config.get_task(task_name)
+        class_path = task_config.class_path
+        logger.console('\n')
         task_class, task_config = self._init_task(class_path, options, task_config)
         return self._run_task(task_class, task_config)
 
@@ -119,7 +124,8 @@ class CumulusCI(object):
             | =Keyword=      | =task_class=                     | =task_options=                            |
             | Run Task Class | cumulusci.task.utils.DownloadZip | url=http://test.com/test.zip dir=test_zip |
         """ 
-        task_class, task_config = self._init_task(class_path, options, {})
+        logger.console('\n')
+        task_class, task_config = self._init_task(class_path, options, TaskConfig())
         return self._run_task(task_class, task_config)
 
     def _init_api(self, base_url=None):
@@ -140,10 +146,10 @@ class CumulusCI(object):
         return task_class, task_config
 
     def _parse_task_options(self, options, task_class, task_config):
+        if 'options' not in task_config.config:
+            task_config.config['options'] = {}
         # Parse options and add to task config
         if options:
-            if 'options' not in task_config:
-                task_config['options'] = {}
             for name, value in options.items():
                 # Validate the option
                 if name not in task_class.task_options:
@@ -155,12 +161,11 @@ class CumulusCI(object):
                     )
     
                 # Override the option in the task config
-                task_config['options'][name] = value
+                task_config.config['options'][name] = value
 
         return task_config
     
     def _run_task(self, task_class, task_config):
-        task_config = TaskConfig(task_config)
         exception = None
 
         task = task_class(self.project_config,
