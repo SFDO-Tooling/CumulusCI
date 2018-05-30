@@ -70,6 +70,9 @@ else
     #failed=1
 fi
 
+# Delete the scratch org
+coverage run --append `which cci` org scratch_delete dev | tee cci.log
+
 
 # For feature branches, skip running the CumulusCI-Test flows if there is not an open PR unless the last commit message contains [run CumulusCI-Test]
 if [ "$HEROKU_TEST_RUN_BRANCH" != "master" ] &&\
@@ -83,6 +86,9 @@ if [ "$HEROKU_TEST_RUN_BRANCH" != "master" ] &&\
         coveralls
         exit $failed
     fi
+fi
+if [ "$failed" == "1" ]; then
+    exit $failed
 fi
 
 export CUMULUSCI_KEYCHAIN_CLASS=cumulusci.core.keychain.EnvironmentProjectKeychain
