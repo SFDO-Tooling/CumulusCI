@@ -26,7 +26,7 @@ Open Test Browser
     ...    ELSE IF  '${BROWSER}' == 'firefox'  Open Test Browser Firefox  ${login_url}
     ...    ELSE IF  '${BROWSER}' == 'headlesschrome'  Open Test Browser Chrome  ${login_url}
     ...    ELSE IF  '${BROWSER}' == 'headlessfirefox'  Open Test Browser Headless Firefox  ${login_url}
-    ...    ELSE  Open Browser  ${login_url}  ${BROWSER}  desired_capabilities=version:${BROWSER_VERSION}
+    ...    ELSE  Open Browser  ${login_url}  ${BROWSER}
     Sleep  2
     Wait Until Loading Is Complete
 
@@ -47,10 +47,20 @@ Open Test Browser Headless Firefox
     Open Browser  ${login_url}  headlessfirefox
  
 Get Chrome Options
-    ${options} =     Evaluate  selenium.webdriver.ChromeOptions()  modules=selenium
-    Set Variable If  '${CHROME_BINARY}' != '${empty}'
-    ...              ${options.binary_location}  ${CHROME_BINARY} 
-    Run Keyword If   '${BROWSER}' == 'headlesschrome'
-    ...              Call Method  ${options}  set_headless  ${true}
+    ${options} =    Evaluate  selenium.webdriver.ChromeOptions()  modules=selenium
+    Run Keyword If  '${CHROME_BINARY}' != '${empty}'
+    ...             Chrome Set Binary  ${options}
+    Run Keyword If  '${BROWSER}' == 'headlesschrome'
+    ...             Chrome Set Headless  ${options}
     [return]  ${options}
 
+Chrome Set Binary
+    [Arguments]  ${options}
+    ${options.binary_location} =  ${CHROME_BINARY}
+    [return]  ${options}
+
+Chrome Set Headless
+    [Arguments]  ${options}
+    Call Method  ${options}  set_headless  ${true}
+    Call Method  ${options}  add_argument  --disable-dev-shm-usage
+    [return]  ${options}

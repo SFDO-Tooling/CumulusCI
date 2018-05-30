@@ -50,7 +50,7 @@ else
 fi
 
 # Run Salesforce Library API Tests
-coverage run --append `which cci` task run robot -o suites cumulusci/robotframework/tests/salesforce/api.robot -o vars BROWSER:headlesschrome,CHROME_BINARY:$GOOGLE_CHROME_BIN | tee cci.log
+coverage run --append `which cci` task run robot -o suites cumulusci/robotframework/tests/salesforce/api.robot -o vars BROWSER:headlesschrome,CHROME_BINARY:$GOOGLE_CHROME_SHIM | tee cci.log
 exit_status=${PIPESTATUS[0]}
 if [ "$exit_status" == "0" ]; then
     echo "ok 1 - Successfully ran Salesforce Robot Library API"

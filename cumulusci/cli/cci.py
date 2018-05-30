@@ -92,6 +92,16 @@ def get_latest_version():
     return pkg_resources.parse_version(res['info']['version'])
 
 
+def get_org(config, org_name=None):
+    if org_name:
+        org_config = config.keychain.get_org(org_name)
+    else:
+        org_name, org_config = config.project_config.keychain.get_default_org()
+        if not org_config:
+            raise click.UsageError('No org specified and no default org set.')
+    return org_name, org_config
+
+
 def check_latest_version():
     """ checks for the latest version of cumulusci from pypi, max once per hour """
     check = True
@@ -593,13 +603,17 @@ service.add_command(service_show)
 
 
 @click.command(name='browser', help="Opens a browser window and logs into the org using the stored OAuth credentials")
-@click.argument('org_name')
+@click.argument('org_name', required=False)
 @pass_config
 def org_browser(config, org_name):
 
-    org_config = config.project_config.get_org(org_name)
+    org_name, org_config = get_org(config, org_name)
     org_config = check_org_expired(config, org_name, org_config)
-    org_config.refresh_oauth_token(config.keychain)
+
+    try:
+        org_config.refresh_oauth_token(config.keychain)
+    except ScratchOrgException as e:
+        raise click.ClickException('ScratchOrgException: {}'.format(e.message))
 
     webbrowser.open(org_config.start_url)
 
@@ -663,12 +677,12 @@ def org_default(config, org_name, unset):
 
 
 @click.command(name='info', help="Display information for a connected org")
-@click.argument('org_name')
+@click.argument('org_name', required=False)
 @click.option('print_json', '--json', is_flag=True, help="Print as JSON")
 @pass_config
 def org_info(config, org_name, print_json):
 
-    org_config = config.keychain.get_org(org_name)
+    org_name, org_config = get_org(config, org_name)
     org_config = check_org_expired(config, org_name, org_config)
 
     try:
