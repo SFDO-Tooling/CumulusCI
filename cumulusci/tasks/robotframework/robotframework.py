@@ -1,13 +1,9 @@
 from cumulusci.core.tasks import BaseTask
 from cumulusci.core.utils import process_list_arg
 from cumulusci.tasks.salesforce import BaseSalesforceTask
-import robot
-from robot.conf import RobotSettings
-from robot.running import TestSuiteBuilder
-from robot.reporting import ResultWriter
+from robot import run as robot_run
 from robot.libdoc import libdoc
 from robot.libraries.BuiltIn import BuiltIn
-from robot.output import pyloggingconf
 from robot.testdoc import testdoc
 
 class Robot(BaseSalesforceTask):
@@ -55,37 +51,25 @@ class Robot(BaseSalesforceTask):
 
     def _run_task(self):
         options = self.options['options'].copy()
-        options['suites'] = self.options['suites']
 
-        settings = RobotSettings(options)
         if 'tests' in self.options:
-            settings['TestNames'] = self.options['tests']
+            options['test'] = self.options['tests']
         if 'include' in self.options:
-            settings['Include'] = self.options['include']
+            options['include'] = self.options['include']
         if 'exclude' in self.options:
-            settings['Exclude'] = self.options['exclude']
-
-        # NOTE: We bypass using robot.run here because it doesn't seem possible to
-        # pass an initialized instance of a listener, only the class path, and we
-        # need a listener instance so we can pass the project_config and org_name
+            options['exclude'] = self.options['exclude']
+        if 'vars' in self.options:
+            options['variable'] = self.options['vars']
 
         # Inject CumulusCIRobotListener to build the CumulusCI library instance
         # from self.project_config instead of reinitializing CumulusCI's config
         listener = CumulusCIRobotListener(self.project_config, self.org_config.name)
-        settings['Listeners'] = [listener]
+        if 'listener' not in options:
+            options['listener'] = []
+        options['listener'].append(listener)
 
-        # Build the top level test suite
-        suite = TestSuiteBuilder().build(options['suites'])
-        suite.configure(**settings.suite_config)
+        robot_run(self.options['suites'], **options)
 
-        # Run the test suite
-        with pyloggingconf.robot_handler_enabled(settings.log_level):
-            result = suite.run(settings)
-            self.logger.info("Tests execution ended. Statistics:\n{}".format(result.suite.stat_message))
-            if settings.log or settings.report or settings.xunit:
-                writer = ResultWriter(settings.output if settings.log else result)
-                writer.write_results(settings.get_rebot_settings())
-        return result.return_code
 
 class RobotLibDoc(BaseTask):
     task_options = {
