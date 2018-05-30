@@ -510,6 +510,18 @@ flows:
                 task: update_admin_profile
 
 services:
+  connected_app:
+    description: A Connected App is required to connect to and run commands against persistent orgs. See http://cumulusci.readthedocs.io/en/latest/tutorial.html#creating-a-connected-app for more info.
+    attributes:
+      callback_url:
+        description: Callback URL configured on the Connected App
+        required: True
+      client_id:
+        description: Client ID/Consumer Key from the Connected App
+        required: True
+      client_secret:
+        description: Client Secret/Consumer Secret from the Connected App
+        required: True
   github:
     description: Configure connection for github tasks, e.g. Create Release
     attributes:

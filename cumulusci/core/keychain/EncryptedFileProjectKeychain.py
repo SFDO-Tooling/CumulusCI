@@ -64,15 +64,6 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
         os.remove(full_path) 
         self._load_orgs()
 
-    def _set_encrypted_connected_app(self, encrypted, project):
-        if project:
-            filename = os.path.join(self.project_local_dir, 'connected.app')
-        else:
-            filename = os.path.join(self.config_local_dir, 'connected.app')
-        with open(filename, 'wb') as f_org:
-            f_org.write(encrypted)
-        self.app = encrypted
-
     def _set_encrypted_org(self, name, encrypted, global_org):
         if global_org:
             filename = os.path.join(
