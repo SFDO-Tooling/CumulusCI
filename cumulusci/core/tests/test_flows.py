@@ -145,7 +145,7 @@ class TestBaseFlow(unittest.TestCase):
         # run the flow
         flow()
         # the flow results for the second task should be 'name'
-        self.assertEquals('supername', flow.task_results[1])
+        self.assertEquals('supername', flow.step_results[1])
 
     def test_task_options(self, mock_class):
         """ A flow can accept task options and pass them to the task. """
@@ -171,7 +171,7 @@ class TestBaseFlow(unittest.TestCase):
         # run the flow
         flow()
         # the flow results for the first task should be 'bar'
-        self.assertEquals('bar', flow.task_results[0])
+        self.assertEquals('bar', flow.step_results[0])
 
     def test_skip_kwarg(self, mock_class):
         """ A flow can receive during init a list of tasks to skip """
@@ -198,7 +198,7 @@ class TestBaseFlow(unittest.TestCase):
         flow()
 
         # the number of tasks in the flow should be 1 instead of 2
-        self.assertEquals(1, len(flow.task_results))
+        self.assertEquals(1, len(flow.step_results))
 
     def test_skip_task_value_none(self, mock_class):
         """ A flow skips any tasks whose name is None to allow override via yaml """
@@ -223,10 +223,10 @@ class TestBaseFlow(unittest.TestCase):
         flow()
 
         # the number of tasks in the flow should be 1 instead of 2
-        self.assertEquals(1, len(flow.task_results))
+        self.assertEquals(1, len(flow.step_results))
 
     @raises(FlowConfigError)
-    def test_find_task_by_name_no_steps(self, mock_class):
+    def test_find_step_by_name_no_steps(self, mock_class):
         """ Running a flow with no steps throws an error """
 
         # instantiate a flow with two tasks
@@ -241,8 +241,8 @@ class TestBaseFlow(unittest.TestCase):
         )
         flow()
 
-    def test_find_task_by_name_not_first(self, mock_class):
-        """ The _find_task_by_name method skips tasks that don't exist """
+    def test_find_step_by_name_not_first(self, mock_class):
+        """ The _find_step_by_name method skips tasks that don't exist """
 
         # instantiate a flow with two tasks
         flow_config = FlowConfig({
@@ -263,7 +263,7 @@ class TestBaseFlow(unittest.TestCase):
 
         flow()
 
-        task = flow._find_task_by_name('name_response')
+        task = flow._find_step_by_name('name_response')
         self.assertEquals(
             'cumulusci.core.tests.test_flows._TaskResponseName',
             task.task_config.class_path,
@@ -293,7 +293,7 @@ class TestBaseFlow(unittest.TestCase):
 
         flow()
 
-        task = flow._find_task_by_name('name_response')
+        task = flow._find_step_by_name('name_response')
         config = flow._render_task_config(task)
         self.assertEquals(['Options:'], config)
 
@@ -321,7 +321,7 @@ class TestBaseFlow(unittest.TestCase):
         })
         flow = BaseFlow(self.project_config, flow_config, self.org_config)
         flow()
-        self.assertEquals(2, len(flow.tasks))
+        self.assertEquals(2, len(flow.steps))
 
     def test_call_no_tasks(self, mock_class):
         """ A flow with no tasks will have no responses. """
@@ -332,8 +332,8 @@ class TestBaseFlow(unittest.TestCase):
         flow = BaseFlow(self.project_config, flow_config, self.org_config)
         flow()
 
-        self.assertEqual([], flow.task_return_values)
-        self.assertEqual([], flow.tasks)
+        self.assertEqual([], flow.step_return_values)
+        self.assertEqual([], flow.steps)
 
     def test_call_one_task(self, mock_class):
         """ A flow with one task will execute the task """
@@ -350,8 +350,8 @@ class TestBaseFlow(unittest.TestCase):
             "Flow Description: Run one task" in s for s in self.flow_log['info']
         ))
 
-        self.assertEqual([{'name': 'supername'}], flow.task_return_values)
-        self.assertEqual(1, len(flow.tasks))
+        self.assertEqual([{'name': 'supername'}], flow.step_return_values)
+        self.assertEqual(1, len(flow.steps))
 
     def test_call_many_tasks(self, mock_class):
         """ A flow with many tasks will dispatch each task """
@@ -367,9 +367,9 @@ class TestBaseFlow(unittest.TestCase):
 
         self.assertEqual(
             [{'name': 'supername'}, {'name': 'supername'}],
-            flow.task_return_values
+            flow.step_return_values
         )
-        self.assertEqual(2, len(flow.tasks))
+        self.assertEqual(2, len(flow.steps))
 
     @raises(TaskNotFoundError)
     def test_call_task_not_found(self, mock_class):
@@ -447,10 +447,10 @@ class TestBaseFlow(unittest.TestCase):
         })
         flow = BaseFlow(self.project_config, flow_config, self.org_config)
         flow()
-        self.assertEqual(2, len(flow.tasks))
+        self.assertEqual(2, len(flow.steps))
         self.assertEqual(
-            flow.task_return_values[0],
-            flow.task_return_values[1][0],
+            flow.step_return_values[0],
+            flow.step_return_values[1][0],
         )
 
     def test_nested_flow_2(self, mock_class):
@@ -464,12 +464,12 @@ class TestBaseFlow(unittest.TestCase):
         })
         flow = BaseFlow(self.project_config, flow_config, self.org_config)
         flow()
-        self.assertEqual(2, len(flow.tasks))
+        self.assertEqual(2, len(flow.steps))
         self.assertEqual(
-            flow.task_return_values[0],
-            flow.task_return_values[1][0],
+            flow.step_return_values[0],
+            flow.step_return_values[1][0],
         )
         self.assertEqual(
-            flow.task_return_values[0],
-            flow.task_return_values[1][1][0],
+            flow.step_return_values[0],
+            flow.step_return_values[1][1][0],
         )

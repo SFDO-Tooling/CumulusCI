@@ -25,10 +25,10 @@ class BaseFlow(object):
         self.options = options
         self.skip = skip
         self.task_options = {}
-        self.skip_tasks = []
-        self.task_return_values = []  # A collection of return_values dicts in task execution order
-        self.task_results = []  # A collection of result objects in task execution order
-        self.tasks = []  # A collection of configured task objects, either run or failed
+        self.skip_steps = []
+        self.step_return_values = []  # A collection of return_values dicts in task execution order
+        self.step_results = []  # A collection of result objects in task execution order
+        self.steps = []  # A collection of configured task objects, either run or failed
         self.nested = nested  # indicates if flow is called from another flow
         self._init_options()
         self._init_skip(skip)
@@ -47,8 +47,8 @@ class BaseFlow(object):
     def _init_skip(self, skip):
         if not skip:
             return
-        for task in skip:
-            self.skip_tasks.append(task)
+        for step in skip:
+            self.skip_steps.append(step)
 
     def _init_logger(self):
         """ Initializes self.logger """
@@ -90,12 +90,12 @@ class BaseFlow(object):
                 flow_config = self.project_config.get_flow(flow)
                 self._check_infinite_flows(flow_config.steps, flows)
 
-    def _get_tasks(self):
-        tasks = self._get_tasks_ordered()
-        tasks = [task[1] for task in tasks]  # drop the sort keys
-        return tasks
+    def _get_steps(self):
+        steps = self._get_steps_ordered()
+        steps = [step[1] for step in steps]  # drop the sort keys
+        return steps
 
-    def _get_tasks_ordered(self):
+    def _get_steps_ordered(self):
         if self.flow_config.steps is None:
             if self.flow_config.tasks:
                 raise FlowConfigError('Old flow syntax detected.  Please change from "tasks" to "steps" in the flow definition')
@@ -103,7 +103,7 @@ class BaseFlow(object):
                 raise FlowConfigError('No steps found in the flow definition')
         if not self.nested:
             self._check_infinite_flows(self.flow_config.steps)
-        tasks = []
+        steps = []
         for step_num, config in list(self.flow_config.steps.items()):
             if 'flow' in config and 'task' in config:
                 raise FlowConfigError('"flow" and "task" in same config item: {}'.format(config))
@@ -111,19 +111,27 @@ class BaseFlow(object):
                 ('task' in config and config['task'] == 'None')):
                 # allows skipping flows/tasks using YAML overrides
                 continue
+            parsed_step_num = LooseVersion(str(step_num))
             if 'flow' in config:  # nested flow
-                task_config = self.project_config.get_flow(config['flow'])
+                flow_config = self.project_config.get_flow(config['flow'])
+                steps.append((
+                    parsed_step_num,
+                    {
+                        'step_config': config,
+                        'flow_config': flow_config,
+                    },
+                ))
             elif 'task' in config:
                 task_config = self.project_config.get_task(config['task'])
-            tasks.append((
-                LooseVersion(str(step_num)),
-                {
-                    'flow_config': config,
-                    'task_config': task_config,
-                }
-            ))
-        tasks.sort()  # sort by step number
-        return tasks
+                steps.append((
+                    parsed_step_num,
+                    {
+                        'step_config': config,
+                        'task_config': task_config,
+                    },
+                ))
+        steps.sort()  # sort by step number
+        return steps
 
     def _render_config(self):
         config = []
@@ -135,19 +143,21 @@ class BaseFlow(object):
             return config
 
         config.append('Tasks:')
-        for task_info in self._get_tasks():
-            if 'flow' in task_info['flow_config']:
-                task = task_info['flow_config']['flow']
-                flow = '(Flow) '
-            elif 'task' in task_info['flow_config']:
-                task = task_info['flow_config']['task']
-                flow = ''
+        for step_config in self._get_steps():
+            if 'flow_config' in step_config:
+                step = step_config['step_config']['flow']
+                flow_prefix = '(Flow) '
+                description = step_config['flow_config'].description
+            elif 'task_config' in step_config:
+                step = step_config['step_config']['task']
+                flow_prefix = ''
+                description = step_config['task_config'].description
 
             config.append('  {}{}{}: {}'.format(
-                '[SKIPPED] ' if task in self.skip_tasks else '',
-                flow,
-                task,
-                task_info['task_config'].description,
+                '[SKIPPED] ' if step in self.skip_steps else '',
+                flow_prefix,
+                step,
+                description,
             ))
 
         if self.org_config is not None:
@@ -160,59 +170,71 @@ class BaseFlow(object):
         return config
 
     def __call__(self):
-        for stepnum, flow_task_config in self._get_tasks_ordered():
-            self._run_step(stepnum, flow_task_config)
+        for stepnum, step_config in self._get_steps_ordered():
+            self._run_step(stepnum, step_config)
 
-    def _find_task_by_name(self, name):
+    def _find_step_by_name(self, name):
         if not self.flow_config.steps:
             return
 
         i = 0
-        for task in self._get_tasks():
-            if 'flow' in task['flow_config']:
-                item = task['flow_config']['flow']
-            elif 'task' in task['flow_config']:
-                item = task['flow_config']['task']
+        for step in self._get_steps():
+            if 'flow_config' in step:
+                item = step['step_config']['flow']
+            elif 'task_config' in step:
+                item = step['step_config']['task']
             if item == name:
-                if len(self.tasks) > i:
-                    return self.tasks[i]
+                if len(self.steps) > i:
+                    return self.steps[i]
             i += 1
 
-    def _run_step(self, stepnum, flow_task_config):
-        if isinstance(flow_task_config['task_config'], FlowConfig):
-            self._run_flow(stepnum, flow_task_config)
-        elif isinstance(flow_task_config['task_config'], TaskConfig):
-            self._run_task(stepnum, flow_task_config)
+    def _run_step(self, stepnum, step_config):
+        if 'flow_config' in step_config:
+            self._run_flow(stepnum, step_config)
+        elif 'task_config' in step_config:
+            self._run_task(stepnum, step_config)
 
-    def _run_flow(self, stepnum, flow_task_config):
-        class_path = flow_task_config['task_config'].config.get(
+    def _run_flow(self, stepnum, step_config):
+        class_path = step_config['flow_config'].config.get(
             'class_path',
             'cumulusci.core.flows.BaseFlow',
         )
+        flow_options = step_config['flow_config'].config.get(
+            'options',
+            {},
+        )
+        if flow_options:
+            # Collapse down flow options into task__option format to pass
+            options = {}
+            for task, task_options in flow_options.items():
+                for option, value in task_options.items():
+                    options['{}__{}'.format(task, option)] = value
+            flow_options = options
+                
         flow_class = import_class(class_path)
         flow = flow_class(
             self.project_config,
-            flow_task_config['task_config'],
+            step_config['flow_config'],
             self.org_config,
-            options=self.options,
+            options=flow_options,
             skip=self.skip,
             nested=True,
         )
         flow()
-        self.tasks.append(flow)
-        self.task_return_values.append(flow.task_return_values)
+        self.steps.append(flow)
+        self.step_return_values.append(flow.step_return_values)
 
-    def _run_task(self, stepnum, flow_task_config):
+    def _run_task(self, stepnum, step_config):
 
-        task = self._get_task(stepnum, flow_task_config)
+        task = self._get_task(stepnum, step_config)
 
         # Skip the task if skip was requested
-        if task.name in self.skip_tasks:
+        if task.name in self.skip_steps:
             self.logger.info('')
             self.logger.info('Skipping task {}'.format(task.name))
             return
 
-        self.tasks.append(task)
+        self.steps.append(task)
 
         for line in self._render_task_config(task):
             self.logger.info(line)
@@ -224,13 +246,13 @@ class BaseFlow(object):
         try:
             task()
             self.logger.info('Task complete: %s', task.name)
-            self.task_results.append(task.result)
-            self.task_return_values.append(task.return_values)
+            self.step_results.append(task.result)
+            self.step_return_values.append(task.return_values)
             self._post_task(task)
         except Exception as e:
             self._post_task_exception(task, e)
             self.logger.error('Task failed: %s', task.name)
-            if not flow_task_config['flow_config'].get('ignore_failure'):
+            if not step_config['step_config'].get('ignore_failure'):
                 self.logger.error('Failing flow due to exception in task')
                 traceback.print_exc()
                 raise e
@@ -245,16 +267,16 @@ class BaseFlow(object):
     def _post_task_exception(self, task, exception):
         pass
 
-    def _get_task(self, stepnum, flow_task_config):
-        task_config = copy.deepcopy(flow_task_config['task_config'].config)
+    def _get_task(self, stepnum, step_config):
+        task_config = copy.deepcopy(step_config['task_config'].config)
         task_config = TaskConfig(task_config)
 
-        task_name = flow_task_config['flow_config']['task']
+        task_name = step_config['step_config']['task']
 
         if 'options' not in task_config.config:
             task_config.config['options'] = {}
         task_config.config['options'].update(
-            flow_task_config['flow_config'].get('options', {})
+            step_config['step_config'].get('options', {})
         )
         # If there were task option overrides passed in, merge them
         if task_name in self.task_options:
@@ -266,14 +288,14 @@ class BaseFlow(object):
         for option, value in list(task_config.options.items()):
             if str(value).startswith('^^'):
                 value_parts = value[2:].split('.')
-                parent = self._find_task_by_name(value_parts[0])
+                parent = self._find_step_by_name(value_parts[0])
                 n = 0
                 while isinstance(parent, BaseFlow):
                     n += 1
-                    parent = parent._find_task_by_name(value_parts[n])
+                    parent = parent._find_step_by_name(value_parts[n])
                 for attr in value_parts[(n + 1):]:
                     if getattr(parent, 'nested', None):
-                        parent = parent._find_task_by_name()
+                        parent = parent._find_step_by_name()
                     else:
                         parent = parent.return_values.get(attr)
                 task_config.config['options'][option] = parent
