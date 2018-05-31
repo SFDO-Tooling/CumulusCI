@@ -72,7 +72,7 @@ class RetrieveReportsAndDashboards(BaseRetrieveMetadata):
 
         api_version = self.project_config.project__package__api_version
         package_xml = package_xml_from_dict(items, api_version)
-        print package_xml
+        print(package_xml)
         return self.api_class(
             self,
             package_xml,

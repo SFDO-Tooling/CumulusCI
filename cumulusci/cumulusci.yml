@@ -271,6 +271,12 @@ tasks:
         options:
             seconds: 5
 
+    log:
+        description: Log a line at the info level.
+        class_path: cumulusci.tasks.util.LogLine
+        options:
+            level: info
+
 flows:
     apex_docs:
         description: Generate and commit documentation using ApexDoc

@@ -116,7 +116,7 @@ class CaptureSalesforceOAuth(object):
         url = self._get_redirect_url()
         self._launch_browser(url)
         self._create_httpd()
-        print (
+        print(
             'Spawning HTTP server at {} '.format(self.callback_url) +
             'with timeout of {} seconds.\n'.format(self.httpd.timeout) +
             'If you are unable to log in to Salesforce you can ' +

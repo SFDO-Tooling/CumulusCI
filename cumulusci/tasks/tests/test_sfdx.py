@@ -107,6 +107,6 @@ class TestSFDXBaseTask(unittest.TestCase):
             pass
 
         env = task._get_env()
-        print env
+        print(env)
         self.assertEquals(env.get('SFDX_USERNAME'), 'test access token')
         self.assertEquals(env.get('SFDX_INSTANCE_URL'), 'test instance url')
