@@ -48,15 +48,6 @@ tasks:
             namespace_inject: $project_config.project__package__namespace
             namespace_token: '%%%NAMESPACE%%%'
             filename_token: '___NAMESPACE___'
-    deploy_post_managed:
-        description: Deploys all metadata bundles under unpackaged/post/
-        class_path: cumulusci.tasks.salesforce.DeployBundles
-        options:
-            path: unpackaged/post
-            unmanaged: False
-            namespace_inject: $project_config.project__package__namespace
-            namespace_token: '%%%NAMESPACE%%%'
-            filename_token: '___NAMESPACE___'
     dx_convert_to:
         description: Converts src directory metadata format into sfdx format under force-app
         class_path: cumulusci.tasks.sfdx.SFDXBaseTask
@@ -195,14 +186,6 @@ tasks:
     run_tests:
         description: Runs all apex tests
         class_path: cumulusci.tasks.apex.testrunner.RunApexTests
-    run_tests_debug:
-        description: Runs all apex tests
-        class_path: cumulusci.tasks.apex.testrunner.RunApexTests
-    run_tests_managed:
-        description: Runs all apex tests in the packaging org or a managed package subscriber org
-        class_path: cumulusci.tasks.apex.testrunner.RunApexTests
-        options:
-            managed: True
     uninstall_managed:
         description: Uninstalls the managed version of the package
         class_path: cumulusci.tasks.salesforce.UninstallPackage
@@ -228,13 +211,6 @@ tasks:
         options:
             path: unpackaged/post
             filename_token: ___NAMESPACE___
-    uninstall_post_managed:
-        description: Uninstalls the unpackaged/post bundles
-        class_path: cumulusci.tasks.salesforce.UninstallLocalNamespacedBundles
-        options:
-            path: unpackaged/post
-            filename_token: ___NAMESPACE___
-            managed: True
     unschedule_apex:
         description: Unschedule all scheduled apex jobs (CronTriggers).
         class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
@@ -251,12 +227,6 @@ tasks:
         class_path: cumulusci.tasks.metadata.package.UpdatePackageXml
         options:
             path: src
-    update_package_xml_managed:
-        description: Updates src/package.xml with metadata in src/
-        class_path: cumulusci.tasks.metadata.package.UpdatePackageXml
-        options:
-            path: src
-            managed: True
     upload_beta:
         description: Uploads a beta release of the metadata currently in the packaging org
         class_path: cumulusci.tasks.salesforce.PackageUpload
@@ -280,181 +250,222 @@ tasks:
 flows:
     apex_docs:
         description: Generate and commit documentation using ApexDoc
-        tasks:
+        steps:
             1:
                 task: generate_apex_docs
             2:
                 task: commit_apex_docs
-                
-    dev_deploy:
-        description: Unschedule apex and deploy the latest unmanaged metadata.
-        tasks:
-            1:
-                task: unschedule_apex
-            2:
-                task: deploy
 
-    dev_org:
-        description: Deploys the unmanaged package metadata and all dependencies to the target org
-        tasks:
-            0.5:
-                task: unschedule_apex
+    ci_beta:
+        description: Install the latest beta version and runs apex tests from the managed package
+        steps:
             1:
-                task: create_package
+                flow: install_beta
             2:
-                task: update_dependencies
-            3:
-                task: deploy_pre
-            4:
-                task: deploy
-            5:
-                task: uninstall_packaged_incremental
-            6:
-                task: deploy_post
-            7:
-                task: update_admin_profile
+                task: run_tests
+                options:
+                    managed: True
 
-    dev_org_namespaced:
-        description: Deploys the unmanaged package metadata and all dependencies to a namespaced org (scratch or packaging)
-        tasks:
-            1:
-                task: unschedule_apex
-            2:
-                task: update_dependencies
-                options:
-                    namespaced_org: True
-            3:
-                task: deploy_pre
-            4:
-                task: deploy
-            5:
-                task: deploy_post
-                options:
-                    unmanaged: False
-                    namespaced_org: True
-            6:
-                task: update_admin_profile
-                    
     ci_feature:
-        description: Deploys the unmanaged package metadata and all dependencies to the target org and runs tests
-        tasks:
+        description: Prepare an unmanaged metadata test org and run apex tests.  Intended for use against feature branch commits.
+        steps:
             1:
-                task: create_package
+                flow: dependencies
             2:
-                task: update_dependencies
+                flow: deploy_unmanaged
             3:
-                task: deploy_pre
+                flow: config_apextest
             4:
-                task: deploy
+                task: run_tests
             5:
-                task: uninstall_packaged_incremental
-            6:
-                task: deploy_post
-            7:
-                task: update_admin_profile
-            8:
-                task: run_tests_debug
-            9:
                 task: github_parent_to_children
                     
     ci_master:
-        description: Deploys the managed package metadata and all dependencies to the packaging org
-        tasks:
+        description: Deploy the package metadata to the packaging org and prepare for managed package version upload.  Inteded for use against master branch commits.
+        steps:
             1:
-                task: deploy_pre
+                flow: dependencies
             2:
-                task: update_dependencies
+                flow: deploy_packaging
             3:
-                task: uninstall_packaged_incremental
-                ignore_failure: True
-            4:
-                task: update_package_xml_managed
-            5:
-                task: create_managed_src
-            6:
-                task: deploy
-            7:
-                task: revert_managed_src
-            8:
-                task: uninstall_packaged_incremental
-            9:
-                task: update_admin_profile
-    ci_beta:
-        description: Installs the latest beta version and runs apex tests from the managed package
-        tasks:
-            1:
-                task: uninstall_managed
-            2:
-                task: update_dependencies
-            3:
-                task: deploy_pre
-            4:
-                task: install_managed_beta
-            5:
-                task: deploy_post_managed
-            6:
-                task: update_admin_profile
-            7:
-                task: run_tests_managed
-    ci_beta_install:
-        description: Installs the latest beta version without running apex tests.  Use for deploying to other test environments such as browser testings orgs
-        tasks:
-            1:
-                task: uninstall_managed
-            2:
-                task: update_dependencies
-            3:
-                task: deploy_pre
-            4:
-                task: install_managed_beta
-            5:
-                task: deploy_post_managed
-            6:
-                task: update_admin_profile
+                flow: config_packaging
+
     ci_release:
-        description: Installs a production release version and runs tests
-        tasks:
+        description: Install a production release version and runs tests from the managed package
+        steps:
+            1:
+                flow: install_prod
+            2:
+                task: run_tests
+                options:
+                    managed: True
+
+    config_apextest:
+        description: Configure an org to run apex tests after package metadata is deployed
+        steps:
+            1:
+                task: deploy_post
+            2:
+                task: update_admin_profile
+
+    config_dev:
+        description: Configure an org for use as a dev org after package metadata is deployed
+        steps:
+            1:
+                task: deploy_post
+            2:
+                task: update_admin_profile
+
+    config_managed:
+        description: Configure an org for use as a dev org after package metadata is deployed
+        steps:
+            1:
+                task: deploy_post
+                options:
+                    unmanaged: False
+            2:
+                task: update_admin_profile
+
+    config_packaging:
+        description: Configure packaging org for upload after package metadata is deployed
+        steps:
+            1:
+                task: update_admin_profile
+                options:
+                    managed: True
+
+    config_qa:
+        description: Configure an org for use as a QA org after package metadata is deployed
+        steps:
+            1:
+                task: deploy_post
+            2:
+                task: update_admin_profile
+
+    dependencies:
+        description: Deploy dependencies to prepare the org environment for the package metadata
+        steps:
             1:
                 task: update_dependencies
             2:
                 task: deploy_pre
+                            
+    deploy_unmanaged:
+        description: Deploy the unmanaged metadata from the package
+        steps:
+            1:
+                task: unschedule_apex
+            2:
+                task: update_package_xml
             3:
-                task: install_managed
+                task: deploy
             4:
-                task: deploy_post_managed
+                task: uninstall_packaged_incremental
+
+    deploy_unmanaged_ee:
+        description: Deploy the unmanaged metadata from the package to an Enterprise Edition org
+        steps:
+            1:
+                task: unschedule_apex
+            2:
+                task: update_package_xml
+            3:
+                task: create_unmanaged_ee_src
+            4:
+                task: deploy
             5:
-                task: update_admin_profile
+                task: revert_unmanaged_ee_src
             6:
-                task: run_tests_managed
+                task: uninstall_packaged_incremental
+                options:
+                    purge_on_delete: False
+
+    deploy_packaging:
+        description: Process and deploy the package metadata to the packaging org
+        steps:
+            1:
+                task: unschedule_apex
+            2:
+                task: create_managed_src
+            3:
+                task: update_package_xml
+                options:
+                    managed: True
+            4:
+                task: deploy
+            5:
+                task: revert_managed_src
+            6:
+                task: uninstall_packaged_incremental
+
+    dev_org:
+        description: Set up an org as a development environment for unmanaged metadata
+        steps:
+            1:
+                flow: dependencies
+            2:
+                flow: deploy_unmanaged
+            3:
+                flow: config_dev
+
+    dev_org_namespaced:
+        description: Set up a namespaced scratch org as a development environment for unmanaged metadata
+        steps:
+            1:
+                flow: dependencies
+                options:
+                    update_dependencies:
+                        namespaced_org: True
+            2:
+                flow: deploy_unmanaged
+            3:
+                flow: config_dev
+                options:
+                    deploy_post:
+                        unmanaged: False
+                        namespaced_org: True
+                    
+    qa_org:
+        description: Set up an org as a QA environment for unmanaged metadata
+        steps:
+            1:
+                flow: dependencies
+            2:
+                flow: deploy_unmanaged
+            3:
+                flow: config_qa
+
+    uninstall_managed:
+        description: Uninstall the installed managed version of the package.  Run this before install_beta or install_prod if a version is already installed in the target org.
+        steps:
+            1:
+                task: uninstall_post
+            2:
+                task: uninstall_managed
+
     install_beta:
-        description: Installs the latest beta version and all dependencies.  Does not attempt to uninstall a previous beta.  Use ci_beta_install for a flow that uninstalls first.
-        tasks:
+        description: Install and configure the latest beta version
+        steps:
             1:
-                task: update_dependencies
+                flow: dependencies
             2:
-                task: deploy_pre
-            3:
                 task: install_managed_beta
-            4:
-                task: deploy_post_managed
-            5:
-                task: update_admin_profile
-    install_prod:
-        description: Installs the latest production version and all dependencies.
-        tasks:
-            1:
-                task: update_dependencies
-            2:
-                task: deploy_pre
             3:
+                flow: config_managed
+
+    install_prod:
+        description: Install and configure the latest production version
+        steps:
+            1:
+                flow: dependencies
+            2:
                 task: install_managed
-            4:
-                task: deploy_post_managed
-            5:
-                task: update_admin_profile
+            3:
+                flow: config_managed
+
     release_beta:
-        description: Uploads and releases a beta version of the metadata currently in packaging
-        tasks:
+        description: Upload and release a beta version of the metadata currently in packaging
+        steps:
             1:
                 task: upload_beta
                 options:
@@ -472,9 +483,10 @@ flows:
                     tag: ^^github_release.tag_name
             4:
                 task: github_master_to_feature
+
     release_production:
-        description: Uploads and releases a production version of the metadata currently in packaging
-        tasks:
+        description: Upload and release a production version of the metadata currently in packaging
+        steps:
             1:
                 task: upload_production
                 options:
@@ -489,31 +501,17 @@ flows:
                 options:
                     publish: True
                     tag: ^^github_release.tag_name
+
     unmanaged_ee:
-        description: Deploys the unmanaged package metadata and all dependencies to the target EE org
-        tasks:
+        description: Deploy the unmanaged package metadata and all dependencies to the target EE org
+        steps:
             1:
-                task: create_package
+                flow: dependencies
+                options:
+                    update_dependencies:
+                        purge_on_delete: False
             2:
-                task: update_dependencies
-                options:
-                    purge_on_delete: False
-            3:
-                task: deploy_pre
-            4:
-                task: create_unmanaged_ee_src
-            5:
-                task: deploy
-            6:
-                task: revert_unmanaged_ee_src
-            7:
-                task: uninstall_packaged_incremental
-                options:
-                    purge_on_delete: False
-            8:
-                task: deploy_post
-            8:
-                task: update_admin_profile
+                flow: deploy_unmanaged_ee
 
 services:
   connected_app:
