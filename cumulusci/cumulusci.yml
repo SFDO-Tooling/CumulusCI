@@ -269,7 +269,7 @@ tasks:
         options:
             seconds: 5
 
-    info:
+    log:
         description: Log a line at the info level.
         class_path: cumulusci.tasks.util.LogLine
         options:
