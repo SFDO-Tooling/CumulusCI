@@ -184,6 +184,8 @@ tasks:
     robot:
         description: Runs a Robot Framework test from a .robot file
         class_path: cumulusci.tasks.robotframework.Robot
+        options:
+            suites: tests
     robot_testdoc:
         description: 
         class_path: cumulusci.tasks.robotframework.RobotTestDoc

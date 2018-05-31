@@ -5,11 +5,13 @@ import logging
 import mock
 
 from collections import Callable
+from nose.tools import raises
 
 from cumulusci.core.flows import BaseFlow
 from cumulusci.core.tasks import BaseTask
 from cumulusci.core.config import FlowConfig
 from cumulusci.core.config import OrgConfig
+from cumulusci.core.exceptions import TaskNotFoundError
 from cumulusci.core.tests.utils import MockLoggingHandler
 from cumulusci.tests.util import create_project_config
 import cumulusci.core
@@ -368,9 +370,10 @@ class TestBaseFlow(unittest.TestCase):
         )
         self.assertEqual(2, len(flow.tasks))
 
+    @raises(TaskNotFoundError)
     def test_call_task_not_found(self, mock_class):
         """ A flow with reference to a task that doesn't exist in the
-        project will throw an AttributeError """
+        project will throw a TaskNotFoundError """
 
         flow_config = FlowConfig({
             'description': 'Run two tasks',
@@ -380,8 +383,6 @@ class TestBaseFlow(unittest.TestCase):
             }
         })
         flow = BaseFlow(self.project_config, flow_config, self.org_config)
-
-        self.assertRaises(AttributeError, flow)
 
     def test_flow_prints_org_id(self, mock_class):
         """ A flow with an org prints the org ID """
