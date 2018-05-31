@@ -10,6 +10,10 @@ History
 - Change SFDX Password behavior....
 - Improve Robot test runner task to use the already configured CCI environment instead of trying to create a new one.
 - Enable Robot testing in Headless Chrome on Heroku.
+- Address Python3 print statement issues.
+- Add LogLine task class to log statements and variables.
+- Add PassOptionAsResult, PassOptionAsReturnValue to pass options around in Flows.
+- Further extended the Flow runner subclass API.
 
 2.0.0-beta96 (2018-05-18)
 -------------------------
