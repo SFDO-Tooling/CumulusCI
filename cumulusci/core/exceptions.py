@@ -94,6 +94,13 @@ class TaskNotFoundError(CumulusCIException):
     """ Raise when task is not found in project config """
     pass
 
+class FlowInfiniteLoopError(CumulusCIException):
+    """ Raised when a flow configuration creates a infinite loop """
+    pass
+
+class FlowConfigError(CumulusCIException):
+    """ Raised when a flow configuration encounters an error """
+    pass
 
 class FlowNotFoundError(CumulusCIException):
     """ Raise when flow is not found in project config """

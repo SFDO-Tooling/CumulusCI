@@ -11,6 +11,7 @@ from cumulusci.core.flows import BaseFlow
 from cumulusci.core.tasks import BaseTask
 from cumulusci.core.config import FlowConfig
 from cumulusci.core.config import OrgConfig
+from cumulusci.core.exceptions import FlowConfigError
 from cumulusci.core.exceptions import TaskNotFoundError
 from cumulusci.core.tests.utils import MockLoggingHandler
 from cumulusci.tests.util import create_project_config
@@ -89,13 +90,13 @@ class TestBaseFlow(unittest.TestCase):
         self.project_config.config['flows'] = {
             'nested_flow': {
                 'description': 'A flow that runs inside another flow',
-                'tasks': {
+                'steps': {
                     1: {'task': 'pass_name'},
                 },
             },
             'nested_flow_2': {
                 'description': 'A flow that runs inside another flow, and calls another flow',
-                'tasks': {
+                'steps': {
                     1: {'task': 'pass_name'},
                     2: {'flow': 'nested_flow'},
                 },
@@ -131,7 +132,7 @@ class TestBaseFlow(unittest.TestCase):
         # instantiate a flow with two tasks
         flow_config = FlowConfig({
             'description': 'Run two tasks',
-            'tasks': {
+            'steps': {
                 1: {'task': 'pass_name'},
                 2: {'task': 'name_response', 'options': {
                     'response': '^^pass_name.name'
@@ -153,7 +154,7 @@ class TestBaseFlow(unittest.TestCase):
         # instantiate a flow with two tasks
         flow_config = FlowConfig({
             'description': 'Run two tasks',
-            'tasks': {
+            'steps': {
                 1: {'task': 'name_response', 'options': {
                     'response': 'foo'
                 }},
@@ -178,7 +179,7 @@ class TestBaseFlow(unittest.TestCase):
         # instantiate a flow with two tasks
         flow_config = FlowConfig({
             'description': 'Run two tasks',
-            'tasks': {
+            'steps': {
                 1: {'task': 'pass_name'},
                 2: {'task': 'name_response', 'options': {
                     'response': '^^pass_name.name'
@@ -205,7 +206,7 @@ class TestBaseFlow(unittest.TestCase):
         # instantiate a flow with two tasks
         flow_config = FlowConfig({
             'description': 'Run two tasks',
-            'tasks': {
+            'steps': {
                 1: {'task': 'pass_name'},
                 2: {'task': 'None'},
             }
@@ -224,8 +225,9 @@ class TestBaseFlow(unittest.TestCase):
         # the number of tasks in the flow should be 1 instead of 2
         self.assertEquals(1, len(flow.task_results))
 
-    def test_find_task_by_name_no_tasks(self, mock_class):
-        """ The _find_task_by_name method skips tasks that don't exist """
+    @raises(FlowConfigError)
+    def test_find_task_by_name_no_steps(self, mock_class):
+        """ Running a flow with no steps throws an error """
 
         # instantiate a flow with two tasks
         flow_config = FlowConfig({
@@ -237,8 +239,7 @@ class TestBaseFlow(unittest.TestCase):
             flow_config,
             self.org_config,
         )
-
-        self.assertEquals(None, flow._find_task_by_name('missing'))
+        flow()
 
     def test_find_task_by_name_not_first(self, mock_class):
         """ The _find_task_by_name method skips tasks that don't exist """
@@ -246,7 +247,7 @@ class TestBaseFlow(unittest.TestCase):
         # instantiate a flow with two tasks
         flow_config = FlowConfig({
             'description': 'Run two tasks',
-            'tasks': {
+            'steps': {
                 1: {'task': 'pass_name'},
                 2: {'task': 'name_response', 'options': {
                     'response': '^^pass_name.name'
@@ -274,7 +275,7 @@ class TestBaseFlow(unittest.TestCase):
         # instantiate a flow with two tasks
         flow_config = FlowConfig({
             'description': 'Run a tasks',
-            'tasks': {
+            'steps': {
                 1: {'task': 'name_response',
                     'options': {
                         'response': None,
@@ -301,7 +302,7 @@ class TestBaseFlow(unittest.TestCase):
 
         flow_config = FlowConfig({
             'description': 'Run a task',
-            'tasks': {
+            'steps': {
                 1: {'task': 'raise_exception'},
             }
         })
@@ -313,7 +314,7 @@ class TestBaseFlow(unittest.TestCase):
 
         flow_config = FlowConfig({
             'description': 'Run a task',
-            'tasks': {
+            'steps': {
                 1: {'task': 'raise_exception', 'ignore_failure': True},
                 2: {'task': 'pass_name'},
             }
@@ -326,7 +327,7 @@ class TestBaseFlow(unittest.TestCase):
         """ A flow with no tasks will have no responses. """
         flow_config = FlowConfig({
             'description': 'Run no tasks',
-            'tasks': {}
+            'steps': {}
         })
         flow = BaseFlow(self.project_config, flow_config, self.org_config)
         flow()
@@ -338,7 +339,7 @@ class TestBaseFlow(unittest.TestCase):
         """ A flow with one task will execute the task """
         flow_config = FlowConfig({
             'description': 'Run one task',
-            'tasks': {
+            'steps': {
                 1: {'task': 'pass_name'},
             }
         })
@@ -356,7 +357,7 @@ class TestBaseFlow(unittest.TestCase):
         """ A flow with many tasks will dispatch each task """
         flow_config = FlowConfig({
             'description': 'Run two tasks',
-            'tasks': {
+            'steps': {
                 1: {'task': 'pass_name'},
                 2: {'task': 'pass_name'},
             }
@@ -377,7 +378,7 @@ class TestBaseFlow(unittest.TestCase):
 
         flow_config = FlowConfig({
             'description': 'Run two tasks',
-            'tasks': {
+            'steps': {
                 1: {'task': 'pass_name'},
                 2: {'task': 'do_delightulthings'},
             }
@@ -389,7 +390,7 @@ class TestBaseFlow(unittest.TestCase):
 
         flow_config = FlowConfig({
             'description': 'Run two tasks',
-            'tasks': {
+            'steps': {
                 1: {'task': 'pass_name'},
                 2: {'task': 'pass_name'},
             }
@@ -406,7 +407,7 @@ class TestBaseFlow(unittest.TestCase):
 
         flow_config = FlowConfig({
             'description': 'Run two tasks',
-            'tasks': {
+            'steps': {
                 1: {'task': 'pass_name'},
                 2: {'task': 'pass_name'},
             }
@@ -423,7 +424,7 @@ class TestBaseFlow(unittest.TestCase):
 
         flow_config = FlowConfig({
             'description': 'Run two tasks',
-            'tasks': {
+            'steps': {
                 1: {'task': 'sfdc_task'},
                 2: {'task': 'sfdc_task'},
             }
@@ -439,7 +440,7 @@ class TestBaseFlow(unittest.TestCase):
         """ Flows can run inside other flows """
         flow_config = FlowConfig({
             'description': 'Run a task and a flow',
-            'tasks': {
+            'steps': {
                 1: {'task': 'pass_name'},
                 2: {'flow': 'nested_flow'},
             },
@@ -456,7 +457,7 @@ class TestBaseFlow(unittest.TestCase):
         """ Flows can run inside other flows and call other flows """
         flow_config = FlowConfig({
             'description': 'Run a task and a flow',
-            'tasks': {
+            'steps': {
                 1: {'task': 'pass_name'},
                 2: {'flow': 'nested_flow_2'},
             },

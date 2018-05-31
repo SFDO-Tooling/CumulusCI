@@ -10,7 +10,8 @@ import traceback
 
 from cumulusci.core.config import FlowConfig
 from cumulusci.core.config import TaskConfig
-from cumulusci.core.exceptions import ConfigError
+from cumulusci.core.exceptions import FlowConfigError
+from cumulusci.core.exceptions import FlowInfiniteLoopError
 from cumulusci.core.utils import import_class
 
 
@@ -77,17 +78,17 @@ class BaseFlow(object):
         for line in self._render_config():
             self.logger.info(line)
 
-    def _check_infinite_flows(self, tasks, flows=None):
+    def _check_infinite_flows(self, steps, flows=None):
         if flows == None:
             flows = []
-        for task in tasks.values():
-            if 'flow' in task:
-                flow = task['flow']
+        for step in steps.values():
+            if 'flow' in step:
+                flow = step['flow']
                 if flow in flows:
-                    raise ConfigError('Infinite flows detected')
+                    raise FlowInfiniteLoopError('Infinite flows detected with flow {}'.format(flow))
                 flows.append(flow)
                 flow_config = self.project_config.get_flow(flow)
-                self._check_infinite_flows(flow_config.tasks, flows)
+                self._check_infinite_flows(flow_config.steps, flows)
 
     def _get_tasks(self):
         tasks = self._get_tasks_ordered()
@@ -95,12 +96,17 @@ class BaseFlow(object):
         return tasks
 
     def _get_tasks_ordered(self):
+        if self.flow_config.steps is None:
+            if self.flow_config.tasks:
+                raise FlowConfigError('Old flow syntax detected.  Please change from "tasks" to "steps" in the flow definition')
+            else:
+                raise FlowConfigError('No steps found in the flow definition')
         if not self.nested:
-            self._check_infinite_flows(self.flow_config.tasks)
+            self._check_infinite_flows(self.flow_config.steps)
         tasks = []
-        for step_num, config in list(self.flow_config.tasks.items()):
+        for step_num, config in list(self.flow_config.steps.items()):
             if 'flow' in config and 'task' in config:
-                raise ConfigError('"flow" and "task" in same config item')
+                raise FlowConfigError('"flow" and "task" in same config item: {}'.format(config))
             if (('flow' in config and config['flow'] == 'None') or
                 ('task' in config and config['task'] == 'None')):
                 # allows skipping flows/tasks using YAML overrides
@@ -125,7 +131,7 @@ class BaseFlow(object):
             'Flow Description: {}'.format(self.flow_config.description)
         )
 
-        if not self.flow_config.tasks:
+        if not self.flow_config.steps:
             return config
 
         config.append('Tasks:')
@@ -158,7 +164,7 @@ class BaseFlow(object):
             self._run_step(stepnum, flow_task_config)
 
     def _find_task_by_name(self, name):
-        if not self.flow_config.tasks:
+        if not self.flow_config.steps:
             return
 
         i = 0
