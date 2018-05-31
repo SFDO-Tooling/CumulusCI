@@ -9,6 +9,8 @@ import mock
 import nose
 import yaml
 
+from cumulusci.core.tests.utils import EnvironmentVarGuard
+
 from cumulusci.core.config import BaseGlobalConfig
 from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.config import OrgConfig
@@ -258,12 +260,24 @@ class TestEnvironmentProjectKeychain(TestBaseProjectKeychain):
 
     def setUp(self):
         super(TestEnvironmentProjectKeychain, self).setUp()
-        self.env = {}
+        self.env = EnvironmentVarGuard()
         self._clean_env(self.env)
-        self.env['{}test'.format(self.keychain_class.org_var_prefix)] = json.dumps(self.org_config.config)
-        self.env['{}connected_app'.format(self.keychain_class.service_var_prefix)] = json.dumps(self.services['connected_app'].config)
-        self.env['{}github'.format(self.keychain_class.service_var_prefix)] = json.dumps(self.services['github'].config)
-        self.env['{}mrbelvedere'.format(self.keychain_class.service_var_prefix)] = json.dumps(self.services['mrbelvedere'].config)
+        self.env.set(
+            '{}test'.format(self.keychain_class.org_var_prefix),
+            json.dumps(self.org_config.config)
+        )
+        self.env.set(
+            '{}connected_app'.format(self.keychain_class.service_var_prefix),
+            json.dumps(self.services['connected_app'].config)
+        )
+        self.env.set(
+            '{}github'.format(self.keychain_class.service_var_prefix),
+            json.dumps(self.services['github'].config)
+        )
+        self.env.set(
+            '{}mrbelvedere'.format(self.keychain_class.service_var_prefix),
+            json.dumps(self.services['mrbelvedere'].config)
+        )
 
     def _clean_env(self, env):
         for key, value in list(env.items()):
@@ -274,76 +288,71 @@ class TestEnvironmentProjectKeychain(TestBaseProjectKeychain):
                 del env[key]
 
     def test_get_org(self):
-        env = self.env.copy()
-        self._clean_env(env)
-        env['{}test'.format(self.keychain_class.org_var_prefix)] = json.dumps(self.org_config.config)
-        env['{}connected_app'.format(self.keychain_class.service_var_prefix)] = json.dumps(self.services['connected_app'].config)
-        with mock.patch.dict(os.environ, env) as cm:
+        keychain = self.keychain_class(self.project_config, self.key)
+        self.assertEquals(list(keychain.orgs.keys()), ['test'])
+        self.assertEquals(keychain.get_org(
+            'test').config, self.org_config.config)
+
+    def _test_list_orgs(self):
+        with self.env:
             keychain = self.keychain_class(self.project_config, self.key)
-            self.assertEquals(list(keychain.orgs.keys()), ['test'])
-            self.assertEquals(
-                keychain.get_org('test').config,
-                self.org_config.config,
+            self.assertEquals(keychain.list_orgs(), ['test'])
+
+    def test_list_orgs_empty(self):
+        with EnvironmentVarGuard() as env:
+            self._clean_env(env)
+            env.set(
+                '{}connected_app'.format(self.keychain_class.service_var_prefix),
+                json.dumps(self.services['connected_app'].config)
             )
-
-    def test_list_orgs_empty(self):
-        env = self.env.copy()
-        self._clean_env(env)
-        env['{}test'.format(self.keychain_class.org_var_prefix)] = json.dumps(self.org_config.config)
-        env['{}connected_app'.format(self.keychain_class.service_var_prefix)] = json.dumps(self.services['connected_app'].config)
-        with mock.patch.dict(os.environ, env) as cm:
-            self._test_list_orgs_empty()
-
-    def test_list_orgs_empty(self):
-        env = self.env.copy()
-        self._clean_env(env)
-        env['{}connected_app'.format(self.keychain_class.service_var_prefix)] = json.dumps(self.services['connected_app'].config)
-        with mock.patch.dict(os.environ, env) as cm:
             self._test_list_orgs_empty()
    
     def test_load_scratch_org_config(self):
-        env = self.env.copy()
-        self._clean_env(env)
-        env['{}test'.format(self.keychain_class.org_var_prefix)] = json.dumps(self.scratch_org_config.config)
-        with mock.patch.dict(os.environ, env) as cm:
+        with EnvironmentVarGuard() as env:
+            self._clean_env(env)
+            env.set(
+                '{}test'.format(self.keychain_class.org_var_prefix),
+                json.dumps(self.scratch_org_config.config)
+            )
             keychain = self.keychain_class(self.project_config, self.key)
             self.assertEquals(keychain.list_orgs(), ['test'])
             self.assertEquals(keychain.orgs['test'].__class__, ScratchOrgConfig)
 
     def test_load_scratch_orgs_none(self):
-        env = self.env.copy()
-        self._clean_env(env)
-        with mock.patch.dict(os.environ, env) as cm:
+        with EnvironmentVarGuard() as env:
+            self._clean_env(env)
             self._test_load_scratch_orgs_none()
 
     def test_load_scratch_orgs_create_one(self):
-        env = self.env.copy()
-        self._clean_env(env)
-        with mock.patch.dict(os.environ, env) as cm:
+        with EnvironmentVarGuard() as env:
+            self._clean_env(env)
             self._test_load_scratch_orgs_create_one()
 
     def test_get_org_not_found(self):
-        env = self.env.copy()
-        self._clean_env(env)
-        with mock.patch.dict(os.environ, env) as cm:
+        with EnvironmentVarGuard() as env:
+            self._clean_env(env)
             self._test_get_org_not_found()
 
     def test_get_default_org(self):
-        env = self.env.copy()
-        self._clean_env(env)
-        org_config = self.org_config.config.copy()
-        org_config['default'] = True
-        env['{}test'.format(self.keychain_class.org_var_prefix)] = json.dumps(org_config)
-        with mock.patch.dict(os.environ, env) as cm:
+        with EnvironmentVarGuard() as env:
+            self._clean_env(env)
+            org_config = self.org_config.config.copy()
+            org_config['default'] = True
+            self.env.set(
+                '{}test'.format(self.keychain_class.org_var_prefix),
+                json.dumps(org_config)
+            )
             self._test_get_default_org()
 
     def test_set_default_org(self):
         """ The EnvironmentProjectKeychain does not persist default org settings """
-        env = self.env.copy()
-        self._clean_env(env)
-        org_config = self.org_config.config.copy()
-        env['{}test'.format(self.keychain_class.org_var_prefix)] = json.dumps(org_config)
-        with mock.patch.dict(os.environ, env) as cm:
+        with EnvironmentVarGuard() as env:
+            self._clean_env(env)
+            org_config = self.org_config.config.copy()
+            self.env.set(
+                '{}test'.format(self.keychain_class.org_var_prefix),
+                json.dumps(org_config)
+            )
             keychain = self.keychain_class(self.project_config, self.key)
             keychain.set_default_org('test')
             expected_org_config = self.org_config.config.copy()
