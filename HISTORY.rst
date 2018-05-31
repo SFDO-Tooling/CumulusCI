@@ -29,6 +29,8 @@ Changes default flows shipped with CumulusCI to a new syntax and structure takin
         * **deploy_packaging** Used to deploy to packaging.  Wraps the **create_managed_src** task around the deploy to inject metadata that can only be deployed to the packaging org
         * **deploy_unmanaged_ee** Used to deploy unmanaged metadata to an Enterprise Edition org using the **create_unmanaged_ee_src** task
 
+* **github** dependencies can now point to a private Github repository.  All zip downloads from Github will pass the password (should be a personal access token) from the **github** service configured in the CumulusCI keychain.
+* **GithubRelease**, **PushUpgradeRequest**, and **PackageUploadRequest** now track the release data as return values
 
 2.0.0-beta97 (2018-05-31)
 -------------------------
