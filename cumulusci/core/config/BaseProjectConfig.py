@@ -482,6 +482,10 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             repo_name = repo_name[:-4]
         repo = gh.repository(repo_owner, repo_name)
 
+        # Prepare HTTP auth header for requests calls to Github
+        github = self.keychain.get_service('github')
+        headers = {'Authorization': 'token {}'.format(github.password)}
+
         # Determine the ref if specified
         kwargs = {}
         if 'tag' in dependency:
@@ -516,6 +520,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                 unpackaged_pre.append({
                     'zip_url': zip_url,
                     'subfolder': subfolder,
+                    'headers': headers,
                     'unmanaged': dependency.get('unmanaged'),
                     'namespace_tokenize': dependency.get('namespace_tokenize'),
                     'namespace_inject': dependency.get('namespace_inject'),
@@ -534,6 +539,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                 unmanaged_src = {
                     'zip_url': zip_url,
                     'subfolder': subfolder,
+                    'headers': headers,
                     'unmanaged': dependency.get('unmanaged'),
                     'namespace_tokenize': dependency.get('namespace_tokenize'),
                     'namespace_inject': dependency.get('namespace_inject'),
@@ -555,6 +561,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                 dependency = {
                     'zip_url': zip_url,
                     'subfolder': subfolder,
+                    'headers': headers,
                     'unmanaged': dependency.get('unmanaged'),
                     'namespace_tokenize': dependency.get('namespace_tokenize'),
                     'namespace_inject': dependency.get('namespace_inject'),

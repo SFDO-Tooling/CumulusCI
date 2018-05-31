@@ -48,6 +48,8 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
 
         self.logger.info('Dependencies:')
         for line in self.project_config.pretty_dependencies(dependencies):
+            if line.startswith('    headers:'):
+                continue
             self.logger.info(line)
 
         self._process_dependencies(dependencies)
@@ -153,7 +155,8 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
             ))
             package_zip = download_extract_zip(
                 dependency['zip_url'],
-                subfolder=dependency.get('subfolder')
+                subfolder=dependency.get('subfolder'),
+                headers=dependency.get('headers', {}),
             )
             if dependency.get('namespace_tokenize'):
                 self.logger.info('Replacing namespace prefix {}__ in files and filenames with namespace token strings'.format(
