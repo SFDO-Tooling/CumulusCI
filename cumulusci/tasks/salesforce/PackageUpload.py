@@ -113,7 +113,11 @@ class PackageUpload(BaseSalesforceApiTask):
                 self.version_number += ' (Beta {})'.format(
                     version['BuildNumber'])
 
-            self.return_values = {'version_number': self.version_number}
+            self.return_values = {
+                'version_number': str(self.version_number),
+                'version_id': version_id,
+                'package_id': package_id
+            }
 
             self.logger.info('Uploaded package version {} with Id {}'.format(
                 self.version_number,
