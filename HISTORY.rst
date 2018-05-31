@@ -2,6 +2,15 @@
 History
 =======
 
+
+2.0.0-beta97 (2018-05-31)
+-------------------------
+- Salesforce Connected App is now a CCI Service! Instead of using `cci org config_connected_app` you can use the familiar `cci service` commands.
+- Better error handling when running commands without specifying a default org (thanks @topherlandry)
+- Change SFDX Password behavior....
+- Improve Robot test runner task to use the already configured CCI environment instead of trying to create a new one.
+- Enable Robot testing in Headless Chrome on Heroku.
+
 2.0.0-beta96 (2018-05-18)
 -------------------------
 
