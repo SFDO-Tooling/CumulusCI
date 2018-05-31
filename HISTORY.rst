@@ -8,26 +8,26 @@ History
 
 Changes default flows shipped with CumulusCI to a new syntax and structure taking advantage of the ability for flows to call other flows.  This allows flows to be modularized in ways that weren't possible when the original set of flows was designed.
 
-* The `tasks:` section in cumulusci.yml for a flow is now renamed to `steps:`.  A `FlowConfigError` will be raised if an old style flow definition is detected.  All existing flow customizations and custom flows need to be changed in the `cumulusci.yml` to avoid raising an exception.
-* All default flows have been restructured.  Existing customizations of default flows likely need to be changed to adapt to the new structure.  In most cases, you will want to move your customizations to some of the new `config_*` or `deploy_*` instead of the main flows.
-* `ci_beta_install` has been removed and replaced with `install_beta` and `uninstall_managed`.  `install_beta` does not attempt to uninstall an existing version of the package.  If you need to uninstall the package first, use the `uninstall_managed` flow before running `install_beta`.
-* Added new `qa_org` flow to allow different configurations for dev vs QA orgs
+* The **tasks:** section in cumulusci.yml for a flow is now renamed to **steps:**  A **FlowConfigError** will be raised if an old style flow definition is detected.  All existing flow customizations and custom flows need to be changed in the **cumulusci.yml** to avoid raising an exception.
+* All default flows have been restructured.  Existing customizations of default flows likely need to be changed to adapt to the new structure.  In most cases, you will want to move your customizations to some of the new **config_*** or **deploy_*** instead of the main flows.
+* **ci_beta_install** has been removed and replaced with **install_beta** and **uninstall_managed**  **install_beta** does not attempt to uninstall an existing version of the package.  If you need to uninstall the package first, use the **uninstall_managed** flow before running **install_beta**
+* Added new **qa_org** flow to allow different configurations for dev vs QA orgs
 * New modularized flows structure allows for easier and more reusable customization:
 
-    * `dependencies`: Runs the pre-package deployment dependency tasks `update_dependencies` and `deploy_pre`.  This flow is called by almost all the main flows.
-    * `config_*` flows provide a place to customize the package configuration for different environments.  These flows are called by the main flows after the package metadata is deployed or a managed version is installed.  Customizations to the config flows automatically apply to the main flows.
+    * **dependencies** Runs the pre-package deployment dependency tasks **update_dependencies** and **deploy_pre**  This flow is called by almost all the main flows.
+    * **config_*** flows provide a place to customize the package configuration for different environments.  These flows are called by the main flows after the package metadata is deployed or a managed version is installed.  Customizations to the config flows automatically apply to the main flows.
 
-        * `config_apextest`: Configure org for running apex tests
-        * `config_dev`: Configure org for dev use
-        * `config_managed`: Configure org with a managed package version installed
-        * `config_packaging`: Configure the packaging org
-        * `config_qa`: Configure org for QA use
+        * **config_apextest** Configure org for running apex tests
+        * **config_dev** Configure org for dev use
+        * **config_managed** Configure org with a managed package version installed
+        * **config_packaging** Configure the packaging org
+        * **config_qa** Configure org for QA use
 
-    * `deploy_*` flows provide a place to customize how metadata deployments are done.  The deploy flows do more than just a simple deployment such as unscheduling scheduled jobs, rebuilding the package.xml, and incrementally deleting any stale metadata in the package from the org.
+    * **deploy_*** flows provide a place to customize how metadata deployments are done.  The deploy flows do more than just a simple deployment such as unscheduling scheduled jobs, rebuilding the package.xml, and incrementally deleting any stale metadata in the package from the org.
 
-        * `deploy_unmanaged`: Used to do a standard deployment of the unmanaged metadata
-        * `deploy_packaging`: Used to deploy to packaging.  Wraps the `create_managed_src` task around the deploy to inject metadata that can only be deployed to the packaging org
-        * `deploy_unmanaged_ee`: Used to deploy unmanaged metadata to an Enterprise Edition org using the `create_unmanaged_ee_src` task
+        * **deploy_unmanaged** Used to do a standard deployment of the unmanaged metadata
+        * **deploy_packaging** Used to deploy to packaging.  Wraps the **create_managed_src** task around the deploy to inject metadata that can only be deployed to the packaging org
+        * **deploy_unmanaged_ee** Used to deploy unmanaged metadata to an Enterprise Edition org using the **create_unmanaged_ee_src** task
 
 
 2.0.0-beta97 (2018-05-31)
