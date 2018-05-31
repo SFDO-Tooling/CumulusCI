@@ -85,10 +85,14 @@ class BaseFlow(object):
     def _init_flow(self):
         """ Initialize the flow and print flow details to info """
         self.logger.info('---------------------------------------')
-        self.logger.info(
-            'Initializing flow class %s:',
-            self.__class__.__name__,
-        )
+        if self.name:
+            self.logger.info(
+                'Initializing flow: {}'.format(self.name)
+            )
+        else:
+            self.logger.info(
+                'Initializing flow class: {}'.format(self.__class__.__name__)
+            )
         self.logger.info('---------------------------------------')
 
         self.logger.info('')
