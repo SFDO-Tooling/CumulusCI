@@ -105,9 +105,10 @@ def remove_xml_element(name, tree):
 
     return tree
 
-
-def download_extract_zip(url, target=None, subfolder=None):
-    resp = requests.get(url)
+def download_extract_zip(url, target=None, subfolder=None, headers=None):
+    if not headers:
+        headers = {}
+    resp = requests.get(url, headers=headers)
     zip_content = io.BytesIO(resp.content)
     zip_file = zipfile.ZipFile(zip_content)
     if subfolder:
