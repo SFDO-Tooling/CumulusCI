@@ -50,7 +50,7 @@ requirements = [
 test_requirements = [
     'coverage==4.1',
     'coveralls==1.2.0',
-    'flake8==2.6.0'
+    'flake8==2.6.0',
     'mock==2.0.0',
     'nose==1.3.7',
     'nose-tap==1.9',
@@ -60,7 +60,7 @@ test_requirements = [
 
 setup(
     name='cumulusci',
-    version='2.0.0-beta96',
+    version='2.0.0-beta97',
     description="Build and release tools for Salesforce developers",
     long_description=readme + '\n\n' + history,
     author="Jason Lantz",
@@ -92,6 +92,6 @@ setup(
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
     ],
-    test_suite='tests',
+    test_suite='cumulusci.core.tests',
     tests_require=test_requirements
 )

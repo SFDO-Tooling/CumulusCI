@@ -12,14 +12,27 @@ from cumulusci.core.config import FlowConfig
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.exceptions import FlowConfigError
 from cumulusci.core.exceptions import FlowInfiniteLoopError
+from cumulusci.core.exceptions import FlowNotReadyError
 from cumulusci.core.utils import import_class
 
 
 class BaseFlow(object):
     """ BaseFlow handles initializing and running a flow """
 
-    def __init__(self, project_config, flow_config, org_config, options=None, skip=None, nested=False):
-        self.project_config = project_config
+    def __init__(
+            self,
+            project_config,
+            flow_config,
+            org_config,
+            options=None,
+            skip=None,
+            nested=False,
+            parent=None,
+            prep=True,
+            name=None,
+            stepnum=None
+    ):
+        self.project_config = project_config # a subclass of BaseTaskFlowConfig, tho tasks may expect more than that
         self.flow_config = flow_config
         self.org_config = org_config
         self.options = options
@@ -30,10 +43,16 @@ class BaseFlow(object):
         self.step_results = []  # A collection of result objects in task execution order
         self.steps = []  # A collection of configured task objects, either run or failed
         self.nested = nested  # indicates if flow is called from another flow
+        self.parent = parent # parent flow, if nested
+        self.name = name # the flows name.
+        self.stepnum = stepnum # a nested flow has a stepnum
+        self._skip_next = False # internal only control flow option for subclasses to override a step execution in their pre.
         self._init_options()
         self._init_skip(skip)
         self._init_logger()
-        self._init_flow()
+        self.prepped = False
+        if prep:
+            self._init_flow()
 
     def _init_options(self):
         if not self.options:
@@ -77,6 +96,7 @@ class BaseFlow(object):
             self._init_org()
         for line in self._render_config():
             self.logger.info(line)
+        self.prepped = True
 
     def _check_infinite_flows(self, steps, flows=None):
         if flows == None:
@@ -170,8 +190,20 @@ class BaseFlow(object):
         return config
 
     def __call__(self):
+        if not self.nested:
+            self._pre_flow()
+        if not self.prepped:
+            raise FlowNotReadyError('Flow executed before init_flow was called')
         for stepnum, step_config in self._get_steps_ordered():
             self._run_step(stepnum, step_config)
+        if not self.nested:
+            self._post_flow()
+
+    def _pre_flow(self):
+        pass
+    
+    def _post_flow(self):
+        pass
 
     def _find_step_by_name(self, name):
         if not self.flow_config.steps:
@@ -219,8 +251,18 @@ class BaseFlow(object):
             options=flow_options,
             skip=self.skip,
             nested=True,
+            parent=self,
+            name=step_config['step_config']['flow'],
+            stepnum=stepnum
         )
+        self._pre_subflow(flow)
+        
+        if self._skip_next:
+            self._skip_next = False
+            return
+
         flow()
+        self._post_subflow(flow)
         self.steps.append(flow)
         self.step_return_values.append(flow.step_return_values)
 
@@ -243,6 +285,9 @@ class BaseFlow(object):
         self.logger.info('')
         self.logger.info('Running task: %s', task.name)
         self._pre_task(task)
+        if self._skip_next:
+            self._skip_next = False
+            return
         try:
             task()
             self.logger.info('Task complete: %s', task.name)
@@ -265,6 +310,12 @@ class BaseFlow(object):
         pass
 
     def _post_task_exception(self, task, exception):
+        pass
+
+    def _pre_subflow(self, flow):
+        pass
+
+    def _post_subflow(self, flow):
         pass
 
     def _get_task(self, stepnum, step_config):

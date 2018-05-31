@@ -369,7 +369,7 @@ def project_init(config, extend):
         elif selection == '2':
             dependencies.append({'type': 'github', 'url': 'https://github.com/SalesforceFoundation/Cumulus'})
         else:
-            print selection
+            print(selection)
             github_url = click.prompt(click.style('Enter the Github Repository URL', bold=True))
             dependencies.append({'type': 'github', 'url': github_url})
     context['dependencies'] = dependencies
@@ -844,7 +844,8 @@ def task_info(config, task_name):
         raise TaskNotFoundError('Task not found: {}'.format(task_name))
 
     task_config = TaskConfig(task_config)
-    click.echo(rst2ansi(doc_task(task_name, task_config)))
+    doc = doc_task(task_name, task_config).encode()
+    click.echo(rst2ansi(doc))
 
 
 @click.command(name='run', help="Runs a task")
@@ -1039,7 +1040,7 @@ def flow_run(config, flow_name, org, delete_org, debug, o, skip, no_prompt):
     # Create the flow and handle initialization exceptions
     try:
         flow = flow_class(config.project_config, flow_config,
-                          org_config, options, skip)
+                          org_config, options, skip, name=flow_name)
     except TaskRequiresSalesforceOrg as e:
         exception = click.UsageError(
             'This flow requires a salesforce org.  Use org default <name> to set a default org or pass the org name with the --org option')
