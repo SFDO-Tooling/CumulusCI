@@ -9,10 +9,7 @@ import mock
 import nose
 import yaml
 
-try:
-    from test.support import EnvironmentVarGuard
-except ImportError:
-    from test.test_support import EnvironmentVarGuard
+from cumulusci.core.tests.utils import EnvironmentVarGuard
 
 from cumulusci.core.config import BaseGlobalConfig
 from cumulusci.core.config import BaseProjectConfig

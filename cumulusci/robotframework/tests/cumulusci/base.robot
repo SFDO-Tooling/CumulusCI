@@ -23,6 +23,11 @@ Test Run Task
 Test Run Task With Options
     Run Task  create_package  package=Test Package
 
+Test Run Task Missing
+    Run Keyword And Expect Error
+    ...  TaskNotFoundError: Task not found: does_not_exist
+    ...  Run Task  does_not_exist
+
 Test Run Task Class
     Run Task Class  cumulusci.tasks.salesforce.CreatePackage
 
