@@ -290,6 +290,8 @@ class SchedulePushOrgList(BaseSalesforcePushTask):
             start_time,
         )
 
+        self.return_values['request_id'] = self.request_id
+
         if num_scheduled_orgs > 1000:
             sleep_time_s = 30
             self.logger.info(
