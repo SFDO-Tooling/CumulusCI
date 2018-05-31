@@ -38,6 +38,15 @@ def process_bool_arg(arg):
         elif arg.lower() in ['false', '0']:
             return False
 
+def process_list_arg(arg):
+    """ Parse a string into a list separated by commas with whitespace stripped """
+    if isinstance(arg, list):
+        return arg
+    elif isinstance(arg, basestring):
+        args = []
+        for part in arg.split(','):
+            args.append(part.strip())
+        return args
 
 def decode_to_unicode(content):
     """ decode ISO-8859-1 to unicode, when using sf api """
