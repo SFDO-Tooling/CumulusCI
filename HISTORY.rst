@@ -2,6 +2,14 @@
 History
 =======
 
+2.0.0 (2018-05-31)
+------------------
+
+After over 19 months of development as alpha (40 version over 3 months) and beta (98 releases over 16 months) releases and over a year running production builds using CumulusCI, it's time to remove the "beta" label.
+
+This marks the first production release of CumulusCI 2.x!
+
+
 2.0.0-beta98 (2018-05-31)
 -------------------------
 **WARNING: This release introduces breaking changes to the syntax for flow definitions and to the default flows.  If you customized any of the default flows in your project or have defined custom flows, you will need to modify your cumulusci.yml file to work with this release.**
