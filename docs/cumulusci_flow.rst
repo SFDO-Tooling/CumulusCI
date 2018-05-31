@@ -7,6 +7,10 @@ CumulusCI Flow is the branching model and process we use for development of our 
 
 CumulusCI Flow is implemented in the default flows provided by CumulusCI, but the approach to working with a Github repository does not require the use of CumulusCI.
 
+.. image:: images/salesforce-org-process.png
+   :scale: 50 %
+   :alt: Salesforce.org Dev/Release Process Diagram
+
 Unique Considerations for Salesforce Projects
 =============================================
 
