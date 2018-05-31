@@ -166,7 +166,7 @@ class BaseFlow(object):
         if not self.flow_config.steps:
             return config
 
-        config.append('Tasks:')
+        config.append('Steps:')
         for step_config in self._get_steps():
             if 'flow_config' in step_config:
                 step = step_config['step_config']['flow']
