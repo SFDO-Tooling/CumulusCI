@@ -5,7 +5,7 @@ import glob
 from xml.dom.minidom import parse
 
 from cumulusci.core.tasks import BaseTask
-from cumulusci.utils import download_extract_zip
+from cumulusci.utils import download_extract_zip, findReplace, findReplaceRegex
 
 
 class DownloadZip(BaseTask):
@@ -90,6 +90,7 @@ class Sleep(BaseTask):
         time.sleep(float(self.options['seconds']))
         self.logger.info('Done')
 
+
 class Delete(BaseTask):
     name = 'Delete'
     task_options = {
@@ -116,8 +117,8 @@ class Delete(BaseTask):
             for path_item in path:
                 for match in glob.glob(path_item):
                     self._delete(match)
-   
-        if chdir: 
+
+        if chdir:
             os.chdir(cwd)
 
     def _delete(self, path):
@@ -159,8 +160,9 @@ class FindReplace(BaseTask):
             'description': "The max number of matches to replace.  Defaults to replacing all matches.",
         },
     }
-    
-    def _init_options(self):
+
+    def _init_options(self, kwargs):
+        super(FindReplace, self)._init_options(kwargs)
         if 'replace' not in self.options:
             self.options['replace'] = ''
         if 'file_pattern' not in self.options:
@@ -171,28 +173,31 @@ class FindReplace(BaseTask):
         if 'max' in self.options:
             kwargs['max'] = self.options['max']
         findReplace(
-            find = self.options['find'],
-            replace = self.options['replace'],
-            directory = self.options['path'],
-            filePattern = self.options['file_pattern'],
-            logger = self.logger,
+            find=self.options['find'],
+            replace=self.options['replace'],
+            directory=self.options['path'],
+            filePattern=self.options['file_pattern'],
+            logger=self.logger,
             **kwargs
         )
+
 
 find_replace_regex_options = FindReplace.task_options.copy()
 del find_replace_regex_options['max']
 
+
 class FindReplaceRegex(FindReplace):
     task_options = find_replace_regex_options
-            
+
     def _run_task(self):
         findReplaceRegex(
-            find = self.options['find'],
-            replace = self.options['replace'],
-            directory = self.options['path'],
-            filePattern = self.options['file_pattern'],
-            logger = self.logger,
+            find=self.options['find'],
+            replace=self.options['replace'],
+            directory=self.options['path'],
+            filePattern=self.options['file_pattern'],
+            logger=self.logger,
         )
+
 
 class CopyFile(BaseTask):
     task_options = {
@@ -209,6 +214,52 @@ class CopyFile(BaseTask):
     def _run_task(self):
         self.logger.info('Copying file {src} to {dest}'.format(**self.options))
         shutil.copyfile(
-            src = self.options['src'],
-            dst = self.options['dest'],
+            src=self.options['src'],
+            dst=self.options['dest'],
         )
+
+
+class LogLine(BaseTask):
+    task_options = {
+        'level': {
+            'description': 'The logger level to use',
+            'required': True
+        },
+        'line': {
+            'description': 'A formatstring like line to log',
+            'required': True
+        },
+        'format_vars': {
+            'description': 'A Dict of format vars',
+            'required': False
+        }
+    }
+
+    def _init_options(self, kwargs):
+        super(LogLine, self)._init_options(kwargs)
+        if 'format_vars' not in self.options:
+            self.options['format_vars'] = {}
+
+    def _run_task(self):
+        log = getattr(self.logger, self.options['level'])
+        log(self.options['line'].format(**self.options['format_vars']))
+
+class PassOptionAsResult(BaseTask):
+    task_options = {
+        'result': {
+            'description': 'The result for the task',
+            'required': True
+        }
+    }
+
+    def _run_task(self):
+        return self.options['result']
+
+class PassOptionAsReturnValue(BaseTask):
+    task_options = {
+        'key':{'required': True, 'description': 'The return value key to use.'},
+        'value':{'required': True, 'description': 'The value to set.'}
+    }
+
+    def _run_task(self):
+        self.return_values[self.options['key']] = self.options['value']

@@ -99,6 +99,10 @@ class FlowNotFoundError(CumulusCIException):
     """ Raise when flow is not found in project config """
     pass
 
+class FlowNotReadyError(CumulusCIException):
+    """ Raise when flow is called before it has been prepared """
+    pass
+
 
 class MrbelvedereError(CumulusCIException):
     """ Raise for errors from mrbelvedere installer """
