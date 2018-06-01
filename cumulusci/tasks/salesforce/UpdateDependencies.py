@@ -48,7 +48,7 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
 
         self.logger.info('Dependencies:')
         for line in self.project_config.pretty_dependencies(dependencies):
-            if line.startswith('    headers:'):
+            if ' headers:' in line:
                 continue
             self.logger.info(line)
 

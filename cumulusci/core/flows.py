@@ -235,7 +235,7 @@ class BaseFlow(object):
             'class_path',
             'cumulusci.core.flows.BaseFlow',
         )
-        flow_options = step_config['flow_config'].config.get(
+        flow_options = step_config['step_config'].get(
             'options',
             {},
         )

@@ -2,6 +2,11 @@
 History
 =======
 
+2.0.0-beta99 (2018-05-31)
+-------------------------
+
+* Ensure that github credentials are never shown in the log for github dependencies with unmanaged metadata
+
 2.0.0-beta98 (2018-05-31)
 -------------------------
 **WARNING: This release introduces breaking changes to the syntax for flow definitions and to the default flows.  If you customized any of the default flows in your project or have defined custom flows, you will need to modify your cumulusci.yml file to work with this release.**

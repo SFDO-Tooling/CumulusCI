@@ -502,7 +502,7 @@ def project_dependencies(config):
     check_project_config(config)
     dependencies = config.project_config.get_static_dependencies()
     for line in config.project_config.pretty_dependencies(dependencies):
-        if line.startswith('    headers:'):
+        if ' headers:' in line:
             continue
         click.echo(line)
 
