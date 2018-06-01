@@ -2,13 +2,17 @@
 History
 =======
 
-2.0.0 (2018-05-31)
+2.0.0 (2018-06-01)
 ------------------
 
 After over 19 months of development as alpha (40 version over 3 months) and beta (98 releases over 16 months) releases and over a year running production builds using CumulusCI, it's time to remove the "beta" label.
 
 This marks the first production release of CumulusCI 2.x!
 
+2.0.0-beta99 (2018-05-31)
+-------------------------
+
+* Ensure that github credentials are never shown in the log for github dependencies with unmanaged metadata
 
 2.0.0-beta98 (2018-05-31)
 -------------------------
