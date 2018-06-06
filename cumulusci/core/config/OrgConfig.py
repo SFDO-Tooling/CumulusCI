@@ -13,8 +13,11 @@ class OrgConfig(BaseConfig):
         self.name = name
         super(OrgConfig, self).__init__(config)
 
-    def refresh_oauth_token(self, keychain):
-        connected_app = keychain.get_service('connected_app')
+    def refresh_oauth_token(self, keychain=None, connected_app=None):
+        if keychain: # prefer a connected app from the keychain
+            connected_app = keychain.get_service('connected_app')
+        if connected_app is None:
+            raise AttributeError('No connected app or keychain was passed to refresh_oauth_token.')
         client_id = self.client_id
         client_secret = self.client_secret
         if not client_id:
