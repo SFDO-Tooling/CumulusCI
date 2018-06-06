@@ -1,9 +1,11 @@
 import logging
 from cumulusci.cli.config import CliConfig
-from cumulusci.core.utils import import_class
+from cumulusci.core.config import TaskConfig
 from cumulusci.core.exceptions import TaskNotFoundError
 from cumulusci.core.exceptions import TaskOptionsError
-from cumulusci.core.config import TaskConfig
+from cumulusci.core.tasks import CURRENT_TASK
+from cumulusci.core.utils import import_class
+from cumulusci.tasks.robotframework.robotframework import Robot
 from robot.api import logger
 from robot.libraries.BuiltIn import BuiltIn
 from simple_salesforce import Salesforce
@@ -43,8 +45,17 @@ class CumulusCI(object):
     @property
     def project_config(self):
         if self._project_config is None:
-            self._project_config = CliConfig().project_config
+            if CURRENT_TASK and isinstance(CURRENT_TASK, Robot):
+                # If CumulusCI is running a task, use that task's config
+                return CURRENT_TASK.project_config
+            else:
+                logger.console('Initializing CumulusCI config\n')
+                self._project_config = CliConfig().project_config
         return self._project_config
+
+    def set_project_config(self, project_config):
+        logger.console('\n')
+        self._project_config = project_config
     
     @property
     def keychain(self):
@@ -53,8 +64,11 @@ class CumulusCI(object):
     @property
     def org(self):
         if self._org is None:
-            logger.console('\n')
-            self._org = self.keychain.get_org(self.org_name)
+            if CURRENT_TASK and isinstance(CURRENT_TASK, Robot):
+                # If CumulusCI is running a task, use that task's org
+                return CURRENT_TASK.org_config
+            else:
+                self._org = self.keychain.get_org(self.org_name)
         return self._org
 
     @property
