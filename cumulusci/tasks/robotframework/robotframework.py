@@ -45,6 +45,7 @@ class Robot(BaseSalesforceTask):
             self.options['vars'] = process_list_arg(self.options['vars'])
         else:
             self.options['vars'] = []
+        self.options['vars'].append('org:{}'.format(self.org_config.name))
 
         # Initialize options as a dict
         if 'options' not in self.options:
@@ -64,10 +65,10 @@ class Robot(BaseSalesforceTask):
 
         # Inject CumulusCIRobotListener to build the CumulusCI library instance
         # from self.project_config instead of reinitializing CumulusCI's config
-        listener = CumulusCIRobotListener(self.project_config, self.org_config.name)
-        if 'listener' not in options:
-            options['listener'] = []
-        options['listener'].append(listener)
+        #listener = CumulusCIRobotListener(self.project_config, self.org_config.name)
+        #if 'listener' not in options:
+        #    options['listener'] = []
+        #options['listener'].append(listener)
 
         num_failed = robot_run(self.options['suites'], **options)
         if num_failed:
@@ -109,17 +110,3 @@ class RobotTestDoc(BaseTask):
             self.options['path'],
             self.options['output'],
         )
-
-class CumulusCIRobotListener(object):
-    ROBOT_LISTENER_API_VERSION = 3
-
-    def __init__(self, project_config, org_name):
-        self.project_config = project_config
-        self.org_name = org_name
-
-    def start_suite(self, name, attributes):
-        cumuluscilib = BuiltIn().import_library('cumulusci.robotframework.CumulusCI', self.org_name)
-        cumuluscilib = BuiltIn().get_library_instance('cumulusci.robotframework.CumulusCI')
-        if not hasattr(cumuluscilib, '_project_config'):
-            cumuluscilib._project_config = self.project_config
-

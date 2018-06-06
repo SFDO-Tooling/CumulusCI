@@ -13,6 +13,7 @@ import time
 from cumulusci.core.exceptions import TaskRequiresSalesforceOrg
 from cumulusci.core.exceptions import TaskOptionsError
 
+CURRENT_TASK = None
 
 class BaseTask(object):
     """ BaseTask provides the core execution logic for a Task
@@ -40,7 +41,6 @@ class BaseTask(object):
         self.poll_interval_level = 0
         self.poll_interval_s = 1
         self.poll_complete = False
-        
 
         # dict of return_values that can be used by task callers
         self.return_values = {}
@@ -67,6 +67,7 @@ class BaseTask(object):
         self._validate_options()
         self._update_credentials()
         self._init_task()
+        self._set_current_task()
 
     def _init_logger(self):
         """ Initializes self.logger """
@@ -88,7 +89,10 @@ class BaseTask(object):
                     self.options[option] = getattr(self.project_config, attr, None)
             except AttributeError:
                 pass
-                
+        
+    def _set_current_task(self):
+        global CURRENT_TASK
+        CURRENT_TASK = self
 
     def _validate_options(self):
         missing_required = []
@@ -116,6 +120,8 @@ class BaseTask(object):
     def __call__(self):
         # If sentry is configured, initialize sentry for error capture
         self.project_config.init_sentry()
+
+        self._set_current_task()
 
         try:
             self._log_begin()
