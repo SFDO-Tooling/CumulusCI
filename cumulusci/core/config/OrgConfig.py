@@ -13,8 +13,8 @@ class OrgConfig(BaseConfig):
         self.name = name
         super(OrgConfig, self).__init__(config)
 
-    def refresh_oauth_token(self, keychain=None, connected_app=None):
-        if keychain: # prefer a connected app from the keychain
+    def refresh_oauth_token(self, keychain, connected_app=None):
+        if keychain: # it might be none'd and caller adds connected_app
             connected_app = keychain.get_service('connected_app')
         if connected_app is None:
             raise AttributeError('No connected app or keychain was passed to refresh_oauth_token.')
