@@ -2,6 +2,10 @@
 History
 =======
 
+2.0.1 (2018-06-06)
+------------------
+* Bugfix: Allow passing a connected app directly to OrgConfig.refresh_oauth_token.
+
 2.0.0 (2018-06-01)
 ------------------
 
