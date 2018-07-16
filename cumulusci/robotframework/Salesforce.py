@@ -6,6 +6,7 @@ from selenium.common.exceptions import ElementNotInteractableException
 from selenium.common.exceptions import StaleElementReferenceException
 from selenium.common.exceptions import WebDriverException
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.remote.command import Command
 from SeleniumLibrary.errors import ElementNotFound
 from simple_salesforce import SalesforceMalformedRequest
 from simple_salesforce import SalesforceResourceNotFound
@@ -13,27 +14,72 @@ from cumulusci.robotframework.locators import lex_locators
 
 OID_REGEX = r'[a-zA-Z0-9]{15,18}'
 
+# This is a list of user actions that are likely to trigger
+# Aura actions and/or XHRs. We'll add a step to wait for
+# in-flight XHRs to complete after these commands.
+COMMANDS_INVOKING_ACTIONS = {
+    Command.CLICK_ELEMENT,
+}
+
+# This script waits for a) Aura to be available and b)
+# any in-flight Aura XHRs to be complete.
+# We only do this if the page uses Aura, as determined by looking for
+# id="auraAppcacheProgress" in the DOM.
+# It would be nice if we could inject the function when the page loads
+# and then just call it after commands, but I was having trouble
+# getting webdriver to add it to the window scope.
+WAIT_FOR_AURA_SCRIPT = """
+done = arguments[0];
+if (document.getElementById('auraAppcacheProgress')) {
+    var waitForXHRs = function() {
+        if (window.$A && !window.$A.clientService.inFlightXHRs()) {
+            done();
+        } else {
+            setTimeout(waitForXHRs, 100);
+        }
+    }
+    setTimeout(waitForXHRs, 0);
+} else {
+    done();
+}
+"""
+
 class Salesforce(object):
     ROBOT_LIBRARY_SCOPE = 'GLOBAL'
 
     def __init__(self, debug=False):
         self.debug = debug
-        self.current_page = None
         self._session_records = []
         # Turn off info logging of all http requests 
         logging.getLogger('requests.packages.urllib3.connectionpool').setLevel(logging.WARN)
 
     @property
     def builtin(self):
-        return BuiltIn()   
+        return BuiltIn()
 
     @property
     def cumulusci(self):
         return self.builtin.get_library_instance('cumulusci.robotframework.CumulusCI')
- 
+
     @property
     def selenium(self):
-        return self.builtin.get_library_instance('SeleniumLibrary')
+        selenium = self.builtin.get_library_instance('SeleniumLibrary')
+
+        # Patch the selenium webdriver to run the "wait for aura"
+        # script after commands that are likely to invoke async actions.
+        # (The problem with doing it this way is that it will
+        # run even for actions that aren't on pages using Aura).
+        if not getattr(selenium.driver, '_cumulus_patched', False):
+            orig_execute = selenium.driver.execute
+            def execute(driver_command, params=None):
+                result = orig_execute(driver_command, params)
+                if driver_command in COMMANDS_INVOKING_ACTIONS:
+                    self._wait_for_aura()
+                return result
+            selenium.driver.execute = execute
+            selenium.driver._cumulus_patched = True
+
+        return selenium
 
     def current_app_should_be(self, app_name):
         """ EXPERIMENTAL!!! """
@@ -47,16 +93,8 @@ class Salesforce(object):
         exception = None
         retry_call = False
 
-        # If at a new url, call self._handle_current_page() to inject JS into
-        # the page to handle Lightning events
-        current_page = self.selenium.get_location()
-        if current_page != self.current_page:
-            self.current_page = current_page
-            self._handle_page_load()
-
         result = None
         try:
-            self._wait_until_loading_is_complete()
             method = getattr(self, method_name)
             result = method(*args, **kwargs)
         except ElementNotFound as e:
@@ -99,7 +137,7 @@ class Salesforce(object):
 
         if retry_call:
             self.builtin.log('Retrying call to method {}'.format(method_name), level='WARN')
-            self._call_selenium(method_name, False, *args, **kwargs)
+            return self._call_selenium(method_name, False, *args, **kwargs)
 
         return result
 
@@ -117,7 +155,6 @@ class Salesforce(object):
         self._call_selenium('_click_object_button', True, locator)
 
     def _click_object_button(self, locator):
-        self.selenium.wait_until_element_is_visible(locator)
         button = self.selenium.get_webelement(locator)
         button.click()
         self.wait_until_modal_is_open()
@@ -186,8 +223,6 @@ class Salesforce(object):
         url = self.cumulusci.org.lightning_base_url
         url = '{}/one/one.app#/sObject/{}/home'.format(url, obj_name)
         self.selenium.go_to(url)
-        time.sleep(5)
-        self._wait_until_loading_is_complete()
     
     def go_to_object_list(self, obj_name, filter_name=None):
         """ Navigates to the Home view of a Salesforce Object """
@@ -196,30 +231,22 @@ class Salesforce(object):
         if filter_name:
             url += '?filterName={}'.format(filter_name)
         self.selenium.go_to(url)
-        time.sleep(5)
-        self._wait_until_loading_is_complete()
 
     def go_to_record_home(self, obj_id, filter_name=None):
         """ Navigates to the Home view of a Salesforce Object """
         url = self.cumulusci.org.lightning_base_url
         url = '{}/one/one.app#/sObject/{}/view'.format(url, obj_id)
         self.selenium.go_to(url)
-        time.sleep(5)
-        self._wait_until_loading_is_complete()
 
     def go_to_setup_home(self):
         """ Navigates to the Home tab of Salesforce Setup """
         url = self.cumulusci.org.lightning_base_url
         self.selenium.go_to(url + '/one/one.app#/setup/SetupOneHome/home')
-        time.sleep(5)
-        self._wait_until_loading_is_complete()
 
     def go_to_setup_object_manager(self):
         """ Navigates to the Object Manager tab of Salesforce Setup """
         url = self.cumulusci.org.lightning_base_url
         self.selenium.go_to(url + '/one/one.app#/setup/ObjectManager/home')
-        time.sleep(5)
-        self._wait_until_loading_is_complete()
 
     def header_field_should_have_value(self, label):
         """ Validates that a field in the record header has a text value.
@@ -286,19 +313,15 @@ class Salesforce(object):
     def _populate_lookup_field(self, locator):
         self.selenium.set_focus_to_element(locator)
         self.selenium.get_webelement(locator).click()
-        time.sleep(.5)
 
     def _populate_field(self, locator, value):
         self.selenium.set_focus_to_element(locator)
         field = self.selenium.get_webelement(locator)
         field.clear()
-        time.sleep(.5)
         field.send_keys(value)
-        time.sleep(.5)
 
     def populate_form(self, **kwargs):
         for name, value in kwargs.items():
-            time.sleep(.5)
             locator = lex_locators['object']['field'].format(name)
             self._call_selenium('_populate_field', True, locator, value)
 
@@ -318,10 +341,8 @@ class Salesforce(object):
 
     def _select_record_type(self, locator):
         self.selenium.get_webelement(locator).click()
-        time.sleep(1)
         locator = lex_locators['modal']['button'].format('Next')
         self.selenium.click_button('Next')
-        time.sleep(5)
 
     def select_app_launcher_app(self, app_name):
         """ EXPERIMENTAL!!! """
@@ -427,7 +448,6 @@ class Salesforce(object):
             lex_locators['modal']['is_open'],
             timeout=15,
         )
-        time.sleep(3)
 
     def wait_until_modal_is_closed(self):
         """ EXPERIMENTAL!!! """
@@ -442,36 +462,12 @@ class Salesforce(object):
             lex_locators['modal']['is_open'],
             timeout=15,
         )
-        time.sleep(3)
 
     def wait_until_loading_is_complete(self):
         """ EXPERIMENTAL!!! """
-        self._call_selenium('_wait_until_loading_is_complete', True)
+        self._call_selenium('_wait_for_aura', True)
 
-    def _wait_until_loading_is_complete(self):
-        self.selenium.wait_until_element_is_not_visible(
-            lex_locators['loading_box'],
-        )
-        self.selenium.wait_until_element_is_not_visible(
-            lex_locators['spinner'],
-        )
-        self.selenium.wait_until_page_contains_element(
-            lex_locators['desktop_rendered'],
-        )
-
-    def _handle_page_load(self):
-        """ EXPERIMENTAL!!! """
-        # Bypass this method for now and just return.  This is here as a prototype
-        return
-        self._wait_until_loading_is_complete()
-        self.selenium.execute_javascript("""
-            function cumulusciDoneRenderingHandler(e) {
-                elements = $A.getComponent(e.source.getGlobalId()).getElements()
-                if (elements.length > 0) {
-                    elements[0].classList.add('cumulusci-done-rendering');
-                }
-            }
-            $A.getRoot().addEventHandler('aura:doneRendering', cumulusciDoneRenderingHandler);
-            """
-        )
-            
+    def _wait_for_aura(self):
+        """ EXPERIMENTAL!!!
+        """
+        self.selenium.driver.execute_async_script(WAIT_FOR_AURA_SCRIPT)
