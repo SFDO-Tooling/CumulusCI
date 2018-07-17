@@ -2,6 +2,7 @@ import httplib
 import os
 import unittest
 
+from github3 import login
 import responses
 
 from cumulusci.tasks.release_notes.generator import GithubReleaseNotesGenerator
@@ -10,6 +11,7 @@ from cumulusci.tasks.release_notes.parser import GithubIssuesParser
 from cumulusci.tasks.release_notes.parser import IssuesParser
 from cumulusci.core.exceptions import GithubApiNotFoundError
 from cumulusci.tasks.release_notes.tests.util_github_api import GithubApiTestMixin
+from cumulusci.tasks.release_notes.tests.utils import MockUtil
 
 PARSER_CONFIG = [
     {
@@ -131,42 +133,60 @@ class TestGithubIssuesParser(unittest.TestCase, GithubApiTestMixin):
 
     def setUp(self):
         self.init_github()
-
+        self.gh = login('TestUser', 'TestPass')
         self.title = 'Issues'
         # Set up the mock release_tag lookup response
         self.issue_number_valid = 123
         self.issue_number_invalid = 456
         self.pr_number = 789
-        self.pr_url = 'http://example.com/pulls/{}'.format(self.pr_number)
-        self.generator = GithubReleaseNotesGenerator(
-            self.github_info.copy(),
-            PARSER_CONFIG,
-            'release/1.0',
+        self.pr_url = 'https://github.com/{}/{}/pulls/{}'.format(
+            'TestOwner',
+            'TestRepo',
+            self.pr_number,
         )
+        self.mock_util = MockUtil('TestOwner', 'TestRepo')
 
+    @responses.activate
     def test_issue_numbers(self):
+        self.mock_util.mock_get_repo()
         change_note = '# {}\r\nFixes #2, Closed #3 and Resolve #5'.format(
             self.title)
-        pull_request = self._create_pull_request(change_note)
-        parser = GithubIssuesParser(self.generator, self.title)
+        self.mock_util.mock_pull_request(self.pr_number, body=change_note)
+        generator = self._create_generator()
+        repo = generator.get_repo()
+        pull_request = repo.pull_request(self.pr_number)
+        parser = GithubIssuesParser(generator, self.title)
         parser.parse(pull_request)
-        expected_content = self._create_expected_content([2, 3, 5])
+        pr_url = 'https://github.com/TestOwner/TestRepo/pulls/{}'.format(self.pr_number)
+        expected_content = self._create_expected_content([2, 3, 5], pr_url)
         self.assertEqual(parser.content, expected_content)
 
+    @responses.activate
     def test_issue_numbers_and_other_numbers(self):
+        self.mock_util.mock_get_repo()
         change_note = '# {}\r\nFixes #2 but not #5'.format(
             self.title)
-        pull_request = self._create_pull_request(change_note)
-        parser = GithubIssuesParser(self.generator, self.title)
+        self.mock_util.mock_pull_request(self.pr_number, body=change_note)
+        generator = self._create_generator()
+        repo = generator.get_repo()
+        pull_request = repo.pull_request(self.pr_number)
+        parser = GithubIssuesParser(generator, self.title)
         parser.parse(pull_request)
-        expected_content = self._create_expected_content([2])
+        pr_url = 'https://github.com/TestOwner/TestRepo/pulls/{}'.format(self.pr_number)
+        expected_content = self._create_expected_content([2], pr_url)
         self.assertEqual(parser.content, expected_content)
 
+    @responses.activate
     def test_no_issue_numbers(self):
+        pr_number = 1
+        self.mock_util.mock_get_repo()
         change_note = '# {}\r\n#2 and #3 are fixed by this change'.format(
             self.title)
-        pull_request = self._create_pull_request(change_note)
-        parser = GithubIssuesParser(self.generator, self.title)
+        self.mock_util.mock_pull_request(pr_number, body=change_note)
+        generator = self._create_generator()
+        repo = generator.get_repo()
+        pull_request = repo.pull_request(pr_number)
+        parser = GithubIssuesParser(generator, self.title)
         parser.parse(pull_request)
         self.assertEqual(parser.content, [])
 
@@ -175,6 +195,7 @@ class TestGithubIssuesParser(unittest.TestCase, GithubApiTestMixin):
         api_url = '{}/issues/{}'.format(
             self.repo_api_url, self.issue_number_valid)
         expected_response = self._get_expected_issue(self.issue_number_valid)
+        self.mock_util.mock_get_repo()
         responses.add(
             method=responses.GET,
             url=api_url,
@@ -199,6 +220,7 @@ class TestGithubIssuesParser(unittest.TestCase, GithubApiTestMixin):
         api_url = '{}/issues/{}'.format(
             self.repo_api_url, self.issue_number_invalid)
         expected_response = self._get_expected_not_found()
+        self.mock_util.mock_get_repo()
         responses.add(
             method=responses.GET,
             url=api_url,
@@ -215,13 +237,13 @@ class TestGithubIssuesParser(unittest.TestCase, GithubApiTestMixin):
         with self.assertRaises(GithubApiNotFoundError):
             parser.render()
 
-    def _create_expected_content(self, issue_numbers):
+    def _create_expected_content(self, issue_numbers, pr_url):
         y = []
         for n in issue_numbers:
             y.append({
                 'issue_number': n,
                 'pr_number': self.pr_number,
-                'pr_url': self.pr_url,
+                'pr_url': pr_url,
             })
         return y
 
@@ -237,25 +259,20 @@ class TestGithubIssuesParser(unittest.TestCase, GithubApiTestMixin):
 
     def _create_generator(self):
         generator = GithubReleaseNotesGenerator(
+            self.gh,
             self.github_info.copy(),
             PARSER_CONFIG,
             'prod/1.1',
         )
         return generator
 
-    def _create_pull_request(self, change_note):
-        return {
-            'body': change_note,
-            'html_url': self.pr_url,
-            'number': self.pr_number,
-        }
-
 
 class TestCommentingGithubIssuesParser(unittest.TestCase, GithubApiTestMixin):
 
     def setUp(self):
         self.init_github()
-
+        self.gh = login('TestUser', 'TestPass')
+        self.mock_util = MockUtil('TestOwner', 'TestRepo')
         self.title = 'Issues'
         self.issue_number_without_comments = 1
         self.issue_number_with_beta_comment = 2
@@ -272,6 +289,7 @@ class TestCommentingGithubIssuesParser(unittest.TestCase, GithubApiTestMixin):
 
     def _create_generator(self, tag):
         generator = GithubReleaseNotesGenerator(
+            self.gh,
             self.github_info.copy(),
             PARSER_CONFIG,
             tag,
@@ -283,6 +301,8 @@ class TestCommentingGithubIssuesParser(unittest.TestCase, GithubApiTestMixin):
     def test_render_issue_without_comments(self):
         issue_number = self.issue_number_without_comments
         tag = self.tag_not_prod_or_beta
+        self.mock_util.mock_get_repo()
+        self.mock_util.mock_post_comment(issue_number)
 
         # Mock the issue
         api_url = '{}/issues/{}'.format(
@@ -320,16 +340,16 @@ class TestCommentingGithubIssuesParser(unittest.TestCase, GithubApiTestMixin):
             expected_issue['title'],
             False,
         )
-        self.assertEqual(parser.render(), expected_render)
-
-        # Only 2 api calls were made, ensuring comment creation
-        # was not attempted
-        self.assertEqual(len(responses.calls._calls), 2)
+        render = parser.render()
+        self.assertEqual(render, expected_render)
+        self.assertEqual(len(responses.calls._calls), 3)
 
     @responses.activate
     def test_render_issue_with_beta_comment(self):
         issue_number = self.issue_number_with_beta_comment
         tag = self.tag_beta
+        self.mock_util.mock_get_repo()
+        self.mock_util.mock_post_comment(issue_number)
 
         # Mock the issue
         api_url = '{}/issues/{}'.format(
@@ -372,17 +392,15 @@ class TestCommentingGithubIssuesParser(unittest.TestCase, GithubApiTestMixin):
             expected_issue['title'],
             False,
         )
-        self.assertEqual(parser.render(), expected_render)
-
-        # Only 2 api calls were made, ensuring comment creation
-        # was not attempted
-        self.assertEqual(len(responses.calls._calls), 2)
+        render = parser.render()
+        self.assertEqual(render, expected_render)
+        self.assertEqual(len(responses.calls._calls), 4)
 
     @responses.activate
     def test_render_issue_without_beta_comment(self):
         issue_number = self.issue_number_without_beta_comment
         tag = self.tag_beta
-
+        self.mock_util.mock_get_repo()
         # Mock the issue
         api_url = '{}/issues/{}'.format(
             self.repo_api_url,
@@ -443,15 +461,14 @@ class TestCommentingGithubIssuesParser(unittest.TestCase, GithubApiTestMixin):
             False,
         )
         self.assertEqual(parser.render(), expected_render)
-
-        # 3 api calls were made, ensuring comment creation
-        # was attempted
-        self.assertEqual(len(responses.calls._calls), 3)
+        self.assertEqual(len(responses.calls._calls), 5)
 
     @responses.activate
     def test_render_issue_with_prod_comment(self):
         issue_number = self.issue_number_with_prod_comment
         tag = self.tag_prod
+        
+        self.mock_util.mock_get_repo()
 
         # Mock the issue
         api_url = '{}/issues/{}'.format(
@@ -495,16 +512,13 @@ class TestCommentingGithubIssuesParser(unittest.TestCase, GithubApiTestMixin):
             False,
         )
         self.assertEqual(parser.render(), expected_render)
-
-        # Only 2 api calls were made, ensuring comment creation
-        # was not attempted
-        self.assertEqual(len(responses.calls._calls), 2)
+        self.assertEqual(len(responses.calls._calls), 3)
 
     @responses.activate
     def test_render_issue_without_prod_comment(self):
         issue_number = self.issue_number_without_prod_comment
         tag = self.tag_prod
-
+        self.mock_util.mock_get_repo()
         # Mock the issue
         api_url = '{}/issues/{}'.format(
             self.repo_api_url,
@@ -564,10 +578,8 @@ class TestCommentingGithubIssuesParser(unittest.TestCase, GithubApiTestMixin):
             expected_issue['title'],
             False,
         )
-        self.assertEqual(parser.render(), expected_render)
-
-        # 3 api calls were made, ensuring comment creation
-        # was attempted
+        render = parser.render()
+        self.assertEqual(render, expected_render)
         self.assertEqual(len(responses.calls._calls), 3)
 
     def _create_expected_render(self, issue_number, issue_title, link_pr):

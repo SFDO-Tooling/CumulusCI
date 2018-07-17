@@ -11,9 +11,12 @@ Contents:
 .. toctree::
    :maxdepth: 2
 
+   why_cumulusci
    tutorial
    features
+   robotframework
    cookbook
+   cumulusci_flow
    tasks
    api_reference
    history

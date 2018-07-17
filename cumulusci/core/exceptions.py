@@ -22,10 +22,6 @@ class KeychainKeyNotFound(CumulusCIException):
     """ Raised when the keychain key couldn't be found """
 
 
-class KeychainConnectedAppNotFound(CumulusCIException):
-    """ Raised when the connected app configuration couldn't be found for a keychain """
-
-
 class OrgNotFound(CumulusCIException):
     """ Raised when no org could be found by a given name in the project keychain """
     pass
@@ -40,6 +36,9 @@ class ServiceNotValid(CumulusCIException):
     """ Raised when no service configuration could be found by a given name in the project configuration """
     pass
 
+class DependencyResolutionError(CumulusCIException):
+    """ Raised when an issue is encountered while resolving a static dependency map """
+    pass
 
 class ConfigError(CumulusCIException):
     """ Raised when a configuration enounters an error """
@@ -95,9 +94,20 @@ class TaskNotFoundError(CumulusCIException):
     """ Raise when task is not found in project config """
     pass
 
+class FlowInfiniteLoopError(CumulusCIException):
+    """ Raised when a flow configuration creates a infinite loop """
+    pass
+
+class FlowConfigError(CumulusCIException):
+    """ Raised when a flow configuration encounters an error """
+    pass
 
 class FlowNotFoundError(CumulusCIException):
     """ Raise when flow is not found in project config """
+    pass
+
+class FlowNotReadyError(CumulusCIException):
+    """ Raise when flow is called before it has been prepared """
     pass
 
 
@@ -164,4 +174,8 @@ class ApexException(CumulusCIException):
 
 class PushApiObjectNotFound(CumulusCIException):
     """ Raise when Salesforce Push API object is not found """
+    pass
+
+class RobotTestFailure(CumulusCIException):
+    """ Raise when a robot test fails in a test suite """
     pass

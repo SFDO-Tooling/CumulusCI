@@ -18,3 +18,8 @@ tags
 .vscode/
 .cache/
 .coverage
+selenium-screenshot-*
+log.html
+report.html
+output.xml
+**/.sfdx

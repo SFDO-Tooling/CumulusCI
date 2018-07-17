@@ -25,11 +25,18 @@ Use Homebrew to install OpenSSL:
 
     $ brew install openssl
 
-Use Homebrew to install Python 2 (make note of the installed path that is printed after successful installation):
+Use Homebrew to install pyenv-virtualenv: 
 
 .. code-block:: console
 
-    $ brew install python
+    $ brew install pyenv-virtualenv
+
+After installing pyenv-virtualenv, edit your ~/.bash_profile and add the following lines at the end of the file to activate pyenv in your shell by default:
+
+.. code-block:: console
+
+    eval "$(pyenv init -)"
+    eval "$(pyenv virtualenv-init -)"
 
 Windows
 ^^^^^^^
@@ -38,32 +45,40 @@ Install Python 2: https://www.python.org/downloads/release/python-2714/
 
 Update Environment Path to include Python 2.7 install folders (C:\\Python27 and C:\\Python27\\Scripts)
 
+For Windows, go to Control Panel -> System and Security -> System -> Advanced System Settings and click the Environment Variables button. Edit Path under System Variables and add C:\\Python27 and C:\\Python27\\Scripts as two new entries.
+
 Create Virtual Environment
 --------------------------
 
-Install `virtualenv <https://virtualenv.pypa.io/en/stable/>`_:
-
-.. code-block:: console
-
-    $ pip2 install virtualenv
-
-Create a virtual environment using the Python executable path, then activate the virtual environment. The final part of the virtualenv path should be "cumulusci" so that it shows in the shell session when the virtual environment is activated. You could change this to something else if you want.
+A Python Virtual Environment (virtualenv) is an isolated Python environment where you can install packages without modifying the system Python.  Using a virtualenv for cumulusci is recommended to avoid issues and conflicts with other applications using your system Python.
 
 macOS
+^^^^^
 
 .. code-block:: console
 
-    $ virtualenv --python=/usr/local/opt/python/libexec/bin/python ~/venvs/cumulusci/
+    $ pyenv install 2.7.14
+    $ pyenv virtualenv 2.7.14 cci
     $ # Copy the following line to ~/.bash_profile to automatically activate the virtual environment in all new shells.
-    $ source ~/venvs/cumulusci/bin/activate
+    $ pyenv activate cci
+
+Your shell prompt should change once you are in the virtual env to show (cci) at the start of the prompt.  You can exit the cci virtualenv with the following command:
+
+.. code-block:: console
     
+    (cci) $ pyenv deactivate
+
+For more information about pyenv-virtualenv, see the project's README: https://github.com/pyenv/pyenv-virtualenv/blob/master/README.md
+
 Windows
+^^^^^^^
 
 .. code-block:: powershell
 
-    mkdir C:\Python27\venvs\cumulusci\
-    virtualenv --python=C:\Python27\python.exe C:\Python27\venvs\cumulusci\
-    source C:\Python27\venvs\cumulusci\Scripts\activate
+    pip2 install virtualenv
+    mkdir C:\Python27\venvs\cci\
+    virtualenv --python=C:\Python27\python.exe C:\Python27\venvs\cci\
+    source C:\Python27\venvs\cci\Scripts\activate
 
 Install CumulusCI
 -----------------
@@ -94,18 +109,19 @@ If you are using the CumulusCI-Test repo with a Developer Edition Salesforce org
 Keychain Key
 ------------
 
-The cci command stores all credentials in AES encrypted files under the ~/.cumulusci folder (macOS). To use the CLI, you must set the environment variable `CUMULUSCI_KEY` to a 16 character string which is your password to access your keychain. Do not forget this password!:
+The cci command stores all credentials in AES encrypted files under the ~/.cumulusci folder (macOS). To use the CLI, you must set the environment variable `CUMULUSCI_KEY` to a 16 character string which is your password to access your keychain. You can use Last Pass to generate a key for you. Do not forget this password!:
 
 .. code-block:: console
 
     $ export CUMULUSCI_KEY=0a2b4c6d8e0f2g4h  # Must be 16 characters long
+    
+For Windows, go to Control Panel -> System and Security -> System -> Advanced System Settings and click the Environment Variables button. Create a new user variable and system variable with CUMULUSCI_KEY as the Name and your generated key as the Value.
 
 Project Initialization
 ----------------------
 
 The `cci` command is git repository aware. Changing directories from one local git repository to another will change the project context. Each project context isolates the following:
 
-* Connected App: The Salesforce Connected App to use for OAuth authentication
 * Orgs: Connected Salesforce Orgs are stored in a project specific keychain
 * Services: Named service connections such as Github, ApexTestsDB, and mrbelvedere
 
@@ -250,15 +266,17 @@ First, you will need to create a Salesforce Connected App with the following ste
 Configuring the Project's Connected App
 ---------------------------------------
 
-Configure the Connected App in your project's keychain:
+Configure the Connected App as a service:
 
 .. code-block:: console
 
-    $ cci org config_connected_app
-    client_id:
-    client_secret:
+    $ cci service connect connected_app
+    Callback url: <input>
+    Client id: <input>
+    Client secret: <input>
+    connected_app is now configured for global use
 
-Configuring the Connected App is a one time operation per project. Once configured, you can start connecting Salesforce Orgs to your project's keychain.
+Configuring the Connected App is a one time operation. Once configured, you can start connecting Salesforce Orgs to your project's keychain.
 
 Using Salesforce DX Scratch Orgs
 --------------------------------

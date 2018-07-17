@@ -6,6 +6,7 @@ import json
 import os
 import unittest
 
+from github3 import login
 import responses
 
 from cumulusci.tasks.release_notes.generator import BaseReleaseNotesGenerator
@@ -14,6 +15,7 @@ from cumulusci.tasks.release_notes.generator import DirectoryReleaseNotesGenerat
 from cumulusci.tasks.release_notes.generator import GithubReleaseNotesGenerator
 from cumulusci.tasks.release_notes.parser import BaseChangeNotesParser
 from cumulusci.tasks.release_notes.tests.util_github_api import GithubApiTestMixin
+from cumulusci.tasks.release_notes.tests.utils import MockUtil
 
 __location__ = os.path.split(os.path.realpath(__file__))[0]
 
@@ -82,14 +84,14 @@ class TestDirectoryReleaseNotesGenerator(unittest.TestCase):
 
         content = release_notes()
         expected = "# Critical Changes\r\n\r\n* This will break everything!\r\n\r\n# Changes\r\n\r\nHere's something I did. It was really cool\r\nOh yeah I did something else too!\r\n\r\n# Issues Closed\r\n\r\n#2345\r\n#6236"
-        print expected
-        print '-------------------------------------'
-        print content
+        print(expected)
+        print('-------------------------------------')
+        print(content)
 
         self.assertEqual(content, expected)
 
 
-class TestGithubReleaseNotesGenerator(unittest.TestCase):
+class TestGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTestMixin):
 
     def setUp(self):
         self.current_tag = 'prod/1.4'
@@ -100,10 +102,15 @@ class TestGithubReleaseNotesGenerator(unittest.TestCase):
             'github_username': 'TestUser',
             'github_password': 'TestPass',
         }
+        self.gh = login('TestUser', 'TestPass')
+        self.mock_util = MockUtil('TestOwner', 'TestRepo')
 
+    @responses.activate
     def test_init_without_last_tag(self):
         github_info = self.github_info.copy()
+        self.mock_util.mock_get_repo()
         generator = GithubReleaseNotesGenerator(
+            self.gh,
             github_info,
             PARSER_CONFIG,
             self.current_tag,
@@ -114,9 +121,12 @@ class TestGithubReleaseNotesGenerator(unittest.TestCase):
         self.assertEqual(generator.change_notes.current_tag, self.current_tag)
         self.assertEqual(generator.change_notes._last_tag, None)
 
+    @responses.activate
     def test_init_with_last_tag(self):
         github_info = self.github_info.copy()
+        self.mock_util.mock_get_repo()
         generator = GithubReleaseNotesGenerator(
+            self.gh,
             github_info,
             PARSER_CONFIG,
             self.current_tag,
@@ -138,160 +148,170 @@ class TestPublishingGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTest
             'github_repo': 'TestRepo',
             'github_username': 'TestUser',
             'github_password': 'TestPass',
+            'master_branch': 'master',
         }
+        self.gh = login('TestUser', 'TestPass')
+        self.mock_util = MockUtil('TestOwner', 'TestRepo')
 
     @responses.activate
     def test_publish_update_unicode(self):
         tag = 'prod/1.4'
         note = u'“Unicode quotes”'
-        self._mock_release(False, tag, True, '')
-        # create generator
+        expected_release_body = u'# Changes\r\n\r\n{}'.format(note)
+        # mock GitHub API responses
+        self.mock_util.mock_get_repo()
+        # create generator instance
         generator = self._create_generator(tag)
         # inject content into Changes parser
         generator.parsers[1].content.append(note)
-        # render and publish
+        # render content
         content = generator.render()
-        release_body = generator.publish(content)
         # verify
-        expected_release_body = u'# Changes\r\n\r\n{}'.format(note)
-        self.assertEqual(release_body, expected_release_body)
-        response_body = json.loads(responses.calls._calls[1].request.body)
-        self.assertEqual(response_body['draft'], True)
-        self.assertEqual(response_body['prerelease'], False)
-        self.assertEqual(len(responses.calls._calls), 2)
+        self.assertEqual(len(responses.calls._calls), 1)
+        self.assertEqual(content, expected_release_body)
 
     @responses.activate
     def test_publish_update_no_body(self):
         tag = 'prod/1.4'
-        self._mock_release(False, tag, True, '')
+        expected_release_body = '# Changes\r\n\r\nfoo'
+        # mock GitHub API responses
+        self.mock_util.mock_get_repo()
         # create generator
         generator = self._create_generator(tag)
         # inject content into Changes parser
         generator.parsers[1].content.append('foo')
-        # render and publish
+        # render content
         content = generator.render()
-        release_body = generator.publish(content)
         # verify
-        expected_release_body = '# Changes\r\n\r\nfoo'
-        self.assertEqual(release_body, expected_release_body)
+        self.assertEqual(len(responses.calls._calls), 1)
+        self.assertEqual(content, expected_release_body)
 
     @responses.activate
     def test_publish_update_content_before(self):
         tag = 'prod/1.4'
-        self._mock_release(False, tag, True, 'foo\n# Changes\nbar')
+        expected_release_body = 'foo\r\n# Changes\r\n\r\nbaz'
+        # mock GitHub API responses
+        self.mock_util.mock_get_repo()
+        self.mock_util.mock_list_releases(tag=tag, body='foo\n# Changes\nbar')
         # create generator
         generator = self._create_generator(tag)
         # inject content into parser
         generator.parsers[1].content.append('baz')
-        # render and publish
+        # render and update content
         content = generator.render()
-        release_body = generator.publish(content)
+        release = generator._get_release()
+        content = generator._update_release_content(release, content)
         # verify
-        self.assertEqual(release_body, 'foo\r\n# Changes\r\n\r\nbaz')
+        self.assertEqual(len(responses.calls._calls), 3)
+        self.assertEqual(content, expected_release_body)
 
     @responses.activate
     def test_publish_update_content_after(self):
         tag = 'prod/1.4'
-        self._mock_release(False, tag, True, '# Changes\nbar\n# Foo\nfoo')
+        expected_release_body = '# Changes\r\n\r\nbaz\r\n\r\n# Foo\r\nfoo'
+        # mock GitHub API responses
+        self.mock_util.mock_get_repo()
+        self.mock_util.mock_list_releases(
+            tag=tag,
+            body='# Changes\nbar\n# Foo\nfoo',
+        )
         # create generator
         generator = self._create_generator(tag)
         # inject content into parser
         generator.parsers[1].content.append('baz')
-        # render and publish
+        # render and update content
         content = generator.render()
-        release_body = generator.publish(content)
+        release = generator._get_release()
+        content = generator._update_release_content(release, content)
         # verify
-        self.assertEqual(release_body, '# Changes\r\n\r\nbaz\r\n\r\n# Foo\r\nfoo')
+        self.assertEqual(len(responses.calls._calls), 3)
+        self.assertEqual(content, expected_release_body)
 
     @responses.activate
     def test_publish_update_content_before_and_after(self):
         tag = 'prod/1.4'
-        self._mock_release(False, tag, True, 'foo\n# Changes\nbar\n# Foo\nfoo')
+        expected_release_body = (
+            'foo\r\n# Changes\r\n\r\nbaz\r\n\r\n# Foo\r\nfoo'
+        )
+        # mock GitHub API responses
+        self.mock_util.mock_get_repo()
+        self.mock_util.mock_list_releases(
+            tag=tag,
+            body='foo\n# Changes\nbar\n# Foo\nfoo',
+        )
         # create generator
         generator = self._create_generator(tag)
         # inject content into parser
         generator.parsers[1].content.append('baz')
-        # render and publish
+        # render and update content
         content = generator.render()
-        release_body = generator.publish(content)
+        release = generator._get_release()
+        content = generator._update_release_content(release, content)
         # verify
-        self.assertEqual(release_body,
-            'foo\r\n# Changes\r\n\r\nbaz\r\n\r\n# Foo\r\nfoo')
+        self.assertEqual(len(responses.calls._calls), 3)
+        self.assertEqual(content, expected_release_body)
 
     @responses.activate
     def test_publish_update_content_between(self):
         tag = 'prod/1.4'
-        self._mock_release(False, tag, True,
-            '# Critical Changes\nbar\n# Foo\nfoo\n# Changes\nbiz')
+        expected_release_body = (
+            '# Critical Changes\r\n\r\nfaz\r\n\r\n'
+            '# Foo\r\nfoo\r\n# Changes\r\n\r\nfiz'
+        )
+        # mock GitHub API responses
+        self.mock_util.mock_get_repo()
+        self.mock_util.mock_list_releases(
+            tag=tag,
+            body='# Critical Changes\nbar\n# Foo\nfoo\n# Changes\nbiz',
+        )
         # create generator
         generator = self._create_generator(tag)
         # inject content into parser
         generator.parsers[0].content.append('faz')
         generator.parsers[1].content.append('fiz')
-        # render and publish
+        # render and update content
         content = generator.render()
-        release_body = generator.publish(content)
+        release = generator._get_release()
+        content = generator._update_release_content(release, content)
         # verify
-        self.assertEqual(release_body,
-            '# Critical Changes\r\n\r\nfaz\r\n\r\n' +
-            '# Foo\r\nfoo\r\n# Changes\r\n\r\nfiz')
+        self.assertEqual(len(responses.calls._calls), 3)
+        self.assertEqual(content, expected_release_body)
 
     @responses.activate
     def test_publish_update_content_before_after_and_between(self):
         tag = 'prod/1.4'
-        self._mock_release(False, tag, True,
-            'goo\n# Critical Changes\nbar\n# Foo\nfoo\n' +
-            '# Changes\nbiz\n# Zoo\nzoo')
+        expected_release_body = (
+            'goo\r\n# Critical Changes\r\n\r\nfaz\r\n\r\n'
+            '# Foo\r\nfoo\r\n# Changes\r\n\r\nfiz\r\n\r\n# Zoo\r\nzoo'
+        )
+        # mock GitHub API responses
+        self.mock_util.mock_get_repo()
+        self.mock_util.mock_list_releases(
+            tag=tag,
+            body=(
+                'goo\n# Critical Changes\nbar\n'
+                '# Foo\nfoo\n# Changes\nbiz\n# Zoo\nzoo'
+            ),
+        )
         # create generator
         generator = self._create_generator(tag)
         # inject content into parser
         generator.parsers[0].content.append('faz')
         generator.parsers[1].content.append('fiz')
-        # render and publish
+        # render and update content
         content = generator.render()
-        release_body = generator.publish(content)
+        release = generator._get_release()
+        content = generator._update_release_content(release, content)
         # verify
-        self.assertEqual(release_body,
-            'goo\r\n# Critical Changes\r\n\r\nfaz\r\n\r\n' +
-            '# Foo\r\nfoo\r\n# Changes\r\n\r\nfiz\r\n\r\n' +
-            '# Zoo\r\nzoo')
+        self.assertEqual(len(responses.calls._calls), 3)
+        self.assertEqual(content, expected_release_body)
 
     def _create_generator(self, current_tag, last_tag=None):
         generator = GithubReleaseNotesGenerator(
+            self.gh,
             self.github_info.copy(),
             PARSER_CONFIG,
             current_tag,
             last_tag,
         )
         return generator
-
-    def _mock_release(self, beta, tag, update, body):
-        if beta:
-            draft = False
-            prerelease = True
-        else:
-            draft = True
-            prerelease = False
-        # mock the attempted GET of non-existent release
-        api_url = '{}/releases/tags/{}'.format(self.repo_api_url, tag)
-        if update:
-            expected_response = self._get_expected_release(
-                body, draft, prerelease)
-            status = httplib.OK
-        else:
-            expected_response = self._get_expected_not_found()
-            status = httplib.NOT_FOUND
-        responses.add(
-            method=responses.GET,
-            url=api_url,
-            json=expected_response,
-            status=status,
-        )
-        # mock the release creation
-        api_url = '{}/releases'.format(self.repo_api_url)
-        expected_response = self._get_expected_release(None, draft, prerelease)
-        responses.add(
-            method=responses.POST,
-            url=api_url,
-            json=expected_response,
-        )

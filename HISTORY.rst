@@ -2,6 +2,184 @@
 History
 =======
 
+2.0.2 (2018-06-06)
+------------------
+* Bugfix: Update InstallPackageZipBuilder to use a recent api version to unblock installs.
+
+2.0.1 (2018-06-06)
+------------------
+* Bugfix: Allow passing a connected app directly to OrgConfig.refresh_oauth_token.
+
+2.0.0 (2018-06-01)
+------------------
+
+After over 19 months of development as alpha (40 version over 3 months) and beta (98 releases over 16 months) releases and over a year running production builds using CumulusCI, it's time to remove the "beta" label.
+
+This marks the first production release of CumulusCI 2.x!
+
+2.0.0-beta99 (2018-05-31)
+-------------------------
+
+* Ensure that github credentials are never shown in the log for github dependencies with unmanaged metadata
+
+2.0.0-beta98 (2018-05-31)
+-------------------------
+**WARNING: This release introduces breaking changes to the syntax for flow definitions and to the default flows.  If you customized any of the default flows in your project or have defined custom flows, you will need to modify your cumulusci.yml file to work with this release.**
+
+Changes default flows shipped with CumulusCI to a new syntax and structure taking advantage of the ability for flows to call other flows.  This allows flows to be modularized in ways that weren't possible when the original set of flows was designed.
+
+* The **tasks:** section in cumulusci.yml for a flow is now renamed to **steps:**  A **FlowConfigError** will be raised if an old style flow definition is detected.  All existing flow customizations and custom flows need to be changed in the **cumulusci.yml** to avoid raising an exception.
+* All default flows have been restructured.  Existing customizations of default flows likely need to be changed to adapt to the new structure.  In most cases, you will want to move your customizations to some of the new **config_*** or **deploy_*** instead of the main flows.
+* **ci_beta_install** has been removed and replaced with **install_beta** and **uninstall_managed**  **install_beta** does not attempt to uninstall an existing version of the package.  If you need to uninstall the package first, use the **uninstall_managed** flow before running **install_beta**
+* Added new **qa_org** flow to allow different configurations for dev vs QA orgs
+* New modularized flows structure allows for easier and more reusable customization:
+
+    * **dependencies** Runs the pre-package deployment dependency tasks **update_dependencies** and **deploy_pre**  This flow is called by almost all the main flows.
+    * **config_*** flows provide a place to customize the package configuration for different environments.  These flows are called by the main flows after the package metadata is deployed or a managed version is installed.  Customizations to the config flows automatically apply to the main flows.
+
+        * **config_apextest** Configure org for running apex tests
+        * **config_dev** Configure org for dev use
+        * **config_managed** Configure org with a managed package version installed
+        * **config_packaging** Configure the packaging org
+        * **config_qa** Configure org for QA use
+
+    * **deploy_*** flows provide a place to customize how metadata deployments are done.  The deploy flows do more than just a simple deployment such as unscheduling scheduled jobs, rebuilding the package.xml, and incrementally deleting any stale metadata in the package from the org.
+
+        * **deploy_unmanaged** Used to do a standard deployment of the unmanaged metadata
+        * **deploy_packaging** Used to deploy to packaging.  Wraps the **create_managed_src** task around the deploy to inject metadata that can only be deployed to the packaging org
+        * **deploy_unmanaged_ee** Used to deploy unmanaged metadata to an Enterprise Edition org using the **create_unmanaged_ee_src** task
+
+* **github** dependencies can now point to a private Github repository.  All zip downloads from Github will pass the password (should be a personal access token) from the **github** service configured in the CumulusCI keychain.
+* **GithubRelease**, **PushUpgradeRequest**, and **PackageUploadRequest** now track the release data as return values
+
+2.0.0-beta97 (2018-05-31)
+-------------------------
+- Salesforce Connected App is now a CCI Service! Instead of using `cci org config_connected_app` you can use the familiar `cci service` commands.
+- Better error handling when running commands without specifying a default org (thanks @topherlandry)
+- Fix issue where scratch org password may become outdated
+- Improve Robot test runner task to use the already configured CCI environment instead of trying to create a new one.
+- Enable Robot testing in Headless Chrome on Heroku.
+- Address Python3 print statement issues.
+- Add LogLine task class to log statements and variables.
+- Add PassOptionAsResult, PassOptionAsReturnValue to pass options around in Flows.
+- Further extended the Flow runner subclass API.
+
+2.0.0-beta96 (2018-05-18)
+-------------------------
+
+- Fixes for CumulusCI on Windows - CumulusCI 2 now supports Windows environments!
+- Support skipping scratch org password creation by specifying `--no-password` to `cci org scratch`
+- Add additional logging to PackageUpload
+
+2.0.0-beta95 (2018-05-10)
+-------------------------
+
+- Add pytz to requirements
+
+2.0.0-beta94 (2018-05-10)
+-------------------------
+
+- Support added for nested flows. Specify a flow instead of a task inside another flow in cumulusci.yml
+- Add new task github_release_report to report info from GitHub release notes
+- Add new flow dev_deploy for minimal deploy (tasks: unschedule_jobs, deploy)
+- Enhance BaseFlow to be more easily subclassed/overridden/observed. Preserves task step number and adds several hook methods for subclasses (_pre_task, _post_task, _post_task_exception)
+- Refactor github_release_notes task to use github3.py instead of calling the GitHub API directly. Includes these minor changes to functionality:
+    - Cannot create release with this task (use github_create_release instead)
+    - Merge existing release notes even when not publishing
+- Fix issue that caused duplicate entries in the dependency tree
+- Sort output of os.listdir in all occurrences. Guarantees ordered iteration over files on disk
+- Validate CUMULUSCI_KEY value and raise more helpful exceptions if invalid
+
+2.0.0-beta93 (2018-04-20)
+-------------------------
+
+- Fix issue in command task for Windows
+- Support interactive in command task (thanks Chris Landry!)
+- Search more pull requests (100 vs 30) when generating release notes
+- Add options to Apex documentation generator task
+
+2.0.0-beta92 (2018-04-04)
+-------------------------
+
+- Ignore OWNERS file in package.xml generation
+- Pipe stderr in command tasks
+
+2.0.0-beta91 (2018-04-03)
+-------------------------
+
+- Fix issue in ZIP functionality for Windows
+
+2.0.0-beta90 (2018-03-26)
+-------------------------
+
+- Include missing scratch_def.json template file needed by cci project init
+
+2.0.0-beta89 (2018-03-23)
+-------------------------
+
+- Improved cci project init
+    - Prompt for extending a repository with HEDA and NPSP as selectable options
+    - Use jinja2 templates included with cumulusci to create files
+    - Include a default Robot test
+- update_package_xml now ignores CODEOWNERS files used by Github
+- Fixed an import error for click in cci
+
+2.0.0-beta88 (2018-03-20)
+-------------------------
+
+* Fix issue in parsing version from tag name
+
+2.0.0-beta87 (2018-03-15)
+-------------------------
+
+* Fix issue in getting latest version
+
+2.0.0-beta86 (2018-03-13)
+-------------------------
+
+* Initial Integration with Robot Framework (see here for details: http://cumulusci.readthedocs.io/en/latest/robotframework.html)
+* Add support for GlobalValueSetTranslation Metadata Type (thanks Christian Szandor Knapp!)
+* Use Tooling API for PackageUploadRequest
+* New doc "Why CumulusCI?"
+* Add documentation for the skip option on GitHub dependencies
+
+2.0.0-beta85 (2018-02-21)
+-------------------------
+
+* Support bigobject index element in .object
+* Only run meta.xml file cleaning on classes/* and triggers/* directory
+* Add docs on CumulusCI Flow
+* Add reference to needing the Push API to run release_beta in tutorial doc
+
+2.0.0-beta84 (2018-02-12)
+-------------------------
+
+* Add new Status 'Queued' to PackageUploadRequest check
+
+2.0.0-beta83 (2018-02-08)
+-------------------------
+
+* Add a sleep in between successful PackageUploadRequest and querying for MetadataPackageVersion to address issue in Spring '18 packaging orgs.
+
+2.0.0-beta82 (2018-02-02)
+-------------------------
+
+* Update salesforce-bulk package to version 2.0.0
+* Fix issue in bulk load data task
+
+2.0.0-beta81 (2018-01-18)
+-------------------------
+
+* Filter SObjects by record type in bulk data retrieve
+* Fix issue in removing XML elements from file
+
+2.0.0-beta80 (2018-01-08)
+-------------------------
+
+* The deploy tasks now automatically clean all meta.xml files in the deployed metadata of any namespace references by removing the <packageVersions> element and children.  This allows CumulusCI to fully manage the dependencies and avoids the need for new commits to change referenced versions in meta.xml files.
+    * The default functionality can be disabled with the by setting `clean_meta_xml` to False
+* Github dependencies can now point to a specific tag in the repository.  The tag is used to determine the version to install for the dependency if the repository has a namespace configured and will be used to determine which unpackaged metadata to deploy.
+
 2.0.0-beta79 (2017-11-30)
 -------------------------
 

@@ -19,13 +19,28 @@ class GithubApiTestMixin(object):
             'github_repo': 'TestRepo',
             'github_username': 'TestUser',
             'github_password': 'TestPass',
+            'prefix_beta': 'beta/',
+            'prefix_prod': 'release/',
+            'master_branch': 'master',
         }
 
-    def _get_expected_issue(self, issue_number):
+    def _get_expected_issue(self, issue_number, owner=None, repo=None):
+        if owner == None:
+            owner = 'TestOwner'
+        if repo == None:
+            repo = 'TestRepo'
         response_body = {
             'title': 'Found a bug',
             'number': issue_number,
             'body': "I'm having a problem with this.",
+            'labels': [],
+            'html_url': 'https://github.com/{}/{}/issues/{}'.format(
+                owner, repo, issue_number),
+            'url': 'https://api.github.com/repos/{}/{}/issues/{}'.format(
+                owner, repo, issue_number),
+            'user': {
+                'type': 'User',
+            },
         }
         return response_body
 
@@ -40,7 +55,8 @@ class GithubApiTestMixin(object):
             'object': {
                 'type': 'tag',
                 'sha': sha,
-            }
+            },
+            'name': tag,
         }
 
     def _get_expected_tag(self, tag, tag_sha, commit_sha, tag_date=None):
@@ -78,7 +94,8 @@ class GithubApiTestMixin(object):
 
         return {
             'id': pull_id,
-            'html_url': 'http://example.com/pulls/{}'.format(issue_number),
+            'html_url': 'https://github.com/TestOwner/TestRepo/pulls/{}'.format(issue_number),
+            'issue_url': 'https://api.github.com/repos/TestOwner/TestRepo/issues/{}'.format(issue_number),
             'number': issue_number,
             'state': state,
             'title': 'Pull Request #{}'.format(issue_number),

@@ -17,15 +17,17 @@ except ImportError:
     import dbm.ndbm as dbm
 
 from contextlib import contextmanager
+from shutil import copyfile
 
 import click
 import pkg_resources
 import requests
 from plaintable import Table
 from rst2ansi import rst2ansi
+from jinja2 import Environment
+from jinja2 import PackageLoader
 
 import cumulusci
-from cumulusci.core.config import ConnectedAppOAuthConfig
 from cumulusci.core.config import FlowConfig
 from cumulusci.core.config import OrgConfig
 from cumulusci.core.config import ScratchOrgConfig
@@ -37,7 +39,6 @@ from cumulusci.core.exceptions import ApexTestException
 from cumulusci.core.exceptions import BrowserTestFailure
 from cumulusci.core.exceptions import ConfigError
 from cumulusci.core.exceptions import FlowNotFoundError
-from cumulusci.core.exceptions import KeychainConnectedAppNotFound
 from cumulusci.core.exceptions import KeychainKeyNotFound
 from cumulusci.core.exceptions import OrgNotFound
 from cumulusci.salesforce_api.exceptions import MetadataApiError
@@ -50,6 +51,7 @@ from cumulusci.core.exceptions import TaskNotFoundError
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.exceptions import TaskRequiresSalesforceOrg
 from cumulusci.core.utils import import_class
+from cumulusci.cli.config import CliConfig
 from cumulusci.utils import doc_task
 from cumulusci.oauth.salesforce import CaptureSalesforceOAuth
 from .logger import init_logger
@@ -88,6 +90,16 @@ def get_latest_version():
     with dbm_cache() as cache:
         cache['cumulusci-latest-timestamp'] = str(time.time())
     return pkg_resources.parse_version(res['info']['version'])
+
+
+def get_org(config, org_name=None):
+    if org_name:
+        org_config = config.keychain.get_org(org_name)
+    else:
+        org_name, org_config = config.project_config.keychain.get_default_org()
+        if not org_config:
+            raise click.UsageError('No org specified and no default org set.')
+    return org_name, org_config
 
 
 def check_latest_version():
@@ -157,57 +169,16 @@ def render_recursive(data, indent=None):
 def check_org_overwrite(config, org_name):
     try:
         org = config.keychain.get_org(org_name)
-        raise click.ClickException(
-            'Org {} already exists.  Use `cci org remove` to delete it.'.format(org_name)
-        )
+        if org.scratch:
+            if org.created:
+                raise click.ClickException('Scratch org has already been created. Use `cci org scratch_delete {}`'.format(org_name))
+        else:
+            raise click.ClickException(
+                'Org {} already exists.  Use `cci org remove` to delete it.'.format(org_name)
+            )
     except OrgNotFound:
         pass
     return True
-
-class CliConfig(object):
-
-    def __init__(self):
-        self.global_config = None
-        self.project_config = None
-        self.keychain = None
-
-        init_logger()
-        self._load_global_config()
-        self._load_project_config()
-        self._load_keychain()
-        self._add_repo_to_path()
-
-    def _add_repo_to_path(self):
-        if self.project_config:
-            sys.path.append(self.project_config.repo_root)
-
-    def _load_global_config(self):
-        try:
-            self.global_config = YamlGlobalConfig()
-        except NotInProject as e:
-            raise click.UsageError(e.message)
-
-    def _load_project_config(self):
-        try:
-            self.project_config = self.global_config.get_project_config()
-        except ProjectConfigNotFound:
-            pass
-        except NotInProject as e:
-            raise click.UsageError(e.message)
-        except ConfigError as e:
-            raise click.UsageError('Config Error: {}'.format(e.message))
-
-    def _load_keychain(self):
-        self.keychain_key = os.environ.get('CUMULUSCI_KEY')
-        if self.project_config:
-            keychain_class = os.environ.get(
-                'CUMULUSCI_KEYCHAIN_CLASS',
-                self.project_config.cumulusci__keychain,
-            )
-            self.keychain_class = import_class(keychain_class)
-            self.keychain = self.keychain_class(
-                self.project_config, self.keychain_key)
-            self.project_config.set_keychain(self.keychain)
 
 def make_pass_instance_decorator(obj, ensure=False):
     """Given an object type this creates a decorator that will work
@@ -245,13 +216,6 @@ except click.UsageError as e:
 
 pass_config = make_pass_instance_decorator(CLI_CONFIG)
 
-def check_connected_app(config):
-    check_keychain(config)
-    if not config.keychain.get_connected_app():
-        raise click.UsageError(
-            "Please use the 'org config_connected_app' command to configure the OAuth Connected App to use for this project's keychain")
-
-
 def check_keychain(config):
     check_project_config(config)
     if config.project_config.keychain and config.project_config.keychain.encrypted and not config.keychain_key:
@@ -286,9 +250,9 @@ def handle_sentry_event(config, no_prompt):
 # Root command
 
 
-@click.group('cli')
+@click.group('main')
 @pass_config
-def cli(config):
+def main(config):
     pass
 
 
@@ -335,13 +299,13 @@ def flow(config):
 def service(config):
     pass
 
-cli.add_command(project)
-cli.add_command(org)
-cli.add_command(task)
-cli.add_command(flow)
-cli.add_command(version)
-cli.add_command(shell)
-cli.add_command(service)
+main.add_command(project)
+main.add_command(org)
+main.add_command(task)
+main.add_command(flow)
+main.add_command(version)
+main.add_command(shell)
+main.add_command(service)
 
 # Commands for group: project
 
@@ -358,77 +322,81 @@ def project_init(config, extend):
     if os.path.isfile('cumulusci.yml'):
         raise click.ClickException("This project already has a cumulusci.yml file")
 
-    yml_config = []
+    context = {}
 
+    # Prep jinja2 environment for rendering files
+    env = Environment(
+        loader = PackageLoader('cumulusci', os.path.join('files', 'templates', 'project')),
+        trim_blocks = True,
+        lstrip_blocks = True,
+    )
+
+    # Project and Package Info
     click.echo()
     click.echo(click.style('# Project Info', bold=True, fg='blue'))
     click.echo('The following prompts will collect general information about the project')
-    package_config = []
 
-    name = os.path.split(os.getcwd())[-1:][0]
+    project_name = os.path.split(os.getcwd())[-1:][0]
     click.echo()
-    click.echo('Enter the project name.  The name is usually the same as your repository name')
-    name = click.prompt(click.style('Project Name', bold=True), default=name)
-    yml_config.append('project:')
-    yml_config.append('    name: {}'.format(name))
+    click.echo('Enter the project name.  The name is usually the same as your repository name.  NOTE: Do not use spaces in the project name!')
+    context['project_name'] = click.prompt(click.style('Project Name', bold=True), default=project_name)
 
     click.echo()
     click.echo("CumulusCI uses an unmanaged package as a container for your project's metadata.  Enter the name of the package you want to use.")
-    package_name = click.prompt(click.style('Package Name', bold=True), default=name)
-    if package_name and package_name != config.global_config.project__package__name:
-        package_config.append('        name: {}'.format(package_name))
+    context['package_name'] = click.prompt(click.style('Package Name', bold=True), default=project_name)
 
     click.echo()
-    package_namespace = None
+    context['package_namespace'] = None
     if click.confirm(click.style("Is this a managed package project?", bold=True), default=False):
         click.echo('Enter the namespace assigned to the managed package for this project')
-        package_namespace = click.prompt(click.style('Package Namespace', bold=True), default=name)
-        if package_namespace and package_namespace != config.global_config.project__package__namespace:
-            package_config.append(
-                '        namespace: {}'.format(package_namespace))
+        context['package_namespace'] = click.prompt(click.style('Package Namespace', bold=True), default=project_name)
 
     click.echo()
-    package_api_version = click.prompt(click.style('Salesforce API Version', bold=True), default=config.global_config.project__package__api_version)
-    if package_api_version and package_api_version != config.global_config.project__package__api_version:
-        package_config.append(
-            '        api_version: {}'.format(package_api_version))
+    context['api_version'] = click.prompt(click.style('Salesforce API Version', bold=True), default=config.global_config.project__package__api_version)
 
-    if package_config:
-        yml_config.append('    package:')
-        yml_config.extend(package_config)
+    # Dependencies
+    dependencies = []
+    click.echo(click.style('# Extend Project', bold=True, fg='blue'))
+    click.echo("CumulusCI makes it easy to build extensions of other projects configured for CumulusCI like Salesforce.org's NPSP and HEDA.  If you are building an extension of another project using CumulusCI and have access to its Github repository, use this section to configure this project as an extension.")
+    if click.confirm(click.style("Are you extending another CumulusCI project such as NPSP or HEDA?", bold=True), default=False):
+        click.echo("Please select from the following options:")
+        click.echo("  1: HEDA (https://github.com/SalesforceFoundation/HEDAP)")
+        click.echo("  2: NPSP (https://github.com/SalesforceFoundation/Cumulus)")
+        click.echo("  3: Github URL (provide a URL to a Github repository configured for CumulusCI)")
+        selection = click.prompt(click.style('Enter your selection', bold=True))
+        if selection == '1':
+            dependencies.append({'type': 'github', 'url': 'https://github.com/SalesforceFoundation/HEDAP'})
+        elif selection == '2':
+            dependencies.append({'type': 'github', 'url': 'https://github.com/SalesforceFoundation/Cumulus'})
+        else:
+            print(selection)
+            github_url = click.prompt(click.style('Enter the Github Repository URL', bold=True))
+            dependencies.append({'type': 'github', 'url': github_url})
+    context['dependencies'] = dependencies
 
-    if extend:
-        yml_config.append('    dependencies:')
-        yml_config.append('        - github: {}'.format(extend))
-
-    #     git:
-    git_config = []
+    # Git Configuration
+    git_config = {}
     click.echo()
     click.echo(click.style('# Git Configuration', bold=True, fg='blue'))
     click.echo('CumulusCI assumes your default branch is master, your feature branches are named feature/*, your beta release tags are named beta/*, and your release tags are release/*.  If you want to use a different branch/tag naming scheme, you can configure the overrides here.  Otherwise, just accept the defaults.')
 
     git_default_branch = click.prompt(click.style('Default Branch', bold=True), default='master')
     if git_default_branch and git_default_branch != config.global_config.project__git__default_branch:
-        git_config.append(
-            '        default_branch: {}'.format(git_default_branch))
+        git_config['default_branch'] = git_default_branch
 
     git_prefix_feature = click.prompt(click.style('Feature Branch Prefix', bold=True), default='feature/')
     if git_prefix_feature and git_prefix_feature != config.global_config.project__git__prefix_feature:
-        git_config.append(
-            '        prefix_feature: {}'.format(git_prefix_feature))
+        git_config['prefix_feature'] = git_prefix_feature
 
     git_prefix_beta = click.prompt(click.style('Beta Tag Prefix', bold=True), default='beta/')
     if git_prefix_beta and git_prefix_beta != config.global_config.project__git__prefix_beta:
-        git_config.append('        prefix_beta: {}'.format(git_prefix_beta))
+        git_config['prefix_beta'] = git_prefix_beta
 
     git_prefix_release = click.prompt(click.style('Release Tag Prefix', bold=True), default='release/')
     if git_prefix_release and git_prefix_release != config.global_config.project__git__prefix_release:
-        git_config.append(
-            '        prefix_release: {}'.format(git_prefix_release))
+        git_config['prefix_release'] = git_prefix_release
 
-    if git_config:
-        yml_config.append('    git:')
-        yml_config.extend(git_config)
+    context['git'] = git_config
 
     #     test:
     test_config = []
@@ -437,59 +405,89 @@ def project_init(config, extend):
     click.echo('The CumulusCI Apex test runner uses a SOQL where clause to select which tests to run.  Enter the SOQL pattern to use to match test class names.')
     
     test_name_match = click.prompt(click.style('Test Name Match', bold=True), default=config.global_config.project__test__name_match)
-    if test_name_match and test_name_match != config.global_config.project__test__name_match:
-        test_config.append('        name_match: {}'.format(test_name_match))
-    if test_config:
-        yml_config.append('    test:')
-        yml_config.extend(test_config)
+    if test_name_match and test_name_match == config.global_config.project__test__name_match:
+        test_name_match = None
+    context['test_name_match'] = test_name_match
 
-    if package_namespace:
-        yml_config.append('orgs:')
-        yml_config.append('    scratch:')
-        yml_config.append('        dev_namespaced:')
-        yml_config.append('            config_file: orgs/dev.json')
-        yml_config.append('            namespaced: True')
+    # Render the cumulusci.yml file
+    template = env.get_template('cumulusci.yml')
+    with open('cumulusci.yml','w') as f:
+        f.write(template.render(**context))
+    
+    # Create src directory
+    if not os.path.isdir('src'):
+        os.mkdir('src')
 
-    yml_config.append('')
+    # Create sfdx-project.json
+    if not os.path.isfile('sfdx-project.json'):
 
-    with open('cumulusci.yml', 'w') as f_yml:
-        f_yml.write('\n'.join(yml_config))
-
+        sfdx_project = {
+            "packageDirectories": [
+                {
+                    "path": "force-app",
+                    "default": True,
+                }
+            ],
+            "namespace": context['package_namespace'],
+            "sourceApiVersion": context['api_version'],
+        }
+        with open('sfdx-project.json','w') as f:
+            f.write(json.dumps(sfdx_project))
+    
+    # Create orgs subdir
+    if not os.path.isdir('orgs'):
+        os.mkdir('orgs')
+      
+    org_content_url = 'https://raw.githubusercontent.com/SalesforceFoundation/sfdo-package-cookiecutter/master/%7B%7Bcookiecutter.project_name%7D%7D/orgs/{}.json' 
+    template = env.get_template('scratch_def.json')
+    with open(os.path.join('orgs', 'beta.json'), 'w') as f:
+        f.write(template.render(
+            package_name = context['package_name'],
+            org_name = 'Beta Test Org',
+            edition = 'Developer',
+        ))
+    with open(os.path.join('orgs', 'dev.json'), 'w') as f:
+        f.write(template.render(
+            package_name = context['package_name'],
+            org_name = 'Dev Org',
+            edition = 'Developer',
+        ))
+    with open(os.path.join('orgs', 'feature.json'), 'w') as f:
+        f.write(template.render(
+            package_name = context['package_name'],
+            org_name = 'Feature Test Org',
+            edition = 'Developer',
+        ))
+    with open(os.path.join('orgs', 'release.json'), 'w') as f:
+        f.write(template.render(
+            package_name = context['package_name'],
+            org_name = 'Release Test Org',
+            edition = 'Enterprise',
+        ))
+   
+    # Create initial create_contact.robot test 
+    if not os.path.isdir('tests'):
+        os.mkdir('tests')
+        test_folder = os.path.join('tests','standard_objects')
+        os.mkdir(test_folder)
+        test_src = os.path.join(
+            cumulusci.__location__,
+            'robotframework',
+            'tests',
+            'salesforce',
+            'create_contact.robot',
+        )
+        test_dest = os.path.join(
+            test_folder,
+            'create_contact.robot',
+        )
+        copyfile(test_src, test_dest)
+        
     click.echo(click.style("Your project is now initialized for use with CumulusCI", bold=True, fg='green'))
     click.echo(click.style(
         "You can use the project edit command to edit the project's config file", fg='yellow'
     ))
 
-    if os.path.isfile('sfdx-project.json'):
-        return
-
-    if not os.path.isdir('src'):
-        os.mkdir('src')
-
-    sfdx_project = {
-        "packageDirectories": [
-            {
-                "path": "force-app",
-                "default": True,
-            }
-        ],
-        "namespace": package_namespace,
-        "sourceApiVersion": package_api_version,
-}
-    with open('sfdx-project.json','w') as f:
-        f.write(json.dumps(sfdx_project))
-
-    if not os.path.isdir('orgs'):
-        os.mkdir('orgs')
-      
-    org_content_url = 'https://raw.githubusercontent.com/SalesforceFoundation/sfdo-package-cookiecutter/master/%7B%7Bcookiecutter.project_name%7D%7D/orgs/{}.json' 
-    for org in ['beta', 'dev', 'feature', 'release']:
-        with open('orgs/{}.json'.format(org), 'w') as f:
-            resp = requests.get(org_content_url.format(org))
-            content = resp.content.replace('{{cookiecutter.package_name}}', package_name)
-            f.write(content) 
-    
-        
 
 @click.command(name='info', help="Display information about the current project's configuration")
 @pass_config
@@ -504,6 +502,8 @@ def project_dependencies(config):
     check_project_config(config)
     dependencies = config.project_config.get_static_dependencies()
     for line in config.project_config.pretty_dependencies(dependencies):
+        if ' headers:' in line:
+            continue
         click.echo(line)
 
 
@@ -605,14 +605,17 @@ service.add_command(service_show)
 
 
 @click.command(name='browser', help="Opens a browser window and logs into the org using the stored OAuth credentials")
-@click.argument('org_name')
+@click.argument('org_name', required=False)
 @pass_config
 def org_browser(config, org_name):
-    check_connected_app(config)
 
-    org_config = config.project_config.get_org(org_name)
+    org_name, org_config = get_org(config, org_name)
     org_config = check_org_expired(config, org_name, org_config)
-    org_config.refresh_oauth_token(config.keychain.get_connected_app())
+
+    try:
+        org_config.refresh_oauth_token(config.keychain)
+    except ScratchOrgException as e:
+        raise click.ClickException('ScratchOrgException: {}'.format(e.message))
 
     webbrowser.open(org_config.start_url)
 
@@ -628,10 +631,17 @@ def org_browser(config, org_name):
 @click.option('--global-org', help='Set True if org should be used by any project', is_flag=True)
 @pass_config
 def org_connect(config, org_name, sandbox, login_url, default, global_org):
-    check_connected_app(config)
     check_org_overwrite(config, org_name)
 
-    connected_app = config.keychain.get_connected_app()
+    try:
+        connected_app = config.keychain.get_service('connected_app')
+    except ServiceNotConfigured as e:
+        raise ServiceNotConfigured(
+            'Connected App is required but not configured. ' +
+            'Configure the Connected App service:\n' +
+            'http://cumulusci.readthedocs.io/en/latest/' +
+            'tutorial.html#configuring-the-project-s-connected-app'
+        )
     if sandbox:
         login_url = 'https://test.salesforce.com'
 
@@ -658,7 +668,6 @@ def org_connect(config, org_name, sandbox, login_url, default, global_org):
 @click.option('--unset', is_flag=True, help="Unset the org as the default org leaving no default org selected")
 @pass_config
 def org_default(config, org_name, unset):
-    check_connected_app(config)
 
     if unset:
         org = config.keychain.unset_default_org()
@@ -670,17 +679,16 @@ def org_default(config, org_name, unset):
 
 
 @click.command(name='info', help="Display information for a connected org")
-@click.argument('org_name')
+@click.argument('org_name', required=False)
 @click.option('print_json', '--json', is_flag=True, help="Print as JSON")
 @pass_config
 def org_info(config, org_name, print_json):
-    check_connected_app(config)
 
-    org_config = config.keychain.get_org(org_name)
+    org_name, org_config = get_org(config, org_name)
     org_config = check_org_expired(config, org_name, org_config)
 
     try:
-        org_config.refresh_oauth_token(config.keychain.get_connected_app())
+        org_config.refresh_oauth_token(config.keychain)
     except ScratchOrgException as e:
         raise click.ClickException('ScratchOrgException: {}'.format(e.message))
 
@@ -699,7 +707,6 @@ def org_info(config, org_name, print_json):
 @click.command(name='list', help="Lists the connected orgs for the current project")
 @pass_config
 def org_list(config):
-    check_connected_app(config)
     data = []
     headers = ['org', 'default', 'scratch', 'days', 'expired', 'config_name', 'username']
     for org in config.project_config.list_orgs():
@@ -724,7 +731,6 @@ def org_list(config):
 @click.option('--global-org', is_flag=True, help="Set this option to force remove a global org.  Default behavior is to error if you attempt to delete a global org.")
 @pass_config
 def org_remove(config, org_name, global_org):
-    check_connected_app(config)
 
     try:
         org_config = config.keychain.get_org(org_name)
@@ -748,9 +754,9 @@ def org_remove(config, org_name, global_org):
 @click.option('--delete', is_flag=True, help="If set, triggers a deletion of the current scratch org.  This can be used to reset the org as the org configuration remains to regenerate the org on the next task run.")
 @click.option('--devhub', help="If provided, overrides the devhub used to create the scratch org")
 @click.option('--days', help="If provided, overrides the scratch config default days value for how many days the scratch org should persist")
+@click.option('--no-password', is_flag=True, help="If set, don't set a password for the org")
 @pass_config
-def org_scratch(config, config_name, org_name, default, delete, devhub, days):
-    check_connected_app(config)
+def org_scratch(config, config_name, org_name, default, delete, devhub, days, no_password):
     check_org_overwrite(config, org_name)
 
     scratch_configs = getattr(config.project_config, 'orgs__scratch')
@@ -766,7 +772,12 @@ def org_scratch(config, config_name, org_name, default, delete, devhub, days):
     if devhub:
         scratch_config['devhub'] = devhub
 
-    config.keychain.create_scratch_org(org_name, config_name, days)
+    config.keychain.create_scratch_org(
+        org_name,
+        config_name,
+        days,
+        set_password=not(no_password),
+    )
 
     if default:
         org = config.keychain.set_default_org(org_name)
@@ -777,7 +788,6 @@ def org_scratch(config, config_name, org_name, default, delete, devhub, days):
 @click.argument('org_name')
 @pass_config
 def org_scratch_delete(config, org_name):
-    check_connected_app(config)
     org_config = config.keychain.get_org(org_name)
     if not org_config.scratch:
         raise click.UsageError('Org {} is not a scratch org'.format(org_name))
@@ -790,33 +800,8 @@ def org_scratch_delete(config, org_name):
     config.keychain.set_org(org_config)
 
 
-@click.command(name='connected_app', help="Displays the ConnectedApp info used for OAuth connections")
-@pass_config
-def org_connected_app(config):
-    check_connected_app(config)
-    click.echo(render_recursive(config.keychain.get_connected_app().config))
-
-
-@click.command(name='config_connected_app', help="Configures the connected app used for connecting to Salesforce orgs")
-@click.option('--client_id', help="The Client ID from the connected app", prompt=True)
-@click.option('--client_secret', help="The Client Secret from the connected app", prompt=True, hide_input=(False if os.name == 'nt' else True))
-@click.option('--callback_url', help="The callback_url configured on the Connected App", default='http://localhost:8080/callback')
-@click.option('--project', help='Set if storing encrypted keychain file in project directory', is_flag=True)
-@pass_config
-def org_config_connected_app(config, client_id, client_secret, callback_url, project):
-    check_keychain(config)
-    app_config = ConnectedAppOAuthConfig()
-    app_config.config = {
-        'client_id': client_id,
-        'client_secret': client_secret,
-        'callback_url': callback_url,
-    }
-    config.keychain.set_connected_app(app_config, project)
-
 org.add_command(org_browser)
-org.add_command(org_config_connected_app)
 org.add_command(org_connect)
-org.add_command(org_connected_app)
 org.add_command(org_default)
 org.add_command(org_info)
 org.add_command(org_list)
@@ -861,7 +846,8 @@ def task_info(config, task_name):
         raise TaskNotFoundError('Task not found: {}'.format(task_name))
 
     task_config = TaskConfig(task_config)
-    click.echo(rst2ansi(doc_task(task_name, task_config)))
+    doc = doc_task(task_name, task_config).encode()
+    click.echo(rst2ansi(doc))
 
 
 @click.command(name='run', help="Runs a task")
@@ -1020,6 +1006,11 @@ def flow_run(config, flow_name, org, delete_org, debug, o, skip, no_prompt):
         org_config = config.project_config.get_org(org)
     else:
         org, org_config = config.project_config.keychain.get_default_org()
+        if not org_config:
+            raise click.UsageError(
+                '`cci flow run` requires an org.'
+                ' No org was specified and default org is not set.'
+            )
 
     org_config = check_org_expired(config, org, org_config)
     
@@ -1051,7 +1042,7 @@ def flow_run(config, flow_name, org, delete_org, debug, o, skip, no_prompt):
     # Create the flow and handle initialization exceptions
     try:
         flow = flow_class(config.project_config, flow_config,
-                          org_config, options, skip)
+                          org_config, options, skip, name=flow_name)
     except TaskRequiresSalesforceOrg as e:
         exception = click.UsageError(
             'This flow requires a salesforce org.  Use org default <name> to set a default org or pass the org name with the --org option')

@@ -13,6 +13,7 @@ import time
 from cumulusci.core.exceptions import TaskRequiresSalesforceOrg
 from cumulusci.core.exceptions import TaskOptionsError
 
+CURRENT_TASK = None
 
 class BaseTask(object):
     """ BaseTask provides the core execution logic for a Task
@@ -29,6 +30,8 @@ class BaseTask(object):
         task_config,
         org_config=None,
         flow=None,
+        name=None,
+        stepnum=None,
         **kwargs
     ):
         self.project_config = project_config
@@ -47,6 +50,12 @@ class BaseTask(object):
 
         # the flow for this task execution
         self.flow = flow
+        
+        # the tasks name in the flow
+        self.name = name
+
+        # the tasks stepnumber in the flow
+        self.stepnum = stepnum
 
         if self.salesforce_task and not self.org_config:
             raise TaskRequiresSalesforceOrg(
@@ -58,6 +67,7 @@ class BaseTask(object):
         self._validate_options()
         self._update_credentials()
         self._init_task()
+        self._set_current_task()
 
     def _init_logger(self):
         """ Initializes self.logger """
@@ -79,7 +89,10 @@ class BaseTask(object):
                     self.options[option] = getattr(self.project_config, attr, None)
             except AttributeError:
                 pass
-                
+        
+    def _set_current_task(self):
+        global CURRENT_TASK
+        CURRENT_TASK = self
 
     def _validate_options(self):
         missing_required = []
@@ -107,6 +120,8 @@ class BaseTask(object):
     def __call__(self):
         # If sentry is configured, initialize sentry for error capture
         self.project_config.init_sentry()
+
+        self._set_current_task()
 
         try:
             self._log_begin()

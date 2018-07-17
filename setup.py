@@ -20,39 +20,47 @@ with open('HISTORY.rst') as history_file:
     history = history_file.read()
 
 requirements = [
-    'click>=6.2',
-    'coloredlogs>=5.2',
-    'docutils>=0.13.1',
+    'arrow==0.12.1',
+    'click==6.7',
+    'coloredlogs==9.3.1',
+    'docutils==0.14',
+    'future==0.16.0',
     'github3.py==0.9.6',
-    'lxml>=3.8.0',
+    'HiYaPyCo>=0.4.11',
+    'lxml==4.2.1',
     'plaintable==0.1.1',
-    'raven>=0.6.1',
-    'requests[security]>=2.9.1',
-    'responses>=0.5.1',
-    'rst2ansi>=0.1.5',
-    'sarge>=0.1.4',
-    'selenium',
-    'salesforce-bulk==1.1.0',
-    'simple-salesforce>=0.72',
+    'pycrypto==2.6.1',
+    'PyGithub==1.39',
+    'pytz==2018.4',
+    'PyYAML==3.12',
+    'raven==6.7.0',
+    'requests[security]==2.18.4',
+    'responses==0.9.0',
+    'robotframework==3.0.4',
+    'robotframework-seleniumlibrary==3.1.1',
+    'rst2ansi==0.1.5',
+    'salesforce-bulk==2.0.0',
+    'sarge==0.1.4',
+    'selenium==3.11.0',
+    'simple-salesforce==0.74.2',
+    'SQLAlchemy==1.2.7',
     'xmltodict==0.10.2',
-    'HiYaPyCo>=0.4.8',
-    'PyCrypto>=2.6.1',
-    'PyGithub>=1.25.1',
-    'PyYAML>=3.11',
-    'SQLAlchemy>=1.1.4',
-    'arrow>=0.10.0',
-    'future==0.16.0'
 ]
 
 test_requirements = [
-    'nose>=1.3.7',
-    'mock',
-    'testfixtures>=4.13.5',
+    'coverage==4.1',
+    'coveralls==1.2.0',
+    'flake8==2.6.0',
+    'mock==2.0.0',
+    'nose==1.3.7',
+    'nose-tap==1.9',
+    'testfixtures==6.0.2',
+    'tox==2.3.1',
 ]
 
 setup(
     name='cumulusci',
-    version='2.0.0-beta79',
+    version='2.0.2',
     description="Build and release tools for Salesforce developers",
     long_description=readme + '\n\n' + history,
     author="Jason Lantz",
@@ -63,8 +71,7 @@ setup(
                  'cumulusci'},
     entry_points={
         'console_scripts': [
-            'cci=cumulusci.cli.cli:cli',
-            'cumulusci2=cumulusci.cli.cli:cli'
+            'cci=cumulusci.cli.cci:main',
         ]
     },
     include_package_data=True,
@@ -73,7 +80,7 @@ setup(
     zip_safe=False,
     keywords='cumulusci',
     classifiers=[
-        'Development Status :: 2 - Pre-Alpha',
+        'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: BSD License',
         'Natural Language :: English',
@@ -85,6 +92,6 @@ setup(
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
     ],
-    test_suite='tests',
+    test_suite='cumulusci.core.tests',
     tests_require=test_requirements
 )

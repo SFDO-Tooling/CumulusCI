@@ -55,13 +55,13 @@ The main cumulusci.yml file defines the `dev_org` flow using the following YAML.
     flows:
         dev_org:
             description: Deploys the unmanaged package metadata and all dependencies to the target org
-            tasks:
+            steps:
                 1:
-                    task: create_package
+                    flow: dependencies
                 2:
-                    task: update_dependencies
+                    flow: deploy_unmanaged
                 3:
-                    task: deploy_pre
+                    flow: deploy_pre
                 4:
                     task: deploy
                 5:
@@ -77,13 +77,13 @@ A key philosophy of the user experience for CumulusCI is to keep things consiste
 Add a task to the dev_org flow
 ------------------------------
 
-If you want to also run the `update_admin_profile` task after the `uninstall_packaged_incremental` task, you would add the following to your project's cumulusci.yml::
+If you want to also run the `run_tests` at the end of the `dev_org` flow, you would add the following to your project's cumulusci.yml::
 
     flows:
         dev_org:
-            tasks:
-                5.1:
-                    - task: update_admin_profile
+            steps:
+                4:
+                    task: run_tests
 
 Skip a task in a flow
 ---------------------
@@ -91,10 +91,10 @@ Skip a task in a flow
 If you never want to run the `uninstall_packaged_incremental` task, add the following to your project's cumulusci.yml::
 
     flows:
-        dev_org:
+        deploy_unmanaged:
             tasks:
-                5:
-                    - task: None
+                4:
+                    task: None
 
 Rearrange two tasks in a flow
 -----------------------------
@@ -102,12 +102,12 @@ Rearrange two tasks in a flow
 If you wanted to run `deploy_pre` before `update_dependencies`, add the following to your project's cumulusci.yml::
 
     flows:
-        dev_org:
+        dependencies:
             tasks:
+                1:
+                    task: deploy_pre
                 2:
-                    - task: deploy_pre
-                3:
-                    - task: update_dependencies
+                    task: update_dependencies
 
 Defining a new flow
 -------------------
@@ -117,13 +117,11 @@ If you can't customize an out of the box flow or have a use case for which there
     flows:
         my_custom_flow: # Name this whatever you want
             description: A custom flow for this project (put a better descriptions here please!)
-            tasks:
+            steps:
                 1:
-                    task: deploy_pre
-                2:
-                    task: update_dependencies
+                    flow: dependencies
                 3:
-                    task: deploy
+                    flow: deploy_unmanaged
                 4:
                     task: update_admin_profile
                 5:
@@ -309,7 +307,7 @@ Building a project configured for CumulusCI on CircleCI is fairly easy to get se
 
 First, set up your project in CircleCI and add the following Environment Variables in the project's config:
 
-* CUMULUSCI_CONNECTED_APP: The output from `cci org connected_app`
+* CUMULUSCI_SERVICE_connected_app: The output from `cci service show connected_app`
 * CUMULUSCI_ORG_feature: The output from `cci org info feature`, assuming you've already connected your feature org to your local toolbelt.
     
 
@@ -384,7 +382,7 @@ You'll first need to setup some prerequirements:
 
 Once your project is set up in CircleCI, add the following additional environment variables in addition to the ones listed above:
 
-* CUMULUSCI_CONNECTED_APP: The output from `cci org connected_app`
+* CUMULUSCI_SERVICE_connected_app: The output from `cci service show connected_app`
 * CUMULUSCI_ORG_feature: The output from `cci org info feature`, assuming you've already connected your feature org to your local toolbelt.
 * SFDX_HUB_ORG: The contents of ~/.appcloud/hubOrg.json
 * SFDX_CONFIG: The contents of ~/.appcloud/workspace_config.json

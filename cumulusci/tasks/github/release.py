@@ -80,5 +80,5 @@ class CreateRelease(BaseGithubTask):
             name = version,
             prerelease = prerelease,
         )
-        self.return_values = {'tag_name': self.tag_name}
+        self.return_values = {'tag_name': self.tag_name, 'name': version}
         self.logger.info('Created release {} at {}'.format(release.name, release.html_url))

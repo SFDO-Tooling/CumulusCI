@@ -1,0 +1,56 @@
+project:
+    name: CumulusCI
+    package:
+        name: CumulusCI
+
+tasks:
+    robot:
+        options:
+            suites: cumulusci/robotframework/tests
+    robot_testdoc:
+        options:
+            path: cumulusci/robotframework/tests
+            output: docs/robot/Test_Suite.html
+    robot_libdoc_cumulusci:
+        description: Generates html documentation for the CumulusCI Robot Library
+        class_path: cumulusci.tasks.robotframework.RobotLibDoc
+        options:
+            path: cumulusci/robotframework/CumulusCI.py
+            output: docs/robot/CumulusCI_Library.html
+    robot_libdoc_cumulusci_resource:
+        description: Generates html documentation for the CumulusCI Robot Resource
+        class_path: cumulusci.tasks.robotframework.RobotLibDoc
+        options:
+            path: cumulusci/robotframework/CumulusCI.robot
+            output: docs/robot/CumulusCI_Resource.html
+    robot_libdoc_salesforce:
+        description: Generates html documentation for the Salesforce Robot Library
+        class_path: cumulusci.tasks.robotframework.RobotLibDoc
+        options:
+            path: cumulusci/robotframework/Salesforce.py
+            output: docs/robot/Salesforce_Library.html
+    robot_libdoc_salesforce_resource:
+        description: Generates html documentation for the Salesforce Robot Resource
+        class_path: cumulusci.tasks.robotframework.RobotLibDoc
+        options:
+            path: cumulusci/robotframework/Salesforce.robot
+            output: docs/robot/Salesforce_Resource.html
+
+flows:
+    robot_docs:
+        description: Generates documentation for robot framework libraries
+        tasks:
+            1:
+                task: robot_libdoc_cumulusci
+            2:
+                task: robot_libdoc_cumulusci_resource
+            3:
+                task: robot_libdoc_salesforce
+            4:
+                task: robot_libdoc_salesforce_resource
+            5:
+                task: robot_testdoc
+
+orgs:
+    dev:
+        days: 1
