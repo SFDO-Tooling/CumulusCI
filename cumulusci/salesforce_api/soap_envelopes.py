@@ -7,14 +7,14 @@ DEPLOY = '''<?xml version="1.0" encoding="utf-8"?>
   </soap:Header>
   <soap:Body>
     <deploy xmlns="http://soap.sforce.com/2006/04/metadata">
-      <ZipFile>%(package_zip)s</ZipFile>
+      <ZipFile>{package_zip}</ZipFile>
       <DeployOptions>
         <allowMissingFiles>false</allowMissingFiles>
         <autoUpdatePackage>false</autoUpdatePackage>
         <checkOnly>false</checkOnly>
         <ignoreWarnings>true</ignoreWarnings>
         <performRetrieve>false</performRetrieve>
-        <purgeOnDelete>%(purge_on_delete)s</purgeOnDelete>
+        <purgeOnDelete>{purge_on_delete}</purgeOnDelete>
         <rollbackOnError>true</rollbackOnError>
         <runAllTests>false</runAllTests>
         <singlePackage>true</singlePackage>
@@ -32,7 +32,7 @@ CHECK_DEPLOY_STATUS = '''<?xml version="1.0" encoding="utf-8"?>
   </soap:Header>
   <soap:Body>
     <checkDeployStatus xmlns="http://soap.sforce.com/2006/04/metadata">
-      <asyncProcessId>%(process_id)s</asyncProcessId>
+      <asyncProcessId>{process_id}</asyncProcessId>
       <includeDetails>true</includeDetails>
     </checkDeployStatus>
   </soap:Body>
@@ -71,8 +71,8 @@ RETRIEVE_PACKAGED = '''<?xml version="1.0" encoding="utf-8"?>
   <soap:Body>
     <retrieve xmlns="http://soap.sforce.com/2006/04/metadata">
       <retrieveRequest>
-        <apiVersion>{}</apiVersion>
-        <packageNames>{}</packageNames>
+        <apiVersion>{api_version}</apiVersion>
+        <packageNames>{package_name}</packageNames>
       </retrieveRequest>
     </retrieve>
   </soap:Body>
@@ -88,9 +88,9 @@ RETRIEVE_UNPACKAGED = '''<?xml version="1.0" encoding="utf-8"?>
   <soap:Body>
     <retrieve xmlns="http://soap.sforce.com/2006/04/metadata">
       <retrieveRequest>
-        <apiVersion>{}</apiVersion>
+        <apiVersion>{api_version}</apiVersion>
         <unpackaged>
-          {} 
+          {package_xml} 
         </unpackaged>
       </retrieveRequest>
     </retrieve>
@@ -123,7 +123,7 @@ CHECK_STATUS = '''<?xml version="1.0" encoding="utf-8"?>
   </soap:Header>
   <soap:Body>
     <checkStatus xmlns="http://soap.sforce.com/2006/04/metadata">
-      <asyncProcessId>%(process_id)s</asyncProcessId>
+      <asyncProcessId>{process_id}</asyncProcessId>
     </checkStatus>
   </soap:Body>
 </soap:Envelope>'''
@@ -137,7 +137,7 @@ CHECK_RETRIEVE_STATUS = '''<?xml version="1.0" encoding="utf-8"?>
   </soap:Header>
   <soap:Body>
     <checkRetrieveStatus xmlns="http://soap.sforce.com/2006/04/metadata">
-      <asyncProcessId>%(process_id)s</asyncProcessId>
+      <asyncProcessId>{process_id}</asyncProcessId>
     </checkRetrieveStatus>
   </soap:Body>
 </soap:Envelope>'''
