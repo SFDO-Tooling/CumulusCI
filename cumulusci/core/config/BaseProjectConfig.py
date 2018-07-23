@@ -317,7 +317,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
     def get_github_api(self):
         github_config = self.keychain.get_service('github')
-        gh = get_gethub_api(github_config.username, github_config.password)
+        gh = get_github_api(github_config.username, github_config.password)
         return gh
 
     def get_latest_version(self, beta=False):
