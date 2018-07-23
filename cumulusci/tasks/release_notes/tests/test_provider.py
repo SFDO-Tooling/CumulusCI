@@ -6,7 +6,7 @@ import shutil
 import tempfile
 import unittest
 
-from github3 import login
+from cumulusci.core.github import get_github_api
 import requests
 import responses
 
@@ -120,7 +120,7 @@ class TestGithubChangeNotesProvider(unittest.TestCase, GithubApiTestMixin):
         self.last_tag_commit_sha = self._random_sha()
         self.last_tag_commit_date = datetime.utcnow() - timedelta(days=1)
         self.last2_tag_sha = self._random_sha()
-        self.gh = login('TestUser', 'TestPass')
+        self.gh = get_github_api('TestUser', 'TestPass')
         self.init_github()
         self.mock_util = MockUtil('TestOwner', 'TestRepo')
 
