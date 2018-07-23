@@ -18,6 +18,7 @@ tags
 .vscode/
 .cache/
 .coverage
+.python-version
 selenium-screenshot-*
 log.html
 report.html
