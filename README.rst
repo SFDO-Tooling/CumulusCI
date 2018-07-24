@@ -3,7 +3,7 @@ CumulusCI
 ===============================
 
 .. image:: https://img.shields.io/pypi/v/cumulusci.svg
-           :target: https://pypi.python.org/pypi/cumulusci
+           :target: https://pypi.org/project/cumulusci/
 .. image:: https://readthedocs.org/projects/cumulusci/badge/?version=latest
            :target: https://cumulusci.readthedocs.io/en/latest/?badge=latest
            :alt: Documentation Status

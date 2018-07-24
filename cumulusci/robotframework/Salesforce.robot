@@ -12,7 +12,7 @@ ${DEBUG}            ${false}
 ${CHROME_BINARY}    ${empty}
 ${ORG}              ${empty}
 ${IMPLICIT_WAIT}    7.0
-${TIMEOUT}          7.0
+${TIMEOUT}          30.0
 
 *** Keywords ***
 
@@ -27,7 +27,6 @@ Open Test Browser
     ...    ELSE IF  '${BROWSER}' == 'headlesschrome'  Open Test Browser Chrome  ${login_url}
     ...    ELSE IF  '${BROWSER}' == 'headlessfirefox'  Open Test Browser Headless Firefox  ${login_url}
     ...    ELSE  Open Browser  ${login_url}  ${BROWSER}
-    Sleep  2
     Wait Until Loading Is Complete
 
 Open Test Browser Chrome
@@ -63,4 +62,5 @@ Chrome Set Headless
     [Arguments]  ${options}
     Call Method  ${options}  set_headless  ${true}
     Call Method  ${options}  add_argument  --disable-dev-shm-usage
+    Call Method  ${options}  add_argument  --disable-background-timer-throttling
     [return]  ${options}

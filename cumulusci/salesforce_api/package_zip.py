@@ -79,7 +79,7 @@ class CreatePackageZipBuilder(BasePackageZipBuilder):
         self._write_package_xml(package_xml)
 
 class InstallPackageZipBuilder(BasePackageZipBuilder):
-    api_version = '33.0'
+    api_version = '43.0'
 
     def __init__(self, namespace, version):
         if not namespace:

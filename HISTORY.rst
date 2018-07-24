@@ -2,6 +2,14 @@
 History
 =======
 
+2.0.2 (2018-06-06)
+------------------
+* Bugfix: Update InstallPackageZipBuilder to use a recent api version to unblock installs.
+
+2.0.1 (2018-06-06)
+------------------
+* Bugfix: Allow passing a connected app directly to OrgConfig.refresh_oauth_token.
+
 2.0.0 (2018-06-01)
 ------------------
 
