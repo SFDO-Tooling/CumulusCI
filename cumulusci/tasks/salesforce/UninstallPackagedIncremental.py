@@ -1,3 +1,4 @@
+from builtins import str
 import os
 import shutil
 import tempfile
@@ -70,7 +71,7 @@ class UninstallPackagedIncremental(UninstallPackaged):
             master_items[md_type['name']] = []
             if 'members' not in md_type:
                 continue
-            if isinstance(md_type['members'], unicode):
+            if isinstance(md_type['members'], str):
                 master_items[md_type['name']].append(md_type['members'])
             else:
                 for item in md_type['members']:
@@ -84,7 +85,7 @@ class UninstallPackagedIncremental(UninstallPackaged):
             compare_items[md_type['name']] = []
             if 'members' not in md_type:
                 continue
-            if isinstance(md_type['members'], unicode):
+            if isinstance(md_type['members'], str):
                 compare_items[md_type['name']].append(md_type['members'])
             else:
                 for item in md_type['members']:

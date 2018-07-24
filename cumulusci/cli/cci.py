@@ -157,7 +157,7 @@ def render_recursive(data, indent=None):
             render_recursive(item, indent=indent+4)
     elif isinstance(data, dict):
         for key, value in data.items():
-            key_str = click.style(unicode(key) + ':', bold=True)
+            key_str = click.style(str(key) + ':', bold=True)
             if isinstance(value, list):
                 render_recursive(value, indent=indent+4)
             elif isinstance(value, dict):

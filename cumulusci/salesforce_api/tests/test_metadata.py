@@ -1,10 +1,12 @@
+from builtins import str
+from future import standard_library
+standard_library.install_aliases()
 import ast
-import httplib
+import http.client
 import os
 import shutil
 import tempfile
 import unittest
-import urllib
 
 from xml.dom.minidom import parseString
 
@@ -243,7 +245,7 @@ class BaseTestMetadataApi(unittest.TestCase):
             'id': 'https://login.salesforce.com/id/00D000000000000ABC/005000000000000ABC',
             'access_token': '0123456789',
         }
-        status_code = httplib.INTERNAL_SERVER_ERROR # HTTP Error 500
+        status_code = http.client.INTERNAL_SERVER_ERROR # HTTP Error 500
         task = self._create_task(org_config=org_config)
         api = self._create_instance(task)
         if not self.api_class.soap_envelope_start:
@@ -402,7 +404,7 @@ class BaseTestMetadataApi(unittest.TestCase):
 
         resp = api._get_response()
         self.assertEquals(
-            resp.content,
+            resp.text,
             mock_responses[2],
         )
 
@@ -414,7 +416,7 @@ class BaseTestMetadataApi(unittest.TestCase):
             'id': 'https://login.salesforce.com/id/00D000000000000ABC/005000000000000ABC',
             'access_token': '0123456789',
         }
-        status_code = httplib.INTERNAL_SERVER_ERROR # HTTP Error 500
+        status_code = http.client.INTERNAL_SERVER_ERROR # HTTP Error 500
         task = self._create_task(org_config=org_config)
         api = self._create_instance(task)
         if not self.api_class.soap_envelope_start:
@@ -435,7 +437,7 @@ class BaseTestMetadataApi(unittest.TestCase):
             'id': 'https://login.salesforce.com/id/00D000000000000ABC/005000000000000ABC',
             'access_token': '0123456789',
         }
-        status_code = httplib.INTERNAL_SERVER_ERROR # HTTP Error 500
+        status_code = http.client.INTERNAL_SERVER_ERROR # HTTP Error 500
         task = self._create_task(org_config=org_config)
         api = self._create_instance(task)
         if not self.api_class.soap_envelope_start:
@@ -458,7 +460,7 @@ class BaseTestMetadataApi(unittest.TestCase):
             'id': 'https://login.salesforce.com/id/00D000000000000ABC/005000000000000ABC',
             'access_token': '0123456789',
         }
-        status_code = httplib.INTERNAL_SERVER_ERROR # HTTP Error 500
+        status_code = http.client.INTERNAL_SERVER_ERROR # HTTP Error 500
         task = self._create_task(org_config=org_config)
         api = self._create_instance(task)
         if not self.api_class.soap_envelope_start:
@@ -480,7 +482,7 @@ class BaseTestMetadataApi(unittest.TestCase):
             'id': 'https://login.salesforce.com/id/00D000000000000ABC/005000000000000ABC',
             'access_token': '0123456789',
         }
-        status_code = httplib.INTERNAL_SERVER_ERROR # HTTP Error 500
+        status_code = http.client.INTERNAL_SERVER_ERROR # HTTP Error 500
         task = self._create_task(org_config=org_config)
         api = self._create_instance(task)
         if not self.api_class.soap_envelope_start:
@@ -500,7 +502,7 @@ class BaseTestMetadataApi(unittest.TestCase):
         resp = api._get_response()
 
         self.assertEquals(
-            resp.content,
+            resp.text,
             response_result,
         )
 
@@ -511,7 +513,7 @@ class BaseTestMetadataApi(unittest.TestCase):
             'id': 'https://login.salesforce.com/id/00D000000000000ABC/005000000000000ABC',
             'access_token': '0123456789',
         }
-        status_code = httplib.INTERNAL_SERVER_ERROR # HTTP Error 500
+        status_code = http.client.INTERNAL_SERVER_ERROR # HTTP Error 500
         task = self._create_task(org_config=org_config)
         api = self._create_instance(task)
         if not self.api_class.soap_envelope_start:
@@ -536,7 +538,7 @@ class BaseTestMetadataApi(unittest.TestCase):
         resp = api._get_response()
 
         self.assertEquals(
-            resp.content,
+            resp.text,
             response_result,
         )
 
@@ -555,15 +557,15 @@ class BaseTestMetadataApi(unittest.TestCase):
         api = self._create_instance(task)
         response = DummyResponse()
         response.status_code = 200
-        response.content = '<?xml version="1.0" encoding="UTF-8"?><foo>status</foo>'
+        response.text = '<?xml version="1.0" encoding="UTF-8"?><foo>status</foo>'
         res = api._process_response_status(response)
         self.assertEquals(
             api.status,
             'Failed',
         )
         self.assertEquals(
-            res.content,
-            response.content,
+            res.text,
+            response.text,
         )
 
     def test_process_response_status_done_is_true(self):
@@ -571,15 +573,15 @@ class BaseTestMetadataApi(unittest.TestCase):
         api = self._create_instance(task)
         response = DummyResponse()
         response.status_code = 200
-        response.content = '<?xml version="1.0" encoding="UTF-8"?><done>true</done>'
+        response.text = '<?xml version="1.0" encoding="UTF-8"?><done>true</done>'
         res = api._process_response_status(response)
         self.assertEquals(
             api.status,
             'Done',
         )
         self.assertEquals(
-            res.content,
-            response.content,
+            res.text,
+            response.text,
         )
 
     def test_process_response_status_pending(self):
@@ -587,15 +589,15 @@ class BaseTestMetadataApi(unittest.TestCase):
         api = self._create_instance(task)
         response = DummyResponse()
         response.status_code = 200
-        response.content = '<?xml version="1.0" encoding="UTF-8"?><done>false</done>'
+        response.text = '<?xml version="1.0" encoding="UTF-8"?><done>false</done>'
         res = api._process_response_status(response)
         self.assertEquals(
             api.status,
             'Pending',
         )
         self.assertEquals(
-            res.content,
-            response.content,
+            res.text,
+            response.text,
         )
 
     def test_process_response_status_in_progress(self):
@@ -603,7 +605,7 @@ class BaseTestMetadataApi(unittest.TestCase):
         api = self._create_instance(task)
         response = DummyResponse()
         response.status_code = 200
-        response.content = '<?xml version="1.0" encoding="UTF-8"?><done>false</done>'
+        response.text = '<?xml version="1.0" encoding="UTF-8"?><done>false</done>'
         api.status = 'InProgress'
         res = api._process_response_status(response)
         self.assertEquals(
@@ -611,8 +613,8 @@ class BaseTestMetadataApi(unittest.TestCase):
             'InProgress',
         )
         self.assertEquals(
-            res.content,
-            response.content,
+            res.text,
+            response.text,
         )
 
     def test_process_response_status_in_progress_state_detail(self):
@@ -620,7 +622,7 @@ class BaseTestMetadataApi(unittest.TestCase):
         api = self._create_instance(task)
         response = DummyResponse()
         response.status_code = 200
-        response.content = '<?xml version="1.0" encoding="UTF-8"?><test><done>false</done><stateDetail>Deploy log goes here</stateDetail></test>'
+        response.text = '<?xml version="1.0" encoding="UTF-8"?><test><done>false</done><stateDetail>Deploy log goes here</stateDetail></test>'
         api.status = 'InProgress'
         res = api._process_response_status(response)
         self.assertEquals(
@@ -628,8 +630,8 @@ class BaseTestMetadataApi(unittest.TestCase):
             'InProgress',
         )
         self.assertEquals(
-            res.content,
-            response.content,
+            res.text,
+            response.text,
         )
 
 
@@ -680,7 +682,7 @@ class TestBaseMetadataApiCall(BaseTestMetadataApi):
         self._mock_call_mdapi(api, response)
         resp = api._get_response()
         self.assertEquals(
-            resp.content,
+            resp.text,
             response
         )
 
@@ -771,7 +773,7 @@ class TestApiRetrieveUnpackaged(BaseTestMetadataApi):
             'id': 'https://login.salesforce.com/id/00D000000000000ABC/005000000000000ABC',
             'access_token': '0123456789',
         }
-        status_code = httplib.INTERNAL_SERVER_ERROR # HTTP Error 500
+        status_code = http.client.INTERNAL_SERVER_ERROR # HTTP Error 500
         task = self._create_task(org_config=org_config)
         api = self._create_instance(task)
         if not self.api_class.soap_envelope_start:
@@ -813,7 +815,7 @@ class TestApiRetrieveInstalledPackages(BaseTestMetadataApi):
         api = self._create_instance(task)
         response = DummyResponse
         response.status_code = 200
-        response.content = deploy_result.format(
+        response.text = deploy_result.format(
             status = 'testing',
             extra = '',
         )
@@ -828,7 +830,7 @@ class TestApiRetrieveInstalledPackages(BaseTestMetadataApi):
         api = self._create_instance(task)
         response = DummyResponse
         response.status_code = 200
-        response.content = deploy_result.format(
+        response.text = deploy_result.format(
             zip = CreatePackageZipBuilder('testing'),
             extra = '',
         )
@@ -843,7 +845,7 @@ class TestApiRetrieveInstalledPackages(BaseTestMetadataApi):
         api = self._create_instance(task)
         response = DummyResponse
         response.status_code = 200
-        response.content = deploy_result.format(
+        response.text = deploy_result.format(
             zip = InstallPackageZipBuilder('foo', '1.1'),
             extra = '',
         )

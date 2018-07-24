@@ -3,7 +3,7 @@ from zipfile import ZipFile
 from tempfile import TemporaryFile
 from xml.sax.saxutils import escape
 
-INSTALLED_PACKAGE_PACKAGE_XML = """<?xml version="1.0" encoding="utf-8"?>
+INSTALLED_PACKAGE_PACKAGE_XML = u"""<?xml version="1.0" encoding="utf-8"?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
   <types>
     <members>{namespace}</members>
@@ -12,18 +12,18 @@ INSTALLED_PACKAGE_PACKAGE_XML = """<?xml version="1.0" encoding="utf-8"?>
 <version>{version}</version>
 </Package>"""
 
-EMPTY_PACKAGE_XML = """<?xml version="1.0" encoding="utf-8"?>
+EMPTY_PACKAGE_XML = u"""<?xml version="1.0" encoding="utf-8"?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
 <version>{version}</version>
 </Package>"""
 
-FULL_NAME_PACKAGE_XML = """<?xml version="1.0" encoding="utf-8"?>
+FULL_NAME_PACKAGE_XML = u"""<?xml version="1.0" encoding="utf-8"?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
 <fullName>{}</fullName>
 <version>{}</version>
 </Package>"""
 
-INSTALLED_PACKAGE = """<?xml version="1.0" encoding="UTF-8"?>
+INSTALLED_PACKAGE = u"""<?xml version="1.0" encoding="UTF-8"?>
 <InstalledPackage xmlns="http://soap.sforce.com/2006/04/metadata">
   <versionNumber>{}</versionNumber>
 </InstalledPackage>"""
@@ -37,7 +37,7 @@ class BasePackageZipBuilder(object):
 
     def _open_zip(self):
         self.zip_file = TemporaryFile()
-        self.zip= ZipFile(self.zip_file, 'w')
+        self.zip = ZipFile(self.zip_file, 'w')
 
     def _populate_zip(self):
         raise NotImplementedError('Subclasses need to provide their own implementation')
@@ -51,7 +51,7 @@ class BasePackageZipBuilder(object):
     def _encode_zip(self):
         self.zip.close()
         self.zip_file.seek(0)
-        return b64encode(self.zip_file.read())
+        return b64encode(self.zip_file.read()).decode('utf-8')
 
 class ZipfilePackageZipBuilder(BasePackageZipBuilder):
     def __init__(self, zipfile):

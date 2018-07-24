@@ -12,7 +12,7 @@ class HasOpenPull(object):
         username = os.environ.get('GITHUB_USERNAME')
         password = os.environ.get('GITHUB_PASSWORD')
         if not username or not password:
-            print "Could not find Github username and password from the environment variables GITHUB_USERNAME and GITHUB_PASSWORD"
+            print("Could not find Github username and password from the environment variables GITHUB_USERNAME and GITHUB_PASSWORD")
             sys.exit(1)
         self.gh = login(username, password)
         self.repo = self.gh.repository(
@@ -35,4 +35,4 @@ if __name__ == "__main__":
     has_open_pull = HasOpenPull()
     pr = has_open_pull(args.branch)
     if pr:
-        print "#{}".format(pr.number)
+        print("#{}".format(pr.number))

@@ -1,6 +1,8 @@
+from future import standard_library
+standard_library.install_aliases()
 import os
 import re
-import urllib
+import urllib.parse
 
 import xml.etree.ElementTree as ET
 
@@ -94,7 +96,7 @@ class PackageXmlGenerator(object):
         lines.append(u'<?xml version="1.0" encoding="UTF-8"?>')
         lines.append(u'<Package xmlns="http://soap.sforce.com/2006/04/metadata">')
         if self.package_name:
-            package_name_encoded = urllib.quote(self.package_name, safe=' ')
+            package_name_encoded = urllib.parse.quote(self.package_name, safe=' ')
             lines.append(u'    <fullName>{0}</fullName>'.format(package_name_encoded))
 
         if self.install_class:

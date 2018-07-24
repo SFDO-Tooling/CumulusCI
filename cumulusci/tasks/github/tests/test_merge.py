@@ -1,5 +1,7 @@
+from future import standard_library
+standard_library.install_aliases()
 import ast
-import httplib
+import http.client
 import os
 import shutil
 import tempfile
@@ -117,16 +119,16 @@ class TestMergeBranch(unittest.TestCase, GithubApiTestMixin):
         responses.add(
             method = responses.GET,
             url = api_url,
-            status = httplib.NOT_FOUND, # 404
+            status = http.client.NOT_FOUND, # 404
             json = expected_response,
         )
 
     def _mock_merge(self, conflict=None):
         api_url = '{}/merges'.format(self.repo_api_url)
         expected_response = self._get_expected_merge(conflict)
-        status = httplib.CREATED # 201
+        status = http.client.CREATED # 201
         if conflict:
-            status = httplib.CONFLICT # 409
+            status = http.client.CONFLICT # 409
         
         responses.add(
             method = responses.POST,
@@ -144,7 +146,7 @@ class TestMergeBranch(unittest.TestCase, GithubApiTestMixin):
             method = responses.POST,
             url = api_url,
             json = expected_response,
-            status = httplib.CREATED, # 201
+            status = http.client.CREATED, # 201
         )
 
     def _mock_pulls(self, pulls=None):

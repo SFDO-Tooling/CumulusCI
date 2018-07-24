@@ -1,3 +1,4 @@
+from builtins import str
 from cumulusci.core.exceptions import ApexTestException
 from cumulusci.core.exceptions import SalesforceException
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask

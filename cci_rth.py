@@ -7,7 +7,7 @@ from cumulusci.cli.cli import CliConfig
 # import project-level modules
 modules = set()
 config = CliConfig()
-for task_name, task in config.project_config.config['tasks'].iteritems():
+for task_name, task in config.project_config.config['tasks'].items():
     class_path = task['class_path'].split('.')
     if class_path[0] != 'cumulusci':
         modules.add('.'.join(class_path[:-1]))

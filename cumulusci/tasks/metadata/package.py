@@ -1,7 +1,10 @@
+from builtins import str
+from future import standard_library
+standard_library.install_aliases()
 import io
 import os
 import re
-import urllib
+import urllib.parse
 
 import xml.etree.ElementTree as ET
 
@@ -97,7 +100,7 @@ class PackageXmlGenerator(object):
         lines.append(u'<?xml version="1.0" encoding="UTF-8"?>')
         lines.append(u'<Package xmlns="http://soap.sforce.com/2006/04/metadata">')
         if self.package_name:
-            package_name_encoded = urllib.quote(self.package_name, safe=' ')
+            package_name_encoded = urllib.parse.quote(self.package_name, safe=' ')
             lines.append(u'    <fullName>{0}</fullName>'.format(package_name_encoded))
 
         if self.managed and self.install_class:
@@ -192,7 +195,7 @@ class BaseMetadataParser(object):
         self.members.sort(key=lambda x: metadata_sort_key(x))
         for member in self.members:
             try:
-                member = unicode(member, 'utf-8')
+                member = str(member, 'utf-8')
             except TypeError:
                 # Assume member is already unicode
                 pass

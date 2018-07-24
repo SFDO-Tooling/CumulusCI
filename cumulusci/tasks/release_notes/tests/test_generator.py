@@ -1,7 +1,6 @@
 # coding=utf-8
 
 import datetime
-import httplib
 import json
 import os
 import unittest

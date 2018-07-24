@@ -1,4 +1,7 @@
-import httplib
+from builtins import str
+from future import standard_library
+standard_library.install_aliases()
+import http.client
 import json
 
 import requests
@@ -43,7 +46,7 @@ class MrbelvederePublish(BaseMrbelvedereTask):
                 data=json.dumps(diffs),
                 headers={'Authorization': self.mrbelvedere_config.api_key},
             )
-            if response.status_code >= httplib.BAD_REQUEST:
+            if response.status_code >= http.client.BAD_REQUEST:
                 raise MrbelvedereError('{}: {}'.format(
                     response.status_code, response.content))
             self.logger.info(response.content)

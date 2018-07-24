@@ -1,8 +1,9 @@
+from builtins import str
 import re
 import os
 
 from cumulusci.core.exceptions import GithubApiNotFoundError
-from exceptions import GithubIssuesError
+from .exceptions import GithubIssuesError
 
 
 class BaseChangeNotesParser(object):
@@ -72,7 +73,7 @@ class ChangeNotesLinesParser(BaseChangeNotesParser):
 
     def _process_line(self, line):
         try:
-            line = unicode(line, 'utf-8')
+            line = str(line, 'utf-8')
         except TypeError:
             pass
         return line.rstrip()

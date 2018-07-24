@@ -27,7 +27,6 @@ from sqlalchemy import Unicode
 from sqlalchemy import text
 from sqlalchemy import types
 from sqlalchemy import event
-from StringIO import StringIO
 
 # TODO: UserID Catcher
 # TODO: Dater
@@ -39,10 +38,10 @@ class EpochType(types.TypeDecorator):
     epoch = datetime.datetime(1970, 1, 1, 0, 0, 0)
 
     def process_bind_param(self, value, dialect):
-        return (value / 1000 - self.epoch).total_seconds()
+        return (value // 1000 - self.epoch).total_seconds()
 
     def process_result_value(self, value, dialect):
-        return self.epoch + datetime.timedelta(seconds=value / 1000)
+        return self.epoch + datetime.timedelta(seconds=value // 1000)
 
 # Listen for sqlalchemy column_reflect event and map datetime fields to EpochType
 @event.listens_for(Table, "column_reflect")
@@ -247,7 +246,11 @@ class LoadData(BaseSalesforceApiTask):
             del fields['Id']
 
         # Build the list of fields to import
-        import_fields = fields.keys() + static.keys() + lookups.keys()
+        import_fields = (
+            list(fields.keys()) +
+            list(static.keys()) +
+            list(lookups.keys())
+        )
 
         if record_type:
             import_fields.append('RecordTypeId')
