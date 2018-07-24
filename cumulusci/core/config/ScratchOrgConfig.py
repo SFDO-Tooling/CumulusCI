@@ -3,6 +3,8 @@ import datetime
 import json
 import os
 import re
+import shlex
+import subprocess
 
 import sarge
 from simple_salesforce import Salesforce
@@ -157,43 +159,43 @@ class ScratchOrgConfig(OrgConfig):
         if not self.scratch_org_type:
             self.config['scratch_org_type'] = 'workspace'
 
-        options = {
-            'config_file': self.config_file,
-            'devhub': ' --targetdevhubusername {}'.format(self.devhub) if self.devhub else '',
-            'namespaced': ' -n' if not self.namespaced else '',
-            'days': ' --durationdays {}'.format(self.days) if self.days else '',
-            'alias': ' -a "{}"'.format(self.sfdx_alias) if self.sfdx_alias else '',
-            'extraargs': os.environ.get('SFDX_ORG_CREATE_ARGS', ''),
-        }
+        command = [
+            'sfdx', 'force:org:create', '--json', '-f=' + self.config_file
+        ]
+
+        # options
+        if self.devhub:
+            command.append('--targetdevhubusername={}'.format(self.devhub))
+        if not self.namespaced: command.append('-n')
+        if self.days: command.append('--durationdays={}'.format(self.days))
+        if self.sfdx_alias: command.append('-a="{}"'.format(self.sfdx_alias))
 
         # This feels a little dirty, but the use cases for extra args would mostly
         # work best with env vars
-        command = 'sfdx force:org:create -f {config_file}{devhub}{namespaced}{days}{alias} {extraargs}'.format(**options)
-        self.logger.info(
-            'Creating scratch org with command {}'.format(command))
-        p = sarge.Command(command, stdout=sarge.Capture(buffer_size=-1))
-        p.run()
+        command.extend(shlex.split(os.environ.get('SFDX_ORG_CREATE_ARGS', '')))
 
-        org_info = None
-        re_obj = re.compile(
-            'Successfully created scratch org: (.+), username: (.+)')
-        stdout = []
-        for line in p.stdout:
-            match = re_obj.search(line)
-            if match:
-                self.config['org_id'] = match.group(1)
-                self.config['username'] = match.group(2)
-            stdout.append(line)
-            self.logger.info(line)
+        self.logger.info('Creating scratch org with command {}'.format(
+            ' '.join(command)))
 
-        self.config['date_created'] = datetime.datetime.now()
-
-        if p.returncode:
+        try:
+            result = subprocess.check_output(command, stderr=subprocess.STDOUT)
+            result = json.loads(result)
+        except subprocess.CalledProcessError as err:
+            error_dict = json.loads(err.output)
             message = '{}: \n{}'.format(
                 FAILED_TO_CREATE_SCRATCH_ORG,
-                ''.join(stdout),
-            )
+                error_dict['message'] + error_dict['action']
+                if 'action' in error_dict else '')
             raise ScratchOrgException(message)
+
+        org_info = None
+        self.config['org_id'] = result['result']['orgId']
+        self.config['username'] = result['result']['username']
+        self.config['date_created'] = datetime.datetime.now()
+
+        self.logger.info(
+            'Successfully created scratch org: {}, username: {}'.format(
+                self.config['org_id'], self.config['username']))
 
         if self.config.get('set_password'):
             self.generate_password()
