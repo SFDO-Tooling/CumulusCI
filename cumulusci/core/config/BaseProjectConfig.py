@@ -1,4 +1,5 @@
 from __future__ import unicode_literals
+from future.utils import bytes_to_native_str
 from collections import OrderedDict
 from distutils.version import LooseVersion
 import os
@@ -496,7 +497,8 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
         # Get the cumulusci.yml file
         contents = repo.contents('cumulusci.yml', **kwargs)
-        cumulusci_yml = hiyapyco.load(contents.decoded, loglevel='INFO')
+        cumulusci_yml = hiyapyco.load(
+            bytes_to_native_str(contents.decoded), loglevel='INFO')
 
         # Get the namespace from the cumulusci.yml if set
         namespace = cumulusci_yml.get('project', {}).get(

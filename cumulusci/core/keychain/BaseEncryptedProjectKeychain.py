@@ -70,9 +70,16 @@ class BaseEncryptedProjectKeychain(BaseProjectKeychain):
         cipher, iv = self._get_cipher(iv)
         pickled = cipher.decrypt(encrypted_config[16:])
         try:
-            config_dict = pickle.loads(pickled, encoding='bytes')
+            unpickled = pickle.loads(pickled, encoding='bytes')
         except TypeError:  # Python 2
             config_dict = pickle.loads(pickled)
+        else:  # Python 3
+            # Convert pickles created in Python 2
+            config_dict = {}
+            for k, v in unpickled.items():
+                if isinstance(k, bytes):
+                    k = k.decode('utf-8')
+                config_dict[k] = v
         args = [config_dict]
         if extra:
             args += extra
