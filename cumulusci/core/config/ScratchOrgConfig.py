@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 import datetime
+import io
 import json
 import os
 import re
@@ -37,8 +38,8 @@ class ScratchOrgConfig(OrgConfig):
         p.run()
 
         org_info = None
-        stderr_list = [line.strip() for line in p.stderr]
-        stdout_list = [line.strip() for line in p.stdout]
+        stderr_list = [line.strip() for line in io.TextIOWrapper(p.stderr)]
+        stdout_list = [line.strip() for line in io.TextIOWrapper(p.stdout)]
 
         if p.returncode:
             self.logger.error('Return code: {}'.format(p.returncode))
@@ -178,7 +179,7 @@ class ScratchOrgConfig(OrgConfig):
         re_obj = re.compile(
             'Successfully created scratch org: (.+), username: (.+)')
         stdout = []
-        for line in p.stdout:
+        for line in io.TextIOWrapper(p.stdout):
             match = re_obj.search(line)
             if match:
                 self.config['org_id'] = match.group(1)
@@ -219,10 +220,10 @@ class ScratchOrgConfig(OrgConfig):
         p.run()
 
         stdout = []
-        for line in p.stdout:
+        for line in io.TextIOWrapper(p.stdout):
             stdout.append(line)
         stderr = []
-        for line in p.stderr:
+        for line in io.TextIOWrapper(p.stderr):
             stderr.append(line)
 
         if p.returncode:
@@ -249,7 +250,7 @@ class ScratchOrgConfig(OrgConfig):
 
         org_info = None
         stdout = []
-        for line in p.stdout:
+        for line in io.TextIOWrapper(p.stdout):
             stdout.append(line)
             if line.startswith('An error occurred deleting this org'):
                 self.logger.error(line)
@@ -275,7 +276,7 @@ class ScratchOrgConfig(OrgConfig):
         p.run()
 
         stdout_list = []
-        for line in p.stdout:
+        for line in io.TextIOWrapper(p.stdout):
             stdout_list.append(line.strip())
 
         if p.returncode:

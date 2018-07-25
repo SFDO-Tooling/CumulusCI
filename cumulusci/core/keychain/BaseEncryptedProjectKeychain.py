@@ -69,7 +69,10 @@ class BaseEncryptedProjectKeychain(BaseProjectKeychain):
         iv = encrypted_config[:16]
         cipher, iv = self._get_cipher(iv)
         pickled = cipher.decrypt(encrypted_config[16:])
-        config_dict = pickle.loads(pickled)
+        try:
+            config_dict = pickle.loads(pickled, encoding='bytes')
+        except TypeError:  # Python 2
+            config_dict = pickle.loads(pickled)
         args = [config_dict]
         if extra:
             args += extra
