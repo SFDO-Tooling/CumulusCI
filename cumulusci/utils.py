@@ -1,4 +1,5 @@
 from __future__ import unicode_literals
+from future.utils import native_str_to_bytes
 from builtins import str
 import difflib
 import fnmatch
@@ -170,31 +171,31 @@ def zip_inject_namespace(zip_src, namespace=None, managed=None, filename_token=N
 
     for name in zip_src.namelist():
         orig_name = str(name)
-        try:
-            content = zip_src.read(name)
-            orig_content = str(content)
-            content = content.replace(namespace_token, namespace_prefix)
-            if logger and content != orig_content:
-                logger.info('  {}: Replaced %%%NAMESPACE%%% with "{}"'.format(name, namespace))
+        content = zip_src.read(name)
 
-            prev_content = str(content)
-            content = content.replace(namespace_or_c_token, namespace_or_c)
-            if logger and content != prev_content:
-                logger.info('  {}: Replaced %%%NAMESPACE_OR_C%%% with "{}"'.format(name, namespace_or_c))
+        orig_content = content
+        content = content.replace(
+            native_str_to_bytes(namespace_token), native_str_to_bytes(namespace_prefix))
+        if logger and content != orig_content:
+            logger.info('  {}: Replaced %%%NAMESPACE%%% with "{}"'.format(name, namespace))
 
-            prev_content = str(content)
-            content = content.replace(namespaced_org_token, namespaced_org)
-            if logger and content != prev_content:
-                logger.info('  {}: Replaced %%%NAMESPACED_ORG%%% with "{}"'.format(name, namespaced_org))
+        prev_content = content
+        content = content.replace(
+            native_str_to_bytes(namespace_or_c_token), native_str_to_bytes(namespace_or_c))
+        if logger and content != prev_content:
+            logger.info('  {}: Replaced %%%NAMESPACE_OR_C%%% with "{}"'.format(name, namespace_or_c))
 
-            prev_content = str(content)
-            content = content.replace(namespaced_org_or_c_token, namespaced_org_or_c)
-            if logger and content != prev_content:
-                logger.info('  {}: Replaced %%%NAMESPACED_ORG_OR_C%%% with "{}"'.format(name, namespaced_org_or_c))
+        prev_content = content
+        content = content.replace(
+            native_str_to_bytes(namespaced_org_token), native_str_to_bytes(namespaced_org))
+        if logger and content != prev_content:
+            logger.info('  {}: Replaced %%%NAMESPACED_ORG%%% with "{}"'.format(name, namespaced_org))
 
-        except UnicodeDecodeError:
-            # if we cannot decode the content, don't try and replace it.
-            pass
+        prev_content = content
+        content = content.replace(
+            native_str_to_bytes(namespaced_org_or_c_token), native_str_to_bytes(namespaced_org_or_c))
+        if logger and content != prev_content:
+            logger.info('  {}: Replaced %%%NAMESPACED_ORG_OR_C%%% with "{}"'.format(name, namespaced_org_or_c))
 
         # Replace namespace token in file name
         name = name.replace(filename_token, namespace_prefix)

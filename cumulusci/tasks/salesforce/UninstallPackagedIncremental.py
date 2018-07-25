@@ -56,8 +56,8 @@ class UninstallPackagedIncremental(UninstallPackaged):
         return destructive_changes
 
     def _package_xml_diff(self, master, compare):
-        master_xml = xmltodict.parse(open(master, 'r'))
-        compare_xml = xmltodict.parse(open(compare, 'r'))
+        master_xml = xmltodict.parse(open(master, 'rb'))
+        compare_xml = xmltodict.parse(open(compare, 'rb'))
 
         delete = {}
 
