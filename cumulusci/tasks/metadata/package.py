@@ -242,6 +242,16 @@ class MissingNameElementError(Exception):
 class ParserConfigurationError(Exception):
     pass
 
+
+def elementtree_parse_file(path):
+    try:
+        root = ET.parse(path)
+    except ET.ParseError as err:
+        err.filename = path
+        raise err
+    return root
+
+
 class MetadataXmlElementParser(BaseMetadataParser):
 
     namespaces = {'sf': 'http://soap.sforce.com/2006/04/metadata'}
@@ -256,7 +266,7 @@ class MetadataXmlElementParser(BaseMetadataParser):
         self.name_xpath = name_xpath
 
     def _parse_item(self, item):
-        root = ET.parse(self.directory + '/' + item)
+        root = elementtree_parse_file(self.directory + '/' + item)
         members = []
 
         parent = self.strip_extension(item)
