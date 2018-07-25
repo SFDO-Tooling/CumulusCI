@@ -1,3 +1,4 @@
+from future.utils import bytes_to_native_str
 import base64
 import os
 import tempfile
@@ -55,8 +56,10 @@ class Deploy(BaseSalesforceMetadataApiTask):
                 self._write_zip_file(zipf, root, f)
         zipf.close()
         zipf_processed = self._process_zip_file(zipfile.ZipFile(zip_file))
-        zipf_processed.fp.seek(0)
-        package_zip = base64.b64encode(zipf_processed.fp.read())
+        fp = zipf_processed.fp
+        zipf_processed.close()
+        fp.seek(0)
+        package_zip = bytes_to_native_str(base64.b64encode(fp.read()))
 
         os.chdir(pwd)
 
