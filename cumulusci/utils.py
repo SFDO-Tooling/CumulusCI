@@ -59,6 +59,13 @@ def findRename(find, replace, directory, logger=None):
                 filename.replace(find, replace),
             ))
 
+def elementtree_parse_file(path):
+    try:
+        root = ET.parse(path)
+    except ET.ParseError as err:
+        err.filename = path
+        raise err
+    return root
 
 def removeXmlElement(name, directory, file_pattern, logger=None):
     """ Recursively walk a directory and remove XML elements """

@@ -11,6 +11,7 @@ import xml.etree.ElementTree as ET
 import yaml
 
 from cumulusci.core.tasks import BaseTask
+from cumulusci.utils import elementtree_parse_file
 
 __location__ = os.path.realpath(
     os.path.join(os.getcwd(), os.path.dirname(__file__)))
@@ -259,7 +260,7 @@ class MetadataXmlElementParser(BaseMetadataParser):
         self.name_xpath = name_xpath
 
     def _parse_item(self, item):
-        root = ET.parse(self.directory + '/' + item)
+        root = elementtree_parse_file(self.directory + '/' + item)
         members = []
 
         parent = self.strip_extension(item)

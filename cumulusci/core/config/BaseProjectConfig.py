@@ -4,7 +4,6 @@ from collections import OrderedDict
 from distutils.version import LooseVersion
 import os
 
-from github3 import login
 import hiyapyco
 import raven
 
@@ -15,6 +14,7 @@ from cumulusci.core.exceptions import DependencyResolutionError
 from cumulusci.core.exceptions import KeychainNotFound
 from cumulusci.core.exceptions import ServiceNotConfigured
 from cumulusci.core.exceptions import ServiceNotValid
+from cumulusci.core.github import get_github_api
 
 
 class BaseProjectConfig(BaseTaskFlowConfig):
@@ -318,7 +318,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
     def get_github_api(self):
         github_config = self.keychain.get_service('github')
-        gh = login(github_config.username, github_config.password)
+        gh = get_github_api(github_config.username, github_config.password)
         return gh
 
     def get_latest_version(self, beta=False):

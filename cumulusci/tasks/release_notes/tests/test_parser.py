@@ -4,7 +4,6 @@ import http.client
 import os
 import unittest
 
-from github3 import login
 import responses
 
 from cumulusci.tasks.release_notes.generator import GithubReleaseNotesGenerator
@@ -12,6 +11,7 @@ from cumulusci.tasks.release_notes.parser import ChangeNotesLinesParser
 from cumulusci.tasks.release_notes.parser import GithubIssuesParser
 from cumulusci.tasks.release_notes.parser import IssuesParser
 from cumulusci.core.exceptions import GithubApiNotFoundError
+from cumulusci.core.github import get_github_api
 from cumulusci.tasks.release_notes.tests.util_github_api import GithubApiTestMixin
 from cumulusci.tasks.release_notes.tests.utils import MockUtil
 
@@ -135,7 +135,7 @@ class TestGithubIssuesParser(unittest.TestCase, GithubApiTestMixin):
 
     def setUp(self):
         self.init_github()
-        self.gh = login('TestUser', 'TestPass')
+        self.gh = get_github_api('TestUser', 'TestPass')
         self.title = 'Issues'
         # Set up the mock release_tag lookup response
         self.issue_number_valid = 123
@@ -273,7 +273,7 @@ class TestCommentingGithubIssuesParser(unittest.TestCase, GithubApiTestMixin):
 
     def setUp(self):
         self.init_github()
-        self.gh = login('TestUser', 'TestPass')
+        self.gh = get_github_api('TestUser', 'TestPass')
         self.mock_util = MockUtil('TestOwner', 'TestRepo')
         self.title = 'Issues'
         self.issue_number_without_comments = 1
