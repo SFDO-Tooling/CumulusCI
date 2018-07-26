@@ -8,6 +8,7 @@ import xml.etree.ElementTree as ET
 import yaml
 
 from cumulusci.core.tasks import BaseTask
+from cumulusci.utils import elementtree_parse_file
 
 __location__ = os.path.realpath(
     os.path.join(os.getcwd(), os.path.dirname(__file__)))
@@ -241,16 +242,6 @@ class MissingNameElementError(Exception):
 
 class ParserConfigurationError(Exception):
     pass
-
-
-def elementtree_parse_file(path):
-    try:
-        root = ET.parse(path)
-    except ET.ParseError as err:
-        err.filename = path
-        raise err
-    return root
-
 
 class MetadataXmlElementParser(BaseMetadataParser):
 
