@@ -1,12 +1,12 @@
-from github3 import login
-
+from cumulusci.core.github import get_github_api
 from cumulusci.core.tasks import BaseTask
+
 
 class BaseGithubTask(BaseTask):
 
     def _init_task(self):
         self.github_config = self.project_config.keychain.get_service('github')
-        self.github = login(
+        self.github = get_github_api(
             username=self.github_config.username,
             password=self.github_config.password,
         )

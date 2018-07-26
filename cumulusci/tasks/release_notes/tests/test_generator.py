@@ -6,9 +6,9 @@ import json
 import os
 import unittest
 
-from github3 import login
 import responses
 
+from cumulusci.core.github import get_github_api
 from cumulusci.tasks.release_notes.generator import BaseReleaseNotesGenerator
 from cumulusci.tasks.release_notes.generator import StaticReleaseNotesGenerator
 from cumulusci.tasks.release_notes.generator import DirectoryReleaseNotesGenerator
@@ -102,7 +102,7 @@ class TestGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTestMixin):
             'github_username': 'TestUser',
             'github_password': 'TestPass',
         }
-        self.gh = login('TestUser', 'TestPass')
+        self.gh = get_github_api('TestUser', 'TestPass')
         self.mock_util = MockUtil('TestOwner', 'TestRepo')
 
     @responses.activate
@@ -150,7 +150,7 @@ class TestPublishingGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTest
             'github_password': 'TestPass',
             'master_branch': 'master',
         }
-        self.gh = login('TestUser', 'TestPass')
+        self.gh = get_github_api('TestUser', 'TestPass')
         self.mock_util = MockUtil('TestOwner', 'TestRepo')
 
     @responses.activate
