@@ -179,10 +179,14 @@ The goal of the UI keywords in the Salesforce Library is to abstract out common 
 
 There are too many keywords relating to UI interactions to cover here.  Please reference the full Salesforce Library documentation below.
 
+Waiting for Lightning UI
+^^^^^^^^^^^^^^^^^^^^^^^^
+
 A common challenge when writing end-to-end UI tests is the need to wait for asynchronous actions to complete before proceeding to run the next interaction. The Salesforce Library is aware of the Lightning UI and can handle this waiting automatically. After each click, it will wait for any pending requests to the server to complete. (Manually waiting using a "sleep" or waiting for a particular element to appear may still be necessary after other kinds of interactions and when interacting with pages that don't use the Lightning UI.)
 
 API Keywords
 ------------
+
 In addition to browser interactions, the Salesforce Library also provides the following keywords for interacting with the Salesforce REST API:
 
 * **Salesforce Delete**: Deletes a record using its type and ID
