@@ -2,6 +2,13 @@
 History
 =======
 
+2.0.3 (2018-07-27)
+------------------
+
+* Added support for waiting on Aura HTTP Requests to complete after a browser action is performed in selenium from the Robot Salesforce Library: http://cumulusci.readthedocs.io/en/latest/robotframework.html#waiting-for-lightning-ui
+* Github API client will now automatically retry on 502 errors
+* Better error messages from parsing errors during package.xml generation which show the file causing the error
+
 2.0.2 (2018-06-06)
 ------------------
 * Bugfix: Update InstallPackageZipBuilder to use a recent api version to unblock installs.
