@@ -268,7 +268,7 @@ Resolving a few issues from beta77:
   * `--extend <repo_url>` option to set up a recursive dependency on another CumulusCI project's Github repository
   * Creates `sfdx-project.json` if it doesn't already exist
   * Creates and populates the `orgs/` directory if it does not already exist.  The directory is populated with starter scratch org shape files for the 4 main scratch org configs in CumulusCI: `beta.json`, `dev.json`, `feature.json`, `release.json`
-  
+
 * Fix issue with namespace injection
 * `push_*` tasks now accept `now` for the `start_time` option which will start the push upgrade now (technically 5 seconds from now but that's better than 5 minutes).
 
@@ -415,7 +415,7 @@ Enhancements
 * Resolved #369: Scratch org tokens expiring after upgrade to SFDX beta
 
 2.0.0-beta48 (2017-06-28)
-------------------------
+-------------------------
 
 * Upgraded to the Salesforce DX Beta (thanks to @Szandor72 for the contribution!)
 
@@ -434,17 +434,17 @@ Enhancements
 * Fixed infinite loop if setting scratch org password fails
 
 2.0.0-beta47 (2017-06-26)
-------------------------
+-------------------------
 
 * Fix typo in tasks.util
 
 2.0.0-beta46 (2017-06-23)
-------------------------
+-------------------------
 
 * Fix bug in implementation of the `--no-prompt` flag when sentry is configured
 
 2.0.0-beta45 (2017-06-23)
-------------------------
+-------------------------
 
 * The new `BaseSalesforceApiTask` class replaces `BaseSalesforceApiTask`, `BaseSalesforceBulkApiTask`, and `BaseSalesforceToolingApiTask` by combining them into a single task class with access to all 3 API's via `self.sf`, `self.tooling`, and `self.bulk` from inside a task instance.
 * Added integration with sentry.io
@@ -464,17 +464,17 @@ Enhancements
 
 
 2.0.0-beta44 (2017-06-09)
-------------------------
+-------------------------
 
 * Fix issue in `update_dependencies` when a github dependency depends on another github dependency
 
 2.0.0-beta43 (2017-06-09)
-------------------------
+-------------------------
 
 * Fix issue in `mrbelvedere_publish` where the new zip_url dependencies weren't being skipped
 
 2.0.0-beta42 (2017-06-09)
-------------------------
+-------------------------
 
 * Move github dependency resolution logic into project_config.get_static_dependencies() for reuse in tasks other than UpdateDependencies
 * Fixed the mrbelvedere_publish task when using github references
@@ -482,7 +482,7 @@ Enhancements
 * Fix issue in `BulkDataQuery` character encoding when value contains utf8 special characters
 
 2.0.0-beta41 (2017-06-07)
-------------------------
+-------------------------
 
 * The `dependencies` section in cumulusci.yml now supports the `skip` option for Github dependencies which can be used to skip specific subfolders under `unpackaged/` in the target repository
 * New task class BulkDataQuery reverses the BulkDataLoad and uses the mapping to build SOQL queries to capture the data in the mapping from the target org.  The data is written to a database that can then be used by BulkDataLoad to load into a different org.
@@ -490,24 +490,24 @@ Enhancements
 * New tasks `meta_xml_api` and `meta_xml_dependencies` handle updating `*-meta.xml` files with api versions or underlying package versions.
 
 2.0.0-beta40 (2017-06-03)
-------------------------
+-------------------------
 
 * More enhancements to `update_dependencies` including the ability to handle namespace injection, namespace stripping, and unmanaged versions of managed repositories.  See the new doc at http://cumulusci.readthedocs.io/en/latest/dependencies.html
 
 2.0.0-beta39 (2017-06-02)
-------------------------
+-------------------------
 
 * Fix new bug in `update_dependencies` which caused failure when running against an org that already has a required package installed
 
 2.0.0-beta38 (2017-06-01)
-------------------------
+-------------------------
 
 * `update_dependencies` now properly handles references to a github repository that itself contains dependencies in its cumulusci.yml file
 * `update_dependencies` now handles deploying unmanaged metadata from subfolders under unpackaged/pre of a referenced Github repository
 * The `dependencies` section of `cumulusci.yml` now supports installing from a zip of metadata hosted at a url if you provide a `zip_url` and optionally a `subfolder`
 
 2.0.0-beta37 (2017-06-01)
-------------------------
+-------------------------
 
 * `update_dependencies` now supports dynamically referencing other Github repositories configured with a cumulusci.yml file.  The referenced repository's cumulusci.yml is parsed and the dependencies are included.  Also, the Github API is used to find the latest release of the referenced repo if the cumulusci.yml has a namespace configured.  Welcome to dynamic package dependency management ;)
 * `cci task run` now supports the option flags `--debug-before` and `--debug-after`
@@ -515,31 +515,31 @@ Enhancements
 
 
 2.0.0-beta36 (2017-05-19)
-------------------------
+-------------------------
 
 * Flows can now accept arguments in the CLI to override task options
 
-  * `cci flow run install_beta -o install_managed_beta__version "1.0 (Beta 123)"`   
+  * `cci flow run install_beta -o install_managed_beta__version "1.0 (Beta 123)"`
 
 * Flows can now accept arguments to in the CLI to skip tasks
 
-  * `cci flow run ci_feature --skip run_tests_debug --skip deploy_post`   
-  
+  * `cci flow run ci_feature --skip run_tests_debug --skip deploy_post`
+
 * Anonymous apex failures will now throw an exception and fail the build in `execute_anon`
 * Fixes #322: local variable 'message' referenced before assignment
 
 2.0.0-beta35 (2017-05-19)
-------------------------
+-------------------------
 
 * New task `execute_anon` is available to run anonymous apex and takes the extra task option `apex`
 
 2.0.0-beta34 (2017-05-16)
-------------------------
+-------------------------
 
 * Fixes #317: ERROR: Invalid version specified
 
 2.0.0-beta33 (2017-05-11)
-------------------------
+-------------------------
 
 * cci org connect and cci org scratch now accept the --default option flag to set the newly connected org as the default org for the repo
 * cci org scratch now accepts a new option, --devhub <username>, which allows you to specify an alternate devhub username to use when creating the scratch org
@@ -553,21 +553,21 @@ Enhancements
   * Fixes #208
 
 2.0.0-beta32 (2017-05-04)
-------------------------
+-------------------------
 
 * Scratch orgs now get an auto-generated password which is available via `cci org info`
 * Added metadata mapping for StandardValueSets to fix #310
 * Throw nicer exceptions when scratch org interaction fails
 
 2.0.0-beta31 (2017-04-12)
-------------------------
+-------------------------
 
 * Use UTC for all Salesforce API date/time fields
 * Fix issue with listing metadata types
 * Add generic polling method to BaseTask
 
 2.0.0-beta30 (2017-04-04)
-------------------------
+-------------------------
 
 * New task list_metadata_types
 * [push upgrades] Fix push request status Cancelled --> Canceled
@@ -575,56 +575,56 @@ Enhancements
 * [pyinstaller] Import project-level modules with run-time hook
 
 2.0.0-beta29 (2017-04-04)
-------------------------
+-------------------------
 
 * Report push status if start time is less than 1 minute in the future
 
 2.0.0-beta28 (2017-03-30)
-------------------------
+-------------------------
 
 * Fix bug in Push API batch retry logic introduced in beta25
 
 2.0.0-beta27 (2017-03-29)
-------------------------
+-------------------------
 
 * Skip org in push if statusCode is UKNOWN_EXCEPTION
 
 2.0.0-beta26 (2017-03-29)
-------------------------
+-------------------------
 
 * Fixes #278: Push upgrade raises exception for DUPLICATE_VALUE statusCode
 
 2.0.0-beta25 (2017-03-28)
-------------------------
+-------------------------
 
 * Fixes #277: Push API tasks now correctly handle errors in individual orgs in a batch when scheduling a push job
 
 2.0.0-beta24 (2017-03-27)
-------------------------
+-------------------------
 
 * Fixes #231: Handle unicode in package.xml generation
 * Fixes #239: Replace fix for windows path issues from beta23 with a better implementation
 * Fixes #275: Properly pass purge_on_delete option value in uninstall_packaged_incremental
 
 2.0.0-beta23 (2017-03-22)
-------------------------
+-------------------------
 
 * Fixes #239: Add local path to import path when looking up classes.  This should fix an error that appeared only in Windows
 
 2.0.0-beta22 (2017-03-20)
-------------------------
+-------------------------
 
 * `github_release_notes` now supports the `link_pr` option to add links to the pull request where each line of content came from
 * Fixes #266: `update_dependencies` now supports the `purge_on_delete` option to allow running against production orgs
 * Fixes #267: package.xml generation now skips RecordType when rendering in delete mode
 
 2.0.0-beta21 (2017-03-17)
-------------------------
+-------------------------
 
 * Fix parsing of OrgId from the access token using the new sfdx CLI
 
 2.0.0-beta20 (2017-03-17)
-------------------------
+-------------------------
 
 * Switch to using the `sfdx` CLI for interacting with scratch orgs.  If you use `cci` with scratch orgs, this release will no longer work with the `heroku force:*` commands from the prior Salesforce DX release.
 * Upgrades to release notes generator
@@ -632,18 +632,18 @@ Enhancements
   * Better error message is thrown if a lightweight tag is found when an annotated tag is needed
 
 2.0.0-beta19 (2017-03-15)
-------------------------
+-------------------------
 
 * Fixes #261: cci org info should refresh token first
 
 2.0.0-beta18 (2017-03-14)
-------------------------
+-------------------------
 
 * Skip deleting Scontrols in incremental delete
 * Escape package name when generating package.xml
 
 2.0.0-beta17 (2017-03-14)
-------------------------
+-------------------------
 
 * OrgConfig and subclasses now support self.username to get the username
 * Flows no longer have access to task instance attributes for subsequent task options. Instead, custom task classes should set their task return_values member.
@@ -656,17 +656,17 @@ Enhancements
 * Fixes #255 - ApiListMetadata does not list certain metadata types with default folder value
 
 2.0.0-beta16 (2017-02-17)
-------------------------
+-------------------------
 
 * Allow batch size to be configured for push jobs with the `batch_size` job
 
 2.0.0-beta15 (2017-02-15)
-------------------------
+-------------------------
 
 * Bug fix release for bug in `update_admin_profile` from the beta 14 release changes to the ApiRetrieveUnpackaged class
 
 2.0.0-beta14 (2017-02-15)
-------------------------
+-------------------------
 
 * The new `RetrieveReportsAndDashboards` task class that can retrieve all reports and dashboards from a specified list of folders
 * Documentation improvements contributed by @tet3
@@ -674,7 +674,7 @@ Enhancements
 * `project_local_dir` (e.g., `~/.cumulusci/NPSP-Extension-Template/`, home of the encrypted keychain and local override config) now rely on the project name configured in cumulusci.yml instead of the existence of a git remote named origin.  Contribution by @cdcarter
 
 2.0.0-beta13 (2017-02-09)
-------------------------
+-------------------------
 
 * New services registration support added by community contribution from @cdcarter
 
@@ -691,12 +691,12 @@ Enhancements
 * `release_beta` now ignores errors in the `github_release_notes` process by default
 
 2.0.0-beta12 (2017-02-02)
-------------------------
+-------------------------
 
 * Throw better exceptions if there are failures creating or deleting scratch orgs
 
 2.0.0-beta11 (2017-02-01)
-------------------------
+-------------------------
 
 * Fixes and new functionality for `update_package_xml_managed` task.
 
@@ -704,7 +704,7 @@ Enhancements
   * Fixed bug with install_class and uninstall_class handling
 
 2.0.0-beta10 (2017-01-20)
-------------------------
+-------------------------
 
 * Completed removed CumulusCI 1 code from the repository and egg.  The egg should be 17MB smaller now.
 * Removed `cumulusci.tasks.ant.AntTask`.  Please replace any usage with `cumulusci.tasks.command.Command` or `cumulusci.tasks.command.SalesforceCommand`
@@ -771,22 +771,22 @@ Enhancements
 * `release_beta` flow now runs `github_master_to_feature` at the end of the flow
 
 2.0.0-alpha42 (2017-01-10)
-------------------
+--------------------------
 
 * Metadata API calls now progressively wait longer between each status check to handle calls with long Pending times.  Each check also now outputs a line saying how long it will sleep before the next check.
 
 2.0.0-alpha41 (2017-01-06)
-------------------
+--------------------------
 
 * Fix bug in `uninstall_packaged_incremental` where the task would error out if no metadata was found to delete
 
 2.0.0-alpha40 (2017-01-06)
-------------------
+--------------------------
 
 * `uninstall_packaged_incremental` task now skips the deploy step if now metadata was found to be deleted
 
 2.0.0-alpha39 (2017-01-06)
-------------------
+--------------------------
 
 * Two new task classes exist for loading and deleting data via Bulk API.  Note that there are no default task mappings for these classes as the mappings should be project specific.  Define your own mappings in your project's cumulusci.yml file to use them.
 
@@ -797,7 +797,7 @@ Enhancements
 * Added new Command task that can be used to call arbitrary commands with configurable environment variables
 
 2.0.0-alpha38 (2016-12-28)
-------------------
+--------------------------
 
 * Scratch orgs now cache the org info locally during flow execution to prevent multiple calls out to the Heroku CLI that are unnecessary
 * Scratch org calls now properly capture and print both stdout and stderr in the case of an exception in calls to Heroku CLI
@@ -806,39 +806,39 @@ Enhancements
 * Push tasks now use timezone for start_date option
 
 2.0.0-alpha37 (2016-12-20)
-------------------
+--------------------------
 
 * `github_release_notes` now correctly handles the situation where a merge commit's date can be different than the PR's merged_at date in Github by comparing commit sha's
 
 2.0.0-alpha36 (2016-12-20)
-------------------
+--------------------------
 
 * `github_release` now works with an existing tag/ref and sleeps for 3 seconds after creating the tag to allow Github time to catch up
 
 2.0.0-alpha35 (2016-12-20)
-------------------
+--------------------------
 
 * Remove `draft` option from `github_release` since the Github API doesn't support querying draft releases
 
 2.0.0-alpha34 (2016-12-20)
-------------------
+--------------------------
 
 * Fix bug with `github_release` that was causing validation errors from Github
 
 2.0.0-alpha33 (2016-12-20)
-------------------
+--------------------------
 
 * `github_release_notes` now raises an exception in `publish` mode if the release doesn't exist instead of attempting to create it.  Use `github_release` to create the release first before calling `github_release_notes`
 * Fix a bug with dynamic task option lookup in flows
 
 2.0.0-alpha32 (2016-12-19)
-------------------
+--------------------------
 
 * Move logger configuration out of core and into CLI so other implementations can provide their own logger configurations
 * Added `retry_interval` and `retry_interval_add` options to `install_beta` to introduce a progressive delay between retry attempts when the package is unavailable
 
 2.0.0-alpha30 (2016-12-13)
-------------------
+--------------------------
 
 * **IMPORANT** This release changes the yaml structure for flows.  The new structure now looks like this::
 
@@ -854,39 +854,39 @@ Enhancements
 
 
 2.0.0-alpha30 (2016-12-12)
-------------------
+--------------------------
 
 * Bug fixes submitted by @ccarter:
-  
+
   * `uninstall_post` was failing to substitute namespaces
   * new util method `findRename` to rename files with a token in their name
 
 * Bug fix with Unicode handling in run_tests_debug
 
 2.0.0-alpha29 (2016-12-12)
-------------------
+--------------------------
 
 * Require docutils to supprot rst2ansi
 
 2.0.0-alpha28 (2016-12-12)
-------------------
+--------------------------
 
 * Modified tasks and flows to properly re-raise exceptions
 
 2.0.0-alpha27 (2016-12-12)
-------------------
+--------------------------
 
 * `cci` should now throw the direct exception rather than making it look like the exception came through click
 * `cci task doc` command outputs RST format documentation of all tasks
 * New doc with info on all tasks: http://cumulusci.readthedocs.io/en/latest/tasks.html
 
 2.0.0-alpha26 (2016-12-09)
-------------------
+--------------------------
 
 * Bug fix, missing import of re in core/config.py
 
 2.0.0-alpha25 (2016-12-09)
-------------------
+--------------------------
 
 * Fixed run_tests and run_tests_debug tasks to fail throwing an exception on test failure
 * run_tests_debug now stores debug logs in a tempdir
@@ -895,12 +895,12 @@ Enhancements
 * BaseFlow now throws the original exception rather than a more generic one that obscures the actual failure
 
 2.0.0-alpha24 (2016-12-09)
-------------------
+--------------------------
 
 * Bug fix release, flow_run in the CLI should accept debug argument and was throwing and error
 
 2.0.0-alpha23 (2016-12-09)
-------------------
+--------------------------
 
 * `cci org browser` now saves the org back to the keychain.  This fixes an issue with scratch orgs where a call to org browser on a scratch org that hasn't been created yet gets created but doesn't persist after the command
 
@@ -917,12 +917,12 @@ Enhancements
 * Reworked exceptions structure and ensure that tasks throw an exception where approriate.
 
 2.0.0-alpha22 (2016-12-02)
-------------------
+--------------------------
 
 * Fix for bug in deploy_post when using the filename token to merge namespace into a filename
 
 2.0.0-alpha21 (2016-12-01)
-------------------
+--------------------------
 
 * Added support for global and project specific orgs, services, and connected app.  The global credentials will be used by default if they exist and individual projects an override them.
 
@@ -933,26 +933,26 @@ Enhancements
   * `connect_github`, `connect_mrbelvedere`, and `connect_apextestsdb` commands now set the service as global by default.  Use the '--project' flag to set as a project override
 
 2.0.0-alpha20 (2016-11-29)
-------------------
+--------------------------
 
 * Remove pdb from BaseFlow.__call__ (oops)
 
 2.0.0-alpha19 (2016-11-29)
-------------------
+--------------------------
 
 * Fix IOError issue with update_admin_profile when using the egg version
 * Changed cci task_run and flow_run commands to no longer swallow unknown exceptions so a useful error message with traceback is shown
 * Centralized loggers for BaseConfig, BaseTask, and BaseFlow under cumulusci.core.logger and changed logs to always write to a temp file available as self.log_file on any config, task, or flow subclass.
 
 2.0.0-alpha18 (2016-11-17)
-------------------
+--------------------------
 
 * New task `apextestsdb_upload` uploads json test data to an instance of ApexTestsDB
-* Fixed bug in CLI when running tasks that don't require an org 
+* Fixed bug in CLI when running tasks that don't require an org
 * Include mappings for Community Template metadata types in package.xml generator
 
 2.0.0-alpha17 (2016-11-15)
-------------------
+--------------------------
 
 * Community contributions by @cdcarter
 
@@ -967,9 +967,9 @@ Enhancements
   * `cci org scratch_delete <org_name>` deletes a scratch org that was created by running a task or flow
   * `cci flow run` now supports the `--delete-org` option to delete a scratch org at the end of the flow
   * `BaseSalesforceDXTask` wraps the heroku force:* commands.  The `dx_push` task is provided as an example.
-    
+
     * NOTE: Currently the command output is buffered and only outputs when the command completes.
-  
+
 * Integration with mrbelvedere
 
   * `mrbelvedere_publish` task publishes a beta or release tag to an existing package on mrbelvedere
@@ -985,24 +985,24 @@ Enhancements
 * Calls to runTestsAsynchronous in the Tooling API are now done via POST instead of GET
 
 2.0.0-alpha16 (2016-11-3)
-------------------
+-------------------------
 
 * Fix bug in SOAP calls to MDAPI with newer versions of the requests library
 * This version was used to record the demo screencast: https://asciinema.org/a/91555
 
 2.0.0-alpha15 (2016-11-3)
-------------------
+-------------------------
 
 * Fix CLI bug in new exception handling logic
 
 2.0.0-alpha14 (2016-11-3)
-------------------
+-------------------------
 
 * Fix version number
 * Fix bug in BaseSalesforceBulkApiTask (thanks @cdcarter)
 
 2.0.0-alpha13 (2016-11-3)
-------------------
+-------------------------
 
 * Nicer log output from tasks and flows using `coloredlogs`
 * Added handling for packed git references in the file .git/packed-refs
@@ -1010,7 +1010,7 @@ Enhancements
 * Tasks and Flows run through the CLI now show a more simple message if an exception is thrown
 
 2.0.0-alpha12 (2016-11-2)
-------------------
+-------------------------
 
 * Automatic detection of latest production and beta release via Github Releases
 
@@ -1018,7 +1018,7 @@ Enhancements
   * InstallPackage now accepts the virtual versions 'latest' and 'latest_beta' as well as specific versions for the version option
 
 * New flows:
-    
+
   * ci_feature: Runs a full deployment of the unmanaged code for testing in a feature org
   * ci_master: Runs a full deployment of the managed version of the code into the packaging org
   * ci_beta: Installs the latest beta and runs all tests
@@ -1040,11 +1040,11 @@ Enhancements
 
 
 2.0.0-alpha11 (2016-10-31)
-------------------
+--------------------------
 
 * project_config.repo_root is now added to the python syspath, thanks @cdcarter for the contribution
 * Tasks for the new Package Upload API
-  
+
   * upload_beta: Uploads a beta release of the metadata currently in the packaging org
   * upload_production: Uploads a production release of the metadata currently in the packaging org
 
@@ -1059,7 +1059,7 @@ Enhancements
 
 
 2.0.0-alpha10 (2016-10-28)
-------------------
+--------------------------
 
 * More pure Python tasks to replace ant targets:
 
@@ -1078,12 +1078,12 @@ Enhancements
 
   * CUMULUSCI_PATH: The absolute path to the root of CumulusCI
   * findReplaceRegex: Recursive regex based search/replace for files
-  * zip_subfolder: Accepts a zipfile and path, returns a zipfile with path as root 
+  * zip_subfolder: Accepts a zipfile and path, returns a zipfile with path as root
 
 * Fix bug where repo_name was not being properly handled if it origin ended in .git
 
 2.0.0-alpha9 (2016-10-27)
-------------------
+-------------------------
 
 * Switch to using `plaintable` for printing text tables in the following CLI commands:
 
@@ -1119,7 +1119,7 @@ Enhancements
   * revert_managed_src
 
 2.0.0-alpha8 (2016-10-26)
-------------------
+-------------------------
 
 * New tasks for push upgrading packages
 
@@ -1145,10 +1145,10 @@ Enhancements
     * SchedulePushOrgQuery: queries PackageSubscribers to select orgs for the target list
 
   * Additional push tasks can be built by subclassing cumulusci.tasks.push.tasks.BaseSalesforcePushTask
-  
+
 
 2.0.0-alpha7 (2016-10-25)
-------------------
+-------------------------
 
 * New commands for connecting to other services
 
@@ -1158,22 +1158,22 @@ Enhancements
   * cci project show_apextestsdb: Shows the configured ApexTestsDB auth info
   * cci project show_github: Shows the configured Github auth info
   * cci project show_mrbelvedere: Shows the configured mrbelvedere auth info
-  
+
 * Github Tasks
 
   * The new BaseGithubTask wraps the github3.py API library to allow writing tasks targetting Github
   * The following new Github tasks are implemented on top of BaseGithubTask:
-  
-    * github_clone_tag: Clones one git tag to another via the Github API    
+
+    * github_clone_tag: Clones one git tag to another via the Github API
     * github_master_to_feature: Merges the HEAD commit on master to all open feature branches via the Github API
     * github_release: Creates a Release via the Github API
     * github_release_notes: Generates release notes by parsing merged Github pull request bodies between two tags
-    
+
 * BaseTask now enforces required task_options raising TaskOptionError if required options are missing
 * Restructured the project: heading in cumulusci.yml
 
 2.0.0-alpha6 (2016-10-24)
-------------------
+-------------------------
 
 * Moved the build and ci directories back to the root so 2.0 is backwards compatible with 1.0
 * Allow override of keychain class via CUMULUSCI_KEYCHAIN_CLASS env var
@@ -1186,37 +1186,37 @@ Enhancements
   * No longer require passing org name in task run and flow run
   * --unset option flag unsets current default
   * cumulusci org list shows a * next to the default org
-  
+
 * BaseAntTask split out into AntTask and SalesforceAntTask
 * cumulusci.tasks.metadata.package.UpdatePackageXml:
 
   * Pure python based package.xml generation controlled by metadata_map.yml for mapping in new types
   * Wired into the update_package_xml task instead of the old ant target
-  
+
 * 130 unit tests and counting, and our test suite now exceeds 1 second!
 
 2.0.0-alpha5 (2016-10-21)
-------------------
+-------------------------
 
 * Update README
 
 2.0.0-alpha4 (2016-10-21)
-------------------
+-------------------------
 
-* Fix imports in tasks/ant.py 
+* Fix imports in tasks/ant.py
 
 2.0.0-alpha3 (2016-10-21)
-------------------
+-------------------------
 
 * Added yaml files to the MANIFEST.in for inclusion in the egg
 * Fixed keychain import in cumulusci.yml
 
 2.0.0-alpha2 (2016-10-21)
-------------------
+-------------------------
 
 * Added additional python package requirements to setup.py for automatic installation of dependencies
 
 2.0.0-alpha1 (2016-10-21)
-------------------
+-------------------------
 
 * First release on PyPI.

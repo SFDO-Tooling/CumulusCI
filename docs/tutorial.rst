@@ -78,7 +78,7 @@ Windows
     pip2 install virtualenv
     mkdir C:\Python27\venvs\cci\
     virtualenv --python=C:\Python27\python.exe C:\Python27\venvs\cci\
-    source C:\Python27\venvs\cci\Scripts\activate
+    C:\Python27\venvs\cci\Scripts\activate.ps1
 
 Install CumulusCI
 -----------------
