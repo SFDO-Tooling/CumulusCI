@@ -9,6 +9,8 @@ import nose
 import yaml
 
 from cumulusci.core.config import BaseConfig
+from cumulusci.core.config import BaseGlobalConfig
+from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.config import YamlGlobalConfig
 from cumulusci.core.config import YamlProjectConfig
 from cumulusci.core.exceptions import NotInProject
@@ -167,6 +169,140 @@ class TestYamlGlobalConfig(unittest.TestCase):
         expected_config['tasks']['newtesttask'][
             'description'] = 'test description'
         self.assertEquals(config.config, expected_config)        
+
+
+class DummyContents(object):
+    def __init__(self, content):
+        self.decoded = content
+
+class DummyRepository(object):
+    default_branch = 'master'
+    _api = 'http://'
+
+    def __init__(self, owner, name, contents):
+        self.owner = owner
+        self.name = name
+        self.html_url = 'https://github.com/{}/{}'.format(owner, name)
+        self._contents = contents
+
+    def contents(self, path, **kw):
+        try:
+            return self._contents[path]
+        except KeyError:
+            raise AssertionError(
+                'Accessed unexpected file: {}'.format(path))
+
+    def _build_url(self, *args, **kw):
+        return self._api
+
+    def _get(self, url):
+        res = mock.Mock()
+        res.json.return_value = {
+            'name': '2',
+        }
+        return res
+
+CUMULUSCI_TEST_REPO = DummyRepository(
+    'SalesforceFoundation',
+    'CumulusCI-Test',
+    {
+        'cumulusci.yml': DummyContents("""
+project:
+    name: CumulusCI-Test
+    package:
+        name: Cumulus-Test
+        namespace: ccitest
+    git:
+        repo_url: https://github.com/SalesforceFoundation/CumulusCI-Test
+    dependencies:
+        - github: https://github.com/SalesforceFoundation/CumulusCI-Test-Dep
+"""),
+        'unpackaged/pre': {'pre': ''},
+        'src': {'src': ''},
+        'unpackaged/post': {'post': ''},
+    }
+)
+
+CUMULUSCI_TEST_DEP_REPO = DummyRepository(
+    'SalesforceFoundation',
+    'CumulusCI-Test-Dep',
+    {
+        'cumulusci.yml': DummyContents("""
+project:
+    name: CumulusCI-Test-Dep
+    package:
+        name: Cumulus-Test-Dep
+        namespace: ccitestdep
+    git:
+        repo_url: https://github.com/SalesforceFoundation/CumulusCI-Test-Dep
+"""),
+        'unpackaged/pre': {},
+        'src': {},
+        'unpackaged/post': {},
+    }
+)
+
+class DummyGithub(object):
+    def repository(self, owner, name):
+        if name == 'CumulusCI-Test':
+            return CUMULUSCI_TEST_REPO
+        elif name == 'CumulusCI-Test-Dep':
+            return CUMULUSCI_TEST_DEP_REPO
+        else:
+            raise AssertionError('Unexpected repository: {}'.format(name))
+
+class DummyService(object):
+    password = 'password'
+
+    def __init__(self, name):
+        self.name = name
+
+class DummyKeychain(object):
+    def get_service(self, name):
+        return DummyService(name)
+
+class TestBaseProjectConfig(unittest.TestCase):
+
+    def test_process_github_dependency(self):
+        global_config = BaseGlobalConfig()
+        config = BaseProjectConfig(global_config)
+        config.get_github_api = DummyGithub
+        config.keychain = DummyKeychain()
+
+        result = config.process_github_dependency({
+            'github': 'https://github.com/SalesforceFoundation/CumulusCI-Test',
+            'unmanaged': True,
+        })
+        self.assertEqual(result, [
+            {
+                u'headers': {u'Authorization': u'token password'},
+                u'namespace_inject': None,
+                u'namespace_strip': None,
+                u'namespace_tokenize': None,
+                u'subfolder': u'CumulusCI-Test-master/unpackaged/pre/pre',
+                u'unmanaged': True,
+                u'zip_url': u'https://github.com/SalesforceFoundation/CumulusCI-Test/archive/master.zip',
+            },
+            {u'version': '2', u'namespace': 'ccitestdep'},
+            {
+                u'headers': {u'Authorization': u'token password'},
+                u'namespace_inject': None,
+                u'namespace_strip': None,
+                u'namespace_tokenize': None,
+                u'subfolder': u'CumulusCI-Test-master/src',
+                u'unmanaged': True,
+                u'zip_url': u'https://github.com/SalesforceFoundation/CumulusCI-Test/archive/master.zip',
+            },
+            {
+                u'headers': {u'Authorization': u'token password'},
+                u'namespace_inject': 'ccitest',
+                u'namespace_strip': None,
+                u'namespace_tokenize': None,
+                u'subfolder': u'CumulusCI-Test-master/unpackaged/post/post',
+                u'unmanaged': True,
+                u'zip_url': u'https://github.com/SalesforceFoundation/CumulusCI-Test/archive/master.zip',
+            },
+        ])
 
 
 @mock.patch('os.path.expanduser')
