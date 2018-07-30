@@ -571,7 +571,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                 # unpackaged/post metadata
                 if namespace and not dependency.get('namespace_inject'):
                     dependency['namespace_inject'] = namespace
-                    dependency['unmananged'] = unmanaged
+                    dependency['unmanaged'] = unmanaged
                 unpackaged_post.append(dependency)
 
         # Parse values from the repo's cumulusci.yml
