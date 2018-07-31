@@ -175,6 +175,7 @@ class ScratchOrgConfig(OrgConfig):
         p = sarge.Command(command, stdout=sarge.Capture(buffer_size=-1), shell=True)
         p.run()
 
+        org_info = None
         re_obj = re.compile(
             'Successfully created scratch org: (.+), username: (.+)')
         stdout = []
