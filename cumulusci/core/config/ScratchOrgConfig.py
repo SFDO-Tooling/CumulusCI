@@ -28,11 +28,12 @@ class ScratchOrgConfig(OrgConfig):
 
         # Call force:org:display and parse output to get instance_url and
         # access_token
-        command = 'sfdx force:org:display -u {} --json'.format(self.username)
+        command = sarge.shell_format('sfdx force:org:display -u {0} --json', self.username)
         p = sarge.Command(
             command,
             stderr=sarge.Capture(buffer_size=-1),
             stdout=sarge.Capture(buffer_size=-1),
+            shell=True
         )
         p.run()
 
@@ -162,7 +163,7 @@ class ScratchOrgConfig(OrgConfig):
             'devhub': ' --targetdevhubusername {}'.format(self.devhub) if self.devhub else '',
             'namespaced': ' -n' if not self.namespaced else '',
             'days': ' --durationdays {}'.format(self.days) if self.days else '',
-            'alias': ' -a "{}"'.format(self.sfdx_alias) if self.sfdx_alias else '',
+            'alias': sarge.shell_format(' -a "{0!s}"', self.sfdx_alias) if self.sfdx_alias else '',
             'extraargs': os.environ.get('SFDX_ORG_CREATE_ARGS', ''),
         }
 
@@ -171,7 +172,7 @@ class ScratchOrgConfig(OrgConfig):
         command = 'sfdx force:org:create -f {config_file}{devhub}{namespaced}{days}{alias} {extraargs}'.format(**options)
         self.logger.info(
             'Creating scratch org with command {}'.format(command))
-        p = sarge.Command(command, stdout=sarge.Capture(buffer_size=-1))
+        p = sarge.Command(command, stdout=sarge.Capture(buffer_size=-1), shell=True)
         p.run()
 
         re_obj = re.compile(
@@ -209,12 +210,11 @@ class ScratchOrgConfig(OrgConfig):
             return
 
         # Set a random password so it's available via cci org info
-        command = 'sfdx force:user:password:generate -u {}'.format(
-            self.username)
+        command = sarge.shell_format('sfdx force:user:password:generate -u {0}', self.username)
         self.logger.info(
             'Generating scratch org user password with command {}'.format(command))
         p = sarge.Command(command, stdout=sarge.Capture(
-            buffer_size=-1), stderr=sarge.Capture(buffer_size=-1))
+            buffer_size=-1), stderr=sarge.Capture(buffer_size=-1), shell=True)
         p.run()
 
         stdout = []
@@ -240,10 +240,10 @@ class ScratchOrgConfig(OrgConfig):
                 'Skipping org deletion: the scratch org has not been created')
             return
 
-        command = 'sfdx force:org:delete -p -u {}'.format(self.username)
+        command = sarge.shell_format('sfdx force:org:delete -p -u {0}', self.username)
         self.logger.info(
             'Deleting scratch org with command {}'.format(command))
-        p = sarge.Command(command, stdout=sarge.Capture(buffer_size=-1))
+        p = sarge.Command(command, stdout=sarge.Capture(buffer_size=-1), shell=True)
         p.run()
 
         org_info = None
@@ -267,10 +267,10 @@ class ScratchOrgConfig(OrgConfig):
     def force_refresh_oauth_token(self):
         # Call force:org:display and parse output to get instance_url and
         # access_token
-        command = 'sfdx force:org:open -r -u {}'.format(self.username)
+        command = sarge.shell_format('sfdx force:org:open -r -u {0}', self.username)
         self.logger.info(
             'Refreshing OAuth token with command: {}'.format(command))
-        p = sarge.Command(command, stdout=sarge.Capture(buffer_size=-1))
+        p = sarge.Command(command, stdout=sarge.Capture(buffer_size=-1), shell=True)
         p.run()
 
         stdout_list = []
