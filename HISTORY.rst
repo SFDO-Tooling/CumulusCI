@@ -2,6 +2,11 @@
 History
 =======
 
+2.0.5 (2018-08-01)
+------------------
+
+* Fixes #695: Update InstallPackageZipBuilder to set activateRSS to unblock installs.
+
 2.0.4 (2018-07-30)
 ------------------
 
