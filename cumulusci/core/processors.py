@@ -21,13 +21,18 @@ def files_from_path(rootDir):
 
 
 class BasePackageZipBuilder(object):
-    def __init__(self):
-        self._stream = None
+    def __init__(self, stream=None):
+        if stream is None:
+            stream = io.BytesIO()
+        self._stream = stream
         self.zip = None
+        self.built = False
 
     def _open_zip(self):
-        self._stream = io.BytesIO()
         self.zip = zipfile.ZipFile(self._stream, 'w', zipfile.ZIP_DEFLATED)
+
+    def _close_zip(self):
+        self.zip.close()
 
     def _write_package_xml(self, package_xml):
         self._write_file('package.xml', package_xml)
@@ -38,19 +43,29 @@ class BasePackageZipBuilder(object):
         self.zip.writestr(path, content)
 
     def _encode_zip(self):
-        if not self.zip.fp:
+        if not self.built:
             raise RuntimeError(
-                'Attempt to encode a file that was already closed')
-        self.zip.close()
+                'Attempt to encode a zip that was not built')
         return base64.b64encode(self._stream.getvalue())
 
     def _populate_zip(self):
         raise NotImplementedError(
             'Subclasses need to provide their own implementation')
 
-    def encode_zip(self):
+    def _build_zip(self):
+        if self.built:
+            raise RuntimeError('Zip already built.')
         self._open_zip()
         self._populate_zip()
+        self._close_zip()
+        self.built = True
+
+    def encode_zip(self, b64=True):
+        """ build and encode the zipfile. default to base64 encoding, but raw bytes available """
+        if not self.built:
+            self._build_zip()
+        if not b64:
+            return self._stream.getvalue()
         return self._encode_zip()
 
 
