@@ -1,23 +1,12 @@
 import json
-import functools
-
 from simple_salesforce import Salesforce
 from simple_salesforce import SalesforceMalformedRequest
 from simple_salesforce.util import date_to_iso8601
 
 from cumulusci.core.exceptions import CumulusCIException
+from cumulusci.utils import memoize
 
 
-def memoize(obj):
-    cache = obj.cache = {}
-
-    @functools.wraps(obj)
-    def memoizer(*args, **kwargs):
-        key = str(args) + str(kwargs)
-        if key not in cache:
-            cache[key] = obj(*args, **kwargs)
-        return cache[key]
-    return memoizer
 
 def batch_list(data, batch_size):
     batch_list = []
