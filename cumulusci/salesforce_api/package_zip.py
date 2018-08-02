@@ -1,6 +1,4 @@
-from base64 import b64encode
-from zipfile import ZipFile
-from tempfile import TemporaryFile
+from cumulusci.core.processors import CallablePackageZipBuilder
 from xml.sax.saxutils import escape
 
 INSTALLED_PACKAGE_PACKAGE_XML = """<?xml version="1.0" encoding="utf-8"?>
@@ -29,35 +27,11 @@ INSTALLED_PACKAGE = """<?xml version="1.0" encoding="UTF-8"?>
   <activateRSS>false</activateRSS>
 </InstalledPackage>"""
 
-class BasePackageZipBuilder(object):
 
-    def __call__(self):
-        self._open_zip()
-        self._populate_zip()
-        return self._encode_zip()
-
-    def _open_zip(self):
-        self.zip_file = TemporaryFile()
-        self.zip= ZipFile(self.zip_file, 'w')
-
-    def _populate_zip(self):
-        raise NotImplementedError('Subclasses need to provide their own implementation')
-
-    def _write_package_xml(self, package_xml):
-        self.zip.writestr('package.xml', package_xml)
-
-    def _write_file(self, path, content):
-        self.zip.writestr(path, content)
-
-    def _encode_zip(self):
-        self.zip.close()
-        self.zip_file.seek(0)
-        return b64encode(self.zip_file.read())
-
-class ZipfilePackageZipBuilder(BasePackageZipBuilder):
+class ZipfilePackageZipBuilder(CallablePackageZipBuilder):
     def __init__(self, zipfile):
         self.zip = zipfile
-        self.zip_file = zipfile.fp
+        self._stream = zipfile.fp
 
     def _open_zip(self):
         pass
@@ -65,7 +39,7 @@ class ZipfilePackageZipBuilder(BasePackageZipBuilder):
     def _populate_zip(self):
         pass
 
-class CreatePackageZipBuilder(BasePackageZipBuilder):
+class CreatePackageZipBuilder(CallablePackageZipBuilder):
 
     def __init__(self, name, api_version):
         if not name:
@@ -79,7 +53,7 @@ class CreatePackageZipBuilder(BasePackageZipBuilder):
         package_xml = FULL_NAME_PACKAGE_XML.format(escape(self.name), self.api_version)
         self._write_package_xml(package_xml)
 
-class InstallPackageZipBuilder(BasePackageZipBuilder):
+class InstallPackageZipBuilder(CallablePackageZipBuilder):
     api_version = '43.0'
 
     def __init__(self, namespace, version):
@@ -103,7 +77,7 @@ class InstallPackageZipBuilder(BasePackageZipBuilder):
             installed_package
         )
 
-class DestructiveChangesZipBuilder(BasePackageZipBuilder):
+class DestructiveChangesZipBuilder(CallablePackageZipBuilder):
 
     def __init__(self, destructive_changes, version):
         self.destructive_changes = destructive_changes
