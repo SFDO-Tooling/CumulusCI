@@ -1,3 +1,4 @@
+from collections import OrderedDict
 from contextlib import contextmanager
 import io
 import os
@@ -272,8 +273,8 @@ class TestUtils(unittest.TestCase):
 Options:
 ------------------------------------------
 
-* **color**: What color **Default: black**
-* **flavor** *(required)*: What flavor""", result)
+* **flavor** *(required)*: What flavor
+* **color**: What color **Default: black**""", result)
 
     def test_package_xml_from_dict(self):
         items = {
@@ -293,12 +294,12 @@ Options:
 
 class TestTask(BaseTask):
     """For testing doc_task"""
-    task_options = {
-        'flavor': {
+    task_options = OrderedDict((
+        ('flavor', {
             'description': 'What flavor',
             'required': True,
-        },
-        'color': {
+        }),
+        ('color', {
             'description': 'What color',
-        }
-    }
+        }),
+    ))
