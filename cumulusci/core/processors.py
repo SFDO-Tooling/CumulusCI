@@ -6,9 +6,6 @@ import zipfile
 
 from cumulusci.utils import memoize
 
-__location__ = os.path.realpath(
-    os.path.join(os.getcwd(), os.path.dirname(__file__)))
-
 
 def files_from_path(rootDir):
     """ list all the files in rootDir, with their path relative to rootDir."""
@@ -68,34 +65,21 @@ class FilePackageZipBuilder(BasePackageZipBuilder):
     def __init__(self, path):
         super(FilePackageZipBuilder, self).__init__()
         self.path = path
-        self._contents = {}
-        self._load_files()
 
     @property
     @memoize
     def _file_list(self):
         return [f for f in files_from_path(self.path) if not os.path.basename(f).startswith('.')]
 
-    def _load_files(self):
+    @property
+    @memoize
+    def _contents(self):
+        retval = {}
         for filename in self._file_list:
             with open(os.path.join(self.path, filename), 'r') as f:
-                self._contents[filename] = f.read()
+                retval[filename] = f.read()
+        return retval
 
     def _populate_zip(self):
         for filename in self._file_list:
             self._write_file(filename, self._contents[filename])
-
-#
-#get a path
-#find all members
-#generate a packagexml
-#load members into zipfile
-#encode the zipfile
-
-#   MetadataProcessor allows a caller (task) to:
-#    - walk a metadata tree (presumably on the filesystem)
-#    - process each item (for example to remove a version dependency) with pre-registered processors
-#    - get back a zipfile ready for the salesforce metadata api
-#
-#    This lets us replace core functionality of utils, as well as packagezipbuilder.
-#
