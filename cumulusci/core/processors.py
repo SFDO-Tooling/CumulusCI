@@ -26,7 +26,11 @@ class BasePackageZipBuilder(object):
             stream = io.BytesIO()
         self._stream = stream
         self.zip = None
-        self.built = False
+        # these flags can be used to control the behavior a little bit.
+        # you could instantiate the builder with a zipfile in the stream
+        # and set built to true.
+        self.built = False # was the zip opened/closed
+        self.populated = False # have the individual files been written into it?
 
     def _open_zip(self):
         self.zip = zipfile.ZipFile(self._stream, 'w', zipfile.ZIP_DEFLATED)
@@ -56,7 +60,9 @@ class BasePackageZipBuilder(object):
         if self.built:
             raise RuntimeError('Zip already built.')
         self._open_zip()
-        self._populate_zip()
+        if not self.populated:
+            self._populate_zip()
+            self.populated = True
         self._close_zip()
         self.built = True
 

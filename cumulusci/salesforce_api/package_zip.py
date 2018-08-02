@@ -30,6 +30,7 @@ INSTALLED_PACKAGE = """<?xml version="1.0" encoding="UTF-8"?>
 
 class ZipfilePackageZipBuilder(CallablePackageZipBuilder):
     def __init__(self, zipfile):
+        super(ZipfilePackageZipBuilder, self).__init__()
         self.zip = zipfile
         self._stream = zipfile.fp
 
@@ -42,6 +43,7 @@ class ZipfilePackageZipBuilder(CallablePackageZipBuilder):
 class CreatePackageZipBuilder(CallablePackageZipBuilder):
 
     def __init__(self, name, api_version):
+        super(CreatePackageZipBuilder, self).__init__()
         if not name:
             raise ValueError('You must provide a name to create a package')
         if not api_version:
@@ -57,6 +59,7 @@ class InstallPackageZipBuilder(CallablePackageZipBuilder):
     api_version = '43.0'
 
     def __init__(self, namespace, version):
+        super(InstallPackageZipBuilder, self).__init__()
         if not namespace:
             raise ValueError('You must provide a namespace to install a package')
         if not version:
@@ -80,6 +83,7 @@ class InstallPackageZipBuilder(CallablePackageZipBuilder):
 class DestructiveChangesZipBuilder(CallablePackageZipBuilder):
 
     def __init__(self, destructive_changes, version):
+        super(DestructiveChangesZipBuilder, self).__init__()
         self.destructive_changes = destructive_changes
         self.version = version
 
@@ -90,6 +94,7 @@ class DestructiveChangesZipBuilder(CallablePackageZipBuilder):
 class UninstallPackageZipBuilder(DestructiveChangesZipBuilder):
 
     def __init__(self, namespace, version):
+        super(UninstallPackageZipBuilder, self).__init__()
         if not namespace:
             raise ValueError('You must provide a namespace to install a package')
         self.namespace = namespace
