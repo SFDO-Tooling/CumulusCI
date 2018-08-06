@@ -35,12 +35,13 @@ def findReplace(find, replace, directory, filePattern, logger=None, max=None):
 
 
 def findReplaceRegex(find, replace, directory, filePattern, logger=None):
+    pattern = re.compile(find)
     for path, dirs, files in os.walk(os.path.abspath(directory)):
         for filename in fnmatch.filter(files, filePattern):
             filepath = os.path.join(path, filename)
             with open(filepath) as f:
                 s = f.read()
-            s_updated = re.sub(find, replace, s)
+            s_updated = pattern.sub(replace, s)
             if s != s_updated:
                 if logger:
                     logger.info('Updating {}'.format(filepath))
@@ -124,7 +125,7 @@ def download_extract_zip(url, target=None, subfolder=None, headers=None):
         zip_file.extractall(target)
         return
     return zip_file
-    
+
 def zip_subfolder(zip_src, path):
     if not path.endswith('/'):
         path = path + '/'
@@ -169,7 +170,7 @@ def zip_inject_namespace(zip_src, namespace=None, managed=None, filename_token=N
     namespace_or_c = namespace if managed and namespace else 'c'
 
     # Handle token %%%NAMESPACED_ORG_OR_C%%%
-    namespaced_org_or_c_token = '%%%NAMESPACE_OR_C%%%'
+    namespaced_org_or_c_token = '%%%NAMESPACED_ORG_OR_C%%%'
     namespaced_org_or_c = namespace if namespaced_org else 'c'
 
     zip_dest = zipfile.ZipFile(io.BytesIO(), 'w', zipfile.ZIP_DEFLATED)
@@ -222,13 +223,15 @@ def zip_strip_namespace(zip_src, namespace, logger=None):
     zip_dest = zipfile.ZipFile(io.BytesIO(), 'w', zipfile.ZIP_DEFLATED)
     for name in zip_src.namelist():
         try:
-            content = zip_src.read(name).replace(namespace_prefix, '')
-            content = content.replace(lightning_namespace, 'c')
+            content = zip_src.read(name)
+            content = unicode(content)
+            content = content.replace(namespace_prefix, '')
+            content = content.replace(lightning_namespace, 'c:')
             name = name.replace(namespace_prefix, '')
-            zip_dest.writestr(name, content)
         except UnicodeDecodeError:
             # if we cannot decode the content, don't try and replace it.
             pass
+        zip_dest.writestr(name, content)
     return zip_dest
 
 def zip_tokenize_namespace(zip_src, namespace, logger=None):
@@ -243,13 +246,15 @@ def zip_tokenize_namespace(zip_src, namespace, logger=None):
     zip_dest = zipfile.ZipFile(io.BytesIO(), 'w', zipfile.ZIP_DEFLATED)
     for name in zip_src.namelist():
         try:
-            content = zip_src.read(name).replace(namespace_prefix, '%%%NAMESPACE%%%')
+            content = zip_src.read(name)
+            content = unicode(content)
+            content = content.replace(namespace_prefix, '%%%NAMESPACE%%%')
             content = content.replace(lightning_namespace, '%%%NAMESPACE_OR_C%%%')
             name = name.replace(namespace_prefix, '___NAMESPACE___')
-            zip_dest.writestr(name, content)
         except UnicodeDecodeError:
             # if we cannot decode the content, don't try and replace it.
             pass
+        zip_dest.writestr(name, content)
     return zip_dest
 
 def zip_clean_metaxml(zip_src, logger=None):
@@ -280,7 +285,7 @@ def zip_clean_metaxml(zip_src, logger=None):
             pass
     if changed and logger:
         logger.info(
-            'Cleaned namespace references from {} meta.xml files'.format(
+            'Cleaned package versions from {} meta.xml files'.format(
                 len(changed)
             )
         )
@@ -298,9 +303,7 @@ def doc_task(task_name, task_config, project_config=None, org_config=None):
     task_class = import_class(task_config.class_path)
     if task_class.task_options:
         doc.append('Options:\n------------------------------------------\n')
-        defaults = task_config.options
-        if not defaults:
-            defaults = {}
+        defaults = task_config.options or {}
         for name, option in list(task_class.task_options.items()):
             default = defaults.get(name)
             if default:
@@ -330,13 +333,10 @@ def package_xml_from_dict(items, api_version, package_name=None):
 
     # Include package name if specified
     if package_name:
-        lines.append('    <fullName>{}</fullName'.format(package_name))
+        lines.append('    <fullName>{}</fullName>'.format(package_name))
 
     # Print types sections
-    md_types = list(items.keys())
-    md_types.sort()
-    for md_type in md_types:
-        members = items[md_type]
+    for md_type, members in sorted(items.items()):
         members.sort()
         lines.append('    <types>')
         for member in members:
