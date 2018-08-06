@@ -138,6 +138,8 @@ class TestLoadData(unittest.TestCase):
 
             contact = task.session.query(task.tables['contacts']).one()
             self.assertEquals('1', contact.sf_id)
+            task.session.close()
+
 
 HOUSEHOLD_QUERY_RESULT = b'Id\n1'.splitlines()
 CONTACT_QUERY_RESULT = b'Id,AccountId\n2,1'.splitlines()
