@@ -2,7 +2,6 @@ import unittest
 
 import responses
 from mock import MagicMock, patch
-from nose.tools import assert_raises
 from simple_salesforce import SalesforceGeneralError
 
 from cumulusci.core.config import (
@@ -207,7 +206,7 @@ class TestRunAnonApex(unittest.TestCase):
     def test_run_anonymous_apex_status_fail(self):
         task, url = self._get_url_and_task()
         responses.add(responses.GET, url, status=418, body="I'm a teapot")
-        with assert_raises(SalesforceGeneralError) as cm:
+        with self.assertRaises(SalesforceGeneralError) as cm:
             task()
         err = cm.exception
         self.assertEqual(str(err), "Error Code 418. Response content: I'm a teapot")
@@ -335,7 +334,7 @@ class TestRunBatchApex(unittest.TestCase):
         response["records"][0]["NumberOfErrors"] = 1
         response["records"][0]["ExtendedStatus"] = "Bad Status"
         responses.add(responses.GET, url, json=response)
-        with assert_raises(SalesforceException) as cm:
+        with self.assertRaises(SalesforceException) as cm:
             task()
         err = cm.exception
         self.assertEqual(err[0], "Bad Status")
