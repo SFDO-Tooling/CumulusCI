@@ -39,7 +39,7 @@ class EpochType(types.TypeDecorator):
     epoch = datetime.datetime(1970, 1, 1, 0, 0, 0)
 
     def process_bind_param(self, value, dialect):
-        return (value / 1000 - self.epoch).total_seconds()
+        return int((value - self.epoch).total_seconds()) * 1000
 
     def process_result_value(self, value, dialect):
         return self.epoch + datetime.timedelta(seconds=value / 1000)
@@ -215,10 +215,8 @@ class LoadData(BaseSalesforceApiTask):
 
             # Commit to the db
             self.session.commit()
-                
         
         self.bulk.close_job(job_id)
-        status = self.bulk.job_status(job_id)
         
     def _query_db(self, mapping):
         table = self.tables[mapping.get('table')]

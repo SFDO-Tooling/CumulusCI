@@ -1,11 +1,14 @@
 from __future__ import unicode_literals
-import difflib
 from future import standard_library
 standard_library.install_aliases()
+from contextlib import contextmanager
+import difflib
 import fnmatch
 import os
 import re
 import io
+import shutil
+import tempfile
 import zipfile
 
 import requests
@@ -349,3 +352,10 @@ def package_xml_from_dict(items, api_version, package_name=None):
     lines.append(u'</Package>')
 
     return u'\n'.join(lines)
+
+
+@contextmanager
+def temporary_dir():
+    d = tempfile.mkdtemp()
+    yield d
+    shutil.rmtree(d)

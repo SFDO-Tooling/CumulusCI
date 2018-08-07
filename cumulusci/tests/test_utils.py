@@ -1,9 +1,6 @@
 from collections import OrderedDict
-from contextlib import contextmanager
 import io
 import os
-import shutil
-import tempfile
 import unittest
 import zipfile
 
@@ -15,16 +12,10 @@ from cumulusci import utils
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.tasks import BaseTask
 
-@contextmanager
-def temporary_dir():
-    d = tempfile.mkdtemp()
-    yield d
-    shutil.rmtree(d)
-
 class TestUtils(unittest.TestCase):
 
     def test_findReplace(self):
-        with temporary_dir() as d:
+        with utils.temporary_dir() as d:
             path = os.path.join(d, 'test')
             with open(path, 'w') as f:
                 f.write('foo')
@@ -38,7 +29,7 @@ class TestUtils(unittest.TestCase):
             self.assertEqual(result, 'bar')
 
     def test_findReplace_max(self):
-        with temporary_dir() as d:
+        with utils.temporary_dir() as d:
             path = os.path.join(d, 'test')
             with open(path, 'w') as f:
                 f.write('aa')
@@ -52,7 +43,7 @@ class TestUtils(unittest.TestCase):
             self.assertEqual(result, 'ba')
 
     def test_findReplaceRegex(self):
-        with temporary_dir() as d:
+        with utils.temporary_dir() as d:
             path = os.path.join(d, 'test')
             with open(path, 'w') as f:
                 f.write('aa')
@@ -66,7 +57,7 @@ class TestUtils(unittest.TestCase):
             self.assertEqual(result, 'xx')
 
     def test_findRename(self):
-        with temporary_dir() as d:
+        with utils.temporary_dir() as d:
             path = os.path.join(d, 'foo')
             with open(path, 'w') as f:
                 f.write('aa')
@@ -97,7 +88,7 @@ class TestUtils(unittest.TestCase):
             self.fail('Expected ParseError')
 
     def test_removeXmlElement(self):
-        with temporary_dir() as d:
+        with utils.temporary_dir() as d:
             path = os.path.join(d, 'test.xml')
             with open(path, 'w') as f:
                 f.write(
@@ -142,7 +133,7 @@ class TestUtils(unittest.TestCase):
 
     @responses.activate
     def test_download_extract_zip_to_target(self):
-        with temporary_dir() as d:
+        with utils.temporary_dir() as d:
             f = io.BytesIO()
             with zipfile.ZipFile(f, 'w') as zf:
                 zf.writestr('test', 'test')
