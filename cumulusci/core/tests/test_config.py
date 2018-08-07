@@ -822,7 +822,7 @@ class TestScratchOrgConfig(unittest.TestCase):
         config._scratch_info_date = datetime.now() - timedelta(days=1)
         config.force_refresh_oauth_token = mock.Mock()
 
-        config.refresh_oauth_token()
+        config.refresh_oauth_token(keychain=None)
 
         config.force_refresh_oauth_token.assert_called_once()
         self.assertTrue(config._scratch_info)
