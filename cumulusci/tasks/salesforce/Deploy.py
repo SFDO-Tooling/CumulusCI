@@ -1,8 +1,8 @@
-import base64
 import os
-import tempfile
+import io
 import zipfile
 
+from cumulusci.core.processors import FilePackageZipBuilder, BasePackageZipBuilder
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.salesforce_api.metadata import ApiDeploy
 from cumulusci.tasks.salesforce import BaseSalesforceMetadataApiTask
@@ -43,22 +43,23 @@ class Deploy(BaseSalesforceMetadataApiTask):
         if not path:
             path = self.task_config.options__path
 
-        # Build the zip file
-        zip_file = tempfile.TemporaryFile()
-        zipf = zipfile.ZipFile(zip_file, 'w', zipfile.ZIP_DEFLATED)
+        builder = FilePackageZipBuilder(path)
 
-        pwd = os.getcwd()
+        # awkward dance to work with legacy processors... additionally
+        # I built new processors to pass in a BytesIO not a zipfile for...reasons
+        # so now its extra awkward.
+        builder.build_zip()
+        zipf = zipfile.ZipFile(io.BytesIO(builder._stream.getvalue()), 'r')
+        import pdb; pdb.set_trace()
 
-        os.chdir(path)
-        for root, dirs, files in os.walk('.'):
-            for f in files:
-                self._write_zip_file(zipf, root, f)
-        zipf.close()
-        zipf_processed = self._process_zip_file(zipfile.ZipFile(zip_file))
-        zipf_processed.fp.seek(0)
-        package_zip = base64.b64encode(zipf_processed.fp.read())
+        zipf_processed = self._process_zip_file(zipf)
+        processed_builder = BasePackageZipBuilder(io.BytesIO(zipf_processed.fp.getvalue()))
+        processed_builder.populated = True
 
-        os.chdir(pwd)
+
+        package_zip = processed_builder.encode_zip()
+        
+
 
         return self.api_class(self, package_zip, purge_on_delete=False)
 

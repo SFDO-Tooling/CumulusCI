@@ -1,6 +1,7 @@
 
 import io
 import os
+import copy
 import base64
 import zipfile
 
@@ -24,8 +25,7 @@ class BasePackageZipBuilder(object):
     def __init__(self, stream=None):
         if stream is None:
             stream = io.BytesIO()
-        self._stream = stream
-        self.zip = None
+        self._stream = copy.deepcopy(stream)
         # these flags can be used to control the behavior a little bit.
         # you could instantiate the builder with a zipfile in the stream
         # and set built to true.
@@ -33,7 +33,8 @@ class BasePackageZipBuilder(object):
         self.populated = False # have the individual files been written into it?
 
     def _open_zip(self):
-        self.zip = zipfile.ZipFile(self._stream, 'w', zipfile.ZIP_DEFLATED)
+        import pdb; pdb.set_trace;
+        self.zip = zipfile.ZipFile(self._stream, 'a', zipfile.ZIP_DEFLATED)
 
     def _close_zip(self):
         self.zip.close()
@@ -65,6 +66,9 @@ class BasePackageZipBuilder(object):
             self.populated = True
         self._close_zip()
         self.built = True
+
+    def build_zip(self):
+        self._build_zip()
 
     def encode_zip(self, b64=True):
         """ build and encode the zipfile. default to base64 encoding, but raw bytes available """
