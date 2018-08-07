@@ -2,6 +2,12 @@
 History
 =======
 
+2.0.6 (2018-08-07)
+------------------
+* In Robot tests that use the standard keyword for interacting with a lookup field, we now wait for all AJAX requests to complete before submitting.
+* Add unit tests for large sections of the library.
+* We now support Flow, DuplicateRule, and other new Metadata types thanks to @carlosvl.
+
 2.0.5 (2018-08-01)
 ------------------
 
