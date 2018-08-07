@@ -180,42 +180,6 @@ def check_org_overwrite(config, org_name):
         pass
     return True
 
-def make_pass_instance_decorator(obj, ensure=False):
-    """Given an object type this creates a decorator that will work
-    similar to :func:`pass_obj` but instead of passing the object of the
-    current context, it will inject the passed object instance.
-
-    This generates a decorator that works roughly like this::
-        from functools import update_wrapper
-        def decorator(f):
-            @pass_context
-            def new_func(ctx, *args, **kwargs):
-                return ctx.invoke(f, obj, *args, **kwargs)
-            return update_wrapper(new_func, f)
-        return decorator
-    :param obj: the object instance to pass.
-    """
-    def decorator(f):
-        def new_func(*args, **kwargs):
-            ctx = click.get_current_context()
-            return ctx.invoke(f, obj, *args[1:], **kwargs)
-        return click.decorators.update_wrapper(new_func, f)
-    return decorator
-
-try:
-    check_latest_version()
-except requests.exceptions.RequestException as e:
-    click.echo('Error checking cci version:')
-    click.echo(e.message) 
-
-try:
-    CLI_CONFIG = CliConfig()
-except click.UsageError as e:
-    click.echo(e.message)
-    sys.exit(1)
-
-pass_config = make_pass_instance_decorator(CLI_CONFIG)
-
 def check_keychain(config):
     check_project_config(config)
     if config.project_config.keychain and config.project_config.keychain.encrypted and not config.keychain_key:
@@ -251,9 +215,20 @@ def handle_sentry_event(config, no_prompt):
 
 
 @click.group('main')
-@pass_config
-def main(config):
-    pass
+@click.pass_context
+def main(ctx):
+    try:
+        check_latest_version()
+    except requests.exceptions.RequestException as e:
+        click.echo('Error checking cci version:')
+        click.echo(e.message) 
+
+    try:
+        config = CliConfig()
+    except click.UsageError as e:
+        click.echo(e.message)
+        sys.exit(1)
+    ctx.obj = config
 
 
 @click.command(name='version', help='Print the current version of CumulusCI')
@@ -262,7 +237,7 @@ def version():
 
 
 @click.command(name='shell', help='Drop into a python shell')
-@pass_config
+@click.pass_obj
 @click.pass_context
 def shell(ctx, config):
     code.interact(local=dict(globals(), **locals()))
@@ -271,31 +246,31 @@ def shell(ctx, config):
 
 
 @click.group('project', help="Commands for interacting with project repository configurations")
-@pass_config
+@click.pass_obj
 def project(config):
     pass
 
 
 @click.group('org', help="Commands for connecting and interacting with Salesforce orgs")
-@pass_config
+@click.pass_obj
 def org(config):
     pass
 
 
 @click.group('task', help="Commands for finding and running tasks for a project")
-@pass_config
+@click.pass_obj
 def task(config):
     pass
 
 
 @click.group('flow', help="Commands for finding and running flows for a project")
-@pass_config
+@click.pass_obj
 def flow(config):
     pass
 
 
 @click.group('service', help="Commands for connecting services to the keychain")
-@pass_config
+@click.pass_obj
 def service(config):
     pass
 
@@ -314,7 +289,7 @@ main.add_command(service)
                help="Initialize a new project for use with the cumulusci toolbelt",
                )
 @click.option('--extend', help="If set to the url of another Github repository configured for CumulusCI, creates this project as an extension which depends on the other Github project and all its dependencies")
-@pass_config
+@click.pass_obj
 def project_init(config, extend):
     if not os.path.isdir('.git'):
         raise click.ClickException("You are not in the root of a Git repository")
@@ -490,14 +465,14 @@ def project_init(config, extend):
 
 
 @click.command(name='info', help="Display information about the current project's configuration")
-@pass_config
+@click.pass_obj
 def project_info(config):
     check_project_config(config)
     click.echo(render_recursive(config.project_config.project))
 
 
 @click.command(name="dependencies", help="Displays the current dependencies for the project.  If the dependencies section has references to other github repositories, the repositories are inspected and a static list of dependencies is created")
-@pass_config
+@click.pass_obj
 def project_dependencies(config):
     check_project_config(config)
     dependencies = config.project_config.get_static_dependencies()
@@ -508,13 +483,13 @@ def project_dependencies(config):
 
 
 @click.command(name='list', help="List projects and their locations")
-@pass_config
+@click.pass_obj
 def project_list(config):
     pass
 
 
 @click.command(name='cd', help="Change to the project's directory")
-@pass_config
+@click.pass_obj
 def project_cd(config):
     pass
 
@@ -528,7 +503,7 @@ project.add_command(project_dependencies)
 
 
 @click.command(name='list', help='List services available for configuration and use')
-@pass_config
+@click.pass_obj
 def service_list(config):
     headers = ['service', 'description', 'is_configured']
     data = []
@@ -587,7 +562,7 @@ def service_connect(ctx, *args, **kvargs):
 
 @click.command(name='show', help='Show the details of a connected service')
 @click.argument('service_name')
-@pass_config
+@click.pass_obj
 def service_show(config, service_name):
     check_keychain(config)
     try:
@@ -606,7 +581,7 @@ service.add_command(service_show)
 
 @click.command(name='browser', help="Opens a browser window and logs into the org using the stored OAuth credentials")
 @click.argument('org_name', required=False)
-@pass_config
+@click.pass_obj
 def org_browser(config, org_name):
 
     org_name, org_config = get_org(config, org_name)
@@ -629,7 +604,7 @@ def org_browser(config, org_name):
 @click.option('--login-url', help='If set, login to this hostname.', default='https://login.salesforce.com')
 @click.option('--default', is_flag=True, help='If set, sets the connected org as the new default org')
 @click.option('--global-org', help='Set True if org should be used by any project', is_flag=True)
-@pass_config
+@click.pass_obj
 def org_connect(config, org_name, sandbox, login_url, default, global_org):
     check_org_overwrite(config, org_name)
 
@@ -666,7 +641,7 @@ def org_connect(config, org_name, sandbox, login_url, default, global_org):
 @click.command(name='default', help="Sets an org as the default org for tasks and flows")
 @click.argument('org_name')
 @click.option('--unset', is_flag=True, help="Unset the org as the default org leaving no default org selected")
-@pass_config
+@click.pass_obj
 def org_default(config, org_name, unset):
 
     if unset:
@@ -681,7 +656,7 @@ def org_default(config, org_name, unset):
 @click.command(name='info', help="Display information for a connected org")
 @click.argument('org_name', required=False)
 @click.option('print_json', '--json', is_flag=True, help="Print as JSON")
-@pass_config
+@click.pass_obj
 def org_info(config, org_name, print_json):
 
     org_name, org_config = get_org(config, org_name)
@@ -705,7 +680,7 @@ def org_info(config, org_name, print_json):
 
 
 @click.command(name='list', help="Lists the connected orgs for the current project")
-@pass_config
+@click.pass_obj
 def org_list(config):
     data = []
     headers = ['org', 'default', 'scratch', 'days', 'expired', 'config_name', 'username']
@@ -729,7 +704,7 @@ def org_list(config):
 @click.command(name='remove', help="Removes an org from the keychain")
 @click.argument('org_name')
 @click.option('--global-org', is_flag=True, help="Set this option to force remove a global org.  Default behavior is to error if you attempt to delete a global org.")
-@pass_config
+@click.pass_obj
 def org_remove(config, org_name, global_org):
 
     try:
@@ -755,7 +730,7 @@ def org_remove(config, org_name, global_org):
 @click.option('--devhub', help="If provided, overrides the devhub used to create the scratch org")
 @click.option('--days', help="If provided, overrides the scratch config default days value for how many days the scratch org should persist")
 @click.option('--no-password', is_flag=True, help="If set, don't set a password for the org")
-@pass_config
+@click.pass_obj
 def org_scratch(config, config_name, org_name, default, delete, devhub, days, no_password):
     check_org_overwrite(config, org_name)
 
@@ -786,7 +761,7 @@ def org_scratch(config, config_name, org_name, default, delete, devhub, days, no
 
 @click.command(name='scratch_delete', help="Deletes a Salesforce DX Scratch Org leaving the config in the keychain for regeneration")
 @click.argument('org_name')
-@pass_config
+@click.pass_obj
 def org_scratch_delete(config, org_name):
     org_config = config.keychain.get_org(org_name)
     if not org_config.scratch:
@@ -813,7 +788,7 @@ org.add_command(org_scratch_delete)
 
 
 @click.command(name='list', help="List available tasks for the current context")
-@pass_config
+@click.pass_obj
 def task_list(config):
     check_project_config(config)
     data = []
@@ -825,7 +800,7 @@ def task_list(config):
 
 
 @click.command(name='doc', help="Exports RST format documentation for all tasks")
-@pass_config
+@click.pass_obj
 def task_doc(config):
     config_src = config.global_config
 
@@ -838,7 +813,7 @@ def task_doc(config):
 
 @click.command(name='info', help="Displays information for a task")
 @click.argument('task_name')
-@pass_config
+@click.pass_obj
 def task_info(config, task_name):
     check_project_config(config)
     task_config = getattr(config.project_config, 'tasks__{}'.format(task_name))
@@ -858,7 +833,7 @@ def task_info(config, task_name):
 @click.option('--debug-before', is_flag=True, help="Drops into the Python debugger right before task start.")
 @click.option('--debug-after', is_flag=True, help="Drops into the Python debugger at task completion.")
 @click.option('--no-prompt', is_flag=True, help="Disables all prompts.  Set for non-interactive mode use such as calling from scripts or CI systems")
-@pass_config
+@click.pass_obj
 def task_run(config, task_name, org, o, debug, debug_before, debug_after, no_prompt):
     # Check environment
     check_keychain(config)
@@ -964,7 +939,7 @@ task.add_command(task_run)
 
 
 @click.command(name='list', help="List available flows for the current context")
-@pass_config
+@click.pass_obj
 def flow_list(config):
     check_project_config(config)
     data = []
@@ -979,7 +954,7 @@ def flow_list(config):
 
 @click.command(name='info', help="Displays information for a flow")
 @click.argument('flow_name')
-@pass_config
+@click.pass_obj
 def flow_info(config, flow_name):
     check_project_config(config)
     flow = getattr(config.project_config, 'flows__{}'.format(flow_name))
@@ -996,7 +971,7 @@ def flow_info(config, flow_name):
 @click.option('-o', nargs=2, multiple=True, help="Pass task specific options for the task as '-o taskname__option value'.  You can specify more than one option by using -o more than once.")
 @click.option('--skip', multiple=True, help="Specify task names that should be skipped in the flow.  Specify multiple by repeating the --skip option")
 @click.option('--no-prompt', is_flag=True, help="Disables all prompts.  Set for non-interactive mode use such as calling from scripts or CI systems")
-@pass_config
+@click.pass_obj
 def flow_run(config, flow_name, org, delete_org, debug, o, skip, no_prompt):
     # Check environment
     check_keychain(config)

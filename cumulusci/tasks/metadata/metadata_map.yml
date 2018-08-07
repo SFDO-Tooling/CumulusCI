@@ -43,6 +43,10 @@ dataSources:
 documents:
     - type: Document
       class: DocumentParser
+duplicateRules:
+    - type: DuplicateRule
+      class: MetadataFilenameParser
+      extension: duplicateRule
 email:
     - type: EmailTemplate
       class: MetadataFolderParser
@@ -60,6 +64,10 @@ flexipages:
     - type: FlexiPage
       class: MetadataFilenameParser
       extension: flexipage
+flows:
+    - type: Flow
+      class: MetadataFilenameParser
+      extension: flow      
 globalPicklist:
     - type: GlobalPicklist
       class: MetadataFilenameParser
@@ -102,6 +110,14 @@ matchingRules:
       extension: matchingRule
       options:
             item_xpath: './sf:matchingRules'
+networkBranding:
+    - type: NetworkBranding
+      class: MetadataFilenameParser
+      extension: networkBranding            
+networks:
+    - type: Network
+      class: MetadataFilenameParser
+      extension: network            
 objects:
     - type: CustomObject
       class: CustomObjectParser
@@ -189,6 +205,10 @@ reportTypes:
 reports:
     - type: Report
       class: MetadataFolderParser
+roles:
+    - type: Role 
+      class: MetadataFilenameParser
+      extension: role 
 settings:
     - type: Setting
       class: MetadataFilenameParser
@@ -196,6 +216,14 @@ settings:
 scontrols:
     - type: Scontrol
       class: MetadataFilenameParser
+siteDotComSites:
+    - type: SiteDotCom 
+      class: MetadataFilenameParser
+      extension: site 
+sites:
+    - type: CustomSite 
+      class: MetadataFilenameParser
+      extension: site 
 standardValueSets:
     - type: StandardValueSet
       class: MetadataFilenameParser

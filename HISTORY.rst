@@ -2,6 +2,17 @@
 History
 =======
 
+2.0.5 (2018-08-01)
+------------------
+
+* Fixes #695: Update InstallPackageZipBuilder to set activateRSS to unblock installs.
+
+2.0.4 (2018-07-30)
+------------------
+
+* Fixes #611: Scratch org operations were failing on Windows
+* Fixes #664: Scratch org aliases incorrectly included double quotes in the alias name
+
 2.0.3 (2018-07-27)
 ------------------
 

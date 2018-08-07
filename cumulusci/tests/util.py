@@ -62,5 +62,5 @@ class DummyOrgConfig(OrgConfig):
             name = 'test'
         super(DummyOrgConfig, self).__init__(config, name)
 
-    def refresh_oauth_token(self):
+    def refresh_oauth_token(self, keychain):
         pass
