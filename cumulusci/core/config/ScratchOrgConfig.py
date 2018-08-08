@@ -233,8 +233,11 @@ class ScratchOrgConfig(OrgConfig):
                     '\n'.join(stdout), '\n'.join(stderr))
             )
 
+    def can_delete(self):
+        return bool(self.date_created)
+
     def delete_org(self):
-        """ Uses sfdx force:org:delete to create the org """
+        """ Uses sfdx force:org:delete to delete the org """
         if not self.created:
             self.logger.info(
                 'Skipping org deletion: the scratch org has not been created')
