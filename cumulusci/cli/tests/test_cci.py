@@ -1,3 +1,4 @@
+from collections import OrderedDict
 from datetime import date
 import json
 import os
@@ -36,11 +37,11 @@ def run_click_command(cmd, *args, **kw):
 def recursive_list_files(d='.'):
     result = []
     for d, subdirs, files in os.walk(d):
-        d = d.replace(os.path.sep, '/')[2:]
-        if d:
-            result.append('/'.join([d, '']))
+        d = d.replace(os.path.sep, '/')
+        if d != '.':
+            result.append('/'.join([d, ''])[2:])
         for f in files:
-            result.append('/'.join([d, f]))
+            result.append('/'.join([d, f])[2:])
     result.sort()
     return result
 
@@ -136,10 +137,10 @@ class TestCCI(unittest.TestCase):
             })
         self.assertEqual("""\x1b[1mtest:\x1b[0m
     -
-        \x1b[1mdict:\x1b[0m
-            \x1b[1mkey:\x1b[0m value
         \x1b[1mlist:\x1b[0m
             - list
+        \x1b[1mdict:\x1b[0m
+            \x1b[1mkey:\x1b[0m value
         \x1b[1mstr:\x1b[0m str""", '\n'.join(out))
 
     @mock.patch('cumulusci.cli.cci.webbrowser')
@@ -224,6 +225,7 @@ class TestCCI(unittest.TestCase):
             run_click_command(cci.project_init, obj=config)
 
             # Make sure expected files/dirs were created
+            print recursive_list_files()
             self.assertEqual([
                 '.git/',
                 'cumulusci.yml',
