@@ -38,9 +38,9 @@ def recursive_list_files(d='.'):
     for d, subdirs, files in os.walk(d):
         d = d.replace(os.path.sep, '/')[2:]
         if d:
-            result.append('/'.join(d, ''))
+            result.append('/'.join([d, '']))
         for f in files:
-            result.append('/'.join(d, f))
+            result.append('/'.join([d, f]))
     result.sort()
     return result
 
