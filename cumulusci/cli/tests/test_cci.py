@@ -225,7 +225,6 @@ class TestCCI(unittest.TestCase):
             run_click_command(cci.project_init, obj=config)
 
             # Make sure expected files/dirs were created
-            print recursive_list_files()
             self.assertEqual([
                 '.git/',
                 'cumulusci.yml',
