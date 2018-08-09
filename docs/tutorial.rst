@@ -251,7 +251,8 @@ Creating a Connected App
 First, you will need to create a Salesforce Connected App with the following steps:
 
 * In a Salesforce Org, go to Setup -> Create -> Apps
-* Click "New" under Connected Apps
+  * In Lightning, go to Setup -> Apps -> App Manager
+* Click "New" under Connected Apps or in Lightning "New Connected App"
 
   * Enter a unique value for the Name and API Name field
   * Enter a Contact Email
