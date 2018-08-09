@@ -36,11 +36,11 @@ def run_click_command(cmd, *args, **kw):
 def recursive_list_files(d='.'):
     result = []
     for d, subdirs, files in os.walk(d):
-        d = d[2:]
+        d = d.replace(os.path.sep, '/')[2:]
         if d:
-            result.append(os.path.join(d, ''))
+            result.append('/'.join(d, ''))
         for f in files:
-            result.append(os.path.join(d, f))
+            result.append('/'.join(d, f))
     result.sort()
     return result
 
@@ -127,11 +127,11 @@ class TestCCI(unittest.TestCase):
         with mock.patch('click.echo', out.append):
             cci.render_recursive({
                 'test': [
-                    {
-                        'list': ['list'],
-                        'dict': {'key': 'value'},
-                        'str': 'str',
-                    },
+                    OrderedDict((
+                        ('list', ['list']),
+                        ('dict', {'key': 'value'}),
+                        ('str', 'str'),
+                    )),
                 ]
             })
         self.assertEqual("""\x1b[1mtest:\x1b[0m
@@ -239,12 +239,16 @@ class TestCCI(unittest.TestCase):
                 'tests/standard_objects/create_contact.robot'
             ], recursive_list_files())
 
+            os.chdir('..')
+
     def test_project_init_no_git(self):
         with temporary_dir() as d:
             os.chdir(d)
 
             with self.assertRaises(click.ClickException):
                 run_click_command(cci.project_init)
+
+            os.chdir('..')
 
     def test_project_init_already_initted(self):
         with temporary_dir() as d:
@@ -255,6 +259,7 @@ class TestCCI(unittest.TestCase):
 
             with self.assertRaises(click.ClickException):
                 run_click_command(cci.project_init)
+            os.chdir('..')
 
     @mock.patch('click.echo')
     def test_project_info(self, echo):
