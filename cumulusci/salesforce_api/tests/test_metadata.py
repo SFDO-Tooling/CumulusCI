@@ -140,7 +140,7 @@ class BaseTestMetadataApi(unittest.TestCase):
             'id': 'https://login.salesforce.com/id/00D000000000000ABC/005000000000000ABC',
         }
         task = self._create_task(org_config=org_config)
-        api_version = "42.0"
+        api_version = "43.0"
         api = self._create_instance(task, api_version=api_version) 
         self.assertEquals(
             api._build_endpoint_url(),
