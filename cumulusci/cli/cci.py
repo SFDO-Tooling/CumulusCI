@@ -13,7 +13,7 @@ import time
 
 try:
     import anydbm as dbm
-except ImportError:
+except ImportError:  # pragma: nocover; python 3
     import dbm.ndbm as dbm
 
 from contextlib import contextmanager
@@ -67,7 +67,7 @@ def dbm_cache():
         os.path.expanduser('~'),
         YamlGlobalConfig.config_local_dir,
     )
-        
+
     if not os.path.exists(config_dir):
         os.mkdir(config_dir)
 
@@ -92,16 +92,6 @@ def get_latest_version():
     return pkg_resources.parse_version(res['info']['version'])
 
 
-def get_org(config, org_name=None):
-    if org_name:
-        org_config = config.keychain.get_org(org_name)
-    else:
-        org_name, org_config = config.project_config.keychain.get_default_org()
-        if not org_config:
-            raise click.UsageError('No org specified and no default org set.')
-    return org_name, org_config
-
-
 def check_latest_version():
     """ checks for the latest version of cumulusci from pypi, max once per hour """
     check = True
@@ -112,30 +102,20 @@ def check_latest_version():
             check = delta > 3600
 
     if check:
-        result = get_latest_version() > get_installed_version()
+        try:
+            latest_version = get_latest_version()
+        except requests.exceptions.RequestException as e:
+            click.echo('Error checking cci version:')
+            click.echo(e.message)
+            return
+
+        result = latest_version > get_installed_version()
         click.echo('Checking the version!')
         if result:
             click.echo(
                 "An update to CumulusCI is available. Use pip install --upgrade cumulusci to update.")
 
-def check_org_expired(config, org_name, org_config):
-    if org_config.scratch and org_config.date_created and org_config.expired:
-        click.echo(click.style('The scratch org is expired', fg='yellow'))
-        if click.confirm('Attempt to recreate the scratch org?', default=True):
-            config.keychain.create_scratch_org(
-                org_name,
-                org_config.config_name,
-                org_config.days,
-            )
-            click.echo('Org config was refreshed, attempting to recreate scratch org')
-            org_config = config.keychain.get_org(org_name)
-            org_config.create_org()
-        else:
-            raise click.ClickException('The target scratch org is expired.  You can use cci org remove {} to remove the org and then recreate the config manually'.format(org_name))
-
-    return org_config
-
-def handle_exception_debug(config, debug, e, throw_exception=None, no_prompt=None):
+def handle_exception_debug(config, debug, throw_exception=None, no_prompt=None):
     if debug:
         import pdb
         import traceback
@@ -154,44 +134,22 @@ def render_recursive(data, indent=None):
     indent_str = ' ' * indent
     if isinstance(data, list):
         for item in data:
-            render_recursive(item, indent=indent+4)
+            if isinstance(item, basestring):
+                click.echo('{}- {}'.format(indent_str, item))
+            else:
+                click.echo('{}-'.format(indent_str))
+                render_recursive(item, indent=indent + 4)
     elif isinstance(data, dict):
         for key, value in data.items():
             key_str = click.style(unicode(key) + ':', bold=True)
             if isinstance(value, list):
-                render_recursive(value, indent=indent+4)
+                click.echo('{}{}'.format(indent_str, key_str))
+                render_recursive(value, indent=indent + 4)
             elif isinstance(value, dict):
                 click.echo('{}{}'.format(indent_str, key_str))
-                render_recursive(value, indent=indent+4)
+                render_recursive(value, indent=indent + 4)
             else:
                 click.echo('{}{} {}'.format(indent_str, key_str, value))
-
-def check_org_overwrite(config, org_name):
-    try:
-        org = config.keychain.get_org(org_name)
-        if org.scratch:
-            if org.created:
-                raise click.ClickException('Scratch org has already been created. Use `cci org scratch_delete {}`'.format(org_name))
-        else:
-            raise click.ClickException(
-                'Org {} already exists.  Use `cci org remove` to delete it.'.format(org_name)
-            )
-    except OrgNotFound:
-        pass
-    return True
-
-def check_keychain(config):
-    check_project_config(config)
-    if config.project_config.keychain and config.project_config.keychain.encrypted and not config.keychain_key:
-        raise click.UsageError(
-            'You must set the environment variable CUMULUSCI_KEY with the encryption key to be used for storing org credentials')
-
-
-def check_project_config(config):
-    if not config.project_config:
-        raise click.UsageError(
-            'No project configuration found.  You can use the "project init" command to initilize the project for use with CumulusCI')
-
 
 def handle_sentry_event(config, no_prompt):
     event = config.project_config.sentry_event
@@ -211,17 +169,13 @@ def handle_sentry_event(config, no_prompt):
     if not no_prompt and click.confirm(click.style('Do you want to open a browser to view the error in sentry.io?', bold=True)):
         webbrowser.open(event_url)
 
-# Root command
 
+# Root command
 
 @click.group('main')
 @click.pass_context
 def main(ctx):
-    try:
-        check_latest_version()
-    except requests.exceptions.RequestException as e:
-        click.echo('Error checking cci version:')
-        click.echo(e.message) 
+    check_latest_version()
 
     try:
         config = CliConfig()
@@ -230,11 +184,9 @@ def main(ctx):
         sys.exit(1)
     ctx.obj = config
 
-
 @click.command(name='version', help='Print the current version of CumulusCI')
 def version():
     click.echo(cumulusci.__version__)
-
 
 @click.command(name='shell', help='Drop into a python shell')
 @click.pass_obj
@@ -242,32 +194,28 @@ def version():
 def shell(ctx, config):
     code.interact(local=dict(globals(), **locals()))
 
-# Top Level Groups
 
+# Top Level Groups
 
 @click.group('project', help="Commands for interacting with project repository configurations")
 @click.pass_obj
 def project(config):
     pass
 
-
 @click.group('org', help="Commands for connecting and interacting with Salesforce orgs")
 @click.pass_obj
 def org(config):
     pass
-
 
 @click.group('task', help="Commands for finding and running tasks for a project")
 @click.pass_obj
 def task(config):
     pass
 
-
 @click.group('flow', help="Commands for finding and running flows for a project")
 @click.pass_obj
 def flow(config):
     pass
-
 
 @click.group('service', help="Commands for connecting services to the keychain")
 @click.pass_obj
@@ -282,15 +230,14 @@ main.add_command(version)
 main.add_command(shell)
 main.add_command(service)
 
-# Commands for group: project
 
+# Commands for group: project
 
 @click.command(name='init',
                help="Initialize a new project for use with the cumulusci toolbelt",
                )
-@click.option('--extend', help="If set to the url of another Github repository configured for CumulusCI, creates this project as an extension which depends on the other Github project and all its dependencies")
 @click.pass_obj
-def project_init(config, extend):
+def project_init(config):
     if not os.path.isdir('.git'):
         raise click.ClickException("You are not in the root of a Git repository")
 
@@ -339,14 +286,14 @@ def project_init(config, extend):
         click.echo("  2: NPSP (https://github.com/SalesforceFoundation/Cumulus)")
         click.echo("  3: Github URL (provide a URL to a Github repository configured for CumulusCI)")
         selection = click.prompt(click.style('Enter your selection', bold=True))
-        if selection == '1':
-            dependencies.append({'type': 'github', 'url': 'https://github.com/SalesforceFoundation/HEDAP'})
-        elif selection == '2':
-            dependencies.append({'type': 'github', 'url': 'https://github.com/SalesforceFoundation/Cumulus'})
-        else:
+        github_url = {
+            '1': 'https://github.com/SalesforceFoundation/HEDAP',
+            '2': 'https://github.com/SalesforceFoundation/Cumulus',
+        }.get(selection)
+        if github_url is None:
             print(selection)
             github_url = click.prompt(click.style('Enter the Github Repository URL', bold=True))
-            dependencies.append({'type': 'github', 'url': github_url})
+        dependencies.append({'type': 'github', 'url': github_url})
     context['dependencies'] = dependencies
 
     # Git Configuration
@@ -388,7 +335,7 @@ def project_init(config, extend):
     template = env.get_template('cumulusci.yml')
     with open('cumulusci.yml','w') as f:
         f.write(template.render(**context))
-    
+
     # Create src directory
     if not os.path.isdir('src'):
         os.mkdir('src')
@@ -408,12 +355,11 @@ def project_init(config, extend):
         }
         with open('sfdx-project.json','w') as f:
             f.write(json.dumps(sfdx_project))
-    
+
     # Create orgs subdir
     if not os.path.isdir('orgs'):
         os.mkdir('orgs')
-      
-    org_content_url = 'https://raw.githubusercontent.com/SalesforceFoundation/sfdo-package-cookiecutter/master/%7B%7Bcookiecutter.project_name%7D%7D/orgs/{}.json' 
+
     template = env.get_template('scratch_def.json')
     with open(os.path.join('orgs', 'beta.json'), 'w') as f:
         f.write(template.render(
@@ -439,7 +385,7 @@ def project_init(config, extend):
             org_name = 'Release Test Org',
             edition = 'Enterprise',
         ))
-   
+
     # Create initial create_contact.robot test 
     if not os.path.isdir('tests'):
         os.mkdir('tests')
@@ -463,44 +409,28 @@ def project_init(config, extend):
         "You can use the project edit command to edit the project's config file", fg='yellow'
     ))
 
-
 @click.command(name='info', help="Display information about the current project's configuration")
 @click.pass_obj
 def project_info(config):
-    check_project_config(config)
-    click.echo(render_recursive(config.project_config.project))
-
+    config.check_project_config()
+    render_recursive(config.project_config.project)
 
 @click.command(name="dependencies", help="Displays the current dependencies for the project.  If the dependencies section has references to other github repositories, the repositories are inspected and a static list of dependencies is created")
 @click.pass_obj
 def project_dependencies(config):
-    check_project_config(config)
+    config.check_project_config()
     dependencies = config.project_config.get_static_dependencies()
     for line in config.project_config.pretty_dependencies(dependencies):
         if ' headers:' in line:
             continue
         click.echo(line)
 
-
-@click.command(name='list', help="List projects and their locations")
-@click.pass_obj
-def project_list(config):
-    pass
-
-
-@click.command(name='cd', help="Change to the project's directory")
-@click.pass_obj
-def project_cd(config):
-    pass
-
 project.add_command(project_init)
 project.add_command(project_info)
 project.add_command(project_dependencies)
-# project.add_command(project_list)
-# project.add_command(project_cd)
+
 
 # Commands for group: service
-
 
 @click.command(name='list', help='List services available for configuration and use')
 @click.pass_obj
@@ -514,7 +444,6 @@ def service_list(config):
         data.append((serv, schema['description'], is_configured))
     table = Table(data, headers)
     click.echo(table)
-
 
 class ConnectServiceCommand(click.MultiCommand):
 
@@ -539,7 +468,7 @@ class ConnectServiceCommand(click.MultiCommand):
 
         @click.pass_context
         def callback(ctx, project=False, *args, **kwargs):
-            check_keychain(config)
+            config.check_keychain()
             serv_conf = dict((k, v) for k, v in list(kwargs.items())
                              if v != None)  # remove None values
             config.keychain.set_service(
@@ -553,50 +482,41 @@ class ConnectServiceCommand(click.MultiCommand):
         ret = click.Command(name, params=params, callback=callback)
         return ret
 
-
 @click.command(cls=ConnectServiceCommand, name='connect', help='Connect a CumulusCI task service')
 @click.pass_context
 def service_connect(ctx, *args, **kvargs):
     pass
 
-
-@click.command(name='show', help='Show the details of a connected service')
+@click.command(name='info', help='Show the details of a connected service')
 @click.argument('service_name')
 @click.pass_obj
-def service_show(config, service_name):
-    check_keychain(config)
+def service_info(config, service_name):
+    config.check_keychain()
     try:
         service_config = config.keychain.get_service(service_name)
-        click.echo(render_recursive(service_config.config))
+        render_recursive(service_config.config)
     except ServiceNotConfigured:
         click.echo('{0} is not configured for this project.  Use service connect {0} to configure.'.format(
             service_name))
 
 service.add_command(service_connect)
 service.add_command(service_list)
-service.add_command(service_show)
+service.add_command(service_info)
+
 
 # Commands for group: org
-
 
 @click.command(name='browser', help="Opens a browser window and logs into the org using the stored OAuth credentials")
 @click.argument('org_name', required=False)
 @click.pass_obj
 def org_browser(config, org_name):
-
-    org_name, org_config = get_org(config, org_name)
-    org_config = check_org_expired(config, org_name, org_config)
-
-    try:
-        org_config.refresh_oauth_token(config.keychain)
-    except ScratchOrgException as e:
-        raise click.ClickException('ScratchOrgException: {}'.format(e.message))
+    org_name, org_config = config.get_org(org_name)
+    org_config.refresh_oauth_token(config.keychain)
 
     webbrowser.open(org_config.start_url)
 
     # Save the org config in case it was modified
     config.keychain.set_org(org_config)
-
 
 @click.command(name='connect', help="Connects a new org's credentials using OAuth Web Flow")
 @click.argument('org_name')
@@ -606,7 +526,7 @@ def org_browser(config, org_name):
 @click.option('--global-org', help='Set True if org should be used by any project', is_flag=True)
 @click.pass_obj
 def org_connect(config, org_name, sandbox, login_url, default, global_org):
-    check_org_overwrite(config, org_name)
+    config.check_org_overwrite(org_name)
 
     try:
         connected_app = config.keychain.get_service('connected_app')
@@ -637,7 +557,6 @@ def org_connect(config, org_name, sandbox, login_url, default, global_org):
         org = config.keychain.set_default_org(org_name)
         click.echo('{} is now the default org'.format(org_name))
 
-
 @click.command(name='default', help="Sets an org as the default org for tasks and flows")
 @click.argument('org_name')
 @click.option('--unset', is_flag=True, help="Unset the org as the default org leaving no default org selected")
@@ -645,39 +564,31 @@ def org_connect(config, org_name, sandbox, login_url, default, global_org):
 def org_default(config, org_name, unset):
 
     if unset:
-        org = config.keychain.unset_default_org()
+        config.keychain.unset_default_org()
         click.echo(
             '{} is no longer the default org.  No default org set.'.format(org_name))
     else:
-        org = config.keychain.set_default_org(org_name)
+        config.keychain.set_default_org(org_name)
         click.echo('{} is now the default org'.format(org_name))
-
 
 @click.command(name='info', help="Display information for a connected org")
 @click.argument('org_name', required=False)
 @click.option('print_json', '--json', is_flag=True, help="Print as JSON")
 @click.pass_obj
 def org_info(config, org_name, print_json):
-
-    org_name, org_config = get_org(config, org_name)
-    org_config = check_org_expired(config, org_name, org_config)
-
-    try:
-        org_config.refresh_oauth_token(config.keychain)
-    except ScratchOrgException as e:
-        raise click.ClickException('ScratchOrgException: {}'.format(e.message))
+    org_name, org_config = config.get_org(org_name)
+    org_config.refresh_oauth_token(config.keychain)
 
     if print_json:
         click.echo(json.dumps(org_config.config, sort_keys=True, indent=4))
     else:
-        click.echo(render_recursive(org_config.config))
+        render_recursive(org_config.config)
 
-    if org_config.scratch and org_config.expires:
-        click.echo('Org expires on {:%c}'.format(org_config.expires))
-        
+        if org_config.scratch and org_config.expires:
+            click.echo('Org expires on {:%c}'.format(org_config.expires))
+
     # Save the org config in case it was modified
     config.keychain.set_org(org_config)
-
 
 @click.command(name='list', help="Lists the connected orgs for the current project")
 @click.pass_obj
@@ -706,33 +617,31 @@ def org_list(config):
 @click.option('--global-org', is_flag=True, help="Set this option to force remove a global org.  Default behavior is to error if you attempt to delete a global org.")
 @click.pass_obj
 def org_remove(config, org_name, global_org):
-
     try:
         org_config = config.keychain.get_org(org_name)
-        if isinstance(org_config, ScratchOrgConfig):
-            if org_config.date_created:
-                # attempt to delete the org
-                try:
-                    click.echo("A scratch org was already created, attempting to delete...")
-                    org_config.delete_org()
-                except Exception as e:
-                    click.echo("Deleting scratch org failed with error:")
-                    click.echo(e)
     except OrgNotFound:
         raise click.ClickException('Org {} does not exist in the keychain'.format(org_name))
+
+    if org_config.can_delete():
+        click.echo("A scratch org was already created, attempting to delete...")
+        try:
+            org_config.delete_org()
+        except Exception as e:
+            click.echo("Deleting scratch org failed with error:")
+            click.echo(e)
+
     config.keychain.remove_org(org_name, global_org)
 
 @click.command(name='scratch', help="Connects a Salesforce DX Scratch Org to the keychain")
 @click.argument('config_name')
 @click.argument('org_name')
 @click.option('--default', is_flag=True, help='If set, sets the connected org as the new default org')
-@click.option('--delete', is_flag=True, help="If set, triggers a deletion of the current scratch org.  This can be used to reset the org as the org configuration remains to regenerate the org on the next task run.")
 @click.option('--devhub', help="If provided, overrides the devhub used to create the scratch org")
 @click.option('--days', help="If provided, overrides the scratch config default days value for how many days the scratch org should persist")
 @click.option('--no-password', is_flag=True, help="If set, don't set a password for the org")
 @click.pass_obj
-def org_scratch(config, config_name, org_name, default, delete, devhub, days, no_password):
-    check_org_overwrite(config, org_name)
+def org_scratch(config, config_name, org_name, default, devhub, days, no_password):
+    config.check_org_overwrite(org_name)
 
     scratch_configs = getattr(config.project_config, 'orgs__scratch')
     if not scratch_configs:
@@ -758,7 +667,6 @@ def org_scratch(config, config_name, org_name, default, delete, devhub, days, no
         org = config.keychain.set_default_org(org_name)
         click.echo('{} is now the default org'.format(org_name))
 
-
 @click.command(name='scratch_delete', help="Deletes a Salesforce DX Scratch Org leaving the config in the keychain for regeneration")
 @click.argument('org_name')
 @click.pass_obj
@@ -770,10 +678,9 @@ def org_scratch_delete(config, org_name):
     try:
         org_config.delete_org()
     except ScratchOrgException as e:
-        exception = click.UsageError(e.message)
+        raise click.UsageError(e.message)
 
     config.keychain.set_org(org_config)
-
 
 org.add_command(org_browser)
 org.add_command(org_connect)
@@ -784,20 +691,19 @@ org.add_command(org_remove)
 org.add_command(org_scratch)
 org.add_command(org_scratch_delete)
 
-# Commands for group: task
 
+# Commands for group: task
 
 @click.command(name='list', help="List available tasks for the current context")
 @click.pass_obj
 def task_list(config):
-    check_project_config(config)
+    config.check_project_config()
     data = []
     headers = ['task', 'description']
     for task in config.project_config.list_tasks():
         data.append((task['name'], task['description']))
     table = Table(data, headers)
     click.echo(table)
-
 
 @click.command(name='doc', help="Exports RST format documentation for all tasks")
 @click.pass_obj
@@ -810,12 +716,11 @@ def task_doc(config):
         click.echo(doc)
         click.echo('')
 
-
 @click.command(name='info', help="Displays information for a task")
 @click.argument('task_name')
 @click.pass_obj
 def task_info(config, task_name):
-    check_project_config(config)
+    config.check_project_config()
     task_config = getattr(config.project_config, 'tasks__{}'.format(task_name))
     if not task_config:
         raise TaskNotFoundError('Task not found: {}'.format(task_name))
@@ -823,7 +728,6 @@ def task_info(config, task_name):
     task_config = TaskConfig(task_config)
     doc = doc_task(task_name, task_config).encode()
     click.echo(rst2ansi(doc))
-
 
 @click.command(name='run', help="Runs a task")
 @click.argument('task_name')
@@ -836,15 +740,10 @@ def task_info(config, task_name):
 @click.pass_obj
 def task_run(config, task_name, org, o, debug, debug_before, debug_after, no_prompt):
     # Check environment
-    check_keychain(config)
+    config.check_keychain()
 
     # Get necessary configs
-    if org:
-        org_config = config.project_config.get_org(org)
-    else:
-        org, org_config = config.project_config.keychain.get_default_org()
-    if org_config:
-        org_config = check_org_expired(config, org, org_config)
+    org, org_config = config.get_org(org, fail_if_missing=False)
     task_config = getattr(config.project_config, 'tasks__{}'.format(task_name))
     if not task_config:
         raise TaskNotFoundError('Task not found: {}'.format(task_name))
@@ -857,10 +756,7 @@ def task_run(config, task_name, org, o, debug, debug_before, debug_after, no_pro
     if o:
         if 'options' not in task_config:
             task_config['options'] = {}
-        for option in o:
-            name = option[0]
-            value = option[1]
-
+        for name, value in o:
             # Validate the option
             if name not in task_class.task_options:
                 raise click.UsageError(
@@ -874,60 +770,34 @@ def task_run(config, task_name, org, o, debug, debug_before, debug_after, no_pro
             task_config['options'][name] = value
 
     task_config = TaskConfig(task_config)
-    exception = None
 
     # Create and run the task
     try:
         task = task_class(config.project_config,
                           task_config, org_config=org_config)
-    except TaskRequiresSalesforceOrg as e:
-        exception = click.UsageError(
-            'This task requires a salesforce org.  Use org default <name> to set a default org or pass the org name with the --org option')
-    except TaskOptionsError as e:
+
+        if debug_before:
+            import pdb
+            pdb.set_trace()
+
+        task()
+
+        if debug_after:
+            import pdb
+            pdb.set_trace()
+
+    except (TaskRequiresSalesforceOrg, TaskOptionsError) as e:
+        # Usage error; report with usage line and no traceback
         exception = click.UsageError(e.message)
-        handle_exception_debug(config, debug, e, throw_exception=exception)
-    except Exception as e:
-        handle_exception_debug(config, debug, e, no_prompt=no_prompt)
-
-    if debug_before:
-        import pdb
-        pdb.set_trace()
-
-    if not exception:
-        try:
-            task()
-        except TaskOptionsError as e:
-            exception = click.UsageError(e.message)
-            handle_exception_debug(config, debug, e, throw_exception=exception)
-        except ApexTestException as e:
-            exception = click.ClickException('Failed: ApexTestFailure')
-            handle_exception_debug(config, debug, e, throw_exception=exception)
-        except BrowserTestFailure as e:
-            exception = click.ClickException('Failed: BrowserTestFailure')
-            handle_exception_debug(config, debug, e, throw_exception=exception)
-        except MetadataComponentFailure as e:
-            exception = click.ClickException(
-                'Failed: MetadataComponentFailure'
-            )
-            handle_exception_debug(config, debug, e, throw_exception=exception)
-        except MetadataApiError as e:
-            exception = click.ClickException('Failed: MetadataApiError')
-            handle_exception_debug(config, debug, e, throw_exception=exception)
-        except ScratchOrgException as e:
-            exception = click.ClickException(
-                'ScratchOrgException: {}'.format(e.message))
-            handle_exception_debug(config, debug, e, throw_exception=exception)
-        except Exception as e:
-            handle_exception_debug(config, debug, e, no_prompt=no_prompt)
-
-    if debug_after:
-        import pdb
-        pdb.set_trace()
-
-    if exception:
-        handle_sentry_event(config, no_prompt)
-        raise exception
-
+        handle_exception_debug(config, debug, throw_exception=exception)
+    except (ApexTestException, BrowserTestFailure, MetadataComponentFailure,
+            MetadataApiError, ScratchOrgException) as e:
+        # Expected failure; report without traceback
+        exception = click.ClickException('Failed: {}'.format(e.__class__.__name__))
+        handle_exception_debug(config, debug, throw_exception=exception)
+    except Exception:
+        # Unexpected exception; log to sentry and raise
+        handle_exception_debug(config, debug, no_prompt=no_prompt)
 
 # Add the task commands to the task group
 task.add_command(task_doc)
@@ -935,13 +805,13 @@ task.add_command(task_info)
 task.add_command(task_list)
 task.add_command(task_run)
 
-# Commands for group: flow
 
+# Commands for group: flow
 
 @click.command(name='list', help="List available flows for the current context")
 @click.pass_obj
 def flow_list(config):
-    check_project_config(config)
+    config.check_project_config()
     data = []
     headers = ['flow', 'description']
     for flow in config.project_config.flows:
@@ -951,17 +821,15 @@ def flow_list(config):
     table = Table(data, headers)
     click.echo(table)
 
-
 @click.command(name='info', help="Displays information for a flow")
 @click.argument('flow_name')
 @click.pass_obj
 def flow_info(config, flow_name):
-    check_project_config(config)
+    config.check_project_config()
     flow = getattr(config.project_config, 'flows__{}'.format(flow_name))
     if not flow:
         raise FlowNotFoundError('Flow not found: {}'.format(flow_name))
-    click.echo(render_recursive(flow))
-
+    render_recursive(flow)
 
 @click.command(name='run', help="Runs a flow")
 @click.argument('flow_name')
@@ -974,20 +842,10 @@ def flow_info(config, flow_name):
 @click.pass_obj
 def flow_run(config, flow_name, org, delete_org, debug, o, skip, no_prompt):
     # Check environment
-    check_keychain(config)
+    config.check_keychain()
 
     # Get necessary configs
-    if org:
-        org_config = config.project_config.get_org(org)
-    else:
-        org, org_config = config.project_config.keychain.get_default_org()
-        if not org_config:
-            raise click.UsageError(
-                '`cci flow run` requires an org.'
-                ' No org was specified and default org is not set.'
-            )
-
-    org_config = check_org_expired(config, org, org_config)
+    org, org_config = config.get_org(org)
     
     if delete_org and not org_config.scratch:
         raise click.UsageError(
@@ -995,18 +853,14 @@ def flow_run(config, flow_name, org, delete_org, debug, o, skip, no_prompt):
 
     flow = getattr(config.project_config, 'flows__{}'.format(flow_name))
     if not flow:
-        raise FlowNotFoundError('Flow not found: {}'.format(flow_name))
-    flow_config = FlowConfig(flow)
-    if not flow_config.config:
         raise click.UsageError(
             'No configuration found for flow {}'.format(flow_name))
+    flow_config = FlowConfig(flow)
 
     # Get the class to look up options
     class_path = flow_config.config.get(
         'class_path', 'cumulusci.core.flows.BaseFlow')
     flow_class = import_class(class_path)
-
-    exception = None
 
     # Parse command line options and add to task config
     options = {}
@@ -1018,43 +872,17 @@ def flow_run(config, flow_name, org, delete_org, debug, o, skip, no_prompt):
     try:
         flow = flow_class(config.project_config, flow_config,
                           org_config, options, skip, name=flow_name)
-    except TaskRequiresSalesforceOrg as e:
-        exception = click.UsageError(
-            'This flow requires a salesforce org.  Use org default <name> to set a default org or pass the org name with the --org option')
-    except TaskOptionsError as e:
-        exception = click.UsageError(e.message)
-        handle_exception_debug(config, debug, e, throw_exception=exception)
-    except Exception as e:
-        handle_exception_debug(config, debug, e, no_prompt=no_prompt)
 
-    if not exception:
-        # Run the flow and handle exceptions
-        try:
-            flow()
-        except TaskOptionsError as e:
-            exception = click.UsageError(e.message)
-            handle_exception_debug(config, debug, e, throw_exception=exception)
-        except ApexTestException as e:
-            exception = click.ClickException('Failed: ApexTestException')
-            handle_exception_debug(config, debug, e, throw_exception=exception)
-        except BrowserTestFailure as e:
-            exception = click.ClickException('Failed: BrowserTestFailure')
-            handle_exception_debug(config, debug, e, throw_exception=exception)
-        except MetadataComponentFailure as e:
-            exception = click.ClickException(
-                'Failed: MetadataComponentFailure'
-            )
-            handle_exception_debug(config, debug, e, throw_exception=exception)
-        except MetadataApiError as e:
-            exception = click.ClickException('Failed: MetadataApiError')
-            handle_exception_debug(config, debug, e, throw_exception=exception)
-        except ScratchOrgException as e:
-            exception = click.ClickException(
-                'ScratchOrgException: {}'.format(e.message)
-            )
-            handle_exception_debug(config, debug, e, throw_exception=exception)
-        except Exception as e:
-            handle_exception_debug(config, debug, e, no_prompt=no_prompt)
+        flow()
+    except (TaskRequiresSalesforceOrg, TaskOptionsError) as e:
+        exception = click.UsageError(e.message)
+        handle_exception_debug(config, debug, throw_exception=exception)
+    except (ApexTestException, BrowserTestFailure, MetadataComponentFailure,
+            MetadataApiError, ScratchOrgException) as e:
+        exception = click.ClickException('Failed: {}'.format(e.__class__.__name__))
+        handle_exception_debug(config, debug, throw_exception=exception)
+    except Exception:
+        handle_exception_debug(config, debug, no_prompt=no_prompt)
 
     # Delete the scratch org if --delete-org was set
     if delete_org:
@@ -1064,10 +892,6 @@ def flow_run(config, flow_name, org, delete_org, debug, o, skip, no_prompt):
             click.echo(
                 'Scratch org deletion failed.  Ignoring the error below to complete the flow:')
             click.echo(e.message)
-
-    if exception:
-        handle_sentry_event(config, no_prompt)
-        raise exception
 
 flow.add_command(flow_list)
 flow.add_command(flow_info)
