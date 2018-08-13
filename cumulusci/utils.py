@@ -81,7 +81,7 @@ def removeXmlElement(name, directory, file_pattern, logger=None):
 def remove_xml_element_file(name, path):
     """ Remove XML elements from a single file """
     ET.register_namespace('', 'http://soap.sforce.com/2006/04/metadata')
-    tree = ET.parse(path)
+    tree = elementtree_parse_file(path)
     tree = remove_xml_element(name, tree)
     return tree.write(
         path,

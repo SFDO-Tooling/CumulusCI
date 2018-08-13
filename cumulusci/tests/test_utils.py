@@ -107,6 +107,27 @@ class TestUtils(unittest.TestCase):
             )
             self.assertEqual(expected, result)
 
+    @mock.patch('xml.etree.ElementTree.parse')
+    def test_remove_xml_element_parse_error(self, mock_parse):
+        err = ET.ParseError()
+        err.msg = 'it broke'
+        err.lineno = 1
+        mock_parse.side_effect = err
+        with utils.temporary_dir() as d:
+            path = os.path.join(d, 'test.xml')
+            with open(path, 'w') as f:
+                f.write(
+                    '<?xml version="1.0" ?>'
+                    '<root xmlns="http://soap.sforce.com/2006/04/metadata">'
+                    '<tag>text</tag></root>'
+                )
+            try:
+                utils.removeXmlElement('tag', d, '*')
+            except ET.ParseError as err:
+                self.assertEqual(str(err), 'it broke (test.xml, line 1)')
+            else:
+                self.fail('Expected ParseError')
+
     def test_remove_xml_element_not_found(self):
         tree = ET.fromstring('<root />')
         result = utils.remove_xml_element('tag', tree)
