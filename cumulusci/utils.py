@@ -266,26 +266,24 @@ def zip_clean_metaxml(zip_src, logger=None):
     """
     zip_dest = zipfile.ZipFile(io.BytesIO(), 'w', zipfile.ZIP_DEFLATED)
     changed = []
+    clean_dirs = ('classes/', 'triggers/', 'pages/', 'aura/')
     for name in zip_src.namelist():
         content = zip_src.read(name)
-        if not name.endswith('-meta.xml'):
-            zip_dest.writestr(name, content)
-            continue
-        if not name.startswith('classes/') and not name.startswith('triggers/'):
-            zip_dest.writestr(name, content)
-            continue
-        try:
-            clean_content = remove_xml_element_string(
-                'packageVersions',
-                zip_src.read(name),
-            )
-            if clean_content != content:
-                changed.append(name)
+        if name.startswith(clean_dirs) and name.endswith('-meta.xml'):
+            try:
+                clean_content = remove_xml_element_string(
+                    'packageVersions',
+                    zip_src.read(name),
+                )
+                if clean_content != content:
+                    changed.append(name)
 
-            zip_dest.writestr(name, clean_content)
-        except UnicodeDecodeError:
-            # if we cannot decode the content, don't try and replace it.
-            pass
+                zip_dest.writestr(name, clean_content)
+            except UnicodeDecodeError:
+                # if we cannot decode the content, don't try and replace it.
+                pass
+        else:
+            zip_dest.writestr(name, content)
     if changed and logger:
         logger.info(
             'Cleaned package versions from {} meta.xml files'.format(

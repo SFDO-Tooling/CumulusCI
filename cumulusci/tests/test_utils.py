@@ -266,6 +266,7 @@ class TestUtils(unittest.TestCase):
         zf = utils.zip_clean_metaxml(zf, logger=logger)
         result = zf.read('classes/test-meta.xml')
         self.assertNotIn('packageVersions', result)
+        self.assertIn('other/test-meta.xml', zf.namelist())
 
     def test_doc_task(self):
         task_config = TaskConfig({
