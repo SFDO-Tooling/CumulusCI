@@ -18,6 +18,7 @@ import xml.etree.ElementTree as ET
 CUMULUSCI_PATH = os.path.realpath(
     os.path.join(os.path.dirname(os.path.realpath(__file__)), '..')
 )
+META_XML_CLEAN_DIRS = ('classes/', 'triggers/', 'pages/', 'aura/', 'components/')
 
 
 def findReplace(find, replace, directory, filePattern, logger=None, max=None):
@@ -266,10 +267,9 @@ def zip_clean_metaxml(zip_src, logger=None):
     """
     zip_dest = zipfile.ZipFile(io.BytesIO(), 'w', zipfile.ZIP_DEFLATED)
     changed = []
-    clean_dirs = ('classes/', 'triggers/', 'pages/', 'aura/')
     for name in zip_src.namelist():
         content = zip_src.read(name)
-        if name.startswith(clean_dirs) and name.endswith('-meta.xml'):
+        if name.startswith(META_XML_CLEAN_DIRS) and name.endswith('-meta.xml'):
             try:
                 clean_content = remove_xml_element_string(
                     'packageVersions',
