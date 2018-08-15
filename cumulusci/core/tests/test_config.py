@@ -261,7 +261,8 @@ class TestBaseTaskFlowConfig(unittest.TestCase):
                 'control': {},
             },
             'flows' : {
-                'coffee': {'description': 'Coffee Flow'}
+                'coffee': {'description': 'Coffee Flow'},
+                'juice': {'description': 'Juice Flow'}
             }
         })
 
@@ -287,4 +288,10 @@ class TestBaseTaskFlowConfig(unittest.TestCase):
 
     @nose.tools.raises(FlowNotFoundError)
     def test_no_flow(self):
-        flow = self.task_flow_config.get_flow('water')
+        _ = self.task_flow_config.get_flow('water')
+
+    def test_list_flows(self):
+        flows = self.task_flow_config.list_flows()
+        self.assertEqual(len(flows), 2)
+        coffee = [flow for flow in flows if flow['name'] == 'coffee'][0]
+        self.assertEqual(coffee['description'], 'Coffee Flow')
