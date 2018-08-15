@@ -37,4 +37,6 @@ class BaseTaskFlowConfig(BaseConfig):
     def get_flow(self, name):
         """ Returns a FlowConfig """
         config = getattr(self, 'flows__{}'.format(name))
+        if not config:
+            raise FlowNotFoundError('Flow not found: {}'.format(name))
         return FlowConfig(config)
