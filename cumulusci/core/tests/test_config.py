@@ -280,3 +280,11 @@ class TestBaseTaskFlowConfig(unittest.TestCase):
     def test_no_task(self):
         _ = self.task_flow_config.get_task('robotic_superstar')
 
+    def test_get_flow(self):
+        flow = self.task_flow_config.get_flow('coffee')
+        self.assertIsInstance(flow, BaseConfig)
+        self.assertDictContainsSubset({'description': 'Coffee Flow'}, flow.config)
+
+    @nose.tools.raises(FlowNotFoundError)
+    def test_no_flow(self):
+        flow = self.task_flow_config.get_flow('water')

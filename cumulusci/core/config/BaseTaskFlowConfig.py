@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 from cumulusci.core.config.BaseConfig import BaseConfig
 from cumulusci.core.config.FlowConfig import FlowConfig
 from cumulusci.core.config.TaskConfig import TaskConfig
-from cumulusci.core.exceptions import TaskNotFoundError
+from cumulusci.core.exceptions import TaskNotFoundError, FlowNotFoundError
 
 
 class BaseTaskFlowConfig(BaseConfig):
