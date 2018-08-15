@@ -32,6 +32,14 @@ class BaseTaskFlowConfig(BaseConfig):
     def list_flows(self):
         """ Returns a list of flow info dictionaries with keys 'name' and 'description' """
         flows = []
+        for flow in list(self.flows.keys()):
+            flow_info = self.flows[flow]
+            if not flow_info:
+                flow_info = {}
+            flows.append({
+                'name': flow,
+                'description': flow_info.get('description')
+            })
         return flows
 
     def get_flow(self, name):
