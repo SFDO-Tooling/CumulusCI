@@ -12,7 +12,7 @@ class BaseTaskFlowConfig(BaseConfig):
     def list_tasks(self):
         """ Returns a list of task info dictionaries with keys 'name' and 'description' """
         tasks = []
-        for task in list(self.tasks.keys()):
+        for task in self.tasks:
             task_info = self.tasks[task]
             if not task_info:
                 task_info = {}
@@ -32,7 +32,7 @@ class BaseTaskFlowConfig(BaseConfig):
     def list_flows(self):
         """ Returns a list of flow info dictionaries with keys 'name' and 'description' """
         flows = []
-        for flow in list(self.flows.keys()):
+        for flow in self.flows:
             flow_info = self.flows[flow]
             if not flow_info:
                 flow_info = {}

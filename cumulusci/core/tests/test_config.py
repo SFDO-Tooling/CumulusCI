@@ -277,18 +277,18 @@ class TestBaseTaskFlowConfig(unittest.TestCase):
         self.assertIsInstance(task, BaseConfig)
         self.assertDictContainsSubset({'description': 'Deploy Task'}, task.config)
 
-    @nose.tools.raises(TaskNotFoundError)
     def test_no_task(self):
-        _ = self.task_flow_config.get_task('robotic_superstar')
+        with self.assertRaises(TaskNotFoundError):
+            self.task_flow_config.get_task('robotic_superstar')
 
     def test_get_flow(self):
         flow = self.task_flow_config.get_flow('coffee')
         self.assertIsInstance(flow, BaseConfig)
         self.assertDictContainsSubset({'description': 'Coffee Flow'}, flow.config)
 
-    @nose.tools.raises(FlowNotFoundError)
     def test_no_flow(self):
-        _ = self.task_flow_config.get_flow('water')
+        with self.assertRaises(FlowNotFoundError):
+            self.task_flow_config.get_flow('water')
 
     def test_list_flows(self):
         flows = self.task_flow_config.list_flows()
