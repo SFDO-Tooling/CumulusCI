@@ -2,11 +2,14 @@ from __future__ import absolute_import
 import unittest
 
 import mock
+import nose
 
 from cumulusci.core.config import BaseConfig
 from cumulusci.core.config import BaseGlobalConfig
 from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.config import BaseTaskFlowConfig
+from cumulusci.core.config import TaskConfig
+from cumulusci.core.exceptions import TaskNotFoundError, FlowNotFoundError
 
 
 class TestBaseConfig(unittest.TestCase):
@@ -256,6 +259,9 @@ class TestBaseTaskFlowConfig(unittest.TestCase):
                 'deploy': {'description': 'Deploy Task'},
                 'manage': {},
                 'control': {},
+            },
+            'flows' : {
+                'coffee': {'description': 'Coffee Flow'}
             }
         })
 
@@ -264,3 +270,13 @@ class TestBaseTaskFlowConfig(unittest.TestCase):
         self.assertEqual(len(tasks), 3)
         deploy = [task for task in tasks if task['name'] == 'deploy'][0]
         self.assertEqual(deploy['description'], 'Deploy Task')
+
+    def test_get_task(self):
+        task = self.task_flow_config.get_task('deploy')
+        self.assertIsInstance(task, BaseConfig)
+        self.assertDictContainsSubset({'description': 'Deploy Task'}, task.config)
+
+    @nose.tools.raises(TaskNotFoundError)
+    def test_no_task(self):
+        _ = self.task_flow_config.get_task('robotic_superstar')
+
