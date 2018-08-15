@@ -114,6 +114,7 @@ class DummyContents(object):
     def __init__(self, content):
         self.decoded = content
 
+
 class DummyRepository(object):
     default_branch = 'master'
     _api = 'http://'
@@ -181,6 +182,7 @@ project:
     }
 )
 
+
 class DummyGithub(object):
     def repository(self, owner, name):
         if name == 'CumulusCI-Test':
@@ -190,15 +192,18 @@ class DummyGithub(object):
         else:
             raise AssertionError('Unexpected repository: {}'.format(name))
 
+
 class DummyService(object):
     password = 'password'
 
     def __init__(self, name):
         self.name = name
 
+
 class DummyKeychain(object):
     def get_service(self, name):
         return DummyService(name)
+
 
 class TestBaseProjectConfig(unittest.TestCase):
 
@@ -243,11 +248,12 @@ class TestBaseProjectConfig(unittest.TestCase):
             },
         ])
 
+
 class TestBaseTaskFlowConfig(unittest.TestCase):
     def setUp(self):
         self.task_flow_config = BaseTaskFlowConfig({
-            'tasks' : {
-                'deploy' : {'description': 'Deploy Task'},
+            'tasks': {
+                'deploy': {'description': 'Deploy Task'},
                 'manage': {},
                 'control': {},
             }
@@ -258,5 +264,3 @@ class TestBaseTaskFlowConfig(unittest.TestCase):
         self.assertEqual(len(tasks), 3)
         deploy = [task for task in tasks if task['name'] == 'deploy'][0]
         self.assertEqual(deploy['description'], 'Deploy Task')
-
-
