@@ -69,3 +69,6 @@ class OrgConfig(BaseConfig):
             self.instance_url + "/services/oauth2/userinfo", headers=headers)
         if response != self.config.get('userinfo', {}):
             self.config.update({'userinfo': response.json()})
+
+    def can_delete(self):
+        return False

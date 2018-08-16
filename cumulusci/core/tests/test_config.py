@@ -1,20 +1,15 @@
 from __future__ import absolute_import
-import os
-import shutil
-import tempfile
 import unittest
 
 import mock
 import nose
-import yaml
 
 from cumulusci.core.config import BaseConfig
-from cumulusci.core.config import YamlGlobalConfig
-from cumulusci.core.config import YamlProjectConfig
-from cumulusci.core.exceptions import NotInProject
-from cumulusci.core.exceptions import ProjectConfigNotFound
-
-__location__ = os.path.dirname(os.path.realpath(__file__))
+from cumulusci.core.config import BaseGlobalConfig
+from cumulusci.core.config import BaseProjectConfig
+from cumulusci.core.config import BaseTaskFlowConfig
+from cumulusci.core.config import TaskConfig
+from cumulusci.core.exceptions import TaskNotFoundError, FlowNotFoundError
 
 
 class TestBaseConfig(unittest.TestCase):
@@ -118,240 +113,185 @@ class TestBaseConfig(unittest.TestCase):
         self.assertEquals(config.foo, 'bar')
 
 
-@mock.patch('os.path.expanduser')
-class TestYamlGlobalConfig(unittest.TestCase):
+class DummyContents(object):
+    def __init__(self, content):
+        self.decoded = content
 
+
+class DummyRepository(object):
+    default_branch = 'master'
+    _api = 'http://'
+
+    def __init__(self, owner, name, contents):
+        self.owner = owner
+        self.name = name
+        self.html_url = 'https://github.com/{}/{}'.format(owner, name)
+        self._contents = contents
+
+    def contents(self, path, **kw):
+        try:
+            return self._contents[path]
+        except KeyError:
+            raise AssertionError(
+                'Accessed unexpected file: {}'.format(path))
+
+    def _build_url(self, *args, **kw):
+        return self._api
+
+    def _get(self, url):
+        res = mock.Mock()
+        res.json.return_value = {
+            'name': '2',
+        }
+        return res
+
+CUMULUSCI_TEST_REPO = DummyRepository(
+    'SalesforceFoundation',
+    'CumulusCI-Test',
+    {
+        'cumulusci.yml': DummyContents("""
+project:
+    name: CumulusCI-Test
+    package:
+        name: Cumulus-Test
+        namespace: ccitest
+    git:
+        repo_url: https://github.com/SalesforceFoundation/CumulusCI-Test
+    dependencies:
+        - github: https://github.com/SalesforceFoundation/CumulusCI-Test-Dep
+"""),
+        'unpackaged/pre': {'pre': ''},
+        'src': {'src': ''},
+        'unpackaged/post': {'post': ''},
+    }
+)
+
+CUMULUSCI_TEST_DEP_REPO = DummyRepository(
+    'SalesforceFoundation',
+    'CumulusCI-Test-Dep',
+    {
+        'cumulusci.yml': DummyContents("""
+project:
+    name: CumulusCI-Test-Dep
+    package:
+        name: Cumulus-Test-Dep
+        namespace: ccitestdep
+    git:
+        repo_url: https://github.com/SalesforceFoundation/CumulusCI-Test-Dep
+"""),
+        'unpackaged/pre': {},
+        'src': {},
+        'unpackaged/post': {},
+    }
+)
+
+
+class DummyGithub(object):
+    def repository(self, owner, name):
+        if name == 'CumulusCI-Test':
+            return CUMULUSCI_TEST_REPO
+        elif name == 'CumulusCI-Test-Dep':
+            return CUMULUSCI_TEST_DEP_REPO
+        else:
+            raise AssertionError('Unexpected repository: {}'.format(name))
+
+
+class DummyService(object):
+    password = 'password'
+
+    def __init__(self, name):
+        self.name = name
+
+
+class DummyKeychain(object):
+    def get_service(self, name):
+        return DummyService(name)
+
+
+class TestBaseProjectConfig(unittest.TestCase):
+
+    def test_process_github_dependency(self):
+        global_config = BaseGlobalConfig()
+        config = BaseProjectConfig(global_config)
+        config.get_github_api = DummyGithub
+        config.keychain = DummyKeychain()
+
+        result = config.process_github_dependency({
+            'github': 'https://github.com/SalesforceFoundation/CumulusCI-Test',
+            'unmanaged': True,
+        })
+        self.assertEqual(result, [
+            {
+                u'headers': {u'Authorization': u'token password'},
+                u'namespace_inject': None,
+                u'namespace_strip': None,
+                u'namespace_tokenize': None,
+                u'subfolder': u'CumulusCI-Test-master/unpackaged/pre/pre',
+                u'unmanaged': True,
+                u'zip_url': u'https://github.com/SalesforceFoundation/CumulusCI-Test/archive/master.zip',
+            },
+            {u'version': '2', u'namespace': 'ccitestdep'},
+            {
+                u'headers': {u'Authorization': u'token password'},
+                u'namespace_inject': None,
+                u'namespace_strip': None,
+                u'namespace_tokenize': None,
+                u'subfolder': u'CumulusCI-Test-master/src',
+                u'unmanaged': True,
+                u'zip_url': u'https://github.com/SalesforceFoundation/CumulusCI-Test/archive/master.zip',
+            },
+            {
+                u'headers': {u'Authorization': u'token password'},
+                u'namespace_inject': 'ccitest',
+                u'namespace_strip': None,
+                u'namespace_tokenize': None,
+                u'subfolder': u'CumulusCI-Test-master/unpackaged/post/post',
+                u'unmanaged': True,
+                u'zip_url': u'https://github.com/SalesforceFoundation/CumulusCI-Test/archive/master.zip',
+            },
+        ])
+
+
+class TestBaseTaskFlowConfig(unittest.TestCase):
     def setUp(self):
-        self.tempdir_home = tempfile.mkdtemp()
+        self.task_flow_config = BaseTaskFlowConfig({
+            'tasks': {
+                'deploy': {'description': 'Deploy Task'},
+                'manage': {},
+                'control': {},
+            },
+            'flows' : {
+                'coffee': {'description': 'Coffee Flow'},
+                'juice': {'description': 'Juice Flow'}
+            }
+        })
 
-    def _create_global_config_local(self, content):
-        self.tempdir_home = tempfile.mkdtemp()
-        global_local_dir = os.path.join(
-            self.tempdir_home,
-            '.cumulusci',
-        )
-        os.makedirs(global_local_dir)
-        filename = os.path.join(global_local_dir,
-                                YamlGlobalConfig.config_filename)
-        self._write_file(filename, content)
+    def test_list_tasks(self):
+        tasks = self.task_flow_config.list_tasks()
+        self.assertEqual(len(tasks), 3)
+        deploy = [task for task in tasks if task['name'] == 'deploy'][0]
+        self.assertEqual(deploy['description'], 'Deploy Task')
 
-    def _write_file(self, filename, content):
-        with open(filename, 'w') as f:
-            f.write(content)
+    def test_get_task(self):
+        task = self.task_flow_config.get_task('deploy')
+        self.assertIsInstance(task, BaseConfig)
+        self.assertDictContainsSubset({'description': 'Deploy Task'}, task.config)
 
-    def test_load_global_config_no_local(self, mock_class):
-        mock_class.return_value = self.tempdir_home
-        config = YamlGlobalConfig()
-        with open(__location__ + '/../../cumulusci.yml', 'r') as f_expected_config:
-            expected_config = yaml.load(f_expected_config)
-        self.assertEquals(config.config, expected_config)
+    def test_no_task(self):
+        with self.assertRaises(TaskNotFoundError):
+            self.task_flow_config.get_task('robotic_superstar')
 
-    def test_load_global_config_empty_local(self, mock_class):
-        self._create_global_config_local('')
-        mock_class.return_value = self.tempdir_home
+    def test_get_flow(self):
+        flow = self.task_flow_config.get_flow('coffee')
+        self.assertIsInstance(flow, BaseConfig)
+        self.assertDictContainsSubset({'description': 'Coffee Flow'}, flow.config)
 
-        config = YamlGlobalConfig()
-        with open(__location__ + '/../../cumulusci.yml', 'r') as f_expected_config:
-            expected_config = yaml.load(f_expected_config)
-        self.assertEquals(config.config, expected_config)
+    def test_no_flow(self):
+        with self.assertRaises(FlowNotFoundError):
+            self.task_flow_config.get_flow('water')
 
-    def test_load_global_config_with_local(self, mock_class):
-        local_yaml = 'tasks:\n    newtesttask:\n        description: test description'
-        self._create_global_config_local(local_yaml)
-        mock_class.return_value = self.tempdir_home
-
-        config = YamlGlobalConfig()
-        with open(__location__ + '/../../cumulusci.yml', 'r') as f_expected_config:
-            expected_config = yaml.load(f_expected_config)
-        expected_config['tasks']['newtesttask'] = {}
-        expected_config['tasks']['newtesttask'][
-            'description'] = 'test description'
-        self.assertEquals(config.config, expected_config)        
-
-
-@mock.patch('os.path.expanduser')
-class TestYamlProjectConfig(unittest.TestCase):
-
-    def _create_git_config(self):
-
-        filename = os.path.join(self.tempdir_project, '.git', 'config')
-        content = (
-            '[remote "origin"]\n' +
-            '  url = git@github.com:TestOwner/{}'.format(self.project_name)
-        )
-        self._write_file(filename, content)
-
-        filename = os.path.join(self.tempdir_project, '.git', 'HEAD')
-        content = 'ref: refs/heads/{}'.format(self.current_branch)
-        self._write_file(filename, content)
-
-        dirname = os.path.join(self.tempdir_project, '.git', 'refs', 'heads')
-        os.makedirs(dirname)
-        filename = os.path.join(dirname, 'master')
-        content = (self.current_commit)
-        self._write_file(filename, content)
-
-    def _create_project_config(self):
-        filename = os.path.join(
-            self.tempdir_project,
-            YamlProjectConfig.config_filename,
-        )
-        content = (
-            'project:\n' +
-            '    name: TestRepo\n' +
-            '    package:\n' +
-            '        name: TestProject\n' +
-            '        namespace: testproject\n'
-        )
-        self._write_file(filename, content)
-
-    def _create_project_config_local(self, content):
-        project_local_dir = os.path.join(
-            self.tempdir_home,
-            '.cumulusci',
-            self.project_name,
-        )
-        os.makedirs(project_local_dir)
-        filename = os.path.join(project_local_dir,
-                                YamlProjectConfig.config_filename)
-        self._write_file(filename, content)
-
-    def _write_file(self, filename, content):
-        with open(filename, 'w') as f:
-            f.write(content)
-
-    def setUp(self):
-        self.tempdir_home = tempfile.mkdtemp()
-        self.tempdir_project = tempfile.mkdtemp()
-        self.project_name = 'TestRepo'
-        self.current_commit = 'abcdefg1234567890'
-        self.current_branch = 'master'
-
-    def tearDown(self):
-        pass
-
-    @nose.tools.raises(NotInProject)
-    def test_load_project_config_not_repo(self, mock_class):
-        mock_class.return_value = self.tempdir_home
-        os.chdir(self.tempdir_project)
-        global_config = YamlGlobalConfig()
-        config = YamlProjectConfig(global_config)
-
-    @nose.tools.raises(ProjectConfigNotFound)
-    def test_load_project_config_no_config(self, mock_class):
-        mock_class.return_value = self.tempdir_home
-        os.mkdir(os.path.join(self.tempdir_project, '.git'))
-        os.chdir(self.tempdir_project)
-        global_config = YamlGlobalConfig()
-        config = YamlProjectConfig(global_config)
-
-    def test_load_project_config_empty_config(self, mock_class):
-        mock_class.return_value = self.tempdir_home
-        os.mkdir(os.path.join(self.tempdir_project, '.git'))
-        self._create_git_config()
-        # create empty project config file
-        filename = os.path.join(self.tempdir_project,
-                                YamlProjectConfig.config_filename)
-        content = ''
-        self._write_file(filename, content)
-
-        os.chdir(self.tempdir_project)
-        global_config = YamlGlobalConfig()
-        config = YamlProjectConfig(global_config)
-        self.assertEquals(config.config_project, {})
-
-    def test_load_project_config_valid_config(self, mock_class):
-        mock_class.return_value = self.tempdir_home
-        os.mkdir(os.path.join(self.tempdir_project, '.git'))
-        self._create_git_config()
-
-        # create valid project config file
-        self._create_project_config()
-
-        os.chdir(self.tempdir_project)
-        global_config = YamlGlobalConfig()
-        config = YamlProjectConfig(global_config)
-        self.assertEquals(config.project__package__name, 'TestProject')
-        self.assertEquals(config.project__package__namespace, 'testproject')
-
-    def test_repo_owner(self, mock_class):
-        mock_class.return_value = self.tempdir_home
-        os.mkdir(os.path.join(self.tempdir_project, '.git'))
-        self._create_git_config()
-
-        # create valid project config file
-        self._create_project_config()
-
-        os.chdir(self.tempdir_project)
-        global_config = YamlGlobalConfig()
-        config = YamlProjectConfig(global_config)
-        self.assertEquals(config.repo_owner, 'TestOwner')
-
-    def test_repo_branch(self, mock_class):
-        mock_class.return_value = self.tempdir_home
-        os.mkdir(os.path.join(self.tempdir_project, '.git'))
-        self._create_git_config()
-
-        # create valid project config file
-        self._create_project_config()
-
-        os.chdir(self.tempdir_project)
-        global_config = YamlGlobalConfig()
-        config = YamlProjectConfig(global_config)
-        self.assertEquals(config.repo_branch, self.current_branch)
-
-    def test_repo_commit(self, mock_class):
-        mock_class.return_value = self.tempdir_home
-        os.mkdir(os.path.join(self.tempdir_project, '.git'))
-        self._create_git_config()
-
-        # create valid project config file
-        self._create_project_config()
-
-        os.chdir(self.tempdir_project)
-        global_config = YamlGlobalConfig()
-        config = YamlProjectConfig(global_config)
-        self.assertEquals(config.repo_commit, self.current_commit)
-
-    def test_load_project_config_local(self, mock_class):
-        mock_class.return_value = self.tempdir_home
-        os.mkdir(os.path.join(self.tempdir_project, '.git'))
-        self._create_git_config()
-
-        # create valid project config file
-        self._create_project_config()
-
-        # create local project config file
-        content = (
-            'project:\n' +
-            '    package:\n' +
-            '        api_version: 10\n'
-        )
-        self._create_project_config_local(content)
-
-        os.chdir(self.tempdir_project)
-        global_config = YamlGlobalConfig()
-        config = YamlProjectConfig(global_config)
-        self.assertNotEqual(config.config_project_local, {})
-        self.assertEqual(config.project__package__api_version, 10)
-
-    def test_load_additional_yaml(self, mock_class):
-        mock_class.return_value = self.tempdir_home
-        os.mkdir(os.path.join(self.tempdir_project, '.git'))
-        self._create_git_config()
-
-        # create valid project config file
-        self._create_project_config()
-
-        # create local project config file
-        content = (
-            'project:\n' +
-            '    package:\n' +
-            '        api_version: 10\n'
-        )
-
-        os.chdir(self.tempdir_project)
-        global_config = YamlGlobalConfig()
-        config = YamlProjectConfig(global_config, additional_yaml = content)
-        self.assertNotEqual(config.config_additional_yaml, {})
-        self.assertEqual(config.project__package__api_version, 10)
+    def test_list_flows(self):
+        flows = self.task_flow_config.list_flows()
+        self.assertEqual(len(flows), 2)
+        coffee = [flow for flow in flows if flow['name'] == 'coffee'][0]
+        self.assertEqual(coffee['description'], 'Coffee Flow')
