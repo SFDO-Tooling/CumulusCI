@@ -199,8 +199,8 @@ class LoadData(BaseSalesforceApiTask):
             results_url = '{}/job/{}/batch/{}/result'.format(self.bulk.endpoint, job_id, batch_id)
             headers = self.bulk.headers()
             resp = requests.get(results_url, headers=headers)
-            csv_file = tempfile.TemporaryFile()
-            csv_file.write(resp.content)
+            csv_file = tempfile.TemporaryFile('w+')
+            csv_file.write(resp.text)
             csv_file.seek(0)
             reader = csv.DictReader(csv_file)
 

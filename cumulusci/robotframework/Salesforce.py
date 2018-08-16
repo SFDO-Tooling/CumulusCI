@@ -110,7 +110,7 @@ class Salesforce(object):
             else:
                 exception = e
         except WebDriverException as e:
-            if 'Other element would receive the click' in e.message:
+            if 'Other element would receive the click' in str(e):
                 if retry is True:
                     retry_call = True
                 else:

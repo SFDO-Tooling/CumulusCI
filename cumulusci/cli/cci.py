@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 from future import standard_library
 standard_library.install_aliases()
+from past.builtins import basestring
 from builtins import str
 from builtins import object
 import json
@@ -106,7 +107,7 @@ def check_latest_version():
             latest_version = get_latest_version()
         except requests.exceptions.RequestException as e:
             click.echo('Error checking cci version:')
-            click.echo(e.message)
+            click.echo(str(e))
             return
 
         result = latest_version > get_installed_version()
@@ -180,7 +181,7 @@ def main(ctx):
     try:
         config = CliConfig()
     except click.UsageError as e:
-        click.echo(e.message)
+        click.echo(str(e))
         sys.exit(1)
     ctx.obj = config
 
@@ -678,7 +679,7 @@ def org_scratch_delete(config, org_name):
     try:
         org_config.delete_org()
     except ScratchOrgException as e:
-        raise click.UsageError(e.message)
+        raise click.UsageError(str(e))
 
     config.keychain.set_org(org_config)
 
@@ -788,7 +789,7 @@ def task_run(config, task_name, org, o, debug, debug_before, debug_after, no_pro
 
     except (TaskRequiresSalesforceOrg, TaskOptionsError) as e:
         # Usage error; report with usage line and no traceback
-        exception = click.UsageError(e.message)
+        exception = click.UsageError(str(e))
         handle_exception_debug(config, debug, throw_exception=exception)
     except (ApexTestException, BrowserTestFailure, MetadataComponentFailure,
             MetadataApiError, ScratchOrgException) as e:
@@ -875,7 +876,7 @@ def flow_run(config, flow_name, org, delete_org, debug, o, skip, no_prompt):
 
         flow()
     except (TaskRequiresSalesforceOrg, TaskOptionsError) as e:
-        exception = click.UsageError(e.message)
+        exception = click.UsageError(str(e))
         handle_exception_debug(config, debug, throw_exception=exception)
     except (ApexTestException, BrowserTestFailure, MetadataComponentFailure,
             MetadataApiError, ScratchOrgException) as e:
@@ -891,7 +892,7 @@ def flow_run(config, flow_name, org, delete_org, debug, o, skip, no_prompt):
         except Exception as e:
             click.echo(
                 'Scratch org deletion failed.  Ignoring the error below to complete the flow:')
-            click.echo(e.message)
+            click.echo(str(e))
 
 flow.add_command(flow_list)
 flow.add_command(flow_info)

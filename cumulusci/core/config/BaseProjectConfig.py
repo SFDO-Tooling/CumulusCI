@@ -603,7 +603,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                     version = repo._get(url).json()['name']
                 except Exception as e:
                     self.logger.warn('{}{}: {}'.format(
-                        indent, e.__class__.__name__, e.message))
+                        indent, e.__class__.__name__, str(e)))
 
             if not version:
                 raise DependencyResolutionError(

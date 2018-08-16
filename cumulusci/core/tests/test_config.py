@@ -149,7 +149,7 @@ CUMULUSCI_TEST_REPO = DummyRepository(
     'SalesforceFoundation',
     'CumulusCI-Test',
     {
-        'cumulusci.yml': DummyContents("""
+        'cumulusci.yml': DummyContents(b"""
 project:
     name: CumulusCI-Test
     package:
@@ -170,7 +170,7 @@ CUMULUSCI_TEST_DEP_REPO = DummyRepository(
     'SalesforceFoundation',
     'CumulusCI-Test-Dep',
     {
-        'cumulusci.yml': DummyContents("""
+        'cumulusci.yml': DummyContents(b"""
 project:
     name: CumulusCI-Test-Dep
     package:

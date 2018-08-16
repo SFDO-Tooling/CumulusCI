@@ -729,7 +729,7 @@ class TestApiDeploy(BaseTestMetadataApi):
         api = self._create_instance(task)
         response = DummyResponse()
         response.status_code = 200
-        response.content = deploy_result_failure.format(
+        response.text = deploy_result_failure.format(
             details='''<componentFailures>
   <problem>problem</problem>
   <problemType>Error</problemType>
@@ -750,7 +750,7 @@ class TestApiDeploy(BaseTestMetadataApi):
         api = self._create_instance(task)
         response = DummyResponse()
         response.status_code = 200
-        response.content = deploy_result_failure.format(
+        response.text = deploy_result_failure.format(
             details='''<componentFailures>
   <problem>problem</problem>
   <problemType>Error</problemType>
@@ -769,7 +769,7 @@ class TestApiDeploy(BaseTestMetadataApi):
         api = self._create_instance(task)
         response = DummyResponse()
         response.status_code = 200
-        response.content = deploy_result_failure.format(
+        response.text = deploy_result_failure.format(
             details='''<runTestResult>
   <failures>
     <namespace>test</namespace>
@@ -787,7 +787,7 @@ class TestApiDeploy(BaseTestMetadataApi):
         api = self._create_instance(task)
         response = DummyResponse()
         response.status_code = 200
-        response.content = '<bogus />'
+        response.text = '<bogus />'
         status = api._process_response(response)
         self.assertEqual(status, 'Failed')
 
@@ -796,10 +796,10 @@ class TestApiDeploy(BaseTestMetadataApi):
         api = self._create_instance(task)
         response = DummyResponse()
         response.status_code = 200
-        response.content = '<status>Failed</status>'
+        response.text = u'<status>Failed</status>'
         with self.assertRaises(MetadataApiError) as cm:
             status = api._process_response(response)
-        self.assertEqual(response.content, str(cm.exception))
+        self.assertEqual(response.text, str(cm.exception))
 
     def test_get_action(self):
         task = self._create_task()

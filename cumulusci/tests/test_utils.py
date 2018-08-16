@@ -150,7 +150,7 @@ class TestUtils(unittest.TestCase):
 
         zf = utils.download_extract_zip('http://test', subfolder='folder')
         result = zf.read('test')
-        self.assertEqual('test', result)
+        self.assertEqual(b'test', result)
 
     @responses.activate
     def test_download_extract_zip_to_target(self):
@@ -180,7 +180,7 @@ class TestUtils(unittest.TestCase):
         zf = utils.zip_inject_namespace(
             zf, namespace='ns', managed=True, logger=logger)
         result = zf.read('ns__test')
-        self.assertEqual('ns__||ns|c', result)
+        self.assertEqual(b'ns__||ns|c', result)
 
     def test_zip_inject_namespace_unmanaged(self):
         zf = zipfile.ZipFile(io.BytesIO(), 'w')
@@ -190,7 +190,7 @@ class TestUtils(unittest.TestCase):
 
         zf = utils.zip_inject_namespace(zf, namespace='ns')
         result = zf.read('test')
-        self.assertEqual('||c|c', result)
+        self.assertEqual(b'||c|c', result)
 
     def test_zip_inject_namespace_namespaced_org(self):
         zf = zipfile.ZipFile(io.BytesIO(), 'w')
@@ -200,7 +200,7 @@ class TestUtils(unittest.TestCase):
 
         zf = utils.zip_inject_namespace(zf, namespace='ns', managed=True, namespaced_org=True)
         result = zf.read('ns__test')
-        self.assertEqual('ns__|ns__|ns|ns', result)
+        self.assertEqual(b'ns__|ns__|ns|ns', result)
 
     def test_zip_inject_namespace_skips_binary(self):
         contents = b'\xe2\x98\x83%%%NAMESPACE%%%'
@@ -217,7 +217,7 @@ class TestUtils(unittest.TestCase):
 
         zf = utils.zip_strip_namespace(zf, 'ns')
         result = zf.read('test')
-        self.assertEqual('test c:test', result)
+        self.assertEqual(b'test c:test', result)
 
     def test_zip_strip_namespace_skips_binary(self):
         contents = b'\xe2\x98\x83ns__'
@@ -234,7 +234,7 @@ class TestUtils(unittest.TestCase):
 
         zf = utils.zip_tokenize_namespace(zf, 'ns')
         result = zf.read('___NAMESPACE___test')
-        self.assertEqual('%%%NAMESPACE%%%test %%%NAMESPACE_OR_C%%%test', result)
+        self.assertEqual(b'%%%NAMESPACE%%%test %%%NAMESPACE_OR_C%%%test', result)
 
     def test_zip_tokenize_namespace_skips_binary(self):
         contents = b'\xe2\x98\x83ns__'
@@ -265,7 +265,7 @@ class TestUtils(unittest.TestCase):
 
         zf = utils.zip_clean_metaxml(zf, logger=logger)
         result = zf.read('classes/test-meta.xml')
-        self.assertNotIn('packageVersions', result)
+        self.assertNotIn(b'packageVersions', result)
         self.assertIn('other/test-meta.xml', zf.namelist())
 
     def test_doc_task(self):

@@ -32,7 +32,7 @@ class CliConfig(object):
         try:
             self.global_config = YamlGlobalConfig()
         except NotInProject as e:
-            raise click.UsageError(e.message)
+            raise click.UsageError(str(e))
 
     def _load_project_config(self):
         try:
@@ -40,9 +40,9 @@ class CliConfig(object):
         except ProjectConfigNotFound:
             pass
         except NotInProject as e:
-            raise click.UsageError(e.message)
+            raise click.UsageError(str(e))
         except ConfigError as e:
-            raise click.UsageError('Config Error: {}'.format(e.message))
+            raise click.UsageError('Config Error: {}'.format(str(e)))
 
     def _load_keychain(self):
         self.keychain_key = os.environ.get('CUMULUSCI_KEY')

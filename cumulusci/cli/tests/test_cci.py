@@ -58,9 +58,9 @@ class TestCCI(unittest.TestCase):
 
     def test_dbm_cache(self):
         with cci.dbm_cache() as cache:
-            cache['1'] = '1'
+            cache['1'] = b'1'
         with cci.dbm_cache() as cache:
-            self.assertEqual('1', cache['1'])
+            self.assertEqual(b'1', cache['1'])
 
     def test_get_installed_version(self):
         result = cci.get_installed_version()

@@ -1,7 +1,6 @@
 from __future__ import unicode_literals
 from future import standard_library
 standard_library.install_aliases()
-from future.utils import native_str_to_bytes
 from builtins import str
 from contextlib import contextmanager
 import difflib
@@ -89,6 +88,7 @@ def remove_xml_element_file(name, path):
     return tree.write(
         path,
         encoding="UTF-8",
+        xml_declaration=True,
     )
 
 def remove_xml_element_string(name, content):
@@ -186,30 +186,31 @@ def zip_inject_namespace(zip_src, namespace=None, managed=None, filename_token=N
     for name in zip_src.namelist():
         orig_name = str(name)
         content = zip_src.read(name)
+        try:
+            content = content.decode('ascii')
+        except UnicodeDecodeError:
+            # Probably a binary file; leave it untouched
+            pass
+        else:
+            orig_content = content
+            content = content.replace(namespace_token, namespace_prefix)
+            if logger and content != orig_content:
+                logger.info('  {}: Replaced %%%NAMESPACE%%% with "{}"'.format(name, namespace))
 
-        orig_content = content
-        content = content.replace(
-            native_str_to_bytes(namespace_token), native_str_to_bytes(namespace_prefix))
-        if logger and content != orig_content:
-            logger.info('  {}: Replaced %%%NAMESPACE%%% with "{}"'.format(name, namespace))
+            prev_content = content
+            content = content.replace(namespace_or_c_token, namespace_or_c)
+            if logger and content != prev_content:
+                logger.info('  {}: Replaced %%%NAMESPACE_OR_C%%% with "{}"'.format(name, namespace_or_c))
 
-        prev_content = content
-        content = content.replace(
-            native_str_to_bytes(namespace_or_c_token), native_str_to_bytes(namespace_or_c))
-        if logger and content != prev_content:
-            logger.info('  {}: Replaced %%%NAMESPACE_OR_C%%% with "{}"'.format(name, namespace_or_c))
+            prev_content = content
+            content = content.replace(namespaced_org_token, namespaced_org)
+            if logger and content != prev_content:
+                logger.info('  {}: Replaced %%%NAMESPACED_ORG%%% with "{}"'.format(name, namespaced_org))
 
-        prev_content = content
-        content = content.replace(
-            native_str_to_bytes(namespaced_org_token), native_str_to_bytes(namespaced_org))
-        if logger and content != prev_content:
-            logger.info('  {}: Replaced %%%NAMESPACED_ORG%%% with "{}"'.format(name, namespaced_org))
-
-        prev_content = content
-        content = content.replace(
-            native_str_to_bytes(namespaced_org_or_c_token), native_str_to_bytes(namespaced_org_or_c))
-        if logger and content != prev_content:
-            logger.info('  {}: Replaced %%%NAMESPACED_ORG_OR_C%%% with "{}"'.format(name, namespaced_org_or_c))
+            prev_content = content
+            content = content.replace(namespaced_org_or_c_token, namespaced_org_or_c)
+            if logger and content != prev_content:
+                logger.info('  {}: Replaced %%%NAMESPACED_ORG_OR_C%%% with "{}"'.format(name, namespaced_org_or_c))
 
         # Replace namespace token in file name
         name = name.replace(filename_token, namespace_prefix)
@@ -224,19 +225,20 @@ def zip_strip_namespace(zip_src, namespace, logger=None):
     """ Given a namespace, strips 'namespace__' from all files and filenames 
         in the zip 
     """
-    namespace_prefix = '{}__'.format(namespace)
-    lightning_namespace = '{}:'.format(namespace)
+    namespace_prefix = u'{}__'.format(namespace)
+    lightning_namespace = u'{}:'.format(namespace)
     zip_dest = zipfile.ZipFile(io.BytesIO(), 'w', zipfile.ZIP_DEFLATED)
     for name in zip_src.namelist():
+        content = zip_src.read(name)
         try:
-            content = zip_src.read(name)
-            content = unicode(content)
+            content = content.decode('ascii')
+        except UnicodeDecodeError:
+            # Probably a binary file; leave it untouched
+            pass
+        else:
             content = content.replace(namespace_prefix, '')
             content = content.replace(lightning_namespace, 'c:')
-            name = name.replace(namespace_prefix, '')
-        except UnicodeDecodeError:
-            # if we cannot decode the content, don't try and replace it.
-            pass
+        name = name.replace(namespace_prefix, '')
         zip_dest.writestr(name, content)
     return zip_dest
 
@@ -247,19 +249,20 @@ def zip_tokenize_namespace(zip_src, namespace, logger=None):
     if not namespace:
         return zip_src
 
-    namespace_prefix = '{}__'.format(namespace)
-    lightning_namespace = '{}:'.format(namespace)
+    namespace_prefix = u'{}__'.format(namespace)
+    lightning_namespace = u'{}:'.format(namespace)
     zip_dest = zipfile.ZipFile(io.BytesIO(), 'w', zipfile.ZIP_DEFLATED)
     for name in zip_src.namelist():
+        content = zip_src.read(name)
         try:
-            content = zip_src.read(name)
-            content = unicode(content)
-            content = content.replace(namespace_prefix, '%%%NAMESPACE%%%')
-            content = content.replace(lightning_namespace, '%%%NAMESPACE_OR_C%%%')
-            name = name.replace(namespace_prefix, '___NAMESPACE___')
+            content = content.decode('ascii')
         except UnicodeDecodeError:
-            # if we cannot decode the content, don't try and replace it.
+            # Probably a binary file; leave it untouched
             pass
+        else:
+            content = content.replace(namespace_prefix, u'%%%NAMESPACE%%%')
+            content = content.replace(lightning_namespace, u'%%%NAMESPACE_OR_C%%%')
+        name = name.replace(namespace_prefix, u'___NAMESPACE___')
         zip_dest.writestr(name, content)
     return zip_dest
 
