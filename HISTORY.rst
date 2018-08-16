@@ -4,6 +4,7 @@ History
 
 2.0.7 (2018-08-16)
 ------------------
+* `cci service show` has been renamed `cci service info`!
 * Update default API version in the base YAML to v43.0.
 * Doc updates in the tutorial, thanks to @justindonnaruma!
 * Significant refactor of the cli module, including a bunch of small usability and exception handling changes. See https://github.com/SalesforceFoundation/CumulusCI/pull/708 for details.

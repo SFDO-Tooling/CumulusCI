@@ -63,7 +63,7 @@ setup(
     version='2.0.7',
     description="Build and release tools for Salesforce developers",
     long_description=readme + '\n\n' + history,
-    author="Jason Lantz",
+    author="Salesforce.org",
     author_email='jlantz@salesforce.com',
     url='https://github.com/SalesforceFoundation/CumulusCI',
     packages = list(find_packages(cumulusci.__path__, cumulusci.__name__)),
