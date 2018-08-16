@@ -32,7 +32,7 @@ requirements = [
     'pycrypto==2.6.1',
     'PyGithub==1.39',
     'pytz==2018.4',
-    'PyYAML==3.12',
+    'PyYAML==3.13',
     'raven==6.7.0',
     'requests[security]==2.18.4',
     'responses==0.9.0',
