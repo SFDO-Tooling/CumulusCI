@@ -178,7 +178,7 @@ class BaseMetadataApiCall(object):
         if faultcode == 'sf:INVALID_SESSION_ID' and self.task.org_config and self.task.org_config.refresh_token:
             # Attempt to refresh token and recall request
             if refresh:
-                self.task.org_config.refresh_oauth_token()
+                self.task.org_config.refresh_oauth_token(self.task.project_config.keychain)
                 return self._call_mdapi(headers, envelope, refresh=False)
         # Log the error
         message = '{}: {}'.format(faultcode, faultstring)
@@ -363,7 +363,7 @@ class ApiDeploy(BaseMetadataApiCall):
 
     def _build_envelope_start(self):
         if self.package_zip:
-            return self.soap_envelope_start .format(
+            return self.soap_envelope_start.format(
                 package_zip = self.package_zip,
                 purge_on_delete = self.purge_on_delete,
                 api_version = self.api_version,
@@ -397,33 +397,17 @@ class ApiDeploy(BaseMetadataApiCall):
                     'problem': component_failure.getElementsByTagName('problem')[0].firstChild.nodeValue,
                     'problem_type': component_failure.getElementsByTagName('problemType')[0].firstChild.nodeValue,
                 }
-                component_type = component_failure.getElementsByTagName('componentType')
-                if component_type and component_type[0].firstChild:
-                    failure_info['component_type'] = component_type[0].firstChild.nodeValue
-                file_name = component_failure.getElementsByTagName('fullName')
-                if file_name and file_name[0].firstChild:
-                    failure_info['file_name'] = file_name[0].firstChild.nodeValue
-                if not failure_info['file_name']:
-                    file_name = component_failure.getElementsByTagName('fileName')
-                    if file_name and file_name[0].firstChild:
-                        failure_info['file_name'] = file_name[0].firstChild.nodeValue
-        
-                line_num = component_failure.getElementsByTagName('lineNumber')
-                if line_num and line_num[0].firstChild:
-                    failure_info['line_num'] = line_num[0].firstChild.nodeValue
-                
-                column_num = component_failure.getElementsByTagName('columnNumber')
-                if column_num and column_num[0].firstChild:
-                    failure_info['column_num'] = column_num[0].firstChild.nodeValue
+                failure_info['component_type'] = self._get_element_value(
+                    component_failure, 'componentType')
+                full_name = self._get_element_value(component_failure, 'fullName')
+                file_name = self._get_element_value(component_failure, 'fileName')
+                failure_info['file_name'] = full_name or file_name
+                failure_info['line_num'] = self._get_element_value(component_failure, 'lineNumber')
+                failure_info['column_num'] = self._get_element_value(component_failure, 'columnNumber')
                 
                 created = component_failure.getElementsByTagName('created')[0].firstChild.nodeValue == 'true'
                 deleted = component_failure.getElementsByTagName('deleted')[0].firstChild.nodeValue == 'true'
-                if deleted: 
-                    failure_info['action'] = 'Delete'
-                elif created:
-                    failure_info['action'] = 'Create'
-                else:
-                    failure_info['action'] = 'Update'
+                failure_info['action'] = self._get_action(created, deleted)
   
                 if failure_info['file_name'] and failure_info['line_num']: 
                     messages.append('{action} of {component_type} {file_name}: {problem_type} on line {line_num}, col {column_num}: {problem}'.format(**failure_info))
@@ -450,38 +434,33 @@ class ApiDeploy(BaseMetadataApiCall):
                 response.content).getElementsByTagName('failures')
             for failure in failures:
                 # Get needed values from subelements
-                namespace = failure.getElementsByTagName('namespace')
-                if namespace and namespace[0].firstChild:
-                    namespace = namespace[0].firstChild.nodeValue
-                else:
-                    namespace = None
-                stacktrace = failure.getElementsByTagName('stackTrace')
-                if stacktrace and stacktrace[0].firstChild:
-                    stacktrace = stacktrace[0].firstChild.nodeValue
-                else:
-                    stacktrace = None
+                namespace = self._get_element_value(failure, 'namespace')
+                stacktrace = self._get_element_value(failure, 'stackTrace')
                 message = ['Apex Test Failure: ', ]
                 if namespace:
                     message.append('from namespace {}: '.format(namespace))
                 if stacktrace:
                     message.append(stacktrace)
                 messages.append(''.join(message))
-            if messages:
-                log = '\n\n'.join(messages)
-            else:
-                log = response.content
 
             if messages:
                 # Deploy failures due to a component failure should raise MetadataComponentFailure
                 log = '\n\n'.join(messages)
                 self._set_status('Failed', log)
                 raise ApexTestException(log)
-
-            self._set_status('Failed', log)
-            raise MetadataApiError(log, response)
+            else:
+                log = response.content
+                self._set_status('Failed', log)
+                raise MetadataApiError(log, response)
 
         return self.status
 
+    def _get_action(self, created, deleted):
+        if created:
+            return 'Create'
+        elif deleted:
+            return 'Delete'
+        return 'Update'
 
 class ApiListMetadata(BaseMetadataApiCall):
     soap_envelope_start = soap_envelopes.LIST_METADATA

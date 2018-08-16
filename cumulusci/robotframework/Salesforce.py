@@ -307,6 +307,7 @@ class Salesforce(object):
 
     def populate_lookup_field(self, name, value):
         self.populate_field(name, value)
+        self.wait_until_loading_is_complete()
         locator = lex_locators['object']['field_lookup_value'].format(value)
         self._call_selenium('_populate_lookup_field', True, locator)
     

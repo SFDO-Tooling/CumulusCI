@@ -1,14 +1,8 @@
-import ast
 import httplib
-import os
-import shutil
-import tempfile
 import unittest
-import urllib
 
 from xml.dom.minidom import parseString
 
-import requests
 import responses
 
 from nose.tools import raises
@@ -16,8 +10,10 @@ from nose.tools import raises
 from cumulusci.tests.util import create_project_config
 from cumulusci.tests.util import DummyOrgConfig
 from cumulusci.core.config import TaskConfig
+from cumulusci.core.exceptions import ApexTestException
 from cumulusci.core.tasks import BaseTask
 from cumulusci.salesforce_api.exceptions import MetadataApiError
+from cumulusci.salesforce_api.exceptions import MetadataComponentFailure
 from cumulusci.salesforce_api.metadata import BaseMetadataApiCall
 from cumulusci.salesforce_api.metadata import ApiDeploy
 from cumulusci.salesforce_api.metadata import ApiListMetadata
@@ -29,6 +25,7 @@ from cumulusci.salesforce_api.package_zip import CreatePackageZipBuilder
 from cumulusci.salesforce_api.package_zip import InstallPackageZipBuilder
 from cumulusci.salesforce_api.tests.metadata_test_strings import deploy_status_envelope
 from cumulusci.salesforce_api.tests.metadata_test_strings import deploy_result
+from cumulusci.salesforce_api.tests.metadata_test_strings import deploy_result_failure
 from cumulusci.salesforce_api.tests.metadata_test_strings import list_metadata_start_envelope
 from cumulusci.salesforce_api.tests.metadata_test_strings import retrieve_packaged_start_envelope
 from cumulusci.salesforce_api.tests.metadata_test_strings import retrieve_unpackaged_start_envelope
@@ -143,7 +140,7 @@ class BaseTestMetadataApi(unittest.TestCase):
             'id': 'https://login.salesforce.com/id/00D000000000000ABC/005000000000000ABC',
         }
         task = self._create_task(org_config=org_config)
-        api_version = "42.0"
+        api_version = "43.0"
         api = self._create_instance(task, api_version=api_version) 
         self.assertEquals(
             api._build_endpoint_url(),
@@ -711,8 +708,98 @@ class TestApiDeploy(BaseTestMetadataApi):
         return self.api_class(
             task,
             self.package_zip,
-            api_version = api_version,
+            api_version=api_version,
+            purge_on_delete=purge_on_delete,
         )
+
+    def test_init_no_purge_on_delete(self):
+        task = self._create_task()
+        api = self._create_instance(task, purge_on_delete=False)
+        self.assertEqual(api.purge_on_delete, 'false')
+
+    def test_process_response_metadata_failure(self):
+        task = self._create_task()
+        api = self._create_instance(task)
+        response = DummyResponse()
+        response.status_code = 200
+        response.content = deploy_result_failure.format(
+            details='''<componentFailures>
+  <problem>problem</problem>
+  <problemType>Error</problemType>
+  <componentType>CustomObject</componentType>
+  <fileName>Test__c</fileName>
+  <lineNumber>1</lineNumber>
+  <columnNumber>1</columnNumber>
+  <created>false</created>
+  <deleted>false</deleted>
+</componentFailures>''')
+        with self.assertRaises(MetadataComponentFailure) as cm:
+            api._process_response(response)
+        expected = 'Update of CustomObject Test__c: Error on line 1, col 1: problem'
+        self.assertEqual(expected, str(cm.exception))
+
+    def test_process_response_metadata_failure_no_lineno(self):
+        task = self._create_task()
+        api = self._create_instance(task)
+        response = DummyResponse()
+        response.status_code = 200
+        response.content = deploy_result_failure.format(
+            details='''<componentFailures>
+  <problem>problem</problem>
+  <problemType>Error</problemType>
+  <componentType>CustomObject</componentType>
+  <fileName>Test__c</fileName>
+  <created>false</created>
+  <deleted>false</deleted>
+</componentFailures>''')
+        with self.assertRaises(MetadataComponentFailure) as cm:
+            api._process_response(response)
+        expected = 'Update of CustomObject Test__c: Error: problem'
+        self.assertEqual(expected, str(cm.exception))
+
+    def test_process_response_test_failure(self):
+        task = self._create_task()
+        api = self._create_instance(task)
+        response = DummyResponse()
+        response.status_code = 200
+        response.content = deploy_result_failure.format(
+            details='''<runTestResult>
+  <failures>
+    <namespace>test</namespace>
+    <stackTrace>stack</stackTrace>
+  </failures>
+</runTestResult>
+''')
+        with self.assertRaises(ApexTestException) as cm:
+            api._process_response(response)
+        expected = 'Apex Test Failure: from namespace test: stack'
+        self.assertEqual(expected, str(cm.exception))
+
+    def test_process_response_no_status(self):
+        task = self._create_task()
+        api = self._create_instance(task)
+        response = DummyResponse()
+        response.status_code = 200
+        response.content = '<bogus />'
+        status = api._process_response(response)
+        self.assertEqual(status, 'Failed')
+
+    def test_process_response_failure_but_no_message(self):
+        task = self._create_task()
+        api = self._create_instance(task)
+        response = DummyResponse()
+        response.status_code = 200
+        response.content = '<status>Failed</status>'
+        with self.assertRaises(MetadataApiError) as cm:
+            status = api._process_response(response)
+        self.assertEqual(response.content, str(cm.exception))
+
+    def test_get_action(self):
+        task = self._create_task()
+        api = self._create_instance(task)
+        self.assertEqual('Create', api._get_action(True, False))
+        self.assertEqual('Delete', api._get_action(False, True))
+        self.assertEqual('Update', api._get_action(False, False))
 
 class TestApiListMetadata(BaseTestMetadataApi):
     api_class = ApiListMetadata
@@ -811,7 +898,7 @@ class TestApiRetrieveInstalledPackages(BaseTestMetadataApi):
     def test_process_response_no_zipstr(self):
         task = self._create_task()
         api = self._create_instance(task)
-        response = DummyResponse
+        response = DummyResponse()
         response.status_code = 200
         response.content = deploy_result.format(
             status = 'testing',
@@ -823,13 +910,13 @@ class TestApiRetrieveInstalledPackages(BaseTestMetadataApi):
             {},
         )
 
-    def _process_response_zipstr_no_packages(self):
+    def test_process_response_zipstr_no_packages(self):
         task = self._create_task()
         api = self._create_instance(task)
-        response = DummyResponse
+        response = DummyResponse()
         response.status_code = 200
-        response.content = deploy_result.format(
-            zip = CreatePackageZipBuilder('testing'),
+        response.content = retrieve_result.format(
+            zip = CreatePackageZipBuilder('testing', api.api_version)(),
             extra = '',
         )
         resp = api._process_response(response)
@@ -838,13 +925,13 @@ class TestApiRetrieveInstalledPackages(BaseTestMetadataApi):
             {},
         )
 
-    def _process_response_zipstr_one_package(self):
+    def test_process_response_zipstr_one_package(self):
         task = self._create_task()
         api = self._create_instance(task)
-        response = DummyResponse
+        response = DummyResponse()
         response.status_code = 200
-        response.content = deploy_result.format(
-            zip = InstallPackageZipBuilder('foo', '1.1'),
+        response.content = retrieve_result.format(
+            zip = InstallPackageZipBuilder('foo', '1.1')(),
             extra = '',
         )
         resp = api._process_response(response)
