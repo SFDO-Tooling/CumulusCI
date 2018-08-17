@@ -720,8 +720,7 @@ test_task  Test Task""", str(table))
     @mock.patch('click.echo')
     def test_flow_list(self, echo):
         config = mock.Mock()
-        config.project_config.flows = ['test_flow']
-        config.project_config.flows__test_flow__description = 'Test Flow'
+        config.project_config.list_flows.return_value = [{'name':'test_flow','description':'Test Flow'}]
 
         run_click_command(cci.flow_list, obj=config)
 
