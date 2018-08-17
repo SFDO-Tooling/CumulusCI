@@ -725,11 +725,7 @@ def task_doc(config):
 @click.pass_obj
 def task_info(config, task_name):
     config.check_project_config()
-    task_config = getattr(config.project_config, 'tasks__{}'.format(task_name))
-    if not task_config:
-        raise TaskNotFoundError('Task not found: {}'.format(task_name))
-
-    task_config = TaskConfig(task_config)
+    task_config = config.project_config.get_task(task_name)
     doc = doc_task(task_name, task_config).encode()
     click.echo(rst2ansi(doc))
 

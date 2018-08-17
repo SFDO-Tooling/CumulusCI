@@ -603,12 +603,6 @@ test_task  Test Task""", str(table))
         doc_task.assert_called_once()
         rst2ansi.assert_called_once()
 
-    def test_task_info_not_found(self):
-        config = mock.Mock()
-        config.project_config.tasks__test = None
-
-        with self.assertRaises(TaskNotFoundError):
-            run_click_command(cci.task_info, obj=config, task_name='test')
 
     def test_task_run(self):
         config = mock.Mock()
