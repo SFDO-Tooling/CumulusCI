@@ -60,6 +60,10 @@ flexipages:
     - type: FlexiPage
       class: MetadataFilenameParser
       extension: flexipage
+flows:
+    - type: Flow
+      class: MetadataFilenameParser
+      extension: flow
 globalPicklist:
     - type: GlobalPicklist
       class: MetadataFilenameParser
