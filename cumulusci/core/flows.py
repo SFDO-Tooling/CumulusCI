@@ -231,14 +231,11 @@ class BaseFlow(object):
             self._run_task(stepnum, step_config)
 
     def _run_flow(self, stepnum, step_config):
-        class_path = step_config['flow_config'].config.get(
-            'class_path',
-            'cumulusci.core.flows.BaseFlow',
-        )
         flow_options = step_config['step_config'].get(
             'options',
             {},
         )
+
         if flow_options:
             # Collapse down flow options into task__option format to pass
             options = {}
@@ -247,8 +244,7 @@ class BaseFlow(object):
                     options['{}__{}'.format(task, option)] = value
             flow_options = options
                 
-        flow_class = import_class(class_path)
-        flow = flow_class(
+        flow = self.__class__(
             self.project_config,
             step_config['flow_config'],
             self.org_config,
