@@ -17,7 +17,9 @@ from cumulusci.core.utils import import_class
 
 
 class BaseFlow(object):
-    """ BaseFlow handles initializing and running a flow """
+    """ BaseFlow handles initializing and running a flow.
+
+    This can be subclassed by the execution environment to override pre_flow/pre_task etc hooks. """
 
     def __init__(
             self,
