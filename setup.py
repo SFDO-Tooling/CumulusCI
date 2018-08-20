@@ -32,7 +32,7 @@ requirements = [
     'pycrypto==2.6.1',
     'PyGithub==1.39',
     'pytz==2018.4',
-    'PyYAML==3.12',
+    'PyYAML==3.13',
     'raven==6.7.0',
     'requests[security]==2.18.4',
     'responses==0.9.0',
@@ -60,10 +60,10 @@ test_requirements = [
 
 setup(
     name='cumulusci',
-    version='2.0.4',
+    version='2.0.7',
     description="Build and release tools for Salesforce developers",
     long_description=readme + '\n\n' + history,
-    author="Jason Lantz",
+    author="Salesforce.org",
     author_email='jlantz@salesforce.com',
     url='https://github.com/SalesforceFoundation/CumulusCI',
     packages = list(find_packages(cumulusci.__path__, cumulusci.__name__)),

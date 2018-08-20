@@ -175,7 +175,6 @@ class ScratchOrgConfig(OrgConfig):
         p = sarge.Command(command, stdout=sarge.Capture(buffer_size=-1), shell=True)
         p.run()
 
-        org_info = None
         re_obj = re.compile(
             'Successfully created scratch org: (.+), username: (.+)')
         stdout = []
@@ -234,8 +233,11 @@ class ScratchOrgConfig(OrgConfig):
                     '\n'.join(stdout), '\n'.join(stderr))
             )
 
+    def can_delete(self):
+        return bool(self.date_created)
+
     def delete_org(self):
-        """ Uses sfdx force:org:delete to create the org """
+        """ Uses sfdx force:org:delete to delete the org """
         if not self.created:
             self.logger.info(
                 'Skipping org deletion: the scratch org has not been created')
@@ -285,7 +287,7 @@ class ScratchOrgConfig(OrgConfig):
             message = 'Message: {}'.format('\n'.join(stdout_list))
             raise ScratchOrgException(message)
 
-    def refresh_oauth_token(self, keychain=None):
+    def refresh_oauth_token(self, keychain):
         """ Use sfdx force:org:describe to refresh token instead of built in OAuth handling """
         if hasattr(self, '_scratch_info'):
             # Cache the scratch_info for 1 hour to avoid unnecessary calls out

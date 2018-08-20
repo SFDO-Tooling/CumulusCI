@@ -2,6 +2,28 @@
 History
 =======
 
+2.0.7 (2018-08-16)
+------------------
+* `cci service show` has been renamed `cci service info`!
+* Update default API version in the base YAML to v43.0.
+* Doc updates in the tutorial, thanks to @justindonnaruma!
+* Significant refactor of the cli module, including a bunch of small usability and exception handling changes. See https://github.com/SalesforceFoundation/CumulusCI/pull/708 for details.
+* Display the file name for error causing files in more cases.
+* Strip packageVersions tags from aura/, components/, and pages/ metadata.
+* Update PyYAML dependency.
+
+2.0.6 (2018-08-07)
+------------------
+* In Robot tests that use the standard keyword for interacting with a lookup field, we now wait for all AJAX requests to complete before submitting.
+* Add unit tests for large sections of the library.
+* We now support Flow, DuplicateRule, and other new Metadata types thanks to @carlosvl.
+* Fixed refreshing oauth token when deploying metadata to persistent orgs.
+
+2.0.5 (2018-08-01)
+------------------
+
+* Fixes #695: Update InstallPackageZipBuilder to set activateRSS to unblock installs.
+
 2.0.4 (2018-07-30)
 ------------------
 

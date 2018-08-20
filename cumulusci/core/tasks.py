@@ -59,9 +59,9 @@ class BaseTask(object):
 
         if self.salesforce_task and not self.org_config:
             raise TaskRequiresSalesforceOrg(
-                'This task requires a Saleforce org_config but' +
-                ' none was passed to the Task constructor'
-            )
+                'This task requires a salesforce org. '
+                'Use org default <name> to set a default org '
+                'or pass the org name with the --org option')
         self._init_logger()
         self._init_options(kwargs)
         self._validate_options()
