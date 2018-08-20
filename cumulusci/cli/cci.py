@@ -45,6 +45,7 @@ from cumulusci.salesforce_api.exceptions import MetadataApiError
 from cumulusci.salesforce_api.exceptions import MetadataComponentFailure
 from cumulusci.core.exceptions import NotInProject
 from cumulusci.core.exceptions import ProjectConfigNotFound
+from cumulusci.core.exceptions import RobotTestFailure
 from cumulusci.core.exceptions import ScratchOrgException
 from cumulusci.core.exceptions import ServiceNotConfigured
 from cumulusci.core.exceptions import TaskNotFoundError
@@ -938,6 +939,9 @@ def task_run(config, task_name, org, o, debug, debug_before, debug_after, no_pro
         except MetadataApiError as e:
             exception = click.ClickException('Failed: MetadataApiError')
             handle_exception_debug(config, debug, e, throw_exception=exception)
+        except RobotTestFailure as e:
+            exception = click.ClickException('Failed: RobotTestFailure')
+            handle_exception_debug(config, debug, e, throw_exception=exception)
         except ScratchOrgException as e:
             exception = click.ClickException(
                 'ScratchOrgException: {}'.format(e.message))
@@ -1072,6 +1076,9 @@ def flow_run(config, flow_name, org, delete_org, debug, o, skip, no_prompt):
             handle_exception_debug(config, debug, e, throw_exception=exception)
         except MetadataApiError as e:
             exception = click.ClickException('Failed: MetadataApiError')
+            handle_exception_debug(config, debug, e, throw_exception=exception)
+        except RobotTestFailure as e:
+            exception = click.ClickException('Failed: RobotTestFailure')
             handle_exception_debug(config, debug, e, throw_exception=exception)
         except ScratchOrgException as e:
             exception = click.ClickException(
