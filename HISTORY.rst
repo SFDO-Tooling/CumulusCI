@@ -2,6 +2,12 @@
 History
 =======
 
+2.0.8 (2018-08-21)
+------------------
+* Flows that are executed from within another flow now support task-level control flow.
+* We no longer support the undocumented ability for a Flow to provide it's own class_path.
+* Use the connected app details to set a client name on HTTP requests to Salesforce.
+
 2.0.7 (2018-08-16)
 ------------------
 * `cci service show` has been renamed `cci service info`!
