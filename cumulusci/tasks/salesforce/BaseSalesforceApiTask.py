@@ -29,7 +29,7 @@ class BaseSalesforceApiTask(BaseSalesforceTask):
         if base_url is not None:
             rv.base_url += base_url
 
-        rv.headers.setdefault(CALL_OPTS_HEADER_KEY, self._get_client_name())
+        rv.headers.setdefault(CALL_OPTS_HEADER_KEY, "client={}".format(self._get_client_name()))
 
         return rv
 
