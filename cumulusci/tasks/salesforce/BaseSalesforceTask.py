@@ -1,9 +1,19 @@
 from cumulusci.core.tasks import BaseTask
+from cumulusci.core.exceptions import ServiceNotValid, ServiceNotConfigured
+from cumulusci import __version__
 
 
 class BaseSalesforceTask(BaseTask):
     name = 'BaseSalesforceTask'
     salesforce_task = True
+
+    def _get_client_name(self):
+        try:
+            app = self.project_config.keychain.get_service('connectedapp')
+            return app.client_id
+        except (ServiceNotValid, ServiceNotConfigured):
+            return 'CumulusCI/{}'.format(__version__)
+
 
     def _run_task(self):
         raise NotImplementedError(
