@@ -41,6 +41,7 @@ from cumulusci.core.exceptions import ConfigError
 from cumulusci.core.exceptions import FlowNotFoundError
 from cumulusci.core.exceptions import KeychainKeyNotFound
 from cumulusci.core.exceptions import OrgNotFound
+from cumulusci.core.flows import BaseFlow
 from cumulusci.salesforce_api.exceptions import MetadataApiError
 from cumulusci.salesforce_api.exceptions import MetadataComponentFailure
 from cumulusci.core.exceptions import NotInProject
@@ -857,11 +858,6 @@ def flow_run(config, flow_name, org, delete_org, debug, o, skip, no_prompt):
             'No configuration found for flow {}'.format(flow_name))
     flow_config = FlowConfig(flow)
 
-    # Get the class to look up options
-    class_path = flow_config.config.get(
-        'class_path', 'cumulusci.core.flows.BaseFlow')
-    flow_class = import_class(class_path)
-
     # Parse command line options and add to task config
     options = {}
     if o:
@@ -870,7 +866,7 @@ def flow_run(config, flow_name, org, delete_org, debug, o, skip, no_prompt):
 
     # Create the flow and handle initialization exceptions
     try:
-        flow = flow_class(config.project_config, flow_config,
+        flow = BaseFlow(config.project_config, flow_config,
                           org_config, options, skip, name=flow_name)
 
         flow()
