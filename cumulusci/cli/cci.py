@@ -786,11 +786,8 @@ def task_run(config, task_name, org, o, debug, debug_before, debug_after, no_pro
         # Usage error; report with usage line and no traceback
         exception = click.UsageError(e.message)
         handle_exception_debug(config, debug, throw_exception=exception)
-    except CumulusCIFailure as e:
+    except (CumulusCIFailure, ScratchOrgException) as e:
         # Expected failure; report without traceback
-        exception = click.ClickException('Failed: {}'.format(e.__class__.__name__))
-        handle_exception_debug(config, debug, throw_exception=exception)
-    except ScratchOrgException as e:
         exception = click.ClickException('Failed: {}'.format(e.__class__.__name__))
         handle_exception_debug(config, debug, throw_exception=exception)
     except Exception:
