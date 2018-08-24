@@ -33,12 +33,12 @@ class OrgNotFound(CumulusCIException):
     pass
 
 
-class ServiceNotConfigured(CumulusCIException):
+class ServiceNotConfigured(CumulusCIUsageError):
     """ Raised when no service configuration could be found by a given name in the project keychain """
     pass
 
 
-class ServiceNotValid(CumulusCIException):
+class ServiceNotValid(CumulusCIUsageError):
     """ Raised when no service configuration could be found by a given name in the project configuration """
     pass
 
@@ -96,7 +96,7 @@ class ApexTestsDBNotConfigured(CumulusCIException):
     pass
 
 
-class TaskNotFoundError(CumulusCIException):
+class TaskNotFoundError(CumulusCIUsageError):
     """ Raise when task is not found in project config """
     pass
 
@@ -108,7 +108,7 @@ class FlowConfigError(CumulusCIException):
     """ Raised when a flow configuration encounters an error """
     pass
 
-class FlowNotFoundError(CumulusCIException):
+class FlowNotFoundError(CumulusCIUsageError):
     """ Raise when flow is not found in project config """
     pass
 
@@ -168,7 +168,7 @@ class BrowserTestFailure(CumulusCIFailure):
     pass
 
 
-class ApexCompilationException(CumulusCIException):
+class ApexCompilationException(CumulusCIFailure):
     """ Raise when apex compilation fails """
     pass
 
