@@ -2,13 +2,18 @@ from __future__ import unicode_literals
 class CumulusCIException(Exception):
     pass
 
+class CumulusCIUsageError(CumulusCIException):
+    pass
 
-class NotInProject(CumulusCIException):
+class CumulusCIFailure(CumulusCIException):
+    pass
+
+class NotInProject(CumulusCIUsageError):
     """ Raised when no project can be found in the current context """
     pass
 
 
-class ProjectConfigNotFound(CumulusCIException):
+class ProjectConfigNotFound(CumulusCIUsageError):
     """ Raised when a project is found in the current context but no configuration was found for the project """
     pass
 
@@ -20,6 +25,7 @@ class KeychainNotFound(CumulusCIException):
 
 class KeychainKeyNotFound(CumulusCIException):
     """ Raised when the keychain key couldn't be found """
+    pass
 
 
 class OrgNotFound(CumulusCIException):
@@ -55,7 +61,7 @@ class DeploymentException(CumulusCIException):
     pass
 
 
-class ApexTestException(CumulusCIException):
+class ApexTestException(CumulusCIFailure):
     """ Raised when a build fails because of an Apex test failure """
     pass
 
@@ -65,12 +71,12 @@ class SalesforceCredentialsException(CumulusCIException):
     pass
 
 
-class TaskRequiresSalesforceOrg(CumulusCIException):
+class TaskRequiresSalesforceOrg(CumulusCIUsageError):
     """ Raise when a task that requires a Salesforce org_config is not initialized with an org_config """
     pass
 
 
-class TaskOptionsError(CumulusCIException):
+class TaskOptionsError(CumulusCIUsageError):
     """ Raise when a task's options are invalid """
     pass
 
@@ -157,7 +163,7 @@ class CommandException(CumulusCIException):
     pass
 
 
-class BrowserTestFailure(CommandException):
+class BrowserTestFailure(CumulusCIFailure):
     """ Raise when browser tests fail """
     pass
 
@@ -167,7 +173,7 @@ class ApexCompilationException(CumulusCIException):
     pass
 
 
-class ApexException(CumulusCIException):
+class ApexException(CumulusCIFailure):
     """ Raise when an Apex Exception is raised in an org """
     pass
 
@@ -176,6 +182,6 @@ class PushApiObjectNotFound(CumulusCIException):
     """ Raise when Salesforce Push API object is not found """
     pass
 
-class RobotTestFailure(CumulusCIException):
+class RobotTestFailure(CumulusCIFailure):
     """ Raise when a robot test fails in a test suite """
     pass

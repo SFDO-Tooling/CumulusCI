@@ -35,22 +35,17 @@ from cumulusci.core.config import ServiceConfig
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.config import YamlGlobalConfig
 from cumulusci.core.config import YamlProjectConfig
-from cumulusci.core.exceptions import ApexTestException
-from cumulusci.core.exceptions import BrowserTestFailure
 from cumulusci.core.exceptions import ConfigError
+from cumulusci.core.exceptions import CumulusCIFailure
+from cumulusci.core.exceptions import CumulusCIUsageError
 from cumulusci.core.exceptions import FlowNotFoundError
 from cumulusci.core.exceptions import KeychainKeyNotFound
 from cumulusci.core.exceptions import OrgNotFound
-from cumulusci.salesforce_api.exceptions import MetadataApiError
-from cumulusci.salesforce_api.exceptions import MetadataComponentFailure
 from cumulusci.core.exceptions import NotInProject
 from cumulusci.core.exceptions import ProjectConfigNotFound
-from cumulusci.core.exceptions import RobotTestFailure
 from cumulusci.core.exceptions import ScratchOrgException
 from cumulusci.core.exceptions import ServiceNotConfigured
 from cumulusci.core.exceptions import TaskNotFoundError
-from cumulusci.core.exceptions import TaskOptionsError
-from cumulusci.core.exceptions import TaskRequiresSalesforceOrg
 from cumulusci.core.utils import import_class
 from cumulusci.cli.config import CliConfig
 from cumulusci.utils import doc_task
@@ -781,17 +776,21 @@ def task_run(config, task_name, org, o, debug, debug_before, debug_after, no_pro
             import pdb
             pdb.set_trace()
 
+        task()
+
         if debug_after:
             import pdb
             pdb.set_trace()
 
-    except (TaskRequiresSalesforceOrg, TaskOptionsError) as e:
+    except CumulusCIUsageError as e:
         # Usage error; report with usage line and no traceback
         exception = click.UsageError(e.message)
         handle_exception_debug(config, debug, throw_exception=exception)
-    except (ApexTestException, BrowserTestFailure, MetadataComponentFailure,
-            MetadataApiError, RobotTestFailure, ScratchOrgException) as e:
+    except CumulusCIFailure as e:
         # Expected failure; report without traceback
+        exception = click.ClickException('Failed: {}'.format(e.__class__.__name__))
+        handle_exception_debug(config, debug, throw_exception=exception)
+    except ScratchOrgException as e:
         exception = click.ClickException('Failed: {}'.format(e.__class__.__name__))
         handle_exception_debug(config, debug, throw_exception=exception)
     except Exception:
@@ -872,11 +871,13 @@ def flow_run(config, flow_name, org, delete_org, debug, o, skip, no_prompt):
         flow = flow_class(config.project_config, flow_config,
                           org_config, options, skip, name=flow_name)
         flow()
-    except (TaskRequiresSalesforceOrg, TaskOptionsError) as e:
+    except CumulusCIUsageError as e:
         exception = click.UsageError(e.message)
         handle_exception_debug(config, debug, throw_exception=exception)
-    except (ApexTestException, BrowserTestFailure, MetadataComponentFailure,
-            MetadataApiError, RobotTestFailure, ScratchOrgException) as e:
+    except CumulusCIFailure as e:
+        exception = click.ClickException('Failed: {}'.format(e.__class__.__name__))
+        handle_exception_debug(config, debug, throw_exception=exception)
+    except ScratchOrgException as e:
         exception = click.ClickException('Failed: {}'.format(e.__class__.__name__))
         handle_exception_debug(config, debug, throw_exception=exception)
     except Exception:
