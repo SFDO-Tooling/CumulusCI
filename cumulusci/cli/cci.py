@@ -42,17 +42,12 @@ from cumulusci.core.exceptions import CumulusCIUsageError
 from cumulusci.core.exceptions import FlowNotFoundError
 from cumulusci.core.exceptions import KeychainKeyNotFound
 from cumulusci.core.exceptions import OrgNotFound
-<<<<<<< HEAD
-=======
-from cumulusci.core.flows import BaseFlow
-from cumulusci.salesforce_api.exceptions import MetadataApiError
-from cumulusci.salesforce_api.exceptions import MetadataComponentFailure
->>>>>>> master
 from cumulusci.core.exceptions import NotInProject
 from cumulusci.core.exceptions import ProjectConfigNotFound
 from cumulusci.core.exceptions import ScratchOrgException
 from cumulusci.core.exceptions import ServiceNotConfigured
 from cumulusci.core.exceptions import TaskNotFoundError
+from cumulusci.core.flows import BaseFlow
 from cumulusci.core.utils import import_class
 from cumulusci.cli.config import CliConfig
 from cumulusci.utils import doc_task
