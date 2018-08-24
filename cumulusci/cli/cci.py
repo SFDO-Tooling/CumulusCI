@@ -29,6 +29,7 @@ from jinja2 import PackageLoader
 
 import cumulusci
 from cumulusci.core.config import FlowConfig
+from cumulusci.core.config import BaseConfig
 from cumulusci.core.config import OrgConfig
 from cumulusci.core.config import ScratchOrgConfig
 from cumulusci.core.config import ServiceConfig
@@ -41,6 +42,12 @@ from cumulusci.core.exceptions import CumulusCIUsageError
 from cumulusci.core.exceptions import FlowNotFoundError
 from cumulusci.core.exceptions import KeychainKeyNotFound
 from cumulusci.core.exceptions import OrgNotFound
+<<<<<<< HEAD
+=======
+from cumulusci.core.flows import BaseFlow
+from cumulusci.salesforce_api.exceptions import MetadataApiError
+from cumulusci.salesforce_api.exceptions import MetadataComponentFailure
+>>>>>>> master
 from cumulusci.core.exceptions import NotInProject
 from cumulusci.core.exceptions import ProjectConfigNotFound
 from cumulusci.core.exceptions import ScratchOrgException
@@ -128,7 +135,9 @@ def render_recursive(data, indent=None):
     if indent is None:
         indent = 0
     indent_str = ' ' * indent
-    if isinstance(data, list):
+    if isinstance(data, BaseConfig):
+        render_recursive(data.config)
+    elif isinstance(data, list):
         for item in data:
             if isinstance(item, basestring):
                 click.echo('{}- {}'.format(indent_str, item))
@@ -717,11 +726,7 @@ def task_doc(config):
 @click.pass_obj
 def task_info(config, task_name):
     config.check_project_config()
-    task_config = getattr(config.project_config, 'tasks__{}'.format(task_name))
-    if not task_config:
-        raise TaskNotFoundError('Task not found: {}'.format(task_name))
-
-    task_config = TaskConfig(task_config)
+    task_config = config.project_config.get_task(task_name)
     doc = doc_task(task_name, task_config).encode()
     click.echo(rst2ansi(doc))
 
@@ -812,10 +817,8 @@ def flow_list(config):
     config.check_project_config()
     data = []
     headers = ['flow', 'description']
-    for flow in config.project_config.flows:
-        description = getattr(config.project_config,
-                              'flows__{}__description'.format(flow))
-        data.append((flow, description))
+    for flow in config.project_config.list_flows():
+        data.append((flow['name'], flow['description']))
     table = Table(data, headers)
     click.echo(table)
 
@@ -824,9 +827,7 @@ def flow_list(config):
 @click.pass_obj
 def flow_info(config, flow_name):
     config.check_project_config()
-    flow = getattr(config.project_config, 'flows__{}'.format(flow_name))
-    if not flow:
-        raise FlowNotFoundError('Flow not found: {}'.format(flow_name))
+    flow = config.project_config.get_flow(flow_name)
     render_recursive(flow)
 
 @click.command(name='run', help="Runs a flow")
@@ -849,16 +850,7 @@ def flow_run(config, flow_name, org, delete_org, debug, o, skip, no_prompt):
         raise click.UsageError(
             '--delete-org can only be used with a scratch org')
 
-    flow = getattr(config.project_config, 'flows__{}'.format(flow_name))
-    if not flow:
-        raise click.UsageError(
-            'No configuration found for flow {}'.format(flow_name))
-    flow_config = FlowConfig(flow)
-
-    # Get the class to look up options
-    class_path = flow_config.config.get(
-        'class_path', 'cumulusci.core.flows.BaseFlow')
-    flow_class = import_class(class_path)
+    flow_config = config.project_config.get_flow(flow_name)
 
     # Parse command line options and add to task config
     options = {}
@@ -868,7 +860,7 @@ def flow_run(config, flow_name, org, delete_org, debug, o, skip, no_prompt):
 
     # Create the flow and handle initialization exceptions
     try:
-        flow = flow_class(config.project_config, flow_config,
+        flow = BaseFlow(config.project_config, flow_config,
                           org_config, options, skip, name=flow_name)
         flow()
     except CumulusCIUsageError as e:

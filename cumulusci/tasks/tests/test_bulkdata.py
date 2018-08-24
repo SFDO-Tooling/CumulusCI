@@ -10,6 +10,7 @@ import responses
 from cumulusci.core.config import BaseGlobalConfig
 from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.config import TaskConfig
+from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.tasks import bulkdata
 from cumulusci.tests.util import DummyOrgConfig
 from cumulusci.utils import temporary_dir
@@ -34,6 +35,8 @@ def _make_task(task_class, task_config):
     task_config = TaskConfig(task_config)
     global_config = BaseGlobalConfig()
     project_config = BaseProjectConfig(global_config)
+    keychain = BaseProjectKeychain(project_config, '')
+    project_config.set_keychain(keychain)
     org_config = DummyOrgConfig({
         'instance_url': 'example.com',
         'access_token': 'abc123',

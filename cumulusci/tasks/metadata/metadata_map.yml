@@ -210,7 +210,7 @@ roles:
       class: MetadataFilenameParser
       extension: role 
 settings:
-    - type: Setting
+    - type: Settings
       class: MetadataFilenameParser
       extension: settings
 scontrols:
