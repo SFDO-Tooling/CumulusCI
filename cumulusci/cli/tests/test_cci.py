@@ -15,7 +15,7 @@ import responses
 
 import cumulusci
 from cumulusci.core.config import OrgConfig
-from cumulusci.core.config import TaskConfig
+from cumulusci.core.config import TaskConfig, FlowConfig
 from cumulusci.core.tasks import BaseTask
 from cumulusci.core.exceptions import FlowNotFoundError
 from cumulusci.core.exceptions import OrgNotFound
@@ -603,12 +603,6 @@ test_task  Test Task""", str(table))
         doc_task.assert_called_once()
         rst2ansi.assert_called_once()
 
-    def test_task_info_not_found(self):
-        config = mock.Mock()
-        config.project_config.tasks__test = None
-
-        with self.assertRaises(TaskNotFoundError):
-            run_click_command(cci.task_info, obj=config, task_name='test')
 
     def test_task_run(self):
         config = mock.Mock()
@@ -720,8 +714,7 @@ test_task  Test Task""", str(table))
     @mock.patch('click.echo')
     def test_flow_list(self, echo):
         config = mock.Mock()
-        config.project_config.flows = ['test_flow']
-        config.project_config.flows__test_flow__description = 'Test Flow'
+        config.project_config.list_flows.return_value = [{'name':'test_flow','description':'Test Flow'}]
 
         run_click_command(cci.flow_list, obj=config)
 
@@ -734,31 +727,24 @@ test_flow  Test Flow""", str(table))
     @mock.patch('click.echo')
     def test_flow_info(self, echo):
         config = mock.Mock()
-        config.project_config.flows__test = {'description': 'Test Flow'}
+        config.project_config.get_flow.return_value = FlowConfig({'description': 'Test Flow'})
 
         run_click_command(cci.flow_info, obj=config, flow_name='test')
 
         config.check_project_config.assert_called_once()
         echo.assert_called_with('\x1b[1mdescription:\x1b[0m Test Flow')
 
-    def test_flow_info_not_found(self):
-        config = mock.Mock()
-        config.project_config.flows__test = None
-
-        with self.assertRaises(FlowNotFoundError):
-            run_click_command(cci.flow_info, obj=config, flow_name='test')
-
     def test_flow_run(self):
         org_config = mock.Mock(scratch=True)
         config = mock.Mock()
         config.get_org.return_value = ('test', org_config)
-        config.project_config.flows__test = {
+        config.project_config.get_flow.return_value = FlowConfig({
             'steps': {
                 1: {
                     'task': 'test_task'
                 }
             }
-        }
+        })
         config.project_config.get_task.return_value = TaskConfig({
             'description': 'Test Task',
             'class_path': 'cumulusci.cli.tests.test_cci.DummyTask'
@@ -773,7 +759,7 @@ test_flow  Test Flow""", str(table))
         DummyTask._run_task.assert_called_once()
         org_config.delete_org.assert_called_once()
 
-    def test_flow_run_delete_non_scratch(self):
+    def test_flow_run_delete_non_scratch(self, ):
         org_config = mock.Mock(scratch=False)
         config = mock.Mock()
         config.get_org.return_value = ('test', org_config)
@@ -783,28 +769,19 @@ test_flow  Test Flow""", str(table))
                 cci.flow_run, obj=config, flow_name='test', org='test', delete_org=True,
                 debug=False, o=[('test_task__color', 'blue')], skip=(), no_prompt=True)
 
-    def test_flow_run_not_found(self):
-        org_config = mock.Mock()
-        config = mock.Mock()
-        config.get_org.return_value = ('test', org_config)
-        config.project_config.flows__test = {}
 
-        with self.assertRaises(click.UsageError):
-            run_click_command(
-                cci.flow_run, obj=config, flow_name='test', org='test', delete_org=False,
-                debug=False, o=[('test_task__color', 'blue')], skip=(), no_prompt=True)
 
     def test_flow_run_usage_error(self):
         org_config = mock.Mock()
         config = mock.Mock()
         config.get_org.return_value = ('test', org_config)
-        config.project_config.flows__test = {
+        config.project_config.get_flow.return_value = FlowConfig({
             'steps': {
                 1: {
                     'task': 'test_task'
                 }
             }
-        }
+        })
         config.project_config.get_task.return_value = TaskConfig({
             'description': 'Test Task',
             'class_path': 'cumulusci.cli.tests.test_cci.DummyTask'
@@ -820,13 +797,13 @@ test_flow  Test Flow""", str(table))
         org_config = mock.Mock()
         config = mock.Mock()
         config.get_org.return_value = ('test', org_config)
-        config.project_config.flows__test = {
+        config.project_config.get_flow.return_value = FlowConfig({
             'steps': {
                 1: {
                     'task': 'test_task'
                 }
             }
-        }
+        })
         config.project_config.get_task.return_value = TaskConfig({
             'description': 'Test Task',
             'class_path': 'cumulusci.cli.tests.test_cci.DummyTask'
@@ -843,13 +820,13 @@ test_flow  Test Flow""", str(table))
         org_config = mock.Mock()
         config = mock.Mock()
         config.get_org.return_value = ('test', org_config)
-        config.project_config.flows__test = {
+        config.project_config.get_flow.return_value = FlowConfig({
             'steps': {
                 1: {
                     'task': 'test_task'
                 }
             }
-        }
+        })
         config.project_config.get_task.return_value = TaskConfig({
             'description': 'Test Task',
             'class_path': 'cumulusci.cli.tests.test_cci.DummyTask'
@@ -869,13 +846,13 @@ test_flow  Test Flow""", str(table))
         org_config.delete_org.side_effect = Exception
         config = mock.Mock()
         config.get_org.return_value = ('test', org_config)
-        config.project_config.flows__test = {
+        config.project_config.get_flow.return_value = FlowConfig({
             'steps': {
                 1: {
                     'task': 'test_task'
                 }
             }
-        }
+        })
         config.project_config.get_task.return_value = TaskConfig({
             'description': 'Test Task',
             'class_path': 'cumulusci.cli.tests.test_cci.DummyTask'

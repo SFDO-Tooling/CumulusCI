@@ -3,6 +3,7 @@ from simple_salesforce import Salesforce
 
 from cumulusci.tasks.salesforce import BaseSalesforceTask
 
+CALL_OPTS_HEADER_KEY = 'Sforce-Call-Options'
 
 class BaseSalesforceApiTask(BaseSalesforceTask):
     name = 'BaseSalesforceApiTask'
@@ -13,7 +14,6 @@ class BaseSalesforceApiTask(BaseSalesforceTask):
         self.bulk = self._init_bulk()
         self.tooling = self._init_api('tooling/')
         self._init_class()
-    
 
     def _init_api(self, base_url=None):
         if self.api_version:
@@ -28,6 +28,9 @@ class BaseSalesforceApiTask(BaseSalesforceTask):
         )
         if base_url is not None:
             rv.base_url += base_url
+
+        rv.headers.setdefault(CALL_OPTS_HEADER_KEY, "client={}".format(self._get_client_name()))
+
         return rv
 
     def _init_bulk(self):
