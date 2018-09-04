@@ -180,6 +180,7 @@ def handle_sentry_event(config, no_prompt):
 @click.pass_context
 def main(ctx):
     check_latest_version()
+    init_logger()
 
     try:
         config = CliConfig()

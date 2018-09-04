@@ -2,7 +2,10 @@
 
 import importlib
 
-from cumulusci.cli.cli import CliConfig
+from cumulusci.cli.config import CliConfig
+from cumulusci.cli.logger import init_logger
+
+init_logger()
 
 # import project-level modules
 modules = set()
