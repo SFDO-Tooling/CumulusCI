@@ -8,7 +8,6 @@ from cumulusci.core.exceptions import NotInProject
 from cumulusci.core.exceptions import OrgNotFound
 from cumulusci.core.exceptions import ProjectConfigNotFound
 from cumulusci.core.utils import import_class
-from .logger import init_logger
 
 
 class CliConfig(object):
@@ -18,7 +17,6 @@ class CliConfig(object):
         self.project_config = None
         self.keychain = None
 
-        init_logger()
         self._load_global_config()
         self._load_project_config()
         self._load_keychain()
@@ -29,10 +27,7 @@ class CliConfig(object):
             sys.path.append(self.project_config.repo_root)
 
     def _load_global_config(self):
-        try:
-            self.global_config = YamlGlobalConfig()
-        except NotInProject as e:
-            raise click.UsageError(e.message)
+        self.global_config = YamlGlobalConfig()
 
     def _load_project_config(self):
         try:
@@ -60,7 +55,7 @@ class CliConfig(object):
         if org_name:
             org_config = self.keychain.get_org(org_name)
         else:
-            org_name, org_config = self.project_config.keychain.get_default_org()
+            org_name, org_config = self.keychain.get_default_org()
         if org_config:
             org_config = self.check_org_expired(org_name, org_config)
         elif fail_if_missing:
@@ -104,7 +99,7 @@ class CliConfig(object):
 
     def check_keychain(self):
         self.check_project_config()
-        if self.project_config.keychain and self.project_config.keychain.encrypted and not self.keychain_key:
+        if self.keychain and self.keychain.encrypted and not self.keychain_key:
             raise click.UsageError(
                 'You must set the environment variable CUMULUSCI_KEY '
                 'with the encryption key to be used for storing org credentials')

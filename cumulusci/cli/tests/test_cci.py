@@ -159,19 +159,25 @@ class TestCCI(unittest.TestCase):
 
         cci.handle_sentry_event(config, True)
 
+    @mock.patch('cumulusci.cli.cci.init_logger')
     @mock.patch('cumulusci.cli.cci.CliConfig')
     @mock.patch('cumulusci.cli.cci.check_latest_version')
-    def test_main(self, check_latest_version, CliConfig):
+    def test_main(self, check_latest_version, CliConfig, init_logger):
         CliConfig.return_value = _marker = object()
 
         ctx, result = run_click_command(cci.main)
 
         check_latest_version.assert_called_once()
+        init_logger.assert_called_once()
+        # make sure that the config object was stored
+        # as the click context's "obj" for use by
+        # other commands
         self.assertIs(ctx.obj, _marker)
 
+    @mock.patch('cumulusci.cli.cci.init_logger')
     @mock.patch('cumulusci.cli.cci.CliConfig')
     @mock.patch('cumulusci.cli.cci.check_latest_version')
-    def test_main_config_error(self, check_latest_version, CliConfig):
+    def test_main_config_error(self, check_latest_version, CliConfig, init_logger):
         CliConfig.side_effect = click.UsageError('Broken!')
         with self.assertRaises(SystemExit):
             run_click_command(cci.main)
