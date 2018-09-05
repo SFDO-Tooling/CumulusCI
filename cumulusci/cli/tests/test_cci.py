@@ -169,6 +169,9 @@ class TestCCI(unittest.TestCase):
 
         check_latest_version.assert_called_once()
         init_logger.assert_called_once()
+        # make sure that the config object was stored
+        # as the click context's "obj" for use by
+        # other commands
         self.assertIs(ctx.obj, _marker)
 
     @mock.patch('cumulusci.cli.cci.init_logger')

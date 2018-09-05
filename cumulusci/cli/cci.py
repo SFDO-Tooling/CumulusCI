@@ -176,9 +176,13 @@ def handle_sentry_event(config, no_prompt):
 
 # Root command
 
-@click.group('main')
+@click.group('main', help='')
 @click.pass_context
 def main(ctx):
+    """Main CumulusCI CLI entry point.
+
+    This runs as the first step in processing any CLI command.
+    """
     check_latest_version()
     init_logger()
 
@@ -187,6 +191,8 @@ def main(ctx):
     except click.UsageError as e:
         click.echo(e.message)
         sys.exit(1)
+    # Attach the config object to the click context
+    # so it can be accessed by other commands using `click.pass_obj`
     ctx.obj = config
 
 @click.command(name='version', help='Print the current version of CumulusCI')

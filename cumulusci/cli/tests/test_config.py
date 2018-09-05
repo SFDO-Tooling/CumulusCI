@@ -25,15 +25,11 @@ class TestCliConfig(unittest.TestCase):
     def test_init(self):
         config = CliConfig()
 
-        self.assertSetEqual(
-            {'cumulusci', 'tasks', 'flows', 'services', 'orgs', 'project'},
-            set(config.global_config.config.keys()),
-        )
+        for key in {'cumulusci', 'tasks', 'flows', 'services', 'orgs', 'project'}:
+            self.assertIn(key, config.global_config.config)
         self.assertEqual('CumulusCI', config.project_config.project__name)
-        self.assertSetEqual(
-            {'services', 'orgs', 'app'},
-            set(config.keychain.config.keys()),
-        )
+        for key in {'services', 'orgs', 'app'}:
+            self.assertIn(key, config.keychain.config)
         self.assertIn(config.project_config.repo_root, sys.path)
 
     def test_load_project_not_in_project(self):
