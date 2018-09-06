@@ -13,11 +13,7 @@ class BaseProjectKeychain(BaseConfig):
 
     def __init__(self, project_config, key):
         super(BaseProjectKeychain, self).__init__()
-        self.config = {
-            'orgs': {},
-            'app': None,
-            'services': {},
-        }
+        self.config = {"orgs": {}, "app": None, "services": {}}
         self.project_config = project_config
         self.key = key
         self._validate_key()
@@ -25,7 +21,7 @@ class BaseProjectKeychain(BaseConfig):
 
     def _convert_connected_app(self):
         """Convert Connected App to service"""
-        if self.services and 'connected_app' in self.services:
+        if self.services and "connected_app" in self.services:
             # already a service
             return
         connected_app = self.get_connected_app()
@@ -33,18 +29,20 @@ class BaseProjectKeychain(BaseConfig):
             # not configured
             return
         self.logger.warning(
-            'Reading Connected App info from deprecated config.'
-            ' Connected App should be changed to a service.'
-            ' If using environment keychain, update the environment variable.'
-            ' Otherwise, it has been handled automatically and you should not'
-            ' see this message again.'
+            "Reading Connected App info from deprecated config."
+            " Connected App should be changed to a service."
+            " If using environment keychain, update the environment variable."
+            " Otherwise, it has been handled automatically and you should not"
+            " see this message again."
         )
-        ca_config = ServiceConfig({
-            'callback_url': connected_app.callback_url,
-            'client_id': connected_app.client_id,
-            'client_secret': connected_app.client_secret,
-        })
-        self.set_service('connected_app', ca_config)
+        ca_config = ServiceConfig(
+            {
+                "callback_url": connected_app.callback_url,
+                "client_id": connected_app.client_id,
+                "client_secret": connected_app.client_secret,
+            }
+        )
+        self.set_service("connected_app", ca_config)
 
     def _load_keychain(self):
         self._load_app()
@@ -72,23 +70,24 @@ class BaseProjectKeychain(BaseConfig):
 
     def _load_services(self):
         pass
-            
+
     def create_scratch_org(self, org_name, config_name, days=None, set_password=False):
         """ Adds/Updates a scratch org config to the keychain from a named config """
-        scratch_config = getattr(self.project_config, 'orgs__scratch__{}'.format(config_name))
+        scratch_config = getattr(
+            self.project_config, "orgs__scratch__{}".format(config_name)
+        )
         if days is not None:
             # Allow override of scratch config's default days
-            scratch_config['days'] = days
+            scratch_config["days"] = days
         else:
             # Use scratch config days or default of 1 day
-            scratch_config.setdefault('days', 1)
-        scratch_config['set_password'] = bool(set_password)
-        scratch_config['scratch'] = True
-        scratch_config.setdefault('namespaced', False)
-        scratch_config['config_name'] = config_name
-        scratch_config['sfdx_alias'] = '{}__{}'.format(
-            self.project_config.project__name,
-            org_name,
+            scratch_config.setdefault("days", 1)
+        scratch_config["set_password"] = bool(set_password)
+        scratch_config["scratch"] = True
+        scratch_config.setdefault("namespaced", False)
+        scratch_config["config_name"] = config_name
+        scratch_config["sfdx_alias"] = "{}__{}".format(
+            self.project_config.project__name, org_name
         )
         org_config = ScratchOrgConfig(scratch_config, org_name)
         self.set_org(org_config)
@@ -134,7 +133,7 @@ class BaseProjectKeychain(BaseConfig):
 
     def set_org(self, org_config, global_org=False):
         if isinstance(org_config, ScratchOrgConfig):
-            org_config.config['scratch'] = True
+            org_config.config["scratch"] = True
         self._set_org(org_config, global_org)
         self._load_orgs()
 
@@ -153,7 +152,7 @@ class BaseProjectKeychain(BaseConfig):
         """ set the default org for tasks by name key """
         org = self.get_org(name)
         self.unset_default_org()
-        org.config['default'] = True
+        org.config["default"] = True
         self.set_org(org)
 
     def unset_default_org(self):
@@ -161,7 +160,7 @@ class BaseProjectKeychain(BaseConfig):
         for org in self.list_orgs():
             org_config = self.get_org(org)
             if org_config.default:
-                del org_config.config['default']
+                del org_config.config["default"]
                 self.set_org(org_config)
 
     def get_org(self, name):
@@ -174,8 +173,7 @@ class BaseProjectKeychain(BaseConfig):
         return self.orgs.get(name)
 
     def _raise_org_not_found(self, name):
-        raise OrgNotFound(
-            'Org named {} was not found in keychain'.format(name))
+        raise OrgNotFound("Org named {} was not found in keychain".format(name))
 
     def list_orgs(self):
         """ list the orgs configured in the keychain """
@@ -219,9 +217,9 @@ class BaseProjectKeychain(BaseConfig):
 
     def _validate_service(self, name, service_config):
         missing_required = []
-        attr_key = 'services__{0}__attributes'.format(name)
+        attr_key = "services__{0}__attributes".format(name)
         for atr, config in list(getattr(self.project_config, attr_key).items()):
-            if config.get('required') is True and not getattr(service_config, atr):
+            if config.get("required") is True and not getattr(service_config, atr):
                 missing_required.append(atr)
 
         if missing_required:
@@ -229,12 +227,15 @@ class BaseProjectKeychain(BaseConfig):
 
     def _raise_service_not_configured(self, name):
         raise ServiceNotConfigured(
-            'Service named {} is not configured for this project. Configured services are: {}'.format(name, ', '.join(list(self.services)))
+            "Service named {} is not configured for this project. Configured services are: {}".format(
+                name, ", ".join(list(self.services))
+            )
         )
 
     def _raise_service_not_valid(self, name):
         raise ServiceNotValid(
-            'Service named {} is not valid for this project'.format(name))
+            "Service named {} is not valid for this project".format(name)
+        )
 
     def list_services(self):
         """ list the services configured in the keychain """
