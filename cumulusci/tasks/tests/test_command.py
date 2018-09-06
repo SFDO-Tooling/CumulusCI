@@ -42,9 +42,7 @@ class TestCommandTask(unittest.TestCase):
         the subprocess interaction.
         """
 
-        self.task_config.config['options'] = {
-            'command': 'ls -la',
-        }
+        self.task_config.config["options"] = {"command": "ls -la"}
 
         task = Command(self.project_config, self.task_config)
 
@@ -54,13 +52,9 @@ class TestCommandTask(unittest.TestCase):
         try:
             task()
         except CommandException:
-            self.assertTrue(any(
-                "Return code" in s for s in self.task_log['error']
-            ))
+            self.assertTrue(any("Return code" in s for s in self.task_log["error"]))
 
-        self.assertTrue(any(
-            "total" in s for s in self.task_log['info']
-        ))
+        self.assertTrue(any("total" in s for s in self.task_log["info"]))
 
 
 class TestCommandTaskWithMockPopen(unittest.TestCase):
@@ -84,7 +78,7 @@ class TestCommandTaskWithMockPopen(unittest.TestCase):
 
         self.Popen = MockPopen()
         self.r = Replacer()
-        self.r.replace('cumulusci.tasks.command.subprocess.Popen', self.Popen)
+        self.r.replace("cumulusci.tasks.command.subprocess.Popen", self.Popen)
         self.addCleanup(self.r.restore)
 
     def test_functional_mock_command(self):
@@ -92,19 +86,11 @@ class TestCommandTaskWithMockPopen(unittest.TestCase):
         popen results and checks the log.
         """
 
-        self.task_config.config['options'] = {
-            'command': 'ls -la',
-        }
+        self.task_config.config["options"] = {"command": "ls -la"}
 
-        self.Popen.set_command(
-            'ls -la',
-            stdout=b'testing testing 123',
-            stderr=b'e'
-        )
+        self.Popen.set_command("ls -la", stdout=b"testing testing 123", stderr=b"e")
 
         task = Command(self.project_config, self.task_config)
         task()
 
-        self.assertTrue(any(
-            "testing testing" in s for s in self.task_log['info']
-        ))
+        self.assertTrue(any("testing testing" in s for s in self.task_log["info"]))

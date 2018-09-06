@@ -1,4 +1,4 @@
-DEPLOY = '''<?xml version="1.0" encoding="utf-8"?>
+DEPLOY = """<?xml version="1.0" encoding="utf-8"?>
 <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
   <soap:Header>
     <SessionHeader xmlns="http://soap.sforce.com/2006/04/metadata">
@@ -21,9 +21,9 @@ DEPLOY = '''<?xml version="1.0" encoding="utf-8"?>
       </DeployOptions>
     </deploy>
   </soap:Body>
-</soap:Envelope>'''
+</soap:Envelope>"""
 
-CHECK_DEPLOY_STATUS = '''<?xml version="1.0" encoding="utf-8"?>
+CHECK_DEPLOY_STATUS = """<?xml version="1.0" encoding="utf-8"?>
 <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
   <soap:Header>
     <SessionHeader xmlns="http://soap.sforce.com/2006/04/metadata">
@@ -36,9 +36,9 @@ CHECK_DEPLOY_STATUS = '''<?xml version="1.0" encoding="utf-8"?>
       <includeDetails>true</includeDetails>
     </checkDeployStatus>
   </soap:Body>
-</soap:Envelope>'''
+</soap:Envelope>"""
 
-RETRIEVE_INSTALLEDPACKAGE = '''<?xml version="1.0" encoding="utf-8"?>
+RETRIEVE_INSTALLEDPACKAGE = """<?xml version="1.0" encoding="utf-8"?>
 <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
   <soap:Header>
     <SessionHeader xmlns="http://soap.sforce.com/2006/04/metadata">
@@ -59,9 +59,9 @@ RETRIEVE_INSTALLEDPACKAGE = '''<?xml version="1.0" encoding="utf-8"?>
       </retrieveRequest>
     </retrieve>
   </soap:Body>
-</soap:Envelope>'''
+</soap:Envelope>"""
 
-RETRIEVE_PACKAGED = '''<?xml version="1.0" encoding="utf-8"?>
+RETRIEVE_PACKAGED = """<?xml version="1.0" encoding="utf-8"?>
 <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
   <soap:Header>
     <SessionHeader xmlns="http://soap.sforce.com/2006/04/metadata">
@@ -76,9 +76,9 @@ RETRIEVE_PACKAGED = '''<?xml version="1.0" encoding="utf-8"?>
       </retrieveRequest>
     </retrieve>
   </soap:Body>
-</soap:Envelope>'''
+</soap:Envelope>"""
 
-RETRIEVE_UNPACKAGED = '''<?xml version="1.0" encoding="utf-8"?>
+RETRIEVE_UNPACKAGED = """<?xml version="1.0" encoding="utf-8"?>
 <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
   <soap:Header>
     <SessionHeader xmlns="http://soap.sforce.com/2006/04/metadata">
@@ -95,9 +95,9 @@ RETRIEVE_UNPACKAGED = '''<?xml version="1.0" encoding="utf-8"?>
       </retrieveRequest>
     </retrieve>
   </soap:Body>
-</soap:Envelope>'''
+</soap:Envelope>"""
 
-LIST_METADATA = '''<?xml version="1.0" encoding="utf-8"?>
+LIST_METADATA = """<?xml version="1.0" encoding="utf-8"?>
 <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
   <soap:Header>
     <SessionHeader xmlns="http://soap.sforce.com/2006/04/metadata">
@@ -112,9 +112,9 @@ LIST_METADATA = '''<?xml version="1.0" encoding="utf-8"?>
       <asOfVersion>{as_of_version}</asOfVersion>
     </listMetadata>
   </soap:Body>
-</soap:Envelope>'''
+</soap:Envelope>"""
 
-CHECK_STATUS = '''<?xml version="1.0" encoding="utf-8"?>
+CHECK_STATUS = """<?xml version="1.0" encoding="utf-8"?>
 <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
   <soap:Header>
     <SessionHeader xmlns="http://soap.sforce.com/2006/04/metadata">
@@ -126,9 +126,9 @@ CHECK_STATUS = '''<?xml version="1.0" encoding="utf-8"?>
       <asyncProcessId>{process_id}</asyncProcessId>
     </checkStatus>
   </soap:Body>
-</soap:Envelope>'''
+</soap:Envelope>"""
 
-CHECK_RETRIEVE_STATUS = '''<?xml version="1.0" encoding="utf-8"?>
+CHECK_RETRIEVE_STATUS = """<?xml version="1.0" encoding="utf-8"?>
 <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
   <soap:Header>
     <SessionHeader xmlns="http://soap.sforce.com/2006/04/metadata">
@@ -140,4 +140,4 @@ CHECK_RETRIEVE_STATUS = '''<?xml version="1.0" encoding="utf-8"?>
       <asyncProcessId>{process_id}</asyncProcessId>
     </checkRetrieveStatus>
   </soap:Body>
-</soap:Envelope>'''
+</soap:Envelope>"""
