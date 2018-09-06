@@ -8,7 +8,6 @@ from cumulusci.core.github import get_github_api
 
 
 class MockHttpResponse(mock.Mock):
-
     def __init__(self, status):
         super(MockHttpResponse, self).__init__()
         self.status = status
@@ -18,18 +17,17 @@ class MockHttpResponse(mock.Mock):
         self.msg = HTTPMessage(io.BytesIO())
 
     def read(self):
-        return b''
+        return b""
 
     def isclosed(self):
         return True
 
 
 class TestGithub(unittest.TestCase):
-
-    @mock.patch('urllib3.connectionpool.HTTPConnectionPool._make_request')
+    @mock.patch("urllib3.connectionpool.HTTPConnectionPool._make_request")
     def test_github_api_retries(self, _make_request):
-        gh = get_github_api('TestUser', 'TestPass')
-        adapter = gh._session.get_adapter('http://')
+        gh = get_github_api("TestUser", "TestPass")
+        adapter = gh._session.get_adapter("http://")
 
         self.assertEqual(0.3, adapter.max_retries.backoff_factor)
         self.assertIn(502, adapter.max_retries.status_forcelist)
@@ -39,5 +37,5 @@ class TestGithub(unittest.TestCase):
             MockHttpResponse(status=200),
         ]
 
-        gh.octocat('meow')
+        gh.octocat("meow")
         self.assertEqual(_make_request.call_count, 2)

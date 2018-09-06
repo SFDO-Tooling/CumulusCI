@@ -5,7 +5,9 @@ from cumulusci.tasks.salesforce.BaseSalesforceTask import BaseSalesforceTask
 
 # inherit from BaseSalesforceTask
 from cumulusci.tasks.salesforce.BaseSalesforceApiTask import BaseSalesforceApiTask
-from cumulusci.tasks.salesforce.BaseSalesforceMetadataApiTask import BaseSalesforceMetadataApiTask
+from cumulusci.tasks.salesforce.BaseSalesforceMetadataApiTask import (
+    BaseSalesforceMetadataApiTask
+)
 
 # inherit from BaseSalesforceApiTask
 from cumulusci.tasks.salesforce.PackageUpload import PackageUpload
@@ -19,7 +21,9 @@ from cumulusci.tasks.salesforce.UpdateDependencies import UpdateDependencies
 
 # inherit from BaseRetrieveMetadata
 from cumulusci.tasks.salesforce.RetrievePackaged import RetrievePackaged
-from cumulusci.tasks.salesforce.RetrieveReportsAndDashboards import RetrieveReportsAndDashboards
+from cumulusci.tasks.salesforce.RetrieveReportsAndDashboards import (
+    RetrieveReportsAndDashboards
+)
 from cumulusci.tasks.salesforce.RetrieveUnpackaged import RetrieveUnpackaged
 
 # inherit from Deploy
@@ -38,7 +42,11 @@ from cumulusci.tasks.salesforce.UninstallLocalBundles import UninstallLocalBundl
 from cumulusci.tasks.salesforce.UninstallPackaged import UninstallPackaged
 
 # inherit from UninstallLocalBundles
-from cumulusci.tasks.salesforce.UninstallLocalNamespacedBundles import UninstallLocalNamespacedBundles
+from cumulusci.tasks.salesforce.UninstallLocalNamespacedBundles import (
+    UninstallLocalNamespacedBundles
+)
 
 # inherit from UninstallPackaged
-from cumulusci.tasks.salesforce.UninstallPackagedIncremental import UninstallPackagedIncremental
+from cumulusci.tasks.salesforce.UninstallPackagedIncremental import (
+    UninstallPackagedIncremental
+)
