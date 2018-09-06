@@ -1,4 +1,5 @@
 from __future__ import absolute_import
+import os
 import unittest
 
 import mock
@@ -113,6 +114,17 @@ class TestBaseConfig(unittest.TestCase):
         self.assertEquals(config.foo, 'bar')
 
 
+class TestBaseGlobalConfig(unittest.TestCase):
+
+    def test_list_projects(self):
+        with self.assertRaises(NotImplementedError):
+            BaseGlobalConfig().list_projects()
+
+    def test_create_project(self):
+        with self.assertRaises(NotImplementedError):
+            BaseGlobalConfig().create_project('test', {})
+
+
 class DummyContents(object):
     def __init__(self, content):
         self.decoded = content
@@ -209,6 +221,42 @@ class DummyKeychain(object):
 
 
 class TestBaseProjectConfig(unittest.TestCase):
+
+    def test_config_global_local(self):
+        global_config = BaseGlobalConfig()
+        global_config.config_global_local = {}
+        config = BaseProjectConfig(global_config)
+        self.assertIs(global_config.config_global_local, config.config_global_local)
+
+    def test_config_global(self):
+        global_config = BaseGlobalConfig()
+        global_config.config_global = {}
+        config = BaseProjectConfig(global_config)
+        self.assertIs(global_config.config_global, config.config_global)
+
+    def test_repo_info(self):
+        env = {
+            'CUMULUSCI_AUTO_DETECT': '1',
+            'HEROKU_TEST_RUN_ID': 'TEST1',
+            'HEROKU_TEST_RUN_BRANCH': 'master',
+            'HEROKU_TEST_RUN_COMMIT_VERSION': 'HEAD',
+            'CUMULUSCI_REPO_BRANCH': 'feature/test',
+            'CUMULUSCI_REPO_COMMIT': 'HEAD~1',
+            'CUMULUSCI_REPO_ROOT': '.',
+            'CUMULUSCI_REPO_URL': 'https://github.com/SalesforceFoundation/CumulusCI-Test',
+        }
+        config = BaseProjectConfig(BaseGlobalConfig())
+        with mock.patch.dict(os.environ, env):
+            result = config.repo_info
+            self.assertEqual({
+                'ci': 'heroku',
+                'name': 'CumulusCI-Test',
+                'owner': 'SalesforceFoundation',
+                'branch': 'feature/test',
+                'commit': 'HEAD~1',
+                'root': '.',
+                'url': 'https://github.com/SalesforceFoundation/CumulusCI-Test',
+            }, result)
 
     def test_process_github_dependency(self):
         global_config = BaseGlobalConfig()
