@@ -55,5 +55,5 @@ class InstallPackageVersion(Deploy):
     def _is_retry_valid(self, e):
         if (isinstance(e, MetadataApiError) and
             ('This package is not yet available' in str(e) or
-            'InstalledPackage version number' in str(message))):
+            'InstalledPackage version number' in str(e))):
             return True
