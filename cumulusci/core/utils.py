@@ -16,9 +16,9 @@ import time
 
 def import_class(path):
     """ Import a class from a string module class path """
-    components = path.split('.')
+    components = path.split(".")
     module = components[:-1]
-    module = '.'.join(module)
+    module = ".".join(module)
     mod = __import__(module, fromlist=[native_str(components[-1])])
     return getattr(mod, native_str(components[-1]))
 
@@ -34,10 +34,11 @@ def process_bool_arg(arg):
     if isinstance(arg, bool):
         return arg
     elif isinstance(arg, basestring):
-        if arg.lower() in ['true', '1']:
+        if arg.lower() in ["true", "1"]:
             return True
-        elif arg.lower() in ['false', '0']:
+        elif arg.lower() in ["false", "0"]:
             return False
+
 
 def process_list_arg(arg):
     """ Parse a string into a list separated by commas with whitespace stripped """
@@ -45,16 +46,17 @@ def process_list_arg(arg):
         return arg
     elif isinstance(arg, basestring):
         args = []
-        for part in arg.split(','):
+        for part in arg.split(","):
             args.append(part.strip())
         return args
+
 
 def decode_to_unicode(content):
     """ decode ISO-8859-1 to unicode, when using sf api """
     if content and not isinstance(content, str):
         try:
             # Try to decode ISO-8859-1 to unicode
-            return content.decode('ISO-8859-1')
+            return content.decode("ISO-8859-1")
         except UnicodeEncodeError:
             # Assume content is unicode already
             return content

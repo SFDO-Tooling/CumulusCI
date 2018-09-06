@@ -5,15 +5,14 @@ from cumulusci.tasks.salesforce import BaseSalesforceTask
 
 
 class BaseSalesforceApiTask(BaseSalesforceTask):
-    name = 'BaseSalesforceApiTask'
+    name = "BaseSalesforceApiTask"
     api_version = None
 
     def _init_task(self):
         self.sf = self._init_api()
         self.bulk = self._init_bulk()
-        self.tooling = self._init_api('tooling/')
+        self.tooling = self._init_api("tooling/")
         self._init_class()
-    
 
     def _init_api(self, base_url=None):
         if self.api_version:
@@ -22,7 +21,7 @@ class BaseSalesforceApiTask(BaseSalesforceTask):
             api_version = self.project_config.project__package__api_version
 
         rv = Salesforce(
-            instance=self.org_config.instance_url.replace('https://', ''),
+            instance=self.org_config.instance_url.replace("https://", ""),
             session_id=self.org_config.access_token,
             version=api_version,
         )
@@ -32,7 +31,7 @@ class BaseSalesforceApiTask(BaseSalesforceTask):
 
     def _init_bulk(self):
         return SalesforceBulk(
-            host=self.org_config.instance_url.replace('https://', ''),
+            host=self.org_config.instance_url.replace("https://", ""),
             sessionId=self.org_config.access_token,
         )
 
@@ -41,5 +40,5 @@ class BaseSalesforceApiTask(BaseSalesforceTask):
 
     def _get_tooling_object(self, obj_name):
         obj = getattr(self.tooling, obj_name)
-        obj.base_url = obj.base_url.replace('/sobjects/', '/tooling/sobjects/')
+        obj.base_url = obj.base_url.replace("/sobjects/", "/tooling/sobjects/")
         return obj

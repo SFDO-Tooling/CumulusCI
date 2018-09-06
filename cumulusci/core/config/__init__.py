@@ -1,7 +1,7 @@
 # IMPORT ORDER MATTERS!
 
 # constants used by MetaCI
-FAILED_TO_CREATE_SCRATCH_ORG = 'Failed to create scratch org'
+FAILED_TO_CREATE_SCRATCH_ORG = "Failed to create scratch org"
 
 from cumulusci.core.config.BaseConfig import BaseConfig
 

@@ -15,8 +15,13 @@ class MockLoggingHandler(logging.Handler):
     """
 
     def __init__(self, *args, **kwargs):
-        self.messages = {'debug': [], 'info': [], 'warning': [], 'error': [],
-                         'critical': []}
+        self.messages = {
+            "debug": [],
+            "info": [],
+            "warning": [],
+            "error": [],
+            "critical": [],
+        }
         super(MockLoggingHandler, self).__init__(*args, **kwargs)
 
     def emit(self, record):
@@ -35,6 +40,7 @@ class MockLoggingHandler(logging.Handler):
                 del message_list[:]
         finally:
             self.release()
+
 
 class EnvironmentVarGuard(collections.MutableMapping):
 

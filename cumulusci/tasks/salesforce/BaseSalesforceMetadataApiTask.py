@@ -3,7 +3,7 @@ from cumulusci.tasks.salesforce import BaseSalesforceTask
 
 class BaseSalesforceMetadataApiTask(BaseSalesforceTask):
     api_class = None
-    name = 'BaseSalesforceMetadataApiTask'
+    name = "BaseSalesforceMetadataApiTask"
 
     def _get_api(self):
         return self.api_class(self)

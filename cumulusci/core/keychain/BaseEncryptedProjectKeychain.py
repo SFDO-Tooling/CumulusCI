@@ -14,11 +14,13 @@ from cumulusci.core.exceptions import ConfigError
 from cumulusci.core.keychain import BaseProjectKeychain
 
 BS = 16
-pad = lambda s: s + (BS - len(s) % BS) * chr(BS - len(s) % BS).encode('ascii')
-unpad = lambda s: s[0:-ord(s[-1])]
+pad = lambda s: s + (BS - len(s) % BS) * chr(BS - len(s) % BS).encode("ascii")
+unpad = lambda s: s[0 : -ord(s[-1])]
+
 
 class BaseEncryptedProjectKeychain(BaseProjectKeychain):
     """ Base class for building project keychains that use AES encryption for securing stored org credentials """
+
     encrypted = True
 
     def _get_connected_app(self):
@@ -54,7 +56,7 @@ class BaseEncryptedProjectKeychain(BaseProjectKeychain):
     def _encrypt_config(self, config):
         pickled = pickle.dumps(config.config)
         pickled = pad(pickled)
-        #pickled = base64.b64encode(pickled)
+        # pickled = base64.b64encode(pickled)
         cipher, iv = self._get_cipher()
         encrypted = base64.b64encode(iv + cipher.encrypt(pickled))
         return encrypted
@@ -70,7 +72,7 @@ class BaseEncryptedProjectKeychain(BaseProjectKeychain):
         cipher, iv = self._get_cipher(iv)
         pickled = cipher.decrypt(encrypted_config[16:])
         try:
-            unpickled = pickle.loads(pickled, encoding='bytes')
+            unpickled = pickle.loads(pickled, encoding="bytes")
         except TypeError:  # Python 2
             config_dict = pickle.loads(pickled)
         else:  # Python 3
@@ -78,7 +80,7 @@ class BaseEncryptedProjectKeychain(BaseProjectKeychain):
             config_dict = {}
             for k, v in unpickled.items():
                 if isinstance(k, bytes):
-                    k = k.decode('utf-8')
+                    k = k.decode("utf-8")
                 config_dict[k] = v
         args = [config_dict]
         if extra:
@@ -86,13 +88,13 @@ class BaseEncryptedProjectKeychain(BaseProjectKeychain):
         return self._construct_config(config_class, args)
 
     def _construct_config(self, config_class, args):
-        if args[0].get('scratch'):
+        if args[0].get("scratch"):
             config_class = ScratchOrgConfig
-        
+
         return config_class(*args)
 
     def _validate_key(self):
         if not self.key:
-            raise ConfigError('CUMULUSCI_KEY not set')
+            raise ConfigError("CUMULUSCI_KEY not set")
         if len(self.key) != 16:
-            raise ConfigError('CUMULUSCI_KEY must be 16 characters long')
+            raise ConfigError("CUMULUSCI_KEY must be 16 characters long")
