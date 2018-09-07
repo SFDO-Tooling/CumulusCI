@@ -506,10 +506,12 @@ flows:
         description: Retrieves declarative changes made in a scratch org and converts to src directory
         steps:
             1:
-                task: dx_pull
+                task: dx_convert_to
             2:
-                task: dx_convert_from
+                task: dx_pull
             3:
+                task: dx_convert_from
+            4:
                 task: update_package_xml
 
     unmanaged_ee:
