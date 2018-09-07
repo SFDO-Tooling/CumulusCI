@@ -57,7 +57,7 @@ tasks:
         description: Converts force-app directory in sfdx format into metadata format under src
         class_path: cumulusci.tasks.sfdx.SFDXBaseTask
         options:
-            command: 'force:mdapi:convert -r force-app -d src'
+            command: 'force:source:convert -d src'
     dx_pull:
         description: Uses sfdx to pull from a scratch org into the force-app directory
         class_path: cumulusci.tasks.sfdx.SFDXOrgTask
@@ -501,6 +501,16 @@ flows:
                 options:
                     publish: True
                     tag: ^^github_release.tag_name
+
+    retrieve_scratch:
+        description: Retrieves declarative changes made in a scratch org and converts to src directory
+        steps:
+            1:
+                task: dx_pull
+            2:
+                task: dx_convert_from
+            3:
+                task: update_package_xml
 
     unmanaged_ee:
         description: Deploy the unmanaged package metadata and all dependencies to the target EE org
