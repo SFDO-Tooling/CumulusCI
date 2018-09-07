@@ -20,7 +20,7 @@ environment:
     # - PYTHON: "C:\\Python36-x64"
 
 init:
-  - "echo %APPVEYOR_PULL_REQUEST_HEAD_REPO_NAME%"
+  - ps: "echo repo:$env:APPVEYOR_PULL_REQUEST_HEAD_REPO_NAME"
 
 install:
   # We need wheel installed to build wheels
