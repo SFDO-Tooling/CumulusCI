@@ -484,7 +484,7 @@ class TestBaseProjectConfig(unittest.TestCase):
     def test_get_org(self):
         config = BaseProjectConfig(BaseGlobalConfig())
         config.keychain = mock.Mock()
-        config.keychain.get_org.return_value = mock.sentinel.org = object()
+        config.keychain.get_org.return_value = mock.sentinel.org
         self.assertIs(mock.sentinel.org, config.get_org('test'))
 
     def test_set_org(self):
@@ -660,9 +660,8 @@ class TestOrgConfig(unittest.TestCase):
 
     @mock.patch('cumulusci.core.config.OrgConfig.SalesforceOAuth2')
     def test_refresh_oauth_token(self, SalesforceOAuth2):
-        refresh_token = object()
         config = OrgConfig({
-            'refresh_token': refresh_token,
+            'refresh_token': mock.sentinel.refresh_token,
         }, 'test')
         config._load_userinfo = mock.Mock()
         keychain = mock.Mock()
@@ -672,7 +671,7 @@ class TestOrgConfig(unittest.TestCase):
 
         config.refresh_oauth_token(keychain)
 
-        oauth.refresh_token.assert_called_once_with(refresh_token)
+        oauth.refresh_token.assert_called_once_with(mock.sentinel.refresh_token)
 
     def test_refresh_oauth_token_no_connected_app(self):
         config = OrgConfig({}, 'test')
