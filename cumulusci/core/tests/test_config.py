@@ -344,8 +344,7 @@ class TestBaseProjectConfig(unittest.TestCase):
 
     def test_repo_url_from_git(self):
         config = BaseProjectConfig(BaseGlobalConfig())
-        self.assertEqual(
-            'git@github.com:SalesforceFoundation/CumulusCI.git', config.repo_url)
+        self.assertIn('SalesforceFoundation/CumulusCI', config.repo_url)
 
     def test_repo_owner_from_repo_info(self):
         config = BaseProjectConfig(BaseGlobalConfig())
