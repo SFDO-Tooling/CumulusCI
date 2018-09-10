@@ -257,6 +257,16 @@ class TestRunAnonApex(unittest.TestCase):
         self.assertEqual(err[0], problem)
         self.assertEqual(err[1], trace)
 
+    @responses.activate
+    def test_run_anonymous_apex_success(self):
+        task, url = self._get_url_and_task()
+        resp = {
+            "compiled": True,
+            "success": True,
+        }
+        responses.add(responses.GET, url, status=200, json=resp)
+        task()
+
 
 @patch(
     "cumulusci.tasks.salesforce.BaseSalesforceTask._update_credentials",
