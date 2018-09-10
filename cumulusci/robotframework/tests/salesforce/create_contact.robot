@@ -35,7 +35,7 @@ Via UI
 Validate Contact
     [Arguments]          ${contact_id}  ${first_name}  ${last_name}
     # Validate via UI
-    Go To Record Home    Contact  ${contact_id}
+    Go To Record Home    ${contact_id}
     Page Should Contain  ${first_name} ${last_name}
     # Validate via API
     &{contact} =     Salesforce Get  Contact  ${contact_id}

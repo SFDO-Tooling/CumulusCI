@@ -7,7 +7,7 @@ class BaseConfig(object):
     """ Base class for all configuration objects """
 
     defaults = {}
-    search_path = ['config']
+    search_path = ["config"]
 
     def __init__(self, config=None):
         if config is None:
@@ -26,9 +26,9 @@ class BaseConfig(object):
         pass
 
     def __getattr__(self, name):
-        tree = name.split('__')
-        if name.startswith('_'):
-            raise AttributeError('Attribute {} not found'.format(name))
+        tree = name.split("__")
+        if name.startswith("_"):
+            raise AttributeError("Attribute {} not found".format(name))
         value = None
         value_found = False
         for attr in self.search_path:

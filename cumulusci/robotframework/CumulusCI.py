@@ -10,6 +10,7 @@ from robot.api import logger
 from robot.libraries.BuiltIn import BuiltIn
 from simple_salesforce import Salesforce
 
+
 class CumulusCI(object):
     """ Library for accessing CumulusCI for the local git project
 
@@ -33,14 +34,16 @@ class CumulusCI(object):
 
     def __init__(self, org_name=None):
         if not org_name:
-            org_name = 'dev'
+            org_name = "dev"
         self.org_name = org_name
         self._project_config = None
         self._org = None
         self._sf = None
         self._tooling = None
-        # Turn off info logging of all http requests 
-        logging.getLogger('requests.packages.urllib3.connectionpool').setLevel(logging.WARN)
+        # Turn off info logging of all http requests
+        logging.getLogger("requests.packages.urllib3.connectionpool").setLevel(
+            logging.WARN
+        )
 
     @property
     def project_config(self):
@@ -49,14 +52,14 @@ class CumulusCI(object):
                 # If CumulusCI is running a task, use that task's config
                 return CURRENT_TASK.project_config
             else:
-                logger.console('Initializing CumulusCI config\n')
+                logger.console("Initializing CumulusCI config\n")
                 self._project_config = CliConfig().project_config
         return self._project_config
 
     def set_project_config(self, project_config):
-        logger.console('\n')
+        logger.console("\n")
         self._project_config = project_config
-    
+
     @property
     def keychain(self):
         return self.project_config.keychain
@@ -80,17 +83,16 @@ class CumulusCI(object):
     @property
     def tooling(self):
         if self._tooling is None:
-            self._tooling = self._init_api('tooling/')
+            self._tooling = self._init_api("tooling/")
         return self._tooling
-        
 
     def set_login_url(self):
         """ Sets the LOGIN_URL variable in the suite scope which will
             automatically log into the target Salesforce org.
     
             Typically, this is run during Suite Setup
-        """ 
-        BuiltIn().set_suite_variable('${LOGIN_URL}', self.org.start_url)
+        """
+        BuiltIn().set_suite_variable("${LOGIN_URL}", self.org.start_url)
 
     def get_org_info(self):
         """ Returns a dictionary of the org information for the current target
@@ -121,7 +123,7 @@ class CumulusCI(object):
         """
         task_config = self.project_config.get_task(task_name)
         class_path = task_config.class_path
-        logger.console('\n')
+        logger.console("\n")
         task_class, task_config = self._init_task(class_path, options, task_config)
         return self._run_task(task_class, task_config)
 
@@ -137,8 +139,8 @@ class CumulusCI(object):
             Examples:
             | =Keyword=      | =task_class=                     | =task_options=                            |
             | Run Task Class | cumulusci.task.utils.DownloadZip | url=http://test.com/test.zip dir=test_zip |
-        """ 
-        logger.console('\n')
+        """
+        logger.console("\n")
         task_class, task_config = self._init_task(class_path, options, TaskConfig())
         return self._run_task(task_class, task_config)
 
@@ -146,7 +148,7 @@ class CumulusCI(object):
         api_version = self.project_config.project__package__api_version
 
         rv = Salesforce(
-            instance=self.org.instance_url.replace('https://', ''),
+            instance=self.org.instance_url.replace("https://", ""),
             session_id=self.org.access_token,
             version=api_version,
         )
@@ -160,8 +162,8 @@ class CumulusCI(object):
         return task_class, task_config
 
     def _parse_task_options(self, options, task_class, task_config):
-        if 'options' not in task_config.config:
-            task_config.config['options'] = {}
+        if "options" not in task_config.config:
+            task_config.config["options"] = {}
         # Parse options and add to task config
         if options:
             for name, value in options.items():
@@ -169,22 +171,19 @@ class CumulusCI(object):
                 if name not in task_class.task_options:
                     raise TaskOptionsError(
                         'Option "{}" is not available for task {}'.format(
-                            name,
-                            task_name,
-                        ),
+                            name, task_name
+                        )
                     )
-    
+
                 # Override the option in the task config
-                task_config.config['options'][name] = value
+                task_config.config["options"][name] = value
 
         return task_config
-    
+
     def _run_task(self, task_class, task_config):
         exception = None
 
-        task = task_class(self.project_config,
-                          task_config, org_config=self.org)
+        task = task_class(self.project_config, task_config, org_config=self.org)
 
         task()
         return task.return_values
-
