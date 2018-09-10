@@ -231,32 +231,32 @@ class Salesforce(object):
     def go_to_object_home(self, obj_name):
         """ Navigates to the Home view of a Salesforce Object """
         url = self.cumulusci.org.lightning_base_url
-        url = "{}/one/one.app#/sObject/{}/home".format(url, obj_name)
+        url = "{}/lightning/o/{}/home".format(url, obj_name)
         self.selenium.go_to(url)
 
     def go_to_object_list(self, obj_name, filter_name=None):
         """ Navigates to the Home view of a Salesforce Object """
         url = self.cumulusci.org.lightning_base_url
-        url = "{}/one/one.app#/sObject/{}/list".format(url, obj_name)
+        url = "{}/lightning/o/{}/list".format(url, obj_name)
         if filter_name:
             url += "?filterName={}".format(filter_name)
         self.selenium.go_to(url)
 
-    def go_to_record_home(self, obj_id, filter_name=None):
+    def go_to_record_home(self, obj_name, obj_id, filter_name=None):
         """ Navigates to the Home view of a Salesforce Object """
         url = self.cumulusci.org.lightning_base_url
-        url = "{}/one/one.app#/sObject/{}/view".format(url, obj_id)
+        url = "{}/lightning/r/{}/{}/view".format(url, obj_name, obj_id)
         self.selenium.go_to(url)
 
     def go_to_setup_home(self):
         """ Navigates to the Home tab of Salesforce Setup """
         url = self.cumulusci.org.lightning_base_url
-        self.selenium.go_to(url + "/one/one.app#/setup/SetupOneHome/home")
+        self.selenium.go_to(url + "/lightning/setup/SetupOneHome/home")
 
     def go_to_setup_object_manager(self):
         """ Navigates to the Object Manager tab of Salesforce Setup """
         url = self.cumulusci.org.lightning_base_url
-        self.selenium.go_to(url + "/one/one.app#/setup/ObjectManager/home")
+        self.selenium.go_to(url + "/lightning/setup/ObjectManager/home")
 
     def header_field_should_have_value(self, label):
         """ Validates that a field in the record header has a text value.
