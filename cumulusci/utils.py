@@ -377,5 +377,10 @@ def package_xml_from_dict(items, api_version, package_name=None):
 @contextmanager
 def temporary_dir():
     d = tempfile.mkdtemp()
-    yield d
-    shutil.rmtree(d)
+    cwd = os.getcwd()
+    os.chdir(d)
+    try:
+        yield d
+    finally:
+        os.chdir(cwd)
+        shutil.rmtree(d)

@@ -275,15 +275,15 @@ class TestBaseProjectConfig(unittest.TestCase):
         config = BaseProjectConfig(BaseGlobalConfig())
         with mock.patch.dict(os.environ, env):
             result = config.repo_info
-            self.assertEqual({
-                'ci': 'heroku',
-                'name': 'CumulusCI-Test',
-                'owner': 'SalesforceFoundation',
-                'branch': 'feature/test',
-                'commit': 'HEAD~1',
-                'root': '.',
-                'url': 'https://github.com/SalesforceFoundation/CumulusCI-Test.git',
-            }, result)
+        self.assertEqual({
+            'ci': 'heroku',
+            'name': 'CumulusCI-Test',
+            'owner': 'SalesforceFoundation',
+            'branch': 'feature/test',
+            'commit': 'HEAD~1',
+            'root': '.',
+            'url': 'https://github.com/SalesforceFoundation/CumulusCI-Test.git',
+        }, result)
 
     def test_repo_info_missing_env(self):
         env = {
@@ -317,10 +317,7 @@ class TestBaseProjectConfig(unittest.TestCase):
     def test_repo_name_no_repo_root(self):
         config = BaseProjectConfig(BaseGlobalConfig())
         with temporary_dir() as d:
-            cwd = os.getcwd()
-            os.chdir(d)
             self.assertIsNone(config.repo_name)
-            os.chdir(cwd)
 
     def test_repo_name_from_git(self):
         config = BaseProjectConfig(BaseGlobalConfig())
@@ -337,10 +334,7 @@ class TestBaseProjectConfig(unittest.TestCase):
     def test_repo_url_no_repo_root(self):
         config = BaseProjectConfig(BaseGlobalConfig())
         with temporary_dir() as d:
-            cwd = os.getcwd()
-            os.chdir(d)
             self.assertIsNone(config.repo_url)
-            os.chdir(cwd)
 
     def test_repo_url_from_git(self):
         config = BaseProjectConfig(BaseGlobalConfig())
@@ -357,10 +351,7 @@ class TestBaseProjectConfig(unittest.TestCase):
     def test_repo_owner_no_repo_root(self):
         config = BaseProjectConfig(BaseGlobalConfig())
         with temporary_dir() as d:
-            cwd = os.getcwd()
-            os.chdir(d)
             self.assertIsNone(config.repo_owner)
-            os.chdir(cwd)
 
     def test_repo_branch_from_repo_info(self):
         config = BaseProjectConfig(BaseGlobalConfig())
@@ -373,10 +364,7 @@ class TestBaseProjectConfig(unittest.TestCase):
     def test_repo_branch_no_repo_root(self):
         config = BaseProjectConfig(BaseGlobalConfig())
         with temporary_dir() as d:
-            cwd = os.getcwd()
-            os.chdir(d)
             self.assertIsNone(config.repo_branch)
-            os.chdir(cwd)
 
     def test_repo_commit_from_repo_info(self):
         config = BaseProjectConfig(BaseGlobalConfig())
@@ -389,29 +377,20 @@ class TestBaseProjectConfig(unittest.TestCase):
     def test_repo_commit_no_repo_root(self):
         config = BaseProjectConfig(BaseGlobalConfig())
         with temporary_dir() as d:
-            cwd = os.getcwd()
-            os.chdir(d)
             self.assertIsNone(config.repo_commit)
-            os.chdir(cwd)
 
     def test_repo_commit_no_repo_branch(self):
         config = BaseProjectConfig(BaseGlobalConfig())
         with temporary_dir() as d:
-            cwd = os.getcwd()
-            os.chdir(d)
             os.mkdir(os.path.join(d, '.git'))
             with open(os.path.join(d, '.git', 'HEAD'), 'w') as f:
                 f.write('abcdef')
 
             self.assertIsNone(config.repo_commit)
 
-            os.chdir(cwd)
-
     def test_repo_commit_packed_refs(self):
         config = BaseProjectConfig(BaseGlobalConfig())
         with temporary_dir() as d:
-            cwd = os.getcwd()
-            os.chdir(d)
             os.system('git init')
             with open(os.path.join(d, '.git', 'packed-refs'), 'w') as f:
                 f.write('# pack-refs with: peeled fully-peeled sorted\n')
@@ -419,8 +398,6 @@ class TestBaseProjectConfig(unittest.TestCase):
                 f.write('8ce67f4519190cd1ec9785105168e21b9599bc27 refs/remotes/origin/master\n')
 
             self.assertIsNotNone(config.repo_commit)
-
-            os.chdir(cwd)
 
     def test_use_sentry(self):
         config = BaseProjectConfig(BaseGlobalConfig())
@@ -460,10 +437,7 @@ class TestBaseProjectConfig(unittest.TestCase):
     def test_config_project_path_no_repo_root(self):
         config = BaseProjectConfig(BaseGlobalConfig())
         with temporary_dir() as d:
-            cwd = os.getcwd()
-            os.chdir(d)
             self.assertIsNone(config.config_project_path)
-            os.chdir(cwd)
 
     def test_get_tag_for_version(self):
         config = BaseProjectConfig(BaseGlobalConfig(), {
@@ -504,14 +478,14 @@ class TestBaseProjectConfig(unittest.TestCase):
     def test_list_orgs(self):
         config = BaseProjectConfig(BaseGlobalConfig())
         config.keychain = mock.Mock()
-        config.keychain.list_orgs.return_value = _marker = object()
-        self.assertIs(_marker, config.list_orgs())
+        config.keychain.list_orgs.return_value = mock.sentinel.orgs
+        self.assertIs(mock.sentinel.orgs, config.list_orgs())
 
     def test_get_org(self):
         config = BaseProjectConfig(BaseGlobalConfig())
         config.keychain = mock.Mock()
-        config.keychain.get_org.return_value = _marker = object()
-        self.assertIs(_marker, config.get_org('test'))
+        config.keychain.get_org.return_value = mock.sentinel.org = object()
+        self.assertIs(mock.sentinel.org, config.get_org('test'))
 
     def test_set_org(self):
         config = BaseProjectConfig(BaseGlobalConfig())

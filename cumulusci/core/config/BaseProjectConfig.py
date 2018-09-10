@@ -194,7 +194,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                     in_remote_origin = True
                     continue
                 if in_remote_origin and "url = " in line:
-                    return line[6:]
+                    return line[len("url = "):]
 
     @property
     def repo_owner(self):
