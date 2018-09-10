@@ -242,7 +242,7 @@ class Salesforce(object):
             url += "?filterName={}".format(filter_name)
         self.selenium.go_to(url)
 
-    def go_to_record_home(self, obj_name, obj_id, filter_name=None):
+    def go_to_record_home(self, obj_name, obj_id):
         """ Navigates to the Home view of a Salesforce Object """
         url = self.cumulusci.org.lightning_base_url
         url = "{}/lightning/r/{}/{}/view".format(url, obj_name, obj_id)
