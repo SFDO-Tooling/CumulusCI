@@ -194,7 +194,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                     in_remote_origin = True
                     continue
                 if in_remote_origin and "url = " in line:
-                    return line[7:]
+                    return line[len("url = "):]
 
     @property
     def repo_owner(self):
@@ -300,9 +300,11 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             processors=("raven.processors.SanitizePasswordsProcessor",),
         )
 
+    _get_github_api = get_github_api
+
     def get_github_api(self):
         github_config = self.keychain.get_service("github")
-        gh = get_github_api(github_config.username, github_config.password)
+        gh = self._get_github_api(github_config.username, github_config.password)
         return gh
 
     def get_latest_version(self, beta=False):
@@ -426,7 +428,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         pretty = []
         for dependency in dependencies:
             prefix = "{}  - ".format(" " * indent)
-            for key, value in list(dependency.items()):
+            for key, value in sorted(dependency.items()):
                 extra = []
                 if value is None or value is False:
                     continue

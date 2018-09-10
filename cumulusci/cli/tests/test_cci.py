@@ -215,7 +215,6 @@ class TestCCI(unittest.TestCase):
     @mock.patch("cumulusci.cli.cci.click")
     def test_project_init(self, click):
         with temporary_dir() as d:
-            os.chdir(d)
             os.mkdir(".git")
 
             click.prompt.side_effect = (
@@ -256,27 +255,19 @@ class TestCCI(unittest.TestCase):
                 recursive_list_files(),
             )
 
-            os.chdir("..")
-
     def test_project_init_no_git(self):
         with temporary_dir() as d:
-            os.chdir(d)
-
             with self.assertRaises(click.ClickException):
                 run_click_command(cci.project_init)
 
-            os.chdir("..")
-
     def test_project_init_already_initted(self):
         with temporary_dir() as d:
-            os.chdir(d)
             os.mkdir(".git")
             with open("cumulusci.yml", "w"):
                 pass  # create empty file
 
             with self.assertRaises(click.ClickException):
                 run_click_command(cci.project_init)
-            os.chdir("..")
 
     @mock.patch("click.echo")
     def test_project_info(self, echo):
