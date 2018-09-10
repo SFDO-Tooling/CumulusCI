@@ -93,6 +93,16 @@ class TestYamlProjectConfig(unittest.TestCase):
         content = (self.current_commit)
         self._write_file(filename, content)
 
+    def _create_global_config_local(self, content):
+        global_local_dir = os.path.join(
+            self.tempdir_home,
+            '.cumulusci',
+        )
+        os.makedirs(global_local_dir)
+        filename = os.path.join(global_local_dir,
+                                YamlGlobalConfig.config_filename)
+        self._write_file(filename, content)
+
     def _create_project_config(self):
         filename = os.path.join(
             self.tempdir_project,
@@ -166,6 +176,8 @@ class TestYamlProjectConfig(unittest.TestCase):
         mock_class.return_value = self.tempdir_home
         os.mkdir(os.path.join(self.tempdir_project, '.git'))
         self._create_git_config()
+        local_yaml = 'tasks:\n    newtesttask:\n        description: test description'
+        self._create_global_config_local(local_yaml)
 
         # create valid project config file
         self._create_project_config()
@@ -401,6 +413,14 @@ class TestScratchOrgConfig(unittest.TestCase):
                 Salesforce=mock.Mock(return_value=sf)):
             self.assertEqual(config.user_id, 'test')
 
+    def test_username_from_scratch_info(self, Command):
+        config = ScratchOrgConfig({}, 'test')
+        _marker = object()
+        config._scratch_info = {
+            'username': _marker
+        }
+        self.assertIs(config.username, _marker)
+
     def test_password_from_config(self, Command):
         config = ScratchOrgConfig({'password': 'test'}, 'test')
         self.assertEqual(config.password, 'test')
@@ -510,6 +530,10 @@ class TestScratchOrgConfig(unittest.TestCase):
         config.password_failed = True
         config.generate_password()
         Command.assert_not_called()
+
+    def test_can_delete(self, Command):
+        config = ScratchOrgConfig({'date_created': datetime.now()}, 'test')
+        self.assertTrue(config.can_delete())
 
     def test_delete_org(self, Command):
         Command.return_value = mock.Mock(

@@ -203,7 +203,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                     in_remote_origin = True
                     continue
                 if in_remote_origin and 'url = ' in line:
-                    return line[7:]
+                    return line[6:]
 
     @property
     def repo_owner(self):
@@ -315,9 +315,11 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             ),
         )
 
+    _get_github_api = get_github_api
+
     def get_github_api(self):
         github_config = self.keychain.get_service('github')
-        gh = get_github_api(github_config.username, github_config.password)
+        gh = self._get_github_api(github_config.username, github_config.password)
         return gh
 
     def get_latest_version(self, beta=False):
