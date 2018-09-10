@@ -29,14 +29,14 @@ Click Object Button
 
 Click Related List Button
     &{contact} =  Create Contact
-    Go To Record Home  &{contact}[Id]
+    Go To Record Home  Contact  &{contact}[Id]
     Click Related List Button  Opportunities  New
     Wait Until Modal Is Open
     Page Should Contain  New Opportunity
 
 Get Current Record Id
     &{contact} =  Create Contact
-    Go To Record Home  &{contact}[Id]
+    Go To Record Home  Contact  &{contact}[Id]
     ${contact_id} =  Get Current Record Id
     Should Be Equal  &{contact}[Id]  ${contact_id}
 
@@ -57,7 +57,7 @@ Go To Object List With Filter
 
 Go To Record Home
     &{contact} =  Create Contact
-    Go To Record Home  &{contact}[Id]
+    Go To Record Home  Contact  &{contact}[Id]
 
 Populate Field
     ${account_name} =  Generate Random String
