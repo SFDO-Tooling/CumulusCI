@@ -428,7 +428,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         pretty = []
         for dependency in dependencies:
             prefix = "{}  - ".format(" " * indent)
-            for key, value in list(dependency.items()):
+            for key, value in sorted(dependency.items()):
                 extra = []
                 if value is None or value is False:
                     continue

@@ -548,12 +548,12 @@ class TestBaseProjectConfig(unittest.TestCase):
         }
         config = BaseProjectConfig(BaseGlobalConfig())
         result = '\n'.join(config.pretty_dependencies([dep]))
-        self.assertEqual("""  - version: 3
-    namespace: npsp
-    dependencies: 
+        self.assertEqual("""  - dependencies: 
     
-      - version: 1
-        namespace: npe01""", result)
+      - namespace: npe01
+        version: 1
+    namespace: npsp
+    version: 3""", result)
 
     def test_process_github_dependency(self):
         global_config = BaseGlobalConfig()
