@@ -2,6 +2,13 @@
 History
 =======
 
+2.0.9 (2018-09-10)
+------------------
+
+* Make robot commands use new lightning URLs
+* Remove unused filter_name arg from Go to Record Home robot keyword.
+* Fix metadata map for Settings.
+
 2.0.8 (2018-08-21)
 ------------------
 * Flows that are executed from within another flow now support task-level control flow.
