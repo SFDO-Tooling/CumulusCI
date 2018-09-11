@@ -169,7 +169,7 @@ class DummyRelease(object):
         self.tag_name = tag_name
 
 CUMULUSCI_TEST_REPO = DummyRepository(
-    "SalesforceFoundation",
+    "SFDO-Tooling",
     "CumulusCI-Test",
     {
         "cumulusci.yml": DummyContents(
@@ -180,9 +180,9 @@ project:
         name: Cumulus-Test
         namespace: ccitest
     git:
-        repo_url: https://github.com/SalesforceFoundation/CumulusCI-Test
+        repo_url: https://github.com/SFDO-Tooling/CumulusCI-Test
     dependencies:
-        - github: https://github.com/SalesforceFoundation/CumulusCI-Test-Dep
+        - github: https://github.com/SFDO-Tooling/CumulusCI-Test-Dep
 """),
         'unpackaged/pre': {'pre': {}, 'skip': {}},
         'src': {'src': ''},
@@ -191,7 +191,7 @@ project:
 )
 
 CUMULUSCI_TEST_DEP_REPO = DummyRepository(
-    "SalesforceFoundation",
+    "SFDO-Tooling",
     "CumulusCI-Test-Dep",
     {
         "cumulusci.yml": DummyContents(
@@ -202,7 +202,7 @@ project:
         name: Cumulus-Test-Dep
         namespace: ccitestdep
     git:
-        repo_url: https://github.com/SalesforceFoundation/CumulusCI-Test-Dep
+        repo_url: https://github.com/SFDO-Tooling/CumulusCI-Test-Dep
 """
         ),
         "unpackaged/pre": {},
@@ -212,7 +212,7 @@ project:
 )
 
 CUMULUSCI_REPO = DummyRepository(
-    'SalesforceFoundation',
+    'SFDO-Tooling',
     'CumulusCI',
     {},
     [
@@ -270,7 +270,7 @@ class TestBaseProjectConfig(unittest.TestCase):
             'CUMULUSCI_REPO_BRANCH': 'feature/test',
             'CUMULUSCI_REPO_COMMIT': 'HEAD~1',
             'CUMULUSCI_REPO_ROOT': '.',
-            'CUMULUSCI_REPO_URL': 'https://github.com/SalesforceFoundation/CumulusCI-Test.git',
+            'CUMULUSCI_REPO_URL': 'https://github.com/SFDO-Tooling/CumulusCI-Test.git',
         }
         config = BaseProjectConfig(BaseGlobalConfig())
         with mock.patch.dict(os.environ, env):
@@ -278,11 +278,11 @@ class TestBaseProjectConfig(unittest.TestCase):
         self.assertEqual({
             'ci': 'heroku',
             'name': 'CumulusCI-Test',
-            'owner': 'SalesforceFoundation',
+            'owner': 'SFDO-Tooling',
             'branch': 'feature/test',
             'commit': 'HEAD~1',
             'root': '.',
-            'url': 'https://github.com/SalesforceFoundation/CumulusCI-Test.git',
+            'url': 'https://github.com/SFDO-Tooling/CumulusCI-Test.git',
         }, result)
 
     def test_repo_info_missing_env(self):
@@ -326,10 +326,10 @@ class TestBaseProjectConfig(unittest.TestCase):
     def test_repo_url_from_repo_info(self):
         config = BaseProjectConfig(BaseGlobalConfig())
         config._repo_info = {
-            'url': 'https://github.com/SalesforceFoundation/CumulusCI',
+            'url': 'https://github.com/SFDO-Tooling/CumulusCI',
         }
         self.assertEqual(
-            'https://github.com/SalesforceFoundation/CumulusCI', config.repo_url)
+            'https://github.com/SFDO-Tooling/CumulusCI', config.repo_url)
 
     def test_repo_url_no_repo_root(self):
         config = BaseProjectConfig(BaseGlobalConfig())
@@ -338,15 +338,15 @@ class TestBaseProjectConfig(unittest.TestCase):
 
     def test_repo_url_from_git(self):
         config = BaseProjectConfig(BaseGlobalConfig())
-        self.assertIn('SalesforceFoundation/CumulusCI', config.repo_url)
+        self.assertIn('SFDO-Tooling/CumulusCI', config.repo_url)
 
     def test_repo_owner_from_repo_info(self):
         config = BaseProjectConfig(BaseGlobalConfig())
         config._repo_info = {
-            'owner': 'SalesforceFoundation',
+            'owner': 'SFDO-Tooling',
         }
         self.assertEqual(
-            'SalesforceFoundation', config.repo_owner)
+            'SFDO-Tooling', config.repo_owner)
 
     def test_repo_owner_no_repo_root(self):
         config = BaseProjectConfig(BaseGlobalConfig())
@@ -536,7 +536,7 @@ class TestBaseProjectConfig(unittest.TestCase):
         config.keychain = DummyKeychain()
 
         result = config.process_github_dependency({
-            'github': 'https://github.com/SalesforceFoundation/CumulusCI-Test.git',
+            'github': 'https://github.com/SFDO-Tooling/CumulusCI-Test.git',
             'unmanaged': True,
             'skip': [
                 'unpackaged/pre/skip',
@@ -552,7 +552,7 @@ class TestBaseProjectConfig(unittest.TestCase):
                     u"namespace_tokenize": None,
                     u"subfolder": u"CumulusCI-Test-master/unpackaged/pre/pre",
                     u"unmanaged": True,
-                    u"zip_url": u"https://github.com/SalesforceFoundation/CumulusCI-Test/archive/master.zip",
+                    u"zip_url": u"https://github.com/SFDO-Tooling/CumulusCI-Test/archive/master.zip",
                 },
                 {u"version": "2", u"namespace": "ccitestdep"},
                 {
@@ -562,7 +562,7 @@ class TestBaseProjectConfig(unittest.TestCase):
                     u"namespace_tokenize": None,
                     u"subfolder": u"CumulusCI-Test-master/src",
                     u"unmanaged": True,
-                    u"zip_url": u"https://github.com/SalesforceFoundation/CumulusCI-Test/archive/master.zip",
+                    u"zip_url": u"https://github.com/SFDO-Tooling/CumulusCI-Test/archive/master.zip",
                 },
                 {
                     u"headers": {u"Authorization": u"token password"},
@@ -571,7 +571,7 @@ class TestBaseProjectConfig(unittest.TestCase):
                     u"namespace_tokenize": None,
                     u"subfolder": u"CumulusCI-Test-master/unpackaged/post/post",
                     u"unmanaged": True,
-                    u"zip_url": u"https://github.com/SalesforceFoundation/CumulusCI-Test/archive/master.zip",
+                    u"zip_url": u"https://github.com/SFDO-Tooling/CumulusCI-Test/archive/master.zip",
                 },
             ],
         )
@@ -583,7 +583,7 @@ class TestBaseProjectConfig(unittest.TestCase):
         config.keychain = DummyKeychain()
 
         result = config.process_github_dependency({
-            'github': 'https://github.com/SalesforceFoundation/CumulusCI-Test.git',
+            'github': 'https://github.com/SFDO-Tooling/CumulusCI-Test.git',
             'tag': 'release/1.0',
         })
         self.assertIn({
@@ -604,7 +604,7 @@ class TestBaseProjectConfig(unittest.TestCase):
 
         with self.assertRaises(DependencyResolutionError):
             config.process_github_dependency({
-                'github': 'https://github.com/SalesforceFoundation/CumulusCI-Test-Dep.git',
+                'github': 'https://github.com/SFDO-Tooling/CumulusCI-Test-Dep.git',
             })
 
         del CUMULUSCI_TEST_DEP_REPO._get
