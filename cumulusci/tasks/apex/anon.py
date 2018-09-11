@@ -1,5 +1,3 @@
-from simple_salesforce.util import exception_handler
-
 from cumulusci.core.exceptions import ApexCompilationException
 from cumulusci.core.exceptions import ApexException
 from cumulusci.core.exceptions import TaskOptionsError
