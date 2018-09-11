@@ -10,6 +10,7 @@ import re
 import io
 import shutil
 import tempfile
+import textwrap
 import zipfile
 
 import requests
@@ -324,6 +325,9 @@ def doc_task(task_name, task_config, project_config=None, org_config=None):
     doc.append("**Class::** {}\n".format(task_config.class_path))
 
     task_class = import_class(task_config.class_path)
+    task_docs = textwrap.dedent(task_class.task_docs.strip("\n"))
+    if task_docs:
+        doc.append(task_docs)
     if task_class.task_options:
         doc.append("Options:\n------------------------------------------\n")
         defaults = task_config.options or {}
@@ -400,4 +404,4 @@ def in_directory(filepath, dirpath):
     """
     filepath = os.path.realpath(filepath)
     dirpath = os.path.realpath(dirpath)
-    return filepath.startswith(os.path.join(dirpath, ''))
+    return filepath.startswith(os.path.join(dirpath, ""))

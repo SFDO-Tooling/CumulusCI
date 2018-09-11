@@ -186,9 +186,9 @@ class TestAnonymousApexTask(unittest.TestCase):
         self.global_config = BaseGlobalConfig(
             {"project": {"api_version": self.api_version}}
         )
-        self.tmpdir = tempfile.mkdtemp(dir='.')
-        apex_path = os.path.join(self.tmpdir, 'test.apex')
-        with open(apex_path, 'w') as f:
+        self.tmpdir = tempfile.mkdtemp(dir=".")
+        apex_path = os.path.join(self.tmpdir, "test.apex")
+        with open(apex_path, "w") as f:
             f.write('System.debug("from file")')
         self.task_config = TaskConfig()
         self.task_config.config["options"] = {
@@ -199,14 +199,8 @@ class TestAnonymousApexTask(unittest.TestCase):
         self.project_config = BaseProjectConfig(self.global_config)
         self.project_config.config = {
             "project": {
-                "package": {
-                    "namespace": "abc",
-                    "api_version": self.api_version,
-                },
-            },
-            "dev_config": {
-                "admin_email": "test@example.com",
-            },
+                "package": {"namespace": "abc", "api_version": self.api_version}
+            }
         }
         keychain = BaseProjectKeychain(self.project_config, "")
         self.project_config.set_keychain(keychain)
@@ -232,53 +226,38 @@ class TestAnonymousApexTask(unittest.TestCase):
             AnonymousApexTask(self.project_config, task_config, self.org_config)
 
     def test_run_from_path_outside_repo(self):
-        task_config = TaskConfig({
-            'options': {
-                'path': '/',
-            }
-        })
+        task_config = TaskConfig({"options": {"path": "/"}})
         task = AnonymousApexTask(self.project_config, task_config, self.org_config)
         with self.assertRaises(TaskOptionsError):
             task()
-    
+
     def test_run_path_not_found(self):
-        task_config = TaskConfig({
-            'options': {
-                'path': 'bogus',
-            }
-        })
+        task_config = TaskConfig({"options": {"path": "bogus"}})
         task = AnonymousApexTask(self.project_config, task_config, self.org_config)
         with self.assertRaises(TaskOptionsError):
             task()
 
     def test_prepare_apex(self):
         task = AnonymousApexTask(self.project_config, self.task_config, self.org_config)
-        before = "String %%%NAMESPACE%%%email = 'mrbelvedere@salesforce.org';"
-        expected = "String abc__email = 'test@example.com';"
+        before = "String %%%NAMESPACE%%%str = 'foo';"
+        expected = "String abc__str = 'foo';"
         self.assertEqual(expected, task._prepare_apex(before))
 
     @responses.activate
     def test_run_anonymous_apex_success(self):
         task, url = self._get_url_and_task()
-        resp = {
-            "compiled": True,
-            "success": True,
-        }
+        resp = {"compiled": True, "success": True}
         responses.add(responses.GET, url, status=200, json=resp)
         task()
-    
+
     @responses.activate
     def test_run_string_only(self):
-        task_config = TaskConfig({
-            'options': {
-                'apex': 'System.debug("test");',
-            }
-        })
+        task_config = TaskConfig({"options": {"apex": 'System.debug("test");'}})
         task = AnonymousApexTask(self.project_config, task_config, self.org_config)
-        url = task.tooling.base_url + 'executeAnonymous'
-        responses.add(responses.GET, url, status=200, json={
-            "compiled": True, "success": True
-        })
+        url = task.tooling.base_url + "executeAnonymous"
+        responses.add(
+            responses.GET, url, status=200, json={"compiled": True, "success": True}
+        )
         task()
 
     @responses.activate
