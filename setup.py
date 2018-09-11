@@ -87,3 +87,4 @@ setup(
     test_suite="cumulusci.core.tests",
     tests_require=test_requirements,
 )
+
