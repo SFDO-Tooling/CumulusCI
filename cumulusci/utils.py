@@ -375,25 +375,19 @@ def package_xml_from_dict(items, api_version, package_name=None):
 
 
 @contextmanager
-def temporary_dir(dir=None, chdir=True):
+def temporary_dir():
     """Context manager that creates a temporary directory and chdirs to it.
 
     When the context manager exits it returns to the previous cwd
     and deletes the temporary directory.
-
-    Optionally use `dir` to specify a base directory instead of using the default.
-
-    Use chdir=False to prevent changing the working directory.
     """
-    d = tempfile.mkdtemp(dir=dir)
-    if chdir:
-        cwd = os.getcwd()
-        os.chdir(d)
+    d = tempfile.mkdtemp()
+    cwd = os.getcwd()
+    os.chdir(d)
     try:
         yield d
     finally:
-        if chdir:
-            os.chdir(cwd)
+        os.chdir(cwd)
         shutil.rmtree(d)
 
 

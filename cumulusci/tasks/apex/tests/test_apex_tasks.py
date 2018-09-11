@@ -1,4 +1,6 @@
 import os
+import shutil
+import tempfile
 import unittest
 
 import responses
@@ -184,9 +186,8 @@ class TestAnonymousApexTask(unittest.TestCase):
         self.global_config = BaseGlobalConfig(
             {"project": {"api_version": self.api_version}}
         )
-        self.tmpdir = temporary_dir('.', chdir=False)
-        d = self.tmpdir.__enter__()
-        apex_path = os.path.join(d, 'test.apex')
+        self.tmpdir = tempfile.mkdtemp(dir='.')
+        apex_path = os.path.join(self.tmpdir, 'test.apex')
         with open(apex_path, 'w') as f:
             f.write('System.debug("from file")')
         self.task_config = TaskConfig()
@@ -218,7 +219,7 @@ class TestAnonymousApexTask(unittest.TestCase):
         )
 
     def tearDown(self):
-        self.tmpdir.__exit__(None, None, None)
+        shutil.rmtree(self.tmpdir)
 
     def _get_url_and_task(self):
         task = AnonymousApexTask(self.project_config, self.task_config, self.org_config)
