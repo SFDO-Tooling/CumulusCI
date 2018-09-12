@@ -279,7 +279,7 @@ class TestBaseProjectConfig(unittest.TestCase):
             {
                 "ci": "heroku",
                 "name": "CumulusCI-Test",
-                "owner": "SalesforceFoundation",
+                "owner": "SFDO-Tooling",
                 "branch": "feature/test",
                 "commit": "HEAD~1",
                 "root": ".",
