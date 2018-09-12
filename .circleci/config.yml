@@ -20,10 +20,10 @@ jobs:
           - v1-dependencies-
 
       - run:
-          name: install tox
+          name: install dependencies
           command: |
             virtualenv venv
-            venv/bin/pip install tox
+            venv/bin/pip install -r requirements_dev.txt
 
       - run:
           name: run Python tests
