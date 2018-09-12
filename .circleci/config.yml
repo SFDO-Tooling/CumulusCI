@@ -4,6 +4,9 @@ jobs:
   build:
     docker:
       - image: circleci/python:2.7.15-stretch-browsers
+    environment:
+      - BROWSER: headlesschrome
+      - CUMULUSCI_KEYCHAIN_CLASS: "cumulusci.core.keychain.EnvironmentProjectKeychain"
 
     working_directory: ~/repo
 
@@ -23,9 +26,44 @@ jobs:
             venv/bin/pip install tox
 
       - run:
-          name: run tests
+          name: run Python tests
           command: |
-            venv/bin/tox -e py27
+            venv/bin/tox -e py27 -- --with-coverage --cover-package=cumulusci --with-xunit --xunit-file=testresults/junit.xml
+
+      - run:
+          name: create scratch org
+          command: |
+            venv/bin/cci org info dev
+            venv/bin/cci org default dev
+
+      - run:
+          name: run CumulusCI robot library tests
+          command: |
+            venv/bin/coverage run --append venv/bin/cci task run robot -o suites cumulusci/robotframework/tests/cumulusci/base.robot
+
+      - run:
+          name: run Salesforce robot library API tests
+          command: |
+            venv/bin/coverage run --append venv/bin/cci task run robot -o suites cumulusci/robotframework/tests/salesforce/api.robot
+
+      - run:
+          name: run Salesforce robot library UI tests
+          command: |
+            venv/bin/coverage run --append venv/bin/cci task run robot -o suites cumulusci/robotframework/tests/salesforce/ui.robot
+
+      - run:
+          name: delete scratch org
+          command: |
+            venv/bin/cci org scratch_delete dev
+          when: always
+
+      - run:
+          name: report coverage
+          command: |
+            venv/bin/coveralls
+
+      - store_artifacts:
+          path: testresults
 
       - save_cache:
           paths:
