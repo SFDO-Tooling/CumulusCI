@@ -6,7 +6,6 @@ jobs:
       - image: circleci/python:2.7.15-stretch-browsers
     environment:
       - BROWSER: headlesschrome
-      - CUMULUSCI_KEYCHAIN_CLASS: "cumulusci.core.keychain.EnvironmentProjectKeychain"
 
     working_directory: ~/repo
 
@@ -37,6 +36,15 @@ jobs:
           command: |
             mkdir testresults
             venv/bin/tox -e py27 -- --with-coverage --cover-package=cumulusci --with-xunit --xunit-file=testresults/junit.xml
+
+      - store_artifacts:
+          path: testresults
+
+      - save_cache:
+          paths:
+            - venv
+            - .tox
+          key: v1-dependencies-{{ checksum "requirements.txt" }}-{{ checksum "requirements_dev.txt" }}
 
       - run:
           name: create scratch org
@@ -71,12 +79,3 @@ jobs:
           name: report coverage
           command: |
             venv/bin/coveralls
-
-      - store_artifacts:
-          path: testresults
-
-      - save_cache:
-          paths:
-            - venv
-            - .tox
-          key: v1-dependencies-{{ checksum "requirements.txt" }}-{{ checksum "requirements_dev.txt" }}
