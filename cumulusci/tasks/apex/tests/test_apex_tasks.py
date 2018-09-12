@@ -1,3 +1,6 @@
+import os
+import shutil
+import tempfile
 import unittest
 
 import responses
@@ -15,10 +18,12 @@ from cumulusci.core.exceptions import (
     ApexCompilationException,
     ApexException,
     SalesforceException,
+    TaskOptionsError,
 )
 from cumulusci.tasks.apex.anon import AnonymousApexTask
 from cumulusci.tasks.apex.batch import BatchApexWait
 from cumulusci.tasks.apex.testrunner import RunApexTests
+from cumulusci.utils import temporary_dir
 
 
 @patch(
@@ -175,17 +180,27 @@ class TestRunApexTests(unittest.TestCase):
     "cumulusci.tasks.salesforce.BaseSalesforceTask._update_credentials",
     MagicMock(return_value=None),
 )
-class TestRunAnonApex(unittest.TestCase):
+class TestAnonymousApexTask(unittest.TestCase):
     def setUp(self):
         self.api_version = 42.0
         self.global_config = BaseGlobalConfig(
             {"project": {"api_version": self.api_version}}
         )
+        self.tmpdir = tempfile.mkdtemp(dir=".")
+        apex_path = os.path.join(self.tmpdir, "test.apex")
+        with open(apex_path, "w") as f:
+            f.write('System.debug("from file")')
         self.task_config = TaskConfig()
-        self.task_config.config["options"] = {"apex": 'system.debug("Hello World!")'}
+        self.task_config.config["options"] = {
+            "path": apex_path,
+            "apex": 'system.debug("Hello World!")',
+            "namespaced": True,
+        }
         self.project_config = BaseProjectConfig(self.global_config)
-        self.project_config.config["project"] = {
-            "package": {"api_version": self.api_version}
+        self.project_config.config = {
+            "project": {
+                "package": {"namespace": "abc", "api_version": self.api_version}
+            }
         }
         keychain = BaseProjectKeychain(self.project_config, "")
         self.project_config.set_keychain(keychain)
@@ -197,10 +212,53 @@ class TestRunAnonApex(unittest.TestCase):
             self.org_config.instance_url, self.api_version
         )
 
+    def tearDown(self):
+        shutil.rmtree(self.tmpdir)
+
     def _get_url_and_task(self):
         task = AnonymousApexTask(self.project_config, self.task_config, self.org_config)
         url = task.tooling.base_url + "executeAnonymous"
         return task, url
+
+    def test_validate_options(self):
+        task_config = TaskConfig({})
+        with self.assertRaises(TaskOptionsError):
+            AnonymousApexTask(self.project_config, task_config, self.org_config)
+
+    def test_run_from_path_outside_repo(self):
+        task_config = TaskConfig({"options": {"path": "/"}})
+        task = AnonymousApexTask(self.project_config, task_config, self.org_config)
+        with self.assertRaises(TaskOptionsError):
+            task()
+
+    def test_run_path_not_found(self):
+        task_config = TaskConfig({"options": {"path": "bogus"}})
+        task = AnonymousApexTask(self.project_config, task_config, self.org_config)
+        with self.assertRaises(TaskOptionsError):
+            task()
+
+    def test_prepare_apex(self):
+        task = AnonymousApexTask(self.project_config, self.task_config, self.org_config)
+        before = "String %%%NAMESPACE%%%str = 'foo';"
+        expected = "String abc__str = 'foo';"
+        self.assertEqual(expected, task._prepare_apex(before))
+
+    @responses.activate
+    def test_run_anonymous_apex_success(self):
+        task, url = self._get_url_and_task()
+        resp = {"compiled": True, "success": True}
+        responses.add(responses.GET, url, status=200, json=resp)
+        task()
+
+    @responses.activate
+    def test_run_string_only(self):
+        task_config = TaskConfig({"options": {"apex": 'System.debug("test");'}})
+        task = AnonymousApexTask(self.project_config, task_config, self.org_config)
+        url = task.tooling.base_url + "executeAnonymous"
+        responses.add(
+            responses.GET, url, status=200, json={"compiled": True, "success": True}
+        )
+        task()
 
     @responses.activate
     def test_run_anonymous_apex_status_fail(self):
