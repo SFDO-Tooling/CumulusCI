@@ -234,12 +234,7 @@ class PushApiObjectNotFound(CumulusCIException):
 
     pass
 
-<<<<<<< HEAD
 class RobotTestFailure(CumulusCIFailure):
-=======
-
-class RobotTestFailure(CumulusCIException):
->>>>>>> master
     """ Raise when a robot test fails in a test suite """
 
     pass
