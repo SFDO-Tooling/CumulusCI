@@ -1090,10 +1090,6 @@ def flow_run(config, flow_name, org, delete_org, debug, o, skip, no_prompt):
 
     # Create the flow and handle initialization exceptions
     try:
-<<<<<<< HEAD
-        flow = BaseFlow(config.project_config, flow_config,
-                          org_config, options, skip, name=flow_name)
-=======
         flow = BaseFlow(
             config.project_config,
             flow_config,
@@ -1103,24 +1099,12 @@ def flow_run(config, flow_name, org, delete_org, debug, o, skip, no_prompt):
             name=flow_name,
         )
 
->>>>>>> master
         flow()
     except CumulusCIUsageError as e:
         exception = click.UsageError(e.message)
         handle_exception_debug(config, debug, throw_exception=exception)
-<<<<<<< HEAD
     except (CumulusCIFailure, ScratchOrgException) as e:
         exception = click.ClickException('Failed: {}'.format(e.__class__.__name__))
-=======
-    except (
-        ApexTestException,
-        BrowserTestFailure,
-        MetadataComponentFailure,
-        MetadataApiError,
-        ScratchOrgException,
-    ) as e:
-        exception = click.ClickException("Failed: {}".format(e.__class__.__name__))
->>>>>>> master
         handle_exception_debug(config, debug, throw_exception=exception)
     except Exception:
         handle_exception_debug(config, debug, no_prompt=no_prompt)
