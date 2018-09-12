@@ -7,8 +7,8 @@ CumulusCI
 .. image:: https://readthedocs.org/projects/cumulusci/badge/?version=latest
            :target: https://cumulusci.readthedocs.io/en/latest/?badge=latest
            :alt: Documentation Status
-.. image:: https://pyup.io/repos/github/SalesforceFoundation/CumulusCI/shield.svg
-           :target: https://pyup.io/repos/github/SalesforceFoundation/CumulusCI/
+.. image:: https://pyup.io/repos/github/SFDO-Tooling/CumulusCI/shield.svg
+           :target: https://pyup.io/repos/github/SFDO-Tooling/CumulusCI/
            :alt: Updates
 
 CumulusCI is a command line tool belt and set of reusable Python classes useful in the development and release process of building a Salesforce Managed Package application.

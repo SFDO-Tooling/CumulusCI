@@ -2,7 +2,7 @@
 # This script runs the tests on Heroku CI
 
 # Clone the Github repo to the right branch/commit to generate a .git folder for use in /app
-git clone -b "$HEROKU_TEST_RUN_BRANCH" --single-branch https://github.com/SalesforceFoundation/CumulusCI 
+git clone -b "$HEROKU_TEST_RUN_BRANCH" --single-branch https://github.com/SFDO-Tooling/CumulusCI 
 cd CumulusCI
 git reset --hard $HEROKU_TEST_RUN_COMMIT_VERSION
 cd /app
@@ -98,8 +98,8 @@ echo "------------------------------------------"
 echo "Running test builds against CumulusCI-Test"
 echo "------------------------------------------"
 echo ""
-echo "Cloning https://github.com/SalesforceFoundation/CumulusCI-Test"
-git clone https://github.com/SalesforceFoundation/CumulusCI-Test
+echo "Cloning https://github.com/SFDO-Tooling/CumulusCI-Test"
+git clone https://github.com/SFDO-Tooling/CumulusCI-Test
 cd CumulusCI-Test
 if [ "$HEROKU_TEST_RUN_BRANCH" == "master" ] ||\
    [[ "$HEROKU_TEST_RUN_BRANCH" == feature/* ]] ; then

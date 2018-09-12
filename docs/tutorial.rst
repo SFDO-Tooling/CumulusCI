@@ -91,7 +91,7 @@ With the virtual environment now activated, install cumulusci using pip:
 
 PyCrypto Error during install?  To resolve install Microsoft Visual Studio C++ 9.0 (http://aka.ms/vcpython27) then try the install again.
 Other Error? Check the error details in the console window for recommendations.
-Still need help? Search issues on CumulusCI GitHub https://github.com/SalesforceFoundation/CumulusCI/issues
+Still need help? Search issues on CumulusCI GitHub https://github.com/SFDO-Tooling/CumulusCI/issues
 
 Part 2: Project Configuration
 =============================
@@ -166,7 +166,7 @@ If you run the `cci project info` command from inside a git repository that has 
                 5:
                     class_path: cumulusci.tasks.release_notes.parser.GithubLinesParser
                     title: Deleted Metadata
-        repo_url: https://github.com/SalesforceFoundation/CumulusCI-Test
+        repo_url: https://github.com/SFDO-Tooling/CumulusCI-Test
     test:
         name_match: %_TEST%
     apexdoc:
