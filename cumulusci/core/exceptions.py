@@ -2,12 +2,18 @@ from __future__ import unicode_literals
 
 
 class CumulusCIException(Exception):
+    """ Base class for all CumulusCI Exceptions """
+
     pass
 
 class CumulusCIUsageError(CumulusCIException):
+    """ An exception thrown due to improper usage which should be resolvable by proper usage """
+
     pass
 
 class CumulusCIFailure(CumulusCIException):
+    """ An exception representing a failure such as a Metadata deployment failure or a test failure.  CI systems can handle these to determine fail vs error status """
+
     pass
 
 class NotInProject(CumulusCIUsageError):
@@ -30,6 +36,7 @@ class KeychainNotFound(CumulusCIException):
 
 class KeychainKeyNotFound(CumulusCIException):
     """ Raised when the keychain key couldn't be found """
+
     pass
 
 
