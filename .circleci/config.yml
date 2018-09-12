@@ -28,6 +28,7 @@ jobs:
       - run:
           name: run Python tests
           command: |
+            mkdir testresults
             venv/bin/tox -e py27 -- --with-coverage --cover-package=cumulusci --with-xunit --xunit-file=testresults/junit.xml
 
       - run:
