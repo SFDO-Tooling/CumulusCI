@@ -20,7 +20,15 @@ jobs:
           - v1-dependencies-
 
       - run:
-          name: install dependencies
+          name: install sfdx
+          command: |
+            mkdir sfdx
+            wget -qO- https://developer.salesforce.com/media/salesforce-cli/sfdx-linux-amd64.tar.xz | tar xJ -C sfdx --strip-components 1
+            ./sfdx/install
+            echo 'export PATH=$HOME/repo/sfdx/cli/bin:$PATH' >> $BASH_ENV
+
+      - run:
+          name: install Python dependencies
           command: |
             virtualenv venv
             venv/bin/pip install -r requirements_dev.txt
@@ -34,6 +42,8 @@ jobs:
       - run:
           name: create scratch org
           command: |
+            echo $SFDX_HUB_KEY | base64 --decode > sfdx.key
+            sfdx/cli/bin/sfdx force:auth:jwt:grant --clientid $SFDX_CLIENT_KEY --jwtkeyfile sfdx.key --username $SFDX_HUB_USERNAME --setdefaultdevhubusername -a hub
             venv/bin/cci org info dev
             venv/bin/cci org default dev
 
@@ -68,5 +78,6 @@ jobs:
 
       - save_cache:
           paths:
+            - venv
             - .tox
           key: v1-dependencies-{{ checksum "requirements.txt" }}-{{ checksum "requirements_dev.txt" }}
