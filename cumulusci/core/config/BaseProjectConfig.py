@@ -402,7 +402,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         self._check_keychain()
         return self.keychain.set_org(name, org_config)
 
-    def get_static_dependencies(self, dependencies=None):
+    def get_static_dependencies(self, dependencies=None, install_latest=None):
         """ Resolves the project -> dependencies section of cumulusci.yml
             to convert dynamic github dependencies into static dependencies
             by inspecting the referenced repositories
@@ -418,7 +418,9 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             if "github" not in dependency:
                 static_dependencies.append(dependency)
             else:
-                static = self.process_github_dependency(dependency)
+                static = self.process_github_dependency(
+                    dependency, install_latest=install_latest
+                )
                 static_dependencies.extend(static)
         return static_dependencies
 
@@ -447,7 +449,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                 prefix = "{}    ".format(" " * indent)
         return pretty
 
-    def process_github_dependency(self, dependency, indent=None):
+    def process_github_dependency(self, dependency, indent=None, install_latest=None):
         if not indent:
             indent = ""
 
@@ -566,7 +568,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         prefix_release = project.get("git", {}).get("prefix_release", "release/")
         dependencies = project.get("dependencies")
         if dependencies:
-            dependencies = self.get_static_dependencies(dependencies)
+            dependencies = self.get_static_dependencies(dependencies, install_latest=install_latest)
 
         # Create the final ordered list of all parsed dependencies
         repo_dependencies = []
@@ -580,15 +582,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             if tag:
                 version = self.get_version_for_tag(tag, prefix_beta, prefix_release)
             else:
-                # github3.py doesn't support the latest release API so we hack
-                # it together here
-                url = repo._build_url("releases/latest", base_url=repo._api)
-                try:
-                    version = repo._get(url).json()["name"]
-                except Exception as e:
-                    self.logger.warn(
-                        "{}{}: {}".format(indent, e.__class__.__name__, e.message)
-                    )
+                version = self._find_release_version(repo, indent, install_latest)
 
             if not version:
                 raise DependencyResolutionError(
@@ -614,3 +608,20 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             repo_dependencies.extend(unpackaged_post)
 
         return repo_dependencies
+
+    def _find_release_version(self, repo, indent, install_latest=None):
+        version = None
+        if install_latest:
+            latest_release = repo.iter_releases(1).next()
+            version = latest_release.name
+        else:
+            # github3.py doesn't support the latest release api so we hack
+            # it together here
+            url = repo._build_url("releases/latest", base_url=repo._api)
+            try:
+                version = repo._get(url).json()["name"]
+            except Exception as e:
+                self.logger.warn(
+                    "{}{}: {}".format(indent, e.__class__.__name__, e.message)
+                )
+        return version
