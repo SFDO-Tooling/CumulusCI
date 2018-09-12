@@ -64,7 +64,7 @@ Override Based Configuration
 CumulusCI aims to reduce the amount of skeleton code required to configure a project.  This is accomplished by a merged yaml file, **cumulusci.yml** which starts from the global yaml from CumulusCI with all the standard project, task, flow, and org configurations.  Projects can then override the default values in their **cumulusci.yml**.  This means that by looking at the **cumulusci.yml** of a repository using CumulusCI, you can easily see all customization of CumulusCI done for the project.
 
 The following example is of a simple **cumulusci.yml** file with only a few overrides:
-https://github.com/SalesforceFoundation/CumulusCI-Test/blob/master/cumulusci.yml
+https://github.com/SFDO-Tooling/CumulusCI-Test/blob/master/cumulusci.yml
 
 The following example is from the Nonprofit Success Pack and shows a heavily configured **cumulusci.yml** file: 
 https://github.com/SalesforceFoundation/Cumulus/blob/master/cumulusci.yml

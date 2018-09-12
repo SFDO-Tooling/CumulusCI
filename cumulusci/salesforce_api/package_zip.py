@@ -29,8 +29,8 @@ INSTALLED_PACKAGE = """<?xml version="1.0" encoding="UTF-8"?>
   <activateRSS>false</activateRSS>
 </InstalledPackage>"""
 
-class BasePackageZipBuilder(object):
 
+class BasePackageZipBuilder(object):
     def __call__(self):
         self._open_zip()
         self._populate_zip()
@@ -38,13 +38,13 @@ class BasePackageZipBuilder(object):
 
     def _open_zip(self):
         self.zip_file = TemporaryFile()
-        self.zip= ZipFile(self.zip_file, 'w')
+        self.zip = ZipFile(self.zip_file, "w")
 
     def _populate_zip(self):
-        raise NotImplementedError('Subclasses need to provide their own implementation')
+        raise NotImplementedError("Subclasses need to provide their own implementation")
 
     def _write_package_xml(self, package_xml):
-        self.zip.writestr('package.xml', package_xml)
+        self.zip.writestr("package.xml", package_xml)
 
     def _write_file(self, path, content):
         self.zip.writestr(path, content)
@@ -53,6 +53,7 @@ class BasePackageZipBuilder(object):
         self.zip.close()
         self.zip_file.seek(0)
         return b64encode(self.zip_file.read())
+
 
 class ZipfilePackageZipBuilder(BasePackageZipBuilder):
     def __init__(self, zipfile):
@@ -65,62 +66,61 @@ class ZipfilePackageZipBuilder(BasePackageZipBuilder):
     def _populate_zip(self):
         pass
 
-class CreatePackageZipBuilder(BasePackageZipBuilder):
 
+class CreatePackageZipBuilder(BasePackageZipBuilder):
     def __init__(self, name, api_version):
         if not name:
-            raise ValueError('You must provide a name to create a package')
+            raise ValueError("You must provide a name to create a package")
         if not api_version:
-            raise ValueError('You must provide an api_version to create a package')
-        self.name= name
-        self.api_version= api_version
+            raise ValueError("You must provide an api_version to create a package")
+        self.name = name
+        self.api_version = api_version
 
     def _populate_zip(self):
         package_xml = FULL_NAME_PACKAGE_XML.format(escape(self.name), self.api_version)
         self._write_package_xml(package_xml)
 
+
 class InstallPackageZipBuilder(BasePackageZipBuilder):
-    api_version = '43.0'
+    api_version = "43.0"
 
     def __init__(self, namespace, version):
         if not namespace:
-            raise ValueError('You must provide a namespace to install a package')
+            raise ValueError("You must provide a namespace to install a package")
         if not version:
-            raise ValueError('You must provide a version to install a package')
+            raise ValueError("You must provide a version to install a package")
         self.namespace = namespace
         self.version = version
 
     def _populate_zip(self):
         package_xml = INSTALLED_PACKAGE_PACKAGE_XML.format(
-            namespace=self.namespace,
-            version=self.api_version,
+            namespace=self.namespace, version=self.api_version
         )
         self._write_package_xml(package_xml)
 
         installed_package = INSTALLED_PACKAGE.format(self.version)
         self._write_file(
-            'installedPackages/{}.installedPackage'.format(self.namespace),
-            installed_package
+            "installedPackages/{}.installedPackage".format(self.namespace),
+            installed_package,
         )
 
-class DestructiveChangesZipBuilder(BasePackageZipBuilder):
 
+class DestructiveChangesZipBuilder(BasePackageZipBuilder):
     def __init__(self, destructive_changes, version):
         self.destructive_changes = destructive_changes
         self.version = version
 
-    def _populate_zip(self): 
+    def _populate_zip(self):
         self._write_package_xml(EMPTY_PACKAGE_XML.format(version=self.version))
-        self._write_file('destructiveChanges.xml', self.destructive_changes)
+        self._write_file("destructiveChanges.xml", self.destructive_changes)
+
 
 class UninstallPackageZipBuilder(DestructiveChangesZipBuilder):
-
     def __init__(self, namespace, version):
         if not namespace:
-            raise ValueError('You must provide a namespace to install a package')
+            raise ValueError("You must provide a namespace to install a package")
         self.namespace = namespace
         self.version = version
         self.destructive_changes = INSTALLED_PACKAGE_PACKAGE_XML.format(
-            namespace=self.namespace,
-            version=self.version,
+            namespace=self.namespace, version=self.version
         )

@@ -19,7 +19,6 @@ from cumulusci.tasks.release_notes.provider import GithubChangeNotesProvider
 
 
 class BaseReleaseNotesGenerator(object):
-
     def __init__(self):
         self.change_notes = []
         self.init_parsers()
@@ -66,56 +65,49 @@ class BaseReleaseNotesGenerator(object):
             parser_content = parser.render()
             if parser_content is not None:
                 release_notes.append(parser_content)
-        return u'\r\n\r\n'.join(release_notes)
+        return u"\r\n\r\n".join(release_notes)
 
 
 class StaticReleaseNotesGenerator(BaseReleaseNotesGenerator):
-
     def __init__(self, change_notes):
         self._change_notes = change_notes
         super(StaticReleaseNotesGenerator, self).__init__()
 
     def _init_parsers(self):
-        self.parsers.append(ChangeNotesLinesParser(
-            self, 'Critical Changes'))
-        self.parsers.append(ChangeNotesLinesParser(self, 'Changes'))
-        self.parsers.append(IssuesParser(
-            self, 'Issues Closed'))
+        self.parsers.append(ChangeNotesLinesParser(self, "Critical Changes"))
+        self.parsers.append(ChangeNotesLinesParser(self, "Changes"))
+        self.parsers.append(IssuesParser(self, "Issues Closed"))
 
     def _init_change_notes(self):
         return StaticChangeNotesProvider(self, self._change_notes)
 
 
 class DirectoryReleaseNotesGenerator(BaseReleaseNotesGenerator):
-
     def __init__(self, directory):
         self.directory = directory
         super(DirectoryReleaseNotesGenerator, self).__init__()
 
     def _init_parsers(self):
-        self.parsers.append(ChangeNotesLinesParser(
-            self, 'Critical Changes'))
-        self.parsers.append(ChangeNotesLinesParser(self, 'Changes'))
-        self.parsers.append(IssuesParser(
-            self, 'Issues Closed'))
+        self.parsers.append(ChangeNotesLinesParser(self, "Critical Changes"))
+        self.parsers.append(ChangeNotesLinesParser(self, "Changes"))
+        self.parsers.append(IssuesParser(self, "Issues Closed"))
 
     def _init_change_notes(self):
         return DirectoryChangeNotesProvider(self, self.directory)
 
 
 class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator):
-
     def __init__(
-            self,
-            github,
-            github_info,
-            parser_config,
-            current_tag,
-            last_tag=None,
-            link_pr=False,
-            publish=False,
-            has_issues=True,
-        ):
+        self,
+        github,
+        github_info,
+        parser_config,
+        current_tag,
+        last_tag=None,
+        link_pr=False,
+        publish=False,
+        has_issues=True,
+    ):
         self.github = github
         self.github_info = github_info
         self.parser_config = parser_config
@@ -132,7 +124,7 @@ class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator):
         release = self._get_release()
         if not release:
             raise CumulusCIException(
-                'Release not found for tag: {}'.format(self.current_tag)
+                "Release not found for tag: {}".format(self.current_tag)
             )
         content = super(GithubReleaseNotesGenerator, self).__call__()
         content = self._update_release_content(release, content)
@@ -142,15 +134,11 @@ class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator):
 
     def _init_parsers(self):
         for cfg in self.parser_config:
-            parser_class = import_class(cfg['class_path'])
-            self.parsers.append(parser_class(self, cfg['title']))
+            parser_class = import_class(cfg["class_path"])
+            self.parsers.append(parser_class(self, cfg["title"]))
 
     def _init_change_notes(self):
-        return GithubChangeNotesProvider(
-            self,
-            self.current_tag,
-            self.last_tag
-        )
+        return GithubChangeNotesProvider(self, self.current_tag, self.last_tag)
 
     def _get_release(self):
         repo = self.get_repo()
@@ -175,11 +163,14 @@ class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator):
                         parser_content = current_parser.render()
                         if parser_content:
                             # replace existing section with new content
-                            new_body.append(parser_content + '\r\n')
+                            new_body.append(parser_content + "\r\n")
                         current_parser = None
 
                 for parser in self.parsers:
-                    if parser._render_header().strip() == parser._process_line(line).strip():
+                    if (
+                        parser._render_header().strip()
+                        == parser._process_line(line).strip()
+                    ):
                         parser.replaced = True
                         current_parser = parser
                         is_start_line = True
@@ -203,14 +194,13 @@ class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator):
             for parser in self.parsers:
                 parser_content = parser.render()
                 if parser_content and not parser.replaced:
-                    new_body.append(parser_content + '\r\n')
+                    new_body.append(parser_content + "\r\n")
 
-            content = u'\r\n'.join(new_body)
+            content = u"\r\n".join(new_body)
 
         return content
 
     def get_repo(self):
         return self.github.repository(
-            self.github_info['github_owner'],
-            self.github_info['github_repo'],
+            self.github_info["github_owner"], self.github_info["github_repo"]
         )
