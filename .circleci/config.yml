@@ -17,10 +17,15 @@ jobs:
           - v1-dependencies-
 
       - run:
+          name: install tox
+          command: |
+            virtualenv venv
+            venv/bin/pip install tox
+
+      - run:
           name: run tests
           command: |
-            pip install tox
-            tox -e py27
+            venv/bin/tox -e py27
 
       - save_cache:
           paths:
