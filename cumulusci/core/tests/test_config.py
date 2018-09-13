@@ -403,13 +403,6 @@ class TestBaseProjectConfig(unittest.TestCase):
             set(raven_client.call_args[1]["tags"].keys()),
         )
 
-    @mock.patch("cumulusci.core.config.BaseProjectConfig._get_github_api")
-    def test_get_github_api(self, get_github_api):
-        config = BaseProjectConfig(BaseGlobalConfig())
-        config.keychain = mock.Mock()
-        config.get_github_api()
-        get_github_api.assert_called_once()
-
     def test_get_latest_version(self):
         config = BaseProjectConfig(
             BaseGlobalConfig(),
