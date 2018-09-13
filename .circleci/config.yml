@@ -124,23 +124,26 @@ jobs:
           name: Check out CumulusCI-Test
           command: |
             git clone https://github.com/SFDO-Tooling/CumulusCI-Test
-            cd CumulusCI-Test
       - run:
           name: Run ci_feature flow
           command: |
-            venv/bin/coverage run --append --source=../cumulusci venv/bin/cci flow run ci_feature --org scratch --delete-org
+            cd CumulusCI-Test
+            ../venv/bin/coverage run --append --source=../cumulusci ../venv/bin/cci flow run ci_feature --org scratch --delete-org
       - run:
           name: Run ci_beta flow
           command: |
-            venv/bin/coverage run --append --source=../cumulusci venv/bin/cci flow run ci_beta --org scratch --delete-org
+            cd CumulusCI-Test
+            ../venv/bin/coverage run --append --source=../cumulusci ../venv/bin/cci flow run ci_beta --org scratch --delete-org
       - run:
           name: Run ci_master flow
           command: |
-            venv/bin/coverage run --append --source=../cumulusci venv/bin/cci flow run ci_master --org scratch --delete-org
+            cd CumulusCI-Test
+            ../venv/bin/coverage run --append --source=../cumulusci ../venv/bin/cci flow run ci_master --org scratch --delete-org
       - run:
           name: Run release_beta flow
           command: |
-            venv/bin/coverage run --append --source=../cumulusci venv/bin/cci flow run release_beta --org packaging
+            cd CumulusCI-Test
+            ../venv/bin/coverage run --append --source=../cumulusci ../venv/bin/cci flow run release_beta --org packaging
       - run:
           name: Preserve coverage
           command: |
