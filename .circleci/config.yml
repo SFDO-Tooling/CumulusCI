@@ -112,10 +112,10 @@ workflows:
   version: 2
   build_test_report:
     jobs:
-      - test_py2:
-      - test_py3:
-      - test_robot:
-      - test_release:
+      - test_py2
+      - test_py3
+      - test_robot
+      - test_release
       - report:
           requires:
             - test_py2
