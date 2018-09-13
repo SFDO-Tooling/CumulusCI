@@ -103,7 +103,7 @@ jobs:
       - run:
           name: Skip unless master or PR build
           command: |
-            if [ "$CIRCLE_BRANCH" != "master" ] || [ -z "$CIRCLE_PULL_REQUEST" ]; then
+            if [ "$CIRCLE_BRANCH" != "master" ] && [ -z "$CIRCLE_PULL_REQUEST" ]; then
               circleci step halt
             fi
       - run:
