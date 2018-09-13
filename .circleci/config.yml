@@ -10,26 +10,11 @@ defaults: &defaults
 
 version: 2
 jobs:
-  build:
-    <<: *defaults
-    steps:
-      - checkout
-      - run:
-          name: install sfdx
-          command: |
-            mkdir sfdx
-            wget -qO- https://developer.salesforce.com/media/salesforce-cli/sfdx-linux-amd64.tar.xz | tar xJ -C sfdx --strip-components 1
-            ./sfdx/install
-      - persist_to_workspace:
-          root: ~
-          paths:
-            - repo
 
   test_py2:
     <<: *defaults
     steps:
-      - attach_workspace:
-          at: ~
+      - checkout
       - run:
           name: run Python tests
           command: |
@@ -37,17 +22,16 @@ jobs:
             venv/bin/tox -e py27 -- --with-coverage --cover-package=cumulusci --with-xunit --xunit-file=testresults/junit.xml
             mv .coverage .coverage.py2
       - persist_to_workspace:
-          root: ~
+          root: .
           paths:
-            - repo
+            - .coverage.py2
 
   test_py3:
     <<: *defaults
     docker:
       - image: circleci/python:3.6-browsers
     steps:
-      - attach_workspace:
-          at: ~
+      - checkout
       - run:
           name: run Python tests
           command: |
@@ -55,20 +39,25 @@ jobs:
             venv/bin/tox -e py36 -- --with-coverage --cover-package=cumulusci --with-xunit --xunit-file=testresults/junit.xml
             mv .coverage .coverage.py3
       - persist_to_workspace:
-          root: ~
+          root: .
           paths:
-            - repo
+            - .coverage.py3
 
   test_robot:
     <<: *defaults
     steps:
-      - attach_workspace:
-          at: ~
+      - checkout
       - run:
           name: install Python dependencies
           command: |
             virtualenv venv
             venv/bin/pip install -r requirements_dev.txt
+      - run:
+          name: install sfdx
+          command: |
+            mkdir sfdx
+            wget -qO- https://developer.salesforce.com/media/salesforce-cli/sfdx-linux-amd64.tar.xz | tar xJ -C sfdx --strip-components 1
+            ./sfdx/install
       - run:
           name: create scratch org
           command: |
@@ -98,25 +87,20 @@ jobs:
           command: |
             mv .coverage .coverage.robot
       - persist_to_workspace:
-          root: ~
+          root: .
           paths:
-            - repo
+            - .coverage.robot
 
   test_release:
     <<: *defaults
     steps:
-      - attach_workspace:
-          at: ~
-      - persist_to_workspace:
-          root: ~
-          paths:
-            - repo
+      - checkout
 
   report:
     <<: *defaults
     steps:
       - attach_workspace:
-          at: ~
+          at: .
       - run:
           name: report coverage
           command: |
@@ -128,19 +112,10 @@ workflows:
   version: 2
   build_test_report:
     jobs:
-      - build
       - test_py2:
-          requires:
-            - build
       - test_py3:
-          requires:
-            - build
       - test_robot:
-          requires:
-            - build
       - test_release:
-          requires:
-            - build
       - report:
           requires:
             - test_py2
