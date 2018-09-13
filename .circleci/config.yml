@@ -19,7 +19,7 @@ jobs:
           name: install Python dependencies
           command: |
             virtualenv venv
-            venv/bin/pip install -r tox
+            venv/bin/pip install tox
       - run:
           name: run Python tests
           command: |
@@ -41,7 +41,7 @@ jobs:
           name: install Python dependencies
           command: |
             virtualenv venv
-            venv/bin/pip install -r tox
+            venv/bin/pip install tox
       - run:
           name: run Python tests
           command: |
