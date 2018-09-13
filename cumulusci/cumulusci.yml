@@ -513,6 +513,12 @@ flows:
                 task: dx_convert_from
             4:
                 task: update_package_xml
+            # The conversion reorders elements in .object files and others.
+            # Deploy to the org and retrieve via mdapi to reduce the diff
+            5:
+                task: deploy
+            6:
+                task: retrieve_src
 
     unmanaged_ee:
         description: Deploy the unmanaged package metadata and all dependencies to the target EE org
