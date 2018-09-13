@@ -1,51 +1,74 @@
 # Python CircleCI 2.0 configuration file
+
+defaults: &defaults
+  docker:
+    - image: circleci/python:2.7-browsers
+  environment:
+    - BROWSER: headlesschrome
+  working_directory: ~/repo
+
+
 version: 2
 jobs:
   build:
-    docker:
-      - image: circleci/python:2.7.15-stretch-browsers
-    environment:
-      - BROWSER: headlesschrome
-
-    working_directory: ~/repo
-
+    <<: *defaults
     steps:
       - checkout
-
-      - restore_cache:
-          keys:
-          - v1-dependencies-{{ checksum "requirements.txt" }}-{{ checksum "requirements_dev.txt" }}
-          # fallback to using the latest cache if no exact match is found
-          - v1-dependencies-
-
       - run:
           name: install sfdx
           command: |
             mkdir sfdx
             wget -qO- https://developer.salesforce.com/media/salesforce-cli/sfdx-linux-amd64.tar.xz | tar xJ -C sfdx --strip-components 1
             ./sfdx/install
+      - persist_to_workspace:
+          root: ~
+          paths:
+            - repo
 
-      - run:
-          name: install Python dependencies
-          command: |
-            virtualenv venv
-            venv/bin/pip install -r requirements_dev.txt
-
+  test_py2:
+    <<: *defaults
+    steps:
+      - attach_workspace:
+          at: ~
       - run:
           name: run Python tests
           command: |
             mkdir testresults
             venv/bin/tox -e py27 -- --with-coverage --cover-package=cumulusci --with-xunit --xunit-file=testresults/junit.xml
-
-      - store_artifacts:
-          path: testresults
-
-      - save_cache:
+            mv .coverage .coverage.py2
+      - persist_to_workspace:
+          root: ~
           paths:
-            - venv
-            - .tox
-          key: v1-dependencies-{{ checksum "requirements.txt" }}-{{ checksum "requirements_dev.txt" }}
+            - repo
 
+  test_py3:
+    <<: *defaults
+    docker:
+      - image: circleci/python:3.6-browsers
+    steps:
+      - attach_workspace:
+          at: ~
+      - run:
+          name: run Python tests
+          command: |
+            mkdir testresults
+            venv/bin/tox -e py36 -- --with-coverage --cover-package=cumulusci --with-xunit --xunit-file=testresults/junit.xml
+            mv .coverage .coverage.py3
+      - persist_to_workspace:
+          root: ~
+          paths:
+            - repo
+
+  test_robot:
+    <<: *defaults
+    steps:
+      - attach_workspace:
+          at: ~
+      - run:
+          name: install Python dependencies
+          command: |
+            virtualenv venv
+            venv/bin/pip install -r requirements_dev.txt
       - run:
           name: create scratch org
           command: |
@@ -53,29 +76,74 @@ jobs:
             sfdx force:auth:jwt:grant --clientid $SFDX_CLIENT_KEY --jwtkeyfile sfdx.key --username $SFDX_HUB_USERNAME --setdefaultdevhubusername -a hub
             venv/bin/cci org info dev
             venv/bin/cci org default dev
-
       - run:
           name: run CumulusCI robot library tests
           command: |
             venv/bin/coverage run --append venv/bin/cci task run robot -o suites cumulusci/robotframework/tests/cumulusci/base.robot
-
       - run:
           name: run Salesforce robot library API tests
           command: |
             venv/bin/coverage run --append venv/bin/cci task run robot -o suites cumulusci/robotframework/tests/salesforce/api.robot
-
       - run:
           name: run Salesforce robot library UI tests
           command: |
             venv/bin/coverage run --append venv/bin/cci task run robot -o suites cumulusci/robotframework/tests/salesforce/ui.robot
-
       - run:
           name: delete scratch org
           command: |
             venv/bin/cci org scratch_delete dev
           when: always
+      - run:
+          name: preserve coverage
+          command: |
+            mv .coverage .coverage.robot
+      - persist_to_workspace:
+          root: ~
+          paths:
+            - repo
 
+  test_release:
+    <<: *defaults
+    steps:
+      - attach_workspace:
+          at: ~
+      - persist_to_workspace:
+          root: ~
+          paths:
+            - repo
+
+  report:
+    <<: *defaults
+    steps:
+      - attach_workspace:
+          at: ~
       - run:
           name: report coverage
           command: |
+            coverage combine .coverage.py2 .coverage.py3 .coverage.robot
             venv/bin/coveralls
+
+
+workflows:
+  version: 2
+  build_test_report:
+    jobs:
+      - build
+      - test_py2
+          requires:
+            - build
+      - test_py3
+          requires:
+            - build
+      - test_robot
+          requires:
+            - build
+      - test_release
+          requires:
+            - build
+      - report
+          requires:
+            - test_py2
+            - test_py3
+            - test_robot
+            - test_release
