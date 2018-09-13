@@ -148,7 +148,7 @@ jobs:
       - run:
           name: Preserve coverage
           command: |
-            mv .coverage .coverage.release
+            mv CumulusCI-Test/.coverage .coverage.release
       - persist_to_workspace:
           root: .
           paths:
@@ -183,4 +183,3 @@ workflows:
 #            - test_py3
             - test_robot
             - test_release
-
