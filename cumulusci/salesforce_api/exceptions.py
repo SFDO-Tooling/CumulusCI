@@ -1,7 +1,7 @@
 from cumulusci.core.exceptions import CumulusCIException
+from cumulusci.core.exceptions import CumulusCIFailure
 
-
-class MetadataApiError(CumulusCIException):
+class MetadataApiError(CumulusCIFailure):
     def __init__(self, message, response):
         super(MetadataApiError, self).__init__(message)
         self.response = response
@@ -13,7 +13,6 @@ class MetadataComponentFailure(MetadataApiError):
 
 class MissingOAuthError(CumulusCIException):
     pass
-
 
 class MissingOrgCredentialsError(CumulusCIException):
     pass
