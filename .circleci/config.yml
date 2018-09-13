@@ -129,22 +129,22 @@ jobs:
           name: Run ci_feature flow
           command: |
             cd CumulusCI-Test
-            ../venv/bin/coverage run --append --source=../cumulusci ../venv/bin/cci flow run ci_feature --org scratch --delete-org
+            ../venv/bin/coverage run --append --rcfile=../.coveragerc --source=../cumulusci ../venv/bin/cci flow run ci_feature --org scratch --delete-org
       - run:
           name: Run ci_beta flow
           command: |
             cd CumulusCI-Test
-            ../venv/bin/coverage run --append --source=../cumulusci ../venv/bin/cci flow run ci_beta --org scratch --delete-org
+            ../venv/bin/coverage run --append --rcfile=../.coveragerc --source=../cumulusci ../venv/bin/cci flow run ci_beta --org scratch --delete-org
       - run:
           name: Run ci_master flow
           command: |
             cd CumulusCI-Test
-            ../venv/bin/coverage run --append --source=../cumulusci ../venv/bin/cci flow run ci_master --org scratch --delete-org
+            ../venv/bin/coverage run --append --rcfile=../.coveragerc --source=../cumulusci ../venv/bin/cci flow run ci_master --org scratch --delete-org
       - run:
           name: Run release_beta flow
           command: |
             cd CumulusCI-Test
-            ../venv/bin/coverage run --append --source=../cumulusci ../venv/bin/cci flow run release_beta --org packaging
+            ../venv/bin/coverage run --append --rcfile=../.coveragerc --source=../cumulusci ../venv/bin/cci flow run release_beta --org packaging
       - run:
           name: Preserve coverage
           command: |
