@@ -510,6 +510,16 @@ flows:
                 task: dx_convert_from
             4:
                 task: update_package_xml
+            # The conversion reorders elements in .object files and others.
+            # Retrieve from the org using the new package.xml and then rewrite
+            # the package.xml 
+            5:
+                task: retrieve_unpackaged
+                options:
+                    package_xml: src/package.xml
+                    path: src
+            6:
+                task: update_package_xml
 
     unmanaged_ee:
         description: Deploy the unmanaged package metadata and all dependencies to the target EE org
