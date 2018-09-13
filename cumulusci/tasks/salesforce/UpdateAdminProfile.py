@@ -50,25 +50,36 @@ class UpdateAdminProfile(Deploy):
 
     def _process_metadata(self):
         self.logger.info("Processing retrieved metadata in {}".format(self.tempdir))
+        self._set_apps_visible()
+        self._set_fields_editable()
+        self._set_fields_readable()
+        self._set_tabs_visibility()
 
-        findReplace(
-            "<editable>false</editable>",
-            "<editable>true</editable>",
-            os.path.join(self.tempdir, "profiles"),
-            "Admin.profile",
-        )
-        findReplace(
-            "<readable>false</readable>",
-            "<readable>true</readable>",
-            os.path.join(self.tempdir, "profiles"),
-            "Admin.profile",
-        )
+    def _set_apps_visible(self):
         findReplace(
             "<visible>false</visible>",
             "<visible>true</visible>",
             os.path.join(self.tempdir, "profiles"),
             "Admin.profile",
         )
+
+    def _set_fields_editable(self):
+        findReplace(
+            "<editable>false</editable>",
+            "<editable>true</editable>",
+            os.path.join(self.tempdir, "profiles"),
+            "Admin.profile",
+        )
+
+    def _set_fields_readable(self):
+        findReplace(
+            "<readable>false</readable>",
+            "<readable>true</readable>",
+            os.path.join(self.tempdir, "profiles"),
+            "Admin.profile",
+        )
+
+    def _set_tabs_visibility(self):
         findReplace(
             "<visibility>Hidden</visibility>",
             "<visibility>DefaultOn</visibility>",
