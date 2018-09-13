@@ -154,7 +154,7 @@ jobs:
           paths:
             - .coverage.release
 
-report:
+  report:
     <<: *defaults
     steps:
       - attach_workspace:
