@@ -16,6 +16,11 @@ jobs:
     steps:
       - checkout
       - run:
+          name: install Python dependencies
+          command: |
+            virtualenv venv
+            venv/bin/pip install -r tox
+      - run:
           name: run Python tests
           command: |
             mkdir testresults
@@ -32,6 +37,11 @@ jobs:
       - image: circleci/python:3.6-browsers
     steps:
       - checkout
+      - run:
+          name: install Python dependencies
+          command: |
+            virtualenv venv
+            venv/bin/pip install -r tox
       - run:
           name: run Python tests
           command: |
