@@ -2,16 +2,27 @@ from __future__ import unicode_literals
 
 
 class CumulusCIException(Exception):
+    """ Base class for all CumulusCI Exceptions """
+
     pass
 
+class CumulusCIUsageError(CumulusCIException):
+    """ An exception thrown due to improper usage which should be resolvable by proper usage """
 
-class NotInProject(CumulusCIException):
+    pass
+
+class CumulusCIFailure(CumulusCIException):
+    """ An exception representing a failure such as a Metadata deployment failure or a test failure.  CI systems can handle these to determine fail vs error status """
+
+    pass
+
+class NotInProject(CumulusCIUsageError):
     """ Raised when no project can be found in the current context """
 
     pass
 
 
-class ProjectConfigNotFound(CumulusCIException):
+class ProjectConfigNotFound(CumulusCIUsageError):
     """ Raised when a project is found in the current context but no configuration was found for the project """
 
     pass
@@ -26,6 +37,8 @@ class KeychainNotFound(CumulusCIException):
 class KeychainKeyNotFound(CumulusCIException):
     """ Raised when the keychain key couldn't be found """
 
+    pass
+
 
 class OrgNotFound(CumulusCIException):
     """ Raised when no org could be found by a given name in the project keychain """
@@ -33,13 +46,13 @@ class OrgNotFound(CumulusCIException):
     pass
 
 
-class ServiceNotConfigured(CumulusCIException):
+class ServiceNotConfigured(CumulusCIUsageError):
     """ Raised when no service configuration could be found by a given name in the project keychain """
 
     pass
 
 
-class ServiceNotValid(CumulusCIException):
+class ServiceNotValid(CumulusCIUsageError):
     """ Raised when no service configuration could be found by a given name in the project configuration """
 
     pass
@@ -69,7 +82,7 @@ class DeploymentException(CumulusCIException):
     pass
 
 
-class ApexTestException(CumulusCIException):
+class ApexTestException(CumulusCIFailure):
     """ Raised when a build fails because of an Apex test failure """
 
     pass
@@ -81,13 +94,13 @@ class SalesforceCredentialsException(CumulusCIException):
     pass
 
 
-class TaskRequiresSalesforceOrg(CumulusCIException):
+class TaskRequiresSalesforceOrg(CumulusCIUsageError):
     """ Raise when a task that requires a Salesforce org_config is not initialized with an org_config """
 
     pass
 
 
-class TaskOptionsError(CumulusCIException):
+class TaskOptionsError(CumulusCIUsageError):
     """ Raise when a task's options are invalid """
 
     pass
@@ -111,7 +124,7 @@ class ApexTestsDBNotConfigured(CumulusCIException):
     pass
 
 
-class TaskNotFoundError(CumulusCIException):
+class TaskNotFoundError(CumulusCIUsageError):
     """ Raise when task is not found in project config """
 
     pass
@@ -128,8 +141,7 @@ class FlowConfigError(CumulusCIException):
 
     pass
 
-
-class FlowNotFoundError(CumulusCIException):
+class FlowNotFoundError(CumulusCIUsageError):
     """ Raise when flow is not found in project config """
 
     pass
@@ -199,19 +211,19 @@ class CommandException(CumulusCIException):
     pass
 
 
-class BrowserTestFailure(CommandException):
+class BrowserTestFailure(CumulusCIFailure):
     """ Raise when browser tests fail """
 
     pass
 
 
-class ApexCompilationException(CumulusCIException):
+class ApexCompilationException(CumulusCIFailure):
     """ Raise when apex compilation fails """
 
     pass
 
 
-class ApexException(CumulusCIException):
+class ApexException(CumulusCIFailure):
     """ Raise when an Apex Exception is raised in an org """
 
     pass
@@ -222,8 +234,7 @@ class PushApiObjectNotFound(CumulusCIException):
 
     pass
 
-
-class RobotTestFailure(CumulusCIException):
+class RobotTestFailure(CumulusCIFailure):
     """ Raise when a robot test fails in a test suite """
 
     pass
