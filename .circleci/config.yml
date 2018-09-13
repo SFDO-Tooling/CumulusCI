@@ -129,19 +129,19 @@ workflows:
   build_test_report:
     jobs:
       - build
-      - test_py2
+      - test_py2:
           requires:
             - build
-      - test_py3
+      - test_py3:
           requires:
             - build
-      - test_robot
+      - test_robot:
           requires:
             - build
-      - test_release
+      - test_release:
           requires:
             - build
-      - report
+      - report:
           requires:
             - test_py2
             - test_py3
