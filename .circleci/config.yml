@@ -108,14 +108,6 @@ jobs:
               circleci step halt
             fi
       - run:
-          name: Install sfdx
-          command: |
-            mkdir sfdx
-            wget -qO- https://developer.salesforce.com/media/salesforce-cli/sfdx-linux-amd64.tar.xz | tar xJ -C sfdx --strip-components 1
-            ./sfdx/install
-            echo $SFDX_HUB_KEY | base64 --decode > sfdx.key
-            sfdx force:auth:jwt:grant --clientid $SFDX_CLIENT_KEY --jwtkeyfile sfdx.key --username $SFDX_HUB_USERNAME --setdefaultdevhubusername -a hub
-      - run:
           name: Install Python dependencies
           command: |
             virtualenv venv
@@ -124,6 +116,15 @@ jobs:
           name: Check out CumulusCI-Test
           command: |
             git clone https://github.com/SFDO-Tooling/CumulusCI-Test
+      - run:
+          name: Install sfdx
+          command: |
+            mkdir sfdx
+            wget -qO- https://developer.salesforce.com/media/salesforce-cli/sfdx-linux-amd64.tar.xz | tar xJ -C sfdx --strip-components 1
+            ./sfdx/install
+            cd CumulusCI-Test
+            echo $SFDX_HUB_KEY | base64 --decode > sfdx.key
+            sfdx force:auth:jwt:grant --clientid $SFDX_CLIENT_KEY --jwtkeyfile sfdx.key --username $SFDX_HUB_USERNAME --setdefaultdevhubusername -a hub
       - run:
           name: Run ci_feature flow
           command: |
