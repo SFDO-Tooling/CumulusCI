@@ -300,11 +300,11 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             processors=("raven.processors.SanitizePasswordsProcessor",),
         )
 
-    _get_github_api = get_github_api
-
-    def get_github_api(self):
+    # Skipping coverage because the module structure
+    # makes it hard to patch our get_github_api global
+    def get_github_api(self):  # pragma: nocover
         github_config = self.keychain.get_service("github")
-        gh = self._get_github_api(github_config.username, github_config.password)
+        gh = get_github_api(github_config.username, github_config.password)
         return gh
 
     def get_latest_version(self, beta=False):
