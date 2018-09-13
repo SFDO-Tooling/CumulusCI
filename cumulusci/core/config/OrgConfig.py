@@ -9,6 +9,9 @@ from cumulusci.oauth.salesforce import SalesforceOAuth2
 class OrgConfig(BaseConfig):
     """ Salesforce org configuration (i.e. org credentials) """
 
+    # make sure it can be mocked for tests
+    SalesforceOAuth2 = SalesforceOAuth2
+
     def __init__(self, config, name):
         self.name = name
         super(OrgConfig, self).__init__(config)
@@ -25,7 +28,7 @@ class OrgConfig(BaseConfig):
         if not client_id:
             client_id = connected_app.client_id
             client_secret = connected_app.client_secret
-        sf_oauth = SalesforceOAuth2(
+        sf_oauth = self.SalesforceOAuth2(
             client_id,
             client_secret,
             connected_app.callback_url,  # Callback url isn't really used for this call

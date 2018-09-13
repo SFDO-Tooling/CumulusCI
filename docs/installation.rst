@@ -32,8 +32,8 @@ You can either clone the public repository:
 
 .. code-block:: console
 
-    $ git clone git://github.com/SalesforceFoundation/CumulusCI
+    $ git clone git://github.com/SFDO-Tooling/CumulusCI
     $ cd CumulusCI
     $ pip install -r requirements_dev.txt
 
-.. _Github repo: https://github.com/SalesforceFoundation/CumulusCI
+.. _Github repo: https://github.com/SFDO-Tooling/CumulusCI

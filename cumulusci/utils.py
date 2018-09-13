@@ -10,6 +10,7 @@ import re
 import io
 import shutil
 import tempfile
+import textwrap
 import zipfile
 
 import requests
@@ -324,6 +325,9 @@ def doc_task(task_name, task_config, project_config=None, org_config=None):
     doc.append("**Class::** {}\n".format(task_config.class_path))
 
     task_class = import_class(task_config.class_path)
+    task_docs = textwrap.dedent(task_class.task_docs.strip("\n"))
+    if task_docs:
+        doc.append(task_docs)
     if task_class.task_options:
         doc.append("Options:\n------------------------------------------\n")
         defaults = task_config.options or {}
@@ -376,6 +380,28 @@ def package_xml_from_dict(items, api_version, package_name=None):
 
 @contextmanager
 def temporary_dir():
+    """Context manager that creates a temporary directory and chdirs to it.
+
+    When the context manager exits it returns to the previous cwd
+    and deletes the temporary directory.
+    """
     d = tempfile.mkdtemp()
-    yield d
-    shutil.rmtree(d)
+    cwd = os.getcwd()
+    os.chdir(d)
+    try:
+        yield d
+    finally:
+        os.chdir(cwd)
+        shutil.rmtree(d)
+
+
+def in_directory(filepath, dirpath):
+    """Returns a boolean for whether filepath is contained in dirpath.
+
+    Normalizes the paths (e.g. resolving symlinks and ..)
+    so this is the safe way to make sure a user-configured path
+    is located inside the user's project repo.
+    """
+    filepath = os.path.realpath(filepath)
+    dirpath = os.path.realpath(dirpath)
+    return filepath.startswith(os.path.join(dirpath, ""))
