@@ -31,27 +31,27 @@ jobs:
           paths:
             - .coverage.py2
 
-  test_py3:
-    <<: *defaults
-    docker:
-      - image: circleci/python:3.6-browsers
-    steps:
-      - checkout
-      - run:
-          name: install Python dependencies
-          command: |
-            virtualenv venv
-            venv/bin/pip install tox
-      - run:
-          name: run Python tests
-          command: |
-            mkdir testresults
-            venv/bin/tox -e py36 -- --with-coverage --cover-package=cumulusci --with-xunit --xunit-file=testresults/junit.xml
-            mv .coverage .coverage.py3
-      - persist_to_workspace:
-          root: .
-          paths:
-            - .coverage.py3
+  # test_py3:
+  #   <<: *defaults
+  #   docker:
+  #     - image: circleci/python:3.6-browsers
+  #   steps:
+  #     - checkout
+  #     - run:
+  #         name: install Python dependencies
+  #         command: |
+  #           virtualenv venv
+  #           venv/bin/pip install tox
+  #     - run:
+  #         name: run Python tests
+  #         command: |
+  #           mkdir testresults
+  #           venv/bin/tox -e py36 -- --with-coverage --cover-package=cumulusci --with-xunit --xunit-file=testresults/junit.xml
+  #           mv .coverage .coverage.py3
+  #     - persist_to_workspace:
+  #         root: .
+  #         paths:
+  #           - .coverage.py3
 
   test_robot:
     <<: *defaults
@@ -114,7 +114,8 @@ jobs:
       - run:
           name: report coverage
           command: |
-            coverage combine .coverage.py2 .coverage.py3 .coverage.robot
+#            coverage combine .coverage.py2 .coverage.py3 .coverage.robot
+            coverage combine .coverage.py2 .coverage.robot
             venv/bin/coveralls
 
 
@@ -123,12 +124,12 @@ workflows:
   build_test_report:
     jobs:
       - test_py2
-      - test_py3
+#      - test_py3
       - test_robot
       - test_release
       - report:
           requires:
             - test_py2
-            - test_py3
+#            - test_py3
             - test_robot
             - test_release
