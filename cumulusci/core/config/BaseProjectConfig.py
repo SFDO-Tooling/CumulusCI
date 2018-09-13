@@ -13,7 +13,7 @@ from cumulusci.core.exceptions import DependencyResolutionError
 from cumulusci.core.exceptions import KeychainNotFound
 from cumulusci.core.exceptions import ServiceNotConfigured
 from cumulusci.core.exceptions import ServiceNotValid
-from cumulusci.core.github import get_github_api as core_get_github_api
+from cumulusci.core.github import get_github_api
 
 
 class BaseProjectConfig(BaseTaskFlowConfig):
@@ -300,13 +300,11 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             processors=("raven.processors.SanitizePasswordsProcessor",),
         )
 
-    _get_github_api = core_get_github_api
-
-    def get_github_api(self):
+    # Skipping coverage because the module structure
+    # makes it hard to patch our get_github_api global
+    def get_github_api(self):  # pragma: nocover
         github_config = self.keychain.get_service("github")
-        gh = BaseProjectConfig._get_github_api(
-            github_config.username, github_config.password
-        )
+        gh = get_github_api(github_config.username, github_config.password)
         return gh
 
     def get_latest_version(self, beta=False):
