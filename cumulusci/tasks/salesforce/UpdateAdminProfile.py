@@ -11,10 +11,10 @@ from cumulusci.utils import findReplaceRegex
 
 rt_visibility_template = """
 <recordTypeVisibilities>
-    <default>{}</default>
-    <recordType>{}</recordType>
-    <visible>true</visible>
-    {}
+    <default>{default}</default>
+    <recordType>{record_type}</recordType>
+    <visible>{visible}</visible>
+    <personAccountDefault>{person_account_default}</personAccountDefault>
 </recordTypeVisibilities>
 """
 
@@ -27,7 +27,7 @@ class UpdateAdminProfile(Deploy):
             "description": "Override the default package.xml file for retrieving the Admin.profile and all objects and classes that need to be included by providing a path to your custom package.xml",
         },
         "record_types": {
-            "description": "A list of dictionaries containing the required key `record_type` with a value specifying the record type in format <object>.<developer_name>.  Record type names can use the token strings {managed} and {namespaced_org} for namespace prefix injection as needed.  By default, all listed record types will be set to visible and not default.  Use the additional keys `visible` and `default` set to true/false to override.  Use the key `extra` to specify a raw xml string to add to the created recordTypeVisiblities element.  NOTE: Setting record_types is only supported in cumulusci.yml, command line override is not supported.",
+            "description": "A list of dictionaries containing the required key `record_type` with a value specifying the record type in format <object>.<developer_name>.  Record type names can use the token strings {managed} and {namespaced_org} for namespace prefix injection as needed.  By default, all listed record types will be set to visible and not default.  Use the additional keys `visible`, `default`, and `person_account_default` set to true/false to override.  NOTE: Setting record_types is only supported in cumulusci.yml, command line override is not supported.",
         },
         "managed": {
             "description": "If True, uses the namespace prefix where appropriate.  Use if running against an org with the managed package installed.  Defaults to False",
@@ -136,11 +136,12 @@ class UpdateAdminProfile(Deploy):
         # Set recordTypeVisibilities
         for rt in record_types:
             rt_prefixed = rt['record_type'].format(**self.namespace_prefixes)
-            rt_xml = rt_visibility_template.format(
-                rt.get("default", "false"),
-                rt_prefixed,
-                rt.get("extra", ""),
-            )
+            rt_xml = rt_visibility_template.format(**{
+                "default": rt.get("default", "false"),
+                "record_type": rt_prefixed,
+                "visible": rt.get("visible", "true"),
+                "person_account_default": rt.get("personAccountDefault", "false"),
+            })
             findReplace(
                 "<tabVisibilities>",
                 "{}<tabVisibilities>".format(rt_xml),
