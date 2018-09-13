@@ -115,7 +115,8 @@ jobs:
           name: report coverage
 #            coverage combine .coverage.py2 .coverage.py3 .coverage.robot
           command: |
-            coverage combine .coverage.py2 .coverage.robot
+            pip install coverage coveralls
+            venv/bin/coverage combine .coverage.py2 .coverage.robot
             venv/bin/coveralls
 
 
