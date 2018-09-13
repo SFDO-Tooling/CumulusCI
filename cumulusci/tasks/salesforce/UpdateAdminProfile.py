@@ -69,6 +69,12 @@ class UpdateAdminProfile(Deploy):
             os.path.join(self.tempdir, "profiles"),
             "Admin.profile",
         )
+        findReplace(
+            "<visibility>Hidden</visibility>",
+            "<visibility>DefaultOn</visibility>",
+            os.path.join(self.tempdir, "profiles"),
+            "Admin.profile",
+        )
 
     def _deploy_metadata(self):
         self.logger.info("Deploying updated Admin.profile from {}".format(self.tempdir))
