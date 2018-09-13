@@ -100,6 +100,7 @@ jobs:
     environment:
       CUMULUSCI_KEYCHAIN_CLASS: cumulusci.core.keychain.EnvironmentProjectKeychain
     steps:
+      - checkout
       - run:
           name: Skip unless master or PR build
           command: |
@@ -114,7 +115,6 @@ jobs:
             ./sfdx/install
             echo $SFDX_HUB_KEY | base64 --decode > sfdx.key
             sfdx force:auth:jwt:grant --clientid $SFDX_CLIENT_KEY --jwtkeyfile sfdx.key --username $SFDX_HUB_USERNAME --setdefaultdevhubusername -a hub
-      - checkout
       - run:
           name: Install Python dependencies
           command: |
