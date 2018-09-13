@@ -157,6 +157,7 @@ jobs:
   report:
     <<: *defaults
     steps:
+      - checkout
       - attach_workspace:
           at: .
       - run:
