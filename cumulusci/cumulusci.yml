@@ -322,6 +322,8 @@ flows:
                     unmanaged: False
             2:
                 task: update_admin_profile
+                options:
+                    managed: true
 
     config_packaging:
         description: Configure packaging org for upload after package metadata is deployed
@@ -420,6 +422,8 @@ flows:
                 options:
                     deploy_post:
                         unmanaged: False
+                        namespaced_org: True
+                    update_admin_profile:
                         namespaced_org: True
                     
     qa_org:
