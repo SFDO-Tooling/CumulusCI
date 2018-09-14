@@ -23,8 +23,8 @@ jobs:
       - run:
           name: Run Python tests
           command: |
-            mkdir testresults
-            venv/bin/tox -e py27 -- --with-coverage --cover-package=cumulusci --with-xunit --xunit-file=testresults/junit.xml
+            mkdir -p testresults/nosetests
+            venv/bin/tox -e py27 -- --with-coverage --cover-package=cumulusci --with-xunit --xunit-file=testresults/nosetests/junit.xml
             mv .coverage .coverage.py2
       - store_test_results:
           path: testresults
@@ -47,8 +47,8 @@ jobs:
   #     - run:
   #         name: Run Python tests
   #         command: |
-  #           mkdir testresults
-  #           venv/bin/tox -e py36 -- --with-coverage --cover-package=cumulusci --with-xunit --xunit-file=testresults/junit.xml
+  #           mkdir -p testresults/nosetests
+  #           venv/bin/tox -e py36 -- --with-coverage --cover-package=cumulusci --with-xunit --xunit-file=testresults/nosetests/junit.xml
   #           mv .coverage .coverage.py3
   #     - persist_to_workspace:
   #         root: .
@@ -80,10 +80,10 @@ jobs:
       - run:
           name: Run robot tests (ignore failure on UI tests for now)
           command: |
-            mkdir robot_results
-            venv/bin/coverage run --append venv/bin/cci task run robot -o suites cumulusci/robotframework/tests/cumulusci/base.robot -o xunit robot_results/cumulusci.xml
-            venv/bin/coverage run --append venv/bin/cci task run robot -o suites cumulusci/robotframework/tests/salesforce/api.robot -o xunit robot_results/salesforce_api.xml
-            venv/bin/coverage run --append venv/bin/cci task run robot -o suites cumulusci/robotframework/tests/salesforce/ui.robot -o xunit robot_results/salesforce_ui.xml || true
+            mkdir -p robot_results/robot
+            venv/bin/coverage run --append venv/bin/cci task run robot -o suites cumulusci/robotframework/tests/cumulusci/base.robot -o xunit robot_results/robot/cumulusci.xml
+            venv/bin/coverage run --append venv/bin/cci task run robot -o suites cumulusci/robotframework/tests/salesforce/api.robot -o xunit robot_results/robot/salesforce_api.xml
+            venv/bin/coverage run --append venv/bin/cci task run robot -o suites cumulusci/robotframework/tests/salesforce/ui.robot -o xunit robot_results/robot/salesforce_ui.xml || true
       - run:
           name: Delete scratch org
           command: |
