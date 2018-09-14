@@ -26,6 +26,8 @@ jobs:
             mkdir testresults
             venv/bin/tox -e py27 -- --with-coverage --cover-package=cumulusci --with-xunit --xunit-file=testresults/junit.xml
             mv .coverage .coverage.py2
+      - store_test_results:
+          path: testresults
       - persist_to_workspace:
           root: .
           paths:
@@ -78,9 +80,10 @@ jobs:
       - run:
           name: Run robot tests (ignore failure on UI tests for now)
           command: |
-            venv/bin/coverage run --append venv/bin/cci task run robot -o suites cumulusci/robotframework/tests/cumulusci/base.robot
-            venv/bin/coverage run --append venv/bin/cci task run robot -o suites cumulusci/robotframework/tests/salesforce/api.robot
-            venv/bin/coverage run --append venv/bin/cci task run robot -o suites cumulusci/robotframework/tests/salesforce/ui.robot || true
+            mkdir robot_results
+            venv/bin/coverage run --append venv/bin/cci task run robot -o suites cumulusci/robotframework/tests/cumulusci/base.robot -o xunit robot_results/cumulusci.xml
+            venv/bin/coverage run --append venv/bin/cci task run robot -o suites cumulusci/robotframework/tests/salesforce/api.robot -o xunit robot_results/salesforce_api.xml
+            venv/bin/coverage run --append venv/bin/cci task run robot -o suites cumulusci/robotframework/tests/salesforce/ui.robot -o xunit robot_results/salesforce_ui.xml || true
       - run:
           name: Delete scratch org
           command: |
@@ -90,6 +93,8 @@ jobs:
           name: Preserve coverage
           command: |
             mv .coverage .coverage.robot
+      - store_test_results:
+          path: robot_results
       - persist_to_workspace:
           root: .
           paths:
