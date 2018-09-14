@@ -62,7 +62,7 @@ test_requirements = [
 
 setup(
     name="cumulusci",
-    version="2.0.10",
+    version="2.0.11",
     description="Build and release tools for Salesforce developers",
     long_description=readme + "\n\n" + history,
     author="Salesforce.org",

@@ -2,6 +2,11 @@
 History
 =======
 
+2.0.11 (2018-09-14)
+-------------------
+
+* `update_admin_profile` now uses xml parsing instead of string replacement for more targeted editing of Admin.profile to fix issues with deploying record types via dependencies
+
 2.0.10 (2018-09-13)
 -------------------
 
