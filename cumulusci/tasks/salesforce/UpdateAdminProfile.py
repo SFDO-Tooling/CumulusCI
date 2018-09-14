@@ -3,9 +3,11 @@ import shutil
 import tempfile
 
 from cumulusci.salesforce_api.metadata import ApiRetrieveUnpackaged
+from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.tasks.salesforce import Deploy
 from cumulusci.utils import CUMULUSCI_PATH
+from cumulusci.utils import elementtree_parse_file
 from cumulusci.utils import findReplace
 from cumulusci.utils import findReplaceRegex
 
@@ -36,6 +38,8 @@ class UpdateAdminProfile(Deploy):
             "description": "If True, attempts to prefix all unmanaged metadata references with the namespace prefix for deployment to the packaging org or a namespaced scratch org.  Defaults to False",
         },
     }
+
+    namespaces = {'sf': 'http://soap.sforce.com/2006/04/metadata'}
 
     def _init_options(self, kwargs):
         super(UpdateAdminProfile, self)._init_options(kwargs)
@@ -90,73 +94,76 @@ class UpdateAdminProfile(Deploy):
 
     def _process_metadata(self):
         self.logger.info("Processing retrieved metadata in {}".format(self.tempdir))
+        path = os.path.join(self.tempdir, "profiles", "Admin.profile")
+        self.tree = elementtree_parse_file(path)
+
         self._set_apps_visible()
+        self._set_classes_enabled()
         self._set_fields_editable()
         self._set_fields_readable()
         self._set_tabs_visibility()
         self._set_record_types()
 
-    def _set_apps_visible(self):
-        findReplace(
-            "<visible>false</visible>",
-            "<visible>true</visible>",
-            os.path.join(self.tempdir, "profiles"),
-            "Admin.profile",
+        self.tree.write(
+            path,
+            "utf-8",
+            xml_declaration=True,
+            default_namespace=self.namespaces['sf'],
         )
+
+    def _set_apps_visible(self):
+        xpath = ".//sf:applicationVisibilities[sf:visible='false']"
+        for elem in self.tree.findall(xpath, self.namespaces):
+            elem.find('sf:visible', self.namespaces).text = 'true'
+
+    def _set_classes_enabled(self):
+        xpath = ".//sf:classAccess[sf:enabled='false']"
+        for elem in self.tree.findall(xpath, self.namespaces):
+            elem.find('sf:enabled', self.namespaces).text = 'true'
 
     def _set_fields_editable(self):
-        findReplace(
-            "<editable>false</editable>",
-            "<editable>true</editable>",
-            os.path.join(self.tempdir, "profiles"),
-            "Admin.profile",
-        )
+        xpath = ".//sf:fieldPermissions[sf:editable='false']"
+        for elem in self.tree.findall(xpath, self.namespaces):
+            elem.find('sf:editable', self.namespaces).text = 'true'
 
     def _set_fields_readable(self):
-        findReplace(
-            "<readable>false</readable>",
-            "<readable>true</readable>",
-            os.path.join(self.tempdir, "profiles"),
-            "Admin.profile",
-        )
+        xpath = ".//sf:fieldPermissions[sf:readable='false']"
+        for elem in self.tree.findall(xpath, self.namespaces):
+            elem.find('sf:readable', self.namespaces).text = 'true'
 
     def _set_record_types(self):
         record_types = self.options.get('record_types')
         if not record_types:
             return
 
-        # Strip recordTypeVisibilities
-        findReplaceRegex(
-            '<recordTypeVisibilities>([^\$]+)</recordTypeVisibilities>',
-            '',
-            os.path.join(self.tempdir, 'profiles'),
-            'Admin.profile'
-        )
-
         # Set recordTypeVisibilities
         for rt in record_types:
+            # Replace namespace prefix tokens in rt name
             rt_prefixed = rt['record_type'].format(**self.namespace_prefixes)
-            rt_xml = rt_visibility_template.format(**{
-                "default": rt.get("default", "false"),
-                "record_type": rt_prefixed,
-                "visible": rt.get("visible", "true"),
-                "person_account_default": rt.get("personAccountDefault", "false"),
-            })
-            findReplace(
-                "<tabVisibilities>",
-                "{}<tabVisibilities>".format(rt_xml),
-                os.path.join(self.tempdir, "profiles"),
-                "Admin.profile",
-                max=1,
-            )
 
+            # Look for the recordTypeVisiblities element
+            xpath = ".//sf:recordTypeVisibilities[sf:recordType='{}']".format(rt_prefixed)
+            elem = self.tree.find(xpath, self.namespaces)
+            if elem is None:
+                raise TaskOptionsError(
+                    "Record Type {} not found in retrieved Admin.profile".format(rt['record_type'])
+                )
+
+            # Set visibile
+            elem.find("sf:visible", self.namespaces).text = str(rt.get("visible", "true"))
+                
+            # Set default
+            elem.find("sf:default", self.namespaces).text = str(rt.get("default", "false"))
+
+            # Set person account default if element exists
+            pa_default = elem.find("sf:personAccountDefault", self.namespaces)
+            if pa_default is not None:
+                pa_default.text = str(rt.get("person_account_default", "false"))
+                
     def _set_tabs_visibility(self):
-        findReplace(
-            "<visibility>Hidden</visibility>",
-            "<visibility>DefaultOn</visibility>",
-            os.path.join(self.tempdir, "profiles"),
-            "Admin.profile",
-        )
+        xpath = ".//sf:tabVisibilities[sf:visibility='Hidden']"
+        for elem in self.tree.findall(xpath, self.namespaces):
+            elem.find('sf:visibility', self.namespaces).text = 'DefaultOn'
 
     def _deploy_metadata(self):
         self.logger.info("Deploying updated Admin.profile from {}".format(self.tempdir))
