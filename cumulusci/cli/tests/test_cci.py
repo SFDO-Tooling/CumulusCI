@@ -173,7 +173,7 @@ class TestCCI(unittest.TestCase):
     @mock.patch("cumulusci.cli.cci.CliConfig")
     @mock.patch("cumulusci.cli.cci.check_latest_version")
     def test_main(self, check_latest_version, CliConfig, init_logger):
-        CliConfig.return_value = _marker = object()
+        CliConfig.return_value = _marker = mock.Mock()
 
         ctx, result = run_click_command(cci.main)
 
