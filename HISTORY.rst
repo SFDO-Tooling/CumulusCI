@@ -2,8 +2,8 @@
 History
 =======
 
-2.0.9 (2018-09-13)
-------------------
+2.0.10 (2018-09-13)
+-------------------
 
 * `update_admin_profile` task now sets application and tab visibility and supports setting record type visibility and default via the new `record_types` task option
 * Restructured exceptions to include two new parent exceptions useful in client implementations:
