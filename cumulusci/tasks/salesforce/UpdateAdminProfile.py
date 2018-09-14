@@ -101,6 +101,7 @@ class UpdateAdminProfile(Deploy):
         self._set_classes_enabled()
         self._set_fields_editable()
         self._set_fields_readable()
+        self._set_pages_enabled()
         self._set_tabs_visibility()
         self._set_record_types()
 
@@ -130,6 +131,11 @@ class UpdateAdminProfile(Deploy):
         xpath = ".//sf:fieldPermissions[sf:readable='false']"
         for elem in self.tree.findall(xpath, self.namespaces):
             elem.find('sf:readable', self.namespaces).text = 'true'
+
+    def _set_pages_enabled(self):
+        xpath = ".//sf:pageAccesses[sf:enabled='false']"
+        for elem in self.tree.findall(xpath, self.namespaces):
+            elem.find('sf:enabled', self.namespaces).text = 'true'
 
     def _set_record_types(self):
         record_types = self.options.get('record_types')
