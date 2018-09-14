@@ -2,6 +2,8 @@ import os
 import sys
 import click
 
+import pkg_resources
+
 from cumulusci.core.config import YamlGlobalConfig
 from cumulusci.core.exceptions import ConfigError
 from cumulusci.core.exceptions import NotInProject
@@ -114,3 +116,23 @@ class CliConfig(object):
                 'No project configuration found.  You can use the "project init" '
                 "command to initilize the project for use with CumulusCI"
             )
+
+    def check_cumulusci_version(self):
+        if self.project_config:
+            min_cci_version = self.project_config.minimum_cumulusci_version
+            if min_cci_version:
+                parsed_version = pkg_resources.parse_version(min_cci_version)
+                if get_installed_version() < parsed_version:
+                    raise click.UsageError(
+                        "This project requires CumulusCI version {} or later. "
+                        "Please upgrade using pip install -U cumulusci".format(
+                            min_cci_version
+                        )
+                    )
+
+
+def get_installed_version():
+    """ returns the version name (e.g. 2.0.0b58) that is installed """
+    req = pkg_resources.Requirement.parse("cumulusci")
+    dist = pkg_resources.WorkingSet().find(req)
+    return pkg_resources.parse_version(dist.version)

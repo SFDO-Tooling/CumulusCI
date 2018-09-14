@@ -155,3 +155,10 @@ class TestCliConfig(unittest.TestCase):
 
         with self.assertRaises(click.UsageError):
             config.check_project_config()
+
+    def test_check_cumulusci_version(self):
+        config = CliConfig()
+        config.project_config.minimum_cumulusci_version = "999"
+
+        with self.assertRaises(click.UsageError):
+            config.check_cumulusci_version()
