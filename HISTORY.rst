@@ -2,6 +2,19 @@
 History
 =======
 
+2.0.9 (2018-09-13)
+------------------
+
+* `update_admin_profile` task now sets application and tab visibility and supports setting record type visibility and default via the new `record_types` task option
+* Restructured exceptions to include two new parent exceptions useful in client implementations:
+
+  * CumulusCIFailure: Used to signify a failure rather than an error, such as test or metadata deployment failures
+  * CumulusCIUsageError: Use to signify a usage error such as accessing a task that does not exist
+
+* `execute_anon` task now accepts either `apex` (string) or `path` (Apex in a local file) for the Apex to execute.  Also, the `managed` and `namespaced` options allow injecting namespace prefixes into the Apex to be executed.
+
+* New flow `retrieve_scratch` can be used to retrieve declarative changes from a scratch org into the src/ directory
+
 2.0.9 (2018-09-10)
 ------------------
 
