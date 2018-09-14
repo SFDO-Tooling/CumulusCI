@@ -51,6 +51,7 @@ from cumulusci.core.exceptions import TaskNotFoundError
 from cumulusci.core.flows import BaseFlow
 from cumulusci.core.utils import import_class
 from cumulusci.cli.config import CliConfig
+from cumulusci.cli.config import get_installed_version
 from cumulusci.utils import doc_task
 from cumulusci.oauth.salesforce import CaptureSalesforceOAuth
 from .logger import init_logger
@@ -72,13 +73,6 @@ def dbm_cache():
     db = dbm.open(os.path.join(config_dir, "cache.dbm"), "c")
     yield db
     db.close()
-
-
-def get_installed_version():
-    """ returns the version name (e.g. 2.0.0b58) that is installed """
-    req = pkg_resources.Requirement.parse("cumulusci")
-    dist = pkg_resources.WorkingSet().find(req)
-    return pkg_resources.parse_version(dist.version)
 
 
 def get_latest_version():
@@ -200,6 +194,9 @@ def main(ctx):
     except click.UsageError as e:
         click.echo(e.message)
         sys.exit(1)
+
+    config.check_cumulusci_version()
+
     # Attach the config object to the click context
     # so it can be accessed by other commands using `click.pass_obj`
     ctx.obj = config
