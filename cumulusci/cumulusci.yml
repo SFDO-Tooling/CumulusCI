@@ -322,6 +322,8 @@ flows:
                     unmanaged: False
             2:
                 task: update_admin_profile
+                options:
+                    managed: true
 
     config_packaging:
         description: Configure packaging org for upload after package metadata is deployed
@@ -421,6 +423,8 @@ flows:
                     deploy_post:
                         unmanaged: False
                         namespaced_org: True
+                    update_admin_profile:
+                        namespaced_org: True
                     
     qa_org:
         description: Set up an org as a QA environment for unmanaged metadata
@@ -509,6 +513,16 @@ flows:
             3:
                 task: dx_convert_from
             4:
+                task: update_package_xml
+            # The conversion reorders elements in .object files and others.
+            # Retrieve from the org using the new package.xml and then rewrite
+            # the package.xml 
+            5:
+                task: retrieve_unpackaged
+                options:
+                    package_xml: src/package.xml
+                    path: src
+            6:
                 task: update_package_xml
 
     unmanaged_ee:
