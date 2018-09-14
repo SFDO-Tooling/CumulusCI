@@ -171,7 +171,7 @@ jobs:
           command: |
             virtualenv venv
             venv/bin/pip install coverage coveralls
-            venv/bin/coverage combine .coverage.py2 .coverage.robot .coverage.release
+            venv/bin/coverage combine .coverage.*
             venv/bin/coveralls
 
 
