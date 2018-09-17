@@ -25,9 +25,7 @@ class DownloadZip(BaseTask):
     }
 
     def _run_task(self):
-        if not self.options["dir"]:
-            self.options["dir"] = "."
-        elif not os.path.exists(self.options["dir"]):
+        if not os.path.exists(self.options["dir"]):
             os.makedirs(self.options["dir"])
 
         download_extract_zip(
@@ -101,17 +99,20 @@ class Delete(BaseTask):
             os.chdir(chdir)
 
         path = self.options["path"]
-        if isinstance(path, list):
-            for path_item in path:
-                for match in glob.glob(path_item):
+        if not isinstance(path, list):
+            path = [path]
+        for path_item in path:
+            matches = glob.glob(path_item)
+            if matches:
+                for match in matches:
                     self._delete(match)
+            else:
+                self.logger.info("{} does not exist, skipping delete".format(path))
 
         if chdir:
             os.chdir(cwd)
 
     def _delete(self, path):
-        if not os.path.exists(path):
-            self.logger.info("{} does not exist, skipping delete".format(path))
         if os.path.isdir(path):
             self.logger.info("Recursively deleting directory {}".format(path))
             shutil.rmtree(path)
