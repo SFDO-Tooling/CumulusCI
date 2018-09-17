@@ -20,7 +20,6 @@ from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.core.keychain import BaseEncryptedProjectKeychain
 from cumulusci.core.keychain import EncryptedFileProjectKeychain
 from cumulusci.core.keychain import EnvironmentProjectKeychain
-from cumulusci.core.exceptions import NotInProject
 from cumulusci.core.exceptions import ServiceNotConfigured
 from cumulusci.core.exceptions import ServiceNotValid
 from cumulusci.core.exceptions import OrgNotFound

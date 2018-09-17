@@ -16,7 +16,7 @@ def init_logger():
     handler.setFormatter(formatter)
 
     logger = logging.getLogger(__name__.split(".")[0])
-    for handler in logger.handlers:
+    for handler in logger.handlers:  # pragma: nocover
         logger.removeHandler(handler)
     logger.addHandler(handler)
     logger.setLevel(logging.DEBUG)

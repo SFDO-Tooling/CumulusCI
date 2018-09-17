@@ -16,7 +16,7 @@ class HasOpenPull(object):
             sys.exit(1)
         self.gh = login(username, password)
         self.repo = self.gh.repository(
-            'SalesforceFoundation',
+            'SFDO-Tooling',
             'CumulusCI',
         )
    

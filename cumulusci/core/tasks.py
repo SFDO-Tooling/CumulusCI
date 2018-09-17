@@ -23,6 +23,7 @@ class BaseTask(object):
     code.
     """
 
+    task_docs = ""
     task_options = {}
     salesforce_task = False  # Does this task require a salesforce org?
 

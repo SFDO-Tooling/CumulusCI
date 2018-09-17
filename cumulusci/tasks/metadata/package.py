@@ -203,7 +203,7 @@ class BaseMetadataParser(object):
 
     def _parse_item(self, item):
         "Receives a file or directory name and returns a list of members"
-        raise NotImplemented("Subclasses should implement their parser here")
+        raise NotImplementedError("Subclasses should implement their parser here")
 
     def strip_extension(self, filename):
         return ".".join(filename.split(".")[:-1])

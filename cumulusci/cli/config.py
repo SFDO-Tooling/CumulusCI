@@ -2,13 +2,14 @@ import os
 import sys
 import click
 
+import pkg_resources
+
 from cumulusci.core.config import YamlGlobalConfig
 from cumulusci.core.exceptions import ConfigError
 from cumulusci.core.exceptions import NotInProject
 from cumulusci.core.exceptions import OrgNotFound
 from cumulusci.core.exceptions import ProjectConfigNotFound
 from cumulusci.core.utils import import_class
-from .logger import init_logger
 
 
 class CliConfig(object):
@@ -17,7 +18,6 @@ class CliConfig(object):
         self.project_config = None
         self.keychain = None
 
-        init_logger()
         self._load_global_config()
         self._load_project_config()
         self._load_keychain()
@@ -28,10 +28,7 @@ class CliConfig(object):
             sys.path.append(self.project_config.repo_root)
 
     def _load_global_config(self):
-        try:
-            self.global_config = YamlGlobalConfig()
-        except NotInProject as e:
-            raise click.UsageError(str(e))
+        self.global_config = YamlGlobalConfig()
 
     def _load_project_config(self):
         try:
@@ -57,7 +54,7 @@ class CliConfig(object):
         if org_name:
             org_config = self.keychain.get_org(org_name)
         else:
-            org_name, org_config = self.project_config.keychain.get_default_org()
+            org_name, org_config = self.keychain.get_default_org()
         if org_config:
             org_config = self.check_org_expired(org_name, org_config)
         elif fail_if_missing:
@@ -107,11 +104,7 @@ class CliConfig(object):
 
     def check_keychain(self):
         self.check_project_config()
-        if (
-            self.project_config.keychain
-            and self.project_config.keychain.encrypted
-            and not self.keychain_key
-        ):
+        if self.keychain and self.keychain.encrypted and not self.keychain_key:
             raise click.UsageError(
                 "You must set the environment variable CUMULUSCI_KEY "
                 "with the encryption key to be used for storing org credentials"
@@ -123,3 +116,23 @@ class CliConfig(object):
                 'No project configuration found.  You can use the "project init" '
                 "command to initilize the project for use with CumulusCI"
             )
+
+    def check_cumulusci_version(self):
+        if self.project_config:
+            min_cci_version = self.project_config.minimum_cumulusci_version
+            if min_cci_version:
+                parsed_version = pkg_resources.parse_version(min_cci_version)
+                if get_installed_version() < parsed_version:
+                    raise click.UsageError(
+                        "This project requires CumulusCI version {} or later. "
+                        "Please upgrade using pip install -U cumulusci".format(
+                            min_cci_version
+                        )
+                    )
+
+
+def get_installed_version():
+    """ returns the version name (e.g. 2.0.0b58) that is installed """
+    req = pkg_resources.Requirement.parse("cumulusci")
+    dist = pkg_resources.WorkingSet().find(req)
+    return pkg_resources.parse_version(dist.version)

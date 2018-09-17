@@ -2,6 +2,31 @@
 History
 =======
 
+2.0.11 (2018-09-14)
+-------------------
+
+* `update_admin_profile` now uses xml parsing instead of string replacement for more targeted editing of Admin.profile to fix issues with deploying record types via dependencies
+
+2.0.10 (2018-09-13)
+-------------------
+
+* `update_admin_profile` task now sets application and tab visibility and supports setting record type visibility and default via the new `record_types` task option
+* Restructured exceptions to include two new parent exceptions useful in client implementations:
+
+  * CumulusCIFailure: Used to signify a failure rather than an error, such as test or metadata deployment failures
+  * CumulusCIUsageError: Use to signify a usage error such as accessing a task that does not exist
+
+* `execute_anon` task now accepts either `apex` (string) or `path` (Apex in a local file) for the Apex to execute.  Also, the `managed` and `namespaced` options allow injecting namespace prefixes into the Apex to be executed.
+
+* New flow `retrieve_scratch` can be used to retrieve declarative changes from a scratch org into the src/ directory
+
+2.0.9 (2018-09-10)
+------------------
+
+* Make robot commands use new lightning URLs
+* Remove unused filter_name arg from Go to Record Home robot keyword.
+* Fix metadata map for Settings.
+
 2.0.8 (2018-08-21)
 ------------------
 * Flows that are executed from within another flow now support task-level control flow.
@@ -13,7 +38,7 @@ History
 * `cci service show` has been renamed `cci service info`!
 * Update default API version in the base YAML to v43.0.
 * Doc updates in the tutorial, thanks to @justindonnaruma!
-* Significant refactor of the cli module, including a bunch of small usability and exception handling changes. See https://github.com/SalesforceFoundation/CumulusCI/pull/708 for details.
+* Significant refactor of the cli module, including a bunch of small usability and exception handling changes. See https://github.com/SFDO-Tooling/CumulusCI/pull/708 for details.
 * Display the file name for error causing files in more cases.
 * Strip packageVersions tags from aura/, components/, and pages/ metadata.
 * Update PyYAML dependency.
@@ -444,7 +469,7 @@ Enhancements
 2.0.0-beta49 (2017-07-10)
 -------------------------
 
-* New task `batch_apex_wait` allows pausing until an Apex batch job completes.  More details at https://github.com/SalesforceFoundation/CumulusCI/pull/372
+* New task `batch_apex_wait` allows pausing until an Apex batch job completes.  More details at https://github.com/SFDO-Tooling/CumulusCI/pull/372
 * SalesforceBrowserTest task now accepts `extra` argument for specifying extra command line arguments separate from the command itself
 * Resolved #369: Scratch org tokens expiring after upgrade to SFDX beta
 
@@ -712,7 +737,7 @@ Enhancements
 
 * New services registration support added by community contribution from @cdcarter
 
-  * Services and their schemas can now be defined in the cumulusci.yml file.  See https://github.com/SalesforceFoundation/CumulusCI/issues/224 for more details until docs are fully updated
+  * Services and their schemas can now be defined in the cumulusci.yml file.  See https://github.com/SFDO-Tooling/CumulusCI/issues/224 for more details until docs are fully updated
   * `cci services list`
   * `cci services show github`
   * `cci services connect github`

@@ -195,7 +195,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                     in_remote_origin = True
                     continue
                 if in_remote_origin and "url = " in line:
-                    return line[7:]
+                    return line[len("url = ") :]
 
     @property
     def repo_owner(self):
@@ -301,7 +301,9 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             processors=("raven.processors.SanitizePasswordsProcessor",),
         )
 
-    def get_github_api(self):
+    # Skipping coverage because the module structure
+    # makes it hard to patch our get_github_api global
+    def get_github_api(self):  # pragma: nocover
         github_config = self.keychain.get_service("github")
         gh = get_github_api(github_config.username, github_config.password)
         return gh
@@ -427,7 +429,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         pretty = []
         for dependency in dependencies:
             prefix = "{}  - ".format(" " * indent)
-            for key, value in list(dependency.items()):
+            for key, value in sorted(dependency.items()):
                 extra = []
                 if value is None or value is False:
                     continue

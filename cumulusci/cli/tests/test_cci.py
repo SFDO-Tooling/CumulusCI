@@ -169,19 +169,25 @@ class TestCCI(unittest.TestCase):
 
         cci.handle_sentry_event(config, True)
 
+    @mock.patch("cumulusci.cli.cci.init_logger")
     @mock.patch("cumulusci.cli.cci.CliConfig")
     @mock.patch("cumulusci.cli.cci.check_latest_version")
-    def test_main(self, check_latest_version, CliConfig):
-        CliConfig.return_value = _marker = object()
+    def test_main(self, check_latest_version, CliConfig, init_logger):
+        CliConfig.return_value = _marker = mock.Mock()
 
         ctx, result = run_click_command(cci.main)
 
         check_latest_version.assert_called_once()
+        init_logger.assert_called_once()
+        # make sure that the config object was stored
+        # as the click context's "obj" for use by
+        # other commands
         self.assertIs(ctx.obj, _marker)
 
+    @mock.patch("cumulusci.cli.cci.init_logger")
     @mock.patch("cumulusci.cli.cci.CliConfig")
     @mock.patch("cumulusci.cli.cci.check_latest_version")
-    def test_main_config_error(self, check_latest_version, CliConfig):
+    def test_main_config_error(self, check_latest_version, CliConfig, init_logger):
         CliConfig.side_effect = click.UsageError("Broken!")
         with self.assertRaises(SystemExit):
             run_click_command(cci.main)
@@ -209,7 +215,6 @@ class TestCCI(unittest.TestCase):
     @mock.patch("cumulusci.cli.cci.click")
     def test_project_init(self, click):
         with temporary_dir() as d:
-            os.chdir(d)
             os.mkdir(".git")
 
             click.prompt.side_effect = (
@@ -250,27 +255,19 @@ class TestCCI(unittest.TestCase):
                 recursive_list_files(),
             )
 
-            os.chdir("..")
-
     def test_project_init_no_git(self):
         with temporary_dir() as d:
-            os.chdir(d)
-
             with self.assertRaises(click.ClickException):
                 run_click_command(cci.project_init)
 
-            os.chdir("..")
-
     def test_project_init_already_initted(self):
         with temporary_dir() as d:
-            os.chdir(d)
             os.mkdir(".git")
             with open("cumulusci.yml", "w"):
                 pass  # create empty file
 
             with self.assertRaises(click.ClickException):
                 run_click_command(cci.project_init)
-            os.chdir("..")
 
     @mock.patch("click.echo")
     def test_project_info(self, echo):

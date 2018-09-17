@@ -1,0 +1,190 @@
+# Python CircleCI 2.0 configuration file
+
+defaults: &defaults
+  docker:
+    - image: circleci/python:2.7-browsers
+  environment:
+    - BROWSER: headlesschrome
+  working_directory: ~/repo
+
+
+version: 2
+jobs:
+
+  test_py2:
+    <<: *defaults
+    steps:
+      - checkout
+      - run:
+          name: Install Python dependencies
+          command: |
+            virtualenv venv
+            venv/bin/pip install tox
+      - run:
+          name: Run Python tests
+          command: |
+            mkdir -p testresults/py2
+            venv/bin/tox -e py27 -- --with-coverage --cover-package=cumulusci --with-xunit --xunit-file=testresults/py2/junit.xml
+            mv .coverage .coverage.py2
+      - store_test_results:
+          path: testresults
+      - persist_to_workspace:
+          root: .
+          paths:
+            - .coverage.py2
+
+  # test_py3:
+  #   <<: *defaults
+  #   docker:
+  #     - image: circleci/python:3.6-browsers
+  #   steps:
+  #     - checkout
+  #     - run:
+  #         name: Install Python dependencies
+  #         command: |
+  #           virtualenv venv
+  #           venv/bin/pip install tox
+  #     - run:
+  #         name: Run Python tests
+  #         command: |
+  #           mkdir -p testresults/py3
+  #           venv/bin/tox -e py36 -- --with-coverage --cover-package=cumulusci --with-xunit --xunit-file=testresults/py3/junit.xml
+  #           mv .coverage .coverage.py3
+  #     - persist_to_workspace:
+  #         root: .
+  #         paths:
+  #           - .coverage.py3
+
+  test_robot:
+    <<: *defaults
+    steps:
+      - checkout
+      - run:
+          name: Install Python dependencies
+          command: |
+            virtualenv venv
+            venv/bin/pip install -r requirements_dev.txt
+      - run:
+          name: Install sfdx
+          command: |
+            mkdir sfdx
+            wget -qO- https://developer.salesforce.com/media/salesforce-cli/sfdx-linux-amd64.tar.xz | tar xJ -C sfdx --strip-components 1
+            ./sfdx/install
+      - run:
+          name: Create scratch org
+          command: |
+            echo $SFDX_HUB_KEY | base64 --decode > sfdx.key
+            sfdx force:auth:jwt:grant --clientid $SFDX_CLIENT_KEY --jwtkeyfile sfdx.key --username $SFDX_HUB_USERNAME --setdefaultdevhubusername -a hub
+            venv/bin/cci org info dev > org_info.txt
+            venv/bin/cci org default dev
+      - run:
+          name: Run robot tests (ignore failure on UI tests for now)
+          command: |
+            mkdir -p robot_results/robot
+            venv/bin/coverage run --append venv/bin/cci task run robot -o suites cumulusci/robotframework/tests/cumulusci/base.robot -o xunit robot_results/robot/cumulusci.xml
+            venv/bin/coverage run --append venv/bin/cci task run robot -o suites cumulusci/robotframework/tests/salesforce/api.robot -o xunit robot_results/robot/salesforce_api.xml
+            venv/bin/coverage run --append venv/bin/cci task run robot -o suites cumulusci/robotframework/tests/salesforce/ui.robot -o xunit robot_results/robot/salesforce_ui.xml || true
+      - run:
+          name: Delete scratch org
+          command: |
+            venv/bin/cci org scratch_delete dev
+          when: always
+      - run:
+          name: Preserve coverage
+          command: |
+            mv .coverage .coverage.robot
+      - store_test_results:
+          path: robot_results
+      - persist_to_workspace:
+          root: .
+          paths:
+            - .coverage.robot
+
+  test_release:
+    <<: *defaults
+    environment:
+      CUMULUSCI_KEYCHAIN_CLASS: cumulusci.core.keychain.EnvironmentProjectKeychain
+    steps:
+      - checkout
+      - run:
+          name: Skip unless master or PR build
+          command: |
+            if [ "$CIRCLE_BRANCH" != "master" ] && [ -z "$CIRCLE_PULL_REQUEST" ]; then
+              circleci step halt
+            fi
+      - run:
+          name: Install Python dependencies
+          command: |
+            virtualenv venv
+            venv/bin/pip install -r requirements_dev.txt
+      - run:
+          name: Check out CumulusCI-Test
+          command: |
+            git clone https://github.com/SFDO-Tooling/CumulusCI-Test
+      - run:
+          name: Install sfdx
+          command: |
+            mkdir sfdx
+            wget -qO- https://developer.salesforce.com/media/salesforce-cli/sfdx-linux-amd64.tar.xz | tar xJ -C sfdx --strip-components 1
+            ./sfdx/install
+            cd CumulusCI-Test
+            echo $SFDX_HUB_KEY | base64 --decode > sfdx.key
+            sfdx force:auth:jwt:grant --clientid $SFDX_CLIENT_KEY --jwtkeyfile sfdx.key --username $SFDX_HUB_USERNAME --setdefaultdevhubusername -a hub
+      - run:
+          name: Run ci_feature flow
+          command: |
+            cd CumulusCI-Test
+            ../venv/bin/coverage run --append --rcfile=../.coveragerc --source=../cumulusci ../venv/bin/cci flow run ci_feature --org scratch --delete-org
+      - run:
+          name: Run ci_beta flow
+          command: |
+            cd CumulusCI-Test
+            ../venv/bin/coverage run --append --rcfile=../.coveragerc --source=../cumulusci ../venv/bin/cci flow run ci_beta --org scratch --delete-org
+      - run:
+          name: Run ci_master flow
+          command: |
+            cd CumulusCI-Test
+            ../venv/bin/coverage run --append --rcfile=../.coveragerc --source=../cumulusci ../venv/bin/cci flow run ci_master --org scratch --delete-org
+      - run:
+          name: Run release_beta flow
+          command: |
+            cd CumulusCI-Test
+            ../venv/bin/coverage run --append --rcfile=../.coveragerc --source=../cumulusci ../venv/bin/cci flow run release_beta --org packaging
+      - run:
+          name: Preserve coverage
+          command: |
+            mv CumulusCI-Test/.coverage .coverage.release
+      - persist_to_workspace:
+          root: .
+          paths:
+            - .coverage.release
+
+  report:
+    <<: *defaults
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run:
+          name: Report coverage
+          command: |
+            virtualenv venv
+            venv/bin/pip install coverage coveralls
+            venv/bin/coverage combine .coverage.*
+            venv/bin/coveralls
+
+
+workflows:
+  version: 2
+  build_test_report:
+    jobs:
+      - test_py2
+#      - test_py3
+      - test_robot
+      - test_release
+      - report:
+          requires:
+            - test_py2
+#            - test_py3
+            - test_robot
+            - test_release

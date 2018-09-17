@@ -38,24 +38,21 @@ from cumulusci.core.config import ServiceConfig
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.config import YamlGlobalConfig
 from cumulusci.core.config import YamlProjectConfig
-from cumulusci.core.exceptions import ApexTestException
-from cumulusci.core.exceptions import BrowserTestFailure
 from cumulusci.core.exceptions import ConfigError
+from cumulusci.core.exceptions import CumulusCIFailure
+from cumulusci.core.exceptions import CumulusCIUsageError
 from cumulusci.core.exceptions import FlowNotFoundError
 from cumulusci.core.exceptions import KeychainKeyNotFound
 from cumulusci.core.exceptions import OrgNotFound
-from cumulusci.core.flows import BaseFlow
-from cumulusci.salesforce_api.exceptions import MetadataApiError
-from cumulusci.salesforce_api.exceptions import MetadataComponentFailure
 from cumulusci.core.exceptions import NotInProject
 from cumulusci.core.exceptions import ProjectConfigNotFound
 from cumulusci.core.exceptions import ScratchOrgException
 from cumulusci.core.exceptions import ServiceNotConfigured
 from cumulusci.core.exceptions import TaskNotFoundError
-from cumulusci.core.exceptions import TaskOptionsError
-from cumulusci.core.exceptions import TaskRequiresSalesforceOrg
+from cumulusci.core.flows import BaseFlow
 from cumulusci.core.utils import import_class
 from cumulusci.cli.config import CliConfig
+from cumulusci.cli.config import get_installed_version
 from cumulusci.utils import doc_task
 from cumulusci.oauth.salesforce import CaptureSalesforceOAuth
 from .logger import init_logger
@@ -77,13 +74,6 @@ def dbm_cache():
     db = dbm.open(os.path.join(config_dir, "cache.dbm"), "c")
     yield db
     db.close()
-
-
-def get_installed_version():
-    """ returns the version name (e.g. 2.0.0b58) that is installed """
-    req = pkg_resources.Requirement.parse("cumulusci")
-    dist = pkg_resources.WorkingSet().find(req)
-    return pkg_resources.parse_version(dist.version)
 
 
 def get_latest_version():
@@ -190,16 +180,26 @@ def handle_sentry_event(config, no_prompt):
 # Root command
 
 
-@click.group("main")
+@click.group("main", help="")
 @click.pass_context
 def main(ctx):
+    """Main CumulusCI CLI entry point.
+
+    This runs as the first step in processing any CLI command.
+    """
     check_latest_version()
+    init_logger()
 
     try:
         config = CliConfig()
     except click.UsageError as e:
         click.echo(str(e))
         sys.exit(1)
+
+    config.check_cumulusci_version()
+
+    # Attach the config object to the click context
+    # so it can be accessed by other commands using `click.pass_obj`
     ctx.obj = config
 
 
@@ -993,17 +993,11 @@ def task_run(config, task_name, org, o, debug, debug_before, debug_after, no_pro
 
             pdb.set_trace()
 
-    except (TaskRequiresSalesforceOrg, TaskOptionsError) as e:
+    except CumulusCIUsageError as e:
         # Usage error; report with usage line and no traceback
         exception = click.UsageError(str(e))
         handle_exception_debug(config, debug, throw_exception=exception)
-    except (
-        ApexTestException,
-        BrowserTestFailure,
-        MetadataComponentFailure,
-        MetadataApiError,
-        ScratchOrgException,
-    ) as e:
+    except (CumulusCIFailure, ScratchOrgException) as e:
         # Expected failure; report without traceback
         exception = click.ClickException("Failed: {}".format(e.__class__.__name__))
         handle_exception_debug(config, debug, throw_exception=exception)
@@ -1104,17 +1098,11 @@ def flow_run(config, flow_name, org, delete_org, debug, o, skip, no_prompt):
         )
 
         flow()
-    except (TaskRequiresSalesforceOrg, TaskOptionsError) as e:
+    except CumulusCIUsageError as e:
         exception = click.UsageError(str(e))
         handle_exception_debug(config, debug, throw_exception=exception)
-    except (
-        ApexTestException,
-        BrowserTestFailure,
-        MetadataComponentFailure,
-        MetadataApiError,
-        ScratchOrgException,
-    ) as e:
-        exception = click.ClickException("Failed: {}".format(e.__class__.__name__))
+    except (CumulusCIFailure, ScratchOrgException) as e:
+        exception = click.ClickException('Failed: {}'.format(e.__class__.__name__))
         handle_exception_debug(config, debug, throw_exception=exception)
     except Exception:
         handle_exception_debug(config, debug, no_prompt=no_prompt)
