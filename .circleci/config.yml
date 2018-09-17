@@ -33,27 +33,29 @@ jobs:
           paths:
             - .coverage.py2
 
-  # test_py3:
-  #   <<: *defaults
-  #   docker:
-  #     - image: circleci/python:3.6-browsers
-  #   steps:
-  #     - checkout
-  #     - run:
-  #         name: Install Python dependencies
-  #         command: |
-  #           virtualenv venv
-  #           venv/bin/pip install tox
-  #     - run:
-  #         name: Run Python tests
-  #         command: |
-  #           mkdir -p testresults/py3
-  #           venv/bin/tox -e py36 -- --with-coverage --cover-package=cumulusci --with-xunit --xunit-file=testresults/py3/junit.xml
-  #           mv .coverage .coverage.py3
-  #     - persist_to_workspace:
-  #         root: .
-  #         paths:
-  #           - .coverage.py3
+  test_py3:
+    <<: *defaults
+    docker:
+      - image: circleci/python:3.6-browsers
+    steps:
+      - checkout
+      - run:
+          name: Install Python dependencies
+          command: |
+            virtualenv venv
+            venv/bin/pip install tox
+      - run:
+          name: Run Python tests
+          command: |
+            mkdir -p testresults/py3
+            venv/bin/tox -e py36 -- --with-coverage --cover-package=cumulusci --with-xunit --xunit-file=testresults/py3/junit.xml
+            mv .coverage .coverage.py3
+      - store_test_results:
+          path: testresults
+      - persist_to_workspace:
+          root: .
+          paths:
+            - .coverage.py3
 
   test_robot:
     <<: *defaults
@@ -179,12 +181,12 @@ workflows:
   build_test_report:
     jobs:
       - test_py2
-#      - test_py3
+      - test_py3
       - test_robot
       - test_release
       - report:
           requires:
             - test_py2
-#            - test_py3
+            - test_py3
             - test_robot
             - test_release

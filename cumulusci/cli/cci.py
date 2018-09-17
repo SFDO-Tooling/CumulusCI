@@ -15,7 +15,7 @@ import time
 
 try:
     import anydbm as dbm
-except ImportError:  # pragma: nocover; python 3
+except ImportError:
     import dbm.ndbm as dbm
 
 from contextlib import contextmanager
