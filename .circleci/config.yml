@@ -2,7 +2,7 @@
 
 defaults: &defaults
   docker:
-    - image: circleci/python:2.7-browsers
+    - image: circleci/python:3.6-browsers
   environment:
     - BROWSER: headlesschrome
   working_directory: ~/repo
@@ -13,6 +13,8 @@ jobs:
 
   test_py2:
     <<: *defaults
+    docker:
+      - image: circleci/python:2.7-browsers
     steps:
       - checkout
       - run:
@@ -35,8 +37,6 @@ jobs:
 
   test_py3:
     <<: *defaults
-    docker:
-      - image: circleci/python:3.6-browsers
     steps:
       - checkout
       - run:
