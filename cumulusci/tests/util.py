@@ -68,3 +68,18 @@ class DummyOrgConfig(OrgConfig):
 
     def refresh_oauth_token(self, keychain):
         pass
+
+
+class DummyLogger(object):
+    def __init__(self):
+        self.out = []
+
+    def log(self, msg, *args):
+        self.out.append(msg % args)
+
+    # Compatibility with various logging methods like info, warning, etc
+    def __getattr__(self, name):
+        return self.log
+
+    def get_output(self):
+        return "\n".join(self.out)
