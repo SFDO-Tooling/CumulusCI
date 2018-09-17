@@ -12,6 +12,8 @@ from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.config import OrgConfig
 from cumulusci.core.config import FlowConfig
+from cumulusci.core.exceptions import TaskOptionsError
+from cumulusci.core.exceptions import TaskRequiresSalesforceOrg
 from cumulusci.core.tests.utils import MockLoggingHandler
 import cumulusci.core
 
@@ -65,6 +67,12 @@ class TestBaseTaskCallable(unittest.TestCase):
 
         self.assertIsInstance(task, collections.Callable)
 
+    def test_option_overrides(self):
+        task = self.__class__.task_class(
+            self.project_config, self.task_config, self.org_config, foo="bar"
+        )
+        self.assertEquals("bar", task.options["foo"])
+
     def test_dynamic_options(self):
         """ Option values can lookup values from project_config """
         self.project_config.config["foo"] = {"bar": "baz"}
@@ -73,6 +81,13 @@ class TestBaseTaskCallable(unittest.TestCase):
             self.project_config, self.task_config, self.org_config
         )
         self.assertEquals("baz", task.options["test_option"])
+
+    def test_validates_missing_options(self):
+        class Task(BaseTask):
+            task_options = {"test_option": {"required": True}}
+
+        with self.assertRaises(TaskOptionsError):
+            task = Task(self.project_config, self.task_config, self.org_config)
 
     def test_get_return_values(self):
         """ Callable interface returns retvals """
@@ -112,6 +127,10 @@ class TestBaseTaskCallable(unittest.TestCase):
 
         self.assertTrue(any(ORG_ID in s for s in self.task_log["info"]))
 
+    def test_salesforce_task_no_org(self):
+        with self.assertRaises(TaskRequiresSalesforceOrg):
+            _SfdcTask(self.project_config, self.task_config)
+
     @mock.patch("cumulusci.core.flows.BaseFlow._init_org")
     def test_no_id_if_run_from_flow(self, mock_class):
         """ A salesforce_task will not log the org id if run from a flow """
@@ -125,3 +144,22 @@ class TestBaseTaskCallable(unittest.TestCase):
         )
         task()
         self.assertFalse(any(ORG_ID in s for s in self.task_log["info"]))
+
+    def test_run_task(self):
+        task = BaseTask(self.project_config, self.task_config, self.org_config)
+        with self.assertRaises(NotImplementedError):
+            task()
+
+    def test_try(self):
+        task = BaseTask(self.project_config, self.task_config, self.org_config)
+        with self.assertRaises(NotImplementedError):
+            task._try()
+
+    def test_is_retry_valid(self):
+        task = BaseTask(self.project_config, self.task_config, self.org_config)
+        self.assertTrue(task._is_retry_valid(None))
+
+    def test_poll_action(self):
+        task = BaseTask(self.project_config, self.task_config, self.org_config)
+        with self.assertRaises(NotImplementedError):
+            task._poll_action()
