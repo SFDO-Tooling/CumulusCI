@@ -19,16 +19,15 @@ class EnvironmentProjectKeychain(BaseProjectKeychain):
 
     def _get_env(self):
         """ loads the environment variables as unicode if ascii """
-        try:
-            return [(k.decode(), v.decode()) for k, v in list(os.environ.items())]
-        except AttributeError:
-            return list(os.environ.items())
+        env = {}
+        for k, v in os.environ.items():
+            k = k.decode() if isinstance(k, bytes) else k
+            v = v.decode() if isinstance(v, bytes) else v
+            env[k] = v
+        return list(env.items())
 
     def _load_app(self):
-        try:
-            app = os.environ.get(self.app_var.encode("ascii"))
-        except TypeError:
-            app = os.environ.get(self.app_var)
+        app = os.environ.get(self.app_var)
         if app:
             self.app = ConnectedAppOAuthConfig(json.loads(app))
 

@@ -5,13 +5,14 @@ import logging
 import mock
 
 from collections import Callable
-from nose.tools import raises
 
 from cumulusci.core.flows import BaseFlow
 from cumulusci.core.tasks import BaseTask
 from cumulusci.core.config import FlowConfig
 from cumulusci.core.config import OrgConfig
 from cumulusci.core.exceptions import FlowConfigError
+from cumulusci.core.exceptions import FlowInfiniteLoopError
+from cumulusci.core.exceptions import FlowNotReadyError
 from cumulusci.core.exceptions import TaskNotFoundError
 from cumulusci.core.tests.utils import MockLoggingHandler
 from cumulusci.tests.util import create_project_config
@@ -214,7 +215,6 @@ class TestBaseFlow(unittest.TestCase):
         # the number of tasks in the flow should be 1 instead of 2
         self.assertEquals(1, len(flow.step_results))
 
-    @raises(FlowConfigError)
     def test_find_step_by_name_no_steps(self, mock_class):
         """ Running a flow with no steps throws an error """
 
@@ -222,7 +222,10 @@ class TestBaseFlow(unittest.TestCase):
         flow_config = FlowConfig({"description": "Run two tasks"})
 
         flow = BaseFlow(self.project_config, flow_config, self.org_config)
-        flow()
+        self.assertIsNone(flow._find_step_by_name("task"))
+
+        with self.assertRaises(FlowConfigError):
+            flow()
 
     def test_find_step_by_name_not_first(self, mock_class):
         """ The _find_step_by_name method skips tasks that don't exist """
@@ -250,6 +253,30 @@ class TestBaseFlow(unittest.TestCase):
             "cumulusci.core.tests.test_flows._TaskResponseName",
             task.task_config.class_path,
         )
+
+    def test_find_step_by_name__flow(self, mock_class):
+        flow_config = FlowConfig(
+            {
+                "description": "Run two tasks",
+                "steps": {
+                    1: {"flow": "nested_flow"},
+                    2: {
+                        "task": "name_response",
+                        "options": {
+                            "response": "^^nested_flow.pass_name.name",
+                            "from_flow": "^^nested_flow.name",
+                        },
+                    },
+                },
+            }
+        )
+
+        flow = BaseFlow(self.project_config, flow_config, self.org_config)
+
+        flow()
+
+        step = flow._find_step_by_name("nested_flow")
+        self.assertIsInstance(step, BaseFlow)
 
     def test_render_task_config_empty_value(self, mock_class):
         """ The _render_task_config method skips option values of None """
@@ -335,7 +362,6 @@ class TestBaseFlow(unittest.TestCase):
         )
         self.assertEqual(2, len(flow.steps))
 
-    @raises(TaskNotFoundError)
     def test_call_task_not_found(self, mock_class):
         """ A flow with reference to a task that doesn't exist in the
         project will throw a TaskNotFoundError """
@@ -346,7 +372,8 @@ class TestBaseFlow(unittest.TestCase):
                 "steps": {1: {"task": "pass_name"}, 2: {"task": "do_delightulthings"}},
             }
         )
-        flow = BaseFlow(self.project_config, flow_config, self.org_config)
+        with self.assertRaises(TaskNotFoundError):
+            flow = BaseFlow(self.project_config, flow_config, self.org_config)
 
     def test_flow_prints_org_id(self, mock_class):
         """ A flow with an org prints the org ID """
@@ -407,6 +434,19 @@ class TestBaseFlow(unittest.TestCase):
         self.assertEqual(2, len(flow.steps))
         self.assertEqual(flow.step_return_values[0], flow.step_return_values[1][0])
 
+    def test_nested_flow_options(self, mock_class):
+        flow_config = FlowConfig(
+            {
+                "description": "Run a flow with task options",
+                "steps": {
+                    1: {"flow": "nested_flow", "options": {"pass_name": {"foo": "bar"}}}
+                },
+            }
+        )
+        flow = BaseFlow(self.project_config, flow_config, self.org_config)
+        flow()
+        self.assertEqual("bar", flow.steps[0].options["pass_name__foo"])
+
     def test_nested_flow_2(self, mock_class):
         """ Flows can run inside other flows and call other flows """
         flow_config = FlowConfig(
@@ -420,3 +460,33 @@ class TestBaseFlow(unittest.TestCase):
         self.assertEqual(2, len(flow.steps))
         self.assertEqual(flow.step_return_values[0], flow.step_return_values[1][0])
         self.assertEqual(flow.step_return_values[0], flow.step_return_values[1][1][0])
+
+    def test_check_infinite_flows(self, mock_class):
+        self.project_config.config["flows"] = {
+            "nested_flow": {
+                "description": "A flow that runs inside another flow",
+                "steps": {1: {"flow": "nested_flow"}},
+            }
+        }
+        flow_config = FlowConfig({"steps": {1: {"flow": "nested_flow"}}})
+        with self.assertRaises(FlowInfiniteLoopError):
+            BaseFlow(self.project_config, flow_config, self.org_config)
+
+    def test_rejects_old_syntax(self, mock_class):
+        flow_config = FlowConfig({"tasks": {1: {"task": "pass_name"}}})
+        flow = BaseFlow(self.project_config, flow_config, self.org_config)
+        with self.assertRaises(FlowConfigError):
+            flow._get_steps_ordered()
+
+    def test_rejects_flow_and_task_in_same_step(self, mock_class):
+        flow_config = FlowConfig(
+            {"steps": {1: {"task": "pass_name", "flow": "nested_flow"}}}
+        )
+        with self.assertRaises(FlowConfigError):
+            BaseFlow(self.project_config, flow_config, self.org_config)
+
+    def test_call__not_prepped(self, mock_class):
+        flow_config = FlowConfig({})
+        flow = BaseFlow(self.project_config, flow_config, self.org_config, prep=False)
+        with self.assertRaises(FlowNotReadyError):
+            flow()

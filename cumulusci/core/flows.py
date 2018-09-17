@@ -52,9 +52,6 @@ class BaseFlow(object):
         self.parent = parent  # parent flow, if nested
         self.name = name  # the flows name.
         self.stepnum = stepnum  # a nested flow has a stepnum
-        self._skip_next = (
-            False
-        )  # internal only control flow option for subclasses to override a step execution in their pre.
         self._init_options()
         self._init_skip(skip)
         self._init_logger()
@@ -267,10 +264,6 @@ class BaseFlow(object):
         )
         self._pre_subflow(flow)
 
-        if self._skip_next:
-            self._skip_next = False
-            return
-
         flow()
         self._post_subflow(flow)
         self.steps.append(flow)
@@ -295,9 +288,6 @@ class BaseFlow(object):
         self.logger.info("")
         self.logger.info("Running task: %s", task.name)
         self._pre_task(task)
-        if self._skip_next:
-            self._skip_next = False
-            return
         try:
             task()
             self.logger.info("Task complete: %s", task.name)
@@ -353,10 +343,7 @@ class BaseFlow(object):
                     n += 1
                     parent = parent._find_step_by_name(value_parts[n])
                 for attr in value_parts[(n + 1) :]:
-                    if getattr(parent, "nested", None):
-                        parent = parent._find_step_by_name()
-                    else:
-                        parent = parent.return_values.get(attr)
+                    parent = parent.return_values.get(attr)
                 task_config.config["options"][option] = parent
 
         task_class = import_class(task_config.class_path)
