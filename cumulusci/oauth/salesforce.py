@@ -15,15 +15,18 @@ from urllib.parse import urlparse
 import webbrowser
 
 from cumulusci.oauth.exceptions import SalesforceOAuthError
-from cumulusci.oauth.exceptions import RequestOauthTokenError
 
 HTTP_HEADERS = {"Content-Type": "application/x-www-form-urlencoded"}
 
 
 class SalesforceOAuth2(object):
-    def __init__(self, client_id, client_secret, callback_url, auth_site=None):
-        if auth_site == None:
-            auth_site = "https://login.salesforce.com"
+    def __init__(
+        self,
+        client_id,
+        client_secret,
+        callback_url,
+        auth_site="https://login.salesforce.com",
+    ):
         self.client_id = client_id
         self.client_secret = client_secret
         self.callback_url = callback_url
@@ -33,11 +36,7 @@ class SalesforceOAuth2(object):
         url = self.auth_site + "/services/oauth2/token"
         data = {"client_id": self.client_id, "client_secret": self.client_secret}
         data.update(request_data)
-        response = requests.post(url, headers=HTTP_HEADERS, data=data)
-        if response.status_code >= http.client.BAD_REQUEST:
-            message = "{}: {}".format(response.status_code, response.content)
-            raise RequestOauthTokenError(message, response)
-        return response
+        return requests.post(url, headers=HTTP_HEADERS, data=data)
 
     def get_authorize_url(self, scope, prompt=None):
         url = self.auth_site + "/services/oauth2/authorize"
@@ -77,21 +76,24 @@ class OAuthCallbackHandler(BaseHTTPRequestHandler):
         if "error" in args:
             http_status = http.client.BAD_REQUEST
             http_body = "error: {}\nerror description: {}".format(
-                args["error"], args["error_description"]
+                args["error"][0], args["error_description"][0]
             )
         else:
             http_status = http.client.OK
             http_body = "OK"
             code = args["code"]
             self.parent.response = self.parent.oauth_api.get_token(code)
-            try:
-                self.parent._check_response(self.parent.response)
-            except SalesforceOAuthError as e:
+            if self.parent.response.status_code >= http.client.BAD_REQUEST:
                 http_status = self.parent.response.status_code
-                http_body = str(e)
+                http_body = self.parent.response.text
         self.send_response(http_status)
         self.end_headers()
         self.wfile.write(http_body.encode("ascii"))
+        if self.parent.response is None:
+            response = requests.Response()
+            response.status_code = http_status
+            response._content = http_body
+            self.parent.response = response
 
 
 class CaptureSalesforceOAuth(object):
@@ -124,7 +126,7 @@ class CaptureSalesforceOAuth(object):
         if response.status_code == http.client.OK:
             return
         raise SalesforceOAuthError(
-            "status_code:{} content:{}".format(response.status_code, response.content)
+            "status_code: {} content: {}".format(response.status_code, response.content)
         )
 
     def _create_httpd(self):
