@@ -29,6 +29,7 @@ from cumulusci.salesforce_api.tests.metadata_test_strings import deploy_result_f
 from cumulusci.salesforce_api.tests.metadata_test_strings import (
     list_metadata_start_envelope
 )
+from cumulusci.salesforce_api.tests.metadata_test_strings import list_metadata_result
 from cumulusci.salesforce_api.tests.metadata_test_strings import (
     retrieve_packaged_start_envelope
 )
@@ -659,6 +660,38 @@ class TestApiDeploy(BaseTestMetadataApi):
         expected = "Update of CustomObject Test__c: Error: problem"
         self.assertEqual(expected, str(cm.exception))
 
+    def test_process_response_metadata_failure_no_file_name(self):
+        task = self._create_task()
+        api = self._create_instance(task)
+        response = DummyResponse()
+        response.status_code = 200
+        response.content = deploy_result_failure.format(
+            details="""<componentFailures>
+  <problem>problem</problem>
+  <problemType>Error</problemType>
+  <componentType>CustomObject</componentType>
+  <created>false</created>
+  <deleted>false</deleted>
+</componentFailures>"""
+        )
+        with self.assertRaises(MetadataComponentFailure) as cm:
+            api._process_response(response)
+        expected = "Update of CustomObject: Error: problem"
+        self.assertEqual(expected, str(cm.exception))
+
+    def test_process_response_problem(self):
+        task = self._create_task()
+        api = self._create_instance(task)
+        response = DummyResponse()
+        response.status_code = 200
+        response.content = deploy_result_failure.format(
+            details="""<problem>problem</problem>"""
+        )
+        with self.assertRaises(MetadataApiError) as cm:
+            api._process_response(response)
+        expected = "problem"
+        self.assertEqual(expected, str(cm.exception))
+
     def test_process_response_test_failure(self):
         task = self._create_task()
         api = self._create_instance(task)
@@ -716,8 +749,28 @@ class TestApiListMetadata(BaseTestMetadataApi):
         self.folder = None
         self.api_version = self.project_config.project__package__api_version
 
-    def _expected_call_success_result(self, result_response):
-        return {"CustomObject": []}
+    def _response_call_success_result(self, response_result):
+        return list_metadata_result
+
+    def _expected_call_success_result(self, response_result):
+        return {
+            "CustomObject": [
+                {
+                    u"createdById": None,
+                    u"createdByName": None,
+                    u"createdDate": None,
+                    u"fileName": None,
+                    u"fullName": u"Test__c",
+                    u"id": None,
+                    u"lastModifiedById": None,
+                    u"lastModifiedByName": None,
+                    u"lastModifiedDate": None,
+                    u"manageableState": None,
+                    u"namespacePrefix": None,
+                    u"type": None,
+                }
+            ]
+        }
 
     def _create_instance(self, task, api_version=None):
         if api_version is None:
