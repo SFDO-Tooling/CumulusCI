@@ -114,8 +114,6 @@ class GenerateApexDocs(Command):
 
     def _get_jar(self):
         url = "{}/releases/download/{}/{}".format(
-            self.apexdoc_repo_url,
-            self.project_config.project__apexdoc["version"],
-            self.jar_file,
+            self.apexdoc_repo_url, self.options["version"], self.jar_file
         )
         urllib.urlretrieve(url, self.jar_path)

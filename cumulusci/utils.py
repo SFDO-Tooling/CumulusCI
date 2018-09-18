@@ -379,7 +379,7 @@ def package_xml_from_dict(items, api_version, package_name=None):
 
 
 @contextmanager
-def temporary_dir():
+def temporary_dir(chdir=True):
     """Context manager that creates a temporary directory and chdirs to it.
 
     When the context manager exits it returns to the previous cwd
@@ -387,12 +387,15 @@ def temporary_dir():
     """
     d = tempfile.mkdtemp()
     cwd = os.getcwd()
-    os.chdir(d)
+    if chdir:
+        os.chdir(d)
     try:
         yield d
     finally:
-        os.chdir(cwd)
-        shutil.rmtree(d)
+        if chdir:
+            os.chdir(cwd)
+        if os.path.exists(d):
+            shutil.rmtree(d)
 
 
 def in_directory(filepath, dirpath):
