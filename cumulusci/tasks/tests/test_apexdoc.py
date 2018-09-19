@@ -22,7 +22,7 @@ class TestGenerateApexDocs(unittest.TestCase):
         task()
         self.assertTrue(
             re.match(
-                r"java -jar .*/apexdoc.jar -s .*/src/classes -t .*",
+                r"java -jar .*.apexdoc.jar -s .*.src.classes -t .*",
                 task.options["command"],
             )
         )

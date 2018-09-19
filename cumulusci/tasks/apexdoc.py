@@ -9,7 +9,7 @@ from cumulusci.tasks.command import Command
 class GenerateApexDocs(Command):
     """ Generate Apex documentation from local code """
 
-    apexdoc_repo_url = "https://github.com/SFDO-Tooling/ApexDoc"
+    apexdoc_repo_url = "https://github.com/SalesforceFoundation/ApexDoc"
     jar_file = "apexdoc.jar"
     task_options = {
         "tag": {
