@@ -10,7 +10,7 @@ lex_locators = {
     "loading_box": "css: div.auraLoadingBox.oneLoadingBox",
     "modal": {
         "is_open": "css: div.DESKTOP.uiModal.forceModal.open.active",
-        "button": "css: div.uiModal div.modal-footer button[title='{}']",
+        "button": "//div[contains(@class,'uiModal')]//div[contains(@class,'modal-footer')]//button[.//span[text()='{}']]",
         "has_error": "css: div.pageLevelErrors",
         "error_messages": "css: div.pageLevelErrors ul.errorsList li",
     },
