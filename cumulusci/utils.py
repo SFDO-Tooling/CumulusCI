@@ -296,18 +296,16 @@ def zip_clean_metaxml(zip_src, logger=None):
         content = zip_src.read(name)
         if name.startswith(META_XML_CLEAN_DIRS) and name.endswith("-meta.xml"):
             try:
-                clean_content = remove_xml_element_string(
-                    "packageVersions", zip_src.read(name)
-                )
-                if clean_content != content:
-                    changed.append(name)
-
-                zip_dest.writestr(name, clean_content)
+                content = content.decode("ascii")
             except UnicodeDecodeError:
                 # if we cannot decode the content, don't try and replace it.
                 pass
-        else:
-            zip_dest.writestr(name, content)
+            else:
+                clean_content = remove_xml_element_string("packageVersions", content)
+                if clean_content != content:
+                    changed.append(name)
+                    content = clean_content
+        zip_dest.writestr(name, content)
     if changed and logger:
         logger.info(
             "Cleaned package versions from {} meta.xml files".format(len(changed))
