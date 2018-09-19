@@ -66,11 +66,11 @@ def findRename(find, replace, directory, logger=None):
 
 def elementtree_parse_file(path):
     try:
-        root = ET.parse(path)
+        tree = ET.parse(path)
     except ET.ParseError as err:
         err.filename = path
         raise err
-    return root
+    return tree
 
 
 def removeXmlElement(name, directory, file_pattern, logger=None):
@@ -379,21 +379,32 @@ def package_xml_from_dict(items, api_version, package_name=None):
 
 
 @contextmanager
-def temporary_dir(chdir=True):
+def cd(path):
+    """Context manager that changes to another directory
+    """
+    if not path:
+        yield
+        return
+    cwd = os.getcwd()
+    os.chdir(path)
+    try:
+        yield
+    finally:
+        os.chdir(cwd)
+
+
+@contextmanager
+def temporary_dir():
     """Context manager that creates a temporary directory and chdirs to it.
 
     When the context manager exits it returns to the previous cwd
     and deletes the temporary directory.
     """
     d = tempfile.mkdtemp()
-    cwd = os.getcwd()
-    if chdir:
-        os.chdir(d)
     try:
-        yield d
+        with cd(d):
+            yield d
     finally:
-        if chdir:
-            os.chdir(cwd)
         if os.path.exists(d):
             shutil.rmtree(d)
 

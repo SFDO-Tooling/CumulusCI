@@ -1,8 +1,10 @@
 import glob
-import os
+
 import lxml.etree as ET
-from xml.sax.saxutils import escape
+
 from cumulusci.core.tasks import BaseTask
+from cumulusci.utils import cd
+from cumulusci.utils import elementtree_parse_file
 
 
 class RemoveElementsXPath(BaseTask):
@@ -17,36 +19,32 @@ class RemoveElementsXPath(BaseTask):
     }
 
     def _run_task(self):
-        cwd = os.getcwd()
         chdir = self.options.get("chdir")
         if chdir:
             self.logger.info("Changing directory to {}".format(chdir))
-            os.chdir(chdir)
-        for element in self.options["elements"]:
-            self._process_element(element)
-        if chdir:
-            os.chdir(cwd)
+        with cd(chdir):
+            for element in self.options["elements"]:
+                self._process_element(element)
 
     def _process_element(self, element):
         self.logger.info(
             "Removing elements matching {xpath} from {path}".format(**element)
         )
         for f in glob.glob(element["path"]):
-            with open(f, "rw") as fp:
+            with open(f, "r") as fp:
                 orig = fp.read()
-                fp.seek(0)
-                root = ET.parse(open(f))
-                res = root.findall(
-                    element["xpath"].replace(
-                        "ns:", "{http://soap.sforce.com/2006/04/metadata}"
-                    )
+            root = ET.parse(f)
+            res = root.findall(
+                element["xpath"].replace(
+                    "ns:", "{http://soap.sforce.com/2006/04/metadata}"
                 )
-                for element in res:
-                    element.getparent().remove(element)
-                processed = "{}\n{}\n".format(
-                    '<?xml version="1.0" encoding="UTF-8"?>', ET.tostring(root)
-                )
-                if orig != processed:
-                    self.logger.info("Modified {}".format(f))
-                    fp = open(f, "w")
+            )
+            for element in res:
+                element.getparent().remove(element)
+            processed = "{}\n{}\n".format(
+                '<?xml version="1.0" encoding="UTF-8"?>', ET.tostring(root)
+            )
+            if orig != processed:
+                self.logger.info("Modified {}".format(f))
+                with open(f, "w") as fp:
                     fp.write(processed)
