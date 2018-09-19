@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from collections import OrderedDict
 import io
 import os
@@ -271,6 +273,21 @@ class TestUtils(unittest.TestCase):
         result = zf.read("classes/test-meta.xml")
         self.assertNotIn("packageVersions", result)
         self.assertIn("other/test-meta.xml", zf.namelist())
+
+    def test_zip_clean_metaxml__keeps_non_ascii(self):
+        logger = mock.Mock()
+        zf = zipfile.ZipFile(io.BytesIO(), "w")
+        zf.writestr(
+            "classes/test-meta.xml",
+            '<?xml version="1.0" ?>'
+            '<root xmlns="http://soap.sforce.com/2006/04/metadata">'
+            "<label>ñ</label></root>",
+        )
+        zf.writestr("test", "")
+        zf.writestr("other/test-meta.xml", "")
+
+        zf = utils.zip_clean_metaxml(zf, logger=logger)
+        self.assertIn("classes/test-meta.xml", zf.namelist())
 
     def test_doc_task(self):
         task_config = TaskConfig(
