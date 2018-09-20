@@ -11,7 +11,7 @@ from cumulusci.core.config import (
 )
 from cumulusci.utils import temporary_dir
 from cumulusci.core.keychain import BaseProjectKeychain
-from cumulusci.tests.util import get_base_config
+from cumulusci.tasks.salesforce.tests.util import SalesforceTaskTestCase
 from cumulusci.tasks.push.pushfails import ReportPushFailures
 
 
@@ -38,25 +38,11 @@ def error_record(gack=False):  # type: (bool) -> dict
     }
 
 
-class TestPushFailureTask(unittest.TestCase):
-    def setUp(self):
-        self.project_config = BaseProjectConfig(BaseGlobalConfig(), get_base_config())
-        keychain = BaseProjectKeychain(self.project_config, "")
-        self.project_config.set_keychain(keychain)
-        self.org_config = OrgConfig(
-            {"instance_url": "example.com", "access_token": "abc123"}, "test"
-        )
+class TestPushFailureTask(SalesforceTaskTestCase):
+    task_class = ReportPushFailures
 
-        self.task_config = TaskConfig({"options": {"request_id": "123"}})
-
-    @mock.patch(
-        "cumulusci.tasks.push.pushfails.ReportPushFailures._update_credentials",
-        mock.Mock(),
-    )
     def test_run_task(self,):
-        task = ReportPushFailures(
-            self.project_config, self.task_config, self.org_config
-        )
+        task = self.create_task(options={"request_id": "123"})
         task.sf = mock.Mock()
         task.sf.query.return_value = {
             "done": True,
