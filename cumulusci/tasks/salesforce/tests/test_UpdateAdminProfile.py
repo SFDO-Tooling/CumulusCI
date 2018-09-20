@@ -1,6 +1,5 @@
 import mock
 import os
-import unittest
 
 from cumulusci.core.config import BaseGlobalConfig
 from cumulusci.core.config import BaseProjectConfig
@@ -8,6 +7,7 @@ from cumulusci.core.config import OrgConfig
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.tasks.salesforce import UpdateAdminProfile
+from . import SalesforceTaskTestCase
 
 ADMIN_PROFILE_BEFORE = """<?xml version='1.0' encoding='utf-8'?>
 <Profile xmlns="http://soap.sforce.com/2006/04/metadata">
@@ -86,33 +86,22 @@ ADMIN_PROFILE_EXPECTED = """<?xml version='1.0' encoding='utf-8'?>
 </Profile>"""
 
 
-@mock.patch(
-    "cumulusci.tasks.salesforce.BaseSalesforceTask._update_credentials", mock.Mock()
-)
-class TestUpdateAdminProfile(unittest.TestCase):
+class TestUpdateAdminProfile(SalesforceTaskTestCase):
+    task_class = UpdateAdminProfile
     maxDiff = None
 
-    def setUp(self):
-        self.project_config = BaseProjectConfig(BaseGlobalConfig())
-        self.task_config = TaskConfig(
-            {
-                "options": {
-                    "record_types": [
-                        {
-                            "record_type": "Account.HH_Account",
-                            "default": True,
-                            "person_account_default": True,
-                        }
-                    ],
-                    "namespaced_org": True,
-                }
-            }
-        )
-        self.org_config = OrgConfig({}, "test")
-
     def test_run_task(self):
-        task = UpdateAdminProfile(
-            self.project_config, self.task_config, self.org_config
+        task = self.create_task(
+            {
+                "record_types": [
+                    {
+                        "record_type": "Account.HH_Account",
+                        "default": True,
+                        "person_account_default": True,
+                    }
+                ],
+                "namespaced_org": True,
+            }
         )
 
         def _retrieve_unpackaged():
@@ -134,15 +123,9 @@ class TestUpdateAdminProfile(unittest.TestCase):
         task()
 
     def test_run_task__record_type_not_found(self):
-        task_config = TaskConfig(
-            {
-                "options": {
-                    "record_types": [{"record_type": "DOESNT_EXIST"}],
-                    "namespaced_org": True,
-                }
-            }
+        task = self.create_task(
+            {"record_types": [{"record_type": "DOESNT_EXIST"}], "namespaced_org": True}
         )
-        task = UpdateAdminProfile(self.project_config, task_config, self.org_config)
 
         def _retrieve_unpackaged():
             profiles_path = os.path.join(task.tempdir, "profiles")
@@ -157,17 +140,13 @@ class TestUpdateAdminProfile(unittest.TestCase):
 
     @mock.patch("cumulusci.salesforce_api.metadata.ApiRetrieveUnpackaged.__call__")
     def test_retrieve_unpackaged(self, ApiRetrieveUnpackaged):
-        task = UpdateAdminProfile(
-            self.project_config, self.task_config, self.org_config
-        )
+        task = self.create_task()
         task.tempdir = "/tmp"
         task._retrieve_unpackaged()
         ApiRetrieveUnpackaged.assert_called_once()
 
     def test_deploy_metadata(self):
-        task = UpdateAdminProfile(
-            self.project_config, self.task_config, self.org_config
-        )
+        task = self.create_task()
         task.tempdir = "/tmp"
         task._get_api = mock.Mock()
         task._deploy_metadata()
