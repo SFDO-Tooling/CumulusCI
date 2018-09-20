@@ -50,7 +50,7 @@ class TestPushFailureTask(unittest.TestCase):
         self.task_config = TaskConfig({"options": {"request_id": "123"}})
 
     @mock.patch("cumulusci.tasks.push.pushfails.ReportPushFailures._update_credentials")
-    def test_run_task(self, *mocks):
+    def test_run_task(self, *_):
         task = ReportPushFailures(
             self.project_config, self.task_config, self.org_config
         )
@@ -67,7 +67,7 @@ class TestPushFailureTask(unittest.TestCase):
                 },
             ],
         }
-        with temporary_dir() as d:
+        with temporary_dir() as temp_dir:
             task()
             task.sf.query.assert_called_once()
             self.assertTrue(

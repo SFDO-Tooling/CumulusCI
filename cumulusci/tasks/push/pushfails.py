@@ -11,7 +11,7 @@ from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 
 class ReportPushFailures(BaseSalesforceApiTask):
     """ Produce a report of the failed and otherwise anomalous push jobs.
-    
+
     Takes a push request id and writes results to a CSV file.  """
 
     task_doc = __doc__
