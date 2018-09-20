@@ -34,13 +34,13 @@ class KeychainNotFound(CumulusCIException):
     pass
 
 
-class KeychainKeyNotFound(CumulusCIException):
+class KeychainKeyNotFound(CumulusCIUsageError):
     """ Raised when the keychain key couldn't be found """
 
     pass
 
 
-class OrgNotFound(CumulusCIException):
+class OrgNotFound(CumulusCIUsageError):
     """ Raised when no org could be found by a given name in the project keychain """
 
     pass
@@ -76,7 +76,7 @@ class AntTargetException(CumulusCIException):
     pass
 
 
-class DeploymentException(CumulusCIException):
+class DeploymentException(CumulusCIFailure):
     """ Raised when a metadata api deployment error occurs """
 
     pass
@@ -106,31 +106,13 @@ class TaskOptionsError(CumulusCIUsageError):
     pass
 
 
-class GithubNotConfigured(CumulusCIException):
-    """ Raise when attempting to get the Github configuration from the keychain and no configuration is set """
-
-    pass
-
-
-class MrbelvedereNotConfigured(CumulusCIException):
-    """ Raise when attempting to get the mrbelvedere configuration from the keychain and no configuration is set """
-
-    pass
-
-
-class ApexTestsDBNotConfigured(CumulusCIException):
-    """ Raise when attempting to get the ApexTestsDB configuration from the keychain and no configuration is set """
-
-    pass
-
-
 class TaskNotFoundError(CumulusCIUsageError):
     """ Raise when task is not found in project config """
 
     pass
 
 
-class FlowInfiniteLoopError(CumulusCIException):
+class FlowInfiniteLoopError(CumulusCIUsageError):
     """ Raised when a flow configuration creates a infinite loop """
 
     pass
@@ -199,13 +181,13 @@ class SalesforceDXException(CumulusCIException):
     pass
 
 
-class SOQLQueryException(CumulusCIException):
+class SOQLQueryException(CumulusCIFailure):
     """ Raise for errors related to Salesforce DX """
 
     pass
 
 
-class CommandException(CumulusCIException):
+class CommandException(CumulusCIFailure):
     """ Raise for errors coming from spawned CLI subprocesses """
 
     pass
