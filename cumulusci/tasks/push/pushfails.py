@@ -20,7 +20,9 @@ class ReportPushFailures(BaseSalesforceApiTask):
             "description": "PackagePushRequest ID for the request you need to report on.",
             "required": True,
         },
-        "result_file": {"description": "Where to write results"},
+        "result_file": {
+            "description": "Path to write a CSV file with the results. Defaults to 'push_fails.csv'."
+        },
     }
     api_version = "43.0"
     query = "SELECT ID, SubscriberOrganizationKey, (SELECT ErrorDetails, ErrorMessage, ErrorSeverity, ErrorTitle, ErrorType FROM PackagePushErrors) FROM PackagePushJob WHERE PackagePushRequestId = '{request_id}' AND Status !='Succeeded'"
