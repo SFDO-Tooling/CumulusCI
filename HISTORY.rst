@@ -2,10 +2,19 @@
 History
 =======
 
+2.0.12 (2018-09-20)
+-------------------
+
+* Fixed apexdoc URL
+* Fixed `update_admin_profile` to set any existing record type defaults to false before setting new defaults.
+* Fixed deployment of -meta.xml files containing non-ASCII characters.
+* Updated the robot selector for "Click Modal Button" to work for modals opened by a Quick Action.
+
 2.0.11 (2018-09-14)
 -------------------
 
 * `update_admin_profile` now uses xml parsing instead of string replacement for more targeted editing of Admin.profile to fix issues with deploying record types via dependencies
+* Projects can declare a dependency on a minimum version of cumulusci by specifying `minimum_cumulusci_version` in cumulusci.yml
 
 2.0.10 (2018-09-13)
 -------------------
