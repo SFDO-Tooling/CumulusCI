@@ -1,8 +1,9 @@
 import fileinput
 import os
 import re
-from lxml import etree as ET
 import sys
+
+from lxml import etree as ET
 
 from cumulusci.core.tasks import BaseTask
 
@@ -22,8 +23,6 @@ class MetaXmlBaseTask(BaseTask):
                     if self._process_xml(tree.getroot()):
                         self._write_file(tree, filename)
                         self.logger.info("Processed file %s", filename)
-                    else:
-                        self.logger.info("No changes for file %s", filename)
 
     def _write_file(self, tree, filename):
         tree.write(filename, xml_declaration=True, encoding="UTF-8", pretty_print=True)
