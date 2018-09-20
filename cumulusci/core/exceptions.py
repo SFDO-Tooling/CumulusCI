@@ -6,15 +6,18 @@ class CumulusCIException(Exception):
 
     pass
 
+
 class CumulusCIUsageError(CumulusCIException):
     """ An exception thrown due to improper usage which should be resolvable by proper usage """
 
     pass
 
+
 class CumulusCIFailure(CumulusCIException):
     """ An exception representing a failure such as a Metadata deployment failure or a test failure.  CI systems can handle these to determine fail vs error status """
 
     pass
+
 
 class NotInProject(CumulusCIUsageError):
     """ Raised when no project can be found in the current context """
@@ -141,6 +144,7 @@ class FlowConfigError(CumulusCIException):
 
     pass
 
+
 class FlowNotFoundError(CumulusCIUsageError):
     """ Raise when flow is not found in project config """
 
@@ -233,6 +237,7 @@ class PushApiObjectNotFound(CumulusCIException):
     """ Raise when Salesforce Push API object is not found """
 
     pass
+
 
 class RobotTestFailure(CumulusCIFailure):
     """ Raise when a robot test fails in a test suite """

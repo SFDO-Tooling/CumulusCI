@@ -1101,7 +1101,7 @@ def flow_run(config, flow_name, org, delete_org, debug, o, skip, no_prompt):
         exception = click.UsageError(e.message)
         handle_exception_debug(config, debug, throw_exception=exception)
     except (CumulusCIFailure, ScratchOrgException) as e:
-        exception = click.ClickException('Failed: {}'.format(e.__class__.__name__))
+        exception = click.ClickException("Failed: {}".format(e.__class__.__name__))
         handle_exception_debug(config, debug, throw_exception=exception)
     except Exception:
         handle_exception_debug(config, debug, no_prompt=no_prompt)
