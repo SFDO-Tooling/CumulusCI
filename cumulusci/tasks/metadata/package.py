@@ -4,13 +4,12 @@ import re
 import urllib
 
 import xml.etree.ElementTree as ET
-
 import yaml
 
 from cumulusci.core.tasks import BaseTask
 from cumulusci.utils import elementtree_parse_file
 
-__location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
+__location__ = os.path.dirname(os.path.realpath(__file__))
 
 
 def metadata_sort_key(name):
@@ -32,7 +31,7 @@ def metadata_sort_key_section(name):
     base_name = name
     if base_name.endswith("__c"):
         base_name = base_name[:-3]
-    if base_name.find("__") != -1:
+    if "__" in base_name:
         prefix = "8"
 
     key = prefix + name
@@ -84,44 +83,36 @@ class PackageXmlGenerator(object):
                 )
 
             for parser_config in config:
-                if parser_config.get("options"):
-                    parser = globals()[parser_config["class"]](
-                        parser_config["type"],  # Metadata Type
-                        self.directory + "/" + item,  # Directory
-                        parser_config.get("extension", ""),  # Extension
-                        self.delete,  # Parse for deletion?
-                        **parser_config.get("options", {})  # Extra kwargs
-                    )
-                else:
-                    parser = globals()[parser_config["class"]](
-                        parser_config["type"],  # Metadata Type
-                        self.directory + "/" + item,  # Directory
-                        parser_config.get("extension", ""),  # Extension
-                        self.delete,  # Parse for deletion?
-                    )
-
+                options = parser_config.get("options") or {}
+                parser = globals()[parser_config["class"]](
+                    parser_config["type"],  # Metadata Type
+                    self.directory + "/" + item,  # Directory
+                    parser_config.get("extension", ""),  # Extension
+                    self.delete,  # Parse for deletion?
+                    **options  # Extra kwargs
+                )
                 self.types.append(parser)
 
     def render_xml(self):
         lines = []
 
         # Print header
-        lines.append(u'<?xml version="1.0" encoding="UTF-8"?>')
-        lines.append(u'<Package xmlns="http://soap.sforce.com/2006/04/metadata">')
+        lines.append('<?xml version="1.0" encoding="UTF-8"?>')
+        lines.append('<Package xmlns="http://soap.sforce.com/2006/04/metadata">')
         if self.package_name:
             package_name_encoded = urllib.quote(self.package_name, safe=" ")
-            lines.append(u"    <fullName>{0}</fullName>".format(package_name_encoded))
+            lines.append("    <fullName>{0}</fullName>".format(package_name_encoded))
 
         if self.managed and self.install_class:
             lines.append(
-                u"    <postInstallClass>{0}</postInstallClass>".format(
+                "    <postInstallClass>{0}</postInstallClass>".format(
                     self.install_class
                 )
             )
 
         if self.managed and self.uninstall_class:
             lines.append(
-                u"    <uninstallClass>{0}</uninstallClass>".format(self.uninstall_class)
+                "    <uninstallClass>{0}</uninstallClass>".format(self.uninstall_class)
             )
 
         # Print types sections
@@ -132,10 +123,10 @@ class PackageXmlGenerator(object):
                 lines.extend(type_xml)
 
         # Print footer
-        lines.append(u"    <version>{0}</version>".format(self.api_version))
-        lines.append(u"</Package>")
+        lines.append("    <version>{0}</version>".format(self.api_version))
+        lines.append("</Package>")
 
-        return u"\n".join(lines)
+        return "\n".join(lines)
 
 
 class BaseMetadataParser(object):
@@ -174,10 +165,10 @@ class BaseMetadataParser(object):
             if item in ["CODEOWNERS", "OWNERS"]:
                 continue
 
-            if self.extension and not item.endswith("." + self.extension):
+            if item.endswith("-meta.xml"):
                 continue
 
-            if item.endswith("-meta.xml"):
+            if self.extension and not item.endswith("." + self.extension):
                 continue
 
             if self.check_delete_excludes(item):
@@ -199,26 +190,23 @@ class BaseMetadataParser(object):
 
     def _parse_item(self, item):
         "Receives a file or directory name and returns a list of members"
-        raise NotImplemented("Subclasses should implement their parser here")
+        raise NotImplementedError("Subclasses should implement their parser here")
 
     def strip_extension(self, filename):
-        return ".".join(filename.split(".")[:-1])
+        return filename.rsplit(".", 1)[0]
 
     def render_xml(self):
         output = []
         if not self.members:
             return
-        output.append(u"    <types>")
-        self.members.sort(key=lambda x: metadata_sort_key(x))
+        output.append("    <types>")
+        self.members.sort(key=metadata_sort_key)
         for member in self.members:
-            try:
+            if isinstance(member, bytes):
                 member = unicode(member, "utf-8")
-            except TypeError:
-                # Assume member is already unicode
-                pass
-            output.append(u"        <members>{0}</members>".format(member))
-        output.append(u"        <name>{0}</name>".format(self.metadata_type))
-        output.append(u"    </types>")
+            output.append("        <members>{0}</members>".format(member))
+        output.append("        <name>{0}</name>".format(self.metadata_type))
+        output.append("    </types>")
         return output
 
 
@@ -237,7 +225,7 @@ class MetadataFolderParser(BaseMetadataParser):
             return members
 
         # Add the member if it is not namespaced
-        if item.find("__") == -1:
+        if "__" not in item:
             members.append(item)
 
         for subitem in sorted(os.listdir(path)):
@@ -396,17 +384,12 @@ class UpdatePackageXml(BaseTask):
 
     def _init_options(self, kwargs):
         super(UpdatePackageXml, self)._init_options(kwargs)
-        if "managed" not in self.options:
-            self.options["managed"] = False
-        if self.options["managed"] in [True, "True"]:
-            self.options["managed"] = True
+        self.options["managed"] = self.options.get("managed") in (True, "True", "true")
 
     def _init_task(self):
-        package_name = None
-        if "package_name" in self.options:
-            package_name = self.options["package_name"]
-        else:
-            if self.options.get("managed") in [True, "True", "true"]:
+        package_name = self.options.get("package_name")
+        if not package_name:
+            if self.options.get("managed"):
                 package_name = self.project_config.project__package__name_managed
             if not package_name:
                 package_name = self.project_config.project__package__name
@@ -429,7 +412,5 @@ class UpdatePackageXml(BaseTask):
             "Generating {} from metadata in {}".format(output, self.options.get("path"))
         )
         package_xml = self.package_xml()
-        with io.open(
-            self.options.get("output", output), mode="w", encoding="utf-8"
-        ) as f:
+        with io.open(self.options.get("output", output), mode="wb") as f:
             f.write(package_xml)
