@@ -1,3 +1,4 @@
+import csv
 import mock
 import os.path
 import unittest
@@ -11,11 +12,11 @@ from cumulusci.core.config import (
 from cumulusci.utils import temporary_dir
 from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.tests.util import get_base_config
-from cumulusci.tasks.push.pushfails import PushFailTask
+from cumulusci.tasks.push.pushfails import ReportPushFailures
 
 
-def ErrorRecord(gack=False):
-    """ Return a dictionary that looks like the result of our nested query on the push api """
+def error_record(gack=False):  # type: (bool) -> dict
+    """ a record that looks like the object returned from the sobject api query we use """
     return {
         "attributes": {"type": "job"},
         "SubscriberOrganizationKey": "00Dxxx000000001",
@@ -48,19 +49,32 @@ class TestPushFailureTask(unittest.TestCase):
 
         self.task_config = TaskConfig({"options": {"request_id": "123"}})
 
-    @mock.patch("cumulusci.tasks.push.pushfails.PushFailTask._update_credentials")
+    @mock.patch("cumulusci.tasks.push.pushfails.ReportPushFailures._update_credentials")
     def test_run_task(self, *mocks):
-        task = PushFailTask(self.project_config, self.task_config, self.org_config)
+        task = ReportPushFailures(
+            self.project_config, self.task_config, self.org_config
+        )
         task.sf = mock.Mock()
         task.sf.query.return_value = {
             "done": True,
             "totalSize": 2,
-            "records": [ErrorRecord(), ErrorRecord(True)],
+            "records": [
+                error_record(),
+                error_record(True),
+                {
+                    "attributes": {"type": "job"},
+                    "SubscriberOrganizationKey": "00Dxxx000000001",
+                },
+            ],
         }
         with temporary_dir() as d:
             task()
             task.sf.query.assert_called_once()
-            self.assert_(os.path.isfile(task.result), "the result file does not exist")
+            self.assertTrue(
+                os.path.isfile(task.result), "the result file does not exist"
+            )
             with open(task.result, "r") as f:
-                lines = f.readlines()
-            self.assertEqual(len(lines), 3)
+                reader = csv.DictReader(f)
+                rows = list(reader)
+            self.assertEqual(len(rows), 3)
+            self.assertEqual(rows[1]["Stacktrace Id"], "-4532")

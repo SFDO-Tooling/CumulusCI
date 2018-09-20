@@ -9,9 +9,10 @@ import csv
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 
 
-class PushFailTask(BaseSalesforceApiTask):
-    """ Produce a report of the failed and otherwise anomalous push jobs from
-    a specified push request id, and write it out to a results CSV.  """
+class ReportPushFailures(BaseSalesforceApiTask):
+    """ Produce a report of the failed and otherwise anomalous push jobs.
+    
+    Takes a push request id and writes results to a CSV file.  """
 
     task_doc = __doc__
     task_options = {
@@ -23,7 +24,9 @@ class PushFailTask(BaseSalesforceApiTask):
     }
     api_version = "43.0"
     query = "SELECT ID, SubscriberOrganizationKey, (SELECT ErrorDetails, ErrorMessage, ErrorSeverity, ErrorTitle, ErrorType FROM PackagePushErrors) FROM PackagePushJob WHERE PackagePushRequestId = '{request_id}' AND Status !='Succeeded'"
-    gack = re.compile(r"error number: ([\d-]+) \(([\d-]+)\)")
+    gack = re.compile(
+        r"error number: (?P<gack_id>[\d-]+) \((?P<stacktrace_id>[\d-]+)\)"
+    )
     headers = [
         "OrganizationId",
         "ErrorSeverity",
@@ -51,6 +54,18 @@ class PushFailTask(BaseSalesforceApiTask):
             w = csv.writer(f)
             w.writerow(self.headers)
             for result in records:
+                if not result.get("PackagePushErrors", {}).get("records", None):
+                    w.writerow(
+                        [
+                            result["SubscriberOrganizationKey"],
+                            None,
+                            None,
+                            None,
+                            None,
+                            None,
+                        ]
+                    )
+                    continue
                 error = result["PackagePushErrors"]["records"][0]
                 m = self.gack.search(error["ErrorMessage"])
                 w.writerow(
@@ -60,8 +75,8 @@ class PushFailTask(BaseSalesforceApiTask):
                         error["ErrorTitle"],
                         error["ErrorType"],
                         error["ErrorMessage"],
-                        m.groups()[0] if m else "",
-                        m.groups()[1] if m else "",
+                        m.group("gack_id") if m else "",
+                        m.group("stacktrace_id") if m else "",
                     ]
                 )
 
