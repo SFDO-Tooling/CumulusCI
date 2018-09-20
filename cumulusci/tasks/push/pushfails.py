@@ -66,4 +66,4 @@ class PushFailTask(BaseSalesforceApiTask):
                 )
 
         self.logger.debug("Written out to {file_name}.".format(file_name=file_name))
-        return records
+        return file_name
