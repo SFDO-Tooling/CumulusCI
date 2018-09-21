@@ -22,9 +22,7 @@ class Robot(BaseSalesforceTask):
         "vars": {
             "description": "Pass values to override variables in the format VAR1:foo,VAR2:bar"
         },
-        "xunit": {
-            "description": "Set an XUnit format output file for test results"
-        },
+        "xunit": {"description": "Set an XUnit format output file for test results"},
         "options": {
             "description": "A dictionary of options to robot.run method.  See docs here for format.  NOTE: There is no cci CLI support for this option since it requires a dictionary.  Use this option in the cumulusci.yml when defining custom tasks where you can easily create a dictionary in yaml."
         },

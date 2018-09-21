@@ -442,14 +442,12 @@ class TestEncryptedFileProjectKeychain(ProjectKeychainTestMixin):
         dummy_keychain = BaseEncryptedProjectKeychain(self.project_config, self.key)
         os.makedirs(os.path.join(self.tempdir_home, ".cumulusci", self.project_name))
         self._write_file(
-            os.path.join(
-                self.tempdir_home, "test.org"
-            ),
+            os.path.join(self.tempdir_home, "test.org"),
             dummy_keychain._encrypt_config(BaseConfig({"foo": "bar"})),
         )
         keychain = self.keychain_class(self.project_config, self.key)
-        del keychain.config['orgs']
-        keychain._load_files(self.tempdir_home, '.org', 'orgs')
+        del keychain.config["orgs"]
+        keychain._load_files(self.tempdir_home, ".org", "orgs")
         self.assertIn("foo", keychain.get_org("test").config)
 
     def test_load_file(self):
@@ -467,12 +465,12 @@ class TestEncryptedFileProjectKeychain(ProjectKeychainTestMixin):
 
     def test_remove_org__not_found(self):
         keychain = self.keychain_class(self.project_config, self.key)
-        keychain.orgs['test'] = mock.Mock()
+        keychain.orgs["test"] = mock.Mock()
         with self.assertRaises(OrgNotFound):
             keychain.remove_org("test")
 
     def test_remove_org__global__not_found(self):
         keychain = self.keychain_class(self.project_config, self.key)
-        keychain.orgs['test'] = mock.Mock()
+        keychain.orgs["test"] = mock.Mock()
         with self.assertRaises(OrgNotFound):
             keychain.remove_org("test", global_org=True)
