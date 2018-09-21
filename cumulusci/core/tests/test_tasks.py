@@ -32,6 +32,7 @@ class _SfdcTask(BaseTask):
     def _run_task(self):
         return -1
 
+
 class TestBaseTaskCallable(unittest.TestCase):
     """ Tests for the BaseTask callable interface.
 
@@ -59,19 +60,12 @@ class TestBaseTaskCallable(unittest.TestCase):
         self.task_log = self._task_log_handler.messages
 
     def test_retry_on_exception(self):
-        """ calling _retry() should   """
-        task = BaseTask(
-            self.project_config, self.task_config, self.org_config
-        )
-        task.options = {
-            'retries': 5,
-            'retry_interval': 1,
-            'retry_interval_add': 1
-        }
+        """ calling _retry() should call try until the task succeeds.  """
+        task = BaseTask(self.project_config, self.task_config, self.org_config)
+        task.options = {"retries": 5, "retry_interval": 1, "retry_interval_add": 1}
         task._try = mock.Mock(side_effect=[Exception, Exception, 1])
         task._retry()
         self.assertEqual(task._try.call_count, 3)
-
 
     def test_task_is_callable(self):
         """ BaseTask is Callable """
