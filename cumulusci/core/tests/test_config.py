@@ -334,7 +334,7 @@ class TestBaseProjectConfig(unittest.TestCase):
 
     def test_repo_url_from_git(self):
         config = BaseProjectConfig(BaseGlobalConfig())
-        self.assertIn("SFDO-Tooling/CumulusCI", config.repo_url)
+        self.assertIn("/CumulusCI", config.repo_url)
 
     def test_repo_owner_from_repo_info(self):
         config = BaseProjectConfig(BaseGlobalConfig())

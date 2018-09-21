@@ -1,1 +1,1 @@
-from .util import SalesforceTaskTestCase
+from .util import create_task

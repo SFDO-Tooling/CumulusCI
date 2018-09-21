@@ -1,3 +1,4 @@
+from cumulusci.core.utils import process_bool_arg
 from cumulusci.tasks.metadata.package import PackageXmlGenerator
 from cumulusci.tasks.salesforce import UninstallLocalBundles
 
@@ -28,15 +29,12 @@ class UninstallLocalNamespacedBundles(UninstallLocalBundles):
     def _init_options(self, kwargs):
         super(UninstallLocalNamespacedBundles, self)._init_options(kwargs)
 
-        if "managed" not in self.options:
-            self.options["managed"] = False
-
+        self.options["managed"] = self.options.get("managed") or False
         if "namespace" not in self.options:
             self.options["namespace"] = self.project_config.project__package__namespace
-        if "purge_on_delete" not in self.options:
-            self.options["purge_on_delete"] = True
-        if self.options["purge_on_delete"] == "False":
-            self.options["purge_on_delete"] = False
+        self.options["purge_on_delete"] = process_bool_arg(
+            self.options.get("purge_on_delete", True)
+        )
 
     def _get_destructive_changes(self, path=None):
         if not path:

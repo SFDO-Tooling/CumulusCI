@@ -23,6 +23,7 @@ retrieve_reportsanddashboards_options.update(
 
 class RetrieveReportsAndDashboards(BaseRetrieveMetadata):
     api_class = ApiRetrieveUnpackaged
+    list_metadata_api_class = ApiListMetadata
 
     task_options = retrieve_reportsanddashboards_options
 
@@ -47,7 +48,7 @@ class RetrieveReportsAndDashboards(BaseRetrieveMetadata):
         metadata = {}
         if "report_folders" in self.options:
             for folder in self.options["report_folders"]:
-                api_reports = ApiListMetadata(
+                api_reports = self.list_metadata_api_class(
                     self,
                     "Report",
                     metadata=metadata,
@@ -57,7 +58,7 @@ class RetrieveReportsAndDashboards(BaseRetrieveMetadata):
                 metadata = api_reports()
         if "dashboard_folders" in self.options:
             for folder in self.options["dashboard_folders"]:
-                api_dashboards = ApiListMetadata(
+                api_dashboards = self.list_metadata_api_class(
                     self,
                     "Dashboard",
                     metadata=metadata,
@@ -80,5 +81,4 @@ class RetrieveReportsAndDashboards(BaseRetrieveMetadata):
 
         api_version = self.project_config.project__package__api_version
         package_xml = package_xml_from_dict(items, api_version)
-        print(package_xml)
         return self.api_class(self, package_xml, api_version)

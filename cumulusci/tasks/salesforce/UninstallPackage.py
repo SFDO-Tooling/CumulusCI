@@ -1,3 +1,4 @@
+from cumulusci.core.utils import process_bool_arg
 from cumulusci.salesforce_api.package_zip import UninstallPackageZipBuilder
 from cumulusci.tasks.salesforce import Deploy
 
@@ -18,10 +19,9 @@ class UninstallPackage(Deploy):
         super(UninstallPackage, self)._init_options(kwargs)
         if "namespace" not in self.options:
             self.options["namespace"] = self.project_config.project__package__namespace
-        if "purge_on_delete" not in self.options:
-            self.options["purge_on_delete"] = True
-        if self.options["purge_on_delete"] == "False":
-            self.options["purge_on_delete"] = False
+        self.options["purge_on_delete"] = process_bool_arg(
+            self.options.get("purge_on_delete", True)
+        )
 
     def _get_api(self, path=None):
         package_zip = UninstallPackageZipBuilder(
