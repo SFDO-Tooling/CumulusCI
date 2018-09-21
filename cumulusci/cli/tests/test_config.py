@@ -176,8 +176,8 @@ class TestCliConfig(unittest.TestCase):
     @mock.patch("cumulusci.cli.config.click.echo")
     def test_no_alert(self, echo_mock, shell_mock):
         config = CliConfig()
-        config.project_config.dev_config = {"no_alert": True} #TODO: make this work
+        config.project_config.dev_config__no_alert = True
 
         config.alert("hello")
-        echo_mocj.assert_not_called()
+        echo_mock.assert_not_called()
         shell_mock.assert_not_called()
