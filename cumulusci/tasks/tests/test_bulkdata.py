@@ -45,7 +45,7 @@ def _make_task(task_class, task_config):
     return task_class(project_config, task_config, org_config)
 
 
-@mock.patch('time.sleep', mock.Mock())
+@mock.patch('cumulusci.tasks.bulkdata.time.sleep', mock.Mock())
 class TestDeleteData(unittest.TestCase):
     @responses.activate
     def test_run(self):
@@ -85,7 +85,7 @@ class TestDeleteData(unittest.TestCase):
         api.close_job.assert_has_calls([mock.call(query_job), mock.call(delete_job)])
 
 
-@mock.patch('time.sleep', mock.Mock())
+@mock.patch('cumulusci.tasks.bulkdata.time.sleep', mock.Mock())
 class TestLoadData(unittest.TestCase):
     @responses.activate
     def test_run(self):
@@ -142,7 +142,7 @@ HOUSEHOLD_QUERY_RESULT = b"Id\n1".splitlines()
 CONTACT_QUERY_RESULT = b"Id,AccountId\n2,1".splitlines()
 
 
-@mock.patch('time.sleep', mock.Mock())
+@mock.patch('cumulusci.tasks.bulkdata.time.sleep', mock.Mock())
 class TestQueryData(unittest.TestCase):
     @responses.activate
     def test_run(self):
