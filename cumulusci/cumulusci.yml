@@ -2,9 +2,6 @@ cumulusci:
     keychain: cumulusci.core.keychain.EncryptedFileProjectKeychain
 
 tasks:
-    apextestsdb_upload:
-        description: Upload results from Apex tests to database
-        class_path: cumulusci.tasks.apextestsdb.ApextestsdbUpload
     batch_apex_wait:
         description: Waits on a batch apex job to finish.
         class_path: cumulusci.tasks.apex.batch.BatchApexWait
@@ -57,7 +54,7 @@ tasks:
         description: Converts force-app directory in sfdx format into metadata format under src
         class_path: cumulusci.tasks.sfdx.SFDXBaseTask
         options:
-            command: 'force:mdapi:convert -r force-app -d src'
+            command: 'force:source:convert -d src'
     dx_pull:
         description: Uses sfdx to pull from a scratch org into the force-app directory
         class_path: cumulusci.tasks.sfdx.SFDXOrgTask
@@ -69,7 +66,7 @@ tasks:
         options:
             command: 'force:source:push'
     execute_anon:
-        description: Execute a string of anonymous apex via the tooling api.
+        description: Execute anonymous apex via the tooling api.
         class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
     generate_apex_docs:
         description: Generate documentation for local code. Configure settings in cumulusci.yml/project/apexdoc - homepage, banner, branch, repo_dir
@@ -144,6 +141,9 @@ tasks:
         class_path: cumulusci.tasks.push.tasks.SchedulePushOrgList
         options:
             orgs: push/orgs_trial.txt
+    push_failure_report:
+        description: Produce a CSV report of the failed and otherwise anomalous push jobs.
+        class_path: cumulusci.tasks.push.pushfails.ReportPushFailures
     query:
         description: Queries the connected org
         class_path: cumulusci.tasks.salesforce.SOQLQuery
@@ -325,6 +325,8 @@ flows:
                     unmanaged: False
             2:
                 task: update_admin_profile
+                options:
+                    managed: true
 
     config_packaging:
         description: Configure packaging org for upload after package metadata is deployed
@@ -424,6 +426,8 @@ flows:
                     deploy_post:
                         unmanaged: False
                         namespaced_org: True
+                    update_admin_profile:
+                        namespaced_org: True
                     
     qa_org:
         description: Set up an org as a QA environment for unmanaged metadata
@@ -501,6 +505,28 @@ flows:
                 options:
                     publish: True
                     tag: ^^github_release.tag_name
+
+    retrieve_scratch:
+        description: Retrieves declarative changes made in a scratch org and converts to src directory
+        steps:
+            1:
+                task: dx_convert_to
+            2:
+                task: dx_pull
+            3:
+                task: dx_convert_from
+            4:
+                task: update_package_xml
+            # The conversion reorders elements in .object files and others.
+            # Retrieve from the org using the new package.xml and then rewrite
+            # the package.xml 
+            5:
+                task: retrieve_unpackaged
+                options:
+                    package_xml: src/package.xml
+                    path: src
+            6:
+                task: update_package_xml
 
     unmanaged_ee:
         description: Deploy the unmanaged package metadata and all dependencies to the target EE org

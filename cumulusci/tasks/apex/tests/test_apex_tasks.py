@@ -1,3 +1,10 @@
+from future import standard_library
+
+standard_library.install_aliases()
+import http.client
+import os
+import shutil
+import tempfile
 import unittest
 
 import responses
@@ -14,11 +21,14 @@ from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.core.exceptions import (
     ApexCompilationException,
     ApexException,
+    ApexTestException,
     SalesforceException,
+    TaskOptionsError,
 )
 from cumulusci.tasks.apex.anon import AnonymousApexTask
 from cumulusci.tasks.apex.batch import BatchApexWait
 from cumulusci.tasks.apex.testrunner import RunApexTests
+from cumulusci.utils import temporary_dir
 
 
 @patch(
@@ -67,7 +77,7 @@ class TestRunApexTests(unittest.TestCase):
             responses.GET, url, match_querystring=True, json=expected_response
         )
 
-    def _mock_get_test_results(self):
+    def _mock_get_test_results(self, outcome="Pass"):
         url = (
             self.base_tooling_url
             + "query/?q=%0ASELECT+Id%2CApexClassId%2CTestTimestamp%2C%0A+++++++Message%2CMethodName%2COutcome%2C%0A+++++++RunTime%2CStackTrace%2C%0A+++++++%28SELECT+%0A++++++++++Id%2CCallouts%2CAsyncCalls%2CDmlRows%2CEmail%2C%0A++++++++++LimitContext%2CLimitExceptions%2CMobilePush%2C%0A++++++++++QueryRows%2CSosl%2CCpu%2CDml%2CSoql+%0A++++++++FROM+ApexTestResults%29+%0AFROM+ApexTestResult+%0AWHERE+AsyncApexJobId%3D%27JOB_ID1234567%27%0A"
@@ -94,7 +104,7 @@ class TestRunApexTests(unittest.TestCase):
                     "Id": "07M41000009gbT3EAI",
                     "Message": "Test Passed",
                     "MethodName": "TestMethod",
-                    "Outcome": "Pass",
+                    "Outcome": outcome,
                     "QueueItem": {
                         "attributes": {
                             "type": "ApexTestQueueItem",
@@ -155,10 +165,13 @@ class TestRunApexTests(unittest.TestCase):
             responses.GET, url, match_querystring=True, json=expected_response
         )
 
-    def _mock_run_tests(self):
+    def _mock_run_tests(self, success=True):
         url = self.base_tooling_url + "runTestsAsynchronous"
-        expected_response = "JOB_ID1234567"
-        responses.add(responses.POST, url, json=expected_response)
+        if success:
+            expected_response = "JOB_ID1234567"
+            responses.add(responses.POST, url, json=expected_response)
+        else:
+            responses.add(responses.POST, url, status=http.client.SERVICE_UNAVAILABLE)
 
     @responses.activate
     def test_run_task(self):
@@ -170,22 +183,80 @@ class TestRunApexTests(unittest.TestCase):
         task()
         self.assertEqual(len(responses.calls), 4)
 
+    @responses.activate
+    def test_run_task__server_error(self):
+        self._mock_apex_class_query()
+        self._mock_run_tests(success=False)
+        task = RunApexTests(self.project_config, self.task_config, self.org_config)
+        with self.assertRaises(SalesforceGeneralError):
+            task()
+
+    @responses.activate
+    def test_run_task__failed(self):
+        self._mock_apex_class_query()
+        self._mock_run_tests()
+        self._mock_tests_complete()
+        self._mock_get_test_results("Fail")
+        task = RunApexTests(self.project_config, self.task_config, self.org_config)
+        with self.assertRaises(ApexTestException):
+            task()
+
+    def test_get_namespace_filter__managed(self):
+        task_config = TaskConfig({"options": {"managed": True, "namespace": "testns"}})
+        task = RunApexTests(self.project_config, task_config, self.org_config)
+        namespace = task._get_namespace_filter()
+        self.assertEqual("'testns'", namespace)
+
+    def test_get_namespace_filter__managed_no_namespace(self):
+        task_config = TaskConfig({"options": {"managed": True}})
+        task = RunApexTests(self.project_config, task_config, self.org_config)
+        with self.assertRaises(TaskOptionsError):
+            namespace = task._get_namespace_filter()
+
+    def test_get_test_class_query__exclude(self):
+        task_config = TaskConfig(
+            {"options": {"test_name_match": "%_TEST", "test_name_exclude": "EXCL"}}
+        )
+        task = RunApexTests(self.project_config, task_config, self.org_config)
+        query = task._get_test_class_query()
+        self.assertEqual(
+            "SELECT Id, Name FROM ApexClass WHERE NamespacePrefix = null "
+            "AND (Name LIKE '%_TEST') AND (NOT Name LIKE 'EXCL')",
+            query,
+        )
+
+    def test_run_task__no_tests(self):
+        task = RunApexTests(self.project_config, self.task_config, self.org_config)
+        task._get_test_classes = MagicMock(return_value={"totalSize": 0})
+        task()
+        self.assertIsNone(task.result)
+
 
 @patch(
     "cumulusci.tasks.salesforce.BaseSalesforceTask._update_credentials",
     MagicMock(return_value=None),
 )
-class TestRunAnonApex(unittest.TestCase):
+class TestAnonymousApexTask(unittest.TestCase):
     def setUp(self):
         self.api_version = 42.0
         self.global_config = BaseGlobalConfig(
             {"project": {"api_version": self.api_version}}
         )
+        self.tmpdir = tempfile.mkdtemp(dir=".")
+        apex_path = os.path.join(self.tmpdir, "test.apex")
+        with open(apex_path, "w") as f:
+            f.write('System.debug("from file")')
         self.task_config = TaskConfig()
-        self.task_config.config["options"] = {"apex": 'system.debug("Hello World!")'}
+        self.task_config.config["options"] = {
+            "path": apex_path,
+            "apex": 'system.debug("Hello World!")',
+            "namespaced": True,
+        }
         self.project_config = BaseProjectConfig(self.global_config)
-        self.project_config.config["project"] = {
-            "package": {"api_version": self.api_version}
+        self.project_config.config = {
+            "project": {
+                "package": {"namespace": "abc", "api_version": self.api_version}
+            }
         }
         keychain = BaseProjectKeychain(self.project_config, "")
         self.project_config.set_keychain(keychain)
@@ -197,10 +268,53 @@ class TestRunAnonApex(unittest.TestCase):
             self.org_config.instance_url, self.api_version
         )
 
+    def tearDown(self):
+        shutil.rmtree(self.tmpdir)
+
     def _get_url_and_task(self):
         task = AnonymousApexTask(self.project_config, self.task_config, self.org_config)
         url = task.tooling.base_url + "executeAnonymous"
         return task, url
+
+    def test_validate_options(self):
+        task_config = TaskConfig({})
+        with self.assertRaises(TaskOptionsError):
+            AnonymousApexTask(self.project_config, task_config, self.org_config)
+
+    def test_run_from_path_outside_repo(self):
+        task_config = TaskConfig({"options": {"path": "/"}})
+        task = AnonymousApexTask(self.project_config, task_config, self.org_config)
+        with self.assertRaises(TaskOptionsError):
+            task()
+
+    def test_run_path_not_found(self):
+        task_config = TaskConfig({"options": {"path": "bogus"}})
+        task = AnonymousApexTask(self.project_config, task_config, self.org_config)
+        with self.assertRaises(TaskOptionsError):
+            task()
+
+    def test_prepare_apex(self):
+        task = AnonymousApexTask(self.project_config, self.task_config, self.org_config)
+        before = "String %%%NAMESPACE%%%str = 'foo';"
+        expected = "String abc__str = 'foo';"
+        self.assertEqual(expected, task._prepare_apex(before))
+
+    @responses.activate
+    def test_run_anonymous_apex_success(self):
+        task, url = self._get_url_and_task()
+        resp = {"compiled": True, "success": True}
+        responses.add(responses.GET, url, status=200, json=resp)
+        task()
+
+    @responses.activate
+    def test_run_string_only(self):
+        task_config = TaskConfig({"options": {"apex": 'System.debug("test");'}})
+        task = AnonymousApexTask(self.project_config, task_config, self.org_config)
+        url = task.tooling.base_url + "executeAnonymous"
+        responses.add(
+            responses.GET, url, status=200, json={"compiled": True, "success": True}
+        )
+        task()
 
     @responses.activate
     def test_run_anonymous_apex_status_fail(self):

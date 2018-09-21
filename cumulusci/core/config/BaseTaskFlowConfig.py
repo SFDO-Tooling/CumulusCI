@@ -5,16 +5,14 @@ from cumulusci.core.config.FlowConfig import FlowConfig
 from cumulusci.core.config.TaskConfig import TaskConfig
 from cumulusci.core.exceptions import TaskNotFoundError, FlowNotFoundError
 
+
 def list_infos(infos):
     rv = []
     for info_name in infos:
         info = infos[info_name]
         if not info:
             info = {}
-        rv.append({
-            'name': info_name,
-            'description': info.get('description', '')
-        })
+        rv.append({"name": info_name, "description": info.get("description", "")})
     return rv
 
 
@@ -27,9 +25,9 @@ class BaseTaskFlowConfig(BaseConfig):
 
     def get_task(self, name):
         """ Returns a TaskConfig """
-        config = getattr(self, 'tasks__{}'.format(name))
+        config = getattr(self, "tasks__{}".format(name))
         if not config:
-            raise TaskNotFoundError('Task not found: {}'.format(name))
+            raise TaskNotFoundError("Task not found: {}".format(name))
         return TaskConfig(config)
 
     def list_flows(self):
@@ -38,7 +36,7 @@ class BaseTaskFlowConfig(BaseConfig):
 
     def get_flow(self, name):
         """ Returns a FlowConfig """
-        config = getattr(self, 'flows__{}'.format(name))
+        config = getattr(self, "flows__{}".format(name))
         if not config:
-            raise FlowNotFoundError('Flow not found: {}'.format(name))
+            raise FlowNotFoundError("Flow not found: {}".format(name))
         return FlowConfig(config)

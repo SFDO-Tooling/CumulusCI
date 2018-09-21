@@ -1,24 +1,3 @@
-=====
-Tasks
-=====
-
-apextestsdb_upload
-==========================================
-
-**Description:** Upload results from Apex tests to database
-
-**Class::** cumulusci.tasks.apextestsdb.ApextestsdbUpload
-
-Options:
-------------------------------------------
-
-* **execution_url** *(required)*: URL of test execution
-* **environment_name** *(required)*: Name of test environment
-* **execution_name** *(required)*: Name of test execution
-* **branch_name**: Name of branch where tests were run
-* **commit_sha**: Commit SHA from where tests were run
-* **results_file_url** *(required)*: URL of test results file
-
 batch_apex_wait
 ==========================================
 
@@ -42,11 +21,11 @@ command
 Options:
 ------------------------------------------
 
+* **interactive**: If True, the command will use stderr, stdout, and stdin of the main process.Defaults to False.
 * **command** *(required)*: The command to execute
 * **env**: Environment variables to set for command. Must be flat dict, either as python dict from YAML or as JSON string.
 * **dir**: If provided, the directory where the command should be run from.
 * **pass_env** *(required)*: If False, the current environment variables will not be passed to the child process. Defaults to True
-* **interactive**: If True, the command will use stdout, stderr, and stdin of the main process. Defaults to False
 
 commit_apex_docs
 ==========================================
@@ -115,6 +94,7 @@ Options:
 
 * **namespace_strip**: If set, all namespace prefixes for the namespace specified are stripped from files and filenames
 * **namespaced_org**: If True, the tokens %%%NAMESPACED_ORG%%% and ___NAMESPACED_ORG___ will get replaced with the namespace.  The default is false causing those tokens to get stripped and replaced with an empty string.  Set this if deploying to a namespaced scratch org or packaging org.
+* **clean_meta_xml**: Defaults to True which strips the <packageVersions/> element from all meta.xml files.  The packageVersion element gets added automatically by the target org and is set to whatever version is installed in the org.  To disable this, set this option to False
 * **namespace_inject**: If set, the namespace tokens in files and filenames are replaced with the namespace's prefix
 * **unmanaged**: If True, changes namespace_inject to replace tokens with a blank string
 * **path** *(required)*: The path to the parent directory containing the metadata bundles directories **Default: src**
@@ -132,10 +112,11 @@ Options:
 
 * **namespace_inject**: If set, the namespace tokens in files and filenames are replaced with the namespace's prefix
 * **path** *(required)*: The path to the parent directory containing the metadata bundles directories **Default: unpackaged/pre**
+* **namespace_tokenize**: If set, all namespace prefixes for the namespace specified are replaced with tokens for use with namespace_inject
 * **unmanaged**: If True, changes namespace_inject to replace tokens with a blank string
 * **namespace_strip**: If set, all namespace prefixes for the namespace specified are stripped from files and filenames
 * **namespaced_org**: If True, the tokens %%%NAMESPACED_ORG%%% and ___NAMESPACED_ORG___ will get replaced with the namespace.  The default is false causing those tokens to get stripped and replaced with an empty string.  Set this if deploying to a namespaced scratch org or packaging org.
-* **namespace_tokenize**: If set, all namespace prefixes for the namespace specified are replaced with tokens for use with namespace_inject
+* **clean_meta_xml**: Defaults to True which strips the <packageVersions/> element from all meta.xml files.  The packageVersion element gets added automatically by the target org and is set to whatever version is installed in the org.  To disable this, set this option to False
 
 deploy_post
 ==========================================
@@ -149,27 +130,11 @@ Options:
 
 * **namespace_inject**: If set, the namespace tokens in files and filenames are replaced with the namespace's prefix **Default: $project_config.project__package__namespace**
 * **path** *(required)*: The path to the parent directory containing the metadata bundles directories **Default: unpackaged/post**
+* **namespace_tokenize**: If set, all namespace prefixes for the namespace specified are replaced with tokens for use with namespace_inject
 * **unmanaged**: If True, changes namespace_inject to replace tokens with a blank string **Default: True**
 * **namespace_strip**: If set, all namespace prefixes for the namespace specified are stripped from files and filenames
 * **namespaced_org**: If True, the tokens %%%NAMESPACED_ORG%%% and ___NAMESPACED_ORG___ will get replaced with the namespace.  The default is false causing those tokens to get stripped and replaced with an empty string.  Set this if deploying to a namespaced scratch org or packaging org.
-* **namespace_tokenize**: If set, all namespace prefixes for the namespace specified are replaced with tokens for use with namespace_inject
-
-deploy_post_managed
-==========================================
-
-**Description:** Deploys all metadata bundles under unpackaged/post/
-
-**Class::** cumulusci.tasks.salesforce.DeployBundles
-
-Options:
-------------------------------------------
-
-* **namespace_inject**: If set, the namespace tokens in files and filenames are replaced with the namespace's prefix **Default: $project_config.project__package__namespace**
-* **path** *(required)*: The path to the parent directory containing the metadata bundles directories **Default: unpackaged/post**
-* **unmanaged**: If True, changes namespace_inject to replace tokens with a blank string
-* **namespace_strip**: If set, all namespace prefixes for the namespace specified are stripped from files and filenames
-* **namespaced_org**: If True, the tokens %%%NAMESPACED_ORG%%% and ___NAMESPACED_ORG___ will get replaced with the namespace.  The default is false causing those tokens to get stripped and replaced with an empty string.  Set this if deploying to a namespaced scratch org or packaging org.
-* **namespace_tokenize**: If set, all namespace prefixes for the namespace specified are replaced with tokens for use with namespace_inject
+* **clean_meta_xml**: Defaults to True which strips the <packageVersions/> element from all meta.xml files.  The packageVersion element gets added automatically by the target org and is set to whatever version is installed in the org.  To disable this, set this option to False
 
 dx_convert_to
 ==========================================
@@ -197,6 +162,19 @@ Options:
 * **command** *(required)*: The full command to run with the sfdx cli. **Default: force:mdapi:convert -r force-app -d src**
 * **extra**: Append additional options to the command
 
+dx_pull
+==========================================
+
+**Description:** Uses sfdx to pull from a scratch org into the force-app directory
+
+**Class::** cumulusci.tasks.sfdx.SFDXOrgTask
+
+Options:
+------------------------------------------
+
+* **command** *(required)*: The full command to run with the sfdx cli. **Default: force:source:pull**
+* **extra**: Append additional options to the command
+
 dx_push
 ==========================================
 
@@ -213,27 +191,39 @@ Options:
 execute_anon
 ==========================================
 
-**Description:** Execute a string of anonymous apex via the tooling api.
+**Description:** Execute anonymous apex via the tooling api.
 
 **Class::** cumulusci.tasks.apex.anon.AnonymousApexTask
+
+Use the `apex` option to run a string of anonymous Apex.
+Use the `path` option to run anonymous Apex from a file.
+Or use both to concatenate the string to the file contents.
 
 Options:
 ------------------------------------------
 
-* **apex** *(required)*: The apex to run.
+* **apex**: A string of Apex to run (after the file, if specified).
+* **path**: The path to an Apex file to run.
+* **managed**: If True, will insert the project's namespace prefix.  Defaults to False or no namespace.
+* **namespaced**: If True, the tokens %%%NAMESPACED_RT%%% and %%%namespaced%%% will get replaced with the namespace prefix for Record Types.
 
 generate_apex_docs
 ==========================================
 
-**Description:** Generate documentation for local code
+**Description:** Generate documentation for local code. Configure settings in cumulusci.yml/project/apexdoc - homepage, banner, branch, repo_dir
 
 **Class::** cumulusci.tasks.apexdoc.GenerateApexDocs
 
 Options:
 ------------------------------------------
 
-* **tag** *(required)*: The tag to use for links back to repo.
-* **out_dir**: Directory to write Apex docs. ApexDoc tool will write files to a subdirectory called ApexDocumentation which will be created if it does not exist. default=repo_root
+* **version**: Version of ApexDoc to use. Defaults to project config value project/apexdoc/version.
+* **out_dir**: The folder location where documentation will be generated to. Defaults to project config value project/apexdoc/dir if present, otherwise uses repo root.
+* **home_page**: The full path to an html file that contains the contents for the home page's content area. Defaults to project config value project/apexdoc/homepage if present, otherwise is not used.
+* **source_directory**: The folder location which contains your apex .cls classes. default=<RepoRoot>/src/classes/
+* **tag**: The tag to use for links back to the repo. If not provided, source_url arg to ApexDoc is omitted.
+* **scope**: A semicolon separated list of scopes to document. Defaults to project config value project/apexdoc/scope if present, otherwise allows ApexDoc to use its default (global;public;webService).
+* **banner_page**: The full path to an html file that contains the content for the banner section of each generated page. Defaults to project config value project/apexdoc/banner if present, otherwise is not used.
 
 get_installed_packages
 ==========================================
@@ -322,6 +312,21 @@ Options:
 * **link_pr**: If True, insert link to source pull request at end of each line.
 * **tag** *(required)*: The tag to generate release notes for. Ex: release/1.2
 * **publish**: Publish to GitHub release if True (default=False)
+
+github_release_report
+==========================================
+
+**Description:** Parses GitHub release notes to report various info
+
+**Class::** cumulusci.tasks.github.ReleaseReport
+
+Options:
+------------------------------------------
+
+* **print**: Print info to screen as JSON [default=False]
+* **date_end**: Filter out releases created after this date (YYYY-MM-DD)
+* **date_start**: Filter out releases created before this date (YYYY-MM-DD)
+* **include_beta**: Include beta releases in report [default=False]
 
 install_managed
 ==========================================
@@ -581,6 +586,36 @@ Options:
 * **path** *(required)*: The path containing metadata to process for managed deployment **Default: src**
 * **revert_path** *(required)*: The path to copy the original metadata to for the revert call **Default: src.orig**
 
+robot
+==========================================
+
+**Description:** Runs a Robot Framework test from a .robot file
+
+**Class::** cumulusci.tasks.robotframework.Robot
+
+Options:
+------------------------------------------
+
+* **suites** *(required)*: Paths to test case files/directories to be executed similarly as when running the robot command on the command line.  Defaults to "tests" to run all tests in the tests directory **Default: tests**
+* **tests**: Run only tests matching name patterns.  Can be comma separated and use robot wildcards like *
+* **vars**: Pass values to override variables in the format VAR1:foo,VAR2:bar
+* **exclude**: Excludes tests with a given tag
+* **include**: Includes tests with a given tag
+* **options**: A dictionary of options to robot.run method.  See docs here for format.  NOTE: There is no cci CLI support for this option since it requires a dictionary.  Use this option in the cumulusci.yml when defining custom tasks where you can easily create a dictionary in yaml.
+
+robot_testdoc
+==========================================
+
+**Description:** None
+
+**Class::** cumulusci.tasks.robotframework.RobotTestDoc
+
+Options:
+------------------------------------------
+
+* **path** *(required)*: The path containing .robot test files **Default: tests**
+* **output** *(required)*: The output html file where the documentation will be written **Default: tests/test_suites.html**
+
 run_tests
 ==========================================
 
@@ -595,48 +630,6 @@ Options:
 * **retries**: Number of retries (default=10)
 * **junit_output**: File name for JUnit output.  Defaults to test_results.xml
 * **managed**: If True, search for tests in the namespace only.  Defaults to False
-* **json_output**: File name for json output.  Defaults to test_results.json
-* **test_name_match** *(required)*: Query to find Apex test classes to run ("%" is wildcard).  Defaults to project__test__name_match
-* **retry_interval_add**: Number of seconds to add before each retry (default=5),
-* **poll_interval**: Seconds to wait between polling for Apex test results.  Defaults to 3
-* **namespace**: Salesforce project namespace.  Defaults to project__package__namespace
-* **retry_interval**: Number of seconds to wait before the next retry (default=5),
-
-run_tests_debug
-==========================================
-
-**Description:** Runs all apex tests
-
-**Class::** cumulusci.tasks.apex.testrunner.RunApexTests
-
-Options:
-------------------------------------------
-
-* **test_name_exclude**: Query to find Apex test classes to exclude ("%" is wildcard).  Defaults to project__test__name_exclude
-* **retries**: Number of retries (default=10)
-* **junit_output**: File name for JUnit output.  Defaults to test_results.xml
-* **managed**: If True, search for tests in the namespace only.  Defaults to False
-* **json_output**: File name for json output.  Defaults to test_results.json
-* **test_name_match** *(required)*: Query to find Apex test classes to run ("%" is wildcard).  Defaults to project__test__name_match
-* **retry_interval_add**: Number of seconds to add before each retry (default=5),
-* **poll_interval**: Seconds to wait between polling for Apex test results.  Defaults to 3
-* **namespace**: Salesforce project namespace.  Defaults to project__package__namespace
-* **retry_interval**: Number of seconds to wait before the next retry (default=5),
-
-run_tests_managed
-==========================================
-
-**Description:** Runs all apex tests in the packaging org or a managed package subscriber org
-
-**Class::** cumulusci.tasks.apex.testrunner.RunApexTests
-
-Options:
-------------------------------------------
-
-* **test_name_exclude**: Query to find Apex test classes to exclude ("%" is wildcard).  Defaults to project__test__name_exclude
-* **retries**: Number of retries (default=10)
-* **junit_output**: File name for JUnit output.  Defaults to test_results.xml
-* **managed**: If True, search for tests in the namespace only.  Defaults to False **Default: True**
 * **json_output**: File name for json output.  Defaults to test_results.json
 * **test_name_match** *(required)*: Query to find Apex test classes to run ("%" is wildcard).  Defaults to project__test__name_match
 * **retry_interval_add**: Number of seconds to add before each retry (default=5),
@@ -697,10 +690,11 @@ Options:
 * **purge_on_delete**: Sets the purgeOnDelete option for the deployment. Defaults to True
 * **namespace_inject**: If set, the namespace tokens in files and filenames are replaced with the namespace's prefix
 * **path** *(required)*: The path to the parent directory containing the metadata bundles directories **Default: src**
+* **namespace_tokenize**: If set, all namespace prefixes for the namespace specified are replaced with tokens for use with namespace_inject
 * **unmanaged**: If True, changes namespace_inject to replace tokens with a blank string
 * **namespace_strip**: If set, all namespace prefixes for the namespace specified are stripped from files and filenames
 * **namespaced_org**: If True, the tokens %%%NAMESPACED_ORG%%% and ___NAMESPACED_ORG___ will get replaced with the namespace.  The default is false causing those tokens to get stripped and replaced with an empty string.  Set this if deploying to a namespaced scratch org or packaging org.
-* **namespace_tokenize**: If set, all namespace prefixes for the namespace specified are replaced with tokens for use with namespace_inject
+* **clean_meta_xml**: Defaults to True which strips the <packageVersions/> element from all meta.xml files.  The packageVersion element gets added automatically by the target org and is set to whatever version is installed in the org.  To disable this, set this option to False
 
 uninstall_pre
 ==========================================
@@ -715,10 +709,11 @@ Options:
 * **purge_on_delete**: Sets the purgeOnDelete option for the deployment. Defaults to True
 * **namespace_inject**: If set, the namespace tokens in files and filenames are replaced with the namespace's prefix
 * **path** *(required)*: The path to the parent directory containing the metadata bundles directories **Default: unpackaged/pre**
+* **namespace_tokenize**: If set, all namespace prefixes for the namespace specified are replaced with tokens for use with namespace_inject
 * **unmanaged**: If True, changes namespace_inject to replace tokens with a blank string
 * **namespace_strip**: If set, all namespace prefixes for the namespace specified are stripped from files and filenames
 * **namespaced_org**: If True, the tokens %%%NAMESPACED_ORG%%% and ___NAMESPACED_ORG___ will get replaced with the namespace.  The default is false causing those tokens to get stripped and replaced with an empty string.  Set this if deploying to a namespaced scratch org or packaging org.
-* **namespace_tokenize**: If set, all namespace prefixes for the namespace specified are replaced with tokens for use with namespace_inject
+* **clean_meta_xml**: Defaults to True which strips the <packageVersions/> element from all meta.xml files.  The packageVersion element gets added automatically by the target org and is set to whatever version is installed in the org.  To disable this, set this option to False
 
 uninstall_post
 ==========================================
@@ -736,22 +731,6 @@ Options:
 * **managed**: If True, will insert the actual namespace prefix.  Defaults to False or no namespace
 * **filename_token** *(required)*: The path to the parent directory containing the metadata bundles directories **Default: ___NAMESPACE___**
 
-uninstall_post_managed
-==========================================
-
-**Description:** Uninstalls the unpackaged/post bundles
-
-**Class::** cumulusci.tasks.salesforce.UninstallLocalNamespacedBundles
-
-Options:
-------------------------------------------
-
-* **purge_on_delete** *(required)*: Sets the purgeOnDelete option for the deployment.  Defaults to True
-* **path** *(required)*: The path to a directory containing the metadata bundles (subdirectories) to uninstall **Default: unpackaged/post**
-* **namespace**: The namespace to replace the token with if in managed mode. Defaults to project__package__namespace
-* **managed**: If True, will insert the actual namespace prefix.  Defaults to False or no namespace **Default: True**
-* **filename_token** *(required)*: The path to the parent directory containing the metadata bundles directories **Default: ___NAMESPACE___**
-
 unschedule_apex
 ==========================================
 
@@ -759,10 +738,17 @@ unschedule_apex
 
 **Class::** cumulusci.tasks.apex.anon.AnonymousApexTask
 
+Use the `apex` option to run a string of anonymous Apex.
+Use the `path` option to run anonymous Apex from a file.
+Or use both to concatenate the string to the file contents.
+
 Options:
 ------------------------------------------
 
-* **apex** *(required)*: The apex to run. **Default: for (CronTrigger t : [SELECT Id FROM CronTrigger]) { System.abortJob(t.Id); }**
+* **apex**: A string of Apex to run (after the file, if specified). **Default: for (CronTrigger t : [SELECT Id FROM CronTrigger]) { System.abortJob(t.Id); }**
+* **path**: The path to an Apex file to run.
+* **managed**: If True, will insert the project's namespace prefix.  Defaults to False or no namespace.
+* **namespaced**: If True, the tokens %%%NAMESPACED_RT%%% and %%%namespaced%%% will get replaced with the namespace prefix for Record Types.
 
 update_admin_profile
 ==========================================
@@ -802,22 +788,6 @@ Options:
 * **path** *(required)*: The path to a folder of metadata to build the package.xml from **Default: src**
 * **delete**: If True, generate a package.xml for use as a destructiveChanges.xml file for deleting metadata
 * **managed**: If True, generate a package.xml for deployment to the managed package packaging org
-* **package_name**: If set, overrides the package name inserted into the <fullName> element
-* **output**: The output file, defaults to <path>/package.xml
-
-update_package_xml_managed
-==========================================
-
-**Description:** Updates src/package.xml with metadata in src/
-
-**Class::** cumulusci.tasks.metadata.package.UpdatePackageXml
-
-Options:
-------------------------------------------
-
-* **path** *(required)*: The path to a folder of metadata to build the package.xml from **Default: src**
-* **delete**: If True, generate a package.xml for use as a destructiveChanges.xml file for deleting metadata
-* **managed**: If True, generate a package.xml for deployment to the managed package packaging org **Default: True**
 * **package_name**: If set, overrides the package name inserted into the <fullName> element
 * **output**: The output file, defaults to <path>/package.xml
 
@@ -868,4 +838,18 @@ Options:
 ------------------------------------------
 
 * **seconds** *(required)*: The number of seconds to sleep **Default: 5**
+
+log
+==========================================
+
+**Description:** Log a line at the info level.
+
+**Class::** cumulusci.tasks.util.LogLine
+
+Options:
+------------------------------------------
+
+* **line** *(required)*: A formatstring like line to log
+* **format_vars**: A Dict of format vars
+* **level** *(required)*: The logger level to use **Default: info**
 
