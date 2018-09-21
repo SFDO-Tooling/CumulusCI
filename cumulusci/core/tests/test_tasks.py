@@ -59,6 +59,36 @@ class TestBaseTaskCallable(unittest.TestCase):
         self._task_log_handler.reset()
         self.task_log = self._task_log_handler.messages
 
+    @mock.patch("cumulusci.core.tasks.time.sleep", mock.Mock())
+    def test_retry_on_exception(self):
+        """ calling _retry() should call try until the task succeeds.  """
+        task_config = TaskConfig({"options": {"retries": 5, "retry_interval": 1, "retry_interval_add": 1}})
+        task = BaseTask(self.project_config, task_config, self.org_config)
+        task._try = mock.Mock(side_effect=[Exception, Exception, 1])
+        task._retry()
+        self.assertEqual(task._try.call_count, 3)
+
+    @mock.patch("cumulusci.core.tasks.time.sleep", mock.Mock())
+    def test_retry_until_too_many(self):
+        """ calling _retry should call try until the retry count is exhausted. """
+        task_config = TaskConfig({"options": {"retries": 5, "retry_interval": 1, "retry_interval_add": 1}})
+        task = BaseTask(self.project_config, task_config, self.org_config)
+        task._try = mock.Mock(
+            side_effect=[
+                RuntimeError(5),
+                RuntimeError(4),
+                RuntimeError(3),
+                RuntimeError(2),
+                RuntimeError(1),
+                RuntimeError(0),
+            ]
+        )
+        with self.assertRaises(RuntimeError) as cm:
+            task._retry()
+        self.assertEqual(cm.exception.message, 0) # assert it was the final call
+        self.assertEqual(task._try.call_count, 6)
+        self.assertEqual(task.options["retry_interval"], 6)
+
     def test_task_is_callable(self):
         """ BaseTask is Callable """
         task = self.__class__.task_class(
