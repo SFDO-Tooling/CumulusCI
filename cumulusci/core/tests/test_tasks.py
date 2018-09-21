@@ -59,6 +59,7 @@ class TestBaseTaskCallable(unittest.TestCase):
         self._task_log_handler.reset()
         self.task_log = self._task_log_handler.messages
 
+    @mock.patch("cumulusci.core.tasks.time.sleep", mock.Mock())
     def test_retry_on_exception(self):
         """ calling _retry() should call try until the task succeeds.  """
         task = BaseTask(self.project_config, self.task_config, self.org_config)
@@ -66,6 +67,26 @@ class TestBaseTaskCallable(unittest.TestCase):
         task._try = mock.Mock(side_effect=[Exception, Exception, 1])
         task._retry()
         self.assertEqual(task._try.call_count, 3)
+
+    @mock.patch("cumulusci.core.tasks.time.sleep", mock.Mock())
+    def test_retry_until_too_many(self):
+        """ calling _retry should call try until the retry count is exhausted. """
+        task = BaseTask(self.project_config, self.task_config, self.org_config)
+        task.options = {"retries": 5, "retry_interval": 1, "retry_interval_add": 1}
+        task._try = mock.Mock(
+            side_effect=[
+                RuntimeError(5),
+                RuntimeError(4),
+                RuntimeError(3),
+                RuntimeError(2),
+                RuntimeError(1),
+                Warning,
+            ]
+        )
+        with self.assertRaises(Warning):
+            task._retry()
+        self.assertEqual(task._try.call_count, 6)
+        self.assertEqual(task.options["retry_interval"], 6)
 
     def test_task_is_callable(self):
         """ BaseTask is Callable """

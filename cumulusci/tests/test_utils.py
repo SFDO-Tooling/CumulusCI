@@ -292,7 +292,7 @@ class TestUtils(unittest.TestCase):
     def test_doc_task(self):
         task_config = TaskConfig(
             {
-                "class_path": "cumulusci.tests.test_utils.TestTask",
+                "class_path": "cumulusci.tests.test_utils.FunTestTask",
                 "options": {"color": "black"},
             }
         )
@@ -303,7 +303,7 @@ class TestUtils(unittest.TestCase):
 
 **Description:** None
 
-**Class::** cumulusci.tests.test_utils.TestTask
+**Class::** cumulusci.tests.test_utils.FunTestTask
 
 Options:
 ------------------------------------------
@@ -332,7 +332,7 @@ Options:
         )
 
 
-class TestTask(BaseTask):
+class FunTestTask(BaseTask):
     """For testing doc_task"""
 
     task_options = OrderedDict(
