@@ -1,6 +1,7 @@
 import os
 import sys
 import click
+from subprocess import call
 
 import pkg_resources
 
@@ -49,6 +50,24 @@ class CliConfig(object):
             self.keychain_class = import_class(keychain_class)
             self.keychain = self.keychain_class(self.project_config, self.keychain_key)
             self.project_config.set_keychain(self.keychain)
+
+    def alert(self, message=None):
+        try:
+            if self.project_config.dev_config__no_alert:
+                return
+        except AttributeError:
+            pass
+        if message is None:
+            message = "We need your attention!"
+        click.echo("\a")
+        try:
+            call(
+                """osascript -e 'display notification "{}" with title "{}"'""".format(
+                    message, "CumulusCI"
+                )
+            )
+        except OSError:
+            pass # we don't have oascript, probably.
 
     def get_org(self, org_name=None, fail_if_missing=True):
         if org_name:

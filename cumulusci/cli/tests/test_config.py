@@ -162,3 +162,22 @@ class TestCliConfig(unittest.TestCase):
 
         with self.assertRaises(click.UsageError):
             config.check_cumulusci_version()
+
+    @mock.patch("cumulusci.cli.config.call")
+    @mock.patch("cumulusci.cli.config.click.echo")
+    def test_alert(self, shell_mock, echo_mock):
+        config = CliConfig()
+
+        config.alert("hello")
+        echo_mock.assert_called_once()
+        shell_mock.assert_called_once()
+
+    @mock.patch("cumulusci.cli.config.call")
+    @mock.patch("cumulusci.cli.config.click.echo")
+    def test_no_alert(self, echo_mock, shell_mock):
+        config = CliConfig()
+        config.project_config.dev_config__no_alert = True
+
+        config.alert("hello")
+        echo_mock.assert_not_called()
+        shell_mock.assert_not_called()
