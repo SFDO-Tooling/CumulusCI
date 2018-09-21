@@ -50,6 +50,24 @@ class CliConfig(object):
             self.keychain = self.keychain_class(self.project_config, self.keychain_key)
             self.project_config.set_keychain(self.keychain)
 
+    def alert(self, message=None):
+        try:
+            if self.project_config.dev_config__no_alert:
+                return
+        except AttributeError:
+            pass
+        if message is None:
+            message = "We need your attention!"
+        click.echo("\a")
+        try:
+            os.system(
+                """osascript -e 'display notification "{}" with title "{}"'""".format(
+                    message, "CumulusCI"
+                )
+            )
+        except:
+            pass
+
     def get_org(self, org_name=None, fail_if_missing=True):
         if org_name:
             org_config = self.keychain.get_org(org_name)

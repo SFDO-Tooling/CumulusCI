@@ -1004,6 +1004,8 @@ def task_run(config, task_name, org, o, debug, debug_before, debug_after, no_pro
         # Unexpected exception; log to sentry and raise
         handle_exception_debug(config, debug, no_prompt=no_prompt)
 
+    config.alert("Task complete")
+
 
 # Add the task commands to the task group
 task.add_command(task_doc)
@@ -1115,6 +1117,8 @@ def flow_run(config, flow_name, org, delete_org, debug, o, skip, no_prompt):
                 "Scratch org deletion failed.  Ignoring the error below to complete the flow:"
             )
             click.echo(e.message)
+
+    config.alert("Flow Complete")
 
 
 flow.add_command(flow_list)
