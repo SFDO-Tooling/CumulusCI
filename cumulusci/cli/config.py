@@ -1,6 +1,7 @@
 import os
 import sys
 import click
+from subprocess import call
 
 import pkg_resources
 
@@ -60,13 +61,13 @@ class CliConfig(object):
             message = "We need your attention!"
         click.echo("\a")
         try:
-            os.system(
+            call(
                 """osascript -e 'display notification "{}" with title "{}"'""".format(
                     message, "CumulusCI"
                 )
             )
-        except:
-            pass
+        except OSError:
+            pass # we don't have oascript, probably.
 
     def get_org(self, org_name=None, fail_if_missing=True):
         if org_name:
