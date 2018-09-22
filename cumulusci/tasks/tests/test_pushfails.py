@@ -11,7 +11,7 @@ from cumulusci.core.config import (
 )
 from cumulusci.utils import temporary_dir
 from cumulusci.core.keychain import BaseProjectKeychain
-from cumulusci.tasks.salesforce.tests.util import SalesforceTaskTestCase
+from cumulusci.tasks.salesforce.tests.util import create_task
 from cumulusci.tasks.push.pushfails import ReportPushFailures
 
 
@@ -38,11 +38,9 @@ def error_record(gack=False):  # type: (bool) -> dict
     }
 
 
-class TestPushFailureTask(SalesforceTaskTestCase):
-    task_class = ReportPushFailures
-
+class TestPushFailureTask(unittest.TestCase):
     def test_run_task(self,):
-        task = self.create_task(options={"request_id": "123"})
+        task = create_task(ReportPushFailures, options={"request_id": "123"})
         task.sf = mock.Mock()
         task.sf.query.return_value = {
             "done": True,

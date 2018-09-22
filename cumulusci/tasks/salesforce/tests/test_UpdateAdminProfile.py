@@ -1,5 +1,6 @@
 import mock
 import os
+import unittest
 
 from cumulusci.core.config import BaseGlobalConfig
 from cumulusci.core.config import BaseProjectConfig
@@ -7,7 +8,7 @@ from cumulusci.core.config import OrgConfig
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.tasks.salesforce import UpdateAdminProfile
-from . import SalesforceTaskTestCase
+from . import create_task
 
 ADMIN_PROFILE_BEFORE = """<?xml version='1.0' encoding='utf-8'?>
 <Profile xmlns="http://soap.sforce.com/2006/04/metadata">
@@ -86,12 +87,12 @@ ADMIN_PROFILE_EXPECTED = """<?xml version='1.0' encoding='utf-8'?>
 </Profile>"""
 
 
-class TestUpdateAdminProfile(SalesforceTaskTestCase):
-    task_class = UpdateAdminProfile
+class TestUpdateAdminProfile(unittest.TestCase):
     maxDiff = None
 
     def test_run_task(self):
-        task = self.create_task(
+        task = create_task(
+            UpdateAdminProfile,
             {
                 "record_types": [
                     {
@@ -101,7 +102,7 @@ class TestUpdateAdminProfile(SalesforceTaskTestCase):
                     }
                 ],
                 "namespaced_org": True,
-            }
+            },
         )
 
         def _retrieve_unpackaged():
@@ -123,8 +124,9 @@ class TestUpdateAdminProfile(SalesforceTaskTestCase):
         task()
 
     def test_run_task__record_type_not_found(self):
-        task = self.create_task(
-            {"record_types": [{"record_type": "DOESNT_EXIST"}], "namespaced_org": True}
+        task = create_task(
+            UpdateAdminProfile,
+            {"record_types": [{"record_type": "DOESNT_EXIST"}], "namespaced_org": True},
         )
 
         def _retrieve_unpackaged():
@@ -140,13 +142,13 @@ class TestUpdateAdminProfile(SalesforceTaskTestCase):
 
     @mock.patch("cumulusci.salesforce_api.metadata.ApiRetrieveUnpackaged.__call__")
     def test_retrieve_unpackaged(self, ApiRetrieveUnpackaged):
-        task = self.create_task()
+        task = create_task(UpdateAdminProfile)
         task.tempdir = "/tmp"
         task._retrieve_unpackaged()
         ApiRetrieveUnpackaged.assert_called_once()
 
     def test_deploy_metadata(self):
-        task = self.create_task()
+        task = create_task(UpdateAdminProfile)
         task.tempdir = "/tmp"
         task._get_api = mock.Mock()
         task._deploy_metadata()

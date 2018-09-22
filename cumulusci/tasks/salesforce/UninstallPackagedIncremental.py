@@ -1,11 +1,11 @@
 import os
-import shutil
-import tempfile
 
 import xmltodict
 
+from cumulusci.core.utils import process_bool_arg
 from cumulusci.tasks.salesforce import UninstallPackaged
 from cumulusci.utils import package_xml_from_dict
+from cumulusci.utils import temporary_dir
 
 
 class UninstallPackagedIncremental(UninstallPackaged):
@@ -29,11 +29,10 @@ class UninstallPackagedIncremental(UninstallPackaged):
     def _init_options(self, kwargs):
         super(UninstallPackagedIncremental, self)._init_options(kwargs)
         if "path" not in self.options:
-            self.options["path"] = "src"
-        if "purge_on_delete" not in self.options:
-            self.options["purge_on_delete"] = True
-        if self.options["purge_on_delete"] == "False":
-            self.options["purge_on_delete"] = False
+            self.options["path"] = os.path.abspath("src")
+        self.options["purge_on_delete"] = process_bool_arg(
+            self.options.get("purge_on_delete", True)
+        )
 
     def _get_destructive_changes(self, path=None):
         self.logger.info(
@@ -43,37 +42,34 @@ class UninstallPackagedIncremental(UninstallPackaged):
         )
         packaged = self._retrieve_packaged()
 
-        tempdir = tempfile.mkdtemp()
-        packaged.extractall(tempdir)
-
-        destructive_changes = self._package_xml_diff(
-            os.path.join(self.options["path"], "package.xml"),
-            os.path.join(tempdir, "package.xml"),
-        )
-
-        shutil.rmtree(tempdir)
-        if destructive_changes:
-            self.logger.info(
-                "Deleting metadata in package {} from target org".format(
-                    self.options["package"]
-                )
+        with temporary_dir() as tempdir:
+            packaged.extractall(tempdir)
+            destructive_changes = self._package_xml_diff(
+                os.path.join(self.options["path"], "package.xml"),
+                os.path.join(tempdir, "package.xml"),
             )
-        else:
-            self.logger.info("No metadata found to delete")
+
+        self.logger.info(
+            "Deleting metadata in package {} from target org".format(
+                self.options["package"]
+            )
+            if destructive_changes
+            else "No metadata found to delete"
+        )
         return destructive_changes
 
     def _package_xml_diff(self, master, compare):
-        master_xml = xmltodict.parse(open(master, "r"))
-        compare_xml = xmltodict.parse(open(compare, "r"))
+        with open(master, "r") as f:
+            master_xml = xmltodict.parse(f)
+        with open(compare, "r") as f:
+            compare_xml = xmltodict.parse(f)
 
         delete = {}
 
         master_items = {}
         compare_items = {}
         md_types = master_xml["Package"].get("types", [])
-        if not isinstance(md_types, list):
-            # needed when only 1 metadata type is found
-            md_types = [md_types]
+        md_types = [md_types] if not isinstance(md_types, list) else md_types
         for md_type in md_types:
             master_items[md_type["name"]] = []
             if "members" not in md_type:
@@ -85,9 +81,7 @@ class UninstallPackagedIncremental(UninstallPackaged):
                     master_items[md_type["name"]].append(item)
 
         md_types = compare_xml["Package"].get("types", [])
-        if not isinstance(md_types, list):
-            # needed when only 1 metadata type is found
-            md_types = [md_types]
+        md_types = [md_types] if not isinstance(md_types, list) else md_types
         for md_type in md_types:
             compare_items[md_type["name"]] = []
             if "members" not in md_type:

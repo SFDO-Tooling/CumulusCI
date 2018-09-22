@@ -21,7 +21,7 @@ def get_base_config():
         return yaml.load(f)
 
 
-def create_project_config(repo_name, repo_owner):
+def create_project_config(repo_name="TestRepo", repo_owner="TestOwner"):
     base_config = get_base_config()
     global_config = BaseGlobalConfig(base_config)
     project_config = DummyProjectConfig(

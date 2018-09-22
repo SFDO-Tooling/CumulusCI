@@ -1,23 +1,23 @@
 import mock
+import unittest
 
 from cumulusci.tasks.salesforce import PackageUpload
 from cumulusci.core.exceptions import ApexTestException
 from cumulusci.core.exceptions import SalesforceException
-from .util import SalesforceTaskTestCase
+from .util import create_task
 
 
-class TestPackageUpload(SalesforceTaskTestCase):
-    task_class = PackageUpload
-
+class TestPackageUpload(unittest.TestCase):
     def test_run_task(self):
-        task = self.create_task(
+        task = create_task(
+            PackageUpload,
             {
                 "name": "Test Release",
                 "description": "Description",
                 "password": "pw",
                 "post_install_url": "http://www.salesforce.org",
                 "release_notes_url": "https://github.com",
-            }
+            },
         )
         task.tooling.query = mock.Mock(
             side_effect=[
@@ -52,7 +52,7 @@ class TestPackageUpload(SalesforceTaskTestCase):
         self.assertEqual("SUCCESS", task.upload["Status"])
 
     def test_run_task__upload_error(self):
-        task = self.create_task({"name": "Test Release"})
+        task = create_task(PackageUpload, {"name": "Test Release"})
         task.tooling.query = mock.Mock(
             side_effect=[
                 # Query for package by namespace
@@ -77,7 +77,7 @@ class TestPackageUpload(SalesforceTaskTestCase):
         self.assertEqual("ERROR", task.upload["Status"])
 
     def test_get_one__no_result(self):
-        task = self.create_task({"name": "Test Release"})
+        task = create_task(PackageUpload, {"name": "Test Release"})
         task.tooling.query = mock.Mock(return_value={"totalSize": 0})
         with self.assertRaises(SalesforceException):
             task._get_one(None, None)
