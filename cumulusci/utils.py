@@ -259,7 +259,7 @@ def zip_strip_namespace(zip_src, namespace, logger=None):
                 logger.info("  {file_name}: removed {namespace}")
         except UnicodeDecodeError:
             # if we cannot decode the content, don't try and replace it.
-            new_content = zip_src.read(name)
+            new_content = orig_content
 
         zip_dest.writestr(name, new_content)
     return zip_dest
