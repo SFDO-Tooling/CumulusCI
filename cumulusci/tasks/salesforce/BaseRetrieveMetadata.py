@@ -43,7 +43,9 @@ class BaseRetrieveMetadata(BaseSalesforceMetadataApiTask):
             )
         if self.options.get("namespace_inject"):
             kwargs = {}
-            kwargs["unmanaged"] = process_bool_arg(self.options.get("unmanaged", True))
+            kwargs["managed"] = not process_bool_arg(
+                self.options.get("unmanaged", True)
+            )
             kwargs["namespaced_org"] = process_bool_arg(
                 self.options.get("namespaced_org", False)
             )
