@@ -440,7 +440,8 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                         continue
                     value = "\n{}".format(" " * (indent + 4))
 
-                pretty.append("{}{}: {}".format(prefix, key, value))
+                if key != "headers":
+                    pretty.append("{}{}: {}".format(prefix, key, value))
                 if extra:
                     pretty.extend(extra)
                 prefix = "{}    ".format(" " * indent)
