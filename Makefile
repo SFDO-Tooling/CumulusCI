@@ -90,6 +90,9 @@ dist: clean ## builds source and wheel package
 install: clean ## install the package to the active Python's site-packages
 	python setup.py install
 
-tag: clean
+bump:
+	bump2version patch --verbose
+
+tag: clean bump
 	git tag -a -m 'version $$(python setup.py --version)' v$$(python setup.py --version)
-	git push --follow-tags
+	#git push --follow-tags
