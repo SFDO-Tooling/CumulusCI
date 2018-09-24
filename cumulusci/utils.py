@@ -328,7 +328,7 @@ def doc_task(task_name, task_config, project_config=None, org_config=None):
     task_class = import_class(task_config.class_path)
     task_docs = textwrap.dedent(task_class.task_docs.strip("\n"))
     if task_docs:
-        doc.append(task_docs)
+        doc.append(task_docs + "\n")
     if task_class.task_options:
         doc.append("Options:\n------------------------------------------\n")
         defaults = task_config.options or {}
@@ -419,4 +419,4 @@ def in_directory(filepath, dirpath):
     """
     filepath = os.path.realpath(filepath)
     dirpath = os.path.realpath(dirpath)
-    return filepath.startswith(os.path.join(dirpath, ""))
+    return filepath == dirpath or filepath.startswith(os.path.join(dirpath, ""))

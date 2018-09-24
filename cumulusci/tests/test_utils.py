@@ -314,6 +314,8 @@ class TestUtils(unittest.TestCase):
 
 **Class::** cumulusci.tests.test_utils.FunTestTask
 
+extra docs
+
 Options:
 ------------------------------------------
 
@@ -340,6 +342,16 @@ Options:
             result,
         )
 
+    def test_cd__no_path(self):
+        cwd = os.getcwd()
+        with utils.cd(None):
+            self.assertEqual(cwd, os.getcwd())
+
+    def test_in_directory(self):
+        cwd = os.getcwd()
+        self.assertTrue(utils.in_directory(".", cwd))
+        self.assertFalse(utils.in_directory("..", cwd))
+
 
 class FunTestTask(BaseTask):
     """For testing doc_task"""
@@ -350,3 +362,5 @@ class FunTestTask(BaseTask):
             ("color", {"description": "What color"}),
         )
     )
+    task_docs = "extra docs"
+
