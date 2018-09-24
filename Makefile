@@ -95,4 +95,4 @@ bump:
 
 tag: clean bump
 	git tag -a -m 'version $$(python setup.py --version)' v$$(python setup.py --version)
-	#git push --follow-tags
+	git push --follow-tags
