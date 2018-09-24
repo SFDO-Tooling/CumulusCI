@@ -250,15 +250,18 @@ def zip_strip_namespace(zip_src, namespace, logger=None):
     zip_dest = zipfile.ZipFile(io.BytesIO(), "w", zipfile.ZIP_DEFLATED)
     for name in zip_src.namelist():
         try:
-            content = zip_src.read(name)
-            content = unicode(content)
-            content = content.replace(namespace_prefix, "")
-            content = content.replace(lightning_namespace, "c:")
-            name = name.replace(namespace_prefix, "")
+            orig_content = zip_src.read(name)
+            orig_content = unicode(orig_content)
+            new_content = orig_content.replace(namespace_prefix, "")
+            new_content = new_content.replace(lightning_namespace, "c:")
+            name = name.replace(namespace_prefix, "")  # not...sure...this..gets...used
+            if orig_content != new_content and logger:
+                logger.info("  {file_name}: removed {namespace}")
         except UnicodeDecodeError:
             # if we cannot decode the content, don't try and replace it.
-            pass
-        zip_dest.writestr(name, content)
+            new_content = orig_content
+
+        zip_dest.writestr(name, new_content)
     return zip_dest
 
 

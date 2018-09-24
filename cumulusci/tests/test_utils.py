@@ -234,6 +234,15 @@ class TestUtils(unittest.TestCase):
         result = zf.read("test")
         self.assertEqual(contents, result)
 
+    def test_zip_strip_namespace_logs(self):
+        zf = zipfile.ZipFile(io.BytesIO(), "w")
+        zf.writestr("ns__test", "ns__test ns:test")
+
+        logger = mock.Mock()
+        zf = utils.zip_strip_namespace(zf, "ns", logger=logger)
+        logger.info.assert_called_once()
+
+
     def test_zip_tokenize_namespace(self):
         zf = zipfile.ZipFile(io.BytesIO(), "w")
         zf.writestr("ns__test", "ns__test ns:test")

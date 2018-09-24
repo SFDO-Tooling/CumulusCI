@@ -27,13 +27,9 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
 
     def _init_options(self, kwargs):
         super(UpdateDependencies, self)._init_options(kwargs)
-        if "purge_on_delete" not in self.options:
-            self.options["purge_on_delete"] = True
-        if (
-            isinstance(self.options["purge_on_delete"], basestring)
-            and self.options["purge_on_delete"].lower() == "false"
-        ):
-            self.options["purge_on_delete"] = False
+        self.options["purge_on_delete"] = process_bool_arg(
+            self.options.get("purge_on_delete", True)
+        )
         self.options["namespaced_org"] = process_bool_arg(
             self.options.get("namespaced_org", False)
         )
@@ -52,8 +48,6 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
 
         self.logger.info("Dependencies:")
         for line in self.project_config.pretty_dependencies(dependencies):
-            if " headers:" in line:
-                continue
             self.logger.info(line)
 
         self._process_dependencies(dependencies)
@@ -68,9 +62,10 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
         for dependency in dependencies:
             # Process child dependencies
             dependency_uninstalled = False
-            if "dependencies" in dependency and dependency["dependencies"]:
+            subdependencies = dependency.get("dependencies")
+            if subdependencies:
                 count_uninstall = len(self.uninstall_queue)
-                self._process_dependencies(dependency["dependencies"])
+                self._process_dependencies(subdependencies)
                 if count_uninstall != len(self.uninstall_queue):
                     dependency_uninstalled = True
 
@@ -91,7 +86,7 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
         if dependency["namespace"] in self.installed:
             # Some version is installed, check what to do
             installed_version = self.installed[dependency["namespace"]]
-            if dependency_version == installed_version:
+            if dependency_version == installed_version and not dependency_uninstalled:
                 self.logger.info(
                     "  {}: version {} already installed".format(
                         dependency["namespace"], dependency_version

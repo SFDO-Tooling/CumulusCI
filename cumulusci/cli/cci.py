@@ -528,8 +528,6 @@ def project_dependencies(config):
     config.check_project_config()
     dependencies = config.project_config.get_static_dependencies()
     for line in config.project_config.pretty_dependencies(dependencies):
-        if " headers:" in line:
-            continue
         click.echo(line)
 
 
