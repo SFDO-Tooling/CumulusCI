@@ -279,7 +279,21 @@ flows:
                 task: run_tests
             5:
                 task: github_parent_to_children
-                    
+
+    ci_feature_beta_deps:
+        description: Install the latest beta version of dependencies and run apex tests.
+        steps:
+            1:
+                flow: beta_dependencies
+            2:
+                flow: deploy_unmanaged
+            3:
+                flow: config_apextest
+            4:
+                task: run_tests
+            5:
+                task: github_parent_to_children
+
     ci_master:
         description: Deploy the package metadata to the packaging org and prepare for managed package version upload.  Inteded for use against master branch commits.
         steps:
@@ -349,6 +363,16 @@ flows:
         steps:
             1:
                 task: update_dependencies
+            2:
+                task: deploy_pre
+
+    beta_dependencies:
+        description: Deploy the latest (beta) version of dependencies to prepare the org environment for the package metadata
+        steps:
+            1:
+                task: update_dependencies
+                options:
+                    include_beta: True
             2:
                 task: deploy_pre
                             
