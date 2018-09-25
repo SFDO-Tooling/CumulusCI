@@ -53,7 +53,7 @@ from .logger import init_logger
 
 
 @contextmanager
-def timestamp_file(mode):
+def timestamp_file():
     """Opens a file for tracking the time of the last version check"""
     config_dir = os.path.join(
         os.path.expanduser("~"), YamlGlobalConfig.config_local_dir
@@ -62,7 +62,7 @@ def timestamp_file(mode):
     if not os.path.exists(config_dir):
         os.mkdir(config_dir)
 
-    with open(os.path.join(config_dir, 'cumulus_timestamp'), mode) as f:
+    with open(os.path.join(config_dir, 'cumulus_timestamp'), 'wb+') as f:
         yield f
 
 
@@ -70,7 +70,7 @@ def get_latest_version():
     """ return the latest version of cumulusci in pypi, be defensive """
     # use the pypi json api https://wiki.python.org/moin/PyPIJSON
     res = requests.get("https://pypi.org/pypi/cumulusci/json", timeout=5).json()
-    with timestamp_file('wb') as f:
+    with timestamp_file() as f:
         f.write(bytes(time.time()))
     return pkg_resources.parse_version(res["info"]["version"])
 
@@ -79,8 +79,8 @@ def check_latest_version():
     """ checks for the latest version of cumulusci from pypi, max once per hour """
     check = True
 
-    with timestamp_file('rb') as f:
-        timestamp = float(f.read())
+    with timestamp_file() as f:
+        timestamp = float(f.read() or 0)
     delta = time.time() - timestamp
     check = delta > 3600
 

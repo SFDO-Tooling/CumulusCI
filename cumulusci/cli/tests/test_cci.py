@@ -79,7 +79,7 @@ class TestCCI(unittest.TestCase):
     def test_check_latest_version(
         self, click, get_latest_version, get_installed_version
     ):
-        with cci.timestamp_file('wb') as f:
+        with cci.timestamp_file() as f:
             f.write(bytes(time.time() - 4000))
         get_latest_version.return_value = pkg_resources.parse_version("2")
         get_installed_version.return_value = pkg_resources.parse_version("1")
@@ -91,7 +91,7 @@ class TestCCI(unittest.TestCase):
     @mock.patch("cumulusci.cli.cci.get_latest_version")
     @mock.patch("cumulusci.cli.cci.click")
     def test_check_latest_version_request_error(self, click, get_latest_version):
-        with cci.timestamp_file('wb') as f:
+        with cci.timestamp_file() as f:
             f.write(bytes(time.time() - 4000))
         get_latest_version.side_effect = requests.exceptions.RequestException()
 
