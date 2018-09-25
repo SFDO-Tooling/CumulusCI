@@ -89,7 +89,7 @@ class TestBaseTaskCallable(unittest.TestCase):
         )
         with self.assertRaises(RuntimeError) as cm:
             task._retry()
-        self.assertEqual(cm.exception.message, 0)  # assert it was the final call
+        self.assertEqual(cm.exception.args[0], 0)  # assert it was the final call
         self.assertEqual(task._try.call_count, 6)
         self.assertEqual(task.options["retry_interval"], 6)
 

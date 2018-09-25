@@ -47,11 +47,16 @@ class TestUpdateDependencies(unittest.TestCase):
         }
         task.api_class = mock.Mock()
         zf = zipfile.ZipFile(io.BytesIO(), "w")
-        with mock.patch.dict(
-            "cumulusci.tasks.salesforce.UpdateDependencies._install_dependency.__func__.__globals__",
-            download_extract_zip=mock.Mock(return_value=zf),
-        ):
+        try:
+            UD_globals = UpdateDependencies._install_dependency.__globals__
+        except AttributeError:  # Python 2
+            UD_globals = UpdateDependencies._install_dependency.__func__.__globals__
+        download_extract_zip = UD_globals["download_extract_zip"]
+        UD_globals["download_extract_zip"] = mock.Mock(return_value=zf)
+        try:
             task()
+        finally:
+            UD_globals["download_extract_zip"] = download_extract_zip
         self.assertEqual(
             [
                 {"version": "1.1", "namespace": "upgradeddep"},

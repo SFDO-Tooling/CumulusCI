@@ -2,7 +2,6 @@ from builtins import str
 from future import standard_library
 
 standard_library.install_aliases()
-import io
 import os
 import re
 import urllib.parse
@@ -416,5 +415,5 @@ class UpdatePackageXml(BaseTask):
             "Generating {} from metadata in {}".format(output, self.options.get("path"))
         )
         package_xml = self.package_xml()
-        with io.open(self.options.get("output", output), mode="wb") as f:
+        with open(self.options.get("output", output), mode="w") as f:
             f.write(package_xml)

@@ -673,7 +673,7 @@ class TestApiDeploy(BaseTestMetadataApi):
         api = self._create_instance(task)
         response = DummyResponse()
         response.status_code = 200
-        response.content = deploy_result_failure.format(
+        response.text = deploy_result_failure.format(
             details="""<componentFailures>
   <problem>problem</problem>
   <problemType>Error</problemType>
@@ -692,7 +692,7 @@ class TestApiDeploy(BaseTestMetadataApi):
         api = self._create_instance(task)
         response = DummyResponse()
         response.status_code = 200
-        response.content = deploy_result_failure.format(
+        response.text = deploy_result_failure.format(
             details="""<problem>problem</problem>"""
         )
         with self.assertRaises(MetadataApiError) as cm:

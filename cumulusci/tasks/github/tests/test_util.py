@@ -35,7 +35,7 @@ class TestCommitDir(unittest.TestCase):
                                         {
                                             "type": "blob",
                                             "path": os.path.join("dir", "unchanged"),
-                                            "sha": hashlib.sha1("blob 0\0").hexdigest(),
+                                            "sha": hashlib.sha1(b"blob 0\0").hexdigest(),
                                         },
                                         {
                                             "type": "blob",

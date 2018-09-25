@@ -1,3 +1,4 @@
+from builtins import str
 import base64
 import hashlib
 import io
@@ -85,7 +86,7 @@ class CommitDir(object):
                 continue
             with io.open(local_file, "rb") as f:
                 content = f.read()
-            header = "blob {}\0".format(len(content))
+            header = b"blob " + str(len(content)).encode() + b"\0"
             sha = hashlib.sha1(header + content).hexdigest()
             new_item = item.copy()
             if sha != item["sha"]:

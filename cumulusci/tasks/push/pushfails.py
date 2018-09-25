@@ -52,7 +52,7 @@ class ReportPushFailures(BaseSalesforceApiTask):
         )
 
         file_name = self.options.get("result_file", "push_fails.csv")
-        with open(file_name, "wb") as f:
+        with open(file_name, "w") as f:
             w = csv.writer(f)
             w.writerow(self.headers)
             for result in records:
