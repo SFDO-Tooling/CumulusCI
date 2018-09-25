@@ -74,3 +74,30 @@ Before you submit a pull request, check that it meets these guidelines:
 * New classes, functions, etc have docstrings.
 * New code has comments.
 * Code style and file structure is similar to the rest of the project.
+* You have run the `black` code formatter.
+
+Releasing CumulusCI
+-------------------
+
+It's easy to release a version of CumulusCI to GitHub and PyPI! First, create a new branch for your version::
+
+    $ git checkout -b feature/newversion
+
+After committing any updates to HISTORY.rst and the docs, bump the version::
+
+    $ bump2version patch
+    $ git push -u origin HEAD
+
+Open a Pull Request on GitHub and request approval from another committer. Once your PR has been merged, you can create the release tag and then push the artifacts PyPI with twine::
+
+    $ git checkout master
+    $ git pull
+    $ make tag release
+
+Finally, head to the Release object that was autocreated in the GitHub repository, paste in the changelog notes and hit publish. Tada! You've published a new version of CCI.
+
+Configuring Your Environment
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+To release CCI, you'll need twine and bump2version, both of which are installed with the deveopment requirements. You'll also need to configure your `pypirc`_ file with your PyPI credentials.
+
+.._pypirc: https://docs.python.org/2.7/distutils/packageindex.html#the-pypirc-file
