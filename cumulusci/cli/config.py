@@ -12,6 +12,10 @@ from cumulusci.core.exceptions import OrgNotFound
 from cumulusci.core.exceptions import ProjectConfigNotFound
 from cumulusci.core.utils import import_class
 
+try:
+    from shlex import quote
+except ImportError:
+    from pipes import quote
 
 class CliConfig(object):
     def __init__(self):
@@ -58,7 +62,7 @@ class CliConfig(object):
         try:
             call(
                 """osascript -e 'display notification "{}" with title "{}"'""".format(
-                    message.replace('"', r"\"").replace("'", r"\'"), "CumulusCI"
+                   quote(message), "CumulusCI"
                 )
             )
         except OSError:
