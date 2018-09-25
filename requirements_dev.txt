@@ -1,6 +1,6 @@
 -r requirements.txt
 -e .
-bumpversion==0.5.3
+bump2version==0.5.10
 coverage==4.1
 coveralls==1.2.0
 flake8==2.6.0
