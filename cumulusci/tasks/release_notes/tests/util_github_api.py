@@ -70,7 +70,9 @@ class GithubApiTestMixin(object):
     def _random_sha(self):
         return random_sha()
 
-    def _get_expected_pull_request(self, pull_id, issue_number, body, merged_date=None):
+    def _get_expected_pull_request(
+        self, pull_id, issue_number, body, merged_date=None, merge_sha=None
+    ):
         if merged_date:
             state = "closed"
             merged_date = datetime.strftime(merged_date, date_format)
@@ -78,8 +80,7 @@ class GithubApiTestMixin(object):
             state = "open"
 
         commit_sha = self._random_sha()
-        merge_sha = None
-        if merged_date:
+        if merged_date and merge_sha is None:
             merge_sha = self._random_sha()
 
         master_branch = self.github_info.get("master_branch", "master")

@@ -1,4 +1,5 @@
 import mock
+import os
 import unittest
 
 from cumulusci.core.config import ServiceConfig
@@ -36,7 +37,11 @@ class TestCommitApexDocs(unittest.TestCase):
         CommitDir.return_value = commit_dir
         task()
         commit_dir.assert_called_once_with(
-            "docs/ApexDocumentation", "master", "docs", "Update Apex docs", False
+            os.path.join("docs", "ApexDocumentation"),
+            "master",
+            "docs",
+            "Update Apex docs",
+            False,
         )
 
     def test_run_task__missing_branch(self):
