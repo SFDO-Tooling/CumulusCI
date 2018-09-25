@@ -25,7 +25,7 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
         "purge_on_delete": {
             "description": "Sets the purgeOnDelete option for the deployment. Defaults to True"
         },
-        "install_latest": {
+        "include_beta": {
             "description": "Install the most recent release, even if beta. Defaults to False."
         },
     }
@@ -38,8 +38,8 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
         self.options["namespaced_org"] = process_bool_arg(
             self.options.get("namespaced_org", False)
         )
-        self.options["install_latest"] = process_bool_arg(
-            self.options.get("install_latest", False)
+        self.options["include_beta"] = process_bool_arg(
+            self.options.get("include_beta", False)
         )
 
     def _run_task(self):
@@ -47,16 +47,16 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
             self.logger.info("Project has no dependencies, doing nothing")
             return
 
-        if self.options["install_latest"] and not isinstance(
+        if self.options["include_beta"] and not isinstance(
             self.org_config, ScratchOrgConfig
         ):
             raise TaskOptionsError(
-                "Target org must be a scratch org when `install_latest` is true."
+                "Target org must be a scratch org when `include_beta` is true."
             )
 
         self.logger.info("Preparing static dependencies map")
         dependencies = self.project_config.get_static_dependencies(
-            install_latest=self.options["install_latest"]
+            include_beta=self.options["include_beta"]
         )
 
         self.installed = self._get_installed()
