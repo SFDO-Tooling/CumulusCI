@@ -159,7 +159,7 @@ class DummyRepository(object):
         res.json.return_value = {"name": "2"}
         return res
 
-    def iter_releases(self, count=None):
+    def iter_releases(self):
         return iter(self.releases)
 
 

@@ -619,7 +619,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
     def _find_release_version(self, repo, indent, include_beta=None):
         version = None
         if include_beta:
-            latest_release = repo.iter_releases(1).next()
+            latest_release = next(repo.iter_releases())
             version = latest_release.name
         else:
             # github3.py doesn't support the latest release api so we hack
