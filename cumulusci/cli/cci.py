@@ -12,11 +12,6 @@ import code
 import yaml
 import time
 
-try:
-    import anydbm as dbm
-except ImportError:  # pragma: nocover; python 3
-    import dbm.ndbm as dbm
-
 from contextlib import contextmanager
 from shutil import copyfile
 
@@ -58,11 +53,8 @@ from .logger import init_logger
 
 
 @contextmanager
-def dbm_cache():
-    """
-    context manager for accessing simple dbm cache
-    located at ~/.cumlusci/cache.dbm
-    """
+def timestamp_file(mode):
+    """Opens a file for tracking the time of the last version check"""
     config_dir = os.path.join(
         os.path.expanduser("~"), YamlGlobalConfig.config_local_dir
     )
@@ -70,17 +62,16 @@ def dbm_cache():
     if not os.path.exists(config_dir):
         os.mkdir(config_dir)
 
-    db = dbm.open(os.path.join(config_dir, "cache.dbm"), "c")
-    yield db
-    db.close()
+    with open(os.path.join(config_dir, 'cumulus_timestamp'), mode) as f:
+        yield f
 
 
 def get_latest_version():
     """ return the latest version of cumulusci in pypi, be defensive """
     # use the pypi json api https://wiki.python.org/moin/PyPIJSON
     res = requests.get("https://pypi.org/pypi/cumulusci/json", timeout=5).json()
-    with dbm_cache() as cache:
-        cache["cumulusci-latest-timestamp"] = str(time.time())
+    with timestamp_file('wb') as f:
+        f.write(bytes(time.time()))
     return pkg_resources.parse_version(res["info"]["version"])
 
 
@@ -88,10 +79,10 @@ def check_latest_version():
     """ checks for the latest version of cumulusci from pypi, max once per hour """
     check = True
 
-    with dbm_cache() as cache:
-        if "cumulusci-latest-timestamp" in cache:
-            delta = time.time() - float(cache["cumulusci-latest-timestamp"])
-            check = delta > 3600
+    with timestamp_file('rb') as f:
+        timestamp = float(f.read())
+    delta = time.time() - timestamp
+    check = delta > 3600
 
     if check:
         try:
