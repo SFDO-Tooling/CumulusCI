@@ -2,14 +2,18 @@ from future import standard_library
 
 standard_library.install_aliases()
 import http.client
+import mock
 import os
 import unittest
 
 import responses
 
+from cumulusci.tasks.release_notes.exceptions import GithubIssuesError
 from cumulusci.tasks.release_notes.generator import GithubReleaseNotesGenerator
+from cumulusci.tasks.release_notes.parser import BaseChangeNotesParser
 from cumulusci.tasks.release_notes.parser import ChangeNotesLinesParser
 from cumulusci.tasks.release_notes.parser import GithubIssuesParser
+from cumulusci.tasks.release_notes.parser import GithubLinesParser
 from cumulusci.tasks.release_notes.parser import IssuesParser
 from cumulusci.core.exceptions import GithubApiNotFoundError
 from cumulusci.core.github import get_github_api
@@ -30,6 +34,18 @@ PARSER_CONFIG = [
         "title": "Issues Closed",
     },
 ]
+
+
+class TestBaseChangeNotesParser(unittest.TestCase):
+    def test_parse(self):
+        parser = BaseChangeNotesParser("Title")
+        with self.assertRaises(NotImplementedError):
+            parser.parse()
+
+    def test_render(self):
+        parser = BaseChangeNotesParser("Title")
+        with self.assertRaises(NotImplementedError):
+            parser.render()
 
 
 class TestChangeNotesLinesParser(unittest.TestCase):
@@ -88,6 +104,13 @@ class TestChangeNotesLinesParser(unittest.TestCase):
         parser.parse(change_note)
         self.assertEqual(parser.content, ["foo", "    bar", "        baz"])
 
+    def test_parse_subheading(self):
+        change_note = "# {0}\r\n## Subheading\r\nfoo".format(self.title)
+        parser = ChangeNotesLinesParser(None, self.title)
+        parser.parse(change_note)
+        self.assertEqual([], parser.content)
+        self.assertEqual({"Subheading": ["foo"]}, parser.h2)
+
     def test_render_no_content(self):
         parser = ChangeNotesLinesParser(None, self.title)
         self.assertEqual(parser.render(), None)
@@ -107,6 +130,30 @@ class TestChangeNotesLinesParser(unittest.TestCase):
         self.assertEqual(
             parser.render(), "# {}\r\n\r\n{}".format(self.title, "\r\n".join(content))
         )
+
+    def test_render_subheadings(self):
+        parser = ChangeNotesLinesParser(None, self.title)
+        parser.h2 = {"Subheading": ["foo"]}
+        self.assertEqual(
+            parser.render(),
+            "# {}\r\n\r\n\r\n## Subheading\r\n\r\nfoo".format(self.title),
+        )
+
+
+class TestGithubLinesParser(unittest.TestCase):
+    def setUp(self):
+        self.title = "Title"
+
+    def test_parse(self):
+        generator = mock.Mock(link_pr=True)
+        parser = GithubLinesParser(generator, self.title)
+        pr = mock.Mock(
+            number=1, html_url="http://pr", body="# {}\r\n\r\nfoo".format(self.title)
+        )
+        parser.parse(pr)
+        self.assertEqual(1, parser.pr_number)
+        self.assertEqual("http://pr", parser.pr_url)
+        self.assertEqual(["foo [[PR1](http://pr)]"], parser.content)
 
 
 class TestIssuesParser(unittest.TestCase):
@@ -132,6 +179,11 @@ class TestIssuesParser(unittest.TestCase):
         parser = IssuesParser(None, self.title)
         parser.parse(change_note)
         self.assertEqual(parser.content, [2, 3, 5])
+
+    def test_render(self):
+        parser = IssuesParser(None, self.title)
+        parser.content = ["1: foo"]
+        self.assertEqual("# Issues\r\n\r\n#1: foo", parser.render())
 
 
 class TestGithubIssuesParser(unittest.TestCase, GithubApiTestMixin):
@@ -196,6 +248,7 @@ class TestGithubIssuesParser(unittest.TestCase, GithubApiTestMixin):
         self.mock_util.mock_get_repo()
         responses.add(method=responses.GET, url=api_url, json=expected_response)
         generator = self._create_generator()
+        generator.link_pr = True
         parser = GithubIssuesParser(generator, self.title)
         parser.content = [
             {
@@ -205,7 +258,7 @@ class TestGithubIssuesParser(unittest.TestCase, GithubApiTestMixin):
             }
         ]
         expected_render = self._create_expected_render(
-            self.issue_number_valid, expected_response["title"], False
+            self.issue_number_valid, expected_response["title"], True
         )
         self.assertEqual(parser.render(), expected_render)
 
@@ -232,6 +285,11 @@ class TestGithubIssuesParser(unittest.TestCase, GithubApiTestMixin):
         with self.assertRaises(GithubApiNotFoundError):
             parser.render()
 
+    def test_init__issues_disabled(self):
+        generator = mock.Mock(has_issues=False)
+        with self.assertRaises(GithubIssuesError):
+            parser = GithubIssuesParser(generator, self.title)
+
     def _create_expected_content(self, issue_numbers, pr_url):
         y = []
         for n in issue_numbers:
@@ -246,7 +304,7 @@ class TestGithubIssuesParser(unittest.TestCase, GithubApiTestMixin):
 
     def _create_generator(self):
         generator = GithubReleaseNotesGenerator(
-            self.gh, self.github_info.copy(), PARSER_CONFIG, "prod/1.1"
+            self.gh, self.github_info.copy(), PARSER_CONFIG, "release/1.1"
         )
         return generator
 
@@ -264,7 +322,7 @@ class TestCommentingGithubIssuesParser(unittest.TestCase, GithubApiTestMixin):
         self.issue_number_without_prod_comment = 5
         self.pr_number = 6
         self.pr_url = "http://example.com/pulls/{}".format(self.pr_number)
-        self.tag_prod = "prod/1.2"
+        self.tag_prod = "release/1.2"
         self.tag_beta = "beta/1.2-Beta_3"
         self.tag_not_prod_or_beta = "foo"
         self.version_number_prod = "1.1"
@@ -421,7 +479,7 @@ class TestCommentingGithubIssuesParser(unittest.TestCase, GithubApiTestMixin):
             issue_number, expected_issue["title"], False
         )
         self.assertEqual(parser.render(), expected_render)
-        self.assertEqual(len(responses.calls._calls), 3)
+        self.assertEqual(len(responses.calls._calls), 4)
 
     @responses.activate
     def test_render_issue_without_prod_comment(self):
@@ -464,7 +522,7 @@ class TestCommentingGithubIssuesParser(unittest.TestCase, GithubApiTestMixin):
         )
         render = parser.render()
         self.assertEqual(render, expected_render)
-        self.assertEqual(len(responses.calls._calls), 3)
+        self.assertEqual(len(responses.calls._calls), 5)
 
     def _create_expected_render(self, issue_number, issue_title, link_pr):
         render = "# {}\r\n\r\n#{}: {}".format(self.title, issue_number, issue_title)

@@ -141,6 +141,9 @@ tasks:
         class_path: cumulusci.tasks.push.tasks.SchedulePushOrgList
         options:
             orgs: push/orgs_trial.txt
+    push_failure_report:
+        description: Produce a CSV report of the failed and otherwise anomalous push jobs.
+        class_path: cumulusci.tasks.push.pushfails.ReportPushFailures
     query:
         description: Queries the connected org
         class_path: cumulusci.tasks.salesforce.SOQLQuery

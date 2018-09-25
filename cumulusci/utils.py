@@ -67,11 +67,11 @@ def findRename(find, replace, directory, logger=None):
 
 def elementtree_parse_file(path):
     try:
-        root = ET.parse(path)
+        tree = ET.parse(path)
     except ET.ParseError as err:
         err.filename = path
         raise err
-    return root
+    return tree
 
 
 def removeXmlElement(name, directory, file_pattern, logger=None):
@@ -253,18 +253,18 @@ def zip_strip_namespace(zip_src, namespace, logger=None):
     for name in zip_src.namelist():
         content = zip_src.read(name)
         try:
-            content = content.decode("ascii")
-            content = content.replace(namespace_prefix, "")
-            content = content.replace(lightning_namespace, "c:")
-            name = name.replace(namespace_prefix, "")
+            orig_content = zip_src.read(name)
+            orig_content = orig_content.decode('ascii')
+            new_content = orig_content.replace(namespace_prefix, "")
+            new_content = new_content.replace(lightning_namespace, "c:")
+            name = name.replace(namespace_prefix, "")  # not...sure...this..gets...used
+            if orig_content != new_content and logger:
+                logger.info("  {file_name}: removed {namespace}")
         except UnicodeDecodeError:
-            # Probably a binary file; leave it untouched
-            pass
-        else:
-            content = content.replace(namespace_prefix, "")
-            content = content.replace(lightning_namespace, "c:")
-        name = name.replace(namespace_prefix, "")
-        zip_dest.writestr(name, content)
+            # if we cannot decode the content, don't try and replace it.
+            new_content = orig_content
+
+        zip_dest.writestr(name, new_content)
     return zip_dest
 
 
@@ -306,18 +306,16 @@ def zip_clean_metaxml(zip_src, logger=None):
         content = zip_src.read(name)
         if name.startswith(META_XML_CLEAN_DIRS) and name.endswith("-meta.xml"):
             try:
-                clean_content = remove_xml_element_string(
-                    "packageVersions", zip_src.read(name)
-                )
-                if clean_content != content:
-                    changed.append(name)
-
-                zip_dest.writestr(name, clean_content)
+                content = content.decode("ascii")
             except UnicodeDecodeError:
                 # if we cannot decode the content, don't try and replace it.
                 pass
-        else:
-            zip_dest.writestr(name, content)
+            else:
+                clean_content = remove_xml_element_string("packageVersions", content)
+                if clean_content != content:
+                    changed.append(name)
+                    content = clean_content
+        zip_dest.writestr(name, content)
     if changed and logger:
         logger.info(
             "Cleaned package versions from {} meta.xml files".format(len(changed))
@@ -337,7 +335,7 @@ def doc_task(task_name, task_config, project_config=None, org_config=None):
     task_class = import_class(task_config.class_path)
     task_docs = textwrap.dedent(task_class.task_docs.strip("\n"))
     if task_docs:
-        doc.append(task_docs)
+        doc.append(task_docs + "\n")
     if task_class.task_options:
         doc.append("Options:\n------------------------------------------\n")
         defaults = task_config.options or {}
@@ -389,6 +387,21 @@ def package_xml_from_dict(items, api_version, package_name=None):
 
 
 @contextmanager
+def cd(path):
+    """Context manager that changes to another directory
+    """
+    if not path:
+        yield
+        return
+    cwd = os.getcwd()
+    os.chdir(path)
+    try:
+        yield
+    finally:
+        os.chdir(cwd)
+
+
+@contextmanager
 def temporary_dir():
     """Context manager that creates a temporary directory and chdirs to it.
 
@@ -396,13 +409,12 @@ def temporary_dir():
     and deletes the temporary directory.
     """
     d = tempfile.mkdtemp()
-    cwd = os.getcwd()
-    os.chdir(d)
     try:
-        yield d
+        with cd(d):
+            yield d
     finally:
-        os.chdir(cwd)
-        shutil.rmtree(d)
+        if os.path.exists(d):
+            shutil.rmtree(d)
 
 
 def in_directory(filepath, dirpath):
@@ -414,4 +426,4 @@ def in_directory(filepath, dirpath):
     """
     filepath = os.path.realpath(filepath)
     dirpath = os.path.realpath(dirpath)
-    return filepath.startswith(os.path.join(dirpath, ""))
+    return filepath == dirpath or filepath.startswith(os.path.join(dirpath, ""))

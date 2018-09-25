@@ -177,7 +177,7 @@ class RunApexTests(BaseSalesforceApiTask):
         self.results_by_class_name = {}
         self.result = None
 
-    def _get_test_classes(self):
+    def _get_namespace_filter(self):
         if self.options["managed"]:
             namespace = self.options.get("namespace")
             if not namespace:
@@ -187,6 +187,10 @@ class RunApexTests(BaseSalesforceApiTask):
             namespace = "'{}'".format(namespace)
         else:
             namespace = "null"
+        return namespace
+
+    def _get_test_class_query(self):
+        namespace = self._get_namespace_filter()
         # Split by commas to allow multiple class name matching options
         test_name_match = self.options["test_name_match"]
         included_tests = []
@@ -207,6 +211,10 @@ class RunApexTests(BaseSalesforceApiTask):
             query += " AND ({})".format(" OR ".join(included_tests))
         if excluded_tests:
             query += " AND {}".format(" AND ".join(excluded_tests))
+        return query
+
+    def _get_test_classes(self):
+        query = self._get_test_class_query()
         # Run the query
         self.logger.info("Running query: {}".format(query))
         result = self.tooling.query_all(query)
@@ -269,19 +277,18 @@ class RunApexTests(BaseSalesforceApiTask):
             self.logger.error("-" * 80)
             counter = 0
             for result in test_results:
-                if result["Outcome"] not in ["Fail", "CompileFail"]:
-                    continue
-                counter += 1
-                self.logger.error(
-                    "{}: {}.{} - {}".format(
-                        counter,
-                        result["ClassName"],
-                        result["Method"],
-                        result["Outcome"],
+                if result["Outcome"] in ["Fail", "CompileFail"]:
+                    counter += 1
+                    self.logger.error(
+                        "{}: {}.{} - {}".format(
+                            counter,
+                            result["ClassName"],
+                            result["Method"],
+                            result["Outcome"],
+                        )
                     )
-                )
-                self.logger.error("\tMessage: {}".format(result["Message"]))
-                self.logger.error("\tStackTrace: {}".format(result["StackTrace"]))
+                    self.logger.error("\tMessage: {}".format(result["Message"]))
+                    self.logger.error("\tStackTrace: {}".format(result["StackTrace"]))
         return test_results
 
     def _get_stats_from_result(self, result):
@@ -312,11 +319,6 @@ class RunApexTests(BaseSalesforceApiTask):
             url=self.tooling.base_url + "runTestsAsynchronous",
             json={"classids": ",".join(str(id) for id in ids)},
         )
-        if result.status_code != http.client.OK:
-
-            raise SalesforceGeneralError(
-                result.url, result.path, result.status_code, result.content
-            )
         self.job_id = result.json()
         self._wait_for_tests()
         test_results = self._get_test_results()
@@ -378,9 +380,8 @@ class RunApexTests(BaseSalesforceApiTask):
                     s += ">\n"
                     s += '    <failure type="failed" '
                     if result["Message"]:
-                        s += 'message="{}">'.format(cgi.escape(result["Message"]))
-                    else:
-                        s += ">"
+                        s += 'message="{}"'.format(cgi.escape(result["Message"]))
+                    s += ">"
 
                     if result["StackTrace"]:
                         s += "<![CDATA[{}]]>".format(cgi.escape(result["StackTrace"]))

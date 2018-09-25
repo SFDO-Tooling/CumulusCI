@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from collections import OrderedDict
 import io
 import os
@@ -232,6 +234,15 @@ class TestUtils(unittest.TestCase):
         result = zf.read("test")
         self.assertEqual(contents, result)
 
+    def test_zip_strip_namespace_logs(self):
+        zf = zipfile.ZipFile(io.BytesIO(), "w")
+        zf.writestr("ns__test", "ns__test ns:test")
+
+        logger = mock.Mock()
+        zf = utils.zip_strip_namespace(zf, "ns", logger=logger)
+        logger.info.assert_called_once()
+
+
     def test_zip_tokenize_namespace(self):
         zf = zipfile.ZipFile(io.BytesIO(), "w")
         zf.writestr("ns__test", "ns__test ns:test")
@@ -272,10 +283,25 @@ class TestUtils(unittest.TestCase):
         self.assertNotIn(b"packageVersions", result)
         self.assertIn("other/test-meta.xml", zf.namelist())
 
+    def test_zip_clean_metaxml__keeps_non_ascii(self):
+        logger = mock.Mock()
+        zf = zipfile.ZipFile(io.BytesIO(), "w")
+        zf.writestr(
+            "classes/test-meta.xml",
+            '<?xml version="1.0" ?>'
+            '<root xmlns="http://soap.sforce.com/2006/04/metadata">'
+            "<label>ñ</label></root>",
+        )
+        zf.writestr("test", "")
+        zf.writestr("other/test-meta.xml", "")
+
+        zf = utils.zip_clean_metaxml(zf, logger=logger)
+        self.assertIn("classes/test-meta.xml", zf.namelist())
+
     def test_doc_task(self):
         task_config = TaskConfig(
             {
-                "class_path": "cumulusci.tests.test_utils.TestTask",
+                "class_path": "cumulusci.tests.test_utils.FunTestTask",
                 "options": {"color": "black"},
             }
         )
@@ -286,7 +312,9 @@ class TestUtils(unittest.TestCase):
 
 **Description:** None
 
-**Class::** cumulusci.tests.test_utils.TestTask
+**Class::** cumulusci.tests.test_utils.FunTestTask
+
+extra docs
 
 Options:
 ------------------------------------------
@@ -314,8 +342,18 @@ Options:
             result,
         )
 
+    def test_cd__no_path(self):
+        cwd = os.getcwd()
+        with utils.cd(None):
+            self.assertEqual(cwd, os.getcwd())
 
-class TestTask(BaseTask):
+    def test_in_directory(self):
+        cwd = os.getcwd()
+        self.assertTrue(utils.in_directory(".", cwd))
+        self.assertFalse(utils.in_directory("..", cwd))
+
+
+class FunTestTask(BaseTask):
     """For testing doc_task"""
 
     task_options = OrderedDict(
@@ -324,3 +362,5 @@ class TestTask(BaseTask):
             ("color", {"description": "What color"}),
         )
     )
+    task_docs = "extra docs"
+

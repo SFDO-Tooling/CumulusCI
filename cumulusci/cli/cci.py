@@ -529,8 +529,6 @@ def project_dependencies(config):
     config.check_project_config()
     dependencies = config.project_config.get_static_dependencies()
     for line in config.project_config.pretty_dependencies(dependencies):
-        if " headers:" in line:
-            continue
         click.echo(line)
 
 
@@ -1005,6 +1003,8 @@ def task_run(config, task_name, org, o, debug, debug_before, debug_after, no_pro
         # Unexpected exception; log to sentry and raise
         handle_exception_debug(config, debug, no_prompt=no_prompt)
 
+    config.alert("Task complete")
+
 
 # Add the task commands to the task group
 task.add_command(task_doc)
@@ -1102,7 +1102,7 @@ def flow_run(config, flow_name, org, delete_org, debug, o, skip, no_prompt):
         exception = click.UsageError(str(e))
         handle_exception_debug(config, debug, throw_exception=exception)
     except (CumulusCIFailure, ScratchOrgException) as e:
-        exception = click.ClickException('Failed: {}'.format(e.__class__.__name__))
+        exception = click.ClickException("Failed: {}".format(e.__class__.__name__))
         handle_exception_debug(config, debug, throw_exception=exception)
     except Exception:
         handle_exception_debug(config, debug, no_prompt=no_prompt)
@@ -1116,6 +1116,8 @@ def flow_run(config, flow_name, org, delete_org, debug, o, skip, no_prompt):
                 "Scratch org deletion failed.  Ignoring the error below to complete the flow:"
             )
             click.echo(str(e))
+
+    config.alert("Flow Complete")
 
 
 flow.add_command(flow_list)

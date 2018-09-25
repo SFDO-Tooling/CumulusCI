@@ -283,7 +283,6 @@ class TestCCI(unittest.TestCase):
         config = mock.Mock()
         config.project_config.pretty_dependencies.return_value = [
             "test:",
-            "  headers: private",
         ]
 
         with mock.patch("click.echo", out.append):

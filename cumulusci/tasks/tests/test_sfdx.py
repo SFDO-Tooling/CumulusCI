@@ -1,8 +1,8 @@
 """ Tests for the SFDX Command Wrapper"""
 
-import unittest
-
 import logging
+import mock
+import unittest
 
 from mock import MagicMock
 from mock import patch
@@ -12,12 +12,15 @@ from cumulusci.core.config import BaseGlobalConfig
 from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.config import OrgConfig
+from cumulusci.core.config import ScratchOrgConfig
 from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.core.tests.utils import MockLoggingHandler
 
 from cumulusci.tasks.command import CommandException
+from cumulusci.tasks.salesforce.tests.util import create_task
 from cumulusci.tasks.sfdx import SFDXBaseTask
 from cumulusci.tasks.sfdx import SFDXOrgTask
+from cumulusci.tasks.sfdx import SFDXJsonTask
 
 
 class TestSFDXBaseTask(unittest.TestCase):
@@ -45,7 +48,7 @@ class TestSFDXBaseTask(unittest.TestCase):
     def test_base_task(self):
         """ The command is prefixed w/ sfdx """
 
-        self.task_config.config["options"] = {"command": "force:org --help"}
+        self.task_config.config["options"] = {"command": "force:org", "extra": "--help"}
         task = SFDXBaseTask(self.project_config, self.task_config)
 
         try:
@@ -86,21 +89,27 @@ class TestSFDXBaseTask(unittest.TestCase):
 
     def test_scratch_org_username(self):
         """ Scratch Org credentials are passed by -u flag """
-
         self.task_config.config["options"] = {"command": "force:org --help"}
-        org_config = OrgConfig(
-            {"access_token": "test access token", "instance_url": "test instance url"},
-            "test",
-        )
+        org_config = ScratchOrgConfig({"username": "test@example.com"}, "test")
 
         task = SFDXOrgTask(self.project_config, self.task_config, org_config)
+        self.assertIn("-u test@example.com", task.options["command"])
 
-        try:
-            task()
-        except CommandException:
-            pass
 
-        env = task._get_env()
-        print(env)
-        self.assertEquals(env.get("SFDX_USERNAME"), "test access token")
-        self.assertEquals(env.get("SFDX_INSTANCE_URL"), "test instance url")
+class TestSFDXJsonTask(unittest.TestCase):
+    def test_get_command(self):
+        task = create_task(SFDXJsonTask)
+        command = task._get_command()
+        self.assertEqual("sfdx force:mdapi:deploy --json", command)
+
+    def test_process_output(self):
+        task = create_task(SFDXJsonTask)
+        task.logger = mock.Mock()
+        task._process_output("{}")
+        task.logger.info.assert_called_once_with("JSON = {}")
+
+    def test_process_output__json_parse_error(self):
+        task = create_task(SFDXJsonTask)
+        task.logger = mock.Mock()
+        task._process_output("{")
+        task.logger.error.assert_called_once()

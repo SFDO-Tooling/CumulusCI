@@ -14,6 +14,7 @@ import responses
 from datetime import datetime
 from datetime import timedelta
 from testfixtures import LogCapture
+from github3 import GitHubError
 
 from cumulusci.tests.util import create_project_config
 from cumulusci.tests.util import DummyOrgConfig
@@ -105,12 +106,9 @@ class TestMergeBranch(unittest.TestCase, GithubApiTestMixin):
             json=expected_response,
         )
 
-    def _mock_merge(self, conflict=None):
+    def _mock_merge(self, status=http.client.CREATED):
         api_url = "{}/merges".format(self.repo_api_url)
-        expected_response = self._get_expected_merge(conflict)
-        status = http.client.CREATED  # 201
-        if conflict:
-            status = http.client.CONFLICT  # 409
+        expected_response = self._get_expected_merge(status == http.client.CONFLICT)
 
         responses.add(
             method=responses.POST, url=api_url, json=expected_response, status=status
@@ -239,6 +237,26 @@ class TestMergeBranch(unittest.TestCase, GithubApiTestMixin):
         self.assertEquals(6, len(responses.calls))
 
     @responses.activate
+    def test_feature_branch_merge_github_error(self):
+        self._mock_repo()
+        self._mock_branch(self.branch)
+        self._mock_pulls()
+        branch_name = "feature/a-test"
+        branches = []
+        branches.append(self._get_expected_branch(branch_name))
+        branches = self._mock_branches(branches)
+        self._mock_compare(
+            base=branches[1]["name"],
+            head=self.project_config.repo_commit,
+            files=[{"filename": "test.txt"}],
+        )
+        self._mock_merge(http.client.INTERNAL_SERVER_ERROR)
+        with LogCapture() as l:
+            task = self._create_task()
+            with self.assertRaises(GitHubError):
+                task()
+
+    @responses.activate
     def test_feature_branch_merge_conflict(self):
         self._mock_repo()
         self._mock_branch(self.branch)
@@ -252,7 +270,7 @@ class TestMergeBranch(unittest.TestCase, GithubApiTestMixin):
             head=self.project_config.repo_commit,
             files=[{"filename": "test.txt"}],
         )
-        self._mock_merge(True)
+        self._mock_merge(http.client.CONFLICT)
         self._mock_pull_create(1, 2)
         with LogCapture() as l:
             task = self._create_task()
@@ -292,7 +310,7 @@ class TestMergeBranch(unittest.TestCase, GithubApiTestMixin):
             head=self.project_config.repo_commit,
             files=[{"filename": "test.txt"}],
         )
-        self._mock_merge(True)
+        self._mock_merge(http.client.CONFLICT)
 
         with LogCapture() as l:
             task = self._create_task()
@@ -335,7 +353,7 @@ class TestMergeBranch(unittest.TestCase, GithubApiTestMixin):
             files=[{"filename": "test.txt"}],
         )
         # merge
-        self._mock_merge(True)
+        self._mock_merge(http.client.CONFLICT)
         # create PR
         self._mock_pull_create(1, 2)
         with LogCapture() as l:

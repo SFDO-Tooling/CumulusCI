@@ -1,5 +1,6 @@
 from future.utils import bytes_to_native_str
 import base64
+import io
 import os
 import tempfile
 import zipfile
@@ -7,6 +8,7 @@ import zipfile
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.salesforce_api.metadata import ApiDeploy
 from cumulusci.tasks.salesforce import BaseSalesforceMetadataApiTask
+from cumulusci.utils import cd
 from cumulusci.utils import zip_clean_metaxml
 from cumulusci.utils import zip_inject_namespace
 from cumulusci.utils import zip_strip_namespace
@@ -40,29 +42,26 @@ class Deploy(BaseSalesforceMetadataApiTask):
         },
     }
 
+    def _get_package_zip(self, path):
+        # Build the zip file
+        zip_bytes = io.BytesIO()
+        zipf = zipfile.ZipFile(zip_bytes, "w", zipfile.ZIP_DEFLATED)
+
+        with cd(path):
+            for root, dirs, files in os.walk("."):
+                for f in files:
+                    self._write_zip_file(zipf, root, f)
+            zipf.close()
+        zipf_processed = self._process_zip_file(zipfile.ZipFile(zip_bytes))
+        fp = zipf_processed.fp
+        zipf_processed.close()
+        return bytes_to_native_str(base64.b64encode(fp.getvalue()))
+
     def _get_api(self, path=None):
         if not path:
             path = self.task_config.options__path
 
-        # Build the zip file
-        zip_file = tempfile.TemporaryFile()
-        zipf = zipfile.ZipFile(zip_file, "w", zipfile.ZIP_DEFLATED)
-
-        pwd = os.getcwd()
-
-        os.chdir(path)
-        for root, dirs, files in os.walk("."):
-            for f in files:
-                self._write_zip_file(zipf, root, f)
-        zipf.close()
-        zipf_processed = self._process_zip_file(zipfile.ZipFile(zip_file))
-        fp = zipf_processed.fp
-        zipf_processed.close()
-        fp.seek(0)
-        package_zip = bytes_to_native_str(base64.b64encode(fp.read()))
-
-        os.chdir(pwd)
-
+        package_zip = self._get_package_zip(path)
         return self.api_class(self, package_zip, purge_on_delete=False)
 
     def _process_zip_file(self, zipf):

@@ -20,6 +20,7 @@ import base64
 import http.client
 import re
 import time
+from collections import defaultdict
 from xml.dom.minidom import parseString
 from xml.sax.saxutils import escape
 from zipfile import ZipFile
@@ -456,7 +457,9 @@ class ApiDeploy(BaseMetadataApiCall):
                     )
                 else:
                     messages.append(
-                        "{action} of {problem_type}: {problem}".format(**failure_info)
+                        "{action} of {component_type}: {problem_type}: {problem}".format(
+                            **failure_info
+                        )
                     )
 
             if messages:
@@ -469,6 +472,9 @@ class ApiDeploy(BaseMetadataApiCall):
                 problems = parseString(response.text).getElementsByTagName("problem")
                 for problem in problems:
                     messages.append(problem.firstChild.nodeValue)
+                if messages:
+                    log = "\n\n".join(messages)
+                    raise MetadataApiError(log, response)
 
             # Parse out any failure text (from test failures in production
             # deployments) and add to log
@@ -522,14 +528,13 @@ class ApiListMetadata(BaseMetadataApiCall):
         )
         self.api_version = self.as_of_version
         if self.metadata is None:
-            self.metadata = {}
+            self.metadata = defaultdict(list)
 
     def _build_envelope_start(self):
         folder = self.folder
-        if folder is None:
-            folder = ""
-        else:
-            folder = "\n      <folder>{}</folder>".format(folder)
+        folder = (
+            "\n      <folder>{}</folder>".format(folder) if folder is not None else ""
+        )
         return self.soap_envelope_start.format(
             metadata_type=self.metadata_type,
             folder=folder,
@@ -565,8 +570,5 @@ class ApiListMetadata(BaseMetadataApiCall):
             #    if result_data[key]:
             #        result_data[key] = dateutil.parser.parse(result_data[key])
             metadata.append(result_data)
-        if self.metadata_type in self.metadata:
-            self.metadata[self.metadata_type].extend(metadata)
-        else:
-            self.metadata[self.metadata_type] = metadata
+        self.metadata[self.metadata_type].extend(metadata)
         return self.metadata

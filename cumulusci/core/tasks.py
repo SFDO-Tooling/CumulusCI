@@ -151,7 +151,7 @@ class BaseTask(object):
 
     def _run_task(self):
         """ Subclasses should override to provide their implementation """
-        pass
+        raise NotImplementedError("Subclasses should provide their own implementation")
 
     def _log_begin(self):
         """ Log the beginning of the task execution """

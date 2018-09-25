@@ -11,15 +11,6 @@ from cumulusci.utils import elementtree_parse_file
 from cumulusci.utils import findReplace
 from cumulusci.utils import findReplaceRegex
 
-rt_visibility_template = """
-<recordTypeVisibilities>
-    <default>{default}</default>
-    <recordType>{record_type}</recordType>
-    <visible>{visible}</visible>
-    <personAccountDefault>{person_account_default}</personAccountDefault>
-</recordTypeVisibilities>
-"""
-
 
 class UpdateAdminProfile(Deploy):
     name = "UpdateAdminProfile"
@@ -137,9 +128,15 @@ class UpdateAdminProfile(Deploy):
             elem.find("sf:enabled", self.namespaces).text = "true"
 
     def _set_record_types(self):
-        record_types = self.options.get("record_types")
-        if not record_types:
-            return
+        record_types = self.options.get("record_types") or []
+
+        # If defaults are specified,
+        # clear any pre-existing defaults
+        if any("default" in rt for rt in record_types):
+            for default in ("sf:default", "sf:personAccountDefault"):
+                xpath = ".//sf:recordTypeVisibilities/{}".format(default)
+                for elem in self.tree.findall(xpath, self.namespaces):
+                    elem.text = "false"
 
         # Set recordTypeVisibilities
         for rt in record_types:
@@ -161,17 +158,17 @@ class UpdateAdminProfile(Deploy):
             # Set visibile
             elem.find("sf:visible", self.namespaces).text = str(
                 rt.get("visible", "true")
-            )
+            ).lower()
 
             # Set default
             elem.find("sf:default", self.namespaces).text = str(
                 rt.get("default", "false")
-            )
+            ).lower()
 
             # Set person account default if element exists
             pa_default = elem.find("sf:personAccountDefault", self.namespaces)
             if pa_default is not None:
-                pa_default.text = str(rt.get("person_account_default", "false"))
+                pa_default.text = str(rt.get("person_account_default", "false")).lower()
 
     def _set_tabs_visibility(self):
         xpath = ".//sf:tabVisibilities[sf:visibility='Hidden']"

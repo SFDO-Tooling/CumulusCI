@@ -88,7 +88,10 @@ class MergeBranch(BaseGithubTask):
                             branch.name, self.options["branch_prefix"]
                         )
                     )
-                continue
+                # The following line isn't included in coverage
+                # due to behavior of the CPython peephole optimizer,
+                # see https://bitbucket.org/ned/coveragepy/issues/198/continue-marked-as-not-covered
+                continue  # pragma: nocover
             branches.append(branch)
             branches_dict[branch.name] = branch
 

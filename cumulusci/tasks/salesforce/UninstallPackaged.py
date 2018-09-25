@@ -1,8 +1,7 @@
-import shutil
-import tempfile
-
+from cumulusci.core.utils import process_bool_arg
 from cumulusci.salesforce_api.metadata import ApiRetrievePackaged
 from cumulusci.tasks.salesforce import UninstallLocal
+from cumulusci.utils import temporary_dir
 from cumulusci.utils import zip_subfolder
 
 
@@ -23,10 +22,9 @@ class UninstallPackaged(UninstallLocal):
         super(UninstallPackaged, self)._init_options(kwargs)
         if "package" not in self.options:
             self.options["package"] = self.project_config.project__package__name
-        if "purge_on_delete" not in self.options:
-            self.options["purge_on_delete"] = True
-        if self.options["purge_on_delete"] == "False":
-            self.options["purge_on_delete"] = False
+        self.options["purge_on_delete"] = process_bool_arg(
+            self.options.get("purge_on_delete", True)
+        )
 
     def _retrieve_packaged(self):
         retrieve_api = ApiRetrievePackaged(
@@ -46,14 +44,11 @@ class UninstallPackaged(UninstallLocal):
         )
         packaged = self._retrieve_packaged()
 
-        tempdir = tempfile.mkdtemp()
-        packaged.extractall(tempdir)
-
-        destructive_changes = super(UninstallPackaged, self)._get_destructive_changes(
-            tempdir
-        )
-
-        shutil.rmtree(tempdir)
+        with temporary_dir() as tempdir:
+            packaged.extractall(tempdir)
+            destructive_changes = super(
+                UninstallPackaged, self
+            )._get_destructive_changes(tempdir)
 
         self.logger.info(
             "Deleting metadata in package {} from target org".format(

@@ -12,7 +12,7 @@ from cumulusci.tasks.command import Command
 class GenerateApexDocs(Command):
     """ Generate Apex documentation from local code """
 
-    apexdoc_repo_url = "https://github.com/SFDO-Tooling/ApexDoc"
+    apexdoc_repo_url = "https://github.com/SalesforceFoundation/ApexDoc"
     jar_file = "apexdoc.jar"
     task_options = {
         "tag": {
@@ -117,8 +117,6 @@ class GenerateApexDocs(Command):
 
     def _get_jar(self):
         url = "{}/releases/download/{}/{}".format(
-            self.apexdoc_repo_url,
-            self.project_config.project__apexdoc["version"],
-            self.jar_file,
+            self.apexdoc_repo_url, self.options["version"], self.jar_file
         )
         urllib.request.urlretrieve(url, self.jar_path)

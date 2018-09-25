@@ -73,7 +73,7 @@ class MrbelvederePublish(BaseMrbelvedereTask):
                         )
                     else:
                         self.logger.info(
-                            "Changing %s from version %s to %g",
+                            "Changing %s from version %s to %s",
                             dependency["namespace"],
                             current_dependency["number"],
                             dependency["number"],

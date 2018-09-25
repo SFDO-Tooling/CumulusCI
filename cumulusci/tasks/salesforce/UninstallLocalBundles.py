@@ -6,9 +6,7 @@ from cumulusci.tasks.salesforce import UninstallLocal
 class UninstallLocalBundles(UninstallLocal):
     def _run_task(self):
         path = self.options["path"]
-        pwd = os.getcwd()
-
-        path = os.path.join(pwd, path)
+        path = os.path.abspath(path)
 
         self.logger.info(
             "Deleting all metadata from bundles in {} from target org".format(path)

@@ -23,8 +23,7 @@ class CreatePackage(Deploy):
                 "api_version"
             ] = self.project_config.project__package__api_version
 
-    def _get_api(self, path=None):
-        package_zip = CreatePackageZipBuilder(
+    def _get_package_zip(self, path=None):
+        return CreatePackageZipBuilder(
             self.options["package"], self.options["api_version"]
-        )
-        return self.api_class(self, package_zip(), purge_on_delete=False)
+        )()

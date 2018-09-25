@@ -27,7 +27,7 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
                     config = f_item.read()
                 name = item.replace(extension, "")
                 if not key in self.config:
-                    self.config[key] = []
+                    self.config[key] = {}
                 self.config[key][name] = config
 
     def _load_file(self, dirname, filename, key):
@@ -70,7 +70,7 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
             )
 
         os.remove(full_path)
-        self._load_orgs()
+        del self.orgs[name]
 
     def _set_encrypted_org(self, name, encrypted, global_org):
         if global_org:

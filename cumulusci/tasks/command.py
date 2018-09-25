@@ -75,7 +75,7 @@ class Command(BaseTask):
         return env
 
     def _process_output(self, line):
-        self.logger.info(line.rstrip())
+        self.logger.info(line.decode("utf-8").rstrip())
 
     def _handle_returncode(self, returncode, stderr):
         if returncode:
