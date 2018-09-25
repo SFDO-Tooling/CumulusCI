@@ -2,7 +2,7 @@ import re
 import os
 
 from cumulusci.core.exceptions import GithubApiNotFoundError
-from exceptions import GithubIssuesError
+from .exceptions import GithubIssuesError
 
 
 class BaseChangeNotesParser(object):
@@ -49,9 +49,6 @@ class ChangeNotesLinesParser(BaseChangeNotesParser):
 
                 # End when the end of section is found
                 if self._is_end_line(line):
-                    # If the line starts the section again, continue
-                    if self._is_start_line(line):
-                        continue
                     self._in_section = False
                     self.h2_title = None
                     continue
@@ -146,10 +143,7 @@ class GithubLinesParser(ChangeNotesLinesParser):
 class IssuesParser(ChangeNotesLinesParser):
     def __init__(self, release_notes_generator, title, issue_regex=None):
         super(IssuesParser, self).__init__(release_notes_generator, title)
-        if issue_regex:
-            self.issue_regex = issue_regex
-        else:
-            self.issue_regex = self._get_default_regex()
+        self.issue_regex = issue_regex or self._get_default_regex()
 
     def _add_line(self, line):
         # find issue numbers per line
@@ -158,7 +152,7 @@ class IssuesParser(ChangeNotesLinesParser):
             self.content.append(int(issue_number))
 
     def _get_default_regex(self):
-        return "#(\d+)"
+        return r"#(\d+)"
 
     def _render_content(self):
         issues = []
