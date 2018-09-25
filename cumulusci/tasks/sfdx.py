@@ -33,6 +33,9 @@ class SFDXBaseTask(Command):
     def _init_options(self, kwargs):
         super(SFDXBaseTask, self)._init_options(kwargs)
         self.options["command"] = self._get_command()
+        # Add extra command args from
+        if self.options.get("extra"):
+            self.options["command"] += " {}".format(self.options["extra"])
 
     def _get_command(self):
         command = "{SFDX_CLI} {command}".format(
@@ -51,10 +54,6 @@ class SFDXOrgTask(SFDXBaseTask):
 
         # Add username to command if needed
         self.options["command"] = self._add_username(self.options["command"])
-
-        # Add extra command args from
-        if self.options.get("extra"):
-            self.options["command"] += " {}".format(self.options["extra"])
 
         self.logger.info("Running command:  {}".format(self.options["command"]))
 
@@ -79,8 +78,9 @@ class SFDXJsonTask(SFDXOrgTask):
     def _process_output(self, line):
         try:
             data = json.loads(line)
-        except:
+        except Exception:
             self.logger.error("Failed to parse json from line: {}".format(line))
+            return
 
         self._process_data(data)
 
@@ -95,76 +95,3 @@ class SFDXJsonTask(SFDXOrgTask):
 
     def _process_data(self, data):
         self.logger.info("JSON = {}".format(data))
-
-
-class SFDXJsonPollingTask(SFDXJsonTask):
-    def _init_task(self):
-        super(SFDXJsonPollingTask, self)._init_task()
-        self.job_id = None
-
-    def _process_output(self, line):
-        started = False
-        if hasattr(self, "job_id"):
-            started = True
-
-        super(SFDXJsonPollingTask, self)._process_output(line)
-
-        if not started:
-            self._process_data(data)
-        else:
-            self._process_poll_data(data)
-
-    def _process_data(self, data):
-        if self.job_id:
-            return self._process_poll_data(data)
-
-        self.job_id = data["id"]
-        self._poll()
-
-    def _process_poll_data(self, data):
-        self.logger.info(data)
-        if self._check_poll_done(data):
-            self.poll_complete = True
-
-    def _poll_action(self):
-        command = self._get_poll_command()
-        env = self._get_env()
-        self._run_command(env, command=command)
-
-    def _check_poll_done(self, data):
-        return data.get("done", True)
-
-    def _process_poll_output(self, line):
-        pass
-
-    def _get_poll_command(self):
-        raise NotImplementedError("Subclassess should provide an implementation")
-
-
-class SFDXDeploy(SFDXJsonPollingTask):
-    """ Use sfdx force:mdapi:deploy to deploy a local directory of metadata """
-
-    task_options = {
-        "path": {
-            "description": "The path of the metadata to be deployed.",
-            "required": True,
-        }
-    }
-
-    def _get_command(self):
-        command = super(SFDXDeploy, self)._get_command()
-        if hasattr(self, "options"):
-            command += " -d {}".format(self.options.get("path", "NO_PATH_PROVIDED"))
-        return command
-
-    def _get_poll_command(self):
-        if not self.job_id:
-            return None
-        command = super(SFDXDeploy, self)._get_command()
-        command += " -i {}".format(self.job_id)
-        return command
-
-    def _init_options(self, kwargs):
-        super(SFDXDeploy, self)._init_options(kwargs)
-        # Rewrite the command with the path merged in
-        self.options["command"] = self._get_command()

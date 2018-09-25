@@ -3,11 +3,13 @@
 import datetime
 import httplib
 import json
+import mock
 import os
 import unittest
 
 import responses
 
+from cumulusci.core.exceptions import CumulusCIException
 from cumulusci.core.github import get_github_api
 from cumulusci.tasks.release_notes.generator import BaseReleaseNotesGenerator
 from cumulusci.tasks.release_notes.generator import StaticReleaseNotesGenerator
@@ -283,8 +285,53 @@ class TestPublishingGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTest
         self.assertEqual(len(responses.calls._calls), 3)
         self.assertEqual(content, expected_release_body)
 
+    @responses.activate
+    def test_publish_update_content_missing(self):
+        tag = "prod/1.4"
+        expected_release_body = "foo\r\n# Changes\r\n\r\nbaz\r\n"
+        # mock GitHub API responses
+        self.mock_util.mock_get_repo()
+        self.mock_util.mock_list_releases(tag=tag, body="foo")
+        # create generator
+        generator = self._create_generator(tag)
+        # inject content into parser
+        generator.parsers[1].content.append("baz")
+        # render and update content
+        content = generator.render()
+        release = generator._get_release()
+        content = generator._update_release_content(release, content)
+        # verify
+        self.assertEqual(len(responses.calls._calls), 3)
+        self.assertEqual(content, expected_release_body)
+
     def _create_generator(self, current_tag, last_tag=None):
         generator = GithubReleaseNotesGenerator(
             self.gh, self.github_info.copy(), PARSER_CONFIG, current_tag, last_tag
         )
         return generator
+
+    @mock.patch(
+        "cumulusci.tasks.release_notes.generator.BaseReleaseNotesGenerator.__call__"
+    )
+    @responses.activate
+    def test_call(self, base_generator):
+        self.mock_util.mock_get_repo()
+        generator = self._create_generator("prod/1.0")
+        generator.do_publish = True
+        release = mock.Mock()
+        generator._get_release = mock.Mock(return_value=release)
+        generator._update_release_content = mock.Mock(
+            return_value=mock.sentinel.content
+        )
+        result = generator()
+        self.assertIs(mock.sentinel.content, result)
+        base_generator.assert_called_once()
+        release.edit.assert_called_once()
+
+    @responses.activate
+    def test_call__no_release(self):
+        self.mock_util.mock_get_repo()
+        generator = self._create_generator("prod/1.0")
+        generator._get_release = mock.Mock(return_value=None)
+        with self.assertRaises(CumulusCIException):
+            result = generator()
