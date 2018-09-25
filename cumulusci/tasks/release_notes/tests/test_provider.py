@@ -1,6 +1,7 @@
 from datetime import datetime
 from datetime import timedelta
 import httplib
+import mock
 import os
 import shutil
 import tempfile
@@ -10,6 +11,7 @@ from cumulusci.core.github import get_github_api
 import requests
 import responses
 
+from cumulusci.core.exceptions import GithubApiError
 from cumulusci.core.exceptions import GithubApiNotFoundError
 from cumulusci.tasks.release_notes.generator import GithubReleaseNotesGenerator
 from cumulusci.tasks.release_notes.provider import BaseChangeNotesProvider
@@ -102,6 +104,8 @@ class TestGithubChangeNotesProvider(unittest.TestCase, GithubApiTestMixin):
         self.invalid_tag = "release/1.4"
         # The current production release
         self.current_tag = "release/1.3"
+        # The previous beta release
+        self.beta_tag = "beta/1.3-Beta_1"
         # The previous production release with no change notes vs 1.3
         self.last_tag = "release/1.2"
         # The second previous production release with one change note vs 1.3
@@ -110,6 +114,7 @@ class TestGithubChangeNotesProvider(unittest.TestCase, GithubApiTestMixin):
         self.last3_tag = "release/1.0"
 
         self.current_tag_sha = self._random_sha()
+        self.beta_tag_sha = self._random_sha()
         self.current_tag_commit_sha = self._random_sha()
         self.current_tag_commit_date = datetime.utcnow()
         self.last_tag_sha = self._random_sha()
@@ -248,6 +253,17 @@ class TestGithubChangeNotesProvider(unittest.TestCase, GithubApiTestMixin):
             self._get_expected_pull_request(
                 5, 105, "pull 5", datetime.utcnow() - timedelta(days=5)
             ),
+            self._get_expected_pull_request(6, 106, "pull 6", None),
+            self._get_expected_pull_request(
+                7,
+                107,
+                "pull 7",
+                datetime.utcnow() - timedelta(seconds=180),
+                self.last_tag_commit_sha,
+            ),
+            self._get_expected_pull_request(
+                8, 108, "pull 8", datetime.utcnow(), self.current_tag_commit_sha
+            ),
         ]
         responses.add(method=responses.GET, url=api_url, json=expected_response)
 
@@ -255,6 +271,7 @@ class TestGithubChangeNotesProvider(unittest.TestCase, GithubApiTestMixin):
         api_url = "{}/tags".format(self.repo_api_url)
         expected_response = [
             self._get_expected_tag_ref(self.current_tag, self.current_tag_sha),
+            self._get_expected_tag_ref(self.beta_tag, self.beta_tag_sha),
             self._get_expected_tag_ref(self.last_tag, self.last_tag_sha),
             self._get_expected_tag_ref(self.last2_tag, self.last2_tag_sha),
         ]
@@ -274,6 +291,19 @@ class TestGithubChangeNotesProvider(unittest.TestCase, GithubApiTestMixin):
         generator = self._create_generator(self.invalid_tag)
         provider = GithubChangeNotesProvider(generator, self.invalid_tag)
         with self.assertRaises(GithubApiNotFoundError):
+            provider.current_tag_info
+
+    @responses.activate
+    def test_current_tag_is_lightweight(self):
+        self.mock_util.mock_get_repo()
+        tag = "release/lightweight"
+        generator = self._create_generator(tag)
+        provider = GithubChangeNotesProvider(generator, tag)
+        api_url = "{}/git/refs/tags/{}".format(self.repo_api_url, tag)
+        responses.add(
+            method=responses.GET, url=api_url, json={"object": {"type": "commit"}}
+        )
+        with self.assertRaises(GithubApiError):
             provider.current_tag_info
 
     @responses.activate
@@ -398,8 +428,48 @@ class TestGithubChangeNotesProvider(unittest.TestCase, GithubApiTestMixin):
         provider = GithubChangeNotesProvider(generator, self.current_tag, self.last_tag)
         provider_list = list(provider())
         pr_body_list = []
-        for n in range(1, 4):
-            pr_body_list.append("pull {}".format(n))
+        pr_body_list = ["pull 1", "pull 2", "pull 3", "pull 8"]
         self.assertEqual(len(provider_list), len(pr_body_list))
         for pr, pr_body in zip(provider_list, pr_body_list):
             self.assertEqual(pr.body, pr_body)
+
+    @responses.activate
+    def test_pull_requests_with_no_last_tag(self):
+        self.mock_util.mock_get_repo()
+        # Mock the tag calls
+        self._mock_current_tag_ref()
+        self._mock_current_tag()
+        self._mock_current_tag_commit()
+        self._mock_last_tag_ref()
+        self._mock_last_tag()
+        self._mock_last_tag_commit()
+        self._mock_list_pull_requests_multiple_in_range()
+
+        generator = self._create_generator(self.current_tag)
+        provider = GithubChangeNotesProvider(generator, self.current_tag)
+        provider._get_last_tag = mock.Mock(return_value=None)
+        provider_list = list(provider())
+        pr_body_list = []
+        pr_body_list = [
+            "pull 1",
+            "pull 2",
+            "pull 3",
+            "pull 4",
+            "pull 5",
+            "pull 7",
+            "pull 8",
+        ]
+        self.assertEqual(len(provider_list), len(pr_body_list))
+        for pr, pr_body in zip(provider_list, pr_body_list):
+            self.assertEqual(pr.body, pr_body)
+
+    @responses.activate
+    def test_get_version_from_tag(self):
+        self.mock_util.mock_get_repo()
+        tag = "beta/1.0-Beta_1"
+        generator = self._create_generator(tag)
+        provider = GithubChangeNotesProvider(generator, tag)
+        self.assertEqual("1.0-Beta_1", provider._get_version_from_tag(tag))
+        with self.assertRaises(ValueError):
+            provider._get_version_from_tag("bogus")
+

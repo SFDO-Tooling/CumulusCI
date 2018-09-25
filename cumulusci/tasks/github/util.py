@@ -22,18 +22,7 @@ class CommitDir(object):
         self.logger = logger
         self.author = author if author else {}
 
-    def __call__(
-        self, local_dir, branch, repo_dir=None, commit_message=None, dry_run=False
-    ):
-        """
-        local_dir: path to local directory to commit
-        branch: target branch name
-        repo_dir: target path within repo - use '' for repo root
-        commit_message: message for git commit
-        dry_run: skip creating GitHub data if True
-        """
-
-        # prepare dir args
+    def _validate_dirs(self, local_dir, repo_dir):
         local_dir = os.path.abspath(local_dir)
         if not os.path.isdir(local_dir):
             raise GithubException("Not a dir: {}".format(local_dir))
@@ -46,6 +35,21 @@ class CommitDir(object):
             repo_dir = repo_dir[1:]
         if repo_dir.endswith("/"):
             repo_dir = repo_dir[:-1]
+        return local_dir, repo_dir
+
+    def __call__(
+        self, local_dir, branch, repo_dir=None, commit_message=None, dry_run=False
+    ):
+        """
+        local_dir: path to local directory to commit
+        branch: target branch name
+        repo_dir: target path within repo - use '' for repo root
+        commit_message: message for git commit
+        dry_run: skip creating GitHub data if True
+        """
+
+        # prepare dir args
+        local_dir, repo_dir = self._validate_dirs(local_dir, repo_dir)
 
         # get ref to branch HEAD
         head = self.repo.ref("heads/{}".format(branch))

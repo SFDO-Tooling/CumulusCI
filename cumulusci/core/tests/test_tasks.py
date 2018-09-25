@@ -62,7 +62,9 @@ class TestBaseTaskCallable(unittest.TestCase):
     @mock.patch("cumulusci.core.tasks.time.sleep", mock.Mock())
     def test_retry_on_exception(self):
         """ calling _retry() should call try until the task succeeds.  """
-        task_config = TaskConfig({"options": {"retries": 5, "retry_interval": 1, "retry_interval_add": 1}})
+        task_config = TaskConfig(
+            {"options": {"retries": 5, "retry_interval": 1, "retry_interval_add": 1}}
+        )
         task = BaseTask(self.project_config, task_config, self.org_config)
         task._try = mock.Mock(side_effect=[Exception, Exception, 1])
         task._retry()
@@ -71,7 +73,9 @@ class TestBaseTaskCallable(unittest.TestCase):
     @mock.patch("cumulusci.core.tasks.time.sleep", mock.Mock())
     def test_retry_until_too_many(self):
         """ calling _retry should call try until the retry count is exhausted. """
-        task_config = TaskConfig({"options": {"retries": 5, "retry_interval": 1, "retry_interval_add": 1}})
+        task_config = TaskConfig(
+            {"options": {"retries": 5, "retry_interval": 1, "retry_interval_add": 1}}
+        )
         task = BaseTask(self.project_config, task_config, self.org_config)
         task._try = mock.Mock(
             side_effect=[
@@ -85,7 +89,7 @@ class TestBaseTaskCallable(unittest.TestCase):
         )
         with self.assertRaises(RuntimeError) as cm:
             task._retry()
-        self.assertEqual(cm.exception.message, 0) # assert it was the final call
+        self.assertEqual(cm.exception.message, 0)  # assert it was the final call
         self.assertEqual(task._try.call_count, 6)
         self.assertEqual(task.options["retry_interval"], 6)
 
@@ -193,3 +197,20 @@ class TestBaseTaskCallable(unittest.TestCase):
         task = BaseTask(self.project_config, self.task_config, self.org_config)
         with self.assertRaises(NotImplementedError):
             task._poll_action()
+
+    @mock.patch("cumulusci.core.tasks.time.sleep", mock.Mock())
+    def test_poll(self):
+        task = BaseTask(self.project_config, self.task_config, self.org_config)
+
+        task.i = 0
+
+        def mimic_polling():
+            task.i += 1
+            if task.i > 3:
+                task.poll_complete = True
+
+        task._poll_action = mock.Mock(side_effect=mimic_polling)
+        task._poll()
+        self.assertEqual(4, task.poll_count)
+        self.assertEqual(1, task.poll_interval_level)
+        self.assertEqual(2, task.poll_interval_s)
