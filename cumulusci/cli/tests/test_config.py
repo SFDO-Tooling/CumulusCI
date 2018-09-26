@@ -17,11 +17,12 @@ from cumulusci.core.exceptions import ProjectConfigNotFound
 
 
 class TestCliConfig(unittest.TestCase):
+    key = "1234567890abcdef"
 
     @classmethod
     def setUpClass(cls):
         os.chdir(os.path.dirname(cumulusci.__file__))
-        os.environ["CUMULUSCI_KEY"] = "1234567890abcdef"
+        os.environ["CUMULUSCI_KEY"] = cls.key
 
     def test_init(self):
         config = CliConfig()
@@ -56,6 +57,12 @@ class TestCliConfig(unittest.TestCase):
 
         with self.assertRaises(click.UsageError):
             config._load_project_config()
+
+    def test_load_keychain__no_key(self):
+        os.environ["CUMULUSCI_KEY"] = ""
+        with self.assertRaises(click.UsageError):
+            config = CliConfig()
+        os.environ["CUMULUSCI_KEY"] = self.key
 
     def test_get_org(self):
         config = CliConfig()
