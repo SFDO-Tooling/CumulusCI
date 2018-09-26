@@ -3,6 +3,8 @@ import mock
 import unittest
 import zipfile
 
+from cumulusci.core.config import OrgConfig
+from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.tasks.salesforce import UpdateDependencies
 from cumulusci.tests.util import create_project_config
 from .util import create_task
@@ -103,3 +105,13 @@ class TestUpdateDependencies(unittest.TestCase):
         task.api_class = mock.Mock(return_value=api)
         task()
         api.assert_not_called()
+
+    def test_update_dependency_latest_option_err(self):
+        project_config = create_project_config()
+        project_config.config["project"]["dependencies"] = [{"namespace": "foo"}]
+        task = create_task(UpdateDependencies, project_config=project_config)
+        task.options["include_beta"] = True
+        task.org_config = OrgConfig(None, None)
+
+        with self.assertRaises(TaskOptionsError):
+            task()
