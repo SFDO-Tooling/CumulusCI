@@ -41,7 +41,6 @@ from cumulusci.core.exceptions import ConfigError
 from cumulusci.core.exceptions import CumulusCIFailure
 from cumulusci.core.exceptions import CumulusCIUsageError
 from cumulusci.core.exceptions import FlowNotFoundError
-from cumulusci.core.exceptions import KeychainKeyNotFound
 from cumulusci.core.exceptions import OrgNotFound
 from cumulusci.core.exceptions import NotInProject
 from cumulusci.core.exceptions import ProjectConfigNotFound
@@ -578,7 +577,6 @@ class ConnectServiceCommand(click.MultiCommand):
 
         @click.pass_context
         def callback(ctx, project=False, *args, **kwargs):
-            config.check_keychain()
             serv_conf = dict(
                 (k, v) for k, v in list(kwargs.items()) if v != None
             )  # remove None values
@@ -604,7 +602,6 @@ def service_connect(ctx, *args, **kvargs):
 @click.argument("service_name")
 @click.pass_obj
 def service_info(config, service_name):
-    config.check_keychain()
     try:
         service_config = config.keychain.get_service(service_name)
         render_recursive(service_config.config)
@@ -889,6 +886,8 @@ def task_list(config):
         data.append((task["name"], task["description"]))
     table = Table(data, headers)
     click.echo(table)
+    click.echo("")
+    click.echo("Use " + click.style("cci task info <task_name>", bold=True) + " to get more information about a task.")
 
 
 @click.command(name="doc", help="Exports RST format documentation for all tasks")
@@ -945,8 +944,6 @@ def task_info(config, task_name):
 )
 @click.pass_obj
 def task_run(config, task_name, org, o, debug, debug_before, debug_after, no_prompt):
-    # Check environment
-    config.check_keychain()
 
     # Get necessary configs
     org, org_config = config.get_org(org, fail_if_missing=False)
@@ -1025,6 +1022,8 @@ def flow_list(config):
         data.append((flow["name"], flow["description"]))
     table = Table(data, headers)
     click.echo(table)
+    click.echo("")
+    click.echo("Use " + click.style("cci flow info <task_name>", bold=True) + " to get more information about a flow.")
 
 
 @click.command(name="info", help="Displays information for a flow")
@@ -1068,8 +1067,6 @@ def flow_info(config, flow_name):
 )
 @click.pass_obj
 def flow_run(config, flow_name, org, delete_org, debug, o, skip, no_prompt):
-    # Check environment
-    config.check_keychain()
 
     # Get necessary configs
     org, org_config = config.get_org(org)

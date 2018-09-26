@@ -141,14 +141,6 @@ class TestCliConfig(unittest.TestCase):
         with self.assertRaises(click.ClickException):
             config.check_org_overwrite("test")
 
-    def test_check_keychain_missing_key(self):
-        config = CliConfig()
-        config.keychain = mock.Mock(encrypted=True)
-        config.keychain_key = None
-
-        with self.assertRaises(click.UsageError):
-            config.check_keychain()
-
     def test_check_project_config(self):
         config = CliConfig()
         config.project_config = None
