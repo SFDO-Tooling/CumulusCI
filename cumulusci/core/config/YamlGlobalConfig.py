@@ -41,7 +41,7 @@ class YamlGlobalConfig(BaseGlobalConfig):
 
         # Load the local config
         if self.config_global_local_path:
-            config = yaml.load(open(self.config_global_local_path, "r"))
+            config = yaml.safe_load(open(self.config_global_local_path, "r"))
             self.config_global_local = config
             if config:
                 merge_yaml.append(self.config_global_local_path)
@@ -61,5 +61,5 @@ class YamlGlobalConfig(BaseGlobalConfig):
 
         # Load the global cumulusci.yml file
         with open(self.config_global_path, "r") as f_config:
-            config = yaml.load(f_config)
+            config = yaml.safe_load(f_config)
         self.config_global = config
