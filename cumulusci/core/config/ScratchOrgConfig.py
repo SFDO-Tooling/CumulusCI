@@ -172,7 +172,9 @@ class ScratchOrgConfig(OrgConfig):
 
         # This feels a little dirty, but the use cases for extra args would mostly
         # work best with env vars
-        command = sarge.shell_format("sfdx force:org:create -f {config_file}{devhub}{namespaced}{days}{alias} {extraargs}", **options )
+        command = "sfdx force:org:create -f {config_file}{devhub}{namespaced}{days}{alias} {extraargs}".format(
+            **options
+        )
         self.logger.info("Creating scratch org with command {}".format(command))
         p = sarge.Command(command, stdout=sarge.Capture(buffer_size=-1), shell=True)
         p.run()
