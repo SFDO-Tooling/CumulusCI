@@ -195,6 +195,7 @@ class ProjectKeychainTestMixin(unittest.TestCase):
 
 
 class TestBaseProjectKeychain(ProjectKeychainTestMixin):
+
     def test_convert_connected_app(self):
         project_config = BaseProjectConfig(
             self.global_config,

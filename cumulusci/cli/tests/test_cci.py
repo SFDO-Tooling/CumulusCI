@@ -49,6 +49,7 @@ def recursive_list_files(d="."):
 
 
 class TestCCI(unittest.TestCase):
+
     @classmethod
     def setUpClass(self):
         self.tempdir = tempfile.mkdtemp()
@@ -281,9 +282,7 @@ class TestCCI(unittest.TestCase):
     def test_project_dependencies(self):
         out = []
         config = mock.Mock()
-        config.project_config.pretty_dependencies.return_value = [
-            "test:",
-        ]
+        config.project_config.pretty_dependencies.return_value = ["test:"]
 
         with mock.patch("click.echo", out.append):
             run_click_command(cci.project_dependencies, obj=config)
@@ -834,7 +833,6 @@ test_task  Test Task""",
 test_flow  Test Flow""",
             str(table),
         )
-        
 
     @mock.patch("click.echo")
     def test_flow_info(self, echo):

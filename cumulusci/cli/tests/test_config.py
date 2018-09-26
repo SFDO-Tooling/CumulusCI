@@ -17,6 +17,7 @@ from cumulusci.core.exceptions import ProjectConfigNotFound
 
 
 class TestCliConfig(unittest.TestCase):
+
     @classmethod
     def setUpClass(cls):
         os.chdir(os.path.dirname(cumulusci.__file__))

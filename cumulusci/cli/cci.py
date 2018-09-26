@@ -553,6 +553,7 @@ def service_list(config):
 
 
 class ConnectServiceCommand(click.MultiCommand):
+
     def list_commands(self, ctx):
         """ list the services that can be configured """
         config = ctx.ensure_object(CliConfig)
@@ -887,7 +888,11 @@ def task_list(config):
     table = Table(data, headers)
     click.echo(table)
     click.echo("")
-    click.echo("Use " + click.style("cci task info <task_name>", bold=True) + " to get more information about a task.")
+    click.echo(
+        "Use "
+        + click.style("cci task info <task_name>", bold=True)
+        + " to get more information about a task."
+    )
 
 
 @click.command(name="doc", help="Exports RST format documentation for all tasks")
@@ -1023,7 +1028,11 @@ def flow_list(config):
     table = Table(data, headers)
     click.echo(table)
     click.echo("")
-    click.echo("Use " + click.style("cci flow info <task_name>", bold=True) + " to get more information about a flow.")
+    click.echo(
+        "Use "
+        + click.style("cci flow info <task_name>", bold=True)
+        + " to get more information about a flow."
+    )
 
 
 @click.command(name="info", help="Displays information for a flow")

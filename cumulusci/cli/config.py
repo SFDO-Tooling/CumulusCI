@@ -16,6 +16,7 @@ from cumulusci.core.utils import import_class
 
 
 class CliConfig(object):
+
     def __init__(self):
         self.global_config = None
         self.project_config = None
@@ -51,7 +52,9 @@ class CliConfig(object):
             )
             self.keychain_class = import_class(keychain_class)
             try:
-                self.keychain = self.keychain_class(self.project_config, self.keychain_key)
+                self.keychain = self.keychain_class(
+                    self.project_config, self.keychain_key
+                )
             except (KeychainKeyNotFound, ConfigError) as e:
                 raise click.UsageError("Keychain Error: {}".format(e.message))
             self.project_config.set_keychain(self.keychain)
@@ -120,7 +123,6 @@ class CliConfig(object):
         except OrgNotFound:
             pass
         return True
-
 
     def check_project_config(self):
         if not self.project_config:
