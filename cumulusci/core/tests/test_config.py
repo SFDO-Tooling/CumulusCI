@@ -588,7 +588,6 @@ class TestBaseProjectConfig(unittest.TestCase):
             "",
             include_beta=True
         )
-        print result
         self.assertEqual(
             result,
             [

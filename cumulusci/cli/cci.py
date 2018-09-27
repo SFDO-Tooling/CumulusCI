@@ -63,7 +63,7 @@ def timestamp_file():
     if not os.path.exists(config_dir):
         os.mkdir(config_dir)
 
-    with open(os.path.join(config_dir, 'cumulus_timestamp'), 'wb+') as f:
+    with open(os.path.join(config_dir, 'cumulus_timestamp'), 'w+') as f:
         yield f
 
 
@@ -72,7 +72,7 @@ def get_latest_version():
     # use the pypi json api https://wiki.python.org/moin/PyPIJSON
     res = requests.get("https://pypi.org/pypi/cumulusci/json", timeout=5).json()
     with timestamp_file() as f:
-        f.write(bytes(time.time()))
+        f.write(str(time.time()))
     return pkg_resources.parse_version(res["info"]["version"])
 
 
