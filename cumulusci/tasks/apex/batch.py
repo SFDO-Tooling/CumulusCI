@@ -75,7 +75,7 @@ class BatchApexWait(BaseSalesforceApiTask):
     def delta(self):
         """ returns the time (in seconds) that the batch took, if complete """
         completed_date = parse_api_datetime(self.batch["CompletedDate"])
-        created_date = parse_api_datetime(self.batch['CreatedDate'])
+        created_date = parse_api_datetime(self.batch["CreatedDate"])
         td = completed_date - created_date
         return td.total_seconds()
 

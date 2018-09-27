@@ -467,4 +467,3 @@ class TestRunBatchApex(unittest.TestCase):
         responses.add(responses.GET, url, json=response)
         task()
         self.assertAlmostEquals(task.delta, 60, delta=2)
-

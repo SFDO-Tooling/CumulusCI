@@ -23,8 +23,10 @@ CUMULUSCI_PATH = os.path.realpath(
 )
 META_XML_CLEAN_DIRS = ("classes/", "triggers/", "pages/", "aura/", "components/")
 ZERO = timedelta(0)
-API_DATE_FORMAT = '%Y-%m-%dT%H:%M:%S.%f'
-DATETIME_LEN = 4+1+2+1+2+1+2+1+2+1+2+1+3 # the actual width of a datetime string formatted with above format
+API_DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%f"
+DATETIME_LEN = (
+    4 + 1 + 2 + 1 + 2 + 1 + 2 + 1 + 2 + 1 + 2 + 1 + 3
+)  # the actual width of a datetime string formatted with above format
 
 
 def parse_api_datetime(value):
@@ -37,7 +39,6 @@ def parse_api_datetime(value):
     offset_str = value[DATETIME_LEN:]
     assert offset_str == "+0000", "The Salesforce API returned a weird timezone."
     return dt
-
 
 
 def findReplace(find, replace, directory, filePattern, logger=None, max=None):
