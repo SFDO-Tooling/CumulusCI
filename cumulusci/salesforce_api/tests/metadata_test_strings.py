@@ -10,7 +10,9 @@ result_envelope = '<?xml version="1.0" encoding="utf-8"?>\n<soap:Envelope xmlns:
 deploy_result = '<?xml version="1.0" encoding="utf-8"?>\n<testing>\n  <status>{status}</status>\n{extra}</testing>'
 deploy_result_failure = '<?xml version="1.0" encoding="utf-8"?>\n<result>\n  <status>Failed</status>\n  <details>\n    {details}\n  </details>\n</result>'
 
-list_metadata_result = '<?xml version="1.0" encoding="utf-8"?>\n<result><fullName>Test__c</fullName></result>'
+list_metadata_result = '<?xml version="1.0" encoding="utf-8"?>\n<result><fullName>Test__c</fullName><type>CustomObject</type><createdDate>2018-08-07T16:31:57.000+0000</createdDate></result>'
+list_metadata_result_bad_val = '<?xml version="1.0" encoding="utf-8"?>\n<result><fullName>Test__c</fullName><type>CustomObject</type><createdDate>2018-08-07T16:31:57.000+2000</createdDate></result>'
+
 
 retrieve_result = '<?xml version="1.0" encoding="utf-8"?>\n<testing>\n  <zipFile>{zip}</zipFile>\n{extra}</testing>'
 

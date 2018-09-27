@@ -12,6 +12,10 @@ class MetadataComponentFailure(MetadataApiError):
     pass
 
 
+class MetadataParseError(MetadataApiError):
+    pass
+
+
 class MissingOAuthError(CumulusCIException):
     pass
 
