@@ -20,7 +20,6 @@ HTTP_HEADERS = {"Content-Type": "application/x-www-form-urlencoded"}
 
 
 class SalesforceOAuth2(object):
-
     def __init__(
         self,
         client_id,
@@ -98,7 +97,6 @@ class OAuthCallbackHandler(BaseHTTPRequestHandler):
 
 
 class CaptureSalesforceOAuth(object):
-
     def __init__(self, client_id, client_secret, callback_url, auth_site, scope):
         self.client_id = client_id
         self.client_secret = client_secret

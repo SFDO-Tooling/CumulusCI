@@ -28,7 +28,6 @@ __location__ = os.path.dirname(os.path.realpath(__file__))
 
 
 class TestPackageXmlGenerator(unittest.TestCase):
-
     def test_metadata_sort_key(self):
         md = ["a__Test__c", "Test__c"]
         md.sort(key=metadata_sort_key)
@@ -109,7 +108,6 @@ EXPECTED_MANAGED = """<?xml version="1.0" encoding="UTF-8"?>
 
 
 class TestBaseMetadataParser(unittest.TestCase):
-
     def test_parse_items__skips_files(self):
         with temporary_dir() as path:
             # create files that should be ignored by the parser
@@ -145,7 +143,6 @@ class TestBaseMetadataParser(unittest.TestCase):
 
 
 class TestMetadataFilenameParser(unittest.TestCase):
-
     def test_parse_item(self):
         parser = MetadataFilenameParser("TestMDT", None, "object", delete=False)
         result = parser._parse_item("Test.object")
@@ -153,7 +150,6 @@ class TestMetadataFilenameParser(unittest.TestCase):
 
 
 class TestMetadataFolderParser(unittest.TestCase):
-
     def test_parse_item(self):
         with temporary_dir() as path:
             item_path = os.path.join(path, "Test")
@@ -174,7 +170,6 @@ class TestMetadataFolderParser(unittest.TestCase):
 
 
 class TestMetadataXmlElementParser(unittest.TestCase):
-
     def test_parser(self):
         with temporary_dir() as path:
             with open(os.path.join(path, "Test.test"), "w") as f:
@@ -219,7 +214,6 @@ class TestMetadataXmlElementParser(unittest.TestCase):
 
 
 class TestCustomLabelsParser(unittest.TestCase):
-
     def test_parser(self):
         with temporary_dir() as path:
             with open(os.path.join(path, "custom.labels"), "w") as f:
@@ -238,7 +232,6 @@ class TestCustomLabelsParser(unittest.TestCase):
 
 
 class TestCustomObjectParser(unittest.TestCase):
-
     def test_parse_item(self):
         parser = CustomObjectParser("CustomObject", None, "object", False)
         self.assertEquals(["Test__c"], parser._parse_item("Test__c.object"))
@@ -253,7 +246,6 @@ class TestCustomObjectParser(unittest.TestCase):
 
 
 class TestRecordTypeParser(unittest.TestCase):
-
     def test_check_delete_excludes(self):
         parser = RecordTypeParser(
             "RecordType", None, "object", True, "./sf:recordTypes"
@@ -262,7 +254,6 @@ class TestRecordTypeParser(unittest.TestCase):
 
 
 class TestBusinessProcessParser(unittest.TestCase):
-
     def test_check_delete_excludes(self):
         parser = BusinessProcessParser(
             "BusinessProcess", None, "object", True, "./sf:businessProcesses"
@@ -271,7 +262,6 @@ class TestBusinessProcessParser(unittest.TestCase):
 
 
 class TestAuraBundleParser(unittest.TestCase):
-
     def test_parse_item(self):
         parser = AuraBundleParser("AuraDefinitionBundle", None, None, False)
         self.assertEqual(["Test"], parser._parse_item("Test"))
@@ -279,14 +269,12 @@ class TestAuraBundleParser(unittest.TestCase):
 
 
 class TestDocumentParser(unittest.TestCase):
-
     def test_parse_subitem(self):
         parser = DocumentParser("Document", None, None, False)
         self.assertEqual(["folder/doc"], parser._parse_subitem("folder", "doc"))
 
 
 class TestUpdatePackageXml(unittest.TestCase):
-
     def test_run_task(self):
         src_path = os.path.join(
             __location__, "package_metadata", "namespaced_report_folder"

@@ -38,7 +38,6 @@ PARSER_CONFIG = [
 
 
 class DummyParser(BaseChangeNotesParser):
-
     def parse(self, change_note):
         pass
 
@@ -47,7 +46,6 @@ class DummyParser(BaseChangeNotesParser):
 
 
 class TestBaseReleaseNotesGenerator(unittest.TestCase):
-
     def test_render_no_parsers(self):
         release_notes = BaseReleaseNotesGenerator()
         content = release_notes.render()
@@ -65,14 +63,12 @@ class TestBaseReleaseNotesGenerator(unittest.TestCase):
 
 
 class TestStaticReleaseNotesGenerator(unittest.TestCase):
-
     def test_init_parser(self):
         release_notes = StaticReleaseNotesGenerator([])
         assert len(release_notes.parsers) == 3
 
 
 class TestDirectoryReleaseNotesGenerator(unittest.TestCase):
-
     def test_init_parser(self):
         release_notes = DirectoryReleaseNotesGenerator("change_notes")
         assert len(release_notes.parsers) == 3
@@ -82,9 +78,7 @@ class TestDirectoryReleaseNotesGenerator(unittest.TestCase):
         release_notes = DirectoryReleaseNotesGenerator(change_notes_dir)
 
         content = release_notes()
-        expected = (
-            "# Critical Changes\r\n\r\n* This will break everything!\r\n\r\n# Changes\r\n\r\nHere's something I did. It was really cool\r\nOh yeah I did something else too!\r\n\r\n# Issues Closed\r\n\r\n#2345\r\n#6236"
-        )
+        expected = "# Critical Changes\r\n\r\n* This will break everything!\r\n\r\n# Changes\r\n\r\nHere's something I did. It was really cool\r\nOh yeah I did something else too!\r\n\r\n# Issues Closed\r\n\r\n#2345\r\n#6236"
         print(expected)
         print("-------------------------------------")
         print(content)
@@ -93,7 +87,6 @@ class TestDirectoryReleaseNotesGenerator(unittest.TestCase):
 
 
 class TestGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTestMixin):
-
     def setUp(self):
         self.current_tag = "prod/1.4"
         self.last_tag = "prod/1.3"
@@ -134,7 +127,6 @@ class TestGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTestMixin):
 
 
 class TestPublishingGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTestMixin):
-
     def setUp(self):
         self.init_github()
         self.github_info = {

@@ -34,7 +34,6 @@ PARSER_CONFIG = [
 
 
 class TestBaseChangeNotesParser(unittest.TestCase):
-
     def test_parse(self):
         parser = BaseChangeNotesParser("Title")
         with self.assertRaises(NotImplementedError):
@@ -47,7 +46,6 @@ class TestBaseChangeNotesParser(unittest.TestCase):
 
 
 class TestChangeNotesLinesParser(unittest.TestCase):
-
     def setUp(self):
         self.title = "Title"
 
@@ -140,7 +138,6 @@ class TestChangeNotesLinesParser(unittest.TestCase):
 
 
 class TestGithubLinesParser(unittest.TestCase):
-
     def setUp(self):
         self.title = "Title"
 
@@ -157,7 +154,6 @@ class TestGithubLinesParser(unittest.TestCase):
 
 
 class TestIssuesParser(unittest.TestCase):
-
     def setUp(self):
         self.title = "Issues"
 
@@ -188,7 +184,6 @@ class TestIssuesParser(unittest.TestCase):
 
 
 class TestGithubIssuesParser(unittest.TestCase, GithubApiTestMixin):
-
     def setUp(self):
         self.init_github()
         self.gh = get_github_api("TestUser", "TestPass")
@@ -312,7 +307,6 @@ class TestGithubIssuesParser(unittest.TestCase, GithubApiTestMixin):
 
 
 class TestCommentingGithubIssuesParser(unittest.TestCase, GithubApiTestMixin):
-
     def setUp(self):
         self.init_github()
         self.gh = get_github_api("TestUser", "TestPass")

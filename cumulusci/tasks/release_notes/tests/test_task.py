@@ -8,7 +8,6 @@ from cumulusci.tests.util import create_project_config
 
 
 class TestGithubReleaseNotes(unittest.TestCase):
-
     @mock.patch("cumulusci.tasks.release_notes.task.GithubReleaseNotesGenerator")
     def test_run_task(self, GithubReleaseNotesGenerator):
         generator = mock.Mock(return_value="notes")

@@ -20,7 +20,6 @@ from cumulusci.utils import temporary_dir
 
 
 class TestBaseConfig(unittest.TestCase):
-
     def test_getattr_toplevel_key(self):
         config = BaseConfig()
         config.config = {"foo": "bar"}
@@ -121,7 +120,6 @@ class TestBaseConfig(unittest.TestCase):
 
 
 class TestBaseGlobalConfig(unittest.TestCase):
-
     def test_list_projects(self):
         with self.assertRaises(NotImplementedError):
             BaseGlobalConfig().list_projects()
@@ -132,7 +130,6 @@ class TestBaseGlobalConfig(unittest.TestCase):
 
 
 class DummyContents(object):
-
     def __init__(self, content):
         self.decoded = content
 
@@ -167,7 +164,6 @@ class DummyRepository(object):
 
 
 class DummyRelease(object):
-
     def __init__(self, tag_name, name=None):
         self.tag_name = tag_name
         self.name = name
@@ -230,7 +226,6 @@ CUMULUSCI_REPO = DummyRepository(
 
 
 class DummyGithub(object):
-
     def repository(self, owner, name):
         if name == "CumulusCI":
             return CUMULUSCI_REPO
@@ -250,13 +245,11 @@ class DummyService(object):
 
 
 class DummyKeychain(object):
-
     def get_service(self, name):
         return DummyService(name)
 
 
 class TestBaseProjectConfig(unittest.TestCase):
-
     def test_config_global_local(self):
         global_config = BaseGlobalConfig()
         global_config.config_global_local = {}
@@ -645,7 +638,6 @@ class TestBaseProjectConfig(unittest.TestCase):
 
 
 class TestBaseTaskFlowConfig(unittest.TestCase):
-
     def setUp(self):
         self.task_flow_config = BaseTaskFlowConfig(
             {
@@ -693,7 +685,6 @@ class TestBaseTaskFlowConfig(unittest.TestCase):
 
 
 class TestOrgConfig(unittest.TestCase):
-
     @mock.patch("cumulusci.core.config.OrgConfig.SalesforceOAuth2")
     def test_refresh_oauth_token(self, SalesforceOAuth2):
         config = OrgConfig({"refresh_token": mock.sentinel.refresh_token}, "test")

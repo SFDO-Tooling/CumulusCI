@@ -8,7 +8,6 @@ from .util import create_task
 
 
 class TestUninstallLocalBundles(unittest.TestCase):
-
     def test_run_task(self):
         with temporary_dir() as path:
             os.mkdir("bundle")

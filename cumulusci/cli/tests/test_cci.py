@@ -49,7 +49,6 @@ def recursive_list_files(d="."):
 
 
 class TestCCI(unittest.TestCase):
-
     @classmethod
     def setUpClass(self):
         self.tempdir = tempfile.mkdtemp()

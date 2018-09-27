@@ -12,7 +12,6 @@ from cumulusci.tasks.release_notes.exceptions import LastReleaseTagNotFoundError
 
 
 class BaseChangeNotesProvider(object):
-
     def __init__(self, release_notes_generator):
         self.release_notes_generator = release_notes_generator
 
@@ -23,7 +22,6 @@ class BaseChangeNotesProvider(object):
 
 
 class StaticChangeNotesProvider(BaseChangeNotesProvider):
-
     def __init__(self, release_notes_generator, change_notes):
         super(StaticChangeNotesProvider, self).__init__(release_notes_generator)
         self.change_notes = change_notes
@@ -34,7 +32,6 @@ class StaticChangeNotesProvider(BaseChangeNotesProvider):
 
 
 class DirectoryChangeNotesProvider(BaseChangeNotesProvider):
-
     def __init__(self, release_notes_generator, directory):
         super(DirectoryChangeNotesProvider, self).__init__(release_notes_generator)
         self.directory = directory

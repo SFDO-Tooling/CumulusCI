@@ -8,7 +8,6 @@ from cumulusci.core.github import get_github_api
 
 
 class MockHttpResponse(mock.Mock):
-
     def __init__(self, status):
         super(MockHttpResponse, self).__init__()
         self.status = status
@@ -25,7 +24,6 @@ class MockHttpResponse(mock.Mock):
 
 
 class TestGithub(unittest.TestCase):
-
     @mock.patch("urllib3.connectionpool.HTTPConnectionPool._make_request")
     def test_github_api_retries(self, _make_request):
         gh = get_github_api("TestUser", "TestPass")

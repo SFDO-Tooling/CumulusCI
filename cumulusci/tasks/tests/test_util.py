@@ -14,7 +14,6 @@ from cumulusci.tests.util import DummyLogger
 
 
 class TestUtilTasks(unittest.TestCase):
-
     def setUp(self):
         os.mkdir(os.path.join(self.tempdir, ".git"))
         self.global_config = BaseGlobalConfig()

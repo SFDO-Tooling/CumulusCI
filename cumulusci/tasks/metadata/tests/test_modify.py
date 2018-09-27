@@ -11,7 +11,6 @@ from cumulusci.utils import temporary_dir
 
 
 class TestRemoveElementsXPath(unittest.TestCase):
-
     def test_run_task(self):
         with temporary_dir() as path:
             xml_path = os.path.join(path, "test.xml")

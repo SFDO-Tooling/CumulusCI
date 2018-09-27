@@ -17,7 +17,6 @@ from cumulusci.tasks.salesforce import BaseSalesforceApiTask
     MagicMock(return_value=None),
 )
 class TestSalesforceToolingTask(unittest.TestCase):
-
     def setUp(self):
         self.api_version = 36.0
         self.global_config = BaseGlobalConfig(

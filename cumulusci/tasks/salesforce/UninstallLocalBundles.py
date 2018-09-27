@@ -4,7 +4,6 @@ from cumulusci.tasks.salesforce import UninstallLocal
 
 
 class UninstallLocalBundles(UninstallLocal):
-
     def _run_task(self):
         path = self.options["path"]
         path = os.path.abspath(path)

@@ -7,7 +7,6 @@ from .util import create_task
 
 
 class TestUninstallLocal(unittest.TestCase):
-
     @mock.patch("cumulusci.tasks.metadata.package.PackageXmlGenerator.__call__")
     def test_get_destructive_changes(self, PackageXmlGenerator):
         with temporary_dir() as path:

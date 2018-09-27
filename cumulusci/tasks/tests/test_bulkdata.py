@@ -17,7 +17,6 @@ from cumulusci.utils import temporary_dir
 
 
 class TestEpochType(unittest.TestCase):
-
     def test_process_bind_param(self):
         obj = bulkdata.EpochType()
         dt = datetime(1970, 1, 1, 0, 0, 1)
@@ -48,7 +47,6 @@ def _make_task(task_class, task_config):
 
 @mock.patch("cumulusci.tasks.bulkdata.time.sleep", mock.Mock())
 class TestDeleteData(unittest.TestCase):
-
     @responses.activate
     def test_run(self):
         api = mock.Mock()
@@ -89,7 +87,6 @@ class TestDeleteData(unittest.TestCase):
 
 @mock.patch("cumulusci.tasks.bulkdata.time.sleep", mock.Mock())
 class TestLoadData(unittest.TestCase):
-
     @responses.activate
     def test_run(self):
         api = mock.Mock()
@@ -147,7 +144,6 @@ CONTACT_QUERY_RESULT = b"Id,AccountId\n2,1".splitlines()
 
 @mock.patch("cumulusci.tasks.bulkdata.time.sleep", mock.Mock())
 class TestQueryData(unittest.TestCase):
-
     @responses.activate
     def test_run(self):
         api = mock.Mock()

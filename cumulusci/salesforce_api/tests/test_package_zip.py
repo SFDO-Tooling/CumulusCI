@@ -10,7 +10,6 @@ from cumulusci.salesforce_api.package_zip import UninstallPackageZipBuilder
 
 
 class TestBasePackageZipBuilder(unittest.TestCase):
-
     def test_populate_zip(self):
         builder = BasePackageZipBuilder()
         with self.assertRaises(NotImplementedError):
@@ -18,7 +17,6 @@ class TestBasePackageZipBuilder(unittest.TestCase):
 
 
 class TestZipfilePackageZipBuilder(unittest.TestCase):
-
     def test_init(self):
         zf = mock.Mock()
         builder = ZipfilePackageZipBuilder(zf)
@@ -36,7 +34,6 @@ class TestZipfilePackageZipBuilder(unittest.TestCase):
 
 
 class TestCreatePackageZipBuilder(unittest.TestCase):
-
     def test_init__missing_name(self):
         with self.assertRaises(ValueError):
             builder = CreatePackageZipBuilder(None, "43.0")
@@ -47,7 +44,6 @@ class TestCreatePackageZipBuilder(unittest.TestCase):
 
 
 class TestInstallPackageZipBuilder(unittest.TestCase):
-
     def test_init__missing_namespace(self):
         with self.assertRaises(ValueError):
             builder = InstallPackageZipBuilder(None, "1.0")
@@ -58,7 +54,6 @@ class TestInstallPackageZipBuilder(unittest.TestCase):
 
 
 class TestDestructiveChangesZipBuilder(unittest.TestCase):
-
     def test_call(self):
         builder = DestructiveChangesZipBuilder("", "1.0")
         builder()
@@ -68,7 +63,6 @@ class TestDestructiveChangesZipBuilder(unittest.TestCase):
 
 
 class TestUninstallPackageZipBuilder(unittest.TestCase):
-
     def test_init__missing_namespace(self):
         with self.assertRaises(ValueError):
             builder = UninstallPackageZipBuilder(None, "1.0")

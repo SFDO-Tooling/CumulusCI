@@ -36,7 +36,6 @@ from cumulusci.utils import temporary_dir
     MagicMock(return_value=None),
 )
 class TestRunApexTests(unittest.TestCase):
-
     def setUp(self):
         self.api_version = 38.0
         self.global_config = BaseGlobalConfig(
@@ -238,7 +237,6 @@ class TestRunApexTests(unittest.TestCase):
     MagicMock(return_value=None),
 )
 class TestAnonymousApexTask(unittest.TestCase):
-
     def setUp(self):
         self.api_version = 42.0
         self.global_config = BaseGlobalConfig(
@@ -379,7 +377,6 @@ class TestAnonymousApexTask(unittest.TestCase):
     MagicMock(return_value=None),
 )
 class TestRunBatchApex(unittest.TestCase):
-
     def setUp(self):
         self.api_version = 42.0
         self.global_config = BaseGlobalConfig(

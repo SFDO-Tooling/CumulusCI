@@ -97,7 +97,6 @@ class TestSFDXBaseTask(unittest.TestCase):
 
 
 class TestSFDXJsonTask(unittest.TestCase):
-
     def test_get_command(self):
         task = create_task(SFDXJsonTask)
         command = task._get_command()

@@ -13,7 +13,6 @@ from cumulusci.tests.util import create_project_config
 
 @mock.patch("cumulusci.tasks.github.release.time.sleep", mock.Mock())
 class TestCreateRelease(unittest.TestCase, GithubApiTestMixin):
-
     def setUp(self):
         self.repo_owner = "TestOwner"
         self.repo_name = "TestRepo"

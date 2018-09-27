@@ -7,7 +7,6 @@ from .util import create_task
 
 
 class TestUninstallPackage(unittest.TestCase):
-
     @mock.patch(
         "cumulusci.salesforce_api.package_zip.UninstallPackageZipBuilder.__call__"
     )

@@ -542,7 +542,6 @@ def service_list(config):
 
 
 class ConnectServiceCommand(click.MultiCommand):
-
     def list_commands(self, ctx):
         """ list the services that can be configured """
         config = ctx.ensure_object(CliConfig)

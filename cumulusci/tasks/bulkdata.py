@@ -262,7 +262,10 @@ class LoadData(BaseSalesforceApiTask):
             # default to the profile assigned recordtype if we can't find any
             # query for the RT by developer name
             try:
-                query = "SELECT Id FROM RecordType WHERE SObjectType='{0}'" "AND DeveloperName = '{1}' LIMIT 1"
+                query = (
+                    "SELECT Id FROM RecordType WHERE SObjectType='{0}'"
+                    "AND DeveloperName = '{1}' LIMIT 1"
+                )
                 record_type_id = self.sf.query(
                     query.format(mapping.get("sf_object"), record_type)
                 )["records"][0]["Id"]

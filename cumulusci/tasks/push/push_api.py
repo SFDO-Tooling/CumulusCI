@@ -35,7 +35,6 @@ def batch_list(data, batch_size):
 
 
 class BasePushApiObject(object):
-
     def format_where(self, id_field, where=None):
         base_where = "%s = '%s'" % (id_field, self.sf_id)
         if where:
@@ -49,7 +48,6 @@ class BasePushApiObject(object):
 
 
 class MetadataPackage(BasePushApiObject):
-
     def __init__(self, push_api, name, sf_id=None, namespace=None):
         self.push_api = push_api
         self.sf_id = sf_id
@@ -70,7 +68,6 @@ class MetadataPackage(BasePushApiObject):
 
 
 class MetadataPackageVersion(BasePushApiObject):
-
     def __init__(
         self, push_api, package, name, state, major, minor, patch, build, sf_id=None
     ):
@@ -200,7 +197,6 @@ class MetadataPackageVersion(BasePushApiObject):
 
 
 class PackagePushJob(BasePushApiObject):
-
     def __init__(self, push_api, request, org, status, sf_id=None):
         self.push_api = push_api
         self.request = request
@@ -222,7 +218,6 @@ class PackagePushJob(BasePushApiObject):
 
 
 class PackagePushError(BasePushApiObject):
-
     def __init__(
         self, push_api, job, severity, error_type, title, message, details, sf_id=None
     ):
@@ -237,7 +232,6 @@ class PackagePushError(BasePushApiObject):
 
 
 class PackagePushRequest(BasePushApiObject):
-
     def __init__(self, push_api, version, start_time, status, sf_id=None):
         self.push_api = push_api
         self.sf_id = sf_id
@@ -259,7 +253,6 @@ class PackagePushRequest(BasePushApiObject):
 
 
 class PackageSubscriber(object):
-
     def __init__(
         self,
         push_api,

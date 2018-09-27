@@ -10,7 +10,6 @@ from cumulusci.utils import temporary_dir
 
 
 class TestCommitDir(unittest.TestCase):
-
     def test_call(self):
         with temporary_dir() as d:
             repo = mock.Mock(spec=Repository)

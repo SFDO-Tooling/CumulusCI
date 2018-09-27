@@ -31,7 +31,6 @@ INSTALLED_PACKAGE = """<?xml version="1.0" encoding="UTF-8"?>
 
 
 class BasePackageZipBuilder(object):
-
     def __call__(self):
         self._open_zip()
         self._populate_zip()
@@ -57,7 +56,6 @@ class BasePackageZipBuilder(object):
 
 
 class ZipfilePackageZipBuilder(BasePackageZipBuilder):
-
     def __init__(self, zipfile):
         self.zip = zipfile
         self.zip_file = zipfile.fp
@@ -70,7 +68,6 @@ class ZipfilePackageZipBuilder(BasePackageZipBuilder):
 
 
 class CreatePackageZipBuilder(BasePackageZipBuilder):
-
     def __init__(self, name, api_version):
         if not name:
             raise ValueError("You must provide a name to create a package")
@@ -109,7 +106,6 @@ class InstallPackageZipBuilder(BasePackageZipBuilder):
 
 
 class DestructiveChangesZipBuilder(BasePackageZipBuilder):
-
     def __init__(self, destructive_changes, version):
         self.destructive_changes = destructive_changes
         self.version = version
@@ -120,7 +116,6 @@ class DestructiveChangesZipBuilder(BasePackageZipBuilder):
 
 
 class UninstallPackageZipBuilder(DestructiveChangesZipBuilder):
-
     def __init__(self, namespace, version):
         if not namespace:
             raise ValueError("You must provide a namespace to install a package")

@@ -12,7 +12,6 @@ from cumulusci.utils import temporary_dir
 
 
 class TestCreateManagedSrc(unittest.TestCase):
-
     def test_run_task(self):
         with temporary_dir() as path:
             os.mkdir(os.path.join(path, "classes"))
@@ -51,7 +50,6 @@ class TestCreateManagedSrc(unittest.TestCase):
 
 
 class TestRevertManagedSrc(unittest.TestCase):
-
     def test_run_task(self):
         with temporary_dir() as revert_path:
             with open(os.path.join(revert_path, "file"), "w") as f:

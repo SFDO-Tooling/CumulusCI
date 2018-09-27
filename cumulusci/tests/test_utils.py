@@ -16,7 +16,6 @@ from cumulusci.core.tasks import BaseTask
 
 
 class TestUtils(unittest.TestCase):
-
     def test_findReplace(self):
         with utils.temporary_dir() as d:
             path = os.path.join(d, "test")

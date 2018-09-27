@@ -10,7 +10,6 @@ from cumulusci.tasks.apexdoc import GenerateApexDocs
 
 
 class TestGenerateApexDocs(unittest.TestCase):
-
     def setUp(self):
         self.global_config = BaseGlobalConfig()
         self.project_config = BaseProjectConfig(self.global_config)

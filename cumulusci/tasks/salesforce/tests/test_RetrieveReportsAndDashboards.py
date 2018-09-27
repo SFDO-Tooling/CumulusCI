@@ -14,7 +14,6 @@ from .util import create_task
 
 
 class TestRetrievePackaged(unittest.TestCase):
-
     @responses.activate
     def test_get_api(self):
         with temporary_dir() as path:

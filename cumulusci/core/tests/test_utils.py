@@ -7,7 +7,6 @@ from .. import utils
 
 
 class TestUtils(unittest.TestCase):
-
     def test_parse_datetime(self):
         dt = utils.parse_datetime("2018-07-30", "%Y-%m-%d")
         self.assertEquals(dt, datetime.datetime(2018, 7, 30, 0, 0, 0, 0, pytz.UTC))

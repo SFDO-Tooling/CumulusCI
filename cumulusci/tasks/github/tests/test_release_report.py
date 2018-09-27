@@ -12,7 +12,6 @@ from cumulusci.tests.util import create_project_config
 
 
 class TestReleaseReport(unittest.TestCase, GithubApiTestMixin):
-
     def setUp(self):
         self.repo_owner = "TestOwner"
         self.repo_name = "TestRepo"

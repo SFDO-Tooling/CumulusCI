@@ -11,7 +11,6 @@ from .util import create_task
 
 
 class TestRetrievePackaged(unittest.TestCase):
-
     def test_run_task(self):
         with temporary_dir() as path:
             project_config = create_project_config()

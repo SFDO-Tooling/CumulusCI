@@ -22,7 +22,6 @@ USERNAME = "sample@example"
 
 
 class _TaskHasResult(BaseTask):
-
     def _run_task(self):
         return -1
 
@@ -118,7 +117,6 @@ class TestBaseTaskCallable(unittest.TestCase):
         self.assertEquals("baz", task.options["test_option"])
 
     def test_validates_missing_options(self):
-
         class Task(BaseTask):
             task_options = {"test_option": {"required": True}}
 
@@ -129,7 +127,6 @@ class TestBaseTaskCallable(unittest.TestCase):
         """ Callable interface returns retvals """
 
         class _TaskReturnsStuff(BaseTask):
-
             def _run_task(self):
                 self.return_values["name"] = "return!"
 

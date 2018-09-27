@@ -18,7 +18,6 @@ from cumulusci.oauth.exceptions import SalesforceOAuthError
 
 
 class TestSalesforceOAuth(unittest.TestCase):
-
     def _create_oauth(self):
         return SalesforceOAuth2(
             client_id="foo_id",
@@ -51,7 +50,6 @@ class TestSalesforceOAuth(unittest.TestCase):
 
 @mock.patch("webbrowser.open", mock.MagicMock(return_value=None))
 class TestCaptureSalesforceOAuth(unittest.TestCase):
-
     def _create_oauth(self):
         return CaptureSalesforceOAuth(
             self.client_id,

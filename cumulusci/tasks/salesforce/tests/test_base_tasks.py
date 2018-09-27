@@ -16,7 +16,6 @@ from . import create_task
 
 
 class TestBaseSalesforceTask(unittest.TestCase):
-
     def setUp(self):
         self.project_config = create_project_config()
         self.project_config.keychain = mock.Mock()
@@ -35,7 +34,6 @@ class TestBaseSalesforceTask(unittest.TestCase):
                 task()
 
     def test_update_credentials(self):
-
         def update_config(keychain):
             self.org_config.config["new"] = "new"
 
@@ -47,7 +45,6 @@ class TestBaseSalesforceTask(unittest.TestCase):
 
 
 class TestBaseSalesforceMetadataApiTask(unittest.TestCase):
-
     def test_run_task(self):
         task = create_task(BaseSalesforceMetadataApiTask)
         api = mock.Mock()
@@ -57,7 +54,6 @@ class TestBaseSalesforceMetadataApiTask(unittest.TestCase):
 
 
 class TestBaseRetrieveMetadata(unittest.TestCase):
-
     def test_process_namespace(self):
         with temporary_dir() as path:
             task = create_task(
@@ -75,7 +71,6 @@ class TestBaseRetrieveMetadata(unittest.TestCase):
 
 
 class TestBaseUninstallMetadata(unittest.TestCase):
-
     def test_get_api(self):
         with temporary_dir() as path:
             task = create_task(BaseUninstallMetadata, {"path": path})

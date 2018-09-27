@@ -9,7 +9,6 @@ from .util import create_task
 
 
 class TestUninstallPackaged(unittest.TestCase):
-
     @mock.patch("cumulusci.salesforce_api.metadata.ApiRetrievePackaged.__call__")
     def test_get_destructive_changes(self, ApiRetrievePackaged):
         project_config = create_project_config()
