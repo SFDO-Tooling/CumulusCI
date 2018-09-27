@@ -23,7 +23,7 @@ with open("HISTORY.rst") as history_file:
 
 requirements = [
     "arrow==0.12.1",
-    "click==6.7",
+    "click==7.0",
     "coloredlogs==9.3.1",
     "docutils==0.14",
     "future==0.16.0",
