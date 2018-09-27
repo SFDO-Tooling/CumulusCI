@@ -54,7 +54,7 @@ class PackageXmlGenerator(object):
         uninstall_class=None,
     ):
         with open(__location__ + "/metadata_map.yml", "r") as f_metadata_map:
-            self.metadata_map = yaml.load(f_metadata_map)
+            self.metadata_map = yaml.safe_load(f_metadata_map)
         self.directory = directory
         self.api_version = api_version
         self.package_name = package_name

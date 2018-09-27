@@ -58,12 +58,6 @@ class TestCCI(unittest.TestCase):
     def tearDownClass(self):
         shutil.rmtree(self.tempdir)
 
-    def test_dbm_cache(self):
-        with cci.dbm_cache() as cache:
-            cache["1"] = "1"
-        with cci.dbm_cache() as cache:
-            self.assertEqual("1", cache["1"])
-
     def test_get_installed_version(self):
         result = cci.get_installed_version()
         self.assertEqual(cumulusci.__version__, result.base_version)
@@ -85,8 +79,8 @@ class TestCCI(unittest.TestCase):
     def test_check_latest_version(
         self, click, get_latest_version, get_installed_version
     ):
-        with cci.dbm_cache() as cache:
-            cache["cumulusci-latest-timestamp"] = str(time.time() - 4000)
+        with cci.timestamp_file() as f:
+            f.write(bytes(time.time() - 4000))
         get_latest_version.return_value = pkg_resources.parse_version("2")
         get_installed_version.return_value = pkg_resources.parse_version("1")
 
@@ -97,8 +91,8 @@ class TestCCI(unittest.TestCase):
     @mock.patch("cumulusci.cli.cci.get_latest_version")
     @mock.patch("cumulusci.cli.cci.click")
     def test_check_latest_version_request_error(self, click, get_latest_version):
-        with cci.dbm_cache() as cache:
-            cache["cumulusci-latest-timestamp"] = str(time.time() - 4000)
+        with cci.timestamp_file() as f:
+            f.write(bytes(time.time() - 4000))
         get_latest_version.side_effect = requests.exceptions.RequestException()
 
         cci.check_latest_version()
