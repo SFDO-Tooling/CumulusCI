@@ -1,2 +1,2 @@
 [tool.black]
-exclude = '^/(\.|dist|pybuild)'
+exclude = '^/(\.|dist|pybuild|venv)'
