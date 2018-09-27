@@ -8,6 +8,7 @@ from .util import create_task
 
 
 class TestCreatePackage(unittest.TestCase):
+
     @mock.patch("cumulusci.salesforce_api.package_zip.CreatePackageZipBuilder.__call__")
     def test_get_package_zip(self, CreatePackageZipBuilder):
         project_config = BaseProjectConfig(

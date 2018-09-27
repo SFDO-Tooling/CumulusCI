@@ -39,6 +39,7 @@ def error_record(gack=False):  # type: (bool) -> dict
 
 
 class TestPushFailureTask(unittest.TestCase):
+
     def test_run_task(self,):
         task = create_task(ReportPushFailures, options={"request_id": "123"})
         task.sf = mock.Mock()

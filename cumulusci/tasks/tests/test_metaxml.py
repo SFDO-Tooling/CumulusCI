@@ -11,6 +11,7 @@ from cumulusci.utils import temporary_dir
 
 
 class TestUpdateApi(unittest.TestCase):
+
     def test_run_task(self):
         with temporary_dir() as d:
             os.mkdir(".git")
@@ -43,6 +44,7 @@ class TestUpdateApi(unittest.TestCase):
 
 
 class TestUpdateDependencies(unittest.TestCase):
+
     def test_run_task(self):
         with temporary_dir() as d:
             os.mkdir(".git")

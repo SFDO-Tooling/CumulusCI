@@ -11,6 +11,7 @@ from cumulusci.tests.util import create_project_config
 
 @mock.patch("cumulusci.tasks.github.base.get_github_api", mock.Mock())
 class TestCommitApexDocs(unittest.TestCase):
+
     def setUp(self):
         self.project_config = create_project_config()
         self.project_config.config["project"]["apexdoc"] = {

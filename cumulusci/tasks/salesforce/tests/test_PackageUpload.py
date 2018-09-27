@@ -8,6 +8,7 @@ from .util import create_task
 
 
 class TestPackageUpload(unittest.TestCase):
+
     def test_run_task(self):
         task = create_task(
             PackageUpload,

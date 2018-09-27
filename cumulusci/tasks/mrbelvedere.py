@@ -8,6 +8,7 @@ from cumulusci.core.tasks import BaseTask
 
 
 class BaseMrbelvedereTask(BaseTask):
+
     def _init_task(self):
         self.mrbelvedere_config = self.project_config.keychain.get_service(
             "mrbelvedere"

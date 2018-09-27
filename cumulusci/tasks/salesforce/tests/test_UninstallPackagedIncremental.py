@@ -11,6 +11,7 @@ from .util import create_task
 
 
 class TestUninstallPackagedIncremental(unittest.TestCase):
+
     def test_get_destructive_changes(self):
         with temporary_dir() as path:
             os.mkdir("src")

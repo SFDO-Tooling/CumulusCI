@@ -24,6 +24,7 @@ from cumulusci.tasks.github.tests.util_github_api import GithubApiTestMixin
 
 
 class TestMergeBranch(unittest.TestCase, GithubApiTestMixin):
+
     def setUp(self):
 
         # Set up the mock values

@@ -122,6 +122,7 @@ class TestCommandTaskWithMockPopen(unittest.TestCase):
 
 
 class TestSalesforceCommand(unittest.TestCase):
+
     def setUp(self):
         self.global_config = BaseGlobalConfig()
         self.project_config = BaseProjectConfig(self.global_config)

@@ -46,6 +46,7 @@ class DummyResponse(object):
 
 
 class DummyPackageZipBuilder(BasePackageZipBuilder):
+
     def _populate_zip(self):
         return
 
@@ -331,7 +332,9 @@ class BaseTestMetadataApi(unittest.TestCase):
         api = self._create_instance(task)
         if not self.api_class.soap_envelope_start:
             api.soap_envelope_start = "{api_version}"
-        response = '<?xml version="1.0" encoding="UTF-8"?><faultcode>sf:INVALID_SESSION_ID</faultcode>'
+        response = (
+            '<?xml version="1.0" encoding="UTF-8"?><faultcode>sf:INVALID_SESSION_ID</faultcode>'
+        )
         self._mock_call_mdapi(api, response)
         resp = api._get_response()
         self.assertEquals(api.status, "Failed")
@@ -541,7 +544,9 @@ class BaseTestMetadataApi(unittest.TestCase):
         api = self._create_instance(task)
         response = DummyResponse()
         response.status_code = 200
-        response.content = '<?xml version="1.0" encoding="UTF-8"?><test><done>false</done><stateDetail>Deploy log goes here</stateDetail></test>'
+        response.content = (
+            '<?xml version="1.0" encoding="UTF-8"?><test><done>false</done><stateDetail>Deploy log goes here</stateDetail></test>'
+        )
         api.status = "InProgress"
         res = api._process_response_status(response)
         self.assertEquals(api.status, "InProgress")
@@ -549,6 +554,7 @@ class BaseTestMetadataApi(unittest.TestCase):
 
 
 class TestBaseMetadataApiCall(BaseTestMetadataApi):
+
     def test_build_envelope_start_no_envelope(self):
         task = self._create_task()
         api = self._create_instance(task)

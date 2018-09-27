@@ -43,6 +43,7 @@ class MetadataParserMissingError(Exception):
 
 
 class PackageXmlGenerator(object):
+
     def __init__(
         self,
         directory,
@@ -130,6 +131,7 @@ class PackageXmlGenerator(object):
 
 
 class BaseMetadataParser(object):
+
     def __init__(self, metadata_type, directory, extension, delete):
         self.metadata_type = metadata_type
         self.directory = directory
@@ -211,11 +213,13 @@ class BaseMetadataParser(object):
 
 
 class MetadataFilenameParser(BaseMetadataParser):
+
     def _parse_item(self, item):
         return [self.strip_extension(item)]
 
 
 class MetadataFolderParser(BaseMetadataParser):
+
     def _parse_item(self, item):
         members = []
         path = self.directory + "/" + item
@@ -315,11 +319,13 @@ class MetadataXmlElementParser(BaseMetadataParser):
 
 
 class CustomLabelsParser(MetadataXmlElementParser):
+
     def item_name_prefix(self, parent):
         return ""
 
 
 class CustomObjectParser(MetadataFilenameParser):
+
     def _parse_item(self, item):
         members = []
 
@@ -341,18 +347,21 @@ class CustomObjectParser(MetadataFilenameParser):
 
 
 class RecordTypeParser(MetadataXmlElementParser):
+
     def check_delete_excludes(self, item):
         if self.delete:
             return True
 
 
 class BusinessProcessParser(MetadataXmlElementParser):
+
     def check_delete_excludes(self, item):
         if self.delete:
             return True
 
 
 class AuraBundleParser(MetadataFilenameParser):
+
     def _parse_item(self, item):
         if item.startswith("."):
             return []
@@ -360,6 +369,7 @@ class AuraBundleParser(MetadataFilenameParser):
 
 
 class DocumentParser(MetadataFolderParser):
+
     def _parse_subitem(self, item, subitem):
         return [item + "/" + subitem]
 

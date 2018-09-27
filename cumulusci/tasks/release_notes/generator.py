@@ -19,6 +19,7 @@ from cumulusci.tasks.release_notes.provider import GithubChangeNotesProvider
 
 
 class BaseReleaseNotesGenerator(object):
+
     def __init__(self):
         self.change_notes = []
         self.init_parsers()
@@ -69,6 +70,7 @@ class BaseReleaseNotesGenerator(object):
 
 
 class StaticReleaseNotesGenerator(BaseReleaseNotesGenerator):
+
     def __init__(self, change_notes):
         self._change_notes = change_notes
         super(StaticReleaseNotesGenerator, self).__init__()
@@ -83,6 +85,7 @@ class StaticReleaseNotesGenerator(BaseReleaseNotesGenerator):
 
 
 class DirectoryReleaseNotesGenerator(BaseReleaseNotesGenerator):
+
     def __init__(self, directory):
         self.directory = directory
         super(DirectoryReleaseNotesGenerator, self).__init__()
@@ -97,6 +100,7 @@ class DirectoryReleaseNotesGenerator(BaseReleaseNotesGenerator):
 
 
 class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator):
+
     def __init__(
         self,
         github,

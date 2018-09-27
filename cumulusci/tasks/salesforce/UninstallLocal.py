@@ -3,6 +3,7 @@ from cumulusci.tasks.salesforce import BaseUninstallMetadata
 
 
 class UninstallLocal(BaseUninstallMetadata):
+
     def _get_destructive_changes(self, path=None):
         if not path:
             path = self.options["path"]

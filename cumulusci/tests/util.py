@@ -36,6 +36,7 @@ def create_project_config(repo_name="TestRepo", repo_owner="TestOwner"):
 
 
 class DummyProjectConfig(BaseProjectConfig):
+
     def __init__(
         self, global_config, repo_name, repo_owner, repo_commit=None, config=None
     ):
@@ -61,6 +62,7 @@ class DummyProjectConfig(BaseProjectConfig):
 
 
 class DummyOrgConfig(OrgConfig):
+
     def __init__(self, config=None, name=None):
         if not name:
             name = "test"
@@ -71,6 +73,7 @@ class DummyOrgConfig(OrgConfig):
 
 
 class DummyLogger(object):
+
     def __init__(self):
         self.out = []
 

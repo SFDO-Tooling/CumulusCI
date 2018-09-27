@@ -41,6 +41,7 @@ PARSER_CONFIG = [
 
 
 class TestBaseChangeNotesProvider(unittest.TestCase):
+
     def test_init(self):
         provider = BaseChangeNotesProvider("test")
         assert provider.release_notes_generator == "test"
@@ -51,6 +52,7 @@ class TestBaseChangeNotesProvider(unittest.TestCase):
 
 
 class TestStaticChangeNotesProvider(unittest.TestCase):
+
     def test_empty_list(self):
         provider = StaticChangeNotesProvider("test", [])
         assert list(provider()) == []
@@ -65,6 +67,7 @@ class TestStaticChangeNotesProvider(unittest.TestCase):
 
 
 class TestDirectoryChangeNotesProvider(unittest.TestCase):
+
     def get_empty_dir(self):
         tempdir = tempfile.mkdtemp()
         return os.path.join(tempdir)
@@ -97,6 +100,7 @@ class TestDirectoryChangeNotesProvider(unittest.TestCase):
 
 
 class TestGithubChangeNotesProvider(unittest.TestCase, GithubApiTestMixin):
+
     def setUp(self):
         # Set up the mock release_tag lookup response
         self.repo_api_url = "https://api.github.com/repos/TestOwner/TestRepo"

@@ -9,6 +9,7 @@ from cumulusci.core.tasks import BaseTask
 
 
 class MetaXmlBaseTask(BaseTask):
+
     def _init_options(self, kwargs):
         super(MetaXmlBaseTask, self)._init_options(kwargs)
         if "dir" not in self.options or not self.options["dir"]:

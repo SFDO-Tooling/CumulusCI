@@ -15,6 +15,7 @@ from cumulusci.tests.util import get_base_config
 
 
 class TestMrbelvederePublish(unittest.TestCase):
+
     def setUp(self):
         self.project_config = BaseProjectConfig(BaseGlobalConfig(), get_base_config())
         self.project_config.config["project"]["package"]["namespace"] = "npsp"

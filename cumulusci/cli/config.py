@@ -16,6 +16,7 @@ from cumulusci.core.utils import import_class
 
 
 class CliConfig(object):
+
     def __init__(self):
         self.global_config = None
         self.project_config = None
@@ -36,7 +37,10 @@ class CliConfig(object):
     def _load_project_config(self):
         try:
             self.project_config = self.global_config.get_project_config()
-        except (ProjectConfigNotFound, NotInProject) as e: # not in a git repo or cci project (respectively)
+        except (
+            ProjectConfigNotFound,
+            NotInProject,
+        ) as e:  # not in a git repo or cci project (respectively)
             raise click.UsageError(str(e))
         except ConfigError as e:
             raise click.UsageError("Config Error: {}".format(str(e)))

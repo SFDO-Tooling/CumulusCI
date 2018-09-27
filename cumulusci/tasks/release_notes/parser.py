@@ -6,6 +6,7 @@ from .exceptions import GithubIssuesError
 
 
 class BaseChangeNotesParser(object):
+
     def __init__(self, title):
         self.title = title
         self.content = []
@@ -21,6 +22,7 @@ class BaseChangeNotesParser(object):
 
 
 class ChangeNotesLinesParser(BaseChangeNotesParser):
+
     def __init__(self, release_notes_generator, title):
         super(ChangeNotesLinesParser, self).__init__(title)
         self.release_notes_generator = release_notes_generator
@@ -123,6 +125,7 @@ class ChangeNotesLinesParser(BaseChangeNotesParser):
 
 
 class GithubLinesParser(ChangeNotesLinesParser):
+
     def __init__(self, release_notes_generator, title):
         super(GithubLinesParser, self).__init__(release_notes_generator, title)
         self.link_pr = release_notes_generator.link_pr
@@ -141,6 +144,7 @@ class GithubLinesParser(ChangeNotesLinesParser):
 
 
 class IssuesParser(ChangeNotesLinesParser):
+
     def __init__(self, release_notes_generator, title, issue_regex=None):
         super(IssuesParser, self).__init__(release_notes_generator, title)
         self.issue_regex = issue_regex or self._get_default_regex()

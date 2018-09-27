@@ -12,6 +12,7 @@ from cumulusci.utils import temporary_dir
 
 
 class TestCreateUnmanagedEESrc(unittest.TestCase):
+
     @mock.patch("cumulusci.tasks.metadata.ee_src.removeXmlElement")
     def test_run_task(self, removeXmlElement):
         with temporary_dir() as path:
@@ -47,6 +48,7 @@ class TestCreateUnmanagedEESrc(unittest.TestCase):
 
 
 class TestRevertUnmanagedEESrc(unittest.TestCase):
+
     def test_run_task(self):
         with temporary_dir() as revert_path:
             with open(os.path.join(revert_path, "file"), "w") as f:

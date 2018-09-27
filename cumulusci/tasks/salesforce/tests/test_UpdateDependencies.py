@@ -11,6 +11,7 @@ from .util import create_task
 
 
 class TestUpdateDependencies(unittest.TestCase):
+
     @mock.patch(
         "cumulusci.salesforce_api.metadata.ApiRetrieveInstalledPackages.__call__"
     )

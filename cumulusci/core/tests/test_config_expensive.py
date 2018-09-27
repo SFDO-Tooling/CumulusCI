@@ -23,6 +23,7 @@ __location__ = os.path.dirname(os.path.realpath(__file__))
 
 @mock.patch("os.path.expanduser")
 class TestYamlGlobalConfig(unittest.TestCase):
+
     def setUp(self):
         self.tempdir_home = tempfile.mkdtemp()
 
@@ -68,6 +69,7 @@ class TestYamlGlobalConfig(unittest.TestCase):
 
 @mock.patch("os.path.expanduser")
 class TestYamlProjectConfig(unittest.TestCase):
+
     def _create_git_config(self):
 
         filename = os.path.join(self.tempdir_project, ".git", "config")
@@ -247,6 +249,7 @@ class TestYamlProjectConfig(unittest.TestCase):
 
 @mock.patch("sarge.Command")
 class TestScratchOrgConfig(unittest.TestCase):
+
     def test_scratch_info(self, Command):
         result = b"""{
     "result": {

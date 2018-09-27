@@ -11,6 +11,7 @@ from .util import create_task
 
 
 class TestDeploy(unittest.TestCase):
+
     def test_get_api(self):
         with temporary_dir() as path:
             with open(os.path.join(path, "package.xml"), "w") as f:
