@@ -3,6 +3,8 @@ from past.builtins import basestring
 from distutils.version import LooseVersion
 
 from cumulusci.core.utils import process_bool_arg
+from cumulusci.core.config import ScratchOrgConfig
+from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.salesforce_api.metadata import ApiDeploy
 from cumulusci.salesforce_api.metadata import ApiRetrieveInstalledPackages
 from cumulusci.salesforce_api.package_zip import InstallPackageZipBuilder
@@ -25,6 +27,9 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
         "purge_on_delete": {
             "description": "Sets the purgeOnDelete option for the deployment. Defaults to True"
         },
+        "include_beta": {
+            "description": "Install the most recent release, even if beta. Defaults to False."
+        },
     }
 
     def _init_options(self, kwargs):
@@ -35,14 +40,26 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
         self.options["namespaced_org"] = process_bool_arg(
             self.options.get("namespaced_org", False)
         )
+        self.options["include_beta"] = process_bool_arg(
+            self.options.get("include_beta", False)
+        )
 
     def _run_task(self):
         if not self.project_config.project__dependencies:
             self.logger.info("Project has no dependencies, doing nothing")
             return
 
+        if self.options["include_beta"] and not isinstance(
+            self.org_config, ScratchOrgConfig
+        ):
+            raise TaskOptionsError(
+                "Target org must be a scratch org when `include_beta` is true."
+            )
+
         self.logger.info("Preparing static dependencies map")
-        dependencies = self.project_config.get_static_dependencies()
+        dependencies = self.project_config.get_static_dependencies(
+            include_beta=self.options["include_beta"]
+        )
 
         self.installed = self._get_installed()
         self.uninstall_queue = []

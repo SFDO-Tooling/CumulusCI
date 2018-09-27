@@ -259,7 +259,11 @@ def zip_strip_namespace(zip_src, namespace, logger=None):
             new_content = new_content.replace(lightning_namespace, "c:")
             name = name.replace(namespace_prefix, "")  # not...sure...this..gets...used
             if orig_content != new_content and logger:
-                logger.info("  {file_name}: removed {namespace}")
+                logger.info(
+                    "  {file_name}: removed {namespace}".format(
+                        file_name=name, namespace=namespace_prefix
+                    )
+                )
         except UnicodeDecodeError:
             # if we cannot decode the content, don't try and replace it.
             new_content = orig_content

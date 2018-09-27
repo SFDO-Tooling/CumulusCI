@@ -164,8 +164,9 @@ class DummyRepository(object):
 
 
 class DummyRelease(object):
-    def __init__(self, tag_name):
+    def __init__(self, tag_name, name=None):
         self.tag_name = tag_name
+        self.name = name
 
 
 CUMULUSCI_TEST_REPO = DummyRepository(
@@ -567,6 +568,61 @@ class TestBaseProjectConfig(unittest.TestCase):
             },
             result,
         )
+
+    def test_process_github_dependency_latest(self):
+        global_config = BaseGlobalConfig()
+        config = BaseProjectConfig(global_config)
+        config.get_github_api = DummyGithub
+        config.keychain = DummyKeychain()
+        CUMULUSCI_TEST_DEP_REPO.releases = [
+            DummyRelease("beta/1.1-Beta_1", "1.1 (Beta 1)"),
+            DummyRelease("release/1.0"),
+        ]
+
+        result = config.process_github_dependency(
+            {
+                "github": "https://github.com/SFDO-Tooling/CumulusCI-Test.git",
+                "unmanaged": True,
+                "skip": ["unpackaged/pre/skip", "unpackaged/post/skip"],
+            },
+            "",
+            include_beta=True
+        )
+        print result
+        self.assertEqual(
+            result,
+            [
+                {
+                    u"headers": {u"Authorization": u"token password"},
+                    u"namespace_inject": None,
+                    u"namespace_strip": None,
+                    u"namespace_tokenize": None,
+                    u"subfolder": u"CumulusCI-Test-master/unpackaged/pre/pre",
+                    u"unmanaged": True,
+                    u"zip_url": u"https://github.com/SFDO-Tooling/CumulusCI-Test/archive/master.zip",
+                },
+                {u"version": "1.1 (Beta 1)", u"namespace": "ccitestdep"},
+                {
+                    u"headers": {u"Authorization": u"token password"},
+                    u"namespace_inject": None,
+                    u"namespace_strip": None,
+                    u"namespace_tokenize": None,
+                    u"subfolder": u"CumulusCI-Test-master/src",
+                    u"unmanaged": True,
+                    u"zip_url": u"https://github.com/SFDO-Tooling/CumulusCI-Test/archive/master.zip",
+                },
+                {
+                    u"headers": {u"Authorization": u"token password"},
+                    u"namespace_inject": "ccitest",
+                    u"namespace_strip": None,
+                    u"namespace_tokenize": None,
+                    u"subfolder": u"CumulusCI-Test-master/unpackaged/post/post",
+                    u"unmanaged": True,
+                    u"zip_url": u"https://github.com/SFDO-Tooling/CumulusCI-Test/archive/master.zip",
+                },
+            ],
+        )
+        CUMULUSCI_TEST_DEP_REPO.releases = None
 
     def test_process_github_dependency_cannot_find_latest(self):
         global_config = BaseGlobalConfig()
