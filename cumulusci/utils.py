@@ -12,7 +12,7 @@ import shutil
 import zipfile
 import tempfile
 import textwrap
-from datetime import tzinfo, timedelta, datetime
+from datetime import timedelta, datetime
 
 import requests
 
