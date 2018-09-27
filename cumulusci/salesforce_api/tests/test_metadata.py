@@ -4,6 +4,7 @@ import unittest
 from xml.dom.minidom import parseString
 
 import responses
+import datetime
 
 from nose.tools import raises
 
@@ -758,7 +759,7 @@ class TestApiListMetadata(BaseTestMetadataApi):
                 {
                     u"createdById": None,
                     u"createdByName": None,
-                    u"createdDate": None,
+                    u"createdDate": datetime.datetime(2018,8,7,16,31,57),
                     u"fileName": None,
                     u"fullName": u"Test__c",
                     u"id": None,
@@ -767,7 +768,7 @@ class TestApiListMetadata(BaseTestMetadataApi):
                     u"lastModifiedDate": None,
                     u"manageableState": None,
                     u"namespacePrefix": None,
-                    u"type": None,
+                    u"type": "CustomObject",
                 }
             ]
         }
