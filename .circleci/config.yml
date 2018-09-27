@@ -25,7 +25,7 @@ jobs:
       - run:
           name: Run black
           command: |
-            venv/bin/black --diff .
+            venv/bin/black --check --diff .
 
   test_py2:
     <<: *defaults
