@@ -22,7 +22,6 @@ with open("HISTORY.rst") as history_file:
     history = history_file.read()
 
 requirements = [
-    "arrow==0.12.1",
     "click==7.0",
     "coloredlogs==9.3.1",
     "docutils==0.14",

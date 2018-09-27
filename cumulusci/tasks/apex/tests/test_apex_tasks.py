@@ -428,7 +428,7 @@ class TestRunBatchApex(unittest.TestCase):
                     "JobItemsProcessed": 1,
                     "NumberOfErrors": 0,
                     "CreatedDate": "2018-08-07T16:00:56.000+0000",
-                    "CompletedDate": "2018-08-07T16:00:57.000+0000",
+                    "CompletedDate": "2018-08-07T16:01:57.000+0000",
                 }
             ],
         }
@@ -459,3 +459,12 @@ class TestRunBatchApex(unittest.TestCase):
         response = self._get_query_resp()
         responses.add(responses.GET, url, json=response)
         task()
+
+    @responses.activate
+    def test_run_batch_apex_calc_delta(self):
+        task, url = self._get_url_and_task()
+        response = self._get_query_resp()
+        responses.add(responses.GET, url, json=response)
+        task()
+        self.assertAlmostEquals(task.delta, 60, delta=2)
+
