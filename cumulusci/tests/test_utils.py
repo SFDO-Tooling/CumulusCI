@@ -206,8 +206,8 @@ class TestUtils(unittest.TestCase):
         result = zf.read("ns__test")
         self.assertEqual("ns__|ns__|ns|ns", result)
 
-    def test_zip_inject_namespace_skips_binary(self):
-        contents = b"\xe2\x98\x83%%%NAMESPACE%%%"
+    def test_zip_inject_namespace__skips_binary(self):
+        contents = b"\x9c%%%NAMESPACE%%%"
         zf = zipfile.ZipFile(io.BytesIO(), "w")
         zf.writestr("test", contents)
 
@@ -225,8 +225,8 @@ class TestUtils(unittest.TestCase):
         result = zf.read("test")
         self.assertEqual("test c:test", result)
 
-    def test_zip_strip_namespace_skips_binary(self):
-        contents = b"\xe2\x98\x83ns__"
+    def test_zip_strip_namespace__skips_binary(self):
+        contents = b"\x9cns__"
         zf = zipfile.ZipFile(io.BytesIO(), "w")
         zf.writestr("test", contents)
 
@@ -242,7 +242,6 @@ class TestUtils(unittest.TestCase):
         zf = utils.zip_strip_namespace(zf, "ns", logger=logger)
         logger.info.assert_called_once()
 
-
     def test_zip_tokenize_namespace(self):
         zf = zipfile.ZipFile(io.BytesIO(), "w")
         zf.writestr("ns__test", "ns__test ns:test")
@@ -251,8 +250,8 @@ class TestUtils(unittest.TestCase):
         result = zf.read("___NAMESPACE___test")
         self.assertEqual("%%%NAMESPACE%%%test %%%NAMESPACE_OR_C%%%test", result)
 
-    def test_zip_tokenize_namespace_skips_binary(self):
-        contents = b"\xe2\x98\x83ns__"
+    def test_zip_tokenize_namespace__skips_binary(self):
+        contents = b"\x9cns__"
         zf = zipfile.ZipFile(io.BytesIO(), "w")
         zf.writestr("test", contents)
 
@@ -283,15 +282,10 @@ class TestUtils(unittest.TestCase):
         self.assertNotIn("packageVersions", result)
         self.assertIn("other/test-meta.xml", zf.namelist())
 
-    def test_zip_clean_metaxml__keeps_non_ascii(self):
+    def test_zip_clean_metaxml__skips_binary(self):
         logger = mock.Mock()
         zf = zipfile.ZipFile(io.BytesIO(), "w")
-        zf.writestr(
-            "classes/test-meta.xml",
-            '<?xml version="1.0" ?>'
-            '<root xmlns="http://soap.sforce.com/2006/04/metadata">'
-            "<label>ñ</label></root>",
-        )
+        zf.writestr(b"classes/test-meta.xml", b"\x9c")
         zf.writestr("test", "")
         zf.writestr("other/test-meta.xml", "")
 
@@ -363,4 +357,3 @@ class FunTestTask(BaseTask):
         )
     )
     task_docs = "extra docs"
-

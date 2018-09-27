@@ -191,16 +191,20 @@ def zip_inject_namespace(
 
     for name in zip_src.namelist():
         orig_name = unicode(name)
+        content = zip_src.read(name)
         try:
-            content = zip_src.read(name)
-            orig_content = unicode(content)
+            orig_content = content.decode("utf-8")
+        except UnicodeDecodeError:
+            # if we cannot decode the content, don't try and replace it.
+            pass
+        else:
             content = content.replace(namespace_token, namespace_prefix)
             if logger and content != orig_content:
                 logger.info(
                     '  {}: Replaced %%%NAMESPACE%%% with "{}"'.format(name, namespace)
                 )
 
-            prev_content = unicode(content)
+            prev_content = content
             content = content.replace(namespace_or_c_token, namespace_or_c)
             if logger and content != prev_content:
                 logger.info(
@@ -209,7 +213,7 @@ def zip_inject_namespace(
                     )
                 )
 
-            prev_content = unicode(content)
+            prev_content = content
             content = content.replace(namespaced_org_token, namespaced_org)
             if logger and content != prev_content:
                 logger.info(
@@ -218,7 +222,7 @@ def zip_inject_namespace(
                     )
                 )
 
-            prev_content = unicode(content)
+            prev_content = content
             content = content.replace(namespaced_org_or_c_token, namespaced_org_or_c)
             if logger and content != prev_content:
                 logger.info(
@@ -227,9 +231,7 @@ def zip_inject_namespace(
                     )
                 )
 
-        except UnicodeDecodeError:
-            # if we cannot decode the content, don't try and replace it.
-            pass
+            content = content.encode("utf-8")
 
         # Replace namespace token in file name
         name = name.replace(filename_token, namespace_prefix)
@@ -249,9 +251,13 @@ def zip_strip_namespace(zip_src, namespace, logger=None):
     lightning_namespace = "{}:".format(namespace)
     zip_dest = zipfile.ZipFile(io.BytesIO(), "w", zipfile.ZIP_DEFLATED)
     for name in zip_src.namelist():
+        orig_content = zip_src.read(name)
         try:
-            orig_content = zip_src.read(name)
-            orig_content = unicode(orig_content)
+            orig_content = orig_content.decode("utf-8")
+        except UnicodeDecodeError:
+            # if we cannot decode the content, don't try and replace it.
+            new_content = orig_content
+        else:
             new_content = orig_content.replace(namespace_prefix, "")
             new_content = new_content.replace(lightning_namespace, "c:")
             name = name.replace(namespace_prefix, "")  # not...sure...this..gets...used
@@ -261,9 +267,7 @@ def zip_strip_namespace(zip_src, namespace, logger=None):
                         file_name=name, namespace=namespace_prefix
                     )
                 )
-        except UnicodeDecodeError:
-            # if we cannot decode the content, don't try and replace it.
-            new_content = orig_content
+            new_content = new_content.encode("utf-8")
 
         zip_dest.writestr(name, new_content)
     return zip_dest
@@ -280,15 +284,17 @@ def zip_tokenize_namespace(zip_src, namespace, logger=None):
     lightning_namespace = "{}:".format(namespace)
     zip_dest = zipfile.ZipFile(io.BytesIO(), "w", zipfile.ZIP_DEFLATED)
     for name in zip_src.namelist():
+        content = zip_src.read(name)
         try:
-            content = zip_src.read(name)
-            content = unicode(content)
-            content = content.replace(namespace_prefix, "%%%NAMESPACE%%%")
-            content = content.replace(lightning_namespace, "%%%NAMESPACE_OR_C%%%")
-            name = name.replace(namespace_prefix, "___NAMESPACE___")
+            content = content.decode("utf-8")
         except UnicodeDecodeError:
             # if we cannot decode the content, don't try and replace it.
             pass
+        else:
+            content = content.replace(namespace_prefix, "%%%NAMESPACE%%%")
+            content = content.replace(lightning_namespace, "%%%NAMESPACE_OR_C%%%")
+            content = content.encode("utf-8")
+            name = name.replace(namespace_prefix, "___NAMESPACE___")
         zip_dest.writestr(name, content)
     return zip_dest
 
@@ -303,7 +309,7 @@ def zip_clean_metaxml(zip_src, logger=None):
         content = zip_src.read(name)
         if name.startswith(META_XML_CLEAN_DIRS) and name.endswith("-meta.xml"):
             try:
-                content = content.decode("ascii")
+                content = content.decode("utf-8")
             except UnicodeDecodeError:
                 # if we cannot decode the content, don't try and replace it.
                 pass
