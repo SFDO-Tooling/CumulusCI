@@ -36,7 +36,6 @@ requirements = [
     "PyYAML==3.13",
     "raven==6.7.0",
     "requests[security]==2.18.4",
-    "responses==0.9.0",
     "robotframework==3.0.4",
     "robotframework-seleniumlibrary==3.1.1",
     "rst2ansi==0.1.5",
@@ -57,6 +56,8 @@ test_requirements = [
     "nose-tap==1.9",
     "testfixtures==6.0.2",
     "tox==2.3.1",
+    "responses==0.9.0",
+
 ]
 
 setup(
