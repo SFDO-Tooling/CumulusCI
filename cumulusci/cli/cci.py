@@ -514,7 +514,6 @@ def project_init(config):
 )
 @click.pass_obj
 def project_info(config):
-    config.check_project_config()
     render_recursive(config.project_config.project)
 
 
@@ -524,7 +523,6 @@ def project_info(config):
 )
 @click.pass_obj
 def project_dependencies(config):
-    config.check_project_config()
     dependencies = config.project_config.get_static_dependencies()
     for line in config.project_config.pretty_dependencies(dependencies):
         click.echo(line)
@@ -880,7 +878,6 @@ org.add_command(org_scratch_delete)
 @click.command(name="list", help="List available tasks for the current context")
 @click.pass_obj
 def task_list(config):
-    config.check_project_config()
     data = []
     headers = ["task", "description"]
     for task in config.project_config.list_tasks():
@@ -911,7 +908,6 @@ def task_doc(config):
 @click.argument("task_name")
 @click.pass_obj
 def task_info(config, task_name):
-    config.check_project_config()
     task_config = config.project_config.get_task(task_name)
     doc = doc_task(task_name, task_config).encode()
     click.echo(rst2ansi(doc))
@@ -1020,7 +1016,6 @@ task.add_command(task_run)
 @click.command(name="list", help="List available flows for the current context")
 @click.pass_obj
 def flow_list(config):
-    config.check_project_config()
     data = []
     headers = ["flow", "description"]
     for flow in config.project_config.list_flows():
@@ -1039,7 +1034,6 @@ def flow_list(config):
 @click.argument("flow_name")
 @click.pass_obj
 def flow_info(config, flow_name):
-    config.check_project_config()
     flow = config.project_config.get_flow(flow_name)
     render_recursive(flow)
 

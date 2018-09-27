@@ -47,7 +47,10 @@ class TestCliConfig(unittest.TestCase):
         config.global_config.get_project_config = mock.Mock(
             side_effect=ProjectConfigNotFound
         )
-        config._load_project_config()
+        try:
+            config._load_project_config()
+        except click.UsageError:
+            pass
         self.assertIsNone(config.project_config)
 
     def test_load_project_config_error(self):
@@ -147,13 +150,6 @@ class TestCliConfig(unittest.TestCase):
 
         with self.assertRaises(click.ClickException):
             config.check_org_overwrite("test")
-
-    def test_check_project_config(self):
-        config = CliConfig()
-        config.project_config = None
-
-        with self.assertRaises(click.UsageError):
-            config.check_project_config()
 
     def test_check_cumulusci_version(self):
         config = CliConfig()

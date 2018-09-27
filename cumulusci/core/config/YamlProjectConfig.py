@@ -38,13 +38,13 @@ class YamlProjectConfig(BaseProjectConfig):
         repo_root = self.repo_root
         if not repo_root:
             raise NotInProject(
-                "No repository found in current path.  You must be inside a repository to initialize the project configuration"
+                "No git repository was found in the current path. You must be in a git repository to set up and use CCI for a project."
             )
 
         # Verify that the project's root has a config file
         if not self.config_project_path:
             raise ProjectConfigNotFound(
-                "The file {} was not found in the repo root: {}".format(
+                "The file {} was not found in the repo root: {}. Are you in a CumulusCI Project directory?".format(
                     self.config_filename, repo_root
                 )
             )

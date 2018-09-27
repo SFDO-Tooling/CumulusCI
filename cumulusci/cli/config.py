@@ -37,9 +37,7 @@ class CliConfig(object):
     def _load_project_config(self):
         try:
             self.project_config = self.global_config.get_project_config()
-        except ProjectConfigNotFound:
-            pass
-        except NotInProject as e:
+        except (ProjectConfigNotFound, NotInProject) as e: # not in a git repo or cci project (respectively)
             raise click.UsageError(str(e))
         except ConfigError as e:
             raise click.UsageError("Config Error: {}".format(str(e)))
@@ -123,13 +121,6 @@ class CliConfig(object):
         except OrgNotFound:
             pass
         return True
-
-    def check_project_config(self):
-        if not self.project_config:
-            raise click.UsageError(
-                'No project configuration found.  You can use the "project init" '
-                "command to initilize the project for use with CumulusCI"
-            )
 
     def check_cumulusci_version(self):
         if self.project_config:
