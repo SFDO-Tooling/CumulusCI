@@ -26,6 +26,7 @@ from cumulusci.salesforce_api import soap_envelopes
 from cumulusci.core.exceptions import ApexTestException
 from cumulusci.utils import zip_subfolder, parse_api_datetime
 from cumulusci.salesforce_api.exceptions import MetadataComponentFailure
+from cumulusci.salesforce_api.exceptions import MetadataParseError
 from cumulusci.salesforce_api.exceptions import MetadataApiError
 
 
@@ -564,12 +565,13 @@ class ApiListMetadata(BaseMetadataApiCall):
                 if result_data[key]:
                     try:
                         result_data[key] = parse_api_datetime(result_data[key])
-                    except Exception:
-                        # parsing the datetime with the dateutil library was "causing problems"
-                        # according to an old comment without much detail, so i'm being
-                        # unnecessarily defensive here.
-                        # TODO: determine if this is needed.
-                        pass
+                    except Exception as e:
+                        raise MetadataParseError(
+                            "Could not parse a datetime in the MDAPI response: {}, {}".format(
+                                str(e), str(result)
+                            ),
+                            response=response,
+                        )
             metadata.append(result_data)
         self.metadata[self.metadata_type].extend(metadata)
         return self.metadata

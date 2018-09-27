@@ -22,11 +22,8 @@ CUMULUSCI_PATH = os.path.realpath(
     os.path.join(os.path.dirname(os.path.realpath(__file__)), "..")
 )
 META_XML_CLEAN_DIRS = ("classes/", "triggers/", "pages/", "aura/", "components/")
-ZERO = timedelta(0)
 API_DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%f"
-DATETIME_LEN = (
-    4 + 1 + 2 + 1 + 2 + 1 + 2 + 1 + 2 + 1 + 2 + 1 + 3
-)  # the actual width of a datetime string formatted with above format
+DATETIME_LEN = len("2018-08-07T16:00:56.000")
 
 
 def parse_api_datetime(value):
@@ -37,7 +34,7 @@ def parse_api_datetime(value):
     python 2 to support fixed offset parsing is too complicated for what we need imo."""
     dt = datetime.strptime(value[0:DATETIME_LEN], API_DATE_FORMAT)
     offset_str = value[DATETIME_LEN:]
-    assert offset_str == "+0000", "The Salesforce API returned a weird timezone."
+    assert offset_str in ["+0000", "Z"], "The Salesforce API returned a weird timezone."
     return dt
 
 
