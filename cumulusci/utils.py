@@ -9,9 +9,10 @@ import os
 import re
 import io
 import shutil
+import zipfile
 import tempfile
 import textwrap
-import zipfile
+from datetime import tzinfo, timedelta, datetime
 
 import requests
 
@@ -21,6 +22,22 @@ CUMULUSCI_PATH = os.path.realpath(
     os.path.join(os.path.dirname(os.path.realpath(__file__)), "..")
 )
 META_XML_CLEAN_DIRS = ("classes/", "triggers/", "pages/", "aura/", "components/")
+ZERO = timedelta(0)
+API_DATE_FORMAT = '%Y-%m-%dT%H:%M:%S.%f'
+DATETIME_LEN = 4+1+2+1+2+1+2+1+2+1+2+1+3 # the actual width of a datetime string formatted with above format
+
+
+def parse_api_datetime(value):
+    """ parse a datetime returned from the salesforce API.
+
+    in python 3 we should just use a strptime %z, but until then we're just going
+    to assert that its a fixed offset of +0000 since thats the observed behavior. getting
+    python 2 to support fixed offset parsing is too complicated for what we need imo."""
+    dt = datetime.strptime(value[0:DATETIME_LEN], API_DATE_FORMAT)
+    offset_str = value[DATETIME_LEN:]
+    assert offset_str == "+0000", "The Salesforce API returned a weird timezone."
+    return dt
+
 
 
 def findReplace(find, replace, directory, filePattern, logger=None, max=None):
