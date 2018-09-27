@@ -40,9 +40,9 @@ class CliConfig(object):
         except ProjectConfigNotFound:
             pass
         except NotInProject as e:
-            raise click.UsageError(e.message)
+            raise click.UsageError(str(e))
         except ConfigError as e:
-            raise click.UsageError("Config Error: {}".format(e.message))
+            raise click.UsageError("Config Error: {}".format(str(e)))
 
     def _load_keychain(self):
         self.keychain_key = os.environ.get("CUMULUSCI_KEY")
@@ -56,7 +56,7 @@ class CliConfig(object):
                     self.project_config, self.keychain_key
                 )
             except (KeychainKeyNotFound, ConfigError) as e:
-                raise click.UsageError("Keychain Error: {}".format(e.message))
+                raise click.UsageError("Keychain Error: {}".format(str(e)))
             self.project_config.set_keychain(self.keychain)
 
     def alert(self, message="We need your attention!"):

@@ -59,10 +59,9 @@ class TestCliConfig(unittest.TestCase):
             config._load_project_config()
 
     def test_load_keychain__no_key(self):
-        os.environ["CUMULUSCI_KEY"] = ""
-        with self.assertRaises(click.UsageError):
-            config = CliConfig()
-        os.environ["CUMULUSCI_KEY"] = self.key
+        with mock.patch.dict(os.environ, {"CUMULUSCI_KEY": ""}):
+            with self.assertRaises(click.UsageError):
+                config = CliConfig()
 
     def test_get_org(self):
         config = CliConfig()
