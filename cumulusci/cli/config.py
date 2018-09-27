@@ -63,9 +63,13 @@ class CliConfig(object):
         click.echo("\a")
         try:
             call(
-                """osascript -e 'display notification "{}" with title "{}"'""".format(
-                    message.replace('"', r"\"").replace("'", r"\'"), "CumulusCI"
-                )
+                [
+                    "osascript",
+                    "-e",
+                    'display notification "{}" with title "{}"'.format(
+                        message.replace('"', r"\"").replace("'", r"\'"), "CumulusCI"
+                    ),
+                ]
             )
         except OSError:
             pass  # we don't have osascript, probably.

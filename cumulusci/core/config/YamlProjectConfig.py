@@ -56,7 +56,7 @@ class YamlProjectConfig(BaseProjectConfig):
 
         # Load the project's yaml config file
         with open(self.config_project_path, "r") as f_config:
-            project_config = yaml.load(f_config)
+            project_config = yaml.safe_load(f_config)
         if project_config:
             self.config_project.update(project_config)
             merge_yaml.append(self.config_project_path)
@@ -64,14 +64,14 @@ class YamlProjectConfig(BaseProjectConfig):
         # Load the local project yaml config file if it exists
         if self.config_project_local_path:
             with open(self.config_project_local_path, "r") as f_local_config:
-                local_config = yaml.load(f_local_config)
+                local_config = yaml.safe_load(f_local_config)
             if local_config:
                 self.config_project_local.update(local_config)
                 merge_yaml.append(self.config_project_local_path)
 
         # merge in any additional yaml that was passed along
         if self.additional_yaml:
-            additional_yaml_config = yaml.load(self.additional_yaml)
+            additional_yaml_config = yaml.safe_load(self.additional_yaml)
             if additional_yaml_config:
                 self.config_additional_yaml.update(additional_yaml_config)
                 merge_yaml.append(self.additional_yaml)
