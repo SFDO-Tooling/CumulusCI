@@ -81,6 +81,8 @@ class BaseEncryptedProjectKeychain(BaseProjectKeychain):
             for k, v in unpickled.items():
                 if isinstance(k, bytes):
                     k = k.decode("utf-8")
+                if isinstance(v, bytes):
+                    v = v.decode("utf-8")
                 config_dict[k] = v
         args = [config_dict]
         if extra:
