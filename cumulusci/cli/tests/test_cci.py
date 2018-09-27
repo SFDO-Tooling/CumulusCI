@@ -610,8 +610,7 @@ test2                                     dev          test2@example.com""",
 
         run_click_command(cci.task_list, obj=config)
 
-        config.check_project_config.assert_called_once()
-        table = echo.call_args[0][0]
+        table = echo.call_args_list[0][0][0]
         self.assertEqual(
             """task       description
 ---------  -----------
@@ -635,7 +634,6 @@ test_task  Test Task""",
 
         run_click_command(cci.task_info, obj=config, task_name="test")
 
-        config.check_project_config.assert_called_once()
         doc_task.assert_called_once()
         rst2ansi.assert_called_once()
 
@@ -659,7 +657,6 @@ test_task  Test Task""",
             no_prompt=True,
         )
 
-        config.check_keychain.assert_called_once()
         DummyTask._run_task.assert_called_once()
 
     def test_task_run_not_found(self):
@@ -819,8 +816,7 @@ test_task  Test Task""",
 
         run_click_command(cci.flow_list, obj=config)
 
-        config.check_project_config.assert_called_once()
-        table = echo.call_args[0][0]
+        table = echo.call_args_list[0][0][0]
         self.assertEqual(
             """flow       description
 ---------  -----------
@@ -837,7 +833,6 @@ test_flow  Test Flow""",
 
         run_click_command(cci.flow_info, obj=config, flow_name="test")
 
-        config.check_project_config.assert_called_once()
         echo.assert_called_with("\x1b[1mdescription:\x1b[0m Test Flow")
 
     def test_flow_run(self):
@@ -867,7 +862,6 @@ test_flow  Test Flow""",
             no_prompt=True,
         )
 
-        config.check_keychain.assert_called_once()
         DummyTask._run_task.assert_called_once()
         org_config.delete_org.assert_called_once()
 

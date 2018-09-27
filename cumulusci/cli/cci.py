@@ -36,7 +36,6 @@ from cumulusci.core.exceptions import ConfigError
 from cumulusci.core.exceptions import CumulusCIFailure
 from cumulusci.core.exceptions import CumulusCIUsageError
 from cumulusci.core.exceptions import FlowNotFoundError
-from cumulusci.core.exceptions import KeychainKeyNotFound
 from cumulusci.core.exceptions import OrgNotFound
 from cumulusci.core.exceptions import NotInProject
 from cumulusci.core.exceptions import ProjectConfigNotFound
@@ -506,7 +505,6 @@ def project_init(config):
 )
 @click.pass_obj
 def project_info(config):
-    config.check_project_config()
     render_recursive(config.project_config.project)
 
 
@@ -516,7 +514,6 @@ def project_info(config):
 )
 @click.pass_obj
 def project_dependencies(config):
-    config.check_project_config()
     dependencies = config.project_config.get_static_dependencies()
     for line in config.project_config.pretty_dependencies(dependencies):
         click.echo(line)
@@ -569,7 +566,6 @@ class ConnectServiceCommand(click.MultiCommand):
 
         @click.pass_context
         def callback(ctx, project=False, *args, **kwargs):
-            config.check_keychain()
             serv_conf = dict(
                 (k, v) for k, v in list(kwargs.items()) if v != None
             )  # remove None values
@@ -595,7 +591,6 @@ def service_connect(ctx, *args, **kvargs):
 @click.argument("service_name")
 @click.pass_obj
 def service_info(config, service_name):
-    config.check_keychain()
     try:
         service_config = config.keychain.get_service(service_name)
         render_recursive(service_config.config)
@@ -873,13 +868,18 @@ org.add_command(org_scratch_delete)
 @click.command(name="list", help="List available tasks for the current context")
 @click.pass_obj
 def task_list(config):
-    config.check_project_config()
     data = []
     headers = ["task", "description"]
     for task in config.project_config.list_tasks():
         data.append((task["name"], task["description"]))
     table = Table(data, headers)
     click.echo(table)
+    click.echo("")
+    click.echo(
+        "Use "
+        + click.style("cci task info <task_name>", bold=True)
+        + " to get more information about a task."
+    )
 
 
 @click.command(name="doc", help="Exports RST format documentation for all tasks")
@@ -898,7 +898,6 @@ def task_doc(config):
 @click.argument("task_name")
 @click.pass_obj
 def task_info(config, task_name):
-    config.check_project_config()
     task_config = config.project_config.get_task(task_name)
     doc = doc_task(task_name, task_config).encode()
     click.echo(rst2ansi(doc))
@@ -936,8 +935,6 @@ def task_info(config, task_name):
 )
 @click.pass_obj
 def task_run(config, task_name, org, o, debug, debug_before, debug_after, no_prompt):
-    # Check environment
-    config.check_keychain()
 
     # Get necessary configs
     org, org_config = config.get_org(org, fail_if_missing=False)
@@ -1009,20 +1006,24 @@ task.add_command(task_run)
 @click.command(name="list", help="List available flows for the current context")
 @click.pass_obj
 def flow_list(config):
-    config.check_project_config()
     data = []
     headers = ["flow", "description"]
     for flow in config.project_config.list_flows():
         data.append((flow["name"], flow["description"]))
     table = Table(data, headers)
     click.echo(table)
+    click.echo("")
+    click.echo(
+        "Use "
+        + click.style("cci flow info <task_name>", bold=True)
+        + " to get more information about a flow."
+    )
 
 
 @click.command(name="info", help="Displays information for a flow")
 @click.argument("flow_name")
 @click.pass_obj
 def flow_info(config, flow_name):
-    config.check_project_config()
     flow = config.project_config.get_flow(flow_name)
     render_recursive(flow)
 
@@ -1059,8 +1060,6 @@ def flow_info(config, flow_name):
 )
 @click.pass_obj
 def flow_run(config, flow_name, org, delete_org, debug, o, skip, no_prompt):
-    # Check environment
-    config.check_keychain()
 
     # Get necessary configs
     org, org_config = config.get_org(org)

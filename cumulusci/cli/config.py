@@ -9,7 +9,9 @@ from cumulusci.core.config import YamlGlobalConfig
 from cumulusci.core.exceptions import ConfigError
 from cumulusci.core.exceptions import NotInProject
 from cumulusci.core.exceptions import OrgNotFound
+from cumulusci.core.exceptions import KeychainKeyNotFound
 from cumulusci.core.exceptions import ProjectConfigNotFound
+
 from cumulusci.core.utils import import_class
 
 
@@ -34,12 +36,13 @@ class CliConfig(object):
     def _load_project_config(self):
         try:
             self.project_config = self.global_config.get_project_config()
-        except ProjectConfigNotFound:
-            pass
-        except NotInProject as e:
-            raise click.UsageError(e.message)
+        except (
+            ProjectConfigNotFound,
+            NotInProject,
+        ) as e:  # not in a git repo or cci project (respectively)
+            raise click.UsageError(str(e))
         except ConfigError as e:
-            raise click.UsageError("Config Error: {}".format(e.message))
+            raise click.UsageError("Config Error: {}".format(str(e)))
 
     def _load_keychain(self):
         self.keychain_key = os.environ.get("CUMULUSCI_KEY")
@@ -48,7 +51,12 @@ class CliConfig(object):
                 "CUMULUSCI_KEYCHAIN_CLASS", self.project_config.cumulusci__keychain
             )
             self.keychain_class = import_class(keychain_class)
-            self.keychain = self.keychain_class(self.project_config, self.keychain_key)
+            try:
+                self.keychain = self.keychain_class(
+                    self.project_config, self.keychain_key
+                )
+            except (KeychainKeyNotFound, ConfigError) as e:
+                raise click.UsageError("Keychain Error: {}".format(str(e)))
             self.project_config.set_keychain(self.keychain)
 
     def alert(self, message="We need your attention!"):
@@ -119,21 +127,6 @@ class CliConfig(object):
         except OrgNotFound:
             pass
         return True
-
-    def check_keychain(self):
-        self.check_project_config()
-        if self.keychain and self.keychain.encrypted and not self.keychain_key:
-            raise click.UsageError(
-                "You must set the environment variable CUMULUSCI_KEY "
-                "with the encryption key to be used for storing org credentials"
-            )
-
-    def check_project_config(self):
-        if not self.project_config:
-            raise click.UsageError(
-                'No project configuration found.  You can use the "project init" '
-                "command to initilize the project for use with CumulusCI"
-            )
 
     def check_cumulusci_version(self):
         if self.project_config:

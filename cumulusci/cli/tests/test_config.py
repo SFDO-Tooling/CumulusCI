@@ -17,10 +17,12 @@ from cumulusci.core.exceptions import ProjectConfigNotFound
 
 
 class TestCliConfig(unittest.TestCase):
+    key = "1234567890abcdef"
+
     @classmethod
     def setUpClass(cls):
         os.chdir(os.path.dirname(cumulusci.__file__))
-        os.environ["CUMULUSCI_KEY"] = "1234567890abcdef"
+        os.environ["CUMULUSCI_KEY"] = cls.key
 
     def test_init(self):
         config = CliConfig()
@@ -45,8 +47,8 @@ class TestCliConfig(unittest.TestCase):
         config.global_config.get_project_config = mock.Mock(
             side_effect=ProjectConfigNotFound
         )
-        config._load_project_config()
-        self.assertIsNone(config.project_config)
+        with self.assertRaises(click.UsageError):
+            config._load_project_config()
 
     def test_load_project_config_error(self):
         config = CliConfig()
@@ -55,6 +57,11 @@ class TestCliConfig(unittest.TestCase):
 
         with self.assertRaises(click.UsageError):
             config._load_project_config()
+
+    def test_load_keychain__no_key(self):
+        with mock.patch.dict(os.environ, {"CUMULUSCI_KEY": ""}):
+            with self.assertRaises(click.UsageError):
+                config = CliConfig()
 
     def test_get_org(self):
         config = CliConfig()
@@ -140,21 +147,6 @@ class TestCliConfig(unittest.TestCase):
 
         with self.assertRaises(click.ClickException):
             config.check_org_overwrite("test")
-
-    def test_check_keychain_missing_key(self):
-        config = CliConfig()
-        config.keychain = mock.Mock(encrypted=True)
-        config.keychain_key = None
-
-        with self.assertRaises(click.UsageError):
-            config.check_keychain()
-
-    def test_check_project_config(self):
-        config = CliConfig()
-        config.project_config = None
-
-        with self.assertRaises(click.UsageError):
-            config.check_project_config()
 
     def test_check_cumulusci_version(self):
         config = CliConfig()

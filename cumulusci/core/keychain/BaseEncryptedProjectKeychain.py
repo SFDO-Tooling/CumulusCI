@@ -10,7 +10,7 @@ from cumulusci.core.config import ConnectedAppOAuthConfig
 from cumulusci.core.config import OrgConfig
 from cumulusci.core.config import ScratchOrgConfig
 from cumulusci.core.config import ServiceConfig
-from cumulusci.core.exceptions import ConfigError
+from cumulusci.core.exceptions import ConfigError, KeychainKeyNotFound
 from cumulusci.core.keychain import BaseProjectKeychain
 
 BS = 16
@@ -85,6 +85,10 @@ class BaseEncryptedProjectKeychain(BaseProjectKeychain):
 
     def _validate_key(self):
         if not self.key:
-            raise ConfigError("CUMULUSCI_KEY not set")
+            raise KeychainKeyNotFound(
+                "The CUMULUSCI_KEY environment variable is not set."
+            )
         if len(self.key) != 16:
-            raise ConfigError("CUMULUSCI_KEY must be 16 characters long")
+            raise ConfigError(
+                "The CUMULUSCI_KEY environment variable must be 16 characters long."
+            )
