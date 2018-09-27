@@ -57,7 +57,6 @@ test_requirements = [
     "testfixtures==6.0.2",
     "tox==2.3.1",
     "responses==0.9.0",
-
 ]
 
 setup(
