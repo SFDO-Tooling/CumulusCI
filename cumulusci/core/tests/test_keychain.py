@@ -443,7 +443,7 @@ class TestEncryptedFileProjectKeychain(ProjectKeychainTestMixin):
         os.makedirs(os.path.join(self.tempdir_home, ".cumulusci", self.project_name))
         self._write_file(
             os.path.join(self.tempdir_home, "test.org"),
-            dummy_keychain._encrypt_config(BaseConfig({"foo": "bar"})).decode('utf-8'),
+            dummy_keychain._encrypt_config(BaseConfig({"foo": "bar"})).decode("utf-8"),
         )
         keychain = self.keychain_class(self.project_config, self.key)
         del keychain.config["orgs"]

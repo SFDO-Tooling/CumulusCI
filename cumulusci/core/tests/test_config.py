@@ -250,7 +250,6 @@ class DummyKeychain(object):
 
 
 class TestBaseProjectConfig(unittest.TestCase):
-
     def test_config_global_local(self):
         global_config = BaseGlobalConfig()
         global_config.config_global_local = {}
@@ -586,7 +585,7 @@ class TestBaseProjectConfig(unittest.TestCase):
                 "skip": ["unpackaged/pre/skip", "unpackaged/post/skip"],
             },
             "",
-            include_beta=True
+            include_beta=True,
         )
         self.assertEqual(
             result,

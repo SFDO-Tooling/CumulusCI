@@ -55,7 +55,6 @@ class BasePackageZipBuilder(object):
         return b64encode(self.zip_file.read()).decode("utf-8")
 
 
-
 class ZipfilePackageZipBuilder(BasePackageZipBuilder):
     def __init__(self, zipfile):
         self.zip = zipfile

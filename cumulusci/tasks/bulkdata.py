@@ -44,7 +44,6 @@ class EpochType(types.TypeDecorator):
         return self.epoch + datetime.timedelta(seconds=value // 1000)
 
 
-
 # Listen for sqlalchemy column_reflect event and map datetime fields to EpochType
 @event.listens_for(Table, "column_reflect")
 def setup_epoch(inspector, table, column_info):
