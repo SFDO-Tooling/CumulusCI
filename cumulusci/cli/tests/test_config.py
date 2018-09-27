@@ -47,11 +47,8 @@ class TestCliConfig(unittest.TestCase):
         config.global_config.get_project_config = mock.Mock(
             side_effect=ProjectConfigNotFound
         )
-        try:
+        with self.assertRaises(click.UsageError):
             config._load_project_config()
-        except click.UsageError:
-            pass
-        self.assertIsNone(config.project_config)
 
     def test_load_project_config_error(self):
         config = CliConfig()
