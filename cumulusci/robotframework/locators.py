@@ -1,4 +1,3 @@
-
 lex_locators = {
     "app_launcher": {
         "app_link": "//div[@class='slds-section slds-is-open salesforceIdentityAppLauncherDesktopInternal']//section[@id='cards']//div[@class='appTileTitle' and text()='{}']",

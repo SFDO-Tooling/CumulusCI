@@ -21,6 +21,7 @@ from cumulusci.core.keychain import BaseEncryptedProjectKeychain
 from cumulusci.core.keychain import EncryptedFileProjectKeychain
 from cumulusci.core.keychain import EnvironmentProjectKeychain
 from cumulusci.core.exceptions import ConfigError
+from cumulusci.core.exceptions import KeychainKeyNotFound
 from cumulusci.core.exceptions import ServiceNotConfigured
 from cumulusci.core.exceptions import ServiceNotValid
 from cumulusci.core.exceptions import OrgNotFound
@@ -363,7 +364,7 @@ class TestBaseEncryptedProjectKeychain(ProjectKeychainTestMixin):
         self.assertEquals(config.config, {})
 
     def test_validate_key__not_set(self):
-        with self.assertRaises(ConfigError):
+        with self.assertRaises(KeychainKeyNotFound):
             self.keychain_class(self.project_config, None)
 
     def test_validate_key__wrong_length(self):
