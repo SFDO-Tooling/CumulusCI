@@ -62,7 +62,7 @@ def timestamp_file():
     if not os.path.exists(config_dir):
         os.mkdir(config_dir)
 
-    with open(os.path.join(config_dir, 'cumulus_timestamp'), 'wb+') as f:
+    with open(os.path.join(config_dir, "cumulus_timestamp"), "wb+") as f:
         yield f
 
 

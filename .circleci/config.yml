@@ -11,6 +11,22 @@ defaults: &defaults
 version: 2
 jobs:
 
+  lint:
+    <<: *defaults
+    docker:
+      - image: circleci/python:3.6
+    steps:
+      - checkout
+      - run:
+          name: Install dependencies
+          command: |
+            virtualenv venv
+            venv/bin/pip install black==18.6b4
+      - run:
+          name: Run black
+          command: |
+            venv/bin/black --check --diff .
+
   test_py2:
     <<: *defaults
     steps:
@@ -178,6 +194,7 @@ workflows:
   version: 2
   build_test_report:
     jobs:
+      - lint
       - test_py2
 #      - test_py3
       - test_robot

@@ -357,4 +357,3 @@ class FunTestTask(BaseTask):
         )
     )
     task_docs = "extra docs"
-

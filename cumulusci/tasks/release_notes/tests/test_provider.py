@@ -472,4 +472,3 @@ class TestGithubChangeNotesProvider(unittest.TestCase, GithubApiTestMixin):
         self.assertEqual("1.0-Beta_1", provider._get_version_from_tag(tag))
         with self.assertRaises(ValueError):
             provider._get_version_from_tag("bogus")
-

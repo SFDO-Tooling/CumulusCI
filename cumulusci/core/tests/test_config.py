@@ -585,9 +585,8 @@ class TestBaseProjectConfig(unittest.TestCase):
                 "skip": ["unpackaged/pre/skip", "unpackaged/post/skip"],
             },
             "",
-            include_beta=True
+            include_beta=True,
         )
-        print result
         self.assertEqual(
             result,
             [
