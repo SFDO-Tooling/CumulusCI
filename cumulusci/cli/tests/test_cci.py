@@ -281,9 +281,7 @@ class TestCCI(unittest.TestCase):
     def test_project_dependencies(self):
         out = []
         config = mock.Mock()
-        config.project_config.pretty_dependencies.return_value = [
-            "test:",
-        ]
+        config.project_config.pretty_dependencies.return_value = ["test:"]
 
         with mock.patch("click.echo", out.append):
             run_click_command(cci.project_dependencies, obj=config)

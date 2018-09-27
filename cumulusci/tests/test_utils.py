@@ -242,7 +242,6 @@ class TestUtils(unittest.TestCase):
         zf = utils.zip_strip_namespace(zf, "ns", logger=logger)
         logger.info.assert_called_once()
 
-
     def test_zip_tokenize_namespace(self):
         zf = zipfile.ZipFile(io.BytesIO(), "w")
         zf.writestr("ns__test", "ns__test ns:test")
@@ -363,4 +362,3 @@ class FunTestTask(BaseTask):
         )
     )
     task_docs = "extra docs"
-
