@@ -564,10 +564,10 @@ class ApiListMetadata(BaseMetadataApiCall):
                 if result_data[key]:
                     try:
                         result_data[key] = parse_api_datetime(result_data[key])
-                    except Exception: 
+                    except Exception:
                         # parsing the datetime with the dateutil library was "causing problems"
-                        # according to an old comment without much detail, so i'm being 
-                        # unnecessarily defensive here. 
+                        # according to an old comment without much detail, so i'm being
+                        # unnecessarily defensive here.
                         # TODO: determine if this is needed.
                         pass
             metadata.append(result_data)

@@ -759,7 +759,7 @@ class TestApiListMetadata(BaseTestMetadataApi):
                 {
                     u"createdById": None,
                     u"createdByName": None,
-                    u"createdDate": datetime.datetime(2018,8,7,16,31,57),
+                    u"createdDate": datetime.datetime(2018, 8, 7, 16, 31, 57),
                     u"fileName": None,
                     u"fullName": u"Test__c",
                     u"id": None,
