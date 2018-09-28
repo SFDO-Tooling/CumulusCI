@@ -70,9 +70,17 @@ class ReportPushFailures(BaseSalesforceApiTask):
 
         # Sort by error title
         for record in job_records:
-            errors = record.pop("PackagePushErrors", {}).get("records") or [{}]
-            record["Error"] = errors[0]
-        job_records.sort(key=lambda job: job["Error"].get("ErrorTitle", ""))
+            errors = record.pop("PackagePushErrors", {}).get("records") or [
+                {"ErrorTitle": "", "ErrorMessage": ""}
+            ]
+            error = errors[0]
+            m = self.gack.search(error["ErrorMessage"])
+            error["GackId"] = m.group("gack_id") if m else ""
+            error["StacktraceId"] = m.group("stacktrace_id") if m else ""
+            record["Error"] = error
+        job_records.sort(
+            key=lambda job: (job["Error"]["StacktraceId"], job["Error"]["ErrorTitle"])
+        )
 
         # Get subscriber org info
         self.logger.debug("Running query for subscriber orgs: " + self.subscriber_query)
