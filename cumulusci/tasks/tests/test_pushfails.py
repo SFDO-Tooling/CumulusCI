@@ -42,21 +42,36 @@ class TestPushFailureTask(unittest.TestCase):
     def test_run_task(self,):
         task = create_task(ReportPushFailures, options={"request_id": "123"})
         task.sf = mock.Mock()
-        task.sf.query.return_value = {
-            "done": True,
-            "totalSize": 2,
-            "records": [
-                error_record(),
-                error_record(True),
-                {
-                    "attributes": {"type": "job"},
-                    "SubscriberOrganizationKey": "00Dxxx000000001",
-                },
-            ],
-        }
+        task.sf.query.side_effect = [
+            {
+                "done": True,
+                "totalSize": 2,
+                "records": [
+                    error_record(),
+                    error_record(True),
+                    {
+                        "attributes": {"type": "job"},
+                        "SubscriberOrganizationKey": "00Dxxx000000001",
+                    },
+                ],
+            },
+            {
+                "done": True,
+                "totalSize": 1,
+                "records": [
+                    {
+                        "OrgKey": "00Dxxx000000001",
+                        "OrgName": "Test Org",
+                        "OrgType": "Sandbox",
+                        "OrgStatus": "Demo",
+                        "InstanceName": "CSxx",
+                    }
+                ],
+            },
+        ]
         with temporary_dir():
             task()
-            task.sf.query.assert_called_once()
+            self.assertEqual(2, task.sf.query.call_count)
             self.assertTrue(
                 os.path.isfile(task.result), "the result file does not exist"
             )
@@ -64,4 +79,11 @@ class TestPushFailureTask(unittest.TestCase):
                 reader = csv.DictReader(f)
                 rows = list(reader)
             self.assertEqual(len(rows), 3)
-            self.assertEqual(rows[1]["Stacktrace Id"], "-4532")
+            self.assertEqual(rows[2]["Stacktrace Id"], "-4532")
+
+    def test_run_task__no_results(self):
+        task = create_task(ReportPushFailures, options={"request_id": "123"})
+        task.sf = mock.Mock()
+        task.sf.query.return_value = {"totalSize": 0, "records": [], "done": True}
+        task()
+        self.assertFalse(os.path.isfile(task.options["result_file"]))
