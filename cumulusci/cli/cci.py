@@ -990,7 +990,7 @@ def task_run(config, task_name, org, o, debug, debug_before, debug_after, no_pro
         # Unexpected exception; log to sentry and raise
         handle_exception_debug(config, debug, no_prompt=no_prompt)
 
-    config.alert("Task complete")
+    config.alert("Task complete: {}".format(task_name))
 
 
 # Add the task commands to the task group
@@ -1106,7 +1106,7 @@ def flow_run(config, flow_name, org, delete_org, debug, o, skip, no_prompt):
             )
             click.echo(e.message)
 
-    config.alert("Flow Complete")
+    config.alert("Flow Complete: {}".format(flow_name))
 
 
 flow.add_command(flow_list)
