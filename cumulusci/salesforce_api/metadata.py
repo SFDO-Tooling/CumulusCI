@@ -5,7 +5,6 @@ based on mrbelvedere/mpinstaller/mdapi.py
 
 # TO DO
 #   - add docstrings
-#   - parse dates from SOAP response
 #   - use format() instead of %
 #   - look at https://github.com/rholder/retrying
 
@@ -16,7 +15,6 @@ from future import standard_library
 standard_library.install_aliases()
 import base64
 
-# import dateutil.parser
 import http.client
 import re
 import time
@@ -30,8 +28,9 @@ import requests
 
 from cumulusci.salesforce_api import soap_envelopes
 from cumulusci.core.exceptions import ApexTestException
-from cumulusci.utils import zip_subfolder
+from cumulusci.utils import zip_subfolder, parse_api_datetime
 from cumulusci.salesforce_api.exceptions import MetadataComponentFailure
+from cumulusci.salesforce_api.exceptions import MetadataParseError
 from cumulusci.salesforce_api.exceptions import MetadataApiError
 
 
@@ -565,10 +564,17 @@ class ApiListMetadata(BaseMetadataApiCall):
             for tag in tags:
                 result_data[tag] = self._get_element_value(result, tag)
             # Parse dates
-            # FIXME: This was breaking things
-            # for key in parse_dates:
-            #    if result_data[key]:
-            #        result_data[key] = dateutil.parser.parse(result_data[key])
+            for key in parse_dates:
+                if result_data[key]:
+                    try:
+                        result_data[key] = parse_api_datetime(result_data[key])
+                    except Exception as e:
+                        raise MetadataParseError(
+                            "Could not parse a datetime in the MDAPI response: {}, {}".format(
+                                str(e), str(result)
+                            ),
+                            response=response,
+                        )
             metadata.append(result_data)
         self.metadata[self.metadata_type].extend(metadata)
         return self.metadata

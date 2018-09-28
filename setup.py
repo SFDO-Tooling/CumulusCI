@@ -22,8 +22,7 @@ with open("HISTORY.rst") as history_file:
     history = history_file.read()
 
 requirements = [
-    "arrow==0.12.1",
-    "click==6.7",
+    "click==7.0",
     "coloredlogs==10.0",
     "docutils==0.14",
     "future==0.16.0",
@@ -37,7 +36,6 @@ requirements = [
     "PyYAML==3.13",
     "raven==6.9.0",
     "requests[security]==2.19.1",
-    "responses==0.9.0",
     "robotframework==3.0.4",
     "robotframework-seleniumlibrary==3.1.1",
     "rst2ansi==0.1.5",
@@ -56,6 +54,7 @@ test_requirements = [
     "mock==2.0.0",
     "nose==1.3.7",
     "nose-tap==1.9",
+    "responses==0.9.0",
     "testfixtures==6.3.0",
     "tox==3.2.1",
 ]

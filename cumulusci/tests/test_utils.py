@@ -5,6 +5,7 @@ import io
 import os
 import unittest
 import zipfile
+from datetime import datetime, timedelta
 
 from xml.etree import ElementTree as ET
 import mock
@@ -345,6 +346,18 @@ Options:
         cwd = os.getcwd()
         self.assertTrue(utils.in_directory(".", cwd))
         self.assertFalse(utils.in_directory("..", cwd))
+
+    def test_parse_api_datetime__good(self):
+        good_str = "2018-08-07T16:00:56.000+0000"
+        dt = utils.parse_api_datetime(good_str)
+        self.assertAlmostEqual(
+            dt, datetime(2018, 8, 7, 16, 0, 56), delta=timedelta(seconds=1)
+        )
+
+    def test_parse_api_datetime__bad(self):
+        bad_str = "2018-08-07T16:00:56.000-20000"
+        with self.assertRaises(AssertionError):
+            dt = utils.parse_api_datetime(bad_str)
 
 
 class FunTestTask(BaseTask):

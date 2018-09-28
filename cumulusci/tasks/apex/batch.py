@@ -1,8 +1,9 @@
 """ a task for waiting on a Batch Apex job to complete """
 
+import datetime
+from cumulusci.utils import parse_api_datetime
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.core.exceptions import SalesforceException
-import arrow
 
 COMPLETED_STATUSES = ["Completed"]
 
@@ -73,10 +74,9 @@ class BatchApexWait(BaseSalesforceApiTask):
     @property
     def delta(self):
         """ returns the time (in seconds) that the batch took, if complete """
-        td = arrow.get(self.batch["CompletedDate"]) - arrow.get(
-            self.batch["CreatedDate"]
-        )
-
+        completed_date = parse_api_datetime(self.batch["CompletedDate"])
+        created_date = parse_api_datetime(self.batch["CreatedDate"])
+        td = completed_date - created_date
         return td.total_seconds()
 
     @property
