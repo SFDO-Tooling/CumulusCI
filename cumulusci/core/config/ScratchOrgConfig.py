@@ -224,12 +224,8 @@ class ScratchOrgConfig(OrgConfig):
         )
         p.run()
 
-        stdout = []
-        for line in io.TextIOWrapper(p.stdout):
-            stdout.append(line)
-        stderr = []
-        for line in io.TextIOWrapper(p.stderr):
-            stderr.append(line)
+        stderr = io.TextIOWrapper(p.stderr).readlines()
+        stdout = io.TextIOWrapper(p.stdout).readlines()
 
         if p.returncode:
             self.config["password_failed"] = True
@@ -282,9 +278,7 @@ class ScratchOrgConfig(OrgConfig):
         p = sarge.Command(command, stdout=sarge.Capture(buffer_size=-1), shell=True)
         p.run()
 
-        stdout_list = []
-        for line in io.TextIOWrapper(p.stdout):
-            stdout_list.append(line.strip())
+        stdout_list = [line.strip() for line in io.TextIOWrapper(p.stdout)]
 
         if p.returncode:
             self.logger.error("Return code: {}".format(p.returncode))

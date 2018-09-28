@@ -5,7 +5,6 @@ import tempfile
 import unittest
 
 import mock
-import nose
 
 from cumulusci.core.tests.utils import EnvironmentVarGuard
 
@@ -147,10 +146,10 @@ class ProjectKeychainTestMixin(unittest.TestCase):
         org = keychain.get_org("test")
         self.assertEquals(org.scratch, None)
 
-    @nose.tools.raises(OrgNotFound)
     def test_get_org_not_found(self):
         keychain = self.keychain_class(self.project_config, self.key)
-        self.assertEquals(keychain.get_org("test"), None)
+        with self.assertRaises(OrgNotFound):
+            keychain.get_org("test")
 
     def test_get_default_org(self):
         keychain = self.keychain_class(self.project_config, self.key)

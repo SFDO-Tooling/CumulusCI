@@ -8,7 +8,6 @@ import tempfile
 import unittest
 
 import mock
-import nose
 import yaml
 
 from cumulusci.core.config import ScratchOrgConfig
@@ -125,20 +124,20 @@ class TestYamlProjectConfig(unittest.TestCase):
     def tearDown(self):
         pass
 
-    @nose.tools.raises(NotInProject)
     def test_load_project_config_not_repo(self, mock_class):
         mock_class.return_value = self.tempdir_home
         os.chdir(self.tempdir_project)
         global_config = YamlGlobalConfig()
-        config = YamlProjectConfig(global_config)
+        with self.assertRaises(NotInProject):
+            config = YamlProjectConfig(global_config)
 
-    @nose.tools.raises(ProjectConfigNotFound)
     def test_load_project_config_no_config(self, mock_class):
         mock_class.return_value = self.tempdir_home
         os.mkdir(os.path.join(self.tempdir_project, ".git"))
         os.chdir(self.tempdir_project)
         global_config = YamlGlobalConfig()
-        config = YamlProjectConfig(global_config)
+        with self.assertRaises(ProjectConfigNotFound):
+            config = YamlProjectConfig(global_config)
 
     def test_load_project_config_empty_config(self, mock_class):
         mock_class.return_value = self.tempdir_home

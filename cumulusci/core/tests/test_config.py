@@ -3,7 +3,6 @@ import os
 import unittest
 
 import mock
-import nose
 
 from cumulusci.core.config import BaseConfig
 from cumulusci.core.config import BaseGlobalConfig

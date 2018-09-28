@@ -2,19 +2,13 @@ from future import standard_library
 
 standard_library.install_aliases()
 from builtins import str
-import ast
 import http.client
-import os
-import shutil
-import tempfile
 import unittest
 
 from xml.dom.minidom import parseString
 
 import responses
 import datetime
-
-from nose.tools import raises
 
 from cumulusci.tests.util import create_project_config
 from cumulusci.tests.util import DummyOrgConfig
@@ -220,7 +214,6 @@ class BaseTestMetadataApi(unittest.TestCase):
         )
 
     @responses.activate
-    @raises(MetadataApiError)
     def test_call_faultcode(self):
         org_config = {
             "instance_url": "https://na12.salesforce.com",
@@ -233,7 +226,8 @@ class BaseTestMetadataApi(unittest.TestCase):
             api.soap_envelope_start = "{api_version}"
         response = '<?xml version="1.0" encoding="UTF-8"?><faultcode>foo</faultcode>'
         self._mock_call_mdapi(api, response)
-        resp = api()
+        with self.assertRaises(MetadataApiError):
+            resp = api()
 
     @responses.activate
     def test_call_success(self):
@@ -297,7 +291,6 @@ class BaseTestMetadataApi(unittest.TestCase):
         self.assertEquals(api._get_check_interval(), 4)
 
     @responses.activate
-    @raises(MetadataApiError)
     def test_get_response_faultcode(self):
         org_config = {
             "instance_url": "https://na12.salesforce.com",
@@ -310,10 +303,10 @@ class BaseTestMetadataApi(unittest.TestCase):
             api.soap_envelope_start = "{api_version}"
         response = '<?xml version="1.0" encoding="UTF-8"?><faultcode>foo</faultcode>'
         self._mock_call_mdapi(api, response)
-        resp = api._get_response()
+        with self.assertRaises(MetadataApiError):
+            resp = api._get_response()
 
     @responses.activate
-    @raises(MetadataApiError)
     def test_get_response_faultcode_and_string(self):
         org_config = {
             "instance_url": "https://na12.salesforce.com",
@@ -330,10 +323,10 @@ class BaseTestMetadataApi(unittest.TestCase):
         response += "\n  <faultstring>bar</faultstring>"
         response += "\n</test>"
         self._mock_call_mdapi(api, response)
-        resp = api._get_response()
+        with self.assertRaises(MetadataApiError):
+            resp = api._get_response()
 
     @responses.activate
-    @raises(MetadataApiError)
     def test_get_response_faultcode_invalid_session_no_refresh(self):
         org_config = {
             "instance_url": "https://na12.salesforce.com",
@@ -346,7 +339,8 @@ class BaseTestMetadataApi(unittest.TestCase):
             api.soap_envelope_start = "{api_version}"
         response = '<?xml version="1.0" encoding="UTF-8"?><faultcode>sf:INVALID_SESSION_ID</faultcode>'
         self._mock_call_mdapi(api, response)
-        resp = api._get_response()
+        with self.assertRaises(MetadataApiError):
+            resp = api._get_response()
         self.assertEquals(api.status, "Failed")
 
     @responses.activate
@@ -377,7 +371,6 @@ class BaseTestMetadataApi(unittest.TestCase):
         self.assertEquals(resp.text, mock_responses[2])
 
     @responses.activate
-    @raises(MetadataApiError)
     def test_get_response_start_error_500(self):
         org_config = {
             "instance_url": "https://na12.salesforce.com",
@@ -395,10 +388,10 @@ class BaseTestMetadataApi(unittest.TestCase):
         response = '<?xml version="1.0" encoding="UTF-8"?><foo>start</foo>'
         self._mock_call_mdapi(api, response, status_code)
 
-        resp = api._get_response()
+        with self.assertRaises(MetadataApiError):
+            resp = api._get_response()
 
     @responses.activate
-    @raises(MetadataApiError)
     def test_get_response_status_error_500(self):
         org_config = {
             "instance_url": "https://na12.salesforce.com",
@@ -418,10 +411,10 @@ class BaseTestMetadataApi(unittest.TestCase):
         response_status = '<?xml version="1.0" encoding="UTF-8"?><foo>status</foo>'
         self._mock_call_mdapi(api, response, status_code)
 
-        resp = api._get_response()
+        with self.assertRaises(MetadataApiError):
+            resp = api._get_response()
 
     @responses.activate
-    @raises(MetadataApiError)
     def test_get_response_status_error_500(self):
         org_config = {
             "instance_url": "https://na12.salesforce.com",
@@ -441,7 +434,8 @@ class BaseTestMetadataApi(unittest.TestCase):
         response_status = '<?xml version="1.0" encoding="UTF-8"?><foo>status</foo>'
         self._mock_call_mdapi(api, response, status_code)
 
-        resp = api._get_response()
+        with self.assertRaises(MetadataApiError):
+            resp = api._get_response()
 
     @responses.activate
     def test_get_response_status_no_loop(self):
@@ -577,11 +571,11 @@ class TestBaseMetadataApiCall(BaseTestMetadataApi):
         api = self._create_instance(task)
         self.assertEquals(api._build_envelope_result(), None)
 
-    @raises(NotImplementedError)
     def test_get_response_no_start_env(self):
         task = self._create_task()
         api = self._create_instance(task)
-        api._get_response()
+        with self.assertRaises(NotImplementedError):
+            api._get_response()
 
     @responses.activate
     def test_get_response_no_status(self):
