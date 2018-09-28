@@ -5,7 +5,7 @@ get the job done kinda moment.
 """
 
 import re
-import csv
+import unicodecsv
 from cumulusci.core.utils import process_list_arg
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 
@@ -91,7 +91,7 @@ class ReportPushFailures(BaseSalesforceApiTask):
         ignore_errors = self.options["ignore_errors"]
         file_name = self.options["result_file"]
         with open(file_name, "w") as f:
-            w = csv.writer(f)
+            w = unicodecsv.writer(f, encoding="utf-8")
             w.writerow(self.headers)
             for result in job_records:
                 error = result["Error"]
