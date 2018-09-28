@@ -15,7 +15,7 @@ from cumulusci.tasks.salesforce.tests.util import create_task
 from cumulusci.tasks.push.pushfails import ReportPushFailures
 
 
-def error_record(gack=False):  # type: (bool) -> dict
+def error_record(gack=False, ErrorTitle="Unexpected Error"):  # type: (bool) -> dict
     """ a record that looks like the object returned from the sobject api query we use """
     return {
         "attributes": {"type": "job"},
@@ -30,7 +30,7 @@ def error_record(gack=False):  # type: (bool) -> dict
                     if gack
                     else "Who knows?",
                     "ErrorSeverity": "Severe",
-                    "ErrorTitle": "Unexpected Error" if gack else "IgnoreMe",
+                    "ErrorTitle": ErrorTitle,
                     "ErrorType": "Error",
                 }
             ],
@@ -50,8 +50,8 @@ class TestPushFailureTask(unittest.TestCase):
                 "done": True,
                 "totalSize": 2,
                 "records": [
-                    error_record(),
-                    error_record(True),
+                    error_record(ErrorTitle="IgnoreMe"),
+                    error_record(gack=True),
                     {
                         "attributes": {"type": "job"},
                         "SubscriberOrganizationKey": "00Dxxx000000001",

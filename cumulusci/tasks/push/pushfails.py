@@ -109,7 +109,6 @@ class ReportPushFailures(BaseSalesforceApiTask):
                 ):
                     continue  # pragma: nocover (skipped by compiler's optimizer)
                 org = org_map.get(result["SubscriberOrganizationKey"]) or {}
-                m = self.gack.search(error.get("ErrorMessage", ""))
                 w.writerow(
                     [
                         result["SubscriberOrganizationKey"],
@@ -121,8 +120,8 @@ class ReportPushFailures(BaseSalesforceApiTask):
                         error.get("ErrorTitle", ""),
                         error.get("ErrorType", ""),
                         error.get("ErrorMessage", ""),
-                        m.group("gack_id") if m else "",
-                        m.group("stacktrace_id") if m else "",
+                        error["GackId"],
+                        error["StacktraceId"],
                     ]
                 )
 
