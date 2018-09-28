@@ -401,7 +401,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
     def set_org(self, name, org_config):
         """ Creates or updates an org's oauth info """
         self._check_keychain()
-        return self.keychain.set_org(name, org_config)
+        return self.keychain.set_org(org_config)
 
     def get_static_dependencies(self, dependencies=None, include_beta=None):
         """Resolves the project -> dependencies section of cumulusci.yml

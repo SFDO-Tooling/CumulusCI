@@ -465,8 +465,9 @@ class TestBaseProjectConfig(unittest.TestCase):
     def test_set_org(self):
         config = BaseProjectConfig(BaseGlobalConfig())
         config.keychain = mock.Mock()
-        config.set_org("test", {})
-        config.keychain.set_org.assert_called_once()
+        org_config = mock.Mock()
+        config.set_org("test", org_config)
+        config.keychain.set_org.assert_called_once_with(org_config)
 
     def test_get_static_dependencies(self):
         dep = {"namespace": "npsp", "version": "3"}

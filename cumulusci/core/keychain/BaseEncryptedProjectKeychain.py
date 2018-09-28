@@ -54,7 +54,7 @@ class BaseEncryptedProjectKeychain(BaseProjectKeychain):
         return cipher, iv
 
     def _encrypt_config(self, config):
-        pickled = pickle.dumps(config.config)
+        pickled = pickle.dumps(config.config, protocol=2)
         pickled = pad(pickled)
         # pickled = base64.b64encode(pickled)
         cipher, iv = self._get_cipher()
@@ -74,9 +74,17 @@ class BaseEncryptedProjectKeychain(BaseProjectKeychain):
         try:
             unpickled = pickle.loads(pickled, encoding="bytes")
         except TypeError:  # Python 2
-            config_dict = pickle.loads(pickled)
+            unpickled = pickle.loads(pickled)
+            # Convert text created in Python 3
+            config_dict = {}
+            for k, v in unpickled.items():
+                if isinstance(k, unicode):
+                    k = k.encode("utf-8")
+                if isinstance(v, unicode):
+                    v = v.encode("utf-8")
+                config_dict[k] = v
         else:  # Python 3
-            # Convert pickles created in Python 2
+            # Convert bytes created in Python 2
             config_dict = {}
             for k, v in unpickled.items():
                 if isinstance(k, bytes):
