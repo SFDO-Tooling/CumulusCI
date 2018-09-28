@@ -30,7 +30,7 @@ def error_record(gack=False):  # type: (bool) -> dict
                     if gack
                     else "Who knows?",
                     "ErrorSeverity": "Severe",
-                    "ErrorTitle": "Unexpected Error",
+                    "ErrorTitle": "Unexpected Error" if gack else "IgnoreMe",
                     "ErrorType": "Error",
                 }
             ],
@@ -40,7 +40,10 @@ def error_record(gack=False):  # type: (bool) -> dict
 
 class TestPushFailureTask(unittest.TestCase):
     def test_run_task(self,):
-        task = create_task(ReportPushFailures, options={"request_id": "123"})
+        task = create_task(
+            ReportPushFailures,
+            options={"request_id": "123", "ignore_errors": "IgnoreMe"},
+        )
         task.sf = mock.Mock()
         task.sf.query.side_effect = [
             {
@@ -78,8 +81,8 @@ class TestPushFailureTask(unittest.TestCase):
             with open(task.result, "r") as f:
                 reader = csv.DictReader(f)
                 rows = list(reader)
-            self.assertEqual(len(rows), 3)
-            self.assertEqual(rows[2]["Stacktrace Id"], "-4532")
+            self.assertEqual(len(rows), 2)
+            self.assertEqual(rows[1]["Stacktrace Id"], "-4532")
 
     def test_run_task__no_results(self):
         task = create_task(ReportPushFailures, options={"request_id": "123"})

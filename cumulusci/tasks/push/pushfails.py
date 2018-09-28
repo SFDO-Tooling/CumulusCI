@@ -6,6 +6,7 @@ get the job done kinda moment.
 
 import re
 import csv
+from cumulusci.core.utils import process_list_arg
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 
 
@@ -22,6 +23,9 @@ class ReportPushFailures(BaseSalesforceApiTask):
         },
         "result_file": {
             "description": "Path to write a CSV file with the results. Defaults to 'push_fails.csv'."
+        },
+        "ignore_errors": {
+            "description": "List of ErrorTitle and ErrorType values to omit from the report"
         },
     }
     api_version = "43.0"
@@ -45,6 +49,9 @@ class ReportPushFailures(BaseSalesforceApiTask):
     def _init_options(self, kwargs):
         super(ReportPushFailures, self)._init_options(kwargs)
         self.options["result_file"] = self.options.get("result_file", "push_fails.csv")
+        self.options["ignore_errors"] = process_list_arg(
+            self.options.get("ignore_errors", "")
+        )
 
     def _run_task(self):
         # Get errors
@@ -81,12 +88,18 @@ class ReportPushFailures(BaseSalesforceApiTask):
         )
         org_map = {org["OrgKey"]: org for org in result["records"]}
 
+        ignore_errors = self.options["ignore_errors"]
         file_name = self.options["result_file"]
         with open(file_name, "w") as f:
             w = csv.writer(f)
             w.writerow(self.headers)
             for result in job_records:
                 error = result["Error"]
+                if (
+                    error.get("ErrorTitle") in ignore_errors
+                    or error.get("ErrorType") in ignore_errors
+                ):
+                    continue  # pragma: nocover (skipped by compiler's optimizer)
                 org = org_map.get(result["SubscriberOrganizationKey"]) or {}
                 m = self.gack.search(error.get("ErrorMessage", ""))
                 w.writerow(
