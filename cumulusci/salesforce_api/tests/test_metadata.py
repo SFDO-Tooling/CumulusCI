@@ -4,6 +4,7 @@ import unittest
 from xml.dom.minidom import parseString
 
 import responses
+import datetime
 
 from nose.tools import raises
 
@@ -13,6 +14,7 @@ from cumulusci.core.config import TaskConfig
 from cumulusci.core.exceptions import ApexTestException
 from cumulusci.core.tasks import BaseTask
 from cumulusci.salesforce_api.exceptions import MetadataApiError
+from cumulusci.salesforce_api.exceptions import MetadataParseError
 from cumulusci.salesforce_api.exceptions import MetadataComponentFailure
 from cumulusci.salesforce_api.metadata import BaseMetadataApiCall
 from cumulusci.salesforce_api.metadata import ApiDeploy
@@ -30,6 +32,9 @@ from cumulusci.salesforce_api.tests.metadata_test_strings import (
     list_metadata_start_envelope
 )
 from cumulusci.salesforce_api.tests.metadata_test_strings import list_metadata_result
+from cumulusci.salesforce_api.tests.metadata_test_strings import (
+    list_metadata_result_bad_val
+)
 from cumulusci.salesforce_api.tests.metadata_test_strings import (
     retrieve_packaged_start_envelope
 )
@@ -758,7 +763,7 @@ class TestApiListMetadata(BaseTestMetadataApi):
                 {
                     u"createdById": None,
                     u"createdByName": None,
-                    u"createdDate": None,
+                    u"createdDate": datetime.datetime(2018, 8, 7, 16, 31, 57),
                     u"fileName": None,
                     u"fullName": u"Test__c",
                     u"id": None,
@@ -767,7 +772,7 @@ class TestApiListMetadata(BaseTestMetadataApi):
                     u"lastModifiedDate": None,
                     u"manageableState": None,
                     u"namespacePrefix": None,
-                    u"type": None,
+                    u"type": "CustomObject",
                 }
             ]
         }
@@ -782,6 +787,20 @@ class TestApiListMetadata(BaseTestMetadataApi):
             folder=self.folder,
             as_of_version=api_version,
         )
+
+    @responses.activate
+    def test_bad_date_somehow(self):
+        org_config = {
+            "instance_url": "https://na12.salesforce.com",
+            "id": "https://login.salesforce.com/id/00D000000000000ABC/005000000000000ABC",
+            "access_token": "0123456789",
+        }
+        task = self._create_task(org_config=org_config)
+        api = self._create_instance(task)
+
+        self._mock_call_mdapi(api, list_metadata_result_bad_val)
+        with self.assertRaises(MetadataParseError):
+            resp = api()
 
 
 class TestApiRetrieveUnpackaged(BaseTestMetadataApi):
