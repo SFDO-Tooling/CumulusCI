@@ -70,7 +70,7 @@ class ReportPushFailures(BaseSalesforceApiTask):
 
         # Sort by error title
         for record in job_records:
-            errors = record.pop("PackagePushErrors", {}).get("records") or [
+            errors = (record.pop("PackagePushErrors", None) or {}).get("records") or [
                 {"ErrorTitle": "", "ErrorMessage": ""}
             ]
             error = errors[0]
