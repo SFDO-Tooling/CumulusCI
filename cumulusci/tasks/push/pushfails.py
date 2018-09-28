@@ -27,9 +27,7 @@ class ReportPushFailures(BaseSalesforceApiTask):
     api_version = "43.0"
     job_query = "SELECT ID, SubscriberOrganizationKey, (SELECT ErrorDetails, ErrorMessage, ErrorSeverity, ErrorTitle, ErrorType FROM PackagePushErrors) FROM PackagePushJob WHERE PackagePushRequestId = '{request_id}' AND Status !='Succeeded'"
     subscriber_query = "SELECT OrgKey, OrgName, OrgType, OrgStatus, InstanceName FROM PackageSubscriber WHERE OrgKey IN ({org_ids})"
-    gack = re.compile(
-        r"error number: (?P<gack_id>[\d-]+) \((?P<stacktrace_id>[\d-]+)\)"
-    )
+    gack = re.compile(r"(?P<gack_id>[\d-]+) \((?P<stacktrace_id>[\d-]+)\)")
     headers = [
         "OrganizationId",
         "OrgName",
