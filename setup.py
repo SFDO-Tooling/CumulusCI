@@ -44,6 +44,7 @@ requirements = [
     "selenium==3.14.0",
     "simple-salesforce==0.74.2",
     "SQLAlchemy==1.2.11",
+    "unicodecsv==0.14.1",
     "xmltodict==0.11.0",
 ]
 
