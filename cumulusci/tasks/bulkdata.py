@@ -35,31 +35,15 @@ from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 # TODO: UserID Catcher
 # TODO: Dater
 
-# Create a custom sqlalchemy field type for sqlite datetime fields which are stored as integer of epoch time
-class EpochType(types.TypeDecorator):
-    impl = types.Integer
-
-    epoch = datetime.datetime(1970, 1, 1, 0, 0, 0)
-
-    def process_bind_param(self, value, dialect):
-        return int((value - self.epoch).total_seconds()) * 1000
-
-    def process_result_value(self, value, dialect):
-        return self.epoch + datetime.timedelta(seconds=value // 1000)
-
-
-# Listen for sqlalchemy column_reflect event and map datetime fields to EpochType
-@event.listens_for(Table, "column_reflect")
-def setup_epoch(inspector, table, column_info):
-    if isinstance(column_info["type"], types.DateTime):
-        column_info["type"] = EpochType()
-
 
 class BulkJobTaskMixin(object):
     def _job_state_from_batches(self, job_id):
         uri = urljoin(self.bulk.endpoint + "/", "job/{0}/batch".format(job_id))
         response = requests.get(uri, headers=self.bulk.headers())
-        tree = ET.fromstring(response.content)
+        return self._parse_job_state(response.content)
+
+    def _parse_job_state(self, xml):
+        tree = ET.fromstring(xml)
         completed = 0
         pending = 0
         failed = 0
@@ -104,7 +88,7 @@ class BulkJobTaskMixin(object):
             with conn.connection.cursor() as cursor:
                 cursor.copy_expert(
                     "COPY {} ({}) FROM STDIN WITH (FORMAT CSV)".format(
-                        table, b",".join(columns)
+                        table, ",".join(columns)
                     ),
                     data_file,
                 )
@@ -112,7 +96,6 @@ class BulkJobTaskMixin(object):
             # For other db drivers we need to use standard SQL
             # -- this is optimized for ease of implementation
             # rather than performance and may need more work.
-            columns = [c.decode("utf-8") for c in columns]
             reader = unicodecsv.DictReader(data_file, columns)
             table = self.metadata.tables[table]
             rows = list(reader)
@@ -151,6 +134,23 @@ class DeleteData(BaseSalesforceApiTask, BulkJobTaskMixin):
             if delete_job is not None:
                 self._wait_for_job(delete_job)
 
+    def _create_job(self, obj):
+        # Query for rows to delete
+        delete_rows = self._query_salesforce_for_records_to_delete(obj)
+        if not delete_rows:
+            self.logger.info("  No {} objects found, skipping delete".format(obj))
+            return
+
+        # Upload all the batches
+        delete_job = self.bulk.create_job(obj, self.options["operation"])
+        self.logger.info("  Deleting {} {} records".format(len(delete_rows), obj))
+        batch_num = 1
+        for batch in self._upload_batches(delete_job, delete_rows):
+            self.logger.info("    Uploaded batch {}".format(batch))
+            batch_num += 1
+        self.bulk.close_job(delete_job)
+        return delete_job
+
     def _query_salesforce_for_records_to_delete(self, obj):
         # Query for all record ids
         self.logger.info("  Querying for all {} objects".format(obj))
@@ -166,41 +166,19 @@ class DeleteData(BaseSalesforceApiTask, BulkJobTaskMixin):
                 delete_rows.append(row)
         return delete_rows
 
-    def _create_job(self, obj):
-        # Query for rows to delete
-        delete_rows = self._query_salesforce_for_records_to_delete(obj)
-        if not delete_rows:
-            self.logger.info("  No {} objects found, skipping delete".format(obj))
-            return
-
-        # Upload all the batches
-        delete_job = self.bulk.create_job(obj, self.options["operation"])
-        self.logger.info("  Deleting {} {} records".format(len(delete_rows), obj))
-        batch_num = 1
-        for batch in self._upload_batch(delete_job, delete_rows):
-            self.logger.info("    Uploaded batch {}".format(batch))
-            batch_num += 1
-        self.bulk.close_job(delete_job)
-        return delete_job
-
     def _split_batches(self, data, batch_size):
         """Yield successive n-sized chunks from l."""
         for i in range(0, len(data), batch_size):
             yield data[i : i + batch_size]
 
-    def _upload_batch(self, job, data):
-        # Split into batches
-        batches = self._split_batches(data, 10000)
-
+    def _upload_batches(self, job, data):
         uri = "{}/job/{}/batch".format(self.bulk.endpoint, job)
         headers = self.bulk.headers({"Content-Type": "text/csv"})
-        for batch in batches:
-            data = ['"Id"']
-            data += ['"{}"'.format(record["Id"]) for record in batch]
-            data = "\n".join(data)
-            resp = requests.post(uri, data=data, headers=headers)
+        for batch in self._split_batches(data, 10000):
+            rows = ['"Id"']
+            rows += ['"{}"'.format(record["Id"]) for record in batch]
+            resp = requests.post(uri, data="\n".join(rows), headers=headers)
             content = resp.content
-
             if resp.status_code >= 400:
                 self.bulk.raise_error(content, resp.status_code)
 
@@ -249,10 +227,9 @@ class LoadData(BaseSalesforceApiTask, BulkJobTaskMixin):
         """Load data for a single step."""
         job_id, local_ids_for_batch = self._create_job(mapping)
         result = self._wait_for_job(job_id)
-        if result != "Completed":
-            return result
-        self._store_inserted_ids(mapping, job_id, local_ids_for_batch)
-        return "Completed"
+        if result == "Completed":
+            self._store_inserted_ids(mapping, job_id, local_ids_for_batch)
+        return result
 
     def _create_job(self, mapping):
         """Initiate a bulk insert and upload batches to run in parallel."""
@@ -291,34 +268,28 @@ class LoadData(BaseSalesforceApiTask, BulkJobTaskMixin):
             columns.append("RecordTypeId")
             # default to the profile assigned recordtype if we can't find any
             # query for the RT by developer name
-            try:
-                query = (
-                    "SELECT Id FROM RecordType WHERE SObjectType='{0}'"
-                    "AND DeveloperName = '{1}' LIMIT 1"
-                )
-                record_type_id = self.sf.query(
-                    query.format(mapping.get("sf_object"), record_type)
-                )["records"][0]["Id"]
-            except (KeyError, IndexError):
-                record_type_id = None
+            query = (
+                "SELECT Id FROM RecordType WHERE SObjectType='{0}'"
+                "AND DeveloperName = '{1}' LIMIT 1"
+            )
+            record_type_id = self.sf.query(
+                query.format(mapping.get("sf_object"), record_type)
+            )["records"][0]["Id"]
 
         query = self._query_db(mapping)
 
         total_rows = 0
-        batch_num = 0
-        batch_ids = []
+        batch_num = 1
+
+        def start_batch():
+            batch_file = io.BytesIO()
+            writer = unicodecsv.writer(batch_file)
+            writer.writerow(columns)
+            batch_ids = []
+            return batch_file, writer, batch_ids
+
+        batch_file, writer, batch_ids = start_batch()
         for row in query.yield_per(batch_size):
-            # Yield a new result file every [batch_size] rows
-            if not total_rows % batch_size:
-                if batch_num > 0:
-                    batch_file.seek(0)
-                    self.logger.info("    Processing batch {}".format(batch_num))
-                    yield batch_file, batch_ids
-                batch_file = io.BytesIO()
-                writer = unicodecsv.writer(batch_file)
-                writer.writerow(columns)
-                batch_ids = []
-                batch_num += 1
             total_rows += 1
 
             # Add static values to row
@@ -329,6 +300,14 @@ class LoadData(BaseSalesforceApiTask, BulkJobTaskMixin):
 
             writer.writerow([self._convert(value) for value in row])
             batch_ids.append(pkey)
+
+            # Yield and start a new file every [batch_size] rows
+            if not total_rows % batch_size:
+                batch_file.seek(0)
+                self.logger.info("    Processing batch {}".format(batch_num))
+                yield batch_file, batch_ids
+                batch_file, writer, batch_ids = start_batch()
+                batch_num += 1
 
         # Yield result file for final batch
         if batch_ids:
@@ -350,11 +329,12 @@ class LoadData(BaseSalesforceApiTask, BulkJobTaskMixin):
         """
         model = self.models[mapping.get("table")]
 
-        # Don't include SF Id
+        # Make sure primary key is first
         fields = mapping["fields"].copy()
+        id_column = fields["Id"]
         del fields["Id"]
+        columns = [getattr(model, id_column)]
 
-        columns = [model.id]
         for f in fields.values():
             columns.append(model.__table__.columns[f])
         lookups = mapping.get("lookups", {}).copy().values()
@@ -449,7 +429,7 @@ class LoadData(BaseSalesforceApiTask, BulkJobTaskMixin):
                 i += 1
 
         # Bulk insert rows into id table
-        columns = (b"id", b"sf_id")
+        columns = ("id", "sf_id")
         data_file = IteratorBytesIO(produce_csv())
         self._sql_bulk_insert_from_csv(conn, id_table_name, columns, data_file)
 
@@ -495,7 +475,6 @@ class QueryData(BaseSalesforceApiTask, BulkJobTaskMixin):
         self._init_db()
 
         for mapping in self.mappings.values():
-            fields = self._fields_for_mapping(mapping)
             soql = self._soql_for_mapping(mapping)
             self._run_query(soql, mapping)
 
@@ -552,8 +531,6 @@ class QueryData(BaseSalesforceApiTask, BulkJobTaskMixin):
 
     def _get_results(self, batch_id, job_id):
         result_ids = self.bulk.get_query_batch_result_ids(batch_id, job_id=job_id)
-        if not result_ids:
-            raise RuntimeError("Batch is not complete")
         for result_id in result_ids:
             self.logger.info("Result id: {}".format(result_id))
             uri = urljoin(
@@ -565,21 +542,18 @@ class QueryData(BaseSalesforceApiTask, BulkJobTaskMixin):
                 yield f
 
     def _import_results(self, mapping, result_file, conn):
-        reader = unicodecsv.reader(result_file, encoding="utf-8")
-
         # Map SF field names to local db column names
-        sf_header = next(reader)
+        sf_header = result_file.readline().strip().decode("utf-8").split(",")
         columns = []
         for sf in sf_header:
             if sf == "Records not found for this query":
-                continue
-            if sf == "Id":
-                column = "id"
-            else:
+                return
+            if sf:
                 column = mapping["fields"].get(sf)
                 if not column:
-                    column = mapping["lookups"][sf]["key_field"]
-            columns.append(column)
+                    column = mapping.get("lookups", {}).get(sf, {}).get("key_field")
+                if column:
+                    columns.append(column)
         if not columns:
             return
         record_type = mapping.get("record_type")
@@ -594,7 +568,7 @@ class QueryData(BaseSalesforceApiTask, BulkJobTaskMixin):
         self.session.commit()
 
     def _create_tables(self):
-        for name, mapping in self.mappings.items():
+        for mapping in self.mappings.values():
             self._create_table(mapping)
         self.metadata.create_all()
 
@@ -608,9 +582,12 @@ class QueryData(BaseSalesforceApiTask, BulkJobTaskMixin):
         else:
             self.models[mapping["table"]] = type(model_name, (object,), {})
 
+        id_column = mapping["fields"].get("Id") or "id"
         fields = []
-        fields.append(Column("id", Unicode(255), primary_key=True))
+        fields.append(Column(id_column, Unicode(255), primary_key=True))
         for field in self._fields_for_mapping(mapping):
+            if field["sf"] == "Id":
+                continue
             fields.append(Column(field["db"], Unicode(255)))
         if "record_type" in mapping:
             fields.append(Column("record_type", Unicode(255)))
@@ -643,7 +620,7 @@ def process_incoming_rows(f, record_type=None):
         record_type = record_type.encode("utf-8")
     for line in f:
         if record_type:
-            yield line[:-1] + b"," + record_type + b"\n"
+            yield line + b"," + record_type + b"\n"
         else:
             yield line
 
