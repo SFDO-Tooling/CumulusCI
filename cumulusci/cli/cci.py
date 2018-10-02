@@ -65,13 +65,16 @@ def timestamp_file():
         yield f
 
 
-def get_latest_version():
+def get_latest_final_version():
     """ return the latest version of cumulusci in pypi, be defensive """
     # use the pypi json api https://wiki.python.org/moin/PyPIJSON
     res = requests.get("https://pypi.org/pypi/cumulusci/json", timeout=5).json()
     with timestamp_file() as f:
         f.write(bytes(time.time()))
-    return pkg_resources.parse_version(res["info"]["version"])
+    versions = [pkg_resources.parse_version(v) for v in res["releases"].keys()]
+    versions = [v for v in versions if not v.is_prerelease and not v.is_postrelease]
+    versions.sort(reverse=True)
+    return versions[0]
 
 
 def check_latest_version():
@@ -85,7 +88,7 @@ def check_latest_version():
 
     if check:
         try:
-            latest_version = get_latest_version()
+            latest_version = get_latest_final_version()
         except requests.exceptions.RequestException as e:
             click.echo("Error checking cci version:")
             click.echo(e.message)
