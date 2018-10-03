@@ -66,7 +66,8 @@ def timestamp_file():
         yield f
 
 
-FINAL_VERSION_RE = re.compile(r'^[\d\.]+$')
+FINAL_VERSION_RE = re.compile(r"^[\d\.]+$")
+
 
 def is_final_release(version):
     return FINAL_VERSION_RE.match(version)

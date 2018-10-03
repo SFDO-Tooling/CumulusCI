@@ -144,6 +144,10 @@ tasks:
     push_failure_report:
         description: Produce a CSV report of the failed and otherwise anomalous push jobs.
         class_path: cumulusci.tasks.push.pushfails.ReportPushFailures
+        options:
+            ignore_errors:
+              - "Salesforce Subscription Expired"
+              - "Package Uninstalled"
     query:
         description: Queries the connected org
         class_path: cumulusci.tasks.salesforce.SOQLQuery
