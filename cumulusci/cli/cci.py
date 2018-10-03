@@ -70,6 +70,11 @@ FINAL_VERSION_RE = re.compile(r"^[\d\.]+$")
 
 
 def is_final_release(version):
+    """Returns bool whether version string should be considered a final release.
+
+    cumulusci versions are considered final if they contain only digits and periods.
+    e.g. 1.0.1 is final but 2.0b1 and 2.0.dev0 are not.
+    """
     return FINAL_VERSION_RE.match(version)
 
 
