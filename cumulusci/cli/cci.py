@@ -49,6 +49,7 @@ from cumulusci.cli.config import get_installed_version
 from cumulusci.utils import doc_task
 from cumulusci.oauth.salesforce import CaptureSalesforceOAuth
 from .logger import init_logger
+import re
 
 
 @contextmanager
@@ -65,14 +66,23 @@ def timestamp_file():
         yield f
 
 
+FINAL_VERSION_RE = re.compile(r'^[\d\.]+$')
+
+def is_final_release(version):
+    return FINAL_VERSION_RE.match(version)
+
+
 def get_latest_final_version():
     """ return the latest version of cumulusci in pypi, be defensive """
     # use the pypi json api https://wiki.python.org/moin/PyPIJSON
     res = requests.get("https://pypi.org/pypi/cumulusci/json", timeout=5).json()
     with timestamp_file() as f:
         f.write(bytes(time.time()))
-    versions = [pkg_resources.parse_version(v) for v in res["releases"].keys()]
-    versions = [v for v in versions if not v.is_prerelease and not v.is_postrelease]
+    versions = []
+    for versionstring in res["releases"].keys():
+        if not is_final_release(versionstring):
+            continue
+        versions.append(pkg_resources.parse_version(versionstring))
     versions.sort(reverse=True)
     return versions[0]
 
