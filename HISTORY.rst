@@ -2,6 +2,20 @@
 History
 =======
 
+2.0.13 (2018-10-02)
+-------------------
+* Happy Spooky October! It's unlucky release 2.0.13, with some scary-cool improvements. Just to show you how ramped up our RelEng team is now, this release had TWENTY THREE pull requests in 12 days! From all four of your friendly SFDO Release Engineering committers. Thanks so much for continuing to use CCI for all your Salesforce automation needs.
+* NEW FLOW: ci_beta_dependencies installs the latest beta of project dependencies and run tests. Includes task error when running against non-scratch orgs.
+* NEW TASK: ReportPushFailures pulls a list of Package Push Upgrade Request failures after a push attempt, including grouping by important factors.
+* Issue a terminal "Bell" sound and attempt to display a macOS notification when a commandline task or flow completes.
+* Cleaned up python exception and error handling across the board, so that we can provide you, the user, with only the most relevant information. Try using CCI without setting your CUMULUSCI_KEY and see a simplified error message.
+* Fixed the utils for processing namespaces in package zip files to handle non-ASCII characters
+* The CONTRIBUTING.rst docs and Makefile have been updated to show how we release updates of CCI.
+* Skip beta releases when checking for a newer cumulusci version
+* When using the strip_namespace option on deployments, we now log which files had changes made before deploying.
+* Going Out: the SFDXDeploy and SFDXJsonPollingTasks have been removed, as they didn't work.
+* Going Out: Use the safe_load() method when loading YAML instead of the naive load(). If you relied on executing code in your CCI YAML file parsing, that will no longer work.
+
 2.0.12 (2018-09-20)
 -------------------
 

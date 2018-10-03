@@ -63,37 +63,47 @@ class TestCCI(unittest.TestCase):
         self.assertEqual(cumulusci.__version__, result.base_version)
 
     @responses.activate
-    def test_get_latest_version(self):
+    def test_get_latest_final_version(self):
         responses.add(
             method="GET",
             url="https://pypi.org/pypi/cumulusci/json",
-            body=json.dumps({"info": {"version": cumulusci.__version__}}),
+            body=json.dumps(
+                {
+                    "releases": {
+                        "1.0b1": {},
+                        "1.0": {},
+                        "1.0.1.dev0": {},
+                        "1.0.1": {},
+                        "1.0.post1": {},
+                    }
+                }
+            ),
             status=200,
         )
-        result = cci.get_latest_version()
-        self.assertEqual(cumulusci.__version__, result.base_version)
+        result = cci.get_latest_final_version()
+        self.assertEqual("1.0.1", result.base_version)
 
     @mock.patch("cumulusci.cli.cci.get_installed_version")
-    @mock.patch("cumulusci.cli.cci.get_latest_version")
+    @mock.patch("cumulusci.cli.cci.get_latest_final_version")
     @mock.patch("cumulusci.cli.cci.click")
     def test_check_latest_version(
-        self, click, get_latest_version, get_installed_version
+        self, click, get_latest_final_version, get_installed_version
     ):
         with cci.timestamp_file() as f:
             f.write(str(time.time() - 4000))
-        get_latest_version.return_value = pkg_resources.parse_version("2")
+        get_latest_final_version.return_value = pkg_resources.parse_version("2")
         get_installed_version.return_value = pkg_resources.parse_version("1")
 
         cci.check_latest_version()
 
         self.assertEqual(2, click.echo.call_count)
 
-    @mock.patch("cumulusci.cli.cci.get_latest_version")
+    @mock.patch("cumulusci.cli.cci.get_latest_final_version")
     @mock.patch("cumulusci.cli.cci.click")
-    def test_check_latest_version_request_error(self, click, get_latest_version):
+    def test_check_latest_version_request_error(self, click, get_latest_final_version):
         with cci.timestamp_file() as f:
             f.write(str(time.time() - 4000))
-        get_latest_version.side_effect = requests.exceptions.RequestException()
+        get_latest_final_version.side_effect = requests.exceptions.RequestException()
 
         cci.check_latest_version()
 
