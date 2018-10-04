@@ -412,4 +412,3 @@ class TestQueryData(unittest.TestCase):
         task.models = {"test": mock.Mock()}
         with self.assertRaises(BulkDataException):
             task._create_table({"table": "test"})
-

@@ -135,7 +135,7 @@ class DeleteData(BaseSalesforceApiTask, BulkJobTaskMixin):
             "required": True,
         },
         "hardDelete": {
-            "description": "If True, perform a hard delete, bypassing the recycle bin. Default: False",
+            "description": "If True, perform a hard delete, bypassing the recycle bin. Default: False"
         },
     }
 
@@ -165,7 +165,7 @@ class DeleteData(BaseSalesforceApiTask, BulkJobTaskMixin):
             return
 
         # Upload all the batches
-        operation = 'hardDelete' if self.options['hardDelete'] else 'delete'
+        operation = "hardDelete" if self.options["hardDelete"] else "delete"
         delete_job = self.bulk.create_job(obj, operation)
         self.logger.info("  Deleting {} {} records".format(len(delete_rows), obj))
         batch_num = 1
@@ -369,7 +369,7 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
             columns.append(lookup["aliased_table"].columns.sf_id)
 
         query = self.session.query(*columns)
-        if "record_type" in mapping and hasattr(model, 'record_type'):
+        if "record_type" in mapping and hasattr(model, "record_type"):
             query = query.filter(model.record_type == mapping["record_type"])
         if "filters" in mapping:
             filter_args = []
@@ -409,15 +409,21 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
                 # Download entire result file to a temporary file first
                 # to avoid the server dropping connections
                 with _download_file(results_url, self.bulk) as f:
-                    self.logger.info("  Downloaded results for batch {}".format(batch_id))
-                    self._store_inserted_ids_for_batch(f, local_ids, id_table_name, conn)
+                    self.logger.info(
+                        "  Downloaded results for batch {}".format(batch_id)
+                    )
+                    self._store_inserted_ids_for_batch(
+                        f, local_ids, id_table_name, conn
+                    )
                 self.logger.info(
                     "  Updated {} for batch {}".format(id_table_name, batch_id)
                 )
             except Exception:  # pragma: nocover
                 # If we can't download one result file,
                 # don't let that stop us from downloading the others
-                self.logger.error('Could not download batch results: {}'.format(batch_id))
+                self.logger.error(
+                    "Could not download batch results: {}".format(batch_id)
+                )
                 continue
         self.session.commit()
 
@@ -607,7 +613,7 @@ class QueryData(BulkJobTaskMixin, BaseSalesforceApiTask):
         mapper_kwargs = {}
         table_kwargs = {}
         if mapping["table"] in self.models:
-            raise BulkDataException('Table already exists: {}'.format(mapping['table']))
+            raise BulkDataException("Table already exists: {}".format(mapping["table"]))
         self.models[mapping["table"]] = type(model_name, (object,), {})
 
         id_column = mapping["fields"].get("Id") or "id"
