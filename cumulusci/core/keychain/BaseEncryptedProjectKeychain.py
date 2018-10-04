@@ -1,10 +1,13 @@
 from __future__ import print_function
 from builtins import chr
 import base64
+import os
 import pickle
 
-from Crypto import Random
-from Crypto.Cipher import AES
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives.ciphers import Cipher
+from cryptography.hazmat.primitives.ciphers.algorithms import AES
+from cryptography.hazmat.primitives.ciphers.modes import CBC
 
 from cumulusci.core.config import ConnectedAppOAuthConfig
 from cumulusci.core.config import OrgConfig
@@ -16,6 +19,7 @@ from cumulusci.core.keychain import BaseProjectKeychain
 BS = 16
 pad = lambda s: s + (BS - len(s) % BS) * chr(BS - len(s) % BS).encode("ascii")
 unpad = lambda s: s[0 : -ord(s[-1])]
+backend = default_backend()
 
 
 class BaseEncryptedProjectKeychain(BaseProjectKeychain):
@@ -48,18 +52,19 @@ class BaseEncryptedProjectKeychain(BaseProjectKeychain):
         return self._decrypt_config(OrgConfig, self.orgs[name], extra=[name])
 
     def _get_cipher(self, iv=None):
+        key = self.key
+        if not isinstance(key, bytes):
+            key = key.encode()
         if iv is None:
-            iv = Random.new().read(AES.block_size)
-        cipher = AES.new(self.key, AES.MODE_CBC, iv)
+            iv = os.urandom(16)
+        cipher = Cipher(AES(key), CBC(iv), backend=backend)
         return cipher, iv
 
     def _encrypt_config(self, config):
         pickled = pickle.dumps(config.config, protocol=2)
         pickled = pad(pickled)
-        # pickled = base64.b64encode(pickled)
         cipher, iv = self._get_cipher()
-        encrypted = base64.b64encode(iv + cipher.encrypt(pickled))
-        return encrypted
+        return base64.b64encode(iv + cipher.encryptor().update(pickled))
 
     def _decrypt_config(self, config_class, encrypted_config, extra=None):
         if not encrypted_config:
@@ -70,7 +75,7 @@ class BaseEncryptedProjectKeychain(BaseProjectKeychain):
         encrypted_config = base64.b64decode(encrypted_config)
         iv = encrypted_config[:16]
         cipher, iv = self._get_cipher(iv)
-        pickled = cipher.decrypt(encrypted_config[16:])
+        pickled = cipher.decryptor().update(encrypted_config[16:])
         try:
             unpickled = pickle.loads(pickled, encoding="bytes")
         except TypeError:  # Python 2
