@@ -96,12 +96,12 @@ jobs:
             venv/bin/cci org info dev > org_info.txt
             venv/bin/cci org default dev
       - run:
-          name: Run robot tests (ignore failure on UI tests for now)
+          name: Run robot tests
           command: |
             mkdir -p robot_results/robot
             venv/bin/coverage run --append venv/bin/cci task run robot -o suites cumulusci/robotframework/tests/cumulusci/base.robot -o xunit robot_results/robot/cumulusci.xml
             venv/bin/coverage run --append venv/bin/cci task run robot -o suites cumulusci/robotframework/tests/salesforce/api.robot -o xunit robot_results/robot/salesforce_api.xml
-            venv/bin/coverage run --append venv/bin/cci task run robot -o suites cumulusci/robotframework/tests/salesforce/ui.robot -o xunit robot_results/robot/salesforce_ui.xml || true
+            venv/bin/coverage run --append venv/bin/cci task run robot -o suites cumulusci/robotframework/tests/salesforce/ui.robot -o xunit robot_results/robot/salesforce_ui.xml
       - run:
           name: Delete scratch org
           command: |
@@ -111,6 +111,7 @@ jobs:
           name: Preserve coverage
           command: |
             mv .coverage .coverage.robot
+          when: always
       - store_test_results:
           path: robot_results
       - persist_to_workspace:
