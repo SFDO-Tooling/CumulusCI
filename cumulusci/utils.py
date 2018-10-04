@@ -447,3 +447,21 @@ def in_directory(filepath, dirpath):
     filepath = os.path.realpath(filepath)
     dirpath = os.path.realpath(dirpath)
     return filepath == dirpath or filepath.startswith(os.path.join(dirpath, ""))
+
+
+def log_progress(
+    iterable,
+    logger,
+    batch_size=10000,
+    progress_message="Processing... ({})",
+    done_message="Done! (Total: {})",
+):
+    """Log progress while iterating.
+    """
+    i = 0
+    for x in iterable:
+        yield x
+        i += 1
+        if not i % batch_size:
+            logger.info(progress_message.format(i))
+    logger.info(done_message.format(i))

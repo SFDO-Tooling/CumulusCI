@@ -225,3 +225,9 @@ class RobotTestFailure(CumulusCIFailure):
     """ Raise when a robot test fails in a test suite """
 
     pass
+
+
+class BulkDataException(CumulusCIException):
+    """ Raise for errors from bulkdata tasks """
+
+    pass

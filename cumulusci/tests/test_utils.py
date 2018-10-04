@@ -359,6 +359,12 @@ Options:
         with self.assertRaises(AssertionError):
             dt = utils.parse_api_datetime(bad_str)
 
+    def test_log_progress(self):
+        logger = mock.Mock()
+        for x in utils.log_progress(range(3), logger, batch_size=1):
+            pass
+        self.assertEqual(4, logger.info.call_count)
+
 
 class FunTestTask(BaseTask):
     """For testing doc_task"""
