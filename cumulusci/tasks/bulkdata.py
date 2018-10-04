@@ -30,8 +30,10 @@ import hiyapyco
 import requests
 import unicodecsv
 
+from cumulusci.core.utils import process_bool_arg
 from cumulusci.core.exceptions import BulkDataException
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
+from cumulusci.utils import log_progress
 
 # TODO: UserID Catcher
 # TODO: Dater
@@ -132,8 +134,8 @@ class DeleteData(BaseSalesforceApiTask, BulkJobTaskMixin):
             "description": "A list of objects to delete records from in order of deletion.  If passed via command line, use a comma separated string",
             "required": True,
         },
-        "operation": {
-            "description": "Bulk operation to perform (delete or hardDelete). Default: delete"
+        "hardDelete": {
+            "description": "If True, perform a hard delete, bypassing the recycle bin. Default: False",
         },
     }
 
@@ -146,7 +148,7 @@ class DeleteData(BaseSalesforceApiTask, BulkJobTaskMixin):
                 obj.strip() for obj in self.options["objects"].split(",")
             ]
 
-        self.options["operation"] = self.options.get("operation") or "delete"
+        self.options["hardDelete"] = process_bool_arg(self.options.get("hardDelete"))
 
     def _run_task(self):
         for obj in self.options["objects"]:
@@ -163,7 +165,8 @@ class DeleteData(BaseSalesforceApiTask, BulkJobTaskMixin):
             return
 
         # Upload all the batches
-        delete_job = self.bulk.create_job(obj, self.options["operation"])
+        operation = 'hardDelete' if self.options['hardDelete'] else 'delete'
+        delete_job = self.bulk.create_job(obj, operation)
         self.logger.info("  Deleting {} {} records".format(len(delete_rows), obj))
         batch_num = 1
         for batch in self._upload_batches(delete_job, delete_rows):
@@ -209,7 +212,7 @@ class DeleteData(BaseSalesforceApiTask, BulkJobTaskMixin):
             yield batch_id
 
 
-class LoadData(BaseSalesforceApiTask, BulkJobTaskMixin):
+class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
 
     task_options = {
         "database_url": {
@@ -248,8 +251,8 @@ class LoadData(BaseSalesforceApiTask, BulkJobTaskMixin):
         """Load data for a single step."""
         job_id, local_ids_for_batch = self._create_job(mapping)
         result = self._wait_for_job(job_id)
-        if result == "Completed":
-            self._store_inserted_ids(mapping, job_id, local_ids_for_batch)
+        # We store inserted ids even if some batches failed
+        self._store_inserted_ids(mapping, job_id, local_ids_for_batch)
         return result
 
     def _create_job(self, mapping):
@@ -399,17 +402,23 @@ class LoadData(BaseSalesforceApiTask, BulkJobTaskMixin):
         id_table_name = self._reset_id_table(mapping)
         conn = self.session.connection()
         for batch_id, local_ids in local_ids_for_batch.items():
-            results_url = "{}/job/{}/batch/{}/result".format(
-                self.bulk.endpoint, job_id, batch_id
-            )
-            # Download entire result file to a temporary file first
-            # to avoid the server dropping connections
-            with _download_file(results_url, self.bulk) as f:
-                self.logger.info("  Downloaded results for batch {}".format(batch_id))
-                self._store_inserted_ids_for_batch(f, local_ids, id_table_name, conn)
-            self.logger.info(
-                "  Updated {} for batch {}".format(id_table_name, batch_id)
-            )
+            try:
+                results_url = "{}/job/{}/batch/{}/result".format(
+                    self.bulk.endpoint, job_id, batch_id
+                )
+                # Download entire result file to a temporary file first
+                # to avoid the server dropping connections
+                with _download_file(results_url, self.bulk) as f:
+                    self.logger.info("  Downloaded results for batch {}".format(batch_id))
+                    self._store_inserted_ids_for_batch(f, local_ids, id_table_name, conn)
+                self.logger.info(
+                    "  Updated {} for batch {}".format(id_table_name, batch_id)
+                )
+            except Exception:  # pragma: nocover
+                # If we can't download one result file,
+                # don't let that stop us from downloading the others
+                self.logger.error('Could not download batch results: {}'.format(batch_id))
+                continue
         self.session.commit()
 
     def _reset_id_table(self, mapping):
@@ -479,7 +488,7 @@ class LoadData(BaseSalesforceApiTask, BulkJobTaskMixin):
         self.mapping = hiyapyco.load(self.options["mapping"], loglevel="INFO")
 
 
-class QueryData(BaseSalesforceApiTask, BulkJobTaskMixin):
+class QueryData(BulkJobTaskMixin, BaseSalesforceApiTask):
     task_options = {
         "database_url": {
             "description": "A DATABASE_URL where the query output should be written",
@@ -635,18 +644,10 @@ def _download_file(uri, bulk_api):
 
 
 def process_incoming_rows(f, record_type=None):
+    if record_type and not isinstance(record_type, bytes):
+        record_type = record_type.encode("utf-8")
     for line in f:
         if record_type:
             yield line + b"," + record_type + b"\n"
         else:
             yield line
-
-
-def log_progress(iterable, logger, batch_size=10000):
-    i = 0
-    for x in iterable:
-        yield x
-        i += 1
-        if not i % batch_size:
-            logger.info("Processing... ({})".format(i))
-    logger.info("Done! Processed {} records".format(i))

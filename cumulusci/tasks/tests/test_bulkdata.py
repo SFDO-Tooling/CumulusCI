@@ -409,15 +409,7 @@ class TestQueryData(unittest.TestCase):
             bulkdata.QueryData,
             {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
         )
-        task.models = {'test': mock.Mock()}
+        task.models = {"test": mock.Mock()}
         with self.assertRaises(BulkDataException):
-            task._create_table({'table': 'test'})
+            task._create_table({"table": "test"})
 
-class TestMisc(unittest.TestCase):
-    def test_log_progress(self):
-        from cumulusci.tasks.bulkdata import log_progress
-
-        logger = mock.Mock()
-        for x in log_progress(range(3), logger, batch_size=1):
-            pass
-        self.assertEqual(4, logger.info.call_count)
