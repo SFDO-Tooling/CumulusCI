@@ -42,7 +42,7 @@ jobs:
           name: Run Python tests
           command: |
             mkdir -p testresults/py2
-            venv/bin/tox -e py27 -- --with-coverage --cover-package=cumulusci --with-xunit --xunit-file=testresults/py2/junit.xml
+            venv/bin/tox -e py27 -- --junitxml=testresults/py2/junit.xml
             mv .coverage .coverage.py2
       - store_test_results:
           path: testresults
@@ -64,7 +64,7 @@ jobs:
           name: Run Python tests
           command: |
             mkdir -p testresults/py3
-            venv/bin/tox -e py36 -- --with-coverage --cover-package=cumulusci --with-xunit --xunit-file=testresults/py3/junit.xml
+            venv/bin/tox -e py36 -- --junitxml=testresults/py3/junit.xml
             mv .coverage .coverage.py3
       - store_test_results:
           path: testresults
