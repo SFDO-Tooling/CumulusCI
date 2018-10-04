@@ -30,10 +30,31 @@ import hiyapyco
 import requests
 import unicodecsv
 
+from cumulusci.core.exceptions import BulkDataException
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 
 # TODO: UserID Catcher
 # TODO: Dater
+
+
+# Create a custom sqlalchemy field type for sqlite datetime fields which are stored as integer of epoch time
+class EpochType(types.TypeDecorator):
+    impl = types.Integer
+
+    epoch = datetime.datetime(1970, 1, 1, 0, 0, 0)
+
+    def process_bind_param(self, value, dialect):
+        return int((value - self.epoch).total_seconds()) * 1000
+
+    def process_result_value(self, value, dialect):
+        return self.epoch + datetime.timedelta(seconds=value / 1000)
+
+
+# Listen for sqlalchemy column_reflect event and map datetime fields to EpochType
+@event.listens_for(Table, "column_reflect")
+def setup_epoch(inspector, table, column_info):
+    if isinstance(column_info["type"], types.DateTime):
+        column_info["type"] = EpochType()
 
 
 class BulkJobTaskMixin(object):
@@ -329,10 +350,10 @@ class LoadData(BaseSalesforceApiTask, BulkJobTaskMixin):
         """
         model = self.models[mapping.get("table")]
 
-        # Make sure primary key is first
+        # Use primary key instead of the field mapped to SF Id
         fields = mapping["fields"].copy()
-        id_column = fields["Id"]
         del fields["Id"]
+        id_column = model.__table__.primary_key.columns.keys()[0]
         columns = [getattr(model, id_column)]
 
         for f in fields.values():
@@ -345,7 +366,7 @@ class LoadData(BaseSalesforceApiTask, BulkJobTaskMixin):
             columns.append(lookup["aliased_table"].columns.sf_id)
 
         query = self.session.query(*columns)
-        if "record_type" in mapping:
+        if "record_type" in mapping and hasattr(model, 'record_type'):
             query = query.filter(model.record_type == mapping["record_type"])
         if "filters" in mapping:
             filter_args = []
@@ -577,10 +598,8 @@ class QueryData(BaseSalesforceApiTask, BulkJobTaskMixin):
         mapper_kwargs = {}
         table_kwargs = {}
         if mapping["table"] in self.models:
-            mapper_kwargs["non_primary"] = True
-            table_kwargs["extend_existing"] = True
-        else:
-            self.models[mapping["table"]] = type(model_name, (object,), {})
+            raise BulkDataException('Table already exists: {}'.format(mapping['table']))
+        self.models[mapping["table"]] = type(model_name, (object,), {})
 
         id_column = mapping["fields"].get("Id") or "id"
         fields = []
@@ -616,8 +635,6 @@ def _download_file(uri, bulk_api):
 
 
 def process_incoming_rows(f, record_type=None):
-    if record_type and not isinstance(record_type, bytes):
-        record_type = record_type.encode("utf-8")
     for line in f:
         if record_type:
             yield line + b"," + record_type + b"\n"

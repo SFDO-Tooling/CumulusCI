@@ -5,16 +5,39 @@ import os
 import shutil
 import unittest
 
+from sqlalchemy import Column
+from sqlalchemy import Table
+from sqlalchemy import types
+from sqlalchemy import Unicode
 import mock
 import responses
 
 from cumulusci.core.config import BaseGlobalConfig
 from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.config import TaskConfig
+from cumulusci.core.exceptions import BulkDataException
 from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.tasks import bulkdata
 from cumulusci.tests.util import DummyOrgConfig
 from cumulusci.utils import temporary_dir
+
+
+class TestEpochType(unittest.TestCase):
+    def test_process_bind_param(self):
+        obj = bulkdata.EpochType()
+        dt = datetime(1970, 1, 1, 0, 0, 1)
+        result = obj.process_bind_param(dt, None)
+        self.assertEquals(1000, result)
+
+    def test_process_result_value(self):
+        obj = bulkdata.EpochType()
+        result = obj.process_result_value(1000, None)
+        self.assertEquals(datetime(1970, 1, 1, 0, 0, 1), result)
+
+    def test_setup_epoch(self):
+        column_info = {"type": types.DateTime()}
+        bulkdata.setup_epoch(mock.Mock(), mock.Mock(), column_info)
+        self.assertIsInstance(column_info["type"], bulkdata.EpochType)
 
 
 BULK_DELETE_QUERY_RESULT = b"Id\n003000000000001".splitlines()
@@ -266,6 +289,23 @@ class TestLoadData(unittest.TestCase):
         )
         self.assertIsInstance(task._convert(datetime.now()), str)
 
+    def test_reset_id_table__already_exists(self):
+        base_path = os.path.dirname(__file__)
+        mapping_path = os.path.join(base_path, "mapping.yml")
+        task = _make_task(
+            bulkdata.LoadData,
+            {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
+        )
+        task.mapping = {}
+        task._init_db()
+        id_table = Table(
+            "test_sf_ids", task.metadata, Column("id", Unicode(255), primary_key=True)
+        )
+        id_table.create()
+        task._reset_id_table({"table": "test"})
+        new_id_table = task.metadata.tables["test_sf_ids"]
+        self.assertFalse(new_id_table is id_table)
+
 
 HOUSEHOLD_QUERY_RESULT = b"Id\n1"
 CONTACT_QUERY_RESULT = b"Id,AccountId\n2,1"
@@ -362,6 +402,16 @@ class TestQueryData(unittest.TestCase):
         task._import_results({"fields": {}, "lookups": {}}, result_file, None)
         task._sql_bulk_insert_from_csv.assert_not_called()
 
+    def test_create_table__already_exists(self):
+        base_path = os.path.dirname(__file__)
+        mapping_path = os.path.join(base_path, "mapping.yml")
+        task = _make_task(
+            bulkdata.QueryData,
+            {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
+        )
+        task.models = {'test': mock.Mock()}
+        with self.assertRaises(BulkDataException):
+            task._create_table({'table': 'test'})
 
 class TestMisc(unittest.TestCase):
     def test_log_progress(self):
