@@ -60,7 +60,7 @@ class TestCCI(unittest.TestCase):
 
     def test_get_installed_version(self):
         result = cci.get_installed_version()
-        self.assertEqual(cumulusci.__version__, result.base_version)
+        self.assertEqual(cumulusci.__version__, str(result))
 
     @responses.activate
     def test_get_latest_final_version(self):
