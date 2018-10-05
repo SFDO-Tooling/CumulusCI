@@ -4,6 +4,7 @@ from builtins import str
 from future import standard_library
 
 standard_library.install_aliases()
+import html
 import io
 import cgi
 import json
@@ -380,11 +381,11 @@ class RunApexTests(BaseSalesforceApiTask):
                     s += ">\n"
                     s += '    <failure type="failed" '
                     if result["Message"]:
-                        s += 'message="{}"'.format(cgi.escape(result["Message"]))
+                        s += 'message="{}"'.format(html.escape(result["Message"]))
                     s += ">"
 
                     if result["StackTrace"]:
-                        s += "<![CDATA[{}]]>".format(cgi.escape(result["StackTrace"]))
+                        s += "<![CDATA[{}]]>".format(html.escape(result["StackTrace"]))
                     s += "</failure>\n"
                     s += "  </testcase>\n"
                 else:

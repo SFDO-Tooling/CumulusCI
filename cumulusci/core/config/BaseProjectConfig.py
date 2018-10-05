@@ -123,11 +123,11 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         # Log any overrides detected through the environment as a warning
         if len(info) > 1:
             self.logger.info("")
-            self.logger.warn("Using environment variables to override repo info:")
+            self.logger.warning("Using environment variables to override repo info:")
             keys = list(info.keys())
             keys.sort()
             for key in keys:
-                self.logger.warn("  {}: {}".format(key, info[key]))
+                self.logger.warning("  {}: {}".format(key, info[key]))
             self.logger.info("")
 
         self._repo_info = info
@@ -631,7 +631,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             try:
                 version = repo._get(url).json()["name"]
             except Exception as e:
-                self.logger.warn(
+                self.logger.warning(
                     "{}{}: {}".format(indent, e.__class__.__name__, str(e))
                 )
         return version

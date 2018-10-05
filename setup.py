@@ -31,7 +31,6 @@ requirements = [
     "HiYaPyCo>=0.4.11",
     "lxml==4.2.4",
     "plaintable==0.1.1",
-    "PyGithub==1.40",
     "pytz==2018.5",
     "PyYAML==3.13",
     "raven==6.9.0",

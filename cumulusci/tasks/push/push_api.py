@@ -595,7 +595,7 @@ class SalesforcePushApi(object):
         self.logger.info("Found {} orgs".format(n_orgs_pre))
         orgs = set(orgs)
         if len(orgs) < n_orgs_pre:
-            self.logger.warn(
+            self.logger.warning(
                 "Removed {} duplicate orgs ({} remain)".format(
                     n_orgs_pre - len(orgs), len(orgs)
                 )
@@ -671,12 +671,12 @@ class SalesforcePushApi(object):
                 if retry_all:
                     break
             if retry_all:
-                self.logger.warn("Retrying batch")
+                self.logger.warning("Retrying batch")
                 batch = self._add_batch(batch, request_id)
             else:
                 batch -= invalid_orgs
                 if batch:
-                    self.logger.warn("Retrying batch without invalid orgs")
+                    self.logger.warning("Retrying batch without invalid orgs")
                     batch = self._add_batch(batch, request_id)
                 else:
                     self.logger.error("Skipping batch (no valid orgs)")

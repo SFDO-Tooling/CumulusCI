@@ -466,4 +466,4 @@ class TestRunBatchApex(unittest.TestCase):
         response = self._get_query_resp()
         responses.add(responses.GET, url, json=response)
         task()
-        self.assertEquals(task.delta, 61)
+        self.assertEqual(task.delta, 61)

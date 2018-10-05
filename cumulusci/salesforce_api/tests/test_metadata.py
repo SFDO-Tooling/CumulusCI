@@ -109,8 +109,8 @@ class BaseTestMetadataApi(unittest.TestCase):
     def test_init(self):
         task = self._create_task()
         api = self._create_instance(task)
-        self.assertEquals(api.task, task)
-        self.assertEquals(
+        self.assertEqual(api.task, task)
+        self.assertEqual(
             api.api_version, self.project_config.project__package__api_version
         )
 
@@ -121,7 +121,7 @@ class BaseTestMetadataApi(unittest.TestCase):
         }
         task = self._create_task(org_config=org_config)
         api = self._create_instance(task)
-        self.assertEquals(
+        self.assertEqual(
             api._build_endpoint_url(),
             "{}/services/Soap/m/{}/{}".format(
                 org_config["instance_url"],
@@ -137,7 +137,7 @@ class BaseTestMetadataApi(unittest.TestCase):
         }
         task = self._create_task(org_config=org_config)
         api = self._create_instance(task)
-        self.assertEquals(
+        self.assertEqual(
             api._build_endpoint_url(),
             "https://na12.salesforce.com/services/Soap/m/{}/{}".format(
                 self.project_config.project__package__api_version,
@@ -153,7 +153,7 @@ class BaseTestMetadataApi(unittest.TestCase):
         task = self._create_task(org_config=org_config)
         api_version = "43.0"
         api = self._create_instance(task, api_version=api_version)
-        self.assertEquals(
+        self.assertEqual(
             api._build_endpoint_url(),
             "{}/services/Soap/m/{}/{}".format(
                 org_config["instance_url"], api_version, task.org_config.org_id
@@ -169,7 +169,7 @@ class BaseTestMetadataApi(unittest.TestCase):
         else:
             expected_response = self.envelope_result.format(process_id="123")
         api.process_id = "123"
-        self.assertEquals(api._build_envelope_result(), expected_response)
+        self.assertEqual(api._build_envelope_result(), expected_response)
 
     def test_build_envelope_start(self):
         task = self._create_task()
@@ -180,7 +180,7 @@ class BaseTestMetadataApi(unittest.TestCase):
         else:
             expected_response = self._expected_envelope_start()
 
-        self.assertEquals(api._build_envelope_start(), expected_response)
+        self.assertEqual(api._build_envelope_start(), expected_response)
 
     def _expected_envelope_start(self):
         return self.envelope_start.format(
@@ -197,14 +197,14 @@ class BaseTestMetadataApi(unittest.TestCase):
         else:
             expected_response = self.envelope_status.format(process_id=process_id)
         api.process_id = process_id
-        self.assertEquals(api._build_envelope_status(), expected_response)
+        self.assertEqual(api._build_envelope_status(), expected_response)
 
     def test_build_headers(self):
         action = "foo"
         message = "12345678"
         task = self._create_task()
         api = self._create_instance(task)
-        self.assertEquals(
+        self.assertEqual(
             api._build_headers(action, message),
             {
                 u"Content-Type": u"text/xml; charset=UTF-8",
@@ -256,7 +256,7 @@ class BaseTestMetadataApi(unittest.TestCase):
 
         resp = api()
 
-        self.assertEquals(resp, self._expected_call_success_result(response_result))
+        self.assertEqual(resp, self._expected_call_success_result(response_result))
 
     def _expected_call_success_result(self, response_result):
         return response_result
@@ -268,27 +268,27 @@ class BaseTestMetadataApi(unittest.TestCase):
         task = self._create_task()
         api = self._create_instance(task)
         dom = parseString("<foo>bar</foo>")
-        self.assertEquals(api._get_element_value(dom, "foo"), "bar")
+        self.assertEqual(api._get_element_value(dom, "foo"), "bar")
 
     def test_get_element_value_not_found(self):
         task = self._create_task()
         api = self._create_instance(task)
         dom = parseString("<foo>bar</foo>")
-        self.assertEquals(api._get_element_value(dom, "baz"), None)
+        self.assertEqual(api._get_element_value(dom, "baz"), None)
 
     def test_get_element_value_empty(self):
         task = self._create_task()
         api = self._create_instance(task)
         dom = parseString("<foo />")
-        self.assertEquals(api._get_element_value(dom, "foo"), None)
+        self.assertEqual(api._get_element_value(dom, "foo"), None)
 
     def test_get_check_interval(self):
         task = self._create_task()
         api = self._create_instance(task)
         api.check_num = 1
-        self.assertEquals(api._get_check_interval(), 1)
+        self.assertEqual(api._get_check_interval(), 1)
         api.check_num = 10
-        self.assertEquals(api._get_check_interval(), 4)
+        self.assertEqual(api._get_check_interval(), 4)
 
     @responses.activate
     def test_get_response_faultcode(self):
@@ -341,7 +341,7 @@ class BaseTestMetadataApi(unittest.TestCase):
         self._mock_call_mdapi(api, response)
         with self.assertRaises(MetadataApiError):
             resp = api._get_response()
-        self.assertEquals(api.status, "Failed")
+        self.assertEqual(api.status, "Failed")
 
     @responses.activate
     def test_get_response_faultcode_invalid_session_refresh(self):
@@ -368,7 +368,7 @@ class BaseTestMetadataApi(unittest.TestCase):
             self._mock_call_mdapi(api, response)
 
         resp = api._get_response()
-        self.assertEquals(resp.text, mock_responses[2])
+        self.assertEqual(resp.text, mock_responses[2])
 
     @responses.activate
     def test_get_response_start_error_500(self):
@@ -463,7 +463,7 @@ class BaseTestMetadataApi(unittest.TestCase):
 
         resp = api._get_response()
 
-        self.assertEquals(resp.text, response_result)
+        self.assertEqual(resp.text, response_result)
 
     @responses.activate
     def test_get_response_status_loop_twice(self):
@@ -496,11 +496,11 @@ class BaseTestMetadataApi(unittest.TestCase):
 
         resp = api._get_response()
 
-        self.assertEquals(resp.text, response_result)
+        self.assertEqual(resp.text, response_result)
 
-        self.assertEquals(api.status, "Done")
+        self.assertEqual(api.status, "Done")
 
-        self.assertEquals(api.check_num, 4)
+        self.assertEqual(api.check_num, 4)
 
     def test_process_response_status_no_done_element(self):
         task = self._create_task()
@@ -509,8 +509,8 @@ class BaseTestMetadataApi(unittest.TestCase):
         response.status_code = 200
         response.text = '<?xml version="1.0" encoding="UTF-8"?><foo>status</foo>'
         res = api._process_response_status(response)
-        self.assertEquals(api.status, "Failed")
-        self.assertEquals(res.text, response.text)
+        self.assertEqual(api.status, "Failed")
+        self.assertEqual(res.text, response.text)
 
     def test_process_response_status_done_is_true(self):
         task = self._create_task()
@@ -519,8 +519,8 @@ class BaseTestMetadataApi(unittest.TestCase):
         response.status_code = 200
         response.text = '<?xml version="1.0" encoding="UTF-8"?><done>true</done>'
         res = api._process_response_status(response)
-        self.assertEquals(api.status, "Done")
-        self.assertEquals(res.text, response.text)
+        self.assertEqual(api.status, "Done")
+        self.assertEqual(res.text, response.text)
 
     def test_process_response_status_pending(self):
         task = self._create_task()
@@ -529,8 +529,8 @@ class BaseTestMetadataApi(unittest.TestCase):
         response.status_code = 200
         response.text = '<?xml version="1.0" encoding="UTF-8"?><done>false</done>'
         res = api._process_response_status(response)
-        self.assertEquals(api.status, "Pending")
-        self.assertEquals(res.text, response.text)
+        self.assertEqual(api.status, "Pending")
+        self.assertEqual(res.text, response.text)
 
     def test_process_response_status_in_progress(self):
         task = self._create_task()
@@ -540,8 +540,8 @@ class BaseTestMetadataApi(unittest.TestCase):
         response.text = '<?xml version="1.0" encoding="UTF-8"?><done>false</done>'
         api.status = "InProgress"
         res = api._process_response_status(response)
-        self.assertEquals(api.status, "InProgress")
-        self.assertEquals(res.text, response.text)
+        self.assertEqual(api.status, "InProgress")
+        self.assertEqual(res.text, response.text)
 
     def test_process_response_status_in_progress_state_detail(self):
         task = self._create_task()
@@ -551,25 +551,25 @@ class BaseTestMetadataApi(unittest.TestCase):
         response.text = '<?xml version="1.0" encoding="UTF-8"?><test><done>false</done><stateDetail>Deploy log goes here</stateDetail></test>'
         api.status = "InProgress"
         res = api._process_response_status(response)
-        self.assertEquals(api.status, "InProgress")
-        self.assertEquals(res.text, response.text)
+        self.assertEqual(api.status, "InProgress")
+        self.assertEqual(res.text, response.text)
 
 
 class TestBaseMetadataApiCall(BaseTestMetadataApi):
     def test_build_envelope_start_no_envelope(self):
         task = self._create_task()
         api = self._create_instance(task)
-        self.assertEquals(api._build_envelope_start(), None)
+        self.assertEqual(api._build_envelope_start(), None)
 
     def test_build_envelope_status_no_envelope(self):
         task = self._create_task()
         api = self._create_instance(task)
-        self.assertEquals(api._build_envelope_status(), None)
+        self.assertEqual(api._build_envelope_status(), None)
 
     def test_build_envelope_result_no_envelope(self):
         task = self._create_task()
         api = self._create_instance(task)
-        self.assertEquals(api._build_envelope_result(), None)
+        self.assertEqual(api._build_envelope_result(), None)
 
     def test_get_response_no_start_env(self):
         task = self._create_task()
@@ -590,7 +590,7 @@ class TestBaseMetadataApiCall(BaseTestMetadataApi):
         response = '<?xml version="1.0" encoding="UTF-8"?><foo />'
         self._mock_call_mdapi(api, response)
         resp = api._get_response()
-        self.assertEquals(resp.text, response)
+        self.assertEqual(resp.text, response)
 
 
 class TestApiDeploy(BaseTestMetadataApi):
@@ -853,7 +853,7 @@ class TestApiRetrieveUnpackaged(BaseTestMetadataApi):
 
         zip_file = api()
 
-        self.assertEquals(
+        self.assertEqual(
             zip_file.namelist(),
             self._expected_call_success_result(response_result).namelist(),
         )
@@ -876,7 +876,7 @@ class TestApiRetrieveInstalledPackages(BaseTestMetadataApi):
         response.status_code = 200
         response.text = deploy_result.format(status="testing", extra="")
         resp = api._process_response(response)
-        self.assertEquals(resp, {})
+        self.assertEqual(resp, {})
 
     def test_process_response_zipstr_no_packages(self):
         task = self._create_task()
@@ -887,7 +887,7 @@ class TestApiRetrieveInstalledPackages(BaseTestMetadataApi):
             zip=CreatePackageZipBuilder("testing", api.api_version)(), extra=""
         )
         resp = api._process_response(response)
-        self.assertEquals(resp, {})
+        self.assertEqual(resp, {})
 
     def test_process_response_zipstr_one_package(self):
         task = self._create_task()
@@ -898,7 +898,7 @@ class TestApiRetrieveInstalledPackages(BaseTestMetadataApi):
             zip=InstallPackageZipBuilder("foo", "1.1")(), extra=""
         )
         resp = api._process_response(response)
-        self.assertEquals(resp, {"foo": "1.1"})
+        self.assertEqual(resp, {"foo": "1.1"})
 
 
 class TestApiRetrievePackaged(TestApiRetrieveUnpackaged):

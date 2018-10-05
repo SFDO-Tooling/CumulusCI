@@ -206,7 +206,7 @@ class ScratchOrgConfig(OrgConfig):
         """Generates an org password with the sfdx utility. """
 
         if self.password_failed:
-            self.logger.warn("Skipping resetting password since last attempt failed")
+            self.logger.warning("Skipping resetting password since last attempt failed")
             return
 
         # Set a random password so it's available via cci org info
@@ -231,7 +231,7 @@ class ScratchOrgConfig(OrgConfig):
             self.config["password_failed"] = True
             # Don't throw an exception because of failure creating the
             # password, just notify in a log message
-            self.logger.warn(
+            self.logger.warning(
                 "Failed to set password: \n{}\n{}".format(
                     "\n".join(stdout), "\n".join(stderr)
                 )
