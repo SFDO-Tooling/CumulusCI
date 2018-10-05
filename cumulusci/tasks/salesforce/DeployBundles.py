@@ -21,7 +21,7 @@ class DeployBundles(Deploy):
         self.logger.info("Deploying all metadata bundles in path {}".format(path))
 
         if not os.path.isdir(path):
-            self.logger.warn("Path {} not found, skipping".format(path))
+            self.logger.warning("Path {} not found, skipping".format(path))
             return
 
         for item in sorted(os.listdir(path)):

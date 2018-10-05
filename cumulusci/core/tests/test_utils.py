@@ -9,7 +9,7 @@ from .. import utils
 class TestUtils(unittest.TestCase):
     def test_parse_datetime(self):
         dt = utils.parse_datetime("2018-07-30", "%Y-%m-%d")
-        self.assertEquals(dt, datetime.datetime(2018, 7, 30, 0, 0, 0, 0, pytz.UTC))
+        self.assertEqual(dt, datetime.datetime(2018, 7, 30, 0, 0, 0, 0, pytz.UTC))
 
     def test_process_bool_arg(self):
         for arg in (True, "True", "true", "1"):

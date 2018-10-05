@@ -27,12 +27,12 @@ class TestEpochType(unittest.TestCase):
         obj = bulkdata.EpochType()
         dt = datetime(1970, 1, 1, 0, 0, 1)
         result = obj.process_bind_param(dt, None)
-        self.assertEquals(1000, result)
+        self.assertEqual(1000, result)
 
     def test_process_result_value(self):
         obj = bulkdata.EpochType()
         result = obj.process_result_value(1000, None)
-        self.assertEquals(datetime(1970, 1, 1, 0, 0, 1), result)
+        self.assertEqual(datetime(1970, 1, 1, 0, 0, 1), result)
 
     def test_setup_epoch(self):
         column_info = {"type": types.DateTime()}
