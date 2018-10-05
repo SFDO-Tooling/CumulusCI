@@ -315,7 +315,7 @@ The following circle.yml file added to your repo will build all branches as unma
 
     machine:
       python:
-        version: 2.7.12
+        version: 3.7.0
     environment:
       CUMULUSCI_KEYCHAIN_CLASS: cumulusci.core.keychain.EnvironmentProjectKeychain
     dependencies:
@@ -339,7 +339,7 @@ Next, use the following circle.yml::
 
     machine:
       python:
-        version: 2.7.12
+        version: 3.7.0
       environment:
         CUMULUSCI_KEYCHAIN_CLASS: cumulusci.core.keychain.EnvironmentProjectKeychain
     dependencies:
@@ -391,7 +391,7 @@ The following circle.yml in your project's root should get things going for unma
 
     machine:
       python:
-        version: 2.7.12
+        version: 3.7.0
       environment:
         CUMULUSCI_KEYCHAIN_CLASS: cumulusci.core.keychain.EnvironmentProjectKeychain
     dependencies:
@@ -420,7 +420,7 @@ The following circle.yml should set up the whole feature/master flow using scrat
 
     machine:
       python:
-        version: 2.7.12
+        version: 3.7.0
       environment:
         CUMULUSCI_KEYCHAIN_CLASS: cumulusci.core.keychain.EnvironmentProjectKeychain
     dependencies:
