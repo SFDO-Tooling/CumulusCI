@@ -170,7 +170,7 @@ class TestUtils(unittest.TestCase):
 
             utils.download_extract_zip("http://test", target=d)
             self.assertIn("test", os.listdir(d))
-
+        
     def test_zip_inject_namespace_managed(self):
         logger = mock.Mock()
         zf = zipfile.ZipFile(io.BytesIO(), "w")

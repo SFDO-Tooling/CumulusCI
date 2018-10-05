@@ -132,10 +132,8 @@ def remove_xml_element(name, tree):
     return tree
 
 
-def download_extract_zip(url, target=None, subfolder=None, headers=None):
-    if not headers:
-        headers = {}
-    resp = requests.get(url, headers=headers)
+def download_extract_zip(url, target=None, subfolder=None):
+    resp = requests.get(url)
     zip_content = io.BytesIO(resp.content)
     zip_file = zipfile.ZipFile(zip_content)
     if subfolder:
@@ -143,6 +141,17 @@ def download_extract_zip(url, target=None, subfolder=None, headers=None):
     if target:
         zip_file.extractall(target)
         return
+    return zip_file
+
+
+def download_extract_github(github_repo, subfolder, ref=None):
+    if not ref:
+        ref = github_repo.default_branch
+    zip_content = io.BytesIO()
+    github_repo.archive('zipball', zip_content, ref=ref)
+    zip_file = zipfile.ZipFile(zip_content)
+    subfolder_dir = zip_file.namelist()[0] + subfolder
+    zip_file = zip_subfolder(zip_file, subfolder_dir)
     return zip_file
 
 
