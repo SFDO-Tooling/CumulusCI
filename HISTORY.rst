@@ -5,7 +5,7 @@ History
 2.1.0b1 (2018-10-05)
 --------------------
 
-* It's happening! Hot on the heels of the last release, CumulusCI is making the jump to the modern era by adding **support for Python 3**! (Specifically, Python 3.6 and 3.7.) Don't worry, we'll also continue to support Python 2 until it reaches end-of-life at the start of 2020. Because this is a bit more wide-reaching change than normal, we're releasing a beta first. To install the beta you'll need to explicitly request its version: ``pip install cumulusci==2.1.0b1``.
+* It's happening! Hot on the heels of the last release, CumulusCI is making the jump to the modern era by adding **support for Python 3**! (Specifically, Python 3.6 and 3.7.) Don't worry, we'll also continue to support Python 2 for the time being. Because this is a bit more wide-reaching change than normal, we're releasing a beta first. To install the beta you'll need to explicitly request its version: ``pip install cumulusci==2.1.0b1``.
   If you want to *replace* an existing Python 2-based installation of CumulusCI, we recommend deleting your virtualenv and starting over with the instructions in the `tutorial <https://cumulusci.readthedocs.io/en/latest/tutorial.html>`_.  If you want to keep your Python 2-based virtualenv around just in case, follow those instructions but name the new virtualenv ``cci-py3`` instead of ``cci``.
 * There are also some big changes to the **bulk data** tasks. Did you know CumulusCI has bulk data tasks? They are not configured by default, because we need to finish documenting them. But we'll list the changes in case someone is already relying on them:
   * Fixed connection resets by downloading an entire result file before processing.
