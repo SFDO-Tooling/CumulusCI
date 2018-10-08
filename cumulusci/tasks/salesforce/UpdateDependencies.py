@@ -21,7 +21,11 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
     name = "UpdateDependencies"
     task_options = {
         "dependencies": {
-            "description": "List of dependencies to update. Defaults to project__dependencies"
+            "description": "List of dependencies to update. Defaults to project__dependencies. "
+            "Each dependency is a dict with either 'github' set to a github repository URL "
+            "or 'namespace' set to a Salesforce package namespace. "
+            "Github dependencies may include 'tag' to install a particular git ref. "
+            "Package dependencies may include 'version' to install a particular version."
         },
         "namespaced_org": {
             "description": "If True, the changes namespace token injection on any dependencies so tokens %%%NAMESPACED_ORG%%% and ___NAMESPACED_ORG___ will get replaced with the namespace.  The default is false causing those tokens to get stripped and replaced with an empty string.  Set this if deploying to a namespaced scratch org or packaging org."
