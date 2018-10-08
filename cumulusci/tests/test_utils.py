@@ -188,7 +188,7 @@ class TestUtils(unittest.TestCase):
         mock_repo.archive = mock_archive
         zf = utils.download_extract_github(mock_repo, "src")
         result = zf.read("test")
-        self.assertEqual("test", result)
+        self.assertEqual(b"test", result)
 
     def test_zip_inject_namespace_managed(self):
         logger = mock.Mock()
