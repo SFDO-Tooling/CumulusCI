@@ -1,9 +1,14 @@
 """ CumulusCI Tasks for running Apex Tests """
 
+from builtins import str
+from future import standard_library
+
+standard_library.install_aliases()
+import html
 import io
 import cgi
 import json
-import httplib
+import http.client
 
 from simple_salesforce import SalesforceGeneralError
 
@@ -227,12 +232,12 @@ class RunApexTests(BaseSalesforceApiTask):
             ] = test_result
             self.counts[test_result["Outcome"]] += 1
         test_results = []
-        class_names = self.results_by_class_name.keys()
+        class_names = list(self.results_by_class_name.keys())
         class_names.sort()
         for class_name in class_names:
             message = "Class: {}".format(class_name)
             self.logger.info(message)
-            method_names = self.results_by_class_name[class_name].keys()
+            method_names = list(self.results_by_class_name[class_name].keys())
             method_names.sort()
             for method_name in method_names:
                 result = self.results_by_class_name[class_name][method_name]
@@ -309,7 +314,7 @@ class RunApexTests(BaseSalesforceApiTask):
             self.classes_by_name[test_class["Name"]] = test_class["Id"]
             self.results_by_class_name[test_class["Name"]] = {}
         self.logger.info("Queuing tests for execution...")
-        ids = self.classes_by_id.keys()
+        ids = list(self.classes_by_id.keys())
         result = self.tooling._call_salesforce(
             method="POST",
             url=self.tooling.base_url + "runTestsAsynchronous",
@@ -376,18 +381,18 @@ class RunApexTests(BaseSalesforceApiTask):
                     s += ">\n"
                     s += '    <failure type="failed" '
                     if result["Message"]:
-                        s += 'message="{}"'.format(cgi.escape(result["Message"]))
+                        s += 'message="{}"'.format(html.escape(result["Message"]))
                     s += ">"
 
                     if result["StackTrace"]:
-                        s += "<![CDATA[{}]]>".format(cgi.escape(result["StackTrace"]))
+                        s += "<![CDATA[{}]]>".format(html.escape(result["StackTrace"]))
                     s += "</failure>\n"
                     s += "  </testcase>\n"
                 else:
                     s += " />\n"
-                f.write(unicode(s))
+                f.write(str(s))
             f.write(u"</testsuite>")
 
         json_output = self.options["json_output"]
         with io.open(json_output, mode="w", encoding="utf-8") as f:
-            f.write(unicode(json.dumps(test_results, indent=4)))
+            f.write(str(json.dumps(test_results, indent=4)))

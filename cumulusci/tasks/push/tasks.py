@@ -1,3 +1,4 @@
+from builtins import str
 from datetime import datetime
 from datetime import timedelta
 import time
@@ -255,7 +256,9 @@ class SchedulePushOrgList(BaseSalesforcePushTask):
         else:
             # delay a bit to allow for review
             delay_minutes = 5
-            self.logger.warn("Scheduling push for %d minutes from now", delay_minutes)
+            self.logger.warning(
+                "Scheduling push for %d minutes from now", delay_minutes
+            )
             start_time = datetime.utcnow() + timedelta(minutes=delay_minutes)
 
         self.request_id, num_scheduled_orgs = self.push.create_push_request(
@@ -273,7 +276,7 @@ class SchedulePushOrgList(BaseSalesforcePushTask):
             )
             time.sleep(sleep_time_s)
         elif num_scheduled_orgs == 0:
-            self.logger.warn("Canceling push request with 0 orgs")
+            self.logger.warning("Canceling push request with 0 orgs")
             self.push.cancel_push_request
             return
 

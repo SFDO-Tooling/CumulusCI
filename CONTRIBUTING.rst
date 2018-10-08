@@ -61,7 +61,7 @@ Ready to contribute? Here's how to set up CumulusCI for local development.
 
 4. After making changes, run the tests and make sure they all pass::
 
-    $ nosetests
+    $ pytest
 
 5. Push your changes to GitHub and submit a pull request. The base branch should be a new feature branch that we create to receive the changes (contact us to create the branch). This allows us to test the changes using our build system before merging to master.
 
@@ -98,6 +98,7 @@ Finally, head to the Release object that was autocreated in the GitHub repositor
 
 Configuring Your Environment
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 To release CCI, you'll need twine and bump2version, both of which are installed with the deveopment requirements. You'll also need to configure your `pypirc`_ file with your PyPI credentials.
 
-.._pypirc: https://docs.python.org/2.7/distutils/packageindex.html#the-pypirc-file
+.._pypirc: https://docs.python.org/distutils/packageindex.html#the-pypirc-file

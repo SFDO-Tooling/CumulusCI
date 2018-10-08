@@ -1,3 +1,4 @@
+from builtins import str
 import os
 
 import xmltodict
@@ -59,9 +60,9 @@ class UninstallPackagedIncremental(UninstallPackaged):
         return destructive_changes
 
     def _package_xml_diff(self, master, compare):
-        with open(master, "r") as f:
+        with open(master, "rb") as f:
             master_xml = xmltodict.parse(f)
-        with open(compare, "r") as f:
+        with open(compare, "rb") as f:
             compare_xml = xmltodict.parse(f)
 
         delete = {}
@@ -74,7 +75,7 @@ class UninstallPackagedIncremental(UninstallPackaged):
             master_items[md_type["name"]] = []
             if "members" not in md_type:
                 continue
-            if isinstance(md_type["members"], unicode):
+            if isinstance(md_type["members"], str):
                 master_items[md_type["name"]].append(md_type["members"])
             else:
                 for item in md_type["members"]:
@@ -86,7 +87,7 @@ class UninstallPackagedIncremental(UninstallPackaged):
             compare_items[md_type["name"]] = []
             if "members" not in md_type:
                 continue
-            if isinstance(md_type["members"], unicode):
+            if isinstance(md_type["members"], str):
                 compare_items[md_type["name"]].append(md_type["members"])
             else:
                 for item in md_type["members"]:

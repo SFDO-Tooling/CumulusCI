@@ -2,6 +2,23 @@
 History
 =======
 
+2.1.0b1 (2018-10-05)
+--------------------
+
+* It's happening! Hot on the heels of the last release, CumulusCI is making the jump to the modern era by adding **support for Python 3**! (Specifically, Python 3.6 and 3.7.) Don't worry, we'll also continue to support Python 2 for the time being. Because this is a bit more wide-reaching change than normal, we're releasing a beta first. To install the beta you'll need to explicitly request its version: ``pip install cumulusci==2.1.0b1``.
+  If you already have CumulusCI, after the update it will continue to run under your Python 2 interpreter. If you want to switch to the Python 3 interpreter (which is not yet required), we recommend deleting
+  your Python virtualenv and starting over with the instructions in the `tutorial <https://cumulusci.readthedocs.io/en/latest/tutorial.html>`_.  If you want to keep your Python 2-based virtualenv around just in case, follow those instructions but name the new virtualenv ``cci-py3`` instead of ``cci``.
+* There are also some big changes to the **bulk data** tasks. Did you know CumulusCI has bulk data tasks? They are not configured by default, because we need to finish documenting them. But we'll list the changes in case someone is already relying on them:
+  * Fixed connection resets by downloading an entire result file before processing.
+  * Improved performance by processing batches in parallel, avoiding the SQLAlchemy ORM, storing inserted Ids in separate tables, and doing lookups using SQL joins rather than a separate query for each row.
+  * If you're using a postgres database for local storage, performance gets even better by taking advantage of postgres' ``COPY`` command to load CSV directly.
+  * Added a ``hardDelete`` option for bulk deletes.
+  * Added a ``start_step`` option for bulk loads which can be used to resume loading after an error.
+* The ``push_failure_report`` task will now by default hide failures that occurred due to the "Package Uninstalled" or "Salesforce Subscription Expired" errors, which are generally benign.
+* Fixed the check for newer CumulusCI versions to work around an issue with old ``setuptools``.
+* Contributor change: We switched CumulusCI's own tests to run using ``pytest``.
+* Internal change: We switched to the ``cryptography`` library for handling keychain encryption.
+
 2.0.13 (2018-10-02)
 -------------------
 * Happy Spooky October! It's unlucky release 2.0.13, with some scary-cool improvements. Just to show you how ramped up our RelEng team is now, this release had TWENTY THREE pull requests in 12 days! From all four of your friendly SFDO Release Engineering committers. Thanks so much for continuing to use CCI for all your Salesforce automation needs.

@@ -346,8 +346,8 @@ class TestAnonymousApexTask(unittest.TestCase):
         with self.assertRaises(ApexCompilationException) as cm:
             task()
         err = cm.exception
-        self.assertEqual(err[0], 1)
-        self.assertEqual(err[1], problem)
+        self.assertEqual(err.args[0], 1)
+        self.assertEqual(err.args[1], problem)
 
     @responses.activate
     def test_run_anonymous_apex_except(self):
@@ -368,8 +368,8 @@ class TestAnonymousApexTask(unittest.TestCase):
         with self.assertRaises(ApexException) as cm:
             task()
         err = cm.exception
-        self.assertEqual(err[0], problem)
-        self.assertEqual(err[1], trace)
+        self.assertEqual(err.args[0], problem)
+        self.assertEqual(err.args[1], trace)
 
 
 @patch(
@@ -451,7 +451,7 @@ class TestRunBatchApex(unittest.TestCase):
         with self.assertRaises(SalesforceException) as cm:
             task()
         err = cm.exception
-        self.assertEqual(err[0], "Bad Status")
+        self.assertEqual(err.args[0], "Bad Status")
 
     @responses.activate
     def test_run_batch_apex_status_ok(self):
@@ -466,4 +466,4 @@ class TestRunBatchApex(unittest.TestCase):
         response = self._get_query_resp()
         responses.add(responses.GET, url, json=response)
         task()
-        self.assertEquals(task.delta, 61)
+        self.assertEqual(task.delta, 61)

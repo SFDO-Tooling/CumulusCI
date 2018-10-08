@@ -1,3 +1,5 @@
+from builtins import str
+from past.builtins import basestring
 from distutils.version import LooseVersion
 
 from cumulusci.core.utils import process_bool_arg

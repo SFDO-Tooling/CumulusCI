@@ -10,7 +10,7 @@ Part 1: Installing CumulusCI
 Install Requirements
 --------------------
 
-Please note that CumulusCI does not fully support Python 3 yet. Make sure to use Python 2.
+CumulusCI supports Python 2.7, 3.6, or 3.7.
 
 macOS
 ^^^^^
@@ -41,11 +41,9 @@ After installing pyenv-virtualenv, edit your ~/.bash_profile and add the followi
 Windows
 ^^^^^^^
 
-Install Python 2: https://www.python.org/downloads/release/python-2714/
+Install Python 3: https://www.python.org/downloads/release/python-370/
 
-Update Environment Path to include Python 2.7 install folders (C:\\Python27 and C:\\Python27\\Scripts)
-
-For Windows, go to Control Panel -> System and Security -> System -> Advanced System Settings and click the Environment Variables button. Edit Path under System Variables and add C:\\Python27 and C:\\Python27\\Scripts as two new entries.
+In the installer, be sure to check the "Add Python to PATH" checkbox.
 
 Create Virtual Environment
 --------------------------
@@ -57,15 +55,15 @@ macOS
 
 .. code-block:: console
 
-    $ pyenv install 2.7.14
-    $ pyenv virtualenv 2.7.14 cci
+    $ pyenv install 3.7.0
+    $ pyenv virtualenv 3.7.0 cci
     $ # Copy the following line to ~/.bash_profile to automatically activate the virtual environment in all new shells.
     $ pyenv activate cci
 
 Your shell prompt should change once you are in the virtual env to show (cci) at the start of the prompt.  You can exit the cci virtualenv with the following command:
 
 .. code-block:: console
-    
+
     (cci) $ pyenv deactivate
 
 For more information about pyenv-virtualenv, see the project's README: https://github.com/pyenv/pyenv-virtualenv/blob/master/README.md
@@ -75,10 +73,8 @@ Windows
 
 .. code-block:: powershell
 
-    pip2 install virtualenv
-    mkdir C:\Python27\venvs\cci\
-    virtualenv --python=C:\Python27\python.exe C:\Python27\venvs\cci\
-    C:\Python27\venvs\cci\Scripts\activate.ps1
+    python3 -m venv %userprofile%\cci
+    %userprofile%\cci\Scripts\activate.ps1
 
 Install CumulusCI
 -----------------
@@ -89,8 +85,7 @@ With the virtual environment now activated, install cumulusci using pip:
 
     $ pip install cumulusci
 
-PyCrypto Error during install?  To resolve install Microsoft Visual Studio C++ 9.0 (http://aka.ms/vcpython27) then try the install again.
-Other Error? Check the error details in the console window for recommendations.
+Errors during pip install are usually instructive, but there can be a lot of log, so make sure to scroll back for anything in red or important looking.
 Still need help? Search issues on CumulusCI GitHub https://github.com/SFDO-Tooling/CumulusCI/issues
 
 Part 2: Project Configuration
@@ -114,7 +109,7 @@ The cci command stores all credentials in AES encrypted files under the ~/.cumul
 .. code-block:: console
 
     $ export CUMULUSCI_KEY=0a2b4c6d8e0f2g4h  # Must be 16 characters long
-    
+
 For Windows, go to Control Panel -> System and Security -> System -> Advanced System Settings and click the Environment Variables button. Create a new user variable and system variable with CUMULUSCI_KEY as the Name and your generated key as the Value.
 
 Project Initialization

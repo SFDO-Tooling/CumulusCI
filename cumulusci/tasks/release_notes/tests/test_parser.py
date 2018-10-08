@@ -1,4 +1,7 @@
-import httplib
+from future import standard_library
+
+standard_library.install_aliases()
+import http.client
 import mock
 import os
 import unittest
@@ -268,7 +271,7 @@ class TestGithubIssuesParser(unittest.TestCase, GithubApiTestMixin):
             method=responses.GET,
             url=api_url,
             json=expected_response,
-            status=httplib.NOT_FOUND,
+            status=http.client.NOT_FOUND,
         )
         generator = self._create_generator()
         parser = GithubIssuesParser(generator, self.title)
@@ -346,7 +349,7 @@ class TestCommentingGithubIssuesParser(unittest.TestCase, GithubApiTestMixin):
         # Mock the comments list
         api_url = "{}/issues/{}/comments".format(self.repo_api_url, issue_number)
         responses.add(
-            method=responses.GET, url=api_url, body=[], content_type="application/json"
+            method=responses.GET, url=api_url, body="", content_type="application/json"
         )
 
         generator = self._create_generator(tag)
@@ -416,7 +419,7 @@ class TestCommentingGithubIssuesParser(unittest.TestCase, GithubApiTestMixin):
         expected_comment_1 = self._get_expected_issue_comment("Some other comment")
         expected_comments = [expected_comment_1]
         responses.add(
-            method=responses.GET, url=api_url, body=[], content_type="application/json"
+            method=responses.GET, url=api_url, body="", content_type="application/json"
         )
 
         # Mock the comment post response
@@ -493,7 +496,7 @@ class TestCommentingGithubIssuesParser(unittest.TestCase, GithubApiTestMixin):
         expected_comment_1 = self._get_expected_issue_comment("Some other comment")
         expected_comments = [expected_comment_1]
         responses.add(
-            method=responses.GET, url=api_url, body=[], content_type="application/json"
+            method=responses.GET, url=api_url, body="", content_type="application/json"
         )
 
         # Mock the comment post response

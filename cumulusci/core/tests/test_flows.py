@@ -109,7 +109,7 @@ class TestBaseFlow(unittest.TestCase):
         mock_class.return_value = None
         flow = BaseFlow(self.project_config, flow_config, self.org_config)
 
-        self.assertEquals(hasattr(flow, "logger"), True)
+        self.assertEqual(hasattr(flow, "logger"), True)
 
     def test_is_callable(self, mock_class):
         """ BaseFlow exposes itself as a callable for use """
@@ -141,7 +141,7 @@ class TestBaseFlow(unittest.TestCase):
         # run the flow
         flow()
         # the flow results for the second task should be 'name'
-        self.assertEquals("supername", flow.step_results[1])
+        self.assertEqual("supername", flow.step_results[1])
 
     def test_task_options(self, mock_class):
         """ A flow can accept task options and pass them to the task. """
@@ -165,7 +165,7 @@ class TestBaseFlow(unittest.TestCase):
         # run the flow
         flow()
         # the flow results for the first task should be 'bar'
-        self.assertEquals("bar", flow.step_results[0])
+        self.assertEqual("bar", flow.step_results[0])
 
     def test_skip_kwarg(self, mock_class):
         """ A flow can receive during init a list of tasks to skip """
@@ -192,7 +192,7 @@ class TestBaseFlow(unittest.TestCase):
         flow()
 
         # the number of tasks in the flow should be 1 instead of 2
-        self.assertEquals(1, len(flow.step_results))
+        self.assertEqual(1, len(flow.step_results))
 
     def test_skip_task_value_none(self, mock_class):
         """ A flow skips any tasks whose name is None to allow override via yaml """
@@ -213,7 +213,7 @@ class TestBaseFlow(unittest.TestCase):
         flow()
 
         # the number of tasks in the flow should be 1 instead of 2
-        self.assertEquals(1, len(flow.step_results))
+        self.assertEqual(1, len(flow.step_results))
 
     def test_find_step_by_name_no_steps(self, mock_class):
         """ Running a flow with no steps throws an error """
@@ -249,7 +249,7 @@ class TestBaseFlow(unittest.TestCase):
         flow()
 
         task = flow._find_step_by_name("name_response")
-        self.assertEquals(
+        self.assertEqual(
             "cumulusci.core.tests.test_flows._TaskResponseName",
             task.task_config.class_path,
         )
@@ -295,7 +295,7 @@ class TestBaseFlow(unittest.TestCase):
 
         task = flow._find_step_by_name("name_response")
         config = flow._render_task_config(task)
-        self.assertEquals(["Options:"], config)
+        self.assertEqual(["Options:"], config)
 
     def test_task_raises_exception_fail(self, mock_class):
         """ A flow aborts when a task raises an exception """
@@ -320,7 +320,7 @@ class TestBaseFlow(unittest.TestCase):
         )
         flow = BaseFlow(self.project_config, flow_config, self.org_config)
         flow()
-        self.assertEquals(2, len(flow.steps))
+        self.assertEqual(2, len(flow.steps))
 
     def test_call_no_tasks(self, mock_class):
         """ A flow with no tasks will have no responses. """

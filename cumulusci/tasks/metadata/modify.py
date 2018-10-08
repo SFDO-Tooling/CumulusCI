@@ -31,7 +31,7 @@ class RemoveElementsXPath(BaseTask):
             "Removing elements matching {xpath} from {path}".format(**element)
         )
         for f in glob.glob(element["path"]):
-            with open(f, "r") as fp:
+            with open(f, "rb") as fp:
                 orig = fp.read()
             root = ET.parse(f)
             res = root.findall(
@@ -41,10 +41,12 @@ class RemoveElementsXPath(BaseTask):
             )
             for element in res:
                 element.getparent().remove(element)
-            processed = "{}\n{}\n".format(
-                '<?xml version="1.0" encoding="UTF-8"?>', ET.tostring(root)
+            processed = (
+                b'<?xml version="1.0" encoding="UTF-8"?>\n'
+                + ET.tostring(root, encoding="utf-8")
+                + b"\n"
             )
             if orig != processed:
                 self.logger.info("Modified {}".format(f))
-                with open(f, "w") as fp:
+                with open(f, "wb") as fp:
                     fp.write(processed)

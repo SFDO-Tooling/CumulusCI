@@ -1,4 +1,5 @@
 from __future__ import unicode_literals
+from future.utils import bytes_to_native_str
 from collections import OrderedDict
 from distutils.version import LooseVersion
 import os
@@ -122,11 +123,11 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         # Log any overrides detected through the environment as a warning
         if len(info) > 1:
             self.logger.info("")
-            self.logger.warn("Using environment variables to override repo info:")
+            self.logger.warning("Using environment variables to override repo info:")
             keys = list(info.keys())
             keys.sort()
             for key in keys:
-                self.logger.warn("  {}: {}".format(key, info[key]))
+                self.logger.warning("  {}: {}".format(key, info[key]))
             self.logger.info("")
 
         self._repo_info = info
@@ -400,7 +401,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
     def set_org(self, name, org_config):
         """ Creates or updates an org's oauth info """
         self._check_keychain()
-        return self.keychain.set_org(name, org_config)
+        return self.keychain.set_org(org_config)
 
     def get_static_dependencies(self, dependencies=None, include_beta=None):
         """Resolves the project -> dependencies section of cumulusci.yml
@@ -489,7 +490,9 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
         # Get the cumulusci.yml file
         contents = repo.contents("cumulusci.yml", **kwargs)
-        cumulusci_yml = hiyapyco.load(contents.decoded, loglevel="INFO")
+        cumulusci_yml = hiyapyco.load(
+            bytes_to_native_str(contents.decoded), loglevel="INFO"
+        )
 
         # Get the namespace from the cumulusci.yml if set
         namespace = cumulusci_yml.get("project", {}).get("package", {}).get("namespace")
@@ -628,7 +631,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             try:
                 version = repo._get(url).json()["name"]
             except Exception as e:
-                self.logger.warn(
-                    "{}{}: {}".format(indent, e.__class__.__name__, e.message)
+                self.logger.warning(
+                    "{}{}: {}".format(indent, e.__class__.__name__, str(e))
                 )
         return version

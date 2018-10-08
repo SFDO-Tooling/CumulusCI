@@ -1,3 +1,4 @@
+from future.utils import bytes_to_native_str
 import base64
 import io
 import os
@@ -51,11 +52,10 @@ class Deploy(BaseSalesforceMetadataApiTask):
                 for f in files:
                     self._write_zip_file(zipf, root, f)
             zipf.close()
-
-            zipf_processed = self._process_zip_file(zipfile.ZipFile(zip_bytes))
-            fp = zipf_processed.fp
-            zipf_processed.close()
-            return base64.b64encode(fp.getvalue())
+        zipf_processed = self._process_zip_file(zipfile.ZipFile(zip_bytes))
+        fp = zipf_processed.fp
+        zipf_processed.close()
+        return bytes_to_native_str(base64.b64encode(fp.getvalue()))
 
     def _get_api(self, path=None):
         if not path:

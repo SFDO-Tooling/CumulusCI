@@ -5,7 +5,6 @@ import tempfile
 import unittest
 
 import mock
-import nose
 
 from cumulusci.core.tests.utils import EnvironmentVarGuard
 
@@ -57,8 +56,8 @@ class ProjectKeychainTestMixin(unittest.TestCase):
 
     def test_init(self):
         keychain = self.keychain_class(self.project_config, self.key)
-        self.assertEquals(keychain.project_config, self.project_config)
-        self.assertEquals(keychain.key, self.key)
+        self.assertEqual(keychain.project_config, self.project_config)
+        self.assertEqual(keychain.key, self.key)
 
     def test_set_non_existant_service(self, project=False):
         keychain = self.keychain_class(self.project_config, self.key)
@@ -83,31 +82,31 @@ class ProjectKeychainTestMixin(unittest.TestCase):
         keychain.set_service("github", self.services["github"])
         keychain.set_service("mrbelvedere", self.services["mrbelvedere"])
         keychain.change_key(new_key)
-        self.assertEquals(keychain.key, new_key)
-        self.assertEquals(
+        self.assertEqual(keychain.key, new_key)
+        self.assertEqual(
             keychain.get_service("connected_app").config,
             self.services["connected_app"].config,
         )
-        self.assertEquals(
+        self.assertEqual(
             keychain.get_service("github").config, self.services["github"].config
         )
-        self.assertEquals(
+        self.assertEqual(
             keychain.get_service("mrbelvedere").config,
             self.services["mrbelvedere"].config,
         )
-        self.assertEquals(keychain.get_org("test").config, self.org_config.config)
+        self.assertEqual(keychain.get_org("test").config, self.org_config.config)
 
     def test_set_service_github(self, project=False):
         keychain = self.keychain_class(self.project_config, self.key)
         keychain.set_service("github", self.services["github"], project)
-        self.assertEquals(
+        self.assertEqual(
             keychain.get_service("github").config, self.services["github"].config
         )
 
     def test_set_service_mrbelvedere(self, project=False):
         keychain = self.keychain_class(self.project_config, self.key)
         keychain.set_service("mrbelvedere", self.services["mrbelvedere"], project)
-        self.assertEquals(
+        self.assertEqual(
             keychain.get_service("mrbelvedere").config,
             self.services["mrbelvedere"].config,
         )
@@ -115,27 +114,27 @@ class ProjectKeychainTestMixin(unittest.TestCase):
     def test_set_and_get_org(self, global_org=False):
         keychain = self.keychain_class(self.project_config, self.key)
         keychain.set_org(self.org_config, global_org)
-        self.assertEquals(list(keychain.orgs.keys()), ["test"])
-        self.assertEquals(keychain.get_org("test").config, self.org_config.config)
+        self.assertEqual(list(keychain.orgs.keys()), ["test"])
+        self.assertEqual(keychain.get_org("test").config, self.org_config.config)
 
     def test_set_and_get_scratch_org(self, global_org=False):
         keychain = self.keychain_class(self.project_config, self.key)
         keychain.set_org(self.scratch_org_config, global_org)
-        self.assertEquals(list(keychain.orgs.keys()), ["test_scratch"])
+        self.assertEqual(list(keychain.orgs.keys()), ["test_scratch"])
         org = keychain.get_org("test_scratch")
-        self.assertEquals(org.config, self.scratch_org_config.config)
-        self.assertEquals(org.__class__, ScratchOrgConfig)
+        self.assertEqual(org.config, self.scratch_org_config.config)
+        self.assertEqual(org.__class__, ScratchOrgConfig)
 
     def test_load_scratch_orgs_none(self):
         keychain = self.keychain_class(self.project_config, self.key)
-        self.assertEquals(list(keychain.orgs), [])
+        self.assertEqual(list(keychain.orgs), [])
 
     def test_load_scratch_orgs_create_one(self):
         self.project_config.config["orgs"] = {}
         self.project_config.config["orgs"]["scratch"] = {}
         self.project_config.config["orgs"]["scratch"]["test_scratch_auto"] = {}
         keychain = self.keychain_class(self.project_config, self.key)
-        self.assertEquals(list(keychain.orgs), ["test_scratch_auto"])
+        self.assertEqual(list(keychain.orgs), ["test_scratch_auto"])
 
     def test_load_scratch_orgs_existing_org(self):
         self.project_config.config["orgs"] = {}
@@ -143,14 +142,14 @@ class ProjectKeychainTestMixin(unittest.TestCase):
         self.project_config.config["orgs"]["scratch"]["test"] = {}
         keychain = self.keychain_class(self.project_config, self.key)
         keychain.set_org(OrgConfig({}, "test"))
-        self.assertEquals(list(keychain.orgs), ["test"])
+        self.assertEqual(list(keychain.orgs), ["test"])
         org = keychain.get_org("test")
-        self.assertEquals(org.scratch, None)
+        self.assertEqual(org.scratch, None)
 
-    @nose.tools.raises(OrgNotFound)
     def test_get_org_not_found(self):
         keychain = self.keychain_class(self.project_config, self.key)
-        self.assertEquals(keychain.get_org("test"), None)
+        with self.assertRaises(OrgNotFound):
+            keychain.get_org("test")
 
     def test_get_default_org(self):
         keychain = self.keychain_class(self.project_config, self.key)
@@ -158,11 +157,11 @@ class ProjectKeychainTestMixin(unittest.TestCase):
         org_config = OrgConfig(org_config, "test")
         org_config.config["default"] = True
         keychain.set_org(org_config)
-        self.assertEquals(keychain.get_default_org()[1].config, org_config.config)
+        self.assertEqual(keychain.get_default_org()[1].config, org_config.config)
 
     def test_get_default_org_no_default(self):
         keychain = self.keychain_class(self.project_config, self.key)
-        self.assertEquals(keychain.get_default_org()[1], None)
+        self.assertEqual(keychain.get_default_org()[1], None)
 
     def test_set_default_org(self):
         keychain = self.keychain_class(self.project_config, self.key)
@@ -173,7 +172,7 @@ class ProjectKeychainTestMixin(unittest.TestCase):
         expected_org_config = org_config.config.copy()
         expected_org_config["default"] = True
 
-        self.assertEquals(expected_org_config, keychain.get_default_org()[1].config)
+        self.assertEqual(expected_org_config, keychain.get_default_org()[1].config)
 
     def test_unset_default_org(self):
         keychain = self.keychain_class(self.project_config, self.key)
@@ -182,16 +181,16 @@ class ProjectKeychainTestMixin(unittest.TestCase):
         org_config.config["default"] = True
         keychain.set_org(org_config)
         keychain.unset_default_org()
-        self.assertEquals(keychain.get_default_org()[1], None)
+        self.assertEqual(keychain.get_default_org()[1], None)
 
     def test_list_orgs(self):
         keychain = self.keychain_class(self.project_config, self.key)
         keychain.set_org(self.org_config)
-        self.assertEquals(keychain.list_orgs(), ["test"])
+        self.assertEqual(keychain.list_orgs(), ["test"])
 
     def test_list_orgs_empty(self):
         keychain = self.keychain_class(self.project_config, self.key)
-        self.assertEquals(keychain.list_orgs(), [])
+        self.assertEqual(keychain.list_orgs(), [])
 
 
 class TestBaseProjectKeychain(ProjectKeychainTestMixin):
@@ -279,8 +278,8 @@ class TestEnvironmentProjectKeychain(ProjectKeychainTestMixin):
 
     def test_get_org(self):
         keychain = self.keychain_class(self.project_config, self.key)
-        self.assertEquals(list(keychain.orgs.keys()), ["test"])
-        self.assertEquals(keychain.get_org("test").config, self.org_config.config)
+        self.assertEqual(list(keychain.orgs.keys()), ["test"])
+        self.assertEqual(keychain.get_org("test").config, self.org_config.config)
 
     def test_get_org_not_found(self):
         self._clean_env(self.env)
@@ -288,7 +287,7 @@ class TestEnvironmentProjectKeychain(ProjectKeychainTestMixin):
 
     def test_list_orgs(self):
         keychain = self.keychain_class(self.project_config, self.key)
-        self.assertEquals(keychain.list_orgs(), ["test"])
+        self.assertEqual(keychain.list_orgs(), ["test"])
 
     def test_list_orgs_empty(self):
         self._clean_env(self.env)
@@ -305,8 +304,8 @@ class TestEnvironmentProjectKeychain(ProjectKeychainTestMixin):
             json.dumps(self.scratch_org_config.config),
         )
         keychain = self.keychain_class(self.project_config, self.key)
-        self.assertEquals(keychain.list_orgs(), ["test"])
-        self.assertEquals(keychain.orgs["test"].__class__, ScratchOrgConfig)
+        self.assertEqual(keychain.list_orgs(), ["test"])
+        self.assertEqual(keychain.orgs["test"].__class__, ScratchOrgConfig)
 
     def test_load_scratch_orgs_create_one(self):
         self._clean_env(self.env)
@@ -335,7 +334,7 @@ class TestEnvironmentProjectKeychain(ProjectKeychainTestMixin):
         expected_org_config = self.org_config.config.copy()
         expected_org_config["default"] = True
 
-        self.assertEquals(None, keychain.get_default_org()[1])
+        self.assertEqual(None, keychain.get_default_org()[1])
 
     def test_set_and_get_scratch_org(self):
         self._clean_env(self.env)
@@ -354,14 +353,14 @@ class TestBaseEncryptedProjectKeychain(ProjectKeychainTestMixin):
     def test_decrypt_config__no_config(self):
         keychain = self.keychain_class(self.project_config, self.key)
         config = keychain._decrypt_config(OrgConfig, None, extra=["test"])
-        self.assertEquals(config.__class__, OrgConfig)
-        self.assertEquals(config.config, {})
+        self.assertEqual(config.__class__, OrgConfig)
+        self.assertEqual(config.config, {})
 
     def test_decrypt_config__no_config_2(self):
         keychain = self.keychain_class(self.project_config, self.key)
         config = keychain._decrypt_config(BaseConfig, None)
-        self.assertEquals(config.__class__, BaseConfig)
-        self.assertEquals(config.config, {})
+        self.assertEqual(config.__class__, BaseConfig)
+        self.assertEqual(config.config, {})
 
     def test_validate_key__not_set(self):
         with self.assertRaises(KeychainKeyNotFound):
@@ -444,7 +443,7 @@ class TestEncryptedFileProjectKeychain(ProjectKeychainTestMixin):
         os.makedirs(os.path.join(self.tempdir_home, ".cumulusci", self.project_name))
         self._write_file(
             os.path.join(self.tempdir_home, "test.org"),
-            dummy_keychain._encrypt_config(BaseConfig({"foo": "bar"})),
+            dummy_keychain._encrypt_config(BaseConfig({"foo": "bar"})).decode("utf-8"),
         )
         keychain = self.keychain_class(self.project_config, self.key)
         del keychain.config["orgs"]
