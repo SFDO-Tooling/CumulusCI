@@ -523,7 +523,7 @@ class TestBaseProjectConfig(unittest.TestCase):
                     u"unmanaged": True,
                     u"namespace_inject": None,
                     u"namespace_strip": None,
-                    u"namespace_tokenize": None
+                    u"namespace_tokenize": None,
                 },
                 {u"version": "2", u"namespace": "ccitestdep"},
                 {
@@ -533,7 +533,7 @@ class TestBaseProjectConfig(unittest.TestCase):
                     u"unmanaged": True,
                     u"namespace_inject": None,
                     u"namespace_strip": None,
-                    u"namespace_tokenize": None
+                    u"namespace_tokenize": None,
                 },
                 {
                     u"repo": CUMULUSCI_TEST_REPO,
@@ -542,7 +542,7 @@ class TestBaseProjectConfig(unittest.TestCase):
                     u"unmanaged": True,
                     u"namespace_inject": "ccitest",
                     u"namespace_strip": None,
-                    u"namespace_tokenize": None
+                    u"namespace_tokenize": None,
                 },
             ],
         )
