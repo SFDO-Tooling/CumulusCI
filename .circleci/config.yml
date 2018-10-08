@@ -21,7 +21,7 @@ jobs:
           name: Install dependencies
           command: |
             virtualenv venv
-            venv/bin/pip install $(grep black requirements_dev.txt)
+            venv/bin/pip install black==18.6b4
       - run:
           name: Run black
           command: |
