@@ -1,5 +1,4 @@
 from builtins import str
-from past.builtins import basestring
 from distutils.version import LooseVersion
 
 from cumulusci.core.utils import process_bool_arg
@@ -21,6 +20,9 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
     api_class = ApiDeploy
     name = "UpdateDependencies"
     task_options = {
+        "dependencies": {
+            "description": "List of dependencies to update. Defaults to project__dependencies"
+        },
         "namespaced_org": {
             "description": "If True, the changes namespace token injection on any dependencies so tokens %%%NAMESPACED_ORG%%% and ___NAMESPACED_ORG___ will get replaced with the namespace.  The default is false causing those tokens to get stripped and replaced with an empty string.  Set this if deploying to a namespaced scratch org or packaging org."
         },
@@ -43,9 +45,13 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
         self.options["include_beta"] = process_bool_arg(
             self.options.get("include_beta", False)
         )
+        self.options["dependencies"] = (
+            self.options.get("dependencies")
+            or self.project_config.project__dependencies
+        )
 
     def _run_task(self):
-        if not self.project_config.project__dependencies:
+        if not self.options["dependencies"]:
             self.logger.info("Project has no dependencies, doing nothing")
             return
 
@@ -58,7 +64,7 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
 
         self.logger.info("Preparing static dependencies map")
         dependencies = self.project_config.get_static_dependencies(
-            include_beta=self.options["include_beta"]
+            self.options["dependencies"], include_beta=self.options["include_beta"]
         )
 
         self.installed = self._get_installed()
