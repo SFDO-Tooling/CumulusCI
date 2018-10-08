@@ -31,17 +31,17 @@ from cumulusci.salesforce_api.tests.metadata_test_strings import deploy_status_e
 from cumulusci.salesforce_api.tests.metadata_test_strings import deploy_result
 from cumulusci.salesforce_api.tests.metadata_test_strings import deploy_result_failure
 from cumulusci.salesforce_api.tests.metadata_test_strings import (
-    list_metadata_start_envelope,
+    list_metadata_start_envelope
 )
 from cumulusci.salesforce_api.tests.metadata_test_strings import list_metadata_result
 from cumulusci.salesforce_api.tests.metadata_test_strings import (
-    list_metadata_result_bad_val,
+    list_metadata_result_bad_val
 )
 from cumulusci.salesforce_api.tests.metadata_test_strings import (
-    retrieve_packaged_start_envelope,
+    retrieve_packaged_start_envelope
 )
 from cumulusci.salesforce_api.tests.metadata_test_strings import (
-    retrieve_unpackaged_start_envelope,
+    retrieve_unpackaged_start_envelope
 )
 from cumulusci.salesforce_api.tests.metadata_test_strings import retrieve_result
 from cumulusci.salesforce_api.tests.metadata_test_strings import result_envelope

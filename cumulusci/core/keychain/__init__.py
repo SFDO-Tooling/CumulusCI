@@ -5,13 +5,13 @@ from cumulusci.core.keychain.BaseProjectKeychain import BaseProjectKeychain
 
 # inherit from BaseProjectKeychain
 from cumulusci.core.keychain.BaseEncryptedProjectKeychain import (
-    BaseEncryptedProjectKeychain,
+    BaseEncryptedProjectKeychain
 )
 from cumulusci.core.keychain.EnvironmentProjectKeychain import (
-    EnvironmentProjectKeychain,
+    EnvironmentProjectKeychain
 )
 
 # inherit from BaseEncryptedProjectKeychain
 from cumulusci.core.keychain.EncryptedFileProjectKeychain import (
-    EncryptedFileProjectKeychain,
+    EncryptedFileProjectKeychain
 )
