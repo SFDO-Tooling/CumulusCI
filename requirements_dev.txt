@@ -1,5 +1,6 @@
 -r requirements.txt
 -e .
+black==18.6b4; python_version > '3'
 bump2version==0.5.10
 coverage==4.5.1
 coveralls==1.5.0
