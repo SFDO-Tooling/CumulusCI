@@ -171,6 +171,25 @@ class TestUtils(unittest.TestCase):
             utils.download_extract_zip("http://test", target=d)
             self.assertIn("test", os.listdir(d))
 
+    def test_download_extract_github(self):
+        f = io.BytesIO()
+        with zipfile.ZipFile(f, "w") as zf:
+            zf.writestr("top/", "top")
+            zf.writestr("top/src/", "top_src")
+            zf.writestr("top/src/test", "test")
+        f.seek(0)
+        zipbytes = f.read()
+        mock_repo = mock.Mock(default_branch="master")
+
+        def assign_bytes(archive_type, zip_content, ref=None):
+            zip_content.write(zipbytes)
+
+        mock_archive = mock.Mock(return_value=True, side_effect=assign_bytes)
+        mock_repo.archive = mock_archive
+        zf = utils.download_extract_github(mock_repo, "src")
+        result = zf.read("test")
+        self.assertEqual("test", result)
+
     def test_zip_inject_namespace_managed(self):
         logger = mock.Mock()
         zf = zipfile.ZipFile(io.BytesIO(), "w")

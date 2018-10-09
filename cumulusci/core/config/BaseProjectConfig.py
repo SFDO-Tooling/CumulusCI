@@ -448,7 +448,13 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                         continue
                     value = "\n{}".format(" " * (indent + 4))
 
-                if key != "headers":
+                if key == "repo":
+                    pretty.append(
+                        "{}{}: {}".format(
+                            prefix, key, value.full_name
+                        )
+                    )
+                else:
                     pretty.append("{}{}: {}".format(prefix, key, value))
                 if extra:
                     pretty.extend(extra)
@@ -476,10 +482,6 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             repo_name = repo_name[:-4]
         repo = gh.repository(repo_owner, repo_name)
 
-        # Prepare HTTP auth header for requests calls to Github
-        github = self.keychain.get_service("github")
-        headers = {"Authorization": "token {}".format(github.password)}
-
         # Determine the ref if specified
         kwargs = {}
         if "tag" in dependency:
@@ -505,18 +507,15 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         contents = repo.contents("unpackaged/pre", **kwargs)
         if contents:
             for dirname in list(contents.keys()):
-                if "unpackaged/pre/{}".format(dirname) in skip:
+                subfolder = "unpackaged/pre/{}".format(dirname)
+                if subfolder in skip:
                     continue
-                subfolder = "{}-{}/unpackaged/pre/{}".format(
-                    repo.name, repo.default_branch, dirname
-                )
-                zip_url = "{}/archive/{}.zip".format(repo.html_url, repo.default_branch)
 
                 unpackaged_pre.append(
                     {
-                        "zip_url": zip_url,
+                        "repo": repo,
+                        "ref": tag,
                         "subfolder": subfolder,
-                        "headers": headers,
                         "unmanaged": dependency.get("unmanaged"),
                         "namespace_tokenize": dependency.get("namespace_tokenize"),
                         "namespace_inject": dependency.get("namespace_inject"),
@@ -529,13 +528,12 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         if unmanaged or not namespace:
             contents = repo.contents("src", **kwargs)
             if contents:
-                zip_url = "{}/archive/{}.zip".format(repo.html_url, repo.default_branch)
-                subfolder = "{}-{}/src".format(repo.name, repo.default_branch)
+                subfolder = "src"
 
                 unmanaged_src = {
-                    "zip_url": zip_url,
+                    "repo": repo,
+                    "ref": tag,
                     "subfolder": subfolder,
-                    "headers": headers,
                     "unmanaged": dependency.get("unmanaged"),
                     "namespace_tokenize": dependency.get("namespace_tokenize"),
                     "namespace_inject": dependency.get("namespace_inject"),
@@ -547,17 +545,14 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         contents = repo.contents("unpackaged/post", **kwargs)
         if contents:
             for dirname in list(contents.keys()):
-                if "unpackaged/post/{}".format(dirname) in skip:
+                subfolder = "unpackaged/post/{}".format(dirname)
+                if subfolder in skip:
                     continue
-                zip_url = "{}/archive/{}.zip".format(repo.html_url, repo.default_branch)
-                subfolder = "{}-{}/unpackaged/post/{}".format(
-                    repo.name, repo.default_branch, dirname
-                )
 
                 dependency = {
-                    "zip_url": zip_url,
+                    "repo": repo,
+                    "ref": tag,
                     "subfolder": subfolder,
-                    "headers": headers,
                     "unmanaged": dependency.get("unmanaged"),
                     "namespace_tokenize": dependency.get("namespace_tokenize"),
                     "namespace_inject": dependency.get("namespace_inject"),
