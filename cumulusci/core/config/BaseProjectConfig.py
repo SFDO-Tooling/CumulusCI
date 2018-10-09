@@ -449,11 +449,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                     value = "\n{}".format(" " * (indent + 4))
 
                 if key == "repo":
-                    pretty.append(
-                        "{}{}: {}".format(
-                            prefix, key, value.full_name
-                        )
-                    )
+                    pretty.append("{}{}: {}".format(prefix, key, value.full_name))
                 else:
                     pretty.append("{}{}: {}".format(prefix, key, value))
                 if extra:

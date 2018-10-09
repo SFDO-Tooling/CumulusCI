@@ -153,7 +153,7 @@ def download_extract_github(github_repo, subfolder, ref=None):
     github_repo.archive("zipball", zip_content, ref=ref)
     zip_file = zipfile.ZipFile(zip_content)
     root_folder = sorted(zip_file.namelist())[0]
-    subfolder_dir =  root_folder + subfolder
+    subfolder_dir = root_folder + subfolder
     zip_file = zip_subfolder(zip_file, subfolder_dir)
     return zip_file
 
