@@ -450,8 +450,8 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
                 if key == "repo":
                     pretty.append(
-                        "{}{}: {}/{}".format(
-                            prefix, key, value.full_name, dependency["subfolder"]
+                        "{}{}: {}".format(
+                            prefix, key, value.full_name
                         )
                     )
                 else:
