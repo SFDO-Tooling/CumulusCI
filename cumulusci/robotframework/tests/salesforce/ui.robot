@@ -6,39 +6,73 @@ Suite Teardown  Delete Records and Close Browser
 
 *** Keywords ***
 
+Create Account
+    [Arguments]      &{fields}
+    ${name} =        Generate Random String
+    ${account_id} =  Salesforce Insert  Account
+    ...                Name=${name}
+    ...                &{fields}
+    &{account} =     Salesforce Get  Account  ${account_id}
+    [return]  &{account}
+
 Create Contact
+    [Arguments]      &{fields}
     ${first_name} =  Generate Random String
-    ${last_name} =  Generate Random String
-    ${contact_id} =  Salesforce Insert  Contact  FirstName=${first_name}  LastName=${last_name}
-    &{contact} =  Salesforce Get  Contact  ${contact_id}
+    ${last_name} =   Generate Random String
+    ${contact_id} =  Salesforce Insert  Contact
+    ...                FirstName=${first_name}
+    ...                LastName=${last_name}
+    ...                &{fields}
+    &{contact} =     Salesforce Get  Contact  ${contact_id}
     [return]  &{contact}
 
 *** Test Cases ***
 
 Click Modal Button
-    Go To Object Home  Contact
-    Click Object Button  New
-    Click Modal Button  Save
-    ${locator} =  Get Locator  modal.has_error
+    Go To Object Home            Contact
+    Click Object Button          New
+    Click Modal Button           Save
+    ${locator} =                 Get Locator  modal.has_error
     Page Should Contain Element  ${locator}
 
 Click Object Button
-    Go To Object Home  Contact
+    Go To Object Home    Contact
     Click Object Button  New
     Page Should Contain  New Contact
 
 Click Related List Button
-    &{contact} =  Create Contact
-    Go To Record Home  &{contact}[Id]
+    &{contact} =               Create Contact
+    Go To Record Home          &{contact}[Id]
     Click Related List Button  Opportunities  New
     Wait Until Modal Is Open
-    Page Should Contain  New Opportunity
+    Page Should Contain        New Opportunity
+
+Close Modal
+    Go To Object Home        Contact
+    Open App Launcher
+    Close Modal
+    Wait Until Modal Is Closed
+    Page Should Not Contain  All Apps
+
+Current App Should Be
+    Go To Object Home        Contact
+    Select App Launcher App  Service
+    Current App Should Be    Service
 
 Get Current Record Id
-    &{contact} =  Create Contact
+    &{contact} =       Create Contact
     Go To Record Home  &{contact}[Id]
-    ${contact_id} =  Get Current Record Id
-    Should Be Equal  &{contact}[Id]  ${contact_id}
+    ${contact_id} =    Get Current Record Id
+    Should Be Equal    &{contact}[Id]  ${contact_id}
+
+Get Related List Count
+    &{account} =       Create Account
+    &{fields} =        Create Dictionary
+    ...                  AccountId=&{account}[Id]
+    &{contact} =       Create Contact  &{fields}
+    Go To Record Home  &{account}[Id]
+    ${count} =         Get Related List Count  Contacts
+    Should Be Equal    ${count}  ${1}
 
 Go To Setup Home
     Go To Setup Home
@@ -56,23 +90,61 @@ Go To Object List With Filter
     Go To Object List  Contact  filter=Recent
 
 Go To Record Home
-    &{contact} =  Create Contact
+    &{contact} =       Create Contact
     Go To Record Home  &{contact}[Id]
 
+Header Field Should Have Value
+    &{fields} =                     Create Dictionary
+    ...                               Phone=1234567890
+    &{account} =                    Create Account  &{fields}
+    Go To Record Home               &{account}[Id]
+    Header Field Should Have Value  Phone
+
+Header Field Should Not Have Value
+    &{account} =                        Create Account
+    Go To Record Home                   &{account}[Id]
+    Header Field Should Not Have Value  Phone
+
+Header Field Should Have Link
+    &{fields} =                    Create Dictionary
+    ...                              Website=http://www.test.com
+    &{account} =                   Create Account  &{fields}
+    Go To Record Home              &{account}[Id]
+    Header Field Should Have Link  Website
+
+Header Field Should Not Have Link
+    &{account} =                       Create Account
+    Go To Record Home                  &{account}[Id]
+    Header Field Should Not Have Link  Website
+
+Open App Launcher
+    Go To Object Home    Contact
+    Open App Launcher
+    Page Should Contain  All Apps
+
 Populate Field
-    ${account_name} =  Generate Random String
-    Go To Object Home  Account
+    ${account_name} =    Generate Random String
+    Go To Object Home    Account
     Click Object Button  New
-    Populate Field  Account Name  ${account_name}
-    ${locator} =  Get Locator  object.field  Account Name
-    ${value} =  Get Value  ${locator}
-    Should Be Equal  ${value}  ${account_name}
+    Populate Field       Account Name  ${account_name}
+    ${locator} =         Get Locator  object.field  Account Name
+    ${value} =           Get Value  ${locator}
+    Should Be Equal      ${value}  ${account_name}
+
+Populate Lookup Field
+    &{account} =           Create Account
+    Go To Object Home      Contact
+    Click Object Button    New
+    Populate Lookup Field  Account Name  &{account}[Name]
+    ${locator} =           Get Locator  object.field_lookup_value  Account Name
+    ${value} =             Get Text  ${locator}
+    Should Be Equal        ${value}  &{account}[Name]
 
 Populate Form
-    ${account_name} =  Generate Random String
-    Go To Object Home  Account
+    ${account_name} =    Generate Random String
+    Go To Object Home    Account
     Click Object Button  New
-    Populate Form  Account Name=${account_name}
-    ${locator} =  Get Locator  object.field  Account Name
-    ${value} =  Get Value  ${locator}
-    Should Be Equal  ${value}  ${account_name}
+    Populate Form        Account Name=${account_name}
+    ${locator} =         Get Locator  object.field  Account Name
+    ${value} =           Get Value  ${locator}
+    Should Be Equal      ${value}  ${account_name}
