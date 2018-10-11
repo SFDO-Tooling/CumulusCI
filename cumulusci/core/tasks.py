@@ -96,7 +96,7 @@ class BaseTask(object):
                 pass
 
     def _set_current_task(self):
-        CURRENT_TASK = self
+        CURRENT_TASK.is = self
 
     def _validate_options(self):
         missing_required = []
