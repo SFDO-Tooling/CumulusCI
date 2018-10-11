@@ -1,3 +1,4 @@
+from builtins import str
 from distutils.version import LooseVersion
 
 from cumulusci.core.utils import process_bool_arg
@@ -10,6 +11,7 @@ from cumulusci.salesforce_api.package_zip import UninstallPackageZipBuilder
 from cumulusci.salesforce_api.package_zip import ZipfilePackageZipBuilder
 from cumulusci.tasks.salesforce import BaseSalesforceMetadataApiTask
 from cumulusci.utils import download_extract_zip
+from cumulusci.utils import download_extract_github
 from cumulusci.utils import zip_inject_namespace
 from cumulusci.utils import zip_strip_namespace
 from cumulusci.utils import zip_tokenize_namespace
@@ -19,6 +21,13 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
     api_class = ApiDeploy
     name = "UpdateDependencies"
     task_options = {
+        "dependencies": {
+            "description": "List of dependencies to update. Defaults to project__dependencies. "
+            "Each dependency is a dict with either 'github' set to a github repository URL "
+            "or 'namespace' set to a Salesforce package namespace. "
+            "Github dependencies may include 'tag' to install a particular git ref. "
+            "Package dependencies may include 'version' to install a particular version."
+        },
         "namespaced_org": {
             "description": "If True, the changes namespace token injection on any dependencies so tokens %%%NAMESPACED_ORG%%% and ___NAMESPACED_ORG___ will get replaced with the namespace.  The default is false causing those tokens to get stripped and replaced with an empty string.  Set this if deploying to a namespaced scratch org or packaging org."
         },
@@ -41,9 +50,13 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
         self.options["include_beta"] = process_bool_arg(
             self.options.get("include_beta", False)
         )
+        self.options["dependencies"] = (
+            self.options.get("dependencies")
+            or self.project_config.project__dependencies
+        )
 
     def _run_task(self):
-        if not self.project_config.project__dependencies:
+        if not self.options["dependencies"]:
             self.logger.info("Project has no dependencies, doing nothing")
             return
 
@@ -56,7 +69,7 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
 
         self.logger.info("Preparing static dependencies map")
         dependencies = self.project_config.get_static_dependencies(
-            include_beta=self.options["include_beta"]
+            self.options["dependencies"], include_beta=self.options["include_beta"]
         )
 
         self.installed = self._get_installed()
@@ -86,16 +99,12 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
                 if count_uninstall != len(self.uninstall_queue):
                     dependency_uninstalled = True
 
-            # Process zip_url dependencies (unmanaged metadata)
-            if "zip_url" in dependency:
-                self._process_zip_dependency(dependency)
-
             # Process namespace dependencies (managed packages)
-            elif "namespace" in dependency:
+            if "namespace" in dependency:
                 self._process_namespace_dependency(dependency, dependency_uninstalled)
-
-    def _process_zip_dependency(self, dependency):
-        self.install_queue.append(dependency)
+            else:
+                # zip_url or repo dependency
+                self.install_queue.append(dependency)
 
     def _process_namespace_dependency(self, dependency, dependency_uninstalled=None):
         dependency_version = str(dependency["version"])
@@ -174,66 +183,79 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
             self._install_dependency(dependency)
 
     def _install_dependency(self, dependency):
-        if "zip_url" in dependency:
-            self.logger.info(
-                "Deploying unmanaged metadata from /{} of {}".format(
-                    dependency["subfolder"], dependency["zip_url"]
-                )
-            )
-            package_zip = download_extract_zip(
-                dependency["zip_url"],
-                subfolder=dependency.get("subfolder"),
-                headers=dependency.get("headers", {}),
-            )
-            if dependency.get("namespace_tokenize"):
+        if "zip_url" or "repo" in dependency:
+            package_zip = None
+            if "zip_url" in dependency:
                 self.logger.info(
-                    "Replacing namespace prefix {}__ in files and filenames with namespace token strings".format(
-                        "{}__".format(dependency["namespace_tokenize"])
+                    "Deploying unmanaged metadata from /{} of {}".format(
+                        dependency["subfolder"], dependency["zip_url"]
                     )
                 )
-                package_zip = zip_tokenize_namespace(
-                    package_zip,
-                    namespace=dependency["namespace_tokenize"],
-                    logger=self.logger,
+                package_zip = download_extract_zip(
+                    dependency["zip_url"], subfolder=dependency.get("subfolder")
                 )
-
-            if dependency.get("namespace_inject"):
+            elif "repo" in dependency:
                 self.logger.info(
-                    "Replacing namespace tokens with {}".format(
-                        "{}__".format(dependency["namespace_inject"])
+                    "Deploying unmanaged metadata from /{} of {}".format(
+                        dependency["subfolder"], dependency["repo"].full_name
                     )
                 )
-                package_zip = zip_inject_namespace(
-                    package_zip,
-                    namespace=dependency["namespace_inject"],
-                    managed=not dependency.get("unmanaged"),
-                    namespaced_org=self.options["namespaced_org"],
-                    logger=self.logger,
+                package_zip = download_extract_github(
+                    dependency["repo"],
+                    dependency["subfolder"],
+                    ref=dependency.get("ref"),
                 )
 
-            if dependency.get("namespace_strip"):
+            if package_zip:
+                if dependency.get("namespace_tokenize"):
+                    self.logger.info(
+                        "Replacing namespace prefix {}__ in files and filenames with namespace token strings".format(
+                            "{}__".format(dependency["namespace_tokenize"])
+                        )
+                    )
+                    package_zip = zip_tokenize_namespace(
+                        package_zip,
+                        namespace=dependency["namespace_tokenize"],
+                        logger=self.logger,
+                    )
+
+                if dependency.get("namespace_inject"):
+                    self.logger.info(
+                        "Replacing namespace tokens with {}".format(
+                            "{}__".format(dependency["namespace_inject"])
+                        )
+                    )
+                    package_zip = zip_inject_namespace(
+                        package_zip,
+                        namespace=dependency["namespace_inject"],
+                        managed=not dependency.get("unmanaged"),
+                        namespaced_org=self.options["namespaced_org"],
+                        logger=self.logger,
+                    )
+
+                if dependency.get("namespace_strip"):
+                    self.logger.info(
+                        "Removing namespace prefix {}__ from all files and filenames".format(
+                            "{}__".format(dependency["namespace_strip"])
+                        )
+                    )
+                    package_zip = zip_strip_namespace(
+                        package_zip,
+                        namespace=dependency["namespace_strip"],
+                        logger=self.logger,
+                    )
+
+                package_zip = ZipfilePackageZipBuilder(package_zip)()
+
+            elif "namespace" in dependency:
                 self.logger.info(
-                    "Removing namespace prefix {}__ from all files and filenames".format(
-                        "{}__".format(dependency["namespace_strip"])
+                    "Installing {} version {}".format(
+                        dependency["namespace"], dependency["version"]
                     )
                 )
-                package_zip = zip_strip_namespace(
-                    package_zip,
-                    namespace=dependency["namespace_strip"],
-                    logger=self.logger,
-                )
-
-            package_zip = ZipfilePackageZipBuilder(package_zip)()
-
-        elif "namespace" in dependency:
-            self.logger.info(
-                "Installing {} version {}".format(
+                package_zip = InstallPackageZipBuilder(
                     dependency["namespace"], dependency["version"]
-                )
-            )
-            package_zip = InstallPackageZipBuilder(
-                dependency["namespace"], dependency["version"]
-            )()
+                )()
 
         api = self.api_class(
             self, package_zip, purge_on_delete=self.options["purge_on_delete"]

@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 import datetime
+import io
 import json
 import os
 import re
@@ -40,8 +41,8 @@ class ScratchOrgConfig(OrgConfig):
         p.run()
 
         org_info = None
-        stderr_list = [line.strip() for line in p.stderr]
-        stdout_list = [line.strip() for line in p.stdout]
+        stderr_list = [line.strip() for line in io.TextIOWrapper(p.stderr)]
+        stdout_list = [line.strip() for line in io.TextIOWrapper(p.stdout)]
 
         if p.returncode:
             self.logger.error("Return code: {}".format(p.returncode))
@@ -181,7 +182,7 @@ class ScratchOrgConfig(OrgConfig):
 
         re_obj = re.compile("Successfully created scratch org: (.+), username: (.+)")
         stdout = []
-        for line in p.stdout:
+        for line in io.TextIOWrapper(p.stdout):
             match = re_obj.search(line)
             if match:
                 self.config["org_id"] = match.group(1)
@@ -205,7 +206,7 @@ class ScratchOrgConfig(OrgConfig):
         """Generates an org password with the sfdx utility. """
 
         if self.password_failed:
-            self.logger.warn("Skipping resetting password since last attempt failed")
+            self.logger.warning("Skipping resetting password since last attempt failed")
             return
 
         # Set a random password so it's available via cci org info
@@ -223,18 +224,14 @@ class ScratchOrgConfig(OrgConfig):
         )
         p.run()
 
-        stdout = []
-        for line in p.stdout:
-            stdout.append(line)
-        stderr = []
-        for line in p.stderr:
-            stderr.append(line)
+        stderr = io.TextIOWrapper(p.stderr).readlines()
+        stdout = io.TextIOWrapper(p.stdout).readlines()
 
         if p.returncode:
             self.config["password_failed"] = True
             # Don't throw an exception because of failure creating the
             # password, just notify in a log message
-            self.logger.warn(
+            self.logger.warning(
                 "Failed to set password: \n{}\n{}".format(
                     "\n".join(stdout), "\n".join(stderr)
                 )
@@ -258,7 +255,7 @@ class ScratchOrgConfig(OrgConfig):
 
         org_info = None
         stdout = []
-        for line in p.stdout:
+        for line in io.TextIOWrapper(p.stdout):
             stdout.append(line)
             if line.startswith("An error occurred deleting this org"):
                 self.logger.error(line)
@@ -281,9 +278,7 @@ class ScratchOrgConfig(OrgConfig):
         p = sarge.Command(command, stdout=sarge.Capture(buffer_size=-1), shell=True)
         p.run()
 
-        stdout_list = []
-        for line in p.stdout:
-            stdout_list.append(line.strip())
+        stdout_list = [line.strip() for line in io.TextIOWrapper(p.stdout)]
 
         if p.returncode:
             self.logger.error("Return code: {}".format(p.returncode))

@@ -60,7 +60,7 @@ class TestCCI(unittest.TestCase):
 
     def test_get_installed_version(self):
         result = cci.get_installed_version()
-        self.assertEqual(cumulusci.__version__, result.base_version)
+        self.assertEqual(cumulusci.__version__, str(result))
 
     @responses.activate
     def test_get_latest_final_version(self):
@@ -90,7 +90,7 @@ class TestCCI(unittest.TestCase):
         self, click, get_latest_final_version, get_installed_version
     ):
         with cci.timestamp_file() as f:
-            f.write(bytes(time.time() - 4000))
+            f.write(str(time.time() - 4000))
         get_latest_final_version.return_value = pkg_resources.parse_version("2")
         get_installed_version.return_value = pkg_resources.parse_version("1")
 
@@ -102,7 +102,7 @@ class TestCCI(unittest.TestCase):
     @mock.patch("cumulusci.cli.cci.click")
     def test_check_latest_version_request_error(self, click, get_latest_final_version):
         with cci.timestamp_file() as f:
-            f.write(bytes(time.time() - 4000))
+            f.write(str(time.time() - 4000))
         get_latest_final_version.side_effect = requests.exceptions.RequestException()
 
         cci.check_latest_version()

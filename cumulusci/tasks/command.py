@@ -105,7 +105,7 @@ class Command(BaseTask):
             # Handle output lines
             if not output_handler:
                 output_handler = self._process_output
-            for line in iter(p.stdout.readline, ""):
+            for line in iter(p.stdout.readline, b""):
                 output_handler(line)
             p.stdout.close()
 

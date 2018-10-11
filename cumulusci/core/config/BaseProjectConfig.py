@@ -1,4 +1,5 @@
 from __future__ import unicode_literals
+from future.utils import bytes_to_native_str
 from collections import OrderedDict
 from distutils.version import LooseVersion
 import os
@@ -122,11 +123,11 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         # Log any overrides detected through the environment as a warning
         if len(info) > 1:
             self.logger.info("")
-            self.logger.warn("Using environment variables to override repo info:")
+            self.logger.warning("Using environment variables to override repo info:")
             keys = list(info.keys())
             keys.sort()
             for key in keys:
-                self.logger.warn("  {}: {}".format(key, info[key]))
+                self.logger.warning("  {}: {}".format(key, info[key]))
             self.logger.info("")
 
         self._repo_info = info
@@ -400,7 +401,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
     def set_org(self, name, org_config):
         """ Creates or updates an org's oauth info """
         self._check_keychain()
-        return self.keychain.set_org(name, org_config)
+        return self.keychain.set_org(org_config)
 
     def get_static_dependencies(self, dependencies=None, include_beta=None):
         """Resolves the project -> dependencies section of cumulusci.yml
@@ -447,7 +448,9 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                         continue
                     value = "\n{}".format(" " * (indent + 4))
 
-                if key != "headers":
+                if key == "repo":
+                    pretty.append("{}{}: {}".format(prefix, key, value.full_name))
+                else:
                     pretty.append("{}{}: {}".format(prefix, key, value))
                 if extra:
                     pretty.extend(extra)
@@ -475,10 +478,6 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             repo_name = repo_name[:-4]
         repo = gh.repository(repo_owner, repo_name)
 
-        # Prepare HTTP auth header for requests calls to Github
-        github = self.keychain.get_service("github")
-        headers = {"Authorization": "token {}".format(github.password)}
-
         # Determine the ref if specified
         kwargs = {}
         if "tag" in dependency:
@@ -489,7 +488,9 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
         # Get the cumulusci.yml file
         contents = repo.contents("cumulusci.yml", **kwargs)
-        cumulusci_yml = hiyapyco.load(contents.decoded, loglevel="INFO")
+        cumulusci_yml = hiyapyco.load(
+            bytes_to_native_str(contents.decoded), loglevel="INFO"
+        )
 
         # Get the namespace from the cumulusci.yml if set
         namespace = cumulusci_yml.get("project", {}).get("package", {}).get("namespace")
@@ -502,18 +503,15 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         contents = repo.contents("unpackaged/pre", **kwargs)
         if contents:
             for dirname in list(contents.keys()):
-                if "unpackaged/pre/{}".format(dirname) in skip:
+                subfolder = "unpackaged/pre/{}".format(dirname)
+                if subfolder in skip:
                     continue
-                subfolder = "{}-{}/unpackaged/pre/{}".format(
-                    repo.name, repo.default_branch, dirname
-                )
-                zip_url = "{}/archive/{}.zip".format(repo.html_url, repo.default_branch)
 
                 unpackaged_pre.append(
                     {
-                        "zip_url": zip_url,
+                        "repo": repo,
+                        "ref": tag,
                         "subfolder": subfolder,
-                        "headers": headers,
                         "unmanaged": dependency.get("unmanaged"),
                         "namespace_tokenize": dependency.get("namespace_tokenize"),
                         "namespace_inject": dependency.get("namespace_inject"),
@@ -526,13 +524,12 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         if unmanaged or not namespace:
             contents = repo.contents("src", **kwargs)
             if contents:
-                zip_url = "{}/archive/{}.zip".format(repo.html_url, repo.default_branch)
-                subfolder = "{}-{}/src".format(repo.name, repo.default_branch)
+                subfolder = "src"
 
                 unmanaged_src = {
-                    "zip_url": zip_url,
+                    "repo": repo,
+                    "ref": tag,
                     "subfolder": subfolder,
-                    "headers": headers,
                     "unmanaged": dependency.get("unmanaged"),
                     "namespace_tokenize": dependency.get("namespace_tokenize"),
                     "namespace_inject": dependency.get("namespace_inject"),
@@ -544,17 +541,14 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         contents = repo.contents("unpackaged/post", **kwargs)
         if contents:
             for dirname in list(contents.keys()):
-                if "unpackaged/post/{}".format(dirname) in skip:
+                subfolder = "unpackaged/post/{}".format(dirname)
+                if subfolder in skip:
                     continue
-                zip_url = "{}/archive/{}.zip".format(repo.html_url, repo.default_branch)
-                subfolder = "{}-{}/unpackaged/post/{}".format(
-                    repo.name, repo.default_branch, dirname
-                )
 
                 dependency = {
-                    "zip_url": zip_url,
+                    "repo": repo,
+                    "ref": tag,
                     "subfolder": subfolder,
-                    "headers": headers,
                     "unmanaged": dependency.get("unmanaged"),
                     "namespace_tokenize": dependency.get("namespace_tokenize"),
                     "namespace_inject": dependency.get("namespace_inject"),
@@ -628,7 +622,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             try:
                 version = repo._get(url).json()["name"]
             except Exception as e:
-                self.logger.warn(
-                    "{}{}: {}".format(indent, e.__class__.__name__, e.message)
+                self.logger.warning(
+                    "{}{}: {}".format(indent, e.__class__.__name__, str(e))
                 )
         return version

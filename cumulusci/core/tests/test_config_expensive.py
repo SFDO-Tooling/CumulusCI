@@ -8,7 +8,6 @@ import tempfile
 import unittest
 
 import mock
-import nose
 import yaml
 
 from cumulusci.core.config import ScratchOrgConfig
@@ -42,7 +41,7 @@ class TestYamlGlobalConfig(unittest.TestCase):
         config = YamlGlobalConfig()
         with open(__location__ + "/../../cumulusci.yml", "r") as f_expected_config:
             expected_config = yaml.safe_load(f_expected_config)
-        self.assertEquals(config.config, expected_config)
+        self.assertEqual(config.config, expected_config)
 
     def test_load_global_config_empty_local(self, mock_class):
         self._create_global_config_local("")
@@ -51,7 +50,7 @@ class TestYamlGlobalConfig(unittest.TestCase):
         config = YamlGlobalConfig()
         with open(__location__ + "/../../cumulusci.yml", "r") as f_expected_config:
             expected_config = yaml.safe_load(f_expected_config)
-        self.assertEquals(config.config, expected_config)
+        self.assertEqual(config.config, expected_config)
 
     def test_load_global_config_with_local(self, mock_class):
         local_yaml = "tasks:\n    newtesttask:\n        description: test description"
@@ -63,7 +62,7 @@ class TestYamlGlobalConfig(unittest.TestCase):
             expected_config = yaml.safe_load(f_expected_config)
         expected_config["tasks"]["newtesttask"] = {}
         expected_config["tasks"]["newtesttask"]["description"] = "test description"
-        self.assertEquals(config.config, expected_config)
+        self.assertEqual(config.config, expected_config)
 
 
 @mock.patch("os.path.expanduser")
@@ -125,20 +124,20 @@ class TestYamlProjectConfig(unittest.TestCase):
     def tearDown(self):
         pass
 
-    @nose.tools.raises(NotInProject)
     def test_load_project_config_not_repo(self, mock_class):
         mock_class.return_value = self.tempdir_home
         os.chdir(self.tempdir_project)
         global_config = YamlGlobalConfig()
-        config = YamlProjectConfig(global_config)
+        with self.assertRaises(NotInProject):
+            config = YamlProjectConfig(global_config)
 
-    @nose.tools.raises(ProjectConfigNotFound)
     def test_load_project_config_no_config(self, mock_class):
         mock_class.return_value = self.tempdir_home
         os.mkdir(os.path.join(self.tempdir_project, ".git"))
         os.chdir(self.tempdir_project)
         global_config = YamlGlobalConfig()
-        config = YamlProjectConfig(global_config)
+        with self.assertRaises(ProjectConfigNotFound):
+            config = YamlProjectConfig(global_config)
 
     def test_load_project_config_empty_config(self, mock_class):
         mock_class.return_value = self.tempdir_home
@@ -152,7 +151,7 @@ class TestYamlProjectConfig(unittest.TestCase):
         os.chdir(self.tempdir_project)
         global_config = YamlGlobalConfig()
         config = YamlProjectConfig(global_config)
-        self.assertEquals(config.config_project, {})
+        self.assertEqual(config.config_project, {})
 
     def test_load_project_config_valid_config(self, mock_class):
         mock_class.return_value = self.tempdir_home
@@ -167,8 +166,8 @@ class TestYamlProjectConfig(unittest.TestCase):
         os.chdir(self.tempdir_project)
         global_config = YamlGlobalConfig()
         config = YamlProjectConfig(global_config)
-        self.assertEquals(config.project__package__name, "TestProject")
-        self.assertEquals(config.project__package__namespace, "testproject")
+        self.assertEqual(config.project__package__name, "TestProject")
+        self.assertEqual(config.project__package__namespace, "testproject")
 
     def test_repo_owner(self, mock_class):
         mock_class.return_value = self.tempdir_home
@@ -181,7 +180,7 @@ class TestYamlProjectConfig(unittest.TestCase):
         os.chdir(self.tempdir_project)
         global_config = YamlGlobalConfig()
         config = YamlProjectConfig(global_config)
-        self.assertEquals(config.repo_owner, "TestOwner")
+        self.assertEqual(config.repo_owner, "TestOwner")
 
     def test_repo_branch(self, mock_class):
         mock_class.return_value = self.tempdir_home
@@ -194,7 +193,7 @@ class TestYamlProjectConfig(unittest.TestCase):
         os.chdir(self.tempdir_project)
         global_config = YamlGlobalConfig()
         config = YamlProjectConfig(global_config)
-        self.assertEquals(config.repo_branch, self.current_branch)
+        self.assertEqual(config.repo_branch, self.current_branch)
 
     def test_repo_commit(self, mock_class):
         mock_class.return_value = self.tempdir_home
@@ -207,7 +206,7 @@ class TestYamlProjectConfig(unittest.TestCase):
         os.chdir(self.tempdir_project)
         global_config = YamlGlobalConfig()
         config = YamlProjectConfig(global_config)
-        self.assertEquals(config.repo_commit, self.current_commit)
+        self.assertEqual(config.repo_commit, self.current_commit)
 
     def test_load_project_config_local(self, mock_class):
         mock_class.return_value = self.tempdir_home
@@ -274,7 +273,7 @@ class TestScratchOrgConfig(unittest.TestCase):
             },
         )
         self.assertIs(info, config._scratch_info)
-        self.assertDictContainsSubset(info, config.config)
+        self.assertTrue(set(info.items()).issubset(set(config.config.items())))
         self.assertTrue(config._scratch_info_date)
 
     def test_scratch_info_memoized(self, Command):
@@ -404,12 +403,12 @@ class TestScratchOrgConfig(unittest.TestCase):
         config = ScratchOrgConfig({"days": 1}, "test")
         now = datetime.now()
         config.date_created = now
-        self.assertEquals(config.expires, now + timedelta(days=1))
+        self.assertEqual(config.expires, now + timedelta(days=1))
 
     def test_days_alive(self, Command):
         config = ScratchOrgConfig({}, "test")
         config.date_created = datetime.now()
-        self.assertEquals(config.days_alive, 1)
+        self.assertEqual(config.days_alive, 1)
 
     def test_create_org(self, Command):
         out = b"Successfully created scratch org: ORG_ID, username: USERNAME"
@@ -465,7 +464,7 @@ class TestScratchOrgConfig(unittest.TestCase):
         config.logger = mock.Mock()
         config.generate_password()
 
-        config.logger.warn.assert_called_once()
+        config.logger.warning.assert_called_once()
 
     def test_generate_password_skips_if_failed(self, Command):
         config = ScratchOrgConfig({"username": "test"}, "test")

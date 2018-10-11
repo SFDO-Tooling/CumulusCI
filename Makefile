@@ -54,13 +54,13 @@ lint: ## check style with flake8
 	flake8 cumulusci tests
 
 test: ## run tests quickly with the default Python
-	nosetests
+	pytest
 
 test-all: ## run tests on every Python version with tox
 	tox
 
 coverage: ## check code coverage quickly with the default Python	
-	coverage run --source cumulusci nosetests
+	coverage run --source cumulusci pytest
 	
 	coverage report -m
 	coverage html

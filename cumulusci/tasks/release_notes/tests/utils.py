@@ -1,4 +1,7 @@
-import httplib
+from future import standard_library
+
+standard_library.install_aliases()
+import http.client
 
 import responses
 
@@ -31,7 +34,7 @@ class MockUtil(object):
                 "draft": draft,
                 "prerelease": prerelease,
             },
-            status=httplib.OK,
+            status=http.client.OK,
         )
 
     def mock_get_repo(self):
@@ -39,7 +42,7 @@ class MockUtil(object):
             method=responses.GET,
             url=self.repo_url,
             json={"url": self.repo_url},
-            status=httplib.OK,
+            status=http.client.OK,
         )
 
     def mock_list_pulls(self):
@@ -47,7 +50,7 @@ class MockUtil(object):
             method=responses.GET,
             url="{}/pulls".format(self.repo_url),
             json=[{"id": 1, "number": 1}],
-            status=httplib.OK,
+            status=http.client.OK,
         )
 
     def mock_list_releases(self, tag=None, body=None):
@@ -65,14 +68,14 @@ class MockUtil(object):
                     "body": body,
                 }
             ],
-            status=httplib.OK,
+            status=http.client.OK,
         )
 
     def mock_post_comment(self, issue_number):
         responses.add(
             method=responses.POST,
             url="{}/issues/{}/comments".format(self.repo_url, issue_number),
-            status=httplib.OK,
+            status=http.client.OK,
         )
 
     def mock_pull_request(self, pr_number, body, title=None):
@@ -90,5 +93,5 @@ class MockUtil(object):
                 "number": pr_number,
                 "title": title,
             },
-            status=httplib.OK,
+            status=http.client.OK,
         )

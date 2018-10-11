@@ -25,5 +25,4 @@ report.html
 output.xml
 **/.sfdx
 htmlcov/
-.noseids
 .pytest_cache/

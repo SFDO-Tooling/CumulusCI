@@ -89,7 +89,7 @@ class TestBaseTaskCallable(unittest.TestCase):
         )
         with self.assertRaises(RuntimeError) as cm:
             task._retry()
-        self.assertEqual(cm.exception.message, 0)  # assert it was the final call
+        self.assertEqual(cm.exception.args[0], 0)  # assert it was the final call
         self.assertEqual(task._try.call_count, 6)
         self.assertEqual(task.options["retry_interval"], 6)
 
@@ -105,7 +105,7 @@ class TestBaseTaskCallable(unittest.TestCase):
         task = self.__class__.task_class(
             self.project_config, self.task_config, self.org_config, foo="bar"
         )
-        self.assertEquals("bar", task.options["foo"])
+        self.assertEqual("bar", task.options["foo"])
 
     def test_dynamic_options(self):
         """ Option values can lookup values from project_config """
@@ -114,7 +114,7 @@ class TestBaseTaskCallable(unittest.TestCase):
         task = self.__class__.task_class(
             self.project_config, self.task_config, self.org_config
         )
-        self.assertEquals("baz", task.options["test_option"])
+        self.assertEqual("baz", task.options["test_option"])
 
     def test_validates_missing_options(self):
         class Task(BaseTask):

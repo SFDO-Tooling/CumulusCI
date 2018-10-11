@@ -47,7 +47,7 @@ class TestPackageXmlGenerator(unittest.TestCase):
             generator = PackageXmlGenerator(path, api_version, package_name)
             package_xml = generator()
 
-        self.assertEquals(package_xml, expected)
+        self.assertEqual(package_xml, expected)
 
     def test_namespaced_report_folder(self):
         api_version = "36.0"
@@ -61,7 +61,7 @@ class TestPackageXmlGenerator(unittest.TestCase):
             expected_package_xml = f.read().strip()
         package_xml = generator()
 
-        self.assertEquals(package_xml, expected_package_xml)
+        self.assertEqual(package_xml, expected_package_xml)
 
     def test_delete_namespaced_report_folder(self):
         api_version = "36.0"
@@ -75,7 +75,7 @@ class TestPackageXmlGenerator(unittest.TestCase):
             expected_package_xml = f.read().strip()
         package_xml = generator()
 
-        self.assertEquals(package_xml, expected_package_xml)
+        self.assertEqual(package_xml, expected_package_xml)
 
     def test_parse_types_unknown_md_type(self):
         with temporary_dir() as path:
@@ -234,15 +234,15 @@ class TestCustomLabelsParser(unittest.TestCase):
 class TestCustomObjectParser(unittest.TestCase):
     def test_parse_item(self):
         parser = CustomObjectParser("CustomObject", None, "object", False)
-        self.assertEquals(["Test__c"], parser._parse_item("Test__c.object"))
+        self.assertEqual(["Test__c"], parser._parse_item("Test__c.object"))
 
     def test_parse_item__skips_namespaced(self):
         parser = CustomObjectParser("CustomObject", None, "object", False)
-        self.assertEquals([], parser._parse_item("ns__Object__c.object"))
+        self.assertEqual([], parser._parse_item("ns__Object__c.object"))
 
     def test_parse_item__skips_standard(self):
         parser = CustomObjectParser("CustomObject", None, "object", False)
-        self.assertEquals([], parser._parse_item("Account.object"))
+        self.assertEqual([], parser._parse_item("Account.object"))
 
 
 class TestRecordTypeParser(unittest.TestCase):

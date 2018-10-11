@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 from future import standard_library
 
 standard_library.install_aliases()
+from builtins import str
 from contextlib import contextmanager
 import difflib
 import fnmatch
@@ -101,7 +102,7 @@ def remove_xml_element_file(name, path):
     ET.register_namespace("", "http://soap.sforce.com/2006/04/metadata")
     tree = elementtree_parse_file(path)
     tree = remove_xml_element(name, tree)
-    return tree.write(path, encoding="UTF-8")
+    return tree.write(path, encoding="UTF-8", xml_declaration=True)
 
 
 def remove_xml_element_string(name, content):
@@ -142,6 +143,18 @@ def download_extract_zip(url, target=None, subfolder=None, headers=None):
     if target:
         zip_file.extractall(target)
         return
+    return zip_file
+
+
+def download_extract_github(github_repo, subfolder, ref=None):
+    if not ref:
+        ref = github_repo.default_branch
+    zip_content = io.BytesIO()
+    github_repo.archive("zipball", zip_content, ref=ref)
+    zip_file = zipfile.ZipFile(zip_content)
+    root_folder = sorted(zip_file.namelist())[0]
+    subfolder_dir = root_folder + subfolder
+    zip_file = zip_subfolder(zip_file, subfolder_dir)
     return zip_file
 
 
@@ -205,16 +218,17 @@ def zip_inject_namespace(
     differ = difflib.Differ()
 
     for name in zip_src.namelist():
-        orig_name = unicode(name)
+        orig_name = str(name)
         content = zip_src.read(name)
         try:
-            orig_content = content.decode("utf-8")
+            content = content.decode("utf-8")
         except UnicodeDecodeError:
             # if we cannot decode the content, don't try and replace it.
             pass
         else:
+            prev_content = content
             content = content.replace(namespace_token, namespace_prefix)
-            if logger and content != orig_content:
+            if logger and content != prev_content:
                 logger.info(
                     '  {}: Replaced %%%NAMESPACE%%% with "{}"'.format(name, namespace)
                 )
@@ -303,7 +317,7 @@ def zip_tokenize_namespace(zip_src, namespace, logger=None):
         try:
             content = content.decode("utf-8")
         except UnicodeDecodeError:
-            # if we cannot decode the content, don't try and replace it.
+            # Probably a binary file; leave it untouched
             pass
         else:
             content = content.replace(namespace_prefix, "%%%NAMESPACE%%%")
@@ -445,3 +459,21 @@ def in_directory(filepath, dirpath):
     filepath = os.path.realpath(filepath)
     dirpath = os.path.realpath(dirpath)
     return filepath == dirpath or filepath.startswith(os.path.join(dirpath, ""))
+
+
+def log_progress(
+    iterable,
+    logger,
+    batch_size=10000,
+    progress_message="Processing... ({})",
+    done_message="Done! (Total: {})",
+):
+    """Log progress while iterating.
+    """
+    i = 0
+    for x in iterable:
+        yield x
+        i += 1
+        if not i % batch_size:
+            logger.info(progress_message.format(i))
+    logger.info(done_message.format(i))

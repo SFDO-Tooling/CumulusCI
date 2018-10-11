@@ -1,5 +1,8 @@
+from future import standard_library
+
+standard_library.install_aliases()
 import ast
-import httplib
+import http.client
 import os
 import shutil
 import tempfile
@@ -99,13 +102,13 @@ class TestMergeBranch(unittest.TestCase, GithubApiTestMixin):
         responses.add(
             method=responses.GET,
             url=api_url,
-            status=httplib.NOT_FOUND,  # 404
+            status=http.client.NOT_FOUND,  # 404
             json=expected_response,
         )
 
-    def _mock_merge(self, status=httplib.CREATED):
+    def _mock_merge(self, status=http.client.CREATED):
         api_url = "{}/merges".format(self.repo_api_url)
-        expected_response = self._get_expected_merge(status == httplib.CONFLICT)
+        expected_response = self._get_expected_merge(status == http.client.CONFLICT)
 
         responses.add(
             method=responses.POST, url=api_url, json=expected_response, status=status
@@ -120,7 +123,7 @@ class TestMergeBranch(unittest.TestCase, GithubApiTestMixin):
             method=responses.POST,
             url=api_url,
             json=expected_response,
-            status=httplib.CREATED,  # 201
+            status=http.client.CREATED,  # 201
         )
 
     def _mock_pulls(self, pulls=None):
@@ -151,7 +154,7 @@ class TestMergeBranch(unittest.TestCase, GithubApiTestMixin):
         task = self._create_task()
         with self.assertRaises(GithubApiNotFoundError):
             task()
-        self.assertEquals(2, len(responses.calls))
+        self.assertEqual(2, len(responses.calls))
 
     @responses.activate
     def test_no_feature_branch(self):
@@ -175,8 +178,8 @@ class TestMergeBranch(unittest.TestCase, GithubApiTestMixin):
                     "Skipping branch not-a-feature-branch: does not match prefix feature/",
                 ),
             ]
-            self.assertEquals(expected, log_lines)
-        self.assertEquals(4, len(responses.calls))
+            self.assertEqual(expected, log_lines)
+        self.assertEqual(4, len(responses.calls))
 
     @responses.activate
     def test_feature_branch_no_diff(self):
@@ -201,8 +204,8 @@ class TestMergeBranch(unittest.TestCase, GithubApiTestMixin):
                 ("DEBUG", "Skipping branch master: is source branch"),
                 ("INFO", "Skipping branch feature/a-test: no file diffs found"),
             ]
-            self.assertEquals(expected, log_lines)
-        self.assertEquals(5, len(responses.calls))
+            self.assertEqual(expected, log_lines)
+        self.assertEqual(5, len(responses.calls))
 
     @responses.activate
     def test_feature_branch_merge(self):
@@ -230,8 +233,8 @@ class TestMergeBranch(unittest.TestCase, GithubApiTestMixin):
                 ("DEBUG", "Skipping branch master: is source branch"),
                 ("INFO", "Merged 1 commits into branch feature/a-test"),
             ]
-            self.assertEquals(expected, log_lines)
-        self.assertEquals(6, len(responses.calls))
+            self.assertEqual(expected, log_lines)
+        self.assertEqual(6, len(responses.calls))
 
     @responses.activate
     def test_feature_branch_merge_github_error(self):
@@ -247,7 +250,7 @@ class TestMergeBranch(unittest.TestCase, GithubApiTestMixin):
             head=self.project_config.repo_commit,
             files=[{"filename": "test.txt"}],
         )
-        self._mock_merge(httplib.INTERNAL_SERVER_ERROR)
+        self._mock_merge(http.client.INTERNAL_SERVER_ERROR)
         with LogCapture() as l:
             task = self._create_task()
             with self.assertRaises(GitHubError):
@@ -267,7 +270,7 @@ class TestMergeBranch(unittest.TestCase, GithubApiTestMixin):
             head=self.project_config.repo_commit,
             files=[{"filename": "test.txt"}],
         )
-        self._mock_merge(httplib.CONFLICT)
+        self._mock_merge(http.client.CONFLICT)
         self._mock_pull_create(1, 2)
         with LogCapture() as l:
             task = self._create_task()
@@ -283,8 +286,8 @@ class TestMergeBranch(unittest.TestCase, GithubApiTestMixin):
                     "Merge conflict on branch feature/a-test: created pull request #2",
                 ),
             ]
-            self.assertEquals(expected, log_lines)
-        self.assertEquals(7, len(responses.calls))
+            self.assertEqual(expected, log_lines)
+        self.assertEqual(7, len(responses.calls))
 
     @responses.activate
     def test_feature_branch_existing_pull(self):
@@ -307,7 +310,7 @@ class TestMergeBranch(unittest.TestCase, GithubApiTestMixin):
             head=self.project_config.repo_commit,
             files=[{"filename": "test.txt"}],
         )
-        self._mock_merge(httplib.CONFLICT)
+        self._mock_merge(http.client.CONFLICT)
 
         with LogCapture() as l:
             task = self._create_task()
@@ -323,8 +326,8 @@ class TestMergeBranch(unittest.TestCase, GithubApiTestMixin):
                     "Merge conflict on branch feature/a-test: merge PR already exists",
                 ),
             ]
-            self.assertEquals(expected, log_lines)
-        self.assertEquals(6, len(responses.calls))
+            self.assertEqual(expected, log_lines)
+        self.assertEqual(6, len(responses.calls))
 
     @responses.activate
     def test_master_parent_with_child_pr(self):
@@ -350,7 +353,7 @@ class TestMergeBranch(unittest.TestCase, GithubApiTestMixin):
             files=[{"filename": "test.txt"}],
         )
         # merge
-        self._mock_merge(httplib.CONFLICT)
+        self._mock_merge(http.client.CONFLICT)
         # create PR
         self._mock_pull_create(1, 2)
         with LogCapture() as l:
@@ -368,8 +371,8 @@ class TestMergeBranch(unittest.TestCase, GithubApiTestMixin):
                 ),
             ),
         ]
-        self.assertEquals(expected, log_lines)
-        self.assertEquals(7, len(responses.calls))
+        self.assertEqual(expected, log_lines)
+        self.assertEqual(7, len(responses.calls))
 
     @responses.activate
     def test_master_parent_does_not_merge_child(self):
@@ -413,8 +416,8 @@ class TestMergeBranch(unittest.TestCase, GithubApiTestMixin):
                 ("INFO", "    {}".format(child1_branch_name)),
                 ("INFO", "    {}".format(child2_branch_name)),
             ]
-            self.assertEquals(expected, log_lines)
-        self.assertEquals(6, len(responses.calls))
+            self.assertEqual(expected, log_lines)
+        self.assertEqual(6, len(responses.calls))
 
     @responses.activate
     def test_parent_merge_to_children(self):
@@ -478,8 +481,8 @@ class TestMergeBranch(unittest.TestCase, GithubApiTestMixin):
                     ),
                 ),
             ]
-            self.assertEquals(expected, log_lines)
-        self.assertEquals(7, len(responses.calls))
+            self.assertEqual(expected, log_lines)
+        self.assertEqual(7, len(responses.calls))
 
     @responses.activate
     def test_parent_merge_no_children(self):
@@ -514,5 +517,5 @@ class TestMergeBranch(unittest.TestCase, GithubApiTestMixin):
                 ("INFO", ""),
                 ("INFO", "No children found for branch {}".format(branches[1]["name"])),
             ]
-            self.assertEquals(expected, log_lines)
-        self.assertEquals(4, len(responses.calls))
+            self.assertEqual(expected, log_lines)
+        self.assertEqual(4, len(responses.calls))

@@ -2,7 +2,7 @@
 
 defaults: &defaults
   docker:
-    - image: circleci/python:2.7-browsers
+    - image: circleci/python:3.6-browsers
   environment:
     - BROWSER: headlesschrome
   working_directory: ~/repo
@@ -29,6 +29,8 @@ jobs:
 
   test_py2:
     <<: *defaults
+    docker:
+      - image: circleci/python:2.7-browsers
     steps:
       - checkout
       - run:
@@ -40,7 +42,7 @@ jobs:
           name: Run Python tests
           command: |
             mkdir -p testresults/py2
-            venv/bin/tox -e py27 -- --with-coverage --cover-package=cumulusci --with-xunit --xunit-file=testresults/py2/junit.xml
+            venv/bin/tox -e py27 -- --junitxml=testresults/py2/junit.xml
             mv .coverage .coverage.py2
       - store_test_results:
           path: testresults
@@ -49,27 +51,27 @@ jobs:
           paths:
             - .coverage.py2
 
-  # test_py3:
-  #   <<: *defaults
-  #   docker:
-  #     - image: circleci/python:3.6-browsers
-  #   steps:
-  #     - checkout
-  #     - run:
-  #         name: Install Python dependencies
-  #         command: |
-  #           virtualenv venv
-  #           venv/bin/pip install tox
-  #     - run:
-  #         name: Run Python tests
-  #         command: |
-  #           mkdir -p testresults/py3
-  #           venv/bin/tox -e py36 -- --with-coverage --cover-package=cumulusci --with-xunit --xunit-file=testresults/py3/junit.xml
-  #           mv .coverage .coverage.py3
-  #     - persist_to_workspace:
-  #         root: .
-  #         paths:
-  #           - .coverage.py3
+  test_py3:
+    <<: *defaults
+    steps:
+      - checkout
+      - run:
+          name: Install Python dependencies
+          command: |
+            virtualenv venv
+            venv/bin/pip install tox
+      - run:
+          name: Run Python tests
+          command: |
+            mkdir -p testresults/py3
+            venv/bin/tox -e py36 -- --junitxml=testresults/py3/junit.xml
+            mv .coverage .coverage.py3
+      - store_test_results:
+          path: testresults
+      - persist_to_workspace:
+          root: .
+          paths:
+            - .coverage.py3
 
   test_robot:
     <<: *defaults
@@ -94,12 +96,12 @@ jobs:
             venv/bin/cci org info dev > org_info.txt
             venv/bin/cci org default dev
       - run:
-          name: Run robot tests (ignore failure on UI tests for now)
+          name: Run robot tests
           command: |
             mkdir -p robot_results/robot
             venv/bin/coverage run --append venv/bin/cci task run robot -o suites cumulusci/robotframework/tests/cumulusci/base.robot -o xunit robot_results/robot/cumulusci.xml
             venv/bin/coverage run --append venv/bin/cci task run robot -o suites cumulusci/robotframework/tests/salesforce/api.robot -o xunit robot_results/robot/salesforce_api.xml
-            venv/bin/coverage run --append venv/bin/cci task run robot -o suites cumulusci/robotframework/tests/salesforce/ui.robot -o xunit robot_results/robot/salesforce_ui.xml || true
+            venv/bin/coverage run --append venv/bin/cci task run robot -o suites cumulusci/robotframework/tests/salesforce/ui.robot -o xunit robot_results/robot/salesforce_ui.xml
       - run:
           name: Delete scratch org
           command: |
@@ -109,6 +111,7 @@ jobs:
           name: Preserve coverage
           command: |
             mv .coverage .coverage.robot
+          when: always
       - store_test_results:
           path: robot_results
       - persist_to_workspace:
@@ -196,12 +199,12 @@ workflows:
     jobs:
       - lint
       - test_py2
-#      - test_py3
+      - test_py3
       - test_robot
       - test_release
       - report:
           requires:
             - test_py2
-#            - test_py3
+            - test_py3
             - test_robot
             - test_release

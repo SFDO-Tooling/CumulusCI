@@ -4,8 +4,10 @@ import_class: task class defn import helper
 process_bool_arg: determine true/false for a commandline arg
 decode_to_unicode: get unicode string from sf api """
 from __future__ import unicode_literals
+from builtins import str
 
 from past.builtins import basestring
+from future.utils import native_str
 
 from datetime import datetime
 import pytz
@@ -17,9 +19,8 @@ def import_class(path):
     components = path.split(".")
     module = components[:-1]
     module = ".".join(module)
-    # __import__ needs a native str() on py2
-    mod = __import__(module, fromlist=[str(components[-1])])
-    return getattr(mod, str(components[-1]))
+    mod = __import__(module, fromlist=[native_str(components[-1])])
+    return getattr(mod, native_str(components[-1]))
 
 
 def parse_datetime(dt_str, format):
@@ -52,10 +53,11 @@ def process_list_arg(arg):
 
 def decode_to_unicode(content):
     """ decode ISO-8859-1 to unicode, when using sf api """
-    if content:
+    if content and not isinstance(content, str):
         try:
             # Try to decode ISO-8859-1 to unicode
             return content.decode("ISO-8859-1")
         except UnicodeEncodeError:
             # Assume content is unicode already
             return content
+    return content

@@ -1,4 +1,3 @@
-import httplib
 import re
 import os
 import requests

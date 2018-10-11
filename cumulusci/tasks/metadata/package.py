@@ -1,7 +1,10 @@
-import io
+from builtins import str
+from future import standard_library
+
+standard_library.install_aliases()
 import os
 import re
-import urllib
+import urllib.parse
 
 import xml.etree.ElementTree as ET
 import yaml
@@ -100,7 +103,7 @@ class PackageXmlGenerator(object):
         lines.append('<?xml version="1.0" encoding="UTF-8"?>')
         lines.append('<Package xmlns="http://soap.sforce.com/2006/04/metadata">')
         if self.package_name:
-            package_name_encoded = urllib.quote(self.package_name, safe=" ")
+            package_name_encoded = urllib.parse.quote(self.package_name, safe=" ")
             lines.append("    <fullName>{0}</fullName>".format(package_name_encoded))
 
         if self.managed and self.install_class:
@@ -203,7 +206,7 @@ class BaseMetadataParser(object):
         self.members.sort(key=metadata_sort_key)
         for member in self.members:
             if isinstance(member, bytes):
-                member = unicode(member, "utf-8")
+                member = member.decode("utf-8")
             output.append("        <members>{0}</members>".format(member))
         output.append("        <name>{0}</name>".format(self.metadata_type))
         output.append("    </types>")
@@ -412,5 +415,5 @@ class UpdatePackageXml(BaseTask):
             "Generating {} from metadata in {}".format(output, self.options.get("path"))
         )
         package_xml = self.package_xml()
-        with io.open(self.options.get("output", output), mode="wb") as f:
+        with open(self.options.get("output", output), mode="w") as f:
             f.write(package_xml)

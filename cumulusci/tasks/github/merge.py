@@ -1,4 +1,7 @@
-import httplib
+from future import standard_library
+
+standard_library.install_aliases()
+import http.client
 
 from github3 import GitHubError
 
@@ -197,7 +200,7 @@ class MergeBranch(BaseGithubTask):
                     self.logger.info("    {}".format(child.name))
 
         except GitHubError as e:
-            if e.code != httplib.CONFLICT:
+            if e.code != http.client.CONFLICT:
                 raise
 
             if branch in self.existing_prs:

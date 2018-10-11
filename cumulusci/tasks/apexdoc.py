@@ -1,6 +1,9 @@
+from future import standard_library
+
+standard_library.install_aliases()
 import os
 import tempfile
-import urllib
+import urllib.request
 
 from cumulusci.core.exceptions import CumulusCIException
 from cumulusci.tasks.command import Command
@@ -116,4 +119,4 @@ class GenerateApexDocs(Command):
         url = "{}/releases/download/{}/{}".format(
             self.apexdoc_repo_url, self.options["version"], self.jar_file
         )
-        urllib.urlretrieve(url, self.jar_path)
+        urllib.request.urlretrieve(url, self.jar_path)

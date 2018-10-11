@@ -2,6 +2,7 @@ from __future__ import absolute_import
 from future import standard_library
 
 standard_library.install_aliases()
+from past.builtins import basestring
 from builtins import str
 from builtins import object
 import json
@@ -62,7 +63,7 @@ def timestamp_file():
     if not os.path.exists(config_dir):
         os.mkdir(config_dir)
 
-    with open(os.path.join(config_dir, "cumulus_timestamp"), "wb+") as f:
+    with open(os.path.join(config_dir, "cumulus_timestamp"), "w+") as f:
         yield f
 
 
@@ -83,7 +84,7 @@ def get_latest_final_version():
     # use the pypi json api https://wiki.python.org/moin/PyPIJSON
     res = requests.get("https://pypi.org/pypi/cumulusci/json", timeout=5).json()
     with timestamp_file() as f:
-        f.write(bytes(time.time()))
+        f.write(str(time.time()))
     versions = []
     for versionstring in res["releases"].keys():
         if not is_final_release(versionstring):
@@ -107,7 +108,7 @@ def check_latest_version():
             latest_version = get_latest_final_version()
         except requests.exceptions.RequestException as e:
             click.echo("Error checking cci version:")
-            click.echo(e.message)
+            click.echo(str(e))
             return
 
         result = latest_version > get_installed_version()
@@ -148,7 +149,7 @@ def render_recursive(data, indent=None):
                 render_recursive(item, indent=indent + 4)
     elif isinstance(data, dict):
         for key, value in data.items():
-            key_str = click.style(unicode(key) + ":", bold=True)
+            key_str = click.style(str(key) + ":", bold=True)
             if isinstance(value, list):
                 click.echo("{}{}".format(indent_str, key_str))
                 render_recursive(value, indent=indent + 4)
@@ -201,7 +202,7 @@ def main(ctx):
     try:
         config = CliConfig()
     except click.UsageError as e:
-        click.echo(e.message)
+        click.echo(str(e))
         sys.exit(1)
 
     config.check_cumulusci_version()
@@ -866,7 +867,7 @@ def org_scratch_delete(config, org_name):
     try:
         org_config.delete_org()
     except ScratchOrgException as e:
-        raise click.UsageError(e.message)
+        raise click.UsageError(str(e))
 
     config.keychain.set_org(org_config)
 
@@ -999,7 +1000,7 @@ def task_run(config, task_name, org, o, debug, debug_before, debug_after, no_pro
 
     except CumulusCIUsageError as e:
         # Usage error; report with usage line and no traceback
-        exception = click.UsageError(e.message)
+        exception = click.UsageError(str(e))
         handle_exception_debug(config, debug, throw_exception=exception)
     except (CumulusCIFailure, ScratchOrgException) as e:
         # Expected failure; report without traceback
@@ -1107,7 +1108,7 @@ def flow_run(config, flow_name, org, delete_org, debug, o, skip, no_prompt):
 
         flow()
     except CumulusCIUsageError as e:
-        exception = click.UsageError(e.message)
+        exception = click.UsageError(str(e))
         handle_exception_debug(config, debug, throw_exception=exception)
     except (CumulusCIFailure, ScratchOrgException) as e:
         exception = click.ClickException("Failed: {}".format(e.__class__.__name__))
@@ -1123,7 +1124,7 @@ def flow_run(config, flow_name, org, delete_org, debug, o, skip, no_prompt):
             click.echo(
                 "Scratch org deletion failed.  Ignoring the error below to complete the flow:"
             )
-            click.echo(e.message)
+            click.echo(str(e))
 
     config.alert("Flow Complete: {}".format(flow_name))
 

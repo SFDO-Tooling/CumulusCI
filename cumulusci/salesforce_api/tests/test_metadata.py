@@ -1,12 +1,14 @@
-import httplib
+from future import standard_library
+
+standard_library.install_aliases()
+from builtins import str
+import http.client
 import unittest
 
 from xml.dom.minidom import parseString
 
 import responses
 import datetime
-
-from nose.tools import raises
 
 from cumulusci.tests.util import create_project_config
 from cumulusci.tests.util import DummyOrgConfig
@@ -107,8 +109,8 @@ class BaseTestMetadataApi(unittest.TestCase):
     def test_init(self):
         task = self._create_task()
         api = self._create_instance(task)
-        self.assertEquals(api.task, task)
-        self.assertEquals(
+        self.assertEqual(api.task, task)
+        self.assertEqual(
             api.api_version, self.project_config.project__package__api_version
         )
 
@@ -119,7 +121,7 @@ class BaseTestMetadataApi(unittest.TestCase):
         }
         task = self._create_task(org_config=org_config)
         api = self._create_instance(task)
-        self.assertEquals(
+        self.assertEqual(
             api._build_endpoint_url(),
             "{}/services/Soap/m/{}/{}".format(
                 org_config["instance_url"],
@@ -135,7 +137,7 @@ class BaseTestMetadataApi(unittest.TestCase):
         }
         task = self._create_task(org_config=org_config)
         api = self._create_instance(task)
-        self.assertEquals(
+        self.assertEqual(
             api._build_endpoint_url(),
             "https://na12.salesforce.com/services/Soap/m/{}/{}".format(
                 self.project_config.project__package__api_version,
@@ -151,7 +153,7 @@ class BaseTestMetadataApi(unittest.TestCase):
         task = self._create_task(org_config=org_config)
         api_version = "43.0"
         api = self._create_instance(task, api_version=api_version)
-        self.assertEquals(
+        self.assertEqual(
             api._build_endpoint_url(),
             "{}/services/Soap/m/{}/{}".format(
                 org_config["instance_url"], api_version, task.org_config.org_id
@@ -167,7 +169,7 @@ class BaseTestMetadataApi(unittest.TestCase):
         else:
             expected_response = self.envelope_result.format(process_id="123")
         api.process_id = "123"
-        self.assertEquals(api._build_envelope_result(), expected_response)
+        self.assertEqual(api._build_envelope_result(), expected_response)
 
     def test_build_envelope_start(self):
         task = self._create_task()
@@ -178,7 +180,7 @@ class BaseTestMetadataApi(unittest.TestCase):
         else:
             expected_response = self._expected_envelope_start()
 
-        self.assertEquals(api._build_envelope_start(), expected_response)
+        self.assertEqual(api._build_envelope_start(), expected_response)
 
     def _expected_envelope_start(self):
         return self.envelope_start.format(
@@ -195,14 +197,14 @@ class BaseTestMetadataApi(unittest.TestCase):
         else:
             expected_response = self.envelope_status.format(process_id=process_id)
         api.process_id = process_id
-        self.assertEquals(api._build_envelope_status(), expected_response)
+        self.assertEqual(api._build_envelope_status(), expected_response)
 
     def test_build_headers(self):
         action = "foo"
         message = "12345678"
         task = self._create_task()
         api = self._create_instance(task)
-        self.assertEquals(
+        self.assertEqual(
             api._build_headers(action, message),
             {
                 u"Content-Type": u"text/xml; charset=UTF-8",
@@ -212,7 +214,6 @@ class BaseTestMetadataApi(unittest.TestCase):
         )
 
     @responses.activate
-    @raises(MetadataApiError)
     def test_call_faultcode(self):
         org_config = {
             "instance_url": "https://na12.salesforce.com",
@@ -225,7 +226,8 @@ class BaseTestMetadataApi(unittest.TestCase):
             api.soap_envelope_start = "{api_version}"
         response = '<?xml version="1.0" encoding="UTF-8"?><faultcode>foo</faultcode>'
         self._mock_call_mdapi(api, response)
-        resp = api()
+        with self.assertRaises(MetadataApiError):
+            resp = api()
 
     @responses.activate
     def test_call_success(self):
@@ -234,7 +236,7 @@ class BaseTestMetadataApi(unittest.TestCase):
             "id": "https://login.salesforce.com/id/00D000000000000ABC/005000000000000ABC",
             "access_token": "0123456789",
         }
-        status_code = httplib.INTERNAL_SERVER_ERROR  # HTTP Error 500
+        status_code = http.client.INTERNAL_SERVER_ERROR  # HTTP Error 500
         task = self._create_task(org_config=org_config)
         api = self._create_instance(task)
         if not self.api_class.soap_envelope_start:
@@ -254,7 +256,7 @@ class BaseTestMetadataApi(unittest.TestCase):
 
         resp = api()
 
-        self.assertEquals(resp, self._expected_call_success_result(response_result))
+        self.assertEqual(resp, self._expected_call_success_result(response_result))
 
     def _expected_call_success_result(self, response_result):
         return response_result
@@ -266,30 +268,29 @@ class BaseTestMetadataApi(unittest.TestCase):
         task = self._create_task()
         api = self._create_instance(task)
         dom = parseString("<foo>bar</foo>")
-        self.assertEquals(api._get_element_value(dom, "foo"), "bar")
+        self.assertEqual(api._get_element_value(dom, "foo"), "bar")
 
     def test_get_element_value_not_found(self):
         task = self._create_task()
         api = self._create_instance(task)
         dom = parseString("<foo>bar</foo>")
-        self.assertEquals(api._get_element_value(dom, "baz"), None)
+        self.assertEqual(api._get_element_value(dom, "baz"), None)
 
     def test_get_element_value_empty(self):
         task = self._create_task()
         api = self._create_instance(task)
         dom = parseString("<foo />")
-        self.assertEquals(api._get_element_value(dom, "foo"), None)
+        self.assertEqual(api._get_element_value(dom, "foo"), None)
 
     def test_get_check_interval(self):
         task = self._create_task()
         api = self._create_instance(task)
         api.check_num = 1
-        self.assertEquals(api._get_check_interval(), 1)
+        self.assertEqual(api._get_check_interval(), 1)
         api.check_num = 10
-        self.assertEquals(api._get_check_interval(), 4)
+        self.assertEqual(api._get_check_interval(), 4)
 
     @responses.activate
-    @raises(MetadataApiError)
     def test_get_response_faultcode(self):
         org_config = {
             "instance_url": "https://na12.salesforce.com",
@@ -302,10 +303,10 @@ class BaseTestMetadataApi(unittest.TestCase):
             api.soap_envelope_start = "{api_version}"
         response = '<?xml version="1.0" encoding="UTF-8"?><faultcode>foo</faultcode>'
         self._mock_call_mdapi(api, response)
-        resp = api._get_response()
+        with self.assertRaises(MetadataApiError):
+            resp = api._get_response()
 
     @responses.activate
-    @raises(MetadataApiError)
     def test_get_response_faultcode_and_string(self):
         org_config = {
             "instance_url": "https://na12.salesforce.com",
@@ -322,10 +323,10 @@ class BaseTestMetadataApi(unittest.TestCase):
         response += "\n  <faultstring>bar</faultstring>"
         response += "\n</test>"
         self._mock_call_mdapi(api, response)
-        resp = api._get_response()
+        with self.assertRaises(MetadataApiError):
+            resp = api._get_response()
 
     @responses.activate
-    @raises(MetadataApiError)
     def test_get_response_faultcode_invalid_session_no_refresh(self):
         org_config = {
             "instance_url": "https://na12.salesforce.com",
@@ -338,8 +339,9 @@ class BaseTestMetadataApi(unittest.TestCase):
             api.soap_envelope_start = "{api_version}"
         response = '<?xml version="1.0" encoding="UTF-8"?><faultcode>sf:INVALID_SESSION_ID</faultcode>'
         self._mock_call_mdapi(api, response)
-        resp = api._get_response()
-        self.assertEquals(api.status, "Failed")
+        with self.assertRaises(MetadataApiError):
+            resp = api._get_response()
+        self.assertEqual(api.status, "Failed")
 
     @responses.activate
     def test_get_response_faultcode_invalid_session_refresh(self):
@@ -366,17 +368,16 @@ class BaseTestMetadataApi(unittest.TestCase):
             self._mock_call_mdapi(api, response)
 
         resp = api._get_response()
-        self.assertEquals(resp.content, mock_responses[2])
+        self.assertEqual(resp.text, mock_responses[2])
 
     @responses.activate
-    @raises(MetadataApiError)
     def test_get_response_start_error_500(self):
         org_config = {
             "instance_url": "https://na12.salesforce.com",
             "id": "https://login.salesforce.com/id/00D000000000000ABC/005000000000000ABC",
             "access_token": "0123456789",
         }
-        status_code = httplib.INTERNAL_SERVER_ERROR  # HTTP Error 500
+        status_code = http.client.INTERNAL_SERVER_ERROR  # HTTP Error 500
         task = self._create_task(org_config=org_config)
         api = self._create_instance(task)
         if not self.api_class.soap_envelope_start:
@@ -387,17 +388,17 @@ class BaseTestMetadataApi(unittest.TestCase):
         response = '<?xml version="1.0" encoding="UTF-8"?><foo>start</foo>'
         self._mock_call_mdapi(api, response, status_code)
 
-        resp = api._get_response()
+        with self.assertRaises(MetadataApiError):
+            resp = api._get_response()
 
     @responses.activate
-    @raises(MetadataApiError)
     def test_get_response_status_error_500(self):
         org_config = {
             "instance_url": "https://na12.salesforce.com",
             "id": "https://login.salesforce.com/id/00D000000000000ABC/005000000000000ABC",
             "access_token": "0123456789",
         }
-        status_code = httplib.INTERNAL_SERVER_ERROR  # HTTP Error 500
+        status_code = http.client.INTERNAL_SERVER_ERROR  # HTTP Error 500
         task = self._create_task(org_config=org_config)
         api = self._create_instance(task)
         if not self.api_class.soap_envelope_start:
@@ -410,17 +411,17 @@ class BaseTestMetadataApi(unittest.TestCase):
         response_status = '<?xml version="1.0" encoding="UTF-8"?><foo>status</foo>'
         self._mock_call_mdapi(api, response, status_code)
 
-        resp = api._get_response()
+        with self.assertRaises(MetadataApiError):
+            resp = api._get_response()
 
     @responses.activate
-    @raises(MetadataApiError)
     def test_get_response_status_error_500(self):
         org_config = {
             "instance_url": "https://na12.salesforce.com",
             "id": "https://login.salesforce.com/id/00D000000000000ABC/005000000000000ABC",
             "access_token": "0123456789",
         }
-        status_code = httplib.INTERNAL_SERVER_ERROR  # HTTP Error 500
+        status_code = http.client.INTERNAL_SERVER_ERROR  # HTTP Error 500
         task = self._create_task(org_config=org_config)
         api = self._create_instance(task)
         if not self.api_class.soap_envelope_start:
@@ -433,7 +434,8 @@ class BaseTestMetadataApi(unittest.TestCase):
         response_status = '<?xml version="1.0" encoding="UTF-8"?><foo>status</foo>'
         self._mock_call_mdapi(api, response, status_code)
 
-        resp = api._get_response()
+        with self.assertRaises(MetadataApiError):
+            resp = api._get_response()
 
     @responses.activate
     def test_get_response_status_no_loop(self):
@@ -442,7 +444,7 @@ class BaseTestMetadataApi(unittest.TestCase):
             "id": "https://login.salesforce.com/id/00D000000000000ABC/005000000000000ABC",
             "access_token": "0123456789",
         }
-        status_code = httplib.INTERNAL_SERVER_ERROR  # HTTP Error 500
+        status_code = http.client.INTERNAL_SERVER_ERROR  # HTTP Error 500
         task = self._create_task(org_config=org_config)
         api = self._create_instance(task)
         if not self.api_class.soap_envelope_start:
@@ -461,7 +463,7 @@ class BaseTestMetadataApi(unittest.TestCase):
 
         resp = api._get_response()
 
-        self.assertEquals(resp.content, response_result)
+        self.assertEqual(resp.text, response_result)
 
     @responses.activate
     def test_get_response_status_loop_twice(self):
@@ -470,7 +472,7 @@ class BaseTestMetadataApi(unittest.TestCase):
             "id": "https://login.salesforce.com/id/00D000000000000ABC/005000000000000ABC",
             "access_token": "0123456789",
         }
-        status_code = httplib.INTERNAL_SERVER_ERROR  # HTTP Error 500
+        status_code = http.client.INTERNAL_SERVER_ERROR  # HTTP Error 500
         task = self._create_task(org_config=org_config)
         api = self._create_instance(task)
         if not self.api_class.soap_envelope_start:
@@ -494,86 +496,86 @@ class BaseTestMetadataApi(unittest.TestCase):
 
         resp = api._get_response()
 
-        self.assertEquals(resp.content, response_result)
+        self.assertEqual(resp.text, response_result)
 
-        self.assertEquals(api.status, "Done")
+        self.assertEqual(api.status, "Done")
 
-        self.assertEquals(api.check_num, 4)
+        self.assertEqual(api.check_num, 4)
 
     def test_process_response_status_no_done_element(self):
         task = self._create_task()
         api = self._create_instance(task)
         response = DummyResponse()
         response.status_code = 200
-        response.content = '<?xml version="1.0" encoding="UTF-8"?><foo>status</foo>'
+        response.text = '<?xml version="1.0" encoding="UTF-8"?><foo>status</foo>'
         res = api._process_response_status(response)
-        self.assertEquals(api.status, "Failed")
-        self.assertEquals(res.content, response.content)
+        self.assertEqual(api.status, "Failed")
+        self.assertEqual(res.text, response.text)
 
     def test_process_response_status_done_is_true(self):
         task = self._create_task()
         api = self._create_instance(task)
         response = DummyResponse()
         response.status_code = 200
-        response.content = '<?xml version="1.0" encoding="UTF-8"?><done>true</done>'
+        response.text = '<?xml version="1.0" encoding="UTF-8"?><done>true</done>'
         res = api._process_response_status(response)
-        self.assertEquals(api.status, "Done")
-        self.assertEquals(res.content, response.content)
+        self.assertEqual(api.status, "Done")
+        self.assertEqual(res.text, response.text)
 
     def test_process_response_status_pending(self):
         task = self._create_task()
         api = self._create_instance(task)
         response = DummyResponse()
         response.status_code = 200
-        response.content = '<?xml version="1.0" encoding="UTF-8"?><done>false</done>'
+        response.text = '<?xml version="1.0" encoding="UTF-8"?><done>false</done>'
         res = api._process_response_status(response)
-        self.assertEquals(api.status, "Pending")
-        self.assertEquals(res.content, response.content)
+        self.assertEqual(api.status, "Pending")
+        self.assertEqual(res.text, response.text)
 
     def test_process_response_status_in_progress(self):
         task = self._create_task()
         api = self._create_instance(task)
         response = DummyResponse()
         response.status_code = 200
-        response.content = '<?xml version="1.0" encoding="UTF-8"?><done>false</done>'
+        response.text = '<?xml version="1.0" encoding="UTF-8"?><done>false</done>'
         api.status = "InProgress"
         res = api._process_response_status(response)
-        self.assertEquals(api.status, "InProgress")
-        self.assertEquals(res.content, response.content)
+        self.assertEqual(api.status, "InProgress")
+        self.assertEqual(res.text, response.text)
 
     def test_process_response_status_in_progress_state_detail(self):
         task = self._create_task()
         api = self._create_instance(task)
         response = DummyResponse()
         response.status_code = 200
-        response.content = '<?xml version="1.0" encoding="UTF-8"?><test><done>false</done><stateDetail>Deploy log goes here</stateDetail></test>'
+        response.text = '<?xml version="1.0" encoding="UTF-8"?><test><done>false</done><stateDetail>Deploy log goes here</stateDetail></test>'
         api.status = "InProgress"
         res = api._process_response_status(response)
-        self.assertEquals(api.status, "InProgress")
-        self.assertEquals(res.content, response.content)
+        self.assertEqual(api.status, "InProgress")
+        self.assertEqual(res.text, response.text)
 
 
 class TestBaseMetadataApiCall(BaseTestMetadataApi):
     def test_build_envelope_start_no_envelope(self):
         task = self._create_task()
         api = self._create_instance(task)
-        self.assertEquals(api._build_envelope_start(), None)
+        self.assertEqual(api._build_envelope_start(), None)
 
     def test_build_envelope_status_no_envelope(self):
         task = self._create_task()
         api = self._create_instance(task)
-        self.assertEquals(api._build_envelope_status(), None)
+        self.assertEqual(api._build_envelope_status(), None)
 
     def test_build_envelope_result_no_envelope(self):
         task = self._create_task()
         api = self._create_instance(task)
-        self.assertEquals(api._build_envelope_result(), None)
+        self.assertEqual(api._build_envelope_result(), None)
 
-    @raises(NotImplementedError)
     def test_get_response_no_start_env(self):
         task = self._create_task()
         api = self._create_instance(task)
-        api._get_response()
+        with self.assertRaises(NotImplementedError):
+            api._get_response()
 
     @responses.activate
     def test_get_response_no_status(self):
@@ -588,7 +590,7 @@ class TestBaseMetadataApiCall(BaseTestMetadataApi):
         response = '<?xml version="1.0" encoding="UTF-8"?><foo />'
         self._mock_call_mdapi(api, response)
         resp = api._get_response()
-        self.assertEquals(resp.content, response)
+        self.assertEqual(resp.text, response)
 
 
 class TestApiDeploy(BaseTestMetadataApi):
@@ -628,7 +630,7 @@ class TestApiDeploy(BaseTestMetadataApi):
         api = self._create_instance(task)
         response = DummyResponse()
         response.status_code = 200
-        response.content = deploy_result_failure.format(
+        response.text = deploy_result_failure.format(
             details="""<componentFailures>
   <problem>problem</problem>
   <problemType>Error</problemType>
@@ -650,7 +652,7 @@ class TestApiDeploy(BaseTestMetadataApi):
         api = self._create_instance(task)
         response = DummyResponse()
         response.status_code = 200
-        response.content = deploy_result_failure.format(
+        response.text = deploy_result_failure.format(
             details="""<componentFailures>
   <problem>problem</problem>
   <problemType>Error</problemType>
@@ -670,7 +672,7 @@ class TestApiDeploy(BaseTestMetadataApi):
         api = self._create_instance(task)
         response = DummyResponse()
         response.status_code = 200
-        response.content = deploy_result_failure.format(
+        response.text = deploy_result_failure.format(
             details="""<componentFailures>
   <problem>problem</problem>
   <problemType>Error</problemType>
@@ -689,7 +691,7 @@ class TestApiDeploy(BaseTestMetadataApi):
         api = self._create_instance(task)
         response = DummyResponse()
         response.status_code = 200
-        response.content = deploy_result_failure.format(
+        response.text = deploy_result_failure.format(
             details="""<problem>problem</problem>"""
         )
         with self.assertRaises(MetadataApiError) as cm:
@@ -702,7 +704,7 @@ class TestApiDeploy(BaseTestMetadataApi):
         api = self._create_instance(task)
         response = DummyResponse()
         response.status_code = 200
-        response.content = deploy_result_failure.format(
+        response.text = deploy_result_failure.format(
             details="""<runTestResult>
   <failures>
     <namespace>test</namespace>
@@ -721,7 +723,7 @@ class TestApiDeploy(BaseTestMetadataApi):
         api = self._create_instance(task)
         response = DummyResponse()
         response.status_code = 200
-        response.content = "<bogus />"
+        response.text = "<bogus />"
         status = api._process_response(response)
         self.assertEqual(status, "Failed")
 
@@ -730,10 +732,10 @@ class TestApiDeploy(BaseTestMetadataApi):
         api = self._create_instance(task)
         response = DummyResponse()
         response.status_code = 200
-        response.content = "<status>Failed</status>"
+        response.text = u"<status>Failed</status>"
         with self.assertRaises(MetadataApiError) as cm:
             status = api._process_response(response)
-        self.assertEqual(response.content, str(cm.exception))
+        self.assertEqual(response.text, str(cm.exception))
 
     def test_get_action(self):
         task = self._create_task()
@@ -831,7 +833,7 @@ class TestApiRetrieveUnpackaged(BaseTestMetadataApi):
             "id": "https://login.salesforce.com/id/00D000000000000ABC/005000000000000ABC",
             "access_token": "0123456789",
         }
-        status_code = httplib.INTERNAL_SERVER_ERROR  # HTTP Error 500
+        status_code = http.client.INTERNAL_SERVER_ERROR  # HTTP Error 500
         task = self._create_task(org_config=org_config)
         api = self._create_instance(task)
         if not self.api_class.soap_envelope_start:
@@ -851,7 +853,7 @@ class TestApiRetrieveUnpackaged(BaseTestMetadataApi):
 
         zip_file = api()
 
-        self.assertEquals(
+        self.assertEqual(
             zip_file.namelist(),
             self._expected_call_success_result(response_result).namelist(),
         )
@@ -872,31 +874,31 @@ class TestApiRetrieveInstalledPackages(BaseTestMetadataApi):
         api = self._create_instance(task)
         response = DummyResponse()
         response.status_code = 200
-        response.content = deploy_result.format(status="testing", extra="")
+        response.text = deploy_result.format(status="testing", extra="")
         resp = api._process_response(response)
-        self.assertEquals(resp, {})
+        self.assertEqual(resp, {})
 
     def test_process_response_zipstr_no_packages(self):
         task = self._create_task()
         api = self._create_instance(task)
         response = DummyResponse()
         response.status_code = 200
-        response.content = retrieve_result.format(
+        response.text = retrieve_result.format(
             zip=CreatePackageZipBuilder("testing", api.api_version)(), extra=""
         )
         resp = api._process_response(response)
-        self.assertEquals(resp, {})
+        self.assertEqual(resp, {})
 
     def test_process_response_zipstr_one_package(self):
         task = self._create_task()
         api = self._create_instance(task)
         response = DummyResponse()
         response.status_code = 200
-        response.content = retrieve_result.format(
+        response.text = retrieve_result.format(
             zip=InstallPackageZipBuilder("foo", "1.1")(), extra=""
         )
         resp = api._process_response(response)
-        self.assertEquals(resp, {"foo": "1.1"})
+        self.assertEqual(resp, {"foo": "1.1"})
 
 
 class TestApiRetrievePackaged(TestApiRetrieveUnpackaged):

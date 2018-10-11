@@ -3,7 +3,6 @@ import os
 import unittest
 
 import mock
-import nose
 
 from cumulusci.core.config import BaseConfig
 from cumulusci.core.config import BaseGlobalConfig
@@ -23,68 +22,68 @@ class TestBaseConfig(unittest.TestCase):
     def test_getattr_toplevel_key(self):
         config = BaseConfig()
         config.config = {"foo": "bar"}
-        self.assertEquals(config.foo, "bar")
+        self.assertEqual(config.foo, "bar")
 
     def test_getattr_toplevel_key_missing(self):
         config = BaseConfig()
         config.config = {}
-        self.assertEquals(config.foo, None)
+        self.assertEqual(config.foo, None)
 
     def test_getattr_child_key(self):
         config = BaseConfig()
         config.config = {"foo": {"bar": "baz"}}
-        self.assertEquals(config.foo__bar, "baz")
+        self.assertEqual(config.foo__bar, "baz")
 
     def test_getattr_child_parent_key_missing(self):
         config = BaseConfig()
         config.config = {}
-        self.assertEquals(config.foo__bar, None)
+        self.assertEqual(config.foo__bar, None)
 
     def test_getattr_child_key_missing(self):
         config = BaseConfig()
         config.config = {"foo": {}}
-        self.assertEquals(config.foo__bar, None)
+        self.assertEqual(config.foo__bar, None)
 
     def test_getattr_default_toplevel(self):
         config = BaseConfig()
         config.config = {"foo": "bar"}
         config.defaults = {"foo": "default"}
-        self.assertEquals(config.foo, "bar")
+        self.assertEqual(config.foo, "bar")
 
     def test_getattr_default_toplevel_missing_default(self):
         config = BaseConfig()
         config.config = {"foo": "bar"}
         config.defaults = {}
-        self.assertEquals(config.foo, "bar")
+        self.assertEqual(config.foo, "bar")
 
     def test_getattr_default_toplevel_missing_config(self):
         config = BaseConfig()
         config.config = {}
         config.defaults = {"foo": "default"}
-        self.assertEquals(config.foo, "default")
+        self.assertEqual(config.foo, "default")
 
     def test_getattr_default_child(self):
         config = BaseConfig()
         config.config = {"foo": {"bar": "baz"}}
         config.defaults = {"foo__bar": "default"}
-        self.assertEquals(config.foo__bar, "baz")
+        self.assertEqual(config.foo__bar, "baz")
 
     def test_getattr_default_child_missing_default(self):
         config = BaseConfig()
         config.config = {"foo": {"bar": "baz"}}
         config.defaults = {}
-        self.assertEquals(config.foo__bar, "baz")
+        self.assertEqual(config.foo__bar, "baz")
 
     def test_getattr_default_child_missing_config(self):
         config = BaseConfig()
         config.config = {}
         config.defaults = {"foo__bar": "default"}
-        self.assertEquals(config.foo__bar, "default")
+        self.assertEqual(config.foo__bar, "default")
 
     def test_getattr_empty_search_path(self):
         config = BaseConfig()
         config.search_path = []
-        self.assertEquals(config.foo, None)
+        self.assertEqual(config.foo, None)
 
     def test_getattr_search_path_no_match(self):
         config = BaseConfig()
@@ -92,7 +91,7 @@ class TestBaseConfig(unittest.TestCase):
         config._first = {}
         config._middle = {}
         config._last = {}
-        self.assertEquals(config.foo, None)
+        self.assertEqual(config.foo, None)
 
     def test_getattr_search_path_match_first(self):
         config = BaseConfig()
@@ -100,7 +99,7 @@ class TestBaseConfig(unittest.TestCase):
         config._first = {"foo": "bar"}
         config._middle = {}
         config._last = {}
-        self.assertEquals(config.foo, "bar")
+        self.assertEqual(config.foo, "bar")
 
     def test_getattr_search_path_match_middle(self):
         config = BaseConfig()
@@ -108,7 +107,7 @@ class TestBaseConfig(unittest.TestCase):
         config._first = {}
         config._middle = {"foo": "bar"}
         config._last = {}
-        self.assertEquals(config.foo, "bar")
+        self.assertEqual(config.foo, "bar")
 
     def test_getattr_search_path_match_last(self):
         config = BaseConfig()
@@ -116,7 +115,7 @@ class TestBaseConfig(unittest.TestCase):
         config._first = {}
         config._middle = {}
         config._last = {"foo": "bar"}
-        self.assertEquals(config.foo, "bar")
+        self.assertEqual(config.foo, "bar")
 
 
 class TestBaseGlobalConfig(unittest.TestCase):
@@ -174,7 +173,7 @@ CUMULUSCI_TEST_REPO = DummyRepository(
     "CumulusCI-Test",
     {
         "cumulusci.yml": DummyContents(
-            """
+            b"""
 project:
     name: CumulusCI-Test
     package:
@@ -197,7 +196,7 @@ CUMULUSCI_TEST_DEP_REPO = DummyRepository(
     "CumulusCI-Test-Dep",
     {
         "cumulusci.yml": DummyContents(
-            """
+            b"""
 project:
     name: CumulusCI-Test-Dep
     package:
@@ -465,8 +464,9 @@ class TestBaseProjectConfig(unittest.TestCase):
     def test_set_org(self):
         config = BaseProjectConfig(BaseGlobalConfig())
         config.keychain = mock.Mock()
-        config.set_org("test", {})
-        config.keychain.set_org.assert_called_once()
+        org_config = mock.Mock()
+        config.set_org("test", org_config)
+        config.keychain.set_org.assert_called_once_with(org_config)
 
     def test_get_static_dependencies(self):
         dep = {"namespace": "npsp", "version": "3"}
@@ -517,32 +517,32 @@ class TestBaseProjectConfig(unittest.TestCase):
             result,
             [
                 {
-                    u"headers": {u"Authorization": u"token password"},
+                    u"repo": CUMULUSCI_TEST_REPO,
+                    u"ref": None,
+                    u"subfolder": u"unpackaged/pre/pre",
+                    u"unmanaged": True,
                     u"namespace_inject": None,
                     u"namespace_strip": None,
                     u"namespace_tokenize": None,
-                    u"subfolder": u"CumulusCI-Test-master/unpackaged/pre/pre",
-                    u"unmanaged": True,
-                    u"zip_url": u"https://github.com/SFDO-Tooling/CumulusCI-Test/archive/master.zip",
                 },
                 {u"version": "2", u"namespace": "ccitestdep"},
                 {
-                    u"headers": {u"Authorization": u"token password"},
+                    u"repo": CUMULUSCI_TEST_REPO,
+                    u"ref": None,
+                    u"subfolder": u"src",
+                    u"unmanaged": True,
                     u"namespace_inject": None,
                     u"namespace_strip": None,
                     u"namespace_tokenize": None,
-                    u"subfolder": u"CumulusCI-Test-master/src",
-                    u"unmanaged": True,
-                    u"zip_url": u"https://github.com/SFDO-Tooling/CumulusCI-Test/archive/master.zip",
                 },
                 {
-                    u"headers": {u"Authorization": u"token password"},
+                    u"repo": CUMULUSCI_TEST_REPO,
+                    u"ref": None,
+                    u"subfolder": u"unpackaged/post/post",
+                    u"unmanaged": True,
                     u"namespace_inject": "ccitest",
                     u"namespace_strip": None,
                     u"namespace_tokenize": None,
-                    u"subfolder": u"CumulusCI-Test-master/unpackaged/post/post",
-                    u"unmanaged": True,
-                    u"zip_url": u"https://github.com/SFDO-Tooling/CumulusCI-Test/archive/master.zip",
                 },
             ],
         )
@@ -591,32 +591,32 @@ class TestBaseProjectConfig(unittest.TestCase):
             result,
             [
                 {
-                    u"headers": {u"Authorization": u"token password"},
+                    u"repo": CUMULUSCI_TEST_REPO,
+                    u"ref": None,
+                    u"subfolder": u"unpackaged/pre/pre",
+                    u"unmanaged": True,
                     u"namespace_inject": None,
                     u"namespace_strip": None,
                     u"namespace_tokenize": None,
-                    u"subfolder": u"CumulusCI-Test-master/unpackaged/pre/pre",
-                    u"unmanaged": True,
-                    u"zip_url": u"https://github.com/SFDO-Tooling/CumulusCI-Test/archive/master.zip",
                 },
                 {u"version": "1.1 (Beta 1)", u"namespace": "ccitestdep"},
                 {
-                    u"headers": {u"Authorization": u"token password"},
+                    u"repo": CUMULUSCI_TEST_REPO,
+                    u"ref": None,
+                    u"subfolder": u"src",
+                    u"unmanaged": True,
                     u"namespace_inject": None,
                     u"namespace_strip": None,
                     u"namespace_tokenize": None,
-                    u"subfolder": u"CumulusCI-Test-master/src",
-                    u"unmanaged": True,
-                    u"zip_url": u"https://github.com/SFDO-Tooling/CumulusCI-Test/archive/master.zip",
                 },
                 {
-                    u"headers": {u"Authorization": u"token password"},
+                    u"repo": CUMULUSCI_TEST_REPO,
+                    u"ref": None,
+                    u"subfolder": u"unpackaged/post/post",
+                    u"unmanaged": True,
                     u"namespace_inject": "ccitest",
                     u"namespace_strip": None,
                     u"namespace_tokenize": None,
-                    u"subfolder": u"CumulusCI-Test-master/unpackaged/post/post",
-                    u"unmanaged": True,
-                    u"zip_url": u"https://github.com/SFDO-Tooling/CumulusCI-Test/archive/master.zip",
                 },
             ],
         )
@@ -662,7 +662,7 @@ class TestBaseTaskFlowConfig(unittest.TestCase):
     def test_get_task(self):
         task = self.task_flow_config.get_task("deploy")
         self.assertIsInstance(task, BaseConfig)
-        self.assertDictContainsSubset({"description": "Deploy Task"}, task.config)
+        self.assertIn(("description", "Deploy Task"), task.config.items())
 
     def test_no_task(self):
         with self.assertRaises(TaskNotFoundError):
@@ -671,7 +671,7 @@ class TestBaseTaskFlowConfig(unittest.TestCase):
     def test_get_flow(self):
         flow = self.task_flow_config.get_flow("coffee")
         self.assertIsInstance(flow, BaseConfig)
-        self.assertDictContainsSubset({"description": "Coffee Flow"}, flow.config)
+        self.assertIn(("description", "Coffee Flow"), flow.config.items())
 
     def test_no_flow(self):
         with self.assertRaises(FlowNotFoundError):
@@ -705,21 +705,21 @@ class TestOrgConfig(unittest.TestCase):
 
     def test_lightning_base_url(self):
         config = OrgConfig({"instance_url": "https://na01.salesforce.com"}, "test")
-        self.assertEquals("https://na01.lightning.force.com", config.lightning_base_url)
+        self.assertEqual("https://na01.lightning.force.com", config.lightning_base_url)
 
     def test_start_url(self):
         config = OrgConfig(
             {"instance_url": "https://na01.salesforce.com", "access_token": "TOKEN"},
             "test",
         )
-        self.assertEquals(
+        self.assertEqual(
             "https://na01.salesforce.com/secur/frontdoor.jsp?sid=TOKEN",
             config.start_url,
         )
 
     def test_user_id(self):
         config = OrgConfig({"id": "org/user"}, "test")
-        self.assertEquals("user", config.user_id)
+        self.assertEqual("user", config.user_id)
 
     def test_can_delete(self):
         config = OrgConfig({}, "test")

@@ -151,7 +151,7 @@ class TestUtils(unittest.TestCase):
 
         zf = utils.download_extract_zip("http://test", subfolder="folder")
         result = zf.read("test")
-        self.assertEqual("test", result)
+        self.assertEqual(b"test", result)
 
     @responses.activate
     def test_download_extract_zip_to_target(self):
@@ -171,6 +171,25 @@ class TestUtils(unittest.TestCase):
             utils.download_extract_zip("http://test", target=d)
             self.assertIn("test", os.listdir(d))
 
+    def test_download_extract_github(self):
+        f = io.BytesIO()
+        with zipfile.ZipFile(f, "w") as zf:
+            zf.writestr("top/", "top")
+            zf.writestr("top/src/", "top_src")
+            zf.writestr("top/src/test", "test")
+        f.seek(0)
+        zipbytes = f.read()
+        mock_repo = mock.Mock(default_branch="master")
+
+        def assign_bytes(archive_type, zip_content, ref=None):
+            zip_content.write(zipbytes)
+
+        mock_archive = mock.Mock(return_value=True, side_effect=assign_bytes)
+        mock_repo.archive = mock_archive
+        zf = utils.download_extract_github(mock_repo, "src")
+        result = zf.read("test")
+        self.assertEqual(b"test", result)
+
     def test_zip_inject_namespace_managed(self):
         logger = mock.Mock()
         zf = zipfile.ZipFile(io.BytesIO(), "w")
@@ -181,7 +200,7 @@ class TestUtils(unittest.TestCase):
 
         zf = utils.zip_inject_namespace(zf, namespace="ns", managed=True, logger=logger)
         result = zf.read("ns__test")
-        self.assertEqual("ns__||ns|c", result)
+        self.assertEqual(b"ns__||ns|c", result)
 
     def test_zip_inject_namespace_unmanaged(self):
         zf = zipfile.ZipFile(io.BytesIO(), "w")
@@ -192,7 +211,7 @@ class TestUtils(unittest.TestCase):
 
         zf = utils.zip_inject_namespace(zf, namespace="ns")
         result = zf.read("test")
-        self.assertEqual("||c|c", result)
+        self.assertEqual(b"||c|c", result)
 
     def test_zip_inject_namespace_namespaced_org(self):
         zf = zipfile.ZipFile(io.BytesIO(), "w")
@@ -205,7 +224,7 @@ class TestUtils(unittest.TestCase):
             zf, namespace="ns", managed=True, namespaced_org=True
         )
         result = zf.read("ns__test")
-        self.assertEqual("ns__|ns__|ns|ns", result)
+        self.assertEqual(b"ns__|ns__|ns|ns", result)
 
     def test_zip_inject_namespace__skips_binary(self):
         contents = b"\x9c%%%NAMESPACE%%%"
@@ -224,7 +243,7 @@ class TestUtils(unittest.TestCase):
 
         zf = utils.zip_strip_namespace(zf, "ns")
         result = zf.read("test")
-        self.assertEqual("test c:test", result)
+        self.assertEqual(b"test c:test", result)
 
     def test_zip_strip_namespace__skips_binary(self):
         contents = b"\x9cns__"
@@ -249,7 +268,7 @@ class TestUtils(unittest.TestCase):
 
         zf = utils.zip_tokenize_namespace(zf, "ns")
         result = zf.read("___NAMESPACE___test")
-        self.assertEqual("%%%NAMESPACE%%%test %%%NAMESPACE_OR_C%%%test", result)
+        self.assertEqual(b"%%%NAMESPACE%%%test %%%NAMESPACE_OR_C%%%test", result)
 
     def test_zip_tokenize_namespace__skips_binary(self):
         contents = b"\x9cns__"
@@ -280,13 +299,13 @@ class TestUtils(unittest.TestCase):
 
         zf = utils.zip_clean_metaxml(zf, logger=logger)
         result = zf.read("classes/test-meta.xml")
-        self.assertNotIn("packageVersions", result)
+        self.assertNotIn(b"packageVersions", result)
         self.assertIn("other/test-meta.xml", zf.namelist())
 
     def test_zip_clean_metaxml__skips_binary(self):
         logger = mock.Mock()
         zf = zipfile.ZipFile(io.BytesIO(), "w")
-        zf.writestr(b"classes/test-meta.xml", b"\x9c")
+        zf.writestr("classes/test-meta.xml", b"\x9c")
         zf.writestr("test", "")
         zf.writestr("other/test-meta.xml", "")
 
@@ -358,6 +377,12 @@ Options:
         bad_str = "2018-08-07T16:00:56.000-20000"
         with self.assertRaises(AssertionError):
             dt = utils.parse_api_datetime(bad_str)
+
+    def test_log_progress(self):
+        logger = mock.Mock()
+        for x in utils.log_progress(range(3), logger, batch_size=1):
+            pass
+        self.assertEqual(4, logger.info.call_count)
 
 
 class FunTestTask(BaseTask):
