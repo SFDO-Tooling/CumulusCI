@@ -1,14 +1,16 @@
 import logging
-from cumulusci.cli.config import CliConfig
-from cumulusci.core.config import TaskConfig
-from cumulusci.core.exceptions import TaskNotFoundError
-from cumulusci.core.exceptions import TaskOptionsError
-from cumulusci.core.tasks import CURRENT_TASK
-from cumulusci.core.utils import import_class
-from cumulusci.tasks.robotframework.robotframework import Robot
+
 from robot.api import logger
 from robot.libraries.BuiltIn import BuiltIn
 from simple_salesforce import Salesforce
+
+from cumulusci.cli.config import CliConfig
+from cumulusci.core.config import TaskConfig
+from cumulusci.core.exceptions import TaskOptionsError
+from cumulusci.core.tasks import CURRENT_TASK
+from cumulusci.core.utils import import_class
+from cumulusci.robotframework.utils import set_pdb_trace
+from cumulusci.tasks.robotframework.robotframework import Robot
 
 
 class CumulusCI(object):
@@ -171,7 +173,7 @@ class CumulusCI(object):
                 if name not in task_class.task_options:
                     raise TaskOptionsError(
                         'Option "{}" is not available for task {}'.format(
-                            name, task_name
+                            name, task_class
                         )
                     )
 
@@ -187,3 +189,6 @@ class CumulusCI(object):
 
         task()
         return task.return_values
+
+    def debug(self):
+        set_pdb_trace()

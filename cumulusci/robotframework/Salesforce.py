@@ -115,7 +115,9 @@ class Salesforce(object):
         """ Validate the currently selected Salesforce App """
         locator = lex_locators["app_launcher"]["current_app"].format(app_name)
         elem = self.selenium.get_webelement(locator)
-        assert app_name == elem.text
+        assert app_name == elem.text, "Expected app to be {} but found {}".format(
+            app_name, elem.text
+        )
 
     def delete_session_records(self):
         self._session_records.reverse()
@@ -244,14 +246,10 @@ class Salesforce(object):
     def open_app_launcher(self):
         """ Opens the Saleforce App Launcher """
         locator = lex_locators["app_launcher"]["button"]
-        #self.builtin.log("Hovering over App Launcher button")
-        #self.selenium.mouse_over(locator)
-        #time.sleep(1)
         self.builtin.log("Clicking App Launcher button")
         self.selenium.click_button(locator)
         self.wait_until_modal_is_open()
 
-    @selenium_retry
     def populate_field(self, name, value):
         locator = lex_locators["object"]["field"].format(name)
         self._populate_field(locator, value)
@@ -264,13 +262,13 @@ class Salesforce(object):
         self.selenium.set_focus_to_element(locator)
         self.selenium.get_webelement(locator).click()
 
+    @selenium_retry
     def _populate_field(self, locator, value):
         self.selenium.set_focus_to_element(locator)
         field = self.selenium.get_webelement(locator)
         field.clear()
         field.send_keys(value)
 
-    @selenium_retry
     def populate_form(self, **kwargs):
         for name, value in kwargs.items():
             locator = lex_locators["object"]["field"].format(name)
@@ -395,9 +393,17 @@ class Salesforce(object):
         )
 
     def wait_until_loading_is_complete(self):
-        """ Wait until Aura has processed all in flight XHTTP requests """
+        """Wait until in-flight XHTTP requests have completed.
+
+        (Note that Aura may still be processing actions that occur
+        upon completion of those requests.)
+        """
         self._wait_for_aura()
-    
+
     def _wait_for_aura(self):
-        """ Polls Aura via $A in Javascript to determine when all in flight XHTTP requests are completed before continuing """
+        """Run the WAIT_FOR_AURA_SCRIPT.
+
+        This script polls Aura via $A in Javascript to determine when
+        all in-flight XHTTP requests have completed before continuing.
+        """
         self.selenium.driver.execute_async_script(WAIT_FOR_AURA_SCRIPT)
