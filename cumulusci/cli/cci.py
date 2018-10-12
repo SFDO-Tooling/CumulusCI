@@ -1004,7 +1004,7 @@ def task_run(config, task_name, org, o, debug, debug_before, debug_after, no_pro
         handle_exception_debug(config, debug, throw_exception=exception)
     except (CumulusCIFailure, ScratchOrgException) as e:
         # Expected failure; report without traceback
-        exception = click.ClickException("Failed: {}".format(e.__class__.__name__))
+        exception = click.ClickException(str(e) or e.__class__.__name__)
         handle_exception_debug(config, debug, throw_exception=exception)
     except Exception:
         # Unexpected exception; log to sentry and raise
