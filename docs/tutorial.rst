@@ -73,8 +73,12 @@ Windows
 
 .. code-block:: powershell
 
-    python3 -m venv %userprofile%\cci
-    %userprofile%\cci\Scripts\activate.ps1
+    python -m venv ~\cci
+    ~\cci\Scripts\Activate.ps1
+
+.. note::
+   If this fails because you don't have the ability to run scripts,
+   try running: ``Set-ExecutionPolicy Unrestricted -Scope CurrentUser``
 
 Install CumulusCI
 -----------------
