@@ -48,9 +48,9 @@ class CumulusCI(object):
     @property
     def project_config(self):
         if self._project_config is None:
-            if CURRENT_TASK.is and isinstance(CURRENT_TASK.is, Robot):
+            if CURRENT_TASK.instance and isinstance(CURRENT_TASK.instance, Robot):
                 # If CumulusCI is running a task, use that task's config
-                return CURRENT_TASK.is.project_config
+                return CURRENT_TASK.instance.project_config
             else:
                 logger.console("Initializing CumulusCI config\n")
                 self._project_config = CliConfig().project_config
@@ -67,9 +67,9 @@ class CumulusCI(object):
     @property
     def org(self):
         if self._org is None:
-            if CURRENT_TASK.is and isinstance(CURRENT_TASK.is, Robot):
+            if CURRENT_TASK.instance and isinstance(CURRENT_TASK.instance, Robot):
                 # If CumulusCI is running a task, use that task's org
-                return CURRENT_TASK.is.org_config
+                return CURRENT_TASK.instance.org_config
             else:
                 self._org = self.keychain.get_org(self.org_name)
         return self._org

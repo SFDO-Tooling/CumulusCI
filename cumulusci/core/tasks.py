@@ -15,6 +15,7 @@ from cumulusci.core.exceptions import TaskRequiresSalesforceOrg
 from cumulusci.core.exceptions import TaskOptionsError
 
 CURRENT_TASK = threading.local()
+CURRENT_TASK.instance = None
 
 
 class BaseTask(object):
@@ -96,7 +97,7 @@ class BaseTask(object):
                 pass
 
     def _set_current_task(self):
-        CURRENT_TASK.is = self
+        CURRENT_TASK.instance = self
 
     def _validate_options(self):
         missing_required = []
