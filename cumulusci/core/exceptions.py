@@ -1,5 +1,4 @@
 from __future__ import unicode_literals
-import textwrap
 
 
 class CumulusCIException(Exception):
@@ -217,8 +216,8 @@ class ApexException(CumulusCIFailure):
 
     def __str__(self):
         message, stacktrace = self.args
-        stacktrace = textwrap.indent("  ", stacktrace)
-        return "Apex error: {}\n  Stacktrace:\n{}".format(message, stacktrace)
+        stacktrace = "\n  ".join(stacktrace.splitlines())
+        return "Apex error: {}\n  Stacktrace:\n  {}".format(message, stacktrace)
 
 
 class PushApiObjectNotFound(CumulusCIException):
