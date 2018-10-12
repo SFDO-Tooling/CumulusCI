@@ -13,5 +13,5 @@ class TestExceptions(unittest.TestCase):
     def test_ApexException(self):
         err = exceptions.ApexException("Things got real", "Anon line 1")
         self.assertEqual(
-            "Apex error: Things got real\nStacktrace:\nAnon line 1", str(err)
+            "Apex error: Things got real\n  Stacktrace:\n  Anon line 1", str(err)
         )
