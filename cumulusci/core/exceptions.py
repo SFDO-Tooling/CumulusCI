@@ -206,13 +206,18 @@ class BrowserTestFailure(CumulusCIFailure):
 class ApexCompilationException(CumulusCIFailure):
     """ Raise when apex compilation fails """
 
-    pass
+    def __str__(self):
+        line, problem = self.args
+        return "Apex compilation failed on line {}: {}".format(line, problem)
 
 
 class ApexException(CumulusCIFailure):
     """ Raise when an Apex Exception is raised in an org """
 
-    pass
+    def __str__(self):
+        message, stacktrace = self.args
+        stacktrace = "\n  ".join(stacktrace.splitlines())
+        return "Apex error: {}\n  Stacktrace:\n  {}".format(message, stacktrace)
 
 
 class PushApiObjectNotFound(CumulusCIException):
