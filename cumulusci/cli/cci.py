@@ -5,6 +5,7 @@ standard_library.install_aliases()
 from past.builtins import basestring
 from builtins import str
 from builtins import object
+import functools
 import json
 import os
 import sys
@@ -186,30 +187,49 @@ def handle_sentry_event(config, no_prompt):
         webbrowser.open(event_url)
 
 
+def load_config(load_project_config=True, load_keychain=True):
+    try:
+        config = CliConfig(
+            load_project_config=load_project_config, load_keychain=load_keychain
+        )
+    except click.UsageError as e:
+        click.echo(str(e))
+        sys.exit(1)
+    config.check_cumulusci_version()
+    return config
+
+
+# hook for tests
+TEST_CONFIG = None
+
+
+def pass_config(func=None, **config_kw):
+    """Decorator which passes the CCI config object to a click command."""
+
+    def decorate(func):
+        def new_func(*args, **kw):
+            config = TEST_CONFIG or load_config(**config_kw)
+            func(config, *args, **kw)
+
+        return functools.update_wrapper(new_func, func)
+
+    if func is None:
+        return decorate
+    else:
+        return decorate(func)
+
+
 # Root command
 
 
 @click.group("main", help="")
-@click.pass_context
-def main(ctx):
+def main():
     """Main CumulusCI CLI entry point.
 
     This runs as the first step in processing any CLI command.
     """
     check_latest_version()
     init_logger()
-
-    try:
-        config = CliConfig()
-    except click.UsageError as e:
-        click.echo(str(e))
-        sys.exit(1)
-
-    config.check_cumulusci_version()
-
-    # Attach the config object to the click context
-    # so it can be accessed by other commands using `click.pass_obj`
-    ctx.obj = config
 
 
 @click.command(name="version", help="Print the current version of CumulusCI")
@@ -218,9 +238,12 @@ def version():
 
 
 @click.command(name="shell", help="Drop into a python shell")
-@click.pass_obj
-@click.pass_context
-def shell(ctx, config):
+def shell():
+    try:
+        config = load_config(load_project_config=True, load_keychain=True)
+    except SystemExit:
+        config = load_config(load_project_config=False, load_keychain=False)
+
     code.interact(local=dict(globals(), **locals()))
 
 
@@ -230,32 +253,27 @@ def shell(ctx, config):
 @click.group(
     "project", help="Commands for interacting with project repository configurations"
 )
-@click.pass_obj
-def project(config):
+def project():
     pass
 
 
 @click.group("org", help="Commands for connecting and interacting with Salesforce orgs")
-@click.pass_obj
-def org(config):
+def org():
     pass
 
 
 @click.group("task", help="Commands for finding and running tasks for a project")
-@click.pass_obj
-def task(config):
+def task():
     pass
 
 
 @click.group("flow", help="Commands for finding and running flows for a project")
-@click.pass_obj
-def flow(config):
+def flow():
     pass
 
 
 @click.group("service", help="Commands for connecting services to the keychain")
-@click.pass_obj
-def service(config):
+def service():
     pass
 
 
@@ -274,7 +292,7 @@ main.add_command(service)
 @click.command(
     name="init", help="Initialize a new project for use with the cumulusci toolbelt"
 )
-@click.pass_obj
+@pass_config(load_project_config=False)
 def project_init(config):
     if not os.path.isdir(".git"):
         raise click.ClickException("You are not in the root of a Git repository")
@@ -523,7 +541,7 @@ def project_init(config):
 @click.command(
     name="info", help="Display information about the current project's configuration"
 )
-@click.pass_obj
+@pass_config(load_keychain=False)
 def project_info(config):
     render_recursive(config.project_config.project)
 
@@ -532,7 +550,7 @@ def project_info(config):
     name="dependencies",
     help="Displays the current dependencies for the project.  If the dependencies section has references to other github repositories, the repositories are inspected and a static list of dependencies is created",
 )
-@click.pass_obj
+@pass_config
 def project_dependencies(config):
     dependencies = config.project_config.get_static_dependencies()
     for line in config.project_config.pretty_dependencies(dependencies):
@@ -548,7 +566,7 @@ project.add_command(project_dependencies)
 
 
 @click.command(name="list", help="List services available for configuration and use")
-@click.pass_obj
+@pass_config
 def service_list(config):
     headers = ["service", "description", "is_configured"]
     data = []
@@ -602,14 +620,13 @@ class ConnectServiceCommand(click.MultiCommand):
 @click.command(
     cls=ConnectServiceCommand, name="connect", help="Connect a CumulusCI task service"
 )
-@click.pass_context
-def service_connect(ctx, *args, **kvargs):
+def service_connect():
     pass
 
 
 @click.command(name="info", help="Show the details of a connected service")
 @click.argument("service_name")
-@click.pass_obj
+@pass_config
 def service_info(config, service_name):
     try:
         service_config = config.keychain.get_service(service_name)
@@ -635,7 +652,7 @@ service.add_command(service_info)
     help="Opens a browser window and logs into the org using the stored OAuth credentials",
 )
 @click.argument("org_name", required=False)
-@click.pass_obj
+@pass_config
 def org_browser(config, org_name):
     org_name, org_config = config.get_org(org_name)
     org_config.refresh_oauth_token(config.keychain)
@@ -666,7 +683,7 @@ def org_browser(config, org_name):
 @click.option(
     "--global-org", help="Set True if org should be used by any project", is_flag=True
 )
-@click.pass_obj
+@pass_config
 def org_connect(config, org_name, sandbox, login_url, default, global_org):
     config.check_org_overwrite(org_name)
 
@@ -709,7 +726,7 @@ def org_connect(config, org_name, sandbox, login_url, default, global_org):
     is_flag=True,
     help="Unset the org as the default org leaving no default org selected",
 )
-@click.pass_obj
+@pass_config
 def org_default(config, org_name, unset):
 
     if unset:
@@ -725,7 +742,7 @@ def org_default(config, org_name, unset):
 @click.command(name="info", help="Display information for a connected org")
 @click.argument("org_name", required=False)
 @click.option("print_json", "--json", is_flag=True, help="Print as JSON")
-@click.pass_obj
+@pass_config
 def org_info(config, org_name, print_json):
     org_name, org_config = config.get_org(org_name)
     org_config.refresh_oauth_token(config.keychain)
@@ -743,7 +760,7 @@ def org_info(config, org_name, print_json):
 
 
 @click.command(name="list", help="Lists the connected orgs for the current project")
-@click.pass_obj
+@pass_config
 def org_list(config):
     data = []
     headers = [
@@ -786,7 +803,7 @@ def org_list(config):
     is_flag=True,
     help="Set this option to force remove a global org.  Default behavior is to error if you attempt to delete a global org.",
 )
-@click.pass_obj
+@pass_config
 def org_remove(config, org_name, global_org):
     try:
         org_config = config.keychain.get_org(org_name)
@@ -826,7 +843,7 @@ def org_remove(config, org_name, global_org):
 @click.option(
     "--no-password", is_flag=True, help="If set, don't set a password for the org"
 )
-@click.pass_obj
+@pass_config
 def org_scratch(config, config_name, org_name, default, devhub, days, no_password):
     config.check_org_overwrite(org_name)
 
@@ -858,7 +875,7 @@ def org_scratch(config, config_name, org_name, default, devhub, days, no_passwor
     help="Deletes a Salesforce DX Scratch Org leaving the config in the keychain for regeneration",
 )
 @click.argument("org_name")
-@click.pass_obj
+@pass_config
 def org_scratch_delete(config, org_name):
     org_config = config.keychain.get_org(org_name)
     if not org_config.scratch:
@@ -886,7 +903,7 @@ org.add_command(org_scratch_delete)
 
 
 @click.command(name="list", help="List available tasks for the current context")
-@click.pass_obj
+@pass_config(load_keychain=False)
 def task_list(config):
     data = []
     headers = ["task", "description"]
@@ -903,7 +920,7 @@ def task_list(config):
 
 
 @click.command(name="doc", help="Exports RST format documentation for all tasks")
-@click.pass_obj
+@pass_config(load_keychain=False)
 def task_doc(config):
     config_src = config.global_config
 
@@ -916,7 +933,7 @@ def task_doc(config):
 
 @click.command(name="info", help="Displays information for a task")
 @click.argument("task_name")
-@click.pass_obj
+@pass_config(load_keychain=False)
 def task_info(config, task_name):
     task_config = config.project_config.get_task(task_name)
     doc = doc_task(task_name, task_config).encode()
@@ -953,7 +970,7 @@ def task_info(config, task_name):
     is_flag=True,
     help="Disables all prompts.  Set for non-interactive mode use such as calling from scripts or CI systems",
 )
-@click.pass_obj
+@pass_config
 def task_run(config, task_name, org, o, debug, debug_before, debug_after, no_prompt):
 
     # Get necessary configs
@@ -1024,7 +1041,7 @@ task.add_command(task_run)
 
 
 @click.command(name="list", help="List available flows for the current context")
-@click.pass_obj
+@pass_config(load_keychain=False)
 def flow_list(config):
     data = []
     headers = ["flow", "description"]
@@ -1042,7 +1059,7 @@ def flow_list(config):
 
 @click.command(name="info", help="Displays information for a flow")
 @click.argument("flow_name")
-@click.pass_obj
+@pass_config(load_keychain=False)
 def flow_info(config, flow_name):
     flow = config.project_config.get_flow(flow_name)
     render_recursive(flow)
@@ -1078,7 +1095,7 @@ def flow_info(config, flow_name):
     is_flag=True,
     help="Disables all prompts.  Set for non-interactive mode use such as calling from scripts or CI systems",
 )
-@click.pass_obj
+@pass_config
 def flow_run(config, flow_name, org, delete_org, debug, o, skip, no_prompt):
 
     # Get necessary configs
