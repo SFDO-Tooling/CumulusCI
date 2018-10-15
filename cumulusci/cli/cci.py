@@ -187,9 +187,13 @@ def handle_sentry_event(config, no_prompt):
         webbrowser.open(event_url)
 
 
+# hook for tests
+TEST_CONFIG = None
+
+
 def load_config(load_project_config=True, load_keychain=True):
     try:
-        config = CliConfig(
+        config = TEST_CONFIG or CliConfig(
             load_project_config=load_project_config, load_keychain=load_keychain
         )
         config.check_cumulusci_version()
@@ -199,16 +203,12 @@ def load_config(load_project_config=True, load_keychain=True):
     return config
 
 
-# hook for tests
-TEST_CONFIG = None
-
-
 def pass_config(func=None, **config_kw):
     """Decorator which passes the CCI config object as the first arg to a click command."""
 
     def decorate(func):
         def new_func(*args, **kw):
-            config = TEST_CONFIG or load_config(**config_kw)
+            config = load_config(**config_kw)
             func(config, *args, **kw)
 
         return functools.update_wrapper(new_func, func)

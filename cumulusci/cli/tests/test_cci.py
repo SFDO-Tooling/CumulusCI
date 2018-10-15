@@ -309,20 +309,20 @@ test     Test Service  *""",
         config = mock.Mock()
         config.project_config.services = {"test": {}}
         ctx = mock.Mock()
-        ctx.ensure_object.return_value = config
 
-        result = multi_cmd.list_commands(ctx)
+        with mock.patch('cumulusci.cli.cci.TEST_CONFIG', config):
+            result = multi_cmd.list_commands(ctx)
         self.assertEqual(["test"], result)
 
     def test_service_connect(self):
         multi_cmd = cci.ConnectServiceCommand()
+        ctx = mock.Mock()
         config = mock.Mock()
         config.project_config.services__test__attributes = {"attr": {"required": False}}
-        ctx = mock.Mock()
-        ctx.ensure_object.return_value = config
 
-        cmd = multi_cmd.get_command(ctx, "test")
-        run_click_command(cmd, project=True)
+        with mock.patch('cumulusci.cli.cci.TEST_CONFIG', config):
+            cmd = multi_cmd.get_command(ctx, "test")
+            run_click_command(cmd, project=True)
 
         config.keychain.set_service.assert_called_once()
 
