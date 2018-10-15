@@ -1,6 +1,7 @@
 import os
 import sys
 import click
+import traceback
 from subprocess import call
 
 import pkg_resources
@@ -16,15 +17,17 @@ from cumulusci.core.utils import import_class
 
 
 class CliConfig(object):
-    def __init__(self):
+    def __init__(self, load_project_config=True, load_keychain=True):
         self.global_config = None
         self.project_config = None
         self.keychain = None
 
         self._load_global_config()
-        self._load_project_config()
-        self._load_keychain()
-        self._add_repo_to_path()
+        if load_project_config:
+            self._load_project_config()
+            self._add_repo_to_path()
+            if load_keychain:
+                self._load_keychain()
 
     def _add_repo_to_path(self):
         if self.project_config:
