@@ -1,6 +1,6 @@
 lex_locators = {
     "app_launcher": {
-        "app_link": "//div[@class='slds-section slds-is-open salesforceIdentityAppLauncherDesktopInternal']//section[@id='cards']//div[@class='appTileTitle' and text()='{}']",
+        "app_link": "//div[@class='slds-section slds-is-open salesforceIdentityAppLauncherDesktopInternal']//section[@id='cards']//a[@class='appTileTitle' and text()='{}']",
         "button": "//nav[contains(@class,'appLauncher')]//button[//div[contains(@class,'slds-icon-waffle')]]",
         "current_app": "//div[contains(@class,'navLeft')]//span[contains(@class,'appName')]/span[text()='{}']",
         "tab_link": "css: a.app-launcher-link[title='{}']",
@@ -11,7 +11,7 @@ lex_locators = {
         "button": "//div[contains(@class,'uiModal')]//div[contains(@class,'modal-footer')]//button[.//span[text()='{}']]",
         "close": "css: button.slds-modal__close",
         "error_messages": "css: div.pageLevelErrors ul.errorsList li",
-        "fade_in": "css: slds-fade-in-open",
+        "fade_in": "css: div.slds-fade-in-open",
         "has_error": "css: div.pageLevelErrors",
         "is_open": "css: div.uiModal div.panel.slds-modal",
     },
@@ -24,11 +24,11 @@ lex_locators = {
     },
     "record": {
         "header": {
-            "field": "//li[contains(@class, 'slds-page-header__detail')][.//p[contains(@class, 'slds-text-heading--label')][@title='{}']",
-            "field_value": "//li[contains(@class, 'slds-page-header__detail')][.//p[contains(@class, 'slds-text-heading--label')][@title='{}']]//span[contains(@class, 'uiOutput')][text()]",
-            "field_value_link": "//li[contains(@class, 'slds-page-header__detail')][.//p[contains(@class, 'slds-text-heading--label')][@title='{}']]//a",
-            "field_value_checked": "//li[contains(@class, 'slds-page-header__detail')][.//p[contains(@class, 'slds-text-heading--label')][@title='{}']]//span[contains(@class, 'uiOutputCheckbox')]//img[@alt='True']",
-            "field_value_unchecked": "//li[contains(@class, 'slds-page-header__detail')][.//p[contains(@class, 'slds-text-heading--label')][@title='{}']]//span[contains(@class, 'uiOutputCheckbox')]//img[@alt='False']",
+            "field": "//li[contains(@class, 'slds-page-header__detail-block')][.//span[contains(@class, 'slds-form-element__label')][@title='{}']]",
+            "field_value": "//li[contains(@class, 'slds-page-header__detail-block')][.//span[contains(@class, 'slds-form-element__label')][@title='{}']]//div[contains(@class, 'slds-form-element__static')]/span[text()]",
+            "field_value_link": "//li[contains(@class, 'slds-page-header__detail-block')][.//span[contains(@class, 'slds-form-element__label')][@title='{}']]//div[contains(@class, 'slds-form-element__static')]//a",
+            "field_value_checked": "//li[contains(@class, 'slds-page-header__detail-block')][.//span[contains(@class, 'slds-form-element__label')][@title='{}']]//span[contains(@class, 'uiOutputCheckbox')]//img[@alt='True']",
+            "field_value_unchecked": "//li[contains(@class, 'slds-page-header__detail-block')][.//span[contains(@class, 'slds-form-element__label')][@title='{}']]//span[contains(@class, 'uiOutputCheckbox')]//img[@alt='False']",
         },
         "related": {
             "button": "//article[contains(@class, 'forceRelatedListCardDesktop')][.//img][.//span[@title='{}']]//a[@title='{}']",

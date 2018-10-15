@@ -1,50 +1,16 @@
 import logging
 import re
-import time
 from robot.libraries.BuiltIn import BuiltIn
-from selenium.common.exceptions import ElementNotInteractableException
-from selenium.common.exceptions import StaleElementReferenceException
-from selenium.common.exceptions import WebDriverException
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.remote.command import Command
-from SeleniumLibrary.errors import ElementNotFound
 from simple_salesforce import SalesforceMalformedRequest
 from simple_salesforce import SalesforceResourceNotFound
 from cumulusci.robotframework.locators import lex_locators
+from cumulusci.robotframework.utils import RetryingSeleniumLibraryMixin
 from cumulusci.robotframework.utils import selenium_retry
 
 OID_REGEX = r"[a-zA-Z0-9]{15,18}"
 
-# This is a list of user actions that are likely to trigger
-# Aura actions and/or XHRs. We'll add a step to wait for
-# in-flight XHRs to complete after these commands.
-COMMANDS_INVOKING_ACTIONS = {Command.CLICK_ELEMENT}
 
-# This script waits for a) Aura to be available and b)
-# any in-flight Aura XHRs to be complete.
-# We only do this if the page uses Aura, as determined by looking for
-# id="auraAppcacheProgress" in the DOM.
-# It would be nice if we could inject the function when the page loads
-# and then just call it after commands, but I was having trouble
-# getting webdriver to add it to the window scope.
-WAIT_FOR_AURA_SCRIPT = """
-done = arguments[0];
-if (document.getElementById('auraAppcacheProgress')) {
-    var waitForXHRs = function() {
-        if (window.$A && !window.$A.clientService.inFlightXHRs()) {
-            done();
-        } else {
-            setTimeout(waitForXHRs, 100);
-        }
-    }
-    setTimeout(waitForXHRs, 0);
-} else {
-    done();
-}
-"""
-
-
-class Salesforce(object):
+class Salesforce(RetryingSeleniumLibraryMixin):
     ROBOT_LIBRARY_SCOPE = "GLOBAL"
 
     def __init__(self, debug=False):
@@ -62,28 +28,6 @@ class Salesforce(object):
     @property
     def cumulusci(self):
         return self.builtin.get_library_instance("cumulusci.robotframework.CumulusCI")
-
-    @property
-    def selenium(self):
-        selenium = self.builtin.get_library_instance("SeleniumLibrary")
-
-        # Patch the selenium webdriver to run the "wait for aura"
-        # script after commands that are likely to invoke async actions.
-        # (The problem with doing it this way is that it will
-        # run even for actions that aren't on pages using Aura).
-        if not getattr(selenium.driver, "_cumulus_patched", False):
-            orig_execute = selenium.driver.execute
-
-            def execute(driver_command, params=None):
-                result = orig_execute(driver_command, params)
-                if driver_command in COMMANDS_INVOKING_ACTIONS:
-                    self._wait_for_aura()
-                return result
-
-            selenium.driver.execute = execute
-            selenium.driver._cumulus_patched = True
-
-        return selenium
 
     @selenium_retry
     def click_modal_button(self, title):
@@ -398,12 +342,4 @@ class Salesforce(object):
         (Note that Aura may still be processing actions that occur
         upon completion of those requests.)
         """
-        self._wait_for_aura()
-
-    def _wait_for_aura(self):
-        """Run the WAIT_FOR_AURA_SCRIPT.
-
-        This script polls Aura via $A in Javascript to determine when
-        all in-flight XHTTP requests have completed before continuing.
-        """
-        self.selenium.driver.execute_async_script(WAIT_FOR_AURA_SCRIPT)
+        self.wait_for_aura()
