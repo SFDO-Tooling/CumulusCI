@@ -310,7 +310,7 @@ test     Test Service  *""",
         config.project_config.services = {"test": {}}
         ctx = mock.Mock()
 
-        with mock.patch('cumulusci.cli.cci.TEST_CONFIG', config):
+        with mock.patch("cumulusci.cli.cci.TEST_CONFIG", config):
             result = multi_cmd.list_commands(ctx)
         self.assertEqual(["test"], result)
 
@@ -320,7 +320,7 @@ test     Test Service  *""",
         config = mock.Mock()
         config.project_config.services__test__attributes = {"attr": {"required": False}}
 
-        with mock.patch('cumulusci.cli.cci.TEST_CONFIG', config):
+        with mock.patch("cumulusci.cli.cci.TEST_CONFIG", config):
             cmd = multi_cmd.get_command(ctx, "test")
             run_click_command(cmd, project=True)
 
