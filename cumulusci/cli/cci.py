@@ -192,10 +192,10 @@ def load_config(load_project_config=True, load_keychain=True):
         config = CliConfig(
             load_project_config=load_project_config, load_keychain=load_keychain
         )
+        config.check_cumulusci_version()
     except click.UsageError as e:
         click.echo(str(e))
         sys.exit(1)
-    config.check_cumulusci_version()
     return config
 
 
@@ -204,7 +204,7 @@ TEST_CONFIG = None
 
 
 def pass_config(func=None, **config_kw):
-    """Decorator which passes the CCI config object to a click command."""
+    """Decorator which passes the CCI config object as the first arg to a click command."""
 
     def decorate(func):
         def new_func(*args, **kw):
@@ -582,7 +582,7 @@ def service_list(config):
 class ConnectServiceCommand(click.MultiCommand):
     def list_commands(self, ctx):
         """ list the services that can be configured """
-        config = ctx.ensure_object(CliConfig)
+        config = load_config()
         return sorted(config.project_config.services.keys())
 
     def _build_param(self, attribute, details):
@@ -590,7 +590,7 @@ class ConnectServiceCommand(click.MultiCommand):
         return click.Option(("--{0}".format(attribute),), prompt=req, required=req)
 
     def get_command(self, ctx, name):
-        config = ctx.ensure_object(CliConfig)
+        config = load_config()
 
         attributes = iter(
             list(
@@ -602,8 +602,7 @@ class ConnectServiceCommand(click.MultiCommand):
         params = [self._build_param(attr, cnfg) for attr, cnfg in attributes]
         params.append(click.Option(("--project",), is_flag=True))
 
-        @click.pass_context
-        def callback(ctx, project=False, *args, **kwargs):
+        def callback(project=False, *args, **kwargs):
             serv_conf = dict(
                 (k, v) for k, v in list(kwargs.items()) if v != None
             )  # remove None values
