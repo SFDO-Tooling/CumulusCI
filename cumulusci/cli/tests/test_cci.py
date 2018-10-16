@@ -30,10 +30,12 @@ from cumulusci.utils import temporary_dir
 
 
 def run_click_command(cmd, *args, **kw):
-    with click.Context(command=mock.Mock()) as ctx:
-        ctx.obj = kw.pop("obj", None)
-        result = cmd.callback(*args, **kw)
-        return ctx, result
+    """Run a click command with a mock context and injected CCI config object.
+    """
+    config = kw.pop("config", None)
+    with mock.patch("cumulusci.cli.cci.TEST_CONFIG", config):
+        with click.Context(command=mock.Mock()):
+            return cmd.callback(*args, **kw)
 
 
 def recursive_list_files(d="."):
@@ -173,28 +175,18 @@ class TestCCI(unittest.TestCase):
 
         cci.handle_sentry_event(config, True)
 
-    @mock.patch("cumulusci.cli.cci.init_logger")
-    @mock.patch("cumulusci.cli.cci.CliConfig")
-    @mock.patch("cumulusci.cli.cci.check_latest_version")
-    def test_main(self, check_latest_version, CliConfig, init_logger):
-        CliConfig.return_value = _marker = mock.Mock()
+    def test_load_config__no_project(self):
+        with temporary_dir():
+            with self.assertRaises(SystemExit):
+                cci.load_config()
 
-        ctx, result = run_click_command(cci.main)
+    @mock.patch("cumulusci.cli.cci.init_logger")
+    @mock.patch("cumulusci.cli.cci.check_latest_version")
+    def test_main(self, check_latest_version, init_logger):
+        run_click_command(cci.main)
 
         check_latest_version.assert_called_once()
         init_logger.assert_called_once()
-        # make sure that the config object was stored
-        # as the click context's "obj" for use by
-        # other commands
-        self.assertIs(ctx.obj, _marker)
-
-    @mock.patch("cumulusci.cli.cci.init_logger")
-    @mock.patch("cumulusci.cli.cci.CliConfig")
-    @mock.patch("cumulusci.cli.cci.check_latest_version")
-    def test_main_config_error(self, check_latest_version, CliConfig, init_logger):
-        CliConfig.side_effect = click.UsageError("Broken!")
-        with self.assertRaises(SystemExit):
-            run_click_command(cci.main)
 
     @mock.patch("click.echo")
     def test_version(self, echo):
@@ -206,6 +198,12 @@ class TestCCI(unittest.TestCase):
         run_click_command(cci.shell)
         interact.assert_called_once()
         self.assertIn("config", interact.call_args[1]["local"])
+
+    @mock.patch("code.interact")
+    def test_shell__no_project(self, interact):
+        with temporary_dir():
+            run_click_command(cci.shell)
+            interact.assert_called_once()
 
     def test_cover_command_groups(self):
         run_click_command(cci.project)
@@ -235,10 +233,8 @@ class TestCCI(unittest.TestCase):
                 "_TEST",  # test_name_match
             )
             click.confirm.side_effect = (True, True)  # is managed?  # extending?
-            config = mock.Mock()
-            config.global_config.project__test__name_match = "_TEST"
 
-            run_click_command(cci.project_init, obj=config)
+            run_click_command(cci.project_init)
 
             # Make sure expected files/dirs were created
             self.assertEqual(
@@ -278,7 +274,7 @@ class TestCCI(unittest.TestCase):
         config = mock.Mock()
         config.project_config.project = {"test": "test"}
 
-        run_click_command(cci.project_info, obj=config)
+        run_click_command(cci.project_info, config=config)
 
         echo.assert_called_once_with("\x1b[1mtest:\x1b[0m test")
 
@@ -288,7 +284,7 @@ class TestCCI(unittest.TestCase):
         config.project_config.pretty_dependencies.return_value = ["test:"]
 
         with mock.patch("click.echo", out.append):
-            run_click_command(cci.project_dependencies, obj=config)
+            run_click_command(cci.project_dependencies, config=config)
 
         self.assertEqual("test:", "".join(out))
 
@@ -298,7 +294,7 @@ class TestCCI(unittest.TestCase):
         config.project_config.services = {"test": {"description": "Test Service"}}
         config.keychain.list_services.return_value = ["test"]
 
-        run_click_command(cci.service_list, obj=config)
+        run_click_command(cci.service_list, config=config)
 
         table = echo.call_args[0][0]
         self.assertEqual(
@@ -313,20 +309,20 @@ test     Test Service  *""",
         config = mock.Mock()
         config.project_config.services = {"test": {}}
         ctx = mock.Mock()
-        ctx.ensure_object.return_value = config
 
-        result = multi_cmd.list_commands(ctx)
+        with mock.patch("cumulusci.cli.cci.TEST_CONFIG", config):
+            result = multi_cmd.list_commands(ctx)
         self.assertEqual(["test"], result)
 
     def test_service_connect(self):
         multi_cmd = cci.ConnectServiceCommand()
+        ctx = mock.Mock()
         config = mock.Mock()
         config.project_config.services__test__attributes = {"attr": {"required": False}}
-        ctx = mock.Mock()
-        ctx.ensure_object.return_value = config
 
-        cmd = multi_cmd.get_command(ctx, "test")
-        run_click_command(cmd, project=True)
+        with mock.patch("cumulusci.cli.cci.TEST_CONFIG", config):
+            cmd = multi_cmd.get_command(ctx, "test")
+            run_click_command(cmd, project=True)
 
         config.keychain.set_service.assert_called_once()
 
@@ -339,7 +335,7 @@ test     Test Service  *""",
         config = mock.Mock()
         config.keychain.get_service.return_value = service_config
 
-        run_click_command(cci.service_info, obj=config, service_name="test")
+        run_click_command(cci.service_info, config=config, service_name="test")
 
         echo.assert_called_with("\x1b[1mdescription:\x1b[0m Test Service")
 
@@ -348,7 +344,7 @@ test     Test Service  *""",
         config = mock.Mock()
         config.keychain.get_service.side_effect = ServiceNotConfigured
 
-        run_click_command(cci.service_info, obj=config, service_name="test")
+        run_click_command(cci.service_info, config=config, service_name="test")
 
         self.assertIn("not configured for this project", echo.call_args[0][0])
 
@@ -358,7 +354,7 @@ test     Test Service  *""",
         config = mock.Mock()
         config.get_org.return_value = ("test", org_config)
 
-        run_click_command(cci.org_browser, obj=config, org_name="test")
+        run_click_command(cci.org_browser, config=config, org_name="test")
 
         org_config.refresh_oauth_token.assert_called_once()
         browser_open.assert_called_once()
@@ -380,7 +376,7 @@ test     Test Service  *""",
 
         run_click_command(
             cci.org_connect,
-            obj=config,
+            config=config,
             org_name="test",
             sandbox=True,
             login_url="https://login.salesforce.com",
@@ -399,7 +395,7 @@ test     Test Service  *""",
         with self.assertRaises(ServiceNotConfigured):
             run_click_command(
                 cci.org_connect,
-                obj=config,
+                config=config,
                 org_name="test",
                 sandbox=True,
                 login_url="https://login.salesforce.com",
@@ -410,14 +406,14 @@ test     Test Service  *""",
     def test_org_default(self):
         config = mock.Mock()
 
-        run_click_command(cci.org_default, obj=config, org_name="test", unset=False)
+        run_click_command(cci.org_default, config=config, org_name="test", unset=False)
 
         config.keychain.set_default_org.assert_called_once_with("test")
 
     def test_org_default_unset(self):
         config = mock.Mock()
 
-        run_click_command(cci.org_default, obj=config, org_name="test", unset=True)
+        run_click_command(cci.org_default, config=config, org_name="test", unset=True)
 
         config.keychain.unset_default_org.assert_called_once()
 
@@ -431,7 +427,7 @@ test     Test Service  *""",
         out = []
         with mock.patch("click.echo", out.append):
             run_click_command(
-                cci.org_info, obj=config, org_name="test", print_json=False
+                cci.org_info, config=config, org_name="test", print_json=False
             )
 
         org_config.refresh_oauth_token.assert_called_once()
@@ -450,7 +446,7 @@ test     Test Service  *""",
         out = []
         with mock.patch("click.echo", out.append):
             run_click_command(
-                cci.org_info, obj=config, org_name="test", print_json=True
+                cci.org_info, config=config, org_name="test", print_json=True
             )
 
         org_config.refresh_oauth_token.assert_called_once()
@@ -486,7 +482,7 @@ test     Test Service  *""",
             ),
         ]
 
-        run_click_command(cci.org_list, obj=config)
+        run_click_command(cci.org_list, config=config)
 
         table = echo.call_args[0][0]
         self.assertEqual(
@@ -503,7 +499,9 @@ test2                                     dev          test2@example.com""",
         config = mock.Mock()
         config.keychain.get_org.return_value = org_config
 
-        run_click_command(cci.org_remove, obj=config, org_name="test", global_org=False)
+        run_click_command(
+            cci.org_remove, config=config, org_name="test", global_org=False
+        )
 
         org_config.delete_org.assert_called_once()
         config.keychain.remove_org.assert_called_once_with("test", False)
@@ -516,7 +514,9 @@ test2                                     dev          test2@example.com""",
         config = mock.Mock()
         config.keychain.get_org.return_value = org_config
 
-        run_click_command(cci.org_remove, obj=config, org_name="test", global_org=False)
+        run_click_command(
+            cci.org_remove, config=config, org_name="test", global_org=False
+        )
 
         echo.assert_any_call("Deleting scratch org failed with error:")
 
@@ -526,7 +526,7 @@ test2                                     dev          test2@example.com""",
 
         with self.assertRaises(click.ClickException) as cm:
             run_click_command(
-                cci.org_remove, obj=config, org_name="test", global_org=False
+                cci.org_remove, config=config, org_name="test", global_org=False
             )
 
         self.assertEqual("Org test does not exist in the keychain", str(cm.exception))
@@ -537,7 +537,7 @@ test2                                     dev          test2@example.com""",
 
         run_click_command(
             cci.org_scratch,
-            obj=config,
+            config=config,
             config_name="dev",
             org_name="test",
             default=True,
@@ -559,7 +559,7 @@ test2                                     dev          test2@example.com""",
         with self.assertRaises(click.UsageError):
             run_click_command(
                 cci.org_scratch,
-                obj=config,
+                config=config,
                 config_name="dev",
                 org_name="test",
                 default=True,
@@ -575,7 +575,7 @@ test2                                     dev          test2@example.com""",
         with self.assertRaises(click.UsageError):
             run_click_command(
                 cci.org_scratch,
-                obj=config,
+                config=config,
                 config_name="dev",
                 org_name="test",
                 default=True,
@@ -589,7 +589,7 @@ test2                                     dev          test2@example.com""",
         config = mock.Mock()
         config.keychain.get_org.return_value = org_config
 
-        run_click_command(cci.org_scratch_delete, obj=config, org_name="test")
+        run_click_command(cci.org_scratch_delete, config=config, org_name="test")
 
         org_config.delete_org.assert_called_once()
         config.keychain.set_org.assert_called_once_with(org_config)
@@ -600,7 +600,7 @@ test2                                     dev          test2@example.com""",
         config.keychain.get_org.return_value = org_config
 
         with self.assertRaises(click.UsageError):
-            run_click_command(cci.org_scratch_delete, obj=config, org_name="test")
+            run_click_command(cci.org_scratch_delete, config=config, org_name="test")
 
     def test_org_scratch_delete_error(self):
         org_config = mock.Mock()
@@ -609,7 +609,7 @@ test2                                     dev          test2@example.com""",
         config.keychain.get_org.return_value = org_config
 
         with self.assertRaises(click.UsageError):
-            run_click_command(cci.org_scratch_delete, obj=config, org_name="test")
+            run_click_command(cci.org_scratch_delete, config=config, org_name="test")
 
     @mock.patch("click.echo")
     def test_task_list(self, echo):
@@ -618,7 +618,7 @@ test2                                     dev          test2@example.com""",
             {"name": "test_task", "description": "Test Task"}
         ]
 
-        run_click_command(cci.task_list, obj=config)
+        run_click_command(cci.task_list, config=config)
 
         table = echo.call_args_list[0][0][0]
         self.assertEqual(
@@ -633,7 +633,7 @@ test_task  Test Task""",
         config = mock.Mock()
         config.global_config.tasks = {"test": {}}
 
-        run_click_command(cci.task_doc, obj=config)
+        run_click_command(cci.task_doc, config=config)
         doc_task.assert_called()
 
     @mock.patch("cumulusci.cli.cci.rst2ansi")
@@ -642,7 +642,7 @@ test_task  Test Task""",
         config = mock.Mock()
         config.project_config.tasks__test = {"options": {}}
 
-        run_click_command(cci.task_info, obj=config, task_name="test")
+        run_click_command(cci.task_info, config=config, task_name="test")
 
         doc_task.assert_called_once()
         rst2ansi.assert_called_once()
@@ -657,7 +657,7 @@ test_task  Test Task""",
 
         run_click_command(
             cci.task_run,
-            obj=config,
+            config=config,
             task_name="test",
             org=None,
             o=[("color", "blue")],
@@ -677,7 +677,7 @@ test_task  Test Task""",
         with self.assertRaises(TaskNotFoundError):
             run_click_command(
                 cci.task_run,
-                obj=config,
+                config=config,
                 task_name="test",
                 org=None,
                 o=[("color", "blue")],
@@ -697,7 +697,7 @@ test_task  Test Task""",
         with self.assertRaises(click.UsageError):
             run_click_command(
                 cci.task_run,
-                obj=config,
+                config=config,
                 task_name="test",
                 org=None,
                 o=[("bogus", "blue")],
@@ -719,7 +719,7 @@ test_task  Test Task""",
         with self.assertRaises(SetTrace):
             run_click_command(
                 cci.task_run,
-                obj=config,
+                config=config,
                 task_name="test",
                 org=None,
                 o=[("color", "blue")],
@@ -741,7 +741,7 @@ test_task  Test Task""",
         with self.assertRaises(SetTrace):
             run_click_command(
                 cci.task_run,
-                obj=config,
+                config=config,
                 task_name="test",
                 org=None,
                 o=[("color", "blue")],
@@ -762,7 +762,7 @@ test_task  Test Task""",
         with self.assertRaises(click.UsageError):
             run_click_command(
                 cci.task_run,
-                obj=config,
+                config=config,
                 task_name="test",
                 org=None,
                 o=[("color", "blue")],
@@ -783,7 +783,7 @@ test_task  Test Task""",
         with self.assertRaises(click.ClickException):
             run_click_command(
                 cci.task_run,
-                obj=config,
+                config=config,
                 task_name="test",
                 org=None,
                 o=[("color", "blue")],
@@ -805,7 +805,7 @@ test_task  Test Task""",
         with self.assertRaises(Exception):
             run_click_command(
                 cci.task_run,
-                obj=config,
+                config=config,
                 task_name="test",
                 org=None,
                 o=[("color", "blue")],
@@ -824,7 +824,7 @@ test_task  Test Task""",
             {"name": "test_flow", "description": "Test Flow"}
         ]
 
-        run_click_command(cci.flow_list, obj=config)
+        run_click_command(cci.flow_list, config=config)
 
         table = echo.call_args_list[0][0][0]
         self.assertEqual(
@@ -841,7 +841,7 @@ test_flow  Test Flow""",
             {"description": "Test Flow"}
         )
 
-        run_click_command(cci.flow_info, obj=config, flow_name="test")
+        run_click_command(cci.flow_info, config=config, flow_name="test")
 
         echo.assert_called_with("\x1b[1mdescription:\x1b[0m Test Flow")
 
@@ -862,7 +862,7 @@ test_flow  Test Flow""",
 
         run_click_command(
             cci.flow_run,
-            obj=config,
+            config=config,
             flow_name="test",
             org="test",
             delete_org=True,
@@ -883,7 +883,7 @@ test_flow  Test Flow""",
         with self.assertRaises(click.UsageError):
             run_click_command(
                 cci.flow_run,
-                obj=config,
+                config=config,
                 flow_name="test",
                 org="test",
                 delete_org=True,
@@ -911,7 +911,7 @@ test_flow  Test Flow""",
         with self.assertRaises(click.UsageError):
             run_click_command(
                 cci.flow_run,
-                obj=config,
+                config=config,
                 flow_name="test",
                 org="test",
                 delete_org=False,
@@ -939,7 +939,7 @@ test_flow  Test Flow""",
         with self.assertRaises(click.ClickException):
             run_click_command(
                 cci.flow_run,
-                obj=config,
+                config=config,
                 flow_name="test",
                 org="test",
                 delete_org=False,
@@ -968,7 +968,7 @@ test_flow  Test Flow""",
         with self.assertRaises(Exception):
             run_click_command(
                 cci.flow_run,
-                obj=config,
+                config=config,
                 flow_name="test",
                 org="test",
                 delete_org=False,
@@ -999,7 +999,7 @@ test_flow  Test Flow""",
 
         run_click_command(
             cci.flow_run,
-            obj=config,
+            config=config,
             flow_name="test",
             org="test",
             delete_org=True,
