@@ -2,6 +2,36 @@
 History
 =======
 
+2.1.0 (2018-10-16)
+------------------
+
+* Fixed the ``cci project init`` command, which was failing because it wanted
+  the project to already exist! Fixes #816. In addition, other commands
+  will now function without an active project or keychain when it possible
+  to do so. (For example, try ``cci version`` which now works when you're
+  not in a project directory.)
+* ``update_dependencies`` task:
+    * Added support for installing private github repositories as dependencies.
+      Thanks to Anthony Backhouse (@1handclapping) for the patch. Fixes #793
+    * Added a ``dependencies`` option to override the project dependencies.
+* ``execute_apex`` task:
+    * Print more useful error messages when there are Apex exceptions.
+* ``robot`` task:
+    * Our logic for automatically retrying failed selenium commands has been
+      encapsulated into the ``cumulusci.robotframework.utils.selenium_retry``
+      decorator which can be applied to a robot library class for increased
+      stability.
+    * There is now an option to pause and enter the Python debugger
+      after a keyword fails. Run with ``-o pdb True`.
+    * Revised keywords and locators to support the Winter '19 release of Salesforce
+      and improve stability.
+    * The ``Salesforce.robot`` file now includes the ``OperatingSystem`` and ``XML``
+      libraries from Robot Framework by default. These libraries are helpful in
+      building integration tests such as modifying and deploying a PageLayout
+      to include a field needed in Suite Setup of an integration test.
+* Revised installation instructions for Windows. Thanks Matthew Blanski (@Auchtor).
+* Internal change: Use a thread-local variable instead of a global to track the current running task.
+
 2.1.0b1 (2018-10-05)
 --------------------
 

@@ -86,7 +86,8 @@ class RetryingSeleniumLibraryMixin(object):
                     else:
                         result = orig_execute(driver_command, params)
                 except Exception:
-                    self.selenium.capture_page_screenshot()
+                    if driver_command != Command.SCREENSHOT:
+                        self.selenium.capture_page_screenshot()
                     if self.debug:
                         self.selenium.log_source()
                     raise
