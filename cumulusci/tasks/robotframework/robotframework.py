@@ -1,11 +1,16 @@
-from cumulusci.core.exceptions import RobotTestFailure
-from cumulusci.core.tasks import BaseTask
-from cumulusci.core.utils import process_list_arg
-from cumulusci.tasks.salesforce import BaseSalesforceTask
+import pdb
+
 from robot import run as robot_run
 from robot.libdoc import libdoc
 from robot.libraries.BuiltIn import BuiltIn
 from robot.testdoc import testdoc
+
+from cumulusci.core.exceptions import RobotTestFailure
+from cumulusci.core.tasks import BaseTask
+from cumulusci.core.utils import process_bool_arg
+from cumulusci.core.utils import process_list_arg
+from cumulusci.robotframework.utils import set_pdb_trace
+from cumulusci.tasks.salesforce import BaseSalesforceTask
 
 
 class Robot(BaseSalesforceTask):
@@ -26,6 +31,7 @@ class Robot(BaseSalesforceTask):
         "options": {
             "description": "A dictionary of options to robot.run method.  See docs here for format.  NOTE: There is no cci CLI support for this option since it requires a dictionary.  Use this option in the cumulusci.yml when defining custom tasks where you can easily create a dictionary in yaml."
         },
+        "pdb": {"description": "If true, run the Python debugger when tests fail."},
     }
 
     def _init_options(self, kwargs):
@@ -50,6 +56,9 @@ class Robot(BaseSalesforceTask):
         if "options" not in self.options:
             self.options["options"] = {}
 
+        if process_bool_arg(self.options.get("pdb")):
+            patch_statusreporter()
+
     def _run_task(self):
         options = self.options["options"].copy()
 
@@ -63,13 +72,6 @@ class Robot(BaseSalesforceTask):
             options["variable"] = self.options["vars"]
         if "xunit" in self.options:
             options["xunit"] = self.options["xunit"]
-
-        # Inject CumulusCIRobotListener to build the CumulusCI library instance
-        # from self.project_config instead of reinitializing CumulusCI's config
-        # listener = CumulusCIRobotListener(self.project_config, self.org_config.name)
-        # if 'listener' not in options:
-        #    options['listener'] = []
-        # options['listener'].append(listener)
 
         num_failed = robot_run(self.options["suites"], **options)
         if num_failed:
@@ -106,3 +108,18 @@ class RobotTestDoc(BaseTask):
 
     def _run_task(self):
         return testdoc(self.options["path"], self.options["output"])
+
+
+def patch_statusreporter():
+    """Monkey patch robotframework to do postmortem debugging
+    """
+    from robot.running.statusreporter import StatusReporter
+
+    orig_exit = StatusReporter.__exit__
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if exc_val and isinstance(exc_val, Exception):
+            set_pdb_trace(pm=True)
+        return orig_exit(self, exc_type, exc_val, exc_tb)
+
+    StatusReporter.__exit__ = __exit__

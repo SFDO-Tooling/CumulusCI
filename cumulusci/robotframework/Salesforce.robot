@@ -1,7 +1,9 @@
 *** Settings ***
 
 Library        Collections
+Library        OperatingSystem
 Library        String
+Library        XML
 Library        SeleniumLibrary  implicit_wait=${IMPLICIT_WAIT}  timeout=${TIMEOUT}
 Library        cumulusci.robotframework.CumulusCI  ${ORG}
 Library        cumulusci.robotframework.Salesforce  debug=${DEBUG}
@@ -51,6 +53,7 @@ Get Chrome Options
     ...             Chrome Set Headless  ${options}
     Run Keyword If  '${CHROME_BINARY}' != '${empty}'
     ...             Chrome Set Binary  ${options}
+    Call Method  ${options}  add_argument  --disable-notifications
     [return]  ${options}
 
 Chrome Set Binary
