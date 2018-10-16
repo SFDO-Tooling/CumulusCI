@@ -4,13 +4,13 @@ from robot.libraries.BuiltIn import BuiltIn
 from simple_salesforce import SalesforceMalformedRequest
 from simple_salesforce import SalesforceResourceNotFound
 from cumulusci.robotframework.locators import lex_locators
-from cumulusci.robotframework.utils import RetryingSeleniumLibraryMixin
 from cumulusci.robotframework.utils import selenium_retry
 
 OID_REGEX = r"[a-zA-Z0-9]{15,18}"
 
 
-class Salesforce(RetryingSeleniumLibraryMixin):
+@selenium_retry
+class Salesforce(object):
     ROBOT_LIBRARY_SCOPE = "GLOBAL"
 
     def __init__(self, debug=False):
@@ -29,18 +29,15 @@ class Salesforce(RetryingSeleniumLibraryMixin):
     def cumulusci(self):
         return self.builtin.get_library_instance("cumulusci.robotframework.CumulusCI")
 
-    @selenium_retry
     def click_modal_button(self, title):
         locator = lex_locators["modal"]["button"].format(title)
         self.selenium.click_button(locator)
 
-    @selenium_retry
     def click_object_button(self, title):
         locator = lex_locators["object"]["button"].format(title)
         self.selenium.click_link(locator)
         self.wait_until_modal_is_open()
 
-    @selenium_retry
     def click_related_list_button(self, heading, button_title):
         locator = lex_locators["record"]["related"]["button"].format(
             heading, button_title
@@ -48,13 +45,11 @@ class Salesforce(RetryingSeleniumLibraryMixin):
         self.selenium.click_link(locator)
         self.wait_until_modal_is_open()
 
-    @selenium_retry
     def close_modal(self):
         """ Closes the open modal """
         locator = lex_locators["modal"]["close"]
         self.selenium.click_button(locator)
 
-    @selenium_retry
     def current_app_should_be(self, app_name):
         """ Validate the currently selected Salesforce App """
         locator = lex_locators["app_launcher"]["current_app"].format(app_name)
@@ -106,7 +101,6 @@ class Salesforce(RetryingSeleniumLibraryMixin):
         res = self.cumulusci.sf.query_all(soql)
         return res["records"][0]["Id"]
 
-    @selenium_retry
     def get_related_list_count(self, heading):
         locator = lex_locators["record"]["related"]["count"].format(heading)
         count = self.selenium.get_webelement(locator).text
@@ -118,6 +112,7 @@ class Salesforce(RetryingSeleniumLibraryMixin):
         url = self.cumulusci.org.lightning_base_url
         url = "{}/lightning/o/{}/home".format(url, obj_name)
         self.selenium.go_to(url)
+        self.wait_until_loading_is_complete()
 
     def go_to_object_list(self, obj_name, filter_name=None):
         """ Navigates to the Home view of a Salesforce Object """
@@ -126,6 +121,7 @@ class Salesforce(RetryingSeleniumLibraryMixin):
         if filter_name:
             url += "?filterName={}".format(filter_name)
         self.selenium.go_to(url)
+        self.wait_until_loading_is_complete()
 
     def go_to_record_home(self, obj_id):
         """ Navigates to the Home view of a Salesforce Object """
@@ -138,13 +134,14 @@ class Salesforce(RetryingSeleniumLibraryMixin):
         """ Navigates to the Home tab of Salesforce Setup """
         url = self.cumulusci.org.lightning_base_url
         self.selenium.go_to(url + "/lightning/setup/SetupOneHome/home")
+        self.wait_until_loading_is_complete()
 
     def go_to_setup_object_manager(self):
         """ Navigates to the Object Manager tab of Salesforce Setup """
         url = self.cumulusci.org.lightning_base_url
         self.selenium.go_to(url + "/lightning/setup/ObjectManager/home")
+        self.wait_until_loading_is_complete()
 
-    @selenium_retry
     def header_field_should_have_value(self, label):
         """ Validates that a field in the record header has a text value.
             NOTE: Use other keywords for non-string value types
@@ -152,7 +149,6 @@ class Salesforce(RetryingSeleniumLibraryMixin):
         locator = lex_locators["record"]["header"]["field_value"].format(label)
         self.selenium.page_should_contain_element(locator)
 
-    @selenium_retry
     def header_field_should_not_have_value(self, label):
         """ Validates that a field in the record header does not have a value.
             NOTE: Use other keywords for non-string value types
@@ -160,25 +156,21 @@ class Salesforce(RetryingSeleniumLibraryMixin):
         locator = lex_locators["record"]["header"]["field_value"].format(label)
         self.selenium.page_should_not_contain_element(locator)
 
-    @selenium_retry
     def header_field_should_have_link(self, label):
         """ Validates that a field in the record header has a link as its value """
         locator = lex_locators["record"]["header"]["field_value_link"].format(label)
         self.selenium.page_should_contain_element(locator)
 
-    @selenium_retry
     def header_field_should_not_have_link(self, label):
         """ Validates that a field in the record header does not have a link as its value """
         locator = lex_locators["record"]["header"]["field_value_link"].format(label)
         self.selenium.page_should_not_contain_element(locator)
 
-    @selenium_retry
     def header_field_should_be_checked(self, label):
         """ Validates that a checkbox field in the record header is checked """
         locator = lex_locators["record"]["header"]["field_value_checked"].format(label)
         self.selenium.page_should_contain_element(locator)
 
-    @selenium_retry
     def header_field_should_be_unchecked(self, label):
         """ Validates that a checkbox field in the record header is unchecked """
         locator = lex_locators["record"]["header"]["field_value_unchecked"].format(
@@ -186,7 +178,6 @@ class Salesforce(RetryingSeleniumLibraryMixin):
         )
         self.selenium.page_should_contain_element(locator)
 
-    @selenium_retry
     def open_app_launcher(self):
         """ Opens the Saleforce App Launcher """
         locator = lex_locators["app_launcher"]["button"]
@@ -198,7 +189,6 @@ class Salesforce(RetryingSeleniumLibraryMixin):
         locator = lex_locators["object"]["field"].format(name)
         self._populate_field(locator, value)
 
-    @selenium_retry
     def populate_lookup_field(self, name, value):
         self.populate_field(name, value)
         self.wait_until_loading_is_complete()
@@ -206,7 +196,6 @@ class Salesforce(RetryingSeleniumLibraryMixin):
         self.selenium.set_focus_to_element(locator)
         self.selenium.get_webelement(locator).click()
 
-    @selenium_retry
     def _populate_field(self, locator, value):
         self.selenium.set_focus_to_element(locator)
         field = self.selenium.get_webelement(locator)
@@ -228,7 +217,6 @@ class Salesforce(RetryingSeleniumLibraryMixin):
                 )
             )
 
-    @selenium_retry
     def select_record_type(self, label):
         self.wait_until_modal_is_open()
         locator = lex_locators["object"]["record_type_option"].format(label)
@@ -236,7 +224,6 @@ class Salesforce(RetryingSeleniumLibraryMixin):
         locator = lex_locators["modal"]["button"].format("Next")
         self.selenium.click_button("Next")
 
-    @selenium_retry
     def select_app_launcher_app(self, app_name):
         """ Select a Salesforce App via App Launcher """
         locator = lex_locators["app_launcher"]["app_link"].format(app_name)
@@ -253,7 +240,6 @@ class Salesforce(RetryingSeleniumLibraryMixin):
         self.builtin.log("Waiting for modal to close")
         self.wait_until_modal_is_closed()
 
-    @selenium_retry
     def select_app_launcher_tab(self, tab_name):
         """ EXPERIMENTAL!!! """
         locator = lex_locators["app_launcher"]["tab_link"].format(tab_name)
@@ -322,14 +308,12 @@ class Salesforce(RetryingSeleniumLibraryMixin):
         self.builtin.log("Storing {} {} to session records".format(obj_type, obj_id))
         self._session_records.append({"type": obj_type, "id": obj_id})
 
-    @selenium_retry
     def wait_until_modal_is_open(self):
         """ Wait for modal to open """
         self.selenium.wait_until_page_contains_element(
             lex_locators["modal"]["is_open"], timeout=15
         )
 
-    @selenium_retry
     def wait_until_modal_is_closed(self):
         """ Wait for modal to close """
         self.selenium.wait_until_page_does_not_contain_element(

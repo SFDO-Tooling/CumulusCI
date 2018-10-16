@@ -1,5 +1,6 @@
-import time
 import functools
+import time
+import types
 from selenium.common.exceptions import ElementNotInteractableException
 from selenium.common.exceptions import StaleElementReferenceException
 from selenium.common.exceptions import WebDriverException
@@ -62,31 +63,6 @@ ALWAYS_RETRY_EXCEPTIONS = (
 )
 
 
-def selenium_retry(func):
-    """Decorator to turn on selenium retry for a robot keyword.
-
-    This is for use only with methods of a robotframework library
-    that subclasses RetryingSeleniumLibraryMixin.
-    """
-
-    @functools.wraps(func)
-    def run_with_retry(self, *args, **kwargs):
-        # We keep track of the retry setting using a stack
-        # so that multiple nested functions can use the decorator.
-        # The stack is initialized lazily here.
-        if not hasattr(self, "_retry_stack"):
-            self._retry_stack = []
-        self._retry_stack.append(True)
-        try:
-            return func(self, *args, **kwargs)
-        except Exception:
-            self.handle_selenium_exception()
-        finally:
-            self._retry_stack.pop()
-
-    return run_with_retry
-
-
 class RetryingSeleniumLibraryMixin(object):
 
     debug = False
@@ -101,10 +77,8 @@ class RetryingSeleniumLibraryMixin(object):
             orig_execute = selenium.driver.execute
 
             def execute(driver_command, params=None):
-                retry_stack = getattr(self, "_retry_stack", [])
-                retry_enabled = retry_stack and retry_stack[-1]
                 try:
-                    if retry_enabled:
+                    if self.retry_selenium:
                         # Retry certain failed commands once
                         result = self.selenium_execute_with_retry(
                             orig_execute, driver_command, params
@@ -112,7 +86,10 @@ class RetryingSeleniumLibraryMixin(object):
                     else:
                         result = orig_execute(driver_command, params)
                 except Exception:
-                    self.handle_selenium_exception()
+                    self.selenium.capture_page_screenshot()
+                    if self.debug:
+                        self.selenium.log_source()
+                    raise
 
                 # Run the "wait for aura" script after commands that are
                 # likely to invoke async actions.
@@ -145,13 +122,6 @@ class RetryingSeleniumLibraryMixin(object):
             else:
                 raise
 
-    def handle_selenium_exception(self):
-        self.selenium.capture_page_screenshot()
-        if self.debug:
-            self.selenium.log_source()
-            set_pdb_trace(pm=True)
-        raise
-
     def wait_for_aura(self):
         """Run the WAIT_FOR_AURA_SCRIPT.
 
@@ -159,3 +129,71 @@ class RetryingSeleniumLibraryMixin(object):
         all in-flight XHTTP requests have completed before continuing.
         """
         self.selenium.driver.execute_async_script(WAIT_FOR_AURA_SCRIPT)
+
+
+def selenium_retry(target=None, retry=True):
+    """Decorator to turn on automatic retries of flaky selenium failures.
+
+    Decorate a robotframework library class to turn on retries for all
+    selenium calls from that library:
+
+        @selenium_retry
+        class MyLibrary(object):
+
+            # Decorate a method to turn it back off for that method
+            @selenium_retry(False)
+            def some_keyword(self):
+                self.selenium.click_button('foo')
+
+    Or turn it off by default but turn it on for some methods
+    (the class-level decorator is still required):
+
+        @selenium_retry(False)
+        class MyLibrary(object):
+
+            @selenium_retry(True)
+            def some_keyword(self):
+                self.selenium.click_button('foo')
+
+    """
+
+    if isinstance(target, bool):
+        # Decorator was called with a single boolean argument
+        retry = target
+        target = None
+
+    def decorate(target):
+        if isinstance(target, type):
+            cls = target
+            # Metaclass time.
+            # We're going to generate a new subclass that:
+            # a) mixes in RetryingSeleniumLibraryMixin
+            # b) sets the initial value of `retry_selenium`
+            return type(
+                cls.__name__,
+                (cls, RetryingSeleniumLibraryMixin),
+                {"retry_selenium": retry},
+            )
+        func = target
+
+        @functools.wraps(func)
+        def run_with_retry(self, *args, **kwargs):
+            # Set the retry setting and run the original function.
+            old_retry = self.retry_selenium
+            self.retry = retry
+            try:
+                return func(self, *args, **kwargs)
+            finally:
+                # Restore the previous value
+                self.retry_selenium = old_retry
+
+        set_pdb_trace()
+        run_with_retry.is_selenium_retry_decorator = True
+        return run_with_retry
+
+    if target is None:
+        # Decorator is being used with arguments
+        return decorate
+    else:
+        # Decorator was used without arguments
+        return decorate(target)
