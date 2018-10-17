@@ -35,7 +35,11 @@ class TestUninstallPackagedIncremental(unittest.TestCase):
                 )
             project_config = create_project_config()
             project_config.config["project"]["package"]["name"] = "TestPackage"
-            task = create_task(UninstallPackagedIncremental, {}, project_config)
+            task = create_task(
+                UninstallPackagedIncremental,
+                {"ignore": {"ApexClass": ["Ignored"]}},
+                project_config,
+            )
             zf = zipfile.ZipFile(io.BytesIO(), "w")
             zf.writestr(
                 "package.xml",
@@ -49,6 +53,7 @@ class TestUninstallPackagedIncremental(unittest.TestCase):
         <members>Class1</members>
         <members>Class2</members>
         <members>Class3</members>
+        <members>Ignored</members>
         <name>ApexClass</name>
     </types>
     <types>

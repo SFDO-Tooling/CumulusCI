@@ -25,6 +25,9 @@ class UninstallPackagedIncremental(UninstallPackaged):
             "description": "Sets the purgeOnDelete option for the deployment.  Defaults to True",
             "required": True,
         },
+        "ignore": {
+            "description": "Components to ignore in the org and not try to delete. Mapping of component type to a list of member names."
+        },
     }
 
     def _init_options(self, kwargs):
@@ -34,6 +37,7 @@ class UninstallPackagedIncremental(UninstallPackaged):
         self.options["purge_on_delete"] = process_bool_arg(
             self.options.get("purge_on_delete", True)
         )
+        self.options["ignore"] = self.options.get("ignore") or {}
 
     def _get_destructive_changes(self, path=None):
         self.logger.info(
@@ -67,6 +71,7 @@ class UninstallPackagedIncremental(UninstallPackaged):
 
         delete = {}
 
+        ignore = self.options["ignore"]
         master_items = {}
         compare_items = {}
         md_types = master_xml["Package"].get("types", [])
@@ -88,10 +93,11 @@ class UninstallPackagedIncremental(UninstallPackaged):
             if "members" not in md_type:
                 continue
             if isinstance(md_type["members"], str):
-                compare_items[md_type["name"]].append(md_type["members"])
-            else:
-                for item in md_type["members"]:
-                    compare_items[md_type["name"]].append(item)
+                md_type["members"] = [md_type["members"]]
+            for item in md_type["members"]:
+                if item in ignore.get(md_type["name"], []):
+                    continue
+                compare_items[md_type["name"]].append(item)
 
         for md_type, members in compare_items.items():
             if md_type not in master_items:
