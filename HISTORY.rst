@@ -2,6 +2,11 @@
 History
 =======
 
+2.1.1b1 (2018-10-17)
+--------------------
+
+* ``uninstall_packaged_incremental`` task: Added ``ignore`` option to specify components to skip trying to delete even if they are present in the org but not in the local source.
+
 2.1.0 (2018-10-16)
 ------------------
 
