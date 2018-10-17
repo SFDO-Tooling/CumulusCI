@@ -22,7 +22,7 @@ History
       decorator which can be applied to a robot library class for increased
       stability.
     * There is now an option to pause and enter the Python debugger
-      after a keyword fails. Run with ``-o pdb True`.
+      after a keyword fails. Run with ``-o pdb True``.
     * Revised keywords and locators to support the Winter '19 release of Salesforce
       and improve stability.
     * The ``Salesforce.robot`` file now includes the ``OperatingSystem`` and ``XML``

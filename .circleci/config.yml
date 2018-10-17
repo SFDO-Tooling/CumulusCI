@@ -190,6 +190,7 @@ jobs:
             virtualenv venv
             venv/bin/pip install coverage coveralls
             venv/bin/coverage combine .coverage.*
+            venv/bin/coverage report -m
             venv/bin/coveralls
 
 
