@@ -54,14 +54,21 @@ class BaseFlow(object):
         self.parent = parent  # parent flow, if nested
         self.name = name  # the flows name.
         self.stepnum = stepnum  # a nested flow has a stepnum
+        self.actions = []  # the execution plan / computed list of actions.
+        self._init_actions()
         self._init_options()
         self._init_skip(skip)
         self._init_logger()
         self.prepped = False
-        if prep:
+        if prep:  # allow the caller to not init_org & print log
             self._init_flow()
 
+    def _init_actions(self):
+        """ initialize the flow with new style steps """
+        pass
+
     def _init_options(self):
+        """ initialize options passed in via the cli, in task_name__option format """
         if not self.options:
             return
         for key, value in list(self.options.items()):

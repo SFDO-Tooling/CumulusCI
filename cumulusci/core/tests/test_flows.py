@@ -4,7 +4,7 @@ import unittest
 import logging
 import mock
 
-from collections import Callable
+from collections.abc import Callable
 
 from cumulusci.core.flows import BaseFlow
 from cumulusci.core.tasks import BaseTask
@@ -277,6 +277,20 @@ class TestBaseFlow(unittest.TestCase):
 
         step = flow._find_step_by_name("nested_flow")
         self.assertIsInstance(step, BaseFlow)
+
+    def test_definitive_names_for_steps(self, mock_class):
+        flow_config = FlowConfig(
+            {
+                "description": "Run two tasks",
+                "steps": {
+                    1: {"task": "pass_name"},
+                    2: {"flow": "nested_flow_2"},
+                    3: {"task": "pass_name"},
+                },
+            }
+        )
+        flow = BaseFlow(self.project_config, flow_config, self.org_config)
+        flow()
 
     def test_render_task_config_empty_value(self, mock_class):
         """ The _render_task_config method skips option values of None """
