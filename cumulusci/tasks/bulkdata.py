@@ -3,7 +3,6 @@ from future import standard_library
 standard_library.install_aliases()
 from builtins import zip
 from contextlib import contextmanager
-from urllib.parse import urljoin
 import csv
 import datetime
 import io
@@ -61,7 +60,7 @@ def setup_epoch(inspector, table, column_info):
 
 class BulkJobTaskMixin(object):
     def _job_state_from_batches(self, job_id):
-        uri = urljoin(self.bulk.endpoint + "/", "job/{0}/batch".format(job_id))
+        uri = "{}/job/{}/batch".format(self.bulk.endpoint, job_id)
         response = requests.get(uri, headers=self.bulk.headers())
         return self._parse_job_state(response.content)
 
@@ -569,9 +568,8 @@ class QueryData(BulkJobTaskMixin, BaseSalesforceApiTask):
         result_ids = self.bulk.get_query_batch_result_ids(batch_id, job_id=job_id)
         for result_id in result_ids:
             self.logger.info("Result id: {}".format(result_id))
-            uri = urljoin(
-                self.bulk.endpoint + "/",
-                "job/{0}/batch/{1}/result/{2}".format(job_id, batch_id, result_id),
+            uri = "{}/job/{}/batch/{}/result/{}".format(
+                self.bulk.endpoint, job_id, batch_id, result_id
             )
             with _download_file(uri, self.bulk) as f:
                 self.logger.info("Result {} downloaded".format(result_id))

@@ -120,7 +120,7 @@ Header Field Should Not Have Link
 Click Header Field Link
     &{contact} =                       Create Contact
     Go To Record Home                  &{contact}[Id]
-    Click Header Field Link            Account Name
+    Click Header Field Link            Contact Owner
 
 Open App Launcher
     Go To Object Home    Contact
