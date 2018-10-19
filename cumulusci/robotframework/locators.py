@@ -31,9 +31,15 @@ lex_locators = {
             "field_value_unchecked": "//li[contains(@class, 'slds-page-header__detail-block')][.//span[contains(@class, 'slds-form-element__label')][@title='{}']]//span[contains(@class, 'uiOutputCheckbox')]//img[@alt='False']",
         },
         "related": {
+            "card": "//article[contains(@class, 'forceRelatedListCardDesktop')][.//img][.//span[@title='{}']]",
             "button": "//article[contains(@class, 'forceRelatedListCardDesktop')][.//img][.//span[@title='{}']]//a[@title='{}']",
             "count": "//article[contains(@class, 'forceRelatedListCardDesktop')][.//img]//span[@title='{}']/following-sibling::span",
+            "link": "//article[contains(@class, 'forceRelatedListCardDesktop')][.//img][.//span[@title='{}']]//table[contains(@class,'forceRecordLayout')]/tbody/tr[.//th/div/a[contains(@class,'textUnderline')]][.//td/a[@title='{}']]/th//a",
+            "popup_trigger": "//article[contains(@class, 'forceRelatedListCardDesktop')][.//img][.//span[@title='{}']]//tr[.//a[text()='{}']]//div[contains(@class, 'forceVirtualAction')]//a",
         },
+    },
+    "popup": {
+        "link": "//div[contains(@class, 'uiPopupTarget')][contains(@class, 'visible')]//a[@title='{}']"
     },
     "spinner": "css: div.slds-spinner",
     "tabs": {"tab": ""},
