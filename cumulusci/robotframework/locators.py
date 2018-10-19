@@ -37,4 +37,6 @@ lex_locators = {
     },
     "spinner": "css: div.slds-spinner",
     "tabs": {"tab": ""},
+    "actions": "css: ul.oneActionsRibbon",
+    "body": "//div[contains(@class, 'slds-template__container')]/*",
 }

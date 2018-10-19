@@ -117,6 +117,11 @@ Header Field Should Not Have Link
     Go To Record Home                  &{account}[Id]
     Header Field Should Not Have Link  Website
 
+Click Header Field Link
+    &{contact} =                       Create Contact
+    Go To Record Home                  &{contact}[Id]
+    Click Header Field Link            Contact Owner
+
 Open App Launcher
     Go To Object Home    Contact
     Open App Launcher

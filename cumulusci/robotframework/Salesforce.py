@@ -1,10 +1,13 @@
 import logging
 import re
+import time
 from robot.libraries.BuiltIn import BuiltIn
+from selenium.webdriver.common.keys import Keys
 from simple_salesforce import SalesforceMalformedRequest
 from simple_salesforce import SalesforceResourceNotFound
 from cumulusci.robotframework.locators import lex_locators
 from cumulusci.robotframework.utils import selenium_retry
+from SeleniumLibrary.errors import ElementNotFound
 
 OID_REGEX = r"[a-zA-Z0-9]{15,18}"
 
@@ -112,7 +115,7 @@ class Salesforce(object):
         url = self.cumulusci.org.lightning_base_url
         url = "{}/lightning/o/{}/home".format(url, obj_name)
         self.selenium.go_to(url)
-        self.wait_until_loading_is_complete()
+        self.wait_until_loading_is_complete(lex_locators["actions"])
 
     def go_to_object_list(self, obj_name, filter_name=None):
         """ Navigates to the Home view of a Salesforce Object """
@@ -121,14 +124,14 @@ class Salesforce(object):
         if filter_name:
             url += "?filterName={}".format(filter_name)
         self.selenium.go_to(url)
-        self.wait_until_loading_is_complete()
+        self.wait_until_loading_is_complete(lex_locators["actions"])
 
     def go_to_record_home(self, obj_id):
         """ Navigates to the Home view of a Salesforce Object """
         url = self.cumulusci.org.lightning_base_url
         url = "{}/lightning/r/{}/view".format(url, obj_id)
         self.selenium.go_to(url)
-        self.wait_until_loading_is_complete()
+        self.wait_until_loading_is_complete(lex_locators["actions"])
 
     def go_to_setup_home(self):
         """ Navigates to the Home tab of Salesforce Setup """
@@ -166,6 +169,10 @@ class Salesforce(object):
         locator = lex_locators["record"]["header"]["field_value_link"].format(label)
         self.selenium.page_should_not_contain_element(locator)
 
+    def click_header_field_link(self, label):
+        locator = lex_locators["record"]["header"]["field_value_link"].format(label)
+        self.selenium.click_link(locator)
+
     def header_field_should_be_checked(self, label):
         """ Validates that a checkbox field in the record header is checked """
         locator = lex_locators["record"]["header"]["field_value_checked"].format(label)
@@ -190,11 +197,22 @@ class Salesforce(object):
         self._populate_field(locator, value)
 
     def populate_lookup_field(self, name, value):
+        input_locator = lex_locators["object"]["field"].format(name)
+        menu_locator = lex_locators["object"]["field_lookup_link"].format(value)
         self.populate_field(name, value)
-        self.wait_until_loading_is_complete()
-        locator = lex_locators["object"]["field_lookup_link"].format(value)
-        self.selenium.set_focus_to_element(locator)
-        self.selenium.get_webelement(locator).click()
+        for x in range(3):
+            self.wait_for_aura()
+            try:
+                self.selenium.get_webelement(menu_locator)
+            except ElementNotFound:
+                # Give indexing a chance to catch up
+                time.sleep(2)
+                field = self.selenium.get_webelement(input_locator)
+                field.send_keys(Keys.BACK_SPACE)
+            else:
+                break
+        self.selenium.set_focus_to_element(menu_locator)
+        self.selenium.get_webelement(menu_locator).click()
 
     def _populate_field(self, locator, value):
         self.selenium.set_focus_to_element(locator)
@@ -320,10 +338,10 @@ class Salesforce(object):
             lex_locators["modal"]["is_open"], timeout=15
         )
 
-    def wait_until_loading_is_complete(self):
-        """Wait until in-flight XHTTP requests have completed.
+    def wait_until_loading_is_complete(self, locator=lex_locators["body"]):
+        """Wait for LEX page to load.
 
-        (Note that Aura may still be processing actions that occur
-        upon completion of those requests.)
+        (We're actually waiting for the actions ribbon to appear.)
         """
+        self.selenium.wait_until_page_contains_element(locator)
         self.wait_for_aura()
