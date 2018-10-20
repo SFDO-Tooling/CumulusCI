@@ -51,6 +51,9 @@ def dictmerge(a, b, name=None):
 
     key = None
 
+    if b is None:
+        return a
+
     try:
         if a is None or isinstance(a, (bytes, int, str, float)):
             # first run, or if ``a``` is a scalar
@@ -73,7 +76,9 @@ def dictmerge(a, b, name=None):
                         a[key] = b[key]
             else:
                 raise TypeError(
-                    'Cannot merge non-dict "{}" into dict "{}"'.format(b, a)
+                    'Cannot merge non-dict of type "{}" into dict "{}"'.format(
+                        type(b), a
+                    )
                 )
         else:
             raise TypeError(
@@ -84,7 +89,7 @@ def dictmerge(a, b, name=None):
     except TypeError as e:
         raise ConfigMergeError(
             'TypeError "{}" in key "{}" when merging "{}" into "{}"'.format(
-                e, key, b, a
+                e, key, type(b), type(a)
             ),
             config_name=name,
         )
