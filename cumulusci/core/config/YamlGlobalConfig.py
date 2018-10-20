@@ -5,7 +5,7 @@ import hiyapyco
 import yaml
 
 from cumulusci.core.config import BaseGlobalConfig
-from cumulusci.core.config.YamlProjectConfig import YamlProjectConfig
+from cumulusci.core.config import YamlProjectConfig
 
 __location__ = os.path.dirname(os.path.realpath(__file__))
 

@@ -1,7 +1,7 @@
 from __future__ import unicode_literals
 import os
 
-from cumulusci.core.config.BaseProjectConfig import BaseProjectConfig
+from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.config import BaseTaskFlowConfig
 
 
