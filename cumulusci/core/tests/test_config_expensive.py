@@ -11,7 +11,7 @@ import mock
 import yaml
 
 from cumulusci.core.config import ScratchOrgConfig
-from cumulusci.core.config import YamlGlobalConfig
+from cumulusci.core.config import BaseGlobalConfig
 from cumulusci.core.config import YamlProjectConfig
 from cumulusci.core.exceptions import NotInProject
 from cumulusci.core.exceptions import ProjectConfigNotFound
@@ -21,7 +21,7 @@ __location__ = os.path.dirname(os.path.realpath(__file__))
 
 
 @mock.patch("os.path.expanduser")
-class TestYamlGlobalConfig(unittest.TestCase):
+class TestBaseGlobalConfig(unittest.TestCase):
     def setUp(self):
         self.tempdir_home = tempfile.mkdtemp()
 
@@ -29,7 +29,7 @@ class TestYamlGlobalConfig(unittest.TestCase):
         self.tempdir_home = tempfile.mkdtemp()
         global_local_dir = os.path.join(self.tempdir_home, ".cumulusci")
         os.makedirs(global_local_dir)
-        filename = os.path.join(global_local_dir, YamlGlobalConfig.config_filename)
+        filename = os.path.join(global_local_dir, BaseGlobalConfig.config_filename)
         self._write_file(filename, content)
 
     def _write_file(self, filename, content):
@@ -38,7 +38,7 @@ class TestYamlGlobalConfig(unittest.TestCase):
 
     def test_load_global_config_no_local(self, mock_class):
         mock_class.return_value = self.tempdir_home
-        config = YamlGlobalConfig()
+        config = BaseGlobalConfig()
         with open(__location__ + "/../../cumulusci.yml", "r") as f_expected_config:
             expected_config = yaml.safe_load(f_expected_config)
         self.assertEqual(config.config, expected_config)
@@ -47,7 +47,7 @@ class TestYamlGlobalConfig(unittest.TestCase):
         self._create_global_config_local("")
         mock_class.return_value = self.tempdir_home
 
-        config = YamlGlobalConfig()
+        config = BaseGlobalConfig()
         with open(__location__ + "/../../cumulusci.yml", "r") as f_expected_config:
             expected_config = yaml.safe_load(f_expected_config)
         self.assertEqual(config.config, expected_config)
@@ -57,7 +57,7 @@ class TestYamlGlobalConfig(unittest.TestCase):
         self._create_global_config_local(local_yaml)
         mock_class.return_value = self.tempdir_home
 
-        config = YamlGlobalConfig()
+        config = BaseGlobalConfig()
         with open(__location__ + "/../../cumulusci.yml", "r") as f_expected_config:
             expected_config = yaml.safe_load(f_expected_config)
         expected_config["tasks"]["newtesttask"] = {}
@@ -88,7 +88,7 @@ class TestYamlProjectConfig(unittest.TestCase):
     def _create_global_config_local(self, content):
         global_local_dir = os.path.join(self.tempdir_home, ".cumulusci")
         os.makedirs(global_local_dir)
-        filename = os.path.join(global_local_dir, YamlGlobalConfig.config_filename)
+        filename = os.path.join(global_local_dir, BaseGlobalConfig.config_filename)
         self._write_file(filename, content)
 
     def _create_project_config(self):
@@ -127,7 +127,7 @@ class TestYamlProjectConfig(unittest.TestCase):
     def test_load_project_config_not_repo(self, mock_class):
         mock_class.return_value = self.tempdir_home
         os.chdir(self.tempdir_project)
-        global_config = YamlGlobalConfig()
+        global_config = BaseGlobalConfig()
         with self.assertRaises(NotInProject):
             config = YamlProjectConfig(global_config)
 
@@ -135,7 +135,7 @@ class TestYamlProjectConfig(unittest.TestCase):
         mock_class.return_value = self.tempdir_home
         os.mkdir(os.path.join(self.tempdir_project, ".git"))
         os.chdir(self.tempdir_project)
-        global_config = YamlGlobalConfig()
+        global_config = BaseGlobalConfig()
         with self.assertRaises(ProjectConfigNotFound):
             config = YamlProjectConfig(global_config)
 
@@ -149,7 +149,7 @@ class TestYamlProjectConfig(unittest.TestCase):
         self._write_file(filename, content)
 
         os.chdir(self.tempdir_project)
-        global_config = YamlGlobalConfig()
+        global_config = BaseGlobalConfig()
         config = YamlProjectConfig(global_config)
         self.assertEqual(config.config_project, {})
 
@@ -164,7 +164,7 @@ class TestYamlProjectConfig(unittest.TestCase):
         self._create_project_config()
 
         os.chdir(self.tempdir_project)
-        global_config = YamlGlobalConfig()
+        global_config = BaseGlobalConfig()
         config = YamlProjectConfig(global_config)
         self.assertEqual(config.project__package__name, "TestProject")
         self.assertEqual(config.project__package__namespace, "testproject")
@@ -178,7 +178,7 @@ class TestYamlProjectConfig(unittest.TestCase):
         self._create_project_config()
 
         os.chdir(self.tempdir_project)
-        global_config = YamlGlobalConfig()
+        global_config = BaseGlobalConfig()
         config = YamlProjectConfig(global_config)
         self.assertEqual(config.repo_owner, "TestOwner")
 
@@ -191,7 +191,7 @@ class TestYamlProjectConfig(unittest.TestCase):
         self._create_project_config()
 
         os.chdir(self.tempdir_project)
-        global_config = YamlGlobalConfig()
+        global_config = BaseGlobalConfig()
         config = YamlProjectConfig(global_config)
         self.assertEqual(config.repo_branch, self.current_branch)
 
@@ -204,7 +204,7 @@ class TestYamlProjectConfig(unittest.TestCase):
         self._create_project_config()
 
         os.chdir(self.tempdir_project)
-        global_config = YamlGlobalConfig()
+        global_config = BaseGlobalConfig()
         config = YamlProjectConfig(global_config)
         self.assertEqual(config.repo_commit, self.current_commit)
 
@@ -221,7 +221,7 @@ class TestYamlProjectConfig(unittest.TestCase):
         self._create_project_config_local(content)
 
         os.chdir(self.tempdir_project)
-        global_config = YamlGlobalConfig()
+        global_config = BaseGlobalConfig()
         config = YamlProjectConfig(global_config)
         self.assertNotEqual(config.config_project_local, {})
         self.assertEqual(config.project__package__api_version, 10)
@@ -238,7 +238,7 @@ class TestYamlProjectConfig(unittest.TestCase):
         content = "project:\n" + "    package:\n" + "        api_version: 10\n"
 
         os.chdir(self.tempdir_project)
-        global_config = YamlGlobalConfig()
+        global_config = BaseGlobalConfig()
         config = YamlProjectConfig(global_config, additional_yaml=content)
         self.assertNotEqual(config.config_additional_yaml, {})
         self.assertEqual(config.project__package__api_version, 10)

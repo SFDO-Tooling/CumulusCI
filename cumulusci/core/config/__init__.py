@@ -40,17 +40,16 @@ from cumulusci.core.config.BaseTaskFlowConfig import BaseTaskFlowConfig
 
 
 # inherit from BaseTaskFlowConfig
-from cumulusci.core.config.BaseGlobalConfig import BaseGlobalConfig
 from cumulusci.core.config.BaseProjectConfig import BaseProjectConfig
 
 # inherit from OrgConfig
 from cumulusci.core.config.ScratchOrgConfig import ScratchOrgConfig
 
-# inherit from BaseGlobalConfig
-from cumulusci.core.config.YamlGlobalConfig import YamlGlobalConfig
-
 # inherit from BaseProjectConfig
 from cumulusci.core.config.YamlProjectConfig import YamlProjectConfig
+
+from cumulusci.core.config.BaseGlobalConfig import BaseGlobalConfig
+
 
 __all__ = [
     "FAILED_TO_CREATE_SCRATCH_ORG",
@@ -66,6 +65,5 @@ __all__ = [
     "BaseGlobalConfig",
     "BaseProjectConfig",
     "ScratchOrgConfig",
-    "YamlGlobalConfig",
     "YamlProjectConfig",
 ]

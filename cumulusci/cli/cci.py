@@ -32,7 +32,7 @@ from cumulusci.core.config import OrgConfig
 from cumulusci.core.config import ScratchOrgConfig
 from cumulusci.core.config import ServiceConfig
 from cumulusci.core.config import TaskConfig
-from cumulusci.core.config import YamlGlobalConfig
+from cumulusci.core.config import BaseGlobalConfig
 from cumulusci.core.config import YamlProjectConfig
 from cumulusci.core.exceptions import ConfigError
 from cumulusci.core.exceptions import CumulusCIFailure
@@ -58,7 +58,7 @@ import re
 def timestamp_file():
     """Opens a file for tracking the time of the last version check"""
     config_dir = os.path.join(
-        os.path.expanduser("~"), YamlGlobalConfig.config_local_dir
+        os.path.expanduser("~"), BaseGlobalConfig.config_local_dir
     )
 
     if not os.path.exists(config_dir):

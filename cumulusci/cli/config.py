@@ -6,7 +6,7 @@ from subprocess import call
 
 import pkg_resources
 
-from cumulusci.core.config import YamlGlobalConfig
+from cumulusci.core.config import BaseGlobalConfig
 from cumulusci.core.exceptions import ConfigError
 from cumulusci.core.exceptions import NotInProject
 from cumulusci.core.exceptions import OrgNotFound
@@ -34,7 +34,7 @@ class CliConfig(object):
             sys.path.append(self.project_config.repo_root)
 
     def _load_global_config(self):
-        self.global_config = YamlGlobalConfig()
+        self.global_config = BaseGlobalConfig()
 
     def _load_project_config(self):
         try:
