@@ -9,6 +9,7 @@ from cumulusci.core.config.BaseConfig import BaseConfig
 
 from cumulusci.core.config.MergedConfig import MergedConfig
 
+
 class ConnectedAppOAuthConfig(BaseConfig):
     """ Salesforce Connected App OAuth configuration """
 
@@ -32,6 +33,7 @@ class TaskConfig(BaseConfig):
     """ A task with its configuration merged """
 
     pass
+
 
 from cumulusci.core.config.BaseTaskFlowConfig import BaseTaskFlowConfig
 

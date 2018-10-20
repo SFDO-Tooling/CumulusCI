@@ -72,6 +72,7 @@ class ConfigError(CumulusCIException):
 
     pass
 
+
 class ConfigMergeError(ConfigError):
     """ Raised when merging configuration fails. """
 
