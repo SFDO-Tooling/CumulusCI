@@ -1,12 +1,15 @@
+import io
+import yaml
+
 from builtins import bytes, int, str
 from collections import OrderedDict
 
 from cumulusci.core.config import BaseConfig
-from cumulusci.core.exceptions import ConfigMergeError
+from cumulusci.core.exceptions import ConfigMergeError, ConfigError
 
 
 class MergedConfig(BaseConfig):
-    """ A merged config takes a list of dicts and merges them in priority order."""
+    """ A merged config takes a collection of dicts and merges them in priority order."""
 
     def __init__(self, **configs):
         """ MergedConfig(user_config={}, base_config={},) """
@@ -22,6 +25,21 @@ class MergedConfig(BaseConfig):
             new_config = dictmerge(new_config, self.configs[name], name)
 
         self.config = new_config
+
+
+class MergedYamlConfig(MergedConfig):
+    """ A merged config that takes strings of YAML instead of python dicts. """
+
+    def __init__(self, **configs):
+        parsed_configs = {}
+        for name, config in configs.items():
+            try:
+                parsed_configs[name] = yaml.safe_load(config)
+            except yaml.YAMLError as err:
+                raise ConfigError(
+                    f"Error parsing YAML for {name}: {err}", config_name=name
+                )
+        super(MergedYamlConfig, self).__init__(**parsed_configs)
 
 
 def dictmerge(a, b, name=None):
@@ -64,11 +82,10 @@ def dictmerge(a, b, name=None):
                 )
             )
     except TypeError as e:
-        config_err = ConfigMergeError(
+        raise ConfigMergeError(
             'TypeError "{}" in key "{}" when merging "{}" into "{}"'.format(
                 e, key, b, a
-            )
+            ),
+            config_name=name,
         )
-        config_err.filename = name
-        raise config_err
     return a
