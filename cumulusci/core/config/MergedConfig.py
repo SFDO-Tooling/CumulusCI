@@ -50,7 +50,7 @@ def dictmerge(a, b, name=None):
             if isinstance(b, dict):
                 for key in b:
                     if key in a:
-                        a[key] = dictmerge(a[key], b[key])
+                        a[key] = dictmerge(a[key], b[key], name)
                     else:
                         a[key] = b[key]
             else:
