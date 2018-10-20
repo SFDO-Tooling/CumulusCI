@@ -20,8 +20,6 @@ from cumulusci.core.github import get_github_api
 class BaseProjectConfig(BaseTaskFlowConfig):
     """ Base class for a project's configuration which extends the global config """
 
-    search_path = ["config"]
-
     def __init__(self, global_config_obj, config=None):
         self.global_config_obj = global_config_obj
         self.keychain = None
