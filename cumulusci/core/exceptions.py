@@ -72,6 +72,11 @@ class ConfigError(CumulusCIException):
 
     pass
 
+class ConfigMergeError(ConfigError):
+    """ Raised when merging configuration fails. """
+
+    pass
+
 
 class AntTargetException(CumulusCIException):
     """ Raised when a generic Ant target error occurs """

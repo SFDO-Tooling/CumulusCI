@@ -7,6 +7,7 @@ from cumulusci.core.config.BaseConfig import BaseConfig
 
 # inherit from BaseConfig
 
+from cumulusci.core.config.MergedConfig import MergedConfig
 
 class ConnectedAppOAuthConfig(BaseConfig):
     """ Salesforce Connected App OAuth configuration """
@@ -51,6 +52,7 @@ from cumulusci.core.config.YamlProjectConfig import YamlProjectConfig
 __all__ = [
     "FAILED_TO_CREATE_SCRATCH_ORG",
     "BaseConfig",
+    "MergedConfig",
     "ConnectedAppOAuthConfig",
     "FlowConfig",
     "OrgConfig",
