@@ -70,9 +70,9 @@ class DependencyResolutionError(CumulusCIException):
 class ConfigError(CumulusCIException):
     """ Raised when a configuration enounters an error """
 
-    def __init__(self, message, **kwargs):
+    def __init__(self, message=None, **kwargs):
         super(ConfigError, self).__init__(message)
-        self.config_name = kwargs.get('config_name',"")
+        self.config_name = kwargs.get("config_name", "")
 
 
 class ConfigMergeError(ConfigError):
