@@ -28,7 +28,6 @@ requirements = [
     "docutils==0.14",
     "future==0.16.0",
     "github3.py==0.9.6",
-    "HiYaPyCo>=0.4.11",
     "lxml==4.2.4",
     "plaintable==0.1.1",
     "pytz==2018.5",

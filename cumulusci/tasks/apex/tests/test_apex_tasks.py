@@ -47,7 +47,9 @@ class TestRunApexTests(unittest.TestCase):
             "poll_interval": 1,
             "test_name_match": "%_TEST",
         }
-        self.project_config = BaseProjectConfig(self.global_config, config={'noyaml': True})
+        self.project_config = BaseProjectConfig(
+            self.global_config, config={"noyaml": True}
+        )
         self.project_config.config["project"] = {
             "package": {"api_version": self.api_version}
         }
@@ -252,7 +254,9 @@ class TestAnonymousApexTask(unittest.TestCase):
             "apex": 'system.debug("Hello World!")',
             "namespaced": True,
         }
-        self.project_config = BaseProjectConfig(self.global_config, config={'noyaml':True})
+        self.project_config = BaseProjectConfig(
+            self.global_config, config={"noyaml": True}
+        )
         self.project_config.config = {
             "project": {
                 "package": {"namespace": "abc", "api_version": self.api_version}

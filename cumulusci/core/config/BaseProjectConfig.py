@@ -5,11 +5,10 @@ from distutils.version import LooseVersion
 import os
 import yaml
 
-import hiyapyco
 import raven
 
 import cumulusci
-from cumulusci.core.config import BaseTaskFlowConfig
+from cumulusci.core.config import BaseTaskFlowConfig, MergedConfig
 from cumulusci.core.exceptions import (
     ConfigError,
     DependencyResolutionError,
@@ -76,17 +75,12 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                 )
             )
 
-        # Start the merged yaml config from the global and global local configs
-        merge_yaml = [self.global_config_obj.config_global_path]
-        if self.global_config_obj.config_global_local_path:
-            merge_yaml.append(self.global_config_obj.config_global_local_path)
-
         # Load the project's yaml config file
         with open(self.config_project_path, "r") as f_config:
             project_config = yaml.safe_load(f_config)
+
         if project_config:
             self.config_project.update(project_config)
-            merge_yaml.append(self.config_project_path)
 
         # Load the local project yaml config file if it exists
         if self.config_project_local_path:
@@ -94,18 +88,20 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                 local_config = yaml.safe_load(f_local_config)
             if local_config:
                 self.config_project_local.update(local_config)
-                merge_yaml.append(self.config_project_local_path)
 
         # merge in any additional yaml that was passed along
         if self.additional_yaml:
             additional_yaml_config = yaml.safe_load(self.additional_yaml)
             if additional_yaml_config:
                 self.config_additional_yaml.update(additional_yaml_config)
-                merge_yaml.append(self.additional_yaml)
 
-        self.config = hiyapyco.load(
-            *merge_yaml, method=hiyapyco.METHOD_MERGE, loglevel="INFO"
-        )
+        self.config = MergedConfig(
+            additional_yaml=self.config_additional_yaml,
+            project_local_config=self.config_project_local,
+            project_config=self.config_project,
+            global_local=self.global_config_obj.config_global_local,
+            global_config=self.global_config_obj.config_global,
+        ).config
 
     @property
     def config_global_local(self):
@@ -567,8 +563,8 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
         # Get the cumulusci.yml file
         contents = repo.contents("cumulusci.yml", **kwargs)
-        cumulusci_yml = hiyapyco.load(
-            bytes_to_native_str(contents.decoded), loglevel="INFO"
+        cumulusci_yml = yaml.safe_load(
+            contents.decoded
         )
 
         # Get the namespace from the cumulusci.yml if set
