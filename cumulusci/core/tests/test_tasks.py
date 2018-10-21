@@ -53,7 +53,9 @@ class TestBaseTaskCallable(unittest.TestCase):
 
     def setUp(self):
         self.global_config = BaseGlobalConfig()
-        self.project_config = BaseProjectConfig(self.global_config)
+        self.project_config = BaseProjectConfig(
+            self.global_config, config={"noyaml": True}
+        )
         self.org_config = OrgConfig({"username": USERNAME, "org_id": ORG_ID}, "test")
         self.task_config = TaskConfig()
         self._task_log_handler.reset()

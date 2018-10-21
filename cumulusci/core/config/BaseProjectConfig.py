@@ -10,7 +10,15 @@ import raven
 
 import cumulusci
 from cumulusci.core.config import BaseTaskFlowConfig
-from cumulusci.core.exceptions import (ConfigError, DependencyResolutionError, KeychainNotFound, ServiceNotConfigured, ServiceNotValid,NotInProject, ProjectConfigNotFound)
+from cumulusci.core.exceptions import (
+    ConfigError,
+    DependencyResolutionError,
+    KeychainNotFound,
+    ServiceNotConfigured,
+    ServiceNotValid,
+    NotInProject,
+    ProjectConfigNotFound,
+)
 from cumulusci.core.github import get_github_api
 
 
@@ -46,9 +54,13 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             return path
 
     def _load_config(self):
-        if self.config:
+        """ Loads the configuration from YAML, if no override config was passed in initially. """
+
+        if (
+            self.config
+        ):  # any config being pre-set at init will short circuit out, but not a plain {}
             return
-        """ Loads the configuration for the project """
+
         # Verify that we're in a project #TODO: this broke in refactor?
         repo_root = self.repo_root
         if not repo_root:
@@ -408,10 +420,11 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         if self.project__name:
             name = self.project__name
         else:
-            try:
-                name = self.config_project["project"]["name"]
-            except KeyError:
-                name = ""
+            name = self.config_project.get("project", {}).get("name", "")
+        if name is None:
+            name = (
+                ""
+            )  # not entirely sure why this was happening in tests but this is the goal...
 
         path = os.path.join(
             os.path.expanduser("~"), self.global_config_obj.config_local_dir, name
