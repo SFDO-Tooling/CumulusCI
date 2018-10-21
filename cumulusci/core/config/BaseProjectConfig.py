@@ -3,29 +3,97 @@ from future.utils import bytes_to_native_str
 from collections import OrderedDict
 from distutils.version import LooseVersion
 import os
+import yaml
 
 import hiyapyco
 import raven
 
 import cumulusci
 from cumulusci.core.config import BaseTaskFlowConfig
-from cumulusci.core.exceptions import ConfigError
-from cumulusci.core.exceptions import DependencyResolutionError
-from cumulusci.core.exceptions import KeychainNotFound
-from cumulusci.core.exceptions import ServiceNotConfigured
-from cumulusci.core.exceptions import ServiceNotValid
+from cumulusci.core.exceptions import (ConfigError, DependencyResolutionError, KeychainNotFound, ServiceNotConfigured, ServiceNotValid,NotInProject, ProjectConfigNotFound)
 from cumulusci.core.github import get_github_api
 
 
 class BaseProjectConfig(BaseTaskFlowConfig):
     """ Base class for a project's configuration which extends the global config """
 
-    def __init__(self, global_config_obj, config=None):
+    config_filename = "cumulusci.yml"
+
+    def __init__(self, global_config_obj, config=None, *args, **kwargs):
         self.global_config_obj = global_config_obj
         self.keychain = None
+        self._repo_info = None
         if not config:
             config = {}
+
+        # Initialize the dictionaries for the individual configs
+        self.config_project = {}
+        self.config_project_local = {}
+        self.config_additional_yaml = {}
+
+        # optionally pass in a kwarg named 'additional_yaml' that will
+        # be added to the YAML merge stack.
+        self.additional_yaml = None
+        if "additional_yaml" in kwargs:
+            self.additional_yaml = kwargs.pop("additional_yaml")
+
         super(BaseProjectConfig, self).__init__(config=config)
+
+    @property
+    def config_project_local_path(self):
+        path = os.path.join(self.project_local_dir, self.config_filename)
+        if os.path.isfile(path):
+            return path
+
+    def _load_config(self):
+        if self.config:
+            return
+        """ Loads the configuration for the project """
+        # Verify that we're in a project #TODO: this broke in refactor?
+        repo_root = self.repo_root
+        if not repo_root:
+            raise NotInProject(
+                "No git repository was found in the current path. You must be in a git repository to set up and use CCI for a project."
+            )
+
+        # Verify that the project's root has a config file
+        if not self.config_project_path:
+            raise ProjectConfigNotFound(
+                "The file {} was not found in the repo root: {}. Are you in a CumulusCI Project directory?".format(
+                    self.config_filename, repo_root
+                )
+            )
+
+        # Start the merged yaml config from the global and global local configs
+        merge_yaml = [self.global_config_obj.config_global_path]
+        if self.global_config_obj.config_global_local_path:
+            merge_yaml.append(self.global_config_obj.config_global_local_path)
+
+        # Load the project's yaml config file
+        with open(self.config_project_path, "r") as f_config:
+            project_config = yaml.safe_load(f_config)
+        if project_config:
+            self.config_project.update(project_config)
+            merge_yaml.append(self.config_project_path)
+
+        # Load the local project yaml config file if it exists
+        if self.config_project_local_path:
+            with open(self.config_project_local_path, "r") as f_local_config:
+                local_config = yaml.safe_load(f_local_config)
+            if local_config:
+                self.config_project_local.update(local_config)
+                merge_yaml.append(self.config_project_local_path)
+
+        # merge in any additional yaml that was passed along
+        if self.additional_yaml:
+            additional_yaml_config = yaml.safe_load(self.additional_yaml)
+            if additional_yaml_config:
+                self.config_additional_yaml.update(additional_yaml_config)
+                merge_yaml.append(self.additional_yaml)
+
+        self.config = hiyapyco.load(
+            *merge_yaml, method=hiyapyco.METHOD_MERGE, loglevel="INFO"
+        )
 
     @property
     def config_global_local(self):
@@ -37,7 +105,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
     @property
     def repo_info(self):
-        if hasattr(self, "_repo_info"):
+        if self._repo_info is not None:
             return self._repo_info
 
         # Detect if we are running in a CI environment and get repo info

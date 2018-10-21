@@ -46,8 +46,6 @@ from cumulusci.core.config.BaseProjectConfig import BaseProjectConfig
 from cumulusci.core.config.ScratchOrgConfig import ScratchOrgConfig
 
 # inherit from BaseProjectConfig
-from cumulusci.core.config.YamlProjectConfig import YamlProjectConfig
-
 from cumulusci.core.config.BaseGlobalConfig import BaseGlobalConfig
 
 
@@ -65,5 +63,4 @@ __all__ = [
     "BaseGlobalConfig",
     "BaseProjectConfig",
     "ScratchOrgConfig",
-    "YamlProjectConfig",
 ]

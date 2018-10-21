@@ -33,7 +33,6 @@ from cumulusci.core.config import ScratchOrgConfig
 from cumulusci.core.config import ServiceConfig
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.config import BaseGlobalConfig
-from cumulusci.core.config import YamlProjectConfig
 from cumulusci.core.exceptions import ConfigError
 from cumulusci.core.exceptions import CumulusCIFailure
 from cumulusci.core.exceptions import CumulusCIUsageError

@@ -2,7 +2,7 @@ from __future__ import unicode_literals
 import os
 
 import yaml
-from cumulusci.core.config.YamlProjectConfig import YamlProjectConfig
+from cumulusci.core.config.BaseProjectConfig import BaseProjectConfig
 from cumulusci.core.config.MergedConfig import MergedConfig
 from cumulusci.core.config import BaseTaskFlowConfig
 
@@ -13,7 +13,7 @@ class BaseGlobalConfig(BaseTaskFlowConfig):
     """ Base class for the global config which contains all configuration not specific to projects """
 
     config_filename = "cumulusci.yml"
-    project_config_class = YamlProjectConfig
+    project_config_class = BaseProjectConfig
     config_local_dir = ".cumulusci"
 
     def __init__(self, config=None):

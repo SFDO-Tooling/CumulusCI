@@ -235,8 +235,8 @@ class TestBaseProjectConfig(unittest.TestCase):
             "CUMULUSCI_REPO_ROOT": ".",
             "CUMULUSCI_REPO_URL": "https://github.com/SFDO-Tooling/CumulusCI-Test.git",
         }
-        config = BaseProjectConfig(BaseGlobalConfig())
         with mock.patch.dict(os.environ, env):
+            config = BaseProjectConfig(BaseGlobalConfig())
             result = config.repo_info
         self.assertEqual(
             {
@@ -261,9 +261,9 @@ class TestBaseProjectConfig(unittest.TestCase):
             "CUMULUSCI_REPO_COMMIT": "HEAD~1",
             "CUMULUSCI_REPO_ROOT": ".",
         }
-        config = BaseProjectConfig(BaseGlobalConfig())
         with mock.patch.dict(os.environ, env):
             with self.assertRaises(ConfigError):
+                config = BaseProjectConfig(BaseGlobalConfig())
                 config.repo_info
 
     def test_repo_root_from_env(self):
