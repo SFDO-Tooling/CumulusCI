@@ -22,7 +22,9 @@ class TestSalesforceToolingTask(unittest.TestCase):
         self.global_config = BaseGlobalConfig(
             {"project": {"package": {"api_version": self.api_version}}}
         )
-        self.project_config = BaseProjectConfig(self.global_config)
+        self.project_config = BaseProjectConfig(
+            self.global_config, config={"noyaml": True}
+        )
         self.project_config.config["project"] = {
             "package": {"api_version": self.api_version}
         }

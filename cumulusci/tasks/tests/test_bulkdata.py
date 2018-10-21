@@ -48,7 +48,7 @@ BULK_BATCH_RESPONSE = '<root xmlns="http://ns"><batch><state>{}</state></batch><
 def _make_task(task_class, task_config):
     task_config = TaskConfig(task_config)
     global_config = BaseGlobalConfig()
-    project_config = BaseProjectConfig(global_config)
+    project_config = BaseProjectConfig(global_config, config={'noyaml':True})
     keychain = BaseProjectKeychain(project_config, "")
     project_config.set_keychain(keychain)
     org_config = DummyOrgConfig(
