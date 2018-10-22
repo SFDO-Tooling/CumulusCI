@@ -2,3 +2,4 @@
 # see https://pyup.io/docs/configuration/ for all available options
 
 schedule: every week
+branch_prefix: feature/pyup-
