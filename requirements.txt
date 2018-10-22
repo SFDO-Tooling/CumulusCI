@@ -25,7 +25,7 @@ robotframework-seleniumlibrary==3.2.0
 rst2ansi==0.1.5
 salesforce-bulk==2.1.0
 sarge==0.1.5.post0
-selenium==3.14.0
+selenium==3.14.1
 simple-salesforce==0.74.2
 six==1.11.0
 SQLAlchemy==1.2.11
