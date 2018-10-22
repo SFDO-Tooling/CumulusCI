@@ -38,7 +38,10 @@ class Robot(BaseSalesforceTask):
         super(Robot, self)._init_options(kwargs)
 
         for option in ("tests", "include", "exclude", "vars"):
-            self.options[option] = process_list_arg(self.options.get(option) or "")
+            if option in self.options:
+                self.options[option] = process_list_arg(self.options["option"])
+        if "vars" not in self.options:
+            self.options["vars"] = []
         self.options["vars"].append("org:{}".format(self.org_config.name))
 
         # Initialize options as a dict
@@ -53,7 +56,7 @@ class Robot(BaseSalesforceTask):
         for option in ("tests", "include", "exclude", "xunit"):
             if option in self.options:
                 options[option] = self.options[option]
-        options["variable"] = self.options["vars"]
+        options["variable"] = self.options.get("vars") or []
 
         num_failed = robot_run(self.options["suites"], **options)
         if num_failed:
