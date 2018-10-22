@@ -37,19 +37,8 @@ class Robot(BaseSalesforceTask):
     def _init_options(self, kwargs):
         super(Robot, self)._init_options(kwargs)
 
-        if "tests" in self.options:
-            self.options["tests"] = process_list_arg(self.options["tests"])
-
-        if "include" in self.options:
-            self.options["include"] = process_list_arg(self.options["include"])
-
-        if "exclude" in self.options:
-            self.options["exclude"] = process_list_arg(self.options["exclude"])
-
-        if "vars" in self.options:
-            self.options["vars"] = process_list_arg(self.options["vars"])
-        else:
-            self.options["vars"] = []
+        for option in ("tests", "include", "exclude", "vars"):
+            self.options[option] = process_list_arg(self.options.get(option) or "")
         self.options["vars"].append("org:{}".format(self.org_config.name))
 
         # Initialize options as a dict
@@ -61,17 +50,10 @@ class Robot(BaseSalesforceTask):
 
     def _run_task(self):
         options = self.options["options"].copy()
-
-        if "tests" in self.options:
-            options["test"] = self.options["tests"]
-        if "include" in self.options:
-            options["include"] = self.options["include"]
-        if "exclude" in self.options:
-            options["exclude"] = self.options["exclude"]
-        if "vars" in self.options:
-            options["variable"] = self.options["vars"]
-        if "xunit" in self.options:
-            options["xunit"] = self.options["xunit"]
+        for option in ("tests", "include", "exclude", "xunit"):
+            if option in self.options:
+                options[option] = self.options[option]
+        options["variable"] = self.options["vars"]
 
         num_failed = robot_run(self.options["suites"], **options)
         if num_failed:

@@ -480,12 +480,13 @@ class TestBaseProjectConfig(unittest.TestCase):
         self.assertIsNone(config.get_static_dependencies())
 
     def test_pretty_dependencies(self):
+        repo = mock.Mock(full_name='TestRepo')
         dep = {
             "namespace": "npsp",
             "version": "3",
             "boolean": False,
             "dependencies": [
-                {"namespace": "npe01", "version": "1", "dependencies": []}
+                {"repo": repo, "dependencies": []}
             ],
         }
         config = BaseProjectConfig(BaseGlobalConfig())
@@ -493,8 +494,7 @@ class TestBaseProjectConfig(unittest.TestCase):
         self.assertEqual(
             """  - dependencies: 
     
-      - namespace: npe01
-        version: 1
+      - repo: TestRepo
     namespace: npsp
     version: 3""",
             result,

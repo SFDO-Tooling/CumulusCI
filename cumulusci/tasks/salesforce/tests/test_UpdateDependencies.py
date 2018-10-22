@@ -11,11 +11,14 @@ from .util import create_task
 
 
 class TestUpdateDependencies(unittest.TestCase):
+    maxDiff = None
+
     @mock.patch(
         "cumulusci.salesforce_api.metadata.ApiRetrieveInstalledPackages.__call__"
     )
     def test_run_task(self, ApiRetrieveInstalledPackages):
         project_config = create_project_config()
+        repo = mock.Mock()
         project_config.config["project"]["dependencies"] = [
             {
                 "zip_url": "http://zipurl",
@@ -28,6 +31,7 @@ class TestUpdateDependencies(unittest.TestCase):
                     {"namespace": "samedep", "version": "1.0"},
                     {"namespace": "downgradeddep", "version": "1.0"},
                     {"namespace": "newdep", "version": "1.0"},
+                    {"repo": repo, "subfolder": "subfolder", "ref": "ref"},
                 ],
             },
             {
@@ -54,22 +58,27 @@ class TestUpdateDependencies(unittest.TestCase):
         except AttributeError:  # Python 2
             UD_globals = UpdateDependencies._install_dependency.__func__.__globals__
         download_extract_zip = UD_globals["download_extract_zip"]
+        download_extract_github = UD_globals["download_extract_github"]
         UD_globals["download_extract_zip"] = mock.Mock(return_value=zf)
+        UD_globals["download_extract_github"] = mock.Mock(return_value=zf)
         try:
             task()
         finally:
             UD_globals["download_extract_zip"] = download_extract_zip
+            UD_globals["download_extract_github"] = download_extract_github
         self.assertEqual(
             [
                 {"version": "1.1", "namespace": "upgradeddep"},
                 {"version": "1.0", "namespace": "downgradeddep"},
                 {"version": "1.0", "namespace": "newdep"},
+                {"repo": repo, "subfolder": "subfolder", "ref": "ref"},
                 {
                     "dependencies": [
                         {"version": "1.1", "namespace": "upgradeddep"},
                         {"version": "1.0", "namespace": "samedep"},
                         {"version": "1.0", "namespace": "downgradeddep"},
                         {"version": "1.0", "namespace": "newdep"},
+                        {"repo": repo, "subfolder": "subfolder", "ref": "ref"},
                     ],
                     "zip_url": "http://zipurl",
                     "subfolder": "src",
@@ -102,7 +111,7 @@ class TestUpdateDependencies(unittest.TestCase):
             ],
             task.uninstall_queue,
         )
-        self.assertEqual(9, task.api_class.call_count)
+        self.assertEqual(10, task.api_class.call_count)
 
     def test_run_task__no_dependencies(self):
         task = create_task(UpdateDependencies)
