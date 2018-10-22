@@ -72,13 +72,12 @@ class CliConfig(object):
             pass  # we don't have osascript, probably.
 
     def _get_platform_alert_cmd(self, message):
-        message = message.replace('"', r"\"").replace("'", r"\'")
         if sys.platform == "darwin":
             return [
                 "osascript",
                 "-e",
                 'display notification "{}" with title "{}"'.format(
-                    message, "CumulusCI"
+                    message.replace('"', r"\"").replace("'", r"\'"), "CumulusCI"
                 ),
             ]
         elif sys.platform.startswith("linux"):
