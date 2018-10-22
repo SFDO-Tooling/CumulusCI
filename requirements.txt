@@ -10,7 +10,7 @@ plaintable==0.1.1
 pytz==2018.5
 PyYAML==3.13
 raven==6.9.0
-requests[security]==2.19.1
+requests[security]==2.20.0
 robotframework==3.0.4
 robotframework-seleniumlibrary==3.2.0
 rst2ansi==0.1.5
