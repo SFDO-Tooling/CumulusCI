@@ -67,17 +67,24 @@ class CliConfig(object):
             return
         click.echo("\a")
         try:
-            call(
-                [
-                    "osascript",
-                    "-e",
-                    'display notification "{}" with title "{}"'.format(
-                        message.replace('"', r"\"").replace("'", r"\'"), "CumulusCI"
-                    ),
-                ]
-            )
+            call(self._get_platform_alert_cmd(message))
         except OSError:
             pass  # we don't have osascript, probably.
+
+    def _get_platform_alert_cmd(self, message):
+        message = message.replace('"', r"\"").replace("'", r"\'")
+        if sys.platform == "darwin":
+            return [
+                "osascript",
+                "-e",
+                'display notification "{}" with title "{}"'.format(
+                    message, "CumulusCI"
+                ),
+            ]
+        elif sys.platform.startswith("linux"):
+            return ["notify-send", "--icon=utilities-terminal", "CumulusCI", message]
+        else:
+            raise OSError
 
     def get_org(self, org_name=None, fail_if_missing=True):
         if org_name:
