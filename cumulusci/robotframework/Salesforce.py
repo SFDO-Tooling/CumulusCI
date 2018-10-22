@@ -41,12 +41,48 @@ class Salesforce(object):
         self.selenium.click_link(locator)
         self.wait_until_modal_is_open()
 
+    def load_related_list(self, heading):
+        """Scroll down until related list loads.
+        """
+        locator = lex_locators["record"]["related"]["card"].format(heading)
+        el = None
+        while el is None:
+            self.selenium.execute_javascript(
+                "window.scrollTo(0,document.body.scrollHeight)"
+            )
+            self.wait_for_aura()
+            try:
+                el = self.selenium.get_webelement(locator)
+            except ElementNotFound:
+                time.sleep(.2)
+                continue
+
     def click_related_list_button(self, heading, button_title):
+        """Click a button in the heading of a related list.
+
+        Waits for a modal to open after clicking the button.
+        """
+        self.load_related_list(heading)
         locator = lex_locators["record"]["related"]["button"].format(
             heading, button_title
         )
         self.selenium.click_link(locator)
         self.wait_until_modal_is_open()
+
+    def click_related_item_link(self, heading, title):
+        self.load_related_list(heading)
+        locator = lex_locators["record"]["related"]["link"].format(heading, title)
+        self.selenium.click_link(locator)
+
+    def click_related_item_popup_link(self, heading, title, link):
+        self.load_related_list(heading)
+        locator = lex_locators["record"]["related"]["popup_trigger"].format(
+            heading, title
+        )
+        self.selenium.wait_until_page_contains_element(locator)
+        self.selenium.click_link(locator)
+        locator = lex_locators["popup"]["link"].format(link)
+        self.selenium.click_link(locator)
 
     def close_modal(self):
         """ Closes the open modal """
