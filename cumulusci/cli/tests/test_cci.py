@@ -226,11 +226,11 @@ class TestCCI(unittest.TestCase):
                 "43.0",  # api_version
                 "3",  # extend other URL
                 "https://github.com/SalesforceFoundation/Cumulus",  # github_url
-                "master",  # git_default_branch
-                "feature/",  # git_prefix_feature
-                "beta/",  # git_prefix_beta
-                "release/",  # git_prefix_release
-                "_TEST",  # test_name_match
+                "default",  # git_default_branch
+                "work/",  # git_prefix_feature
+                "uat/",  # git_prefix_beta
+                "rel/",  # git_prefix_release
+                "%_TEST%",  # test_name_match
             )
             click.confirm.side_effect = (True, True)  # is managed?  # extending?
 
