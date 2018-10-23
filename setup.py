@@ -39,6 +39,7 @@ setup(
     version="2.1.1",
     description="Build and release tools for Salesforce developers",
     long_description=readme + "\n\n" + history,
+    long_description_content_type="text/x-rst",
     author="Salesforce.org",
     author_email="jlantz@salesforce.com",
     url="https://github.com/SFDO-Tooling/CumulusCI",
