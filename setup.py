@@ -22,7 +22,9 @@ with open("HISTORY.rst") as history_file:
     history = history_file.read()
 
 with open("requirements.txt") as requirements_file:
-    requirements = requirements_file.read().splitlines()
+    requirements = [
+        req.split("#")[0].strip() for req in requirements_file.read().splitlines()
+    ]
 
 with open("requirements_dev.txt") as dev_requirements_file:
     test_requirements = [
