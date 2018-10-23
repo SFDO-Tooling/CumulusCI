@@ -25,7 +25,7 @@ class CreateRelease(BaseGithubTask):
         version = self.options["version"]
         self.tag_name = self.project_config.get_tag_for_version(version)
 
-        for release in repo.iter_releases():
+        for release in repo.releases():
             if release.tag_name == self.tag_name:
                 message = "Release {} already exists at {}".format(
                     release.name, release.html_url

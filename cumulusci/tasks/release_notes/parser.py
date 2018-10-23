@@ -260,7 +260,7 @@ class GithubIssuesParser(IssuesParser):
                 prefix_prod, ""
             )
         has_comment = False
-        for comment in issue.iter_comments():
+        for comment in issue.comments():
             if comment.body.startswith(comment_prefix):
                 has_comment = True
                 break

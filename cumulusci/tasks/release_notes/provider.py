@@ -136,7 +136,7 @@ class GithubChangeNotesProvider(BaseChangeNotesProvider):
         )
 
         versions = []
-        for tag in self.repo.iter_tags():
+        for tag in self.repo.tags():
             if not tag.name.startswith(self.github_info["prefix_prod"]):
                 continue
             version = LooseVersion(self._get_version_from_tag(tag.name))
@@ -150,7 +150,7 @@ class GithubChangeNotesProvider(BaseChangeNotesProvider):
     def _get_pull_requests(self):
         """ Gets all pull requests from the repo since we can't do a filtered
         date merged search """
-        for pull in self.repo.iter_pulls(
+        for pull in self.repo.pull_requests(
             state="closed", base=self.github_info["master_branch"], direction="asc"
         ):
             if self._include_pull_request(pull):

@@ -141,7 +141,7 @@ class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator):
 
     def _get_release(self):
         repo = self.get_repo()
-        for release in repo.iter_releases():
+        for release in repo.releases():
             if release.tag_name == self.current_tag:
                 return release
 

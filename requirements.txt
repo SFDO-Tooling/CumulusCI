@@ -7,7 +7,7 @@ coloredlogs==10.0
 cryptography==2.4.1
 docutils==0.14
 future==0.17.1
-github3.py==0.9.6  # pyup: ignore
+github3.py==1.2.0
 humanfriendly==4.17
 idna==2.7
 jinja2==2.10
@@ -30,6 +30,5 @@ six==1.11.0
 SQLAlchemy==1.2.14
 unicodecsv==0.14.1
 uritemplate==3.0.0
-uritemplate.py==3.0.2
 urllib3==1.24.1
 xmltodict==0.11.0

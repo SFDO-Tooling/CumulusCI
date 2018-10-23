@@ -62,7 +62,7 @@ class MergeBranch(BaseGithubTask):
     def _get_existing_prs(self):
         # Get existing pull requests targeting a target branch
         self.existing_prs = []
-        for pr in self.repo.iter_pulls(state="open"):
+        for pr in self.repo.pull_requests(state="open"):
             if (
                 pr.base.ref.startswith(self.options["branch_prefix"])
                 and pr.head.ref == self.options["source_branch"]
@@ -73,7 +73,7 @@ class MergeBranch(BaseGithubTask):
         # Create list and dict of all target branches
         branches = []
         branches_dict = {}
-        for branch in self.repo.iter_branches():
+        for branch in self.repo.branches():
             if branch.name == self.options["source_branch"]:
                 if not self.options["children_only"]:
                     self.logger.debug(

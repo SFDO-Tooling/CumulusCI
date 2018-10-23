@@ -49,7 +49,7 @@ class ReleaseReport(BaseGithubTask):
             )
         )
         regex_compiled_date = re.compile(r"\s*(?P<date>\d\d\d\d-\d\d-\d\d)")
-        for release in repo.iter_releases():
+        for release in repo.releases():
             if release.prerelease and not self.options["include_beta"]:
                 continue
             if (
