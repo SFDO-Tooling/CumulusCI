@@ -5,7 +5,7 @@ from builtins import str
 from builtins import object
 import copy
 from distutils.version import (
-    LooseVersion
+    LooseVersion,
 )  # pylint: disable=import-error,no-name-in-module
 import logging
 import traceback

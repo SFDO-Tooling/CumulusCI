@@ -54,7 +54,7 @@ class Salesforce(object):
             try:
                 el = self.selenium.get_webelement(locator)
             except ElementNotFound:
-                time.sleep(.2)
+                time.sleep(0.2)
                 continue
 
     def click_related_list_button(self, heading, button_title):
