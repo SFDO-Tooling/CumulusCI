@@ -36,7 +36,7 @@ with open("requirements_dev.txt") as dev_requirements_file:
 
 setup(
     name="cumulusci",
-    version="2.1.1b1",
+    version="2.1.1",
     description="Build and release tools for Salesforce developers",
     long_description=readme + "\n\n" + history,
     author="Salesforce.org",
