@@ -129,7 +129,10 @@ class RetryingSeleniumLibraryMixin(object):
         This script polls Aura via $A in Javascript to determine when
         all in-flight XHTTP requests have completed before continuing.
         """
-        self.selenium.driver.execute_async_script(WAIT_FOR_AURA_SCRIPT)
+        try:
+            self.selenium.driver.execute_async_script(WAIT_FOR_AURA_SCRIPT)
+        except Exception:
+            pass
 
 
 def selenium_retry(target=None, retry=True):

@@ -1,4 +1,5 @@
 import pdb
+import sys
 
 from robot import run as robot_run
 from robot.libdoc import libdoc
@@ -32,6 +33,7 @@ class Robot(BaseSalesforceTask):
             "description": "A dictionary of options to robot.run method.  See docs here for format.  NOTE: There is no cci CLI support for this option since it requires a dictionary.  Use this option in the cumulusci.yml when defining custom tasks where you can easily create a dictionary in yaml."
         },
         "pdb": {"description": "If true, run the Python debugger when tests fail."},
+        "verbose": {"description": "If true, log each keyword as it runs."},
     }
 
     def _init_options(self, kwargs):
@@ -47,6 +49,9 @@ class Robot(BaseSalesforceTask):
         # Initialize options as a dict
         if "options" not in self.options:
             self.options["options"] = {}
+
+        if process_bool_arg(self.options.get("verbose")):
+            self.options["options"]["listener"] = KeywordLogger
 
         if process_bool_arg(self.options.get("pdb")):
             patch_statusreporter()
@@ -93,6 +98,14 @@ class RobotTestDoc(BaseTask):
 
     def _run_task(self):
         return testdoc(self.options["path"], self.options["output"])
+
+
+class KeywordLogger(object):
+    ROBOT_LISTENER_API_VERSION = 2
+
+    def start_keyword(name, attrs):
+        sys.stdout.write("  {}  {}\n".format(attrs["kwname"], "  ".join(attrs["args"])))
+        sys.stdout.flush()
 
 
 def patch_statusreporter():
