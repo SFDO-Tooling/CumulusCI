@@ -60,7 +60,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         ):  # any config being pre-set at init will short circuit out, but not a plain {}
             return
 
-        # Verify that we're in a project #TODO: this broke in refactor?
+        # Verify that we're in a project
         repo_root = self.repo_root
         if not repo_root:
             raise NotInProject(
@@ -563,9 +563,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
         # Get the cumulusci.yml file
         contents = repo.contents("cumulusci.yml", **kwargs)
-        cumulusci_yml = yaml.safe_load(
-            contents.decoded
-        )
+        cumulusci_yml = yaml.safe_load(contents.decoded)
 
         # Get the namespace from the cumulusci.yml if set
         namespace = cumulusci_yml.get("project", {}).get("package", {}).get("namespace")

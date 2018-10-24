@@ -37,7 +37,7 @@ class MergedYamlConfig(MergedConfig):
                 parsed_configs[name] = yaml.safe_load(config)
             except yaml.YAMLError as err:
                 raise ConfigError(
-                    f"Error parsing YAML for {name}: {err}", config_name=name
+                    "Error parsing YAML for {}: {}".format(name, err), config_name=name
                 )
         super(MergedYamlConfig, self).__init__(**parsed_configs)
 

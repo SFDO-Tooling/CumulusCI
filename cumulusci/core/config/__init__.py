@@ -47,20 +47,3 @@ from cumulusci.core.config.ScratchOrgConfig import ScratchOrgConfig
 
 # inherit from BaseProjectConfig
 from cumulusci.core.config.BaseGlobalConfig import BaseGlobalConfig
-
-
-__all__ = [
-    "FAILED_TO_CREATE_SCRATCH_ORG",
-    "BaseConfig",
-    "MergedConfig",
-    "MergedYamlConfig",
-    "ConnectedAppOAuthConfig",
-    "FlowConfig",
-    "OrgConfig",
-    "TaskConfig",
-    "ServiceConfig",
-    "BaseTaskFlowConfig",
-    "BaseGlobalConfig",
-    "BaseProjectConfig",
-    "ScratchOrgConfig",
-]
