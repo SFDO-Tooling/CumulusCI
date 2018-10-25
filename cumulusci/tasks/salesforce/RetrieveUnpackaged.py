@@ -52,7 +52,7 @@ class RetrieveUnpackaged(BaseRetrieveMetadata, BaseSalesforceApiTask):
                 "api_version"
             ] = self.project_config.project__package__api_version
 
-        if self.options["include"]:
+        if self.options.get("include"):
             self.options["include"] = self.options["include"].split(" ")
         else:
             self.options["include"] = []

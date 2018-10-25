@@ -44,7 +44,7 @@ class TestPackageXmlGenerator(unittest.TestCase):
         expected += "</Package>"
 
         with temporary_dir() as path:
-            generator = PackageXmlGenerator(path, api_version, package_name)
+            generator = PackageXmlGenerator(api_version, path, package_name)
             package_xml = generator()
 
         self.assertEqual(package_xml, expected)
@@ -56,7 +56,7 @@ class TestPackageXmlGenerator(unittest.TestCase):
 
         path = os.path.join(__location__, "package_metadata", test_dir)
 
-        generator = PackageXmlGenerator(path, api_version, package_name)
+        generator = PackageXmlGenerator(api_version, path, package_name)
         with open(os.path.join(path, "package.xml"), "r") as f:
             expected_package_xml = f.read().strip()
         package_xml = generator()
@@ -70,7 +70,7 @@ class TestPackageXmlGenerator(unittest.TestCase):
 
         path = os.path.join(__location__, "package_metadata", test_dir)
 
-        generator = PackageXmlGenerator(path, api_version, package_name, delete=True)
+        generator = PackageXmlGenerator(api_version, path, package_name, delete=True)
         with open(os.path.join(path, "destructiveChanges.xml"), "r") as f:
             expected_package_xml = f.read().strip()
         package_xml = generator()
@@ -80,15 +80,15 @@ class TestPackageXmlGenerator(unittest.TestCase):
     def test_parse_types_unknown_md_type(self):
         with temporary_dir() as path:
             os.mkdir(os.path.join(path, "bogus"))
-            generator = PackageXmlGenerator(path, "43.0", "Test Package")
+            generator = PackageXmlGenerator("43.0", path, "Test Package")
             with self.assertRaises(MetadataParserMissingError):
                 generator.parse_types()
 
     def test_render_xml__managed(self):
         with temporary_dir() as path:
             generator = PackageXmlGenerator(
-                path,
                 "43.0",
+                path,
                 "Test Package",
                 managed=True,
                 install_class="Install",
