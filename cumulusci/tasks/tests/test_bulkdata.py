@@ -307,8 +307,8 @@ class TestLoadData(unittest.TestCase):
         self.assertFalse(new_id_table is id_table)
 
 
-HOUSEHOLD_QUERY_RESULT = b"Id\n1"
-CONTACT_QUERY_RESULT = b"Id,AccountId\n2,1"
+HOUSEHOLD_QUERY_RESULT = b'"Id"\n1'
+CONTACT_QUERY_RESULT = b'"Id",AccountId\n2,1'
 
 
 @mock.patch("cumulusci.tasks.bulkdata.time.sleep", mock.Mock())
