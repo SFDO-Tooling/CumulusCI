@@ -25,7 +25,6 @@ from cumulusci.tasks.salesforce.RetrieveReportsAndDashboards import (
     RetrieveReportsAndDashboards,
 )
 from cumulusci.tasks.salesforce.RetrieveUnpackaged import RetrieveUnpackaged
-from cumulusci.tasks.salesforce.RetrieveUnpackaged import ListChanges
 
 # inherit from Deploy
 from cumulusci.tasks.salesforce.BaseUninstallMetadata import BaseUninstallMetadata

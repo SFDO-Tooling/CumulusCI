@@ -166,7 +166,12 @@ tasks:
         class_path: cumulusci.tasks.salesforce.RetrieveUnpackaged
     list_changes:
         description: List the changes from a scratch org
-        class_path: cumulusci.tasks.salesforce.ListChanges
+        class_path: cumulusci.tasks.salesforce.sourcetracking.ListChanges
+    retrieve_changes:
+        description: Retrieve changed components from a scratch org
+        class_path: cumulusci.tasks.salesforce.sourcetracking.RetrieveChanges
+        options:
+            path: src
     revert_managed_src:
         description: Reverts the changes from create_managed_src
         class_path: cumulusci.tasks.metadata.managed_src.RevertManagedSrc
