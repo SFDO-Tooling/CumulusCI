@@ -577,7 +577,10 @@ class QueryData(BulkJobTaskMixin, BaseSalesforceApiTask):
 
     def _import_results(self, mapping, result_file, conn):
         # Map SF field names to local db column names
-        sf_header = result_file.readline().strip().decode("utf-8").split(",")
+        sf_header = [
+            name.strip('"')
+            for name in result_file.readline().strip().decode("utf-8").split(",")
+        ]
         columns = []
         for sf in sf_header:
             if sf == "Records not found for this query":
