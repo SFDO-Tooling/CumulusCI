@@ -58,28 +58,28 @@ class RetrieveUnpackaged(BaseRetrieveMetadata, BaseSalesforceApiTask):
             self.options["include"] = []
 
     def _get_api(self):
-        self.logger.info("Querying Salesforce for changed source members")
-        changes = self.tooling.query(
-            "SELECT MemberName, MemberType FROM SourceMember WHERE IsNameObsolete=false"
-        )
+        if self.options["package_xml"]:
+            package_xml = self.options["package_xml"]
+        else:
+            self.logger.info("Querying Salesforce for changed source members")
+            changes = self.tooling.query(
+                "SELECT MemberName, MemberType FROM SourceMember WHERE IsNameObsolete=false"
+            )
 
-        type_members = defaultdict(list)
-        for change in changes["records"]:
-            type = change["MemberType"]
-            name = change["MemberName"]
-            if any(s in type or s in name for s in self.options["include"]):
-                self.logger.info("Including {} ({})".format(name, type))
-                type_members[type].append(name)
+            type_members = defaultdict(list)
+            for change in changes["records"]:
+                type = change["MemberType"]
+                name = change["MemberName"]
+                if any(s in type or s in name for s in self.options["include"]):
+                    self.logger.info("Including {} ({})".format(name, type))
+                    type_members[type].append(name)
 
-        if type_members:
             types = []
             for name, members in type_members.items():
                 types.append(MetadataType(name, members))
             package_xml = PackageXmlGenerator(
                 self.options["api_version"], types=types
             )()
-        else:
-            package_xml = self.options["package_xml"]
 
         return self.api_class(self, package_xml, self.options.get("api_version"))
 
