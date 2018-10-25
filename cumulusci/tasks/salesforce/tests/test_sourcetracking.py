@@ -11,6 +11,8 @@ from cumulusci.utils import temporary_dir
 
 
 class TestListChanges(unittest.TestCase):
+    """List the changes from a scratch org"""
+
     def test_run_task(self):
         task = create_task(ListChanges)
         task.tooling = mock.Mock()
@@ -32,6 +34,8 @@ class TestListChanges(unittest.TestCase):
 
 
 class TestRetrieveChanges(unittest.TestCase):
+    """Retrieve changed components from a scratch org"""
+
     def test_run_task(self):
         with temporary_dir() as path:
             task = create_task(RetrieveChanges, {"path": path, "include": "Test"})
