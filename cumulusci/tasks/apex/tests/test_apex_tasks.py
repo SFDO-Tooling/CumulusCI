@@ -391,7 +391,9 @@ class TestRunBatchApex(unittest.TestCase):
             "class_name": "ADDR_Seasonal_BATCH",
             "poll_interval": 1,
         }
-        self.project_config = BaseProjectConfig(self.global_config)
+        self.project_config = BaseProjectConfig(
+            self.global_config, config={"noyaml": True}
+        )
         self.project_config.config["project"] = {
             "package": {"api_version": self.api_version}
         }
