@@ -1,9 +1,7 @@
 from collections import defaultdict
 import os
 
-import yaml
-
-from cumulusci.core.exceptions import TaskOptionsError
+from cumulusci.core.utils import process_list_arg
 from cumulusci.salesforce_api.metadata import ApiRetrieveUnpackaged
 from cumulusci.tasks.salesforce import BaseRetrieveMetadata
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
@@ -58,7 +56,7 @@ class RetrieveChanges(BaseRetrieveMetadata, BaseSalesforceApiTask):
                 "api_version"
             ] = self.project_config.project__package__api_version
 
-        self.options["include"] = self.options["include"].split(" ")
+        self.options["include"] = process_list_arg(self.options["include"])
 
     def _get_api(self):
         self.logger.info("Querying Salesforce for changed source members")
