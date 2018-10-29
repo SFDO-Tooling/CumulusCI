@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 from future import standard_library
+from future.utils import text_to_native_str
 
 standard_library.install_aliases()
 from builtins import str
@@ -25,13 +26,7 @@ CUMULUSCI_PATH = os.path.realpath(
 META_XML_CLEAN_DIRS = ("classes/", "triggers/", "pages/", "aura/", "components/")
 API_DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%f"
 DATETIME_LEN = len("2018-08-07T16:00:56.000")
-
-# xml.etree needs the encoding as a native string.
-# Because we're using unicode_literals and futurize's builtins.str,
-# we have to go through contortions to get one.
-# __file__ is arbitrarily used here as something that should be stringy.
-nativestr = type(__file__)
-UTF8 = nativestr("UTF-8")
+UTF8 = text_to_native_str("UTF-8")
 
 
 def parse_api_datetime(value):
