@@ -25,7 +25,6 @@ from sqlalchemy import Unicode
 from sqlalchemy import text
 from sqlalchemy import types
 from sqlalchemy import event
-import yaml
 import requests
 import unicodecsv
 
@@ -36,6 +35,28 @@ from cumulusci.utils import log_progress
 
 # TODO: UserID Catcher
 # TODO: Dater
+
+import yaml
+from collections import OrderedDict
+
+
+def ordered_load(stream, Loader=yaml.SafeLoader, object_pairs_hook=OrderedDict):
+    """ Load YAML file with OrderedDict, needed for Py2 
+    
+    code adapted from: https://stackoverflow.com/a/21912744/5042831
+    this could potentially be cleaned up to only run in py2 scenarios"""
+
+    class OrderedLoader(Loader):
+        pass
+
+    def construct_mapping(loader, node):
+        loader.flatten_mapping(node)
+        return object_pairs_hook(loader.construct_pairs(node))
+
+    OrderedLoader.add_constructor(
+        yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, construct_mapping
+    )
+    return yaml.load(stream, OrderedLoader)
 
 
 # Create a custom sqlalchemy field type for sqlite datetime fields which are stored as integer of epoch time
@@ -490,8 +511,8 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
         self.session = Session(self.engine)
 
     def _init_mapping(self):
-        with open(self.options["mapping"], 'r') as f:
-            self.mapping = yaml.safe_load(f)
+        with open(self.options["mapping"], "r") as f:
+            self.mapping = ordered_load(f)
 
 
 class QueryData(BulkJobTaskMixin, BaseSalesforceApiTask):
@@ -535,8 +556,8 @@ class QueryData(BulkJobTaskMixin, BaseSalesforceApiTask):
         self.session = create_session(bind=self.engine, autocommit=False)
 
     def _init_mapping(self):
-        with open(self.options["mapping"], 'r') as f:
-            self.mappings = yaml.safe_load(f)
+        with open(self.options["mapping"], "r") as f:
+            self.mappings = ordered_load(f)
 
     def _soql_for_mapping(self, mapping):
         sf_object = mapping["sf_object"]
