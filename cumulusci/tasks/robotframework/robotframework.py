@@ -41,7 +41,7 @@ class Robot(BaseSalesforceTask):
 
         for option in ("tests", "include", "exclude", "vars"):
             if option in self.options:
-                self.options[option] = process_list_arg(self.options["option"])
+                self.options[option] = process_list_arg(self.options[option])
         if "vars" not in self.options:
             self.options["vars"] = []
         self.options["vars"].append("org:{}".format(self.org_config.name))
