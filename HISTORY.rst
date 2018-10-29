@@ -2,6 +2,17 @@
 History
 =======
 
+2.1.2 (2018-10-29)
+------------------
+
+Oops, we broke a few things! This is a bugfix release to fix a few issues found during the Salesforce.org Open Source Community Sprint last week.
+
+Issues Closed:
+
+  * #858 Dataload bulk query fails to load data into the sqlite db
+  * #862 CLI options fail on robot task in 2.1.1
+  * #864 Deploying a -meta.xml file with non-ASCII characters breaks in Python 2
+
 2.1.1 (2018-10-23)
 ------------------
 
