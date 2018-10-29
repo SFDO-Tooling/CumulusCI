@@ -97,7 +97,9 @@ class TestCommandTaskWithMockPopen(unittest.TestCase):
 
     def setUp(self):
         self.global_config = BaseGlobalConfig()
-        self.project_config = BaseProjectConfig(self.global_config)
+        self.project_config = BaseProjectConfig(
+            self.global_config, config={"noyaml": True}
+        )
         self.task_config = TaskConfig()
 
         self._task_log_handler.reset()
@@ -126,7 +128,9 @@ class TestCommandTaskWithMockPopen(unittest.TestCase):
 class TestSalesforceCommand(unittest.TestCase):
     def setUp(self):
         self.global_config = BaseGlobalConfig()
-        self.project_config = BaseProjectConfig(self.global_config)
+        self.project_config = BaseProjectConfig(
+            self.global_config, config={"noyaml": True}
+        )
         self.task_config = TaskConfig({"options": {"command": "ls"}})
         self.org_config = OrgConfig(
             {"access_token": "TOKEN", "instance_url": "https://na01.salesforce.com"},
