@@ -31,7 +31,7 @@ DATETIME_LEN = len("2018-08-07T16:00:56.000")
 # we have to go through contortions to get one.
 # __file__ is arbitrarily used here as something that should be stringy.
 nativestr = type(__file__)
-UTF8 = nativestr("utf-8")
+UTF8 = nativestr("UTF-8")
 
 
 def parse_api_datetime(value):
