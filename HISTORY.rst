@@ -9,36 +9,40 @@ Oops, we broke a few things! This is a bugfix release to fix a few issues found 
 
 Issues Closed:
 
-  * #858 Dataload bulk query fails to load data into the sqlite db
-  * #862 CLI options fail on robot task in 2.1.1
-  * #864 Deploying a -meta.xml file with non-ASCII characters breaks in Python 2
+* #858 Dataload bulk query fails to load data into the sqlite db
+* #862 CLI options fail on robot task in 2.1.1
+* #864 Deploying a -meta.xml file with non-ASCII characters breaks in Python 2
 
 2.1.1 (2018-10-23)
 ------------------
 
 Changes:
 
-  * Our robotframework library for Salesforce got a number of improvements:
-    - New keywords:
-      - ``Click Header Field Link``: Clicks a link in a record header
-      - ``Load Related List``: Scrolls to a related list and waits for it to load
-      - ``Click Related List Button``: Clicks a button in the header of a related list
-      - ``Click Related Item Link``: Clicks the main link for an item in a related list
-      - ``Click Related Item Popup Link``: Clicks a link in the popup menu for an item in a related list
-    - Updated to ``robotframework-seleniumlibrary`` 3.2.0 which includes a ``Scroll Element Into View`` keyword.
-    - ``Wait Until Loading Is Complete`` now waits for the main body of the page to render
-    - ``Populate Lookup Field`` now tries several times in case there's an indexing delay
-    - Added a ``-o verbose True`` option to the robot task which logs each keyword as it runs.
-    - We now ignore errors while running the script that waits for XHRs to complete
-      (it can fail if the page reloads before the script finishes).
-  * Popup notifications upon completion of a flow or task now work on Linux too,
-    if you have the ``notify-send`` command from libnotify.
-    On Ubuntu, install the ``notify-osd`` package.
+* Our robotframework library for Salesforce got a number of improvements:
+
+  * New keywords:
+
+    * ``Click Header Field Link``: Clicks a link in a record header
+    * ``Load Related List``: Scrolls to a related list and waits for it to load
+    * ``Click Related List Button``: Clicks a button in the header of a related list
+    * ``Click Related Item Link``: Clicks the main link for an item in a related list
+    * ``Click Related Item Popup Link``: Clicks a link in the popup menu for an item in a related list
+
+  * Updated to ``robotframework-seleniumlibrary`` 3.2.0 which includes a ``Scroll Element Into View`` keyword.
+  * ``Wait Until Loading Is Complete`` now waits for the main body of the page to render
+  * ``Populate Lookup Field`` now tries several times in case there's an indexing delay
+  * Added a ``-o verbose True`` option to the robot task which logs each keyword as it runs.
+  * We now ignore errors while running the script that waits for XHRs to complete
+    (it can fail if the page reloads before the script finishes).
+
+* Popup notifications upon completion of a flow or task now work on Linux too,
+  if you have the ``notify-send`` command from libnotify.
+  On Ubuntu, install the ``notify-osd`` package.
 
 Issues Closed:
 
-  * #827 Bulk data load breaks in Python 2
-  * #832 pip install cumulusci gets the wrong version of urllib3
+* #827 Bulk data load breaks in Python 2
+* #832 pip install cumulusci gets the wrong version of urllib3
 
 2.1.1b1 (2018-10-17)
 --------------------
