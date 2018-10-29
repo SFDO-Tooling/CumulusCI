@@ -35,7 +35,7 @@ requirements = [
     "raven==6.9.0",
     "requests[security]==2.19.1",
     "robotframework==3.0.4",
-    "robotframework-seleniumlibrary==3.1.1",
+    "robotframework-seleniumlibrary==3.2.0",
     "rst2ansi==0.1.5",
     "salesforce-bulk==2.1.0",
     "sarge==0.1.5post0",
