@@ -10,6 +10,18 @@ from cumulusci.tasks.metadata.package import __location__
 
 
 class ListChanges(BaseSalesforceApiTask):
+
+    task_options = {
+        "include": {
+            "description": "Include changed components matching this string.",
+            "required": True,
+        }
+    }
+
+    def _init_options(self, kwargs):
+        super(ListChanges, self)._init_options(kwargs)
+        self.options["include"] = process_list_arg(self.options["include"])
+
     def _run_task(self):
         changes = self.tooling.query(
             "SELECT MemberName, MemberType FROM SourceMember WHERE IsNameObsolete=false"
@@ -21,9 +33,11 @@ class ListChanges(BaseSalesforceApiTask):
                 )
             )
             for change in changes["records"]:
-                self.logger.info(
-                    "  {}: {}".format(change["MemberType"], change["MemberName"])
-                )
+                mdtype = change["MemberType"]
+                name = change["MemberName"]
+                if not any(s in mdtype or s in name for s in self.options["include"]):
+                    continue
+                self.logger.info("  {}: {}".format(mdtype, name))
         else:
             self.logger.info("Found no changes.")
 
