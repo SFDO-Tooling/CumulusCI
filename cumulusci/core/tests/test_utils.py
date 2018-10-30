@@ -71,3 +71,7 @@ class TestDictMerger(unittest.TestCase):
     def test_cant_merge_into_dict(self):
         with self.assertRaises(ConfigMergeError):
             combo = utils.dictmerge({"a": "b"}, 2)
+
+    def test_cant_merge_nonsense(self):
+        with self.assertRaises(ConfigMergeError):
+            combo = utils.dictmerge(pytz, 2)
