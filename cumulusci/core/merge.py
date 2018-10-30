@@ -1,45 +1,16 @@
-import io
-import yaml
-
 from builtins import bytes, int, str
 from collections import OrderedDict
 
-from cumulusci.core.config import BaseConfig
-from cumulusci.core.exceptions import ConfigMergeError, ConfigError
+from cumulusci.core.exceptions import ConfigMergeError
 
 
-class MergedConfig(BaseConfig):
-    """ A merged config takes a collection of dicts and merges them in priority order."""
+def merge_config(configs):
+    new_config = {}
 
-    def __init__(self, **configs):
-        """ MergedConfig(user_config={}, base_config={},) """
-        self.configs = (
-            configs
-        )  # NOTE: This relies on Py3.6+ behavior, kwarg order is preserved.
-        super(MergedConfig, self).__init__()
+    for name in reversed(OrderedDict(configs)):
+        new_config = dictmerge(new_config, configs[name], name)
 
-    def _load_config(self):
-        new_config = {}
-
-        for name in reversed(OrderedDict(self.configs)):
-            new_config = dictmerge(new_config, self.configs[name], name)
-
-        self.config = new_config
-
-
-class MergedYamlConfig(MergedConfig):
-    """ A merged config that takes strings of YAML instead of python dicts. """
-
-    def __init__(self, **configs):
-        parsed_configs = {}
-        for name, config in configs.items():
-            try:
-                parsed_configs[name] = yaml.safe_load(config)
-            except yaml.YAMLError as err:
-                raise ConfigError(
-                    "Error parsing YAML for {}: {}".format(name, err), config_name=name
-                )
-        super(MergedYamlConfig, self).__init__(**parsed_configs)
+    return new_config
 
 
 def dictmerge(a, b, name=None):

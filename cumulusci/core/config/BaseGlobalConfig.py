@@ -1,9 +1,10 @@
 from __future__ import unicode_literals
 import os
+from collections import OrderedDict
 
 import yaml
 from cumulusci.core.config.BaseProjectConfig import BaseProjectConfig
-from cumulusci.core.config.MergedConfig import MergedConfig
+from cumulusci.core.merge import merge_config
 from cumulusci.core.config import BaseTaskFlowConfig
 
 __location__ = os.path.dirname(os.path.realpath(__file__))
@@ -63,6 +64,12 @@ class BaseGlobalConfig(BaseTaskFlowConfig):
             config = yaml.safe_load(open(self.config_global_local_path, "r"))
             self.config_global_local = config
 
-        self.config = MergedConfig(
-            global_local=self.config_global_local, global_config=self.config_global
-        ).config
+        self.config = merge_config(
+            OrderedDict(
+                [
+                    ("global_local", self.config_global_local),
+                    ("global_config", self.config_global),
+                ]
+            )
+        )
+

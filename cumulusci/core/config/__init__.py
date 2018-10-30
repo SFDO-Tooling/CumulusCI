@@ -7,9 +7,6 @@ from cumulusci.core.config.BaseConfig import BaseConfig
 
 # inherit from BaseConfig
 
-from cumulusci.core.config.MergedConfig import MergedConfig
-from cumulusci.core.config.MergedConfig import MergedYamlConfig
-
 
 class ConnectedAppOAuthConfig(BaseConfig):
     """ Salesforce Connected App OAuth configuration """

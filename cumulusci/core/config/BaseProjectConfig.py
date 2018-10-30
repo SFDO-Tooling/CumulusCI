@@ -8,7 +8,8 @@ import yaml
 import raven
 
 import cumulusci
-from cumulusci.core.config import BaseTaskFlowConfig, MergedConfig
+from cumulusci.core.config import BaseTaskFlowConfig
+from cumulusci.core.merge import merge_config
 from cumulusci.core.exceptions import (
     ConfigError,
     DependencyResolutionError,
@@ -95,13 +96,17 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             if additional_yaml_config:
                 self.config_additional_yaml.update(additional_yaml_config)
 
-        self.config = MergedConfig(
-            additional_yaml=self.config_additional_yaml,
-            project_local_config=self.config_project_local,
-            project_config=self.config_project,
-            global_local=self.global_config_obj.config_global_local,
-            global_config=self.global_config_obj.config_global,
-        ).config
+        self.config = merge_config(
+            OrderedDict(
+                [
+                    ("additional_yaml", self.config_additional_yaml),
+                    ("project_local_config", self.config_project_local),
+                    ("project_config", self.config_project),
+                    ("global_local", self.global_config_obj.config_global_local),
+                    ("global_config", self.global_config_obj.config_global),
+                ]
+            )
+        )
 
     @property
     def config_global_local(self):
