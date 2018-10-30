@@ -66,18 +66,24 @@ class CliConfig(object):
         if self.project_config and self.project_config.dev_config__no_alert:
             return
         click.echo("\a")
-        try:
-            call(
-                [
-                    "osascript",
-                    "-e",
-                    'display notification "{}" with title "{}"'.format(
-                        message.replace('"', r"\"").replace("'", r"\'"), "CumulusCI"
-                    ),
-                ]
-            )
-        except OSError:
-            pass  # we don't have osascript, probably.
+        cmd = self._get_platform_alert_cmd(message)
+        if cmd:
+            try:
+                call(cmd)
+            except OSError:
+                pass  # we don't have the command, probably.
+
+    def _get_platform_alert_cmd(self, message):
+        if sys.platform == "darwin":
+            return [
+                "osascript",
+                "-e",
+                'display notification "{}" with title "{}"'.format(
+                    message.replace('"', r"\"").replace("'", r"\'"), "CumulusCI"
+                ),
+            ]
+        elif sys.platform.startswith("linux"):
+            return ["notify-send", "--icon=utilities-terminal", "CumulusCI", message]
 
     def get_org(self, org_name=None, fail_if_missing=True):
         if org_name:

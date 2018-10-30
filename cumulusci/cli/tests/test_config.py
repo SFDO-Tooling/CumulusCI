@@ -157,15 +157,29 @@ class TestCliConfig(unittest.TestCase):
 
     @mock.patch("cumulusci.cli.config.call")
     @mock.patch("cumulusci.cli.config.click.echo")
-    def test_alert(self, shell_mock, echo_mock):
+    @mock.patch("sys.platform", "darwin")
+    def test_alert_osx(self, echo_mock, shell_mock):
         config = CliConfig()
 
         config.alert("hello")
         echo_mock.assert_called_once()
         shell_mock.assert_called_once()
+        self.assertIn("osascript", shell_mock.call_args[0][0])
 
     @mock.patch("cumulusci.cli.config.call")
     @mock.patch("cumulusci.cli.config.click.echo")
+    @mock.patch("sys.platform", "linux2")
+    def test_alert_linux(self, echo_mock, shell_mock):
+        config = CliConfig()
+
+        config.alert("hello")
+        echo_mock.assert_called_once()
+        shell_mock.assert_called_once()
+        self.assertIn("notify-send", shell_mock.call_args[0][0])
+
+    @mock.patch("cumulusci.cli.config.call")
+    @mock.patch("cumulusci.cli.config.click.echo")
+    @mock.patch("sys.platform", "darwin")
     def test_alert__disabled(self, echo_mock, shell_mock):
         config = CliConfig()
         config.project_config.dev_config__no_alert = True
@@ -176,6 +190,7 @@ class TestCliConfig(unittest.TestCase):
 
     @mock.patch("cumulusci.cli.config.call")
     @mock.patch("cumulusci.cli.config.click.echo")
+    @mock.patch("sys.platform", "darwin")
     def test_alert__os_error(self, echo_mock, shell_mock):
         shell_mock.side_effect = OSError
         config = CliConfig()
