@@ -59,3 +59,15 @@ class TestMergedConfig(unittest.TestCase):
             )
         exception = cm.exception
         self.assertEqual(exception.config_name, "user_config")
+
+
+class TestDictMerger(unittest.TestCase):
+    """ some stuff that didnt get covered by usual usage  """
+
+    def test_merge_into_list(self):
+        combo = utils.dictmerge([1, 2], 3)
+        self.assertSequenceEqual(combo, [1, 2, 3])
+
+    def test_cant_merge_into_dict(self):
+        with self.assertRaises(ConfigMergeError):
+            combo = utils.dictmerge({"a": "b"}, 2)

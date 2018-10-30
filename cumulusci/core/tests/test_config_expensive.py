@@ -8,8 +8,8 @@ import tempfile
 import unittest
 
 import mock
-import yaml
 
+from cumulusci.core.utils import ordered_yaml_load
 from cumulusci.core.config import ScratchOrgConfig
 from cumulusci.core.config import BaseGlobalConfig
 from cumulusci.core.config import BaseProjectConfig
@@ -40,7 +40,7 @@ class TestBaseGlobalConfig(unittest.TestCase):
         mock_class.return_value = self.tempdir_home
         config = BaseGlobalConfig()
         with open(__location__ + "/../../cumulusci.yml", "r") as f_expected_config:
-            expected_config = yaml.safe_load(f_expected_config)
+            expected_config = ordered_yaml_load(f_expected_config)
         self.assertEqual(config.config, expected_config)
 
     def test_load_global_config_empty_local(self, mock_class):
@@ -49,7 +49,7 @@ class TestBaseGlobalConfig(unittest.TestCase):
 
         config = BaseGlobalConfig()
         with open(__location__ + "/../../cumulusci.yml", "r") as f_expected_config:
-            expected_config = yaml.safe_load(f_expected_config)
+            expected_config = ordered_yaml_load(f_expected_config)
         self.assertEqual(config.config, expected_config)
 
     def test_load_global_config_with_local(self, mock_class):
@@ -59,7 +59,7 @@ class TestBaseGlobalConfig(unittest.TestCase):
 
         config = BaseGlobalConfig()
         with open(__location__ + "/../../cumulusci.yml", "r") as f_expected_config:
-            expected_config = yaml.safe_load(f_expected_config)
+            expected_config = ordered_yaml_load(f_expected_config)
         expected_config["tasks"]["newtesttask"] = {}
         expected_config["tasks"]["newtesttask"]["description"] = "test description"
         self.assertEqual(config.config, expected_config)
