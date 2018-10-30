@@ -69,22 +69,24 @@ def decode_to_unicode(content):
     return content
 
 
-def ordered_yaml_load(stream, Loader=yaml.SafeLoader, object_pairs_hook=OrderedDict):
+class OrderedLoader(yaml.SafeLoader):
+    def _construct_dict_mapping(self, node):
+        self.flatten_mapping(node)
+        return OrderedDict(self.construct_pairs(node))
+
+
+OrderedLoader.add_constructor(
+    yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
+    OrderedLoader._construct_dict_mapping,
+)
+
+
+def ordered_yaml_load(stream,):
     """ Load YAML file with OrderedDict, needed for Py2 
     
     code adapted from: https://stackoverflow.com/a/21912744/5042831
     this could potentially be cleaned up to only run in py2 scenarios"""
 
-    class OrderedLoader(Loader):
-        pass
-
-    def construct_mapping(loader, node):
-        loader.flatten_mapping(node)
-        return object_pairs_hook(loader.construct_pairs(node))
-
-    OrderedLoader.add_constructor(
-        yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, construct_mapping
-    )
     return yaml.load(stream, OrderedLoader)
 
 
