@@ -84,8 +84,7 @@ OrderedLoader.add_constructor(
 def ordered_yaml_load(stream,):
     """ Load YAML file with OrderedDict, needed for Py2 
     
-    code adapted from: https://stackoverflow.com/a/21912744/5042831
-    this could potentially be cleaned up to only run in py2 scenarios"""
+    code adapted from: https://stackoverflow.com/a/21912744/5042831"""
 
     return yaml.load(stream, OrderedLoader)
 
@@ -94,7 +93,7 @@ def merge_config(configs):
     """ recursively deep-merge the configs into one another (highest priority comes first) """
     new_config = {}
 
-    for name in reversed(OrderedDict(configs)):
+    for name in reversed(configs):
         new_config = dictmerge(new_config, configs[name], name)
 
     return new_config
