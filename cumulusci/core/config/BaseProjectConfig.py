@@ -1,15 +1,13 @@
 from __future__ import unicode_literals
-from future.utils import bytes_to_native_str
 from collections import OrderedDict
 from distutils.version import LooseVersion
 import os
-import yaml
 
 import raven
 
 import cumulusci
+from cumulusci.core.utils import ordered_yaml_load, merge_config
 from cumulusci.core.config import BaseTaskFlowConfig
-from cumulusci.core.merge import merge_config
 from cumulusci.core.exceptions import (
     ConfigError,
     DependencyResolutionError,
@@ -78,7 +76,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
         # Load the project's yaml config file
         with open(self.config_project_path, "r") as f_config:
-            project_config = yaml.safe_load(f_config)
+            project_config = ordered_yaml_load(f_config)
 
         if project_config:
             self.config_project.update(project_config)
@@ -86,13 +84,13 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         # Load the local project yaml config file if it exists
         if self.config_project_local_path:
             with open(self.config_project_local_path, "r") as f_local_config:
-                local_config = yaml.safe_load(f_local_config)
+                local_config = ordered_yaml_load(f_local_config)
             if local_config:
                 self.config_project_local.update(local_config)
 
         # merge in any additional yaml that was passed along
         if self.additional_yaml:
-            additional_yaml_config = yaml.safe_load(self.additional_yaml)
+            additional_yaml_config = ordered_yaml_load(self.additional_yaml)
             if additional_yaml_config:
                 self.config_additional_yaml.update(additional_yaml_config)
 
@@ -102,8 +100,8 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                     ("additional_yaml", self.config_additional_yaml),
                     ("project_local_config", self.config_project_local),
                     ("project_config", self.config_project),
-                    ("global_local", self.global_config_obj.config_global_local),
-                    ("global_config", self.global_config_obj.config_global),
+                    ("global_local", self.config_global_local),
+                    ("global_config", self.config_global),
                 ]
             )
         )
@@ -568,7 +566,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
         # Get the cumulusci.yml file
         contents = repo.contents("cumulusci.yml", **kwargs)
-        cumulusci_yml = yaml.safe_load(contents.decoded)
+        cumulusci_yml = ordered_yaml_load(contents.decoded)
 
         # Get the namespace from the cumulusci.yml if set
         namespace = cumulusci_yml.get("project", {}).get("package", {}).get("namespace")

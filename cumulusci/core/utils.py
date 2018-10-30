@@ -4,7 +4,9 @@ import_class: task class defn import helper
 process_bool_arg: determine true/false for a commandline arg
 decode_to_unicode: get unicode string from sf api """
 from __future__ import unicode_literals
-from builtins import str
+
+from builtins import bytes, int, str
+
 
 from past.builtins import basestring
 from future.utils import native_str
@@ -12,6 +14,10 @@ from future.utils import native_str
 from datetime import datetime
 import pytz
 import time
+import yaml
+from collections import OrderedDict
+
+from cumulusci.core.exceptions import ConfigMergeError
 
 
 def import_class(path):
@@ -61,3 +67,86 @@ def decode_to_unicode(content):
             # Assume content is unicode already
             return content
     return content
+
+
+def ordered_yaml_load(stream, Loader=yaml.SafeLoader, object_pairs_hook=OrderedDict):
+    """ Load YAML file with OrderedDict, needed for Py2 
+    
+    code adapted from: https://stackoverflow.com/a/21912744/5042831
+    this could potentially be cleaned up to only run in py2 scenarios"""
+
+    class OrderedLoader(Loader):
+        pass
+
+    def construct_mapping(loader, node):
+        loader.flatten_mapping(node)
+        return object_pairs_hook(loader.construct_pairs(node))
+
+    OrderedLoader.add_constructor(
+        yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, construct_mapping
+    )
+    return yaml.load(stream, OrderedLoader)
+
+
+def merge_config(configs):
+    """ recursively deep-merge the configs into one another (highest priority comes first) """
+    new_config = {}
+
+    for name in reversed(OrderedDict(configs)):
+        new_config = dictmerge(new_config, configs[name], name)
+
+    return new_config
+
+
+def dictmerge(a, b, name=None):
+    """ Deeply merge two ``dict``s that consist of lists, dicts, and scalars.
+    This function (recursively) merges ``b`` INTO ``a``, does not copy any values, and returns ``a``.
+
+    based on https://stackoverflow.com/a/15836901/5042831
+    NOTE: tuples and arbitrary objects are NOT handled and will raise TypeError """
+
+    key = None
+
+    if b is None:
+        return a
+
+    try:
+        if a is None or isinstance(a, (bytes, int, str, float)):
+            # first run, or if ``a``` is a scalar
+            a = b
+        elif isinstance(a, list):
+            # lists can be only appended
+            if isinstance(b, list):
+                # merge lists
+                a.extend(b)
+            else:
+                # append to list
+                a.append(b)
+        elif isinstance(a, dict):
+            # dicts must be merged
+            if isinstance(b, dict):
+                for key in b:
+                    if key in a:
+                        a[key] = dictmerge(a[key], b[key], name)
+                    else:
+                        a[key] = b[key]
+            else:
+                raise TypeError(
+                    'Cannot merge non-dict of type "{}" into dict "{}"'.format(
+                        type(b), a
+                    )
+                )
+        else:
+            raise TypeError(
+                'dictmerge does not supporting merging "{}" into "{}"'.format(
+                    type(b), type(a)
+                )
+            )
+    except TypeError as e:
+        raise ConfigMergeError(
+            'TypeError "{}" in key "{}" when merging "{}" into "{}"'.format(
+                e, key, type(b), type(a)
+            ),
+            config_name=name,
+        )
+    return a
