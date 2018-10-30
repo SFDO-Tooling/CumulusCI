@@ -29,4 +29,3 @@ class TestMergedConfig(unittest.TestCase):
             )
         exception = cm.exception
         self.assertEqual(exception.config_name, "user_config")
-
