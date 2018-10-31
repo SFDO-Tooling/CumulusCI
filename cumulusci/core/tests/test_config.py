@@ -80,17 +80,6 @@ class TestBaseConfig(unittest.TestCase):
         config.defaults = {"foo__bar": "default"}
         self.assertEqual(config.foo__bar, "default")
 
-
-class TestBaseGlobalConfig(unittest.TestCase):
-    def test_list_projects(self):
-        with self.assertRaises(NotImplementedError):
-            BaseGlobalConfig().list_projects()
-
-    def test_create_project(self):
-        with self.assertRaises(NotImplementedError):
-            BaseGlobalConfig().create_project("test", {})
-
-
 class DummyContents(object):
     def __init__(self, content):
         self.decoded = content
