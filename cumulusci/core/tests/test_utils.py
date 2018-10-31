@@ -40,8 +40,8 @@ class TestMergedConfig(unittest.TestCase):
         config = utils.merge_config(
             OrderedDict(
                 [
-                    ("user_config", {"hello": "christian"}),
                     ("global_config", {"hello": "world"}),
+                    ("user_config", {"hello": "christian"}),
                 ]
             )
         )
@@ -52,8 +52,8 @@ class TestMergedConfig(unittest.TestCase):
             config = utils.merge_config(
                 OrderedDict(
                     [
-                        ("user_config", {"hello": "christian", "test": [1, 2]}),
                         ("global_config", {"hello": "world", "test": {"sample": 1}}),
+                        ("user_config", {"hello": "christian", "test": [1, 2]}),
                     ]
                 )
             )

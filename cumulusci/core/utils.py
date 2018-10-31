@@ -93,8 +93,8 @@ def merge_config(configs):
     """ recursively deep-merge the configs into one another (highest priority comes first) """
     new_config = {}
 
-    for name in reversed(configs):
-        new_config = dictmerge(new_config, configs[name], name)
+    for name, config in configs.items():
+        new_config = dictmerge(new_config, config, name)
 
     return new_config
 

@@ -66,8 +66,8 @@ class BaseGlobalConfig(BaseTaskFlowConfig):
         self.config = merge_config(
             OrderedDict(
                 [
-                    ("global_local", self.config_global_local),
                     ("global_config", self.config_global),
+                    ("global_local", self.config_global_local),
                 ]
             )
         )

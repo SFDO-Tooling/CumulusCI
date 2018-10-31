@@ -97,11 +97,11 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         self.config = merge_config(
             OrderedDict(
                 [
-                    ("additional_yaml", self.config_additional_yaml),
-                    ("project_local_config", self.config_project_local),
-                    ("project_config", self.config_project),
-                    ("global_local", self.config_global_local),
                     ("global_config", self.config_global),
+                    ("global_local", self.config_global_local),
+                    ("project_config", self.config_project),
+                    ("project_local_config", self.config_project_local),
+                    ("additional_yaml", self.config_additional_yaml),
                 ]
             )
         )
