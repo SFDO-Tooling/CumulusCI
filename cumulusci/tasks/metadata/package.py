@@ -7,7 +7,7 @@ import re
 import urllib.parse
 
 import xml.etree.ElementTree as ET
-import yaml
+from cumulusci.core.utils import ordered_yaml_load
 
 from cumulusci.core.tasks import BaseTask
 from cumulusci.utils import elementtree_parse_file
@@ -57,7 +57,7 @@ class PackageXmlGenerator(object):
         uninstall_class=None,
     ):
         with open(__location__ + "/metadata_map.yml", "r") as f_metadata_map:
-            self.metadata_map = yaml.safe_load(f_metadata_map)
+            self.metadata_map = ordered_yaml_load(f_metadata_map)
         self.directory = directory
         self.api_version = api_version
         self.package_name = package_name

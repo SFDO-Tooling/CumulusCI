@@ -1,33 +1,110 @@
 from __future__ import unicode_literals
-from future.utils import bytes_to_native_str
 from collections import OrderedDict
 from distutils.version import LooseVersion
 import os
 
-import hiyapyco
 import raven
 
 import cumulusci
+from cumulusci.core.utils import ordered_yaml_load, merge_config
 from cumulusci.core.config import BaseTaskFlowConfig
-from cumulusci.core.exceptions import ConfigError
-from cumulusci.core.exceptions import DependencyResolutionError
-from cumulusci.core.exceptions import KeychainNotFound
-from cumulusci.core.exceptions import ServiceNotConfigured
-from cumulusci.core.exceptions import ServiceNotValid
+from cumulusci.core.exceptions import (
+    ConfigError,
+    DependencyResolutionError,
+    KeychainNotFound,
+    ServiceNotConfigured,
+    ServiceNotValid,
+    NotInProject,
+    ProjectConfigNotFound,
+)
 from cumulusci.core.github import get_github_api
 
 
 class BaseProjectConfig(BaseTaskFlowConfig):
     """ Base class for a project's configuration which extends the global config """
 
-    search_path = ["config"]
+    config_filename = "cumulusci.yml"
 
-    def __init__(self, global_config_obj, config=None):
+    def __init__(self, global_config_obj, config=None, *args, **kwargs):
         self.global_config_obj = global_config_obj
         self.keychain = None
+        self._repo_info = None
         if not config:
             config = {}
+
+        # Initialize the dictionaries for the individual configs
+        self.config_project = {}
+        self.config_project_local = {}
+        self.config_additional_yaml = {}
+
+        # optionally pass in a kwarg named 'additional_yaml' that will
+        # be added to the YAML merge stack.
+        self.additional_yaml = None
+        if "additional_yaml" in kwargs:
+            self.additional_yaml = kwargs.pop("additional_yaml")
+
         super(BaseProjectConfig, self).__init__(config=config)
+
+    @property
+    def config_project_local_path(self):
+        path = os.path.join(self.project_local_dir, self.config_filename)
+        if os.path.isfile(path):
+            return path
+
+    def _load_config(self):
+        """ Loads the configuration from YAML, if no override config was passed in initially. """
+
+        if (
+            self.config
+        ):  # any config being pre-set at init will short circuit out, but not a plain {}
+            return
+
+        # Verify that we're in a project
+        repo_root = self.repo_root
+        if not repo_root:
+            raise NotInProject(
+                "No git repository was found in the current path. You must be in a git repository to set up and use CCI for a project."
+            )
+
+        # Verify that the project's root has a config file
+        if not self.config_project_path:
+            raise ProjectConfigNotFound(
+                "The file {} was not found in the repo root: {}. Are you in a CumulusCI Project directory?".format(
+                    self.config_filename, repo_root
+                )
+            )
+
+        # Load the project's yaml config file
+        with open(self.config_project_path, "r") as f_config:
+            project_config = ordered_yaml_load(f_config)
+
+        if project_config:
+            self.config_project.update(project_config)
+
+        # Load the local project yaml config file if it exists
+        if self.config_project_local_path:
+            with open(self.config_project_local_path, "r") as f_local_config:
+                local_config = ordered_yaml_load(f_local_config)
+            if local_config:
+                self.config_project_local.update(local_config)
+
+        # merge in any additional yaml that was passed along
+        if self.additional_yaml:
+            additional_yaml_config = ordered_yaml_load(self.additional_yaml)
+            if additional_yaml_config:
+                self.config_additional_yaml.update(additional_yaml_config)
+
+        self.config = merge_config(
+            OrderedDict(
+                [
+                    ("global_config", self.config_global),
+                    ("global_local", self.config_global_local),
+                    ("project_config", self.config_project),
+                    ("project_local_config", self.config_project_local),
+                    ("additional_yaml", self.config_additional_yaml),
+                ]
+            )
+        )
 
     @property
     def config_global_local(self):
@@ -39,7 +116,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
     @property
     def repo_info(self):
-        if hasattr(self, "_repo_info"):
+        if self._repo_info is not None:
             return self._repo_info
 
         # Detect if we are running in a CI environment and get repo info
@@ -337,15 +414,16 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         """ location of the user local directory for the project
         e.g., ~/.cumulusci/NPSP-Extension-Test/ """
 
-        # depending on where we are in bootstrapping the YamlGlobalConfig
+        # depending on where we are in bootstrapping the BaseGlobalConfig
         # the canonical projectname could be located in one of two places
         if self.project__name:
             name = self.project__name
         else:
-            try:
-                name = self.config_project["project"]["name"]
-            except KeyError:
-                name = ""
+            name = self.config_project.get("project", {}).get("name", "")
+        if name is None:
+            name = (
+                ""
+            )  # not entirely sure why this was happening in tests but this is the goal...
 
         path = os.path.join(
             os.path.expanduser("~"), self.global_config_obj.config_local_dir, name
@@ -488,9 +566,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
         # Get the cumulusci.yml file
         contents = repo.contents("cumulusci.yml", **kwargs)
-        cumulusci_yml = hiyapyco.load(
-            bytes_to_native_str(contents.decoded), loglevel="INFO"
-        )
+        cumulusci_yml = ordered_yaml_load(contents.decoded)
 
         # Get the namespace from the cumulusci.yml if set
         namespace = cumulusci_yml.get("project", {}).get("package", {}).get("namespace")

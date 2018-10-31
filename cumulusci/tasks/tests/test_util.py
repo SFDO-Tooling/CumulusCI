@@ -17,7 +17,9 @@ class TestUtilTasks(unittest.TestCase):
     def setUp(self):
         os.mkdir(os.path.join(self.tempdir, ".git"))
         self.global_config = BaseGlobalConfig()
-        self.project_config = BaseProjectConfig(self.global_config)
+        self.project_config = BaseProjectConfig(
+            self.global_config, config={"noyaml": True}
+        )
         self.org_config = OrgConfig({}, "test")
         self.task_config = TaskConfig({})
 

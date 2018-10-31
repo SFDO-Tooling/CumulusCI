@@ -80,43 +80,6 @@ class TestBaseConfig(unittest.TestCase):
         config.defaults = {"foo__bar": "default"}
         self.assertEqual(config.foo__bar, "default")
 
-    def test_getattr_empty_search_path(self):
-        config = BaseConfig()
-        config.search_path = []
-        self.assertEqual(config.foo, None)
-
-    def test_getattr_search_path_no_match(self):
-        config = BaseConfig()
-        config.search_path = ["_first", "_middle", "_last"]
-        config._first = {}
-        config._middle = {}
-        config._last = {}
-        self.assertEqual(config.foo, None)
-
-    def test_getattr_search_path_match_first(self):
-        config = BaseConfig()
-        config.search_path = ["_first", "_middle", "_last"]
-        config._first = {"foo": "bar"}
-        config._middle = {}
-        config._last = {}
-        self.assertEqual(config.foo, "bar")
-
-    def test_getattr_search_path_match_middle(self):
-        config = BaseConfig()
-        config.search_path = ["_first", "_middle", "_last"]
-        config._first = {}
-        config._middle = {"foo": "bar"}
-        config._last = {}
-        self.assertEqual(config.foo, "bar")
-
-    def test_getattr_search_path_match_last(self):
-        config = BaseConfig()
-        config.search_path = ["_first", "_middle", "_last"]
-        config._first = {}
-        config._middle = {}
-        config._last = {"foo": "bar"}
-        self.assertEqual(config.foo, "bar")
-
 
 class TestBaseGlobalConfig(unittest.TestCase):
     def test_list_projects(self):
@@ -272,8 +235,8 @@ class TestBaseProjectConfig(unittest.TestCase):
             "CUMULUSCI_REPO_ROOT": ".",
             "CUMULUSCI_REPO_URL": "https://github.com/SFDO-Tooling/CumulusCI-Test.git",
         }
-        config = BaseProjectConfig(BaseGlobalConfig())
         with mock.patch.dict(os.environ, env):
+            config = BaseProjectConfig(BaseGlobalConfig())
             result = config.repo_info
         self.assertEqual(
             {
@@ -298,9 +261,9 @@ class TestBaseProjectConfig(unittest.TestCase):
             "CUMULUSCI_REPO_COMMIT": "HEAD~1",
             "CUMULUSCI_REPO_ROOT": ".",
         }
-        config = BaseProjectConfig(BaseGlobalConfig())
         with mock.patch.dict(os.environ, env):
             with self.assertRaises(ConfigError):
+                config = BaseProjectConfig(BaseGlobalConfig())
                 config.repo_info
 
     def test_repo_root_from_env(self):
