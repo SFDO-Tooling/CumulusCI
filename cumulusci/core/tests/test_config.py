@@ -80,6 +80,7 @@ class TestBaseConfig(unittest.TestCase):
         config.defaults = {"foo__bar": "default"}
         self.assertEqual(config.foo__bar, "default")
 
+
 class DummyContents(object):
     def __init__(self, content):
         self.decoded = content
@@ -400,25 +401,6 @@ class TestBaseProjectConfig(unittest.TestCase):
         config = BaseProjectConfig(BaseGlobalConfig())
         with self.assertRaises(KeychainNotFound):
             config._check_keychain()
-
-    def test_list_orgs(self):
-        config = BaseProjectConfig(BaseGlobalConfig())
-        config.keychain = mock.Mock()
-        config.keychain.list_orgs.return_value = mock.sentinel.orgs
-        self.assertIs(mock.sentinel.orgs, config.list_orgs())
-
-    def test_get_org(self):
-        config = BaseProjectConfig(BaseGlobalConfig())
-        config.keychain = mock.Mock()
-        config.keychain.get_org.return_value = mock.sentinel.org
-        self.assertIs(mock.sentinel.org, config.get_org("test"))
-
-    def test_set_org(self):
-        config = BaseProjectConfig(BaseGlobalConfig())
-        config.keychain = mock.Mock()
-        org_config = mock.Mock()
-        config.set_org("test", org_config)
-        config.keychain.set_org.assert_called_once_with(org_config)
 
     def test_get_static_dependencies(self):
         dep = {"namespace": "npsp", "version": "3"}
