@@ -2,6 +2,11 @@ cumulusci:
     keychain: cumulusci.core.keychain.EncryptedFileProjectKeychain
 
 tasks:
+    assign_permission_set:
+        description: Assign Permission Set specified in the "extra" option using [--permsetname "Permission_Set_DeveloperName"]
+        class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+        options:
+            command: 'force:user:permset:assign'
     batch_apex_wait:
         description: Waits on a batch apex job to finish.
         class_path: cumulusci.tasks.apex.batch.BatchApexWait
