@@ -28,7 +28,10 @@ class BaseProjectConfig(BaseTaskFlowConfig):
     def __init__(self, global_config_obj, config=None, *args, **kwargs):
         self.global_config_obj = global_config_obj
         self.keychain = None
-        self._repo_info = None
+
+        # optionally pass in a repo_info dict
+        self._repo_info = kwargs.pop("repo_info", None)
+
         if not config:
             config = {}
 
