@@ -20,6 +20,15 @@ from cumulusci.core.exceptions import (
 from cumulusci.core.github import get_github_api
 
 
+def split_repo_url(url):
+    url_parts = url.split("/")
+    name = url_parts[-1]
+    owner = url_parts[-2]
+    if name.endswith(".git"):
+        name = name[:-4]
+    git_info = {"url": url, "owner": owner, "name": name}
+    return git_info
+
 class BaseProjectConfig(BaseTaskFlowConfig):
     """ Base class for a project's configuration which extends the global config """
 
@@ -30,7 +39,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         self.keychain = None
 
         # optionally pass in a repo_info dict
-        self._repo_info = kwargs.pop("repo_info", None)
+        self.repo_info = kwargs.pop("repo_info", {})
 
         if not config:
             config = {}
@@ -231,6 +240,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         path = os.path.splitdrive(os.getcwd())[1]
         while True:
             if os.path.isdir(os.path.join(path, ".git")):
+                self.repo_info["root"] = path
                 return path
             head, tail = os.path.split(path)
             if not tail:
@@ -255,7 +265,8 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                     in_remote_origin = True
                     continue
                 if in_remote_origin and line.find("url =") != -1:
-                    return self._split_repo_url(line)["name"]
+                    self.repo_info["name"] = split_repo_url(line)["name"]
+                    return self.repo_info["name"]
 
     @property
     def repo_url(self):
@@ -275,7 +286,8 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                     in_remote_origin = True
                     continue
                 if in_remote_origin and "url = " in line:
-                    return line[len("url = ") :]
+                    self.repo_info["url"] = line[len("url = ") :]
+                    return self.repo_info["url"]
 
     @property
     def repo_owner(self):
@@ -295,7 +307,8 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                     continue
                 if in_remote_origin and line.find("url =") != -1:
                     line_parts = line.split("/")
-                    return line_parts[-2].split(":")[-1]
+                    self.repo_info["owner"] = line_parts[-2].split(":")[-1]
+                    return self.repo_info["owner"]
 
     @property
     def repo_branch(self):
@@ -309,7 +322,8 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         with open(os.path.join(self.repo_root, ".git", "HEAD"), "r") as f:
             branch_ref = f.read().strip()
         if branch_ref.startswith("ref: "):
-            return "/".join(branch_ref[5:].split("/")[2:])
+            self.repo_info["branch"] = "/".join(branch_ref[5:].split("/")[2:])
+            return self.repo_info["branch"]
 
     @property
     def repo_commit(self):
@@ -344,7 +358,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                     if parts[1].replace("refs/remotes/origin/", "").strip() == branch:
                         commit_sha = parts[0]
                         break
-
+        self.repo_info["commit"] = commit_sha
         return commit_sha
 
     @property
