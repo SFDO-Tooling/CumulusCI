@@ -1,8 +1,8 @@
 import os
 import random
 
-import yaml
 
+from cumulusci.core.utils import ordered_yaml_load
 from cumulusci.core.config import BaseGlobalConfig
 from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.keychain import BaseProjectKeychain
@@ -18,7 +18,7 @@ def random_sha():
 def get_base_config():
     path = os.path.abspath(os.path.join(__location__, "cumulusci.yml"))
     with open(path, "r") as f:
-        return yaml.safe_load(f)
+        return ordered_yaml_load(f)
 
 
 def create_project_config(repo_name="TestRepo", repo_owner="TestOwner"):

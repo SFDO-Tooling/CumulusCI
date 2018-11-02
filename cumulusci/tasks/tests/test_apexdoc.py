@@ -12,7 +12,9 @@ from cumulusci.tasks.apexdoc import GenerateApexDocs
 class TestGenerateApexDocs(unittest.TestCase):
     def setUp(self):
         self.global_config = BaseGlobalConfig()
-        self.project_config = BaseProjectConfig(self.global_config)
+        self.project_config = BaseProjectConfig(
+            self.global_config, config={"noyaml": True}
+        )
         self.task_config = TaskConfig({"options": {"version": "1.0"}})
         self.org_config = OrgConfig({}, "test")
 

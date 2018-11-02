@@ -25,11 +25,10 @@ from sqlalchemy import Unicode
 from sqlalchemy import text
 from sqlalchemy import types
 from sqlalchemy import event
-import hiyapyco
 import requests
 import unicodecsv
 
-from cumulusci.core.utils import process_bool_arg
+from cumulusci.core.utils import process_bool_arg, ordered_yaml_load
 from cumulusci.core.exceptions import BulkDataException
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.utils import log_progress
@@ -490,7 +489,8 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
         self.session = Session(self.engine)
 
     def _init_mapping(self):
-        self.mapping = hiyapyco.load(self.options["mapping"], loglevel="INFO")
+        with open(self.options["mapping"], "r") as f:
+            self.mapping = ordered_yaml_load(f)
 
 
 class QueryData(BulkJobTaskMixin, BaseSalesforceApiTask):
@@ -534,7 +534,8 @@ class QueryData(BulkJobTaskMixin, BaseSalesforceApiTask):
         self.session = create_session(bind=self.engine, autocommit=False)
 
     def _init_mapping(self):
-        self.mappings = hiyapyco.load(self.options["mapping"], loglevel="INFO")
+        with open(self.options["mapping"], "r") as f:
+            self.mappings = ordered_yaml_load(f)
 
     def _soql_for_mapping(self, mapping):
         sf_object = mapping["sf_object"]

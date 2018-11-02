@@ -35,7 +35,9 @@ class ProjectKeychainTestMixin(unittest.TestCase):
 
     def setUp(self):
         self.global_config = BaseGlobalConfig()
-        self.project_config = BaseProjectConfig(self.global_config)
+        self.project_config = BaseProjectConfig(
+            self.global_config, config={"no_yaml": True}
+        )
         self.project_config.config["services"] = {
             "connected_app": {"attributes": {"test": {"required": True}}},
             "github": {"attributes": {"name": {"required": True}, "password": {}}},
@@ -376,7 +378,9 @@ class TestEncryptedFileProjectKeychain(ProjectKeychainTestMixin):
 
     def setUp(self):
         self.global_config = BaseGlobalConfig()
-        self.project_config = BaseProjectConfig(self.global_config)
+        self.project_config = BaseProjectConfig(
+            self.global_config, config={"noyaml": True}
+        )
         self.project_config.config["services"] = {
             "connected_app": {"attributes": {"test": {"required": True}}},
             "github": {"attributes": {"git": {"required": True}, "password": {}}},
