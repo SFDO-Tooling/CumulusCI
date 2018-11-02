@@ -12,7 +12,13 @@ def list_infos(infos):
         info = infos[info_name]
         if not info:
             info = {}
-        rv.append({"name": info_name, "description": info.get("description", "")})
+        rv.append(
+            {
+                "name": info_name,
+                "description": info.get("description", ""),
+                "group": info.get("group") or "Other",
+            }
+        )
     return rv
 
 
