@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 import os
+import warnings
 from collections import OrderedDict
 
 from cumulusci.core.utils import ordered_yaml_load, merge_config
@@ -23,6 +24,10 @@ class BaseGlobalConfig(BaseTaskFlowConfig):
 
     def get_project_config(self, *args, **kwargs):
         """ Returns a ProjectConfig for the given project """
+        warnings.warn(
+            "BaseGlobalConfig.get_project_config is pending deprecation",
+            DeprecationWarning,
+        )
         return self.project_config_class(self, *args, **kwargs)
 
     @property
