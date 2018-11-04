@@ -16,3 +16,13 @@ To use a Runtime, just contruct it::
 
     runtime = BaseRuntime()
     runtime.project_config.get_task('Blah')()
+
+If the current working directory isn't inside a git repository (as determined by there being a .git folder in or above the current directory), you'll want to pass in repo information instead.::
+
+    runtime = BaseRuntime(repo_info={'root': '/Absolute/Path/To/Workspace', 'branch': 'feature/mybranch', 'name': 'Workspace', 'owner': 'MyThing', 'url':'private-url', 'commit': 'shaish'})
+
+Okay, you don't need to provide all of those. The only one that's necessary is the 'root' key, unless you're using a task that uses the other information. So, a frequent invocation is simply::
+
+    runtime = BaseRuntime(repo_info={'root':'/Users/cdcarter/Projects/CumulusCI-Test'})
+
+.
