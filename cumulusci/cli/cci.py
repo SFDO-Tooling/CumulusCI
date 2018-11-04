@@ -909,14 +909,14 @@ def task_list(config):
     headers = ["task", "description"]
     task_groups = OrderedDict()
     for task in config.project_config.list_tasks():
-        group = task["group"] or 'Other'
+        group = task["group"] or "Other"
         if group not in task_groups:
             task_groups[group] = []
         task_groups[group].append(task)
     for group, tasks in task_groups.items():
         data.append(("", ""))
         data.append(("-- {} --".format(group), ""))
-        for task in sorted(tasks, key=operator.itemgetter('name')):
+        for task in sorted(tasks, key=operator.itemgetter("name")):
             data.append((task["name"], task["description"]))
     table = Table(data, headers)
     click.echo(table)
