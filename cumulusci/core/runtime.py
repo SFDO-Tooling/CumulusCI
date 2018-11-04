@@ -16,10 +16,8 @@ class BaseRuntime(object):
         self.project_config = None
         self.keychain = None
 
-        if "global_config_obj" in kwargs:
-            self.global_config = kwargs.pop("global_config_obj")
-        else:
-            self._load_global_config()
+        self._load_global_config()
+
         if load_project_config:
             self._load_project_config(*args, **kwargs)
             self._add_repo_to_path()
