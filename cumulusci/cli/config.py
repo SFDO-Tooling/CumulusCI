@@ -1,22 +1,17 @@
 import os
 import sys
-import click
-import traceback
 from subprocess import call
 
+import click
 import pkg_resources
 
-from cumulusci.core.config import BaseGlobalConfig
+from cumulusci.core.runtime import BaseRuntime
 from cumulusci.core.exceptions import ConfigError
 from cumulusci.core.exceptions import NotInProject
 from cumulusci.core.exceptions import OrgNotFound
 from cumulusci.core.exceptions import KeychainKeyNotFound
 from cumulusci.core.exceptions import ProjectConfigNotFound
-
 from cumulusci.core.utils import import_class
-
-
-from cumulusci.core.runtime import BaseRuntime
 
 
 class CliRuntime(BaseRuntime):

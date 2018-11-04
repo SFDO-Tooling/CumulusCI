@@ -1,13 +1,11 @@
 import sys
 
-import pkg_resources
-
 from cumulusci.core.config import BaseGlobalConfig
 from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.keychain import BaseProjectKeychain
-from cumulusci.core.exceptions import ProjectMinimumVersionError
 
 
+# pylint: disable=assignment-from-none
 class BaseRuntime(object):
     global_config_class = BaseGlobalConfig
     project_config_class = BaseProjectConfig
@@ -74,4 +72,3 @@ class BaseRuntime(object):
     def _load_keychain(self):
         self.keychain = self.keychain_cls(self.project_config, self.keychain_key)
         self.project_config.set_keychain(self.keychain)  # never understood this but ok.
-
