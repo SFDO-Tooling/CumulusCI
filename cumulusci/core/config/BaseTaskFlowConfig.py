@@ -16,7 +16,7 @@ def list_infos(infos):
             {
                 "name": info_name,
                 "description": info.get("description", ""),
-                "group": info.get("group") or "Other",
+                "group": info.get("group"),
             }
         )
     return rv
