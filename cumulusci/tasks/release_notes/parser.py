@@ -42,7 +42,7 @@ class ChangeNotesLinesParser(BaseChangeNotesParser):
 
             # Look for h2
             if line.startswith("## "):
-                self.h2_title = re.sub("\s+#+$", "", line[3:]).lstrip()
+                self.h2_title = re.sub(r"\s+#+$", "", line[3:]).lstrip()
                 continue
 
             # Add all content once in the section
@@ -250,7 +250,7 @@ class GithubIssuesParser(IssuesParser):
         if is_beta:
             comment_prefix = self.ISSUE_COMMENT["beta"]
             version_parts = re.findall(
-                "{}(\d+\.\d+)-Beta_(\d+)".format(prefix_beta),
+                r"{}(\d+\.\d+)-Beta_(\d+)".format(prefix_beta),
                 self.release_notes_generator.current_tag,
             )
             version_str = "{} (Beta {})".format(*version_parts[0])
