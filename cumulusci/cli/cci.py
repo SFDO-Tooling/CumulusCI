@@ -1102,7 +1102,6 @@ def flow_run(config, flow_name, org, delete_org, debug, o, skip, no_prompt):
     if delete_org and not org_config.scratch:
         raise click.UsageError("--delete-org can only be used with a scratch org")
 
-    flow_config = config.project_config.get_flow(flow_name)
 
     # Parse command line options and add to task config
     options = {}
@@ -1112,15 +1111,7 @@ def flow_run(config, flow_name, org, delete_org, debug, o, skip, no_prompt):
 
     # Create the flow and handle initialization exceptions
     try:
-        flow = BaseFlow(
-            config.project_config,
-            flow_config,
-            org_config,
-            options,
-            skip,
-            name=flow_name,
-        )
-
+        flow = config.get_flow(flow_name, org_config, options, skip)
         flow()
     except CumulusCIUsageError as e:
         exception = click.UsageError(str(e))

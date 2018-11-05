@@ -3,13 +3,14 @@ import sys
 from cumulusci.core.config import BaseGlobalConfig
 from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.keychain import BaseProjectKeychain
-
+from cumulusci.core.flows import BaseFlow
 
 # pylint: disable=assignment-from-none
 class BaseCumulusCI(object):
     global_config_class = BaseGlobalConfig
     project_config_class = BaseProjectConfig
     keychain_class = BaseProjectKeychain
+    flowrunner_class = BaseFlow
 
     def __init__(self, *args, **kwargs):
         load_project_config = kwargs.pop(
@@ -60,6 +61,14 @@ class BaseCumulusCI(object):
     def get_keychain_key(self):
         return None
 
+    @property
+    def flowrunner_cls(self):
+        klass = self.get_flowrunner_class()
+        return klass or self.flowrunner_class
+
+    def get_flowrunner_class(self):
+        return None
+
     def _add_repo_to_path(self):
         if self.project_config:
             sys.path.append(self.project_config.repo_root)
@@ -75,3 +84,13 @@ class BaseCumulusCI(object):
     def _load_keychain(self):
         self.keychain = self.keychain_cls(self.project_config, self.keychain_key)
         self.project_config.set_keychain(self.keychain)  # never understood this but ok.
+
+    def get_flow(self, name, org_config, options, skip):
+        return self.flowrunner_cls(
+            self.project_config,
+            self.project_config.get_flow(name),
+            org_config,
+            options,
+            skip,
+            name=name,
+        )
