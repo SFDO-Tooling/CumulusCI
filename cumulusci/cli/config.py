@@ -15,14 +15,9 @@ from cumulusci.core.utils import import_class
 
 
 class CliRuntime(BaseRuntime):
-    def __init__(self, *args, load_project_config=True, load_keychain=True, **kwargs):
+    def __init__(self, *args, **kwargs):
         try:
-            super(CliRuntime, self).__init__(
-                *args,
-                load_project_config=load_project_config,
-                load_keychain=load_keychain,
-                **kwargs
-            )
+            super(CliRuntime, self).__init__(*args, **kwargs)
         except (ProjectConfigNotFound, NotInProject) as e:
             raise click.UsageError(str(e))
         except ConfigError as e:

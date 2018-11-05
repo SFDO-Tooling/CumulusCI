@@ -11,7 +11,12 @@ class BaseRuntime(object):
     project_config_class = BaseProjectConfig
     keychain_class = BaseProjectKeychain
 
-    def __init__(self, *args, load_project_config=True, load_keychain=True, **kwargs):
+    def __init__(self, *args, **kwargs):
+        load_project_config = kwargs.pop(
+            "load_project_config", True
+        )  # can be added to fn signature in py3
+        load_keychain = kwargs.pop("load_keychain", True)
+
         self.global_config = None
         self.project_config = None
         self.keychain = None
