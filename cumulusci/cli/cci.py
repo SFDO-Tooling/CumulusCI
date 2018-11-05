@@ -1102,7 +1102,6 @@ def flow_run(config, flow_name, org, delete_org, debug, o, skip, no_prompt):
     if delete_org and not org_config.scratch:
         raise click.UsageError("--delete-org can only be used with a scratch org")
 
-
     # Parse command line options and add to task config
     options = {}
     if o:
