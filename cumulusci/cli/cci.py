@@ -770,8 +770,8 @@ def org_list(config):
         "config_name",
         "username",
     ]
-    for org in config.project_config.list_orgs():
-        org_config = config.project_config.get_org(org)
+    for org in config.project_config.keychain.list_orgs():
+        org_config = config.project_config.keychain.get_org(org)
         row = [org]
         row.append("*" if org_config.default else "")
         row.append("*" if org_config.scratch else "")

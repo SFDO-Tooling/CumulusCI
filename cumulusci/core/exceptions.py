@@ -31,6 +31,10 @@ class ProjectConfigNotFound(CumulusCIUsageError):
     pass
 
 
+class ProjectMinimumVersionError(CumulusCIException):
+    pass
+
+
 class KeychainNotFound(CumulusCIException):
     """ Raised when no keychain could be found """
 

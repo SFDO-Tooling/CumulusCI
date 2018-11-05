@@ -28,7 +28,10 @@ class BaseProjectConfig(BaseTaskFlowConfig):
     def __init__(self, global_config_obj, config=None, *args, **kwargs):
         self.global_config_obj = global_config_obj
         self.keychain = None
-        self._repo_info = None
+
+        # optionally pass in a repo_info dict
+        self._repo_info = kwargs.pop("repo_info", None)
+
         if not config:
             config = {}
 
@@ -465,21 +468,6 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                 "Could not find config.keychain. You must call "
                 + "config.set_keychain(keychain) before accessing orgs"
             )
-
-    def list_orgs(self):
-        """ Returns a list of all org names for the project """
-        self._check_keychain()
-        return self.keychain.list_orgs()
-
-    def get_org(self, name):
-        """ Returns an OrgConfig for the given org_name """
-        self._check_keychain()
-        return self.keychain.get_org(name)
-
-    def set_org(self, name, org_config):
-        """ Creates or updates an org's oauth info """
-        self._check_keychain()
-        return self.keychain.set_org(org_config)
 
     def get_static_dependencies(self, dependencies=None, include_beta=None):
         """Resolves the project -> dependencies section of cumulusci.yml

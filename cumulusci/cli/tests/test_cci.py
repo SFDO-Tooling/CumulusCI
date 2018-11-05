@@ -456,8 +456,8 @@ test     Test Service  *""",
     @mock.patch("click.echo")
     def test_org_list(self, echo):
         config = mock.Mock()
-        config.project_config.list_orgs.return_value = ["test1", "test2"]
-        config.project_config.get_org.side_effect = [
+        config.project_config.keychain.list_orgs.return_value = ["test1", "test2"]
+        config.project_config.keychain.get_org.side_effect = [
             OrgConfig(
                 {
                     "default": True,
