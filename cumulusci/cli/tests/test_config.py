@@ -8,7 +8,7 @@ import unittest
 import click
 
 import cumulusci
-from ..config import CliConfig
+from cumulusci.cli.config import CliConfig
 from cumulusci.core.config import OrgConfig
 from cumulusci.core.exceptions import ConfigError
 from cumulusci.core.exceptions import NotInProject
@@ -34,31 +34,25 @@ class TestCliConfig(unittest.TestCase):
             self.assertIn(key, config.keychain.config)
         self.assertIn(config.project_config.repo_root, sys.path)
 
-    """
-    # TODO: order of execution/exceptions is different in CliRuntime, need to figure out best way to mock here.
-            (specifically, the _load_project_config() isn't overridden anymore, and exc handling happens in init. maybe just move handling.)
-    def test_load_project_not_in_project(self):
-        config = CliConfig(load_project_config=False)
-        config.project_config_class = mock.Mock(side_effect=NotInProject)
+    @mock.patch("cumulusci.cli.config.CliConfig._load_project_config")
+    def test_load_project_not_in_project(self, load_proj_cfg_mock):
+        load_proj_cfg_mock.side_effect = NotInProject
 
         with self.assertRaises(click.UsageError):
-            config._load_project_config()
+            CliConfig()
 
-    def test_load_project_config_no_file(self):
-        config = CliConfig(load_project_config=False)
-        config.project_config = None
-        config.project_config_class = mock.Mock(side_effect=ProjectConfigNotFound)
+    @mock.patch("cumulusci.cli.config.CliConfig._load_project_config")
+    def test_load_project_config_no_file(self, load_proj_cfg_mock):
+        load_proj_cfg_mock.side_effect = ProjectConfigNotFound
         with self.assertRaises(click.UsageError):
-            config._load_project_config()
+            CliConfig()
 
-    def test_load_project_config_error(self):
-        config = CliConfig(load_project_config=False)
-        config.project_config = None
-        config.project_config_class = mock.Mock()
+    @mock.patch("cumulusci.cli.config.CliConfig._load_project_config")
+    def test_load_project_config_error(self, load_proj_cfg_mock):
+        load_proj_cfg_mock.side_effect = ConfigError
 
         with self.assertRaises(click.UsageError):
-            config._load_project_config()
-    """
+            CliConfig()
 
     def test_load_keychain__no_key(self):
         with mock.patch.dict(os.environ, {"CUMULUSCI_KEY": ""}):
