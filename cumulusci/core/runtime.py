@@ -6,7 +6,7 @@ from cumulusci.core.keychain import BaseProjectKeychain
 
 
 # pylint: disable=assignment-from-none
-class BaseRuntime(object):
+class BaseCumulusCI(object):
     global_config_class = BaseGlobalConfig
     project_config_class = BaseProjectConfig
     keychain_class = BaseProjectKeychain
@@ -14,7 +14,7 @@ class BaseRuntime(object):
     def __init__(self, *args, **kwargs):
         load_project_config = kwargs.pop(
             "load_project_config", True
-        )  # can be added to fn signature in py3
+        )  # this & below can be added to fn signature in py3
         load_keychain = kwargs.pop("load_keychain", True)
 
         self.global_config = None

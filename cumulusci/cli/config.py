@@ -5,7 +5,7 @@ from subprocess import call
 import click
 import pkg_resources
 
-from cumulusci.core.runtime import BaseRuntime
+from cumulusci.core.runtime import BaseCumulusCI
 from cumulusci.core.exceptions import ConfigError
 from cumulusci.core.exceptions import NotInProject
 from cumulusci.core.exceptions import OrgNotFound
@@ -14,7 +14,7 @@ from cumulusci.core.exceptions import ProjectConfigNotFound
 from cumulusci.core.utils import import_class
 
 
-class CliRuntime(BaseRuntime):
+class CliRuntime(BaseCumulusCI):
     def __init__(self, *args, **kwargs):
         try:
             super(CliRuntime, self).__init__(*args, **kwargs)
