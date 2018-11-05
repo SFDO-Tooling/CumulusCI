@@ -10,19 +10,19 @@ The Python API is primarily for internal users, but rough documentation is provi
 Runtime
 -------
 
-The main entry point to CumulusCI is through a Runtime object. ``cumulusci.core.runtime.BaseRuntime`` is a concrete class and sufficient to create a simple CCI, and ``cumulusci.cci.config.CliRuntime`` contains examples of a runtime configured to dynamically provide the Keychain implementation, as well as handle errors differently.
+The main entry point to CumulusCI is through a Runtime object. ``cumulusci.core.runtime.BaseCumulusCI`` is a concrete class and sufficient to create a simple CCI, and ``cumulusci.cci.config.CliRuntime`` contains examples of a runtime configured to dynamically provide the Keychain implementation, as well as handle errors differently.
 
 To use a Runtime, just contruct it::
 
-    runtime = BaseRuntime()
+    runtime = BaseCumulusCI()
     runtime.project_config.get_task('Blah')()
 
 If the current working directory isn't inside a git repository (as determined by there being a .git folder in or above the current directory), you'll want to pass in repo information instead.::
 
-    runtime = BaseRuntime(repo_info={'root': '/Absolute/Path/To/Workspace', 'branch': 'feature/mybranch', 'name': 'Workspace', 'owner': 'MyThing', 'url':'private-url', 'commit': 'shaish'})
+    runtime = BaseCumulusCI(repo_info={'root': '/Absolute/Path/To/Workspace', 'branch': 'feature/mybranch', 'name': 'Workspace', 'owner': 'MyThing', 'url':'private-url', 'commit': 'shaish'})
 
 Okay, you don't need to provide all of those. The only one that's necessary is the 'root' key, unless you're using a task that uses the other information. So, a frequent invocation is simply::
 
-    runtime = BaseRuntime(repo_info={'root':'/Users/cdcarter/Projects/CumulusCI-Test'})
+    runtime = BaseCumulusCI(repo_info={'root':'/Users/cdcarter/Projects/CumulusCI-Test'})
 
 .
