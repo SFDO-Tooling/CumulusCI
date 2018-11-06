@@ -999,7 +999,9 @@ def task_run(config, task_name, org, o, debug, debug_before, debug_after, no_pro
 
     # Create and run the task
     try:
-        task = task_class(config.project_config, task_config, org_config=org_config, context=config)
+        task = task_class(
+            config.project_config, task_config, org_config=org_config, context=config
+        )
 
         if debug_before:
             import pdb
@@ -1111,7 +1113,7 @@ def flow_run(config, flow_name, org, delete_org, debug, o, skip, no_prompt):
     # Create the flow and handle initialization exceptions
     try:
         flow = config.get_flow(flow_name, org_config, options, skip)
-        flow() # leave this as two lines to allow easier breakpointing.
+        flow()  # leave this as two lines to allow easier breakpointing.
     except CumulusCIUsageError as e:
         exception = click.UsageError(str(e))
         handle_exception_debug(config, debug, throw_exception=exception)
