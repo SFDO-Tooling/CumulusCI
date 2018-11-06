@@ -35,6 +35,7 @@ class BaseFlow(object):
         prep=True,
         name=None,
         stepnum=None,
+        context=None,
     ):
         self.project_config = (
             project_config
@@ -54,6 +55,7 @@ class BaseFlow(object):
         self.parent = parent  # parent flow, if nested
         self.name = name  # the flows name.
         self.stepnum = stepnum  # a nested flow has a stepnum
+        self.ctx = context  # the runtime context
         self._init_options()
         self._init_skip(skip)
         self._init_logger()

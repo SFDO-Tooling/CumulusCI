@@ -93,4 +93,5 @@ class BaseCumulusCI(object):
             options,
             skip,
             name=name,
+            context=self,
         )

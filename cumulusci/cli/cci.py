@@ -999,7 +999,7 @@ def task_run(config, task_name, org, o, debug, debug_before, debug_after, no_pro
 
     # Create and run the task
     try:
-        task = task_class(config.project_config, task_config, org_config=org_config)
+        task = task_class(config.project_config, task_config, org_config=org_config, context=config)
 
         if debug_before:
             import pdb

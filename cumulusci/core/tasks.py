@@ -37,7 +37,8 @@ class BaseTask(object):
         flow=None,
         name=None,
         stepnum=None,
-        **kwargs
+        context=None,
+        **kwargs,
     ):
         self.project_config = project_config
         self.task_config = task_config
@@ -61,6 +62,9 @@ class BaseTask(object):
 
         # the tasks stepnumber in the flow
         self.stepnum = stepnum
+
+        # the runtime context
+        self.ctx = context
 
         if self.salesforce_task and not self.org_config:
             raise TaskRequiresSalesforceOrg(
