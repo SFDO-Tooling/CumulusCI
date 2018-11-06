@@ -1111,7 +1111,7 @@ def flow_run(config, flow_name, org, delete_org, debug, o, skip, no_prompt):
     # Create the flow and handle initialization exceptions
     try:
         flow = config.get_flow(flow_name, org_config, options, skip)
-        flow()
+        flow() # leave this as two lines to allow easier breakpointing.
     except CumulusCIUsageError as e:
         exception = click.UsageError(str(e))
         handle_exception_debug(config, debug, throw_exception=exception)
