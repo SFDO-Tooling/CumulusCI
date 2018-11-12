@@ -4,7 +4,7 @@ cffi==1.11.5
 chardet==3.0.4
 click==7.0
 coloredlogs==10.0
-cryptography==2.3.1
+cryptography==2.4.1
 docutils==0.14
 future==0.17.0
 github3.py==0.9.6  # pyup: ignore
