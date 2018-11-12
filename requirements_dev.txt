@@ -8,7 +8,7 @@ flake8==3.6.0
 mock==2.0.0
 pytest==3.10.1
 responses==0.10.3
-Sphinx==1.8.1
+Sphinx==1.8.2
 testfixtures==6.3.0
 tox==3.5.3
 twine==1.12.1
