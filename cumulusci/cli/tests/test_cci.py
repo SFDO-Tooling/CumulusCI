@@ -360,8 +360,8 @@ test     Test Service  *""",
         browser_open.assert_called_once()
         config.keychain.set_org.assert_called_once_with(org_config)
 
-    @responses.activate
     @mock.patch("cumulusci.cli.cci.CaptureSalesforceOAuth")
+    @responses.activate
     def test_org_connect(self, oauth):
         oauth.return_value = mock.Mock(
             return_value={"instance_url": "https://instance", "access_token": "BOGUS"}
