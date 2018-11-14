@@ -5,37 +5,45 @@ tasks:
     batch_apex_wait:
         description: Waits on a batch apex job to finish.
         class_path: cumulusci.tasks.apex.batch.BatchApexWait
+        group: Salesforce
     command:
         description: Run an arbitrary command
         class_path: cumulusci.tasks.command.Command
+        group: Utilities
     commit_apex_docs:
         description: commit local ApexDocs to GitHub branch
         class_path: cumulusci.tasks.github.CommitApexDocs
+        group: Release Management
     create_package:
         description: Creates a package in the target org with the default package name for the project
         class_path: cumulusci.tasks.salesforce.CreatePackage
+        group: Salesforce Packages
     create_managed_src:
         description: Modifies the src directory for managed deployment.  Strips //cumulusci-managed from all Apex code
         class_path: cumulusci.tasks.metadata.managed_src.CreateManagedSrc
         options:
             path: src
             revert_path: src.orig
+        group: Salesforce Metadata
     create_unmanaged_ee_src:
         description: Modifies the src directory for unmanaged deployment to an EE org
         class_path: cumulusci.tasks.metadata.ee_src.CreateUnmanagedEESrc
         options:
             path: src
             revert_path: src.orig
+        group: Salesforce Metadata
     deploy:
         description: Deploys the src directory of the repository to the org
         class_path: cumulusci.tasks.salesforce.Deploy
         options:
             path: src
+        group: Salesforce Metadata
     deploy_pre:
         description: Deploys all metadata bundles under unpackaged/pre/
         class_path: cumulusci.tasks.salesforce.DeployBundles
         options:
             path: unpackaged/pre
+        group: Salesforce Metadata
     deploy_post:
         description: Deploys all metadata bundles under unpackaged/post/
         class_path: cumulusci.tasks.salesforce.DeployBundles
@@ -45,102 +53,128 @@ tasks:
             namespace_inject: $project_config.project__package__namespace
             namespace_token: '%%%NAMESPACE%%%'
             filename_token: '___NAMESPACE___'
+        group: Salesforce Metadata
     dx_convert_to:
         description: Converts src directory metadata format into sfdx format under force-app
         class_path: cumulusci.tasks.sfdx.SFDXBaseTask
         options:
             command: 'force:mdapi:convert -r src'
+        group: Salesforce DX
     dx_convert_from:
         description: Converts force-app directory in sfdx format into metadata format under src
         class_path: cumulusci.tasks.sfdx.SFDXBaseTask
         options:
             command: 'force:source:convert -d src'
+        group: Salesforce DX
     dx_pull:
         description: Uses sfdx to pull from a scratch org into the force-app directory
         class_path: cumulusci.tasks.sfdx.SFDXOrgTask
         options:
             command: 'force:source:pull'
+        group: Salesforce DX
     dx_push:
         description: Uses sfdx to push the force-app directory metadata into a scratch org
         class_path: cumulusci.tasks.sfdx.SFDXOrgTask
         options:
             command: 'force:source:push'
+        group: Salesforce DX
     execute_anon:
         description: Execute anonymous apex via the tooling api.
         class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
+        group: Salesforce
     generate_apex_docs:
         description: Generate documentation for local code. Configure settings in cumulusci.yml/project/apexdoc - homepage, banner, branch, repo_dir
         class_path: cumulusci.tasks.apexdoc.GenerateApexDocs
+        group: Release Management
     get_installed_packages:
         description: Retrieves a list of the currently installed managed package namespaces and their versions
         class_path: cumulusci.tasks.salesforce.GetInstalledPackages
+        group: Salesforce Metadata
     github_clone_tag:
         description: Lists open pull requests in project Github repository
         class_path: cumulusci.tasks.github.CloneTag
+        group: GitHub
     github_master_to_feature:
         description: Merges the latest commit on the master branch into all open feature branches
         class_path: cumulusci.tasks.github.MergeBranch
+        group: GitHub
     github_parent_to_children:
         description: Merges the latest commit on a parent feature branch into all child feature branches
         class_path: cumulusci.tasks.github.MergeBranch
         options:
             children_only: True
             source_branch: $project_config.repo_branch
+        group: GitHub
     github_pull_requests:
         description: Lists open pull requests in project Github repository
         class_path: cumulusci.tasks.github.PullRequests
+        group: GitHub
     github_release:
         description: Creates a Github release for a given managed package version number
         class_path: cumulusci.tasks.github.CreateRelease
+        group: GitHub
     github_release_notes:
         description: Generates release notes by parsing pull request bodies of merged pull requests between two tags
         class_path: cumulusci.tasks.release_notes.task.GithubReleaseNotes
+        group: GitHub
     github_release_report:
         description: Parses GitHub release notes to report various info
         class_path: cumulusci.tasks.github.ReleaseReport
+        group: GitHub
     install_managed:
         description: Install the latest managed production release
         class_path: cumulusci.tasks.salesforce.InstallPackageVersion
         options:
             version: latest
+        group: Salesforce Packages
     install_managed_beta:
         description: Installs the latest managed beta release
         class_path: cumulusci.tasks.salesforce.InstallPackageVersion
         options:
             version: latest_beta
+        group: Salesforce Packages
     list_metadata_types:
         description: Prints the metadata types in a project
         class_path: cumulusci.tasks.util.ListMetadataTypes
+        group: Salesforce Metadata
     meta_xml_apiversion:
         description: Set the API version in *meta.xml files
         class_path: cumulusci.tasks.metaxml.UpdateApi
+        group: Salesforce Metadata
     meta_xml_dependencies:
         description: Set the version for dependent packages
         class_path: cumulusci.tasks.metaxml.UpdateDependencies
+        group: Salesforce Metadata
     mrbelvedere_publish:
         description: Publishes a release to the mrbelvedere web installer
         class_path: cumulusci.tasks.mrbelvedere.MrbelvederePublish
+        group: Release Management
     push_all:
         description: Schedules a push upgrade of a package version to all subscribers
         class_path: cumulusci.tasks.push.tasks.SchedulePushOrgQuery
+        group: Push Upgrades
     push_list:
         description: Schedules a push upgrade of a package version to all orgs listed in the specified file
         class_path: cumulusci.tasks.push.tasks.SchedulePushOrgList
+        group: Push Upgrades
     push_qa:
         description: Schedules a push upgrade of a package version to all orgs listed in push/orgs_qa.txt
         class_path: cumulusci.tasks.push.tasks.SchedulePushOrgList
         options:
             orgs: push/orgs_qa.txt
+        group: Push Upgrades
     push_sandbox:
         description: Schedules a push upgrade of a package version to all subscribers
         class_path: cumulusci.tasks.push.tasks.SchedulePushOrgQuery
         options:
             subscriber_where: "OrgType = 'Sandbox'"
+        group: Push Upgrades
     push_trial:
         description: Schedules a push upgrade of a package version to Trialforce Template orgs listed in push/orgs_trial.txt
         class_path: cumulusci.tasks.push.tasks.SchedulePushOrgList
         options:
             orgs: push/orgs_trial.txt
+        group: Push Upgrades
     push_failure_report:
         description: Produce a CSV report of the failed and otherwise anomalous push jobs.
         class_path: cumulusci.tasks.push.pushfails.ReportPushFailures
@@ -148,108 +182,131 @@ tasks:
             ignore_errors:
               - "Salesforce Subscription Expired"
               - "Package Uninstalled"
+        group: Push Upgrades
     query:
         description: Queries the connected org
         class_path: cumulusci.tasks.salesforce.SOQLQuery
+        group: Salesforce Bulk API
     retrieve_packaged:
         description: Retrieves the packaged metadata from the org
         class_path: cumulusci.tasks.salesforce.RetrievePackaged
         options:
             path: packaged
+        group: Salesforce Metadata
     retrieve_src:
         description: Retrieves the packaged metadata into the src directory
         class_path: cumulusci.tasks.salesforce.RetrievePackaged
         options:
             path: src
+        group: Salesforce Metadata
     retrieve_unpackaged:
         description: Retrieve the contents of a package.xml file.
         class_path: cumulusci.tasks.salesforce.RetrieveUnpackaged
+        group: Salesforce Metadata
     revert_managed_src:
         description: Reverts the changes from create_managed_src
         class_path: cumulusci.tasks.metadata.managed_src.RevertManagedSrc
         options:
             path: src
             revert_path: src.orig
+        group: Salesforce Metadata
     revert_unmanaged_ee_src:
         description: Reverts the changes from create_unmanaged_ee_src
         class_path: cumulusci.tasks.metadata.ee_src.RevertUnmanagedEESrc
         options:
             path: src
             revert_path: src.orig
+        group: Salesforce Metadata
     robot:
         description: Runs a Robot Framework test from a .robot file
         class_path: cumulusci.tasks.robotframework.Robot
         options:
             suites: tests
+        group: Robot Framework
     robot_testdoc:
         description: 
         class_path: cumulusci.tasks.robotframework.RobotTestDoc
         options:
             path: tests
             output: tests/test_suites.html
+        group: Robot Framework
     run_tests:
         description: Runs all apex tests
         class_path: cumulusci.tasks.apex.testrunner.RunApexTests
+        group: Salesforce
     uninstall_managed:
         description: Uninstalls the managed version of the package
         class_path: cumulusci.tasks.salesforce.UninstallPackage
+        group: Salesforce Packages
     uninstall_packaged:
         description: Uninstalls all deleteable metadata in the package in the target org
         class_path: cumulusci.tasks.salesforce.UninstallPackaged
+        group: Salesforce Metadata
     uninstall_packaged_incremental:
         description: Deletes any metadata from the package in the target org not in the local workspace
         class_path: cumulusci.tasks.salesforce.UninstallPackagedIncremental
+        group: Salesforce Metadata
     uninstall_src:
         description: Uninstalls all metadata in the local src directory
         class_path: cumulusci.tasks.salesforce.UninstallLocal
         options:
             path: src
+        group: Salesforce Metadata
     uninstall_pre:
         description: Uninstalls the unpackaged/pre bundles
         class_path: cumulusci.tasks.salesforce.UninstallLocalBundles
         options:
             path: unpackaged/pre
+        group: Salesforce Metadata
     uninstall_post:
         description: Uninstalls the unpackaged/post bundles
         class_path: cumulusci.tasks.salesforce.UninstallLocalNamespacedBundles
         options:
             path: unpackaged/post
             filename_token: ___NAMESPACE___
+        group: Salesforce Metadata
     unschedule_apex:
         description: Unschedule all scheduled apex jobs (CronTriggers).
         class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
         options:
             apex: 'for (CronTrigger t : [SELECT Id FROM CronTrigger]) { System.abortJob(t.Id); }'
+        group: Salesforce
     update_admin_profile:
         description: Retrieves, edits, and redeploys the Admin.profile with full FLS perms for all objects/fields
         class_path: cumulusci.tasks.salesforce.UpdateAdminProfile
+        group: Salesforce Metadata
     update_dependencies:
         description: Installs all dependencies in project__dependencies into the target org
         class_path: cumulusci.tasks.salesforce.UpdateDependencies
+        group: Salesforce Packages
     update_package_xml:
         description: Updates src/package.xml with metadata in src/
         class_path: cumulusci.tasks.metadata.package.UpdatePackageXml
         options:
             path: src
+        group: Salesforce Metadata
     upload_beta:
         description: Uploads a beta release of the metadata currently in the packaging org
         class_path: cumulusci.tasks.salesforce.PackageUpload
+        group: Release Management
     upload_production:
         description: Uploads a production release of the metadata currently in the packaging org
         class_path: cumulusci.tasks.salesforce.PackageUpload
         options:
             production: True
+        group: Release Management
     util_sleep:
         description: Sleeps for N seconds
         class_path: cumulusci.tasks.util.Sleep
         options:
             seconds: 5
-
+        group: Utilities
     log:
         description: Log a line at the info level.
         class_path: cumulusci.tasks.util.LogLine
         options:
             level: info
+        group: Utilities
 
 flows:
     apex_docs:

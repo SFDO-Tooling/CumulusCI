@@ -615,16 +615,18 @@ test2                                     dev          test2@example.com""",
     def test_task_list(self, echo):
         config = mock.Mock()
         config.project_config.list_tasks.return_value = [
-            {"name": "test_task", "description": "Test Task"}
+            {"name": "test_task", "description": "Test Task", "group": "Test"}
         ]
 
         run_click_command(cci.task_list, config=config)
 
         table = echo.call_args_list[0][0][0]
         self.assertEqual(
-            """task       description
----------  -----------
-test_task  Test Task""",
+            """task        description
+----------  -----------
+
+-- Test --
+test_task   Test Task""",
             str(table),
         )
 
