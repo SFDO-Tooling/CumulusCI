@@ -740,10 +740,8 @@ def org_default(config, org_name, unset):
 
 
 @click.command(name="import", help="Import a scratch org from Salesforce DX")
-@click.option("username", "--username", help="Username for the scratch org to import")
-@click.option(
-    "org_name", "--org_name", help="Name that will be used by the imported scratch org"
-)
+@click.argument("username")
+@click.argument("org_name")
 @pass_config
 def org_import(config, username, org_name):
     org_config = {"username": username}
