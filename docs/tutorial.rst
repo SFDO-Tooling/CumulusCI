@@ -25,19 +25,6 @@ Use Homebrew to install OpenSSL:
 
     $ brew install openssl
 
-Use Homebrew to install pyenv-virtualenv: 
-
-.. code-block:: console
-
-    $ brew install pyenv-virtualenv
-
-After installing pyenv-virtualenv, edit your ~/.bash_profile and add the following lines at the end of the file to activate pyenv in your shell by default:
-
-.. code-block:: console
-
-    eval "$(pyenv init -)"
-    eval "$(pyenv virtualenv-init -)"
-
 Windows
 ^^^^^^^
 
@@ -55,18 +42,23 @@ macOS
 
 .. code-block:: console
 
-    $ pyenv install 3.7.0
-    $ pyenv virtualenv 3.7.0 cci
-    $ # Copy the following line to ~/.bash_profile to automatically activate the virtual environment in all new shells.
-    $ pyenv activate cci
+    $ python3 -m venv cci
+
+This creates a virtualenv in a new folder named ``cci``. Whenever you want to work with commands installed in this virtualenv, you must first activate it:
+
+.. code-block:: console
+
+    $ source cci/bin/activate
 
 Your shell prompt should change once you are in the virtual env to show (cci) at the start of the prompt.  You can exit the cci virtualenv with the following command:
 
 .. code-block:: console
 
-    (cci) $ pyenv deactivate
+    (cci) $ deactivate
 
-For more information about pyenv-virtualenv, see the project's README: https://github.com/pyenv/pyenv-virtualenv/blob/master/README.md
+If you would like to automatically activate the virtual environment whenever you open a new terminal, you can add the activate command to your ``~/.bash_profile``.
+
+For more information about virtual environments in Python, see the Python Packaging User Guide: https://packaging.python.org/tutorials/installing-packages/#creating-virtual-environments
 
 Windows
 ^^^^^^^
