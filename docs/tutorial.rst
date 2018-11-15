@@ -175,10 +175,9 @@ If you run the same command from inside a git repository that has not yet been s
 .. code-block:: console
 
     $ cci project info
-    Usage: cci project info [OPTIONS]
-    Error: No project configuration found. You can use the "project init" command to initilize the project for use with CumulusCI
+    The file cumulusci.yml was not found in the repo root. Are you in a CumulusCI project directory?
 
-As the instructions say, you can use the `cci project init` command to initialize the configuration:
+You can use the `cci project init` command to initialize the configuration:
 
 .. code-block:: console
 
@@ -273,7 +272,13 @@ Configuring the Connected App is a one time operation. Once configured, you can 
 Using Salesforce DX Scratch Orgs
 --------------------------------
 
-While it is possible to use `cci org connect <org_name>` to connect to a Developer Edition org, the real fun is using CumulusCI along with Salesforce DX.  If you already have the `sfdx` command installed, have connected to your devhub, and have set the `defaultdevhubusername` config settting (use `sfdx force:config:list` to verify), you're ready to start using `cci` with `sfdx`.  If you haven't already set up Salesforce DX, you can learn how at https://developer.salesforce.com/platform/dx.
+While it is possible to use `cci org connect <org_name>` to connect to a Developer Edition org, the real fun is using CumulusCI along with Salesforce DX.  If you already have the `sfdx` command installed, have connected to your devhub, and have set the `defaultdevhubusername` config setting (use `sfdx force:config:list` to verify), you're ready to start using `cci` with `sfdx`.  If you haven't already set up Salesforce DX, you need to take care of a few steps:
+
+1. `Install the Salesforce CLI <https://developer.salesforce.com/docs/atlas.en-us.sfdx_setup.meta/sfdx_setup/sfdx_setup_install_cli.htm>`_
+2. `Enable Dev Hub in Your Org <https://developer.salesforce.com/docs/atlas.en-us.sfdx_setup.meta/sfdx_setup/sfdx_setup_enable_devhub.htm>`_
+3. `Connect SFDX to Your Dev Hub Org <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_auth_web_flow.htm>`_ (be sure to use the ``--setdefaultdevhubusername`` option).
+
+You can learn more about Salesforce DX at https://developer.salesforce.com/platform/dx.
 
 CumulusCI wraps the creation of scratch orgs to provide a some useful extra features:
 
