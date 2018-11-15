@@ -1,5 +1,6 @@
 from collections import OrderedDict
 from datetime import date
+import io
 import json
 import os
 import shutil
@@ -416,6 +417,31 @@ test     Test Service  *""",
         run_click_command(cci.org_default, config=config, org_name="test", unset=True)
 
         config.keychain.unset_default_org.assert_called_once()
+
+    @mock.patch("sarge.Command")
+    def test_org_import(self, cmd):
+        config = mock.Mock()
+        result = b"""{
+            "result": {
+                "instanceUrl": "url",
+                "accessToken": "access!token",
+                "username": "test@test.org",
+                "password": "password"
+            }
+        }"""
+        cmd.return_value = mock.Mock(
+            stderr=io.BytesIO(b""), stdout=io.BytesIO(result), returncode=0
+        )
+
+        out = []
+        with mock.patch("click.echo", out.append):
+            run_click_command(
+                cci.org_import, config=config, username="test@test.org", org_name="test"
+            )
+            config.keychain.set_org.assert_called_once()
+        self.assertTrue(
+            "Imported scratch org: access, username: test@test.org" in "".join(out)
+        )
 
     def test_org_info(self):
         org_config = mock.Mock()

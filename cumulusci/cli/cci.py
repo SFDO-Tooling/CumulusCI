@@ -739,6 +739,24 @@ def org_default(config, org_name, unset):
         click.echo("{} is now the default org".format(org_name))
 
 
+@click.command(name="import", help="Import a scratch org from Salesforce DX")
+@click.option("username", "--username", help="Username for the scratch org to import")
+@click.option(
+    "org_name", "--org_name", help="Name that will be used by the imported scratch org"
+)
+@pass_config
+def org_import(config, username, org_name):
+    org_config = {"username": username}
+    scratch_org_config = ScratchOrgConfig(org_config, org_name)
+    scratch_org_config.config["created"] = True
+    config.keychain.set_org(scratch_org_config)
+    click.echo(
+        "Imported scratch org: {org_id}, username: {username}".format(
+            **scratch_org_config.scratch_info
+        )
+    )
+
+
 @click.command(name="info", help="Display information for a connected org")
 @click.argument("org_name", required=False)
 @click.option("print_json", "--json", is_flag=True, help="Print as JSON")
@@ -892,6 +910,7 @@ def org_scratch_delete(config, org_name):
 org.add_command(org_browser)
 org.add_command(org_connect)
 org.add_command(org_default)
+org.add_command(org_import)
 org.add_command(org_info)
 org.add_command(org_list)
 org.add_command(org_remove)
