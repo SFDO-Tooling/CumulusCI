@@ -740,11 +740,11 @@ def org_default(config, org_name, unset):
 
 
 @click.command(name="import", help="Import a scratch org from Salesforce DX")
-@click.argument("username")
+@click.argument("username_or_alias")
 @click.argument("org_name")
 @pass_config
-def org_import(config, username, org_name):
-    org_config = {"username": username}
+def org_import(config, username_or_alias, org_name):
+    org_config = {"username": username_or_alias}
     scratch_org_config = ScratchOrgConfig(org_config, org_name)
     scratch_org_config.config["created"] = True
     config.keychain.set_org(scratch_org_config)

@@ -436,7 +436,10 @@ test     Test Service  *""",
         out = []
         with mock.patch("click.echo", out.append):
             run_click_command(
-                cci.org_import, username="test@test.org", org_name="test", config=config
+                cci.org_import,
+                username_or_alias="test@test.org",
+                org_name="test",
+                config=config,
             )
             config.keychain.set_org.assert_called_once()
         self.assertTrue(
