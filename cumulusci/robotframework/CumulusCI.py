@@ -120,16 +120,18 @@ class CumulusCI(object):
 
         Returns an empty string if the package is not installed as a managed package.
         """
-        result = ''
+        result = ""
         if package is None:
             package = self.project_config.project__package__name_managed
         packages = self.tooling.query(
             "SELECT SubscriberPackage.NamespacePrefix, SubscriberPackage.Name "
             "FROM InstalledSubscriberPackage"
         )
-        match = [p for p in packages['records'] if p['SubscriberPackage']['Name'] == package]
+        match = [
+            p for p in packages["records"] if p["SubscriberPackage"]["Name"] == package
+        ]
         if match:
-            result = match[0]['SubscriberPackage']['NamespacePrefix'] + '__'
+            result = match[0]["SubscriberPackage"]["NamespacePrefix"] + "__"
         return result
 
     def run_task(self, task_name, **options):
