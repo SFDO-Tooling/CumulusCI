@@ -114,6 +114,24 @@ class CumulusCI(object):
             org = self.keychain.get_org(org)
         return org.start_url
 
+    def get_namespace_prefix(self, package=None):
+        """ Returns the namespace prefix (including __) for the specified package name.
+        (Defaults to project__package__name_managed from the current project config.)
+
+        Returns an empty string if the package is not installed as a managed package.
+        """
+        result = ''
+        if package is None:
+            package = self.project_config.project__package__name_managed
+        packages = self.tooling.query(
+            "SELECT SubscriberPackage.NamespacePrefix, SubscriberPackage.Name "
+            "FROM InstalledSubscriberPackage"
+        )
+        match = [p for p in packages['records'] if p['SubscriberPackage']['Name'] == package]
+        if match:
+            result = match[0]['SubscriberPackage']['NamespacePrefix'] + '__'
+        return result
+
     def run_task(self, task_name, **options):
         """ Runs a named CumulusCI task for the current project with optional
             support for overriding task options via kwargs.
