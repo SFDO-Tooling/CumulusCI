@@ -276,7 +276,7 @@ class Salesforce(object):
     def _populate_field(self, locator, value):
         self.selenium.set_focus_to_element(locator)
         field = self.selenium.get_webelement(locator)
-        field.clear()
+        field.send_keys(Keys.HOME + Keys.SHIFT + Keys.END)
         field.send_keys(value)
 
     def populate_form(self, **kwargs):

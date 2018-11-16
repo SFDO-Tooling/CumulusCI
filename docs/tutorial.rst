@@ -366,6 +366,14 @@ If for some reason the whole scratch org config misbehaves, you can easily recre
 
     $ cci org scratch dev dev
 
+There may be times when you need to import an existing scratch org that wasn't created by CumulusCI. You can do so with `cci org import <username_or_alias> <org_name>`:
+
+.. code-block:: console
+
+    $ cci org import test-...@example.com dev
+    2018-11-15 09:23:16: Getting scratch org info from Salesforce DX
+    Imported scratch org: 00D...........0, username: test-...@example.com
+
 You can hop into a browser logged into any org in your keychain with `cci org browser <org_name>`.
 
 
