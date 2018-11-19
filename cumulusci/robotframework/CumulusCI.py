@@ -203,12 +203,11 @@ class CumulusCI(object):
         return task_config
 
     def _run_task(self, task_class, task_config):
-        exception = None
-
         task = task_class(self.project_config, task_config, org_config=self.org)
 
         task()
         return task.return_values
 
     def debug(self):
+        """Pauses execution and enters the Python debugger."""
         set_pdb_trace()

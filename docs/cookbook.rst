@@ -26,27 +26,6 @@ You can override the `path` option by adding the following to your project's cum
             options:
                 path: some_other_dir
 
-Swap out an Ant target for a task
----------------------------------
-If we wanted to replace the following task with an ant target in our project::
-
-    tasks:
-        create_package:
-            description: Creates a package in the target org with the default package name for the project
-            class_path: cumulusci.tasks.salesforce.CreatePackage
-            options:
-                path: src
-
-Swap out the create_package test to use an Ant target instead by adding the following to your project's cumulusci.yml::
-
-    tasks:
-        create_package:
-            class_path: cumulusci.tasks.ant.AntTask
-            options:
-                target: createUnmanagedPackage
-
-Now any flow in your project that calls the `create_package` task will run your `createUnmanagedPackage` Ant target instead.
-
 Custom Flows via YAML
 =====================
 
