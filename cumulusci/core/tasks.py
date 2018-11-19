@@ -7,6 +7,7 @@ from __future__ import unicode_literals
 
 from builtins import object
 from past.utils import old_div
+import contextlib
 import logging
 import time
 import threading
@@ -15,7 +16,16 @@ from cumulusci.core.exceptions import TaskRequiresSalesforceOrg
 from cumulusci.core.exceptions import TaskOptionsError
 
 CURRENT_TASK = threading.local()
-CURRENT_TASK.instance = None
+CURRENT_TASK.stack = []
+
+
+@contextlib.contextmanager
+def stacked_task(self):
+    CURRENT_TASK.stack.append(self)
+    try:
+        yield
+    finally:
+        CURRENT_TASK.stack.pop()
 
 
 class BaseTask(object):
@@ -73,7 +83,6 @@ class BaseTask(object):
         self._validate_options()
         self._update_credentials()
         self._init_task()
-        self._set_current_task()
 
     def _init_logger(self):
         """ Initializes self.logger """
@@ -95,9 +104,6 @@ class BaseTask(object):
                     self.options[option] = getattr(self.project_config, attr, None)
             except AttributeError:
                 pass
-
-    def _set_current_task(self):
-        CURRENT_TASK.instance = self
 
     def _validate_options(self):
         missing_required = []
@@ -125,15 +131,14 @@ class BaseTask(object):
         # If sentry is configured, initialize sentry for error capture
         self.project_config.init_sentry()
 
-        self._set_current_task()
-
-        try:
-            self._log_begin()
-            self.result = self._run_task()
-            return self.return_values
-        except Exception as e:
-            self._process_exception(e)
-            raise
+        with stacked_task(self):
+            try:
+                self._log_begin()
+                self.result = self._run_task()
+                return self.return_values
+            except Exception as e:
+                self._process_exception(e)
+                raise
 
     def _process_exception(self, e):
         if self.project_config.use_sentry:
