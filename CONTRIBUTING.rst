@@ -59,11 +59,15 @@ Ready to contribute? Here's how to set up CumulusCI for local development.
 
     $ pip install -r requirements_dev.txt
 
-4. After making changes, run the tests and make sure they all pass::
+4. Install ``pre-commit`` hooks for ``black`` and ``flake8``::
+
+    $ pre-commit install --install-hooks
+
+5. After making changes, run the tests and make sure they all pass::
 
     $ pytest
 
-5. Push your changes to GitHub and submit a pull request. The base branch should be a new feature branch that we create to receive the changes (contact us to create the branch). This allows us to test the changes using our build system before merging to master.
+6. Push your changes to GitHub and submit a pull request. The base branch should be a new feature branch that we create to receive the changes (contact us to create the branch). This allows us to test the changes using our build system before merging to master.
 
 Pull Request Guidelines
 -----------------------
