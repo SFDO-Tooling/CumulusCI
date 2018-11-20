@@ -1,6 +1,7 @@
 import time
-
 from datetime import datetime
+
+import github3.exceptions
 
 from cumulusci.core.exceptions import GithubException
 from cumulusci.tasks.github.base import BaseGithubTask
@@ -25,7 +26,7 @@ class CreateRelease(BaseGithubTask):
         version = self.options["version"]
         self.tag_name = self.project_config.get_tag_for_version(version)
 
-        for release in repo.iter_releases():
+        for release in repo.releases():
             if release.tag_name == self.tag_name:
                 message = "Release {} already exists at {}".format(
                     release.name, release.html_url
@@ -39,9 +40,9 @@ class CreateRelease(BaseGithubTask):
             self.logger.error(message)
             raise GithubException(message)
 
-        ref = repo.ref("tags/{}".format(self.tag_name))
-
-        if not ref:
+        try:
+            ref = repo.ref("tags/{}".format(self.tag_name))
+        except github3.exceptions.NotFoundError:
             # Create the annotated tag
             tag = repo.create_tag(
                 tag=self.tag_name,
@@ -55,16 +56,6 @@ class CreateRelease(BaseGithubTask):
                 },
                 lightweight=False,
             )
-
-            # Get the ref created from the previous call that for some reason creates
-            # a ref to the commit sha rather than the tag sha.  Delete the ref so we
-            # can create the right one.  FIXME: Is this a bug in github3.py?
-            ref = repo.ref("tags/{}".format(self.tag_name))
-            if ref:
-                ref.delete()
-
-            # Create the ref linking to the tag
-            ref = repo.create_ref(ref="refs/tags/{}".format(self.tag_name), sha=tag.sha)
 
             # Sleep for Github to catch up with the fact that the tag actually exists!
             time.sleep(3)

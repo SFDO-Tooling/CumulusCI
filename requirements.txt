@@ -7,14 +7,16 @@ coloredlogs==10.0
 cryptography==2.4.1
 docutils==0.14
 future==0.17.1
-github3.py==0.9.6  # pyup: ignore
+github3.py==1.2.0
 humanfriendly==4.17
 idna==2.7
 jinja2==2.10
+jwcrypto==0.5.0
 lxml==4.2.5
 MarkupSafe==1.1.0
 plaintable==0.1.1
 pycparser==2.19
+python-dateutil==2.7.3
 pytz==2018.7
 PyYAML==3.13
 raven==6.9.0
@@ -30,6 +32,5 @@ six==1.11.0
 SQLAlchemy==1.2.14
 unicodecsv==0.14.1
 uritemplate==3.0.0
-uritemplate.py==3.0.2
 urllib3==1.24.1
 xmltodict==0.11.0

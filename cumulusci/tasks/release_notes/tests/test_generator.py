@@ -15,7 +15,7 @@ from cumulusci.tasks.release_notes.generator import StaticReleaseNotesGenerator
 from cumulusci.tasks.release_notes.generator import DirectoryReleaseNotesGenerator
 from cumulusci.tasks.release_notes.generator import GithubReleaseNotesGenerator
 from cumulusci.tasks.release_notes.parser import BaseChangeNotesParser
-from cumulusci.tasks.release_notes.tests.util_github_api import GithubApiTestMixin
+from cumulusci.tasks.github.tests.util_github_api import GithubApiTestMixin
 from cumulusci.tasks.release_notes.tests.utils import MockUtil
 
 __location__ = os.path.split(os.path.realpath(__file__))[0]

@@ -10,6 +10,6 @@ adapter = HTTPAdapter(max_retries=retries)
 
 def get_github_api(username, password):
     gh = login(username, password)
-    gh._session.mount("http://", adapter)
-    gh._session.mount("https://", adapter)
+    gh.session.mount("http://", adapter)
+    gh.session.mount("https://", adapter)
     return gh

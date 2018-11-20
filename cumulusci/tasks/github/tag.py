@@ -1,5 +1,7 @@
 from datetime import datetime
 
+import github3.exceptions
+
 from cumulusci.core.exceptions import GithubException
 from cumulusci.tasks.github.base import BaseGithubTask
 
@@ -20,8 +22,9 @@ class CloneTag(BaseGithubTask):
     def _run_task(self):
         repo = self.get_repo()
         ref = repo.ref("tags/{}".format(self.options["src_tag"]))
-        src_tag = repo.tag(ref.object.sha)
-        if not src_tag:
+        try:
+            src_tag = repo.tag(ref.object.sha)
+        except github3.exceptions.NotFoundError:
             message = "Tag {} not found".format(self.options["src_tag"])
             self.logger.error(message)
             raise GithubException(message)

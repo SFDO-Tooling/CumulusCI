@@ -95,7 +95,7 @@ class DummyRepository(object):
         self.name = name
         self.html_url = "https://github.com/{}/{}".format(owner, name)
         self._contents = contents
-        self.releases = releases
+        self._releases = releases
 
     def contents(self, path, **kw):
         try:
@@ -111,8 +111,8 @@ class DummyRepository(object):
         res.json.return_value = {"name": "2"}
         return res
 
-    def iter_releases(self):
-        return iter(self.releases)
+    def releases(self):
+        return iter(self._releases)
 
 
 class DummyRelease(object):
@@ -505,7 +505,7 @@ class TestBaseProjectConfig(unittest.TestCase):
         config = BaseProjectConfig(global_config)
         config.get_github_api = DummyGithub
         config.keychain = DummyKeychain()
-        CUMULUSCI_TEST_DEP_REPO.releases = [
+        CUMULUSCI_TEST_DEP_REPO._releases = [
             DummyRelease("beta/1.1-Beta_1", "1.1 (Beta 1)"),
             DummyRelease("release/1.0"),
         ]
@@ -552,7 +552,7 @@ class TestBaseProjectConfig(unittest.TestCase):
                 },
             ],
         )
-        CUMULUSCI_TEST_DEP_REPO.releases = None
+        CUMULUSCI_TEST_DEP_REPO._releases = None
 
     def test_process_github_dependency_cannot_find_latest(self):
         global_config = BaseGlobalConfig()

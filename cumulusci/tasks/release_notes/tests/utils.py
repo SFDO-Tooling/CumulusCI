@@ -2,17 +2,19 @@ from future import standard_library
 
 standard_library.install_aliases()
 import http.client
-
 import responses
 
+from cumulusci.tasks.github.tests.util_github_api import GithubApiTestMixin
 
-class MockUtil(object):
+
+class MockUtil(GithubApiTestMixin):
     BASE_HTML_URL = "https://github.com"
     BASE_API_URL = "https://api.github.com"
 
     def __init__(self, owner, repo):
         self.owner = owner
         self.repo = repo
+        self.init_github()
 
     @property
     def html_url(self):
@@ -28,12 +30,9 @@ class MockUtil(object):
         responses.add(
             method=responses.PATCH,
             url="{}/releases/1".format(self.repo_url),
-            json={
-                "url": "{}/releases/1".format(self.repo_url),
-                "body": body,
-                "draft": draft,
-                "prerelease": prerelease,
-            },
+            json=self._get_expected_release(
+                "1", body=body, draft=draft, prerelease=prerelease
+            ),
             status=http.client.OK,
         )
 
@@ -41,7 +40,7 @@ class MockUtil(object):
         responses.add(
             method=responses.GET,
             url=self.repo_url,
-            json={"url": self.repo_url},
+            json=self._get_expected_repo(self.owner, self.repo),
             status=http.client.OK,
         )
 
@@ -62,11 +61,9 @@ class MockUtil(object):
             method=responses.GET,
             url="{}/releases".format(self.repo_url),
             json=[
-                {
-                    "tag_name": tag,
-                    "url": "{}/releases/1".format(self.repo_url),
-                    "body": body,
-                }
+                self._get_expected_release(
+                    tag, url="{}/releases/1".format(self.repo_url), body=body
+                )
             ],
             status=http.client.OK,
         )
@@ -84,14 +81,6 @@ class MockUtil(object):
         responses.add(
             method=responses.GET,
             url="{}/pulls/{}".format(self.repo_url, pr_number),
-            json={
-                "base": {"ref": "master"},
-                "body": body,
-                "head": {"ref": "new-topic"},
-                "html_url": "{}/pulls/{}".format(self.html_url, pr_number),
-                "issue_url": "{}/issues/{}".format(self.repo_url, pr_number),
-                "number": pr_number,
-                "title": title,
-            },
+            json=self._get_expected_pull_request(pr_number, pr_number, body=body),
             status=http.client.OK,
         )
