@@ -2,6 +2,8 @@ from builtins import str
 import re
 import os
 
+import github3.exceptions
+
 from cumulusci.core.exceptions import GithubApiNotFoundError
 from .exceptions import GithubIssuesError
 
@@ -222,12 +224,13 @@ class GithubIssuesParser(IssuesParser):
         return u"\r\n".join(content)
 
     def _get_issue(self, issue_number):
-        issue = self.github.issue(
-            self.release_notes_generator.github_info["github_owner"],
-            self.release_notes_generator.github_info["github_repo"],
-            issue_number,
-        )
-        if not issue:
+        try:
+            issue = self.github.issue(
+                self.release_notes_generator.github_info["github_owner"],
+                self.release_notes_generator.github_info["github_repo"],
+                issue_number,
+            )
+        except github3.exceptions.NotFoundError:
             raise GithubApiNotFoundError("Issue #{} not found".format(issue_number))
         return issue
 

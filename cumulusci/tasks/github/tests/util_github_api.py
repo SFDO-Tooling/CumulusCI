@@ -15,6 +15,37 @@ class GithubApiTestMixin(object):
 
     def init_github(self):
         self.repo_api_url = "https://api.github.com/repos/TestOwner/TestRepo"
+        self.github_info = {
+            "github_owner": "TestOwner",
+            "github_repo": "TestRepo",
+            "github_username": "TestUser",
+            "github_password": "TestPass",
+            "prefix_beta": "beta/",
+            "prefix_prod": "release/",
+            "master_branch": "master",
+        }
+
+    def _get_expected_user(self, name):
+        user_url = "https://api.github.com/users/{}".format(name)
+        return {
+            "id": 1234567892,
+            "login": name,
+            "url": user_url,
+            "type": "User",
+            "site_admin": False,
+            "avatar_url": "https://avatars2.githubusercontent.com/u/42554011?v=4",
+            "gravatar_id": "",
+            "html_url": "https://github.com/{}".format(name),
+            "followers_url": user_url + "/followers",
+            "following_url": user_url + "/following{/other_user}",
+            "gists_url": user_url + "/gists{/gist_id}",
+            "starred_url": user_url + "/starred{/owner}{/repo}",
+            "subscriptions_url": user_url + "/subscriptions",
+            "organizations_url": user_url + "/orgs",
+            "repos_url": user_url + "/repos",
+            "events_url": user_url + "/events{/privacy}",
+            "received_events_url": user_url + "/received_events",
+        }
 
     def _get_expected_repo(self, owner, name):
         html_url = "https://github.com/{}/{}".format(owner, name)
@@ -141,6 +172,37 @@ class GithubApiTestMixin(object):
         }
         return response_body
 
+    def _get_expected_tag(self, name, commit_sha, tag_sha=None, tag_date=None):
+        if tag_sha is None:
+            tag_sha = self._random_sha()
+        if not tag_date:
+            tag_date = datetime.utcnow()
+        tag_date = datetime.strftime(tag_date, date_format)
+        return {
+            "sha": tag_sha,
+            "url": "",
+            "message": "",
+            "object": {"url": "", "sha": commit_sha, "type": "commit"},
+            "tag": name,
+            "tagger": {"date": tag_date},
+        }
+
+    def _get_expected_tag_ref(self, tag, sha):
+        return {
+            "ref": "refs/tags/{}".format(tag),
+            "object": {"type": "tag", "sha": sha, "url": ""},
+            "name": tag,
+            "url": "",
+        }
+
+    def _get_expected_repo_tag(self, tag, sha):
+        return {
+            "name": tag,
+            "commit": {"sha": sha, "url": ""},
+            "tarball_url": "",
+            "zipball_url": "",
+        }
+
     def _get_expected_pulls(self, pulls=None):
         if not pulls:
             pulls = []
@@ -234,7 +296,9 @@ class GithubApiTestMixin(object):
         }
         return response_body
 
-    def _get_expected_pull_request(self, pull_id, issue_number, merged_date=None):
+    def _get_expected_pull_request(
+        self, pull_id, issue_number, body=None, merged_date=None, **kw
+    ):
         if merged_date:
             state = "closed"
             merged_date = datetime.strftime(merged_date, date_format)
@@ -246,38 +310,138 @@ class GithubApiTestMixin(object):
         if merged_date:
             merge_sha = self._random_sha()
 
-        master_branch = self.project_config.project__git__default_branch
-        return {
+        base_repo = self._get_expected_repo("TestOwner", "TestRepo")
+        if hasattr(self, "project_config"):
+            master_branch = self.project_config.project__git__default_branch
+        else:
+            master_branch = "master"
+        pr = {
+            "additions": [],
             "assignee": None,
             "assignees": [],
-            "base": {"ref": master_branch, "sha": commit_sha, "label": ""},
-            "body": "testing",
+            "base": {
+                "ref": master_branch,
+                "sha": commit_sha,
+                "label": "",
+                "repo": base_repo,
+            },
+            "body": body or "testing",
             "body_html": "testing",
             "body_text": "testing",
             "closed_at": merged_date,
+            "comments": [],
             "comments_url": "",
+            "commits": [],
             "commits_url": "",
             "created_at": merged_date,
+            "deletions": [],
             "diff_url": "",
             "head": {"ref": "some-other-branch", "sha": commit_sha, "label": ""},
-            "html_url": "http://example.com/pulls/{}".format(issue_number),
+            "html_url": "https://github.com/TestOwner/TestRepo/pulls/{}".format(
+                issue_number
+            ),
             "id": pull_id,
             "issue_url": "{}/issues/{}".format(self.repo_api_url, issue_number),
             "_links": {},
             "merge_commit_sha": merge_sha,
             "mergeable": not merged_date,
+            "mergeable_state": "clean",
             "merged_at": merged_date,
             "merged": merged_date != None,
+            "merged_by": None,
             "number": issue_number,
             "patch_url": "",
             "review_comment_url": "",
+            "review_comments": [],
             "review_comments_url": "",
             "state": state,
             "statuses_url": "",
             "title": "Pull Request #{}".format(issue_number),
             "updated_at": merged_date,
-            "url": "http://example.com/pulls/{}".format(issue_number),
+            "url": "https://github.com/TestOwner/TestRepo/pulls/{}".format(
+                issue_number
+            ),
+            "user": base_repo["owner"],
         }
+        pr.update(kw)
+        return pr
+
+    def _get_expected_issue(self, issue_number, owner=None, repo=None):
+        if owner == None:
+            owner = "TestOwner"
+        if repo == None:
+            repo = "TestRepo"
+        now = datetime.now().isoformat()
+        response_body = {
+            "assignee": None,
+            "assignees": [],
+            "body": "I'm having a problem with this.",
+            "body_html": "",
+            "body_text": "",
+            "closed_at": None,
+            "closed_by": None,
+            "comments": [],
+            "comments_url": "",
+            "created_at": now,
+            "events_url": "",
+            "html_url": "https://github.com/{}/{}/issues/{}".format(
+                owner, repo, issue_number
+            ),
+            "id": issue_number,
+            "labels": [],
+            "labels_url": "",
+            "locked": False,
+            "milestone": None,
+            "number": issue_number,
+            "state": "open",
+            "title": "Found a bug",
+            "updated_at": now,
+            "url": "https://api.github.com/repos/{}/{}/issues/{}".format(
+                owner, repo, issue_number
+            ),
+            "user": self._get_expected_user("user"),
+        }
+        return response_body
+
+    def _get_expected_issue_comment(self, body):
+        now = datetime.now().isoformat()
+        return {
+            "author_association": "",
+            "body": body,
+            "body_html": "",
+            "body_text": "",
+            "created_at": now,
+            "url": "",
+            "html_url": "",
+            "id": 0,
+            "issue_url": "",
+            "updated_at": now,
+            "user": self._get_expected_user("user"),
+        }
+
+    def _get_expected_release(self, tag_name, **kw):
+        now = datetime.now().isoformat()
+        release = {
+            "url": "https://release",
+            "assets": [],
+            "assets_url": "",
+            "author": self._get_expected_user("author"),
+            "body": "",
+            "created_at": now,
+            "draft": False,
+            "html_url": "",
+            "id": 1,
+            "name": "release",
+            "prerelease": False,
+            "published_at": now,
+            "tag_name": tag_name,
+            "tarball_url": "",
+            "target_commitish": "",
+            "upload_url": "",
+            "zipball_url": "",
+        }
+        release.update(kw)
+        return release
 
     def _random_sha(self):
         return random_sha()

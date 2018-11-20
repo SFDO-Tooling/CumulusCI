@@ -17,7 +17,7 @@ from cumulusci.tasks.release_notes.parser import GithubLinesParser
 from cumulusci.tasks.release_notes.parser import IssuesParser
 from cumulusci.core.exceptions import GithubApiNotFoundError
 from cumulusci.core.github import get_github_api
-from cumulusci.tasks.release_notes.tests.util_github_api import GithubApiTestMixin
+from cumulusci.tasks.github.tests.util_github_api import GithubApiTestMixin
 from cumulusci.tasks.release_notes.tests.utils import MockUtil
 
 PARSER_CONFIG = [
@@ -321,7 +321,7 @@ class TestCommentingGithubIssuesParser(unittest.TestCase, GithubApiTestMixin):
         self.issue_number_with_prod_comment = 4
         self.issue_number_without_prod_comment = 5
         self.pr_number = 6
-        self.pr_url = "http://example.com/pulls/{}".format(self.pr_number)
+        self.pr_url = "https://github.com/TestOwner/TestRepo/pulls/{}".format(self.pr_number)
         self.tag_prod = "release/1.2"
         self.tag_beta = "beta/1.2-Beta_3"
         self.tag_not_prod_or_beta = "foo"
@@ -349,7 +349,7 @@ class TestCommentingGithubIssuesParser(unittest.TestCase, GithubApiTestMixin):
         # Mock the comments list
         api_url = "{}/issues/{}/comments".format(self.repo_api_url, issue_number)
         responses.add(
-            method=responses.GET, url=api_url, body="", content_type="application/json"
+            method=responses.GET, url=api_url, json=[], content_type="application/json"
         )
 
         generator = self._create_generator(tag)
@@ -366,7 +366,7 @@ class TestCommentingGithubIssuesParser(unittest.TestCase, GithubApiTestMixin):
         )
         render = parser.render()
         self.assertEqual(render, expected_render)
-        self.assertEqual(len(responses.calls._calls), 3)
+        self.assertEqual(len(responses.calls._calls), 2)
 
     @responses.activate
     def test_render_issue_with_beta_comment(self):
@@ -402,7 +402,7 @@ class TestCommentingGithubIssuesParser(unittest.TestCase, GithubApiTestMixin):
         )
         render = parser.render()
         self.assertEqual(render, expected_render)
-        self.assertEqual(len(responses.calls._calls), 4)
+        self.assertEqual(len(responses.calls._calls), 3)
 
     @responses.activate
     def test_render_issue_without_beta_comment(self):
@@ -419,7 +419,7 @@ class TestCommentingGithubIssuesParser(unittest.TestCase, GithubApiTestMixin):
         expected_comment_1 = self._get_expected_issue_comment("Some other comment")
         expected_comments = [expected_comment_1]
         responses.add(
-            method=responses.GET, url=api_url, body="", content_type="application/json"
+            method=responses.GET, url=api_url, json=[], content_type="application/json"
         )
 
         # Mock the comment post response
@@ -444,7 +444,7 @@ class TestCommentingGithubIssuesParser(unittest.TestCase, GithubApiTestMixin):
             issue_number, expected_issue["title"], False
         )
         self.assertEqual(parser.render(), expected_render)
-        self.assertEqual(len(responses.calls._calls), 5)
+        self.assertEqual(len(responses.calls._calls), 4)
 
     @responses.activate
     def test_render_issue_with_prod_comment(self):
@@ -479,7 +479,7 @@ class TestCommentingGithubIssuesParser(unittest.TestCase, GithubApiTestMixin):
             issue_number, expected_issue["title"], False
         )
         self.assertEqual(parser.render(), expected_render)
-        self.assertEqual(len(responses.calls._calls), 4)
+        self.assertEqual(len(responses.calls._calls), 3)
 
     @responses.activate
     def test_render_issue_without_prod_comment(self):
@@ -496,7 +496,7 @@ class TestCommentingGithubIssuesParser(unittest.TestCase, GithubApiTestMixin):
         expected_comment_1 = self._get_expected_issue_comment("Some other comment")
         expected_comments = [expected_comment_1]
         responses.add(
-            method=responses.GET, url=api_url, body="", content_type="application/json"
+            method=responses.GET, url=api_url, json=[], content_type="application/json"
         )
 
         # Mock the comment post response
@@ -522,7 +522,7 @@ class TestCommentingGithubIssuesParser(unittest.TestCase, GithubApiTestMixin):
         )
         render = parser.render()
         self.assertEqual(render, expected_render)
-        self.assertEqual(len(responses.calls._calls), 5)
+        self.assertEqual(len(responses.calls._calls), 4)
 
     def _create_expected_render(self, issue_number, issue_title, link_pr):
         render = "# {}\r\n\r\n#{}: {}".format(self.title, issue_number, issue_title)

@@ -51,30 +51,19 @@ class TestCreateRelease(unittest.TestCase, GithubApiTestMixin):
         responses.add(
             method=responses.POST,
             url=self.repo_api_url + "/git/tags",
-            json={"commit": {"sha": "SHA"}},
+            json=self._get_expected_tag("release/1.0", "SHA"),
             status=201,
         )
         responses.add(
-            method=responses.GET,
-            url=self.repo_api_url + "/git/refs/tags/release/1.0",
-            json={
-                "commit": {"sha": "SHA"},
-                "url": self.repo_api_url + "/git/refs/tags/release/1.0",
-            },
-            status=200,
-        )
-        responses.add(
-            method=responses.DELETE,
-            url=self.repo_api_url + "/git/refs/tags/release/1.0",
-            status=204,
-        )
-        responses.add(
-            method=responses.POST, url=self.repo_api_url + "/git/refs", status=201
+            method=responses.POST,
+            url=self.repo_api_url + "/git/refs",
+            json={},
+            status=201,
         )
         responses.add(
             method=responses.POST,
             url=self.repo_api_url + "/releases",
-            json={"url": "https://release"},
+            json=self._get_expected_release("release"),
             status=201,
         )
 
@@ -94,7 +83,7 @@ class TestCreateRelease(unittest.TestCase, GithubApiTestMixin):
         responses.add(
             method=responses.GET,
             url=self.repo_api_url + "/releases?per_page=100",
-            json=[{"tag_name": "release/1.0", "url": "http://release"}],
+            json=[self._get_expected_release("release/1.0")],
         )
 
         task = CreateRelease(
