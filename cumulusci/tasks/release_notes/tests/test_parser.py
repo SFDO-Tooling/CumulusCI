@@ -321,7 +321,9 @@ class TestCommentingGithubIssuesParser(unittest.TestCase, GithubApiTestMixin):
         self.issue_number_with_prod_comment = 4
         self.issue_number_without_prod_comment = 5
         self.pr_number = 6
-        self.pr_url = "https://github.com/TestOwner/TestRepo/pulls/{}".format(self.pr_number)
+        self.pr_url = "https://github.com/TestOwner/TestRepo/pulls/{}".format(
+            self.pr_number
+        )
         self.tag_prod = "release/1.2"
         self.tag_beta = "beta/1.2-Beta_3"
         self.tag_not_prod_or_beta = "foo"

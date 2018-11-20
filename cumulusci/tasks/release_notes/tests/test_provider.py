@@ -150,14 +150,14 @@ class TestGithubChangeNotesProvider(unittest.TestCase, GithubApiTestMixin):
         return expected_response
 
     def _mock_current_tag_commit(self):
-        api_url = "{}/git/commits/{}".format(self.repo_api_url, self.current_tag_commit_sha)
+        api_url = "{}/git/commits/{}".format(
+            self.repo_api_url, self.current_tag_commit_sha
+        )
         expected_response = {
             "author": {
                 "name": "John Doe",
                 "email": "john.doe@example.com",
-                "date": datetime.strftime(
-                    self.current_tag_commit_date, date_format
-                ),
+                "date": datetime.strftime(self.current_tag_commit_date, date_format),
             },
             "committer": None,
             "message": "",
@@ -203,7 +203,9 @@ class TestGithubChangeNotesProvider(unittest.TestCase, GithubApiTestMixin):
         return expected_response
 
     def _mock_last_tag_commit(self):
-        api_url = "{}/git/commits/{}".format(self.repo_api_url, self.last_tag_commit_sha)
+        api_url = "{}/git/commits/{}".format(
+            self.repo_api_url, self.last_tag_commit_sha
+        )
         expected_response = {
             "author": {
                 "name": "John Doe",
@@ -270,7 +272,11 @@ class TestGithubChangeNotesProvider(unittest.TestCase, GithubApiTestMixin):
                 merge_commit_sha=self.last_tag_commit_sha,
             ),
             self._get_expected_pull_request(
-                8, 108, "pull 8", datetime.utcnow(), merge_commit_sha=self.current_tag_commit_sha
+                8,
+                108,
+                "pull 8",
+                datetime.utcnow(),
+                merge_commit_sha=self.current_tag_commit_sha,
             ),
         ]
         responses.add(method=responses.GET, url=api_url, json=expected_response)
@@ -309,7 +315,13 @@ class TestGithubChangeNotesProvider(unittest.TestCase, GithubApiTestMixin):
         provider = GithubChangeNotesProvider(generator, tag)
         api_url = "{}/git/refs/tags/{}".format(self.repo_api_url, tag)
         responses.add(
-            method=responses.GET, url=api_url, json={"object": {"type": "commit", "url": "", "sha": ""}, "url": "", "ref": "tags/{}".format(tag)}
+            method=responses.GET,
+            url=api_url,
+            json={
+                "object": {"type": "commit", "url": "", "sha": ""},
+                "url": "",
+                "ref": "tags/{}".format(tag),
+            },
         )
         with self.assertRaises(GithubApiError):
             provider.current_tag_info
@@ -361,10 +373,7 @@ class TestGithubChangeNotesProvider(unittest.TestCase, GithubApiTestMixin):
         # Mock the list all pull requests call
         api_url = "{}/pulls".format(self.repo_api_url)
         responses.add(
-            method=responses.GET,
-            url=api_url,
-            json=[],
-            content_type="application/json",
+            method=responses.GET, url=api_url, json=[], content_type="application/json"
         )
 
         generator = self._create_generator(self.current_tag, self.last_tag)
