@@ -15,11 +15,11 @@ def find_packages(path=".", prefix=""):
             yield name
 
 
-with open("README.rst", 'rb') as readme_file:
-    readme = readme_file.read().decode('utf-8')
+with open("README.rst", "rb") as readme_file:
+    readme = readme_file.read().decode("utf-8")
 
-with open("HISTORY.rst", 'rb') as history_file:
-    history = history_file.read().decode('utf-8')
+with open("HISTORY.rst", "rb") as history_file:
+    history = history_file.read().decode("utf-8")
 
 with open("requirements.txt") as requirements_file:
     requirements = [
