@@ -2,6 +2,46 @@
 History
 =======
 
+2.2.0 (2018-11-21)
+------------------
+
+Changes:
+
+* Tasks can now be placed in groups for the task list! Just specify a ``group`` when defining the task in YAML.
+
+* By popular request, there is now an ``org import`` command to import an org from the SFDX keychain to the CumulusCI keychain. It takes two arguments: the SFDX username or alias, and the org name.
+
+* Robot Framework:
+
+  * The ``Populate Field`` keyword now clears an existing value using keystrokes to make sure that change events are fired.
+  * Added a ``Get Namespace Prefix`` keyword to the CumulusCI library to get the namespace prefix for a package.
+  * Fixed a bug that broke opening a browser after using the ``Run Task`` keyword.
+
+* Documentation updates:
+
+  * The readme now includes a link to the full documentation.
+  * The instructions for installing CumulusCI on macOS have been simplified and now recommend using the official Python installer from python.org instead of Homebrew. (Homebrew should still work fine, but is no longer necessary.) We also now suggest creating a virtualenv using venv rather than pyenv since the former is included with Python. It's fine to continue using pyenv if you want.
+  * Give more useful links for how to set up SFDX.
+  * Updated robot library docs.
+
+* Internal refactoring:
+
+  * Removed dependency on HiYaPyCo for YAML loading, which would not report which file failed to load in the event of a YAML parse error.
+  * We now consistently load YAML in the same manner throughout the entire library, which will work with all supported Python versions.
+  * Simplified the Python API for setting up a CumulusCI runtime. Begone, YamlGlobalConfig and YamlProjectConfig. Our Python API is not yet documented, but we're working on it. In the meantime, if you were relying on running CCI from within Python, you can now just use BaseGlobalConfig (and its get_project_config member) to bootstrap CCI.
+  * BaseProjectConfig has shrugged off some methods that just delegated to the keychain.
+  * BaseGlobalConfig has shrugged off some unimplemented methods, and BaseGlobalConfig.get_project_config is now deprecated in favor of using a runtime.
+  * Introducing... 🥁CumulusCIRuntime! In order to alleviate the complexities of getting CumulusCI tasks/flows running from within a Python application, CumulusCIRuntime encapsulates a lot of the details and wiring between Keychain, GlobalConfig, and ProjectConfig. Usage docs are barely included.
+  * CliConfig has been renamed to CliRuntime and now inherits from CumulusCIRuntime. It is still accessible as CliConfig.
+  * Upgraded dependencies.
+
+* Contributor improvement: The contributor docs now explain how to install pre-commit hooks to make sure our linters have run before you commit.
+
+Issues Closed:
+
+* #674: ``cci org import <username> <org_name>``
+* #877: CumulusCI should be able to connect to any DX alias and/or understand dx auth files
+
 2.1.2 (2018-10-29)
 ------------------
 
