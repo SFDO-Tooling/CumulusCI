@@ -553,7 +553,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             tag = None
 
         # Get the cumulusci.yml file
-        contents = repo.contents("cumulusci.yml", **kwargs)
+        contents = repo.file_contents("cumulusci.yml", **kwargs)
         cumulusci_yml = ordered_yaml_load(contents.decoded)
 
         # Get the namespace from the cumulusci.yml if set
@@ -564,7 +564,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
         # Look for subfolders under unpackaged/pre
         unpackaged_pre = []
-        contents = repo.contents("unpackaged/pre", **kwargs)
+        contents = repo.directory_contents("unpackaged/pre", return_as=dict, **kwargs)
         if contents:
             for dirname in list(contents.keys()):
                 subfolder = "unpackaged/pre/{}".format(dirname)
@@ -586,7 +586,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         # Look for metadata under src (deployed if no namespace)
         unmanaged_src = None
         if unmanaged or not namespace:
-            contents = repo.contents("src", **kwargs)
+            contents = repo.directory_contents("src", **kwargs)
             if contents:
                 subfolder = "src"
 
@@ -602,7 +602,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
         # Look for subfolders under unpackaged/post
         unpackaged_post = []
-        contents = repo.contents("unpackaged/post", **kwargs)
+        contents = repo.directory_contents("unpackaged/post", return_as=dict, **kwargs)
         if contents:
             for dirname in list(contents.keys()):
                 subfolder = "unpackaged/post/{}".format(dirname)
