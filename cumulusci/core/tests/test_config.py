@@ -9,7 +9,6 @@ from cumulusci.core.config import BaseGlobalConfig
 from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.config import BaseTaskFlowConfig
 from cumulusci.core.config import OrgConfig
-from cumulusci.core.config import TaskConfig
 from cumulusci.core.exceptions import ConfigError
 from cumulusci.core.exceptions import DependencyResolutionError
 from cumulusci.core.exceptions import KeychainNotFound
@@ -97,7 +96,13 @@ class DummyRepository(object):
         self._contents = contents
         self._releases = releases
 
-    def contents(self, path, **kw):
+    def file_contents(self, path, **kw):
+        try:
+            return self._contents[path]
+        except KeyError:
+            raise AssertionError("Accessed unexpected file: {}".format(path))
+
+    def directory_contents(self, path, **kw):
         try:
             return self._contents[path]
         except KeyError:
