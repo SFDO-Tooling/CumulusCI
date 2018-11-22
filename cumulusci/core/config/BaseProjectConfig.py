@@ -18,6 +18,7 @@ from cumulusci.core.exceptions import (
     ProjectConfigNotFound,
 )
 from cumulusci.core.github import get_github_api
+from github3.exceptions import NotFoundError
 
 
 class BaseProjectConfig(BaseTaskFlowConfig):
@@ -564,7 +565,12 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
         # Look for subfolders under unpackaged/pre
         unpackaged_pre = []
-        contents = repo.directory_contents("unpackaged/pre", return_as=dict, **kwargs)
+        try:
+            contents = repo.directory_contents(
+                "unpackaged/pre", return_as=dict, **kwargs
+            )
+        except NotFoundError:
+            contents = None
         if contents:
             for dirname in list(contents.keys()):
                 subfolder = "unpackaged/pre/{}".format(dirname)
@@ -602,7 +608,12 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
         # Look for subfolders under unpackaged/post
         unpackaged_post = []
-        contents = repo.directory_contents("unpackaged/post", return_as=dict, **kwargs)
+        try:
+            contents = repo.directory_contents(
+                "unpackaged/post", return_as=dict, **kwargs
+            )
+        except NotFoundError:
+            contents = None
         if contents:
             for dirname in list(contents.keys()):
                 subfolder = "unpackaged/post/{}".format(dirname)
