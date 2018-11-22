@@ -2,6 +2,11 @@
 History
 =======
 
+2.2.1 (2018-11-21)
+------------------
+
+Oops, an update in CumulusCI 2.2.0 ended up breaking the update_dependencies task! Now fixed.
+
 2.2.0 (2018-11-21)
 ------------------
 
