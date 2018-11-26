@@ -435,12 +435,13 @@ class TestScratchOrgConfig(unittest.TestCase):
 
     def test_create_org_command_error(self, Command):
         Command.return_value = mock.Mock(
-            stdout=io.BytesIO(b""), stderr=io.BytesIO(b"error"), returncode=1
+            stdout=io.BytesIO(b""), stderr=io.BytesIO(b"scratcherror"), returncode=1
         )
 
         config = ScratchOrgConfig({"config_file": "tmp"}, "test")
-        with self.assertRaises(ScratchOrgException):
+        with self.assertRaises(ScratchOrgException) as ctx:
             config.create_org()
+            self.assertIn("scratcherror", str(ctx.error))
 
     def test_generate_password(self, Command):
         p = mock.Mock(

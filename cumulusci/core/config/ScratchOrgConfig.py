@@ -177,24 +177,32 @@ class ScratchOrgConfig(OrgConfig):
             **options
         )
         self.logger.info("Creating scratch org with command {}".format(command))
-        p = sarge.Command(command, stdout=sarge.Capture(buffer_size=-1), shell=True)
+        p = sarge.Command(
+            command,
+            stdout=sarge.Capture(buffer_size=-1),
+            stderr=sarge.Capture(buffer_size=-1),
+            shell=True,
+        )
         p.run()
 
+        stderr = [line.strip() for line in io.TextIOWrapper(p.stderr)]
+        stdout = [line.strip() for line in io.TextIOWrapper(p.stdout)]
+
+        if p.returncode:
+            message = "{}: \n{}\n{}".format(
+                FAILED_TO_CREATE_SCRATCH_ORG, "\n".join(stdout), "\n".join(stderr)
+            )
+            raise ScratchOrgException(message)
+
         re_obj = re.compile("Successfully created scratch org: (.+), username: (.+)")
-        stdout = []
-        for line in io.TextIOWrapper(p.stdout):
+        for line in stdout:
             match = re_obj.search(line)
             if match:
                 self.config["org_id"] = match.group(1)
                 self.config["username"] = match.group(2)
-            stdout.append(line)
             self.logger.info(line)
 
         self.config["date_created"] = datetime.datetime.now()
-
-        if p.returncode:
-            message = "{}: \n{}".format(FAILED_TO_CREATE_SCRATCH_ORG, "".join(stdout))
-            raise ScratchOrgException(message)
 
         if self.config.get("set_password"):
             self.generate_password()
