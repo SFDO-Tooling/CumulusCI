@@ -14,6 +14,7 @@ ${DEBUG}            ${false}
 ${CHROME_BINARY}    ${empty}
 ${ORG}              ${empty}
 ${IMPLICIT_WAIT}    7.0
+${INITIAL_TIMEOUT}  180.0
 ${TIMEOUT}          30.0
 
 *** Keywords ***
@@ -29,7 +30,9 @@ Open Test Browser
     ...    ELSE IF  '${BROWSER}' == 'headlesschrome'  Open Test Browser Chrome  ${login_url}
     ...    ELSE IF  '${BROWSER}' == 'headlessfirefox'  Open Test Browser Headless Firefox  ${login_url}
     ...    ELSE  Open Browser  ${login_url}  ${BROWSER}
+    Set Selenium Timeout  ${INITIAL_TIMEOUT}
     Wait Until Loading Is Complete
+    Set Selenium Timeout  ${TIMEOUT}
 
 Open Test Browser Chrome
     [Arguments]     ${login_url}
