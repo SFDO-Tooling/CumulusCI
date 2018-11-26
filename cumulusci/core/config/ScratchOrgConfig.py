@@ -27,6 +27,12 @@ class ScratchOrgConfig(OrgConfig):
 
         self.logger.info("Getting scratch org info from Salesforce DX")
 
+        username = self.config.get("username")
+        if not username:
+            raise ScratchOrgException(
+                "Created scratch org but unable to capture username"
+            )
+
         # Call force:org:display and parse output to get instance_url and
         # access_token
         command = sarge.shell_format(
@@ -201,6 +207,8 @@ class ScratchOrgConfig(OrgConfig):
                 self.config["org_id"] = match.group(1)
                 self.config["username"] = match.group(2)
             self.logger.info(line)
+        for line in stderr:
+            self.logger.error(line)
 
         self.config["date_created"] = datetime.datetime.now()
 
