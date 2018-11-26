@@ -305,6 +305,16 @@ class TestScratchOrgConfig(unittest.TestCase):
         else:
             self.fail("Expected ScratchOrgException")
 
+    def test_scratch_info_username_not_found(self, Command):
+        Command.return_value = mock.Mock(
+            stderr=io.BytesIO(b"error"), stdout=io.BytesIO(b"out"), returncode=0
+        )
+
+        config = ScratchOrgConfig({"config_file": "tmp"}, "test")
+
+        with self.assertRaises(ScratchOrgException):
+            config.scratch_info
+
     def test_scratch_info_password_from_config(self, Command):
         result = b"""{
     "result": {
