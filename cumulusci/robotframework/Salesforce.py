@@ -48,7 +48,13 @@ class Salesforce(object):
         """
         locator = lex_locators["record"]["related"]["card"].format(heading)
         el = None
+        i = 0
         while el is None:
+            i += 1
+            if i > 50:
+                raise AssertionError(
+                    "Timed out waiting for {} related list to load.".format(heading)
+                )
             self.selenium.execute_javascript(
                 "window.scrollTo(0,document.body.scrollHeight)"
             )
