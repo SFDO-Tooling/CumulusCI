@@ -2,6 +2,19 @@
 History
 =======
 
+2.2.2 (2018-11-27)
+------------------
+
+Changes:
+
+* Improved error handling during scratch org creation:
+
+  * Capture and display stderr output from SFDX (issue #413).
+  * Avoid infinite recursion if username wasn't found in output from SFDX.
+
+* Robot Framework: Increased the timeout for initial loading of the browser.
+
+
 2.2.1 (2018-11-21)
 ------------------
 
