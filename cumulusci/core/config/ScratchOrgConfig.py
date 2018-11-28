@@ -30,7 +30,8 @@ class ScratchOrgConfig(OrgConfig):
         username = self.config.get("username")
         if not username:
             raise ScratchOrgException(
-                "Created scratch org but unable to capture username"
+                "SFDX claimed to be successful but there was no username "
+                "in the output...maybe there was a gack?"
             )
 
         # Call force:org:display and parse output to get instance_url and
