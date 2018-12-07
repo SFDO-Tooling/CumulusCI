@@ -2,6 +2,14 @@
 History
 =======
 
+2.2.3 (2018-12-07)
+------------------
+
+Changes:
+
+* Improved error messages when scratch org creation failed and when a service is not configured.
+* Robot Framework: Limit how long the "Load Related List" keyword will wait.
+
 2.2.2 (2018-11-27)
 ------------------
 
