@@ -20,7 +20,7 @@ python-dateutil==2.7.5
 pytz==2018.7
 PyYAML==3.13
 raven==6.9.0
-requests[security]==2.20.1
+requests[security]==2.21.0
 robotframework==3.0.4
 robotframework-seleniumlibrary==3.2.0
 rst2ansi==0.1.5
