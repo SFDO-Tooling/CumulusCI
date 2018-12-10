@@ -28,7 +28,7 @@ salesforce-bulk==2.1.0
 sarge==0.1.5.post0
 selenium==3.141.0
 simple-salesforce==0.74.2
-six==1.11.0
+six==1.12.0
 SQLAlchemy==1.2.14
 unicodecsv==0.14.1
 uritemplate==3.0.0
