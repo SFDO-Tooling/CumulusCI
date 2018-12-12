@@ -4,6 +4,7 @@ import os
 import unittest
 
 from github3.repos import Repository
+from github3.git import Tree
 from cumulusci.core.exceptions import GithubException
 from cumulusci.tasks.github.util import CommitDir
 from cumulusci.utils import temporary_dir
@@ -15,47 +16,47 @@ class TestCommitDir(unittest.TestCase):
             repo = mock.Mock(spec=Repository)
             repo.owner = "SalesforceFoundation"
             repo.name = "TestRepo"
-            repo.tree = mock.Mock(
-                return_value=mock.Mock(
-                    recurse=mock.Mock(
-                        return_value=mock.Mock(
-                            to_json=mock.Mock(
-                                return_value={
-                                    "tree": [
-                                        {
-                                            "type": "tree",
-                                            "path": "dir",
-                                            "sha": "bogus1",
-                                        },
-                                        {
-                                            "type": "blob",
-                                            "path": "file_outside_dir",
-                                            "sha": "bogus2",
-                                        },
-                                        {
-                                            "type": "blob",
-                                            "path": os.path.join("dir", "unchanged"),
-                                            "sha": hashlib.sha1(
-                                                b"blob 0\0"
-                                            ).hexdigest(),
-                                        },
-                                        {
-                                            "type": "blob",
-                                            "path": os.path.join("dir", "modified"),
-                                            "sha": "bogus3",
-                                        },
-                                        {
-                                            "type": "blob",
-                                            "path": os.path.join("dir", "removed"),
-                                            "sha": "bogus4",
-                                        },
-                                    ]
-                                }
-                            )
-                        )
-                    )
-                )
+            repo.tree = mock.Mock()
+            repo.tree.return_value = Tree(
+                {
+                    "url": "string",
+                    "sha": "tree-ish-hash",
+                    "tree": [
+                        {
+                            "type": "tree",
+                            "mode": "100644",
+                            "path": "dir",
+                            "sha": "bogus1",
+                        },
+                        {
+                            "type": "blob",
+                            "mode": "100644",
+                            "path": "file_outside_dir",
+                            "sha": "bogus2",
+                        },
+                        {
+                            "type": "blob",
+                            "mode": "100644",
+                            "path": os.path.join("dir", "unchanged"),
+                            "sha": hashlib.sha1(b"blob 0\0").hexdigest(),
+                        },
+                        {
+                            "type": "blob",
+                            "mode": "100644",
+                            "path": os.path.join("dir", "modified"),
+                            "sha": "bogus3",
+                        },
+                        {
+                            "type": "blob",
+                            "mode": "100644",
+                            "path": os.path.join("dir", "removed"),
+                            "sha": "bogus4",
+                        },
+                    ],
+                },
+                None,
             )
+
             commit = CommitDir(repo)
             os.mkdir("dir")
             with open("unchanged", "w") as f:
@@ -74,12 +75,8 @@ class TestCommitDir(unittest.TestCase):
         with temporary_dir() as d:
             repo = mock.Mock(spec=Repository)
             repo.tree = mock.Mock(
-                return_value=mock.Mock(
-                    recurse=mock.Mock(
-                        return_value=mock.Mock(
-                            to_json=mock.Mock(return_value={"tree": []})
-                        )
-                    )
+                return_value=Tree(
+                    {"url": "string", "sha": "tree-ish-hash", "tree": []}, None
                 )
             )
             commit = CommitDir(repo)
@@ -101,12 +98,8 @@ class TestCommitDir(unittest.TestCase):
             repo = mock.Mock(spec=Repository)
             repo.create_tree.return_value = None
             repo.tree = mock.Mock(
-                return_value=mock.Mock(
-                    recurse=mock.Mock(
-                        return_value=mock.Mock(
-                            to_json=mock.Mock(return_value={"tree": []})
-                        )
-                    )
+                return_value=Tree(
+                    {"url": "string", "sha": "tree-ish-hash", "tree": []}, None
                 )
             )
             with open("new", "w") as f:
@@ -120,12 +113,8 @@ class TestCommitDir(unittest.TestCase):
             repo = mock.Mock(spec=Repository)
             repo.create_commit.return_value = None
             repo.tree = mock.Mock(
-                return_value=mock.Mock(
-                    recurse=mock.Mock(
-                        return_value=mock.Mock(
-                            to_json=mock.Mock(return_value={"tree": []})
-                        )
-                    )
+                return_value=Tree(
+                    {"url": "string", "sha": "tree-ish-hash", "tree": []}, None
                 )
             )
             with open("new", "w") as f:
@@ -141,12 +130,8 @@ class TestCommitDir(unittest.TestCase):
             head.update.return_value = None
             repo.ref.return_value = head
             repo.tree = mock.Mock(
-                return_value=mock.Mock(
-                    recurse=mock.Mock(
-                        return_value=mock.Mock(
-                            to_json=mock.Mock(return_value={"tree": []})
-                        )
-                    )
+                return_value=Tree(
+                    {"url": "string", "sha": "tree-ish-hash", "tree": []}, None
                 )
             )
             with open("new", "w") as f:
@@ -158,11 +143,13 @@ class TestCommitDir(unittest.TestCase):
     def test_create_blob__handles_decode_error(self):
         repo = mock.Mock(spec=Repository)
         commit = CommitDir(repo)
-        self.assertTrue(commit._create_blob(b"\x9c"))
+        commit.dry_run = False
+        self.assertTrue(commit._create_blob(b"\x9c", "local_path"))
 
     def test_create_blob__error(self):
         repo = mock.Mock(spec=Repository)
         repo.create_blob.return_value = None
         commit = CommitDir(repo)
+        commit.dry_run = False
         with self.assertRaises(GithubException):
-            self.assertTrue(commit._create_blob(b""))
+            self.assertTrue(commit._create_blob(b"", "local_path"))
