@@ -9,7 +9,7 @@ from cumulusci.core.exceptions import GithubException
 
 
 class CommitDir(object):
-    """Commit all changes in local_dir to branch/self.repo_dir"""
+    """Commit all changes in local_dir to branch/repo_dir"""
 
     def __init__(self, repo, logger=None, author=None):
         """
@@ -44,7 +44,7 @@ class CommitDir(object):
         """
         local_dir: path to local directory to commit
         branch: target branch name
-        self.repo_dir: target path within repo - use '' for repo root
+        repo_dir: target path within repo - use '' for repo root
         commit_message: message for git commit
         dry_run: skip creating GitHub data if True
         """
