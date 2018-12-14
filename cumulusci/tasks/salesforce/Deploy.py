@@ -62,6 +62,7 @@ class Deploy(BaseSalesforceMetadataApiTask):
             path = self.task_config.options__path
 
         package_zip = self._get_package_zip(path)
+        self.logger.info("Payload size: {} bytes".format(len(package_zip)))
         return self.api_class(self, package_zip, purge_on_delete=False)
 
     def _process_zip_file(self, zipf):
