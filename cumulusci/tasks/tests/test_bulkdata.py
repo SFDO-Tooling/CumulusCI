@@ -347,7 +347,7 @@ class TestQueryData(unittest.TestCase):
         task.bulk = api
         task()
 
-        household = task.session.query(task.models['households']).one()
+        household = task.session.query(task.models["households"]).one()
         self.assertEqual("1", household.sf_id)
         self.assertEqual("HH_Account", household.record_type)
         contact = task.session.query(task.models["contacts"]).one()
@@ -408,10 +408,15 @@ class TestQueryData(unittest.TestCase):
     def test_create_table__already_exists(self):
         base_path = os.path.dirname(__file__)
         mapping_path = os.path.join(base_path, "mapping.yml")
+        db_path = os.path.join(base_path, "testdata.db")
         task = _make_task(
             bulkdata.QueryData,
-            {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
+            {
+                "options": {
+                    "database_url": "sqlite:///{}".format(db_path),
+                    "mapping": mapping_path,
+                }
+            },
         )
-        task.models = {"test": mock.Mock()}
         with self.assertRaises(BulkDataException):
-            task._create_table({"table": "test"})
+            task()
