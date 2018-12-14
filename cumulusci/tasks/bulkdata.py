@@ -656,6 +656,6 @@ def process_incoming_rows(f, record_type=None):
         record_type = record_type.encode("utf-8")
     for line in f:
         if record_type:
-            yield line + b"," + record_type + b"\n"
+            yield line.rstrip() + b"," + record_type + b"\n"
         else:
             yield line
