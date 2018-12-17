@@ -307,8 +307,8 @@ class TestLoadData(unittest.TestCase):
         self.assertFalse(new_id_table is id_table)
 
 
-HOUSEHOLD_QUERY_RESULT = b'"Id"\n1'
-CONTACT_QUERY_RESULT = b'"Id",AccountId\n2,1'
+HOUSEHOLD_QUERY_RESULT = b'"Id"\n1\n'
+CONTACT_QUERY_RESULT = b'"Id",AccountId\n2,1\n'
 
 
 @mock.patch("cumulusci.tasks.bulkdata.time.sleep", mock.Mock())
@@ -347,6 +347,9 @@ class TestQueryData(unittest.TestCase):
         task.bulk = api
         task()
 
+        household = task.session.query(task.models["households"]).one()
+        self.assertEqual("1", household.sf_id)
+        self.assertEqual("HH_Account", household.record_type)
         contact = task.session.query(task.models["contacts"]).one()
         self.assertEqual("2", contact.sf_id)
         self.assertEqual("1", contact.household_id)
@@ -405,10 +408,15 @@ class TestQueryData(unittest.TestCase):
     def test_create_table__already_exists(self):
         base_path = os.path.dirname(__file__)
         mapping_path = os.path.join(base_path, "mapping.yml")
+        db_path = os.path.join(base_path, "testdata.db")
         task = _make_task(
             bulkdata.QueryData,
-            {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
+            {
+                "options": {
+                    "database_url": "sqlite:///{}".format(db_path),
+                    "mapping": mapping_path,
+                }
+            },
         )
-        task.models = {"test": mock.Mock()}
         with self.assertRaises(BulkDataException):
-            task._create_table({"table": "test"})
+            task()
