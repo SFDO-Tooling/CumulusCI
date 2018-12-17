@@ -2,6 +2,25 @@
 History
 =======
 
+2.2.4 (2018-12-17)
+------------------
+
+Changes:
+
+* Bulk query task:
+
+  * Fixed an issue with querying data filtered by record type (#904).
+  * Fixed an issue where the optimized approach for loading data into PostgreSQL was not used.
+  * The task will now prevent you from accidentally overwriting existing data by exiting with an error if the table already exists.
+
+* The ``deploy`` task now logs the size of the zip payload in bytes.
+
+* Fixed a TypeError in the ``commit_apex_docs`` task (#901).
+
+* Robot Framework:
+
+  * Add location strategies for locating elements by text and by title.
+
 2.2.3 (2018-12-07)
 ------------------
 
