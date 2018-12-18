@@ -127,7 +127,7 @@ class Salesforce(object):
                 self.salesforce_delete(record["type"], record["id"])
             except SalesforceResourceNotFound:
                 self.builtin.log("    {type} {id} is already deleted".format(**record))
-            except SalesforceMalformedRequest as e:
+            except Exception as e:
                 self.builtin.log(
                     "    {type} {id} could not be deleted:".format(**record),
                     level="WARN",
