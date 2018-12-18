@@ -9,7 +9,7 @@ from cumulusci.robotframework.locators import lex_locators
 from cumulusci.robotframework.utils import selenium_retry
 from SeleniumLibrary.errors import ElementNotFound
 
-OID_REGEX = r"[a-zA-Z0-9]{15,18}"
+OID_REGEX = r"^[a-zA-Z0-9]{15,18}$"
 
 
 @selenium_retry
@@ -56,11 +56,12 @@ class Salesforce(object):
                     "Timed out waiting for {} related list to load.".format(heading)
                 )
             self.selenium.execute_javascript(
-                "window.scrollTo(0,document.body.scrollHeight)"
+                "window.scrollTo(0,Math.max(document.body.scrollHeight, document.documentElement.scrollHeight))"
             )
             self.wait_for_aura()
             try:
-                el = self.selenium.get_webelement(locator)
+                self.selenium.scroll_element_into_view(locator)
+                break
             except ElementNotFound:
                 time.sleep(0.2)
                 continue
@@ -126,7 +127,7 @@ class Salesforce(object):
                 self.salesforce_delete(record["type"], record["id"])
             except SalesforceResourceNotFound:
                 self.builtin.log("    {type} {id} is already deleted".format(**record))
-            except SalesforceMalformedRequest as e:
+            except Exception as e:
                 self.builtin.log(
                     "    {type} {id} could not be deleted:".format(**record),
                     level="WARN",
