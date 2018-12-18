@@ -9,7 +9,7 @@ from cumulusci.robotframework.locators import lex_locators
 from cumulusci.robotframework.utils import selenium_retry
 from SeleniumLibrary.errors import ElementNotFound
 
-OID_REGEX = r"[a-zA-Z0-9]{15,18}"
+OID_REGEX = r"^[a-zA-Z0-9]{15,18}$"
 
 
 @selenium_retry
