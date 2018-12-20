@@ -55,12 +55,10 @@ class Salesforce(object):
                 raise AssertionError(
                     "Timed out waiting for {} related list to load.".format(heading)
                 )
-            self.selenium.execute_javascript(
-                "window.scrollTo(0,Math.max(document.body.scrollHeight, document.documentElement.scrollHeight))"
-            )
+            self.selenium.execute_javascript("window.scrollBy(0, 100)")
             self.wait_for_aura()
             try:
-                self.selenium.scroll_element_into_view(locator)
+                self.selenium.get_webelement(locator)
                 break
             except ElementNotFound:
                 time.sleep(0.2)
