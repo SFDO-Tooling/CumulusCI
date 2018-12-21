@@ -1,7 +1,11 @@
+from future import standard_library
+
+standard_library.install_aliases()
 from base64 import b64encode
 from zipfile import ZipFile
 from tempfile import TemporaryFile
 from xml.sax.saxutils import escape
+import html
 
 INSTALLED_PACKAGE_PACKAGE_XML = u"""<?xml version="1.0" encoding="utf-8"?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
@@ -26,7 +30,8 @@ FULL_NAME_PACKAGE_XML = u"""<?xml version="1.0" encoding="utf-8"?>
 INSTALLED_PACKAGE = u"""<?xml version="1.0" encoding="UTF-8"?>
 <InstalledPackage xmlns="http://soap.sforce.com/2006/04/metadata">
   <versionNumber>{}</versionNumber>
-  <activateRSS>false</activateRSS>
+  <activateRSS>{}</activateRSS>
+  {}
 </InstalledPackage>"""
 
 
@@ -84,13 +89,15 @@ class CreatePackageZipBuilder(BasePackageZipBuilder):
 class InstallPackageZipBuilder(BasePackageZipBuilder):
     api_version = "43.0"
 
-    def __init__(self, namespace, version):
+    def __init__(self, namespace, version, activateRSS=False, password=None):
         if not namespace:
             raise ValueError("You must provide a namespace to install a package")
         if not version:
             raise ValueError("You must provide a version to install a package")
         self.namespace = namespace
         self.version = version
+        self.activateRSS = activateRSS
+        self.password = password
 
     def _populate_zip(self):
         package_xml = INSTALLED_PACKAGE_PACKAGE_XML.format(
@@ -98,7 +105,15 @@ class InstallPackageZipBuilder(BasePackageZipBuilder):
         )
         self._write_package_xml(package_xml)
 
-        installed_package = INSTALLED_PACKAGE.format(self.version)
+        activateRSS = "true" if self.activateRSS else "false"
+        password = (
+            "<password>{}</password>".format(html.escape(self.password))
+            if self.password
+            else ""
+        )
+        installed_package = INSTALLED_PACKAGE.format(
+            self.version, activateRSS, password
+        )
         self._write_file(
             "installedPackages/{}.installedPackage".format(self.namespace),
             installed_package,
