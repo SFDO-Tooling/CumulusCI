@@ -1,3 +1,4 @@
+from cumulusci.core.utils import process_bool_arg
 from cumulusci.salesforce_api.exceptions import MetadataApiError
 from cumulusci.salesforce_api.package_zip import InstallPackageZipBuilder
 from cumulusci.tasks.salesforce import Deploy
@@ -13,6 +14,12 @@ class InstallPackageVersion(Deploy):
             "description": 'The version of the package to install.  "latest" and "latest_beta" can be used to trigger lookup via Github Releases on the repository.',
             "required": True,
         },
+        "activateRSS": {
+            "description": "If True, preserve the isActive state of "
+            "Remote Site Settings and Content Security Policy "
+            "in the package. Default: False."
+        },
+        "password": {"description": "The package password. Optional."},
         "retries": {"description": "Number of retries (default=5)"},
         "retry_interval": {
             "description": "Number of seconds to wait before the next retry (default=5),"
@@ -42,10 +49,14 @@ class InstallPackageVersion(Deploy):
             self.logger.info(
                 "Installing latest beta release: {}".format(self.options["version"])
             )
+        self.options["activateRSS"] = process_bool_arg(self.options.get("activateRSS"))
 
     def _get_api(self, path=None):
         package_zip = InstallPackageZipBuilder(
-            self.options["namespace"], self.options["version"]
+            namespace=self.options["namespace"],
+            version=self.options["version"],
+            activateRSS=self.options["activateRSS"],
+            password=self.options.get("password"),
         )
         return self.api_class(self, package_zip(), purge_on_delete=False)
 
