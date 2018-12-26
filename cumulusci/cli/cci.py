@@ -230,7 +230,8 @@ def main():
     This runs as the first step in processing any CLI command.
     """
     check_latest_version()
-    init_logger()
+    log_requests = "--debug" in sys.argv
+    init_logger(log_requests=log_requests)
 
 
 @click.command(name="version", help="Print the current version of CumulusCI")
