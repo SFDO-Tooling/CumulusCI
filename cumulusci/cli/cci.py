@@ -239,7 +239,7 @@ def version():
     click.echo(cumulusci.__version__)
 
 
-@click.command(name="shell", help="Drop into a python shell")
+@click.command(name="shell", help="Drop into a Python shell")
 def shell():
     try:
         config = load_config(load_project_config=True, load_keychain=True)
