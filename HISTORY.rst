@@ -2,6 +2,20 @@
 History
 =======
 
+2.2.5 (2018-12-26)
+------------------
+
+* The ``install_managed`` and ``install_managed_beta`` tasks now take optional ``activateRSS`` and ``password`` options. ``activateRSS`` is set to true by default so that any active Remote Site Settings in the package will remain active when installed.
+
+* When running a task with the ``--debug`` flag, HTTP requests are now logged.
+
+* Robot Framework:
+
+  * Fix issue where "Get Current Record Id" could accidentally match the object name instead of the record Id.
+  * Fix issue where "Load Related List" would fail to scroll down to the list.
+  * Fix issue where errors deleting records during test teardown would cause a hidden test failure.
+
+
 2.2.4 (2018-12-17)
 ------------------
 
