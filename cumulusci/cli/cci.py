@@ -230,7 +230,8 @@ def main():
     This runs as the first step in processing any CLI command.
     """
     check_latest_version()
-    init_logger()
+    log_requests = "--debug" in sys.argv
+    init_logger(log_requests=log_requests)
 
 
 @click.command(name="version", help="Print the current version of CumulusCI")
@@ -238,7 +239,7 @@ def version():
     click.echo(cumulusci.__version__)
 
 
-@click.command(name="shell", help="Drop into a python shell")
+@click.command(name="shell", help="Drop into a Python shell")
 def shell():
     try:
         config = load_config(load_project_config=True, load_keychain=True)
