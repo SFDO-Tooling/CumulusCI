@@ -56,10 +56,14 @@ class TestRunApexTests(unittest.TestCase):
         keychain = BaseProjectKeychain(self.project_config, "")
         self.project_config.set_keychain(keychain)
         self.org_config = OrgConfig(
-            {"id": "foo/1", "instance_url": "example.com", "access_token": "abc123"},
+            {
+                "id": "foo/1",
+                "instance_url": "https://example.com",
+                "access_token": "abc123",
+            },
             "test",
         )
-        self.base_tooling_url = "https://{}/services/data/v{}/tooling/".format(
+        self.base_tooling_url = "{}/services/data/v{}/tooling/".format(
             self.org_config.instance_url, self.api_version
         )
 
@@ -265,10 +269,14 @@ class TestAnonymousApexTask(unittest.TestCase):
         keychain = BaseProjectKeychain(self.project_config, "")
         self.project_config.set_keychain(keychain)
         self.org_config = OrgConfig(
-            {"id": "foo/1", "instance_url": "example.com", "access_token": "abc123"},
+            {
+                "id": "foo/1",
+                "instance_url": "https://example.com",
+                "access_token": "abc123",
+            },
             "test",
         )
-        self.base_tooling_url = "https://{}/services/data/v{}/tooling/".format(
+        self.base_tooling_url = "{}/services/data/v{}/tooling/".format(
             self.org_config.instance_url, self.api_version
         )
 
@@ -400,10 +408,14 @@ class TestRunBatchApex(unittest.TestCase):
         keychain = BaseProjectKeychain(self.project_config, "")
         self.project_config.set_keychain(keychain)
         self.org_config = OrgConfig(
-            {"id": "foo/1", "instance_url": "example.com", "access_token": "abc123"},
+            {
+                "id": "foo/1",
+                "instance_url": "https://example.com",
+                "access_token": "abc123",
+            },
             "test",
         )
-        self.base_tooling_url = "https://{}/services/data/v{}/tooling/".format(
+        self.base_tooling_url = "{}/services/data/v{}/tooling/".format(
             self.org_config.instance_url, self.api_version
         )
 
