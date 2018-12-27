@@ -1,15 +1,22 @@
 import logging
 import re
+import socket
 import time
 from robot.libraries.BuiltIn import BuiltIn
 from selenium.webdriver.common.keys import Keys
-from simple_salesforce import SalesforceMalformedRequest
 from simple_salesforce import SalesforceResourceNotFound
 from cumulusci.robotframework.locators import lex_locators
 from cumulusci.robotframework.utils import selenium_retry
 from SeleniumLibrary.errors import ElementNotFound
 
 OID_REGEX = r"^[a-zA-Z0-9]{15,18}$"
+
+try:
+    ConnectionResetError
+except NameError:
+    SOCKET_ERRORS = (socket.error,)
+else:
+    SOCKET_ERRORS = (socket.error, ConnectionResetError)
 
 
 @selenium_retry
@@ -31,6 +38,13 @@ class Salesforce(object):
     @property
     def cumulusci(self):
         return self.builtin.get_library_instance("cumulusci.robotframework.CumulusCI")
+
+    def create_webdriver_with_retry(self, *args, **kwargs):
+        """Call the Create Webdriver keyword and retry on socket errors."""
+        try:
+            return self.selenium.create_webdriver(*args, **kwargs)
+        except SOCKET_ERRORS:
+            return self.selenium.create_webdriver(*args, **kwargs)
 
     def click_modal_button(self, title):
         """Clicks a button in a Lightning modal."""
