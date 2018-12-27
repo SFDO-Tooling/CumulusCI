@@ -41,10 +41,12 @@ class Salesforce(object):
 
     def create_webdriver_with_retry(self, *args, **kwargs):
         """Call the Create Webdriver keyword and retry on socket errors."""
+        # Get selenium without referencing selenium.driver which doesn't exist yet
+        selenium = self.builtin.get_library_instance("SeleniumLibrary")
         try:
-            return self.selenium.create_webdriver(*args, **kwargs)
+            return selenium.create_webdriver(*args, **kwargs)
         except SOCKET_ERRORS:
-            return self.selenium.create_webdriver(*args, **kwargs)
+            return selenium.create_webdriver(*args, **kwargs)
 
     def click_modal_button(self, title):
         """Clicks a button in a Lightning modal."""
