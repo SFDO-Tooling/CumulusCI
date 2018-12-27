@@ -468,7 +468,9 @@ class TestBaseFlow(unittest.TestCase):
                 "steps": {1: {"flow": "nested_flow"}},
             }
         }
-        flow_config = FlowConfig({"steps": {1: {"flow": "nested_flow"}}})
+        flow_config = FlowConfig(
+            {"steps": {1: {"flow": "nested_flow"}, 2: {"flow": "None"}}}
+        )
         with self.assertRaises(FlowInfiniteLoopError):
             BaseFlow(self.project_config, flow_config, self.org_config)
 

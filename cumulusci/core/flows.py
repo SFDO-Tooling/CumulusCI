@@ -117,6 +117,8 @@ class BaseFlow(object):
         for step in steps.values():
             if "flow" in step:
                 flow = step["flow"]
+                if flow == "None":
+                    continue
                 if flow in flows:
                     raise FlowInfiniteLoopError(
                         "Infinite flows detected with flow {}".format(flow)
