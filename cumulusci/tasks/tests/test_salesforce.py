@@ -36,9 +36,9 @@ class TestSalesforceToolingTask(unittest.TestCase):
 
         self.task_config = TaskConfig()
         self.org_config = OrgConfig(
-            {"instance_url": "example.com", "access_token": "abc123"}, "test"
+            {"instance_url": "https://example.com", "access_token": "abc123"}, "test"
         )
-        self.base_tooling_url = "https://{}/services/data/v{}/tooling/".format(
+        self.base_tooling_url = "{}/services/data/v{}/tooling/".format(
             self.org_config.instance_url, self.api_version
         )
 

@@ -8,6 +8,7 @@ from cumulusci.core.config import TaskConfig
 from cumulusci.core.exceptions import ServiceNotConfigured
 from cumulusci.tasks.salesforce import BaseRetrieveMetadata
 from cumulusci.tasks.salesforce import BaseSalesforceTask
+from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.tasks.salesforce import BaseSalesforceMetadataApiTask
 from cumulusci.tasks.salesforce import BaseUninstallMetadata
 from cumulusci.tests.util import create_project_config
@@ -42,6 +43,15 @@ class TestBaseSalesforceTask(unittest.TestCase):
             self.project_config, self.task_config, self.org_config
         )
         self.project_config.keychain.set_org.assert_called_once()
+
+
+class TestBaseSalesforceApiTask(unittest.TestCase):
+    def test_sf_instance(self):
+        org_config = OrgConfig(
+            {"instance_url": "https://foo/", "access_token": "TOKEN"}, "test"
+        )
+        task = create_task(BaseSalesforceApiTask, org_config=org_config)
+        self.assertFalse(task.sf.sf_instance.endswith("/"))
 
 
 class TestBaseSalesforceMetadataApiTask(unittest.TestCase):

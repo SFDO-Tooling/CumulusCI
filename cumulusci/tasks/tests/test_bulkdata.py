@@ -52,7 +52,7 @@ def _make_task(task_class, task_config):
     keychain = BaseProjectKeychain(project_config, "")
     project_config.set_keychain(keychain)
     org_config = DummyOrgConfig(
-        {"instance_url": "example.com", "access_token": "abc123"}, "test"
+        {"instance_url": "https://example.com", "access_token": "abc123"}, "test"
     )
     return task_class(project_config, task_config, org_config)
 
