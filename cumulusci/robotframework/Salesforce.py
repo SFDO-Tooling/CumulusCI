@@ -1,6 +1,5 @@
 import logging
 import re
-import socket
 import time
 from robot.libraries.BuiltIn import BuiltIn
 from selenium.webdriver.common.keys import Keys
@@ -8,15 +7,9 @@ from simple_salesforce import SalesforceResourceNotFound
 from cumulusci.robotframework.locators import lex_locators
 from cumulusci.robotframework.utils import selenium_retry
 from SeleniumLibrary.errors import ElementNotFound
+from urllib3.exceptions import ProtocolError
 
 OID_REGEX = r"^[a-zA-Z0-9]{15,18}$"
-
-try:
-    ConnectionResetError
-except NameError:
-    SOCKET_ERRORS = (socket.error,)
-else:
-    SOCKET_ERRORS = (socket.error, ConnectionResetError)
 
 
 @selenium_retry
@@ -40,12 +33,15 @@ class Salesforce(object):
         return self.builtin.get_library_instance("cumulusci.robotframework.CumulusCI")
 
     def create_webdriver_with_retry(self, *args, **kwargs):
-        """Call the Create Webdriver keyword and retry on socket errors."""
+        """Call the Create Webdriver keyword.
+
+        Retry on connection resets which can happen if custom domain propagation is slow.
+        """
         # Get selenium without referencing selenium.driver which doesn't exist yet
         selenium = self.builtin.get_library_instance("SeleniumLibrary")
         try:
             return selenium.create_webdriver(*args, **kwargs)
-        except SOCKET_ERRORS:
+        except ProtocolError:
             return selenium.create_webdriver(*args, **kwargs)
 
     def click_modal_button(self, title):
