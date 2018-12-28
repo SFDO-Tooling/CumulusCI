@@ -10,8 +10,8 @@ echo " "
 echo "=> Collecting package info from PyPI..."
 echo " "
 curl -L "https://pypi.io/pypi/cumulusci/json" > "$PYPI_JSON" || exit 1
-PACKAGE_URL="$(cat "$PYPI_JSON" | jq '.urls[0].url')" || exit 1
-PACKAGE_SHA="$(cat "$PYPI_JSON" | jq '.urls[0].digests.sha256')" || exit 1
+PACKAGE_URL="$(cat "$PYPI_JSON" | jq '.urls[1].url')" || exit 1
+PACKAGE_SHA="$(cat "$PYPI_JSON" | jq '.urls[1].digests.sha256')" || exit 1
 
 echo " "
 echo "=> Creating a temporary virtualenv and installing CumulusCI..."
