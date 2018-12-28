@@ -594,28 +594,32 @@ class ConnectServiceCommand(click.MultiCommand):
     def get_command(self, ctx, name):
         config = load_config()
 
-        attributes = iter(
-            list(
-                getattr(
-                    config.project_config, "services__{0}__attributes".format(name)
-                ).items()
+        try:
+            attributes = iter(
+                list(
+                    getattr(
+                        config.project_config, "services__{0}__attributes".format(name)
+                    ).items()
+                )
             )
-        )
-        params = [self._build_param(attr, cnfg) for attr, cnfg in attributes]
-        params.append(click.Option(("--project",), is_flag=True))
+            params = [self._build_param(attr, cnfg) for attr, cnfg in attributes]
+            params.append(click.Option(("--project",), is_flag=True))
 
-        def callback(project=False, *args, **kwargs):
-            serv_conf = dict(
-                (k, v) for k, v in list(kwargs.items()) if v != None
-            )  # remove None values
-            config.keychain.set_service(name, ServiceConfig(serv_conf), project)
-            if project:
-                click.echo("{0} is now configured for this project".format(name))
-            else:
-                click.echo("{0} is now configured for global use".format(name))
+            def callback(project=False, *args, **kwargs):
+                serv_conf = dict(
+                    (k, v) for k, v in list(kwargs.items()) if v != None
+                )  # remove None values
+                config.keychain.set_service(name, ServiceConfig(serv_conf), project)
+                if project:
+                    click.echo("{0} is now configured for this project".format(name))
+                else:
+                    click.echo("{0} is now configured for global use".format(name))
 
-        ret = click.Command(name, params=params, callback=callback)
-        return ret
+            ret = click.Command(name, params=params, callback=callback)
+            return ret
+
+        except AttributeError:
+            click.echo(name + " doesn't exist")
 
 
 @click.command(
