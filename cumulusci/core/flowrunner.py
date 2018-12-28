@@ -33,6 +33,7 @@ Option values/overrides can be passed in at a number of levels, in increasing or
     see `dev_org_namespaced` for an example
 - Flow runtime (i.e. on the commandline)
 
+
 """
 
 # we don't actually use this set of imports, they're just in type
@@ -44,6 +45,7 @@ except ImportError:
 
 import copy
 import logging
+from collections import namedtuple
 from distutils.version import LooseVersion
 
 from cumulusci.core.exceptions import FlowConfigError, FlowInfiniteLoopError
@@ -64,6 +66,9 @@ class StepSpec(object):
         )
 
 
+StepResult = namedtuple("StepResult", ["step_num", "task_name", "task"])
+
+
 class NoOpStep(object):
     """ Sentinel object used to indicate a no-op step. """
 
@@ -82,16 +87,30 @@ class FlowRunner(object):
         self.flow_config = flow_config
         self.org_config = org_config
 
+        # TODO: Support Runtime Options
         if not options:
             options = {}
-        self.options = options
+        self.runtime_options = options
 
         if not skip:
             skip = []
         self.skip = skip
 
+        self.results = []
+
         self.logger = self._init_logger()
         self.steps = self._init_steps()  # type: List[StepSpec]
+
+    def _run_step(self, step):
+        # get task for step
+        task = None
+        task()
+        return StepResult(step.step_num, step.task_name, task)
+
+    def run(self):
+        for step in self.steps:
+            result = self._run_step(step)
+            self.results.append(result)
 
     def _init_logger(self):
         """
@@ -104,9 +123,11 @@ class FlowRunner(object):
         """
         return logging.getLogger(__name__)
 
-    def _init_steps(self):
+    def _init_steps(self,):
         """
         Given the flow config and everything else, create a list of steps to run.
+
+        :param: options
 
         :return: List[StepSpec]
         """
@@ -118,7 +139,7 @@ class FlowRunner(object):
         steps = []
 
         for number, step_config in config_steps.items():
-            specs = self._visit_step(number, step_config)
+            specs = self._visit_step(number, step_config, [])
             steps.extend(specs)
 
         return steps
@@ -159,6 +180,10 @@ class FlowRunner(object):
 
             step_options = copy.deepcopy(parent_options.get(name, {}))
             step_options.update(step_config.get("options", {}))
+
+            if name in self.runtime_options:
+                # TODO: Support Runtime Options
+                pass
 
             visited_steps.append(
                 StepSpec(
