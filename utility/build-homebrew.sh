@@ -38,8 +38,8 @@ class Cumulusci < Formula
   desc "Python framework for building portable automation for Salesforce projects"
   head "https://github.com/SFDO-Tooling/CumulusCI.git"
   homepage "https://github.com/SFDO-Tooling/CumulusCI"
-  url "$PACKAGE_URL"
-  sha256 "$PACKAGE_SHA"
+  url $PACKAGE_URL
+  sha256 $PACKAGE_SHA
 
   depends_on "python3"
 
