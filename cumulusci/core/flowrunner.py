@@ -49,16 +49,20 @@ from collections import namedtuple
 from distutils.version import LooseVersion
 
 from cumulusci.core.exceptions import FlowConfigError, FlowInfiniteLoopError
+from cumulusci.core.utils import import_class
 
 
 class StepSpec(object):
     """ simple namespace to describe what the flowrunner should do each step """
 
-    def __init__(self, step_num, task_name, task_options, allow_failure=False):
+    def __init__(
+        self, step_num, task_name, task_options, allow_failure=False, from_flow=None
+    ):
         self.step_num = step_num
         self.task_name = task_name
         self.task_options = task_options
         self.allow_failure = allow_failure
+        self.from_flow = from_flow
 
     def __repr__(self):
         return "<StepSpec {num}:{name} {cfg}>".format(
@@ -102,8 +106,21 @@ class FlowRunner(object):
         self.steps = self._init_steps()  # type: List[StepSpec]
 
     def _run_step(self, step):
-        # get task for step
-        task = None
+        # get task implementation class for task_name in step
+        task_config = copy.deepcopy(self.project_config.get_task(step.task_name))
+        task_class = import_class(task_config.class_path)
+
+        # TODO: Actually override options based on step_config
+        # TODO: Resolve ^^task_name.return_value style option syntax
+
+        task = task_class(
+            self.project_config,
+            task_config,
+            org_config=self.org_config,
+            name=step.task_name,
+            stepnum=step.step_num,
+            flow=self,
+        )
         task()
         return StepResult(step.step_num, step.task_name, task)
 
@@ -144,7 +161,14 @@ class FlowRunner(object):
 
         return steps
 
-    def _visit_step(self, number, step_config, visited_steps=None, parent_options=None):
+    def _visit_step(
+        self,
+        number,
+        step_config,
+        visited_steps=None,
+        parent_options=None,
+        from_flow=None,
+    ):
         number = LooseVersion(str(number))
 
         if visited_steps is None:
@@ -171,7 +195,12 @@ class FlowRunner(object):
             or ("task" in step_config and step_config["task"] in self.skip)
         ):
             visited_steps.append(
-                StepSpec(number, NoOpStep(), step_config.get("options", {}))
+                StepSpec(
+                    number,
+                    NoOpStep(),
+                    step_config.get("options", {}),
+                    from_flow=from_flow,
+                )
             )
             return visited_steps
 
@@ -187,7 +216,11 @@ class FlowRunner(object):
 
             visited_steps.append(
                 StepSpec(
-                    number, name, step_options, step_config.get("ignore_failure", False)
+                    number,
+                    name,
+                    step_options,
+                    step_config.get("ignore_failure", False),
+                    from_flow=from_flow,
                 )
             )
             return visited_steps
@@ -200,7 +233,11 @@ class FlowRunner(object):
                 # append the flow number to the child number, since its a LooseVersion.
                 num = "{}.{}".format(number, sub_number)
                 self._visit_step(
-                    num, sub_stepconf, visited_steps, parent_options=step_options
+                    num,
+                    sub_stepconf,
+                    visited_steps,
+                    parent_options=step_options,
+                    from_flow=name,
                 )
 
         return visited_steps
