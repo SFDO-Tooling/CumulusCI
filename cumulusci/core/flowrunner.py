@@ -56,31 +56,31 @@ class StepSpec(object):
     """ simple namespace to describe what the flowrunner should do each step """
 
     def __init__(
-        self, step_num, task_name, task_options, allow_failure=False, from_flow=None
+        self,
+        step_num,
+        task_name,
+        task_options,
+        allow_failure=False,
+        from_flow=None,
+        skip=None,
     ):
         self.step_num = step_num
         self.task_name = task_name
         self.task_options = task_options
         self.allow_failure = allow_failure
         self.from_flow = from_flow
+        self.skip = skip
 
     def __repr__(self):
-        return "<StepSpec {num}:{name} {cfg}>".format(
-            num=self.step_num, name=self.task_name, cfg=self.task_options
+        skipstr = ""
+        if self.skip:
+            skipstr = "!SKIP! "
+        return "<{skip}StepSpec {num}:{name} {cfg}>".format(
+            num=self.step_num, name=self.task_name, cfg=self.task_options, skip=skipstr
         )
 
 
 StepResult = namedtuple("StepResult", ["step_num", "task_name", "task"])
-
-
-class NoOpStep(object):
-    """ Sentinel object used to indicate a no-op step. """
-
-    def __repr__(self):
-        return "NoOpStep"
-
-    def __str__(self):
-        return self.__repr__()
 
 
 class FlowRunner(object):
@@ -144,8 +144,6 @@ class FlowRunner(object):
         """
         Given the flow config and everything else, create a list of steps to run.
 
-        :param: options
-
         :return: List[StepSpec]
         """
         config_steps = self.flow_config.steps
@@ -169,6 +167,20 @@ class FlowRunner(object):
         parent_options=None,
         from_flow=None,
     ):
+        """
+        for each step (as defined in the flow YAML), _visit_step is called with only
+        the first two parameters. this takes care of validating the step, collating the
+        option overrides, and if it is a task, creating a StepSpec for it.
+
+        If it is a flow, we recursively call _visit_step with the rest of the parameters of context.
+
+        :param number: LooseVersion representation of the current step number
+        :param step_config: the current step's config (dict from YAML)
+        :param visited_steps: used when called recursively for nested steps, becomes the return value
+        :param parent_options: used when called recursively for nested steps, options from parent flow
+        :param from_flow: used when called recursively for nested steps, name of parent flow
+        :return: List[StepSpec] a list of all resolved steps including/under the one passed in
+        """
         number = LooseVersion(str(number))
 
         if visited_steps is None:
@@ -197,9 +209,10 @@ class FlowRunner(object):
             visited_steps.append(
                 StepSpec(
                     number,
-                    NoOpStep(),
+                    step_config.get("task", step_config.get("flow")),
                     step_config.get("options", {}),
                     from_flow=from_flow,
+                    skip=True,  # someday we could use different vals for why skipped
                 )
             )
             return visited_steps
@@ -231,6 +244,8 @@ class FlowRunner(object):
             flow_config = self.project_config.get_flow(name)
             for sub_number, sub_stepconf in flow_config.steps.items():
                 # append the flow number to the child number, since its a LooseVersion.
+                # e.g. if we're in step 2.3 which references a flow with steps 1-5, it
+                #   simply ends up as five steps: 2.3.1, 2.3.2, 2.3.3, 2.3.4, 2.3.5
                 num = "{}.{}".format(number, sub_number)
                 self._visit_step(
                     num,
