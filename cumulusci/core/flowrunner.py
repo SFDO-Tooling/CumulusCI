@@ -124,7 +124,19 @@ class FlowRunner(object):
         task()
         return StepResult(step.step_num, step.task_name, task)
 
+    def _rule(self, fill="=", length=30):
+        self.logger.info("{:{fill}<{length}}".format("", fill=fill, length=length))
+
     def run(self):
+        self._rule()
+        line = "Initializing flow: {}".format(self.__class__.__name__)
+        if self.name:
+            line = "{} ({})".format(line, self.name)
+        self.logger.info(line)
+        self._rule()
+        self.logger.info("")
+        self._init_org()
+
         for step in self.steps:
             result = self._run_step(step)
             self.results.append(result)
@@ -290,3 +302,17 @@ class FlowRunner(object):
                 flows.append(flow)
                 flow_config = self.project_config.get_flow(flow)
                 self._check_infinite_flows(flow_config.steps, flows)
+
+    def _init_org(self):
+        """ Test and refresh credentials to the org specified. """
+        self.logger.info(
+            "Verifying and refreshing credentials for target org {}.".format(
+                self.org_config.name
+            )
+        )
+        orig_config = self.org_config.config.copy()
+        # attempt to refresh the token
+        self.org_config.refresh_oauth_token(self.project_config.keychain)
+        if self.org_config.config != orig_config:
+            self.logger.info("Org info has changed, updating org in keychain")
+            self.project_config.keychain.set_org(self.org_config)
