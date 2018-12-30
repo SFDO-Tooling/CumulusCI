@@ -86,7 +86,10 @@ class BaseTask(object):
 
     def _init_logger(self):
         """ Initializes self.logger """
-        self.logger = logging.getLogger(__name__)
+        if self.flow:
+            self.logger = self.flow.logger
+        else:
+            self.logger = logging.getLogger(__name__)
 
     def _init_options(self, kwargs):
         """ Initializes self.options """

@@ -10,8 +10,9 @@ for host systems embedding cci, like web apps, to inspect the flow in progress.
 
 BaseFlow suited us well.
 
-FlowRunner is a v2 API for flows in CCI. The object of interest is the `FlowRunner`
-instead of the flow being run.
+FlowRunner is a v2 API for flows in CCI. There are two objects of interest:
+- FlowCoordinator: takes a flow_config & runtime options to create a set of `StepSpec`s
+- TaskRunner: encapsulates the actual task running, result providing logic.
 
 Upon initialization, FlowRunner:
 - Creates a logger
@@ -45,6 +46,7 @@ except ImportError:
 
 import copy
 import logging
+import traceback
 from collections import namedtuple
 from distutils.version import LooseVersion
 
@@ -80,16 +82,57 @@ class StepSpec(object):
         )
 
 
-StepResult = namedtuple("StepResult", ["step_num", "task_name", "task"])
+StepResult = namedtuple(
+    "StepResult", ["step_num", "task_name", "result", "return_values", "exception"]
+)
 
 
-class FlowRunner(object):
-    def __init__(
-        self, project_config, flow_config, org_config, options=None, skip=None
-    ):
+class TaskRunner(object):
+    def __init__(self, project_config, org_config, runtime=None, raise_err=True):
+        self.project_config = project_config  # TODO: Runtime only instead of PC?
+        self.runtime = runtime
+        self.org_config = org_config
+        self.raise_err = raise_err
+
+    def run_step(self, step):
+        """
+        Run a step.
+
+        :param step: StepSpec
+        :return: StepResult
+        """
+        # get task implementation class for task_name in step
+        task_config = copy.deepcopy(self.project_config.get_task(step.task_name))
+        task_class = import_class(task_config.class_path)
+
+        # TODO: Actually override options based on step_config
+        # TODO: Resolve ^^task_name.return_value style option syntax
+
+        try:
+            task = task_class(
+                self.project_config,
+                task_config,
+                org_config=self.org_config,
+                name=step.task_name,
+                stepnum=step.step_num,
+                flow=self,
+            )
+            task()
+        except Exception as e:
+            self.logger.exception("Exception in task {}".format(step.task_name))
+            if self.raise_err:
+                raise e
+        finally:
+            return StepResult(
+                step.step_num, step.task_name, task.result, task.return_values
+            )
+
+
+class FlowCoordinator(object):
+    def __init__(self, project_config, flow_config, options=None, skip=None):
         self.project_config = project_config
         self.flow_config = flow_config
-        self.org_config = org_config
+        self.org_config = None
 
         # TODO: Support Runtime Options
         if not options:
@@ -105,40 +148,29 @@ class FlowRunner(object):
         self.logger = self._init_logger()
         self.steps = self._init_steps()  # type: List[StepSpec]
 
-    def _run_step(self, step):
-        # get task implementation class for task_name in step
-        task_config = copy.deepcopy(self.project_config.get_task(step.task_name))
-        task_class = import_class(task_config.class_path)
-
-        # TODO: Actually override options based on step_config
-        # TODO: Resolve ^^task_name.return_value style option syntax
-
-        task = task_class(
-            self.project_config,
-            task_config,
-            org_config=self.org_config,
-            name=step.task_name,
-            stepnum=step.step_num,
-            flow=self,
-        )
-        task()
-        return StepResult(step.step_num, step.task_name, task)
-
     def _rule(self, fill="=", length=30):
         self.logger.info("{:{fill}<{length}}".format("", fill=fill, length=length))
 
-    def run(self):
-        self._rule()
+    def run(self, org_config):
+        self.org_config = org_config
         line = "Initializing flow: {}".format(self.__class__.__name__)
         if self.name:
             line = "{} ({})".format(line, self.name)
+        self._rule()
         self.logger.info(line)
         self._rule()
         self.logger.info("")
         self._init_org()
 
         for step in self.steps:
-            result = self._run_step(step)
+            self._rule(fill="-")
+            self.logger.into("Running task: {}".format(step.task_name))
+            self._rule(fill="-")
+
+            # TODO: Pass raise_err as !allow_failure
+            runner = TaskRunner(self.project_config, org_config=org_config)
+            result = runner.run_step(step)
+
             self.results.append(result)
 
     def _init_logger(self):
