@@ -25,7 +25,15 @@ Upon running the flow, FlowRunner:
 - Runs each StepSpec in order
 - * Logs the task or skip
 - * Updates any ^^ task option values with return_values references
-- * handles any exceptions and sets return values
+- * Creates a TaskRunner to run the task and get the result
+- * Re-raise any fatal exceptions from the task, if not ignore_failure.
+- * collects StepResults into the flow.
+
+TaskRunner:
+- Imports the actual task module.
+- Constructs an instance of the BaseTask subclass.
+- Runs/calls the task instance.
+- Returns results or exception into an immutable StepResult
 
 Option values/overrides can be passed in at a number of levels, in increasing order of priority:
 - Task default (i.e. `.tasks.TASKNAME.options`)
@@ -88,11 +96,10 @@ StepResult = namedtuple(
 
 
 class TaskRunner(object):
-    def __init__(self, project_config, org_config, runtime=None, raise_err=True):
-        self.project_config = project_config  # TODO: Runtime only instead of PC?
+    def __init__(self, project_config, org_config, runtime=None):
+        self.project_config = project_config
         self.runtime = runtime
         self.org_config = org_config
-        self.raise_err = raise_err
 
     def run_step(self, step):
         """
@@ -120,8 +127,6 @@ class TaskRunner(object):
             task()
         except Exception as exc:
             self.logger.exception("Exception in task {}".format(step.task_name))
-            if self.raise_err:
-                raise exc
         finally:
             return StepResult(
                 step.step_num, step.task_name, task.result, task.return_values, exc
@@ -134,7 +139,7 @@ class FlowCoordinator(object):
         self.flow_config = flow_config
         self.org_config = None
 
-        # TODO: Support Runtime Options
+        # TODO: Support CLI/Runtime Options
         if not options:
             options = {}
         self.runtime_options = options
@@ -168,23 +173,22 @@ class FlowCoordinator(object):
             self.logger.into("Running task: {}".format(step.task_name))
             self._rule(fill="-", new_line=True)
 
-            # TODO: Pass raise_err as !allow_failure
             runner = TaskRunner(self.project_config, org_config=org_config)
             result = runner.run_step(step)
+
+            if result.exception and not step.allow_failure:
+                raise result.exception  # PY3: raise an exception type we control *from* this exception instead?
 
             self.results.append(result)
 
     def _init_logger(self):
         """
-        Returns a logger-like object to use for the duration of the flow.
-
-        This could be a static in the base implementation, but subclasses may want to
-        use instance details to log to the right place in the database.
+        Returns a logging.Logger-like object to use for the duration of the flow. Tasks will receive this logger
+        and getChild(class_name) to get a child logger.
 
         :return: logging.Logger
         """
-        # TODO: Get logger from PC or Runtime?
-        return logging.getLogger(__name__)
+        return logging.getLogger("cumulusci.flows").getChild(self.__class__.__name__)
 
     def _init_steps(self,):
         """
@@ -270,7 +274,7 @@ class FlowCoordinator(object):
             step_options.update(step_config.get("options", {}))
 
             if name in self.runtime_options:
-                # TODO: Support Runtime Options
+                # TODO: Support CLI/Runtime Options
                 pass
 
             visited_steps.append(
