@@ -87,7 +87,7 @@ class BaseTask(object):
     def _init_logger(self):
         """ Initializes self.logger """
         if self.flow:
-            self.logger = self.flow.logger
+            self.logger = self.flow.logger.getChild(self.__class__.__name__)
         else:
             self.logger = logging.getLogger(__name__)
 

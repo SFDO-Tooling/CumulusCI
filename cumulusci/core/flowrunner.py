@@ -107,7 +107,7 @@ class TaskRunner(object):
 
         # TODO: Actually override options based on step_config
         # TODO: Resolve ^^task_name.return_value style option syntax
-
+        exc = None
         try:
             task = task_class(
                 self.project_config,
@@ -118,13 +118,13 @@ class TaskRunner(object):
                 flow=self,
             )
             task()
-        except Exception as e:
+        except Exception as exc:
             self.logger.exception("Exception in task {}".format(step.task_name))
             if self.raise_err:
-                raise e
+                raise exc
         finally:
             return StepResult(
-                step.step_num, step.task_name, task.result, task.return_values
+                step.step_num, step.task_name, task.result, task.return_values, exc
             )
 
 
@@ -148,8 +148,10 @@ class FlowCoordinator(object):
         self.logger = self._init_logger()
         self.steps = self._init_steps()  # type: List[StepSpec]
 
-    def _rule(self, fill="=", length=30):
+    def _rule(self, fill="=", length=30, new_line=False):
         self.logger.info("{:{fill}<{length}}".format("", fill=fill, length=length))
+        if new_line:
+            self.logger.info("")
 
     def run(self, org_config):
         self.org_config = org_config
@@ -158,14 +160,13 @@ class FlowCoordinator(object):
             line = "{} ({})".format(line, self.name)
         self._rule()
         self.logger.info(line)
-        self._rule()
-        self.logger.info("")
+        self._rule(new_line=True)
         self._init_org()
 
         for step in self.steps:
             self._rule(fill="-")
             self.logger.into("Running task: {}".format(step.task_name))
-            self._rule(fill="-")
+            self._rule(fill="-", new_line=True)
 
             # TODO: Pass raise_err as !allow_failure
             runner = TaskRunner(self.project_config, org_config=org_config)
@@ -182,6 +183,7 @@ class FlowCoordinator(object):
 
         :return: logging.Logger
         """
+        # TODO: Get logger from PC or Runtime?
         return logging.getLogger(__name__)
 
     def _init_steps(self,):
@@ -338,13 +340,15 @@ class FlowCoordinator(object):
     def _init_org(self):
         """ Test and refresh credentials to the org specified. """
         self.logger.info(
-            "Verifying and refreshing credentials for target org {}.".format(
+            "Verifying and refreshing credentials for the specified org: {}.".format(
                 self.org_config.name
             )
         )
         orig_config = self.org_config.config.copy()
-        # attempt to refresh the token
+
+        # attempt to refresh the token, this can throw...
         self.org_config.refresh_oauth_token(self.project_config.keychain)
+
         if self.org_config.config != orig_config:
             self.logger.info("Org info has changed, updating org in keychain")
             self.project_config.keychain.set_org(self.org_config)
