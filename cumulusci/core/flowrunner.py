@@ -12,6 +12,9 @@ BaseFlow suited us well.
 
 FlowRunner is a v2 API for flows in CCI. There are two objects of interest:
 - FlowCoordinator: takes a flow_config & runtime options to create a set of `StepSpec`s
+ - Meant to replace the public API of BaseFlow, including override hooks.
+ - Precomputes a flat list of steps, instead of running Flow recursively.
+ -
 - TaskRunner: encapsulates the actual task running, result providing logic.
 
 Upon initialization, FlowRunner:
@@ -54,7 +57,6 @@ except ImportError:
 
 import copy
 import logging
-import traceback
 from collections import namedtuple
 from distutils.version import LooseVersion
 
@@ -64,6 +66,8 @@ from cumulusci.core.utils import import_class
 
 class StepSpec(object):
     """ simple namespace to describe what the flowrunner should do each step """
+
+    __slots__ = ('step_num', 'task_name', 'task_options', 'allow_failure', 'from_flow', 'skip')
 
     def __init__(
         self,
@@ -126,7 +130,7 @@ class TaskRunner(object):
             )
             task()
         except Exception as exc:
-            self.logger.exception("Exception in task {}".format(step.task_name))
+            task.logger.exception("Exception in task {}".format(step.task_name))
         finally:
             return StepResult(
                 step.step_num, step.task_name, task.result, task.return_values, exc
@@ -168,18 +172,27 @@ class FlowCoordinator(object):
         self._rule(new_line=True)
         self._init_org()
 
-        for step in self.steps:
-            self._rule(fill="-")
-            self.logger.into("Running task: {}".format(step.task_name))
-            self._rule(fill="-", new_line=True)
+        self._pre_flow()
 
-            runner = TaskRunner(self.project_config, org_config=org_config)
-            result = runner.run_step(step)
+        try:
+            for step in self.steps:
+                self._rule(fill="-")
+                self.logger.into("Running task: {}".format(step.task_name))
+                self._rule(fill="-", new_line=True)
 
-            if result.exception and not step.allow_failure:
-                raise result.exception  # PY3: raise an exception type we control *from* this exception instead?
+                self._pre_task(step)
+                runner = TaskRunner(self.project_config, org_config=org_config)
+                result = runner.run_step(step)
+                self._post_task(step, result)
 
-            self.results.append(result)
+                if result.exception and not step.allow_failure:
+                    raise result.exception  # PY3: raise an exception type we control *from* this exception instead?
+
+                self.results.append(result)
+        finally:
+            self._post_flow()
+
+
 
     def _init_logger(self):
         """
@@ -356,3 +369,15 @@ class FlowCoordinator(object):
         if self.org_config.config != orig_config:
             self.logger.info("Org info has changed, updating org in keychain")
             self.project_config.keychain.set_org(self.org_config)
+
+    def _pre_flow(self):
+        pass
+
+    def _post_flow(self):
+        pass
+
+    def _pre_task(self, spec):
+        pass
+
+    def _post_task(self, spec, result):
+        pass
