@@ -69,7 +69,14 @@ from cumulusci.core.utils import import_class
 class StepSpec(object):
     """ simple namespace to describe what the flowrunner should do each step """
 
-    __slots__ = ('step_num', 'task_name', 'task_options', 'allow_failure', 'from_flow', 'skip')
+    __slots__ = (
+        "step_num",
+        "task_name",
+        "task_options",
+        "allow_failure",
+        "from_flow",
+        "skip",
+    )
 
     def __init__(
         self,
@@ -100,7 +107,10 @@ class StepSpec(object):
         skip = ""
         if self.skip:
             skip = " [SKIP]"
-        return "{step_num:8}: {task_name}{skip}".format(step_num=self.step_num, task_name=self.task_name, skip=skip)
+        return "{step_num:8}: {task_name}{skip}".format(
+            step_num=self.step_num, task_name=self.task_name, skip=skip
+        )
+
 
 StepResult = namedtuple(
     "StepResult", ["step_num", "task_name", "result", "return_values", "exception"]
@@ -141,7 +151,7 @@ class TaskRunner(object):
                 name=step.task_name,
                 stepnum=step.step_num,
                 flow=self,  # not actually passing the flow, but that doesn't matter, this is more a run_in_flow.
-                            # TODO: fix that!
+                # TODO: fix that!
             )
             task()
         except Exception as exc:
@@ -157,7 +167,7 @@ class FlowCoordinator(object):
     def __init__(self, project_config, flow_config, name=None, options=None, skip=None):
         self.project_config = project_config
         self.flow_config = flow_config
-        self.name=None
+        self.name = name
         self.org_config = None
 
         # TODO: Support CLI/Runtime Options
@@ -202,9 +212,9 @@ class FlowCoordinator(object):
         try:
             for step in self.steps:
                 if step.skip:
-                    self._rule(fill='*')
+                    self._rule(fill="*")
                     self.logger.info("Skipping task: {}".format(step.task_name))
-                    self._rule(fill='*', new_line=True)
+                    self._rule(fill="*", new_line=True)
                     continue
 
                 self._rule(fill="-")
@@ -216,7 +226,9 @@ class FlowCoordinator(object):
                 result = runner.run_step(step)
                 self._post_task(step, result)
 
-                self.results.append(result)  # add even a failed result to the result set for the post flow
+                self.results.append(
+                    result
+                )  # add even a failed result to the result set for the post flow
 
                 if result.exception and not step.allow_failure:
                     raise result.exception  # PY3: raise an exception type we control *from* this exception instead?
