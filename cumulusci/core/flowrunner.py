@@ -60,6 +60,8 @@ import logging
 from collections import namedtuple
 from distutils.version import LooseVersion
 
+
+from cumulusci.core.config import TaskConfig
 from cumulusci.core.exceptions import FlowConfigError, FlowInfiniteLoopError
 from cumulusci.core.utils import import_class
 
@@ -93,6 +95,12 @@ class StepSpec(object):
             num=self.step_num, name=self.task_name, cfg=self.task_options, skip=skipstr
         )
 
+    @property
+    def for_display(self):
+        skip = ""
+        if self.skip:
+            skip = " [SKIP]"
+        return "{step_num:8}: {task_name}{skip}".format(step_num=self.step_num, task_name=self.task_name, skip=skip)
 
 StepResult = namedtuple(
     "StepResult", ["step_num", "task_name", "result", "return_values", "exception"]
@@ -112,24 +120,32 @@ class TaskRunner(object):
         :param step: StepSpec
         :return: StepResult
         """
-        # get task implementation class for task_name in step
-        task_config = copy.deepcopy(self.project_config.get_task(step.task_name))
-        task_class = import_class(task_config.class_path)
+        # get the base task_config from the project config, as a dict for easier manipulation.
+        task_config = copy.deepcopy(self.project_config.get_task(step.task_name).config)
+        if "options" not in task_config:
+            task_config["options"] = {}
 
-        # TODO: Actually override options based on step_config
+        # update the copied task_config with override options from the flow definition
+        task_config["options"].update(step.task_options)
+
+        # get task implementation class
+        task_class = import_class(task_config["class_path"])
+
         # TODO: Resolve ^^task_name.return_value style option syntax
         exc = None
         try:
             task = task_class(
                 self.project_config,
-                task_config,
+                TaskConfig(task_config),  # BaseTask wants a full on TaskConfig
                 org_config=self.org_config,
                 name=step.task_name,
                 stepnum=step.step_num,
-                flow=self,
+                flow=self,  # not actually passing the flow, but that doesn't matter, this is more a run_in_flow.
+                            # TODO: fix that!
             )
             task()
         except Exception as exc:
+            # David, I don't know if this makes any sense.
             task.logger.exception("Exception in task {}".format(step.task_name))
         finally:
             return StepResult(
@@ -138,9 +154,10 @@ class TaskRunner(object):
 
 
 class FlowCoordinator(object):
-    def __init__(self, project_config, flow_config, options=None, skip=None):
+    def __init__(self, project_config, flow_config, name=None, options=None, skip=None):
         self.project_config = project_config
         self.flow_config = flow_config
+        self.name=None
         self.org_config = None
 
         # TODO: Support CLI/Runtime Options
@@ -157,7 +174,7 @@ class FlowCoordinator(object):
         self.logger = self._init_logger()
         self.steps = self._init_steps()  # type: List[StepSpec]
 
-    def _rule(self, fill="=", length=30, new_line=False):
+    def _rule(self, fill="=", length=60, new_line=False):
         self.logger.info("{:{fill}<{length}}".format("", fill=fill, length=length))
         if new_line:
             self.logger.info("")
@@ -174,8 +191,22 @@ class FlowCoordinator(object):
 
         self._pre_flow()
 
+        self._rule(fill="-")
+        for step in self.steps:
+            self.logger.info(step.for_display)
+        self._rule(fill="-", new_line=True)
+
+        self.logger.info("Starting execution")
+        self._rule(new_line=True)
+
         try:
             for step in self.steps:
+                if step.skip:
+                    self._rule(fill='*')
+                    self.logger.info("Skipping task: {}".format(step.task_name))
+                    self._rule(fill='*', new_line=True)
+                    continue
+
                 self._rule(fill="-")
                 self.logger.into("Running task: {}".format(step.task_name))
                 self._rule(fill="-", new_line=True)
@@ -185,14 +216,12 @@ class FlowCoordinator(object):
                 result = runner.run_step(step)
                 self._post_task(step, result)
 
+                self.results.append(result)  # add even a failed result to the result set for the post flow
+
                 if result.exception and not step.allow_failure:
                     raise result.exception  # PY3: raise an exception type we control *from* this exception instead?
-
-                self.results.append(result)
         finally:
             self._post_flow()
-
-
 
     def _init_logger(self):
         """
@@ -283,11 +312,15 @@ class FlowCoordinator(object):
         if "task" in step_config:
             name = step_config["task"]
 
+            # try getting the task, so that we raise an exception for missing tasks here in
+            # preparation rather than at runtime. even though we'll make this same call over
+            # in the TaskRunner.
+            self.project_config.get_task(name)
+
             step_options = copy.deepcopy(parent_options.get(name, {}))
             step_options.update(step_config.get("options", {}))
 
             if name in self.runtime_options:
-                # TODO: Support CLI/Runtime Options
                 pass
 
             visited_steps.append(
