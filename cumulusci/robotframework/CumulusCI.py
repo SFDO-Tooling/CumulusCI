@@ -1,9 +1,4 @@
-from future import standard_library
-
-standard_library.install_aliases()
-from urllib.parse import urlparse
 import logging
-import socket
 
 from robot.api import logger
 from robot.libraries.BuiltIn import BuiltIn
@@ -117,13 +112,7 @@ class CumulusCI(object):
             org = self.org
         else:
             org = self.keychain.get_org(org)
-        url = org.start_url
-
-        # Wait until the domain can be resolved
-        # (socket.getaddrinfo has no timeout)
-        socket.getaddrinfo(urlparse(url).hostname, None)
-
-        return url
+        return org.start_url
 
     def get_namespace_prefix(self, package=None):
         """ Returns the namespace prefix (including __) for the specified package name.

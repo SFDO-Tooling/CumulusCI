@@ -7,6 +7,7 @@ from simple_salesforce import SalesforceResourceNotFound
 from cumulusci.robotframework.locators import lex_locators
 from cumulusci.robotframework.utils import selenium_retry
 from SeleniumLibrary.errors import ElementNotFound
+from urllib3.exceptions import ProtocolError
 
 OID_REGEX = r"^[a-zA-Z0-9]{15,18}$"
 
@@ -30,6 +31,21 @@ class Salesforce(object):
     @property
     def cumulusci(self):
         return self.builtin.get_library_instance("cumulusci.robotframework.CumulusCI")
+
+    def create_webdriver_with_retry(self, *args, **kwargs):
+        """Call the Create Webdriver keyword.
+
+        Retry on connection resets which can happen if custom domain propagation is slow.
+        """
+        # Get selenium without referencing selenium.driver which doesn't exist yet
+        selenium = self.builtin.get_library_instance("SeleniumLibrary")
+        for _ in range(12):
+            try:
+                return selenium.create_webdriver(*args, **kwargs)
+            except ProtocolError:
+                # Give browser some more time to start up
+                time.sleep(5)
+        raise Exception("Could not connect to remote webdriver after 1 minute")
 
     def click_modal_button(self, title):
         """Clicks a button in a Lightning modal."""
