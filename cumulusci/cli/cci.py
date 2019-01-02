@@ -603,7 +603,9 @@ class ConnectServiceCommand(click.MultiCommand):
                 )
             )
         except AttributeError:
-            raise click.UsageError("Sorry, I don't know about the '{0}' service.".format(name))
+            raise click.UsageError(
+                "Sorry, I don't know about the '{0}' service.".format(name)
+            )
 
         params = [self._build_param(attr, cnfg) for attr, cnfg in attributes]
         params.append(click.Option(("--project",), is_flag=True))
