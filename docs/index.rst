@@ -18,10 +18,10 @@ Contents:
    cookbook
    cumulusci_flow
    api_reference
-   history
-   authors
    tasks
    usage
+   history
+   authors
 
 Indices and tables
 ==================
