@@ -6,8 +6,7 @@ import sys
 from github3 import login
 
 from cumulusci import __version__ as version
-from cumulusci.core.config import BaseGlobalConfig
-from cumulusci.core.utils import import_class
+from cumulusci.cli.config import CliRuntime
 
 FORMULA_FILE = sys.argv[1]
 TARGET_FILE = "cumulusci.rb"
@@ -17,13 +16,10 @@ BRANCH_NAME = "cci-" + version
 
 
 def get_github_user():
-    proj = BaseGlobalConfig().get_project_config()
-    keychain_key = os.environ.get("CUMULUSCI_KEY")
-    keychain_class = os.environ.get(
-        "CUMULUSCI_KEYCHAIN_CLASS", proj.cumulusci__keychain
+    keychain_class = CliRuntime().get_keychain_class()
+    keychain = keychain_class(
+        CliRuntime().project_config, CliRuntime().get_keychain_key()
     )
-    keychain_class = import_class(keychain_class)
-    keychain = keychain_class(proj, keychain_key)
     github_config = keychain.get_service("github")
     return github_config.username, github_config.password
 
