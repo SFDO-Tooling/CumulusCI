@@ -329,6 +329,15 @@ test     Test Service  *""",
 
         run_click_command(cmd, project=False)
 
+    def test_service_connect_invalid_org(self):
+        multi_cmd = cci.ConnectServiceCommand()
+        ctx = mock.Mock()
+        config = mock.Mock()
+        config.project_config.services__test__attributes = {"foo": {}}
+
+        with self.assertRaises(click.UsageError):
+            multi_cmd.get_command(ctx, config)
+
     @mock.patch("click.echo")
     def test_service_info(self, echo):
         service_config = mock.Mock()

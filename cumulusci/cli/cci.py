@@ -602,24 +602,24 @@ class ConnectServiceCommand(click.MultiCommand):
                     ).items()
                 )
             )
-            params = [self._build_param(attr, cnfg) for attr, cnfg in attributes]
-            params.append(click.Option(("--project",), is_flag=True))
-
-            def callback(project=False, *args, **kwargs):
-                serv_conf = dict(
-                    (k, v) for k, v in list(kwargs.items()) if v != None
-                )  # remove None values
-                config.keychain.set_service(name, ServiceConfig(serv_conf), project)
-                if project:
-                    click.echo("{0} is now configured for this project".format(name))
-                else:
-                    click.echo("{0} is now configured for global use".format(name))
-
-            ret = click.Command(name, params=params, callback=callback)
-            return ret
-
         except AttributeError:
-            click.echo(name + " doesn't exist")
+            raise click.UsageError("Sorry, I don't know about the '{0}' service.".format(name))
+
+        params = [self._build_param(attr, cnfg) for attr, cnfg in attributes]
+        params.append(click.Option(("--project",), is_flag=True))
+
+        def callback(project=False, *args, **kwargs):
+            serv_conf = dict(
+                (k, v) for k, v in list(kwargs.items()) if v != None
+            )  # remove None values
+            config.keychain.set_service(name, ServiceConfig(serv_conf), project)
+            if project:
+                click.echo("{0} is now configured for this project".format(name))
+            else:
+                click.echo("{0} is now configured for global use".format(name))
+
+        ret = click.Command(name, params=params, callback=callback)
+        return ret
 
 
 @click.command(
