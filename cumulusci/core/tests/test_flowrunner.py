@@ -58,7 +58,7 @@ class AbstractFlowCoordinatorTest(unittest.TestCase):
 
         self._flow_log_handler.reset()
         self.flow_log = self._flow_log_handler.messages
-        self._setup_project_config
+        self._setup_project_config()
 
     def _setup_project_config(self):
         pass
