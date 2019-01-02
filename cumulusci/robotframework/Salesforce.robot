@@ -49,7 +49,7 @@ Open Test Browser
 Open Test Browser Chrome
     [Arguments]     ${login_url}
     ${options} =                Get Chrome Options
-    Create Webdriver With Retry  Chrome  options=${options}
+    Create Webdriver            Chrome  options=${options}
     Set Selenium Implicit Wait  ${IMPLICIT_WAIT}
     Set Selenium Timeout        ${TIMEOUT}
     Go To                       ${login_url}
