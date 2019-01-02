@@ -80,6 +80,10 @@ globalValueSetTranslations:
     - type: GlobalValueSetTranslation
       class: MetadataFilenameParser
       extension: globalValueSetTranslation
+groups:
+    - type: Group
+      class: MetadataFilenameParser
+      extension: group
 homePageComponents:
     - type: HomePageComponent
       class: MetadataFilenameParser
@@ -216,6 +220,16 @@ settings:
 scontrols:
     - type: Scontrol
       class: MetadataFilenameParser
+sharingRules:
+    - type: SharingCriteriaRule
+      class: MetadataXmlElementParser
+      extension: sharingRules
+      options:
+            item_xpath: './sf:sharingCriteriaRules'
+sharingSets:
+    - type: SharingSet
+      class: MetadataFilenameParser
+      extension: sharingSet  
 siteDotComSites:
     - type: SiteDotCom 
       class: MetadataFilenameParser
