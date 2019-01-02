@@ -2,17 +2,12 @@ import unittest
 import logging
 import mock
 
+import cumulusci
 from cumulusci.core.flowrunner import FlowCoordinator
 from cumulusci.core.tasks import BaseTask
-from cumulusci.core.config import FlowConfig
 from cumulusci.core.config import OrgConfig
-from cumulusci.core.exceptions import FlowConfigError
-from cumulusci.core.exceptions import FlowInfiniteLoopError
-from cumulusci.core.exceptions import FlowNotReadyError
-from cumulusci.core.exceptions import TaskNotFoundError
 from cumulusci.core.tests.utils import MockLoggingHandler
 from cumulusci.tests.util import create_project_config
-import cumulusci.core
 
 ORG_ID = "00D000000000001"
 
@@ -46,19 +41,49 @@ class _SfdcTask(BaseTask):
         return -1
 
 
-class TestFlowCoordinator(unittest.TestCase):
-    """ Tests the expectations of a BaseFlow caller """
-
+class AbstractFlowCoordinatorTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        super(TestFlowCoordinator, cls).setUpClass()
-        logger = logging.getLogger(cumulusci.core.__name__)
+        super(AbstractFlowCoordinatorTest, cls).setUpClass()
+        logger = logging.getLogger(cumulusci.__name__)
         logger.setLevel(logging.DEBUG)
         cls._flow_log_handler = MockLoggingHandler(logging.DEBUG)
         logger.addHandler(cls._flow_log_handler)
 
     def setUp(self):
         self.project_config = create_project_config("TestOwner", "TestRepo")
+        self.org_config = OrgConfig(
+            {"username": "sample@example", "org_id": ORG_ID}, "test"
+        )
+
+        self._flow_log_handler.reset()
+        self.flow_log = self._flow_log_handler.messages
+        self._setup_project_config
+
+    def _setup_project_config(self):
+        pass
+
+
+class FullParseTestFlowCoordinator(AbstractFlowCoordinatorTest):
+    def test_each_flow(self):
+        for flow_name in [
+            flow_info["name"] for flow_info in self.project_config.list_flows()
+        ]:
+            try:
+                flow_config = self.project_config.get_flow(flow_name)
+                flow = FlowCoordinator(self.project_config, flow_config, name=flow_name)
+            except Exception as exc:
+                self.fail("Error creating flow {}: {}".format(flow_name, str(exc)))
+            self.assertIsNotNone(
+                flow.steps, "Flow {} parsed to no steps".format(flow_name)
+            )
+            print("Parsed flow {} as {} steps".format(flow_name, len(flow.steps)))
+
+
+class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest):
+    """ Tests the expectations of a BaseFlow caller """
+
+    def _setup_project_config(self):
         self.project_config.config["tasks"] = {
             "pass_name": {
                 "description": "Pass the name",
@@ -91,12 +116,6 @@ class TestFlowCoordinator(unittest.TestCase):
                 "steps": {1: {"task": "pass_name"}, 2: {"flow": "nested_flow"}},
             },
         }
-        self.org_config = OrgConfig(
-            {"username": "sample@example", "org_id": ORG_ID}, "test"
-        )
-
-        self._flow_log_handler.reset()
-        self.flow_log = self._flow_log_handler.messages
 
     def test_init(self):
         flow_config = self.project_config.get_flow("nested_flow_2")
