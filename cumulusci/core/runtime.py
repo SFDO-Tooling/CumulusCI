@@ -3,7 +3,7 @@ import sys
 from cumulusci.core.config import BaseGlobalConfig
 from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.keychain import BaseProjectKeychain
-from cumulusci.core.flowrunner import FlowState, FlowCoordinator
+from cumulusci.core.flowrunner import FlowCallback, FlowCoordinator
 
 
 # pylint: disable=assignment-from-none
@@ -11,7 +11,7 @@ class BaseCumulusCI(object):
     global_config_class = BaseGlobalConfig
     project_config_class = BaseProjectConfig
     keychain_class = BaseProjectKeychain
-    callback_class = FlowState
+    callback_class = FlowCallback
 
     def __init__(self, *args, **kwargs):
         load_project_config = kwargs.pop(
