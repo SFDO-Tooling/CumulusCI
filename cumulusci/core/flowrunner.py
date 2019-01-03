@@ -39,9 +39,9 @@ TaskRunner:
 - Returns results or exception into an immutable StepResult
 
 Option values/overrides can be passed in at a number of levels, in increasing order of priority:
-- Task default (i.e. `.tasks.TASKNAME.options`)
-- Flow definition task options (i.e. `.flows.FLOWNAME.steps.STEPNUM.options`)
-- Flow definition subflow options (i.e. `.flows.FLOWNAME.steps.STEPNUM.options.TASKNAME`)
+- Task default (i.e. `.tasks__TASKNAME__options`)
+- Flow definition task options (i.e. `.flows__FLOWNAME__steps__STEPNUM__options`)
+- Flow definition subflow options (i.e. `.flows__FLOWNAME__steps__STEPNUM__options__TASKNAME`)
     see `dev_org_namespaced` for an example
 - Flow runtime (i.e. on the commandline)
 
@@ -72,7 +72,8 @@ class StepSpec(object):
     __slots__ = (
         "step_num",
         "task_name",
-        "task_options",
+        "task_config",
+        "task_class",
         "allow_failure",
         "from_flow",
         "skip",
@@ -82,14 +83,16 @@ class StepSpec(object):
         self,
         step_num,
         task_name,
-        task_options,
+        task_config,
+        task_class,
         allow_failure=False,
         from_flow=None,
         skip=None,
     ):
         self.step_num = step_num
         self.task_name = task_name
-        self.task_options = task_options
+        self.task_config = task_config
+        self.task_class = task_class
         self.allow_failure = allow_failure
         self.from_flow = from_flow
         self.skip = skip
@@ -117,11 +120,34 @@ StepResult = namedtuple(
 )
 
 
+class FlowState(object):
+    """ FlowState - carries context to something else, like a CI job, that needs flow hooks run on it. """
+    # state is probably not a great name, but who has time to read design patterns...jk...will rename later tho.
+    def __init__(self, ctx=None):
+        self.context = ctx
+
+    def pre_flow(self):
+        pass
+
+    def post_flow(self):
+        pass
+
+    def pre_task(self, step):
+        pass
+
+    def post_task(self, step, result):
+        pass
+
+
 class TaskRunner(object):
-    def __init__(self, project_config, org_config, runtime=None):
+    def __init__(self, project_config, step, org_config, runtime=None):
         self.project_config = project_config
         self.runtime = runtime
+        self.step = step
         self.org_config = org_config
+
+    def _options(self,):
+        pass
 
     def run_step(self, step):
         """
@@ -130,23 +156,13 @@ class TaskRunner(object):
         :param step: StepSpec
         :return: StepResult
         """
-        # get the base task_config from the project config, as a dict for easier manipulation.
-        task_config = copy.deepcopy(self.project_config.get_task(step.task_name).config)
-        if "options" not in task_config:
-            task_config["options"] = {}
-
-        # update the copied task_config with override options from the flow definition
-        task_config["options"].update(step.task_options)
-
-        # get task implementation class
-        task_class = import_class(task_config["class_path"])
 
         # TODO: Resolve ^^task_name.return_value style option syntax
         exc = None
         try:
-            task = task_class(
+            task = step.task_class(
                 self.project_config,
-                TaskConfig(task_config),  # BaseTask wants a full on TaskConfig
+                TaskConfig(step.task_config),  # BaseTask wants a full on TaskConfig
                 org_config=self.org_config,
                 name=step.task_name,
                 stepnum=step.step_num,
@@ -164,11 +180,15 @@ class TaskRunner(object):
 
 
 class FlowCoordinator(object):
-    def __init__(self, project_config, flow_config, name=None, options=None, skip=None):
+    def __init__(self, project_config, flow_config, name=None, options=None, skip=None, state=None):
         self.project_config = project_config
         self.flow_config = flow_config
         self.name = name
         self.org_config = None
+
+        if not state:
+            state = FlowState()
+        self.state = state
 
         # TODO: Support CLI/Runtime Options
         if not options:
@@ -315,6 +335,7 @@ class FlowCoordinator(object):
                     number,
                     step_config.get("task", step_config.get("flow")),
                     step_config.get("options", {}),
+                    None,
                     from_flow=from_flow,
                     skip=True,  # someday we could use different vals for why skipped
                 )
@@ -324,13 +345,19 @@ class FlowCoordinator(object):
         if "task" in step_config:
             name = step_config["task"]
 
-            # try getting the task, so that we raise an exception for missing tasks here in
-            # preparation rather than at runtime. even though we'll make this same call over
-            # in the TaskRunner.
-            self.project_config.get_task(name)
+            # get the base task_config from the project config, as a dict for easier manipulation.
+            # will raise if the task doesn't exist / is invalid
+            task_config = copy.deepcopy(self.project_config.get_task(name).config)
+            if "options" not in task_config:
+                task_config["options"] = {}
 
-            step_options = copy.deepcopy(parent_options.get(name, {}))
-            step_options.update(step_config.get("options", {}))
+            # merge the options together, from task_config all the way down through parent_options
+            step_overrides = copy.deepcopy(parent_options.get(name, {}))
+            step_overrides.update(step_config.get("options", {}))
+            task_config["options"].update(step_overrides)
+
+            # get implementation class. raise/fail if it doesn't exist, because why continue
+            task_class = import_class(task_config["class_path"])
 
             if name in self.runtime_options:
                 pass
@@ -339,7 +366,8 @@ class FlowCoordinator(object):
                 StepSpec(
                     number,
                     name,
-                    step_options,
+                    task_config,
+                    task_class,
                     step_config.get("ignore_failure", False),
                     from_flow=from_flow,
                 )
@@ -416,13 +444,13 @@ class FlowCoordinator(object):
             self.project_config.keychain.set_org(self.org_config)
 
     def _pre_flow(self):
-        pass
+        self.state.pre_flow()
 
     def _post_flow(self):
-        pass
+        self.state.post_flow()
 
     def _pre_task(self, spec):
-        pass
+        self.state.pre_task(spec)
 
     def _post_task(self, spec, result):
-        pass
+        self.state.post_tsak(spec, result)
