@@ -226,12 +226,12 @@ sharingRules:
       extension: sharingRules
       options:
             item_xpath: './sf:sharingCriteriaRules'
-      - type: SharingOwnerRule
+    - type: SharingOwnerRule
       class: MetadataXmlElementParser
       extension: sharingRules
       options:
             item_xpath: './sf:sharingOwnerRules'
-      - type: SharingTerritoryRule
+    - type: SharingTerritoryRule
       class: MetadataXmlElementParser
       extension: sharingRules
       options:
