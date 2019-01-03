@@ -59,6 +59,7 @@ import copy
 import logging
 from collections import namedtuple
 from distutils.version import LooseVersion
+from operator import attrgetter
 
 
 from cumulusci.core.config import TaskConfig
@@ -281,7 +282,7 @@ class FlowCoordinator(object):
             specs = self._visit_step(number, step_config, [])
             steps.extend(specs)
 
-        return steps
+        return sorted(steps, key=attrgetter('step_num'))
 
     def _visit_step(
         self,
@@ -357,7 +358,11 @@ class FlowCoordinator(object):
             task_config["options"].update(step_overrides)
 
             # get implementation class. raise/fail if it doesn't exist, because why continue
-            task_class = import_class(task_config["class_path"])
+            try:
+                task_class = import_class(task_config["class_path"])
+            except (ImportError, AttributeError):
+                # TODO: clean this up and raise a taskimporterror or something else correcter.
+                raise FlowConfigError('Task named {} has bad classpath')
 
             if name in self.runtime_options:
                 pass
@@ -382,6 +387,7 @@ class FlowCoordinator(object):
                 # append the flow number to the child number, since its a LooseVersion.
                 # e.g. if we're in step 2.3 which references a flow with steps 1-5, it
                 #   simply ends up as five steps: 2.3.1, 2.3.2, 2.3.3, 2.3.4, 2.3.5
+                # TODO: how does this work with nested flowveride? what does defining step 2.3.2 later do?
                 num = "{}.{}".format(number, sub_number)
                 self._visit_step(
                     num,
