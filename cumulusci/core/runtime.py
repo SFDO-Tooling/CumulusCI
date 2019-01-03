@@ -11,7 +11,7 @@ class BaseCumulusCI(object):
     global_config_class = BaseGlobalConfig
     project_config_class = BaseProjectConfig
     keychain_class = BaseProjectKeychain
-    flow_state = FlowState
+    callback_class = FlowState
 
     def __init__(self, *args, **kwargs):
         load_project_config = kwargs.pop(
@@ -56,6 +56,14 @@ class BaseCumulusCI(object):
         return None
 
     @property
+    def callback_cls(self):
+        klass = self.get_callback_class()
+        return klass or self.callback_class
+
+    def get_callback_class(self):
+        return None
+
+    @property
     def keychain_key(self):
         return self.get_keychain_key()
 
@@ -81,7 +89,7 @@ class BaseCumulusCI(object):
     def get_flow(self, name, ctx=None):
         """ Get a primed and readytogo flow coordinator. """
         config = self.project_config.get_flow(name)
-        state = self.flow_state(ctx)
+        state = self.callback_cls(ctx)  # TODO: same cls getters we do for others
         coordinator = FlowCoordinator(
             self, config, name=name, options={}, skip=None, state=state
         )

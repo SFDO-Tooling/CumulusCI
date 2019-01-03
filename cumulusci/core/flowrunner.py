@@ -61,9 +61,13 @@ from collections import namedtuple
 from distutils.version import LooseVersion
 from operator import attrgetter
 
+from future.utils import raise_from
+
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.exceptions import FlowConfigError, FlowInfiniteLoopError
 from cumulusci.core.utils import import_class
+
+# TODO: define exception types: flowfailure, taskimporterror, etc?
 
 
 class StepSpec(object):
@@ -120,10 +124,9 @@ StepResult = namedtuple(
 )
 
 
-class FlowState(object):
-    """ FlowState - carries context to something else, like a CI job, that needs flow hooks run on it. """
+class FlowCallback(object):
+    """ FlowCallback - carries context to something else, like a CI job, that needs flow hooks run on it. """
 
-    # state is probably not a great name, but who has time to read design patterns...jk...will rename later tho.
     def __init__(self, ctx=None):
         self.context = ctx
 
@@ -141,16 +144,20 @@ class FlowState(object):
 
 
 class TaskRunner(object):
-    def __init__(self, project_config, step, org_config, runtime=None):
+    def __init__(self, project_config, step, org_config, runtime=None, flow=None):
         self.project_config = project_config
         self.runtime = runtime
         self.step = step
         self.org_config = org_config
+        self.flow = flow
 
-    def _options(self,):
-        pass
+    @classmethod
+    def from_flow(cls, flow, step):
+        return cls(
+            flow.project_config, step, flow.org_config, runtime=flow.runtime, flow=flow
+        )
 
-    def run_step(self, step):
+    def run_step(self):
         """
         Run a step.
 
@@ -161,28 +168,33 @@ class TaskRunner(object):
         # TODO: Resolve ^^task_name.return_value style option syntax
         exc = None
         try:
-            task = step.task_class(
+            task = self.step.task_class(
                 self.project_config,
-                TaskConfig(step.task_config),  # BaseTask wants a full on TaskConfig
+                TaskConfig(
+                    self.step.task_config
+                ),  # BaseTask wants a full on TaskConfig
                 org_config=self.org_config,
-                name=step.task_name,
-                stepnum=step.step_num,
-                flow=self,  # not actually passing the flow, but that doesn't matter, this is more a run_in_flow.
-                # TODO: fix that!
+                name=self.step.task_name,
+                stepnum=self.step.step_num,
+                flow=self.flow,
             )
             task()
         except Exception as exc:
             # David, I don't know if this makes any sense.
-            task.logger.exception("Exception in task {}".format(step.task_name))
+            task.logger.exception("Exception in task {}".format(self.step.task_name))
         finally:
             return StepResult(
-                step.step_num, step.task_name, task.result, task.return_values, exc
+                self.step.step_num,
+                self.step.task_name,
+                task.result,
+                task.return_values,
+                exc,
             )
 
 
 class FlowCoordinator(object):
     def __init__(
-        self, runtime, flow_config, name=None, options=None, skip=None, state=None
+        self, runtime, flow_config, name=None, options=None, skip=None, callbacks=None
     ):
         self.project_config = runtime.project_config
         self.runtime = runtime
@@ -190,9 +202,9 @@ class FlowCoordinator(object):
         self.name = name
         self.org_config = None
 
-        if not state:
-            state = FlowState()
-        self.state = state
+        if not callbacks:
+            callbacks = FlowCallback()
+        self.callbacks = callbacks
 
         # TODO: Support CLI/Runtime Options
         if not options:
@@ -223,7 +235,7 @@ class FlowCoordinator(object):
         self._rule(new_line=True)
         self._init_org()
 
-        self._pre_flow()
+        self.callbacks.pre_flow()
 
         self._rule(fill="-")
         for step in self.steps:
@@ -245,10 +257,9 @@ class FlowCoordinator(object):
                 self.logger.into("Running task: {}".format(step.task_name))
                 self._rule(fill="-", new_line=True)
 
-                self._pre_task(step)
-                runner = TaskRunner(self.project_config, org_config=org_config)
-                result = runner.run_step(step)
-                self._post_task(step, result)
+                self.callbacks.pre_task(step)
+                result = TaskRunner.from_flow(self, step).run_step()
+                self.callbacks.post_task(step, result)
 
                 self.results.append(
                     result
@@ -257,7 +268,7 @@ class FlowCoordinator(object):
                 if result.exception and not step.allow_failure:
                     raise result.exception  # PY3: raise an exception type we control *from* this exception instead?
         finally:
-            self._post_flow()
+            self.callbacks.post_flow()
 
     def _init_logger(self):
         """
@@ -451,15 +462,3 @@ class FlowCoordinator(object):
         if self.org_config.config != orig_config:
             self.logger.info("Org info has changed, updating org in keychain")
             self.project_config.keychain.set_org(self.org_config)
-
-    def _pre_flow(self):
-        self.state.pre_flow()
-
-    def _post_flow(self):
-        self.state.post_flow()
-
-    def _pre_task(self, spec):
-        self.state.pre_task(spec)
-
-    def _post_task(self, spec, result):
-        self.state.post_tsak(spec, result)
