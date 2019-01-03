@@ -3,6 +3,7 @@ import sys
 from cumulusci.core.config import BaseGlobalConfig
 from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.keychain import BaseProjectKeychain
+from cumulusci.core.flowrunner import FlowState, FlowCoordinator
 
 
 # pylint: disable=assignment-from-none
@@ -10,6 +11,7 @@ class BaseCumulusCI(object):
     global_config_class = BaseGlobalConfig
     project_config_class = BaseProjectConfig
     keychain_class = BaseProjectKeychain
+    flow_state = FlowState
 
     def __init__(self, *args, **kwargs):
         load_project_config = kwargs.pop(
@@ -75,3 +77,12 @@ class BaseCumulusCI(object):
     def _load_keychain(self):
         self.keychain = self.keychain_cls(self.project_config, self.keychain_key)
         self.project_config.set_keychain(self.keychain)  # never understood this but ok.
+
+    def get_flow(self, name, ctx=None):
+        """ Get a primed and readytogo flow coordinator. """
+        config = self.project_config.get_flow(name)
+        state = self.flow_state(ctx)
+        coordinator = FlowCoordinator(
+            self, config, name=name, options={}, skip=None, state=state
+        )
+        return coordinator

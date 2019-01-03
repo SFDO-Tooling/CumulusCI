@@ -61,7 +61,6 @@ from collections import namedtuple
 from distutils.version import LooseVersion
 from operator import attrgetter
 
-
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.exceptions import FlowConfigError, FlowInfiniteLoopError
 from cumulusci.core.utils import import_class
@@ -123,6 +122,7 @@ StepResult = namedtuple(
 
 class FlowState(object):
     """ FlowState - carries context to something else, like a CI job, that needs flow hooks run on it. """
+
     # state is probably not a great name, but who has time to read design patterns...jk...will rename later tho.
     def __init__(self, ctx=None):
         self.context = ctx
@@ -181,8 +181,11 @@ class TaskRunner(object):
 
 
 class FlowCoordinator(object):
-    def __init__(self, project_config, flow_config, name=None, options=None, skip=None, state=None):
-        self.project_config = project_config
+    def __init__(
+        self, runtime, flow_config, name=None, options=None, skip=None, state=None
+    ):
+        self.project_config = runtime.project_config
+        self.runtime = runtime
         self.flow_config = flow_config
         self.name = name
         self.org_config = None
@@ -267,7 +270,7 @@ class FlowCoordinator(object):
 
     def _init_steps(self,):
         """
-        Given the flow config and everything else, create a list of steps to run.
+        Given the flow config and everything else, create a list of steps to run, sorted by step number.
 
         :return: List[StepSpec]
         """
@@ -282,7 +285,7 @@ class FlowCoordinator(object):
             specs = self._visit_step(number, step_config, [])
             steps.extend(specs)
 
-        return sorted(steps, key=attrgetter('step_num'))
+        return sorted(steps, key=attrgetter("step_num"))
 
     def _visit_step(
         self,
@@ -362,7 +365,7 @@ class FlowCoordinator(object):
                 task_class = import_class(task_config["class_path"])
             except (ImportError, AttributeError):
                 # TODO: clean this up and raise a taskimporterror or something else correcter.
-                raise FlowConfigError('Task named {} has bad classpath')
+                raise FlowConfigError("Task named {} has bad classpath")
 
             if name in self.runtime_options:
                 pass
