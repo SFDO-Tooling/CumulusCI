@@ -40,8 +40,8 @@ class TestCreateRelease(unittest.TestCase, GithubApiTestMixin):
         )
         responses.add(
             method=responses.GET,
-            url=self.repo_api_url + "/releases?per_page=100",
-            json=[],
+            url=self.repo_api_url + "/releases/tags/release/1.0",
+            status=404,
         )
         responses.add(
             method=responses.GET,
@@ -82,8 +82,8 @@ class TestCreateRelease(unittest.TestCase, GithubApiTestMixin):
         )
         responses.add(
             method=responses.GET,
-            url=self.repo_api_url + "/releases?per_page=100",
-            json=[self._get_expected_release("release/1.0")],
+            url=self.repo_api_url + "/releases/tags/release/1.0",
+            json=self._get_expected_release("release/1.0"),
         )
 
         task = CreateRelease(
@@ -101,8 +101,8 @@ class TestCreateRelease(unittest.TestCase, GithubApiTestMixin):
         )
         responses.add(
             method=responses.GET,
-            url=self.repo_api_url + "/releases?per_page=100",
-            json=[],
+            url=self.repo_api_url + "/releases/tags/release/1.0",
+            status=404,
         )
 
         task = CreateRelease(
