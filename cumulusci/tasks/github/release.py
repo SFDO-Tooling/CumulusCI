@@ -24,15 +24,19 @@ class CreateRelease(BaseGithubTask):
         repo = self.get_repo()
 
         version = self.options["version"]
-        self.tag_name = self.project_config.get_tag_for_version(version)
+        tag_name = self.project_config.get_tag_for_version(version)
 
-        for release in repo.releases():
-            if release.tag_name == self.tag_name:
-                message = "Release {} already exists at {}".format(
-                    release.name, release.html_url
-                )
-                self.logger.error(message)
-                raise GithubException(message)
+        # Make sure release doesn't already exist
+        try:
+            release = repo.release_from_tag(tag_name)
+        except github3.exceptions.NotFoundError:
+            pass
+        else:
+            message = "Release {} already exists at {}".format(
+                release.name, release.html_url
+            )
+            self.logger.error(message)
+            raise GithubException(message)
 
         commit = self.options.get("commit", self.project_config.repo_commit)
         if not commit:
@@ -41,11 +45,11 @@ class CreateRelease(BaseGithubTask):
             raise GithubException(message)
 
         try:
-            ref = repo.ref("tags/{}".format(self.tag_name))
+            repo.ref("tags/{}".format(tag_name))
         except github3.exceptions.NotFoundError:
             # Create the annotated tag
-            tag = repo.create_tag(
-                tag=self.tag_name,
+            repo.create_tag(
+                tag=tag_name,
                 message="Release of version {}".format(version),
                 sha=commit,
                 obj_type="commit",
@@ -64,9 +68,9 @@ class CreateRelease(BaseGithubTask):
 
         # Create the Github Release
         release = repo.create_release(
-            tag_name=self.tag_name, name=version, prerelease=prerelease
+            tag_name=tag_name, name=version, prerelease=prerelease
         )
-        self.return_values = {"tag_name": self.tag_name, "name": version}
+        self.return_values = {"tag_name": tag_name, "name": version}
         self.logger.info(
             "Created release {} at {}".format(release.name, release.html_url)
         )
