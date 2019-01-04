@@ -393,17 +393,20 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         """ Query Github Releases to find the latest production or beta release """
         gh = self.get_github_api()
         repo = gh.repository(self.repo_owner, self.repo_name)
-        latest_version = None
-        for release in repo.releases():
-            if beta != release.tag_name.startswith(self.project__git__prefix_beta):
-                continue
+        if not beta:
+            release = repo.latest_release()
             version = self.get_version_for_tag(release.tag_name)
-            if version is None:
-                continue
-            version = LooseVersion(version)
-            if not latest_version or version > latest_version:
-                latest_version = version
-        return latest_version
+            if version is not None:
+                return LooseVersion(version)
+        else:
+            for release in repo.releases():
+                if not release.tag_name.startswith(self.project__git__prefix_beta):
+                    continue
+                version = self.get_version_for_tag(release.tag_name)
+                if version is None:
+                    continue
+                version = LooseVersion(version)
+                return version
 
     @property
     def config_project_path(self):

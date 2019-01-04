@@ -119,6 +119,11 @@ class DummyRepository(object):
     def releases(self):
         return iter(self._releases)
 
+    def latest_release(self):
+        for release in self._releases:
+            if release.tag_name.startswith('release/'):
+                return release
+
 
 class DummyRelease(object):
     def __init__(self, tag_name, name=None):
@@ -175,9 +180,9 @@ CUMULUSCI_REPO = DummyRepository(
     "CumulusCI",
     {},
     [
-        DummyRelease("beta/1.0-Beta_1"),
-        DummyRelease("beta/bogus"),
         DummyRelease("release/1.0"),
+        DummyRelease("beta/bogus"),
+        DummyRelease("beta/1.0-Beta_1"),
     ],
 )
 
@@ -362,6 +367,19 @@ class TestBaseProjectConfig(unittest.TestCase):
         )
 
     def test_get_latest_version(self):
+        config = BaseProjectConfig(
+            BaseGlobalConfig(),
+            {
+                "project": {
+                    "git": {"prefix_beta": "beta/", "prefix_release": "release/"}
+                }
+            },
+        )
+        config.get_github_api = DummyGithub
+        result = config.get_latest_version()
+        self.assertEqual("1.0", result)
+
+    def test_get_latest_version_beta(self):
         config = BaseProjectConfig(
             BaseGlobalConfig(),
             {
