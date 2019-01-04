@@ -121,7 +121,7 @@ class DummyRepository(object):
 
     def latest_release(self):
         for release in self._releases:
-            if release.tag_name.startswith('release/'):
+            if release.tag_name.startswith("release/"):
                 return release
 
 
