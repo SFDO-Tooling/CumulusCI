@@ -50,7 +50,7 @@ def create_pull_request(repo):
     )
     print(f"Updated {TARGET_FILE} to {new_commit['commit'].sha[:8]}")
     pull_request = repo.create_pull(msg, "master", BRANCH_NAME)
-    print(f"Created pull request at {pull_request.url}")
+    print(f"Created pull request at {pull_request.html_url}")
 
 
 def main():
