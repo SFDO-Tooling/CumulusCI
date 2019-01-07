@@ -12,7 +12,7 @@ humanfriendly==4.17
 idna==2.8
 jinja2==2.10
 jwcrypto==0.6.0
-lxml==4.2.5
+lxml==4.3.0
 MarkupSafe==1.1.0
 plaintable==0.1.1
 pycparser==2.19
