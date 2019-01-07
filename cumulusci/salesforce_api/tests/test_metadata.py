@@ -504,7 +504,9 @@ class BaseTestMetadataApi(unittest.TestCase):
         api = self._create_instance(task)
         response = Response()
         response.status_code = 200
-        response.raw = io.BytesIO(b'<?xml version="1.0" encoding="UTF-8"?><foo>status</foo>')
+        response.raw = io.BytesIO(
+            b'<?xml version="1.0" encoding="UTF-8"?><foo>status</foo>'
+        )
         res = api._process_response_status(response)
         self.assertEqual(api.status, "Failed")
         self.assertEqual(res.content, response.content)
@@ -514,7 +516,9 @@ class BaseTestMetadataApi(unittest.TestCase):
         api = self._create_instance(task)
         response = Response()
         response.status_code = 200
-        response.raw = io.BytesIO(b'<?xml version="1.0" encoding="UTF-8"?><done>true</done>')
+        response.raw = io.BytesIO(
+            b'<?xml version="1.0" encoding="UTF-8"?><done>true</done>'
+        )
         res = api._process_response_status(response)
         self.assertEqual(api.status, "Done")
         self.assertEqual(res.content, response.content)
@@ -524,7 +528,9 @@ class BaseTestMetadataApi(unittest.TestCase):
         api = self._create_instance(task)
         response = Response()
         response.status_code = 200
-        response.raw = io.BytesIO(b'<?xml version="1.0" encoding="UTF-8"?><done>false</done>')
+        response.raw = io.BytesIO(
+            b'<?xml version="1.0" encoding="UTF-8"?><done>false</done>'
+        )
         res = api._process_response_status(response)
         self.assertEqual(api.status, "Pending")
         self.assertEqual(res.content, response.content)
@@ -534,7 +540,9 @@ class BaseTestMetadataApi(unittest.TestCase):
         api = self._create_instance(task)
         response = Response()
         response.status_code = 200
-        response.raw = io.BytesIO(b'<?xml version="1.0" encoding="UTF-8"?><done>false</done>')
+        response.raw = io.BytesIO(
+            b'<?xml version="1.0" encoding="UTF-8"?><done>false</done>'
+        )
         api.status = "InProgress"
         res = api._process_response_status(response)
         self.assertEqual(api.status, "InProgress")
@@ -545,7 +553,9 @@ class BaseTestMetadataApi(unittest.TestCase):
         api = self._create_instance(task)
         response = Response()
         response.status_code = 200
-        response.raw = io.BytesIO(b'<?xml version="1.0" encoding="UTF-8"?><test><done>false</done><stateDetail>Deploy log goes here</stateDetail></test>')
+        response.raw = io.BytesIO(
+            b'<?xml version="1.0" encoding="UTF-8"?><test><done>false</done><stateDetail>Deploy log goes here</stateDetail></test>'
+        )
         api.status = "InProgress"
         res = api._process_response_status(response)
         self.assertEqual(api.status, "InProgress")
@@ -627,8 +637,9 @@ class TestApiDeploy(BaseTestMetadataApi):
         api = self._create_instance(task)
         response = Response()
         response.status_code = 200
-        response.raw = io.BytesIO(deploy_result_failure.format(
-            details="""<componentFailures>
+        response.raw = io.BytesIO(
+            deploy_result_failure.format(
+                details="""<componentFailures>
   <problem>problem</problem>
   <problemType>Error</problemType>
   <componentType>CustomObject</componentType>
@@ -638,7 +649,8 @@ class TestApiDeploy(BaseTestMetadataApi):
   <created>false</created>
   <deleted>false</deleted>
 </componentFailures>"""
-        ).encode())
+            ).encode()
+        )
         with self.assertRaises(MetadataComponentFailure) as cm:
             api._process_response(response)
         expected = "Update of CustomObject Test__c: Error on line 1, col 1: problem"
@@ -649,8 +661,9 @@ class TestApiDeploy(BaseTestMetadataApi):
         api = self._create_instance(task)
         response = Response()
         response.status_code = 200
-        response.raw = io.BytesIO(deploy_result_failure.format(
-            details="""<componentFailures>
+        response.raw = io.BytesIO(
+            deploy_result_failure.format(
+                details="""<componentFailures>
   <problem>problem</problem>
   <problemType>Error</problemType>
   <componentType>CustomObject</componentType>
@@ -658,7 +671,8 @@ class TestApiDeploy(BaseTestMetadataApi):
   <created>false</created>
   <deleted>false</deleted>
 </componentFailures>"""
-        ).encode())
+            ).encode()
+        )
         with self.assertRaises(MetadataComponentFailure) as cm:
             api._process_response(response)
         expected = "Update of CustomObject Test__c: Error: problem"
@@ -669,15 +683,17 @@ class TestApiDeploy(BaseTestMetadataApi):
         api = self._create_instance(task)
         response = Response()
         response.status_code = 200
-        response.raw = io.BytesIO(deploy_result_failure.format(
-            details="""<componentFailures>
+        response.raw = io.BytesIO(
+            deploy_result_failure.format(
+                details="""<componentFailures>
   <problem>problem</problem>
   <problemType>Error</problemType>
   <componentType>CustomObject</componentType>
   <created>false</created>
   <deleted>false</deleted>
 </componentFailures>"""
-        ).encode())
+            ).encode()
+        )
         with self.assertRaises(MetadataComponentFailure) as cm:
             api._process_response(response)
         expected = "Update of CustomObject: Error: problem"
@@ -688,9 +704,11 @@ class TestApiDeploy(BaseTestMetadataApi):
         api = self._create_instance(task)
         response = Response()
         response.status_code = 200
-        response.raw = io.BytesIO(deploy_result_failure.format(
-            details="""<problem>problem</problem>"""
-        ).encode())
+        response.raw = io.BytesIO(
+            deploy_result_failure.format(
+                details="""<problem>problem</problem>"""
+            ).encode()
+        )
         with self.assertRaises(MetadataApiError) as cm:
             api._process_response(response)
         expected = "problem"
@@ -701,15 +719,17 @@ class TestApiDeploy(BaseTestMetadataApi):
         api = self._create_instance(task)
         response = Response()
         response.status_code = 200
-        response.raw = io.BytesIO(deploy_result_failure.format(
-            details="""<runTestResult>
+        response.raw = io.BytesIO(
+            deploy_result_failure.format(
+                details="""<runTestResult>
   <failures>
     <namespace>test</namespace>
     <stackTrace>stack</stackTrace>
   </failures>
 </runTestResult>
 """
-        ).encode())
+            ).encode()
+        )
         with self.assertRaises(ApexTestException) as cm:
             api._process_response(response)
         expected = "Apex Test Failure: from namespace test: stack"
@@ -871,7 +891,9 @@ class TestApiRetrieveInstalledPackages(BaseTestMetadataApi):
         api = self._create_instance(task)
         response = Response()
         response.status_code = 200
-        response.raw = io.BytesIO(deploy_result.format(status="testing", extra="").encode())
+        response.raw = io.BytesIO(
+            deploy_result.format(status="testing", extra="").encode()
+        )
         resp = api._process_response(response)
         self.assertEqual(resp, {})
 
@@ -880,9 +902,11 @@ class TestApiRetrieveInstalledPackages(BaseTestMetadataApi):
         api = self._create_instance(task)
         response = Response()
         response.status_code = 200
-        response.raw = io.BytesIO(retrieve_result.format(
-            zip=CreatePackageZipBuilder("testing", api.api_version)(), extra=""
-        ).encode())
+        response.raw = io.BytesIO(
+            retrieve_result.format(
+                zip=CreatePackageZipBuilder("testing", api.api_version)(), extra=""
+            ).encode()
+        )
         resp = api._process_response(response)
         self.assertEqual(resp, {})
 
@@ -891,9 +915,11 @@ class TestApiRetrieveInstalledPackages(BaseTestMetadataApi):
         api = self._create_instance(task)
         response = Response()
         response.status_code = 200
-        response.raw = io.BytesIO(retrieve_result.format(
-            zip=InstallPackageZipBuilder("foo", "1.1")(), extra=""
-        ).encode())
+        response.raw = io.BytesIO(
+            retrieve_result.format(
+                zip=InstallPackageZipBuilder("foo", "1.1")(), extra=""
+            ).encode()
+        )
         resp = api._process_response(response)
         self.assertEqual(resp, {"foo": "1.1"})
 
