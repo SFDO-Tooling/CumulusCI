@@ -49,10 +49,9 @@ from cumulusci.salesforce_api.tests.metadata_test_strings import status_envelope
 
 
 class DummyResponse(object):
-
     @property
     def text(self):
-        return self.content.decode('utf-8')
+        return self.content.decode("utf-8")
 
 
 class DummyPackageZipBuilder(BasePackageZipBuilder):
