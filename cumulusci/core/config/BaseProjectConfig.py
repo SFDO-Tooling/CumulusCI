@@ -518,10 +518,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                         continue
                     value = "\n{}".format(" " * (indent + 4))
 
-                if key == "repo":
-                    pretty.append("{}{}: {}".format(prefix, key, value.full_name))
-                else:
-                    pretty.append("{}{}: {}".format(prefix, key, value))
+                pretty.append("{}{}: {}".format(prefix, key, value))
                 if extra:
                     pretty.extend(extra)
                 prefix = "{}    ".format(" " * indent)
@@ -582,7 +579,8 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
                 unpackaged_pre.append(
                     {
-                        "repo": repo,
+                        "repo_owner": repo_owner,
+                        "repo_name": repo_name,
                         "ref": tag,
                         "subfolder": subfolder,
                         "unmanaged": dependency.get("unmanaged"),
@@ -600,7 +598,8 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                 subfolder = "src"
 
                 unmanaged_src = {
-                    "repo": repo,
+                    "repo_owner": repo_owner,
+                    "repo_name": repo_name,
                     "ref": tag,
                     "subfolder": subfolder,
                     "unmanaged": dependency.get("unmanaged"),
@@ -624,7 +623,8 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                     continue
 
                 dependency = {
-                    "repo": repo,
+                    "repo_owner": repo_owner,
+                    "repo_name": repo_name,
                     "ref": tag,
                     "subfolder": subfolder,
                     "unmanaged": dependency.get("unmanaged"),

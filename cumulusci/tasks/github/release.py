@@ -1,3 +1,4 @@
+import json
 import time
 from datetime import datetime
 
@@ -15,8 +16,14 @@ class CreateRelease(BaseGithubTask):
             "required": True,
         },
         "message": {"description": "The message to attach to the created git tag"},
+        "dependencies": {
+            "description": "List of dependencies to record in the tag message."
+        },
         "commit": {
-            "description": "Override the commit used to create the release.  Defaults to the current local HEAD commit"
+            "description": (
+                "Override the commit used to create the release. "
+                "Defaults to the current local HEAD commit"
+            )
         },
     }
 
@@ -44,13 +51,22 @@ class CreateRelease(BaseGithubTask):
             self.logger.error(message)
             raise GithubException(message)
 
+        # Build tag message
+        message = self.options.get("message", "Release of version {}".format(version))
+        dependencies = self.project_config.get_static_dependencies(
+            self.options.get("dependencies")
+            or self.project_config.project__dependencies
+        )
+        if dependencies:
+            message += "\n\ndependencies: {}".format(json.dumps(dependencies, indent=4))
+
         try:
             repo.ref("tags/{}".format(tag_name))
         except github3.exceptions.NotFoundError:
             # Create the annotated tag
             repo.create_tag(
                 tag=tag_name,
-                message="Release of version {}".format(version),
+                message=message,
                 sha=commit,
                 obj_type="commit",
                 tagger={
@@ -70,7 +86,11 @@ class CreateRelease(BaseGithubTask):
         release = repo.create_release(
             tag_name=tag_name, name=version, prerelease=prerelease
         )
-        self.return_values = {"tag_name": tag_name, "name": version}
+        self.return_values = {
+            "tag_name": tag_name,
+            "name": version,
+            "dependencies": dependencies,
+        }
         self.logger.info(
             "Created release {} at {}".format(release.name, release.html_url)
         )
