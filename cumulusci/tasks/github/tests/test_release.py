@@ -68,10 +68,25 @@ class TestCreateRelease(unittest.TestCase, GithubApiTestMixin):
         )
 
         task = CreateRelease(
-            self.project_config, TaskConfig({"options": {"version": "1.0"}})
+            self.project_config,
+            TaskConfig(
+                {
+                    "options": {
+                        "version": "1.0",
+                        "dependencies": [{"namespace": "foo", "version": "1.0"}],
+                    }
+                }
+            ),
         )
         task()
-        self.assertEqual({"tag_name": "release/1.0", "name": "1.0"}, task.return_values)
+        self.assertEqual(
+            {
+                "tag_name": "release/1.0",
+                "name": "1.0",
+                "dependencies": [{"namespace": "foo", "version": "1.0"}],
+            },
+            task.return_values,
+        )
 
     @responses.activate
     def test_run_task__release_already_exists(self):
