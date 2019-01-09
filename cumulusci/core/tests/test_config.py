@@ -437,19 +437,18 @@ class TestBaseProjectConfig(unittest.TestCase):
         self.assertIsNone(config.get_static_dependencies())
 
     def test_pretty_dependencies(self):
-        repo = mock.Mock(full_name="TestRepo")
         dep = {
             "namespace": "npsp",
             "version": "3",
             "boolean": False,
-            "dependencies": [{"repo": repo, "dependencies": []}],
+            "dependencies": [{"repo_name": "TestRepo", "dependencies": []}],
         }
         config = BaseProjectConfig(BaseGlobalConfig())
         result = "\n".join(config.pretty_dependencies([dep]))
         self.assertEqual(
             """  - dependencies: 
     
-      - repo: TestRepo
+      - repo_name: TestRepo
     namespace: npsp
     version: 3""",
             result,
@@ -472,7 +471,8 @@ class TestBaseProjectConfig(unittest.TestCase):
             result,
             [
                 {
-                    u"repo": CUMULUSCI_TEST_REPO,
+                    u"repo_owner": "SFDO-Tooling",
+                    u"repo_name": "CumulusCI-Test",
                     u"ref": None,
                     u"subfolder": u"unpackaged/pre/pre",
                     u"unmanaged": True,
@@ -482,7 +482,8 @@ class TestBaseProjectConfig(unittest.TestCase):
                 },
                 {u"version": "2", u"namespace": "ccitestdep"},
                 {
-                    u"repo": CUMULUSCI_TEST_REPO,
+                    u"repo_owner": "SFDO-Tooling",
+                    u"repo_name": "CumulusCI-Test",
                     u"ref": None,
                     u"subfolder": u"src",
                     u"unmanaged": True,
@@ -491,7 +492,8 @@ class TestBaseProjectConfig(unittest.TestCase):
                     u"namespace_tokenize": None,
                 },
                 {
-                    u"repo": CUMULUSCI_TEST_REPO,
+                    u"repo_owner": "SFDO-Tooling",
+                    u"repo_name": "CumulusCI-Test",
                     u"ref": None,
                     u"subfolder": u"unpackaged/post/post",
                     u"unmanaged": True,
@@ -546,7 +548,8 @@ class TestBaseProjectConfig(unittest.TestCase):
             result,
             [
                 {
-                    u"repo": CUMULUSCI_TEST_REPO,
+                    u"repo_owner": "SFDO-Tooling",
+                    u"repo_name": "CumulusCI-Test",
                     u"ref": None,
                     u"subfolder": u"unpackaged/pre/pre",
                     u"unmanaged": True,
@@ -556,7 +559,8 @@ class TestBaseProjectConfig(unittest.TestCase):
                 },
                 {u"version": "1.1 (Beta 1)", u"namespace": "ccitestdep"},
                 {
-                    u"repo": CUMULUSCI_TEST_REPO,
+                    u"repo_owner": "SFDO-Tooling",
+                    u"repo_name": "CumulusCI-Test",
                     u"ref": None,
                     u"subfolder": u"src",
                     u"unmanaged": True,
@@ -565,7 +569,8 @@ class TestBaseProjectConfig(unittest.TestCase):
                     u"namespace_tokenize": None,
                 },
                 {
-                    u"repo": CUMULUSCI_TEST_REPO,
+                    u"repo_owner": "SFDO-Tooling",
+                    u"repo_name": "CumulusCI-Test",
                     u"ref": None,
                     u"subfolder": u"unpackaged/post/post",
                     u"unmanaged": True,

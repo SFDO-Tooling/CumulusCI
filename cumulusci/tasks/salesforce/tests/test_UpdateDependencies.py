@@ -18,7 +18,7 @@ class TestUpdateDependencies(unittest.TestCase):
     )
     def test_run_task(self, ApiRetrieveInstalledPackages):
         project_config = create_project_config()
-        repo = mock.Mock()
+        project_config.get_github_api = mock.Mock()
         project_config.config["project"]["dependencies"] = [
             {
                 "zip_url": "http://zipurl",
@@ -31,7 +31,12 @@ class TestUpdateDependencies(unittest.TestCase):
                     {"namespace": "samedep", "version": "1.0"},
                     {"namespace": "downgradeddep", "version": "1.0"},
                     {"namespace": "newdep", "version": "1.0"},
-                    {"repo": repo, "subfolder": "subfolder", "ref": "ref"},
+                    {
+                        "repo_owner": "TestOwner",
+                        "repo_name": "TestRepo",
+                        "subfolder": "subfolder",
+                        "ref": "ref",
+                    },
                 ],
             },
             {
@@ -71,14 +76,24 @@ class TestUpdateDependencies(unittest.TestCase):
                 {"version": "1.1", "namespace": "upgradeddep"},
                 {"version": "1.0", "namespace": "downgradeddep"},
                 {"version": "1.0", "namespace": "newdep"},
-                {"repo": repo, "subfolder": "subfolder", "ref": "ref"},
+                {
+                    "repo_owner": "TestOwner",
+                    "repo_name": "TestRepo",
+                    "subfolder": "subfolder",
+                    "ref": "ref",
+                },
                 {
                     "dependencies": [
                         {"version": "1.1", "namespace": "upgradeddep"},
                         {"version": "1.0", "namespace": "samedep"},
                         {"version": "1.0", "namespace": "downgradeddep"},
                         {"version": "1.0", "namespace": "newdep"},
-                        {"repo": repo, "subfolder": "subfolder", "ref": "ref"},
+                        {
+                            "repo_owner": "TestOwner",
+                            "repo_name": "TestRepo",
+                            "subfolder": "subfolder",
+                            "ref": "ref",
+                        },
                     ],
                     "zip_url": "http://zipurl",
                     "subfolder": "src",
