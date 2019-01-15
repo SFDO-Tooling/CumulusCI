@@ -74,13 +74,13 @@ class StepSpec(object):
     """ simple namespace to describe what the flowrunner should do each step """
 
     __slots__ = (
-        "step_num",
-        "task_name",
-        "task_config",
-        "task_class",
-        "allow_failure",
-        "from_flow",
-        "skip",
+        "step_num",  # type: str
+        "task_name",  # type: str
+        "task_config",  # type: dict
+        "task_class",  # type: str
+        "allow_failure",  # type: bool
+        "from_flow",  # type: object
+        "skip",  # type: bool
     )
 
     def __init__(
@@ -111,6 +111,7 @@ class StepSpec(object):
 
     @property
     def for_display(self):
+        """ Step details formatted for logging output. """
         skip = ""
         if self.skip:
             skip = " [SKIP]"
@@ -144,6 +145,10 @@ class FlowCallback(object):
 
 
 class TaskRunner(object):
+    """ TaskRunner encapsulates the job of instantiating and running a task.
+
+    TODO: Abstract out how "step" gets passed in, so that TaskRunner can run a task on the cli, only one step.
+    """
     def __init__(self, project_config, step, org_config, runtime=None, flow=None):
         self.project_config = project_config
         self.runtime = runtime
@@ -161,7 +166,6 @@ class TaskRunner(object):
         """
         Run a step.
 
-        :param step: StepSpec
         :return: StepResult
         """
 

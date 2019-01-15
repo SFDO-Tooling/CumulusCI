@@ -898,7 +898,8 @@ test_flow  Test Flow""",
             org="test",
             delete_org=True,
             debug=False,
-            o=[("test_task__color", "blue")],
+            o=None,
+            #o=[("test_task__color", "blue")],
             skip=(),
             no_prompt=True,
         )
@@ -929,7 +930,7 @@ test_flow  Test Flow""",
         config = mock.Mock()
         config.get_org.return_value = ("test", org_config)
         config.project_config.get_flow.return_value = FlowConfig(
-            {"steps": {1: {"task": "test_task"}}}
+            {"steps": {1: {"task": "test_task", "options": {"blue":"water"}}}}
         )
         config.project_config.get_task.return_value = TaskConfig(
             {
@@ -947,7 +948,7 @@ test_flow  Test Flow""",
                 org="test",
                 delete_org=False,
                 debug=False,
-                o=[("test_task__color", "blue")],
+                o=None,
                 skip=(),
                 no_prompt=True,
             )

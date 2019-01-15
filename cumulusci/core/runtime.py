@@ -89,7 +89,7 @@ class BaseCumulusCI(object):
     def get_flow(self, name, ctx=None):
         """ Get a primed and readytogo flow coordinator. """
         config = self.project_config.get_flow(name)
-        state = self.callback_cls(ctx)  # TODO: same cls getters we do for others
+        state = self.callback_cls(ctx)
         coordinator = FlowCoordinator(
             self, config, name=name, options={}, skip=None, state=state
         )
