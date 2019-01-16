@@ -887,7 +887,8 @@ test_flow  Test Flow""",
                         "description": "Test Task",
                     }
                 },
-            }, load_keychain=False
+            },
+            load_keychain=False,
         )
         config.get_org = mock.Mock(return_value=("test", org_config))
         DummyTask._run_task = mock.Mock()
@@ -936,7 +937,8 @@ test_flow  Test Flow""",
                         "description": "Test Task",
                     }
                 },
-            }, load_keychain=False
+            },
+            load_keychain=False,
         )
         config.get_org = mock.Mock(return_value=("test", org_config))
         DummyTask._run_task = mock.Mock(side_effect=TaskOptionsError)
@@ -965,7 +967,8 @@ test_flow  Test Flow""",
                         "description": "Test Task",
                     }
                 },
-            }, load_keychain=False
+            },
+            load_keychain=False,
         )
         config.get_org = mock.Mock(return_value=("test", org_config))
         DummyTask._run_task = mock.Mock(side_effect=ScratchOrgException)
@@ -995,7 +998,8 @@ test_flow  Test Flow""",
                         "description": "Test Task",
                     }
                 },
-            }, load_keychain=False
+            },
+            load_keychain=False,
         )
         config.get_org = mock.Mock(return_value=("test", org_config))
         DummyTask._run_task = mock.Mock(side_effect=Exception)
@@ -1028,7 +1032,8 @@ test_flow  Test Flow""",
                         "description": "Test Task",
                     }
                 },
-            }, load_keychain=False
+            },
+            load_keychain=False,
         )
         config.get_org = mock.Mock(return_value=("test", org_config))
         DummyTask._run_task = mock.Mock()

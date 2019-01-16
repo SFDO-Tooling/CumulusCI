@@ -1133,7 +1133,6 @@ def flow_run(config, flow_name, org, delete_org, debug, o, skip, no_prompt):
 
     coordinator = config.get_flow(flow_name)
 
-
     # Parse command line options and add to task config
     options = {}
     if o:
