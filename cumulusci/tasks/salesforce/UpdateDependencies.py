@@ -72,7 +72,7 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
             self.options["dependencies"], include_beta=self.options["include_beta"]
         )
 
-        self.installed = self._get_installed()
+        self.installed = None
         self.uninstall_queue = []
         self.install_queue = []
 
@@ -108,6 +108,9 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
 
     def _process_namespace_dependency(self, dependency, dependency_uninstalled=None):
         dependency_version = str(dependency["version"])
+
+        if self.installed is None:
+            self.installed = self._get_installed()
 
         if dependency["namespace"] in self.installed:
             # Some version is installed, check what to do
@@ -182,6 +185,10 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
         for dependency in self.install_queue:
             self._install_dependency(dependency)
 
+    # hooks for tests
+    _download_extract_github = download_extract_github
+    _download_extract_zip = download_extract_zip
+
     def _install_dependency(self, dependency):
         if "zip_url" or "repo_name" in dependency:
             package_zip = None
@@ -191,7 +198,7 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
                         dependency["subfolder"], dependency["zip_url"]
                     )
                 )
-                package_zip = download_extract_zip(
+                package_zip = self._download_extract_zip(
                     dependency["zip_url"], subfolder=dependency.get("subfolder")
                 )
             elif "repo_name" in dependency:
@@ -202,7 +209,7 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
                         dependency["repo_name"],
                     )
                 )
-                package_zip = download_extract_github(
+                package_zip = self._download_extract_github(
                     self.project_config.get_github_api(),
                     dependency["repo_owner"],
                     dependency["repo_name"],
