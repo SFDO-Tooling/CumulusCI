@@ -40,8 +40,8 @@ class TestCreateRelease(unittest.TestCase, GithubApiTestMixin):
         )
         responses.add(
             method=responses.GET,
-            url=self.repo_api_url + "/releases?per_page=100",
-            json=[],
+            url=self.repo_api_url + "/releases/tags/release/1.0",
+            status=404,
         )
         responses.add(
             method=responses.GET,
@@ -68,10 +68,25 @@ class TestCreateRelease(unittest.TestCase, GithubApiTestMixin):
         )
 
         task = CreateRelease(
-            self.project_config, TaskConfig({"options": {"version": "1.0"}})
+            self.project_config,
+            TaskConfig(
+                {
+                    "options": {
+                        "version": "1.0",
+                        "dependencies": [{"namespace": "foo", "version": "1.0"}],
+                    }
+                }
+            ),
         )
         task()
-        self.assertEqual({"tag_name": "release/1.0", "name": "1.0"}, task.return_values)
+        self.assertEqual(
+            {
+                "tag_name": "release/1.0",
+                "name": "1.0",
+                "dependencies": [{"namespace": "foo", "version": "1.0"}],
+            },
+            task.return_values,
+        )
 
     @responses.activate
     def test_run_task__release_already_exists(self):
@@ -82,8 +97,8 @@ class TestCreateRelease(unittest.TestCase, GithubApiTestMixin):
         )
         responses.add(
             method=responses.GET,
-            url=self.repo_api_url + "/releases?per_page=100",
-            json=[self._get_expected_release("release/1.0")],
+            url=self.repo_api_url + "/releases/tags/release/1.0",
+            json=self._get_expected_release("release/1.0"),
         )
 
         task = CreateRelease(
@@ -101,8 +116,8 @@ class TestCreateRelease(unittest.TestCase, GithubApiTestMixin):
         )
         responses.add(
             method=responses.GET,
-            url=self.repo_api_url + "/releases?per_page=100",
-            json=[],
+            url=self.repo_api_url + "/releases/tags/release/1.0",
+            status=404,
         )
 
         task = CreateRelease(

@@ -183,7 +183,7 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
             self._install_dependency(dependency)
 
     def _install_dependency(self, dependency):
-        if "zip_url" or "repo" in dependency:
+        if "zip_url" or "repo_name" in dependency:
             package_zip = None
             if "zip_url" in dependency:
                 self.logger.info(
@@ -194,14 +194,18 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
                 package_zip = download_extract_zip(
                     dependency["zip_url"], subfolder=dependency.get("subfolder")
                 )
-            elif "repo" in dependency:
+            elif "repo_name" in dependency:
                 self.logger.info(
-                    "Deploying unmanaged metadata from /{} of {}".format(
-                        dependency["subfolder"], dependency["repo"].full_name
+                    "Deploying unmanaged metadata from /{} of {}/{}".format(
+                        dependency["subfolder"],
+                        dependency["repo_owner"],
+                        dependency["repo_name"],
                     )
                 )
                 package_zip = download_extract_github(
-                    dependency["repo"],
+                    self.project_config.get_github_api(),
+                    dependency["repo_owner"],
+                    dependency["repo_name"],
                     dependency["subfolder"],
                     ref=dependency.get("ref"),
                 )

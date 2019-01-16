@@ -9,7 +9,7 @@ from cumulusci.robotframework.utils import selenium_retry
 from SeleniumLibrary.errors import ElementNotFound
 from urllib3.exceptions import ProtocolError
 
-OID_REGEX = r"^[a-zA-Z0-9]{15,18}$"
+OID_REGEX = r"^(%2F)?([a-zA-Z0-9]{15,18})$"
 
 
 @selenium_retry
@@ -39,10 +39,13 @@ class Salesforce(object):
         """
         # Get selenium without referencing selenium.driver which doesn't exist yet
         selenium = self.builtin.get_library_instance("SeleniumLibrary")
-        try:
-            return selenium.create_webdriver(*args, **kwargs)
-        except ProtocolError:
-            return selenium.create_webdriver(*args, **kwargs)
+        for _ in range(12):
+            try:
+                return selenium.create_webdriver(*args, **kwargs)
+            except ProtocolError:
+                # Give browser some more time to start up
+                time.sleep(5)
+        raise Exception("Could not connect to remote webdriver after 1 minute")
 
     def click_modal_button(self, title):
         """Clicks a button in a Lightning modal."""
@@ -150,8 +153,9 @@ class Salesforce(object):
         """
         url = self.selenium.get_location()
         for part in url.split("/"):
-            if re.match(OID_REGEX, part):
-                return part
+            oid_match = re.match(OID_REGEX, part)
+            if oid_match is not None:
+                return oid_match.group(2)
         raise AssertionError("Could not parse record id from url: {}".format(url))
 
     def get_locator(self, path, *args, **kwargs):

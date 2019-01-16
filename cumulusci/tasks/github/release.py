@@ -1,3 +1,4 @@
+import json
 import time
 from datetime import datetime
 
@@ -15,8 +16,14 @@ class CreateRelease(BaseGithubTask):
             "required": True,
         },
         "message": {"description": "The message to attach to the created git tag"},
+        "dependencies": {
+            "description": "List of dependencies to record in the tag message."
+        },
         "commit": {
-            "description": "Override the commit used to create the release.  Defaults to the current local HEAD commit"
+            "description": (
+                "Override the commit used to create the release. "
+                "Defaults to the current local HEAD commit"
+            )
         },
     }
 
@@ -24,15 +31,19 @@ class CreateRelease(BaseGithubTask):
         repo = self.get_repo()
 
         version = self.options["version"]
-        self.tag_name = self.project_config.get_tag_for_version(version)
+        tag_name = self.project_config.get_tag_for_version(version)
 
-        for release in repo.releases():
-            if release.tag_name == self.tag_name:
-                message = "Release {} already exists at {}".format(
-                    release.name, release.html_url
-                )
-                self.logger.error(message)
-                raise GithubException(message)
+        # Make sure release doesn't already exist
+        try:
+            release = repo.release_from_tag(tag_name)
+        except github3.exceptions.NotFoundError:
+            pass
+        else:
+            message = "Release {} already exists at {}".format(
+                release.name, release.html_url
+            )
+            self.logger.error(message)
+            raise GithubException(message)
 
         commit = self.options.get("commit", self.project_config.repo_commit)
         if not commit:
@@ -40,13 +51,22 @@ class CreateRelease(BaseGithubTask):
             self.logger.error(message)
             raise GithubException(message)
 
+        # Build tag message
+        message = self.options.get("message", "Release of version {}".format(version))
+        dependencies = self.project_config.get_static_dependencies(
+            self.options.get("dependencies")
+            or self.project_config.project__dependencies
+        )
+        if dependencies:
+            message += "\n\ndependencies: {}".format(json.dumps(dependencies, indent=4))
+
         try:
-            ref = repo.ref("tags/{}".format(self.tag_name))
+            repo.ref("tags/{}".format(tag_name))
         except github3.exceptions.NotFoundError:
             # Create the annotated tag
-            tag = repo.create_tag(
-                tag=self.tag_name,
-                message="Release of version {}".format(version),
+            repo.create_tag(
+                tag=tag_name,
+                message=message,
                 sha=commit,
                 obj_type="commit",
                 tagger={
@@ -64,9 +84,13 @@ class CreateRelease(BaseGithubTask):
 
         # Create the Github Release
         release = repo.create_release(
-            tag_name=self.tag_name, name=version, prerelease=prerelease
+            tag_name=tag_name, name=version, prerelease=prerelease
         )
-        self.return_values = {"tag_name": self.tag_name, "name": version}
+        self.return_values = {
+            "tag_name": tag_name,
+            "name": version,
+            "dependencies": dependencies,
+        }
         self.logger.info(
             "Created release {} at {}".format(release.name, release.html_url)
         )

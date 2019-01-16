@@ -7,6 +7,15 @@ This tutorial is for macOS. Linux and Windows are not yet officially supported b
 Part 1: Installing CumulusCI
 ============================
 
+On macOS and Linux, the easiest way to install CumulusCI is using `homebrew <https://docs.brew.sh/>`_  and `linuxbrew <https://linuxbrew.sh/>`_, respectively:
+
+.. code-block:: console
+
+    $ brew tap SFDO-Tooling/homebrew-sfdo
+    $ brew install cumulusci
+
+The rest of this tutorial describes installing CumulusCI via pip.
+
 Install Requirements
 --------------------
 

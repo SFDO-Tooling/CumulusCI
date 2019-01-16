@@ -177,7 +177,7 @@ class TestPublishingGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTest
         expected_release_body = "foo\r\n# Changes\r\n\r\nbaz"
         # mock GitHub API responses
         self.mock_util.mock_get_repo()
-        self.mock_util.mock_list_releases(tag=tag, body="foo\n# Changes\nbar")
+        self.mock_util.mock_get_release(tag=tag, body="foo\n# Changes\nbar")
         # create generator
         generator = self._create_generator(tag)
         # inject content into parser
@@ -196,7 +196,7 @@ class TestPublishingGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTest
         expected_release_body = "# Changes\r\n\r\nbaz\r\n\r\n# Foo\r\nfoo"
         # mock GitHub API responses
         self.mock_util.mock_get_repo()
-        self.mock_util.mock_list_releases(tag=tag, body="# Changes\nbar\n# Foo\nfoo")
+        self.mock_util.mock_get_release(tag=tag, body="# Changes\nbar\n# Foo\nfoo")
         # create generator
         generator = self._create_generator(tag)
         # inject content into parser
@@ -215,9 +215,7 @@ class TestPublishingGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTest
         expected_release_body = "foo\r\n# Changes\r\n\r\nbaz\r\n\r\n# Foo\r\nfoo"
         # mock GitHub API responses
         self.mock_util.mock_get_repo()
-        self.mock_util.mock_list_releases(
-            tag=tag, body="foo\n# Changes\nbar\n# Foo\nfoo"
-        )
+        self.mock_util.mock_get_release(tag=tag, body="foo\n# Changes\nbar\n# Foo\nfoo")
         # create generator
         generator = self._create_generator(tag)
         # inject content into parser
@@ -239,7 +237,7 @@ class TestPublishingGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTest
         )
         # mock GitHub API responses
         self.mock_util.mock_get_repo()
-        self.mock_util.mock_list_releases(
+        self.mock_util.mock_get_release(
             tag=tag, body="# Critical Changes\nbar\n# Foo\nfoo\n# Changes\nbiz"
         )
         # create generator
@@ -264,7 +262,7 @@ class TestPublishingGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTest
         )
         # mock GitHub API responses
         self.mock_util.mock_get_repo()
-        self.mock_util.mock_list_releases(
+        self.mock_util.mock_get_release(
             tag=tag,
             body=(
                 "goo\n# Critical Changes\nbar\n"
@@ -290,7 +288,7 @@ class TestPublishingGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTest
         expected_release_body = "foo\r\n# Changes\r\n\r\nbaz\r\n"
         # mock GitHub API responses
         self.mock_util.mock_get_repo()
-        self.mock_util.mock_list_releases(tag=tag, body="foo")
+        self.mock_util.mock_get_release(tag=tag, body="foo")
         # create generator
         generator = self._create_generator(tag)
         # inject content into parser
@@ -331,6 +329,10 @@ class TestPublishingGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTest
     def test_call__no_release(self):
         self.mock_util.mock_get_repo()
         generator = self._create_generator("prod/1.0")
-        generator._get_release = mock.Mock(return_value=None)
+        responses.add(
+            method=responses.GET,
+            url="{}/releases/tags/prod/1.0".format(self.mock_util.repo_url),
+            status=404,
+        )
         with self.assertRaises(CumulusCIException):
             result = generator()
