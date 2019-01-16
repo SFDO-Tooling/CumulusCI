@@ -91,6 +91,11 @@ class BaseCumulusCI(object):
         config = self.project_config.get_flow(name)
         callbacks = self.callback_cls(ctx)
         coordinator = FlowCoordinator(
-            self, config, name=name, options={}, skip=None, callbacks=callbacks
+            self.project_config,
+            config,
+            name=name,
+            options={},
+            skip=None,
+            callbacks=callbacks,
         )
         return coordinator

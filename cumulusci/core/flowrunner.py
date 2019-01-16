@@ -115,7 +115,7 @@ class StepSpec(object):
         skip = ""
         if self.skip:
             skip = " [SKIP]"
-        return "{step_num:8}: {task_name}{skip}".format(
+        return "{step_num}: {task_name}{skip}".format(
             step_num=self.step_num, task_name=self.task_name, skip=skip
         )
 
@@ -139,7 +139,6 @@ class FlowCallback(object):
             if callable(_factory):
                 self.context = _factory(*args, **kwargs)
 
-
     def pre_flow(self):
         pass
 
@@ -158,18 +157,16 @@ class TaskRunner(object):
 
     TODO: Abstract out how "step" gets passed in, so that TaskRunner can run a task on the cli, only one step.
     """
-    def __init__(self, project_config, step, org_config, runtime=None, flow=None):
+
+    def __init__(self, project_config, step, org_config, flow=None):
         self.project_config = project_config
-        self.runtime = runtime
         self.step = step
         self.org_config = org_config
         self.flow = flow
 
     @classmethod
     def from_flow(cls, flow, step):
-        return cls(
-            flow.project_config, step, flow.org_config, runtime=flow.runtime, flow=flow
-        )
+        return cls(flow.project_config, step, flow.org_config, flow=flow)
 
     def run_step(self):
         """
@@ -192,9 +189,9 @@ class TaskRunner(object):
                 flow=self.flow,
             )
             task()
-        except Exception as exc:
-            # David, I don't know if this makes any sense.
+        except Exception as e:
             task.logger.exception("Exception in task {}".format(self.step.task_name))
+            exc = e
         finally:
             return StepResult(
                 self.step.step_num,
@@ -207,10 +204,15 @@ class TaskRunner(object):
 
 class FlowCoordinator(object):
     def __init__(
-        self, runtime, flow_config, name=None, options=None, skip=None, callbacks=None
+        self,
+        project_config,
+        flow_config,
+        name=None,
+        options=None,
+        skip=None,
+        callbacks=None,
     ):
-        self.project_config = runtime.project_config
-        self.runtime = runtime
+        self.project_config = project_config
         self.flow_config = flow_config
         self.name = name
         self.org_config = None
@@ -267,7 +269,7 @@ class FlowCoordinator(object):
                     continue
 
                 self._rule(fill="-")
-                self.logger.into("Running task: {}".format(step.task_name))
+                self.logger.info("Running task: {}".format(step.task_name))
                 self._rule(fill="-", new_line=True)
 
                 self.callbacks.pre_task(step)

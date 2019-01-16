@@ -1,6 +1,5 @@
 import unittest
 import logging
-import mock
 
 import cumulusci
 from cumulusci.core.flowrunner import FlowCoordinator
