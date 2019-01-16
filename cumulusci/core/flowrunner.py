@@ -126,10 +126,19 @@ StepResult = namedtuple(
 
 
 class FlowCallback(object):
-    """ FlowCallback - carries context to something else, like a CI job, that needs flow hooks run on it. """
+    """ FlowCallback - carries context to something else, like a CI job, that needs flow hooks run on it.
 
-    def __init__(self, ctx=None):
+     In addition to defining hooks, it allows you to set a context object. Sorta inspired by the context object in
+     click, but way simpler. If it exists, it's there. There's also some light callable support for factory defaults.
+
+     This is how you can carry a reference to the Django model a flow run is related to in MetaCI or MetaDeploy."""
+
+    def __init__(self, ctx=None, _factory=None, *args, **kwargs):
         self.context = ctx
+        if ctx is None:
+            if callable(_factory):
+                self.context = _factory(*args, **kwargs)
+
 
     def pre_flow(self):
         pass
