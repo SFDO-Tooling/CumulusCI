@@ -58,19 +58,9 @@ class TestUpdateDependencies(unittest.TestCase):
         }
         task.api_class = mock.Mock()
         zf = zipfile.ZipFile(io.BytesIO(), "w")
-        try:
-            UD_globals = UpdateDependencies._install_dependency.__globals__
-        except AttributeError:  # Python 2
-            UD_globals = UpdateDependencies._install_dependency.__func__.__globals__
-        download_extract_zip = UD_globals["download_extract_zip"]
-        download_extract_github = UD_globals["download_extract_github"]
-        UD_globals["download_extract_zip"] = mock.Mock(return_value=zf)
-        UD_globals["download_extract_github"] = mock.Mock(return_value=zf)
-        try:
-            task()
-        finally:
-            UD_globals["download_extract_zip"] = download_extract_zip
-            UD_globals["download_extract_github"] = download_extract_github
+        task._download_extract_github = mock.Mock(return_value=zf)
+        task._download_extract_zip = mock.Mock(return_value=zf)
+        task()
         self.assertEqual(
             [
                 {"version": "1.1", "namespace": "upgradeddep"},
@@ -144,3 +134,37 @@ class TestUpdateDependencies(unittest.TestCase):
 
         with self.assertRaises(TaskOptionsError):
             task()
+
+    def test_run_task__metadata_bundle(self):
+        project_config = create_project_config()
+        project_config.get_github_api = mock.Mock()
+        task = create_task(
+            UpdateDependencies,
+            {
+                "dependencies": [
+                    {
+                        "repo_owner": "SFDO-Tooling",
+                        "repo_name": "CumulusCI-Test",
+                        "ref": "abcdef",
+                        "subfolder": "src",
+                        "namespace_tokenize": "ns",
+                    }
+                ]
+            },
+            project_config=project_config,
+        )
+        zf = zipfile.ZipFile(io.BytesIO(), "w")
+        task._download_extract_github = mock.Mock(return_value=zf)
+        api = mock.Mock()
+        task.api_class = mock.Mock(return_value=api)
+        task()
+        assert task.install_queue == [
+            {
+                "repo_owner": "SFDO-Tooling",
+                "repo_name": "CumulusCI-Test",
+                "ref": "abcdef",
+                "subfolder": "src",
+                "namespace_tokenize": "ns",
+            }
+        ]
+        api.assert_called_once()
