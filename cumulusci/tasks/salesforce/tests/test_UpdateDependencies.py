@@ -158,13 +158,16 @@ class TestUpdateDependencies(unittest.TestCase):
         api = mock.Mock()
         task.api_class = mock.Mock(return_value=api)
         task()
-        assert task.install_queue == [
-            {
-                "repo_owner": "SFDO-Tooling",
-                "repo_name": "CumulusCI-Test",
-                "ref": "abcdef",
-                "subfolder": "src",
-                "namespace_tokenize": "ns",
-            }
-        ]
+        self.assertEqual(
+            [
+                {
+                    "repo_owner": "SFDO-Tooling",
+                    "repo_name": "CumulusCI-Test",
+                    "ref": "abcdef",
+                    "subfolder": "src",
+                    "namespace_tokenize": "ns",
+                }
+            ],
+            task.install_queue,
+        )
         api.assert_called_once()
