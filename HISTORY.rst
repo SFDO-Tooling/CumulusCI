@@ -2,6 +2,20 @@
 History
 =======
 
+2.2.6 (2019-01-03)
+------------------
+
+Changes:
+
+* Added support for more metadata types: Group, SharingSet, SharingCriteriaRule, SharingOwnerRule, and SharingTerritoryRule.
+* Release process: We now have tools in place to release cumulusci so that it can be installed using Homebrew or Linuxbrew.
+
+Issues Closed:
+
+* Fixed an issue where tasks using the Salesforce REST API could build a wrong URL with an extra slash after the instance URL.
+* Fixed an issue where overriding a flow step to set flow: None did not work.
+* Robot Framework: Added an automatic retry to work around an issue with an intermittent ConnectionResetError when connecting to headless Chrome in Python 3.
+
 2.2.5 (2018-12-26)
 ------------------
 

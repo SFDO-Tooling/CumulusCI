@@ -98,11 +98,17 @@ Open a Pull Request on GitHub and request approval from another committer. Once 
     $ git pull
     $ make tag release
 
+You can then create a pull request to update the `Homebrew Tap`_::
+
+    $ make release-homebrew
+
 Finally, head to the Release object that was autocreated in the GitHub repository, paste in the changelog notes and hit publish. Tada! You've published a new version of CCI.
 
 Configuring Your Environment
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-To release CCI, you'll need twine and bump2version, both of which are installed with the deveopment requirements. You'll also need to configure your `pypirc`_ file with your PyPI credentials.
+To release CCI, you'll need twine and bump2version, both of which are installed with the development requirements. You'll also need to configure your `pypirc`_ file with your PyPI credentials. The ``release-homebrew`` build step depends on the `jq`_ command line utility and is available via Homebrew or your package manager.
 
-.._pypirc: https://docs.python.org/distutils/packageindex.html#the-pypirc-file
+.. _pypirc: https://docs.python.org/distutils/packageindex.html#the-pypirc-file
+.. _Homebrew Tap: https://github.com/SFDO-Tooling/homebrew-sfdo
+.. _jq: https://stedolan.github.io/jq/

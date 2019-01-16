@@ -180,13 +180,15 @@ class TestUtils(unittest.TestCase):
         f.seek(0)
         zipbytes = f.read()
         mock_repo = mock.Mock(default_branch="master")
+        mock_github = mock.Mock()
+        mock_github.repository.return_value = mock_repo
 
         def assign_bytes(archive_type, zip_content, ref=None):
             zip_content.write(zipbytes)
 
         mock_archive = mock.Mock(return_value=True, side_effect=assign_bytes)
         mock_repo.archive = mock_archive
-        zf = utils.download_extract_github(mock_repo, "src")
+        zf = utils.download_extract_github(mock_github, "TestOwner", "TestRepo", "src")
         result = zf.read("test")
         self.assertEqual(b"test", result)
 
