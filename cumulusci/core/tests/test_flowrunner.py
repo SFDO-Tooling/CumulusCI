@@ -1,8 +1,13 @@
+import mock
 import unittest
 import logging
 
 import cumulusci
+from cumulusci.core.exceptions import FlowConfigError
+from cumulusci.core.exceptions import FlowInfiniteLoopError
+from cumulusci.core.config import FlowConfig
 from cumulusci.core.flowrunner import FlowCoordinator
+from cumulusci.core.flowrunner import StepSpec
 from cumulusci.core.tasks import BaseTask
 from cumulusci.core.config import OrgConfig
 from cumulusci.core.tests.utils import MockLoggingHandler
@@ -40,7 +45,7 @@ class _SfdcTask(BaseTask):
         return -1
 
 
-class AbstractFlowCoordinatorTest(unittest.TestCase):
+class AbstractFlowCoordinatorTest(object):
     @classmethod
     def setUpClass(cls):
         super(AbstractFlowCoordinatorTest, cls).setUpClass()
@@ -63,7 +68,7 @@ class AbstractFlowCoordinatorTest(unittest.TestCase):
         pass
 
 
-class FullParseTestFlowCoordinator(AbstractFlowCoordinatorTest):
+class FullParseTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
     def test_each_flow(self):
         for flow_name in [
             flow_info["name"] for flow_info in self.project_config.list_flows()
@@ -79,7 +84,7 @@ class FullParseTestFlowCoordinator(AbstractFlowCoordinatorTest):
             print("Parsed flow {} as {} steps".format(flow_name, len(flow.steps)))
 
 
-class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest):
+class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
     """ Tests the expectations of a BaseFlow caller """
 
     def _setup_project_config(self):
@@ -110,19 +115,83 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest):
                 "description": "A flow that runs inside another flow",
                 "steps": {1: {"task": "pass_name"}},
             },
-            "nested_flow_2": {
-                "description": "A flow that runs inside another flow, and calls another flow",
+            "test_flow": {
+                "description": "A flow that calls another flow",
                 "steps": {1: {"task": "pass_name"}, 2: {"flow": "nested_flow"}},
             },
         }
 
     def test_init(self):
-        flow_config = self.project_config.get_flow("nested_flow_2")
-        flow = FlowCoordinator(self.project_config, flow_config, name="nested_flow_2")
+        flow_config = self.project_config.get_flow("test_flow")
+        flow = FlowCoordinator(self.project_config, flow_config, name="test_flow")
 
         self.assertEqual(len(flow.steps), 2)
 
-    #  @mock.patch("cumulusci.core.config.OrgConfig.refresh_oauth_token")
-    #  def test_something_with_auth(self, refresh_token_mock):
-    #      flow_config = self.project_config.get_flow('nested_flow')
-    #      refresh_token_mock.return_value = None
+    def test_init_ambiguous_step(self):
+        flow_config = FlowConfig({"steps": {1: {"task": "None", "flow": "None"}}})
+        with self.assertRaises(FlowConfigError):
+            FlowCoordinator(self.project_config, flow_config, name="test")
+
+    def test_init_bad_classpath(self):
+        self.project_config.config["tasks"] = {
+            "classless": {
+                "description": "Bogus class_path",
+                "class_path": "this.is.not.a.thing",
+            }
+        }
+        flow_config = FlowConfig(
+            {
+                "description": "A flow that skips its only step",
+                "steps": {1: {"task": "classless"}},
+            }
+        )
+        with self.assertRaises(FlowConfigError):
+            FlowCoordinator(self.project_config, flow_config, name="test")
+
+    def test_init_no_steps(self):
+        flow_config = FlowConfig({})
+        with self.assertRaises(FlowConfigError):
+            FlowCoordinator(self.project_config, flow_config, name="test")
+
+    def test_init_old_format(self):
+        flow_config = FlowConfig({"tasks": {}})
+        with self.assertRaises(FlowConfigError):
+            FlowCoordinator(self.project_config, flow_config, name="test")
+
+    def test_init_recursive_flow(self):
+        self.project_config.config["flows"] = {
+            "self_referential_flow": {
+                "description": "A flow that runs inside another flow",
+                "steps": {1: {"flow": "self_referential_flow"}},
+            }
+        }
+        flow_config = self.project_config.get_flow("self_referential_flow")
+        with self.assertRaises(FlowInfiniteLoopError):
+            FlowCoordinator(
+                self.project_config, flow_config, name="self_referential_flow"
+            )
+
+    def test_run_with_skip(self):
+        flow_config = FlowConfig(
+            {
+                "description": "A flow that skips its only step",
+                "steps": {1: {"task": "None"}},
+            }
+        )
+        callbacks = mock.Mock()
+        flow = FlowCoordinator(
+            self.project_config, flow_config, name="skip", callbacks=callbacks
+        )
+        org_config = mock.Mock()
+        flow.run(org_config)
+        callbacks.pre_task.assert_not_called()
+
+
+class StepSpecTest(unittest.TestCase):
+    def test_repr(self):
+        spec = StepSpec(1, "test_task", {}, None, skip=True)
+        assert "<!SKIP! StepSpec 1:test_task {}>" == repr(spec)
+
+    def test_for_display(self):
+        spec = StepSpec(1, "test_task", {}, None, skip=True)
+        assert "1: test_task [SKIP]" == spec.for_display

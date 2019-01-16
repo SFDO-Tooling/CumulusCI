@@ -52,7 +52,7 @@ Option values/overrides can be passed in at a number of levels, in increasing or
 # comments, which require explicit runtime import when checking...
 try:
     from typing import List
-except ImportError:
+except ImportError:  # pragma: no cover
     pass
 
 import copy
@@ -106,7 +106,7 @@ class StepSpec(object):
         if self.skip:
             skipstr = "!SKIP! "
         return "<{skip}StepSpec {num}:{name} {cfg}>".format(
-            num=self.step_num, name=self.task_name, cfg=self.task_options, skip=skipstr
+            num=self.step_num, name=self.task_name, cfg=self.task_config, skip=skipstr
         )
 
     @property
@@ -133,11 +133,8 @@ class FlowCallback(object):
 
      This is how you can carry a reference to the Django model a flow run is related to in MetaCI or MetaDeploy."""
 
-    def __init__(self, ctx=None, _factory=None, *args, **kwargs):
+    def __init__(self, ctx=None):
         self.context = ctx
-        if ctx is None:
-            if callable(_factory):
-                self.context = _factory(*args, **kwargs)
 
     def pre_flow(self):
         pass
@@ -300,9 +297,8 @@ class FlowCoordinator(object):
 
         :return: List[StepSpec]
         """
-        config_steps = self.flow_config.steps
-
         self._check_old_yaml_format()
+        config_steps = self.flow_config.steps
         self._check_infinite_flows(config_steps)
 
         steps = []
@@ -314,12 +310,7 @@ class FlowCoordinator(object):
         return sorted(steps, key=attrgetter("step_num"))
 
     def _visit_step(
-        self,
-        number,
-        step_config,
-        visited_steps=None,
-        parent_options=None,
-        from_flow=None,
+        self, number, step_config, visited_steps, parent_options=None, from_flow=None
     ):
         """
         for each step (as defined in the flow YAML), _visit_step is called with only
@@ -336,9 +327,6 @@ class FlowCoordinator(object):
         :return: List[StepSpec] a list of all resolved steps including/under the one passed in
         """
         number = LooseVersion(str(number))
-
-        if visited_steps is None:
-            visited_steps = []
 
         if parent_options is None:
             parent_options = {}
@@ -431,7 +419,7 @@ class FlowCoordinator(object):
     def _check_old_yaml_format(self):
         # copied from BaseFlow
         if self.flow_config.steps is None:
-            if self.flow_config.tasks:
+            if "tasks" in self.flow_config.config:
                 raise FlowConfigError(
                     'Old flow syntax detected.  Please change from "tasks" to "steps" in the flow definition.'
                 )
