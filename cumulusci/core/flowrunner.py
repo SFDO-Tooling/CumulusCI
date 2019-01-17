@@ -127,9 +127,13 @@ class StepSpec(object):
         skip = ""
         if self.skip:
             skip = " [SKIP]"
-        return "{step_num}: {path}{skip}".format(
+        result = "{step_num}: {path}{skip}".format(
             step_num=self.step_num, path=self.path, skip=skip
         )
+        description = self.task_config.get("description")
+        if description:
+            result += ": {}".format(description)
+        return result
 
 
 StepResult = namedtuple(
@@ -200,6 +204,7 @@ class TaskRunner(object):
                 stepnum=self.step.step_num,
                 flow=self.flow,
             )
+            self._log_options(task)
             task()
         except Exception as e:
             task.logger.exception("Exception in task {}".format(self.step.task_name))
@@ -212,6 +217,16 @@ class TaskRunner(object):
             task.return_values,
             exc,
         )
+
+    def _log_options(self, task):
+        task.logger.info("Options:")
+        if not task.task_options:
+            return
+        for key, info in task.task_options.items():
+            value = task.options.get(key)
+            if value is None:
+                continue
+            task.logger.info("  {}: {}".format(key, value))
 
 
 class FlowCoordinator(object):
@@ -259,12 +274,6 @@ class FlowCoordinator(object):
         self.logger.info(self.flow_config.description)
         self._rule(new_line=True)
 
-        self._rule(fill="-")
-        self.logger.info("Steps:")
-        for step in self.steps:
-            self.logger.info(step.for_display)
-        self._rule(fill="-", new_line=True)
-
         self._init_org()
         self._rule(fill="-")
         self.logger.info("Organization:")
@@ -272,7 +281,15 @@ class FlowCoordinator(object):
         self.logger.info("  {}: {}".format("  Org Id", org_config.org_id))
         self._rule(fill="-", new_line=True)
 
+        # Give pre_flow callback a chance to alter the steps
+        # based on the state of the org before we display the steps.
         self.callbacks.pre_flow()
+
+        self._rule(fill="-")
+        self.logger.info("Steps:")
+        for step in self.steps:
+            self.logger.info(step.for_display)
+        self._rule(fill="-", new_line=True)
 
         self.logger.info("Starting execution")
         self._rule(new_line=True)
@@ -287,10 +304,6 @@ class FlowCoordinator(object):
 
                 self._rule(fill="-")
                 self.logger.info("Running task: {}".format(step.task_name))
-                if step.task_config["options"]:
-                    self.logger.info("Options:")
-                    for key, value in step.task_config["options"].items():
-                        self.logger.info("  {}: {}".format(key, value))
                 self._rule(fill="-", new_line=True)
 
                 self.callbacks.pre_task(step)
