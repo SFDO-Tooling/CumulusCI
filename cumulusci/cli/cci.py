@@ -1133,6 +1133,7 @@ def flow_run(config, flow_name, org, delete_org, debug, o, skip, no_prompt):
     options = {}
     if o:
         for key, value in o:
+            task_name, option_name = key.split("__")
             options[key] = value
 
     # Create the flow and handle initialization exceptions

@@ -233,11 +233,7 @@ class FlowCoordinator(object):
             callbacks = FlowCallback()
         self.callbacks = callbacks
 
-        self.runtime_options = defaultdict(dict)
-        if options:
-            for key, value in options.items():
-                task_name, option_name = key.split("__")
-                self.runtime_options[task_name][option_name] = value
+        self.runtime_options = options or {}
 
         if not skip:
             skip = []
@@ -332,13 +328,18 @@ class FlowCoordinator(object):
         steps = []
 
         for number, step_config in config_steps.items():
-            specs = self._visit_step(number, step_config, [])
+            specs = self._visit_step(number, step_config)
             steps.extend(specs)
 
         return sorted(steps, key=attrgetter("step_num"))
 
     def _visit_step(
-        self, number, step_config, visited_steps, parent_options=None, from_flow=None
+        self,
+        number,
+        step_config,
+        visited_steps=None,
+        parent_options=None,
+        from_flow=None,
     ):
         """
         for each step (as defined in the flow YAML), _visit_step is called with only
@@ -356,6 +357,8 @@ class FlowCoordinator(object):
         """
         number = LooseVersion(str(number))
 
+        if visited_steps is None:
+            visited_steps = []
         if parent_options is None:
             parent_options = {}
 

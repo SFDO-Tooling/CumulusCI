@@ -142,7 +142,7 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
         )
 
         flow = FlowCoordinator(
-            self.project_config, flow_config, options={"name_response__response": "bar"}
+            self.project_config, flow_config, options={"name_response": {"response": "bar"}}
         )
 
         # the first step should have the option
