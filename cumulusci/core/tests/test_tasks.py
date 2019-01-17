@@ -167,16 +167,11 @@ class TestBaseTaskCallable(unittest.TestCase):
         with self.assertRaises(TaskRequiresSalesforceOrg):
             _SfdcTask(self.project_config, self.task_config)
 
-    @mock.patch("cumulusci.core.flows.BaseFlow._init_org")
-    def test_no_id_if_run_from_flow(self, mock_class):
+    def test_no_id_if_run_from_flow(self):
         """ A salesforce_task will not log the org id if run from a flow """
-
-        mock_class.return_value = None
+        flow = mock.Mock()
         task = _SfdcTask(
-            self.project_config,
-            self.task_config,
-            self.org_config,
-            flow=BaseFlow(self.project_config, FlowConfig(), self.org_config),
+            self.project_config, self.task_config, self.org_config, flow=flow
         )
         task()
         self.assertFalse(any(ORG_ID in s for s in self.task_log["info"]))

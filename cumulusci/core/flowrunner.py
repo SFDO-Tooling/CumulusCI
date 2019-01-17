@@ -57,6 +57,7 @@ except ImportError:  # pragma: no cover
 
 import copy
 import logging
+from collections import defaultdict
 from collections import namedtuple
 from distutils.version import LooseVersion
 from operator import attrgetter
@@ -69,6 +70,8 @@ from cumulusci.core.utils import import_class
 
 # TODO: define exception types: flowfailure, taskimporterror, etc?
 
+RETURN_VALUE_OPTION_PREFIX = "^^"
+
 
 class StepSpec(object):
     """ simple namespace to describe what the flowrunner should do each step """
@@ -79,7 +82,7 @@ class StepSpec(object):
         "task_config",  # type: dict
         "task_class",  # type: str
         "allow_failure",  # type: bool
-        "from_flow",  # type: object
+        "path",  # type: str
         "skip",  # type: bool
     )
 
@@ -98,8 +101,17 @@ class StepSpec(object):
         self.task_config = task_config
         self.task_class = task_class
         self.allow_failure = allow_failure
-        self.from_flow = from_flow
         self.skip = skip
+
+        # Store the dotted path to this step.
+        # This is not guaranteed to be unique, because multiple steps
+        # in the same flow can reference the same task name with different options.
+        # It's here to support the ^^flow_name.task_name.attr_name syntax
+        # for referencing previous task return values in options.
+        if from_flow:
+            self.path = ".".join([from_flow, task_name])
+        else:
+            self.path = task_name
 
     def __repr__(self):
         skipstr = ""
@@ -121,7 +133,8 @@ class StepSpec(object):
 
 
 StepResult = namedtuple(
-    "StepResult", ["step_num", "task_name", "result", "return_values", "exception"]
+    "StepResult",
+    ["step_num", "task_name", "path", "result", "return_values", "exception"],
 )
 
 
@@ -172,14 +185,16 @@ class TaskRunner(object):
         :return: StepResult
         """
 
-        # TODO: Resolve ^^task_name.return_value style option syntax
+        # Resolve ^^task_name.return_value style option syntax
+        task_config = self.step.task_config.copy()
+        task_config["options"] = task_config["options"].copy()
+        self.flow.resolve_return_value_options(task_config["options"])
+
         exc = None
         try:
             task = self.step.task_class(
                 self.project_config,
-                TaskConfig(
-                    self.step.task_config
-                ),  # BaseTask wants a full on TaskConfig
+                TaskConfig(task_config),
                 org_config=self.org_config,
                 name=self.step.task_name,
                 stepnum=self.step.step_num,
@@ -193,6 +208,7 @@ class TaskRunner(object):
             return StepResult(
                 self.step.step_num,
                 self.step.task_name,
+                self.step.path,
                 task.result,
                 task.return_values,
                 exc,
@@ -218,10 +234,11 @@ class FlowCoordinator(object):
             callbacks = FlowCallback()
         self.callbacks = callbacks
 
-        # TODO: Support CLI/Runtime Options
-        if not options:
-            options = {}
-        self.runtime_options = options
+        self.runtime_options = defaultdict(dict)
+        if options:
+            for key, value in options.items():
+                task_name, option_name = key.split("__")
+                self.runtime_options[task_name][option_name] = value
 
         if not skip:
             skip = []
@@ -244,6 +261,7 @@ class FlowCoordinator(object):
             line = "{} ({})".format(line, self.name)
         self._rule()
         self.logger.info(line)
+        self.logger.info("Flow Description: {}".format(self.flow_config.description))
         self._rule(new_line=True)
         self._init_org()
 
@@ -374,15 +392,16 @@ class FlowCoordinator(object):
             step_overrides.update(step_config.get("options", {}))
             task_config["options"].update(step_overrides)
 
+            # merge runtime options
+            if name in self.runtime_options:
+                task_config["options"].update(self.runtime_options[name])
+
             # get implementation class. raise/fail if it doesn't exist, because why continue
             try:
                 task_class = import_class(task_config["class_path"])
             except (ImportError, AttributeError):
                 # TODO: clean this up and raise a taskimporterror or something else correcter.
                 raise FlowConfigError("Task named {} has bad classpath")
-
-            if name in self.runtime_options:
-                pass
 
             visited_steps.append(
                 StepSpec(
@@ -398,6 +417,10 @@ class FlowCoordinator(object):
 
         if "flow" in step_config:
             name = step_config["flow"]
+            if from_flow:
+                path = ".".join([from_flow, name])
+            else:
+                path = name
             step_options = step_config.get("options", {})
             flow_config = self.project_config.get_flow(name)
             for sub_number, sub_stepconf in flow_config.steps.items():
@@ -411,7 +434,7 @@ class FlowCoordinator(object):
                     sub_stepconf,
                     visited_steps,
                     parent_options=step_options,
-                    from_flow=name,
+                    from_flow=path,
                 )
 
         return visited_steps
@@ -465,3 +488,17 @@ class FlowCoordinator(object):
         if self.org_config.config != orig_config:
             self.logger.info("Org info has changed, updating org in keychain")
             self.project_config.keychain.set_org(self.org_config)
+
+    def resolve_return_value_options(self, options):
+        """Handle dynamic option value lookups in the format ^^task_name.attr"""
+        for key, value in options.items():
+            if isinstance(value, str) and value.startswith(RETURN_VALUE_OPTION_PREFIX):
+                path, name = value[len(RETURN_VALUE_OPTION_PREFIX) :].rsplit(".", 1)
+                result = self._find_result_by_path(path)
+                options[key] = result.return_values.get(name)
+
+    def _find_result_by_path(self, path):
+        for result in self.results:
+            if result.path == path:
+                return result
+        raise NameError("Path not found: {}".format(path))

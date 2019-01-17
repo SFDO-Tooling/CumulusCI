@@ -5,6 +5,7 @@ import logging
 import cumulusci
 from cumulusci.core.exceptions import FlowConfigError
 from cumulusci.core.exceptions import FlowInfiniteLoopError
+from cumulusci.core.exceptions import TaskNotFoundError
 from cumulusci.core.config import FlowConfig
 from cumulusci.core.flowrunner import FlowCoordinator
 from cumulusci.core.flowrunner import StepSpec
@@ -59,6 +60,7 @@ class AbstractFlowCoordinatorTest(object):
         self.org_config = OrgConfig(
             {"username": "sample@example", "org_id": ORG_ID}, "test"
         )
+        self.org_config.refresh_oauth_token = mock.Mock()
 
         self._flow_log_handler.reset()
         self.flow_log = self._flow_log_handler.messages
@@ -126,13 +128,32 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
         flow = FlowCoordinator(self.project_config, flow_config, name="test_flow")
 
         self.assertEqual(len(flow.steps), 2)
+        self.assertEqual(hasattr(flow, "logger"), True)
+
+    def test_init__options(self):
+        """ A flow can accept task options and pass them to the task. """
+
+        # instantiate a flow with two tasks
+        flow_config = FlowConfig(
+            {
+                "description": "Run two tasks",
+                "steps": {1: {"task": "name_response", "options": {"response": "foo"}}},
+            }
+        )
+
+        flow = FlowCoordinator(
+            self.project_config, flow_config, options={"name_response__response": "bar"}
+        )
+
+        # the first step should have the option
+        self.assertEqual("bar", flow.steps[0].task_config["options"]["response"])
 
     def test_init_ambiguous_step(self):
         flow_config = FlowConfig({"steps": {1: {"task": "None", "flow": "None"}}})
         with self.assertRaises(FlowConfigError):
             FlowCoordinator(self.project_config, flow_config, name="test")
 
-    def test_init_bad_classpath(self):
+    def test_init__bad_classpath(self):
         self.project_config.config["tasks"] = {
             "classless": {
                 "description": "Bogus class_path",
@@ -141,14 +162,27 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
         }
         flow_config = FlowConfig(
             {
-                "description": "A flow that skips its only step",
+                "description": "A flow with a broken task",
                 "steps": {1: {"task": "classless"}},
             }
         )
         with self.assertRaises(FlowConfigError):
             FlowCoordinator(self.project_config, flow_config, name="test")
 
-    def test_init_no_steps(self):
+    def test_init__task_not_found(self):
+        """ A flow with reference to a task that doesn't exist in the
+        project will throw a TaskNotFoundError """
+
+        flow_config = FlowConfig(
+            {
+                "description": "Run two tasks",
+                "steps": {1: {"task": "pass_name"}, 2: {"task": "do_delightulthings"}},
+            }
+        )
+        with self.assertRaises(TaskNotFoundError):
+            flow = FlowCoordinator(self.project_config, flow_config)
+
+    def test_init__no_steps_in_config(self):
         flow_config = FlowConfig({})
         with self.assertRaises(FlowConfigError):
             FlowCoordinator(self.project_config, flow_config, name="test")
@@ -171,7 +205,64 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
                 self.project_config, flow_config, name="self_referential_flow"
             )
 
-    def test_run_with_skip(self):
+    def test_run__one_task(self):
+        """ A flow with one task will execute the task """
+        flow_config = FlowConfig(
+            {"description": "Run one task", "steps": {1: {"task": "pass_name"}}}
+        )
+        flow = FlowCoordinator(self.project_config, flow_config)
+        self.assertEqual(1, len(flow.steps))
+
+        flow.run(self.org_config)
+
+        self.assertTrue(
+            any("Flow Description: Run one task" in s for s in self.flow_log["info"])
+        )
+        self.assertEqual({"name": "supername"}, flow.results[0].return_values)
+
+    def test_run__option_backrefs(self):
+        """ A flow's options reach into return values from other tasks. """
+
+        # instantiate a flow with two tasks
+        flow_config = FlowConfig(
+            {
+                "description": "Run two tasks",
+                "steps": {
+                    1: {"task": "pass_name"},
+                    2: {
+                        "task": "name_response",
+                        "options": {"response": "^^pass_name.name"},
+                    },
+                },
+            }
+        )
+
+        flow = FlowCoordinator(self.project_config, flow_config)
+        org_config = mock.Mock()
+        flow.run(org_config)
+        # the flow results for the second task should be 'name'
+        self.assertEqual("supername", flow.results[1].result)
+
+    def test_run__nested_option_backrefs(self):
+        flow_config = FlowConfig(
+            {
+                "description": "Run two tasks",
+                "steps": {
+                    1: {"flow": "nested_flow"},
+                    2: {
+                        "task": "name_response",
+                        "options": {"response": "^^nested_flow.pass_name.name"},
+                    },
+                },
+            }
+        )
+
+        flow = FlowCoordinator(self.project_config, flow_config)
+        flow.run(self.org_config)
+
+        self.assertEqual("supername", flow.results[-1].result)
+
+    def test_run__skip_flow_None(self):
         flow_config = FlowConfig(
             {
                 "description": "A flow that skips its only step",
@@ -185,6 +276,67 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
         org_config = mock.Mock()
         flow.run(org_config)
         callbacks.pre_task.assert_not_called()
+
+    def test_run__skip_from_init(self):
+        """ A flow can receive during init a list of tasks to skip """
+
+        # instantiate a flow with two tasks
+        flow_config = FlowConfig(
+            {
+                "description": "Run two tasks",
+                "steps": {
+                    1: {"task": "pass_name"},
+                    2: {
+                        "task": "name_response",
+                        "options": {"response": "^^pass_name.name"},
+                    },
+                },
+            }
+        )
+        flow = FlowCoordinator(self.project_config, flow_config, skip=["name_response"])
+
+        # run the flow
+        org_config = mock.Mock()
+        flow.run(org_config)
+
+        # the number of results should be 1 instead of 2
+        self.assertEqual(1, len(flow.results))
+
+    def test_run__task_raises_exception_fail(self):
+        """ A flow aborts when a task raises an exception """
+
+        flow_config = FlowConfig(
+            {"description": "Run a task", "steps": {1: {"task": "raise_exception"}}}
+        )
+        flow = FlowCoordinator(self.project_config, flow_config)
+        with self.assertRaises(Exception):
+            flow.run(self.org_config)
+
+    def test_run__task_raises_exception_ignore(self):
+        """ A flow continues when a task configured with ignore_failure raises an exception """
+
+        flow_config = FlowConfig(
+            {
+                "description": "Run a task",
+                "steps": {
+                    1: {"task": "raise_exception", "ignore_failure": True},
+                    2: {"task": "pass_name"},
+                },
+            }
+        )
+        flow = FlowCoordinator(self.project_config, flow_config)
+        flow.run(self.org_config)
+        self.assertEqual(2, len(flow.results))
+        self.assertIsNotNone(flow.results[0].exception)
+
+    def test_run__no_steps(self):
+        """ A flow with no tasks will have no results. """
+        flow_config = FlowConfig({"description": "Run no tasks", "steps": {}})
+        flow = FlowCoordinator(self.project_config, flow_config)
+        flow.run(self.org_config)
+
+        self.assertEqual([], flow.steps)
+        self.assertEqual([], flow.results)
 
 
 class StepSpecTest(unittest.TestCase):
