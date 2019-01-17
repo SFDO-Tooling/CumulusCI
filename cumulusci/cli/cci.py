@@ -45,7 +45,6 @@ from cumulusci.core.exceptions import ProjectConfigNotFound
 from cumulusci.core.exceptions import ScratchOrgException
 from cumulusci.core.exceptions import ServiceNotConfigured
 from cumulusci.core.exceptions import TaskNotFoundError
-from cumulusci.core.flows import BaseFlow
 from cumulusci.core.utils import import_class
 from cumulusci.cli.config import CliConfig
 from cumulusci.cli.config import get_installed_version

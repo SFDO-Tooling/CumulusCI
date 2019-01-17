@@ -93,15 +93,15 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
         self.project_config.config["tasks"] = {
             "pass_name": {
                 "description": "Pass the name",
-                "class_path": "cumulusci.core.tests.test_flows._TaskReturnsStuff",
+                "class_path": "cumulusci.core.tests.test_flowrunner._TaskReturnsStuff",
             },
             "name_response": {
                 "description": "Pass the name",
-                "class_path": "cumulusci.core.tests.test_flows._TaskResponseName",
+                "class_path": "cumulusci.core.tests.test_flowrunner._TaskResponseName",
             },
             "raise_exception": {
                 "description": "Raises an exception",
-                "class_path": "cumulusci.core.tests.test_flows._TaskRaisesException",
+                "class_path": "cumulusci.core.tests.test_flowrunner._TaskRaisesException",
                 "options": {
                     "exception": Exception,
                     "message": "Test raised exception as expected",
@@ -109,7 +109,7 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
             },
             "sfdc_task": {
                 "description": "An sfdc task",
-                "class_path": "cumulusci.core.tests.test_flows._SfdcTask",
+                "class_path": "cumulusci.core.tests.test_flowrunner._SfdcTask",
             },
         }
         self.project_config.config["flows"] = {
@@ -117,17 +117,17 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
                 "description": "A flow that runs inside another flow",
                 "steps": {1: {"task": "pass_name"}},
             },
-            "test_flow": {
-                "description": "A flow that calls another flow",
+            "nested_flow_2": {
+                "description": "A flow that runs inside another flow, and calls another flow",
                 "steps": {1: {"task": "pass_name"}, 2: {"flow": "nested_flow"}},
             },
         }
 
     def test_init(self):
-        flow_config = self.project_config.get_flow("test_flow")
+        flow_config = FlowConfig({"steps": {"1": {"task": "pass_name"}}})
         flow = FlowCoordinator(self.project_config, flow_config, name="test_flow")
 
-        self.assertEqual(len(flow.steps), 2)
+        self.assertEqual(len(flow.steps), 1)
         self.assertEqual(hasattr(flow, "logger"), True)
 
     def test_init__options(self):
@@ -147,6 +147,18 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
 
         # the first step should have the option
         self.assertEqual("bar", flow.steps[0].task_config["options"]["response"])
+
+    def test_init__nested_options(self):
+        flow_config = FlowConfig(
+            {
+                "description": "Run a flow with task options",
+                "steps": {
+                    1: {"flow": "nested_flow", "options": {"pass_name": {"foo": "bar"}}}
+                },
+            }
+        )
+        flow = FlowCoordinator(self.project_config, flow_config)
+        self.assertEqual("bar", flow.steps[0].task_config["options"]["foo"])
 
     def test_init_ambiguous_step(self):
         flow_config = FlowConfig({"steps": {1: {"task": "None", "flow": "None"}}})
@@ -216,9 +228,36 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
         flow.run(self.org_config)
 
         self.assertTrue(
-            any("Flow Description: Run one task" in s for s in self.flow_log["info"])
+            any(flow_config.description in s for s in self.flow_log["info"])
         )
         self.assertEqual({"name": "supername"}, flow.results[0].return_values)
+
+    def test_run__nested_flow(self):
+        """ Flows can run inside other flows """
+        flow_config = FlowConfig(
+            {
+                "description": "Run a task and a flow",
+                "steps": {1: {"task": "pass_name"}, 2: {"flow": "nested_flow"}},
+            }
+        )
+        flow = FlowCoordinator(self.project_config, flow_config)
+        flow.run(self.org_config)
+        self.assertEqual(2, len(flow.steps))
+        self.assertEqual(flow.results[0].return_values, flow.results[1].return_values)
+
+    def test_run__nested_flow_2(self):
+        """ Flows can run inside other flows and call other flows """
+        flow_config = FlowConfig(
+            {
+                "description": "Run a task and a flow",
+                "steps": {1: {"task": "pass_name"}, 2: {"flow": "nested_flow_2"}},
+            }
+        )
+        flow = FlowCoordinator(self.project_config, flow_config)
+        flow.run(self.org_config)
+        self.assertEqual(3, len(flow.steps))
+        self.assertEqual(flow.results[0].return_values, flow.results[1].return_values)
+        self.assertEqual(flow.results[1].return_values, flow.results[2].return_values)
 
     def test_run__option_backrefs(self):
         """ A flow's options reach into return values from other tasks. """
@@ -238,8 +277,7 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
         )
 
         flow = FlowCoordinator(self.project_config, flow_config)
-        org_config = mock.Mock()
-        flow.run(org_config)
+        flow.run(self.org_config)
         # the flow results for the second task should be 'name'
         self.assertEqual("supername", flow.results[1].result)
 
@@ -273,8 +311,7 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
         flow = FlowCoordinator(
             self.project_config, flow_config, name="skip", callbacks=callbacks
         )
-        org_config = mock.Mock()
-        flow.run(org_config)
+        flow.run(self.org_config)
         callbacks.pre_task.assert_not_called()
 
     def test_run__skip_from_init(self):
@@ -294,10 +331,7 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
             }
         )
         flow = FlowCoordinator(self.project_config, flow_config, skip=["name_response"])
-
-        # run the flow
-        org_config = mock.Mock()
-        flow.run(org_config)
+        flow.run(self.org_config)
 
         # the number of results should be 1 instead of 2
         self.assertEqual(1, len(flow.results))
@@ -337,6 +371,22 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
 
         self.assertEqual([], flow.steps)
         self.assertEqual([], flow.results)
+
+    def test_run__prints_org_id(self):
+        """ A flow with an org prints the org ID """
+
+        flow_config = FlowConfig(
+            {
+                "description": "Run two tasks",
+                "steps": {1: {"task": "pass_name"}, 2: {"task": "sfdc_task"}},
+            }
+        )
+        flow = FlowCoordinator(self.project_config, flow_config)
+        flow.run(self.org_config)
+
+        org_id_logs = [s for s in self.flow_log["info"] if ORG_ID in s]
+
+        self.assertEqual(1, len(org_id_logs))
 
 
 class StepSpecTest(unittest.TestCase):

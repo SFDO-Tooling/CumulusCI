@@ -127,8 +127,8 @@ class StepSpec(object):
         skip = ""
         if self.skip:
             skip = " [SKIP]"
-        return "{step_num}: {task_name}{skip}".format(
-            step_num=self.step_num, task_name=self.task_name, skip=skip
+        return "{step_num}: {path}{skip}".format(
+            step_num=self.step_num, path=self.path, skip=skip
         )
 
 
@@ -204,15 +204,14 @@ class TaskRunner(object):
         except Exception as e:
             task.logger.exception("Exception in task {}".format(self.step.task_name))
             exc = e
-        finally:
-            return StepResult(
-                self.step.step_num,
-                self.step.task_name,
-                self.step.path,
-                task.result,
-                task.return_values,
-                exc,
-            )
+        return StepResult(
+            self.step.step_num,
+            self.step.task_name,
+            self.step.path,
+            task.result,
+            task.return_values,
+            exc,
+        )
 
 
 class FlowCoordinator(object):
@@ -261,16 +260,23 @@ class FlowCoordinator(object):
             line = "{} ({})".format(line, self.name)
         self._rule()
         self.logger.info(line)
-        self.logger.info("Flow Description: {}".format(self.flow_config.description))
+        self.logger.info(self.flow_config.description)
         self._rule(new_line=True)
-        self._init_org()
-
-        self.callbacks.pre_flow()
 
         self._rule(fill="-")
+        self.logger.info("Steps:")
         for step in self.steps:
             self.logger.info(step.for_display)
         self._rule(fill="-", new_line=True)
+
+        self._init_org()
+        self._rule(fill="-")
+        self.logger.info("Organization:")
+        self.logger.info("  {}: {}".format("Username", org_config.username))
+        self.logger.info("  {}: {}".format("  Org Id", org_config.org_id))
+        self._rule(fill="-", new_line=True)
+
+        self.callbacks.pre_flow()
 
         self.logger.info("Starting execution")
         self._rule(new_line=True)
@@ -285,6 +291,10 @@ class FlowCoordinator(object):
 
                 self._rule(fill="-")
                 self.logger.info("Running task: {}".format(step.task_name))
+                if step.task_config["options"]:
+                    self.logger.info("Options:")
+                    for key, value in step.task_config["options"].items():
+                        self.logger.info("  {}: {}".format(key, value))
                 self._rule(fill="-", new_line=True)
 
                 self.callbacks.pre_task(step)
@@ -440,7 +450,6 @@ class FlowCoordinator(object):
         return visited_steps
 
     def _check_old_yaml_format(self):
-        # copied from BaseFlow
         if self.flow_config.steps is None:
             if "tasks" in self.flow_config.config:
                 raise FlowConfigError(
@@ -457,7 +466,6 @@ class FlowCoordinator(object):
         :param flows: Flows already visited.
         :return: None
         """
-        # copied from BaseFlow
         if flows is None:
             flows = []
         for step in steps.values():

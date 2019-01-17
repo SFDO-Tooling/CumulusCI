@@ -6,7 +6,6 @@ import collections
 import mock
 
 from cumulusci.core.tasks import BaseTask
-from cumulusci.core.flows import BaseFlow
 from cumulusci.core.config import BaseGlobalConfig
 from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.config import TaskConfig
