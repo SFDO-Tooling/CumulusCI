@@ -219,6 +219,11 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
                 self.project_config, flow_config, name="self_referential_flow"
             )
 
+    def test_from_steps(self):
+        steps = [StepSpec("1", "test", {}, _TaskReturnsStuff)]
+        flow = FlowCoordinator.from_steps(self.project_config, steps)
+        self.assertEqual(1, len(flow.steps))
+
     def test_run__one_task(self):
         """ A flow with one task will execute the task """
         flow_config = FlowConfig(

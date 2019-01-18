@@ -65,6 +65,7 @@ from operator import attrgetter
 from future.utils import raise_from
 
 from cumulusci.core.config import TaskConfig
+from cumulusci.core.config import FlowConfig
 from cumulusci.core.exceptions import FlowConfigError, FlowInfiniteLoopError
 from cumulusci.core.utils import import_class
 
@@ -258,6 +259,17 @@ class FlowCoordinator(object):
 
         self.logger = self._init_logger()
         self.steps = self._init_steps()  # type: List[StepSpec]
+
+    @classmethod
+    def from_steps(cls, project_config, steps, name=None, callbacks=None):
+        instance = FlowCoordinator(
+            project_config,
+            flow_config=FlowConfig({"steps": {}}),
+            name=name,
+            callbacks=callbacks,
+        )
+        instance.steps = steps
+        return instance
 
     def _rule(self, fill="=", length=60, new_line=False):
         self.logger.info("{:{fill}<{length}}".format("", fill=fill, length=length))
