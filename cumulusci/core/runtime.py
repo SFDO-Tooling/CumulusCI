@@ -86,10 +86,10 @@ class BaseCumulusCI(object):
         self.keychain = self.keychain_cls(self.project_config, self.keychain_key)
         self.project_config.set_keychain(self.keychain)  # never understood this but ok.
 
-    def get_flow(self, name, ctx=None, options=None):
+    def get_flow(self, name, options=None):
         """ Get a primed and readytogo flow coordinator. """
         config = self.project_config.get_flow(name)
-        callbacks = self.callback_cls(ctx)
+        callbacks = self.callback_cls()
         coordinator = FlowCoordinator(
             self.project_config,
             config,
