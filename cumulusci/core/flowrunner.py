@@ -144,15 +144,19 @@ StepResult = namedtuple(
 
 
 class FlowCallback(object):
-    """ FlowCallback - carries context to something else, like a CI job, that needs flow hooks run on it.
+    """A place for code running a flow to inject callbacks to run during the flow.
 
-     In addition to defining hooks, it allows you to set a context object. Sorta inspired by the context object in
-     click, but way simpler. If it exists, it's there. There's also some light callable support for factory defaults.
+    A subclass of FlowCallback can use its own constructor to track context, e.g. to refer to a Django model:
 
-     This is how you can carry a reference to the Django model a flow run is related to in MetaCI or MetaDeploy."""
+        class CustomFlowCallback(FlowCallback):
+            def __init__(self, model):
+                self.model = model
 
-    def __init__(self, ctx=None):
-        self.context = ctx
+            def post_task(self):
+                # do something to record state on self.model
+
+    (An instance of the custom FlowCallback class would be passed to FlowCoordinator.)
+    """
 
     def pre_flow(self):
         pass
