@@ -31,6 +31,10 @@ class ProjectConfigNotFound(CumulusCIUsageError):
     pass
 
 
+class ProjectMinimumVersionError(CumulusCIException):
+    pass
+
+
 class KeychainNotFound(CumulusCIException):
     """ Raised when no keychain could be found """
 
@@ -69,6 +73,18 @@ class DependencyResolutionError(CumulusCIException):
 
 class ConfigError(CumulusCIException):
     """ Raised when a configuration enounters an error """
+
+    def __init__(self, message=None, config_name=None):
+        super(ConfigError, self).__init__(message)
+        self.message = message
+        self.config_name = config_name
+
+    def __str__(self):
+        return "{} for config {}".format(self.message, self.config_name)
+
+
+class ConfigMergeError(ConfigError):
+    """ Raised when merging configuration fails. """
 
     pass
 

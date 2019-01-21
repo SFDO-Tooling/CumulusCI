@@ -1,11 +1,17 @@
-from cumulusci.core.exceptions import RobotTestFailure
-from cumulusci.core.tasks import BaseTask
-from cumulusci.core.utils import process_list_arg
-from cumulusci.tasks.salesforce import BaseSalesforceTask
+import pdb
+import sys
+
 from robot import run as robot_run
 from robot.libdoc import libdoc
 from robot.libraries.BuiltIn import BuiltIn
 from robot.testdoc import testdoc
+
+from cumulusci.core.exceptions import RobotTestFailure
+from cumulusci.core.tasks import BaseTask
+from cumulusci.core.utils import process_bool_arg
+from cumulusci.core.utils import process_list_arg
+from cumulusci.robotframework.utils import set_pdb_trace
+from cumulusci.tasks.salesforce import BaseSalesforceTask
 
 
 class Robot(BaseSalesforceTask):
@@ -26,23 +32,17 @@ class Robot(BaseSalesforceTask):
         "options": {
             "description": "A dictionary of options to robot.run method.  See docs here for format.  NOTE: There is no cci CLI support for this option since it requires a dictionary.  Use this option in the cumulusci.yml when defining custom tasks where you can easily create a dictionary in yaml."
         },
+        "pdb": {"description": "If true, run the Python debugger when tests fail."},
+        "verbose": {"description": "If true, log each keyword as it runs."},
     }
 
     def _init_options(self, kwargs):
         super(Robot, self)._init_options(kwargs)
 
-        if "tests" in self.options:
-            self.options["tests"] = process_list_arg(self.options["tests"])
-
-        if "include" in self.options:
-            self.options["include"] = process_list_arg(self.options["include"])
-
-        if "exclude" in self.options:
-            self.options["exclude"] = process_list_arg(self.options["exclude"])
-
-        if "vars" in self.options:
-            self.options["vars"] = process_list_arg(self.options["vars"])
-        else:
+        for option in ("tests", "include", "exclude", "vars"):
+            if option in self.options:
+                self.options[option] = process_list_arg(self.options[option])
+        if "vars" not in self.options:
             self.options["vars"] = []
         self.options["vars"].append("org:{}".format(self.org_config.name))
 
@@ -50,26 +50,18 @@ class Robot(BaseSalesforceTask):
         if "options" not in self.options:
             self.options["options"] = {}
 
+        if process_bool_arg(self.options.get("verbose")):
+            self.options["options"]["listener"] = KeywordLogger
+
+        if process_bool_arg(self.options.get("pdb")):
+            patch_statusreporter()
+
     def _run_task(self):
         options = self.options["options"].copy()
-
-        if "tests" in self.options:
-            options["test"] = self.options["tests"]
-        if "include" in self.options:
-            options["include"] = self.options["include"]
-        if "exclude" in self.options:
-            options["exclude"] = self.options["exclude"]
-        if "vars" in self.options:
-            options["variable"] = self.options["vars"]
-        if "xunit" in self.options:
-            options["xunit"] = self.options["xunit"]
-
-        # Inject CumulusCIRobotListener to build the CumulusCI library instance
-        # from self.project_config instead of reinitializing CumulusCI's config
-        # listener = CumulusCIRobotListener(self.project_config, self.org_config.name)
-        # if 'listener' not in options:
-        #    options['listener'] = []
-        # options['listener'].append(listener)
+        for option in ("tests", "include", "exclude", "xunit"):
+            if option in self.options:
+                options[option] = self.options[option]
+        options["variable"] = self.options.get("vars") or []
 
         num_failed = robot_run(self.options["suites"], **options)
         if num_failed:
@@ -106,3 +98,26 @@ class RobotTestDoc(BaseTask):
 
     def _run_task(self):
         return testdoc(self.options["path"], self.options["output"])
+
+
+class KeywordLogger(object):
+    ROBOT_LISTENER_API_VERSION = 2
+
+    def start_keyword(name, attrs):
+        sys.stdout.write("  {}  {}\n".format(attrs["kwname"], "  ".join(attrs["args"])))
+        sys.stdout.flush()
+
+
+def patch_statusreporter():
+    """Monkey patch robotframework to do postmortem debugging
+    """
+    from robot.running.statusreporter import StatusReporter
+
+    orig_exit = StatusReporter.__exit__
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if exc_val and isinstance(exc_val, Exception):
+            set_pdb_trace(pm=True)
+        return orig_exit(self, exc_type, exc_val, exc_tb)
+
+    StatusReporter.__exit__ = __exit__

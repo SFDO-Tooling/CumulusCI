@@ -17,6 +17,10 @@ Test Get Org Info
     Dictionary Should Contain Key  ${org_info}  org_id
     Dictionary Should Contain Key  ${org_info}  username
 
+Test Get Namespace Prefix
+    ${ns} =  Get Namespace Prefix
+    Should Be Empty  ${ns}
+
 Test Run Task
     Run Task  create_package
 

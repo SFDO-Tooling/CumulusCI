@@ -90,14 +90,13 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
 
     def _raise_org_not_found(self, name):
         raise OrgNotFound(
-            "Org information could not be found.  Expected to find encrypted file at {}/{}.org".format(
+            "Org information could not be found. Expected to find encrypted file at {}/{}.org".format(
                 self.project_local_dir, name
             )
         )
 
     def _raise_service_not_configured(self, name):
         raise ServiceNotConfigured(
-            "Service configuration could not be found.  Expected to find encrypted file at {}/{}.org".format(
-                self.project_local_dir, name
-            )
+            "'{}' service configuration could not be found. "
+            "Maybe you need to run: cci service connect {}".format(name, name)
         )

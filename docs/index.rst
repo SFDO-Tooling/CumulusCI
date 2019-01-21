@@ -17,8 +17,9 @@ Contents:
    robotframework
    cookbook
    cumulusci_flow
-   tasks
    api_reference
+   tasks
+   usage
    history
    authors
 

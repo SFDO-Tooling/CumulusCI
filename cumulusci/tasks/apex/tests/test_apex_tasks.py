@@ -47,17 +47,23 @@ class TestRunApexTests(unittest.TestCase):
             "poll_interval": 1,
             "test_name_match": "%_TEST",
         }
-        self.project_config = BaseProjectConfig(self.global_config)
+        self.project_config = BaseProjectConfig(
+            self.global_config, config={"noyaml": True}
+        )
         self.project_config.config["project"] = {
             "package": {"api_version": self.api_version}
         }
         keychain = BaseProjectKeychain(self.project_config, "")
         self.project_config.set_keychain(keychain)
         self.org_config = OrgConfig(
-            {"id": "foo/1", "instance_url": "example.com", "access_token": "abc123"},
+            {
+                "id": "foo/1",
+                "instance_url": "https://example.com",
+                "access_token": "abc123",
+            },
             "test",
         )
-        self.base_tooling_url = "https://{}/services/data/v{}/tooling/".format(
+        self.base_tooling_url = "{}/services/data/v{}/tooling/".format(
             self.org_config.instance_url, self.api_version
         )
 
@@ -252,7 +258,9 @@ class TestAnonymousApexTask(unittest.TestCase):
             "apex": 'system.debug("Hello World!")',
             "namespaced": True,
         }
-        self.project_config = BaseProjectConfig(self.global_config)
+        self.project_config = BaseProjectConfig(
+            self.global_config, config={"noyaml": True}
+        )
         self.project_config.config = {
             "project": {
                 "package": {"namespace": "abc", "api_version": self.api_version}
@@ -261,10 +269,14 @@ class TestAnonymousApexTask(unittest.TestCase):
         keychain = BaseProjectKeychain(self.project_config, "")
         self.project_config.set_keychain(keychain)
         self.org_config = OrgConfig(
-            {"id": "foo/1", "instance_url": "example.com", "access_token": "abc123"},
+            {
+                "id": "foo/1",
+                "instance_url": "https://example.com",
+                "access_token": "abc123",
+            },
             "test",
         )
-        self.base_tooling_url = "https://{}/services/data/v{}/tooling/".format(
+        self.base_tooling_url = "{}/services/data/v{}/tooling/".format(
             self.org_config.instance_url, self.api_version
         )
 
@@ -387,17 +399,23 @@ class TestRunBatchApex(unittest.TestCase):
             "class_name": "ADDR_Seasonal_BATCH",
             "poll_interval": 1,
         }
-        self.project_config = BaseProjectConfig(self.global_config)
+        self.project_config = BaseProjectConfig(
+            self.global_config, config={"noyaml": True}
+        )
         self.project_config.config["project"] = {
             "package": {"api_version": self.api_version}
         }
         keychain = BaseProjectKeychain(self.project_config, "")
         self.project_config.set_keychain(keychain)
         self.org_config = OrgConfig(
-            {"id": "foo/1", "instance_url": "example.com", "access_token": "abc123"},
+            {
+                "id": "foo/1",
+                "instance_url": "https://example.com",
+                "access_token": "abc123",
+            },
             "test",
         )
-        self.base_tooling_url = "https://{}/services/data/v{}/tooling/".format(
+        self.base_tooling_url = "{}/services/data/v{}/tooling/".format(
             self.org_config.instance_url, self.api_version
         )
 

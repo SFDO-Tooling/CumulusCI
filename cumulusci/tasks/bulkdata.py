@@ -3,7 +3,6 @@ from future import standard_library
 standard_library.install_aliases()
 from builtins import zip
 from contextlib import contextmanager
-from urllib.parse import urljoin
 import csv
 import datetime
 import io
@@ -26,11 +25,10 @@ from sqlalchemy import Unicode
 from sqlalchemy import text
 from sqlalchemy import types
 from sqlalchemy import event
-import hiyapyco
 import requests
 import unicodecsv
 
-from cumulusci.core.utils import process_bool_arg
+from cumulusci.core.utils import process_bool_arg, ordered_yaml_load
 from cumulusci.core.exceptions import BulkDataException
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.utils import log_progress
@@ -61,7 +59,7 @@ def setup_epoch(inspector, table, column_info):
 
 class BulkJobTaskMixin(object):
     def _job_state_from_batches(self, job_id):
-        uri = urljoin(self.bulk.endpoint + "/", "job/{0}/batch".format(job_id))
+        uri = "{}/job/{}/batch".format(self.bulk.endpoint, job_id)
         response = requests.get(uri, headers=self.bulk.headers())
         return self._parse_job_state(response.content)
 
@@ -105,7 +103,7 @@ class BulkJobTaskMixin(object):
         return result
 
     def _sql_bulk_insert_from_csv(self, conn, table, columns, data_file):
-        if conn.dialect.name == "psycopg2":
+        if conn.dialect.name in ("postgresql", "psycopg2"):
             # psycopg2 (the postgres driver) supports COPY FROM
             # to efficiently bulk insert rows in CSV format
             with conn.connection.cursor() as cursor:
@@ -491,7 +489,8 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
         self.session = Session(self.engine)
 
     def _init_mapping(self):
-        self.mapping = hiyapyco.load(self.options["mapping"], loglevel="INFO")
+        with open(self.options["mapping"], "r") as f:
+            self.mapping = ordered_yaml_load(f)
 
 
 class QueryData(BulkJobTaskMixin, BaseSalesforceApiTask):
@@ -535,7 +534,8 @@ class QueryData(BulkJobTaskMixin, BaseSalesforceApiTask):
         self.session = create_session(bind=self.engine, autocommit=False)
 
     def _init_mapping(self):
-        self.mappings = hiyapyco.load(self.options["mapping"], loglevel="INFO")
+        with open(self.options["mapping"], "r") as f:
+            self.mappings = ordered_yaml_load(f)
 
     def _soql_for_mapping(self, mapping):
         sf_object = mapping["sf_object"]
@@ -569,9 +569,8 @@ class QueryData(BulkJobTaskMixin, BaseSalesforceApiTask):
         result_ids = self.bulk.get_query_batch_result_ids(batch_id, job_id=job_id)
         for result_id in result_ids:
             self.logger.info("Result id: {}".format(result_id))
-            uri = urljoin(
-                self.bulk.endpoint + "/",
-                "job/{0}/batch/{1}/result/{2}".format(job_id, batch_id, result_id),
+            uri = "{}/job/{}/batch/{}/result/{}".format(
+                self.bulk.endpoint, job_id, batch_id, result_id
             )
             with _download_file(uri, self.bulk) as f:
                 self.logger.info("Result {} downloaded".format(result_id))
@@ -579,7 +578,10 @@ class QueryData(BulkJobTaskMixin, BaseSalesforceApiTask):
 
     def _import_results(self, mapping, result_file, conn):
         # Map SF field names to local db column names
-        sf_header = result_file.readline().strip().decode("utf-8").split(",")
+        sf_header = [
+            name.strip('"')
+            for name in result_file.readline().strip().decode("utf-8").split(",")
+        ]
         columns = []
         for sf in sf_header:
             if sf == "Records not found for this query":
@@ -612,8 +614,6 @@ class QueryData(BulkJobTaskMixin, BaseSalesforceApiTask):
         model_name = "{}Model".format(mapping["table"])
         mapper_kwargs = {}
         table_kwargs = {}
-        if mapping["table"] in self.models:
-            raise BulkDataException("Table already exists: {}".format(mapping["table"]))
         self.models[mapping["table"]] = type(model_name, (object,), {})
 
         id_column = mapping["fields"].get("Id") or "id"
@@ -626,6 +626,8 @@ class QueryData(BulkJobTaskMixin, BaseSalesforceApiTask):
         if "record_type" in mapping:
             fields.append(Column("record_type", Unicode(255)))
         t = Table(mapping["table"], self.metadata, *fields, **table_kwargs)
+        if t.exists():
+            raise BulkDataException("Table already exists: {}".format(mapping["table"]))
 
         mapper(self.models[mapping["table"]], t, **mapper_kwargs)
 
@@ -654,6 +656,6 @@ def process_incoming_rows(f, record_type=None):
         record_type = record_type.encode("utf-8")
     for line in f:
         if record_type:
-            yield line + b"," + record_type + b"\n"
+            yield line.rstrip() + b"," + record_type + b"\n"
         else:
             yield line

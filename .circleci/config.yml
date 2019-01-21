@@ -21,7 +21,7 @@ jobs:
           name: Install dependencies
           command: |
             virtualenv venv
-            venv/bin/pip install black==18.6b4
+            venv/bin/pip install $(grep black requirements_dev.txt | cut -d';' -f 1)
       - run:
           name: Run black
           command: |
@@ -190,6 +190,7 @@ jobs:
             virtualenv venv
             venv/bin/pip install coverage coveralls
             venv/bin/coverage combine .coverage.*
+            venv/bin/coverage report -m
             venv/bin/coveralls
 
 

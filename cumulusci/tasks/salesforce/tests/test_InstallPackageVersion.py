@@ -1,6 +1,9 @@
+import base64
+import io
 import mock
 import responses
 import unittest
+import zipfile
 
 from cumulusci.salesforce_api.exceptions import MetadataApiError
 from cumulusci.salesforce_api.tests.metadata_test_strings import deploy_result
@@ -22,14 +25,17 @@ class TestInstallPackageVersion(unittest.TestCase):
         task()
         self.assertEqual(2, api.call_count)
 
-    def test_run_task__latest_beta(self):
+    def test_run_task__options(self):
         project_config = create_project_config()
         project_config.get_latest_version = mock.Mock(return_value="1.0 (Beta 1)")
         project_config.config["project"]["package"]["namespace"] = "ns"
         task = create_task(
-            InstallPackageVersion, {"version": "latest_beta"}, project_config
+            InstallPackageVersion,
+            {"version": "latest_beta", "activateRSS": True, "password": "astro"},
+            project_config,
         )
-        api = mock.Mock()
-        task.api_class = mock.Mock(return_value=api)
-        task()
-        api.assert_called_once()
+        api = task._get_api()
+        zf = zipfile.ZipFile(io.BytesIO(base64.b64decode(api.package_zip)), "r")
+        package_xml = zf.read("installedPackages/ns.installedPackage")
+        self.assertIn(b"<activateRSS>true</activateRSS", package_xml)
+        self.assertIn(b"<password>astro</password>", package_xml)

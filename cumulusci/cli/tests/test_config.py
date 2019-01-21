@@ -8,7 +8,7 @@ import unittest
 import click
 
 import cumulusci
-from ..config import CliConfig
+from cumulusci.cli.config import CliConfig
 from cumulusci.core.config import OrgConfig
 from cumulusci.core.exceptions import ConfigError
 from cumulusci.core.exceptions import NotInProject
@@ -34,29 +34,25 @@ class TestCliConfig(unittest.TestCase):
             self.assertIn(key, config.keychain.config)
         self.assertIn(config.project_config.repo_root, sys.path)
 
-    def test_load_project_not_in_project(self):
-        config = CliConfig()
-        config.global_config.get_project_config = mock.Mock(side_effect=NotInProject)
+    @mock.patch("cumulusci.cli.config.CliConfig._load_project_config")
+    def test_load_project_not_in_project(self, load_proj_cfg_mock):
+        load_proj_cfg_mock.side_effect = NotInProject
 
         with self.assertRaises(click.UsageError):
-            config._load_project_config()
+            CliConfig()
 
-    def test_load_project_config_no_file(self):
-        config = CliConfig()
-        config.project_config = None
-        config.global_config.get_project_config = mock.Mock(
-            side_effect=ProjectConfigNotFound
-        )
+    @mock.patch("cumulusci.cli.config.CliConfig._load_project_config")
+    def test_load_project_config_no_file(self, load_proj_cfg_mock):
+        load_proj_cfg_mock.side_effect = ProjectConfigNotFound
         with self.assertRaises(click.UsageError):
-            config._load_project_config()
+            CliConfig()
 
-    def test_load_project_config_error(self):
-        config = CliConfig()
-        config.project_config = None
-        config.global_config.get_project_config = mock.Mock(side_effect=ConfigError)
+    @mock.patch("cumulusci.cli.config.CliConfig._load_project_config")
+    def test_load_project_config_error(self, load_proj_cfg_mock):
+        load_proj_cfg_mock.side_effect = ConfigError
 
         with self.assertRaises(click.UsageError):
-            config._load_project_config()
+            CliConfig()
 
     def test_load_keychain__no_key(self):
         with mock.patch.dict(os.environ, {"CUMULUSCI_KEY": ""}):
@@ -157,15 +153,29 @@ class TestCliConfig(unittest.TestCase):
 
     @mock.patch("cumulusci.cli.config.call")
     @mock.patch("cumulusci.cli.config.click.echo")
-    def test_alert(self, shell_mock, echo_mock):
+    @mock.patch("sys.platform", "darwin")
+    def test_alert_osx(self, echo_mock, shell_mock):
         config = CliConfig()
 
         config.alert("hello")
         echo_mock.assert_called_once()
         shell_mock.assert_called_once()
+        self.assertIn("osascript", shell_mock.call_args[0][0])
 
     @mock.patch("cumulusci.cli.config.call")
     @mock.patch("cumulusci.cli.config.click.echo")
+    @mock.patch("sys.platform", "linux2")
+    def test_alert_linux(self, echo_mock, shell_mock):
+        config = CliConfig()
+
+        config.alert("hello")
+        echo_mock.assert_called_once()
+        shell_mock.assert_called_once()
+        self.assertIn("notify-send", shell_mock.call_args[0][0])
+
+    @mock.patch("cumulusci.cli.config.call")
+    @mock.patch("cumulusci.cli.config.click.echo")
+    @mock.patch("sys.platform", "darwin")
     def test_alert__disabled(self, echo_mock, shell_mock):
         config = CliConfig()
         config.project_config.dev_config__no_alert = True
@@ -176,6 +186,7 @@ class TestCliConfig(unittest.TestCase):
 
     @mock.patch("cumulusci.cli.config.call")
     @mock.patch("cumulusci.cli.config.click.echo")
+    @mock.patch("sys.platform", "darwin")
     def test_alert__os_error(self, echo_mock, shell_mock):
         shell_mock.side_effect = OSError
         config = CliConfig()

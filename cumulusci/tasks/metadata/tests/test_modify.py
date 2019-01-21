@@ -17,7 +17,9 @@ class TestRemoveElementsXPath(unittest.TestCase):
             with open(xml_path, "w") as f:
                 f.write("<root><todelete /></root>")
 
-            project_config = BaseProjectConfig(BaseGlobalConfig())
+            project_config = BaseProjectConfig(
+                BaseGlobalConfig(), config={"noyaml": True}
+            )
             task_config = TaskConfig(
                 {
                     "options": {

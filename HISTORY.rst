@@ -2,6 +2,196 @@
 History
 =======
 
+2.2.6 (2019-01-03)
+------------------
+
+Changes:
+
+* Added support for more metadata types: Group, SharingSet, SharingCriteriaRule, SharingOwnerRule, and SharingTerritoryRule.
+* Release process: We now have tools in place to release cumulusci so that it can be installed using Homebrew or Linuxbrew.
+
+Issues Closed:
+
+* Fixed an issue where tasks using the Salesforce REST API could build a wrong URL with an extra slash after the instance URL.
+* Fixed an issue where overriding a flow step to set flow: None did not work.
+* Robot Framework: Added an automatic retry to work around an issue with an intermittent ConnectionResetError when connecting to headless Chrome in Python 3.
+
+2.2.5 (2018-12-26)
+------------------
+
+* The ``install_managed`` and ``install_managed_beta`` tasks now take optional ``activateRSS`` and ``password`` options. ``activateRSS`` is set to true by default so that any active Remote Site Settings in the package will remain active when installed.
+
+* When running a task with the ``--debug`` flag, HTTP requests are now logged.
+
+* Robot Framework:
+
+  * Fix issue where "Get Current Record Id" could accidentally match the object name instead of the record Id.
+  * Fix issue where "Load Related List" would fail to scroll down to the list.
+  * Fix issue where errors deleting records during test teardown would cause a hidden test failure.
+
+
+2.2.4 (2018-12-17)
+------------------
+
+Changes:
+
+* Bulk query task:
+
+  * Fixed an issue with querying data filtered by record type (#904).
+  * Fixed an issue where the optimized approach for loading data into PostgreSQL was not used.
+  * The task will now prevent you from accidentally overwriting existing data by exiting with an error if the table already exists.
+
+* The ``deploy`` task now logs the size of the zip payload in bytes.
+
+* Fixed a TypeError in the ``commit_apex_docs`` task (#901).
+
+* Robot Framework:
+
+  * Add location strategies for locating elements by text and by title.
+
+2.2.3 (2018-12-07)
+------------------
+
+Changes:
+
+* Improved error messages when scratch org creation failed and when a service is not configured.
+* Robot Framework: Limit how long the "Load Related List" keyword will wait.
+
+2.2.2 (2018-11-27)
+------------------
+
+Changes:
+
+* Improved error handling during scratch org creation:
+
+  * Capture and display stderr output from SFDX (issue #413).
+  * Avoid infinite recursion if username wasn't found in output from SFDX.
+
+* Robot Framework: Increased the timeout for initial loading of the browser.
+
+
+2.2.1 (2018-11-21)
+------------------
+
+Oops, an update in CumulusCI 2.2.0 ended up breaking the update_dependencies task! Now fixed.
+
+2.2.0 (2018-11-21)
+------------------
+
+Changes:
+
+* Tasks can now be placed in groups for the task list! Just specify a ``group`` when defining the task in YAML.
+
+* By popular request, there is now an ``org import`` command to import an org from the SFDX keychain to the CumulusCI keychain. It takes two arguments: the SFDX username or alias, and the org name.
+
+* Robot Framework:
+
+  * The ``Populate Field`` keyword now clears an existing value using keystrokes to make sure that change events are fired.
+  * Added a ``Get Namespace Prefix`` keyword to the CumulusCI library to get the namespace prefix for a package.
+  * Fixed a bug that broke opening a browser after using the ``Run Task`` keyword.
+
+* Documentation updates:
+
+  * The readme now includes a link to the full documentation.
+  * The instructions for installing CumulusCI on macOS have been simplified and now recommend using the official Python installer from python.org instead of Homebrew. (Homebrew should still work fine, but is no longer necessary.) We also now suggest creating a virtualenv using venv rather than pyenv since the former is included with Python. It's fine to continue using pyenv if you want.
+  * Give more useful links for how to set up SFDX.
+  * Updated robot library docs.
+
+* Internal refactoring:
+
+  * Removed dependency on HiYaPyCo for YAML loading, which would not report which file failed to load in the event of a YAML parse error.
+  * We now consistently load YAML in the same manner throughout the entire library, which will work with all supported Python versions.
+  * Simplified the Python API for setting up a CumulusCI runtime. Begone, YamlGlobalConfig and YamlProjectConfig. Our Python API is not yet documented, but we're working on it. In the meantime, if you were relying on running CCI from within Python, you can now just use BaseGlobalConfig (and its get_project_config member) to bootstrap CCI.
+  * BaseProjectConfig has shrugged off some methods that just delegated to the keychain.
+  * BaseGlobalConfig has shrugged off some unimplemented methods, and BaseGlobalConfig.get_project_config is now deprecated in favor of using a runtime.
+  * Introducing... 🥁CumulusCIRuntime! In order to alleviate the complexities of getting CumulusCI tasks/flows running from within a Python application, CumulusCIRuntime encapsulates a lot of the details and wiring between Keychain, GlobalConfig, and ProjectConfig. Usage docs are barely included.
+  * CliConfig has been renamed to CliRuntime and now inherits from CumulusCIRuntime. It is still accessible as CliConfig.
+  * Upgraded dependencies.
+
+* Contributor improvement: The contributor docs now explain how to install pre-commit hooks to make sure our linters have run before you commit.
+
+Issues Closed:
+
+* #674: ``cci org import <username> <org_name>``
+* #877: CumulusCI should be able to connect to any DX alias and/or understand dx auth files
+
+2.1.2 (2018-10-29)
+------------------
+
+Oops, we broke a few things! This is a bugfix release to fix a few issues found during the Salesforce.org Open Source Community Sprint last week.
+
+Issues Closed:
+
+* #858 Dataload bulk query fails to load data into the sqlite db
+* #862 CLI options fail on robot task in 2.1.1
+* #864 Deploying a -meta.xml file with non-ASCII characters breaks in Python 2
+
+2.1.1 (2018-10-23)
+------------------
+
+Changes:
+
+* Our robotframework library for Salesforce got a number of improvements:
+
+  * New keywords:
+
+    * ``Click Header Field Link``: Clicks a link in a record header
+    * ``Load Related List``: Scrolls to a related list and waits for it to load
+    * ``Click Related List Button``: Clicks a button in the header of a related list
+    * ``Click Related Item Link``: Clicks the main link for an item in a related list
+    * ``Click Related Item Popup Link``: Clicks a link in the popup menu for an item in a related list
+
+  * Updated to ``robotframework-seleniumlibrary`` 3.2.0 which includes a ``Scroll Element Into View`` keyword.
+  * ``Wait Until Loading Is Complete`` now waits for the main body of the page to render
+  * ``Populate Lookup Field`` now tries several times in case there's an indexing delay
+  * Added a ``-o verbose True`` option to the robot task which logs each keyword as it runs.
+  * We now ignore errors while running the script that waits for XHRs to complete
+    (it can fail if the page reloads before the script finishes).
+
+* Popup notifications upon completion of a flow or task now work on Linux too,
+  if you have the ``notify-send`` command from libnotify.
+  On Ubuntu, install the ``notify-osd`` package.
+
+Issues Closed:
+
+* #827 Bulk data load breaks in Python 2
+* #832 pip install cumulusci gets the wrong version of urllib3
+
+2.1.1b1 (2018-10-17)
+--------------------
+
+* ``uninstall_packaged_incremental`` task: Added ``ignore`` option to specify components to skip trying to delete even if they are present in the org but not in the local source.
+
+2.1.0 (2018-10-16)
+------------------
+
+* Fixed the ``cci project init`` command, which was failing because it wanted
+  the project to already exist! Fixes #816. In addition, other commands
+  will now function without an active project or keychain when it possible
+  to do so. (For example, try ``cci version`` which now works when you're
+  not in a project directory.)
+* ``update_dependencies`` task:
+    * Added support for installing private github repositories as dependencies.
+      Thanks to Anthony Backhouse (@1handclapping) for the patch. Fixes #793
+    * Added a ``dependencies`` option to override the project dependencies.
+* ``execute_apex`` task:
+    * Print more useful error messages when there are Apex exceptions.
+* ``robot`` task:
+    * Our logic for automatically retrying failed selenium commands has been
+      encapsulated into the ``cumulusci.robotframework.utils.selenium_retry``
+      decorator which can be applied to a robot library class for increased
+      stability.
+    * There is now an option to pause and enter the Python debugger
+      after a keyword fails. Run with ``-o pdb True``.
+    * Revised keywords and locators to support the Winter '19 release of Salesforce
+      and improve stability.
+    * The ``Salesforce.robot`` file now includes the ``OperatingSystem`` and ``XML``
+      libraries from Robot Framework by default. These libraries are helpful in
+      building integration tests such as modifying and deploying a PageLayout
+      to include a field needed in Suite Setup of an integration test.
+* Revised installation instructions for Windows. Thanks Matthew Blanski (@Auchtor).
+* Internal change: Use a thread-local variable instead of a global to track the current running task.
+
 2.1.0b1 (2018-10-05)
 --------------------
 

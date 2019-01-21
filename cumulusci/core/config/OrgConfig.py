@@ -34,9 +34,12 @@ class OrgConfig(BaseConfig):
             connected_app.callback_url,  # Callback url isn't really used for this call
             auth_site=self.instance_url,
         )
-        resp = sf_oauth.refresh_token(self.refresh_token).json()
-        if resp != self.config:
-            self.config.update(resp)
+
+        resp = sf_oauth.refresh_token(self.refresh_token)
+        resp.raise_for_status()
+        info = resp.json()
+        if info != self.config:
+            self.config.update(info)
         self._load_userinfo()
 
     @property

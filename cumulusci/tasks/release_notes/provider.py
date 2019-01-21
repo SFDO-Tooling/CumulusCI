@@ -5,6 +5,8 @@ import time
 from datetime import datetime
 from distutils.version import LooseVersion
 
+import github3.exceptions
+
 from cumulusci.core.exceptions import GithubApiError
 from cumulusci.core.exceptions import GithubApiNoResultsError
 from cumulusci.core.exceptions import GithubApiNotFoundError
@@ -96,7 +98,7 @@ class GithubChangeNotesProvider(BaseChangeNotesProvider):
         return self._last_tag_info
 
     def _get_commit_info(self, tag):
-        return self.repo.commit(tag.object.sha)
+        return self.repo.git_commit(tag.object.sha)
 
     @property
     def start_date(self):
@@ -108,12 +110,13 @@ class GithubChangeNotesProvider(BaseChangeNotesProvider):
             return self._get_commit_date(self.last_tag_info["commit"])
 
     def _get_commit_date(self, commit):
-        t = time.strptime(commit.commit.author["date"], "%Y-%m-%dT%H:%M:%SZ")
+        t = time.strptime(commit.author["date"], "%Y-%m-%dT%H:%M:%SZ")
         return datetime(t[0], t[1], t[2], t[3], t[4], t[5], t[6], pytz.UTC)
 
     def _get_tag_info(self, tag_name):
-        tag = self.repo.ref("tags/{}".format(tag_name))
-        if not tag:
+        try:
+            tag = self.repo.ref("tags/{}".format(tag_name))
+        except github3.exceptions.NotFoundError:
             raise GithubApiNotFoundError("Tag not found: {}".format(tag_name))
         if tag.object.type != "tag":
             raise GithubApiError(
@@ -136,7 +139,7 @@ class GithubChangeNotesProvider(BaseChangeNotesProvider):
         )
 
         versions = []
-        for tag in self.repo.iter_tags():
+        for tag in self.repo.tags():
             if not tag.name.startswith(self.github_info["prefix_prod"]):
                 continue
             version = LooseVersion(self._get_version_from_tag(tag.name))
@@ -150,7 +153,7 @@ class GithubChangeNotesProvider(BaseChangeNotesProvider):
     def _get_pull_requests(self):
         """ Gets all pull requests from the repo since we can't do a filtered
         date merged search """
-        for pull in self.repo.iter_pulls(
+        for pull in self.repo.pull_requests(
             state="closed", base=self.github_info["master_branch"], direction="asc"
         ):
             if self._include_pull_request(pull):

@@ -23,7 +23,7 @@ class BaseSalesforceApiTask(BaseSalesforceTask):
             api_version = self.project_config.project__package__api_version
 
         rv = Salesforce(
-            instance=self.org_config.instance_url.replace("https://", ""),
+            instance_url=self.org_config.instance_url,
             session_id=self.org_config.access_token,
             version=api_version,
         )
@@ -38,7 +38,7 @@ class BaseSalesforceApiTask(BaseSalesforceTask):
 
     def _init_bulk(self):
         return SalesforceBulk(
-            host=self.org_config.instance_url.replace("https://", ""),
+            host=self.org_config.instance_url.replace("https://", "").rstrip("/"),
             sessionId=self.org_config.access_token,
         )
 

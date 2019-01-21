@@ -9,7 +9,6 @@ from cumulusci.core.config import BaseGlobalConfig
 from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.config import BaseTaskFlowConfig
 from cumulusci.core.config import OrgConfig
-from cumulusci.core.config import TaskConfig
 from cumulusci.core.exceptions import ConfigError
 from cumulusci.core.exceptions import DependencyResolutionError
 from cumulusci.core.exceptions import KeychainNotFound
@@ -80,53 +79,6 @@ class TestBaseConfig(unittest.TestCase):
         config.defaults = {"foo__bar": "default"}
         self.assertEqual(config.foo__bar, "default")
 
-    def test_getattr_empty_search_path(self):
-        config = BaseConfig()
-        config.search_path = []
-        self.assertEqual(config.foo, None)
-
-    def test_getattr_search_path_no_match(self):
-        config = BaseConfig()
-        config.search_path = ["_first", "_middle", "_last"]
-        config._first = {}
-        config._middle = {}
-        config._last = {}
-        self.assertEqual(config.foo, None)
-
-    def test_getattr_search_path_match_first(self):
-        config = BaseConfig()
-        config.search_path = ["_first", "_middle", "_last"]
-        config._first = {"foo": "bar"}
-        config._middle = {}
-        config._last = {}
-        self.assertEqual(config.foo, "bar")
-
-    def test_getattr_search_path_match_middle(self):
-        config = BaseConfig()
-        config.search_path = ["_first", "_middle", "_last"]
-        config._first = {}
-        config._middle = {"foo": "bar"}
-        config._last = {}
-        self.assertEqual(config.foo, "bar")
-
-    def test_getattr_search_path_match_last(self):
-        config = BaseConfig()
-        config.search_path = ["_first", "_middle", "_last"]
-        config._first = {}
-        config._middle = {}
-        config._last = {"foo": "bar"}
-        self.assertEqual(config.foo, "bar")
-
-
-class TestBaseGlobalConfig(unittest.TestCase):
-    def test_list_projects(self):
-        with self.assertRaises(NotImplementedError):
-            BaseGlobalConfig().list_projects()
-
-    def test_create_project(self):
-        with self.assertRaises(NotImplementedError):
-            BaseGlobalConfig().create_project("test", {})
-
 
 class DummyContents(object):
     def __init__(self, content):
@@ -142,9 +94,15 @@ class DummyRepository(object):
         self.name = name
         self.html_url = "https://github.com/{}/{}".format(owner, name)
         self._contents = contents
-        self.releases = releases
+        self._releases = releases
 
-    def contents(self, path, **kw):
+    def file_contents(self, path, **kw):
+        try:
+            return self._contents[path]
+        except KeyError:
+            raise AssertionError("Accessed unexpected file: {}".format(path))
+
+    def directory_contents(self, path, **kw):
         try:
             return self._contents[path]
         except KeyError:
@@ -158,8 +116,13 @@ class DummyRepository(object):
         res.json.return_value = {"name": "2"}
         return res
 
-    def iter_releases(self):
-        return iter(self.releases)
+    def releases(self):
+        return iter(self._releases)
+
+    def latest_release(self):
+        for release in self._releases:
+            if release.tag_name.startswith("release/"):
+                return release
 
 
 class DummyRelease(object):
@@ -217,9 +180,9 @@ CUMULUSCI_REPO = DummyRepository(
     "CumulusCI",
     {},
     [
-        DummyRelease("beta/1.0-Beta_1"),
-        DummyRelease("beta/bogus"),
         DummyRelease("release/1.0"),
+        DummyRelease("beta/bogus"),
+        DummyRelease("beta/1.0-Beta_1"),
     ],
 )
 
@@ -272,8 +235,8 @@ class TestBaseProjectConfig(unittest.TestCase):
             "CUMULUSCI_REPO_ROOT": ".",
             "CUMULUSCI_REPO_URL": "https://github.com/SFDO-Tooling/CumulusCI-Test.git",
         }
-        config = BaseProjectConfig(BaseGlobalConfig())
         with mock.patch.dict(os.environ, env):
+            config = BaseProjectConfig(BaseGlobalConfig())
             result = config.repo_info
         self.assertEqual(
             {
@@ -298,9 +261,9 @@ class TestBaseProjectConfig(unittest.TestCase):
             "CUMULUSCI_REPO_COMMIT": "HEAD~1",
             "CUMULUSCI_REPO_ROOT": ".",
         }
-        config = BaseProjectConfig(BaseGlobalConfig())
         with mock.patch.dict(os.environ, env):
             with self.assertRaises(ConfigError):
+                config = BaseProjectConfig(BaseGlobalConfig())
                 config.repo_info
 
     def test_repo_root_from_env(self):
@@ -413,6 +376,19 @@ class TestBaseProjectConfig(unittest.TestCase):
             },
         )
         config.get_github_api = DummyGithub
+        result = config.get_latest_version()
+        self.assertEqual("1.0", result)
+
+    def test_get_latest_version_beta(self):
+        config = BaseProjectConfig(
+            BaseGlobalConfig(),
+            {
+                "project": {
+                    "git": {"prefix_beta": "beta/", "prefix_release": "release/"}
+                }
+            },
+        )
+        config.get_github_api = DummyGithub
         result = config.get_latest_version(beta=True)
         self.assertEqual("1.0 (Beta 1)", result)
 
@@ -449,25 +425,6 @@ class TestBaseProjectConfig(unittest.TestCase):
         with self.assertRaises(KeychainNotFound):
             config._check_keychain()
 
-    def test_list_orgs(self):
-        config = BaseProjectConfig(BaseGlobalConfig())
-        config.keychain = mock.Mock()
-        config.keychain.list_orgs.return_value = mock.sentinel.orgs
-        self.assertIs(mock.sentinel.orgs, config.list_orgs())
-
-    def test_get_org(self):
-        config = BaseProjectConfig(BaseGlobalConfig())
-        config.keychain = mock.Mock()
-        config.keychain.get_org.return_value = mock.sentinel.org
-        self.assertIs(mock.sentinel.org, config.get_org("test"))
-
-    def test_set_org(self):
-        config = BaseProjectConfig(BaseGlobalConfig())
-        config.keychain = mock.Mock()
-        org_config = mock.Mock()
-        config.set_org("test", org_config)
-        config.keychain.set_org.assert_called_once_with(org_config)
-
     def test_get_static_dependencies(self):
         dep = {"namespace": "npsp", "version": "3"}
         config = BaseProjectConfig(
@@ -484,17 +441,14 @@ class TestBaseProjectConfig(unittest.TestCase):
             "namespace": "npsp",
             "version": "3",
             "boolean": False,
-            "dependencies": [
-                {"namespace": "npe01", "version": "1", "dependencies": []}
-            ],
+            "dependencies": [{"repo_name": "TestRepo", "dependencies": []}],
         }
         config = BaseProjectConfig(BaseGlobalConfig())
         result = "\n".join(config.pretty_dependencies([dep]))
         self.assertEqual(
             """  - dependencies: 
     
-      - namespace: npe01
-        version: 1
+      - repo_name: TestRepo
     namespace: npsp
     version: 3""",
             result,
@@ -517,7 +471,8 @@ class TestBaseProjectConfig(unittest.TestCase):
             result,
             [
                 {
-                    u"repo": CUMULUSCI_TEST_REPO,
+                    u"repo_owner": "SFDO-Tooling",
+                    u"repo_name": "CumulusCI-Test",
                     u"ref": None,
                     u"subfolder": u"unpackaged/pre/pre",
                     u"unmanaged": True,
@@ -527,7 +482,8 @@ class TestBaseProjectConfig(unittest.TestCase):
                 },
                 {u"version": "2", u"namespace": "ccitestdep"},
                 {
-                    u"repo": CUMULUSCI_TEST_REPO,
+                    u"repo_owner": "SFDO-Tooling",
+                    u"repo_name": "CumulusCI-Test",
                     u"ref": None,
                     u"subfolder": u"src",
                     u"unmanaged": True,
@@ -536,7 +492,8 @@ class TestBaseProjectConfig(unittest.TestCase):
                     u"namespace_tokenize": None,
                 },
                 {
-                    u"repo": CUMULUSCI_TEST_REPO,
+                    u"repo_owner": "SFDO-Tooling",
+                    u"repo_name": "CumulusCI-Test",
                     u"ref": None,
                     u"subfolder": u"unpackaged/post/post",
                     u"unmanaged": True,
@@ -573,7 +530,7 @@ class TestBaseProjectConfig(unittest.TestCase):
         config = BaseProjectConfig(global_config)
         config.get_github_api = DummyGithub
         config.keychain = DummyKeychain()
-        CUMULUSCI_TEST_DEP_REPO.releases = [
+        CUMULUSCI_TEST_DEP_REPO._releases = [
             DummyRelease("beta/1.1-Beta_1", "1.1 (Beta 1)"),
             DummyRelease("release/1.0"),
         ]
@@ -591,7 +548,8 @@ class TestBaseProjectConfig(unittest.TestCase):
             result,
             [
                 {
-                    u"repo": CUMULUSCI_TEST_REPO,
+                    u"repo_owner": "SFDO-Tooling",
+                    u"repo_name": "CumulusCI-Test",
                     u"ref": None,
                     u"subfolder": u"unpackaged/pre/pre",
                     u"unmanaged": True,
@@ -601,7 +559,8 @@ class TestBaseProjectConfig(unittest.TestCase):
                 },
                 {u"version": "1.1 (Beta 1)", u"namespace": "ccitestdep"},
                 {
-                    u"repo": CUMULUSCI_TEST_REPO,
+                    u"repo_owner": "SFDO-Tooling",
+                    u"repo_name": "CumulusCI-Test",
                     u"ref": None,
                     u"subfolder": u"src",
                     u"unmanaged": True,
@@ -610,7 +569,8 @@ class TestBaseProjectConfig(unittest.TestCase):
                     u"namespace_tokenize": None,
                 },
                 {
-                    u"repo": CUMULUSCI_TEST_REPO,
+                    u"repo_owner": "SFDO-Tooling",
+                    u"repo_name": "CumulusCI-Test",
                     u"ref": None,
                     u"subfolder": u"unpackaged/post/post",
                     u"unmanaged": True,
@@ -620,7 +580,7 @@ class TestBaseProjectConfig(unittest.TestCase):
                 },
             ],
         )
-        CUMULUSCI_TEST_DEP_REPO.releases = None
+        CUMULUSCI_TEST_DEP_REPO._releases = None
 
     def test_process_github_dependency_cannot_find_latest(self):
         global_config = BaseGlobalConfig()

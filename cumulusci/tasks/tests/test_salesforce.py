@@ -22,7 +22,9 @@ class TestSalesforceToolingTask(unittest.TestCase):
         self.global_config = BaseGlobalConfig(
             {"project": {"package": {"api_version": self.api_version}}}
         )
-        self.project_config = BaseProjectConfig(self.global_config)
+        self.project_config = BaseProjectConfig(
+            self.global_config, config={"noyaml": True}
+        )
         self.project_config.config["project"] = {
             "package": {"api_version": self.api_version}
         }
@@ -34,9 +36,9 @@ class TestSalesforceToolingTask(unittest.TestCase):
 
         self.task_config = TaskConfig()
         self.org_config = OrgConfig(
-            {"instance_url": "example.com", "access_token": "abc123"}, "test"
+            {"instance_url": "https://example.com", "access_token": "abc123"}, "test"
         )
-        self.base_tooling_url = "https://{}/services/data/v{}/tooling/".format(
+        self.base_tooling_url = "{}/services/data/v{}/tooling/".format(
             self.org_config.instance_url, self.api_version
         )
 

@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 from future import standard_library
+from future.utils import text_to_native_str
 
 standard_library.install_aliases()
 from builtins import str
@@ -25,6 +26,7 @@ CUMULUSCI_PATH = os.path.realpath(
 META_XML_CLEAN_DIRS = ("classes/", "triggers/", "pages/", "aura/", "components/")
 API_DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%f"
 DATETIME_LEN = len("2018-08-07T16:00:56.000")
+UTF8 = text_to_native_str("UTF-8")
 
 
 def parse_api_datetime(value):
@@ -102,7 +104,7 @@ def remove_xml_element_file(name, path):
     ET.register_namespace("", "http://soap.sforce.com/2006/04/metadata")
     tree = elementtree_parse_file(path)
     tree = remove_xml_element(name, tree)
-    return tree.write(path, encoding="UTF-8", xml_declaration=True)
+    return tree.write(path, encoding=UTF8, xml_declaration=True)
 
 
 def remove_xml_element_string(name, content):
@@ -110,7 +112,7 @@ def remove_xml_element_string(name, content):
     ET.register_namespace("", "http://soap.sforce.com/2006/04/metadata")
     tree = ET.fromstring(content)
     tree = remove_xml_element(name, tree)
-    clean_content = ET.tostring(tree, encoding="UTF-8")
+    clean_content = ET.tostring(tree, encoding=UTF8)
     return clean_content
 
 
@@ -146,7 +148,8 @@ def download_extract_zip(url, target=None, subfolder=None, headers=None):
     return zip_file
 
 
-def download_extract_github(github_repo, subfolder, ref=None):
+def download_extract_github(github_api, repo_owner, repo_name, subfolder, ref=None):
+    github_repo = github_api.repository(repo_owner, repo_name)
     if not ref:
         ref = github_repo.default_branch
     zip_content = io.BytesIO()
@@ -338,9 +341,10 @@ def zip_clean_metaxml(zip_src, logger=None):
         content = zip_src.read(name)
         if name.startswith(META_XML_CLEAN_DIRS) and name.endswith("-meta.xml"):
             try:
-                content = content.decode("utf-8")
+                content.decode("utf-8")
             except UnicodeDecodeError:
-                # if we cannot decode the content, don't try and replace it.
+                # if we cannot decode the content, it may be binary;
+                # don't try and replace it.
                 pass
             else:
                 clean_content = remove_xml_element_string("packageVersions", content)
