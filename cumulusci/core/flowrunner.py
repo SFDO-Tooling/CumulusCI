@@ -152,7 +152,7 @@ class FlowCallback(object):
             def __init__(self, model):
                 self.model = model
 
-            def post_task(self):
+            def post_task(self, step, result):
                 # do something to record state on self.model
 
     (An instance of the custom FlowCallback class would be passed to FlowCoordinator.)
