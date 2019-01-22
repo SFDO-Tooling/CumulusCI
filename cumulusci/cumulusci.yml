@@ -151,6 +151,10 @@ tasks:
         description: Publishes a release to the mrbelvedere web installer
         class_path: cumulusci.tasks.mrbelvedere.MrbelvederePublish
         group: Release Management
+    metadeploy_publish:
+        description: Publishes an installation plan to MetaDeploy
+        class_path: cumulusci.tasks.metadeploy.Publish
+        group: Release Management
     push_all:
         description: Schedules a push upgrade of a package version to all subscribers
         class_path: cumulusci.tasks.push.tasks.SchedulePushOrgQuery
@@ -662,6 +666,15 @@ services:
         required: True
       token:
         description: Your API token to the MetaCI site (get from SITE_URL/api/token)
+        required: True
+  metadeploy:
+    description: Connect with a MetaDeploy site to publish installers from this repository
+    attributes:
+      url:
+        description: The main url for your MetaDeploy instance.
+        required: True
+      token:
+        description: Your API token to the MetaDeploy site (get from SITE_URL/admin/authtoken/token)
         required: True
   mrbelvedere:
     description: Configure connection for mrbelvedere tasks, e.g. MrbelvederePublish
