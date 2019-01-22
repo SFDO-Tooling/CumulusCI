@@ -45,7 +45,6 @@ from cumulusci.core.exceptions import ProjectConfigNotFound
 from cumulusci.core.exceptions import ScratchOrgException
 from cumulusci.core.exceptions import ServiceNotConfigured
 from cumulusci.core.exceptions import TaskNotFoundError
-from cumulusci.core.flows import BaseFlow
 from cumulusci.core.utils import import_class
 from cumulusci.cli.config import CliConfig
 from cumulusci.cli.config import get_installed_version
@@ -1127,30 +1126,20 @@ def flow_run(config, flow_name, org, delete_org, debug, o, skip, no_prompt):
 
     # Get necessary configs
     org, org_config = config.get_org(org)
-
     if delete_org and not org_config.scratch:
         raise click.UsageError("--delete-org can only be used with a scratch org")
 
-    flow_config = config.project_config.get_flow(flow_name)
-
-    # Parse command line options and add to task config
+    # Parse command line options
     options = {}
     if o:
-        for option in o:
-            options[option[0]] = option[1]
+        for key, value in o:
+            task_name, option_name = key.split("__")
+            options[key] = value
 
     # Create the flow and handle initialization exceptions
     try:
-        flow = BaseFlow(
-            config.project_config,
-            flow_config,
-            org_config,
-            options,
-            skip,
-            name=flow_name,
-        )
-
-        flow()
+        coordinator = config.get_flow(flow_name, options=options)
+        coordinator.run(org_config)
     except CumulusCIUsageError as e:
         exception = click.UsageError(str(e))
         handle_exception_debug(config, debug, throw_exception=exception)
