@@ -158,10 +158,10 @@ class FlowCallback(object):
     (An instance of the custom FlowCallback class would be passed to FlowCoordinator.)
     """
 
-    def pre_flow(self):
+    def pre_flow(self, coordinator):
         pass
 
-    def post_flow(self):
+    def post_flow(self, coordinator):
         pass
 
     def pre_task(self, step):
@@ -299,7 +299,7 @@ class FlowCoordinator(object):
 
         # Give pre_flow callback a chance to alter the steps
         # based on the state of the org before we display the steps.
-        self.callbacks.pre_flow()
+        self.callbacks.pre_flow(self)
 
         self._rule(fill="-")
         self.logger.info("Steps:")
@@ -333,7 +333,7 @@ class FlowCoordinator(object):
                 if result.exception and not step.allow_failure:
                     raise result.exception  # PY3: raise an exception type we control *from* this exception instead?
         finally:
-            self.callbacks.post_flow()
+            self.callbacks.post_flow(self)
 
     def _init_logger(self):
         """

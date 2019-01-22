@@ -56,14 +56,6 @@ class BaseCumulusCI(object):
         return None
 
     @property
-    def callback_cls(self):
-        klass = self.get_callback_class()
-        return klass or self.callback_class
-
-    def get_callback_class(self):
-        return None
-
-    @property
     def keychain_key(self):
         return self.get_keychain_key()
 
@@ -89,7 +81,7 @@ class BaseCumulusCI(object):
     def get_flow(self, name, options=None):
         """ Get a primed and readytogo flow coordinator. """
         config = self.project_config.get_flow(name)
-        callbacks = self.callback_cls()
+        callbacks = self.callback_class()
         coordinator = FlowCoordinator(
             self.project_config,
             config,
