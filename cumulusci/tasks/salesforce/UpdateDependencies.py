@@ -1,3 +1,5 @@
+import json
+
 from builtins import str
 from distutils.version import LooseVersion
 
@@ -282,3 +284,43 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
             self, package_zip(), purge_on_delete=self.options["purge_on_delete"]
         )
         return api()
+
+    def freeze(self, step):
+        dependencies = self.project_config.get_static_dependencies(
+            self.options["dependencies"], include_beta=self.options["include_beta"]
+        )
+        steps = []
+        for i, dependency in enumerate(_flatten(dependencies), start=1):
+            if "namespace" in dependency:
+                kind = "managed"
+                # @@@ we want the package name, not namespace
+                name = "Install {}".format(dependency["namespace"])
+            else:
+                kind = "metadata"
+                # @@@ we want a friendly name from...where?
+                name = "Deploy {}".format(dependency["subfolder"])
+            task_config = {"options": self.options.copy()}
+            task_config["options"]["dependencies"] = [dependency]
+            steps.append(
+                {
+                    "name": name,
+                    "path": "{}.{}".format(step.path, i),
+                    "step_num": "{}.{}".format(step.step_num, i),
+                    "kind": kind,
+                    "is_required": True,
+                    "task_class": self.task_config.class_path,
+                    "task_config": json.dumps(task_config),
+                }
+            )
+        return steps
+
+
+def _flatten(dependencies):
+    result = []
+    for dependency in dependencies:
+        subdeps = dependency.pop("dependencies", [])
+        for subdep in _flatten(subdeps):
+            if subdep not in result:
+                result.append(subdep)
+        result.append(dependency)
+    return result

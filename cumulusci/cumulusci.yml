@@ -558,6 +558,16 @@ flows:
             3:
                 flow: config_managed
 
+    install_prod_no_config:
+        description: Install but do not configure the latest production version
+        steps:
+            1:
+                flow: dependencies
+            2:
+                task: install_managed
+            3:
+                task: deploy_post
+
     release_beta:
         description: Upload and release a beta version of the metadata currently in packaging
         steps:

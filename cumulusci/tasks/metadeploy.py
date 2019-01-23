@@ -1,6 +1,6 @@
-import json
 import requests
 
+from cumulusci.core.config import TaskConfig
 from cumulusci.core.tasks import BaseTask
 from cumulusci.core.flowrunner import FlowCoordinator
 
@@ -64,6 +64,9 @@ class Publish(BaseMetaDeployTask):
         label = self.project_config.get_version_for_tag(tag)
         # @@@ handle checkout/publish from a release tag instead of current commit
         steps = self._freeze_steps()
+        import pdb
+
+        pdb.set_trace()
 
         # create version (not listed yet)
         product_url = self.base_url + "/products/{}".format(self.options["product_id"])
@@ -115,18 +118,10 @@ class Publish(BaseMetaDeployTask):
         flow_name = self.options["flow"]
         flow_config = self.project_config.get_flow(flow_name)
         flow = FlowCoordinator(self.project_config, flow_config, name=flow_name)
-        return [
-            {
-                "name": step.task_name,
-                "is_required": True,
-                "path": step.path,
-                "step_num": str(step.step_num),
-                "task_class": ".".join(
-                    [step.task_class.__module__, step.task_class.__name__]
-                ),
-                "task_config": json.dumps(step.task_config),
-                # @@@ `kind`
-            }
-            for step in flow.steps
-        ]
-        # @@@ Decompose update_dependencies/deploy_pre/deploy_post
+        steps = []
+        for step in flow.steps:
+            task = step.task_class(
+                self.project_config, TaskConfig(step.task_config), name=step.task_name
+            )
+            steps.extend(task.freeze(step))
+        return steps

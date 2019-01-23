@@ -63,6 +63,8 @@ class UpdateAdminProfile(Deploy):
 
         # Read in the package.xml file
         self.options["package_xml_path"] = self.options["package_xml"]
+
+    def _init_task(self):
         with open(self.options["package_xml_path"], "r") as f:
             self.options["package_xml"] = f.read()
 

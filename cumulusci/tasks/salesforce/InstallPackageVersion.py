@@ -1,3 +1,5 @@
+import json
+
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.salesforce_api.exceptions import MetadataApiError
 from cumulusci.salesforce_api.package_zip import InstallPackageZipBuilder
@@ -73,3 +75,18 @@ class InstallPackageVersion(Deploy):
             or "InstalledPackage version number" in str(e)
         ):
             return True
+
+    def freeze(self, step):
+        options = self.options.copy()
+        options["version"] = str(options["version"])
+        return [
+            {
+                "name": "Install {}".format(self.options['namespace']),
+                "kind": "other",
+                "is_required": True,
+                "path": step.path,
+                "step_num": str(step.step_num),
+                "task_class": self.task_config.class_path,
+                "task_config": json.dumps({"options": options}),
+            }
+        ]

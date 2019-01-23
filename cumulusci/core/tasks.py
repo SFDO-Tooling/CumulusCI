@@ -8,6 +8,7 @@ from __future__ import unicode_literals
 from builtins import object
 from past.utils import old_div
 import contextlib
+import json
 import logging
 import time
 import threading
@@ -72,17 +73,9 @@ class BaseTask(object):
         # the tasks stepnumber in the flow
         self.stepnum = stepnum
 
-        if self.salesforce_task and not self.org_config:
-            raise TaskRequiresSalesforceOrg(
-                "This task requires a salesforce org. "
-                "Use org default <name> to set a default org "
-                "or pass the org name with the --org option"
-            )
         self._init_logger()
         self._init_options(kwargs)
         self._validate_options()
-        self._update_credentials()
-        self._init_task()
 
     def _init_logger(self):
         """ Initializes self.logger """
@@ -133,6 +126,15 @@ class BaseTask(object):
     def __call__(self):
         # If sentry is configured, initialize sentry for error capture
         self.project_config.init_sentry()
+
+        if self.salesforce_task and not self.org_config:
+            raise TaskRequiresSalesforceOrg(
+                "This task requires a salesforce org. "
+                "Use org default <name> to set a default org "
+                "or pass the org name with the --org option"
+            )
+        self._update_credentials()
+        self._init_task()
 
         with stacked_task(self):
             try:
@@ -226,3 +228,16 @@ class BaseTask(object):
             self.logger.info(
                 "Increased polling interval to %d seconds", self.poll_interval_s
             )
+
+    def freeze(self, step):
+        return [
+            {
+                "name": self.name,
+                "kind": "other",
+                "is_required": True,
+                "path": step.path,
+                "step_num": str(step.step_num),
+                "task_class": self.task_config.class_path,
+                "task_config": json.dumps({"options": self.options}),
+            }
+        ]
