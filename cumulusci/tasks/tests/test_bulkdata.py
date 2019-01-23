@@ -95,8 +95,11 @@ class TestDeleteData(unittest.TestCase):
         )
 
         task = _make_task(bulkdata.DeleteData, {"options": {"objects": "Contact"}})
-        task.bulk = api
 
+        def _init_class():
+            task.bulk = api
+
+        task._init_class = _init_class
         task()
 
         api.create_query_job.assert_called_once_with("Contact", contentType="CSV")
@@ -166,7 +169,11 @@ class TestDeleteData(unittest.TestCase):
         api.endpoint = "http://api"
         api.headers.return_value = {}
         api.raise_error.side_effect = Exception
-        task.bulk = api
+
+        def _init_class():
+            task.bulk = api
+
+        task._init_class = _init_class
         responses.add(responses.POST, "http://api/job/1/batch", body=b"", status=500)
         with self.assertRaises(Exception):
             list(task._upload_batches("1", [{"Id": "1"}]))
@@ -232,7 +239,11 @@ class TestLoadData(unittest.TestCase):
                     }
                 },
             )
-            task.bulk = api
+
+            def _init_class():
+                task.bulk = api
+
+            task._init_class = _init_class
             task()
             task.session.close()
 
@@ -344,7 +355,11 @@ class TestQueryData(unittest.TestCase):
                 }
             },
         )
-        task.bulk = api
+
+        def _init_class():
+            task.bulk = api
+
+        task._init_class = _init_class
         task()
 
         household = task.session.query(task.models["households"]).one()

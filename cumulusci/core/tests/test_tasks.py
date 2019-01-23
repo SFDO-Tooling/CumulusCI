@@ -164,7 +164,8 @@ class TestBaseTaskCallable(unittest.TestCase):
 
     def test_salesforce_task_no_org(self):
         with self.assertRaises(TaskRequiresSalesforceOrg):
-            _SfdcTask(self.project_config, self.task_config)
+            task = _SfdcTask(self.project_config, self.task_config)
+            task()
 
     def test_no_id_if_run_from_flow(self):
         """ A salesforce_task will not log the org id if run from a flow """

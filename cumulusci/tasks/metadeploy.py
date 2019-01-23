@@ -64,9 +64,6 @@ class Publish(BaseMetaDeployTask):
         label = self.project_config.get_version_for_tag(tag)
         # @@@ handle checkout/publish from a release tag instead of current commit
         steps = self._freeze_steps()
-        import pdb
-
-        pdb.set_trace()
 
         # create version (not listed yet)
         product_url = self.base_url + "/products/{}".format(self.options["product_id"])

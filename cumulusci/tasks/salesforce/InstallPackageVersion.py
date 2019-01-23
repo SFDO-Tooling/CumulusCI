@@ -81,7 +81,7 @@ class InstallPackageVersion(Deploy):
         options["version"] = str(options["version"])
         return [
             {
-                "name": "Install {}".format(self.options['namespace']),
+                "name": "Install {}".format(self.options["namespace"]),
                 "kind": "other",
                 "is_required": True,
                 "path": step.path,
