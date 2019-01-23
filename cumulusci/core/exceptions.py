@@ -65,12 +65,6 @@ class ServiceNotValid(CumulusCIUsageError):
     pass
 
 
-class PlanNotFound(CumulusCIUsageError):
-    """Raised when a MetaDeploy plan cannot be found by name in the project configuration."""
-
-    pass
-
-
 class DependencyResolutionError(CumulusCIException):
     """ Raised when an issue is encountered while resolving a static dependency map """
 
