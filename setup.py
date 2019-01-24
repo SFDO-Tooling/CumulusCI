@@ -5,7 +5,7 @@ from setuptools import setup
 from pkgutil import walk_packages
 
 
-def find_packages(path=".", prefix=""):
+def find_packages(path=["."], prefix=""):
     yield prefix
     prefix = prefix + "."
     for _, name, ispkg in walk_packages(path, prefix):
@@ -34,14 +34,14 @@ with open("requirements_dev.txt") as dev_requirements_file:
 
 setup(
     name="cumulusci",
-    version="2.3.0.dev0",
+    version="2.3.0.dev1",
     description="Build and release tools for Salesforce developers",
     long_description=readme + u"\n\n" + history,
     long_description_content_type="text/x-rst",
     author="Salesforce.org",
     author_email="jlantz@salesforce.com",
     url="https://github.com/SFDO-Tooling/CumulusCI",
-    packages=list(find_packages("cumulusci", "cumulusci")),
+    packages=list(find_packages(["cumulusci"], "cumulusci")),
     package_dir={"cumulusci": "cumulusci"},
     entry_points={"console_scripts": ["cci=cumulusci.cli.cci:main"]},
     include_package_data=True,
