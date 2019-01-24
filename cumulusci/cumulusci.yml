@@ -151,10 +151,6 @@ tasks:
         description: Publishes a release to the mrbelvedere web installer
         class_path: cumulusci.tasks.mrbelvedere.MrbelvederePublish
         group: Release Management
-    metadeploy_publish:
-        description: Publishes an installation plan to MetaDeploy
-        class_path: cumulusci.tasks.metadeploy.Publish
-        group: Release Management
     push_all:
         description: Schedules a push upgrade of a package version to all subscribers
         class_path: cumulusci.tasks.push.tasks.SchedulePushOrgQuery
