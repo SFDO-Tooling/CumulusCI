@@ -44,18 +44,17 @@ class DeployBundles(Deploy):
         steps = []
         for i, item in enumerate(sorted(os.listdir(path)), 1):
             name = os.path.basename(item)
-            task_config = {
-                "options": {
-                    "dependencies": [
-                        {
-                            "repo_owner": self.project_config.repo_owner,
-                            "repo_name": self.project_config.repo_name,
-                            "tag": self.project_config.repo_commit,
-                            "subfolder": "/".join([path, item]),
-                        }
-                    ]
+            dependency = self.options.copy()
+            dependency.pop("path")
+            dependency.update(
+                {
+                    "repo_owner": self.project_config.repo_owner,
+                    "repo_name": self.project_config.repo_name,
+                    "tag": self.project_config.repo_commit,
+                    "subfolder": "/".join([path, item]),
                 }
-            }
+            )
+            task_config = {"options": {"dependencies": [dependency]}}
             steps.append(
                 {
                     "name": "Deploy {}/{}".format(path, name),
