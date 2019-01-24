@@ -1,5 +1,3 @@
-import json
-
 from builtins import str
 from distutils.version import LooseVersion
 
@@ -309,7 +307,7 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
                     "kind": kind,
                     "is_required": True,
                     "task_class": self.task_config.class_path,
-                    "task_config": json.dumps(task_config),
+                    "task_config": task_config,
                 }
             )
         return steps

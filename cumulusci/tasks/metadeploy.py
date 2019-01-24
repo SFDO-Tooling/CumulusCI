@@ -41,6 +41,10 @@ class Publish(BaseMetaDeployTask):
         },
         "tag": {"description": "Name of git tag to publish", "required": True},
         "title": {"description": "Title of the installation plan.", "required": True},
+        "description": {
+            "description": "Description of the version.",
+            "required": False,
+        },
         "slug": {
             "description": "URL slug for the installation plan.",
             "required": True,
@@ -73,7 +77,7 @@ class Publish(BaseMetaDeployTask):
             json={
                 "product": product_url,
                 "label": label,
-                "description": tag,  # @@@ make it not required
+                "description": self.options["description"],
                 "is_production": True,
                 "commit_ish": self.project_config.repo_commit,
                 "is_listed": False,

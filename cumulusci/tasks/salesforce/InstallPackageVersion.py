@@ -82,11 +82,11 @@ class InstallPackageVersion(Deploy):
         return [
             {
                 "name": "Install {}".format(self.options["namespace"]),
-                "kind": "other",
+                "kind": "managed",
                 "is_required": True,
                 "path": step.path,
                 "step_num": str(step.step_num),
                 "task_class": self.task_config.class_path,
-                "task_config": json.dumps({"options": options}),
+                "task_config": {"options": options},
             }
         ]

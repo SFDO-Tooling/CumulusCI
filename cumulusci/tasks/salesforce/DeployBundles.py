@@ -1,4 +1,3 @@
-import json
 import os
 
 from cumulusci.tasks.salesforce import Deploy
@@ -65,7 +64,7 @@ class DeployBundles(Deploy):
                     "kind": "metadata",
                     "is_required": True,
                     "task_class": "cumulusci.tasks.salesforce.UpdateDependencies",
-                    "task_config": json.dumps(task_config),
+                    "task_config": task_config,
                 }
             )
         return steps

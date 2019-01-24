@@ -238,6 +238,6 @@ class BaseTask(object):
                 "path": step.path,
                 "step_num": str(step.step_num),
                 "task_class": self.task_config.class_path,
-                "task_config": json.dumps({"options": self.options}),
+                "task_config": {"options": self.options},
             }
         ]
