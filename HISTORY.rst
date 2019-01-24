@@ -2,6 +2,24 @@
 History
 =======
 
+2.3.0b1 (2019-01-24)
+--------------------
+
+Breaking Changes:
+
+* We refactored the code for running flows. The full list of steps to run is now calculated from nested flow configuration when the flow is initialized instead of during runtime. Your existing flows should continue to run as before, but if you're interacting with CumulusCI at the Python API level, you'll need to use the ``FlowCoordinator`` instead of ``BaseFlow``.
+* Tasks are now expected to have no side effects when they are instantiated. If tasks need to set up resources, do that in ``_init_task`` instead of ``__init__`` or ``_init_options`` to make sure it doesn't happen until the task is actually being run.
+
+Changes:
+
+* The ``github_release`` task now records the release dependencies as JSON in the release's tag message.
+* Looking up the latest release from GitHub is now done using a single HTTP request rather than listing all releases.
+* Salesforce Robot Framework library: The ``Get Current Record Id`` keyword now parses the Id correctly when prefixed with ``%2F``, which apparently happens.
+
+Issues Closed:
+
+* #911: Fix UnicodeDecodeError when parsing XML retrieved from the Metadata API.
+
 2.2.6 (2019-01-03)
 ------------------
 
