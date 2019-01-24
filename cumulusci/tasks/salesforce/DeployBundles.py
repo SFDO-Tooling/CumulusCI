@@ -41,6 +41,8 @@ class DeployBundles(Deploy):
 
     def freeze(self, step):
         path = self.options["path"]
+        if not os.path.isdir(path):
+            return []
         steps = []
         for i, item in enumerate(sorted(os.listdir(path)), 1):
             name = os.path.basename(item)

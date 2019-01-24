@@ -56,7 +56,6 @@ except ImportError:  # pragma: no cover
     pass
 
 import copy
-import json
 import logging
 from collections import defaultdict
 from collections import namedtuple

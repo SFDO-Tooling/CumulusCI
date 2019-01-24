@@ -8,7 +8,6 @@ from __future__ import unicode_literals
 from builtins import object
 from past.utils import old_div
 import contextlib
-import json
 import logging
 import time
 import threading
