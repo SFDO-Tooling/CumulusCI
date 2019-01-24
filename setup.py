@@ -4,8 +4,6 @@
 from setuptools import setup
 from pkgutil import walk_packages
 
-import cumulusci
-
 
 def find_packages(path=".", prefix=""):
     yield prefix
@@ -43,7 +41,7 @@ setup(
     author="Salesforce.org",
     author_email="jlantz@salesforce.com",
     url="https://github.com/SFDO-Tooling/CumulusCI",
-    packages=list(find_packages(cumulusci.__path__, cumulusci.__name__)),
+    packages=list(find_packages("cumulusci", "cumulusci")),
     package_dir={"cumulusci": "cumulusci"},
     entry_points={"console_scripts": ["cci=cumulusci.cli.cci:main"]},
     include_package_data=True,
