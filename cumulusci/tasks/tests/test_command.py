@@ -1,7 +1,6 @@
 """ Tests for the Command tasks """
 
 import mock
-import os
 import unittest
 import logging
 
@@ -140,6 +139,7 @@ class TestSalesforceCommand(unittest.TestCase):
 
     def test_update_credentials(self):
         task = SalesforceCommand(self.project_config, self.task_config, self.org_config)
+        task()
         self.org_config.refresh_oauth_token.assert_called_once()
 
     def test_get_env(self):

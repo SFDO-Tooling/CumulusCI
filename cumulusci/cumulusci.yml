@@ -554,6 +554,16 @@ flows:
             3:
                 flow: config_managed
 
+    install_prod_no_config:
+        description: Install but do not configure the latest production version
+        steps:
+            1:
+                flow: dependencies
+            2:
+                task: install_managed
+            3:
+                task: deploy_post
+
     release_beta:
         description: Upload and release a beta version of the metadata currently in packaging
         steps:
@@ -662,6 +672,15 @@ services:
         required: True
       token:
         description: Your API token to the MetaCI site (get from SITE_URL/api/token)
+        required: True
+  metadeploy:
+    description: Connect with a MetaDeploy site to publish installers from this repository
+    attributes:
+      url:
+        description: The main url for your MetaDeploy instance.
+        required: True
+      token:
+        description: Your API token to the MetaDeploy site (get from SITE_URL/admin/authtoken/token)
         required: True
   mrbelvedere:
     description: Configure connection for mrbelvedere tasks, e.g. MrbelvederePublish

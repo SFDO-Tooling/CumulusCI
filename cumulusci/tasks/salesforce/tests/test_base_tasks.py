@@ -42,6 +42,8 @@ class TestBaseSalesforceTask(unittest.TestCase):
         task = BaseSalesforceTask(
             self.project_config, self.task_config, self.org_config
         )
+        task._run_task = mock.Mock()
+        task()
         self.project_config.keychain.set_org.assert_called_once()
 
 
@@ -51,6 +53,7 @@ class TestBaseSalesforceApiTask(unittest.TestCase):
             {"instance_url": "https://foo/", "access_token": "TOKEN"}, "test"
         )
         task = create_task(BaseSalesforceApiTask, org_config=org_config)
+        task._init_task()
         self.assertFalse(task.sf.sf_instance.endswith("/"))
 
 

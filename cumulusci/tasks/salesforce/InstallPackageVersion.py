@@ -73,3 +73,18 @@ class InstallPackageVersion(Deploy):
             or "InstalledPackage version number" in str(e)
         ):
             return True
+
+    def freeze(self, step):
+        options = self.options.copy()
+        options["version"] = str(options["version"])
+        return [
+            {
+                "name": "Install {}".format(self.options["namespace"]),
+                "kind": "managed",
+                "is_required": True,
+                "path": step.path,
+                "step_num": str(step.step_num),
+                "task_class": self.task_config.class_path,
+                "task_config": {"options": options},
+            }
+        ]

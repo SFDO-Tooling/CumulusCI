@@ -130,7 +130,7 @@ class TestUpdateDependencies(unittest.TestCase):
         project_config.config["project"]["dependencies"] = [{"namespace": "foo"}]
         task = create_task(UpdateDependencies, project_config=project_config)
         task.options["include_beta"] = True
-        task.org_config = OrgConfig(None, None)
+        task.org_config = mock.Mock()
 
         with self.assertRaises(TaskOptionsError):
             task()
