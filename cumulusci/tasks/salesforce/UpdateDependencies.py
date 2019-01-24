@@ -186,8 +186,8 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
             self._install_dependency(dependency)
 
     # hooks for tests
-    _download_extract_github = download_extract_github
-    _download_extract_zip = download_extract_zip
+    _download_extract_github = staticmethod(download_extract_github)
+    _download_extract_zip = staticmethod(download_extract_zip)
 
     def _install_dependency(self, dependency):
         if "zip_url" or "repo_name" in dependency:
