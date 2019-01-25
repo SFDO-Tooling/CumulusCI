@@ -32,10 +32,16 @@ class UpdateAdminProfile(Deploy):
 
     namespaces = {"sf": "http://soap.sforce.com/2006/04/metadata"}
 
+    def __init__(self, *args, **kwargs):
+        self._default_package_xml = False
+        self._package_xml_content = None
+        super(UpdateAdminProfile, self).__init__(*args, **kwargs)
+
     def _init_options(self, kwargs):
         super(UpdateAdminProfile, self)._init_options(kwargs)
 
         if "package_xml" not in self.options:
+            self._default_package_xml = True
             self.options["package_xml"] = os.path.join(
                 CUMULUSCI_PATH, "cumulusci", "files", "admin_profile.xml"
             )
@@ -61,12 +67,9 @@ class UpdateAdminProfile(Deploy):
             else "",
         }
 
-        # Read in the package.xml file
-        self.options["package_xml_path"] = self.options["package_xml"]
-
     def _init_task(self):
-        with open(self.options["package_xml_path"], "r") as f:
-            self.options["package_xml"] = f.read()
+        with open(self.options["package_xml"], "r") as f:
+            self._package_xml_content = f.read()
 
     def _run_task(self):
         self.tempdir = tempfile.mkdtemp()
@@ -77,11 +80,11 @@ class UpdateAdminProfile(Deploy):
 
     def _retrieve_unpackaged(self):
         self.logger.info(
-            "Retrieving metadata using {}".format(self.options["package_xml_path"])
+            "Retrieving metadata using {}".format(self.options["package_xml"])
         )
         api_retrieve = ApiRetrieveUnpackaged(
             self,
-            self.options.get("package_xml"),
+            self._package_xml_content,
             self.project_config.project__package__api_version,
         )
         unpackaged = api_retrieve()
@@ -181,3 +184,8 @@ class UpdateAdminProfile(Deploy):
         self.logger.info("Deploying updated Admin.profile from {}".format(self.tempdir))
         api = self._get_api(path=self.tempdir)
         return api()
+
+    def freeze(self, step):
+        if self._default_package_xml:
+            del self.options["package_xml"]
+        return super(UpdateAdminProfile, self).freeze(step)
