@@ -11,6 +11,7 @@ import os
 import re
 import io
 import shutil
+import sys
 import zipfile
 import tempfile
 import textwrap
@@ -481,3 +482,21 @@ def log_progress(
         if not i % batch_size:
             logger.info(progress_message.format(i))
     logger.info(done_message.format(i))
+
+
+def random_alphanumeric_underscore(length):
+    if sys.version_info[0] == 3:
+        import secrets
+
+        return secrets.token_urlsafe(length).replace("-", "_")
+    else:
+        import random
+        import string
+
+        return "".join(
+            random.SystemRandom().choice(
+                "_" + string.ascii_uppercase + string.ascii_lowercase + string.digits
+            )
+            for _ in range(length)
+        )
+

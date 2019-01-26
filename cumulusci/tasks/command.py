@@ -79,7 +79,9 @@ class Command(BaseTask):
 
     def _handle_returncode(self, returncode, stderr):
         if returncode:
-            message = "Return code: {}\nstderr: {}".format(returncode, stderr)
+            message = "Return code: {}".format(returncode)
+            if stderr:
+                message += "\nstderr: {}".format(stderr.read())
             self.logger.error(message)
             raise CommandException(message)
 
