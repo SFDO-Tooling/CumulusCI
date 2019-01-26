@@ -239,7 +239,19 @@ CumulusCI's Project Keychain is aware of your local repository and each reposito
 Creating a Connected App
 ------------------------
 
-First, you will need to create a Salesforce Connected App with the following steps:
+Create With CumulusCI
+^^^^^^^^^^^^^^^^^^^^^
+
+CumulusCI includes a task to easily deploy the Salesforce Connected App to any org in your sdfx keychain.  By default, this will deploy to the org configured as the defaultdevhubusername.
+
+.. code-block:: console
+
+    $ cci task run connected_app
+
+Creating Manually
+^^^^^^^^^^^^^^^^^
+
+If you would rather create the Salesforce Connected App manually, use the following steps:
 
 * In a Salesforce Org, go to Setup -> Create -> Apps
   * In Lightning, go to Setup -> Apps -> App Manager
