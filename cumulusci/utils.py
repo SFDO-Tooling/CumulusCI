@@ -3,18 +3,19 @@ from future import standard_library
 from future.utils import text_to_native_str
 
 standard_library.install_aliases()
-from builtins import str
-from contextlib import contextmanager
 import difflib
 import fnmatch
+import io
+import math
 import os
 import re
-import io
 import shutil
 import sys
-import zipfile
 import tempfile
 import textwrap
+import zipfile
+from builtins import str
+from contextlib import contextmanager
 from datetime import timedelta, datetime
 
 import requests
@@ -488,7 +489,8 @@ def random_alphanumeric_underscore(length):
     if sys.version_info[0] == 3:
         import secrets
 
-        return secrets.token_urlsafe(length).replace("-", "_")
+        byte_length = math.ceil((length * 3) / 4)
+        return secrets.token_urlsafe(length).replace("-", "_")[:length]
     else:
         import random
         import string
@@ -499,4 +501,3 @@ def random_alphanumeric_underscore(length):
             )
             for _ in range(length)
         )
-

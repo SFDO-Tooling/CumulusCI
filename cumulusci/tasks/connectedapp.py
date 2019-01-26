@@ -117,8 +117,8 @@ class CreateConnectedApp(SFDXBaseTask):
         self.client_id = random_alphanumeric_underscore(85)
         self.client_secret = random_alphanumeric_underscore(32)
 
-    def _build_package(self, tempdir):
-        connected_app_path = os.path.join(tempdir, "connectedApps")
+    def _build_package(self):
+        connected_app_path = os.path.join(self.tempdir, "connectedApps")
         os.mkdir(connected_app_path)
         self._generate_id_and_secret()
         with open(
@@ -135,7 +135,7 @@ class CreateConnectedApp(SFDXBaseTask):
                     }
                 )
             )
-        with open(os.path.join(tempdir, "package.xml"), "w") as f:
+        with open(os.path.join(self.tempdir, "package.xml"), "w") as f:
             f.write(PACKAGE_XML)
 
     def _connect_service(self):
@@ -161,14 +161,14 @@ class CreateConnectedApp(SFDXBaseTask):
         )
 
     def _run_task(self):
-        tempdir = tempfile.mkdtemp()
-        self._build_package(tempdir)
-        self.options["command"] += " -d {}".format(tempdir)
+        self.tempdir = tempfile.mkdtemp()
+        self._build_package()
+        self.options["command"] += " -d {}".format(self.tempdir)
 
         try:
             super(CreateConnectedApp, self)._run_task()
-        except:
-            shutil.rmtree(tempdir)
+        finally:
+            shutil.rmtree(self.tempdir)
 
         if self.options["connect"]:
             self._connect_service()

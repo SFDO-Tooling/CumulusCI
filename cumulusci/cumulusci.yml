@@ -16,7 +16,7 @@ tasks:
         group: Release Management
     connected_app:
         description: Creates the Connected App needed to use persistent orgs in the CumulusCI keychain
-        class_path: cumulusci.tasks.setup.CreateConnectedApp
+        class_path: cumulusci.tasks.connectedapp.CreateConnectedApp
         group: Setup
         options:
             label: CumulusCI
