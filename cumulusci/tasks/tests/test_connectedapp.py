@@ -9,7 +9,10 @@ import shutil
 import tempfile
 import unittest
 
-from json.decoder import JSONDecodeError
+try:
+    from json.decoder import JSONDecodeError
+except ImportError:
+    JSONDecodeError = ValueError
 from mock import MagicMock
 from mock import patch
 
