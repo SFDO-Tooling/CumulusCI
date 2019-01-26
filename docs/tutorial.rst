@@ -248,6 +248,12 @@ CumulusCI includes a task to easily deploy the Salesforce Connected App to any o
 
     $ cci task run connected_app
 
+This command will also configure CumulusCI's connected_app service in the keychain for you.  If you want to see the information for the connected app, you can view it with:
+
+.. code-block:: console
+
+    $ cci service info connected_app
+
 Creating Manually
 ^^^^^^^^^^^^^^^^^
 
@@ -266,9 +272,6 @@ If you would rather create the Salesforce Connected App manually, use the follow
 
 * Click the Manage button, then click Edit
 * Record the client_id (Consumer Key) and the client_secret (Consumer Secret)
-
-Configuring the Project's Connected App
----------------------------------------
 
 Configure the Connected App as a service:
 
