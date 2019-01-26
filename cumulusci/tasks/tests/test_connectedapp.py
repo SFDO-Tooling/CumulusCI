@@ -142,6 +142,10 @@ class TestCreateConnectedApp(unittest.TestCase):
             self.task_log["error"], ["Failed to parse json from line: invalid"]
         )
 
+    @mock.patch(
+        "cumulusci.tasks.connectedapp.CreateConnectedApp._set_default_username",
+        MagicMock(return_value=None),
+    )
     def test_process_devhub_output(self):
         """ username is parsed from json response """
         del self.task_config.config["options"]["username"]
@@ -149,6 +153,10 @@ class TestCreateConnectedApp(unittest.TestCase):
         task._process_devhub_output('{"result":[{"value":"' + self.username + '"}]}')
         self.assertEqual(task.options.get("username"), self.username)
 
+    @mock.patch(
+        "cumulusci.tasks.connectedapp.CreateConnectedApp._set_default_username",
+        MagicMock(return_value=None),
+    )
     def test_process_devhub_output_not_configured(self):
         """ TaskOptionsError is raised if no username provided and no default found """
         del self.task_config.config["options"]["username"]

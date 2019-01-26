@@ -82,7 +82,7 @@ class CreateConnectedApp(SFDXBaseTask):
         # Default to sfdx defaultdevhubusername
         if "username" not in self.options:
             self._set_default_username()
-        self.options["command"] += " -u {}".format(self.options["username"])
+        self.options["command"] += " -u {}".format(self.options.get("username"))
 
         self.options["connect"] = process_bool_arg(self.options.get("connect", False))
         self.options["overwrite"] = process_bool_arg(
