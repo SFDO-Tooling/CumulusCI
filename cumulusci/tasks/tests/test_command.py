@@ -3,6 +3,7 @@
 import mock
 import unittest
 import logging
+from io import StringIO
 
 from testfixtures.popen import MockPopen
 from testfixtures import Replacer
@@ -80,7 +81,10 @@ class TestCommandTask(unittest.TestCase):
         task_config = TaskConfig({"options": {"command": "ls"}})
         task = Command(self.project_config, task_config)
         with self.assertRaises(CommandException):
-            task._handle_returncode(1, "err")
+            with StringIO() as stderr:
+                stderr.write(u"err")
+                stderr.seek(0)
+                task._handle_returncode(1, stderr)
 
 
 class TestCommandTaskWithMockPopen(unittest.TestCase):
