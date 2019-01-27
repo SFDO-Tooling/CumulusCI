@@ -447,6 +447,17 @@ class TestBaseProjectConfig(unittest.TestCase):
         )
         self.assertEqual("1.0", config.get_version_for_tag("release/1.0"))
 
+    def test_get_version_for_tag_invalid_beta(self):
+        config = BaseProjectConfig(
+            BaseGlobalConfig(),
+            {
+                "project": {
+                    "git": {"prefix_beta": "beta/", "prefix_release": "release/"}
+                }
+            },
+        )
+        self.assertEqual(None, config.get_version_for_tag("beta/invalid-format"))
+
     def test_check_keychain(self):
         config = BaseProjectConfig(BaseGlobalConfig())
         with self.assertRaises(KeychainNotFound):
