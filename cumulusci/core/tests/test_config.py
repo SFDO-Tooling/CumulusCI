@@ -181,7 +181,8 @@ CUMULUSCI_REPO = DummyRepository(
     {},
     [
         DummyRelease("release/1.0"),
-        DummyRelease("beta/bogus"),
+        DummyRelease("beta-wrongprefix"),
+        DummyRelease("beta/1.0-Beta_2"),
         DummyRelease("beta/1.0-Beta_1"),
     ],
 )
@@ -366,6 +367,32 @@ class TestBaseProjectConfig(unittest.TestCase):
             set(raven_client.call_args[1]["tags"].keys()),
         )
 
+    def test_get_latest_tag(self):
+        config = BaseProjectConfig(
+            BaseGlobalConfig(),
+            {
+                "project": {
+                    "git": {"prefix_beta": "beta/", "prefix_release": "release/"}
+                }
+            },
+        )
+        config.get_github_api = DummyGithub
+        result = config.get_latest_tag()
+        self.assertEqual("release/1.0", result)
+
+    def test_get_latest_tag_beta(self):
+        config = BaseProjectConfig(
+            BaseGlobalConfig(),
+            {
+                "project": {
+                    "git": {"prefix_beta": "beta/", "prefix_release": "release/"}
+                }
+            },
+        )
+        config.get_github_api = DummyGithub
+        result = config.get_latest_tag(beta=True)
+        self.assertEqual("beta/1.0-Beta_2", result)
+
     def test_get_latest_version(self):
         config = BaseProjectConfig(
             BaseGlobalConfig(),
@@ -390,7 +417,7 @@ class TestBaseProjectConfig(unittest.TestCase):
         )
         config.get_github_api = DummyGithub
         result = config.get_latest_version(beta=True)
-        self.assertEqual("1.0 (Beta 1)", result)
+        self.assertEqual("1.0 (Beta 2)", result)
 
     def test_config_project_path_no_repo_root(self):
         config = BaseProjectConfig(BaseGlobalConfig())
