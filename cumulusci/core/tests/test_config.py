@@ -4,6 +4,7 @@ import unittest
 
 import mock
 
+from github3.exceptions import NotFoundError
 from cumulusci.core.config import BaseConfig
 from cumulusci.core.config import BaseGlobalConfig
 from cumulusci.core.config import BaseProjectConfig
@@ -84,6 +85,10 @@ class DummyContents(object):
     def __init__(self, content):
         self.decoded = content
 
+class DummyResponse(object):
+    def __init__(self, content, status_code):
+        self.content = content
+        self.status_code = status_code
 
 class DummyRepository(object):
     default_branch = "master"
@@ -106,7 +111,7 @@ class DummyRepository(object):
         try:
             return self._contents[path]
         except KeyError:
-            raise AssertionError("Accessed unexpected file: {}".format(path))
+            raise NotFoundError(DummyResponse("Accessed unexpected directory: {}".format(path), 404))
 
     def _build_url(self, *args, **kw):
         return self._api
@@ -541,6 +546,40 @@ class TestBaseProjectConfig(unittest.TestCase):
                 },
             ],
         )
+
+    def test_process_github_dependency_no_unpackaged(self):
+        global_config = BaseGlobalConfig()
+        config = BaseProjectConfig(global_config)
+        config.get_github_api = DummyGithub
+        config.keychain = DummyKeychain()
+        unpackaged_pre = CUMULUSCI_TEST_REPO._contents["unpackaged/pre"]
+        unpackaged_post = CUMULUSCI_TEST_REPO._contents["unpackaged/post"]
+        del CUMULUSCI_TEST_REPO._contents["unpackaged/pre"]
+        del CUMULUSCI_TEST_REPO._contents["unpackaged/post"]
+        result = config.process_github_dependency(
+            {
+                "github": "https://github.com/SFDO-Tooling/CumulusCI-Test.git",
+                "unmanaged": True,
+            }
+        )
+        self.assertEqual(
+            result,
+            [
+                {u'version': '2', u'namespace': 'ccitestdep'},
+                {
+                    u"repo_owner": "SFDO-Tooling",
+                    u"repo_name": "CumulusCI-Test",
+                    u"ref": None,
+                    u"subfolder": u"src",
+                    u"unmanaged": True,
+                    u"namespace_inject": None,
+                    u"namespace_strip": None,
+                    u"namespace_tokenize": None,
+                },
+            ]
+        )
+        CUMULUSCI_TEST_REPO._contents["unpackaged/pre"] = unpackaged_pre
+        CUMULUSCI_TEST_REPO._contents["unpackaged/post"] = unpackaged_post
 
     def test_process_github_dependency_with_tag(self):
         global_config = BaseGlobalConfig()
