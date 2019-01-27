@@ -111,7 +111,9 @@ class DummyRepository(object):
         try:
             return self._contents[path]
         except KeyError:
-            raise NotFoundError(DummyResponse("Accessed unexpected directory: {}".format(path), 404))
+            raise NotFoundError(
+                DummyResponse("Accessed unexpected directory: {}".format(path), 404)
+            )
 
     def _build_url(self, *args, **kw):
         return self._api
