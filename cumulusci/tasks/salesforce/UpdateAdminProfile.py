@@ -74,7 +74,9 @@ class UpdateAdminProfile(Deploy):
 
     def _retrieve_unpackaged(self):
         self.logger.info(
-            "Retrieving metadata using {}".format(self.options.get("package_xml", "default package.xml"))
+            "Retrieving metadata using {}".format(
+                self.options.get("package_xml", "default package.xml")
+            )
         )
         api_retrieve = ApiRetrieveUnpackaged(
             self,
