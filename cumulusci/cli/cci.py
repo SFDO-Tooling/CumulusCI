@@ -116,7 +116,7 @@ def check_latest_version():
         click.echo("Checking the version!")
         if result:
             click.echo(
-                "An update to CumulusCI is available. Use pip install --upgrade cumulusci to update."
+                """An update to CumulusCI is available. Use "brew upgrade cumulusci" or "pip install --upgrade cumulusci" to update."""
             )
 
 
