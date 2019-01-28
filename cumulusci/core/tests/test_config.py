@@ -85,10 +85,12 @@ class DummyContents(object):
     def __init__(self, content):
         self.decoded = content
 
+
 class DummyResponse(object):
     def __init__(self, content, status_code):
         self.content = content
         self.status_code = status_code
+
 
 class DummyRepository(object):
     default_branch = "master"
@@ -578,7 +580,7 @@ class TestBaseProjectConfig(unittest.TestCase):
                     u"namespace_strip": None,
                     u"namespace_tokenize": None,
                 },
-            ]
+            ],
         )
         CUMULUSCI_TEST_REPO._contents["unpackaged/pre"] = unpackaged_pre
         CUMULUSCI_TEST_REPO._contents["unpackaged/post"] = unpackaged_post
