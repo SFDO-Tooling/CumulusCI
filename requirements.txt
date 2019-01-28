@@ -29,7 +29,7 @@ sarge==0.1.5.post0
 selenium==3.141.0
 simple-salesforce==0.74.2
 six==1.12.0
-SQLAlchemy==1.2.16
+SQLAlchemy==1.2.17
 unicodecsv==0.14.1
 uritemplate==3.0.0
 urllib3==1.24.1
