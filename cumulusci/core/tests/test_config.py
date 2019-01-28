@@ -567,7 +567,7 @@ class TestBaseProjectConfig(unittest.TestCase):
         self.assertEqual(
             result,
             [
-                {u'version': '2', u'namespace': 'ccitestdep'},
+                {u"version": "2", u"namespace": "ccitestdep"},
                 {
                     u"repo_owner": "SFDO-Tooling",
                     u"repo_name": "CumulusCI-Test",
