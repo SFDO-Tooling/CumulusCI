@@ -81,7 +81,7 @@ class Command(BaseTask):
         if returncode:
             message = "Return code: {}".format(returncode)
             if stderr:
-                message += "\nstderr: {}".format(stderr.read())
+                message += "\nstderr: {}".format(stderr.read().decode("utf-8"))
             self.logger.error(message)
             raise CommandException(message)
 

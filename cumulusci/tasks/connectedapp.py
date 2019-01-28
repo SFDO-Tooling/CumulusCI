@@ -1,13 +1,12 @@
 import json
 import re
-import shutil
 import os
-import tempfile
 from cumulusci.core.config import ServiceConfig
 from cumulusci.core.exceptions import TaskOptionsError, ServiceNotConfigured
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.tasks.sfdx import SFDXBaseTask, SFDX_CLI
 from cumulusci.utils import random_alphanumeric_underscore
+from cumulusci.utils import temporary_dir
 
 CONNECTED_APP = """<?xml version="1.0" encoding="UTF-8"?>
 <ConnectedApp xmlns="http://soap.sforce.com/2006/04/metadata">
@@ -34,6 +33,9 @@ PACKAGE_XML = """<?xml version="1.0" encoding="UTF-8"?>
 
 
 class CreateConnectedApp(SFDXBaseTask):
+    client_id_length = 85
+    client_secret_length = 32
+    deploy_wait = 5
     task_options = {
         "label": {
             "description": "The label for the connected app.  Must contain only alphanumeric and underscores",
@@ -60,7 +62,7 @@ class CreateConnectedApp(SFDXBaseTask):
     def _init_options(self, kwargs):
         self.client_id = None
         self.client_secret = None
-        kwargs["command"] = "force:mdapi:deploy --wait 5"
+        kwargs["command"] = "force:mdapi:deploy --wait {}".format(self.deploy_wait)
         super(CreateConnectedApp, self)._init_options(kwargs)
 
         # Validate label
@@ -114,8 +116,8 @@ class CreateConnectedApp(SFDXBaseTask):
         self.options["username"] = data["result"][0]["value"]
 
     def _generate_id_and_secret(self):
-        self.client_id = random_alphanumeric_underscore(85)
-        self.client_secret = random_alphanumeric_underscore(32)
+        self.client_id = random_alphanumeric_underscore(self.client_id_length)
+        self.client_secret = random_alphanumeric_underscore(self.client_secret_length)
 
     def _build_package(self):
         connected_app_path = os.path.join(self.tempdir, "connectedApps")
@@ -127,18 +129,16 @@ class CreateConnectedApp(SFDXBaseTask):
         ) as f:
             f.write(
                 CONNECTED_APP.format(
-                    **{
-                        "label": self.options["label"],
-                        "email": self.options["email"],
-                        "client_id": self.client_id,
-                        "client_secret": self.client_secret,
-                    }
+                    label=self.options["label"],
+                    email=self.options["email"],
+                    client_id=self.client_id,
+                    client_secret=self.client_secret,
                 )
             )
         with open(os.path.join(self.tempdir, "package.xml"), "w") as f:
             f.write(PACKAGE_XML)
 
-    def _connect_service(self):
+    def _validate_connect_service(self):
         if not self.options["overwrite"]:
             try:
                 connected_app = self.project_config.keychain.get_service(
@@ -149,6 +149,8 @@ class CreateConnectedApp(SFDXBaseTask):
                 )
             except ServiceNotConfigured:
                 pass
+
+    def _connect_service(self):
         self.project_config.keychain.set_service(
             "connected_app",
             ServiceConfig(
@@ -161,14 +163,14 @@ class CreateConnectedApp(SFDXBaseTask):
         )
 
     def _run_task(self):
-        self.tempdir = tempfile.mkdtemp()
-        self._build_package()
-        self.options["command"] += " -d {}".format(self.tempdir)
+        if self.options["connect"]:
+            self._validate_connect_service()
 
-        try:
+        with temporary_dir() as tempdir:
+            self.tempdir = tempdir
+            self.options["command"] += " -d {}".format(self.tempdir)
+            self._build_package()
             super(CreateConnectedApp, self)._run_task()
-        finally:
-            shutil.rmtree(self.tempdir)
 
         if self.options["connect"]:
             self._connect_service()

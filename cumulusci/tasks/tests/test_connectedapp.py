@@ -5,8 +5,6 @@ import mock
 import os
 import pytest
 import re
-import shutil
-import tempfile
 import unittest
 
 try:
@@ -27,9 +25,9 @@ from cumulusci.core.config import (
 from cumulusci.core.exceptions import ServiceNotConfigured, TaskOptionsError
 from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.core.tests.utils import MockLoggingHandler
-
 from cumulusci.tasks.salesforce.tests.util import create_task
 from cumulusci.tasks.connectedapp import CreateConnectedApp
+from cumulusci.utils import temporary_dir
 
 
 class TestCreateConnectedApp(unittest.TestCase):
@@ -54,7 +52,9 @@ class TestCreateConnectedApp(unittest.TestCase):
 
         self._task_log_handler.reset()
         self.task_log = self._task_log_handler.messages
-        self.base_command = "sfdx force:mdapi:deploy --wait 5"
+        self.base_command = "sfdx force:mdapi:deploy --wait {}".format(
+            CreateConnectedApp.deploy_wait
+        )
         self.label = "Test_Label"
         self.username = "TestUser@Name"
         self.email = "TestUser@Email"
@@ -168,21 +168,20 @@ class TestCreateConnectedApp(unittest.TestCase):
         """ client_id and client_secret are generated correctly """
         task = CreateConnectedApp(self.project_config, self.task_config)
         task._generate_id_and_secret()
-        self.assertEqual(len(task.client_id), 85)
-        self.assertEqual(len(task.client_secret), 32)
+        self.assertEqual(len(task.client_id), task.client_id_length)
+        self.assertEqual(len(task.client_secret), task.client_secret_length)
         self.assertNotEqual(re.match(r"^\w+$", task.client_id), None)
         self.assertNotEqual(re.match(r"^\w+$", task.client_secret), None)
 
     def test_build_package(self):
         """ tempdir is populated with connected app and package.xml """
         task = CreateConnectedApp(self.project_config, self.task_config)
-        task.tempdir = tempfile.mkdtemp()
-        connected_app_path = os.path.join(
-            task.tempdir, "connectedApps", "{}.connectedApp".format(self.label)
-        )
-        try:
+        with temporary_dir() as tempdir:
+            task.tempdir = tempdir
+            connected_app_path = os.path.join(
+                task.tempdir, "connectedApps", "{}.connectedApp".format(self.label)
+            )
             task._build_package()
-        finally:
             self.assertTrue(os.path.isdir(os.path.join(task.tempdir, "connectedApps")))
             self.assertTrue(os.path.isfile(os.path.join(task.tempdir, "package.xml")))
             self.assertTrue(os.path.isfile(connected_app_path))
@@ -196,7 +195,6 @@ class TestCreateConnectedApp(unittest.TestCase):
                 self.assertTrue(
                     "<consumerSecret>{}<".format(task.client_secret) in connected_app
                 )
-            shutil.rmtree(task.tempdir)
 
     def test_connect_service(self):
         """ connected app gets added to the keychain connected_app service """
@@ -212,8 +210,8 @@ class TestCreateConnectedApp(unittest.TestCase):
         self.assertEqual(connected_app.client_id, task.client_id)
         self.assertEqual(connected_app.client_secret, task.client_secret)
 
-    def test_connect_service_overwrite_false(self):
-        """ attempting to overwrite connected_app service without overwrite = False fails """
+    def test_validate_service_overwrite_false(self):
+        """ attempting to overwrite connected_app service without overwrite = True fails """
         self.project_config.config["services"] = {
             "connected_app": {
                 "attributes": {"callback_url": {}, "client_id": {}, "client_secret": {}}
@@ -234,7 +232,7 @@ class TestCreateConnectedApp(unittest.TestCase):
         with pytest.raises(
             TaskOptionsError, match="^The CumulusCI keychain already contains"
         ):
-            task._connect_service()
+            task._validate_connect_service()
 
     @mock.patch("cumulusci.tasks.sfdx.SFDXBaseTask._run_task")
     def test_run_task(self, run_task_mock):
@@ -259,6 +257,11 @@ class TestCreateConnectedApp(unittest.TestCase):
     @mock.patch("cumulusci.tasks.connectedapp.CreateConnectedApp._connect_service")
     def test_run_task_connect(self, run_task_mock, connect_service_mock):
         """ _run_task calls _connect_service if connect option is True """
+        self.project_config.config["services"] = {
+            "connected_app": {
+                "attributes": {"callback_url": {}, "client_id": {}, "client_secret": {}}
+            }
+        }
         self.task_config.config["options"]["connect"] = True
         task = CreateConnectedApp(self.project_config, self.task_config)
         task._run_task()
