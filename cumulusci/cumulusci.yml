@@ -497,6 +497,16 @@ flows:
             3:
                 flow: config_dev
 
+    dev_org_beta_deps:
+        description: Set up an org as a development environment for unmanaged metadata based on the latest dependencies (including betas).
+        steps:
+            1:
+                flow: beta_dependencies
+            2:
+                flow: deploy_unmanaged
+            3:
+                flow: config_dev
+
     dev_org_namespaced:
         description: Set up a namespaced scratch org as a development environment for unmanaged metadata
         steps:
