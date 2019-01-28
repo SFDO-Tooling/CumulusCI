@@ -4,7 +4,7 @@ cffi==1.11.5
 chardet==3.0.4
 click==7.0
 coloredlogs==10.0
-cryptography==2.4.2
+cryptography==2.5
 docutils==0.14
 future==0.17.1
 github3.py==1.2.0
