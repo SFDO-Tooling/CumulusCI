@@ -672,7 +672,9 @@ class TestBaseProjectConfig(unittest.TestCase):
         config = BaseProjectConfig(global_config)
         config.keychain = DummyKeychain()
         github = self._make_github()
-        github.repositories["CumulusCI-Test-Dep"]._get = mock.Mock(side_effect=Exception)
+        github.repositories["CumulusCI-Test-Dep"]._get = mock.Mock(
+            side_effect=Exception
+        )
         config.get_github_api = mock.Mock(return_value=github)
 
         with self.assertRaises(DependencyResolutionError):
