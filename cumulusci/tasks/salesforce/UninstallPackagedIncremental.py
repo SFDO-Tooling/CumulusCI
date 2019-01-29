@@ -11,7 +11,7 @@ from cumulusci.utils import temporary_dir
 
 class UninstallPackagedIncremental(UninstallPackaged):
     name = "UninstallPackagedIncremental"
-    skip_types = ["RecordType", "Scontrol"]
+    skip_types = ["RecordType"]
     task_options = {
         "path": {
             "description": "The local path to compare to the retrieved packaged metadata from the org.  Defaults to src",
