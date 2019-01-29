@@ -32,9 +32,6 @@ class UpdateAdminProfile(Deploy):
 
     namespaces = {"sf": "http://soap.sforce.com/2006/04/metadata"}
 
-    def __init__(self, *args, **kwargs):
-        super(UpdateAdminProfile, self).__init__(*args, **kwargs)
-
     def _init_options(self, kwargs):
         super(UpdateAdminProfile, self)._init_options(kwargs)
 
