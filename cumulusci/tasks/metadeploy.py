@@ -19,6 +19,8 @@ class BaseMetaDeployTask(BaseTask):
         results = []
         while next_url is not None:
             response = self.api.request(method, next_url, **kwargs)
+            if response.status_code == 400:
+                raise requests.exceptions.HTTPError(response.content)
             response.raise_for_status()
             response = response.json()
             if "links" in response and collect_pages:
