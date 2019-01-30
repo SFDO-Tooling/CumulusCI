@@ -89,7 +89,7 @@ class ReportPushFailures(BaseSalesforceApiTask):
         for i in range(0, len(job_records), 100):
             org_ids = [
                 job["SubscriberOrganizationKey"]
-                for job in job_records[i:i + chunk_size]
+                for job in job_records[i : i + chunk_size]
             ]
             formatted_query = self.subscriber_query.format(
                 org_ids=",".join("'{}'".format(org_id) for org_id in org_ids)
