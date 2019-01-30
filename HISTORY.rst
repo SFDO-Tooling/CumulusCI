@@ -16,7 +16,9 @@ Changes:
  but installs the latest beta versions of managed package dependencies.
 * The ``github_release`` task now records the release dependencies as JSON in the release's tag message.
 * Looking up the latest release from GitHub is now done using a single HTTP request rather than listing all releases.
+* We added S-Controls to the list of metadata types that the ``uninstall_packaged_incremental`` task will delete.
 * Salesforce Robot Framework library: The ``Get Current Record Id`` keyword now parses the Id correctly when prefixed with ``%2F``, which apparently happens.
+* The ``push_failure_report`` task now avoids an error when querying for info about lots of subscriber orgs.
 
 Issues Closed:
 
