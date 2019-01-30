@@ -84,17 +84,23 @@ class ReportPushFailures(BaseSalesforceApiTask):
 
         # Get subscriber org info
         self.logger.debug("Running query for subscriber orgs: " + self.subscriber_query)
-        org_ids = [job["SubscriberOrganizationKey"] for job in job_records]
-        formatted_query = self.subscriber_query.format(
-            org_ids=",".join("'{}'".format(org_id) for org_id in org_ids)
-        )
-        result = self.sf.query(formatted_query)
+        org_map = {}
+        chunk_size = 100
+        for i in range(0, len(job_records), 100):
+            org_ids = [
+                job["SubscriberOrganizationKey"]
+                for job in job_records[i:i + chunk_size]
+            ]
+            formatted_query = self.subscriber_query.format(
+                org_ids=",".join("'{}'".format(org_id) for org_id in org_ids)
+            )
+            result = self.sf.query(formatted_query)
+            org_map.update({org["OrgKey"]: org for org in result["records"]})
         self.logger.debug(
             "Query is complete: {done}. Found {n} results.".format(
-                done=result["done"], n=result["totalSize"]
+                done=result["done"], n=len(org_map)
             )
         )
-        org_map = {org["OrgKey"]: org for org in result["records"]}
 
         ignore_errors = self.options["ignore_errors"]
         file_name = self.options["result_file"]
