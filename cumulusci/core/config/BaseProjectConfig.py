@@ -546,16 +546,15 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             repo_name = repo_name[:-4]
         repo = gh.repository(repo_owner, repo_name)
 
-        # Determine the ref if specified
-        kwargs = {}
+        # Determine the ref
         if "tag" in dependency:
-            tag = dependency["tag"]
-            kwargs["ref"] = tag
+            tag = ref = dependency["tag"]
         else:
             tag = None
+            ref = repo.branch(repo.default_branch).commit.sha
 
         # Get the cumulusci.yml file
-        contents = repo.file_contents("cumulusci.yml", **kwargs)
+        contents = repo.file_contents("cumulusci.yml", ref=ref)
         cumulusci_yml = ordered_yaml_load(contents.decoded)
 
         # Get the namespace from the cumulusci.yml if set
@@ -568,7 +567,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         unpackaged_pre = []
         try:
             contents = repo.directory_contents(
-                "unpackaged/pre", return_as=dict, **kwargs
+                "unpackaged/pre", return_as=dict, ref=ref
             )
         except NotFoundError:
             contents = None
@@ -582,7 +581,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                     {
                         "repo_owner": repo_owner,
                         "repo_name": repo_name,
-                        "ref": tag,
+                        "ref": ref,
                         "subfolder": subfolder,
                         "unmanaged": dependency.get("unmanaged"),
                         "namespace_tokenize": dependency.get("namespace_tokenize"),
@@ -594,14 +593,14 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         # Look for metadata under src (deployed if no namespace)
         unmanaged_src = None
         if unmanaged or not namespace:
-            contents = repo.directory_contents("src", **kwargs)
+            contents = repo.directory_contents("src", ref=ref)
             if contents:
                 subfolder = "src"
 
                 unmanaged_src = {
                     "repo_owner": repo_owner,
                     "repo_name": repo_name,
-                    "ref": tag,
+                    "ref": ref,
                     "subfolder": subfolder,
                     "unmanaged": dependency.get("unmanaged"),
                     "namespace_tokenize": dependency.get("namespace_tokenize"),
@@ -613,7 +612,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         unpackaged_post = []
         try:
             contents = repo.directory_contents(
-                "unpackaged/post", return_as=dict, **kwargs
+                "unpackaged/post", return_as=dict, ref=ref
             )
         except NotFoundError:
             contents = None
@@ -626,7 +625,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                 dependency = {
                     "repo_owner": repo_owner,
                     "repo_name": repo_name,
-                    "ref": tag,
+                    "ref": ref,
                     "subfolder": subfolder,
                     "unmanaged": dependency.get("unmanaged"),
                     "namespace_tokenize": dependency.get("namespace_tokenize"),

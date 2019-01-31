@@ -133,6 +133,11 @@ class DummyRepository(object):
             if release.tag_name.startswith("release/"):
                 return release
 
+    def branch(self, name):
+        branch = mock.Mock()
+        branch.commit.sha = "sha"
+        return branch
+
 
 class DummyRelease(object):
     def __init__(self, tag_name, name=None):
@@ -527,7 +532,7 @@ class TestBaseProjectConfig(unittest.TestCase):
                 {
                     u"repo_owner": "SFDO-Tooling",
                     u"repo_name": "CumulusCI-Test",
-                    u"ref": None,
+                    u"ref": "sha",
                     u"subfolder": u"unpackaged/pre/pre",
                     u"unmanaged": True,
                     u"namespace_inject": None,
@@ -538,7 +543,7 @@ class TestBaseProjectConfig(unittest.TestCase):
                 {
                     u"repo_owner": "SFDO-Tooling",
                     u"repo_name": "CumulusCI-Test",
-                    u"ref": None,
+                    u"ref": "sha",
                     u"subfolder": u"src",
                     u"unmanaged": True,
                     u"namespace_inject": None,
@@ -548,7 +553,7 @@ class TestBaseProjectConfig(unittest.TestCase):
                 {
                     u"repo_owner": "SFDO-Tooling",
                     u"repo_name": "CumulusCI-Test",
-                    u"ref": None,
+                    u"ref": "sha",
                     u"subfolder": u"unpackaged/post/post",
                     u"unmanaged": True,
                     u"namespace_inject": "ccitest",
@@ -579,7 +584,7 @@ class TestBaseProjectConfig(unittest.TestCase):
                 {
                     u"repo_owner": "SFDO-Tooling",
                     u"repo_name": "CumulusCI-Test",
-                    u"ref": None,
+                    u"ref": "sha",
                     u"subfolder": u"src",
                     u"unmanaged": True,
                     u"namespace_inject": None,
@@ -636,7 +641,7 @@ class TestBaseProjectConfig(unittest.TestCase):
                 {
                     u"repo_owner": "SFDO-Tooling",
                     u"repo_name": "CumulusCI-Test",
-                    u"ref": None,
+                    u"ref": "sha",
                     u"subfolder": u"unpackaged/pre/pre",
                     u"unmanaged": True,
                     u"namespace_inject": None,
@@ -647,7 +652,7 @@ class TestBaseProjectConfig(unittest.TestCase):
                 {
                     u"repo_owner": "SFDO-Tooling",
                     u"repo_name": "CumulusCI-Test",
-                    u"ref": None,
+                    u"ref": "sha",
                     u"subfolder": u"src",
                     u"unmanaged": True,
                     u"namespace_inject": None,
@@ -657,7 +662,7 @@ class TestBaseProjectConfig(unittest.TestCase):
                 {
                     u"repo_owner": "SFDO-Tooling",
                     u"repo_name": "CumulusCI-Test",
-                    u"ref": None,
+                    u"ref": "sha",
                     u"subfolder": u"unpackaged/post/post",
                     u"unmanaged": True,
                     u"namespace_inject": "ccitest",
