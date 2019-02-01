@@ -546,12 +546,34 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             repo_name = repo_name[:-4]
         repo = gh.repository(repo_owner, repo_name)
 
-        # Determine the ref
-        if "tag" in dependency:
-            tag = ref = dependency["tag"]
+        # Determine the commit
+        release = None
+        if "ref" in dependency:
+            ref = dependency["ref"]
         else:
-            tag = None
-            ref = repo.branch(repo.default_branch).commit.sha
+            if "tag" in dependency:
+                try:
+                    # Find the github release corresponding to this tag.
+                    release = repo.release_from_tag(dependency["tag"])
+                except NotFoundError:
+                    raise DependencyResolutionError(
+                        "{}No release found for tag {}".format(
+                            indent, dependency["tag"]
+                        )
+                    )
+            else:
+                release = self._find_latest_release(repo, include_beta)
+            if release:
+                ref = repo.tag(
+                    repo.ref("tags/" + release.tag_name).object.sha
+                ).object.sha
+            else:
+                self.logger.info(
+                    "{}No release found; using the latest commit from the {} branch.".format(
+                        indent, repo.default_branch
+                    )
+                )
+                ref = repo.branch(repo.default_branch).commit.sha
 
         # Get the cumulusci.yml file
         contents = repo.file_contents("cumulusci.yml", ref=ref)
@@ -641,8 +663,6 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
         # Parse values from the repo's cumulusci.yml
         project = cumulusci_yml.get("project", {})
-        prefix_beta = project.get("git", {}).get("prefix_beta", "beta/")
-        prefix_release = project.get("git", {}).get("prefix_release", "release/")
         dependencies = project.get("dependencies")
         if dependencies:
             dependencies = self.get_static_dependencies(
@@ -657,16 +677,11 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             repo_dependencies.extend(unpackaged_pre)
 
         if namespace and not unmanaged:
-            version = None
-            if tag:
-                version = self.get_version_for_tag(tag, prefix_beta, prefix_release)
-            else:
-                version = self._find_release_version(repo, indent, include_beta)
-
-            if not version:
+            if release is None:
                 raise DependencyResolutionError(
                     "{}Could not find latest release for {}".format(indent, namespace)
                 )
+            version = release.name
             # If a latest prod version was found, make the dependencies a
             # child of that install
             dependency = {"namespace": namespace, "version": version}
@@ -688,19 +703,11 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
         return repo_dependencies
 
-    def _find_release_version(self, repo, indent, include_beta=None):
-        version = None
-        if include_beta:
-            latest_release = next(repo.releases())
-            version = latest_release.name
-        else:
-            # github3.py doesn't support the latest release api so we hack
-            # it together here
-            url = repo._build_url("releases/latest", base_url=repo._api)
-            try:
-                version = repo._get(url).json()["name"]
-            except Exception as e:
-                self.logger.warning(
-                    "{}{}: {}".format(indent, e.__class__.__name__, str(e))
-                )
-        return version
+    def _find_latest_release(self, repo, include_beta=None):
+        try:
+            if include_beta:
+                return next(repo.releases())
+            else:
+                return repo.latest_release()
+        except Exception as e:
+            self.logger.warning("{}: {}".format(e.__class__.__name__, str(e)))

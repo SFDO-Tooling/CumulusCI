@@ -76,7 +76,7 @@ class Publish(BaseMetaDeployTask):
         repo_name = self.project_config.repo_name
         gh = self.project_config.get_github_api()
         repo = gh.repository(repo_owner, repo_name)
-        commit_sha = repo.ref("tags/{}".format(tag)).object.sha
+        commit_sha = repo.tag(repo.ref("tags/" + tag).object.sha).object.sha
         self.logger.info(
             "Downloading commit {} of {}/{} from GitHub".format(
                 commit_sha, repo_owner, repo_name
@@ -98,11 +98,8 @@ class Publish(BaseMetaDeployTask):
             )
             project_config.set_keychain(self.project_config.keychain)
             steps = self._freeze_steps(project_config)
-        self.logger.debug("Publishing steps:\n", json.dumps(steps, indent=4))
+        self.logger.debug("Publishing steps:\n" + json.dumps(steps, indent=4))
 
-        import pdb
-
-        pdb.set_trace()
         # create version (not listed yet)
         product_url = self.base_url + "/products/{}".format(self.options["product_id"])
         label = self.project_config.get_version_for_tag(tag)
@@ -151,8 +148,8 @@ class Publish(BaseMetaDeployTask):
 
     def _freeze_steps(self, project_config):
         flow_name = self.options["flow"]
-        flow_config = self.project_config.get_flow(flow_name)
-        flow = FlowCoordinator(self.project_config, flow_config, name=flow_name)
+        flow_config = project_config.get_flow(flow_name)
+        flow = FlowCoordinator(project_config, flow_config, name=flow_name)
         steps = []
         for step in flow.steps:
             task = step.task_class(
