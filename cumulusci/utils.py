@@ -47,7 +47,7 @@ def findReplace(find, replace, directory, filePattern, logger=None, max=None):
     for path, dirs, files in os.walk(os.path.abspath(directory)):
         for filename in fnmatch.filter(files, filePattern):
             filepath = os.path.join(path, filename)
-            with open(filepath) as f:
+            with io.open(filepath, encoding="utf-8") as f:
                 s = f.read()
             if max:
                 s_updated = s.replace(find, replace, max)
@@ -56,7 +56,7 @@ def findReplace(find, replace, directory, filePattern, logger=None, max=None):
             if s != s_updated:
                 if logger:
                     logger.info("Updating {}".format(filepath))
-                with open(filepath, "w") as f:
+                with io.open(filepath, "w", encoding="utf-8") as f:
                     f.write(s_updated)
 
 
@@ -65,13 +65,13 @@ def findReplaceRegex(find, replace, directory, filePattern, logger=None):
     for path, dirs, files in os.walk(os.path.abspath(directory)):
         for filename in fnmatch.filter(files, filePattern):
             filepath = os.path.join(path, filename)
-            with open(filepath) as f:
+            with io.open(filepath, encoding="utf-8") as f:
                 s = f.read()
             s_updated = pattern.sub(replace, s)
             if s != s_updated:
                 if logger:
                     logger.info("Updating {}".format(filepath))
-                with open(filepath, "w") as f:
+                with io.open(filepath, "w", encoding="utf-8") as f:
                     f.write(s_updated)
 
 
