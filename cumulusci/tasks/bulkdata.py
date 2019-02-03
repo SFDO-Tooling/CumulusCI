@@ -227,7 +227,22 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
             "description": "If specified, skip steps before this one in the mapping",
             "required": False,
         },
+        "sqlite_load": {
+            "description": "If specified, an in memory sqlite database will be used and loaded from a sql script at the provided path",
+        }
     }
+
+    def _init_options(self, kwargs):
+        super(LoadData, self)._init_options(kwargs)
+        if self.options.get("sqlite_load"):
+            if not self.options["database_url"].startswith("sqlite:"):
+                raise TaskOptionsError("The sqlite_load option can only be run against sqlite databases")
+            if os.sep != "/":
+                self.options["sqlite_load"] = self.options["sqlite_load"].replace("/", os.sep)
+            if not os.path.isfile(self.options["sqlite_load"]):
+                raise TaskOptionsError("File {} does not exist".format(self.options["sqlite_load"]))
+            self.logger.info("Using in-memory sqlite database")
+            self.options["database_url"] = "sqlite://"
 
     def _run_task(self):
         self._init_mapping()
@@ -249,6 +264,10 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
 
     def _load_mapping(self, mapping):
         """Load data for a single step."""
+        if mapping["fields"].get("Id"):
+            mapping["oid_as_pk"] = True
+        else:
+            mapping["oid_as_pk"] = False
         job_id, local_ids_for_batch = self._create_job(mapping)
         result = self._wait_for_job(job_id)
         # We store inserted ids even if some batches failed
@@ -355,7 +374,8 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
 
         # Use primary key instead of the field mapped to SF Id
         fields = mapping["fields"].copy()
-        del fields["Id"]
+        if mapping["oid_as_pk"]:
+            del fields["Id"]
         id_column = model.__table__.primary_key.columns.keys()[0]
         columns = [getattr(model, id_column)]
 
@@ -470,9 +490,25 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
         data_file = IteratorBytesIO(produce_csv())
         self._sql_bulk_insert_from_csv(conn, id_table_name, columns, data_file)
 
+    def _sqlite_load(self):
+        conn = self.session.connection()
+        cursor = conn.connection.cursor()
+        with open(self.options["sqlite_load"], "r") as f:
+            try:
+                cursor.executescript(f.read())
+            finally:
+                cursor.close()
+        #self.session.flush()
+
     def _init_db(self):
         # initialize the DB engine
         self.engine = create_engine(self.options["database_url"])
+
+        # initialize the DB session
+        self.session = Session(self.engine)
+
+        if self.options.get("sqlite_load"):
+            self._sqlite_load()
 
         # initialize DB metadata
         self.metadata = MetaData()
@@ -487,13 +523,6 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
         for name, mapping in self.mapping.items():
             if "table" in mapping and mapping["table"] not in self.models:
                 self.models[mapping["table"]] = self.base.classes[mapping["table"]]
-
-        # initialize the DB session
-        self.session = Session(self.engine)
-
-        import pdb
-
-        pdb.set_trace()
 
     def _init_mapping(self):
         with open(self.options["mapping"], "r") as f:
