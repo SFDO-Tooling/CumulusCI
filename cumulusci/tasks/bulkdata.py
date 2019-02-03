@@ -7,6 +7,7 @@ import csv
 import datetime
 import io
 import itertools
+import os
 import time
 import tempfile
 import xml.etree.ElementTree as ET
@@ -19,6 +20,7 @@ from sqlalchemy.orm import mapper
 from sqlalchemy.orm import Session
 from sqlalchemy import create_engine
 from sqlalchemy import Column
+from sqlalchemy import Integer
 from sqlalchemy import MetaData
 from sqlalchemy import Table
 from sqlalchemy import Unicode
@@ -30,6 +32,7 @@ import unicodecsv
 
 from cumulusci.core.utils import process_bool_arg, ordered_yaml_load
 from cumulusci.core.exceptions import BulkDataException
+from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.utils import log_progress
 
@@ -55,7 +58,6 @@ class EpochType(types.TypeDecorator):
 def setup_epoch(inspector, table, column_info):
     if isinstance(column_info["type"], types.DateTime):
         column_info["type"] = EpochType()
-
 
 class BulkJobTaskMixin(object):
     def _job_state_from_batches(self, job_id):
@@ -359,8 +361,8 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
 
         for f in fields.values():
             columns.append(model.__table__.columns[f])
-        lookups = mapping.get("lookups", {}).copy().values()
-        for lookup in lookups:
+        lookups = mapping.get("lookups", {}).copy()
+        for lookup in lookups.values():
             lookup["aliased_table"] = aliased(
                 self.metadata.tables["{}_sf_ids".format(lookup["table"])]
             )
@@ -374,17 +376,18 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
             for f in mapping["filters"]:
                 filter_args.append(text(f))
             query = query.filter(*filter_args)
-        for lookup in lookups:
+        for sf_field, lookup in lookups.items():
             # Outer join with lookup ids table:
             # returns main obj even if lookup is null
-            value_column = getattr(model, lookup["key_field"])
+            key_field = lookup.get("key_field", sf_field.lower())
+            value_column = getattr(model, key_field)
             query = query.outerjoin(
                 lookup["aliased_table"],
                 lookup["aliased_table"].columns.id == value_column,
             )
             # Order by foreign key to minimize lock contention
             # by trying to keep lookup targets in the same batch
-            lookup_column = getattr(model, lookup["key_field"])
+            lookup_column = getattr(model, key_field)
             query = query.order_by(lookup_column)
         self.logger.info(str(query))
         return query
@@ -488,6 +491,10 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
         # initialize the DB session
         self.session = Session(self.engine)
 
+        import pdb
+
+        pdb.set_trace()
+
     def _init_mapping(self):
         with open(self.options["mapping"], "r") as f:
             self.mapping = ordered_yaml_load(f)
@@ -503,7 +510,23 @@ class QueryData(BulkJobTaskMixin, BaseSalesforceApiTask):
             "description": "The path to a yaml file containing mappings of the database fields to Salesforce object fields",
             "required": True,
         },
+        "sqlite_dump": {
+            "description": "If set and run against a sqlite database, a SQL script " +\
+                           "will be generated at the path provided and an in memory "  +\
+                           "sqlite db will be used.  This is useful for keeping data " +\
+                           "in the repository and allowing diffs.",
+        }
     }
+
+    def _init_options(self, kwargs):
+        super(QueryData, self)._init_options(kwargs)
+        if self.options.get("sqlite_dump"):
+            if not self.options["database_url"].startswith('sqlite:'):
+                raise TaskOptionsError("The sqlite_dump option can only be used with a sqlite database")
+            self.logger.info("Using in-memory sqlite database")
+            self.options["database_url"] = "sqlite://"
+            if os.sep != "/":
+                self.options["sqlite_dump"] = self.options["sqlite_dump"].replace("/", os.sep)
 
     def _run_task(self):
         self._init_mapping()
@@ -512,6 +535,11 @@ class QueryData(BulkJobTaskMixin, BaseSalesforceApiTask):
         for mapping in self.mappings.values():
             soql = self._soql_for_mapping(mapping)
             self._run_query(soql, mapping)
+
+        self._drop_sf_id_columns()
+
+        if self.options.get("sqlite_dump"):
+            self._sqlite_dump()
 
     def _init_db(self):
         self.models = {}
@@ -540,6 +568,8 @@ class QueryData(BulkJobTaskMixin, BaseSalesforceApiTask):
     def _soql_for_mapping(self, mapping):
         sf_object = mapping["sf_object"]
         fields = [field["sf"] for field in self._fields_for_mapping(mapping)]
+        if not mapping["oid_as_pk"]:
+            fields.append("Id")
         soql = "SELECT {fields} FROM {sf_object}".format(
             **{"fields": ", ".join(fields), "sf_object": sf_object}
         )
@@ -583,13 +613,19 @@ class QueryData(BulkJobTaskMixin, BaseSalesforceApiTask):
             for name in result_file.readline().strip().decode("utf-8").split(",")
         ]
         columns = []
+        lookup_keys = []
         for sf in sf_header:
             if sf == "Records not found for this query":
                 return
             if sf:
                 column = mapping["fields"].get(sf)
+                if not mapping["oid_as_pk"] and sf == "Id":
+                    column = None
                 if not column:
-                    column = mapping.get("lookups", {}).get(sf, {}).get("key_field")
+                    lookup = mapping.get("lookups", {}).get(sf, {})
+                    if lookup:
+                        lookup_keys.append(sf)
+                        column = lookup.get("key_field", sf.lower())
                 if column:
                     columns.append(column)
         if not columns:
@@ -598,13 +634,72 @@ class QueryData(BulkJobTaskMixin, BaseSalesforceApiTask):
         if record_type:
             columns.append("record_type")
 
+        csv_columns = columns.copy()
+        if not mapping["oid_as_pk"]:
+            csv_columns.append("Id")
+
         processor = log_progress(
             process_incoming_rows(result_file, record_type), self.logger
         )
         data_file = IteratorBytesIO(processor)
-        self._sql_bulk_insert_from_csv(conn, mapping["table"], columns, data_file)
+        if mapping["oid_as_pk"]:
+            self._sql_bulk_insert_from_csv(conn, mapping["table"], columns, data_file)
+        else:
+            with tempfile.TemporaryFile("w+b") as f_values:
+                with tempfile.TemporaryFile("w+b") as f_ids:
+                    data_file_values, data_file_ids = self._split_batch_csv(
+                        data_file,
+                        f_values,
+                        f_ids,
+                    )
+                    self._sql_bulk_insert_from_csv(conn, mapping["table"], columns, data_file_values)
+                    self._sql_bulk_insert_from_csv(conn, mapping["sf_id_table"], ["sf_id"], data_file_ids)
+
         self.session.commit()
 
+        if lookup_keys and not mapping["oid_as_pk"]:
+            self._convert_lookups_to_id(mapping, lookup_keys)
+
+    def _get_mapping_for_table(self, table):
+        """ Returns the first mapping for a table name """
+        for mapping in self.mappings.values():
+            if mapping["table"] == table:
+                return mapping
+
+    def _split_batch_csv(self, data_file, f_values, f_ids):
+        writer_values = unicodecsv.writer(f_values)
+        writer_ids = unicodecsv.writer(f_ids)
+        for row in unicodecsv.reader(data_file):
+            writer_values.writerow(row[:-1])
+            writer_ids.writerow([row[-1]])
+        f_values.seek(0)
+        f_ids.seek(0)
+        return f_values, f_ids
+
+    def _convert_lookups_to_id(self, mapping, lookup_keys):
+        for lookup_key in lookup_keys:
+            lookup_dict = mapping["lookups"][lookup_key]
+            model = self.models[mapping["table"]]
+            lookup_mapping = self._get_mapping_for_table(lookup_dict["table"])
+            lookup_model = self.models[lookup_mapping["sf_id_table"]]
+            key_field = lookup_dict.get("key_field", lookup_key.lower())
+            key_attr = getattr(model, key_field)
+            try:
+                self.session.query(model).\
+                    filter(
+                        key_attr.isnot(None),
+                        key_attr == lookup_model.sf_id,
+                    ).\
+                    update({key_attr: lookup_model.id}, synchronize_session=False)
+            except NotImplementedError:
+                # Some databases such as sqlite don't support multitable update
+                mappings = []
+                for row, lookup_id in self.session.query(model, lookup_model.id).\
+                    join(lookup_model, key_attr == lookup_model.sf_id):
+                    mappings.append({"id": row.id, key_field: lookup_id})
+                self.session.bulk_update_mappings(model, mappings)
+        self.session.commit()
+                
     def _create_tables(self):
         for mapping in self.mappings.values():
             self._create_table(mapping)
@@ -616,11 +711,20 @@ class QueryData(BulkJobTaskMixin, BaseSalesforceApiTask):
         table_kwargs = {}
         self.models[mapping["table"]] = type(model_name, (object,), {})
 
-        id_column = mapping["fields"].get("Id") or "id"
+        # Provide support for legacy mappings which used the OID as the pk but
+        # default to using an autoincrementing int pk and a separate sf_id column
+        id_column = mapping["fields"].get("Id", "id")
         fields = []
-        fields.append(Column(id_column, Unicode(255), primary_key=True))
+        mapping["oid_as_pk"] = True
+        if id_column == "id":
+            fields.append(
+                Column(id_column, Integer(), primary_key=True, autoincrement=True)
+            )
+            mapping["oid_as_pk"] = False
+        else:
+            fields.append(Column(id_column, Unicode(255), primary_key=True))
         for field in self._fields_for_mapping(mapping):
-            if field["sf"] == "Id":
+            if mapping["oid_as_pk"] and field["sf"] == "Id":
                 continue
             fields.append(Column(field["db"], Unicode(255)))
         if "record_type" in mapping:
@@ -629,6 +733,19 @@ class QueryData(BulkJobTaskMixin, BaseSalesforceApiTask):
         if t.exists():
             raise BulkDataException("Table already exists: {}".format(mapping["table"]))
 
+        if not mapping["oid_as_pk"]:
+            mapping["sf_id_table"] = mapping["table"] + "_sf_id"
+            # If multiple mappings point to the same table, don't recreate the table
+            if not mapping["sf_id_table"] in self.models:
+                sf_id_model_name = "{}Model".format(mapping["sf_id_table"])
+                self.models[mapping["sf_id_table"]] = type(sf_id_model_name, (object,), {})
+                sf_id_fields = [
+                    Column("id", Integer(), primary_key=True, autoincrement=True),
+                    Column("sf_id", Unicode(24)),
+                ]
+                id_t = Table(mapping["sf_id_table"], self.metadata, *sf_id_fields)
+                mapper(self.models[mapping["sf_id_table"]], id_t)
+
         mapper(self.models[mapping["table"]], t, **mapper_kwargs)
 
     def _fields_for_mapping(self, mapping):
@@ -636,8 +753,22 @@ class QueryData(BulkJobTaskMixin, BaseSalesforceApiTask):
         for sf_field, db_field in mapping.get("fields", {}).items():
             fields.append({"sf": sf_field, "db": db_field})
         for sf_field, lookup in mapping.get("lookups", {}).items():
-            fields.append({"sf": sf_field, "db": lookup["key_field"]})
+            fields.append({"sf": sf_field, "db": lookup.get("key_field", sf_field.lower())})
         return fields
+
+    def _drop_sf_id_columns(self):
+        for mapping in self.mappings.values():
+            if mapping.get("oid_as_pk"):
+                continue
+            self.metadata.tables[mapping["sf_id_table"]].drop()
+
+    def _sqlite_dump(self):
+        path = self.options["sqlite_dump"]
+        if os.path.exists(path):
+            os.remove(path)
+        with open(path, "w") as f:
+            for line in self.session.connection().connection.iterdump():
+                f.write(line + "\n")
 
 
 @contextmanager
