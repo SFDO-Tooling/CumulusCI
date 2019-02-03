@@ -2,6 +2,28 @@
 History
 =======
 
+2.3.0b1 (2019-01-28)
+--------------------
+
+Breaking Changes:
+
+* We refactored the code for running flows. The full list of steps to run is now calculated from nested flow configuration when the flow is initialized instead of during runtime. Your existing flows should continue to run as before, but if you're interacting with CumulusCI at the Python API level, you'll need to use the ``FlowCoordinator`` instead of ``BaseFlow``.
+* Tasks are now expected to have no side effects when they are instantiated. If tasks need to set up resources, do that in ``_init_task`` instead of ``__init__`` or ``_init_options`` to make sure it doesn't happen until the task is actually being run.
+
+Changes:
+
+* There is now a ``dev_org_beta_deps`` flow which sets up an org in the same way as ``dev_org``,
+ but installs the latest beta versions of managed package dependencies.
+* The ``github_release`` task now records the release dependencies as JSON in the release's tag message.
+* Looking up the latest release from GitHub is now done using a single HTTP request rather than listing all releases.
+* We added S-Controls to the list of metadata types that the ``uninstall_packaged_incremental`` task will delete.
+* Salesforce Robot Framework library: The ``Get Current Record Id`` keyword now parses the Id correctly when prefixed with ``%2F``, which apparently happens.
+* The ``push_failure_report`` task now avoids an error when querying for info about lots of subscriber orgs.
+
+Issues Closed:
+
+* #911: Fix UnicodeDecodeError when parsing XML retrieved from the Metadata API.
+
 2.2.6 (2019-01-03)
 ------------------
 
