@@ -663,10 +663,6 @@ class QueryData(BulkJobTaskMixin, BaseSalesforceApiTask):
         if record_type:
             columns.append("record_type")
 
-        csv_columns = columns.copy()
-        if not mapping["oid_as_pk"]:
-            csv_columns.append("Id")
-
         processor = log_progress(
             process_incoming_rows(result_file, record_type), self.logger
         )
