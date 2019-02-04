@@ -18,6 +18,8 @@ lex_locators = {
     "object": {
         "button": "css: div.windowViewMode-normal ul.forceActionsContainer.oneActionsRibbon a[title='{}']",
         "field": "//div[contains(@class, 'uiInput')][.//label[contains(@class, 'uiLabel')][.//span[text()='{}']]]//input",
+		"picklist": "//div[contains(@class, 'uiInput')][.//span[contains(@class, 'uiPicklistLabel')][.//span[text()='{}']]]//div",
+		"picklist_value": "//div[contains(@class, 'uiMenuList') and contains(@class, 'visible')]//div//ul//li//a[text()='{}']",
         "field_lookup_link": "//a[@role='option'][.//div[@title='{}']]",
         "field_lookup_value": "//div[contains(@class, 'uiInput')][.//label[contains(@class, 'uiLabel')][.//span[text()='{}']]]//span[contains(@class,'pillText')]",
         "record_type_option": "//div[contains(@class, 'changeRecordTypeOptionRightColumn')]//span[text()='{}']",

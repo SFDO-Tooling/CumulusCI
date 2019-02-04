@@ -306,6 +306,22 @@ class Salesforce(object):
             locator = lex_locators["object"]["field"].format(name)
             self._populate_field(locator, value)
 
+    def populate_picklist(self, name, value):
+        """Enters a value into a picklist field."""
+        picklist_locator = lex_locators["object"]["picklist"].format(name)
+        picklist_value_locator = lex_locators["object"]["picklist_value"].format(value)
+
+        self._populate_picklist(picklist_locator, picklist_value_locator)
+
+    def _populate_picklist(self, picklist_locator, picklist_value_locator):
+        self.selenium.set_focus_to_element(picklist_locator)
+        picklist = self.selenium.get_webelement(picklist_locator)
+        picklist.click()
+
+        self.selenium.set_focus_to_element(picklist_value_locator)
+        picklist_value = self.selenium.get_webelement(picklist_value_locator)
+        picklist_value.click()
+
     def remove_session_record(self, obj_type, obj_id):
         """Remove a record from the list of records that should be automatically removed."""
         try:
