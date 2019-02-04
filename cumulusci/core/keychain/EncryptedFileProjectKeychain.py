@@ -21,6 +21,8 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
         return self.project_config.project_local_dir
 
     def _load_files(self, dirname, extension, key):
+        if dirname is None:
+            return
         for item in sorted(os.listdir(dirname)):
             if item.endswith(extension):
                 with open(os.path.join(dirname, item), "r") as f_item:
@@ -31,6 +33,8 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
                 self.config[key][name] = config
 
     def _load_file(self, dirname, filename, key):
+        if dirname is None:
+            return
         full_path = os.path.join(dirname, filename)
         if not os.path.exists(full_path):
             return
@@ -75,6 +79,8 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
     def _set_encrypted_org(self, name, encrypted, global_org):
         if global_org:
             filename = os.path.join(self.config_local_dir, "{}.org".format(name))
+        elif self.project_local_dir is None:
+            return
         else:
             filename = os.path.join(self.project_local_dir, "{}.org".format(name))
         with open(filename, "wb") as f_org:

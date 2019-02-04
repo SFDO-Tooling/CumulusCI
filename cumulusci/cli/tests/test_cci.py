@@ -292,6 +292,7 @@ class TestCCI(unittest.TestCase):
     @mock.patch("click.echo")
     def test_service_list(self, echo):
         config = mock.Mock()
+        config.global_keychain = False
         config.project_config.services = {"test": {"description": "Test Service"}}
         config.keychain.list_services.return_value = ["test"]
 
@@ -308,7 +309,19 @@ test     Test Service  *""",
     def test_service_connect_list(self):
         multi_cmd = cci.ConnectServiceCommand()
         config = mock.Mock()
+        config.global_keychain = False
         config.project_config.services = {"test": {}}
+        ctx = mock.Mock()
+
+        with mock.patch("cumulusci.cli.cci.TEST_CONFIG", config):
+            result = multi_cmd.list_commands(ctx)
+        self.assertEqual(["test"], result)
+
+    def test_service_connect_list_global_keychain(self):
+        multi_cmd = cci.ConnectServiceCommand()
+        config = mock.Mock()
+        config.global_keychain = True
+        config.global_config.services = {"test": {}}
         ctx = mock.Mock()
 
         with mock.patch("cumulusci.cli.cci.TEST_CONFIG", config):
@@ -319,7 +332,16 @@ test     Test Service  *""",
         multi_cmd = cci.ConnectServiceCommand()
         ctx = mock.Mock()
         config = mock.Mock()
-        config.project_config.services__test__attributes = {"attr": {"required": False}}
+        config.global_keychain = False
+        config.project_config.services = {
+            "test": {
+                "attributes": {
+                    "attr": {
+                        "required": False
+                    }
+                }
+            }
+        }
 
         with mock.patch("cumulusci.cli.cci.TEST_CONFIG", config):
             cmd = multi_cmd.get_command(ctx, "test")
@@ -329,6 +351,28 @@ test     Test Service  *""",
 
         run_click_command(cmd, project=False)
 
+    def test_service_connect_global_keychain(self):
+        multi_cmd = cci.ConnectServiceCommand()
+        ctx = mock.Mock()
+        config = mock.Mock()
+        config.global_keychain = True
+        config.global_config.services = {
+            "test": {
+                "attributes": {
+                    "attr": {
+                        "required": False
+                    }
+                }
+            }
+        }
+
+        with mock.patch("cumulusci.cli.cci.TEST_CONFIG", config):
+            cmd = multi_cmd.get_command(ctx, "test")
+            run_click_command(cmd, project=True)
+
+        config.keychain.set_service.assert_called_once()
+
+        run_click_command(cmd, project=False)
     @mock.patch("click.echo")
     def test_service_info(self, echo):
         service_config = mock.Mock()
