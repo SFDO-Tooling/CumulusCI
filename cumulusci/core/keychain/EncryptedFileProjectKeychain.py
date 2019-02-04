@@ -11,10 +11,12 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
 
     @property
     def config_local_dir(self):
-        return os.path.join(
-            os.path.expanduser("~"),
-            self.project_config.global_config_obj.config_local_dir,
-        )
+        try:
+            config_local_dir = self.project_config.global_config_obj.config_local_dir
+        except AttributeError:
+            # Handle a global config passed as project config
+            config_local_dir = self.project_config.config_local_dir
+        return os.path.join(os.path.expanduser("~"), config_local_dir)
 
     @property
     def project_local_dir(self):

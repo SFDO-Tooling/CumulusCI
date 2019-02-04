@@ -19,7 +19,7 @@ class CliRuntime(BaseCumulusCI):
         try:
             super(CliRuntime, self).__init__(*args, **kwargs)
         except (ProjectConfigNotFound, NotInProject) as e:
-            raise click.UsageError("{}: {}".format(e.__class__.__name__, e))
+            raise click.UsageError(str(e))
         except ConfigError as e:
             raise click.UsageError("Config Error: {}".format(str(e)))
         except (KeychainKeyNotFound) as e:
@@ -28,7 +28,7 @@ class CliRuntime(BaseCumulusCI):
     def get_keychain_class(self):
         default_keychain_class = (
             self.project_config.cumulusci__keychain
-            if not self.global_keychain
+            if not self.is_global_keychain
             else self.global_config.cumulusci__keychain
         )
         keychain_class = os.environ.get(

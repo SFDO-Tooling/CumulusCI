@@ -577,10 +577,10 @@ def service_list(config):
     data = []
     services = (
         config.project_config.services
-        if not config.global_keychain
+        if not config.is_global_keychain
         else config.global_config.services
     )
-    for serv, schema in list(services.items()):
+    for serv, schema in services.items():
         is_configured = ""
         if serv in config.keychain.list_services():
             is_configured = "* "
@@ -595,7 +595,7 @@ class ConnectServiceCommand(click.MultiCommand):
     def _get_services_config(self, config):
         return (
             config.project_config.services
-            if not config.global_keychain
+            if not config.is_global_keychain
             else config.global_config.services
         )
 
@@ -612,13 +612,13 @@ class ConnectServiceCommand(click.MultiCommand):
     def get_command(self, ctx, name):
         config = load_config(**self.load_config_kwargs)
         services = self._get_services_config(config)
-        attributes = iter(list(services.get(name, {}).get("attributes").items()))
+        attributes = services.get(name, {}).get("attributes").items()
         params = [self._build_param(attr, cnfg) for attr, cnfg in attributes]
-        if config.global_keychain is False:
+        if not config.is_global_keychain:
             params.append(click.Option(("--project",), is_flag=True))
 
         def callback(*args, **kwargs):
-            if config.global_keychain:
+            if config.is_global_keychain:
                 project = False
             else:
                 project = kwargs.get("project", False)

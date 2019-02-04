@@ -292,7 +292,7 @@ class TestCCI(unittest.TestCase):
     @mock.patch("click.echo")
     def test_service_list(self, echo):
         config = mock.Mock()
-        config.global_keychain = False
+        config.is_global_keychain = False
         config.project_config.services = {"test": {"description": "Test Service"}}
         config.keychain.list_services.return_value = ["test"]
 
@@ -309,7 +309,7 @@ test     Test Service  *""",
     def test_service_connect_list(self):
         multi_cmd = cci.ConnectServiceCommand()
         config = mock.Mock()
-        config.global_keychain = False
+        config.is_global_keychain = False
         config.project_config.services = {"test": {}}
         ctx = mock.Mock()
 
@@ -320,7 +320,7 @@ test     Test Service  *""",
     def test_service_connect_list_global_keychain(self):
         multi_cmd = cci.ConnectServiceCommand()
         config = mock.Mock()
-        config.global_keychain = True
+        config.is_global_keychain = True
         config.global_config.services = {"test": {}}
         ctx = mock.Mock()
 
@@ -332,7 +332,7 @@ test     Test Service  *""",
         multi_cmd = cci.ConnectServiceCommand()
         ctx = mock.Mock()
         config = mock.Mock()
-        config.global_keychain = False
+        config.is_global_keychain = False
         config.project_config.services = {
             "test": {"attributes": {"attr": {"required": False}}}
         }
@@ -349,7 +349,7 @@ test     Test Service  *""",
         multi_cmd = cci.ConnectServiceCommand()
         ctx = mock.Mock()
         config = mock.Mock()
-        config.global_keychain = True
+        config.is_global_keychain = True
         config.global_config.services = {
             "test": {"attributes": {"attr": {"required": False}}}
         }

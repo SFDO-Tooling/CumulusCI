@@ -23,7 +23,7 @@ class BaseCumulusCI(object):
         self.global_config = None
         self.project_config = None
         self.keychain = None
-        self.global_keychain = False
+        self.is_global_keychain = False
 
         self._load_global_config()
 
@@ -33,7 +33,7 @@ class BaseCumulusCI(object):
                 self._add_repo_to_path()
             except (NotInProject, ProjectConfigNotFound):
                 if allow_global_keychain:
-                    self.global_keychain = True
+                    self.is_global_keychain = True
                 else:
                     raise
             if load_keychain:
@@ -83,7 +83,7 @@ class BaseCumulusCI(object):
         )
 
     def _load_keychain(self):
-        if self.global_keychain:
+        if self.is_global_keychain:
             self.keychain = self.keychain_cls(self.global_config, self.keychain_key)
         else:
             self.keychain = self.keychain_cls(self.project_config, self.keychain_key)
