@@ -6,7 +6,7 @@ coverage==4.5.2
 coveralls==1.5.1
 flake8==3.7.5
 mock==2.0.0
-pre-commit==1.14.2
+pre-commit==1.14.3
 pytest==4.1.1
 responses==0.10.5
 Sphinx==1.8.3
