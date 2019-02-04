@@ -59,6 +59,7 @@ def setup_epoch(inspector, table, column_info):
     if isinstance(column_info["type"], types.DateTime):
         column_info["type"] = EpochType()
 
+
 class BulkJobTaskMixin(object):
     def _job_state_from_batches(self, job_id):
         uri = "{}/job/{}/batch".format(self.bulk.endpoint, job_id)
@@ -228,19 +229,25 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
             "required": False,
         },
         "sqlite_load": {
-            "description": "If specified, an in memory sqlite database will be used and loaded from a sql script at the provided path",
-        }
+            "description": "If specified, an in memory sqlite database will be used and loaded from a sql script at the provided path"
+        },
     }
 
     def _init_options(self, kwargs):
         super(LoadData, self)._init_options(kwargs)
         if self.options.get("sqlite_load"):
             if not self.options["database_url"].startswith("sqlite:"):
-                raise TaskOptionsError("The sqlite_load option can only be run against sqlite databases")
+                raise TaskOptionsError(
+                    "The sqlite_load option can only be run against sqlite databases"
+                )
             if os.sep != "/":
-                self.options["sqlite_load"] = self.options["sqlite_load"].replace("/", os.sep)
+                self.options["sqlite_load"] = self.options["sqlite_load"].replace(
+                    "/", os.sep
+                )
             if not os.path.isfile(self.options["sqlite_load"]):
-                raise TaskOptionsError("File {} does not exist".format(self.options["sqlite_load"]))
+                raise TaskOptionsError(
+                    "File {} does not exist".format(self.options["sqlite_load"])
+                )
             self.logger.info("Using in-memory sqlite database")
             self.options["database_url"] = "sqlite://"
 
@@ -498,7 +505,7 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
                 cursor.executescript(f.read())
             finally:
                 cursor.close()
-        #self.session.flush()
+        # self.session.flush()
 
     def _init_db(self):
         # initialize the DB engine
@@ -540,22 +547,26 @@ class QueryData(BulkJobTaskMixin, BaseSalesforceApiTask):
             "required": True,
         },
         "sqlite_dump": {
-            "description": "If set and run against a sqlite database, a SQL script " +\
-                           "will be generated at the path provided and an in memory "  +\
-                           "sqlite db will be used.  This is useful for keeping data " +\
-                           "in the repository and allowing diffs.",
-        }
+            "description": "If set and run against a sqlite database, a SQL script "
+            + "will be generated at the path provided and an in memory "
+            + "sqlite db will be used.  This is useful for keeping data "
+            + "in the repository and allowing diffs."
+        },
     }
 
     def _init_options(self, kwargs):
         super(QueryData, self)._init_options(kwargs)
         if self.options.get("sqlite_dump"):
-            if not self.options["database_url"].startswith('sqlite:'):
-                raise TaskOptionsError("The sqlite_dump option can only be used with a sqlite database")
+            if not self.options["database_url"].startswith("sqlite:"):
+                raise TaskOptionsError(
+                    "The sqlite_dump option can only be used with a sqlite database"
+                )
             self.logger.info("Using in-memory sqlite database")
             self.options["database_url"] = "sqlite://"
             if os.sep != "/":
-                self.options["sqlite_dump"] = self.options["sqlite_dump"].replace("/", os.sep)
+                self.options["sqlite_dump"] = self.options["sqlite_dump"].replace(
+                    "/", os.sep
+                )
 
     def _run_task(self):
         self._init_mapping()
@@ -673,12 +684,14 @@ class QueryData(BulkJobTaskMixin, BaseSalesforceApiTask):
             with tempfile.TemporaryFile("w+b") as f_values:
                 with tempfile.TemporaryFile("w+b") as f_ids:
                     data_file_values, data_file_ids = self._split_batch_csv(
-                        data_file,
-                        f_values,
-                        f_ids,
+                        data_file, f_values, f_ids
                     )
-                    self._sql_bulk_insert_from_csv(conn, mapping["table"], columns, data_file_values)
-                    self._sql_bulk_insert_from_csv(conn, mapping["sf_id_table"], ["sf_id"], data_file_ids)
+                    self._sql_bulk_insert_from_csv(
+                        conn, mapping["table"], columns, data_file_values
+                    )
+                    self._sql_bulk_insert_from_csv(
+                        conn, mapping["sf_id_table"], ["sf_id"], data_file_ids
+                    )
 
         self.session.commit()
 
@@ -710,21 +723,19 @@ class QueryData(BulkJobTaskMixin, BaseSalesforceApiTask):
             key_field = lookup_dict.get("key_field", lookup_key.lower())
             key_attr = getattr(model, key_field)
             try:
-                self.session.query(model).\
-                    filter(
-                        key_attr.isnot(None),
-                        key_attr == lookup_model.sf_id,
-                    ).\
-                    update({key_attr: lookup_model.id}, synchronize_session=False)
+                self.session.query(model).filter(
+                    key_attr.isnot(None), key_attr == lookup_model.sf_id
+                ).update({key_attr: lookup_model.id}, synchronize_session=False)
             except NotImplementedError:
                 # Some databases such as sqlite don't support multitable update
                 mappings = []
-                for row, lookup_id in self.session.query(model, lookup_model.id).\
-                    join(lookup_model, key_attr == lookup_model.sf_id):
+                for row, lookup_id in self.session.query(model, lookup_model.id).join(
+                    lookup_model, key_attr == lookup_model.sf_id
+                ):
                     mappings.append({"id": row.id, key_field: lookup_id})
                 self.session.bulk_update_mappings(model, mappings)
         self.session.commit()
-                
+
     def _create_tables(self):
         for mapping in self.mappings.values():
             self._create_table(mapping)
@@ -763,7 +774,9 @@ class QueryData(BulkJobTaskMixin, BaseSalesforceApiTask):
             # If multiple mappings point to the same table, don't recreate the table
             if not mapping["sf_id_table"] in self.models:
                 sf_id_model_name = "{}Model".format(mapping["sf_id_table"])
-                self.models[mapping["sf_id_table"]] = type(sf_id_model_name, (object,), {})
+                self.models[mapping["sf_id_table"]] = type(
+                    sf_id_model_name, (object,), {}
+                )
                 sf_id_fields = [
                     Column("id", Integer(), primary_key=True, autoincrement=True),
                     Column("sf_id", Unicode(24)),
@@ -778,7 +791,9 @@ class QueryData(BulkJobTaskMixin, BaseSalesforceApiTask):
         for sf_field, db_field in mapping.get("fields", {}).items():
             fields.append({"sf": sf_field, "db": db_field})
         for sf_field, lookup in mapping.get("lookups", {}).items():
-            fields.append({"sf": sf_field, "db": lookup.get("key_field", sf_field.lower())})
+            fields.append(
+                {"sf": sf_field, "db": lookup.get("key_field", sf_field.lower())}
+            )
         return fields
 
     def _drop_sf_id_columns(self):
