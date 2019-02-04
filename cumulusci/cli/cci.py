@@ -191,12 +191,14 @@ def handle_sentry_event(config, no_prompt):
 TEST_CONFIG = None
 
 
-def load_config(load_project_config=True, load_keychain=True, allow_global_keychain=False):
+def load_config(
+    load_project_config=True, load_keychain=True, allow_global_keychain=False
+):
     try:
         config = TEST_CONFIG or CliConfig(
-            load_project_config = load_project_config,
-            load_keychain = load_keychain,
-            allow_global_keychain = allow_global_keychain,
+            load_project_config=load_project_config,
+            load_keychain=load_keychain,
+            allow_global_keychain=allow_global_keychain,
         )
         config.check_cumulusci_version()
     except click.UsageError as e:
@@ -575,7 +577,7 @@ def service_list(config):
     data = []
     services = (
         config.project_config.services
-        if not config.global_keychain 
+        if not config.global_keychain
         else config.global_config.services
     )
     for serv, schema in list(services.items()):
@@ -588,14 +590,12 @@ def service_list(config):
 
 
 class ConnectServiceCommand(click.MultiCommand):
-    load_config_kwargs = {
-        "allow_global_keychain": True,
-    }
+    load_config_kwargs = {"allow_global_keychain": True}
 
     def _get_services_config(self, config):
         return (
             config.project_config.services
-            if not config.global_keychain 
+            if not config.global_keychain
             else config.global_config.services
         )
 
@@ -612,11 +612,7 @@ class ConnectServiceCommand(click.MultiCommand):
     def get_command(self, ctx, name):
         config = load_config(**self.load_config_kwargs)
         services = self._get_services_config(config)
-        attributes = iter(
-            list(
-                services.get(name, {}).get("attributes").items()
-            )
-        )
+        attributes = iter(list(services.get(name, {}).get("attributes").items()))
         params = [self._build_param(attr, cnfg) for attr, cnfg in attributes]
         if config.global_keychain is False:
             params.append(click.Option(("--project",), is_flag=True))

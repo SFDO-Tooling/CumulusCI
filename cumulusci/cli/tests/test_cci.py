@@ -334,13 +334,7 @@ test     Test Service  *""",
         config = mock.Mock()
         config.global_keychain = False
         config.project_config.services = {
-            "test": {
-                "attributes": {
-                    "attr": {
-                        "required": False
-                    }
-                }
-            }
+            "test": {"attributes": {"attr": {"required": False}}}
         }
 
         with mock.patch("cumulusci.cli.cci.TEST_CONFIG", config):
@@ -357,13 +351,7 @@ test     Test Service  *""",
         config = mock.Mock()
         config.global_keychain = True
         config.global_config.services = {
-            "test": {
-                "attributes": {
-                    "attr": {
-                        "required": False
-                    }
-                }
-            }
+            "test": {"attributes": {"attr": {"required": False}}}
         }
 
         with mock.patch("cumulusci.cli.cci.TEST_CONFIG", config):
@@ -373,6 +361,7 @@ test     Test Service  *""",
         config.keychain.set_service.assert_called_once()
 
         run_click_command(cmd, project=False)
+
     @mock.patch("click.echo")
     def test_service_info(self, echo):
         service_config = mock.Mock()
