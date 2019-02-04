@@ -2,6 +2,21 @@
 History
 =======
 
+2.3.0 (2019-02-04)
+------------------
+
+Changes:
+
+* When installing a managed package dependency, pre & post metadata bundles are now fetched from the git commit corresponding to the most recent release of the managed package, instead of master.
+* Improvements to the task for publishing a release to MetaDeploy:
+  * It can now publish a tag even if it's a different commit than what is currently checked out in the working directory.
+  * It now pins managed deployments of metadata bundles to the git commit corresponding to the most recent release of the managed package.
+
+Issues Closed:
+
+* #962: ``cumulusci.utils.findReplace`` uses wrong file encoding in Python 3
+* #967: Allow ``cci service`` commands to be run from outside a project repository
+
 2.3.0b1 (2019-01-28)
 --------------------
 
