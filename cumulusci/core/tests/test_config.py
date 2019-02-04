@@ -101,7 +101,7 @@ class DummyRepository(object):
         self.name = name
         self.html_url = "https://github.com/{}/{}".format(owner, name)
         self._contents = contents
-        self._releases = releases
+        self._releases = releases or []
 
     def file_contents(self, path, **kw):
         try:
@@ -120,11 +120,6 @@ class DummyRepository(object):
     def _build_url(self, *args, **kw):
         return self._api
 
-    def _get(self, url):
-        res = mock.Mock()
-        res.json.return_value = {"name": "2"}
-        return res
-
     def releases(self):
         return iter(self._releases)
 
@@ -132,6 +127,27 @@ class DummyRepository(object):
         for release in self._releases:
             if release.tag_name.startswith("release/"):
                 return release
+
+    def release_from_tag(self, tag_name):
+        for release in self._releases:
+            if release.tag_name == tag_name:
+                return release
+        raise NotFoundError(DummyResponse("", 404))
+
+    def branch(self, name):
+        branch = mock.Mock()
+        branch.commit.sha = "commit_sha"
+        return branch
+
+    def tag(self, sha):
+        tag = mock.Mock()
+        tag.object.sha = "tag_sha"
+        return tag
+
+    def ref(self, s):
+        ref = mock.Mock()
+        ref.object.sha = "ref_sha"
+        return ref
 
 
 class DummyRelease(object):
@@ -207,6 +223,7 @@ class TestBaseProjectConfig(unittest.TestCase):
                 "src": {},
                 "unpackaged/post": {},
             },
+            [DummyRelease("release/2.0", "2.0")],
         )
 
         CUMULUSCI_REPO = DummyRepository(
@@ -214,10 +231,10 @@ class TestBaseProjectConfig(unittest.TestCase):
             "CumulusCI",
             {},
             [
-                DummyRelease("release/1.0"),
-                DummyRelease("beta-wrongprefix"),
-                DummyRelease("beta/1.0-Beta_2"),
-                DummyRelease("beta/1.0-Beta_1"),
+                DummyRelease("release/1.0", "1.0"),
+                DummyRelease("beta-wrongprefix", "wrong"),
+                DummyRelease("beta/1.0-Beta_2", "1.0 (Beta 2)"),
+                DummyRelease("beta/1.0-Beta_1", "1.0 (Beta 1)"),
             ],
         )
 
@@ -527,18 +544,18 @@ class TestBaseProjectConfig(unittest.TestCase):
                 {
                     u"repo_owner": "SFDO-Tooling",
                     u"repo_name": "CumulusCI-Test",
-                    u"ref": None,
+                    u"ref": "commit_sha",
                     u"subfolder": u"unpackaged/pre/pre",
                     u"unmanaged": True,
                     u"namespace_inject": None,
                     u"namespace_strip": None,
                     u"namespace_tokenize": None,
                 },
-                {u"version": "2", u"namespace": "ccitestdep"},
+                {u"version": "2.0", u"namespace": "ccitestdep"},
                 {
                     u"repo_owner": "SFDO-Tooling",
                     u"repo_name": "CumulusCI-Test",
-                    u"ref": None,
+                    u"ref": "commit_sha",
                     u"subfolder": u"src",
                     u"unmanaged": True,
                     u"namespace_inject": None,
@@ -548,7 +565,7 @@ class TestBaseProjectConfig(unittest.TestCase):
                 {
                     u"repo_owner": "SFDO-Tooling",
                     u"repo_name": "CumulusCI-Test",
-                    u"ref": None,
+                    u"ref": "commit_sha",
                     u"subfolder": u"unpackaged/post/post",
                     u"unmanaged": True,
                     u"namespace_inject": "ccitest",
@@ -575,11 +592,11 @@ class TestBaseProjectConfig(unittest.TestCase):
         self.assertEqual(
             result,
             [
-                {u"version": "2", u"namespace": "ccitestdep"},
+                {u"version": "2.0", u"namespace": "ccitestdep"},
                 {
                     u"repo_owner": "SFDO-Tooling",
                     u"repo_name": "CumulusCI-Test",
-                    u"ref": None,
+                    u"ref": "commit_sha",
                     u"subfolder": u"src",
                     u"unmanaged": True,
                     u"namespace_inject": None,
@@ -592,7 +609,11 @@ class TestBaseProjectConfig(unittest.TestCase):
     def test_process_github_dependency_with_tag(self):
         global_config = BaseGlobalConfig()
         config = BaseProjectConfig(global_config)
-        config.get_github_api = mock.Mock(return_value=self._make_github())
+        github = self._make_github()
+        github.repositories["CumulusCI-Test"]._releases = [
+            DummyRelease("release/1.0", "1.0")
+        ]
+        config.get_github_api = mock.Mock(return_value=github)
         config.keychain = DummyKeychain()
 
         result = config.process_github_dependency(
@@ -605,7 +626,7 @@ class TestBaseProjectConfig(unittest.TestCase):
             {
                 "namespace": "ccitest",
                 "version": "1.0",
-                "dependencies": [{"namespace": "ccitestdep", "version": "2"}],
+                "dependencies": [{"namespace": "ccitestdep", "version": "2.0"}],
             },
             result,
         )
@@ -617,7 +638,7 @@ class TestBaseProjectConfig(unittest.TestCase):
         github = self._make_github()
         github.repositories["CumulusCI-Test-Dep"]._releases = [
             DummyRelease("beta/1.1-Beta_1", "1.1 (Beta 1)"),
-            DummyRelease("release/1.0"),
+            DummyRelease("release/1.0", "1.0"),
         ]
         config.get_github_api = mock.Mock(return_value=github)
 
@@ -636,7 +657,7 @@ class TestBaseProjectConfig(unittest.TestCase):
                 {
                     u"repo_owner": "SFDO-Tooling",
                     u"repo_name": "CumulusCI-Test",
-                    u"ref": None,
+                    u"ref": "commit_sha",
                     u"subfolder": u"unpackaged/pre/pre",
                     u"unmanaged": True,
                     u"namespace_inject": None,
@@ -647,7 +668,7 @@ class TestBaseProjectConfig(unittest.TestCase):
                 {
                     u"repo_owner": "SFDO-Tooling",
                     u"repo_name": "CumulusCI-Test",
-                    u"ref": None,
+                    u"ref": "commit_sha",
                     u"subfolder": u"src",
                     u"unmanaged": True,
                     u"namespace_inject": None,
@@ -657,7 +678,59 @@ class TestBaseProjectConfig(unittest.TestCase):
                 {
                     u"repo_owner": "SFDO-Tooling",
                     u"repo_name": "CumulusCI-Test",
-                    u"ref": None,
+                    u"ref": "commit_sha",
+                    u"subfolder": u"unpackaged/post/post",
+                    u"unmanaged": True,
+                    u"namespace_inject": "ccitest",
+                    u"namespace_strip": None,
+                    u"namespace_tokenize": None,
+                },
+            ],
+        )
+
+    def test_process_github_dependency_ref(self):
+        global_config = BaseGlobalConfig()
+        config = BaseProjectConfig(global_config)
+        config.keychain = DummyKeychain()
+        config.get_github_api = mock.Mock(return_value=self._make_github())
+
+        result = config.process_github_dependency(
+            {
+                "github": "https://github.com/SFDO-Tooling/CumulusCI-Test.git",
+                "unmanaged": True,
+                "ref": "other_commit_sha",
+                "skip": ["unpackaged/pre/skip", "unpackaged/post/skip"],
+            },
+            "",
+        )
+        self.assertEqual(
+            result,
+            [
+                {
+                    u"repo_owner": "SFDO-Tooling",
+                    u"repo_name": "CumulusCI-Test",
+                    u"ref": "other_commit_sha",
+                    u"subfolder": u"unpackaged/pre/pre",
+                    u"unmanaged": True,
+                    u"namespace_inject": None,
+                    u"namespace_strip": None,
+                    u"namespace_tokenize": None,
+                },
+                {u"version": "2.0", u"namespace": "ccitestdep"},
+                {
+                    u"repo_owner": "SFDO-Tooling",
+                    u"repo_name": "CumulusCI-Test",
+                    u"ref": "other_commit_sha",
+                    u"subfolder": u"src",
+                    u"unmanaged": True,
+                    u"namespace_inject": None,
+                    u"namespace_strip": None,
+                    u"namespace_tokenize": None,
+                },
+                {
+                    u"repo_owner": "SFDO-Tooling",
+                    u"repo_name": "CumulusCI-Test",
+                    u"ref": "other_commit_sha",
                     u"subfolder": u"unpackaged/post/post",
                     u"unmanaged": True,
                     u"namespace_inject": "ccitest",
@@ -672,14 +745,26 @@ class TestBaseProjectConfig(unittest.TestCase):
         config = BaseProjectConfig(global_config)
         config.keychain = DummyKeychain()
         github = self._make_github()
-        github.repositories["CumulusCI-Test-Dep"]._get = mock.Mock(
-            side_effect=Exception
-        )
+        github.repositories["CumulusCI-Test-Dep"]._releases = []
         config.get_github_api = mock.Mock(return_value=github)
 
         with self.assertRaises(DependencyResolutionError):
             config.process_github_dependency(
                 {"github": "https://github.com/SFDO-Tooling/CumulusCI-Test-Dep.git"}
+            )
+
+    def test_process_github_dependency_tag_not_found(self):
+        global_config = BaseGlobalConfig()
+        config = BaseProjectConfig(global_config)
+        config.keychain = DummyKeychain()
+        config.get_github_api = mock.Mock(return_value=self._make_github())
+
+        with self.assertRaises(DependencyResolutionError):
+            config.process_github_dependency(
+                {
+                    "github": "https://github.com/SFDO-Tooling/CumulusCI-Test-Dep.git",
+                    "tag": "bogus",
+                }
             )
 
 

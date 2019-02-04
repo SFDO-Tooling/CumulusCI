@@ -148,16 +148,19 @@ def download_extract_zip(url, target=None, subfolder=None, headers=None):
     return zip_file
 
 
-def download_extract_github(github_api, repo_owner, repo_name, subfolder, ref=None):
+def download_extract_github(
+    github_api, repo_owner, repo_name, subfolder=None, ref=None
+):
     github_repo = github_api.repository(repo_owner, repo_name)
     if not ref:
         ref = github_repo.default_branch
     zip_content = io.BytesIO()
     github_repo.archive("zipball", zip_content, ref=ref)
     zip_file = zipfile.ZipFile(zip_content)
-    root_folder = sorted(zip_file.namelist())[0]
-    subfolder_dir = root_folder + subfolder
-    zip_file = zip_subfolder(zip_file, subfolder_dir)
+    path = sorted(zip_file.namelist())[0]
+    if subfolder:
+        path = path + subfolder
+    zip_file = zip_subfolder(zip_file, path)
     return zip_file
 
 

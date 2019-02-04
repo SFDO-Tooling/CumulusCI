@@ -191,10 +191,14 @@ def handle_sentry_event(config, no_prompt):
 TEST_CONFIG = None
 
 
-def load_config(load_project_config=True, load_keychain=True):
+def load_config(
+    load_project_config=True, load_keychain=True, allow_global_keychain=False
+):
     try:
         config = TEST_CONFIG or CliConfig(
-            load_project_config=load_project_config, load_keychain=load_keychain
+            load_project_config=load_project_config,
+            load_keychain=load_keychain,
+            allow_global_keychain=allow_global_keychain,
         )
         config.check_cumulusci_version()
     except click.UsageError as e:
@@ -567,11 +571,16 @@ project.add_command(project_dependencies)
 
 
 @click.command(name="list", help="List services available for configuration and use")
-@pass_config
+@pass_config(allow_global_keychain=True)
 def service_list(config):
     headers = ["service", "description", "is_configured"]
     data = []
-    for serv, schema in list(config.project_config.services.items()):
+    services = (
+        config.project_config.services
+        if not config.is_global_keychain
+        else config.global_config.services
+    )
+    for serv, schema in services.items():
         is_configured = ""
         if serv in config.keychain.list_services():
             is_configured = "* "
@@ -581,29 +590,38 @@ def service_list(config):
 
 
 class ConnectServiceCommand(click.MultiCommand):
+    load_config_kwargs = {"allow_global_keychain": True}
+
+    def _get_services_config(self, config):
+        return (
+            config.project_config.services
+            if not config.is_global_keychain
+            else config.global_config.services
+        )
+
     def list_commands(self, ctx):
         """ list the services that can be configured """
-        config = load_config()
-        return sorted(config.project_config.services.keys())
+        config = load_config(**self.load_config_kwargs)
+        services = self._get_services_config(config)
+        return sorted(services.keys())
 
     def _build_param(self, attribute, details):
         req = details["required"]
         return click.Option(("--{0}".format(attribute),), prompt=req, required=req)
 
     def get_command(self, ctx, name):
-        config = load_config()
-
-        attributes = iter(
-            list(
-                getattr(
-                    config.project_config, "services__{0}__attributes".format(name)
-                ).items()
-            )
-        )
+        config = load_config(**self.load_config_kwargs)
+        services = self._get_services_config(config)
+        attributes = services.get(name, {}).get("attributes").items()
         params = [self._build_param(attr, cnfg) for attr, cnfg in attributes]
-        params.append(click.Option(("--project",), is_flag=True))
+        if not config.is_global_keychain:
+            params.append(click.Option(("--project",), is_flag=True))
 
-        def callback(project=False, *args, **kwargs):
+        def callback(*args, **kwargs):
+            if config.is_global_keychain:
+                project = False
+            else:
+                project = kwargs.get("project", False)
             serv_conf = dict(
                 (k, v) for k, v in list(kwargs.items()) if v != None
             )  # remove None values
@@ -626,7 +644,7 @@ def service_connect():
 
 @click.command(name="info", help="Show the details of a connected service")
 @click.argument("service_name")
-@pass_config
+@pass_config(allow_global_keychain=True)
 def service_info(config, service_name):
     try:
         service_config = config.keychain.get_service(service_name)
