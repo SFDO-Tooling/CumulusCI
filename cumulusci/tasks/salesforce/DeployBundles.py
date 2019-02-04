@@ -52,7 +52,7 @@ class DeployBundles(Deploy):
                 {
                     "repo_owner": self.project_config.repo_owner,
                     "repo_name": self.project_config.repo_name,
-                    "tag": self.project_config.repo_commit,
+                    "ref": self.project_config.repo_commit,
                     "subfolder": "/".join([path, item]),
                 }
             )
