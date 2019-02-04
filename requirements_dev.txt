@@ -10,7 +10,7 @@ pre-commit==1.14.3
 pytest==4.2.0
 responses==0.10.5
 Sphinx==1.8.4
-testfixtures==6.4.3
+testfixtures==6.5.0
 tox==3.7.0
 twine==1.12.1
 watchdog==0.9.0
