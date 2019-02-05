@@ -27,8 +27,7 @@ Breaking Changes:
 
 Changes:
 
-* There is now a ``dev_org_beta_deps`` flow which sets up an org in the same way as ``dev_org``,
- but installs the latest beta versions of managed package dependencies.
+* There is now a ``dev_org_beta_deps`` flow which sets up an org in the same way as ``dev_org``, but installs the latest beta versions of managed package dependencies.
 * The ``github_release`` task now records the release dependencies as JSON in the release's tag message.
 * Looking up the latest release from GitHub is now done using a single HTTP request rather than listing all releases.
 * We added S-Controls to the list of metadata types that the ``uninstall_packaged_incremental`` task will delete.
