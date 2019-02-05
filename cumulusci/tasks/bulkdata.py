@@ -103,7 +103,7 @@ class BulkJobTaskMixin(object):
         return result
 
     def _sql_bulk_insert_from_csv(self, conn, table, columns, data_file):
-        if conn.dialect.name == "psycopg2":
+        if conn.dialect.name in ("postgresql", "psycopg2"):
             # psycopg2 (the postgres driver) supports COPY FROM
             # to efficiently bulk insert rows in CSV format
             with conn.connection.cursor() as cursor:
@@ -614,8 +614,6 @@ class QueryData(BulkJobTaskMixin, BaseSalesforceApiTask):
         model_name = "{}Model".format(mapping["table"])
         mapper_kwargs = {}
         table_kwargs = {}
-        if mapping["table"] in self.models:
-            raise BulkDataException("Table already exists: {}".format(mapping["table"]))
         self.models[mapping["table"]] = type(model_name, (object,), {})
 
         id_column = mapping["fields"].get("Id") or "id"
@@ -628,6 +626,8 @@ class QueryData(BulkJobTaskMixin, BaseSalesforceApiTask):
         if "record_type" in mapping:
             fields.append(Column("record_type", Unicode(255)))
         t = Table(mapping["table"], self.metadata, *fields, **table_kwargs)
+        if t.exists():
+            raise BulkDataException("Table already exists: {}".format(mapping["table"]))
 
         mapper(self.models[mapping["table"]], t, **mapper_kwargs)
 
@@ -656,6 +656,6 @@ def process_incoming_rows(f, record_type=None):
         record_type = record_type.encode("utf-8")
     for line in f:
         if record_type:
-            yield line + b"," + record_type + b"\n"
+            yield line.rstrip() + b"," + record_type + b"\n"
         else:
             yield line

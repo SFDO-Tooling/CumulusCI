@@ -4,10 +4,8 @@
 from setuptools import setup
 from pkgutil import walk_packages
 
-import cumulusci
 
-
-def find_packages(path=".", prefix=""):
+def find_packages(path=["."], prefix=""):
     yield prefix
     prefix = prefix + "."
     for _, name, ispkg in walk_packages(path, prefix):
@@ -15,11 +13,11 @@ def find_packages(path=".", prefix=""):
             yield name
 
 
-with open("README.rst") as readme_file:
-    readme = readme_file.read()
+with open("README.rst", "rb") as readme_file:
+    readme = readme_file.read().decode("utf-8")
 
-with open("HISTORY.rst") as history_file:
-    history = history_file.read()
+with open("HISTORY.rst", "rb") as history_file:
+    history = history_file.read().decode("utf-8")
 
 with open("requirements.txt") as requirements_file:
     requirements = [
@@ -36,14 +34,14 @@ with open("requirements_dev.txt") as dev_requirements_file:
 
 setup(
     name="cumulusci",
-    version="2.1.2",
+    version="2.3.0",
     description="Build and release tools for Salesforce developers",
-    long_description=readme + "\n\n" + history,
+    long_description=readme + u"\n\n" + history,
     long_description_content_type="text/x-rst",
     author="Salesforce.org",
     author_email="jlantz@salesforce.com",
     url="https://github.com/SFDO-Tooling/CumulusCI",
-    packages=list(find_packages(cumulusci.__path__, cumulusci.__name__)),
+    packages=list(find_packages(["cumulusci"], "cumulusci")),
     package_dir={"cumulusci": "cumulusci"},
     entry_points={"console_scripts": ["cci=cumulusci.cli.cci:main"]},
     include_package_data=True,

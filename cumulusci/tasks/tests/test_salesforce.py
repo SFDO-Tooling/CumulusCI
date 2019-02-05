@@ -36,9 +36,9 @@ class TestSalesforceToolingTask(unittest.TestCase):
 
         self.task_config = TaskConfig()
         self.org_config = OrgConfig(
-            {"instance_url": "example.com", "access_token": "abc123"}, "test"
+            {"instance_url": "https://example.com", "access_token": "abc123"}, "test"
         )
-        self.base_tooling_url = "https://{}/services/data/v{}/tooling/".format(
+        self.base_tooling_url = "{}/services/data/v{}/tooling/".format(
             self.org_config.instance_url, self.api_version
         )
 
@@ -46,6 +46,7 @@ class TestSalesforceToolingTask(unittest.TestCase):
         task = BaseSalesforceApiTask(
             self.project_config, self.task_config, self.org_config
         )
+        task._init_task()
         obj = task._get_tooling_object("TestObject")
         url = self.base_tooling_url + "sobjects/TestObject/"
         self.assertEqual(obj.base_url, url)
@@ -54,6 +55,7 @@ class TestSalesforceToolingTask(unittest.TestCase):
         task = BaseSalesforceApiTask(
             self.project_config, self.task_config, self.org_config
         )
+        task._init_task()
         self.assertIn("Sforce-Call-Options", task.sf.headers)
         self.assertIn("CumulusCI/", task.sf.headers["Sforce-Call-Options"])
 
@@ -65,6 +67,7 @@ class TestSalesforceToolingTask(unittest.TestCase):
         task = BaseSalesforceApiTask(
             self.project_config, self.task_config, self.org_config
         )
+        task._init_task()
         self.assertIn("Sforce-Call-Options", task.sf.headers)
         self.assertNotIn("CumulusCI/", task.sf.headers["Sforce-Call-Options"])
         self.assertIn("test123", task.sf.headers["Sforce-Call-Options"])

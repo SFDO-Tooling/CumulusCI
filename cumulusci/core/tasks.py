@@ -7,6 +7,7 @@ from __future__ import unicode_literals
 
 from builtins import object
 from past.utils import old_div
+import contextlib
 import logging
 import time
 import threading
@@ -15,7 +16,16 @@ from cumulusci.core.exceptions import TaskRequiresSalesforceOrg
 from cumulusci.core.exceptions import TaskOptionsError
 
 CURRENT_TASK = threading.local()
-CURRENT_TASK.instance = None
+CURRENT_TASK.stack = []
+
+
+@contextlib.contextmanager
+def stacked_task(self):
+    CURRENT_TASK.stack.append(self)
+    try:
+        yield
+    finally:
+        CURRENT_TASK.stack.pop()
 
 
 class BaseTask(object):
@@ -62,22 +72,16 @@ class BaseTask(object):
         # the tasks stepnumber in the flow
         self.stepnum = stepnum
 
-        if self.salesforce_task and not self.org_config:
-            raise TaskRequiresSalesforceOrg(
-                "This task requires a salesforce org. "
-                "Use org default <name> to set a default org "
-                "or pass the org name with the --org option"
-            )
         self._init_logger()
         self._init_options(kwargs)
         self._validate_options()
-        self._update_credentials()
-        self._init_task()
-        self._set_current_task()
 
     def _init_logger(self):
         """ Initializes self.logger """
-        self.logger = logging.getLogger(__name__)
+        if self.flow:
+            self.logger = self.flow.logger.getChild(self.__class__.__name__)
+        else:
+            self.logger = logging.getLogger(__name__)
 
     def _init_options(self, kwargs):
         """ Initializes self.options """
@@ -95,9 +99,6 @@ class BaseTask(object):
                     self.options[option] = getattr(self.project_config, attr, None)
             except AttributeError:
                 pass
-
-    def _set_current_task(self):
-        CURRENT_TASK.instance = self
 
     def _validate_options(self):
         missing_required = []
@@ -125,15 +126,23 @@ class BaseTask(object):
         # If sentry is configured, initialize sentry for error capture
         self.project_config.init_sentry()
 
-        self._set_current_task()
+        if self.salesforce_task and not self.org_config:
+            raise TaskRequiresSalesforceOrg(
+                "This task requires a salesforce org. "
+                "Use org default <name> to set a default org "
+                "or pass the org name with the --org option"
+            )
+        self._update_credentials()
+        self._init_task()
 
-        try:
-            self._log_begin()
-            self.result = self._run_task()
-            return self.return_values
-        except Exception as e:
-            self._process_exception(e)
-            raise
+        with stacked_task(self):
+            try:
+                self._log_begin()
+                self.result = self._run_task()
+                return self.return_values
+            except Exception as e:
+                self._process_exception(e)
+                raise
 
     def _process_exception(self, e):
         if self.project_config.use_sentry:
@@ -218,3 +227,16 @@ class BaseTask(object):
             self.logger.info(
                 "Increased polling interval to %d seconds", self.poll_interval_s
             )
+
+    def freeze(self, step):
+        return [
+            {
+                "name": self.name,
+                "kind": "other",
+                "is_required": True,
+                "path": step.path,
+                "step_num": str(step.step_num),
+                "task_class": self.task_config.class_path,
+                "task_config": {"options": self.options},
+            }
+        ]

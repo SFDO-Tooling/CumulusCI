@@ -44,34 +44,38 @@ class TestPushFailureTask(unittest.TestCase):
             ReportPushFailures,
             options={"request_id": "123", "ignore_errors": "IgnoreMe"},
         )
-        task.sf = mock.Mock()
-        task.sf.query.side_effect = [
-            {
-                "done": True,
-                "totalSize": 2,
-                "records": [
-                    error_record(ErrorTitle="IgnoreMe"),
-                    error_record(gack=True),
-                    {
-                        "attributes": {"type": "job"},
-                        "SubscriberOrganizationKey": "00Dxxx000000001",
-                    },
-                ],
-            },
-            {
-                "done": True,
-                "totalSize": 1,
-                "records": [
-                    {
-                        "OrgKey": "00Dxxx000000001",
-                        "OrgName": "Test Org",
-                        "OrgType": "Sandbox",
-                        "OrgStatus": "Demo",
-                        "InstanceName": "CSxx",
-                    }
-                ],
-            },
-        ]
+
+        def _init_class():
+            task.sf = mock.Mock()
+            task.sf.query.side_effect = [
+                {
+                    "done": True,
+                    "totalSize": 2,
+                    "records": [
+                        error_record(ErrorTitle="IgnoreMe"),
+                        error_record(gack=True),
+                        {
+                            "attributes": {"type": "job"},
+                            "SubscriberOrganizationKey": "00Dxxx000000001",
+                        },
+                    ],
+                },
+                {
+                    "done": True,
+                    "totalSize": 1,
+                    "records": [
+                        {
+                            "OrgKey": "00Dxxx000000001",
+                            "OrgName": "Test Org",
+                            "OrgType": "Sandbox",
+                            "OrgStatus": "Demo",
+                            "InstanceName": "CSxx",
+                        }
+                    ],
+                },
+            ]
+
+        task._init_class = _init_class
         with temporary_dir():
             task()
             self.assertEqual(2, task.sf.query.call_count)
@@ -86,7 +90,11 @@ class TestPushFailureTask(unittest.TestCase):
 
     def test_run_task__no_results(self):
         task = create_task(ReportPushFailures, options={"request_id": "123"})
-        task.sf = mock.Mock()
-        task.sf.query.return_value = {"totalSize": 0, "records": [], "done": True}
+
+        def _init_class():
+            task.sf = mock.Mock()
+            task.sf.query.return_value = {"totalSize": 0, "records": [], "done": True}
+
+        task._init_class = _init_class
         task()
         self.assertFalse(os.path.isfile(task.options["result_file"]))

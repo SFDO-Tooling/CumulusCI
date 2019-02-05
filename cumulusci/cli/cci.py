@@ -5,8 +5,10 @@ standard_library.install_aliases()
 from past.builtins import basestring
 from builtins import str
 from builtins import object
+from collections import OrderedDict
 import functools
 import json
+import operator
 import os
 import sys
 import webbrowser
@@ -43,7 +45,6 @@ from cumulusci.core.exceptions import ProjectConfigNotFound
 from cumulusci.core.exceptions import ScratchOrgException
 from cumulusci.core.exceptions import ServiceNotConfigured
 from cumulusci.core.exceptions import TaskNotFoundError
-from cumulusci.core.flows import BaseFlow
 from cumulusci.core.utils import import_class
 from cumulusci.cli.config import CliConfig
 from cumulusci.cli.config import get_installed_version
@@ -190,10 +191,14 @@ def handle_sentry_event(config, no_prompt):
 TEST_CONFIG = None
 
 
-def load_config(load_project_config=True, load_keychain=True):
+def load_config(
+    load_project_config=True, load_keychain=True, allow_global_keychain=False
+):
     try:
         config = TEST_CONFIG or CliConfig(
-            load_project_config=load_project_config, load_keychain=load_keychain
+            load_project_config=load_project_config,
+            load_keychain=load_keychain,
+            allow_global_keychain=allow_global_keychain,
         )
         config.check_cumulusci_version()
     except click.UsageError as e:
@@ -228,7 +233,8 @@ def main():
     This runs as the first step in processing any CLI command.
     """
     check_latest_version()
-    init_logger()
+    log_requests = "--debug" in sys.argv
+    init_logger(log_requests=log_requests)
 
 
 @click.command(name="version", help="Print the current version of CumulusCI")
@@ -236,7 +242,7 @@ def version():
     click.echo(cumulusci.__version__)
 
 
-@click.command(name="shell", help="Drop into a python shell")
+@click.command(name="shell", help="Drop into a Python shell")
 def shell():
     try:
         config = load_config(load_project_config=True, load_keychain=True)
@@ -565,11 +571,16 @@ project.add_command(project_dependencies)
 
 
 @click.command(name="list", help="List services available for configuration and use")
-@pass_config
+@pass_config(allow_global_keychain=True)
 def service_list(config):
     headers = ["service", "description", "is_configured"]
     data = []
-    for serv, schema in list(config.project_config.services.items()):
+    services = (
+        config.project_config.services
+        if not config.is_global_keychain
+        else config.global_config.services
+    )
+    for serv, schema in services.items():
         is_configured = ""
         if serv in config.keychain.list_services():
             is_configured = "* "
@@ -579,29 +590,38 @@ def service_list(config):
 
 
 class ConnectServiceCommand(click.MultiCommand):
+    load_config_kwargs = {"allow_global_keychain": True}
+
+    def _get_services_config(self, config):
+        return (
+            config.project_config.services
+            if not config.is_global_keychain
+            else config.global_config.services
+        )
+
     def list_commands(self, ctx):
         """ list the services that can be configured """
-        config = load_config()
-        return sorted(config.project_config.services.keys())
+        config = load_config(**self.load_config_kwargs)
+        services = self._get_services_config(config)
+        return sorted(services.keys())
 
     def _build_param(self, attribute, details):
         req = details["required"]
         return click.Option(("--{0}".format(attribute),), prompt=req, required=req)
 
     def get_command(self, ctx, name):
-        config = load_config()
-
-        attributes = iter(
-            list(
-                getattr(
-                    config.project_config, "services__{0}__attributes".format(name)
-                ).items()
-            )
-        )
+        config = load_config(**self.load_config_kwargs)
+        services = self._get_services_config(config)
+        attributes = services.get(name, {}).get("attributes").items()
         params = [self._build_param(attr, cnfg) for attr, cnfg in attributes]
-        params.append(click.Option(("--project",), is_flag=True))
+        if not config.is_global_keychain:
+            params.append(click.Option(("--project",), is_flag=True))
 
-        def callback(project=False, *args, **kwargs):
+        def callback(*args, **kwargs):
+            if config.is_global_keychain:
+                project = False
+            else:
+                project = kwargs.get("project", False)
             serv_conf = dict(
                 (k, v) for k, v in list(kwargs.items()) if v != None
             )  # remove None values
@@ -624,7 +644,7 @@ def service_connect():
 
 @click.command(name="info", help="Show the details of a connected service")
 @click.argument("service_name")
-@pass_config
+@pass_config(allow_global_keychain=True)
 def service_info(config, service_name):
     try:
         service_config = config.keychain.get_service(service_name)
@@ -737,6 +757,22 @@ def org_default(config, org_name, unset):
         click.echo("{} is now the default org".format(org_name))
 
 
+@click.command(name="import", help="Import a scratch org from Salesforce DX")
+@click.argument("username_or_alias")
+@click.argument("org_name")
+@pass_config
+def org_import(config, username_or_alias, org_name):
+    org_config = {"username": username_or_alias}
+    scratch_org_config = ScratchOrgConfig(org_config, org_name)
+    scratch_org_config.config["created"] = True
+    config.keychain.set_org(scratch_org_config)
+    click.echo(
+        "Imported scratch org: {org_id}, username: {username}".format(
+            **scratch_org_config.scratch_info
+        )
+    )
+
+
 @click.command(name="info", help="Display information for a connected org")
 @click.argument("org_name", required=False)
 @click.option("print_json", "--json", is_flag=True, help="Print as JSON")
@@ -770,8 +806,8 @@ def org_list(config):
         "config_name",
         "username",
     ]
-    for org in config.project_config.list_orgs():
-        org_config = config.project_config.get_org(org)
+    for org in config.project_config.keychain.list_orgs():
+        org_config = config.project_config.keychain.get_org(org)
         row = [org]
         row.append("*" if org_config.default else "")
         row.append("*" if org_config.scratch else "")
@@ -890,6 +926,7 @@ def org_scratch_delete(config, org_name):
 org.add_command(org_browser)
 org.add_command(org_connect)
 org.add_command(org_default)
+org.add_command(org_import)
 org.add_command(org_info)
 org.add_command(org_list)
 org.add_command(org_remove)
@@ -905,8 +942,17 @@ org.add_command(org_scratch_delete)
 def task_list(config):
     data = []
     headers = ["task", "description"]
+    task_groups = OrderedDict()
     for task in config.project_config.list_tasks():
-        data.append((task["name"], task["description"]))
+        group = task["group"] or "Other"
+        if group not in task_groups:
+            task_groups[group] = []
+        task_groups[group].append(task)
+    for group, tasks in task_groups.items():
+        data.append(("", ""))
+        data.append(("-- {} --".format(group), ""))
+        for task in sorted(tasks, key=operator.itemgetter("name")):
+            data.append((task["name"], task["description"]))
     table = Table(data, headers)
     click.echo(table)
     click.echo("")
@@ -1098,30 +1144,20 @@ def flow_run(config, flow_name, org, delete_org, debug, o, skip, no_prompt):
 
     # Get necessary configs
     org, org_config = config.get_org(org)
-
     if delete_org and not org_config.scratch:
         raise click.UsageError("--delete-org can only be used with a scratch org")
 
-    flow_config = config.project_config.get_flow(flow_name)
-
-    # Parse command line options and add to task config
+    # Parse command line options
     options = {}
     if o:
-        for option in o:
-            options[option[0]] = option[1]
+        for key, value in o:
+            task_name, option_name = key.split("__")
+            options[key] = value
 
     # Create the flow and handle initialization exceptions
     try:
-        flow = BaseFlow(
-            config.project_config,
-            flow_config,
-            org_config,
-            options,
-            skip,
-            name=flow_name,
-        )
-
-        flow()
+        coordinator = config.get_flow(flow_name, options=options)
+        coordinator.run(org_config)
     except CumulusCIUsageError as e:
         exception = click.UsageError(str(e))
         handle_exception_debug(config, debug, throw_exception=exception)

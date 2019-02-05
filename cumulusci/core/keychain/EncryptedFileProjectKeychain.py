@@ -11,16 +11,20 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
 
     @property
     def config_local_dir(self):
-        return os.path.join(
-            os.path.expanduser("~"),
-            self.project_config.global_config_obj.config_local_dir,
-        )
+        try:
+            config_local_dir = self.project_config.global_config_obj.config_local_dir
+        except AttributeError:
+            # Handle a global config passed as project config
+            config_local_dir = self.project_config.config_local_dir
+        return os.path.join(os.path.expanduser("~"), config_local_dir)
 
     @property
     def project_local_dir(self):
         return self.project_config.project_local_dir
 
     def _load_files(self, dirname, extension, key):
+        if dirname is None:
+            return
         for item in sorted(os.listdir(dirname)):
             if item.endswith(extension):
                 with open(os.path.join(dirname, item), "r") as f_item:
@@ -31,6 +35,8 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
                 self.config[key][name] = config
 
     def _load_file(self, dirname, filename, key):
+        if dirname is None:
+            return
         full_path = os.path.join(dirname, filename)
         if not os.path.exists(full_path):
             return
@@ -75,6 +81,8 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
     def _set_encrypted_org(self, name, encrypted, global_org):
         if global_org:
             filename = os.path.join(self.config_local_dir, "{}.org".format(name))
+        elif self.project_local_dir is None:
+            return
         else:
             filename = os.path.join(self.project_local_dir, "{}.org".format(name))
         with open(filename, "wb") as f_org:
@@ -90,14 +98,13 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
 
     def _raise_org_not_found(self, name):
         raise OrgNotFound(
-            "Org information could not be found.  Expected to find encrypted file at {}/{}.org".format(
+            "Org information could not be found. Expected to find encrypted file at {}/{}.org".format(
                 self.project_local_dir, name
             )
         )
 
     def _raise_service_not_configured(self, name):
         raise ServiceNotConfigured(
-            "Service configuration could not be found.  Expected to find encrypted file at {}/{}.org".format(
-                self.project_local_dir, name
-            )
+            "'{}' service configuration could not be found. "
+            "Maybe you need to run: cci service connect {}".format(name, name)
         )

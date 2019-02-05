@@ -56,10 +56,14 @@ class TestRunApexTests(unittest.TestCase):
         keychain = BaseProjectKeychain(self.project_config, "")
         self.project_config.set_keychain(keychain)
         self.org_config = OrgConfig(
-            {"id": "foo/1", "instance_url": "example.com", "access_token": "abc123"},
+            {
+                "id": "foo/1",
+                "instance_url": "https://example.com",
+                "access_token": "abc123",
+            },
             "test",
         )
-        self.base_tooling_url = "https://{}/services/data/v{}/tooling/".format(
+        self.base_tooling_url = "{}/services/data/v{}/tooling/".format(
             self.org_config.instance_url, self.api_version
         )
 
@@ -265,10 +269,14 @@ class TestAnonymousApexTask(unittest.TestCase):
         keychain = BaseProjectKeychain(self.project_config, "")
         self.project_config.set_keychain(keychain)
         self.org_config = OrgConfig(
-            {"id": "foo/1", "instance_url": "example.com", "access_token": "abc123"},
+            {
+                "id": "foo/1",
+                "instance_url": "https://example.com",
+                "access_token": "abc123",
+            },
             "test",
         )
-        self.base_tooling_url = "https://{}/services/data/v{}/tooling/".format(
+        self.base_tooling_url = "{}/services/data/v{}/tooling/".format(
             self.org_config.instance_url, self.api_version
         )
 
@@ -277,7 +285,7 @@ class TestAnonymousApexTask(unittest.TestCase):
 
     def _get_url_and_task(self):
         task = AnonymousApexTask(self.project_config, self.task_config, self.org_config)
-        url = task.tooling.base_url + "executeAnonymous"
+        url = self.base_tooling_url + "executeAnonymous"
         return task, url
 
     def test_validate_options(self):
@@ -314,7 +322,7 @@ class TestAnonymousApexTask(unittest.TestCase):
     def test_run_string_only(self):
         task_config = TaskConfig({"options": {"apex": 'System.debug("test");'}})
         task = AnonymousApexTask(self.project_config, task_config, self.org_config)
-        url = task.tooling.base_url + "executeAnonymous"
+        url = self.base_tooling_url + "executeAnonymous"
         responses.add(
             responses.GET, url, status=200, json={"compiled": True, "success": True}
         )
@@ -400,10 +408,14 @@ class TestRunBatchApex(unittest.TestCase):
         keychain = BaseProjectKeychain(self.project_config, "")
         self.project_config.set_keychain(keychain)
         self.org_config = OrgConfig(
-            {"id": "foo/1", "instance_url": "example.com", "access_token": "abc123"},
+            {
+                "id": "foo/1",
+                "instance_url": "https://example.com",
+                "access_token": "abc123",
+            },
             "test",
         )
-        self.base_tooling_url = "https://{}/services/data/v{}/tooling/".format(
+        self.base_tooling_url = "{}/services/data/v{}/tooling/".format(
             self.org_config.instance_url, self.api_version
         )
 
@@ -442,7 +454,7 @@ class TestRunBatchApex(unittest.TestCase):
     def _get_url_and_task(self):
         task = BatchApexWait(self.project_config, self.task_config, self.org_config)
         url = (
-            task.tooling.base_url
+            self.base_tooling_url
             + "query/?q=SELECT+Id%2C+ApexClass.Name%2C+Status%2C+ExtendedStatus%2C+TotalJobItems%2C+JobItemsProcessed%2C+NumberOfErrors%2C+CreatedDate%2C+CompletedDate+FROM+AsyncApexJob+WHERE+JobType%3D%27BatchApex%27+AND+ApexClass.Name%3D%27ADDR_Seasonal_BATCH%27+ORDER+BY+CreatedDate+DESC+LIMIT+1"
         )
         return task, url

@@ -13,7 +13,7 @@ CumulusCI was built to solve common challenges faced the development and release
 
 CumulusCI is a framework for building portable automation for Salesforce projects on Github.  The automation is controlled by a simple **cumulusci.yml** file which is version controlled in the project repository and is available to anyone with CumulusCI configured on their system and able to access the repository.
 
-We've used CumulusCI every day at Salesforce.org to run over 17k+ builds of 12 Github managed package repositories for our products.  The goal of making CumulusCI available as open source is to empower other Salesforce developers to benefit from the solutions to common challenges faced in managing the development and release cycle of Saleforce managed packages.
+We've used CumulusCI every day at Salesforce.org to run over 40 thousand builds of 12 Github managed package repositories for our products.  The goal of making CumulusCI available as open source is to empower other Salesforce developers to benefit from the solutions to common challenges faced in managing the development and release cycle of Saleforce managed packages.
 
 Portable Automation
 ===================
@@ -61,7 +61,7 @@ CumulusCI's core project_config object provides access to a lot of information a
 Override Based Configuration
 ----------------------------
 
-CumulusCI aims to reduce the amount of skeleton code required to configure a project.  This is accomplished by a merged yaml file, **cumulusci.yml** which starts from the global yaml from CumulusCI with all the standard project, task, flow, and org configurations.  Projects can then override the default values in their **cumulusci.yml**.  This means that by looking at the **cumulusci.yml** of a repository using CumulusCI, you can easily see all customization of CumulusCI done for the project.
+CumulusCI aims to reduce the amount of skeleton code required to configure a project.  This is accomplished by a merged YAML file, **cumulusci.yml** which starts from the global YAML from CumulusCI with all the standard project, task, flow, and org configurations.  Projects can then override the default values in their **cumulusci.yml**.  This means that by looking at the **cumulusci.yml** of a repository using CumulusCI, you can easily see all customization of CumulusCI done for the project.
 
 The following example is of a simple **cumulusci.yml** file with only a few overrides:
 https://github.com/SFDO-Tooling/CumulusCI-Test/blob/master/cumulusci.yml
@@ -71,12 +71,12 @@ https://github.com/SalesforceFoundation/Cumulus/blob/master/cumulusci.yml
 
 Both of these projects have all the standard CumulusCI tasks, flows, and orgs available to them in addition to project specific custom tasks, flows, and orgs defined in the **cumulusci.yml** for the project.
 
-Yaml Over Python, Where Possible
+YAML Over Python, Where Possible
 --------------------------------
 
-Although CumulusCI is written in Python, the framework for CumulusCI was designed to allow the majority of automation use cases to be handled solely in the **cumulusci.yml** file.  All tasks are implemented in Python classes, but each task can define its own task specific options.  We've tried to design all the included tasks with a number of options to allow easy reuse through yaml configuration.
+Although CumulusCI is written in Python, the framework for CumulusCI was designed to allow the majority of automation use cases to be handled solely in the **cumulusci.yml** file.  All tasks are implemented in Python classes, but each task can define its own task specific options.  We've tried to design all the included tasks with a number of options to allow easy reuse through YAML configuration.
 
-For example, if you want to deploy a custom directory of metadata named **dev_config** after your **src** directory's metadata is deployed, you could create the task and wire it into the default **dev_org** flow with the following yaml
+For example, if you want to deploy a custom directory of metadata named **dev_config** after your **src** directory's metadata is deployed, you could create the task and wire it into the default **dev_org** flow with the following YAML:
 
 .. code-block:: yaml 
 
@@ -93,7 +93,7 @@ For example, if you want to deploy a custom directory of metadata named **dev_co
 
 With no Python code, we've just added the deployment of an additional directory of metadata to all future dev environment setups.
 
-While the goal is to make as much available via yaml, it's still possible and quite simple to write your own custom tasks for CumulusCI in Python.  You can even reuse and subclass our task classes to make the process easier.
+While the goal is to make as much available via YAML, it's still possible and quite simple to write your own custom tasks for CumulusCI in Python.  You can even reuse and subclass our task classes to make the process easier.
 
 Friendly Logging Output
 -----------------------

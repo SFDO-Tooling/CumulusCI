@@ -72,7 +72,7 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
             self.options["dependencies"], include_beta=self.options["include_beta"]
         )
 
-        self.installed = self._get_installed()
+        self.installed = None
         self.uninstall_queue = []
         self.install_queue = []
 
@@ -108,6 +108,9 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
 
     def _process_namespace_dependency(self, dependency, dependency_uninstalled=None):
         dependency_version = str(dependency["version"])
+
+        if self.installed is None:
+            self.installed = self._get_installed()
 
         if dependency["namespace"] in self.installed:
             # Some version is installed, check what to do
@@ -182,8 +185,12 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
         for dependency in self.install_queue:
             self._install_dependency(dependency)
 
+    # hooks for tests
+    _download_extract_github = staticmethod(download_extract_github)
+    _download_extract_zip = staticmethod(download_extract_zip)
+
     def _install_dependency(self, dependency):
-        if "zip_url" or "repo" in dependency:
+        if "zip_url" or "repo_name" in dependency:
             package_zip = None
             if "zip_url" in dependency:
                 self.logger.info(
@@ -191,17 +198,21 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
                         dependency["subfolder"], dependency["zip_url"]
                     )
                 )
-                package_zip = download_extract_zip(
+                package_zip = self._download_extract_zip(
                     dependency["zip_url"], subfolder=dependency.get("subfolder")
                 )
-            elif "repo" in dependency:
+            elif "repo_name" in dependency:
                 self.logger.info(
-                    "Deploying unmanaged metadata from /{} of {}".format(
-                        dependency["subfolder"], dependency["repo"].full_name
+                    "Deploying unmanaged metadata from /{} of {}/{}".format(
+                        dependency["subfolder"],
+                        dependency["repo_owner"],
+                        dependency["repo_name"],
                     )
                 )
-                package_zip = download_extract_github(
-                    dependency["repo"],
+                package_zip = self._download_extract_github(
+                    self.project_config.get_github_api(),
+                    dependency["repo_owner"],
+                    dependency["repo_name"],
                     dependency["subfolder"],
                     ref=dependency.get("ref"),
                 )
@@ -271,3 +282,43 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
             self, package_zip(), purge_on_delete=self.options["purge_on_delete"]
         )
         return api()
+
+    def freeze(self, step):
+        dependencies = self.project_config.get_static_dependencies(
+            self.options["dependencies"], include_beta=self.options["include_beta"]
+        )
+        steps = []
+        for i, dependency in enumerate(_flatten(dependencies), start=1):
+            if "namespace" in dependency:
+                kind = "managed"
+                # @@@ we want the package name, not namespace
+                name = "Install {}".format(dependency["namespace"])
+            else:
+                kind = "metadata"
+                # @@@ we want a friendly name from...where?
+                name = "Deploy {}".format(dependency["subfolder"])
+            task_config = {"options": self.options.copy()}
+            task_config["options"]["dependencies"] = [dependency]
+            steps.append(
+                {
+                    "name": name,
+                    "path": "{}.{}".format(step.path, i),
+                    "step_num": "{}.{}".format(step.step_num, i),
+                    "kind": kind,
+                    "is_required": True,
+                    "task_class": self.task_config.class_path,
+                    "task_config": task_config,
+                }
+            )
+        return steps
+
+
+def _flatten(dependencies):
+    result = []
+    for dependency in dependencies:
+        subdeps = dependency.pop("dependencies", [])
+        for subdep in _flatten(subdeps):
+            if subdep not in result:
+                result.append(subdep)
+        result.append(dependency)
+    return result

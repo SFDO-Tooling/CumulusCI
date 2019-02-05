@@ -18,6 +18,7 @@ from cumulusci.core.exceptions import (
     ProjectConfigNotFound,
 )
 from cumulusci.core.github import get_github_api
+from github3.exceptions import NotFoundError
 
 
 class BaseProjectConfig(BaseTaskFlowConfig):
@@ -28,7 +29,10 @@ class BaseProjectConfig(BaseTaskFlowConfig):
     def __init__(self, global_config_obj, config=None, *args, **kwargs):
         self.global_config_obj = global_config_obj
         self.keychain = None
-        self._repo_info = None
+
+        # optionally pass in a repo_info dict
+        self._repo_info = kwargs.pop("repo_info", None)
+
         if not config:
             config = {}
 
@@ -385,21 +389,25 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         gh = get_github_api(github_config.username, github_config.password)
         return gh
 
-    def get_latest_version(self, beta=False):
-        """ Query Github Releases to find the latest production or beta release """
+    def get_latest_tag(self, beta=False):
+        """ Query Github Releases to find the latest production or beta tag """
         gh = self.get_github_api()
         repo = gh.repository(self.repo_owner, self.repo_name)
-        latest_version = None
-        for release in repo.iter_releases():
-            if beta != release.tag_name.startswith(self.project__git__prefix_beta):
-                continue
-            version = self.get_version_for_tag(release.tag_name)
-            if version is None:
-                continue
-            version = LooseVersion(version)
-            if not latest_version or version > latest_version:
-                latest_version = version
-        return latest_version
+        if not beta:
+            release = repo.latest_release()
+            return release.tag_name
+        else:
+            for release in repo.releases():
+                if not release.tag_name.startswith(self.project__git__prefix_beta):
+                    continue
+                return release.tag_name
+
+    def get_latest_version(self, beta=False):
+        """ Query Github Releases to find the latest production or beta release """
+        tag = self.get_latest_tag(beta)
+        version = self.get_version_for_tag(tag)
+        if version is not None:
+            return LooseVersion(version)
 
     @property
     def config_project_path(self):
@@ -466,21 +474,6 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                 + "config.set_keychain(keychain) before accessing orgs"
             )
 
-    def list_orgs(self):
-        """ Returns a list of all org names for the project """
-        self._check_keychain()
-        return self.keychain.list_orgs()
-
-    def get_org(self, name):
-        """ Returns an OrgConfig for the given org_name """
-        self._check_keychain()
-        return self.keychain.get_org(name)
-
-    def set_org(self, name, org_config):
-        """ Creates or updates an org's oauth info """
-        self._check_keychain()
-        return self.keychain.set_org(org_config)
-
     def get_static_dependencies(self, dependencies=None, include_beta=None):
         """Resolves the project -> dependencies section of cumulusci.yml
             to convert dynamic github dependencies into static dependencies
@@ -526,10 +519,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                         continue
                     value = "\n{}".format(" " * (indent + 4))
 
-                if key == "repo":
-                    pretty.append("{}{}: {}".format(prefix, key, value.full_name))
-                else:
-                    pretty.append("{}{}: {}".format(prefix, key, value))
+                pretty.append("{}{}: {}".format(prefix, key, value))
                 if extra:
                     pretty.extend(extra)
                 prefix = "{}    ".format(" " * indent)
@@ -556,16 +546,37 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             repo_name = repo_name[:-4]
         repo = gh.repository(repo_owner, repo_name)
 
-        # Determine the ref if specified
-        kwargs = {}
-        if "tag" in dependency:
-            tag = dependency["tag"]
-            kwargs["ref"] = tag
+        # Determine the commit
+        release = None
+        if "ref" in dependency:
+            ref = dependency["ref"]
         else:
-            tag = None
+            if "tag" in dependency:
+                try:
+                    # Find the github release corresponding to this tag.
+                    release = repo.release_from_tag(dependency["tag"])
+                except NotFoundError:
+                    raise DependencyResolutionError(
+                        "{}No release found for tag {}".format(
+                            indent, dependency["tag"]
+                        )
+                    )
+            else:
+                release = self._find_latest_release(repo, include_beta)
+            if release:
+                ref = repo.tag(
+                    repo.ref("tags/" + release.tag_name).object.sha
+                ).object.sha
+            else:
+                self.logger.info(
+                    "{}No release found; using the latest commit from the {} branch.".format(
+                        indent, repo.default_branch
+                    )
+                )
+                ref = repo.branch(repo.default_branch).commit.sha
 
         # Get the cumulusci.yml file
-        contents = repo.contents("cumulusci.yml", **kwargs)
+        contents = repo.file_contents("cumulusci.yml", ref=ref)
         cumulusci_yml = ordered_yaml_load(contents.decoded)
 
         # Get the namespace from the cumulusci.yml if set
@@ -576,7 +587,12 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
         # Look for subfolders under unpackaged/pre
         unpackaged_pre = []
-        contents = repo.contents("unpackaged/pre", **kwargs)
+        try:
+            contents = repo.directory_contents(
+                "unpackaged/pre", return_as=dict, ref=ref
+            )
+        except NotFoundError:
+            contents = None
         if contents:
             for dirname in list(contents.keys()):
                 subfolder = "unpackaged/pre/{}".format(dirname)
@@ -585,8 +601,9 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
                 unpackaged_pre.append(
                     {
-                        "repo": repo,
-                        "ref": tag,
+                        "repo_owner": repo_owner,
+                        "repo_name": repo_name,
+                        "ref": ref,
                         "subfolder": subfolder,
                         "unmanaged": dependency.get("unmanaged"),
                         "namespace_tokenize": dependency.get("namespace_tokenize"),
@@ -598,13 +615,14 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         # Look for metadata under src (deployed if no namespace)
         unmanaged_src = None
         if unmanaged or not namespace:
-            contents = repo.contents("src", **kwargs)
+            contents = repo.directory_contents("src", ref=ref)
             if contents:
                 subfolder = "src"
 
                 unmanaged_src = {
-                    "repo": repo,
-                    "ref": tag,
+                    "repo_owner": repo_owner,
+                    "repo_name": repo_name,
+                    "ref": ref,
                     "subfolder": subfolder,
                     "unmanaged": dependency.get("unmanaged"),
                     "namespace_tokenize": dependency.get("namespace_tokenize"),
@@ -614,7 +632,12 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
         # Look for subfolders under unpackaged/post
         unpackaged_post = []
-        contents = repo.contents("unpackaged/post", **kwargs)
+        try:
+            contents = repo.directory_contents(
+                "unpackaged/post", return_as=dict, ref=ref
+            )
+        except NotFoundError:
+            contents = None
         if contents:
             for dirname in list(contents.keys()):
                 subfolder = "unpackaged/post/{}".format(dirname)
@@ -622,8 +645,9 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                     continue
 
                 dependency = {
-                    "repo": repo,
-                    "ref": tag,
+                    "repo_owner": repo_owner,
+                    "repo_name": repo_name,
+                    "ref": ref,
                     "subfolder": subfolder,
                     "unmanaged": dependency.get("unmanaged"),
                     "namespace_tokenize": dependency.get("namespace_tokenize"),
@@ -639,8 +663,6 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
         # Parse values from the repo's cumulusci.yml
         project = cumulusci_yml.get("project", {})
-        prefix_beta = project.get("git", {}).get("prefix_beta", "beta/")
-        prefix_release = project.get("git", {}).get("prefix_release", "release/")
         dependencies = project.get("dependencies")
         if dependencies:
             dependencies = self.get_static_dependencies(
@@ -655,16 +677,11 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             repo_dependencies.extend(unpackaged_pre)
 
         if namespace and not unmanaged:
-            version = None
-            if tag:
-                version = self.get_version_for_tag(tag, prefix_beta, prefix_release)
-            else:
-                version = self._find_release_version(repo, indent, include_beta)
-
-            if not version:
+            if release is None:
                 raise DependencyResolutionError(
                     "{}Could not find latest release for {}".format(indent, namespace)
                 )
+            version = release.name
             # If a latest prod version was found, make the dependencies a
             # child of that install
             dependency = {"namespace": namespace, "version": version}
@@ -686,19 +703,11 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
         return repo_dependencies
 
-    def _find_release_version(self, repo, indent, include_beta=None):
-        version = None
-        if include_beta:
-            latest_release = next(repo.iter_releases())
-            version = latest_release.name
-        else:
-            # github3.py doesn't support the latest release api so we hack
-            # it together here
-            url = repo._build_url("releases/latest", base_url=repo._api)
-            try:
-                version = repo._get(url).json()["name"]
-            except Exception as e:
-                self.logger.warning(
-                    "{}{}: {}".format(indent, e.__class__.__name__, str(e))
-                )
-        return version
+    def _find_latest_release(self, repo, include_beta=None):
+        try:
+            if include_beta:
+                return next(repo.releases())
+            else:
+                return repo.latest_release()
+        except Exception as e:
+            self.logger.warning("{}: {}".format(e.__class__.__name__, str(e)))

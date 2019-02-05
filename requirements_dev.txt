@@ -2,15 +2,16 @@
 -e .
 black==18.9b0; python_version > '3'
 bump2version==0.5.10
-coverage==4.5.1
+coverage==4.5.2
 coveralls==1.5.1
-flake8==3.6.0
+flake8==3.7.5
 mock==2.0.0
-pytest==3.9.3
-responses==0.10.2
-Sphinx==1.8.1
-testfixtures==6.3.0
-tox==3.5.3
+pre-commit==1.14.3
+pytest==4.2.0
+responses==0.10.5
+Sphinx==1.8.4
+testfixtures==6.5.0
+tox==3.7.0
 twine==1.12.1
 watchdog==0.9.0
-wheel==0.32.2
+wheel==0.32.3

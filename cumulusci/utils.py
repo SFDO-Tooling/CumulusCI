@@ -45,7 +45,7 @@ def findReplace(find, replace, directory, filePattern, logger=None, max=None):
     for path, dirs, files in os.walk(os.path.abspath(directory)):
         for filename in fnmatch.filter(files, filePattern):
             filepath = os.path.join(path, filename)
-            with open(filepath) as f:
+            with io.open(filepath, encoding="utf-8") as f:
                 s = f.read()
             if max:
                 s_updated = s.replace(find, replace, max)
@@ -54,7 +54,7 @@ def findReplace(find, replace, directory, filePattern, logger=None, max=None):
             if s != s_updated:
                 if logger:
                     logger.info("Updating {}".format(filepath))
-                with open(filepath, "w") as f:
+                with io.open(filepath, "w", encoding="utf-8") as f:
                     f.write(s_updated)
 
 
@@ -63,13 +63,13 @@ def findReplaceRegex(find, replace, directory, filePattern, logger=None):
     for path, dirs, files in os.walk(os.path.abspath(directory)):
         for filename in fnmatch.filter(files, filePattern):
             filepath = os.path.join(path, filename)
-            with open(filepath) as f:
+            with io.open(filepath, encoding="utf-8") as f:
                 s = f.read()
             s_updated = pattern.sub(replace, s)
             if s != s_updated:
                 if logger:
                     logger.info("Updating {}".format(filepath))
-                with open(filepath, "w") as f:
+                with io.open(filepath, "w", encoding="utf-8") as f:
                     f.write(s_updated)
 
 
@@ -148,15 +148,19 @@ def download_extract_zip(url, target=None, subfolder=None, headers=None):
     return zip_file
 
 
-def download_extract_github(github_repo, subfolder, ref=None):
+def download_extract_github(
+    github_api, repo_owner, repo_name, subfolder=None, ref=None
+):
+    github_repo = github_api.repository(repo_owner, repo_name)
     if not ref:
         ref = github_repo.default_branch
     zip_content = io.BytesIO()
     github_repo.archive("zipball", zip_content, ref=ref)
     zip_file = zipfile.ZipFile(zip_content)
-    root_folder = sorted(zip_file.namelist())[0]
-    subfolder_dir = root_folder + subfolder
-    zip_file = zip_subfolder(zip_file, subfolder_dir)
+    path = sorted(zip_file.namelist())[0]
+    if subfolder:
+        path = path + subfolder
+    zip_file = zip_subfolder(zip_file, path)
     return zip_file
 
 

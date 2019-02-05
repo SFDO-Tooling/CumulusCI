@@ -7,6 +7,15 @@ This tutorial is for macOS. Linux and Windows are not yet officially supported b
 Part 1: Installing CumulusCI
 ============================
 
+On macOS and Linux, the easiest way to install CumulusCI is using `homebrew <https://docs.brew.sh/>`_  and `linuxbrew <https://linuxbrew.sh/>`_, respectively:
+
+.. code-block:: console
+
+    $ brew tap SFDO-Tooling/homebrew-sfdo
+    $ brew install cumulusci
+
+The rest of this tutorial describes installing CumulusCI via pip.
+
 Install Requirements
 --------------------
 
@@ -15,33 +24,12 @@ CumulusCI supports Python 2.7, 3.6, or 3.7.
 macOS
 ^^^^^
 
-Due to an issue regarding TLS support in the Python included in macOS it is necessary to install Python with OpenSSL support using Homebrew. For more info on the TLS issue see here: http://pyfound.blogspot.com/2017/01/time-to-upgrade-your-python-tls-v12.html
-
-Install Homebrew: https://docs.brew.sh/Installation.html
-
-Use Homebrew to install OpenSSL:
-
-.. code-block:: console
-
-    $ brew install openssl
-
-Use Homebrew to install pyenv-virtualenv: 
-
-.. code-block:: console
-
-    $ brew install pyenv-virtualenv
-
-After installing pyenv-virtualenv, edit your ~/.bash_profile and add the following lines at the end of the file to activate pyenv in your shell by default:
-
-.. code-block:: console
-
-    eval "$(pyenv init -)"
-    eval "$(pyenv virtualenv-init -)"
+Install Python 3: https://www.python.org/downloads/mac-osx/
 
 Windows
 ^^^^^^^
 
-Install Python 3: https://www.python.org/downloads/release/python-370/
+Install Python 3: https://www.python.org/downloads/windows/
 
 In the installer, be sure to check the "Add Python to PATH" checkbox.
 
@@ -55,18 +43,23 @@ macOS
 
 .. code-block:: console
 
-    $ pyenv install 3.7.0
-    $ pyenv virtualenv 3.7.0 cci
-    $ # Copy the following line to ~/.bash_profile to automatically activate the virtual environment in all new shells.
-    $ pyenv activate cci
+    $ python3 -m venv cci
+
+This creates a virtualenv in a new folder named ``cci``. Whenever you want to work with commands installed in this virtualenv, you must first activate it:
+
+.. code-block:: console
+
+    $ source cci/bin/activate
 
 Your shell prompt should change once you are in the virtual env to show (cci) at the start of the prompt.  You can exit the cci virtualenv with the following command:
 
 .. code-block:: console
 
-    (cci) $ pyenv deactivate
+    (cci) $ deactivate
 
-For more information about pyenv-virtualenv, see the project's README: https://github.com/pyenv/pyenv-virtualenv/blob/master/README.md
+If you would like to automatically activate the virtual environment whenever you open a new terminal, you can add the activate command to your ``~/.bash_profile``.
+
+For more information about virtual environments in Python, see the Python Packaging User Guide: https://packaging.python.org/tutorials/installing-packages/#creating-virtual-environments
 
 Windows
 ^^^^^^^
@@ -183,10 +176,9 @@ If you run the same command from inside a git repository that has not yet been s
 .. code-block:: console
 
     $ cci project info
-    Usage: cci project info [OPTIONS]
-    Error: No project configuration found. You can use the "project init" command to initilize the project for use with CumulusCI
+    The file cumulusci.yml was not found in the repo root. Are you in a CumulusCI project directory?
 
-As the instructions say, you can use the `cci project init` command to initialize the configuration:
+You can use the `cci project init` command to initialize the configuration:
 
 .. code-block:: console
 
@@ -281,7 +273,17 @@ Configuring the Connected App is a one time operation. Once configured, you can 
 Using Salesforce DX Scratch Orgs
 --------------------------------
 
-While it is possible to use `cci org connect <org_name>` to connect to a Developer Edition org, the real fun is using CumulusCI along with Salesforce DX.  If you already have the `sfdx` command installed, have connected to your devhub, and have set the `defaultdevhubusername` config settting (use `sfdx force:config:list` to verify), you're ready to start using `cci` with `sfdx`.  If you haven't already set up Salesforce DX, you can learn how at https://developer.salesforce.com/platform/dx.
+While it is possible to use `cci org connect <org_name>` to connect to a Developer Edition org, the real fun is using CumulusCI along with scratch orgs created using Salesforce DX.
+
+If you haven't already set up Salesforce DX, you need to take care of a few steps:
+
+1. `Install the Salesforce CLI <https://developer.salesforce.com/docs/atlas.en-us.sfdx_setup.meta/sfdx_setup/sfdx_setup_install_cli.htm>`_
+2. `Enable Dev Hub in Your Org <https://developer.salesforce.com/docs/atlas.en-us.sfdx_setup.meta/sfdx_setup/sfdx_setup_enable_devhub.htm>`_
+3. `Connect SFDX to Your Dev Hub Org <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_auth_web_flow.htm>`_ (be sure to use the ``--setdefaultdevhubusername`` option).
+
+If you already have the `sfdx` command installed, have connected to your devhub, and have set the `defaultdevhubusername` config setting (use `sfdx force:config:list` to verify), you're ready to start using `cci` with `sfdx`. SFDX supports multiple DevHubs, so CumulusCI will use the one set as defaultdevhubusername when creating scratch orgs.
+
+You can learn more about Salesforce DX at https://developer.salesforce.com/platform/dx.
 
 CumulusCI wraps the creation of scratch orgs to provide a some useful extra features:
 
@@ -372,6 +374,14 @@ If for some reason the whole scratch org config misbehaves, you can easily recre
 .. code-block:: console
 
     $ cci org scratch dev dev
+
+There may be times when you need to import an existing scratch org that wasn't created by CumulusCI. You can do so with `cci org import <username_or_alias> <org_name>`:
+
+.. code-block:: console
+
+    $ cci org import test-...@example.com dev
+    2018-11-15 09:23:16: Getting scratch org info from Salesforce DX
+    Imported scratch org: 00D...........0, username: test-...@example.com
 
 You can hop into a browser logged into any org in your keychain with `cci org browser <org_name>`.
 

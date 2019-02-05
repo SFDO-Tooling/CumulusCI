@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 import os
+import warnings
 from collections import OrderedDict
 
 from cumulusci.core.utils import ordered_yaml_load, merge_config
@@ -21,17 +22,13 @@ class BaseGlobalConfig(BaseTaskFlowConfig):
         self.config_global = {}
         super(BaseGlobalConfig, self).__init__(config)
 
-    def list_projects(self):
-        """ Returns a list of project names """
-        raise NotImplementedError("Subclasses must provide an implementation")
-
-    def get_project_config(self):
+    def get_project_config(self, *args, **kwargs):
         """ Returns a ProjectConfig for the given project """
-        return self.project_config_class(self)
-
-    def create_project(self, project_name, config):
-        """ Creates a new project configuration and returns it """
-        raise NotImplementedError("Subclasses must provide an implementation")
+        warnings.warn(
+            "BaseGlobalConfig.get_project_config is pending deprecation",
+            DeprecationWarning,
+        )
+        return self.project_config_class(self, *args, **kwargs)
 
     @property
     def config_global_local_path(self):

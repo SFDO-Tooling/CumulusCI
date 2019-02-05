@@ -34,7 +34,7 @@ lex_locators = {
             "card": "//article[contains(@class, 'forceRelatedListCardDesktop')][.//img][.//span[@title='{}']]",
             "button": "//article[contains(@class, 'forceRelatedListCardDesktop')][.//img][.//span[@title='{}']]//a[@title='{}']",
             "count": "//article[contains(@class, 'forceRelatedListCardDesktop')][.//img]//span[@title='{}']/following-sibling::span",
-            "link": "//article[contains(@class, 'forceRelatedListCardDesktop')][.//img][.//span[@title='{}']]//table[contains(@class,'forceRecordLayout')]/tbody/tr[.//th/div/a[contains(@class,'textUnderline')]][.//td/a[@title='{}']]/th//a",
+            "link": "//article[contains(@class, 'forceRelatedListCardDesktop')][.//img][.//span[@title='{}']]//table[contains(@class,'forceRecordLayout')]/tbody/tr[.//th/div/a[contains(@class,'textUnderline')]][.//td//a[text()='{}']]/th//a",
             "popup_trigger": "//article[contains(@class, 'forceRelatedListCardDesktop')][.//img][.//span[@title='{}']]//tr[.//a[text()='{}']]//div[contains(@class, 'forceVirtualAction')]//a",
         },
     },

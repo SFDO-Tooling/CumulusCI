@@ -1,66 +1,43 @@
 import os
 import sys
-import click
-import traceback
 from subprocess import call
 
+import click
 import pkg_resources
 
-from cumulusci.core.config import BaseGlobalConfig
+from cumulusci.core.runtime import BaseCumulusCI
 from cumulusci.core.exceptions import ConfigError
 from cumulusci.core.exceptions import NotInProject
 from cumulusci.core.exceptions import OrgNotFound
 from cumulusci.core.exceptions import KeychainKeyNotFound
 from cumulusci.core.exceptions import ProjectConfigNotFound
-
 from cumulusci.core.utils import import_class
 
 
-class CliConfig(object):
-    def __init__(self, load_project_config=True, load_keychain=True):
-        self.global_config = None
-        self.project_config = None
-        self.keychain = None
-
-        self._load_global_config()
-        if load_project_config:
-            self._load_project_config()
-            self._add_repo_to_path()
-            if load_keychain:
-                self._load_keychain()
-
-    def _add_repo_to_path(self):
-        if self.project_config:
-            sys.path.append(self.project_config.repo_root)
-
-    def _load_global_config(self):
-        self.global_config = BaseGlobalConfig()
-
-    def _load_project_config(self):
+class CliRuntime(BaseCumulusCI):
+    def __init__(self, *args, **kwargs):
         try:
-            self.project_config = self.global_config.get_project_config()
-        except (
-            ProjectConfigNotFound,
-            NotInProject,
-        ) as e:  # not in a git repo or cci project (respectively)
+            super(CliRuntime, self).__init__(*args, **kwargs)
+        except (ProjectConfigNotFound, NotInProject) as e:
             raise click.UsageError(str(e))
         except ConfigError as e:
             raise click.UsageError("Config Error: {}".format(str(e)))
+        except (KeychainKeyNotFound) as e:
+            raise click.UsageError("Keychain Error: {}".format(str(e)))
 
-    def _load_keychain(self):
-        self.keychain_key = os.environ.get("CUMULUSCI_KEY")
-        if self.project_config:
-            keychain_class = os.environ.get(
-                "CUMULUSCI_KEYCHAIN_CLASS", self.project_config.cumulusci__keychain
-            )
-            self.keychain_class = import_class(keychain_class)
-            try:
-                self.keychain = self.keychain_class(
-                    self.project_config, self.keychain_key
-                )
-            except (KeychainKeyNotFound, ConfigError) as e:
-                raise click.UsageError("Keychain Error: {}".format(str(e)))
-            self.project_config.set_keychain(self.keychain)
+    def get_keychain_class(self):
+        default_keychain_class = (
+            self.project_config.cumulusci__keychain
+            if not self.is_global_keychain
+            else self.global_config.cumulusci__keychain
+        )
+        keychain_class = os.environ.get(
+            "CUMULUSCI_KEYCHAIN_CLASS", default_keychain_class
+        )
+        return import_class(keychain_class)
+
+    def get_keychain_key(self):
+        return os.environ.get("CUMULUSCI_KEY")
 
     def alert(self, message="We need your attention!"):
         if self.project_config and self.project_config.dev_config__no_alert:
@@ -149,6 +126,9 @@ class CliConfig(object):
                             min_cci_version
                         )
                     )
+
+
+CliConfig = CliRuntime
 
 
 def get_installed_version():

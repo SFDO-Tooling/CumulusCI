@@ -52,7 +52,7 @@ def _make_task(task_class, task_config):
     keychain = BaseProjectKeychain(project_config, "")
     project_config.set_keychain(keychain)
     org_config = DummyOrgConfig(
-        {"instance_url": "example.com", "access_token": "abc123"}, "test"
+        {"instance_url": "https://example.com", "access_token": "abc123"}, "test"
     )
     return task_class(project_config, task_config, org_config)
 
@@ -95,8 +95,11 @@ class TestDeleteData(unittest.TestCase):
         )
 
         task = _make_task(bulkdata.DeleteData, {"options": {"objects": "Contact"}})
-        task.bulk = api
 
+        def _init_class():
+            task.bulk = api
+
+        task._init_class = _init_class
         task()
 
         api.create_query_job.assert_called_once_with("Contact", contentType="CSV")
@@ -166,7 +169,11 @@ class TestDeleteData(unittest.TestCase):
         api.endpoint = "http://api"
         api.headers.return_value = {}
         api.raise_error.side_effect = Exception
-        task.bulk = api
+
+        def _init_class():
+            task.bulk = api
+
+        task._init_class = _init_class
         responses.add(responses.POST, "http://api/job/1/batch", body=b"", status=500)
         with self.assertRaises(Exception):
             list(task._upload_batches("1", [{"Id": "1"}]))
@@ -232,7 +239,11 @@ class TestLoadData(unittest.TestCase):
                     }
                 },
             )
-            task.bulk = api
+
+            def _init_class():
+                task.bulk = api
+
+            task._init_class = _init_class
             task()
             task.session.close()
 
@@ -307,8 +318,8 @@ class TestLoadData(unittest.TestCase):
         self.assertFalse(new_id_table is id_table)
 
 
-HOUSEHOLD_QUERY_RESULT = b'"Id"\n1'
-CONTACT_QUERY_RESULT = b'"Id",AccountId\n2,1'
+HOUSEHOLD_QUERY_RESULT = b'"Id"\n1\n'
+CONTACT_QUERY_RESULT = b'"Id",AccountId\n2,1\n'
 
 
 @mock.patch("cumulusci.tasks.bulkdata.time.sleep", mock.Mock())
@@ -344,9 +355,16 @@ class TestQueryData(unittest.TestCase):
                 }
             },
         )
-        task.bulk = api
+
+        def _init_class():
+            task.bulk = api
+
+        task._init_class = _init_class
         task()
 
+        household = task.session.query(task.models["households"]).one()
+        self.assertEqual("1", household.sf_id)
+        self.assertEqual("HH_Account", household.record_type)
         contact = task.session.query(task.models["contacts"]).one()
         self.assertEqual("2", contact.sf_id)
         self.assertEqual("1", contact.household_id)
@@ -405,10 +423,15 @@ class TestQueryData(unittest.TestCase):
     def test_create_table__already_exists(self):
         base_path = os.path.dirname(__file__)
         mapping_path = os.path.join(base_path, "mapping.yml")
+        db_path = os.path.join(base_path, "testdata.db")
         task = _make_task(
             bulkdata.QueryData,
-            {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
+            {
+                "options": {
+                    "database_url": "sqlite:///{}".format(db_path),
+                    "mapping": mapping_path,
+                }
+            },
         )
-        task.models = {"test": mock.Mock()}
         with self.assertRaises(BulkDataException):
-            task._create_table({"table": "test"})
+            task()

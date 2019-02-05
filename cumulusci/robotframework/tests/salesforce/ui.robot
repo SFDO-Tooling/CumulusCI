@@ -135,6 +135,9 @@ Populate Field
     ${locator} =         Get Locator  object.field  Account Name
     ${value} =           Get Value  ${locator}
     Should Be Equal      ${value}  ${account_name}
+    Populate Field       Account Name  ${account_name}
+    ${value} =           Get Value  ${locator}
+    Should Be Equal      ${value}  ${account_name}
 
 Populate Lookup Field
     &{account} =           Create Account

@@ -3,13 +3,13 @@ import re
 import time
 from robot.libraries.BuiltIn import BuiltIn
 from selenium.webdriver.common.keys import Keys
-from simple_salesforce import SalesforceMalformedRequest
 from simple_salesforce import SalesforceResourceNotFound
 from cumulusci.robotframework.locators import lex_locators
 from cumulusci.robotframework.utils import selenium_retry
 from SeleniumLibrary.errors import ElementNotFound
+from urllib3.exceptions import ProtocolError
 
-OID_REGEX = r"[a-zA-Z0-9]{15,18}"
+OID_REGEX = r"^(%2F)?([a-zA-Z0-9]{15,18})$"
 
 
 @selenium_retry
@@ -32,33 +32,55 @@ class Salesforce(object):
     def cumulusci(self):
         return self.builtin.get_library_instance("cumulusci.robotframework.CumulusCI")
 
+    def create_webdriver_with_retry(self, *args, **kwargs):
+        """Call the Create Webdriver keyword.
+
+        Retry on connection resets which can happen if custom domain propagation is slow.
+        """
+        # Get selenium without referencing selenium.driver which doesn't exist yet
+        selenium = self.builtin.get_library_instance("SeleniumLibrary")
+        for _ in range(12):
+            try:
+                return selenium.create_webdriver(*args, **kwargs)
+            except ProtocolError:
+                # Give browser some more time to start up
+                time.sleep(5)
+        raise Exception("Could not connect to remote webdriver after 1 minute")
+
     def click_modal_button(self, title):
+        """Clicks a button in a Lightning modal."""
         locator = lex_locators["modal"]["button"].format(title)
         self.selenium.click_button(locator)
 
     def click_object_button(self, title):
+        """Clicks a button in an object's actions."""
         locator = lex_locators["object"]["button"].format(title)
         self.selenium.click_link(locator)
         self.wait_until_modal_is_open()
 
     def load_related_list(self, heading):
-        """Scroll down until related list loads.
+        """Scrolls down until the specified related list loads.
         """
         locator = lex_locators["record"]["related"]["card"].format(heading)
         el = None
+        i = 0
         while el is None:
-            self.selenium.execute_javascript(
-                "window.scrollTo(0,document.body.scrollHeight)"
-            )
+            i += 1
+            if i > 50:
+                raise AssertionError(
+                    "Timed out waiting for {} related list to load.".format(heading)
+                )
+            self.selenium.execute_javascript("window.scrollBy(0, 100)")
             self.wait_for_aura()
             try:
-                el = self.selenium.get_webelement(locator)
+                self.selenium.get_webelement(locator)
+                break
             except ElementNotFound:
                 time.sleep(0.2)
                 continue
 
     def click_related_list_button(self, heading, button_title):
-        """Click a button in the heading of a related list.
+        """Clicks a button in the heading of a related list.
 
         Waits for a modal to open after clicking the button.
         """
@@ -70,11 +92,18 @@ class Salesforce(object):
         self.wait_until_modal_is_open()
 
     def click_related_item_link(self, heading, title):
+        """Clicks a link in the related list with the specified heading."""
         self.load_related_list(heading)
         locator = lex_locators["record"]["related"]["link"].format(heading, title)
         self.selenium.click_link(locator)
 
     def click_related_item_popup_link(self, heading, title, link):
+        """Clicks a link in the popup menu for a related list item.
+
+        heading specifies the name of the list,
+        title specifies the name of the item,
+        and link specifies the name of the link
+        """
         self.load_related_list(heading)
         locator = lex_locators["record"]["related"]["popup_trigger"].format(
             heading, title
@@ -90,7 +119,7 @@ class Salesforce(object):
         self.selenium.click_button(locator)
 
     def current_app_should_be(self, app_name):
-        """ Validate the currently selected Salesforce App """
+        """ Validates the currently selected Salesforce App """
         locator = lex_locators["app_launcher"]["current_app"].format(app_name)
         elem = self.selenium.get_webelement(locator)
         assert app_name == elem.text, "Expected app to be {} but found {}".format(
@@ -98,6 +127,11 @@ class Salesforce(object):
         )
 
     def delete_session_records(self):
+        """Deletes records that were created while running this test case.
+
+        (Only records specifically recorded using the Store Session Record
+        keyword are deleted.)
+        """
         self._session_records.reverse()
         self.builtin.log("Deleting {} records".format(len(self._session_records)))
         for record in self._session_records:
@@ -106,7 +140,7 @@ class Salesforce(object):
                 self.salesforce_delete(record["type"], record["id"])
             except SalesforceResourceNotFound:
                 self.builtin.log("    {type} {id} is already deleted".format(**record))
-            except SalesforceMalformedRequest as e:
+            except Exception as e:
                 self.builtin.log(
                     "    {type} {id} could not be deleted:".format(**record),
                     level="WARN",
@@ -119,8 +153,9 @@ class Salesforce(object):
         """
         url = self.selenium.get_location()
         for part in url.split("/"):
-            if re.match(OID_REGEX, part):
-                return part
+            oid_match = re.match(OID_REGEX, part)
+            if oid_match is not None:
+                return oid_match.group(2)
         raise AssertionError("Could not parse record id from url: {}".format(url))
 
     def get_locator(self, path, *args, **kwargs):
@@ -134,6 +169,7 @@ class Salesforce(object):
         return locator.format(*args, **kwargs)
 
     def get_record_type_id(self, obj_type, developer_name):
+        """Returns the Record Type Id for a record type name"""
         soql = "SELECT Id FROM RecordType WHERE SObjectType='{}' and DeveloperName='{}'".format(
             obj_type, developer_name
         )
@@ -141,6 +177,7 @@ class Salesforce(object):
         return res["records"][0]["Id"]
 
     def get_related_list_count(self, heading):
+        """Returns the number of items indicated for a related list."""
         locator = lex_locators["record"]["related"]["count"].format(heading)
         count = self.selenium.get_webelement(locator).text
         count = count.replace("(", "").replace(")", "")
@@ -206,6 +243,7 @@ class Salesforce(object):
         self.selenium.page_should_not_contain_element(locator)
 
     def click_header_field_link(self, label):
+        """Clicks a link in record header."""
         locator = lex_locators["record"]["header"]["field_value_link"].format(label)
         self.selenium.click_link(locator)
 
@@ -229,10 +267,16 @@ class Salesforce(object):
         self.wait_until_modal_is_open()
 
     def populate_field(self, name, value):
+        """Enters a value into a text field.
+
+        Any existing value will be replaced.
+        """
         locator = lex_locators["object"]["field"].format(name)
         self._populate_field(locator, value)
 
     def populate_lookup_field(self, name, value):
+        """Enters a value into a lookup field.
+        """
         input_locator = lex_locators["object"]["field"].format(name)
         menu_locator = lex_locators["object"]["field_lookup_link"].format(value)
         self.populate_field(name, value)
@@ -253,15 +297,17 @@ class Salesforce(object):
     def _populate_field(self, locator, value):
         self.selenium.set_focus_to_element(locator)
         field = self.selenium.get_webelement(locator)
-        field.clear()
+        field.send_keys(Keys.HOME + Keys.SHIFT + Keys.END)
         field.send_keys(value)
 
     def populate_form(self, **kwargs):
+        """Enters multiple values from a mapping into form fields."""
         for name, value in kwargs.items():
             locator = lex_locators["object"]["field"].format(name)
             self._populate_field(locator, value)
 
     def remove_session_record(self, obj_type, obj_id):
+        """Remove a record from the list of records that should be automatically removed."""
         try:
             self._session_records.remove({"type": obj_type, "id": obj_id})
         except ValueError:
@@ -272,6 +318,7 @@ class Salesforce(object):
             )
 
     def select_record_type(self, label):
+        """Selects a record type while adding an object."""
         self.wait_until_modal_is_open()
         locator = lex_locators["object"]["record_type_option"].format(label)
         self.selenium.get_webelement(locator).click()
@@ -279,7 +326,7 @@ class Salesforce(object):
         self.selenium.click_button("Next")
 
     def select_app_launcher_app(self, app_name):
-        """ Select a Salesforce App via App Launcher """
+        """Navigates to a Salesforce App via the App Launcher """
         locator = lex_locators["app_launcher"]["app_link"].format(app_name)
         self.builtin.log("Opening the App Launcher")
         self.open_app_launcher()
@@ -295,7 +342,7 @@ class Salesforce(object):
         self.wait_until_modal_is_closed()
 
     def select_app_launcher_tab(self, tab_name):
-        """ EXPERIMENTAL!!! """
+        """Navigates to a tab via the App Launcher"""
         locator = lex_locators["app_launcher"]["tab_link"].format(tab_name)
         self.builtin.log("Opening the App Launcher")
         self.open_app_launcher()

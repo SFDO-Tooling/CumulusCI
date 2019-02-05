@@ -39,18 +39,26 @@ class TestCloneTag(unittest.TestCase, GithubApiTestMixin):
         responses.add(
             responses.GET,
             self.repo_api_url + "/git/refs/tags/beta/1.0-Beta_1",
-            json={"object": {"sha": "SHA"}},
+            json={
+                "object": {"sha": "SHA", "url": "", "type": "tag"},
+                "url": "",
+                "ref": "refs/tags/beta/1.0-Beta_1",
+            },
         )
         responses.add(
-            responses.GET, self.repo_api_url + "/git/tags/SHA", json={"sha": "SHA"}
+            responses.GET,
+            self.repo_api_url + "/git/tags/SHA",
+            json=self._get_expected_tag("beta/1.0-Beta_1", "SHA"),
         )
         responses.add(
             responses.POST,
             self.repo_api_url + "/git/tags",
-            json={"tag": "release/1.0"},
+            json=self._get_expected_tag("release/1.0", "SHA"),
             status=201,
         )
-        responses.add(responses.POST, self.repo_api_url + "/git/refs", status=201)
+        responses.add(
+            responses.POST, self.repo_api_url + "/git/refs", json={}, status=201
+        )
         task_config = TaskConfig(
             {"options": {"src_tag": "beta/1.0-Beta_1", "tag": "release/1.0"}}
         )
@@ -68,7 +76,11 @@ class TestCloneTag(unittest.TestCase, GithubApiTestMixin):
         responses.add(
             responses.GET,
             self.repo_api_url + "/git/refs/tags/beta/1.0-Beta_1",
-            json={"object": {"sha": "SHA"}},
+            json={
+                "object": {"sha": "SHA", "url": "", "type": "tag"},
+                "url": "",
+                "ref": "tags/beta/1.0-Beta_1",
+            },
         )
         responses.add(responses.GET, self.repo_api_url + "/git/tags/SHA", status=404)
         task_config = TaskConfig(
