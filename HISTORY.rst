@@ -2,6 +2,21 @@
 History
 =======
 
+2.3.0 (2019-02-04)
+------------------
+
+Changes:
+
+* When installing a managed package dependency, pre & post metadata bundles are now fetched from the git commit corresponding to the most recent release of the managed package, instead of master.
+* Improvements to the task for publishing a release to MetaDeploy:
+  * It can now publish a tag even if it's a different commit than what is currently checked out in the working directory.
+  * It now pins managed deployments of metadata bundles to the git commit corresponding to the most recent release of the managed package.
+
+Issues Closed:
+
+* #962: ``cumulusci.utils.findReplace`` uses wrong file encoding in Python 3
+* #967: Allow ``cci service`` commands to be run from outside a project repository
+
 2.3.0b1 (2019-01-28)
 --------------------
 
@@ -12,8 +27,7 @@ Breaking Changes:
 
 Changes:
 
-* There is now a ``dev_org_beta_deps`` flow which sets up an org in the same way as ``dev_org``,
- but installs the latest beta versions of managed package dependencies.
+* There is now a ``dev_org_beta_deps`` flow which sets up an org in the same way as ``dev_org``, but installs the latest beta versions of managed package dependencies.
 * The ``github_release`` task now records the release dependencies as JSON in the release's tag message.
 * Looking up the latest release from GitHub is now done using a single HTTP request rather than listing all releases.
 * We added S-Controls to the list of metadata types that the ``uninstall_packaged_incremental`` task will delete.
