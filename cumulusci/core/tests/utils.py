@@ -2,6 +2,7 @@
 
 MockLoggingHandler: a logging handler that we can assert"""
 
+import cumulusci
 import collections
 import logging
 import os
@@ -93,3 +94,13 @@ class EnvironmentVarGuard(collections.MutableMapping):
             else:
                 self._environ[k] = v
         os.environ = self._environ
+
+
+class MockLoggerMixin(object):
+    @classmethod
+    def setUpClass(cls):
+        super(MockLoggerMixin, cls).setUpClass()
+        logger = logging.getLogger(cumulusci.core.tasks.__name__)
+        logger.setLevel(logging.DEBUG)
+        cls._task_log_handler = MockLoggingHandler(logging.DEBUG)
+        logger.addHandler(cls._task_log_handler)

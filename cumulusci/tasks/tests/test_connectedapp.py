@@ -1,6 +1,5 @@
 """ Tests for the connectedapp tasks """
 
-import logging
 import mock
 import os
 import pytest
@@ -24,22 +23,14 @@ from cumulusci.core.config import (
 )
 from cumulusci.core.exceptions import ServiceNotConfigured, TaskOptionsError
 from cumulusci.core.keychain import BaseProjectKeychain
-from cumulusci.core.tests.utils import MockLoggingHandler
+from cumulusci.core.tests.utils import MockLoggerMixin
 from cumulusci.tasks.salesforce.tests.util import create_task
 from cumulusci.tasks.connectedapp import CreateConnectedApp
 from cumulusci.utils import temporary_dir
 
 
-class TestCreateConnectedApp(unittest.TestCase):
+class TestCreateConnectedApp(MockLoggerMixin, unittest.TestCase):
     """ Tests for the CreateConnectedApp task """
-
-    @classmethod
-    def setUpClass(cls):
-        super(TestCreateConnectedApp, cls).setUpClass()
-        logger = logging.getLogger(cumulusci.core.tasks.__name__)
-        logger.setLevel(logging.DEBUG)
-        cls._task_log_handler = MockLoggingHandler(logging.DEBUG)
-        logger.addHandler(cls._task_log_handler)
 
     def setUp(self):
         self.global_config = BaseGlobalConfig()
