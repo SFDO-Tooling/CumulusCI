@@ -1,4 +1,5 @@
 import io
+import json
 import unittest
 import zipfile
 
@@ -132,3 +133,38 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
         task = Publish(project_config, task_config)
         task()
 
+        steps = json.loads(responses.calls[-3].request.body)["steps"]
+        self.assertEqual(
+            [
+                {
+                    "is_required": True,
+                    "kind": "managed",
+                    "name": "Install None",
+                    "path": "install_managed",
+                    "step_num": "2",
+                    "task_class": "cumulusci.tasks.salesforce.InstallPackageVersion",
+                    "task_config": {
+                        "options": {
+                            "activateRSS": True,
+                            "namespace": None,
+                            "retries": 5,
+                            "retry_interval": 5,
+                            "retry_interval_add": 30,
+                            "version": "None",
+                        }
+                    },
+                },
+                {
+                    "is_required": True,
+                    "kind": "other",
+                    "name": "update_admin_profile",
+                    "path": "config_managed.update_admin_profile",
+                    "step_num": "3.2",
+                    "task_class": "cumulusci.tasks.salesforce.UpdateAdminProfile",
+                    "task_config": {
+                        "options": {"managed": True, "namespaced_org": False}
+                    },
+                },
+            ],
+            steps,
+        )
