@@ -489,6 +489,7 @@ def random_alphanumeric_underscore(length):
     if sys.version_info[0] == 3:
         import secrets
 
+        # Ensure the string is the right length
         byte_length = math.ceil((length * 3) / 4)
         return secrets.token_urlsafe(length).replace("-", "_")[:length]
     else:
