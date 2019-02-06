@@ -505,7 +505,7 @@ class TestBaseProjectConfig(unittest.TestCase):
 
     def test_get_static_dependencies_no_dependencies(self):
         config = BaseProjectConfig(BaseGlobalConfig())
-        self.assertIsNone(config.get_static_dependencies())
+        self.assertEqual([], config.get_static_dependencies())
 
     def test_pretty_dependencies(self):
         dep = {

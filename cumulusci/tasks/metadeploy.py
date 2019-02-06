@@ -109,7 +109,7 @@ class Publish(BaseMetaDeployTask):
             json={
                 "product": product_url,
                 "label": label,
-                "description": self.options["description"],
+                "description": self.options.get("description", ""),
                 "is_production": True,
                 "commit_ish": self.project_config.repo_commit,
                 "is_listed": False,
