@@ -42,8 +42,7 @@ class CreateConnectedApp(SFDXBaseTask):
             "required": True,
         },
         "email": {
-            "description": "The email address to associate with the connected app.  Defaults to email address from the github service if configured.",
-            "required": True,
+            "description": "The email address to associate with the connected app.  Defaults to email address from the github service if configured."
         },
         "username": {
             "description": "Create the connected app in a different org.  Defaults to the defaultdevhubusername configured in sfdx.",
@@ -120,7 +119,7 @@ class CreateConnectedApp(SFDXBaseTask):
         self.client_secret = random_alphanumeric_underscore(self.client_secret_length)
 
     def _build_package(self):
-        connected_app_path = os.path.join(self.tempdir, "connectedApps")
+        connected_app_path = "connectedApps"
         os.mkdir(connected_app_path)
         self._generate_id_and_secret()
         with open(
@@ -135,7 +134,7 @@ class CreateConnectedApp(SFDXBaseTask):
                     client_secret=self.client_secret,
                 )
             )
-        with open(os.path.join(self.tempdir, "package.xml"), "w") as f:
+        with open("package.xml"), "w") as f:
             f.write(PACKAGE_XML)
 
     def _validate_connect_service(self):
