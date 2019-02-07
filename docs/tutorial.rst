@@ -354,7 +354,7 @@ You can hop into a browser logged into any org in your keychain with `cci org br
 Creating a Connected App
 ------------------------
 
-In order to connect persistent orgs such as a Developer Edition, Enterprise Edition, or Sandbox org to CumulusCI, you need to have a Connected App configured in a persistent Salesforce org.
+In order to connect persistent orgs such as a Developer Edition, Enterprise Edition, or Sandbox org to CumulusCI, you need to have a Connected App configured in a persistent Salesforce org.  You have a choice of whether to create the Connected App from the command line or in Salesforce Setup.
 
 Create With CumulusCI
 ^^^^^^^^^^^^^^^^^^^^^
