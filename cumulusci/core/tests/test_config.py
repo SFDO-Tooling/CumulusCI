@@ -601,7 +601,11 @@ class TestBaseProjectConfig(unittest.TestCase):
         self.assertEqual(
             result,
             [
-                {u"name": "Install ccitestdep 2.0", u"version": "2.0", u"namespace": "ccitestdep"},
+                {
+                    u"name": "Install ccitestdep 2.0",
+                    u"version": "2.0",
+                    u"namespace": "ccitestdep",
+                },
                 {
                     u"name": "Deploy CumulusCI-Test",
                     u"repo_owner": "SFDO-Tooling",
@@ -741,7 +745,11 @@ class TestBaseProjectConfig(unittest.TestCase):
                     u"namespace_strip": None,
                     u"namespace_tokenize": None,
                 },
-                {u"name": "Install ccitestdep 2.0", u"version": "2.0", u"namespace": "ccitestdep"},
+                {
+                    u"name": "Install ccitestdep 2.0",
+                    u"version": "2.0",
+                    u"namespace": "ccitestdep",
+                },
                 {
                     u"name": "Deploy CumulusCI-Test",
                     u"repo_owner": "SFDO-Tooling",
