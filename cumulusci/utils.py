@@ -486,7 +486,7 @@ def log_progress(
 
 
 def random_alphanumeric_underscore(length):
-    if sys.version_info[0] == 3:
+    if sys.version_info[0] >= 3:
         import secrets
 
         # Ensure the string is the right length

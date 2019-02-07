@@ -134,7 +134,7 @@ class CreateConnectedApp(SFDXBaseTask):
                     client_secret=self.client_secret,
                 )
             )
-        with open("package.xml"), "w") as f:
+        with open("package.xml", "w") as f:
             f.write(PACKAGE_XML)
 
     def _validate_connect_service(self):
