@@ -73,10 +73,7 @@ class TestCommandTask(MockLoggerMixin, unittest.TestCase):
         task_config = TaskConfig({"options": {"command": "ls"}})
         task = Command(self.project_config, task_config)
         with self.assertRaises(CommandException):
-            with BytesIO() as stderr:
-                stderr.write(b"err")
-                stderr.seek(0)
-                task._handle_returncode(1, stderr)
+            task._handle_returncode(1, BytesIO(b"err"))
 
 
 class TestCommandTaskWithMockPopen(MockLoggerMixin, unittest.TestCase):
