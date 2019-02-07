@@ -274,6 +274,7 @@ tasks:
             apex: 'for (CronTrigger t : [SELECT Id FROM CronTrigger]) { System.abortJob(t.Id); }'
         group: Salesforce
     update_admin_profile:
+        name: Update Admin Profile
         description: Retrieves, edits, and redeploys the Admin.profile with full FLS perms for all objects/fields
         class_path: cumulusci.tasks.salesforce.UpdateAdminProfile
         group: Salesforce Metadata
