@@ -14,7 +14,7 @@ from cumulusci.core.config import TaskConfig
 from cumulusci.core.config import OrgConfig
 from cumulusci.core.config import ScratchOrgConfig
 from cumulusci.core.keychain import BaseProjectKeychain
-from cumulusci.core.tests.utils import MockLoggingHandler
+from cumulusci.core.tests.utils import MockLoggerMixin
 
 from cumulusci.tasks.command import CommandException
 from cumulusci.tasks.salesforce.tests.util import create_task
@@ -23,16 +23,8 @@ from cumulusci.tasks.sfdx import SFDXOrgTask
 from cumulusci.tasks.sfdx import SFDXJsonTask
 
 
-class TestSFDXBaseTask(unittest.TestCase):
+class TestSFDXBaseTask(MockLoggerMixin, unittest.TestCase):
     """ Tests for the Base Task type """
-
-    @classmethod
-    def setUpClass(cls):
-        super(TestSFDXBaseTask, cls).setUpClass()
-        logger = logging.getLogger(cumulusci.core.tasks.__name__)
-        logger.setLevel(logging.DEBUG)
-        cls._task_log_handler = MockLoggingHandler(logging.DEBUG)
-        logger.addHandler(cls._task_log_handler)
 
     def setUp(self):
         self.global_config = BaseGlobalConfig()
