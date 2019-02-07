@@ -13,7 +13,7 @@ from cumulusci.core.config import OrgConfig
 from cumulusci.core.config import FlowConfig
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.exceptions import TaskRequiresSalesforceOrg
-from cumulusci.core.tests.utils import MockLoggingHandler
+from cumulusci.core.tests.utils import MockLoggerMixin
 import cumulusci.core
 
 ORG_ID = "00D000000000001"
@@ -32,7 +32,7 @@ class _SfdcTask(BaseTask):
         return -1
 
 
-class TestBaseTaskCallable(unittest.TestCase):
+class TestBaseTaskCallable(MockLoggerMixin, unittest.TestCase):
     """ Tests for the BaseTask callable interface.
 
     BaseTask is a callable interface
@@ -41,14 +41,6 @@ class TestBaseTaskCallable(unittest.TestCase):
     """
 
     task_class = BaseTask
-
-    @classmethod
-    def setUpClass(cls):
-        super(TestBaseTaskCallable, cls).setUpClass()
-        logger = logging.getLogger(cumulusci.core.tasks.__name__)
-        logger.setLevel(logging.DEBUG)
-        cls._task_log_handler = MockLoggingHandler(logging.DEBUG)
-        logger.addHandler(cls._task_log_handler)
 
     def setUp(self):
         self.global_config = BaseGlobalConfig()

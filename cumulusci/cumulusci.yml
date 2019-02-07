@@ -14,6 +14,14 @@ tasks:
         description: commit local ApexDocs to GitHub branch
         class_path: cumulusci.tasks.github.CommitApexDocs
         group: Release Management
+    connected_app:
+        description: Creates the Connected App needed to use persistent orgs in the CumulusCI keychain
+        class_path: cumulusci.tasks.connectedapp.CreateConnectedApp
+        group: Setup
+        options:
+            label: CumulusCI
+            connect: True
+            overwrite: False
     create_package:
         description: Creates a package in the target org with the default package name for the project
         class_path: cumulusci.tasks.salesforce.CreatePackage
