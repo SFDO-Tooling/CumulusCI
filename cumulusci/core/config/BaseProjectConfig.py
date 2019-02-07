@@ -488,7 +488,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             dependencies = self.project__dependencies
 
         if not dependencies:
-            return
+            return []
 
         static_dependencies = []
         for dependency in dependencies:
