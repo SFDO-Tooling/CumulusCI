@@ -3,16 +3,14 @@ import mock
 import unittest
 import zipfile
 
-from cumulusci.core.config import OrgConfig
 from cumulusci.core.exceptions import TaskOptionsError
+from cumulusci.core.flowrunner import StepSpec
 from cumulusci.tasks.salesforce import UpdateDependencies
 from cumulusci.tests.util import create_project_config
 from .util import create_task
 
 
 class TestUpdateDependencies(unittest.TestCase):
-    maxDiff = None
-
     @mock.patch(
         "cumulusci.salesforce_api.metadata.ApiRetrieveInstalledPackages.__call__"
     )
@@ -171,3 +169,74 @@ class TestUpdateDependencies(unittest.TestCase):
             task.install_queue,
         )
         api.assert_called_once()
+
+    def test_freeze(self):
+        task = create_task(
+            UpdateDependencies,
+            {
+                "dependencies": [
+                    {"namespace": "ns", "version": "1.0"},
+                    {
+                        "repo_owner": "SFDO-Tooling",
+                        "repo_name": "CumulusCI-Test",
+                        "ref": "abcdef",
+                        "subfolder": "src",
+                    },
+                ]
+            },
+        )
+        step = StepSpec(1, "test_task", task.task_config, None)
+        steps = task.freeze(step)
+        self.assertEqual(
+            [
+                {
+                    "is_required": True,
+                    "kind": "managed",
+                    "name": "Install ns",
+                    "path": "test_task.1",
+                    "step_num": "1.1",
+                    "task_class": None,
+                    "task_config": {
+                        "options": {
+                            "dependencies": [{"namespace": "ns", "version": "1.0"}],
+                            "include_beta": False,
+                            "namespaced_org": False,
+                            "purge_on_delete": True,
+                        }
+                    },
+                },
+                {
+                    "is_required": True,
+                    "kind": "metadata",
+                    "name": "Deploy src",
+                    "path": "test_task.2",
+                    "step_num": "1.2",
+                    "task_class": None,
+                    "task_config": {
+                        "options": {
+                            "dependencies": [
+                                {
+                                    "ref": "abcdef",
+                                    "repo_name": "CumulusCI-Test",
+                                    "repo_owner": "SFDO-Tooling",
+                                    "subfolder": "src",
+                                }
+                            ],
+                            "include_beta": False,
+                            "namespaced_org": False,
+                            "purge_on_delete": True,
+                        }
+                    },
+                },
+            ],
+            steps,
+        )
+
+    def test_flatten(self):
+        dependencies = [
+            {"namespace": "npe02", "dependencies": [{"namespace": "npe01"}]},
+            {"namespace": "npe01"},
+        ]
+        task = create_task(UpdateDependencies)
+        result = task._flatten(dependencies)
+        self.assertEqual([{"namespace": "npe01"}, {"namespace": "npe02"}], result)

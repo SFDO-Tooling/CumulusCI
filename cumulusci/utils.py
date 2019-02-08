@@ -3,17 +3,19 @@ from future import standard_library
 from future.utils import text_to_native_str
 
 standard_library.install_aliases()
-from builtins import str
-from contextlib import contextmanager
 import difflib
 import fnmatch
+import io
+import math
 import os
 import re
-import io
 import shutil
-import zipfile
+import sys
 import tempfile
 import textwrap
+import zipfile
+from builtins import str
+from contextlib import contextmanager
 from datetime import timedelta, datetime
 
 import requests
@@ -484,3 +486,22 @@ def log_progress(
         if not i % batch_size:
             logger.info(progress_message.format(i))
     logger.info(done_message.format(i))
+
+
+def random_alphanumeric_underscore(length):
+    if sys.version_info[0] >= 3:
+        import secrets
+
+        # Ensure the string is the right length
+        byte_length = math.ceil((length * 3) / 4)
+        return secrets.token_urlsafe(length).replace("-", "_")[:length]
+    else:
+        import random
+        import string
+
+        return "".join(
+            random.SystemRandom().choice(
+                "_" + string.ascii_uppercase + string.ascii_lowercase + string.digits
+            )
+            for _ in range(length)
+        )

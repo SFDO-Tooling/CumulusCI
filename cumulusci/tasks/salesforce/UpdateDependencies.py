@@ -288,7 +288,7 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
             self.options["dependencies"], include_beta=self.options["include_beta"]
         )
         steps = []
-        for i, dependency in enumerate(_flatten(dependencies), start=1):
+        for i, dependency in enumerate(self._flatten(dependencies), start=1):
             if "namespace" in dependency:
                 kind = "managed"
                 # @@@ we want the package name, not namespace
@@ -312,13 +312,13 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
             )
         return steps
 
-
-def _flatten(dependencies):
-    result = []
-    for dependency in dependencies:
-        subdeps = dependency.pop("dependencies", [])
-        for subdep in _flatten(subdeps):
-            if subdep not in result:
-                result.append(subdep)
-        result.append(dependency)
-    return result
+    def _flatten(self, dependencies):
+        result = []
+        for dependency in dependencies:
+            subdeps = dependency.pop("dependencies", [])
+            for subdep in self._flatten(subdeps):
+                if subdep not in result:
+                    result.append(subdep)
+            if dependency not in result:
+                result.append(dependency)
+        return result
