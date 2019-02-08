@@ -13,7 +13,7 @@ CumulusCI was built to solve common challenges faced the development and release
 
 CumulusCI is a framework for building portable automation for Salesforce projects on Github.  The automation is controlled by a simple **cumulusci.yml** file which is version controlled in the project repository and is available to anyone with CumulusCI configured on their system and able to access the repository.
 
-We've used CumulusCI every day at Salesforce.org to run over 40 thousand builds of 12 Github managed package repositories for our products.  The goal of making CumulusCI available as open source is to empower other Salesforce developers to benefit from the solutions to common challenges faced in managing the development and release cycle of Saleforce managed packages.
+We've used CumulusCI every day at Salesforce.org to run over 40 thousand builds of 12 Github managed package repositories for our products.  The goal of making CumulusCI available as open source is to empower other Salesforce developers to benefit from the solutions to common challenges faced in managing the development and release cycle of Salesforce managed packages.
 
 Portable Automation
 ===================
@@ -44,7 +44,7 @@ By providing a set of common tasks and flows to all projects, CumulusCI makes it
 
 Similarly, CumulusCI provides 4 scratch org definitions by default to all projects which are useful for different phases of a typical project's development lifecycle:
 
-* **beta**: A DE org intended for testin beta releases
+* **beta**: A DE org intended for testing beta releases
 * **dev**: A DE org intended for unmanaged deploys of development environments
 * **feature**: A DE org intended for testing of unmanaged deploys
 * **release**: An EE org intended for testing production releases
@@ -128,7 +128,7 @@ CumulusCI has a number of unique capabilities that you won't find in any other t
 * **Bulk API Query/Load**: CumulusCI includes Python task classes allowing for the creation of multi-object relational data set mappings used to query data from a Salesforce org into a local sqlite database and insert that relational data into another Salesforce org.
 * **Dependency Management**: CumulusCI includes robust support for project dependencies including managed packages, unmanaged metadata, and references to other CumulusCI project repositories to dynamically and recursively inherit the referenced project's dependencies
 * **Apex Limit Reports for Tests**: CumulusCI's Apex test runner outputs a **test_results.json** file which includes the duration and Apex limits usage for each test method executed
-* **Update Admin Profile**: All CumulusCI flows run the **update_admin_profile** task to retrieve the Admin.profile from the target org after deploying the package or the package source, grant FLS permissions on all fields and classes, and deploy the updated profile.  This makes it easier to get up an running with a useable environment from a fresh scratch org.
+* **Update Admin Profile**: All CumulusCI flows run the **update_admin_profile** task to retrieve the Admin.profile from the target org after deploying the package or the package source, grant FLS permissions on all fields and classes, and deploy the updated profile.  This makes it easier to get up and running with a useable environment from a fresh scratch org.
 * **Push API**: Automate push upgrades of your product using the Push API and CumulusCI's built in tasks: **push_all**, **push_sandbox**, **push_trial**, and **push_qa**
 * **meta.xml File Management**: Unmanaged deploys automatically strip namespace, majorVersion, and minorVersion elements from the meta.xml file allowing CumulusCI's dependency management to handle your dependencies.  Also, the **meta_xml_dependencies** and **meta_xml_apiversion** tasks automate updating all local meta.xml files with the api_version specified in **cumulusci.yml** and the namespace, majorVersion, and minorVersion of the currently resolved dependencies.
 * **MetaCI**: MetaCI is our custom CI app run on Heroku to automate the execution of builds using CumulusCI flows.  It is Salesforce aware and can handle burst capacity for builds by leveraging Heroku's scalability.
