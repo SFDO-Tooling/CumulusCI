@@ -192,7 +192,7 @@ class TestBaseProjectConfig(unittest.TestCase):
         project:
             name: CumulusCI-Test
             package:
-                name: Cumulus-Test
+                name: CumulusCI-Test
                 namespace: ccitest
             git:
                 repo_url: https://github.com/SFDO-Tooling/CumulusCI-Test
@@ -215,7 +215,7 @@ class TestBaseProjectConfig(unittest.TestCase):
         project:
             name: CumulusCI-Test-Dep
             package:
-                name: Cumulus-Test-Dep
+                name: CumulusCI-Test-Dep
                 namespace: ccitestdep
             git:
                 repo_url: https://github.com/SFDO-Tooling/CumulusCI-Test-Dep
@@ -555,7 +555,7 @@ class TestBaseProjectConfig(unittest.TestCase):
                     u"namespace_tokenize": None,
                 },
                 {
-                    u"name": "Install ccitestdep 2.0",
+                    u"name": "Install CumulusCI-Test-Dep 2.0",
                     u"version": "2.0",
                     u"namespace": "ccitestdep",
                 },
@@ -602,7 +602,7 @@ class TestBaseProjectConfig(unittest.TestCase):
             result,
             [
                 {
-                    u"name": "Install ccitestdep 2.0",
+                    u"name": "Install CumulusCI-Test-Dep 2.0",
                     u"version": "2.0",
                     u"namespace": "ccitestdep",
                 },
@@ -638,12 +638,12 @@ class TestBaseProjectConfig(unittest.TestCase):
         )
         self.assertIn(
             {
-                "name": "Install ccitest 1.0",
+                "name": "Install CumulusCI-Test 1.0",
                 "namespace": "ccitest",
                 "version": "1.0",
                 "dependencies": [
                     {
-                        "name": "Install ccitestdep 2.0",
+                        "name": "Install CumulusCI-Test-Dep 2.0",
                         "namespace": "ccitestdep",
                         "version": "2.0",
                     }
@@ -687,7 +687,7 @@ class TestBaseProjectConfig(unittest.TestCase):
                     u"namespace_tokenize": None,
                 },
                 {
-                    u"name": "Install ccitestdep 1.1 (Beta 1)",
+                    u"name": "Install CumulusCI-Test-Dep 1.1 (Beta 1)",
                     u"version": "1.1 (Beta 1)",
                     u"namespace": "ccitestdep",
                 },
@@ -746,7 +746,7 @@ class TestBaseProjectConfig(unittest.TestCase):
                     u"namespace_tokenize": None,
                 },
                 {
-                    u"name": "Install ccitestdep 2.0",
+                    u"name": "Install CumulusCI-Test-Dep 2.0",
                     u"version": "2.0",
                     u"namespace": "ccitestdep",
                 },

@@ -35,10 +35,14 @@ class InstallPackageVersion(Deploy):
 
     def _init_options(self, kwargs):
         super(InstallPackageVersion, self)._init_options(kwargs)
-        if "name" not in self.options:
-            self.options["name"] = self.project_config.project__package__name_managed
         if "namespace" not in self.options:
             self.options["namespace"] = self.project_config.project__package__namespace
+        if "name" not in self.options:
+            self.options["name"] = (
+                self.project_config.project__package__name_managed
+                or self.project_config.project__package__name
+                or self.options["namespace"]
+            )
         if "retries" not in self.options:
             self.options["retries"] = 5
         if "retry_interval" not in self.options:

@@ -44,9 +44,12 @@ class DeployBundles(Deploy):
         if not os.path.isdir(path):
             return []
         steps = []
-        relpath = os.path.relpath(os.path.realpath(path), self.project_config.repo_root)
         for i, item in enumerate(sorted(os.listdir(path)), 1):
             name = os.path.basename(item)
+            subpath = os.path.relpath(
+                os.path.join(os.path.realpath(path), item),
+                os.path.realpath(self.project_config.repo_root),
+            )
             dependency = self.options.copy()
             dependency.pop("path")
             dependency.update(
@@ -54,13 +57,13 @@ class DeployBundles(Deploy):
                     "repo_owner": self.project_config.repo_owner,
                     "repo_name": self.project_config.repo_name,
                     "ref": self.project_config.repo_commit,
-                    "subfolder": "/".join([relpath, item]),
+                    "subfolder": subpath,
                 }
             )
             task_config = {"options": {"dependencies": [dependency]}}
             steps.append(
                 {
-                    "name": "Deploy {}/{}".format(relpath, name),
+                    "name": "Deploy {}".format(subpath),
                     "path": "{}.{}".format(step.path, name),
                     "step_num": "{}.{}".format(step.step_num, i),
                     "kind": "metadata",

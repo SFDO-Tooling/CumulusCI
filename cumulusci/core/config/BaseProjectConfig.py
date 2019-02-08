@@ -580,10 +580,9 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         cumulusci_yml = ordered_yaml_load(contents.decoded)
 
         # Get the namespace from the cumulusci.yml if set
-        namespace = cumulusci_yml.get("project", {}).get("package", {}).get("namespace")
-        package_name = (
-            cumulusci_yml.get("project", {}).get("package", {}).get("name_managed")
-        )
+        package_config = cumulusci_yml.get("project", {}).get("package", {})
+        namespace = package_config.get("namespace")
+        package_name = package_config.get("name_managed") or package_config.get("name") or namespace
 
         # Check for unmanaged flag on a namespaced package
         unmanaged = namespace and dependency.get("unmanaged") is True
