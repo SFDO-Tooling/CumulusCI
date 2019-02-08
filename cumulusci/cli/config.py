@@ -122,7 +122,7 @@ class CliRuntime(BaseCumulusCI):
                 if get_installed_version() < parsed_version:
                     raise click.UsageError(
                         "This project requires CumulusCI version {} or later. "
-                        "Please upgrade using pip install -U cumulusci".format(
+                        'Please upgrade using "brew upgrade cumulusci" or "pip install -U cumulusci'.format(
                             min_cci_version
                         )
                     )
