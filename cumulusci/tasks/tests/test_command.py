@@ -3,6 +3,7 @@
 import mock
 import unittest
 import logging
+from io import BytesIO
 
 from testfixtures.popen import MockPopen
 from testfixtures import Replacer
@@ -12,23 +13,15 @@ from cumulusci.core.config import BaseGlobalConfig
 from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.config import OrgConfig
 from cumulusci.core.config import TaskConfig
-from cumulusci.core.tests.utils import MockLoggingHandler
+from cumulusci.core.tests.utils import MockLoggerMixin
 
 from cumulusci.tasks.command import Command
 from cumulusci.tasks.command import SalesforceCommand
 from cumulusci.tasks.command import CommandException
 
 
-class TestCommandTask(unittest.TestCase):
+class TestCommandTask(MockLoggerMixin, unittest.TestCase):
     """ Tests for the basic command task """
-
-    @classmethod
-    def setUpClass(cls):
-        super(TestCommandTask, cls).setUpClass()
-        logger = logging.getLogger(cumulusci.core.tasks.__name__)
-        logger.setLevel(logging.DEBUG)
-        cls._task_log_handler = MockLoggingHandler(logging.DEBUG)
-        logger.addHandler(cls._task_log_handler)
 
     def setUp(self):
         self.global_config = BaseGlobalConfig()
@@ -80,19 +73,11 @@ class TestCommandTask(unittest.TestCase):
         task_config = TaskConfig({"options": {"command": "ls"}})
         task = Command(self.project_config, task_config)
         with self.assertRaises(CommandException):
-            task._handle_returncode(1, "err")
+            task._handle_returncode(1, BytesIO(b"err"))
 
 
-class TestCommandTaskWithMockPopen(unittest.TestCase):
+class TestCommandTaskWithMockPopen(MockLoggerMixin, unittest.TestCase):
     """ Run command tasks with a mocked popen """
-
-    @classmethod
-    def setUpClass(cls):
-        super(TestCommandTaskWithMockPopen, cls).setUpClass()
-        logger = logging.getLogger(cumulusci.core.tasks.__name__)
-        logger.setLevel(logging.DEBUG)
-        cls._task_log_handler = MockLoggingHandler(logging.DEBUG)
-        logger.addHandler(cls._task_log_handler)
 
     def setUp(self):
         self.global_config = BaseGlobalConfig()
