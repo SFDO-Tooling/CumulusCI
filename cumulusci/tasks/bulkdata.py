@@ -8,6 +8,7 @@ import datetime
 import io
 import itertools
 import os
+import re
 import time
 import tempfile
 import xml.etree.ElementTree as ET
@@ -58,6 +59,22 @@ class EpochType(types.TypeDecorator):
 def setup_epoch(inspector, table, column_info):
     if isinstance(column_info["type"], types.DateTime):
         column_info["type"] = EpochType()
+
+
+class RelativeDateType(types.TypeDecorator):
+    impl = types.Integer
+
+    def __init__(self, now, *args, **kwargs):
+        self.now = now
+        super(RelativeDateType, self).__init__(*args, **kwargs)
+
+    def process_bind_param(self, value, dialect):
+        if isinstance(value, str):
+            value = datetime.datetime.fromisoformat(value[:-1])
+        return int((value - self.now).total_seconds())
+
+    def process_result_value(self, value, dialect):
+        return self.now + datetime.timedelta(seconds=value)
 
 
 class BulkJobTaskMixin(object):
@@ -127,6 +144,72 @@ class BulkJobTaskMixin(object):
                 conn.execute(table.insert().values(rows))
         self.session.flush()
 
+class MappingDatabaseMixin(object):
+    def _create_tables(self, create=False):
+        for mapping in self.mappings.values():
+            self._create_table(mapping, create)
+        if create:
+            self.metadata.create_all()
+
+    def _create_table(self, mapping, create):
+        model_name = "{}Model".format(mapping["table"])
+        mapper_kwargs = {}
+        table_kwargs = {}
+        self.models[mapping["table"]] = type(model_name, (object,), {})
+
+        # Provide support for legacy mappings which used the OID as the pk but
+        # default to using an autoincrementing int pk and a separate sf_id column
+        id_column = mapping["fields"].get("Id", "id")
+        fields = []
+        mapping["oid_as_pk"] = True
+        if id_column == "id":
+            fields.append(
+                Column(id_column, Integer(), primary_key=True, autoincrement=True)
+            )
+            mapping["oid_as_pk"] = False
+        else:
+            fields.append(Column(id_column, Unicode(255), primary_key=True))
+        for field in self._fields_for_mapping(mapping):
+            if mapping["oid_as_pk"] and field["sf"] == "Id":
+                continue
+            if field.get("relative_date"):
+                fields.append(Column(field["db"], RelativeDateType(self.relative_date_now)))
+            else:
+                fields.append(Column(field["db"], Unicode(255)))
+        if "record_type" in mapping:
+            fields.append(Column("record_type", Unicode(255)))
+        t = Table(mapping["table"], self.metadata, *fields, **table_kwargs)
+        if create and t.exists():
+            raise BulkDataException("Table already exists: {}".format(mapping["table"]))
+
+        if not mapping["oid_as_pk"]:
+            mapping["sf_id_table"] = mapping["table"] + "_sf_id"
+            # If multiple mappings point to the same table, don't recreate the table
+            if not mapping["sf_id_table"] in self.models:
+                sf_id_model_name = "{}Model".format(mapping["sf_id_table"])
+                self.models[mapping["sf_id_table"]] = type(
+                    sf_id_model_name, (object,), {}
+                )
+                sf_id_fields = [
+                    Column("id", Integer(), primary_key=True, autoincrement=True),
+                    Column("sf_id", Unicode(24)),
+                ]
+                id_t = Table(mapping["sf_id_table"], self.metadata, *sf_id_fields)
+                mapper(self.models[mapping["sf_id_table"]], id_t)
+
+        mapper(self.models[mapping["table"]], t, **mapper_kwargs)
+
+    def _fields_for_mapping(self, mapping):
+        fields = []
+        for sf_field, db_field in mapping.get("fields", {}).items():
+            fields.append({"sf": sf_field, "db": db_field})
+        for sf_field, lookup in mapping.get("lookups", {}).items():
+            fields.append(
+                {"sf": sf_field, "db": lookup.get("key_field", sf_field.lower())}
+            )
+        for sf_field, db_field in mapping.get("relative_date", {}).items():
+            fields.append({"sf": sf_field, "db": db_field, "relative_date": True})        
+        return fields
 
 class DeleteData(BaseSalesforceApiTask, BulkJobTaskMixin):
 
@@ -213,7 +296,7 @@ class DeleteData(BaseSalesforceApiTask, BulkJobTaskMixin):
             yield batch_id
 
 
-class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
+class LoadData(BulkJobTaskMixin, MappingDatabaseMixin, BaseSalesforceApiTask):
 
     task_options = {
         "database_url": {
@@ -230,6 +313,9 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
         },
         "sqlite_load": {
             "description": "If specified, an in memory sqlite database will be used and loaded from a sql script at the provided path"
+        },
+        "relative_days_offset": {
+            "description": "By default, relative_date fields will use the current datetime.  Use this option to offset the current date by days using either a postive or negative float or integer value.",
         },
     }
 
@@ -251,13 +337,20 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
             self.logger.info("Using in-memory sqlite database")
             self.options["database_url"] = "sqlite://"
 
+        # Prepare the datetime used to calculate relative_date values
+        self.relative_date_now = datetime.datetime.now()
+        if self.options.get("relative_day_offset"):
+            self.relative_date_now += datetime.timedelta(
+                days=float(self.options["relative_day_offset"])
+            )
+
     def _run_task(self):
         self._init_mapping()
         self._init_db()
 
         start_step = self.options.get("start_step")
         started = False
-        for name, mapping in self.mapping.items():
+        for name, mapping in self.mappings.items():
             # Skip steps until start_step
             if not started and start_step and name != start_step:
                 self.logger.info("Skipping step: {}".format(name))
@@ -300,8 +393,9 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
         """Get data from the local db"""
         action = mapping.get("action", "insert")
         fields = mapping.get("fields", {}).copy()
-        static = mapping.get("static", {})
         lookups = mapping.get("lookups", {})
+        relative_date = mapping.get("relative_date", {})
+        static = mapping.get("static", {})
         record_type = mapping.get("record_type")
 
         # Skip Id field on insert
@@ -312,6 +406,7 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
         columns = []
         columns.extend(fields.keys())
         columns.extend(lookups.keys())
+        columns.extend(relative_date.keys())
         columns.extend(static.keys())
 
         if record_type:
@@ -377,23 +472,26 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
         as well as joining to the id tables to get real SF ids
         for lookups.
         """
-        model = self.models[mapping.get("table")]
+        model = self.models[mapping["table"]]
+        table = self.metadata.tables[mapping["table"]]
 
         # Use primary key instead of the field mapped to SF Id
         fields = mapping["fields"].copy()
         if mapping["oid_as_pk"]:
             del fields["Id"]
-        id_column = model.__table__.primary_key.columns.keys()[0]
+        id_column = table.primary_key.columns.keys()[0]
         columns = [getattr(model, id_column)]
 
         for f in fields.values():
-            columns.append(model.__table__.columns[f])
+            columns.append(table.columns[f])
         lookups = mapping.get("lookups", {}).copy()
         for lookup in lookups.values():
             lookup["aliased_table"] = aliased(
                 self.metadata.tables["{}_sf_ids".format(lookup["table"])]
             )
             columns.append(lookup["aliased_table"].columns.sf_id)
+        for f in mapping.get("relative_date", {}).values():
+            columns.append(table.columns[f])
 
         query = self.session.query(*columns)
         if "record_type" in mapping and hasattr(model, "record_type"):
@@ -508,11 +606,13 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
         # self.session.flush()
 
     def _init_db(self):
+        self.models = {}
+
         # initialize the DB engine
         self.engine = create_engine(self.options["database_url"])
 
-        # initialize the DB session
-        self.session = Session(self.engine)
+        # initialize session
+        self.session = create_session(bind=self.engine, autocommit=False)
 
         if self.options.get("sqlite_load"):
             self._sqlite_load()
@@ -520,23 +620,17 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
         # initialize DB metadata
         self.metadata = MetaData()
         self.metadata.bind = self.engine
-
+        self._create_tables()
         # initialize the automap mapping
         self.base = automap_base(bind=self.engine, metadata=self.metadata)
         self.base.prepare(self.engine, reflect=True)
 
-        # Loop through mappings and reflect each referenced table
-        self.models = {}
-        for name, mapping in self.mapping.items():
-            if "table" in mapping and mapping["table"] not in self.models:
-                self.models[mapping["table"]] = self.base.classes[mapping["table"]]
-
     def _init_mapping(self):
         with open(self.options["mapping"], "r") as f:
-            self.mapping = ordered_yaml_load(f)
+            self.mappings = ordered_yaml_load(f)
 
 
-class QueryData(BulkJobTaskMixin, BaseSalesforceApiTask):
+class QueryData(BulkJobTaskMixin, MappingDatabaseMixin, BaseSalesforceApiTask):
     task_options = {
         "database_url": {
             "description": "A DATABASE_URL where the query output should be written",
@@ -551,6 +645,9 @@ class QueryData(BulkJobTaskMixin, BaseSalesforceApiTask):
             + "will be generated at the path provided and an in memory "
             + "sqlite db will be used.  This is useful for keeping data "
             + "in the repository and allowing diffs."
+        },
+        "relative_days_offset": {
+            "description": "By default, relative_date fields will use the current datetime.  Use this option to offset the current date by days using either a postive or negative integer value",
         },
     }
 
@@ -567,6 +664,12 @@ class QueryData(BulkJobTaskMixin, BaseSalesforceApiTask):
                 self.options["sqlite_dump"] = self.options["sqlite_dump"].replace(
                     "/", os.sep
                 )
+        # Prepare the datetime used to calculate relative_date values
+        self.relative_date_now = datetime.datetime.now()
+        if self.options.get("relative_day_offset"):
+            self.relative_date_now += datetime.timedelta(
+                days=float(self.options["relative_day_offset"])
+            )
 
     def _run_task(self):
         self._init_mapping()
@@ -592,7 +695,7 @@ class QueryData(BulkJobTaskMixin, BaseSalesforceApiTask):
         self.metadata.bind = self.engine
 
         # Create the tables
-        self._create_tables()
+        self._create_tables(create=True)
 
         # initialize the automap mapping
         self.base = automap_base(bind=self.engine, metadata=self.metadata)
@@ -660,12 +763,14 @@ class QueryData(BulkJobTaskMixin, BaseSalesforceApiTask):
             if sf:
                 column = mapping["fields"].get(sf)
                 if not mapping["oid_as_pk"] and sf == "Id":
-                    column = None
+                    continue
                 if not column:
                     lookup = mapping.get("lookups", {}).get(sf, {})
                     if lookup:
                         lookup_keys.append(sf)
                         column = lookup.get("key_field", sf.lower())
+                if not column:
+                    column = mapping.get("relative_date", {}).get(sf)
                 if column:
                     columns.append(column)
         if not columns:
@@ -674,8 +779,12 @@ class QueryData(BulkJobTaskMixin, BaseSalesforceApiTask):
         if record_type:
             columns.append("record_type")
 
+        process_kwargs = {}
+        if conn.dialect.name in ("postgresql", "psycopg2"):
+            process_kwargs["relative_date_now"] = self.relative_date_now
+
         processor = log_progress(
-            process_incoming_rows(result_file, record_type), self.logger
+            process_incoming_rows(result_file, record_type, **process_kwargs), self.logger
         )
         data_file = IteratorBytesIO(processor)
         if mapping["oid_as_pk"]:
@@ -736,66 +845,6 @@ class QueryData(BulkJobTaskMixin, BaseSalesforceApiTask):
                 self.session.bulk_update_mappings(model, mappings)
         self.session.commit()
 
-    def _create_tables(self):
-        for mapping in self.mappings.values():
-            self._create_table(mapping)
-        self.metadata.create_all()
-
-    def _create_table(self, mapping):
-        model_name = "{}Model".format(mapping["table"])
-        mapper_kwargs = {}
-        table_kwargs = {}
-        self.models[mapping["table"]] = type(model_name, (object,), {})
-
-        # Provide support for legacy mappings which used the OID as the pk but
-        # default to using an autoincrementing int pk and a separate sf_id column
-        id_column = mapping["fields"].get("Id", "id")
-        fields = []
-        mapping["oid_as_pk"] = True
-        if id_column == "id":
-            fields.append(
-                Column(id_column, Integer(), primary_key=True, autoincrement=True)
-            )
-            mapping["oid_as_pk"] = False
-        else:
-            fields.append(Column(id_column, Unicode(255), primary_key=True))
-        for field in self._fields_for_mapping(mapping):
-            if mapping["oid_as_pk"] and field["sf"] == "Id":
-                continue
-            fields.append(Column(field["db"], Unicode(255)))
-        if "record_type" in mapping:
-            fields.append(Column("record_type", Unicode(255)))
-        t = Table(mapping["table"], self.metadata, *fields, **table_kwargs)
-        if t.exists():
-            raise BulkDataException("Table already exists: {}".format(mapping["table"]))
-
-        if not mapping["oid_as_pk"]:
-            mapping["sf_id_table"] = mapping["table"] + "_sf_id"
-            # If multiple mappings point to the same table, don't recreate the table
-            if not mapping["sf_id_table"] in self.models:
-                sf_id_model_name = "{}Model".format(mapping["sf_id_table"])
-                self.models[mapping["sf_id_table"]] = type(
-                    sf_id_model_name, (object,), {}
-                )
-                sf_id_fields = [
-                    Column("id", Integer(), primary_key=True, autoincrement=True),
-                    Column("sf_id", Unicode(24)),
-                ]
-                id_t = Table(mapping["sf_id_table"], self.metadata, *sf_id_fields)
-                mapper(self.models[mapping["sf_id_table"]], id_t)
-
-        mapper(self.models[mapping["table"]], t, **mapper_kwargs)
-
-    def _fields_for_mapping(self, mapping):
-        fields = []
-        for sf_field, db_field in mapping.get("fields", {}).items():
-            fields.append({"sf": sf_field, "db": db_field})
-        for sf_field, lookup in mapping.get("lookups", {}).items():
-            fields.append(
-                {"sf": sf_field, "db": lookup.get("key_field", sf_field.lower())}
-            )
-        return fields
-
     def _drop_sf_id_columns(self):
         for mapping in self.mappings.values():
             if mapping.get("oid_as_pk"):
@@ -821,12 +870,20 @@ def _download_file(uri, bulk_api):
         f.seek(0)
         yield f
 
-
-def process_incoming_rows(f, record_type=None):
+isoformat_regex = r'"2[0-9]{3}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}.[0-9]{3}Z"'
+def process_incoming_rows(f, record_type=None, relative_date_now=None):
     if record_type and not isinstance(record_type, bytes):
         record_type = record_type.encode("utf-8")
     for line in f:
         if record_type:
-            yield line.rstrip() + b"," + record_type + b"\n"
-        else:
-            yield line
+            line = line.rstrip() + b"," + record_type + b"\n"
+        if relative_date_now:
+            line = line.decode("utf8")
+            for isoformat in re.findall(isoformat_regex, line):
+                #import pdb; pdb.set_trace()
+                dt = datetime.datetime.fromisoformat(isoformat[1:-2])
+                relative = int((dt - relative_date_now).total_seconds())
+                relative = '"{}"'.format(relative)
+                line = line.replace(isoformat, relative)
+            line = line.encode("utf8")
+        yield line
