@@ -495,4 +495,3 @@ def os_friendly_path(path):
     if os.sep != "/":
         path = path.replace("/", os.sep)
     return path
-
