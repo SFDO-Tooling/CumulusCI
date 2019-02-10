@@ -34,11 +34,7 @@ from cumulusci.core.utils import process_bool_arg, ordered_yaml_load
 from cumulusci.core.exceptions import BulkDataException
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
-from cumulusci.utils import (
-    convert_to_snake_case,
-    log_progress,
-    os_friendly_path,
-)
+from cumulusci.utils import convert_to_snake_case, log_progress, os_friendly_path
 
 # TODO: UserID Catcher
 # TODO: Dater
@@ -232,22 +228,22 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
             "description": "If specified, skip steps before this one in the mapping",
             "required": False,
         },
-        "sqlite_path": {
+        "sql_path": {
             "description": "If specified, a database will be created from a sql script at the provided path"
         },
     }
 
     def _init_options(self, kwargs):
         super(LoadData, self)._init_options(kwargs)
-        if self.options.get("sqlite_path"):
+        if self.options.get("sql_path"):
             if self.options.get(database_url):
                 raise TaskOptionsError(
-                    "The database_url option is set dynamically with the sqlite_path option.  Please unset the database_url option."
+                    "The database_url option is set dynamically with the sql_path option.  Please unset the database_url option."
                 )
-            self.options["sqlite_path"] = os_friendly_path(self.options["sqlite_path"])
-            if not os.path.isfile(self.options["sqlite_path"]):
+            self.options["sql_path"] = os_friendly_path(self.options["sql_path"])
+            if not os.path.isfile(self.options["sql_path"]):
                 raise TaskOptionsError(
-                    "File {} does not exist".format(self.options["sqlite_path"])
+                    "File {} does not exist".format(self.options["sql_path"])
                 )
             self.logger.info("Using in-memory sqlite database")
             self.options["database_url"] = "sqlite://"
@@ -498,7 +494,7 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
     def _sqlite_load(self):
         conn = self.session.connection()
         cursor = conn.connection.cursor()
-        with open(self.options["sqlite_path"], "r") as f:
+        with open(self.options["sql_path"], "r") as f:
             try:
                 cursor.executescript(f.read())
             finally:
@@ -512,7 +508,7 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
         # initialize the DB session
         self.session = Session(self.engine)
 
-        if self.options.get("sqlite_path"):
+        if self.options.get("sql_path"):
             self._sqlite_load()
 
         # initialize DB metadata
@@ -544,7 +540,7 @@ class QueryData(BulkJobTaskMixin, BaseSalesforceApiTask):
             "description": "The path to a yaml file containing mappings of the database fields to Salesforce object fields",
             "required": True,
         },
-        "sqlite_path": {
+        "sql_path": {
             "description": "If set, a SQL script will be generated at the path provided "
             + "This is useful for keeping data in the repository and allowing diffs."
         },
@@ -552,14 +548,14 @@ class QueryData(BulkJobTaskMixin, BaseSalesforceApiTask):
 
     def _init_options(self, kwargs):
         super(QueryData, self)._init_options(kwargs)
-        if self.options.get("sqlite_path"):
+        if self.options.get("sql_path"):
             if self.options.get("database_url"):
                 raise TaskOptionsError(
-                    "The database_url option is set dynamically with the sqlite_path option.  Please unset the database_url option."
+                    "The database_url option is set dynamically with the sql_path option.  Please unset the database_url option."
                 )
             self.logger.info("Using in-memory sqlite database")
             self.options["database_url"] = "sqlite://"
-            self.options["sqlite_path"] = os_friendly_path(self.options["sqlite_path"])
+            self.options["sql_path"] = os_friendly_path(self.options["sql_path"])
 
     def _run_task(self):
         self._init_mapping()
@@ -571,7 +567,7 @@ class QueryData(BulkJobTaskMixin, BaseSalesforceApiTask):
 
         self._drop_sf_id_columns()
 
-        if self.options.get("sqlite_path"):
+        if self.options.get("sql_path"):
             self._sqlite_dump()
 
     def _init_db(self):
@@ -749,9 +745,7 @@ class QueryData(BulkJobTaskMixin, BaseSalesforceApiTask):
         if mapping["oid_as_pk"]:
             fields.append(Column("Id", Unicode(255), primary_key=True))
         else:
-            fields.append(
-                Column("id", Integer(), primary_key=True, autoincrement=True)
-            )
+            fields.append(Column("id", Integer(), primary_key=True, autoincrement=True))
         for field in self._fields_for_mapping(mapping):
             if mapping["oid_as_pk"] and field["sf"] == "Id":
                 continue
@@ -796,7 +790,7 @@ class QueryData(BulkJobTaskMixin, BaseSalesforceApiTask):
             self.metadata.tables[mapping["sf_id_table"]].drop()
 
     def _sqlite_dump(self):
-        path = self.options["sqlite_path"]
+        path = self.options["sql_path"]
         if os.path.exists(path):
             os.remove(path)
         with open(path, "w") as f:
@@ -823,6 +817,7 @@ def process_incoming_rows(f, record_type=None):
             yield line.rstrip() + b"," + record_type + b"\n"
         else:
             yield line
+
 
 def get_lookup_key_field(lookup, sf_field):
     return lookup.get("key_field", convert_to_snake_case(sf_field))
