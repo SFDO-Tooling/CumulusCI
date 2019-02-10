@@ -26,8 +26,13 @@ class CliRuntime(BaseCumulusCI):
             raise click.UsageError("Keychain Error: {}".format(str(e)))
 
     def get_keychain_class(self):
+        default_keychain_class = (
+            self.project_config.cumulusci__keychain
+            if not self.is_global_keychain
+            else self.global_config.cumulusci__keychain
+        )
         keychain_class = os.environ.get(
-            "CUMULUSCI_KEYCHAIN_CLASS", self.project_config.cumulusci__keychain
+            "CUMULUSCI_KEYCHAIN_CLASS", default_keychain_class
         )
         return import_class(keychain_class)
 
