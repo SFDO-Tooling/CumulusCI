@@ -484,3 +484,13 @@ def log_progress(
         if not i % batch_size:
             logger.info(progress_message.format(i))
     logger.info(done_message.format(i))
+
+
+def convert_to_snake_case(content):
+    s1 = re.sub("(.)([A-Z][a-z]+)", r"\1_\2", content)
+    return re.sub("([a-z0-9])([A-Z])", r"\1_\2", s1).lower()
+
+
+def os_friendly_path(path):
+    if os.sep != "/":
+        return path.replace("/", os.sep)

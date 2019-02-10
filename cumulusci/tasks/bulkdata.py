@@ -34,7 +34,11 @@ from cumulusci.core.utils import process_bool_arg, ordered_yaml_load
 from cumulusci.core.exceptions import BulkDataException
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
-from cumulusci.utils import log_progress
+from cumulusci.utils import (
+    convert_to_snake_case,
+    log_progress,
+    os_friendly_path,
+)
 
 # TODO: UserID Catcher
 # TODO: Dater
@@ -228,25 +232,22 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
             "description": "If specified, skip steps before this one in the mapping",
             "required": False,
         },
-        "sqlite_load": {
-            "description": "If specified, an in memory sqlite database will be used and loaded from a sql script at the provided path"
+        "sqlite_path": {
+            "description": "If specified, a database will be created from a sql script at the provided path"
         },
     }
 
     def _init_options(self, kwargs):
         super(LoadData, self)._init_options(kwargs)
-        if self.options.get("sqlite_load"):
-            if not self.options["database_url"].startswith("sqlite:"):
+        if self.options.get("sqlite_path"):
+            if self.options.get(database_url):
                 raise TaskOptionsError(
-                    "The sqlite_load option can only be run against sqlite databases"
+                    "The database_url option is set dynamically with the sqlite_path option.  Please unset the database_url option."
                 )
-            if os.sep != "/":
-                self.options["sqlite_load"] = self.options["sqlite_load"].replace(
-                    "/", os.sep
-                )
-            if not os.path.isfile(self.options["sqlite_load"]):
+            self.options["sqlite_path"] = os_friendly_path(self.options["sqlite_path"])
+            if not os.path.isfile(self.options["sqlite_path"]):
                 raise TaskOptionsError(
-                    "File {} does not exist".format(self.options["sqlite_load"])
+                    "File {} does not exist".format(self.options["sqlite_path"])
                 )
             self.logger.info("Using in-memory sqlite database")
             self.options["database_url"] = "sqlite://"
@@ -271,10 +272,7 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
 
     def _load_mapping(self, mapping):
         """Load data for a single step."""
-        if mapping["fields"].get("Id"):
-            mapping["oid_as_pk"] = True
-        else:
-            mapping["oid_as_pk"] = False
+        mapping["oid_as_pk"] = bool(mapping["fields"].get("Id"))
         job_id, local_ids_for_batch = self._create_job(mapping)
         result = self._wait_for_job(job_id)
         # We store inserted ids even if some batches failed
@@ -406,7 +404,7 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
         for sf_field, lookup in lookups.items():
             # Outer join with lookup ids table:
             # returns main obj even if lookup is null
-            key_field = lookup.get("key_field", sf_field.lower())
+            key_field = get_lookup_key_field(lookup, sf_field)
             value_column = getattr(model, key_field)
             query = query.outerjoin(
                 lookup["aliased_table"],
@@ -500,7 +498,7 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
     def _sqlite_load(self):
         conn = self.session.connection()
         cursor = conn.connection.cursor()
-        with open(self.options["sqlite_load"], "r") as f:
+        with open(self.options["sqlite_path"], "r") as f:
             try:
                 cursor.executescript(f.read())
             finally:
@@ -514,7 +512,7 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
         # initialize the DB session
         self.session = Session(self.engine)
 
-        if self.options.get("sqlite_load"):
+        if self.options.get("sqlite_path"):
             self._sqlite_load()
 
         # initialize DB metadata
@@ -546,27 +544,22 @@ class QueryData(BulkJobTaskMixin, BaseSalesforceApiTask):
             "description": "The path to a yaml file containing mappings of the database fields to Salesforce object fields",
             "required": True,
         },
-        "sqlite_dump": {
-            "description": "If set and run against a sqlite database, a SQL script "
-            + "will be generated at the path provided and an in memory "
-            + "sqlite db will be used.  This is useful for keeping data "
-            + "in the repository and allowing diffs."
+        "sqlite_path": {
+            "description": "If set, a SQL script will be generated at the path provided "
+            + "This is useful for keeping data in the repository and allowing diffs."
         },
     }
 
     def _init_options(self, kwargs):
         super(QueryData, self)._init_options(kwargs)
-        if self.options.get("sqlite_dump"):
-            if not self.options["database_url"].startswith("sqlite:"):
+        if self.options.get("sqlite_path"):
+            if self.options.get("database_url"):
                 raise TaskOptionsError(
-                    "The sqlite_dump option can only be used with a sqlite database"
+                    "The database_url option is set dynamically with the sqlite_path option.  Please unset the database_url option."
                 )
             self.logger.info("Using in-memory sqlite database")
             self.options["database_url"] = "sqlite://"
-            if os.sep != "/":
-                self.options["sqlite_dump"] = self.options["sqlite_dump"].replace(
-                    "/", os.sep
-                )
+            self.options["sqlite_path"] = os_friendly_path(self.options["sqlite_path"])
 
     def _run_task(self):
         self._init_mapping()
@@ -578,7 +571,7 @@ class QueryData(BulkJobTaskMixin, BaseSalesforceApiTask):
 
         self._drop_sf_id_columns()
 
-        if self.options.get("sqlite_dump"):
+        if self.options.get("sqlite_path"):
             self._sqlite_dump()
 
     def _init_db(self):
@@ -665,7 +658,7 @@ class QueryData(BulkJobTaskMixin, BaseSalesforceApiTask):
                     lookup = mapping.get("lookups", {}).get(sf, {})
                     if lookup:
                         lookup_keys.append(sf)
-                        column = lookup.get("key_field", sf.lower())
+                        column = get_lookup_key_field(lookup, sf_field)
                 if column:
                     columns.append(column)
         if not columns:
@@ -681,6 +674,8 @@ class QueryData(BulkJobTaskMixin, BaseSalesforceApiTask):
         if mapping["oid_as_pk"]:
             self._sql_bulk_insert_from_csv(conn, mapping["table"], columns, data_file)
         else:
+            # If using the autogenerated id field, split out the CSV file from the Bulk API
+            # into two separate files and load into the main table and the sf_id_table
             with tempfile.TemporaryFile("w+b") as f_values:
                 with tempfile.TemporaryFile("w+b") as f_ids:
                     data_file_values, data_file_ids = self._split_batch_csv(
@@ -720,7 +715,7 @@ class QueryData(BulkJobTaskMixin, BaseSalesforceApiTask):
             model = self.models[mapping["table"]]
             lookup_mapping = self._get_mapping_for_table(lookup_dict["table"])
             lookup_model = self.models[lookup_mapping["sf_id_table"]]
-            key_field = lookup_dict.get("key_field", lookup_key.lower())
+            key_field = get_lookup_key_field(lookup_dict, lookup_key)
             key_attr = getattr(model, key_field)
             try:
                 self.session.query(model).filter(
@@ -749,16 +744,14 @@ class QueryData(BulkJobTaskMixin, BaseSalesforceApiTask):
 
         # Provide support for legacy mappings which used the OID as the pk but
         # default to using an autoincrementing int pk and a separate sf_id column
-        id_column = mapping["fields"].get("Id", "id")
         fields = []
-        mapping["oid_as_pk"] = True
-        if id_column == "id":
-            fields.append(
-                Column(id_column, Integer(), primary_key=True, autoincrement=True)
-            )
-            mapping["oid_as_pk"] = False
+        mapping["oid_as_pk"] = bool(mapping["fields"].get("Id"))
+        if mapping["oid_as_pk"]:
+            fields.append(Column("Id", Unicode(255), primary_key=True))
         else:
-            fields.append(Column(id_column, Unicode(255), primary_key=True))
+            fields.append(
+                Column("id", Integer(), primary_key=True, autoincrement=True)
+            )
         for field in self._fields_for_mapping(mapping):
             if mapping["oid_as_pk"] and field["sf"] == "Id":
                 continue
@@ -772,7 +765,7 @@ class QueryData(BulkJobTaskMixin, BaseSalesforceApiTask):
         if not mapping["oid_as_pk"]:
             mapping["sf_id_table"] = mapping["table"] + "_sf_id"
             # If multiple mappings point to the same table, don't recreate the table
-            if not mapping["sf_id_table"] in self.models:
+            if mapping["sf_id_table"] not in self.models:
                 sf_id_model_name = "{}Model".format(mapping["sf_id_table"])
                 self.models[mapping["sf_id_table"]] = type(
                     sf_id_model_name, (object,), {}
@@ -792,7 +785,7 @@ class QueryData(BulkJobTaskMixin, BaseSalesforceApiTask):
             fields.append({"sf": sf_field, "db": db_field})
         for sf_field, lookup in mapping.get("lookups", {}).items():
             fields.append(
-                {"sf": sf_field, "db": lookup.get("key_field", sf_field.lower())}
+                {"sf": sf_field, "db": get_lookup_key_field(lookup, sf_field)}
             )
         return fields
 
@@ -803,7 +796,7 @@ class QueryData(BulkJobTaskMixin, BaseSalesforceApiTask):
             self.metadata.tables[mapping["sf_id_table"]].drop()
 
     def _sqlite_dump(self):
-        path = self.options["sqlite_dump"]
+        path = self.options["sqlite_path"]
         if os.path.exists(path):
             os.remove(path)
         with open(path, "w") as f:
@@ -830,3 +823,6 @@ def process_incoming_rows(f, record_type=None):
             yield line.rstrip() + b"," + record_type + b"\n"
         else:
             yield line
+
+def get_lookup_key_field(lookup, sf_field):
+    return lookup.get("key_field", convert_to_snake_case(sf_field))
