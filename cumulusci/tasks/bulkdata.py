@@ -236,7 +236,7 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
     def _init_options(self, kwargs):
         super(LoadData, self)._init_options(kwargs)
         if self.options.get("sql_path"):
-            if self.options.get(database_url):
+            if self.options.get("database_url"):
                 raise TaskOptionsError(
                     "The database_url option is set dynamically with the sql_path option.  Please unset the database_url option."
                 )
@@ -654,7 +654,7 @@ class QueryData(BulkJobTaskMixin, BaseSalesforceApiTask):
                     lookup = mapping.get("lookups", {}).get(sf, {})
                     if lookup:
                         lookup_keys.append(sf)
-                        column = get_lookup_key_field(lookup, sf_field)
+                        column = get_lookup_key_field(lookup, sf)
                 if column:
                     columns.append(column)
         if not columns:

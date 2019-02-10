@@ -493,4 +493,5 @@ def convert_to_snake_case(content):
 
 def os_friendly_path(path):
     if os.sep != "/":
-        return path.replace("/", os.sep)
+        path = path.replace("/", os.sep)
+    return path
