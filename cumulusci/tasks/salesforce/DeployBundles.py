@@ -49,7 +49,7 @@ class DeployBundles(Deploy):
             subpath = os.path.relpath(
                 os.path.join(os.path.realpath(path), item),
                 os.path.realpath(self.project_config.repo_root),
-            )
+            ).replace(os.sep, "/")
             dependency = self.options.copy()
             dependency.pop("path")
             dependency.update(
