@@ -12,11 +12,11 @@ humanfriendly==4.17
 jinja2==2.10
 jwcrypto==0.6.0
 keyring==17.1.1
-lxml==4.3.0
+lxml==4.3.1
 MarkupSafe==1.1.0
 plaintable==0.1.1
 pycparser==2.19
-python-dateutil==2.7.5
+python-dateutil==2.8.0
 pytz==2018.9
 PyYAML==3.13
 raven==6.10.0
