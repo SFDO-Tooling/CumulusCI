@@ -175,7 +175,11 @@ class TestUpdateDependencies(unittest.TestCase):
             UpdateDependencies,
             {
                 "dependencies": [
-                    {"namespace": "ns", "version": "1.0"},
+                    {
+                        "name": "Install Test Product",
+                        "namespace": "ns",
+                        "version": "1.0",
+                    },
                     {
                         "repo_owner": "SFDO-Tooling",
                         "repo_name": "CumulusCI-Test",
@@ -192,7 +196,7 @@ class TestUpdateDependencies(unittest.TestCase):
                 {
                     "is_required": True,
                     "kind": "managed",
-                    "name": "Install ns",
+                    "name": "Install Test Product",
                     "path": "test_task.1",
                     "step_num": "1.1",
                     "task_class": None,
@@ -240,3 +244,5 @@ class TestUpdateDependencies(unittest.TestCase):
         task = create_task(UpdateDependencies)
         result = task._flatten(dependencies)
         self.assertEqual([{"namespace": "npe01"}, {"namespace": "npe02"}], result)
+
+    maxDiff = None

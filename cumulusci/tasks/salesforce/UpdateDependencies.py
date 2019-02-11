@@ -289,14 +289,15 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
         )
         steps = []
         for i, dependency in enumerate(self._flatten(dependencies), start=1):
+            name = dependency.pop("name", None)
             if "namespace" in dependency:
                 kind = "managed"
-                # @@@ we want the package name, not namespace
-                name = "Install {}".format(dependency["namespace"])
+                name = name or "Install {} {}".format(
+                    dependency["namespace"], dependency["version"]
+                )
             else:
                 kind = "metadata"
-                # @@@ we want a friendly name from...where?
-                name = "Deploy {}".format(dependency["subfolder"])
+                name = name or "Deploy {}".format(dependency["subfolder"])
             task_config = {"options": self.options.copy()}
             task_config["options"]["dependencies"] = [dependency]
             steps.append(

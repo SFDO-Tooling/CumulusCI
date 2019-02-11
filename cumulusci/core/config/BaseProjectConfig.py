@@ -580,7 +580,13 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         cumulusci_yml = ordered_yaml_load(contents.decoded)
 
         # Get the namespace from the cumulusci.yml if set
-        namespace = cumulusci_yml.get("project", {}).get("package", {}).get("namespace")
+        package_config = cumulusci_yml.get("project", {}).get("package", {})
+        namespace = package_config.get("namespace")
+        package_name = (
+            package_config.get("name_managed")
+            or package_config.get("name")
+            or namespace
+        )
 
         # Check for unmanaged flag on a namespaced package
         unmanaged = namespace and dependency.get("unmanaged") is True
@@ -598,9 +604,11 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                 subfolder = "unpackaged/pre/{}".format(dirname)
                 if subfolder in skip:
                     continue
+                name = "Deploy {}".format(subfolder)
 
                 unpackaged_pre.append(
                     {
+                        "name": name,
                         "repo_owner": repo_owner,
                         "repo_name": repo_name,
                         "ref": ref,
@@ -620,6 +628,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                 subfolder = "src"
 
                 unmanaged_src = {
+                    "name": "Deploy {}".format(package_name or repo_name),
                     "repo_owner": repo_owner,
                     "repo_name": repo_name,
                     "ref": ref,
@@ -643,8 +652,10 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                 subfolder = "unpackaged/post/{}".format(dirname)
                 if subfolder in skip:
                     continue
+                name = "Deploy {}".format(subfolder)
 
                 dependency = {
+                    "name": name,
                     "repo_owner": repo_owner,
                     "repo_name": repo_name,
                     "ref": ref,
@@ -684,7 +695,11 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             version = release.name
             # If a latest prod version was found, make the dependencies a
             # child of that install
-            dependency = {"namespace": namespace, "version": version}
+            dependency = {
+                "name": "Install {} {}".format(package_name or namespace, version),
+                "namespace": namespace,
+                "version": version,
+            }
             if dependencies:
                 dependency["dependencies"] = dependencies
             repo_dependencies.append(dependency)

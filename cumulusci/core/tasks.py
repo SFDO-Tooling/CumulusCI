@@ -231,7 +231,7 @@ class BaseTask(object):
     def freeze(self, step):
         return [
             {
-                "name": self.name,
+                "name": self.task_config.name or self.name,
                 "kind": "other",
                 "is_required": True,
                 "path": step.path,

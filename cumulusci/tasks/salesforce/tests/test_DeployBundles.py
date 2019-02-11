@@ -30,7 +30,7 @@ class TestDeployBundles(unittest.TestCase):
     def test_freeze(self):
         with temporary_dir() as path:
             os.mkdir(".git")
-            os.makedirs("unpackaged/post")
+            os.makedirs("unpackaged/test")
             task = create_task(DeployBundles, {"path": path + "/unpackaged"})
             step = StepSpec(1, "deploy_bundles", task.task_config, None)
             steps = task.freeze(step)
@@ -39,8 +39,8 @@ class TestDeployBundles(unittest.TestCase):
                     {
                         "is_required": True,
                         "kind": "metadata",
-                        "name": "Deploy unpackaged/post",
-                        "path": "deploy_bundles.post",
+                        "name": "Deploy unpackaged/test",
+                        "path": "deploy_bundles.test",
                         "step_num": "1.1",
                         "task_class": "cumulusci.tasks.salesforce.UpdateDependencies",
                         "task_config": {
@@ -50,7 +50,7 @@ class TestDeployBundles(unittest.TestCase):
                                         "ref": task.project_config.repo_commit,
                                         "repo_name": "TestRepo",
                                         "repo_owner": "TestOwner",
-                                        "subfolder": "unpackaged/post",
+                                        "subfolder": "unpackaged/test",
                                     }
                                 ]
                             }
