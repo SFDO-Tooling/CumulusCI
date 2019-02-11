@@ -83,10 +83,12 @@ class TestCliRuntime(unittest.TestCase):
         self.assertNotEqual(self.key, config.keychain.key)
         self.assertEqual(16, len(config.keychain.key))
 
-    def test_get_keychain_key__warns_if_generated_key_cannot_be_stored(self):
+    @mock.patch("cumulusci.cli.config.keyring")
+    def test_get_keychain_key__warns_if_generated_key_cannot_be_stored(self, keyring):
         del os.environ["CUMULUSCI_KEY"]
+        keyring.get_password.side_effect = Exception
 
-        with self.assertRaises(KeychainKeyNotFound):
+        with self.assertRaises(click.UsageError):
             CliRuntime()
 
     def test_get_org(self):
