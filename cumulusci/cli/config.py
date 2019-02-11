@@ -52,7 +52,11 @@ class CliRuntime(BaseCumulusCI):
             if has_functioning_keychain:
                 key = random_alphanumeric_underscore(length=16)
             else:
-                raise KeychainKeyNotFound("Unable to store encryption key.")
+                raise KeychainKeyNotFound(
+                    "Unable to store CumulusCI encryption key. "
+                    "You can configure it manually by setting the CUMULUSCI_KEY "
+                    "environment variable to a random 16-character string."
+                )
         if has_functioning_keychain and not key_from_keyring:
             keyring.set_password("cumulusci", "CUMULUSCI_KEY", key)
         return key
