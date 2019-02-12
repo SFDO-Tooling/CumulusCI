@@ -57,8 +57,14 @@ def timestamp_file():
     if not os.path.exists(config_dir):
         os.mkdir(config_dir)
 
-    with open(os.path.join(config_dir, "cumulus_timestamp"), "r+") as f:
-        yield f
+    timestamp_file = os.path.join(config_dir, "cumulus_timestamp")
+
+    try:
+        with open(timestamp_file, "r+") as f:
+            yield f
+    except FileNotFoundError:  # file does not exist
+        with open(timestamp_file, "w+") as f:
+            yield f
 
 
 FINAL_VERSION_RE = re.compile(r"^[\d\.]+$")
