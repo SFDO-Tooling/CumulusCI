@@ -62,7 +62,7 @@ def timestamp_file():
     try:
         with open(timestamp_file, "r+") as f:
             yield f
-    except OSError:  # file does not exist
+    except IOError:  # file does not exist
         with open(timestamp_file, "w+") as f:
             yield f
 
