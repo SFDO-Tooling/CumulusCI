@@ -1,9 +1,7 @@
-import pdb
 import sys
 
 from robot import run as robot_run
 from robot.libdoc import libdoc
-from robot.libraries.BuiltIn import BuiltIn
 from robot.testdoc import testdoc
 
 from cumulusci.core.exceptions import RobotTestFailure
