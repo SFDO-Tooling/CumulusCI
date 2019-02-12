@@ -18,7 +18,7 @@ class CumulusCI(object):
 
         This library allows Robot Framework tests to access credentials to a
         Salesforce org created by CumulusCI, including Scratch Orgs.  It also
-        exposes the core logic of CumulusCI including interactions with the 
+        exposes the core logic of CumulusCI including interactions with the
         Salesforce API's and project specific configuration including custom
         and customized tasks and flows.
 
@@ -91,7 +91,7 @@ class CumulusCI(object):
     def set_login_url(self):
         """ Sets the LOGIN_URL variable in the suite scope which will
             automatically log into the target Salesforce org.
-    
+
             Typically, this is run during Suite Setup
         """
         BuiltIn().set_suite_variable("${LOGIN_URL}", self.org.start_url)
@@ -137,7 +137,7 @@ class CumulusCI(object):
     def run_task(self, task_name, **options):
         """ Runs a named CumulusCI task for the current project with optional
             support for overriding task options via kwargs.
-            
+
             Examples:
             | =Keyword= | =task_name= | =task_options=             | =comment=                        |
             | Run Task  | deploy      |                            | Run deploy with standard options |
