@@ -39,7 +39,7 @@ from cumulusci.core.exceptions import ScratchOrgException
 from cumulusci.core.exceptions import ServiceNotConfigured
 from cumulusci.core.exceptions import TaskNotFoundError
 from cumulusci.core.utils import import_class
-from cumulusci.cli.config import CliConfig
+from cumulusci.cli.config import CliRuntime
 from cumulusci.cli.config import get_installed_version
 from cumulusci.utils import doc_task
 from cumulusci.oauth.salesforce import CaptureSalesforceOAuth
@@ -188,7 +188,7 @@ def load_config(
     load_project_config=True, load_keychain=True, allow_global_keychain=False
 ):
     try:
-        config = TEST_CONFIG or CliConfig(
+        config = TEST_CONFIG or CliRuntime(
             load_project_config=load_project_config,
             load_keychain=load_keychain,
             allow_global_keychain=allow_global_keychain,
