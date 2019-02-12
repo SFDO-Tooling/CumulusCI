@@ -110,10 +110,6 @@ class BaseEncryptedProjectKeychain(BaseProjectKeychain):
 
     def _validate_key(self):
         if not self.key:
-            raise KeychainKeyNotFound(
-                "The CUMULUSCI_KEY environment variable is not set."
-            )
+            raise KeychainKeyNotFound("The keychain key was not found.")
         if len(self.key) != 16:
-            raise ConfigError(
-                "The CUMULUSCI_KEY environment variable must be 16 characters long."
-            )
+            raise ConfigError("The keychain key must be 16 characters long.")

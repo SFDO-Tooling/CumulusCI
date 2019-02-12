@@ -3,6 +3,7 @@ import sys
 from subprocess import call
 
 import click
+import keyring
 import pkg_resources
 
 from cumulusci.core.runtime import BaseCumulusCI
@@ -12,6 +13,7 @@ from cumulusci.core.exceptions import OrgNotFound
 from cumulusci.core.exceptions import KeychainKeyNotFound
 from cumulusci.core.exceptions import ProjectConfigNotFound
 from cumulusci.core.utils import import_class
+from cumulusci.utils import random_alphanumeric_underscore
 
 
 class CliRuntime(BaseCumulusCI):
@@ -37,7 +39,27 @@ class CliRuntime(BaseCumulusCI):
         return import_class(keychain_class)
 
     def get_keychain_key(self):
-        return os.environ.get("CUMULUSCI_KEY")
+        key_from_env = os.environ.get("CUMULUSCI_KEY")
+        try:
+            key_from_keyring = keyring.get_password("cumulusci", "CUMULUSCI_KEY")
+            has_functioning_keychain = True
+        except Exception:
+            key_from_keyring = None
+            has_functioning_keychain = False
+        # If no key in environment or file, generate one
+        key = key_from_env or key_from_keyring
+        if key is None:
+            if has_functioning_keychain:
+                key = random_alphanumeric_underscore(length=16)
+            else:
+                raise KeychainKeyNotFound(
+                    "Unable to store CumulusCI encryption key. "
+                    "You can configure it manually by setting the CUMULUSCI_KEY "
+                    "environment variable to a random 16-character string."
+                )
+        if has_functioning_keychain and not key_from_keyring:
+            keyring.set_password("cumulusci", "CUMULUSCI_KEY", key)
+        return key
 
     def alert(self, message="We need your attention!"):
         if self.project_config and self.project_config.dev_config__no_alert:
