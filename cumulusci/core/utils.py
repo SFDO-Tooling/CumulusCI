@@ -83,8 +83,8 @@ OrderedLoader.add_constructor(
 
 
 def ordered_yaml_load(stream,):
-    """ Load YAML file with OrderedDict, needed for Py2 
-    
+    """ Load YAML file with OrderedDict, needed for Py2
+
     code adapted from: https://stackoverflow.com/a/21912744/5042831"""
 
     return yaml.load(stream, OrderedLoader)
