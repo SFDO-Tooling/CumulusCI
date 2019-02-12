@@ -417,9 +417,17 @@ class Salesforce(object):
 
     def wait_until_modal_is_closed(self):
         """ Wait for modal to close """
-        self.selenium.wait_until_page_does_not_contain_element(
-            lex_locators["modal"]["is_open"], timeout=15
-        )
+        try:
+            # turn off any existing implicit wait, so that we return
+            # right away if the element isn't on the page. If we don't
+            # do this, the selenium library will wait for the implicit
+            # wait time before deciding the element isn't on the page.
+            implicit_wait = self.selenium.set_selenium_implicit_wait(0)
+            self.selenium.wait_until_page_does_not_contain_element(
+                lex_locators["modal"]["is_open"], timeout=15
+            )
+        finally:
+            self.selenium.set_selenium_implicit_wait(implicit_wait)
 
     def wait_until_loading_is_complete(self, locator=lex_locators["body"]):
         """Wait for LEX page to load.
