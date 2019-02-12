@@ -4,7 +4,7 @@ from robot.api import logger
 from robot.libraries.BuiltIn import BuiltIn
 from simple_salesforce import Salesforce
 
-from cumulusci.cli.config import CliConfig
+from cumulusci.cli.config import CliRuntime
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.tasks import CURRENT_TASK
@@ -55,7 +55,7 @@ class CumulusCI(object):
                 return CURRENT_TASK.stack[0].project_config
             else:
                 logger.console("Initializing CumulusCI config\n")
-                self._project_config = CliConfig().project_config
+                self._project_config = CliRuntime().project_config
         return self._project_config
 
     def set_project_config(self, project_config):
