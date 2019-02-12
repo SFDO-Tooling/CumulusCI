@@ -44,7 +44,6 @@ class Robot(BaseSalesforceTask):
                 self.options[option] = process_list_arg(self.options[option])
         if "vars" not in self.options:
             self.options["vars"] = []
-        self.options["vars"].append("org:{}".format(self.org_config.name))
 
         # Initialize options as a dict
         if "options" not in self.options:
@@ -57,6 +56,7 @@ class Robot(BaseSalesforceTask):
             patch_statusreporter()
 
     def _run_task(self):
+        self.options["vars"].append("org:{}".format(self.org_config.name))
         options = self.options["options"].copy()
         for option in ("tests", "include", "exclude", "xunit"):
             if option in self.options:
