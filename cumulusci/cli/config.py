@@ -5,6 +5,7 @@ from subprocess import call
 import click
 import pkg_resources
 
+from cumulusci import __version__
 from cumulusci.core.runtime import BaseCumulusCI
 from cumulusci.core.exceptions import ConfigError
 from cumulusci.core.exceptions import NotInProject
@@ -12,6 +13,7 @@ from cumulusci.core.exceptions import OrgNotFound
 from cumulusci.core.exceptions import KeychainKeyNotFound
 from cumulusci.core.exceptions import ProjectConfigNotFound
 from cumulusci.core.utils import import_class
+from cumulusci.utils import get_cci_upgrade_command
 
 
 class CliRuntime(BaseCumulusCI):
@@ -122,8 +124,8 @@ class CliRuntime(BaseCumulusCI):
                 if get_installed_version() < parsed_version:
                     raise click.UsageError(
                         "This project requires CumulusCI version {} or later. "
-                        'Please upgrade using "brew upgrade cumulusci" or "pip install -U cumulusci'.format(
-                            min_cci_version
+                        'Please upgrade using {}'.format(
+                            min_cci_version, get_cci_upgrade_command()
                         )
                     )
 
@@ -133,6 +135,4 @@ CliConfig = CliRuntime
 
 def get_installed_version():
     """ returns the version name (e.g. 2.0.0b58) that is installed """
-    req = pkg_resources.Requirement.parse("cumulusci")
-    dist = pkg_resources.WorkingSet().find(req)
-    return pkg_resources.parse_version(dist.version)
+    return pkg_resources.parse_version(__version__)
