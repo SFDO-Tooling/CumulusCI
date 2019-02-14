@@ -394,17 +394,17 @@ Options:
         self.assertEqual(4, logger.info.call_count)
 
     def test_util__sets_homebrew_upgrade_cmd(self):
-        utils.CUMULUSCI_PATH = '/usr/local/Cellar/cumulusci/2.1.2'
+        utils.CUMULUSCI_PATH = "/usr/local/Cellar/cumulusci/2.1.2"
         upgrade_cmd = utils.get_cci_upgrade_command()
         self.assertEqual(utils.BREW_UPDATE_CMD, upgrade_cmd)
 
     def test_util__sets_linuxbrew_upgrade_cmd(self):
-        utils.CUMULUSCI_PATH = '/home/linuxbrew/.linuxbrew/cumulusci/2.1.2'
+        utils.CUMULUSCI_PATH = "/home/linuxbrew/.linuxbrew/cumulusci/2.1.2"
         upgrade_cmd = utils.get_cci_upgrade_command()
         self.assertEqual(utils.BREW_UPDATE_CMD, upgrade_cmd)
 
     def test_util__sets_pip_upgrade_cmd(self):
-        utils.CUMULUSCI_PATH = '/usr/local/pip-path/cumulusci/2.1.2'
+        utils.CUMULUSCI_PATH = "/usr/local/pip-path/cumulusci/2.1.2"
         upgrade_cmd = utils.get_cci_upgrade_command()
         self.assertEqual(utils.PIP_UPDATE_CMD, upgrade_cmd)
 
