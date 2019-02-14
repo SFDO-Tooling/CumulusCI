@@ -40,7 +40,7 @@ from cumulusci.core.exceptions import ServiceNotConfigured
 from cumulusci.core.exceptions import TaskNotFoundError
 from cumulusci.core.utils import import_class
 from cumulusci.cli.config import CliRuntime
-from cumulusci.cli.config import get_installed_version
+from cumulusci.cli.config import get_installed_version, get_cci_upgrade_command
 from cumulusci.utils import doc_task
 from cumulusci.oauth.salesforce import CaptureSalesforceOAuth
 from .logger import init_logger
@@ -115,7 +115,7 @@ def check_latest_version():
         click.echo("Checking the version!")
         if result:
             click.echo(
-                """An update to CumulusCI is available. Use "brew upgrade cumulusci" or "pip install --upgrade cumulusci" to update."""
+                """An update to CumulusCI is available. Use {} to update.""".format(get_cci_upgrade_command())
             )
 
 
