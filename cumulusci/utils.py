@@ -3,7 +3,6 @@ from future import standard_library
 from future.utils import text_to_native_str
 
 standard_library.install_aliases()
-import difflib
 import fnmatch
 import io
 import math
@@ -16,7 +15,7 @@ import textwrap
 import zipfile
 from builtins import str
 from contextlib import contextmanager
-from datetime import timedelta, datetime
+from datetime import datetime
 
 import requests
 
@@ -196,7 +195,7 @@ def zip_inject_namespace(
     namespaced_org=None,
     logger=None,
 ):
-    """ Replaces %%%NAMESPACE%%% for all files and ___NAMESPACE___ in all 
+    """ Replaces %%%NAMESPACE%%% for all files and ___NAMESPACE___ in all
         filenames in the zip with the either '' if no namespace is provided
         or 'namespace__' if provided.
     """
@@ -225,8 +224,6 @@ def zip_inject_namespace(
     namespaced_org_or_c = namespace if namespaced_org else "c"
 
     zip_dest = zipfile.ZipFile(io.BytesIO(), "w", zipfile.ZIP_DEFLATED)
-
-    differ = difflib.Differ()
 
     for name in zip_src.namelist():
         orig_name = str(name)
@@ -284,8 +281,8 @@ def zip_inject_namespace(
 
 
 def zip_strip_namespace(zip_src, namespace, logger=None):
-    """ Given a namespace, strips 'namespace__' from all files and filenames 
-        in the zip 
+    """ Given a namespace, strips 'namespace__' from all files and filenames
+        in the zip
     """
     namespace_prefix = "{}__".format(namespace)
     lightning_namespace = "{}:".format(namespace)
@@ -314,8 +311,8 @@ def zip_strip_namespace(zip_src, namespace, logger=None):
 
 
 def zip_tokenize_namespace(zip_src, namespace, logger=None):
-    """ Given a namespace, replaces 'namespace__' with %%%NAMESPACE%%% for all 
-        files and ___NAMESPACE___ in all filenames in the zip 
+    """ Given a namespace, replaces 'namespace__' with %%%NAMESPACE%%% for all
+        files and ___NAMESPACE___ in all filenames in the zip
     """
     if not namespace:
         return zip_src
@@ -340,7 +337,7 @@ def zip_tokenize_namespace(zip_src, namespace, logger=None):
 
 
 def zip_clean_metaxml(zip_src, logger=None):
-    """ Given a zipfile, cleans all *-meta.xml files in the zip for 
+    """ Given a zipfile, cleans all *-meta.xml files in the zip for
         deployment by stripping all <packageVersions/> elements
     """
     zip_dest = zipfile.ZipFile(io.BytesIO(), "w", zipfile.ZIP_DEFLATED)
@@ -497,7 +494,7 @@ def random_alphanumeric_underscore(length):
 
         # Ensure the string is the right length
         byte_length = math.ceil((length * 3) / 4)
-        return secrets.token_urlsafe(length).replace("-", "_")[:length]
+        return secrets.token_urlsafe(byte_length).replace("-", "_")[:length]
     else:
         import random
         import string
