@@ -115,7 +115,9 @@ def check_latest_version():
         click.echo("Checking the version!")
         if result:
             click.echo(
-                """An update to CumulusCI is available. Use {} to update.""".format(get_cci_upgrade_command())
+                """An update to CumulusCI is available. Use {} to update.""".format(
+                    get_cci_upgrade_command()
+                )
             )
 
 
