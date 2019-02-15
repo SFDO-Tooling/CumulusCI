@@ -40,8 +40,9 @@ from cumulusci.core.exceptions import ServiceNotConfigured
 from cumulusci.core.exceptions import TaskNotFoundError
 from cumulusci.core.utils import import_class
 from cumulusci.cli.config import CliRuntime
-from cumulusci.cli.config import get_installed_version, get_cci_upgrade_command
+from cumulusci.cli.config import get_installed_version
 from cumulusci.utils import doc_task
+from cumulusci.utils import get_cci_upgrade_command
 from cumulusci.oauth.salesforce import CaptureSalesforceOAuth
 from .logger import init_logger
 import re
