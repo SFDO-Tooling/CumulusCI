@@ -268,7 +268,7 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
 
     def _load_mapping(self, mapping):
         """Load data for a single step."""
-        mapping["oid_as_pk"] = bool(mapping["fields"].get("Id"))
+        mapping["oid_as_pk"] = bool(mapping.get("fields",{}).get("Id"))
         job_id, local_ids_for_batch = self._create_job(mapping)
         result = self._wait_for_job(job_id)
         # We store inserted ids even if some batches failed
@@ -374,7 +374,7 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
         model = self.models[mapping.get("table")]
 
         # Use primary key instead of the field mapped to SF Id
-        fields = mapping["fields"].copy()
+        fields = mapping.get("fields",{}).copy()
         if mapping["oid_as_pk"]:
             del fields["Id"]
         id_column = model.__table__.primary_key.columns.keys()[0]
@@ -596,9 +596,10 @@ class QueryData(BulkJobTaskMixin, BaseSalesforceApiTask):
 
     def _soql_for_mapping(self, mapping):
         sf_object = mapping["sf_object"]
-        fields = [field["sf"] for field in self._fields_for_mapping(mapping)]
+        fields = []
         if not mapping["oid_as_pk"]:
             fields.append("Id")
+        fields += [field["sf"] for field in self._fields_for_mapping(mapping)]
         soql = "SELECT {fields} FROM {sf_object}".format(
             **{"fields": ", ".join(fields), "sf_object": sf_object}
         )
@@ -647,8 +648,8 @@ class QueryData(BulkJobTaskMixin, BaseSalesforceApiTask):
             if sf == "Records not found for this query":
                 return
             if sf:
-                column = mapping["fields"].get(sf)
-                if not mapping["oid_as_pk"] and sf == "Id":
+                column = mapping.get("fields",{}).get(sf)
+                if mapping["oid_as_pk"] and sf == "Id":
                     column = None
                 if not column:
                     lookup = mapping.get("lookups", {}).get(sf, {})
@@ -699,8 +700,8 @@ class QueryData(BulkJobTaskMixin, BaseSalesforceApiTask):
         writer_values = unicodecsv.writer(f_values)
         writer_ids = unicodecsv.writer(f_ids)
         for row in unicodecsv.reader(data_file):
-            writer_values.writerow(row[:-1])
-            writer_ids.writerow([row[-1]])
+            writer_values.writerow(row[1:])
+            writer_ids.writerow([row[:1]])
         f_values.seek(0)
         f_ids.seek(0)
         return f_values, f_ids
@@ -741,7 +742,7 @@ class QueryData(BulkJobTaskMixin, BaseSalesforceApiTask):
         # Provide support for legacy mappings which used the OID as the pk but
         # default to using an autoincrementing int pk and a separate sf_id column
         fields = []
-        mapping["oid_as_pk"] = bool(mapping["fields"].get("Id"))
+        mapping["oid_as_pk"] = bool(mapping.get("fields",{}).get("Id"))
         if mapping["oid_as_pk"]:
             fields.append(Column("Id", Unicode(255), primary_key=True))
         else:
