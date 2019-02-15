@@ -2,6 +2,18 @@
 History
 =======
 
+2.3.1 (2019-02-15)
+------------------
+
+* Fixed a bug that caused the ``cci`` command to check for a newer version on every run, rather than occasionally. Also we now detect whether CumulusCI was installed using Homebrew and recommend an upgrade command accordingly.
+* CumulusCI now automatically generates its own keychain key and stores it in the system keychain (using the Python `keyring` library). This means that it is no longer necessary to specify a CUMULUSCI_KEY as an environment variable. (However, the environment variable will still be preferred if it is there, and it will be migrated to the system keychain.)
+* New task ``connected_app`` makes it easier to deploy and configure the Connected App needed for CumulusCI's keychain to work with persistent orgs.  The connected app is deployed using ``sfdx`` to an org in the ``sfdx`` keychain and defaults to the ``defaultdevhubusername``.
+* The ``robot`` task gives a more helpful error message if you forget to specify an org.
+* Updates to the task for publishing to MetaDeploy:
+
+  * Dependency installation steps are now named using the package name and version.
+  * The task options have been revised to match changes in the MetaDeploy API. An optional ``plan_template_id`` is now accepted. ``preflight_message`` is now named ``preflight_message_additional`` and is optional. ``post_install_message`` is now named ``post_install_message_additional`` and is optional.
+
 2.3.0 (2019-02-04)
 ------------------
 
