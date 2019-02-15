@@ -151,7 +151,7 @@ class BaseTask(object):
             tags = {"task class": self.__class__.__name__}
             if self.org_config:
                 tags["org username"] = self.org_config.username
-                tags["scratch org"] = self.org_config.scratch == True
+                tags["scratch org"] = self.org_config.scratch is True
             for key, value in list(self.options.items()):
                 tags["option_" + key] = value
             self.project_config.sentry.tags_context(tags)
@@ -231,7 +231,7 @@ class BaseTask(object):
     def freeze(self, step):
         return [
             {
-                "name": self.name,
+                "name": self.task_config.name or self.name,
                 "kind": "other",
                 "is_required": True,
                 "path": step.path,

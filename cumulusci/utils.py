@@ -3,18 +3,19 @@ from future import standard_library
 from future.utils import text_to_native_str
 
 standard_library.install_aliases()
-from builtins import str
-from contextlib import contextmanager
-import difflib
 import fnmatch
+import io
+import math
 import os
 import re
-import io
 import shutil
-import zipfile
+import sys
 import tempfile
 import textwrap
-from datetime import timedelta, datetime
+import zipfile
+from builtins import str
+from contextlib import contextmanager
+from datetime import datetime
 
 import requests
 
@@ -27,6 +28,9 @@ META_XML_CLEAN_DIRS = ("classes/", "triggers/", "pages/", "aura/", "components/"
 API_DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%f"
 DATETIME_LEN = len("2018-08-07T16:00:56.000")
 UTF8 = text_to_native_str("UTF-8")
+
+BREW_UPDATE_CMD = "brew upgrade cumulusci"
+PIP_UPDATE_CMD = "pip install --upgrade cumulusci"
 
 
 def parse_api_datetime(value):
@@ -191,7 +195,7 @@ def zip_inject_namespace(
     namespaced_org=None,
     logger=None,
 ):
-    """ Replaces %%%NAMESPACE%%% for all files and ___NAMESPACE___ in all 
+    """ Replaces %%%NAMESPACE%%% for all files and ___NAMESPACE___ in all
         filenames in the zip with the either '' if no namespace is provided
         or 'namespace__' if provided.
     """
@@ -220,8 +224,6 @@ def zip_inject_namespace(
     namespaced_org_or_c = namespace if namespaced_org else "c"
 
     zip_dest = zipfile.ZipFile(io.BytesIO(), "w", zipfile.ZIP_DEFLATED)
-
-    differ = difflib.Differ()
 
     for name in zip_src.namelist():
         orig_name = str(name)
@@ -279,8 +281,8 @@ def zip_inject_namespace(
 
 
 def zip_strip_namespace(zip_src, namespace, logger=None):
-    """ Given a namespace, strips 'namespace__' from all files and filenames 
-        in the zip 
+    """ Given a namespace, strips 'namespace__' from all files and filenames
+        in the zip
     """
     namespace_prefix = "{}__".format(namespace)
     lightning_namespace = "{}:".format(namespace)
@@ -309,8 +311,8 @@ def zip_strip_namespace(zip_src, namespace, logger=None):
 
 
 def zip_tokenize_namespace(zip_src, namespace, logger=None):
-    """ Given a namespace, replaces 'namespace__' with %%%NAMESPACE%%% for all 
-        files and ___NAMESPACE___ in all filenames in the zip 
+    """ Given a namespace, replaces 'namespace__' with %%%NAMESPACE%%% for all
+        files and ___NAMESPACE___ in all filenames in the zip
     """
     if not namespace:
         return zip_src
@@ -335,7 +337,7 @@ def zip_tokenize_namespace(zip_src, namespace, logger=None):
 
 
 def zip_clean_metaxml(zip_src, logger=None):
-    """ Given a zipfile, cleans all *-meta.xml files in the zip for 
+    """ Given a zipfile, cleans all *-meta.xml files in the zip for
         deployment by stripping all <packageVersions/> elements
     """
     zip_dest = zipfile.ZipFile(io.BytesIO(), "w", zipfile.ZIP_DEFLATED)
@@ -484,6 +486,33 @@ def log_progress(
         if not i % batch_size:
             logger.info(progress_message.format(i))
     logger.info(done_message.format(i))
+
+
+def random_alphanumeric_underscore(length):
+    if sys.version_info[0] >= 3:
+        import secrets
+
+        # Ensure the string is the right length
+        byte_length = math.ceil((length * 3) / 4)
+        return secrets.token_urlsafe(byte_length).replace("-", "_")[:length]
+    else:
+        import random
+        import string
+
+        return "".join(
+            random.SystemRandom().choice(
+                "_" + string.ascii_uppercase + string.ascii_lowercase + string.digits
+            )
+            for _ in range(length)
+        )
+
+
+def get_cci_upgrade_command():
+    homebrew_paths = ["cellar", "linuxbrew"]
+    if any(path in CUMULUSCI_PATH.lower() for path in homebrew_paths):
+        return BREW_UPDATE_CMD
+    else:
+        return PIP_UPDATE_CMD
 
 
 def convert_to_snake_case(content):

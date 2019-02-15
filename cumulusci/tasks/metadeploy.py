@@ -59,13 +59,19 @@ class Publish(BaseMetaDeployTask):
             "description": "UI tier of MetaDeploy plan (primary/secondary/additional)",
             "required": True,
         },
-        "preflight_message": {
-            "description": "Message displayed before installation (markdown)",
-            "required": True,
+        "plan_template_id": {
+            "description": "Optional id of a Plan Template to use as a source for text.",
+            "required": False,
         },
-        "post_install_message": {
-            "description": "Message displayed after installation (markdown)",
-            "required": True,
+        "preflight_message_additional": {
+            "description": "Message displayed before installation (markdown), "
+            "added to the text from the plan template.",
+            "required": False,
+        },
+        "post_install_message_additional": {
+            "description": "Message displayed after installation (markdown), "
+            "added to the text from the plan template.",
+            "required": False,
         },
     }
 
@@ -109,7 +115,7 @@ class Publish(BaseMetaDeployTask):
             json={
                 "product": product_url,
                 "label": label,
-                "description": self.options["description"],
+                "description": self.options.get("description", ""),
                 "is_production": True,
                 "commit_ish": self.project_config.repo_commit,
                 "is_listed": False,
@@ -118,16 +124,27 @@ class Publish(BaseMetaDeployTask):
         self.logger.info("Created {}".format(version["url"]))
 
         # create plan
+        plan_template_id = self.options.get("plan_template_id")
+        plan_template_url = (
+            self.base_url + "/plantemplates/{}".format(plan_template_id)
+            if plan_template_id
+            else None
+        )
         plan = self._call_api(
             "POST",
             "/plans",
             json={
+                "plan_template": plan_template_url,
+                "post_install_message_additional": self.options.get(
+                    "post_install_message_additional", ""
+                ),
+                "preflight_message_additional": self.options.get(
+                    "preflight_message_additional", ""
+                ),
+                "steps": steps,
+                "tier": self.options["tier"],
                 "title": self.options["title"],
                 "version": version["url"],
-                "preflight_message": self.options["preflight_message"],
-                "tier": self.options["tier"],
-                "post_install_message": self.options["post_install_message"],
-                "steps": steps,
             },
         )
         self.logger.info("Created Plan {}".format(plan["url"]))
