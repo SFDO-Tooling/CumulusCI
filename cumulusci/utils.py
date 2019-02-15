@@ -29,6 +29,9 @@ API_DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%f"
 DATETIME_LEN = len("2018-08-07T16:00:56.000")
 UTF8 = text_to_native_str("UTF-8")
 
+BREW_UPDATE_CMD = "brew upgrade cumulusci"
+PIP_UPDATE_CMD = "pip install --upgrade cumulusci"
+
 
 def parse_api_datetime(value):
     """ parse a datetime returned from the salesforce API.
@@ -502,3 +505,11 @@ def random_alphanumeric_underscore(length):
             )
             for _ in range(length)
         )
+
+
+def get_cci_upgrade_command():
+    homebrew_paths = ["cellar", "linuxbrew"]
+    if any(path in CUMULUSCI_PATH.lower() for path in homebrew_paths):
+        return BREW_UPDATE_CMD
+    else:
+        return PIP_UPDATE_CMD
