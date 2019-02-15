@@ -268,7 +268,7 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
 
     def _load_mapping(self, mapping):
         """Load data for a single step."""
-        mapping["oid_as_pk"] = bool(mapping.get("fields",{}).get("Id"))
+        mapping["oid_as_pk"] = bool(mapping.get("fields", {}).get("Id"))
         job_id, local_ids_for_batch = self._create_job(mapping)
         result = self._wait_for_job(job_id)
         # We store inserted ids even if some batches failed
@@ -374,7 +374,7 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
         model = self.models[mapping.get("table")]
 
         # Use primary key instead of the field mapped to SF Id
-        fields = mapping.get("fields",{}).copy()
+        fields = mapping.get("fields", {}).copy()
         if mapping["oid_as_pk"]:
             del fields["Id"]
         id_column = model.__table__.primary_key.columns.keys()[0]
@@ -648,7 +648,7 @@ class QueryData(BulkJobTaskMixin, BaseSalesforceApiTask):
             if sf == "Records not found for this query":
                 return
             if sf:
-                column = mapping.get("fields",{}).get(sf)
+                column = mapping.get("fields", {}).get(sf)
                 if mapping["oid_as_pk"] and sf == "Id":
                     column = None
                 if not column:
@@ -742,7 +742,7 @@ class QueryData(BulkJobTaskMixin, BaseSalesforceApiTask):
         # Provide support for legacy mappings which used the OID as the pk but
         # default to using an autoincrementing int pk and a separate sf_id column
         fields = []
-        mapping["oid_as_pk"] = bool(mapping.get("fields",{}).get("Id"))
+        mapping["oid_as_pk"] = bool(mapping.get("fields", {}).get("Id"))
         if mapping["oid_as_pk"]:
             fields.append(Column("Id", Unicode(255), primary_key=True))
         else:
