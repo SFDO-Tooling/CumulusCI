@@ -408,6 +408,14 @@ Options:
         upgrade_cmd = utils.get_cci_upgrade_command()
         self.assertEqual(utils.PIP_UPDATE_CMD, upgrade_cmd)
 
+    def test_convert_to_snake_case(self):
+        self.assertEqual("one_two", utils.convert_to_snake_case("OneTwo"))
+        self.assertEqual("one_two", utils.convert_to_snake_case("ONETwo"))
+
+    def test_os_friendly_path(self):
+        with mock.patch("os.sep", "\\"):
+            self.assertEqual("\\", utils.os_friendly_path("/"))
+
 
 class FunTestTask(BaseTask):
     """For testing doc_task"""

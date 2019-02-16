@@ -3,10 +3,8 @@ from future import standard_library
 standard_library.install_aliases()
 from builtins import zip
 from contextlib import contextmanager
-import csv
 import datetime
 import io
-import itertools
 import os
 import time
 import tempfile
@@ -229,7 +227,7 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
             "required": False,
         },
         "sql_path": {
-            "description": "If specified, a database will be created from a sql script at the provided path"
+            "description": "If specified, a database will be created from an SQL script at the provided path"
         },
     }
 
@@ -541,7 +539,7 @@ class QueryData(BulkJobTaskMixin, BaseSalesforceApiTask):
             "required": True,
         },
         "sql_path": {
-            "description": "If set, a SQL script will be generated at the path provided "
+            "description": "If set, an SQL script will be generated at the path provided "
             + "This is useful for keeping data in the repository and allowing diffs."
         },
     }
