@@ -647,8 +647,6 @@ class QueryData(BulkJobTaskMixin, BaseSalesforceApiTask):
                 return
             if sf:
                 column = mapping.get("fields", {}).get(sf)
-                if mapping["oid_as_pk"] and sf == "Id":
-                    column = None
                 if not column:
                     lookup = mapping.get("lookups", {}).get(sf, {})
                     if lookup:
@@ -742,7 +740,8 @@ class QueryData(BulkJobTaskMixin, BaseSalesforceApiTask):
         fields = []
         mapping["oid_as_pk"] = bool(mapping.get("fields", {}).get("Id"))
         if mapping["oid_as_pk"]:
-            fields.append(Column("Id", Unicode(255), primary_key=True))
+            id_column = mapping["fields"]["Id"]
+            fields.append(Column(id_column, Unicode(255), primary_key=True))
         else:
             fields.append(Column("id", Integer(), primary_key=True, autoincrement=True))
         for field in self._fields_for_mapping(mapping):
