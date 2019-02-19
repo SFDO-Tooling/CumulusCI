@@ -2,6 +2,20 @@
 History
 =======
 
+2.3.2 (2019-02-19)
+------------------
+
+* Mapping enhancements for bulk ``QueryData`` and ``LoadData`` tasks
+  
+  * The mapping yaml file no longer requires using ``Id: sf_id`` as a field mapping.  If not provided, ``QueryData`` and ``LoadData`` will use local database ids instead of Saleforce OIDs for storing lookup relationships.  Previous mappings which specify the ``Id: sf_id`` mapping will continue to work as before using the Salesforce OID as the mapping value.
+  * The mapping yaml file's ``lookups:`` section now handles defaults to allow simpler lookup mappings.  The only key required is now ``table``.  If the ``key_field`` is provided it will be used.
+
+* The ``sql_path`` option on ``QueryData`` can be used to provide the file path where a SQL script should be written.  If this option is used, a sqlite in-memory database is used and discarded.  This is useful for storing data sets in a Github repository and allowing diffs of the dataset to be visible when reviewing Pull Requests
+  
+  * When using this option, it is best to make sure your mapping yaml file does not provide a field mapping for the ``Id`` field.  This will help avoid merge conflicts if querying data from different orgs such as scratch orgs.
+
+* The `sql_path` option on ``LoadData`` can be used to provide the file path where a SQL script file should be read and used to load an in-memory sqlite database for the load operation.
+
 2.3.1 (2019-02-15)
 ------------------
 
