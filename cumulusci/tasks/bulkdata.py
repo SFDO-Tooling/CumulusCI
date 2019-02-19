@@ -144,6 +144,7 @@ class BulkJobTaskMixin(object):
                 conn.execute(table.insert().values(rows))
         self.session.flush()
 
+
 class MappingDatabaseMixin(object):
     def _create_tables(self, create=False):
         for mapping in self.mappings.values():
@@ -161,18 +162,18 @@ class MappingDatabaseMixin(object):
         # default to using an autoincrementing int pk and a separate sf_id column
 
         fields = []
-        mapping["oid_as_pk"] = bool(mapping["fields"].get("Id"))
+        mapping["oid_as_pk"] = bool(mapping.get("fields", {}).get("Id"))
         if mapping["oid_as_pk"]:
             fields.append(Column("Id", Unicode(255), primary_key=True))
         else:
-            fields.append(
-                Column("id", Integer(), primary_key=True, autoincrement=True)
-            )
+            fields.append(Column("id", Integer(), primary_key=True, autoincrement=True))
         for field in self._fields_for_mapping(mapping):
             if mapping["oid_as_pk"] and field["sf"] == "Id":
                 continue
             if field.get("relative_date"):
-                fields.append(Column(field["db"], RelativeDateType(self.relative_date_now)))
+                fields.append(
+                    Column(field["db"], RelativeDateType(self.relative_date_now))
+                )
             else:
                 fields.append(Column(field["db"], Unicode(255)))
         if "record_type" in mapping:
@@ -207,8 +208,9 @@ class MappingDatabaseMixin(object):
                 {"sf": sf_field, "db": get_lookup_key_field(lookup, sf_field)}
             )
         for sf_field, db_field in mapping.get("relative_date", {}).items():
-            fields.append({"sf": sf_field, "db": db_field, "relative_date": True})        
+            fields.append({"sf": sf_field, "db": db_field, "relative_date": True})
         return fields
+
 
 class DeleteData(BaseSalesforceApiTask, BulkJobTaskMixin):
 
@@ -314,7 +316,7 @@ class LoadData(BulkJobTaskMixin, MappingDatabaseMixin, BaseSalesforceApiTask):
             "description": "If specified, a database will be created from a sql script at the provided path"
         },
         "relative_days_offset": {
-            "description": "By default, relative_date fields will use the current datetime.  Use this option to offset the current date by days using either a postive or negative float or integer value.",
+            "description": "By default, relative_date fields will use the current datetime.  Use this option to offset the current date by days using either a postive or negative float or integer value."
         },
     }
 
@@ -360,7 +362,7 @@ class LoadData(BulkJobTaskMixin, MappingDatabaseMixin, BaseSalesforceApiTask):
 
     def _load_mapping(self, mapping):
         """Load data for a single step."""
-        mapping["oid_as_pk"] = bool(mapping["fields"].get("Id"))
+        mapping["oid_as_pk"] = bool(mapping.get("fields", {}).get("Id"))
         job_id, local_ids_for_batch = self._create_job(mapping)
         result = self._wait_for_job(job_id)
         # We store inserted ids even if some batches failed
@@ -469,7 +471,7 @@ class LoadData(BulkJobTaskMixin, MappingDatabaseMixin, BaseSalesforceApiTask):
         table = self.metadata.tables[mapping["table"]]
 
         # Use primary key instead of the field mapped to SF Id
-        fields = mapping["fields"].copy()
+        fields = mapping.get("fields", {}).copy()
         if mapping["oid_as_pk"]:
             del fields["Id"]
         id_column = table.primary_key.columns.keys()[0]
@@ -638,7 +640,7 @@ class QueryData(BulkJobTaskMixin, MappingDatabaseMixin, BaseSalesforceApiTask):
             + "This is useful for keeping data in the repository and allowing diffs."
         },
         "relative_days_offset": {
-            "description": "By default, relative_date fields will use the current datetime.  Use this option to offset the current date by days using either a postive or negative integer value",
+            "description": "By default, relative_date fields will use the current datetime.  Use this option to offset the current date by days using either a postive or negative integer value"
         },
     }
 
@@ -698,9 +700,10 @@ class QueryData(BulkJobTaskMixin, MappingDatabaseMixin, BaseSalesforceApiTask):
 
     def _soql_for_mapping(self, mapping):
         sf_object = mapping["sf_object"]
-        fields = [field["sf"] for field in self._fields_for_mapping(mapping)]
+        fields = []
         if not mapping["oid_as_pk"]:
             fields.append("Id")
+        fields += [field["sf"] for field in self._fields_for_mapping(mapping)]
         soql = "SELECT {fields} FROM {sf_object}".format(
             **{"fields": ", ".join(fields), "sf_object": sf_object}
         )
@@ -749,7 +752,7 @@ class QueryData(BulkJobTaskMixin, MappingDatabaseMixin, BaseSalesforceApiTask):
             if sf == "Records not found for this query":
                 return
             if sf:
-                column = mapping["fields"].get(sf)
+                column = mapping.get("fields", {}).get(sf)
                 if not mapping["oid_as_pk"] and sf == "Id":
                     continue
                 if not column:
@@ -772,7 +775,8 @@ class QueryData(BulkJobTaskMixin, MappingDatabaseMixin, BaseSalesforceApiTask):
             process_kwargs["relative_date_now"] = self.relative_date_now
 
         processor = log_progress(
-            process_incoming_rows(result_file, record_type, **process_kwargs), self.logger
+            process_incoming_rows(result_file, record_type, **process_kwargs),
+            self.logger,
         )
         data_file = IteratorBytesIO(processor)
         if mapping["oid_as_pk"]:
@@ -807,8 +811,8 @@ class QueryData(BulkJobTaskMixin, MappingDatabaseMixin, BaseSalesforceApiTask):
         writer_values = unicodecsv.writer(f_values)
         writer_ids = unicodecsv.writer(f_ids)
         for row in unicodecsv.reader(data_file):
-            writer_values.writerow(row[:-1])
-            writer_ids.writerow([row[-1]])
+            writer_values.writerow(row[1:])
+            writer_ids.writerow([row[:1]])
         f_values.seek(0)
         f_ids.seek(0)
         return f_values, f_ids
@@ -860,7 +864,10 @@ def _download_file(uri, bulk_api):
         f.seek(0)
         yield f
 
+
 isoformat_regex = r'"2[0-9]{3}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}.[0-9]{3}Z"'
+
+
 def process_incoming_rows(f, record_type=None, relative_date_now=None):
     if record_type and not isinstance(record_type, bytes):
         record_type = record_type.encode("utf-8")
@@ -876,6 +883,7 @@ def process_incoming_rows(f, record_type=None, relative_date_now=None):
                 line = line.replace(isoformat, relative)
             line = line.encode("utf8")
         yield line
+
 
 def get_lookup_key_field(lookup, sf_field):
     return lookup.get("key_field", convert_to_snake_case(sf_field))

@@ -249,7 +249,7 @@ class TestLoadData(unittest.TestCase):
 
         households_batch_file = api.post_batch.call_args_list[0][0][1]
         self.assertEqual(
-            b"Name,RecordTypeId\r\nHousehold,1\r\n", households_batch_file.read()
+            b"Name,RecordTypeId\r\nTestHousehold,1\r\n", households_batch_file.read()
         )
         contacts_batch_file = api.post_batch.call_args_list[1][0][1]
         self.assertEqual(
@@ -307,7 +307,7 @@ class TestLoadData(unittest.TestCase):
             bulkdata.LoadData,
             {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
         )
-        task.mapping = {}
+        task.mappings = {}
         task._init_db()
         id_table = Table(
             "test_sf_ids", task.metadata, Column("id", Unicode(255), primary_key=True)
@@ -318,8 +318,8 @@ class TestLoadData(unittest.TestCase):
         self.assertFalse(new_id_table is id_table)
 
 
-HOUSEHOLD_QUERY_RESULT = b'"Id"\n1\n'
-CONTACT_QUERY_RESULT = b'"Id",AccountId\n2,1\n'
+HOUSEHOLD_QUERY_RESULT = b'"Id",Name\n"foo","TestHousehold"\n'
+CONTACT_QUERY_RESULT = b'"Id",AccountId,\n2,"foo"\n'
 
 
 @mock.patch("cumulusci.tasks.bulkdata.time.sleep", mock.Mock())
@@ -363,11 +363,10 @@ class TestQueryData(unittest.TestCase):
         task()
 
         household = task.session.query(task.models["households"]).one()
-        self.assertEqual("1", household.sf_id)
+        self.assertEqual("TestHousehold", household.name)
         self.assertEqual("HH_Account", household.record_type)
         contact = task.session.query(task.models["contacts"]).one()
-        self.assertEqual("2", contact.sf_id)
-        self.assertEqual("1", contact.household_id)
+        self.assertEqual("foo", contact.household_id)
 
     def test_sql_bulk_insert_from_csv__postgres(self):
         base_path = os.path.dirname(__file__)
