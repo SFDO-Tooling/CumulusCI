@@ -29,18 +29,25 @@ Mapping File
             - 'sql string' 
         record_type: API Name (for insert/query)
         fields:
-            Id: sf_id
             API Name: sqlite3 name
         lookups:
             ForeignKeyAPIName (e.g. AccountId):
-                key_field (field on CURRENT table (specified in step.table) that contains the foreign key)
+                key_field (OPTIONAL, field on CURRENT table (specified in step.table) that contains the foreign key)
                 table (table to join to)
-                join_field (field on table just specified that contains the referenced key. usually id/pk)
-                value_field (field on the joined table to use as value, usually sf_id)
         static:
             FieldAPIName: True
             AnotherFieldAPIName: MonthlyLiteral
 
+Salesforce OID as Primary key
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+By default, the QueryData and LoadData task will use an autoincrementing integer field named `id` as the primary key.  In order to make the references using an integer, the QueryData task has to do a multitable update that could impact performance when querying large data sets.
+
+If the performance of QueryData on large data sets is more important than the advantages of abstracting references to use integer ID's, you can configure a mapping to use the queried Salesforce OID's as the reference for lookup fields by adding the following to the fields section:
+.. code-block:: yaml    
+
+        fields:
+            Id: sf_id
 
 Example
 ^^^^^^^
@@ -51,7 +58,6 @@ Example
         sf_object: Account
         table: organizations
         fields:
-            Id: sf_id
             Name: organization
         record_type: Organization
 
@@ -62,7 +68,6 @@ Example
         filters:
             - 'household_id is not null'
         fields:
-            Id: sf_id
             Salutation: salutation
             FirstName: first_name
             LastName: last_name
@@ -71,13 +76,6 @@ Example
             Title: job_title
         lookups:
             AccountId:
-                key_field: household_id
                 table: households
-                join_field: household_id
-                value_field: sf_id
             Primary_Affiliation__c: 
-                key_field: organization_id
                 table: organizations
-                join_field: organization_id
-                value_field: sf_id
-

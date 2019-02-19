@@ -513,3 +513,14 @@ def get_cci_upgrade_command():
         return BREW_UPDATE_CMD
     else:
         return PIP_UPDATE_CMD
+
+
+def convert_to_snake_case(content):
+    s1 = re.sub("(.)([A-Z][a-z]+)", r"\1_\2", content)
+    return re.sub("([a-z0-9])([A-Z])", r"\1_\2", s1).lower()
+
+
+def os_friendly_path(path):
+    if os.sep != "/":
+        path = path.replace("/", os.sep)
+    return path
