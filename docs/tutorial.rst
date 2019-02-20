@@ -36,7 +36,9 @@ In the installer, be sure to check the "Add Python to PATH" checkbox.
 Create Virtual Environment
 --------------------------
 
-A Python Virtual Environment (virtualenv) is an isolated Python environment where you can install packages without modifying the system Python.  Using a virtualenv for cumulusci is recommended to avoid issues and conflicts with other applications using your system Python.
+A Python Virtual Environment (virtualenv) is an isolated Python environment where you can install packages without modifying the system Python.  Using a virtualenv for CumulusCI is recommended to avoid issues and conflicts with other applications using your system Python.
+
+For more information about virtual environments in Python, see the Python Packaging User Guide: https://packaging.python.org/tutorials/installing-packages/#creating-virtual-environments
 
 macOS
 ^^^^^
@@ -59,24 +61,28 @@ Your shell prompt should change once you are in the virtual env to show (cci) at
 
 If you would like to automatically activate the virtual environment whenever you open a new terminal, you can add the activate command to your ``~/.bash_profile``.
 
-For more information about virtual environments in Python, see the Python Packaging User Guide: https://packaging.python.org/tutorials/installing-packages/#creating-virtual-environments
-
 Windows
 ^^^^^^^
 
+Ensure you are in your home directory (C:\Users\your.username) and execute the following commands:
+
 .. code-block:: powershell
 
-    python -m venv ~\cci
-    ~\cci\Scripts\Activate.ps1
+    python -m venv cci
+    cci\Scripts\activate
 
 .. note::
    If this fails because you don't have the ability to run scripts,
    try running: ``Set-ExecutionPolicy Unrestricted -Scope CurrentUser``
 
+Similar to the macOS commands above, this creates a virtualenv in a new folder named ``cci`` and activates it.
+
+If you would like to automatically activate the virtual environment whenever you open a new terminal, you can add the activate command to your ``~/.bash_profile``.
+
 Install CumulusCI
 -----------------
 
-With the virtual environment now activated, install cumulusci using pip:
+With the virtual environment now activated, install CumulusCI using pip:
 
 .. code-block:: console
 
