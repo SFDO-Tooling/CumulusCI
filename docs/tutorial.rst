@@ -64,20 +64,20 @@ If you would like to automatically activate the virtual environment whenever you
 Windows
 ^^^^^^^
 
-Ensure you are in your home directory (C:\Users\your.username) and execute the following commands:
+Execute the following commands in a Windows shell, such as Git Bash:
 
 .. code-block:: powershell
 
-    python -m venv cci
-    cci\Scripts\activate
+    python -m venv ~/cci
+    source ~/cci/Scripts/activate
 
 .. note::
    If this fails because you don't have the ability to run scripts,
    try running: ``Set-ExecutionPolicy Unrestricted -Scope CurrentUser``
 
-Similar to the macOS commands above, this creates a virtualenv in a new folder named ``cci`` and activates it.
+Similar to the macOS commands above, this creates a virtualenv in a new folder in your home directory (C:\Users\your.username\) named ``cci`` and activates it.
 
-If you would like to automatically activate the virtual environment whenever you open a new terminal, you can add the activate command to your ``~/.bash_profile``.
+If you would like to automatically activate the virtual environment whenever you open a new shell, you can add the activate command to your ``~/.bash_profile``.
 
 Install CumulusCI
 -----------------
