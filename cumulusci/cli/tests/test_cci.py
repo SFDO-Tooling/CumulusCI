@@ -937,7 +937,9 @@ test_flow  Test Flow""",
             no_prompt=True,
         )
 
-        config.get_flow.assert_called_once_with('test', options={"test_task": {"color": "blue"}})
+        config.get_flow.assert_called_once_with(
+            "test", options={"test_task": {"color": "blue"}}
+        )
         org_config.delete_org.assert_called_once()
 
     def test_flow_run_delete_non_scratch(self,):
