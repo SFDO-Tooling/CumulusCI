@@ -36,19 +36,30 @@ cat << EOF > $OUT_FILE
 class Cumulusci < Formula
   include Language::Python::Virtualenv
 
-  desc "Python framework for building portable automation for Salesforce projects"
-  head "https://github.com/SFDO-Tooling/CumulusCI.git"
+  desc "Python framework for building automation for Salesforce projects"
   homepage "https://github.com/SFDO-Tooling/CumulusCI"
   url $PACKAGE_URL
   sha256 $PACKAGE_SHA
+  head "https://github.com/SFDO-Tooling/CumulusCI.git"
 
-  depends_on "python3"
+  depends_on "python"
 
 $(cat "$RES_FILE")
 
   def install
-    virtualenv_create(libexec, "python3")
-    virtualenv_install_with_resources
+    xy = Language::Python.major_minor_version "python3"
+    site_packages = libexec/"lib/python#{xy}/site-packages"
+    ENV.prepend_create_path "PYTHONPATH", site_packages
+
+    deps = resources.map(&:name).to_set
+    deps.each do |r|
+      resource(r).stage do
+        system "python3", *Language::Python.setup_install_args(libexec)
+      end
+    end
+
+    bin.install Dir["#{libexec}/bin/cci"]
+    bin.env_script_all_files(libexec/"bin", :PYTHONPATH => ENV["PYTHONPATH"])
   end
 
   test do
