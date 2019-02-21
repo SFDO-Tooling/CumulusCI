@@ -108,6 +108,9 @@ layouts:
 letterhead:
     - type: Letterhead
       class: MetadataFilenameParser
+lwc:
+    - type: LightningComponentBundle
+      class: LightningComponentBundleParser
 matchingRules:
     - type: MatchingRule
       class: MetadataXmlElementParser

@@ -362,6 +362,30 @@ class AuraBundleParser(MetadataFilenameParser):
         return [item]
 
 
+class LightningComponentBundleParser(BaseMetadataParser):
+    def _parse_item(self, item):
+        members = []
+        path = self.directory + "/" + item
+
+        # Skip non-directories
+        if not os.path.isdir(path):
+            return members
+
+        # Add the member if it is not namespaced
+        if "__" not in item:
+            members.append(item)
+
+        # ignore subitems
+
+        return members
+
+    def check_delete_excludes(self, item):
+        return False
+
+    def _parse_subitem(self, item, subitem):
+        return []
+
+
 class DocumentParser(MetadataFolderParser):
     def _parse_subitem(self, item, subitem):
         return [item + "/" + subitem]
