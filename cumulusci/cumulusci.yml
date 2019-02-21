@@ -233,6 +233,12 @@ tasks:
         options:
             suites: tests
         group: Robot Framework
+    robot_documentation:
+        description: Generates documentation for project keyword files
+        class_path: cumulusci.tasks.robotframework.RobotDoc
+        options:
+            outputdir: docs
+        group: Robot Framework
     robot_testdoc:
         description: 
         class_path: cumulusci.tasks.robotframework.RobotTestDoc
