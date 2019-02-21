@@ -120,7 +120,7 @@ class TestBaseMetadataParser(unittest.TestCase):
                 "Account.object",
                 "Custom__c.object",
             ):
-                with open(filename, "w") as f:
+                with open(filename, "w") as f:  # noqa: F841
                     pass
 
             parser = BaseMetadataParser("TestMDT", path, "object", delete=True)
@@ -195,7 +195,9 @@ class TestMetadataXmlElementParser(unittest.TestCase):
 
     def test_parser__missing_item_xpath(self):
         with self.assertRaises(ParserConfigurationError):
-            parser = MetadataXmlElementParser("TestMDT", None, "test", False)
+            parser = MetadataXmlElementParser(  # noqa: F841
+                "TestMDT", None, "test", False
+            )
 
     def test_parser__missing_name(self):
         with temporary_dir() as path:
