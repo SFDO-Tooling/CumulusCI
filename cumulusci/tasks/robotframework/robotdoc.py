@@ -22,33 +22,37 @@ class RobotDoc(BaseTask):
         "files": {
             "description": "A list of keyword definition files (eg: .py, .robot, .resource)",
             "required": True,
-        }
+        },
     }
 
     def _validate_options(self):
         super(RobotDoc, self)._validate_options()
 
-        self.options['files'] = process_list_arg(self.options['files'])
-        if not os.path.exists(self.options['outputdir']):
-            os.mkdir(self.options['outputdir'])
+        self.options["files"] = process_list_arg(self.options["files"])
+        if not os.path.exists(self.options["outputdir"]):
+            os.mkdir(self.options["outputdir"])
 
         bad_files = []
-        for input_file in self.options['files']:
+        for input_file in self.options["files"]:
             if not os.path.exists(input_file):
                 bad_files.append(input_file)
 
         if bad_files:
             if len(bad_files) == 1:
-                error_message = "Unable to find the input file '{}'".format(bad_files[0])
+                error_message = "Unable to find the input file '{}'".format(
+                    bad_files[0]
+                )
             else:
                 files = ", ".join(["'{}'".format(filename) for filename in bad_files])
-                error_message = "Unable to find the following input files: {}".format(files)
+                error_message = "Unable to find the following input files: {}".format(
+                    files
+                )
             raise TaskOptionsError(error_message)
 
     def _run_task(self):
-        output_dir = self.options['outputdir']
+        output_dir = self.options["outputdir"]
         libraries = []
-        for input_file in sorted(self.options['files']):
+        for input_file in sorted(self.options["files"]):
             basename = os.path.basename(input_file)
             try:
                 libdoc = LibraryDocumentation(input_file)
@@ -80,13 +84,15 @@ class RobotDoc(BaseTask):
                 loader=jinja2.FileSystemLoader(os.path.dirname(__file__)),
                 autoescape=False,
             )
-            jinjaenv.filters['robot_html'] = robot.utils.html_format
+            jinjaenv.filters["robot_html"] = robot.utils.html_format
             template = jinjaenv.get_template("template.html")
-            f.write(template.render(
-                libraries=libraries,
-                title=title,
-                cci_version=cci_version,
-                stylesheet=stylesheet,
-                date=date,
-            ))
+            f.write(
+                template.render(
+                    libraries=libraries,
+                    title=title,
+                    cci_version=cci_version,
+                    stylesheet=stylesheet,
+                    date=date,
+                )
+            )
             self.logger.info("created {}".format(f.name))
