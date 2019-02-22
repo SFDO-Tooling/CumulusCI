@@ -7,8 +7,8 @@
     </script>
     <script>
       function search() {
-          var search_string = $('#search').val().toLowerCase();
-          $('.kwtable .kwname').each(function() {
+          var search_string = $("#search").val().toLowerCase();
+          $(".kwtable .kwname").each(function() {
               if ($(this).text().toLowerCase().indexOf(search_string) !== -1) {
                   $(this).parent().show();
               } else {
@@ -17,10 +17,10 @@
           })
       }
       $(document).ready(function() {
-          $('#search').on('input', function() {
+          $("#search").on("input", function() {
               search()
           })
-          $('#search').keyup(function() {
+          $("#search").keyup(function() {
               search()
           })
       });
@@ -30,28 +30,31 @@
     </style>
   </head>
   <body>
-    <div class='container'>
-      <div class='header'>
-        <div class='title'>{{title}}</div>
-        <div class='search right'>search: <input id='search' type='search'></input></div>
+    <div class="container">
+      <div class="header">
+        <div class="title">{{title}}</div>
+        <div class="search right">search: <input id="search" type="search"></input></div>
       </div>
       {% for library in libraries %}
       <div class="section" id="library-{{library.name}}">
         <h1>{{library.basename}}</h1>
-        <table class='kwtable'>
+        <div class="library-documentation">
+        {{library.doc|robot_html}}
+        </div>
+        <table class="kwtable">
           <tbody>
             <tr><th>Keyword</th><th>Arguments</th><th>Documentation</th></tr>
             {% for keyword in library.keywords %}
-            <tr id='{{library.name}}-{{keyword.name}}'>
-              <td class='kwname'>
+            <tr id="{{library.name}}-{{keyword.name}}">
+              <td class="kwname">
                 {{keyword.name}}
               </td>
-              <td class='kwargs'><i>
+              <td class="kwargs"><i>
                   {% for arg in keyword.args %}
                   <i>{{arg}}</i>{% if not loop.last %}, {% endif %}
                   {% endfor %}
               </td>
-              <td class='kwdoc'>{{keyword.doc|robot_html}}</td>
+              <td class="kwdoc">{{keyword.doc|robot_html}}</td>
             </tr>
             {% endfor %}
           </tbody>
