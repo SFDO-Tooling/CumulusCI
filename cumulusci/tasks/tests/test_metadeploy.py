@@ -111,9 +111,7 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
             json=self._get_expected_release("release/1.0"),
         )
         responses.add(
-            "GET",
-            "https://metadeploy/versions?product=abcdef&label=1.0",
-            status=400,
+            "GET", "https://metadeploy/versions?product=abcdef&label=1.0", status=400
         )
         responses.add(
             "POST",
@@ -190,9 +188,7 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
         responses.add(
             "GET",
             "https://metadeploy/versions?product=abcdef&label=1.0",
-            json=[{
-                "url": "http://EXISTING_VERSION",
-            }],
+            json=[{"url": "http://EXISTING_VERSION"}],
         )
 
         project_config = create_project_config()
