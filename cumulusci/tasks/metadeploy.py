@@ -78,6 +78,7 @@ class Publish(BaseMetaDeployTask):
     def _run_task(self):
         tag = self.options["tag"]
 
+        # Check out the specified tag
         repo_owner = self.project_config.repo_owner
         repo_name = self.project_config.repo_name
         gh = self.project_config.get_github_api()
@@ -106,22 +107,8 @@ class Publish(BaseMetaDeployTask):
             steps = self._freeze_steps(project_config)
         self.logger.debug("Publishing steps:\n" + json.dumps(steps, indent=4))
 
-        # create version (not listed yet)
-        product_url = self.base_url + "/products/{}".format(self.options["product_id"])
-        label = self.project_config.get_version_for_tag(tag)
-        version = self._call_api(
-            "POST",
-            "/versions",
-            json={
-                "product": product_url,
-                "label": label,
-                "description": self.options.get("description", ""),
-                "is_production": True,
-                "commit_ish": self.project_config.repo_commit,
-                "is_listed": False,
-            },
-        )
-        self.logger.info("Created {}".format(version["url"]))
+        # find or create version
+        version = self._find_or_create_version()
 
         # create plan
         plan_template_id = self.options.get("plan_template_id")
@@ -174,3 +161,34 @@ class Publish(BaseMetaDeployTask):
             )
             steps.extend(task.freeze(step))
         return steps
+
+    def _find_or_create_version(self):
+        """Create a Version in MetaDeploy if it doesn't already exist
+        """
+        tag = self.options["tag"]
+        product_url = self.base_url + "/products/{}".format(self.options["product_id"])
+        label = self.project_config.get_version_for_tag(tag)
+        try:
+            result = self._call_api(
+                "GET",
+                "/versions",
+                params={"product": self.options["product_id"], "label": label},
+            )
+        except requests.exceptions.HTTPError:
+            version = self._call_api(
+                "POST",
+                "/versions",
+                json={
+                    "product": product_url,
+                    "label": label,
+                    "description": self.options.get("description", ""),
+                    "is_production": True,
+                    "commit_ish": tag,
+                    "is_listed": False,
+                },
+            )
+            self.logger.info("Created {}".format(version["url"]))
+        else:
+            version = result[0]
+            self.logger.info("Found {}".format(version["url"]))
+        return version

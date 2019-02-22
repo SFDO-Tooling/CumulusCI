@@ -111,6 +111,11 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
             json=self._get_expected_release("release/1.0"),
         )
         responses.add(
+            "GET",
+            "https://metadeploy/versions?product=abcdef&label=1.0",
+            status=400,
+        )
+        responses.add(
             "POST",
             "https://metadeploy/versions",
             json={"url": "https:/metadeploy/versions/1", "id": 1},
@@ -179,3 +184,34 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
             ],
             steps,
         )
+
+    @responses.activate
+    def test_find_or_create_version__already_exists(self):
+        responses.add(
+            "GET",
+            "https://metadeploy/versions?product=abcdef&label=1.0",
+            json=[{
+                "url": "http://EXISTING_VERSION",
+            }],
+        )
+
+        project_config = create_project_config()
+        project_config.keychain.set_service(
+            "metadeploy", ServiceConfig({"url": "https://metadeploy", "token": "TOKEN"})
+        )
+        task_config = TaskConfig(
+            {
+                "options": {
+                    "flow": "install_prod",
+                    "product_id": "abcdef",
+                    "tag": "release/1.0",
+                    "title": "Test Product",
+                    "slug": "test",
+                    "tier": "primary",
+                }
+            }
+        )
+        task = Publish(project_config, task_config)
+        task._init_task()
+        version = task._find_or_create_version()
+        self.assertEqual("http://EXISTING_VERSION", version["url"])
