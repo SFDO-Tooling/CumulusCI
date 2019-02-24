@@ -45,11 +45,11 @@
           <tbody>
             <tr><th>Keyword</th><th>Arguments</th><th>Documentation</th></tr>
             {% for keyword in library.keywords %}
-            <tr id="{{library.name}}-{{keyword.name}}">
+            <tr class="kwrow" id="{{library.name}}-{{keyword.name}}">
               <td class="kwname">
                 {{keyword.name}}
               </td>
-              <td class="kwargs"><i>
+              <td class="kwargs">
                   {% for arg in keyword.args %}
                   <i>{{arg}}</i>{% if not loop.last %}, {% endif %}
                   {% endfor %}
