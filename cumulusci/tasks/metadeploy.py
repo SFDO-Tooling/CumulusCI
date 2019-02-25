@@ -200,6 +200,6 @@ class Publish(BaseMetaDeployTask):
             )
             self.logger.info("Created {}".format(version["url"]))
         else:
-            version = result[0]
+            version = result["data"][0]
             self.logger.info("Found {}".format(version["url"]))
         return version
