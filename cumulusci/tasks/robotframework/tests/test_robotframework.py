@@ -53,14 +53,12 @@ class TestRobotDoc(MockLoggerMixin, unittest.TestCase):
         shutil.rmtree(self.tmpdir)
 
     def test_validate_filenames(self):
-        with pytest.raises(TaskOptionsError) as excinfo:
+        """Verify that we catch bad filenames early"""
+        expected = "Unable to find the following input files: 'bogus.py', 'bogus.robot'"
+        with pytest.raises(TaskOptionsError, match=expected):
             create_task(
                 RobotDoc, {"files": "bogus.py,bogus.robot", "outputdir": "docs"}
             )
-        assert (
-            "Unable to find the following input files: 'bogus.py', 'bogus.robot'"
-            in excinfo.value
-        )
 
     def test_task_log(self):
         """Verify that the task prints out the name of the output file"""
@@ -131,7 +129,7 @@ class TestRobotDocOutput(unittest.TestCase):
         doc_element = self.html_body.find(
             ".//tr[@id='TestLibrary.py.Library Keyword One']//td[@class='kwdoc']"
         )
-        doc_html = ET.tostring(doc_element, method="html").strip()
+        doc_html = str(ET.tostring(doc_element, method="html").strip())
         # we could just do an assert on the full markup of the
         # element, but it seems likely that could fail for benign
         # regions (extra whitespace, for example). So we'll just make
