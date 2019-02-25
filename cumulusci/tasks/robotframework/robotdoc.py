@@ -9,7 +9,7 @@ from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.tasks import BaseTask
 from cumulusci.core.utils import process_list_arg
 
-from robot.libdocpkg import LibraryDocumentation
+from robot.libdocpkg import DocumentationBuilder
 from robot.libraries.BuiltIn import RobotNotRunningError
 
 
@@ -50,16 +50,17 @@ class RobotDoc(BaseTask):
             raise TaskOptionsError(error_message)
 
     def _run_task(self):
-        output_dir = self.options["outputdir"]
         libraries = []
+        processed_files = {}
         for input_file in sorted(self.options["files"]):
-            basename = os.path.basename(input_file)
             try:
-                libdoc = LibraryDocumentation(input_file)
+                libdoc = DocumentationBuilder(input_file).build(input_file)
                 libraries.append(libdoc)
+                processed_files[input_file] = libdoc
+
                 # robot doesn't save the orginal name but we want to use that
                 # in our generated file
-                libdoc.basename = basename
+                libdoc.basename = os.path.basename(input_file)
 
                 # if we want to save the official libdoc file, uncomment the following
                 # two lines:
@@ -71,28 +72,34 @@ class RobotDoc(BaseTask):
                 # only print out the first line to hide most of the noise
                 self.logger.warn("unexpected error: {}".format(str(e).split("\n")[0]))
 
+        output_dir = self.options["outputdir"]
+        with open(os.path.join(output_dir, "index.html"), "w") as f:
+            html = self._render_html(libraries)
+            f.write(html)
+            self.logger.info("created {}".format(f.name))
+
+        return {"files": processed_files, "html": html}
+
+    def _render_html(self, libraries):
+        """Generate the html. `libraries` is a list of LibraryDocumentation objects"""
+
+        title = "{} Keywords".format(self.project_config.project__package__name)
+        date = time.strftime("%A %B %-d, %-I:%M %p")
+        cci_version = cumulusci.__version__
+
         stylesheet_path = os.path.join(os.path.dirname(__file__), "stylesheet.css")
         with open(stylesheet_path) as f:
             stylesheet = f.read()
 
-        with open(os.path.join(output_dir, "index.html"), "w") as f:
-            title = "{} Keywords".format(self.project_config.project__package__name)
-            date = time.strftime("%A %B %-d, %-I:%M %p")
-            cci_version = cumulusci.__version__
-
-            jinjaenv = jinja2.Environment(
-                loader=jinja2.FileSystemLoader(os.path.dirname(__file__)),
-                autoescape=False,
-            )
-            jinjaenv.filters["robot_html"] = robot.utils.html_format
-            template = jinjaenv.get_template("template.html")
-            f.write(
-                template.render(
-                    libraries=libraries,
-                    title=title,
-                    cci_version=cci_version,
-                    stylesheet=stylesheet,
-                    date=date,
-                )
-            )
-            self.logger.info("created {}".format(f.name))
+        jinjaenv = jinja2.Environment(
+            loader=jinja2.FileSystemLoader(os.path.dirname(__file__)), autoescape=False
+        )
+        jinjaenv.filters["robot_html"] = robot.utils.html_format
+        template = jinjaenv.get_template("template.html")
+        return template.render(
+            libraries=libraries,
+            title=title,
+            cci_version=cci_version,
+            stylesheet=stylesheet,
+            date=date,
+        )
