@@ -295,8 +295,15 @@ class Salesforce(object):
         self.selenium.get_webelement(menu_locator).click()
 
     def _populate_field(self, locator, value):
-        self.selenium.set_focus_to_element(locator)
+        # clearing the field in a cross-browser, cross-platform
+        # way is surprisingly difficult. .clear() doesn't work in
+        # all browsers, and sending keyboard shortcuts doesn't work
+        # on all platforms. So, we'll take a belt-and-suspenders
+        # apprach and throw the whole arsenal at the problem.
         field = self.selenium.get_webelement(locator)
+        self.selenium.set_focus_to_element(locator)
+        field.clear()
+        self.selenium.driver.execute_script("arguments[0].value = '';", field)
         field.send_keys(Keys.HOME + Keys.SHIFT + Keys.END)
         field.send_keys(value)
 
