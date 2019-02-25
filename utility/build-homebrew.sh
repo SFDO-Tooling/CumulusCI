@@ -16,6 +16,7 @@ PACKAGE_SHA="$(cat "$PYPI_JSON" | jq '.urls[1].digests.sha256')" || exit 1
 echo " "
 echo "=> Creating a temporary virtualenv and installing CumulusCI..."
 echo " "
+source deactivate
 virtualenv "$ENV_DIR" || exit 1
 source "$ENV_DIR/bin/activate" || exit 1
 pip install cumulusci homebrew-pypi-poet || exit 1
@@ -24,7 +25,7 @@ echo " "
 echo "=> Collecting dependencies and generating resource stanzas..."
 echo " "
 # Filter poet's output through awk to delete the cumulusci resource stanza
-poet cumulusci | awk '/resource "cumulusci"/{c=5} !(c&&c--)' > "$RES_FILE"
+poet cumulusci > "$RES_FILE"
 if [ $? -ne 0 ]; then
    exit 1
 fi
