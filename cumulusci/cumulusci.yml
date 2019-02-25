@@ -238,6 +238,7 @@ tasks:
         class_path: cumulusci.tasks.robotframework.RobotDoc
         options:
             outputdir: docs
+            title: $project_config.project__package__name
         group: Robot Framework
     robot_testdoc:
         description: 

@@ -23,6 +23,10 @@ class RobotDoc(BaseTask):
             "description": "A list of keyword definition files (eg: .py, .robot, .resource)",
             "required": True,
         },
+        "title": {
+            "description": "A string to use as the title of the generated output",
+            "required": False,
+        },
     }
 
     def _validate_options(self):
@@ -83,7 +87,7 @@ class RobotDoc(BaseTask):
     def _render_html(self, libraries):
         """Generate the html. `libraries` is a list of LibraryDocumentation objects"""
 
-        title = "{} Keywords".format(self.project_config.project__package__name)
+        title = self.options.get("title", "Keyword Documentation")
         date = time.strftime("%A %B %-d, %-I:%M %p")
         cci_version = cumulusci.__version__
 
