@@ -60,7 +60,11 @@ class Publish(BaseMetaDeployTask):
             "required": True,
         },
         "plan_template_id": {
-            "description": "Optional id of a Plan Template to use as a source for text.",
+            "description": "Optional id of a PlanTemplate to use as a source for text.",
+            "required": False,
+        },
+        "allowed_list_id": {
+            "description": "Optional id of an AllowedList used to restrict access to the plan.",
             "required": False,
         },
         "preflight_message_additional": {
@@ -117,6 +121,12 @@ class Publish(BaseMetaDeployTask):
             if plan_template_id
             else None
         )
+        allowed_list_id = self.options.get("allowed_list_id")
+        allowed_list_url = (
+            self.base_url + "/allowedlists/{}".format(allowed_list_id)
+            if allowed_list_id
+            else None
+        )
         plan = self._call_api(
             "POST",
             "/plans",
@@ -132,6 +142,7 @@ class Publish(BaseMetaDeployTask):
                 "tier": self.options["tier"],
                 "title": self.options["title"],
                 "version": version["url"],
+                "visible_to": allowed_list_url,
             },
         )
         self.logger.info("Created Plan {}".format(plan["url"]))
