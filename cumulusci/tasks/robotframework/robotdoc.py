@@ -64,7 +64,7 @@ class RobotDoc(BaseTask):
 
                 # robot doesn't save the orginal name but we want to use that
                 # in our generated file
-                libdoc.basename = os.path.basename(input_file)
+                libdoc.src = os.path.basename(input_file)
 
                 # if we want to save the official libdoc file, uncomment the following
                 # two lines:

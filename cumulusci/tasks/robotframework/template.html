@@ -37,7 +37,7 @@
       </div>
       {% for library in libraries %}
       <div class="section" id="library-{{library.name}}">
-        <h1>{{library.basename}}</h1>
+        <h1>{{library.src}}</h1>
         <div class="library-documentation">
         {{library.doc|robot_html}}
         </div>
@@ -45,7 +45,7 @@
           <tbody>
             <tr><th>Keyword</th><th>Arguments</th><th>Documentation</th></tr>
             {% for keyword in library.keywords %}
-            <tr class="kwrow" id="{{library.name}}-{{keyword.name}}">
+            <tr class="kwrow" id="{{library.src}}.{{keyword.name}}">
               <td class="kwname">
                 {{keyword.name}}
               </td>

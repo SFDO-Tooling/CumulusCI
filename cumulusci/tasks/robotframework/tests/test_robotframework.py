@@ -1,10 +1,18 @@
 import mock
 import unittest
+import shutil
+import tempfile
+import pytest
+import os.path
+from xml.etree import ElementTree as ET
 
-from cumulusci.core.exceptions import RobotTestFailure
+from cumulusci.core.config import TaskConfig
+from cumulusci.core.exceptions import RobotTestFailure, TaskOptionsError
+from cumulusci.core.tests.utils import MockLoggerMixin
 from cumulusci.tasks.robotframework import Robot
 from cumulusci.tasks.robotframework import RobotLibDoc
 from cumulusci.tasks.robotframework import RobotTestDoc
+from cumulusci.tasks.robotframework import RobotDoc
 from cumulusci.tasks.salesforce.tests.util import create_task
 
 
@@ -31,3 +39,124 @@ class TestRobotTestDoc(unittest.TestCase):
         task = create_task(RobotTestDoc, {"path": ".", "output": "out"})
         task()
         testdoc.assert_called_once_with(".", "out")
+
+
+class TestRobotDoc(MockLoggerMixin, unittest.TestCase):
+    def setUp(self):
+        self.tmpdir = tempfile.mkdtemp(dir=".")
+        self.task_config = TaskConfig()
+        self._task_log_handler.reset()
+        self.task_log = self._task_log_handler.messages
+        self.datadir = os.path.dirname(__file__)
+
+    def tearDown(self):
+        shutil.rmtree(self.tmpdir)
+
+    def test_validate_filenames(self):
+        with pytest.raises(TaskOptionsError) as excinfo:
+            create_task(
+                RobotDoc, {"files": "bogus.py,bogus.robot", "outputdir": "docs"}
+            )
+        assert (
+            "Unable to find the following input files: 'bogus.py', 'bogus.robot'"
+            in excinfo.value
+        )
+
+    def test_task_log(self):
+        """Verify that the task prints out the name of the output file"""
+        infile = os.path.join(self.datadir, "TestLibrary.py")
+        outfile = os.path.join(self.tmpdir, "index.html")
+        task = create_task(RobotDoc, {"files": infile, "outputdir": self.tmpdir})
+        task()
+        assert "created {}".format(outfile) in self.task_log["info"]
+        assert os.path.exists(outfile)
+
+    def test_comma_separated_list_of_files(self):
+        """Verify that we properly parse a comma-separated list of files"""
+        infiles = "{},{}".format(
+            os.path.join(self.datadir, "TestLibrary.py"),
+            os.path.join(self.datadir, "TestResource.robot"),
+        )
+        outfile = os.path.join(self.tmpdir, "index.html")
+        task = create_task(RobotDoc, {"files": infiles, "outputdir": self.tmpdir})
+        task()
+        assert os.path.exists(outfile)
+        assert len(task.result["files"]) == 2
+
+    def test_creates_output(self):
+        infile = os.path.join(self.datadir, "TestLibrary.py")
+        outfile = os.path.join(self.tmpdir, "index.html")
+        task = create_task(RobotDoc, {"files": infile, "outputdir": self.tmpdir})
+        task()
+        assert "created {}".format(outfile) in self.task_log["info"]
+        assert os.path.exists(outfile)
+
+
+class TestRobotDocOutput(unittest.TestCase):
+    """Tests for the generated robot keyword documentation"""
+
+    def setUp(self):
+        self.tmpdir = tempfile.mkdtemp(dir=".")
+        self.datadir = os.path.dirname(__file__)
+        infiles = [
+            os.path.join(self.datadir, "TestLibrary.py"),
+            os.path.join(self.datadir, "TestResource.robot"),
+        ]
+        outfile = os.path.join(self.tmpdir, "index.html")
+        self.task = create_task(
+            RobotDoc,
+            {
+                "files": infiles,
+                "outputdir": self.tmpdir,
+                "title": "Keyword Documentation, yo.",
+            },
+        )
+        self.task()
+        docroot = ET.parse(outfile).getroot()
+        self.html_body = docroot.find("body")
+
+    def tearDown(self):
+        shutil.rmtree(self.tmpdir)
+
+    def test_output_title(self):
+        """Verify the document has the expected title"""
+        title_element = self.html_body.find(
+            ".//div[@class='header']/div[@class='title']"
+        )
+        assert title_element is not None
+        assert title_element.text.strip() == "Keyword Documentation, yo."
+
+    def test_formatted_documentation(self):
+        """Verify that markup in the documentation is rendered as html"""
+        doc_element = self.html_body.find(
+            ".//tr[@id='TestLibrary.py.Library Keyword One']//td[@class='kwdoc']"
+        )
+        doc_html = ET.tostring(doc_element, method="html").strip()
+        # we could just do an assert on the full markup of the
+        # element, but it seems likely that could fail for benign
+        # regions (extra whitespace, for example). So we'll just make
+        # sure there are a couple of expected formatted elements.
+        assert "<b>bold</b>" in doc_html
+        assert "<i>italics</i>" in doc_html
+
+    def test_output_sections(self):
+        """Verify that the output has a section for each file"""
+        sections = self.html_body.findall(".//div[@class='section']")
+        section_titles = [x.find("h1").text for x in sections]
+        assert len(sections) == 2, "expected to find 2 sections, found {}".format(
+            len(sections)
+        )
+        assert section_titles == ["TestLibrary.py", "TestResource.robot"]
+
+    def test_output_keywords(self):
+        """Verify that all keywords in the libraries are represented in the output file"""
+        keyword_rows = self.html_body.findall(".//tr[@class='kwrow']")
+        keywords = [x.find(".//td[@class='kwname']") for x in keyword_rows]
+        keyword_names = [x.text.strip() for x in keywords]
+        assert len(keywords) == 4
+        assert keyword_names == [
+            "Library Keyword One",
+            "Library Keyword Two",
+            "Resource keyword one",
+            "Resource keyword two",
+        ]
