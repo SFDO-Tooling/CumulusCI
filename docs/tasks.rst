@@ -5,7 +5,7 @@ Tasks Reference
 assign_permission_set
 ==========================================
 
-**Description:** Assign Permission Set specified in the "extra" option using [--permsetname "Permission_Set_DeveloperName"]
+**Description:** Assign Permission Set specified in the "extra" option using ["Permission_Set_DeveloperName"]
 
 **Class::** cumulusci.tasks.sfdx.SFDXBaseTask
 
@@ -13,7 +13,7 @@ Options:
 ------------------------------------------
 
 * **command** *(required)*: The full command to run with the sfdx cli. **Default: force:user:permset:assign**
-* **extra**: Append additional options to the command. **Specify Permission Set: --permsetname "Permission_Set_DeveloperName"**
+* **extra**: Append additional options to the command. **Specify Permission Set: ["Permission_Set_DeveloperName"]**
 
 batch_apex_wait
 ==========================================
