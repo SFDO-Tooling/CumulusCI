@@ -57,12 +57,9 @@ except ImportError:  # pragma: no cover
 
 import copy
 import logging
-from collections import defaultdict
 from collections import namedtuple
 from distutils.version import LooseVersion
 from operator import attrgetter
-
-from future.utils import raise_from
 
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.config import FlowConfig

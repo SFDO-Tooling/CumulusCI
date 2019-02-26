@@ -180,6 +180,8 @@ class DummyKeychain(object):
 
 
 class TestBaseProjectConfig(unittest.TestCase):
+    maxDiff = None
+
     def _make_github(self):
         CUMULUSCI_TEST_REPO = DummyRepository(
             "SFDO-Tooling",
@@ -190,7 +192,7 @@ class TestBaseProjectConfig(unittest.TestCase):
         project:
             name: CumulusCI-Test
             package:
-                name: Cumulus-Test
+                name: CumulusCI-Test
                 namespace: ccitest
             git:
                 repo_url: https://github.com/SFDO-Tooling/CumulusCI-Test
@@ -213,7 +215,7 @@ class TestBaseProjectConfig(unittest.TestCase):
         project:
             name: CumulusCI-Test-Dep
             package:
-                name: Cumulus-Test-Dep
+                name: CumulusCI-Test-Dep
                 namespace: ccitestdep
             git:
                 repo_url: https://github.com/SFDO-Tooling/CumulusCI-Test-Dep
@@ -542,6 +544,7 @@ class TestBaseProjectConfig(unittest.TestCase):
             result,
             [
                 {
+                    u"name": "Deploy unpackaged/pre/pre",
                     u"repo_owner": "SFDO-Tooling",
                     u"repo_name": "CumulusCI-Test",
                     u"ref": "commit_sha",
@@ -551,8 +554,13 @@ class TestBaseProjectConfig(unittest.TestCase):
                     u"namespace_strip": None,
                     u"namespace_tokenize": None,
                 },
-                {u"version": "2.0", u"namespace": "ccitestdep"},
                 {
+                    u"name": "Install CumulusCI-Test-Dep 2.0",
+                    u"version": "2.0",
+                    u"namespace": "ccitestdep",
+                },
+                {
+                    u"name": "Deploy CumulusCI-Test",
                     u"repo_owner": "SFDO-Tooling",
                     u"repo_name": "CumulusCI-Test",
                     u"ref": "commit_sha",
@@ -563,6 +571,7 @@ class TestBaseProjectConfig(unittest.TestCase):
                     u"namespace_tokenize": None,
                 },
                 {
+                    u"name": "Deploy unpackaged/post/post",
                     u"repo_owner": "SFDO-Tooling",
                     u"repo_name": "CumulusCI-Test",
                     u"ref": "commit_sha",
@@ -592,8 +601,13 @@ class TestBaseProjectConfig(unittest.TestCase):
         self.assertEqual(
             result,
             [
-                {u"version": "2.0", u"namespace": "ccitestdep"},
                 {
+                    u"name": "Install CumulusCI-Test-Dep 2.0",
+                    u"version": "2.0",
+                    u"namespace": "ccitestdep",
+                },
+                {
+                    u"name": "Deploy CumulusCI-Test",
                     u"repo_owner": "SFDO-Tooling",
                     u"repo_name": "CumulusCI-Test",
                     u"ref": "commit_sha",
@@ -624,9 +638,16 @@ class TestBaseProjectConfig(unittest.TestCase):
         )
         self.assertIn(
             {
+                "name": "Install CumulusCI-Test 1.0",
                 "namespace": "ccitest",
                 "version": "1.0",
-                "dependencies": [{"namespace": "ccitestdep", "version": "2.0"}],
+                "dependencies": [
+                    {
+                        "name": "Install CumulusCI-Test-Dep 2.0",
+                        "namespace": "ccitestdep",
+                        "version": "2.0",
+                    }
+                ],
             },
             result,
         )
@@ -655,6 +676,7 @@ class TestBaseProjectConfig(unittest.TestCase):
             result,
             [
                 {
+                    u"name": "Deploy unpackaged/pre/pre",
                     u"repo_owner": "SFDO-Tooling",
                     u"repo_name": "CumulusCI-Test",
                     u"ref": "commit_sha",
@@ -664,8 +686,13 @@ class TestBaseProjectConfig(unittest.TestCase):
                     u"namespace_strip": None,
                     u"namespace_tokenize": None,
                 },
-                {u"version": "1.1 (Beta 1)", u"namespace": "ccitestdep"},
                 {
+                    u"name": "Install CumulusCI-Test-Dep 1.1 (Beta 1)",
+                    u"version": "1.1 (Beta 1)",
+                    u"namespace": "ccitestdep",
+                },
+                {
+                    u"name": "Deploy CumulusCI-Test",
                     u"repo_owner": "SFDO-Tooling",
                     u"repo_name": "CumulusCI-Test",
                     u"ref": "commit_sha",
@@ -676,6 +703,7 @@ class TestBaseProjectConfig(unittest.TestCase):
                     u"namespace_tokenize": None,
                 },
                 {
+                    u"name": "Deploy unpackaged/post/post",
                     u"repo_owner": "SFDO-Tooling",
                     u"repo_name": "CumulusCI-Test",
                     u"ref": "commit_sha",
@@ -707,6 +735,7 @@ class TestBaseProjectConfig(unittest.TestCase):
             result,
             [
                 {
+                    u"name": "Deploy unpackaged/pre/pre",
                     u"repo_owner": "SFDO-Tooling",
                     u"repo_name": "CumulusCI-Test",
                     u"ref": "other_commit_sha",
@@ -716,8 +745,13 @@ class TestBaseProjectConfig(unittest.TestCase):
                     u"namespace_strip": None,
                     u"namespace_tokenize": None,
                 },
-                {u"version": "2.0", u"namespace": "ccitestdep"},
                 {
+                    u"name": "Install CumulusCI-Test-Dep 2.0",
+                    u"version": "2.0",
+                    u"namespace": "ccitestdep",
+                },
+                {
+                    u"name": "Deploy CumulusCI-Test",
                     u"repo_owner": "SFDO-Tooling",
                     u"repo_name": "CumulusCI-Test",
                     u"ref": "other_commit_sha",
@@ -728,6 +762,7 @@ class TestBaseProjectConfig(unittest.TestCase):
                     u"namespace_tokenize": None,
                 },
                 {
+                    u"name": "Deploy unpackaged/post/post",
                     u"repo_owner": "SFDO-Tooling",
                     u"repo_name": "CumulusCI-Test",
                     u"ref": "other_commit_sha",

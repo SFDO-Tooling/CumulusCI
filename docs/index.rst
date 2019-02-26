@@ -15,6 +15,7 @@ Contents:
    tutorial
    features
    robotframework
+   bulk_data
    cookbook
    cumulusci_flow
    api_reference

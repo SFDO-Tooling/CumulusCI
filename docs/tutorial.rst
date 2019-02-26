@@ -98,17 +98,6 @@ If you want to use our example project, fork our CumulusCI-Test repo:
 
 If you are using the CumulusCI-Test repo with a Developer Edition Salesforce org, you will need to enable Chatter in the org if it is not already enabled.  With Salesforce DX Scratch Orgs, this is handled for you.
 
-Keychain Key
-------------
-
-The cci command stores all credentials in AES encrypted files under the ~/.cumulusci folder (macOS). To use the CLI, you must set the environment variable `CUMULUSCI_KEY` to a 16 character string which is your password to access your keychain. You can use Last Pass to generate a key for you. Do not forget this password!:
-
-.. code-block:: console
-
-    $ export CUMULUSCI_KEY=0a2b4c6d8e0f2g4h  # Must be 16 characters long
-
-For Windows, go to Control Panel -> System and Security -> System -> Advanced System Settings and click the Environment Variables button. Create a new user variable and system variable with CUMULUSCI_KEY as the Name and your generated key as the Value.
-
 Project Initialization
 ----------------------
 
