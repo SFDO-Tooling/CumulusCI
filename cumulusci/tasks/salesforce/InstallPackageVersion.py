@@ -6,6 +6,10 @@ from cumulusci.tasks.salesforce import Deploy
 
 class InstallPackageVersion(Deploy):
     task_options = {
+        "name": {
+            "description": "The name of the package to install.  Defaults to project__package__name_managed",
+            "required": False,
+        },
         "namespace": {
             "description": "The namespace of the package to install.  Defaults to project__package__namespace",
             "required": True,
@@ -33,6 +37,12 @@ class InstallPackageVersion(Deploy):
         super(InstallPackageVersion, self)._init_options(kwargs)
         if "namespace" not in self.options:
             self.options["namespace"] = self.project_config.project__package__namespace
+        if "name" not in self.options:
+            self.options["name"] = (
+                self.project_config.project__package__name_managed
+                or self.project_config.project__package__name
+                or self.options["namespace"]
+            )
         if "retries" not in self.options:
             self.options["retries"] = 5
         if "retry_interval" not in self.options:
@@ -77,9 +87,10 @@ class InstallPackageVersion(Deploy):
     def freeze(self, step):
         options = self.options.copy()
         options["version"] = str(options["version"])
+        name = options.pop("name")
         return [
             {
-                "name": "Install {}".format(self.options["namespace"]),
+                "name": "Install {} {}".format(name, options["version"]),
                 "kind": "managed",
                 "is_required": True,
                 "path": step.path,

@@ -3,8 +3,10 @@ import json
 import unittest
 import zipfile
 
+import mock
 import requests
 import responses
+import yaml
 
 from cumulusci.core.config import ServiceConfig
 from cumulusci.core.config import TaskConfig
@@ -74,19 +76,28 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
         )
         responses.add(
             "GET",
-            "https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/rel/1.0",
-            json=self._get_expected_tag_ref("rel/1.0", "tag_sha"),
+            "https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/release/1.0",
+            json=self._get_expected_tag_ref("release/1.0", "tag_sha"),
         )
         responses.add(
             "GET",
             "https://api.github.com/repos/TestOwner/TestRepo/git/tags/tag_sha",
-            json=self._get_expected_tag("rel/1.0", "commit_sha"),
+            json=self._get_expected_tag("release/1.0", "commit_sha"),
         )
         f = io.BytesIO()
         zf = zipfile.ZipFile(f, "w")
         zfi = zipfile.ZipInfo("toplevel/")
         zf.writestr(zfi, "")
-        zf.writestr("toplevel/cumulusci.yml", "")
+        zf.writestr(
+            "toplevel/cumulusci.yml",
+            yaml.dump(
+                {
+                    "project": {
+                        "package": {"name_managed": "Test Product", "namespace": "ns"}
+                    }
+                }
+            ),
+        )
         zf.close()
         responses.add(
             "GET",
@@ -97,7 +108,7 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
         responses.add(
             "GET",
             "https://api.github.com/repos/TestOwner/TestRepo/releases/latest",
-            json=self._get_expected_release("rel/1.0"),
+            json=self._get_expected_release("release/1.0"),
         )
         responses.add(
             "POST",
@@ -121,7 +132,7 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
                 "options": {
                     "flow": "install_prod",
                     "product_id": "abcdef",
-                    "tag": "rel/1.0",
+                    "tag": "release/1.0",
                     "title": "Test Product",
                     "slug": "test",
                     "tier": "primary",
@@ -139,25 +150,25 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
                 {
                     "is_required": True,
                     "kind": "managed",
-                    "name": "Install None",
+                    "name": "Install Test Product 1.0",
                     "path": "install_managed",
                     "step_num": "2",
                     "task_class": "cumulusci.tasks.salesforce.InstallPackageVersion",
                     "task_config": {
                         "options": {
                             "activateRSS": True,
-                            "namespace": None,
+                            "namespace": "ns",
                             "retries": 5,
                             "retry_interval": 5,
                             "retry_interval_add": 30,
-                            "version": "None",
+                            "version": "1.0",
                         }
                     },
                 },
                 {
                     "is_required": True,
                     "kind": "other",
-                    "name": "update_admin_profile",
+                    "name": "Update Admin Profile",
                     "path": "config_managed.update_admin_profile",
                     "step_num": "3.2",
                     "task_class": "cumulusci.tasks.salesforce.UpdateAdminProfile",
