@@ -923,7 +923,7 @@ test_flow  Test Flow""",
             load_keychain=False,
         )
         config.get_org = mock.Mock(return_value=("test", org_config))
-        DummyTask._run_task = mock.Mock()
+        config.get_flow = mock.Mock()
 
         run_click_command(
             cci.flow_run,
@@ -937,7 +937,9 @@ test_flow  Test Flow""",
             no_prompt=True,
         )
 
-        DummyTask._run_task.assert_called_once()
+        config.get_flow.assert_called_once_with(
+            "test", options={"test_task": {"color": "blue"}}
+        )
         org_config.delete_org.assert_called_once()
 
     def test_flow_run_delete_non_scratch(self,):

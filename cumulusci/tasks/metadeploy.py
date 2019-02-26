@@ -60,7 +60,11 @@ class Publish(BaseMetaDeployTask):
             "required": True,
         },
         "plan_template_id": {
-            "description": "Optional id of a Plan Template to use as a source for text.",
+            "description": "Optional id of a PlanTemplate to use as a source for text.",
+            "required": False,
+        },
+        "allowed_list_id": {
+            "description": "Optional id of an AllowedList used to restrict access to the plan.",
             "required": False,
         },
         "preflight_message_additional": {
@@ -78,6 +82,7 @@ class Publish(BaseMetaDeployTask):
     def _run_task(self):
         tag = self.options["tag"]
 
+        # Check out the specified tag
         repo_owner = self.project_config.repo_owner
         repo_name = self.project_config.repo_name
         gh = self.project_config.get_github_api()
@@ -106,28 +111,20 @@ class Publish(BaseMetaDeployTask):
             steps = self._freeze_steps(project_config)
         self.logger.debug("Publishing steps:\n" + json.dumps(steps, indent=4))
 
-        # create version (not listed yet)
-        product_url = self.base_url + "/products/{}".format(self.options["product_id"])
-        label = self.project_config.get_version_for_tag(tag)
-        version = self._call_api(
-            "POST",
-            "/versions",
-            json={
-                "product": product_url,
-                "label": label,
-                "description": self.options.get("description", ""),
-                "is_production": True,
-                "commit_ish": self.project_config.repo_commit,
-                "is_listed": False,
-            },
-        )
-        self.logger.info("Created {}".format(version["url"]))
+        # find or create version
+        version = self._find_or_create_version()
 
         # create plan
         plan_template_id = self.options.get("plan_template_id")
         plan_template_url = (
             self.base_url + "/plantemplates/{}".format(plan_template_id)
             if plan_template_id
+            else None
+        )
+        allowed_list_id = self.options.get("allowed_list_id")
+        allowed_list_url = (
+            self.base_url + "/allowedlists/{}".format(allowed_list_id)
+            if allowed_list_id
             else None
         )
         plan = self._call_api(
@@ -145,6 +142,7 @@ class Publish(BaseMetaDeployTask):
                 "tier": self.options["tier"],
                 "title": self.options["title"],
                 "version": version["url"],
+                "visible_to": allowed_list_url,
             },
         )
         self.logger.info("Created Plan {}".format(plan["url"]))
@@ -174,3 +172,34 @@ class Publish(BaseMetaDeployTask):
             )
             steps.extend(task.freeze(step))
         return steps
+
+    def _find_or_create_version(self):
+        """Create a Version in MetaDeploy if it doesn't already exist
+        """
+        tag = self.options["tag"]
+        product_url = self.base_url + "/products/{}".format(self.options["product_id"])
+        label = self.project_config.get_version_for_tag(tag)
+        try:
+            result = self._call_api(
+                "GET",
+                "/versions",
+                params={"product": self.options["product_id"], "label": label},
+            )
+        except requests.exceptions.HTTPError:
+            version = self._call_api(
+                "POST",
+                "/versions",
+                json={
+                    "product": product_url,
+                    "label": label,
+                    "description": self.options.get("description", ""),
+                    "is_production": True,
+                    "commit_ish": tag,
+                    "is_listed": False,
+                },
+            )
+            self.logger.info("Created {}".format(version["url"]))
+        else:
+            version = result["data"][0]
+            self.logger.info("Found {}".format(version["url"]))
+        return version
