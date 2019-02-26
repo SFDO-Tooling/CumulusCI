@@ -4,6 +4,7 @@ from future import standard_library
 standard_library.install_aliases()
 from past.builtins import basestring
 from builtins import str
+from collections import defaultdict
 from collections import OrderedDict
 import functools
 import json
@@ -1149,11 +1150,11 @@ def flow_run(config, flow_name, org, delete_org, debug, o, skip, no_prompt):
         raise click.UsageError("--delete-org can only be used with a scratch org")
 
     # Parse command line options
-    options = {}
+    options = defaultdict(dict)
     if o:
         for key, value in o:
             task_name, option_name = key.split("__")
-            options[key] = value
+            options[task_name][option_name] = value
 
     # Create the flow and handle initialization exceptions
     try:
