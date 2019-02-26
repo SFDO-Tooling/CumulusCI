@@ -102,6 +102,7 @@ jobs:
             venv/bin/coverage run --append venv/bin/cci task run robot -o suites cumulusci/robotframework/tests/cumulusci/base.robot -o xunit robot_results/robot/cumulusci.xml
             venv/bin/coverage run --append venv/bin/cci task run robot -o suites cumulusci/robotframework/tests/salesforce/api.robot -o xunit robot_results/robot/salesforce_api.xml
             venv/bin/coverage run --append venv/bin/cci task run robot -o suites cumulusci/robotframework/tests/salesforce/ui.robot -o xunit robot_results/robot/salesforce_ui.xml
+            venv/bin/coverage run --append venv/bin/cci task run robot -o suites cumulusci/robotframework/tests/salesforce/ui.robot -o xunit robot_results/robot/salesforce_ui.xml -o vars BROWSER:headlessfirefox
       - run:
           name: Delete scratch org
           command: |
