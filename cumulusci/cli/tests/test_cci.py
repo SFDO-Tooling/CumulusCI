@@ -16,17 +16,15 @@ import responses
 
 import cumulusci
 from cumulusci.core.config import OrgConfig
-from cumulusci.core.config import TaskConfig, FlowConfig
+from cumulusci.core.config import FlowConfig
 from cumulusci.core.tasks import BaseTask
-from cumulusci.core.exceptions import FlowNotFoundError
 from cumulusci.core.exceptions import OrgNotFound
 from cumulusci.core.exceptions import ScratchOrgException
 from cumulusci.core.exceptions import ServiceNotConfigured
 from cumulusci.core.exceptions import TaskNotFoundError
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.cli import cci
-from cumulusci.cli.config import CliConfig
-from cumulusci.tests.util import create_project_config
+from cumulusci.cli.config import CliRuntime
 from cumulusci.utils import temporary_dir
 
 
@@ -56,6 +54,7 @@ class TestCCI(unittest.TestCase):
     def setUpClass(self):
         self.tempdir = tempfile.mkdtemp()
         os.environ["HOME"] = self.tempdir
+        os.environ["CUMULUSCI_KEY"] = ""
 
     @classmethod
     def tearDownClass(self):
@@ -217,7 +216,7 @@ class TestCCI(unittest.TestCase):
 
     @mock.patch("cumulusci.cli.cci.click")
     def test_project_init(self, click):
-        with temporary_dir() as d:
+        with temporary_dir():
             os.mkdir(".git")
 
             click.prompt.side_effect = (
@@ -257,12 +256,12 @@ class TestCCI(unittest.TestCase):
             )
 
     def test_project_init_no_git(self):
-        with temporary_dir() as d:
+        with temporary_dir():
             with self.assertRaises(click.ClickException):
                 run_click_command(cci.project_init)
 
     def test_project_init_already_initted(self):
-        with temporary_dir() as d:
+        with temporary_dir():
             os.mkdir(".git")
             with open("cumulusci.yml", "w"):
                 pass  # create empty file
@@ -911,7 +910,7 @@ test_flow  Test Flow""",
 
     def test_flow_run(self):
         org_config = mock.Mock(scratch=True, config={})
-        config = CliConfig(
+        config = CliRuntime(
             config={
                 "flows": {"test": {"steps": {1: {"task": "test_task"}}}},
                 "tasks": {
@@ -924,7 +923,7 @@ test_flow  Test Flow""",
             load_keychain=False,
         )
         config.get_org = mock.Mock(return_value=("test", org_config))
-        DummyTask._run_task = mock.Mock()
+        config.get_flow = mock.Mock()
 
         run_click_command(
             cci.flow_run,
@@ -938,7 +937,9 @@ test_flow  Test Flow""",
             no_prompt=True,
         )
 
-        DummyTask._run_task.assert_called_once()
+        config.get_flow.assert_called_once_with(
+            "test", options={"test_task": {"color": "blue"}}
+        )
         org_config.delete_org.assert_called_once()
 
     def test_flow_run_delete_non_scratch(self,):
@@ -961,7 +962,7 @@ test_flow  Test Flow""",
 
     def test_flow_run_usage_error(self):
         org_config = mock.Mock(config={})
-        config = CliConfig(
+        config = CliRuntime(
             config={
                 "flows": {"test": {"steps": {1: {"task": "test_task"}}}},
                 "tasks": {
@@ -991,7 +992,7 @@ test_flow  Test Flow""",
 
     def test_flow_run_expected_failure(self):
         org_config = mock.Mock(config={})
-        config = CliConfig(
+        config = CliRuntime(
             config={
                 "flows": {"test": {"steps": {1: {"task": "test_task"}}}},
                 "tasks": {
@@ -1022,7 +1023,7 @@ test_flow  Test Flow""",
     @mock.patch("cumulusci.cli.cci.handle_sentry_event")
     def test_flow_run_unexpected_exception(self, handle_sentry_event):
         org_config = mock.Mock(config={})
-        config = CliConfig(
+        config = CliRuntime(
             config={
                 "flows": {"test": {"steps": {1: {"task": "test_task"}}}},
                 "tasks": {
@@ -1056,7 +1057,7 @@ test_flow  Test Flow""",
     def test_flow_run_org_delete_error(self, echo):
         org_config = mock.Mock(scratch=True, config={})
         org_config.delete_org.side_effect = Exception
-        config = CliConfig(
+        config = CliRuntime(
             config={
                 "flows": {"test": {"steps": {1: {"task": "test_task"}}}},
                 "tasks": {

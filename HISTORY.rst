@@ -2,6 +2,32 @@
 History
 =======
 
+2.3.2 (2019-02-19)
+------------------
+
+* Mapping enhancements for bulk ``QueryData`` and ``LoadData`` tasks
+  
+  * The mapping yaml file no longer requires using ``Id: sf_id`` as a field mapping.  If not provided, ``QueryData`` and ``LoadData`` will use local database ids instead of Saleforce OIDs for storing lookup relationships.  Previous mappings which specify the ``Id: sf_id`` mapping will continue to work as before using the Salesforce OID as the mapping value.
+  * The mapping yaml file's ``lookups:`` section now handles defaults to allow simpler lookup mappings.  The only key required is now ``table``.  If the ``key_field`` is provided it will be used.
+
+* The ``sql_path`` option on ``QueryData`` can be used to provide the file path where a SQL script should be written.  If this option is used, a sqlite in-memory database is used and discarded.  This is useful for storing data sets in a Github repository and allowing diffs of the dataset to be visible when reviewing Pull Requests
+  
+  * When using this option, it is best to make sure your mapping yaml file does not provide a field mapping for the ``Id`` field.  This will help avoid merge conflicts if querying data from different orgs such as scratch orgs.
+
+* The `sql_path` option on ``LoadData`` can be used to provide the file path where a SQL script file should be read and used to load an in-memory sqlite database for the load operation.
+
+2.3.1 (2019-02-15)
+------------------
+
+* Fixed a bug that caused the ``cci`` command to check for a newer version on every run, rather than occasionally. Also we now detect whether CumulusCI was installed using Homebrew and recommend an upgrade command accordingly.
+* CumulusCI now automatically generates its own keychain key and stores it in the system keychain (using the Python `keyring` library). This means that it is no longer necessary to specify a CUMULUSCI_KEY as an environment variable. (However, the environment variable will still be preferred if it is there, and it will be migrated to the system keychain.)
+* New task ``connected_app`` makes it easier to deploy and configure the Connected App needed for CumulusCI's keychain to work with persistent orgs.  The connected app is deployed using ``sfdx`` to an org in the ``sfdx`` keychain and defaults to the ``defaultdevhubusername``.
+* The ``robot`` task gives a more helpful error message if you forget to specify an org.
+* Updates to the task for publishing to MetaDeploy:
+
+  * Dependency installation steps are now named using the package name and version.
+  * The task options have been revised to match changes in the MetaDeploy API. An optional ``plan_template_id`` is now accepted. ``preflight_message`` is now named ``preflight_message_additional`` and is optional. ``post_install_message`` is now named ``post_install_message_additional`` and is optional.
+
 2.3.0 (2019-02-04)
 ------------------
 

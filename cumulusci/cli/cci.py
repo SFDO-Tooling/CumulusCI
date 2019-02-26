@@ -4,7 +4,7 @@ from future import standard_library
 standard_library.install_aliases()
 from past.builtins import basestring
 from builtins import str
-from builtins import object
+from collections import defaultdict
 from collections import OrderedDict
 import functools
 import json
@@ -13,7 +13,6 @@ import os
 import sys
 import webbrowser
 import code
-import yaml
 import time
 
 from contextlib import contextmanager
@@ -28,27 +27,23 @@ from jinja2 import Environment
 from jinja2 import PackageLoader
 
 import cumulusci
-from cumulusci.core.config import FlowConfig
 from cumulusci.core.config import BaseConfig
 from cumulusci.core.config import OrgConfig
 from cumulusci.core.config import ScratchOrgConfig
 from cumulusci.core.config import ServiceConfig
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.config import BaseGlobalConfig
-from cumulusci.core.exceptions import ConfigError
 from cumulusci.core.exceptions import CumulusCIFailure
 from cumulusci.core.exceptions import CumulusCIUsageError
-from cumulusci.core.exceptions import FlowNotFoundError
 from cumulusci.core.exceptions import OrgNotFound
-from cumulusci.core.exceptions import NotInProject
-from cumulusci.core.exceptions import ProjectConfigNotFound
 from cumulusci.core.exceptions import ScratchOrgException
 from cumulusci.core.exceptions import ServiceNotConfigured
 from cumulusci.core.exceptions import TaskNotFoundError
 from cumulusci.core.utils import import_class
-from cumulusci.cli.config import CliConfig
+from cumulusci.cli.config import CliRuntime
 from cumulusci.cli.config import get_installed_version
 from cumulusci.utils import doc_task
+from cumulusci.utils import get_cci_upgrade_command
 from cumulusci.oauth.salesforce import CaptureSalesforceOAuth
 from .logger import init_logger
 import re
@@ -64,8 +59,14 @@ def timestamp_file():
     if not os.path.exists(config_dir):
         os.mkdir(config_dir)
 
-    with open(os.path.join(config_dir, "cumulus_timestamp"), "w+") as f:
-        yield f
+    timestamp_file = os.path.join(config_dir, "cumulus_timestamp")
+
+    try:
+        with open(timestamp_file, "r+") as f:
+            yield f
+    except IOError:  # file does not exist
+        with open(timestamp_file, "w+") as f:
+            yield f
 
 
 FINAL_VERSION_RE = re.compile(r"^[\d\.]+$")
@@ -116,7 +117,9 @@ def check_latest_version():
         click.echo("Checking the version!")
         if result:
             click.echo(
-                "An update to CumulusCI is available. Use pip install --upgrade cumulusci to update."
+                """An update to CumulusCI is available. Use {} to update.""".format(
+                    get_cci_upgrade_command()
+                )
             )
 
 
@@ -195,7 +198,7 @@ def load_config(
     load_project_config=True, load_keychain=True, allow_global_keychain=False
 ):
     try:
-        config = TEST_CONFIG or CliConfig(
+        config = TEST_CONFIG or CliRuntime(
             load_project_config=load_project_config,
             load_keychain=load_keychain,
             allow_global_keychain=allow_global_keychain,
@@ -437,7 +440,6 @@ def project_init(config):
     context["git"] = git_config
 
     #     test:
-    test_config = []
     click.echo()
     click.echo(click.style("# Apex Tests Configuration", bold=True, fg="blue"))
     click.echo(
@@ -623,7 +625,7 @@ class ConnectServiceCommand(click.MultiCommand):
             else:
                 project = kwargs.get("project", False)
             serv_conf = dict(
-                (k, v) for k, v in list(kwargs.items()) if v != None
+                (k, v) for k, v in list(kwargs.items()) if v is not None
             )  # remove None values
             config.keychain.set_service(name, ServiceConfig(serv_conf), project)
             if project:
@@ -707,7 +709,7 @@ def org_connect(config, org_name, sandbox, login_url, default, global_org):
 
     try:
         connected_app = config.keychain.get_service("connected_app")
-    except ServiceNotConfigured as e:
+    except ServiceNotConfigured:
         raise ServiceNotConfigured(
             "Connected App is required but not configured. "
             + "Configure the Connected App service:\n"
@@ -731,7 +733,7 @@ def org_connect(config, org_name, sandbox, login_url, default, global_org):
     config.keychain.set_org(org_config, global_org)
 
     if default:
-        org = config.keychain.set_default_org(org_name)
+        config.keychain.set_default_org(org_name)
         click.echo("{} is now the default org".format(org_name))
 
 
@@ -900,7 +902,7 @@ def org_scratch(config, config_name, org_name, default, devhub, days, no_passwor
     )
 
     if default:
-        org = config.keychain.set_default_org(org_name)
+        config.keychain.set_default_org(org_name)
         click.echo("{} is now the default org".format(org_name))
 
 
@@ -1148,11 +1150,11 @@ def flow_run(config, flow_name, org, delete_org, debug, o, skip, no_prompt):
         raise click.UsageError("--delete-org can only be used with a scratch org")
 
     # Parse command line options
-    options = {}
+    options = defaultdict(dict)
     if o:
         for key, value in o:
             task_name, option_name = key.split("__")
-            options[key] = value
+            options[task_name][option_name] = value
 
     # Create the flow and handle initialization exceptions
     try:

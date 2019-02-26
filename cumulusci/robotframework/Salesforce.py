@@ -356,7 +356,7 @@ class Salesforce(object):
         """ Deletes a Saleforce object by id and returns the dict result """
         self.builtin.log("Deleting {} with Id {}".format(obj_name, obj_id))
         obj_class = getattr(self.cumulusci.sf, obj_name)
-        res = obj_class.delete(obj_id)
+        obj_class.delete(obj_id)
         self.remove_session_record(obj_name, obj_id)
 
     def salesforce_get(self, obj_name, obj_id):

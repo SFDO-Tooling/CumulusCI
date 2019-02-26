@@ -3,10 +3,8 @@ from future import standard_library
 standard_library.install_aliases()
 from builtins import zip
 from contextlib import contextmanager
-import csv
 import datetime
 import io
-import itertools
 import os
 import re
 import time
@@ -313,7 +311,7 @@ class LoadData(BulkJobTaskMixin, MappingDatabaseMixin, BaseSalesforceApiTask):
             "required": False,
         },
         "sql_path": {
-            "description": "If specified, a database will be created from a sql script at the provided path"
+            "description": "If specified, a database will be created from an SQL script at the provided path"
         },
         "relative_days_offset": {
             "description": "By default, relative_date fields will use the current datetime.  Use this option to offset the current date by days using either a postive or negative float or integer value."
@@ -636,7 +634,7 @@ class QueryData(BulkJobTaskMixin, MappingDatabaseMixin, BaseSalesforceApiTask):
             "required": True,
         },
         "sql_path": {
-            "description": "If set, a SQL script will be generated at the path provided "
+            "description": "If set, an SQL script will be generated at the path provided "
             + "This is useful for keeping data in the repository and allowing diffs."
         },
         "relative_days_offset": {
@@ -753,8 +751,11 @@ class QueryData(BulkJobTaskMixin, MappingDatabaseMixin, BaseSalesforceApiTask):
                 return
             if sf:
                 column = mapping.get("fields", {}).get(sf)
+<<<<<<< HEAD
                 if not mapping["oid_as_pk"] and sf == "Id":
                     continue
+=======
+>>>>>>> master
                 if not column:
                     lookup = mapping.get("lookups", {}).get(sf, {})
                     if lookup:
@@ -839,6 +840,66 @@ class QueryData(BulkJobTaskMixin, MappingDatabaseMixin, BaseSalesforceApiTask):
                 self.session.bulk_update_mappings(model, mappings)
         self.session.commit()
 
+<<<<<<< HEAD
+=======
+    def _create_tables(self):
+        for mapping in self.mappings.values():
+            self._create_table(mapping)
+        self.metadata.create_all()
+
+    def _create_table(self, mapping):
+        model_name = "{}Model".format(mapping["table"])
+        mapper_kwargs = {}
+        table_kwargs = {}
+        self.models[mapping["table"]] = type(model_name, (object,), {})
+
+        # Provide support for legacy mappings which used the OID as the pk but
+        # default to using an autoincrementing int pk and a separate sf_id column
+        fields = []
+        mapping["oid_as_pk"] = bool(mapping.get("fields", {}).get("Id"))
+        if mapping["oid_as_pk"]:
+            id_column = mapping["fields"]["Id"]
+            fields.append(Column(id_column, Unicode(255), primary_key=True))
+        else:
+            fields.append(Column("id", Integer(), primary_key=True, autoincrement=True))
+        for field in self._fields_for_mapping(mapping):
+            if mapping["oid_as_pk"] and field["sf"] == "Id":
+                continue
+            fields.append(Column(field["db"], Unicode(255)))
+        if "record_type" in mapping:
+            fields.append(Column("record_type", Unicode(255)))
+        t = Table(mapping["table"], self.metadata, *fields, **table_kwargs)
+        if t.exists():
+            raise BulkDataException("Table already exists: {}".format(mapping["table"]))
+
+        if not mapping["oid_as_pk"]:
+            mapping["sf_id_table"] = mapping["table"] + "_sf_id"
+            # If multiple mappings point to the same table, don't recreate the table
+            if mapping["sf_id_table"] not in self.models:
+                sf_id_model_name = "{}Model".format(mapping["sf_id_table"])
+                self.models[mapping["sf_id_table"]] = type(
+                    sf_id_model_name, (object,), {}
+                )
+                sf_id_fields = [
+                    Column("id", Integer(), primary_key=True, autoincrement=True),
+                    Column("sf_id", Unicode(24)),
+                ]
+                id_t = Table(mapping["sf_id_table"], self.metadata, *sf_id_fields)
+                mapper(self.models[mapping["sf_id_table"]], id_t)
+
+        mapper(self.models[mapping["table"]], t, **mapper_kwargs)
+
+    def _fields_for_mapping(self, mapping):
+        fields = []
+        for sf_field, db_field in mapping.get("fields", {}).items():
+            fields.append({"sf": sf_field, "db": db_field})
+        for sf_field, lookup in mapping.get("lookups", {}).items():
+            fields.append(
+                {"sf": sf_field, "db": get_lookup_key_field(lookup, sf_field)}
+            )
+        return fields
+
+>>>>>>> master
     def _drop_sf_id_columns(self):
         for mapping in self.mappings.values():
             if mapping.get("oid_as_pk"):
