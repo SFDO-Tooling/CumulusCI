@@ -88,7 +88,7 @@ class RobotDoc(BaseTask):
         """Generate the html. `libraries` is a list of LibraryDocumentation objects"""
 
         title = self.options.get("title", "Keyword Documentation")
-        date = time.strftime("%A %B %-d, %-I:%M %p")
+        date = time.strftime("%A %B %d, %I:%M %p")
         cci_version = cumulusci.__version__
 
         stylesheet_path = os.path.join(os.path.dirname(__file__), "stylesheet.css")
