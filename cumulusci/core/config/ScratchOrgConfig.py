@@ -283,9 +283,10 @@ class ScratchOrgConfig(OrgConfig):
             message = "Failed to delete scratch org: \n{}".format("".join(stdout))
             raise ScratchOrgException(message)
 
-        # Flag that this org has been created
+        # Flag that this org has been deleted
         self.config["created"] = False
         self.config["username"] = None
+        self.config["date_created"] = None
 
     def force_refresh_oauth_token(self):
         # Call force:org:display and parse output to get instance_url and
