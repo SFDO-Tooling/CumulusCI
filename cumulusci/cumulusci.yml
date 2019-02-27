@@ -14,6 +14,14 @@ tasks:
         description: commit local ApexDocs to GitHub branch
         class_path: cumulusci.tasks.github.CommitApexDocs
         group: Release Management
+    connected_app:
+        description: Creates the Connected App needed to use persistent orgs in the CumulusCI keychain
+        class_path: cumulusci.tasks.connectedapp.CreateConnectedApp
+        group: Setup
+        options:
+            label: CumulusCI
+            connect: True
+            overwrite: False
     create_package:
         description: Creates a package in the target org with the default package name for the project
         class_path: cumulusci.tasks.salesforce.CreatePackage
@@ -274,6 +282,7 @@ tasks:
             apex: 'for (CronTrigger t : [SELECT Id FROM CronTrigger]) { System.abortJob(t.Id); }'
         group: Salesforce
     update_admin_profile:
+        name: Update Admin Profile
         description: Retrieves, edits, and redeploys the Admin.profile with full FLS perms for all objects/fields
         class_path: cumulusci.tasks.salesforce.UpdateAdminProfile
         group: Salesforce Metadata
@@ -497,6 +506,16 @@ flows:
             3:
                 flow: config_dev
 
+    dev_org_beta_deps:
+        description: Set up an org as a development environment for unmanaged metadata based on the latest dependencies (including betas).
+        steps:
+            1:
+                flow: beta_dependencies
+            2:
+                flow: deploy_unmanaged
+            3:
+                flow: config_dev
+
     dev_org_namespaced:
         description: Set up a namespaced scratch org as a development environment for unmanaged metadata
         steps:
@@ -553,6 +572,16 @@ flows:
                 task: install_managed
             3:
                 flow: config_managed
+
+    install_prod_no_config:
+        description: Install but do not configure the latest production version
+        steps:
+            1:
+                flow: dependencies
+            2:
+                task: install_managed
+            3:
+                task: deploy_post
 
     release_beta:
         description: Upload and release a beta version of the metadata currently in packaging
@@ -662,6 +691,15 @@ services:
         required: True
       token:
         description: Your API token to the MetaCI site (get from SITE_URL/api/token)
+        required: True
+  metadeploy:
+    description: Connect with a MetaDeploy site to publish installers from this repository
+    attributes:
+      url:
+        description: The main url for your MetaDeploy instance.
+        required: True
+      token:
+        description: Your API token to the MetaDeploy site (get from SITE_URL/admin/authtoken/token)
         required: True
   mrbelvedere:
     description: Configure connection for mrbelvedere tasks, e.g. MrbelvederePublish

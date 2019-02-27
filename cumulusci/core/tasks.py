@@ -72,21 +72,16 @@ class BaseTask(object):
         # the tasks stepnumber in the flow
         self.stepnum = stepnum
 
-        if self.salesforce_task and not self.org_config:
-            raise TaskRequiresSalesforceOrg(
-                "This task requires a salesforce org. "
-                "Use org default <name> to set a default org "
-                "or pass the org name with the --org option"
-            )
         self._init_logger()
         self._init_options(kwargs)
         self._validate_options()
-        self._update_credentials()
-        self._init_task()
 
     def _init_logger(self):
         """ Initializes self.logger """
-        self.logger = logging.getLogger(__name__)
+        if self.flow:
+            self.logger = self.flow.logger.getChild(self.__class__.__name__)
+        else:
+            self.logger = logging.getLogger(__name__)
 
     def _init_options(self, kwargs):
         """ Initializes self.options """
@@ -131,6 +126,15 @@ class BaseTask(object):
         # If sentry is configured, initialize sentry for error capture
         self.project_config.init_sentry()
 
+        if self.salesforce_task and not self.org_config:
+            raise TaskRequiresSalesforceOrg(
+                "This task requires a salesforce org. "
+                "Use org default <name> to set a default org "
+                "or pass the org name with the --org option"
+            )
+        self._update_credentials()
+        self._init_task()
+
         with stacked_task(self):
             try:
                 self._log_begin()
@@ -147,7 +151,7 @@ class BaseTask(object):
             tags = {"task class": self.__class__.__name__}
             if self.org_config:
                 tags["org username"] = self.org_config.username
-                tags["scratch org"] = self.org_config.scratch == True
+                tags["scratch org"] = self.org_config.scratch is True
             for key, value in list(self.options.items()):
                 tags["option_" + key] = value
             self.project_config.sentry.tags_context(tags)
@@ -223,3 +227,16 @@ class BaseTask(object):
             self.logger.info(
                 "Increased polling interval to %d seconds", self.poll_interval_s
             )
+
+    def freeze(self, step):
+        return [
+            {
+                "name": self.task_config.name or self.name,
+                "kind": "other",
+                "is_required": True,
+                "path": step.path,
+                "step_num": str(step.step_num),
+                "task_class": self.task_config.class_path,
+                "task_config": {"options": self.options},
+            }
+        ]

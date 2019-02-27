@@ -7,6 +7,15 @@ This tutorial is for macOS. Linux and Windows are not yet officially supported b
 Part 1: Installing CumulusCI
 ============================
 
+On macOS and Linux, the easiest way to install CumulusCI is using `homebrew <https://docs.brew.sh/>`_  and `linuxbrew <https://linuxbrew.sh/>`_, respectively:
+
+.. code-block:: console
+
+    $ brew tap SFDO-Tooling/homebrew-sfdo
+    $ brew install cumulusci
+
+The rest of this tutorial describes installing CumulusCI via pip.
+
 Install Requirements
 --------------------
 
@@ -88,17 +97,6 @@ If you want to use our example project, fork our CumulusCI-Test repo:
     $ git clone https://github.com/YOUR_GITHUB_FORK_USER/CumulusCI-Test
 
 If you are using the CumulusCI-Test repo with a Developer Edition Salesforce org, you will need to enable Chatter in the org if it is not already enabled.  With Salesforce DX Scratch Orgs, this is handled for you.
-
-Keychain Key
-------------
-
-The cci command stores all credentials in AES encrypted files under the ~/.cumulusci folder (macOS). To use the CLI, you must set the environment variable `CUMULUSCI_KEY` to a 16 character string which is your password to access your keychain. You can use Last Pass to generate a key for you. Do not forget this password!:
-
-.. code-block:: console
-
-    $ export CUMULUSCI_KEY=0a2b4c6d8e0f2g4h  # Must be 16 characters long
-
-For Windows, go to Control Panel -> System and Security -> System -> Advanced System Settings and click the Environment Variables button. Create a new user variable and system variable with CUMULUSCI_KEY as the Name and your generated key as the Value.
 
 Project Initialization
 ----------------------
@@ -227,40 +225,6 @@ The project keychain in CumulusCI allows you to store credentials to persistent 
 
 CumulusCI's Project Keychain is aware of your local repository and each repository configured for CumulusCI gets its own project keychain.  This means you can name your dev org for ProjectA `dev` and your dev org for ProjectB `dev` instead of `ProjectA_dev` and `ProjectB_dev`.  When you change directories between ProjectA and ProjectB's local git repositories, CumulusCI automatically switches your project keychain for you.  This allows you to keep your org names short, easy to read, and most important, easy to type.
 
-Creating a Connected App
-------------------------
-
-First, you will need to create a Salesforce Connected App with the following steps:
-
-* In a Salesforce Org, go to Setup -> Create -> Apps
-  * In Lightning, go to Setup -> Apps -> App Manager
-* Click "New" under Connected Apps or in Lightning "New Connected App"
-
-  * Enter a unique value for the Name and API Name field
-  * Enter a Contact Email
-  * Check "Enable OAuth Settings"
-  * Set the Callback URL to http://localhost:8080/callback
-  * Enable the scopes: full, refresh_token, and web
-  * Save the Connected App
-
-* Click the Manage button, then click Edit
-* Record the client_id (Consumer Key) and the client_secret (Consumer Secret)
-
-Configuring the Project's Connected App
----------------------------------------
-
-Configure the Connected App as a service:
-
-.. code-block:: console
-
-    $ cci service connect connected_app
-    Callback url: <input>
-    Client id: <input>
-    Client secret: <input>
-    connected_app is now configured for global use
-
-Configuring the Connected App is a one time operation. Once configured, you can start connecting Salesforce Orgs to your project's keychain.
-
 Using Salesforce DX Scratch Orgs
 --------------------------------
 
@@ -375,6 +339,57 @@ There may be times when you need to import an existing scratch org that wasn't c
     Imported scratch org: 00D...........0, username: test-...@example.com
 
 You can hop into a browser logged into any org in your keychain with `cci org browser <org_name>`.
+
+Creating a Connected App
+------------------------
+
+In order to connect persistent orgs such as a Developer Edition, Enterprise Edition, or Sandbox org to CumulusCI, you need to have a Connected App configured in a persistent Salesforce org.  You have a choice of whether to create the Connected App from the command line or in Salesforce Setup.
+
+Create With CumulusCI
+^^^^^^^^^^^^^^^^^^^^^
+
+CumulusCI includes a task to easily deploy the Salesforce Connected App to any org in your sdfx keychain.  By default, this will deploy to the org configured as the defaultdevhubusername.
+
+.. code-block:: console
+
+    $ cci task run connected_app
+
+This command will also configure CumulusCI's connected_app service in the keychain for you.  If you want to see the information for the connected app, you can view it with:
+
+.. code-block:: console
+
+    $ cci service info connected_app
+
+Creating Manually
+^^^^^^^^^^^^^^^^^
+
+If you would rather create the Salesforce Connected App manually, use the following steps:
+
+* In a Salesforce Org, go to Setup -> Create -> Apps
+  * In Lightning, go to Setup -> Apps -> App Manager
+* Click "New" under Connected Apps or in Lightning "New Connected App"
+
+  * Enter a unique value for the Name and API Name field
+  * Enter a Contact Email
+  * Check "Enable OAuth Settings"
+  * Set the Callback URL to http://localhost:8080/callback
+  * Enable the scopes: full, refresh_token, and web
+  * Save the Connected App
+
+* Click the Manage button, then click Edit
+* Record the client_id (Consumer Key) and the client_secret (Consumer Secret)
+
+Configure the Connected App as a service:
+
+.. code-block:: console
+
+    $ cci service connect connected_app
+    Callback url: <input>
+    Client id: <input>
+    Client secret: <input>
+    connected_app is now configured for global use
+
+Configuring the Connected App is a one time operation. Once configured, you can start connecting Salesforce Orgs to your project's keychain.
 
 
 Connecting a Packaging Org

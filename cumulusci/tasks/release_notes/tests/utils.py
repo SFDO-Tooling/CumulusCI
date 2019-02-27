@@ -52,19 +52,13 @@ class MockUtil(GithubApiTestMixin):
             status=http.client.OK,
         )
 
-    def mock_list_releases(self, tag=None, body=None):
-        if tag == None:
-            tag = "v1.0"
-        if body == None:
-            body = "Test release body"
+    def mock_get_release(self, tag, body):
         responses.add(
             method=responses.GET,
-            url="{}/releases".format(self.repo_url),
-            json=[
-                self._get_expected_release(
-                    tag, url="{}/releases/1".format(self.repo_url), body=body
-                )
-            ],
+            url="{}/releases/tags/{}".format(self.repo_url, tag),
+            json=self._get_expected_release(
+                tag, url="{}/releases/1".format(self.repo_url), body=body
+            ),
             status=http.client.OK,
         )
 

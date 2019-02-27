@@ -1,4 +1,3 @@
-import io
 import mock
 import os
 import unittest
@@ -19,8 +18,12 @@ class TestSOQLQuery(unittest.TestCase):
                     "result_file": "results.csv",
                 },
             )
-            task.bulk = mock.Mock()
-            task.bulk.get_batch_result_iter.return_value = ["Id", "ID"]
+
+            def _init_class():
+                task.bulk = mock.Mock()
+                task.bulk.get_batch_result_iter.return_value = ["Id", "ID"]
+
+            task._init_class = _init_class
             task()
             task.bulk.query.assert_called_once()
             task.bulk.wait_for_batch.assert_called_once()

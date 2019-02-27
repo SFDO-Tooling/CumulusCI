@@ -2,6 +2,82 @@
 History
 =======
 
+2.3.2 (2019-02-19)
+------------------
+
+* Mapping enhancements for bulk ``QueryData`` and ``LoadData`` tasks
+  
+  * The mapping yaml file no longer requires using ``Id: sf_id`` as a field mapping.  If not provided, ``QueryData`` and ``LoadData`` will use local database ids instead of Saleforce OIDs for storing lookup relationships.  Previous mappings which specify the ``Id: sf_id`` mapping will continue to work as before using the Salesforce OID as the mapping value.
+  * The mapping yaml file's ``lookups:`` section now handles defaults to allow simpler lookup mappings.  The only key required is now ``table``.  If the ``key_field`` is provided it will be used.
+
+* The ``sql_path`` option on ``QueryData`` can be used to provide the file path where a SQL script should be written.  If this option is used, a sqlite in-memory database is used and discarded.  This is useful for storing data sets in a Github repository and allowing diffs of the dataset to be visible when reviewing Pull Requests
+  
+  * When using this option, it is best to make sure your mapping yaml file does not provide a field mapping for the ``Id`` field.  This will help avoid merge conflicts if querying data from different orgs such as scratch orgs.
+
+* The `sql_path` option on ``LoadData`` can be used to provide the file path where a SQL script file should be read and used to load an in-memory sqlite database for the load operation.
+
+2.3.1 (2019-02-15)
+------------------
+
+* Fixed a bug that caused the ``cci`` command to check for a newer version on every run, rather than occasionally. Also we now detect whether CumulusCI was installed using Homebrew and recommend an upgrade command accordingly.
+* CumulusCI now automatically generates its own keychain key and stores it in the system keychain (using the Python `keyring` library). This means that it is no longer necessary to specify a CUMULUSCI_KEY as an environment variable. (However, the environment variable will still be preferred if it is there, and it will be migrated to the system keychain.)
+* New task ``connected_app`` makes it easier to deploy and configure the Connected App needed for CumulusCI's keychain to work with persistent orgs.  The connected app is deployed using ``sfdx`` to an org in the ``sfdx`` keychain and defaults to the ``defaultdevhubusername``.
+* The ``robot`` task gives a more helpful error message if you forget to specify an org.
+* Updates to the task for publishing to MetaDeploy:
+
+  * Dependency installation steps are now named using the package name and version.
+  * The task options have been revised to match changes in the MetaDeploy API. An optional ``plan_template_id`` is now accepted. ``preflight_message`` is now named ``preflight_message_additional`` and is optional. ``post_install_message`` is now named ``post_install_message_additional`` and is optional.
+
+2.3.0 (2019-02-04)
+------------------
+
+Changes:
+
+* When installing a managed package dependency, pre & post metadata bundles are now fetched from the git commit corresponding to the most recent release of the managed package, instead of master.
+* Improvements to the task for publishing a release to MetaDeploy:
+  * It can now publish a tag even if it's a different commit than what is currently checked out in the working directory.
+  * It now pins managed deployments of metadata bundles to the git commit corresponding to the most recent release of the managed package.
+
+Issues Closed:
+
+* #962: ``cumulusci.utils.findReplace`` uses wrong file encoding in Python 3
+* #967: Allow ``cci service`` commands to be run from outside a project repository
+
+2.3.0b1 (2019-01-28)
+--------------------
+
+Breaking Changes:
+
+* We refactored the code for running flows. The full list of steps to run is now calculated from nested flow configuration when the flow is initialized instead of during runtime. Your existing flows should continue to run as before, but if you're interacting with CumulusCI at the Python API level, you'll need to use the ``FlowCoordinator`` instead of ``BaseFlow``.
+* Tasks are now expected to have no side effects when they are instantiated. If tasks need to set up resources, do that in ``_init_task`` instead of ``__init__`` or ``_init_options`` to make sure it doesn't happen until the task is actually being run.
+
+Changes:
+
+* There is now a ``dev_org_beta_deps`` flow which sets up an org in the same way as ``dev_org``, but installs the latest beta versions of managed package dependencies.
+* The ``github_release`` task now records the release dependencies as JSON in the release's tag message.
+* Looking up the latest release from GitHub is now done using a single HTTP request rather than listing all releases.
+* We added S-Controls to the list of metadata types that the ``uninstall_packaged_incremental`` task will delete.
+* Salesforce Robot Framework library: The ``Get Current Record Id`` keyword now parses the Id correctly when prefixed with ``%2F``, which apparently happens.
+* The ``push_failure_report`` task now avoids an error when querying for info about lots of subscriber orgs.
+
+Issues Closed:
+
+* #911: Fix UnicodeDecodeError when parsing XML retrieved from the Metadata API.
+
+2.2.6 (2019-01-03)
+------------------
+
+Changes:
+
+* Added support for more metadata types: Group, SharingSet, SharingCriteriaRule, SharingOwnerRule, and SharingTerritoryRule.
+* Release process: We now have tools in place to release cumulusci so that it can be installed using Homebrew or Linuxbrew.
+
+Issues Closed:
+
+* Fixed an issue where tasks using the Salesforce REST API could build a wrong URL with an extra slash after the instance URL.
+* Fixed an issue where overriding a flow step to set flow: None did not work.
+* Robot Framework: Added an automatic retry to work around an issue with an intermittent ConnectionResetError when connecting to headless Chrome in Python 3.
+
 2.2.5 (2018-12-26)
 ------------------
 

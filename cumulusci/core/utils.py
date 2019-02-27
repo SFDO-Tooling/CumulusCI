@@ -12,6 +12,7 @@ from past.builtins import basestring
 from future.utils import native_str
 
 from datetime import datetime
+import copy
 import pytz
 import time
 import yaml
@@ -82,8 +83,8 @@ OrderedLoader.add_constructor(
 
 
 def ordered_yaml_load(stream,):
-    """ Load YAML file with OrderedDict, needed for Py2 
-    
+    """ Load YAML file with OrderedDict, needed for Py2
+
     code adapted from: https://stackoverflow.com/a/21912744/5042831"""
 
     return yaml.load(stream, OrderedLoader)
@@ -130,7 +131,7 @@ def dictmerge(a, b, name=None):
                     if key in a:
                         a[key] = dictmerge(a[key], b[key], name)
                     else:
-                        a[key] = b[key]
+                        a[key] = copy.copy(b[key])
             else:
                 raise TypeError(
                     'Cannot merge non-dict of type "{}" into dict "{}"'.format(

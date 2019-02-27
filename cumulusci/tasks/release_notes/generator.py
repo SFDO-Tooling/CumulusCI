@@ -1,12 +1,4 @@
-import re
-import os
-import requests
-import json
-
-from datetime import datetime
-from distutils.version import LooseVersion
-
-from cumulusci.core.exceptions import GithubApiNotFoundError
+import github3.exceptions
 
 from cumulusci.core.utils import import_class
 from cumulusci.tasks.release_notes.exceptions import CumulusCIException
@@ -121,10 +113,6 @@ class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator):
 
     def __call__(self):
         release = self._get_release()
-        if not release:
-            raise CumulusCIException(
-                "Release not found for tag: {}".format(self.current_tag)
-            )
         content = super(GithubReleaseNotesGenerator, self).__call__()
         content = self._update_release_content(release, content)
         if self.do_publish:
@@ -141,9 +129,12 @@ class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator):
 
     def _get_release(self):
         repo = self.get_repo()
-        for release in repo.releases():
-            if release.tag_name == self.current_tag:
-                return release
+        try:
+            return repo.release_from_tag(self.current_tag)
+        except github3.exceptions.NotFoundError:
+            raise CumulusCIException(
+                "Release not found for tag: {}".format(self.current_tag)
+            )
 
     def _update_release_content(self, release, content):
         """Merge existing and new release content."""

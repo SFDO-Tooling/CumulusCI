@@ -3,22 +3,20 @@ import mock
 import unittest
 import zipfile
 
-from cumulusci.core.config import OrgConfig
 from cumulusci.core.exceptions import TaskOptionsError
+from cumulusci.core.flowrunner import StepSpec
 from cumulusci.tasks.salesforce import UpdateDependencies
 from cumulusci.tests.util import create_project_config
 from .util import create_task
 
 
 class TestUpdateDependencies(unittest.TestCase):
-    maxDiff = None
-
     @mock.patch(
         "cumulusci.salesforce_api.metadata.ApiRetrieveInstalledPackages.__call__"
     )
     def test_run_task(self, ApiRetrieveInstalledPackages):
         project_config = create_project_config()
-        repo = mock.Mock()
+        project_config.get_github_api = mock.Mock()
         project_config.config["project"]["dependencies"] = [
             {
                 "zip_url": "http://zipurl",
@@ -31,7 +29,12 @@ class TestUpdateDependencies(unittest.TestCase):
                     {"namespace": "samedep", "version": "1.0"},
                     {"namespace": "downgradeddep", "version": "1.0"},
                     {"namespace": "newdep", "version": "1.0"},
-                    {"repo": repo, "subfolder": "subfolder", "ref": "ref"},
+                    {
+                        "repo_owner": "TestOwner",
+                        "repo_name": "TestRepo",
+                        "subfolder": "subfolder",
+                        "ref": "ref",
+                    },
                 ],
             },
             {
@@ -53,32 +56,32 @@ class TestUpdateDependencies(unittest.TestCase):
         }
         task.api_class = mock.Mock()
         zf = zipfile.ZipFile(io.BytesIO(), "w")
-        try:
-            UD_globals = UpdateDependencies._install_dependency.__globals__
-        except AttributeError:  # Python 2
-            UD_globals = UpdateDependencies._install_dependency.__func__.__globals__
-        download_extract_zip = UD_globals["download_extract_zip"]
-        download_extract_github = UD_globals["download_extract_github"]
-        UD_globals["download_extract_zip"] = mock.Mock(return_value=zf)
-        UD_globals["download_extract_github"] = mock.Mock(return_value=zf)
-        try:
-            task()
-        finally:
-            UD_globals["download_extract_zip"] = download_extract_zip
-            UD_globals["download_extract_github"] = download_extract_github
+        task._download_extract_github = mock.Mock(return_value=zf)
+        task._download_extract_zip = mock.Mock(return_value=zf)
+        task()
         self.assertEqual(
             [
                 {"version": "1.1", "namespace": "upgradeddep"},
                 {"version": "1.0", "namespace": "downgradeddep"},
                 {"version": "1.0", "namespace": "newdep"},
-                {"repo": repo, "subfolder": "subfolder", "ref": "ref"},
+                {
+                    "repo_owner": "TestOwner",
+                    "repo_name": "TestRepo",
+                    "subfolder": "subfolder",
+                    "ref": "ref",
+                },
                 {
                     "dependencies": [
                         {"version": "1.1", "namespace": "upgradeddep"},
                         {"version": "1.0", "namespace": "samedep"},
                         {"version": "1.0", "namespace": "downgradeddep"},
                         {"version": "1.0", "namespace": "newdep"},
-                        {"repo": repo, "subfolder": "subfolder", "ref": "ref"},
+                        {
+                            "repo_owner": "TestOwner",
+                            "repo_name": "TestRepo",
+                            "subfolder": "subfolder",
+                            "ref": "ref",
+                        },
                     ],
                     "zip_url": "http://zipurl",
                     "subfolder": "src",
@@ -125,7 +128,121 @@ class TestUpdateDependencies(unittest.TestCase):
         project_config.config["project"]["dependencies"] = [{"namespace": "foo"}]
         task = create_task(UpdateDependencies, project_config=project_config)
         task.options["include_beta"] = True
-        task.org_config = OrgConfig(None, None)
+        task.org_config = mock.Mock()
 
         with self.assertRaises(TaskOptionsError):
             task()
+
+    def test_run_task__metadata_bundle(self):
+        project_config = create_project_config()
+        project_config.get_github_api = mock.Mock()
+        task = create_task(
+            UpdateDependencies,
+            {
+                "dependencies": [
+                    {
+                        "repo_owner": "SFDO-Tooling",
+                        "repo_name": "CumulusCI-Test",
+                        "ref": "abcdef",
+                        "subfolder": "src",
+                        "namespace_tokenize": "ns",
+                    }
+                ]
+            },
+            project_config=project_config,
+        )
+        zf = zipfile.ZipFile(io.BytesIO(), "w")
+        task._download_extract_github = mock.Mock(return_value=zf)
+        api = mock.Mock()
+        task.api_class = mock.Mock(return_value=api)
+        task()
+        self.assertEqual(
+            [
+                {
+                    "repo_owner": "SFDO-Tooling",
+                    "repo_name": "CumulusCI-Test",
+                    "ref": "abcdef",
+                    "subfolder": "src",
+                    "namespace_tokenize": "ns",
+                }
+            ],
+            task.install_queue,
+        )
+        api.assert_called_once()
+
+    def test_freeze(self):
+        task = create_task(
+            UpdateDependencies,
+            {
+                "dependencies": [
+                    {
+                        "name": "Install Test Product",
+                        "namespace": "ns",
+                        "version": "1.0",
+                    },
+                    {
+                        "repo_owner": "SFDO-Tooling",
+                        "repo_name": "CumulusCI-Test",
+                        "ref": "abcdef",
+                        "subfolder": "src",
+                    },
+                ]
+            },
+        )
+        step = StepSpec(1, "test_task", task.task_config, None)
+        steps = task.freeze(step)
+        self.assertEqual(
+            [
+                {
+                    "is_required": True,
+                    "kind": "managed",
+                    "name": "Install Test Product",
+                    "path": "test_task.1",
+                    "step_num": "1.1",
+                    "task_class": None,
+                    "task_config": {
+                        "options": {
+                            "dependencies": [{"namespace": "ns", "version": "1.0"}],
+                            "include_beta": False,
+                            "namespaced_org": False,
+                            "purge_on_delete": True,
+                        }
+                    },
+                },
+                {
+                    "is_required": True,
+                    "kind": "metadata",
+                    "name": "Deploy src",
+                    "path": "test_task.2",
+                    "step_num": "1.2",
+                    "task_class": None,
+                    "task_config": {
+                        "options": {
+                            "dependencies": [
+                                {
+                                    "ref": "abcdef",
+                                    "repo_name": "CumulusCI-Test",
+                                    "repo_owner": "SFDO-Tooling",
+                                    "subfolder": "src",
+                                }
+                            ],
+                            "include_beta": False,
+                            "namespaced_org": False,
+                            "purge_on_delete": True,
+                        }
+                    },
+                },
+            ],
+            steps,
+        )
+
+    def test_flatten(self):
+        dependencies = [
+            {"namespace": "npe02", "dependencies": [{"namespace": "npe01"}]},
+            {"namespace": "npe01"},
+        ]
+        task = create_task(UpdateDependencies)
+        result = task._flatten(dependencies)
+        self.assertEqual([{"namespace": "npe01"}, {"namespace": "npe02"}], result)
+
+    maxDiff = None

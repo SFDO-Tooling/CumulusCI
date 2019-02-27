@@ -3,18 +3,19 @@ from future import standard_library
 from future.utils import text_to_native_str
 
 standard_library.install_aliases()
-from builtins import str
-from contextlib import contextmanager
-import difflib
 import fnmatch
+import io
+import math
 import os
 import re
-import io
 import shutil
-import zipfile
+import sys
 import tempfile
 import textwrap
-from datetime import timedelta, datetime
+import zipfile
+from builtins import str
+from contextlib import contextmanager
+from datetime import datetime
 
 import requests
 
@@ -27,6 +28,9 @@ META_XML_CLEAN_DIRS = ("classes/", "triggers/", "pages/", "aura/", "components/"
 API_DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%f"
 DATETIME_LEN = len("2018-08-07T16:00:56.000")
 UTF8 = text_to_native_str("UTF-8")
+
+BREW_UPDATE_CMD = "brew upgrade cumulusci"
+PIP_UPDATE_CMD = "pip install --upgrade cumulusci"
 
 
 def parse_api_datetime(value):
@@ -45,7 +49,7 @@ def findReplace(find, replace, directory, filePattern, logger=None, max=None):
     for path, dirs, files in os.walk(os.path.abspath(directory)):
         for filename in fnmatch.filter(files, filePattern):
             filepath = os.path.join(path, filename)
-            with open(filepath) as f:
+            with io.open(filepath, encoding="utf-8") as f:
                 s = f.read()
             if max:
                 s_updated = s.replace(find, replace, max)
@@ -54,7 +58,7 @@ def findReplace(find, replace, directory, filePattern, logger=None, max=None):
             if s != s_updated:
                 if logger:
                     logger.info("Updating {}".format(filepath))
-                with open(filepath, "w") as f:
+                with io.open(filepath, "w", encoding="utf-8") as f:
                     f.write(s_updated)
 
 
@@ -63,13 +67,13 @@ def findReplaceRegex(find, replace, directory, filePattern, logger=None):
     for path, dirs, files in os.walk(os.path.abspath(directory)):
         for filename in fnmatch.filter(files, filePattern):
             filepath = os.path.join(path, filename)
-            with open(filepath) as f:
+            with io.open(filepath, encoding="utf-8") as f:
                 s = f.read()
             s_updated = pattern.sub(replace, s)
             if s != s_updated:
                 if logger:
                     logger.info("Updating {}".format(filepath))
-                with open(filepath, "w") as f:
+                with io.open(filepath, "w", encoding="utf-8") as f:
                     f.write(s_updated)
 
 
@@ -148,15 +152,19 @@ def download_extract_zip(url, target=None, subfolder=None, headers=None):
     return zip_file
 
 
-def download_extract_github(github_repo, subfolder, ref=None):
+def download_extract_github(
+    github_api, repo_owner, repo_name, subfolder=None, ref=None
+):
+    github_repo = github_api.repository(repo_owner, repo_name)
     if not ref:
         ref = github_repo.default_branch
     zip_content = io.BytesIO()
     github_repo.archive("zipball", zip_content, ref=ref)
     zip_file = zipfile.ZipFile(zip_content)
-    root_folder = sorted(zip_file.namelist())[0]
-    subfolder_dir = root_folder + subfolder
-    zip_file = zip_subfolder(zip_file, subfolder_dir)
+    path = sorted(zip_file.namelist())[0]
+    if subfolder:
+        path = path + subfolder
+    zip_file = zip_subfolder(zip_file, path)
     return zip_file
 
 
@@ -187,7 +195,7 @@ def zip_inject_namespace(
     namespaced_org=None,
     logger=None,
 ):
-    """ Replaces %%%NAMESPACE%%% for all files and ___NAMESPACE___ in all 
+    """ Replaces %%%NAMESPACE%%% for all files and ___NAMESPACE___ in all
         filenames in the zip with the either '' if no namespace is provided
         or 'namespace__' if provided.
     """
@@ -216,8 +224,6 @@ def zip_inject_namespace(
     namespaced_org_or_c = namespace if namespaced_org else "c"
 
     zip_dest = zipfile.ZipFile(io.BytesIO(), "w", zipfile.ZIP_DEFLATED)
-
-    differ = difflib.Differ()
 
     for name in zip_src.namelist():
         orig_name = str(name)
@@ -275,8 +281,8 @@ def zip_inject_namespace(
 
 
 def zip_strip_namespace(zip_src, namespace, logger=None):
-    """ Given a namespace, strips 'namespace__' from all files and filenames 
-        in the zip 
+    """ Given a namespace, strips 'namespace__' from all files and filenames
+        in the zip
     """
     namespace_prefix = "{}__".format(namespace)
     lightning_namespace = "{}:".format(namespace)
@@ -305,8 +311,8 @@ def zip_strip_namespace(zip_src, namespace, logger=None):
 
 
 def zip_tokenize_namespace(zip_src, namespace, logger=None):
-    """ Given a namespace, replaces 'namespace__' with %%%NAMESPACE%%% for all 
-        files and ___NAMESPACE___ in all filenames in the zip 
+    """ Given a namespace, replaces 'namespace__' with %%%NAMESPACE%%% for all
+        files and ___NAMESPACE___ in all filenames in the zip
     """
     if not namespace:
         return zip_src
@@ -331,7 +337,7 @@ def zip_tokenize_namespace(zip_src, namespace, logger=None):
 
 
 def zip_clean_metaxml(zip_src, logger=None):
-    """ Given a zipfile, cleans all *-meta.xml files in the zip for 
+    """ Given a zipfile, cleans all *-meta.xml files in the zip for
         deployment by stripping all <packageVersions/> elements
     """
     zip_dest = zipfile.ZipFile(io.BytesIO(), "w", zipfile.ZIP_DEFLATED)
@@ -480,3 +486,41 @@ def log_progress(
         if not i % batch_size:
             logger.info(progress_message.format(i))
     logger.info(done_message.format(i))
+
+
+def random_alphanumeric_underscore(length):
+    if sys.version_info[0] >= 3:
+        import secrets
+
+        # Ensure the string is the right length
+        byte_length = math.ceil((length * 3) / 4)
+        return secrets.token_urlsafe(byte_length).replace("-", "_")[:length]
+    else:
+        import random
+        import string
+
+        return "".join(
+            random.SystemRandom().choice(
+                "_" + string.ascii_uppercase + string.ascii_lowercase + string.digits
+            )
+            for _ in range(length)
+        )
+
+
+def get_cci_upgrade_command():
+    homebrew_paths = ["cellar", "linuxbrew"]
+    if any(path in CUMULUSCI_PATH.lower() for path in homebrew_paths):
+        return BREW_UPDATE_CMD
+    else:
+        return PIP_UPDATE_CMD
+
+
+def convert_to_snake_case(content):
+    s1 = re.sub("(.)([A-Z][a-z]+)", r"\1_\2", content)
+    return re.sub("([a-z0-9])([A-Z])", r"\1_\2", s1).lower()
+
+
+def os_friendly_path(path):
+    if os.sep != "/":
+        path = path.replace("/", os.sep)
+    return path

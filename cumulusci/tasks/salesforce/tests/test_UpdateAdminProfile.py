@@ -88,8 +88,6 @@ ADMIN_PROFILE_EXPECTED = """<?xml version='1.0' encoding='utf-8'?>
 
 
 class TestUpdateAdminProfile(unittest.TestCase):
-    maxDiff = None
-
     def test_run_task(self):
         task = create_task(
             UpdateAdminProfile,

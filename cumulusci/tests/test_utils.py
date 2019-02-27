@@ -180,13 +180,15 @@ class TestUtils(unittest.TestCase):
         f.seek(0)
         zipbytes = f.read()
         mock_repo = mock.Mock(default_branch="master")
+        mock_github = mock.Mock()
+        mock_github.repository.return_value = mock_repo
 
         def assign_bytes(archive_type, zip_content, ref=None):
             zip_content.write(zipbytes)
 
         mock_archive = mock.Mock(return_value=True, side_effect=assign_bytes)
         mock_repo.archive = mock_archive
-        zf = utils.download_extract_github(mock_repo, "src")
+        zf = utils.download_extract_github(mock_github, "TestOwner", "TestRepo", "src")
         result = zf.read("test")
         self.assertEqual(b"test", result)
 
@@ -390,6 +392,29 @@ Options:
         for x in utils.log_progress(range(3), logger, batch_size=1):
             pass
         self.assertEqual(4, logger.info.call_count)
+
+    def test_util__sets_homebrew_upgrade_cmd(self):
+        utils.CUMULUSCI_PATH = "/usr/local/Cellar/cumulusci/2.1.2"
+        upgrade_cmd = utils.get_cci_upgrade_command()
+        self.assertEqual(utils.BREW_UPDATE_CMD, upgrade_cmd)
+
+    def test_util__sets_linuxbrew_upgrade_cmd(self):
+        utils.CUMULUSCI_PATH = "/home/linuxbrew/.linuxbrew/cumulusci/2.1.2"
+        upgrade_cmd = utils.get_cci_upgrade_command()
+        self.assertEqual(utils.BREW_UPDATE_CMD, upgrade_cmd)
+
+    def test_util__sets_pip_upgrade_cmd(self):
+        utils.CUMULUSCI_PATH = "/usr/local/pip-path/cumulusci/2.1.2"
+        upgrade_cmd = utils.get_cci_upgrade_command()
+        self.assertEqual(utils.PIP_UPDATE_CMD, upgrade_cmd)
+
+    def test_convert_to_snake_case(self):
+        self.assertEqual("one_two", utils.convert_to_snake_case("OneTwo"))
+        self.assertEqual("one_two", utils.convert_to_snake_case("ONETwo"))
+
+    def test_os_friendly_path(self):
+        with mock.patch("os.sep", "\\"):
+            self.assertEqual("\\", utils.os_friendly_path("/"))
 
 
 class FunTestTask(BaseTask):
