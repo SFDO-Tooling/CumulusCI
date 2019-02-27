@@ -613,8 +613,16 @@ class ConnectServiceCommand(click.MultiCommand):
 
     def get_command(self, ctx, name):
         config = load_config(**self.load_config_kwargs)
-        services = self._get_services_config(config)
-        attributes = services.get(name, {}).get("attributes").items()
+
+        try:
+            attributes = getattr(
+                config.project_config, "services__{0}__attributes".format(name)
+            ).items()
+        except AttributeError:
+            raise click.UsageError(
+                "Sorry, I don't know about the '{0}' service.".format(name)
+            )
+
         params = [self._build_param(attr, cnfg) for attr, cnfg in attributes]
         if not config.is_global_keychain:
             params.append(click.Option(("--project",), is_flag=True))
