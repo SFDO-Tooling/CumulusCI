@@ -332,9 +332,7 @@ test     Test Service  *""",
         ctx = mock.Mock()
         config = mock.MagicMock()
         config.is_global_keychain = False
-        config.project_config.services__test__attributes = {
-            "attr": {"required": False}
-        }
+        config.project_config.services__test__attributes = {"attr": {"required": False}}
 
         with mock.patch("cumulusci.cli.cci.TEST_CONFIG", config):
             cmd = multi_cmd.get_command(ctx, "test")
