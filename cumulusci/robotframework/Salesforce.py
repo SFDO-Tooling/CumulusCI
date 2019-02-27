@@ -3,6 +3,8 @@ import re
 import time
 from robot.libraries.BuiltIn import BuiltIn
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.common.action_chains import ActionChains
+
 from simple_salesforce import SalesforceResourceNotFound
 from cumulusci.robotframework.locators import lex_locators
 from cumulusci.robotframework.utils import selenium_retry
@@ -295,10 +297,35 @@ class Salesforce(object):
         self.selenium.get_webelement(menu_locator).click()
 
     def _populate_field(self, locator, value):
-        self.selenium.set_focus_to_element(locator)
+        # clearing the field in a cross-browser, cross-platform
+        # way is surprisingly difficult. .clear() doesn't work in
+        # all browsers, and sending keyboard shortcuts doesn't work
+        # on all platforms. So, we'll take a belt-and-suspenders
+        # apprach and throw the whole arsenal at the problem.
+
         field = self.selenium.get_webelement(locator)
+
+        # first, force it to have keyboard focus
+        actions = ActionChains(self.selenium.driver)
+        actions.move_to_element(field).click().perform()
+        self.selenium.set_focus_to_element(locator)
+
+        # then, attempt to clear it
+        field.clear()
+        self.selenium.driver.execute_script("arguments[0].value = '';", field)
+
+        # then, select all just in case the field didn't get cleared
         field.send_keys(Keys.HOME + Keys.SHIFT + Keys.END)
-        field.send_keys(value)
+
+        # Give the UI a chance to settle down. The sleep appears
+        # necessary. Without it, this keyword sometimes fails to work
+        # properly. With it, I was able to run 700+ tests without a single
+        # failure.
+        time.sleep(0.25)
+
+        # and finally, send the keys for the values.
+        actions = ActionChains(self.selenium.driver)
+        actions.send_keys_to_element(field, value).perform()
 
     def populate_form(self, **kwargs):
         """Enters multiple values from a mapping into form fields."""
