@@ -16,7 +16,7 @@ from robot.libraries.BuiltIn import RobotNotRunningError
 class RobotLibDoc(BaseTask):
     task_options = {
         "path": {
-            "description": "The path to the robot library to be documented.  Can be a python file or a .robot file.",
+            "description": "The path to the robot library to be documented.  Can be single a python file or a .robot file, or a comma separated list of those files. The order of the files will be preserved in the generated documentation.",
             "required": True,
         },
         "output": {
@@ -54,7 +54,7 @@ class RobotLibDoc(BaseTask):
     def _run_task(self):
         libraries = []
         processed_files = {}
-        for input_file in sorted(self.options["path"]):
+        for input_file in self.options["path"]:
             try:
                 libdoc = DocumentationBuilder(input_file).build(input_file)
                 libraries.append(libdoc)
