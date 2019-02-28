@@ -330,11 +330,9 @@ test     Test Service  *""",
     def test_service_connect(self):
         multi_cmd = cci.ConnectServiceCommand()
         ctx = mock.Mock()
-        config = mock.Mock()
+        config = mock.MagicMock()
         config.is_global_keychain = False
-        config.project_config.services = {
-            "test": {"attributes": {"attr": {"required": False}}}
-        }
+        config.project_config.services__test__attributes = {"attr": {"required": False}}
 
         with mock.patch("cumulusci.cli.cci.TEST_CONFIG", config):
             cmd = multi_cmd.get_command(ctx, "test")
@@ -347,7 +345,7 @@ test     Test Service  *""",
     def test_service_connect_global_keychain(self):
         multi_cmd = cci.ConnectServiceCommand()
         ctx = mock.Mock()
-        config = mock.Mock()
+        config = mock.MagicMock()
         config.is_global_keychain = True
         config.global_config.services = {
             "test": {"attributes": {"attr": {"required": False}}}
@@ -360,6 +358,16 @@ test     Test Service  *""",
         config.keychain.set_service.assert_called_once()
 
         run_click_command(cmd, project=False)
+
+    def test_service_connect_invalid_service(self):
+        multi_cmd = cci.ConnectServiceCommand()
+        ctx = mock.Mock()
+        config = mock.MagicMock()
+        del config.project_config.services__test__attributes
+
+        with mock.patch("cumulusci.cli.cci.TEST_CONFIG", config):
+            with self.assertRaises(click.UsageError):
+                multi_cmd.get_command(ctx, "test")
 
     @mock.patch("click.echo")
     def test_service_info(self, echo):
@@ -923,7 +931,7 @@ test_flow  Test Flow""",
             load_keychain=False,
         )
         config.get_org = mock.Mock(return_value=("test", org_config))
-        DummyTask._run_task = mock.Mock()
+        config.get_flow = mock.Mock()
 
         run_click_command(
             cci.flow_run,
@@ -937,7 +945,9 @@ test_flow  Test Flow""",
             no_prompt=True,
         )
 
-        DummyTask._run_task.assert_called_once()
+        config.get_flow.assert_called_once_with(
+            "test", options={"test_task": {"color": "blue"}}
+        )
         org_config.delete_org.assert_called_once()
 
     def test_flow_run_delete_non_scratch(self,):

@@ -196,13 +196,13 @@ In addition to browser interactions, the Salesforce Library also provides the fo
 * **Salesforce Update**: Updates a record using its type, ID, and field=value syntax
 * **SOQL Query**: Runs a SOQL query and returns a REST API result dictionary
 
-Full Documentation
-------------------
+Keyword Documentation
+=====================
 
-Use the following links to download generated documentation for the Salesforce Library and Resource file:
+Use the following links to download generated documentation for both
+the CumulusCI and Salesforce keywords
 
-* :download:`Salesforce Robot Library <../docs/robot/Salesforce_Library.html>`
-* :download:`Salesforce Robot Resource <../docs/robot/Salesforce_Resource.html>`
+* :download:`CumulusCI Keyword Documentation <../docs/robot/Keywords.html>`
 
 CumulusCI Robot Tasks
 =====================

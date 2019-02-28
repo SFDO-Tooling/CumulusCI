@@ -2,6 +2,23 @@
 History
 =======
 
+2.3.3 (2019-02-28)
+------------------
+
+* Fixed a bug where flow options specified on the command line were not passed to tasks correctly.
+* ``cci service connect`` now shows a more helpful error message if you call it with a service name that CumulusCI doesn't know about. Fixes #752.
+* Deleted scratch orgs will no longer show the number of days since they were created in ``cci org list``. Thanks to @21aslade for the fix.
+* Updates to the MetaDeploy publish task:
+
+  * It is now possible to publish a new plan for an existing version.
+  * It is now possible to specify the AllowedList to which a plan is visible.
+
+* Updates to Robot Framework support:
+
+  * Fixed a bug in the ``robot`` task: it now accepts an option called ``test`` rather than ``tests``, since the latter was ignored by Robot Framework.
+  * Fixed some stability problems with the ``Populate Field`` keyword.
+  * The ``robot_libdoc`` task has been replaced with a new task of the same name that can generate a single HTML document for multiple keyword files by passing a comma-separated list of files to the ``path`` option.
+
 2.3.2 (2019-02-19)
 ------------------
 

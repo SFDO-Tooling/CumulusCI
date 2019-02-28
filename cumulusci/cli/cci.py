@@ -4,6 +4,7 @@ from future import standard_library
 standard_library.install_aliases()
 from past.builtins import basestring
 from builtins import str
+from collections import defaultdict
 from collections import OrderedDict
 import functools
 import json
@@ -612,8 +613,16 @@ class ConnectServiceCommand(click.MultiCommand):
 
     def get_command(self, ctx, name):
         config = load_config(**self.load_config_kwargs)
-        services = self._get_services_config(config)
-        attributes = services.get(name, {}).get("attributes").items()
+
+        try:
+            attributes = getattr(
+                config.project_config, "services__{0}__attributes".format(name)
+            ).items()
+        except AttributeError:
+            raise click.UsageError(
+                "Sorry, I don't know about the '{0}' service.".format(name)
+            )
+
         params = [self._build_param(attr, cnfg) for attr, cnfg in attributes]
         if not config.is_global_keychain:
             params.append(click.Option(("--project",), is_flag=True))
@@ -1149,11 +1158,11 @@ def flow_run(config, flow_name, org, delete_org, debug, o, skip, no_prompt):
         raise click.UsageError("--delete-org can only be used with a scratch org")
 
     # Parse command line options
-    options = {}
+    options = defaultdict(dict)
     if o:
         for key, value in o:
             task_name, option_name = key.split("__")
-            options[key] = value
+            options[task_name][option_name] = value
 
     # Create the flow and handle initialization exceptions
     try:

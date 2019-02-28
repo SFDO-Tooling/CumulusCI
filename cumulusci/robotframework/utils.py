@@ -175,7 +175,7 @@ def selenium_retry(target=None, retry=True):
             return type(
                 cls.__name__,
                 (cls, RetryingSeleniumLibraryMixin),
-                {"retry_selenium": retry},
+                {"retry_selenium": retry, "__doc__": cls.__doc__},
             )
         func = target
 
