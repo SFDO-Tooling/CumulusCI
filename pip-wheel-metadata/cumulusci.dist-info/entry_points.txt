@@ -1,3 +1,0 @@
-[console_scripts]
-cci = cumulusci.cli.cci:main
-
