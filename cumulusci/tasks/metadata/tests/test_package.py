@@ -7,7 +7,6 @@ from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.config import OrgConfig
 from cumulusci.tasks.metadata.package import metadata_sort_key
-from cumulusci.tasks.metadata.package import AuraBundleParser
 from cumulusci.tasks.metadata.package import BaseMetadataParser
 from cumulusci.tasks.metadata.package import BundleParser
 from cumulusci.tasks.metadata.package import BusinessProcessParser
@@ -282,13 +281,6 @@ class TestBusinessProcessParser(unittest.TestCase):
             "BusinessProcess", None, "object", True, "./sf:businessProcesses"
         )
         self.assertTrue(parser.check_delete_excludes("asdf"))
-
-
-class TestAuraBundleParser(unittest.TestCase):
-    def test_parse_item(self):
-        parser = AuraBundleParser("AuraDefinitionBundle", None, None, False)
-        self.assertEqual(["Test"], parser._parse_item("Test"))
-        self.assertEqual([], parser._parse_item(".hidden"))
 
 
 class TestDocumentParser(unittest.TestCase):

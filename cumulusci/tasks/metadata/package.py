@@ -353,13 +353,6 @@ class BusinessProcessParser(MetadataXmlElementParser):
             return True
 
 
-class AuraBundleParser(MetadataFilenameParser):
-    def _parse_item(self, item):
-        if item.startswith("."):
-            return []
-        return [item]
-
-
 class BundleParser(BaseMetadataParser):
     def _parse_item(self, item):
         members = []
