@@ -9,11 +9,11 @@ from cumulusci.core.config import OrgConfig
 from cumulusci.tasks.metadata.package import metadata_sort_key
 from cumulusci.tasks.metadata.package import AuraBundleParser
 from cumulusci.tasks.metadata.package import BaseMetadataParser
+from cumulusci.tasks.metadata.package import BundleParser
 from cumulusci.tasks.metadata.package import BusinessProcessParser
 from cumulusci.tasks.metadata.package import CustomLabelsParser
 from cumulusci.tasks.metadata.package import CustomObjectParser
 from cumulusci.tasks.metadata.package import DocumentParser
-from cumulusci.tasks.metadata.package import LightningComponentBundleParser
 from cumulusci.tasks.metadata.package import MetadataFilenameParser
 from cumulusci.tasks.metadata.package import MetadataFolderParser
 from cumulusci.tasks.metadata.package import MetadataParserMissingError
@@ -170,7 +170,7 @@ class TestMetadataFolderParser(unittest.TestCase):
             self.assertEqual([], parser._parse_item("file"))
 
 
-class TestLightningComponentBundleParser(unittest.TestCase):
+class TestBundleParser(unittest.TestCase):
     def test_parse_item(self):
         with temporary_dir() as path:
             item_path = os.path.join(path, "Test")
@@ -180,18 +180,14 @@ class TestLightningComponentBundleParser(unittest.TestCase):
             # subitems should be ignored
             with open(os.path.join(item_path, "Test.object"), "w"):
                 pass
-            parser = LightningComponentBundleParser(
-                "TestMDT", path, "object", delete=False
-            )
+            parser = BundleParser("TestMDT", path, "object", delete=False)
             self.assertEqual(["Test"], parser._parse_item("Test"))
 
     def test_parse_item__non_directory(self):
         with temporary_dir() as path:
             with open(os.path.join(path, "file"), "w"):
                 pass
-            parser = LightningComponentBundleParser(
-                "TestMDT", path, "object", delete=False
-            )
+            parser = BundleParser("TestMDT", path, "object", delete=False)
             self.assertEqual([], parser._parse_item("file"))
 
 

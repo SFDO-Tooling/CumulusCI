@@ -360,7 +360,7 @@ class AuraBundleParser(MetadataFilenameParser):
         return [item]
 
 
-class LightningComponentBundleParser(BaseMetadataParser):
+class BundleParser(BaseMetadataParser):
     def _parse_item(self, item):
         members = []
         path = self.directory + "/" + item
@@ -376,12 +376,6 @@ class LightningComponentBundleParser(BaseMetadataParser):
         # ignore subitems
 
         return members
-
-    def check_delete_excludes(self, item):
-        return False
-
-    def _parse_subitem(self, item, subitem):
-        return []
 
 
 class DocumentParser(MetadataFolderParser):
