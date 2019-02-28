@@ -12,7 +12,6 @@ from cumulusci.core.tests.utils import MockLoggerMixin
 from cumulusci.tasks.robotframework import Robot
 from cumulusci.tasks.robotframework import RobotLibDoc
 from cumulusci.tasks.robotframework import RobotTestDoc
-from cumulusci.tasks.robotframework import RobotDoc
 from cumulusci.tasks.salesforce.tests.util import create_task
 
 
@@ -25,14 +24,6 @@ class TestRobot(unittest.TestCase):
             task()
 
 
-class TestRobotLibDoc(unittest.TestCase):
-    @mock.patch("cumulusci.tasks.robotframework.robotframework.libdoc")
-    def test_run_task(self, libdoc):
-        task = create_task(RobotLibDoc, {"path": ".", "output": "out"})
-        task()
-        libdoc.assert_called_once_with(".", "out")
-
-
 class TestRobotTestDoc(unittest.TestCase):
     @mock.patch("cumulusci.tasks.robotframework.robotframework.testdoc")
     def test_run_task(self, testdoc):
@@ -41,7 +32,7 @@ class TestRobotTestDoc(unittest.TestCase):
         testdoc.assert_called_once_with(".", "out")
 
 
-class TestRobotDoc(MockLoggerMixin, unittest.TestCase):
+class TestRobotLibDoc(MockLoggerMixin, unittest.TestCase):
     def setUp(self):
         self.tmpdir = tempfile.mkdtemp(dir=".")
         self.task_config = TaskConfig()
@@ -55,62 +46,57 @@ class TestRobotDoc(MockLoggerMixin, unittest.TestCase):
     def test_validate_filenames(self):
         """Verify that we catch bad filenames early"""
         expected = "Unable to find the following input files: 'bogus.py', 'bogus.robot'"
+        output = os.path.join(self.tmpdir, "index.html")
         with pytest.raises(TaskOptionsError, match=expected):
-            create_task(
-                RobotDoc, {"files": "bogus.py,bogus.robot", "outputdir": "docs"}
-            )
+            create_task(RobotLibDoc, {"path": "bogus.py,bogus.robot", "output": output})
 
     def test_task_log(self):
         """Verify that the task prints out the name of the output file"""
-        infile = os.path.join(self.datadir, "TestLibrary.py")
-        outfile = os.path.join(self.tmpdir, "index.html")
-        task = create_task(RobotDoc, {"files": infile, "outputdir": self.tmpdir})
+        path = os.path.join(self.datadir, "TestLibrary.py")
+        output = os.path.join(self.tmpdir, "index.html")
+        task = create_task(RobotLibDoc, {"path": path, "output": output})
         task()
-        assert "created {}".format(outfile) in self.task_log["info"]
-        assert os.path.exists(outfile)
+        assert "created {}".format(output) in self.task_log["info"]
+        assert os.path.exists(output)
 
     def test_comma_separated_list_of_files(self):
         """Verify that we properly parse a comma-separated list of files"""
-        infiles = "{},{}".format(
+        path = "{},{}".format(
             os.path.join(self.datadir, "TestLibrary.py"),
             os.path.join(self.datadir, "TestResource.robot"),
         )
-        outfile = os.path.join(self.tmpdir, "index.html")
-        task = create_task(RobotDoc, {"files": infiles, "outputdir": self.tmpdir})
+        output = os.path.join(self.tmpdir, "index.html")
+        task = create_task(RobotLibDoc, {"path": path, "output": output})
         task()
-        assert os.path.exists(outfile)
+        assert os.path.exists(output)
         assert len(task.result["files"]) == 2
 
     def test_creates_output(self):
-        infile = os.path.join(self.datadir, "TestLibrary.py")
-        outfile = os.path.join(self.tmpdir, "index.html")
-        task = create_task(RobotDoc, {"files": infile, "outputdir": self.tmpdir})
+        path = os.path.join(self.datadir, "TestLibrary.py")
+        output = os.path.join(self.tmpdir, "index.html")
+        task = create_task(RobotLibDoc, {"path": path, "output": output})
         task()
-        assert "created {}".format(outfile) in self.task_log["info"]
-        assert os.path.exists(outfile)
+        assert "created {}".format(output) in self.task_log["info"]
+        assert os.path.exists(output)
 
 
-class TestRobotDocOutput(unittest.TestCase):
+class TestRobotLibDocOutput(unittest.TestCase):
     """Tests for the generated robot keyword documentation"""
 
     def setUp(self):
         self.tmpdir = tempfile.mkdtemp(dir=".")
         self.datadir = os.path.dirname(__file__)
-        infiles = [
+        path = [
             os.path.join(self.datadir, "TestLibrary.py"),
             os.path.join(self.datadir, "TestResource.robot"),
         ]
-        outfile = os.path.join(self.tmpdir, "index.html")
+        output = os.path.join(self.tmpdir, "index.html")
         self.task = create_task(
-            RobotDoc,
-            {
-                "files": infiles,
-                "outputdir": self.tmpdir,
-                "title": "Keyword Documentation, yo.",
-            },
+            RobotLibDoc,
+            {"path": path, "output": output, "title": "Keyword Documentation, yo."},
         )
         self.task()
-        docroot = ET.parse(outfile).getroot()
+        docroot = ET.parse(output).getroot()
         self.html_body = docroot.find("body")
 
     def tearDown(self):

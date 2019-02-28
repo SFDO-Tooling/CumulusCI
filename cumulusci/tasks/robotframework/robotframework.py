@@ -1,7 +1,6 @@
 import sys
 
 from robot import run as robot_run
-from robot.libdoc import libdoc
 from robot.testdoc import testdoc
 
 from cumulusci.core.exceptions import RobotTestFailure
@@ -64,22 +63,6 @@ class Robot(BaseSalesforceTask):
         num_failed = robot_run(self.options["suites"], **options)
         if num_failed:
             raise RobotTestFailure("{} tests failed".format(num_failed))
-
-
-class RobotLibDoc(BaseTask):
-    task_options = {
-        "path": {
-            "description": "The path to the robot library to be documented.  Can be a python file or a .robot file.",
-            "required": True,
-        },
-        "output": {
-            "description": "The output file where the documentation will be written",
-            "required": True,
-        },
-    }
-
-    def _run_task(self):
-        return libdoc(self.options["path"], self.options["output"])
 
 
 class RobotTestDoc(BaseTask):

@@ -13,14 +13,14 @@ from robot.libdocpkg import DocumentationBuilder
 from robot.libraries.BuiltIn import RobotNotRunningError
 
 
-class RobotDoc(BaseTask):
+class RobotLibDoc(BaseTask):
     task_options = {
-        "outputdir": {
-            "description": "The path to a folder where generated files will be placed",
+        "path": {
+            "description": "The path to the robot library to be documented.  Can be a python file or a .robot file.",
             "required": True,
         },
-        "files": {
-            "description": "A list of keyword definition files (eg: .py, .robot, .resource)",
+        "output": {
+            "description": "The output file where the documentation will be written",
             "required": True,
         },
         "title": {
@@ -30,14 +30,12 @@ class RobotDoc(BaseTask):
     }
 
     def _validate_options(self):
-        super(RobotDoc, self)._validate_options()
+        super(RobotLibDoc, self)._validate_options()
 
-        self.options["files"] = process_list_arg(self.options["files"])
-        if not os.path.exists(self.options["outputdir"]):
-            os.mkdir(self.options["outputdir"])
+        self.options["path"] = process_list_arg(self.options["path"])
 
         bad_files = []
-        for input_file in self.options["files"]:
+        for input_file in self.options["path"]:
             if not os.path.exists(input_file):
                 bad_files.append(input_file)
 
@@ -56,7 +54,7 @@ class RobotDoc(BaseTask):
     def _run_task(self):
         libraries = []
         processed_files = {}
-        for input_file in sorted(self.options["files"]):
+        for input_file in sorted(self.options["path"]):
             try:
                 libdoc = DocumentationBuilder(input_file).build(input_file)
                 libraries.append(libdoc)
@@ -76,8 +74,7 @@ class RobotDoc(BaseTask):
                 # only print out the first line to hide most of the noise
                 self.logger.warn("unexpected error: {}".format(str(e).split("\n")[0]))
 
-        output_dir = self.options["outputdir"]
-        with open(os.path.join(output_dir, "index.html"), "w") as f:
+        with open(self.options["output"], "w") as f:
             html = self._render_html(libraries)
             f.write(html)
             self.logger.info("created {}".format(f.name))
