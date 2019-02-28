@@ -1,3 +1,3 @@
-from cumulusci.tasks.robotframework.robotframework import Robot
-from cumulusci.tasks.robotframework.robotframework import RobotLibDoc
-from cumulusci.tasks.robotframework.robotframework import RobotTestDoc
+from cumulusci.tasks.robotframework.robotframework import Robot  # noqa: F401
+from cumulusci.tasks.robotframework.robotframework import RobotTestDoc  # noqa: F401
+from cumulusci.tasks.robotframework.libdoc import RobotLibDoc  # noqa: F401

@@ -233,6 +233,13 @@ tasks:
         options:
             suites: tests
         group: Robot Framework
+    robot_libdoc:
+        description: Generates documentation for project keyword files
+        class_path: cumulusci.tasks.robotframework.RobotLibDoc
+        options:
+            output: Keywords.html
+            title: $project_config.project__package__name
+        group: Robot Framework
     robot_testdoc:
         description: 
         class_path: cumulusci.tasks.robotframework.RobotTestDoc
