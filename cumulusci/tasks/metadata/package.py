@@ -1,14 +1,12 @@
-from builtins import str  # noqa: F401
 from future import standard_library
 
 standard_library.install_aliases()
+
 import os
 import re
 import urllib.parse
 
-import xml.etree.ElementTree as ET  # noqa: F401
 from cumulusci.core.utils import ordered_yaml_load
-
 from cumulusci.core.tasks import BaseTask
 from cumulusci.utils import elementtree_parse_file
 
