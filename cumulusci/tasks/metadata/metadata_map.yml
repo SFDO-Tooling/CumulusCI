@@ -4,7 +4,7 @@ applications:
       extension: app
 aura:
     - type: AuraDefinitionBundle
-      class: AuraBundleParser
+      class: BundleParser
 classes:
     - type: ApexClass
       class: MetadataFilenameParser
