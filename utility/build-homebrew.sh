@@ -17,7 +17,7 @@ echo " "
 echo "=> Creating a temporary virtualenv and installing CumulusCI..."
 echo " "
 source deactivate
-virtualenv "$ENV_DIR" || exit 1
+python3 -m venv "$ENV_DIR" || exit 1
 source "$ENV_DIR/bin/activate" || exit 1
 pip install cumulusci homebrew-pypi-poet || exit 1
 
