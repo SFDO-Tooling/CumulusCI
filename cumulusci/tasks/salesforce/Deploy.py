@@ -2,7 +2,6 @@ from future.utils import bytes_to_native_str
 import base64
 import io
 import os
-import tempfile
 import zipfile
 
 from cumulusci.core.utils import process_bool_arg
