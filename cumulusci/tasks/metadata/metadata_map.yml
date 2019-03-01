@@ -110,7 +110,7 @@ letterhead:
       class: MetadataFilenameParser
 lwc:
     - type: LightningComponentBundle
-      class: LightningComponentBundleParser
+      class: BundleParser
 matchingRules:
     - type: MatchingRule
       class: MetadataXmlElementParser
