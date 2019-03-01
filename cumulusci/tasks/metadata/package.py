@@ -362,11 +362,8 @@ class BundleParser(BaseMetadataParser):
         if not os.path.isdir(path):
             return members
 
-        # Add the member if it is not namespaced
-        if "__" not in item:
-            members.append(item)
-
-        # ignore subitems
+        # item is a directory; add direcetory to members and ignore processing directory's files
+        members.append(item)
 
         return members
 
