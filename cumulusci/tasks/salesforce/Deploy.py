@@ -41,6 +41,14 @@ class Deploy(BaseSalesforceMetadataApiTask):
         },
     }
 
+    def _get_api(self, path=None):
+        if not path:
+            path = self.task_config.options__path
+
+        package_zip = self._get_package_zip(path)
+        self.logger.info("Payload size: {} bytes".format(len(package_zip)))
+        return self.api_class(self, package_zip, purge_on_delete=False)
+
     def _get_package_zip(self, path):
         # Build the zip file
         zip_bytes = io.BytesIO()
@@ -55,14 +63,6 @@ class Deploy(BaseSalesforceMetadataApiTask):
         fp = zipf_processed.fp
         zipf_processed.close()
         return bytes_to_native_str(base64.b64encode(fp.getvalue()))
-
-    def _get_api(self, path=None):
-        if not path:
-            path = self.task_config.options__path
-
-        package_zip = self._get_package_zip(path)
-        self.logger.info("Payload size: {} bytes".format(len(package_zip)))
-        return self.api_class(self, package_zip, purge_on_delete=False)
 
     def _process_zip_file(self, zipf):
         zipf = self._process_namespace(zipf)
