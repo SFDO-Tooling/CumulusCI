@@ -1,0 +1,1020 @@
+<html>
+  <head>
+    <script
+      src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
+      integrity="sha256-3edrmyuQ0w65f8gfBsqowzjJe2iM6n0nKciPUp8y+7E="
+      crossorigin="anonymous">
+    </script>
+    <script>
+      function search() {
+          var search_string = $("#search").val().toLowerCase();
+          $(".kwtable .kwname").each(function() {
+              if ($(this).text().toLowerCase().indexOf(search_string) !== -1) {
+                  $(this).parent().show();
+              } else {
+                  $(this).parent().hide();
+              }
+          })
+      }
+      $(document).ready(function() {
+          $("#search").on("input", function() {
+              search()
+          })
+          $("#search").keyup(function() {
+              search()
+          })
+      });
+    </script>
+    <style>
+      body {
+    font-family: 'Open Sans', sans-serif;
+}
+.container {
+    margin: 2em;
+}
+#search {
+    width: 20em;
+}
+.header {
+    display: flex;
+    border-bottom: 1px solid #aaa;
+    align-items: bottom;
+}
+.header .title {
+    font-size: 2em;
+}
+.header search {
+    align-self: flex-end;
+    margin-bottom: 0px;
+}
+.right {
+    margin-left: auto;
+}
+.search {
+    align-self: center;
+}
+.search {
+    border: 0px;
+}
+.search input {
+    border: 1px solid gray;
+    padding: 4px;
+}
+.footer {
+    margin: 30px;
+    /* background: black; */
+    font-size: 80%;
+    /* color: gray; */
+    padding: 4px;
+}
+.section {
+    margin-bottom: 10px;
+}
+.kwtable {
+    box-shadow: 7px 7px 9px #d4d4d4;
+    border-collapse: collapse;
+    border: 1px solid gray;
+    text-align: left;
+    width: 100%;
+}
+.kwtable th {
+    font-weight: normal;
+    background: #109AD7;
+    color: #f0f0f0;
+    padding: 4px;
+    border: 1px solid gray;
+}
+.kwtable tr,td {
+    padding: 4px;
+    border: 1px solid gray;
+    vertical-align: top;
+}
+.kwtable tr:hover {
+    background-color: #dcdcdc;
+}
+.kwtable .kwargs {
+    width: 20%;
+}
+.kwtable .kwname {
+    font-weight: bold;
+    width: 25%;
+    /* min-width: 15em; */
+    /* max-width: 20%; */
+}
+.library-documentation {
+    margin-bottom: 2em;
+}
+
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <div class="title">CumulusCI Robot Framework Keywords</div>
+        <div class="search right">search: <input id="search" type="search"></input></div>
+      </div>
+      
+      <div class="section" id="library-Salesforce">
+        <h1>Salesforce.py</h1>
+        <div class="library-documentation">
+        <p>Documentation for library <code>Salesforce</code>.</p>
+        </div>
+        <table class="kwtable">
+          <tbody>
+            <tr><th>Keyword</th><th>Arguments</th><th>Documentation</th></tr>
+            
+            <tr class="kwrow" id="Salesforce.py.Click Header Field Link">
+              <td class="kwname">
+                Click Header Field Link
+              </td>
+              <td class="kwargs">
+                  
+                  <i>label</i>
+                  
+              </td>
+              <td class="kwdoc"><p>Clicks a link in record header.</p></td>
+            </tr>
+            
+            <tr class="kwrow" id="Salesforce.py.Click Modal Button">
+              <td class="kwname">
+                Click Modal Button
+              </td>
+              <td class="kwargs">
+                  
+                  <i>title</i>
+                  
+              </td>
+              <td class="kwdoc"><p>Clicks a button in a Lightning modal.</p></td>
+            </tr>
+            
+            <tr class="kwrow" id="Salesforce.py.Click Object Button">
+              <td class="kwname">
+                Click Object Button
+              </td>
+              <td class="kwargs">
+                  
+                  <i>title</i>
+                  
+              </td>
+              <td class="kwdoc"><p>Clicks a button in an object's actions.</p></td>
+            </tr>
+            
+            <tr class="kwrow" id="Salesforce.py.Click Related Item Link">
+              <td class="kwname">
+                Click Related Item Link
+              </td>
+              <td class="kwargs">
+                  
+                  <i>heading</i>, 
+                  
+                  <i>title</i>
+                  
+              </td>
+              <td class="kwdoc"><p>Clicks a link in the related list with the specified heading.</p></td>
+            </tr>
+            
+            <tr class="kwrow" id="Salesforce.py.Click Related Item Popup Link">
+              <td class="kwname">
+                Click Related Item Popup Link
+              </td>
+              <td class="kwargs">
+                  
+                  <i>heading</i>, 
+                  
+                  <i>title</i>, 
+                  
+                  <i>link</i>
+                  
+              </td>
+              <td class="kwdoc"><p>Clicks a link in the popup menu for a related list item.</p>
+<p>heading specifies the name of the list, title specifies the name of the item, and link specifies the name of the link</p></td>
+            </tr>
+            
+            <tr class="kwrow" id="Salesforce.py.Click Related List Button">
+              <td class="kwname">
+                Click Related List Button
+              </td>
+              <td class="kwargs">
+                  
+                  <i>heading</i>, 
+                  
+                  <i>button_title</i>
+                  
+              </td>
+              <td class="kwdoc"><p>Clicks a button in the heading of a related list.</p>
+<p>Waits for a modal to open after clicking the button.</p></td>
+            </tr>
+            
+            <tr class="kwrow" id="Salesforce.py.Close Modal">
+              <td class="kwname">
+                Close Modal
+              </td>
+              <td class="kwargs">
+                  
+              </td>
+              <td class="kwdoc"><p>Closes the open modal</p></td>
+            </tr>
+            
+            <tr class="kwrow" id="Salesforce.py.Create Webdriver With Retry">
+              <td class="kwname">
+                Create Webdriver With Retry
+              </td>
+              <td class="kwargs">
+                  
+                  <i>*args</i>, 
+                  
+                  <i>**kwargs</i>
+                  
+              </td>
+              <td class="kwdoc"><p>Call the Create Webdriver keyword.</p>
+<p>Retry on connection resets which can happen if custom domain propagation is slow.</p></td>
+            </tr>
+            
+            <tr class="kwrow" id="Salesforce.py.Current App Should Be">
+              <td class="kwname">
+                Current App Should Be
+              </td>
+              <td class="kwargs">
+                  
+                  <i>app_name</i>
+                  
+              </td>
+              <td class="kwdoc"><p>Validates the currently selected Salesforce App</p></td>
+            </tr>
+            
+            <tr class="kwrow" id="Salesforce.py.Delete Session Records">
+              <td class="kwname">
+                Delete Session Records
+              </td>
+              <td class="kwargs">
+                  
+              </td>
+              <td class="kwdoc"><p>Deletes records that were created while running this test case.</p>
+<p>(Only records specifically recorded using the Store Session Record keyword are deleted.)</p></td>
+            </tr>
+            
+            <tr class="kwrow" id="Salesforce.py.Get Current Record Id">
+              <td class="kwname">
+                Get Current Record Id
+              </td>
+              <td class="kwargs">
+                  
+              </td>
+              <td class="kwdoc"><p>Parses the current url to get the object id of the current record. Expects url format like: [a-zA-Z0-9]{15,18}</p></td>
+            </tr>
+            
+            <tr class="kwrow" id="Salesforce.py.Get Locator">
+              <td class="kwname">
+                Get Locator
+              </td>
+              <td class="kwargs">
+                  
+                  <i>path</i>, 
+                  
+                  <i>*args</i>, 
+                  
+                  <i>**kwargs</i>
+                  
+              </td>
+              <td class="kwdoc"><p>Returns a rendered locator string from the Salesforce lex_locators dictionary.  This can be useful if you want to use an element in a different way than the built in keywords allow.</p></td>
+            </tr>
+            
+            <tr class="kwrow" id="Salesforce.py.Get Record Type Id">
+              <td class="kwname">
+                Get Record Type Id
+              </td>
+              <td class="kwargs">
+                  
+                  <i>obj_type</i>, 
+                  
+                  <i>developer_name</i>
+                  
+              </td>
+              <td class="kwdoc"><p>Returns the Record Type Id for a record type name</p></td>
+            </tr>
+            
+            <tr class="kwrow" id="Salesforce.py.Get Related List Count">
+              <td class="kwname">
+                Get Related List Count
+              </td>
+              <td class="kwargs">
+                  
+                  <i>heading</i>
+                  
+              </td>
+              <td class="kwdoc"><p>Returns the number of items indicated for a related list.</p></td>
+            </tr>
+            
+            <tr class="kwrow" id="Salesforce.py.Go To Object Home">
+              <td class="kwname">
+                Go To Object Home
+              </td>
+              <td class="kwargs">
+                  
+                  <i>obj_name</i>
+                  
+              </td>
+              <td class="kwdoc"><p>Navigates to the Home view of a Salesforce Object</p></td>
+            </tr>
+            
+            <tr class="kwrow" id="Salesforce.py.Go To Object List">
+              <td class="kwname">
+                Go To Object List
+              </td>
+              <td class="kwargs">
+                  
+                  <i>obj_name</i>, 
+                  
+                  <i>filter_name=None</i>
+                  
+              </td>
+              <td class="kwdoc"><p>Navigates to the Home view of a Salesforce Object</p></td>
+            </tr>
+            
+            <tr class="kwrow" id="Salesforce.py.Go To Record Home">
+              <td class="kwname">
+                Go To Record Home
+              </td>
+              <td class="kwargs">
+                  
+                  <i>obj_id</i>
+                  
+              </td>
+              <td class="kwdoc"><p>Navigates to the Home view of a Salesforce Object</p></td>
+            </tr>
+            
+            <tr class="kwrow" id="Salesforce.py.Go To Setup Home">
+              <td class="kwname">
+                Go To Setup Home
+              </td>
+              <td class="kwargs">
+                  
+              </td>
+              <td class="kwdoc"><p>Navigates to the Home tab of Salesforce Setup</p></td>
+            </tr>
+            
+            <tr class="kwrow" id="Salesforce.py.Go To Setup Object Manager">
+              <td class="kwname">
+                Go To Setup Object Manager
+              </td>
+              <td class="kwargs">
+                  
+              </td>
+              <td class="kwdoc"><p>Navigates to the Object Manager tab of Salesforce Setup</p></td>
+            </tr>
+            
+            <tr class="kwrow" id="Salesforce.py.Header Field Should Be Checked">
+              <td class="kwname">
+                Header Field Should Be Checked
+              </td>
+              <td class="kwargs">
+                  
+                  <i>label</i>
+                  
+              </td>
+              <td class="kwdoc"><p>Validates that a checkbox field in the record header is checked</p></td>
+            </tr>
+            
+            <tr class="kwrow" id="Salesforce.py.Header Field Should Be Unchecked">
+              <td class="kwname">
+                Header Field Should Be Unchecked
+              </td>
+              <td class="kwargs">
+                  
+                  <i>label</i>
+                  
+              </td>
+              <td class="kwdoc"><p>Validates that a checkbox field in the record header is unchecked</p></td>
+            </tr>
+            
+            <tr class="kwrow" id="Salesforce.py.Header Field Should Have Link">
+              <td class="kwname">
+                Header Field Should Have Link
+              </td>
+              <td class="kwargs">
+                  
+                  <i>label</i>
+                  
+              </td>
+              <td class="kwdoc"><p>Validates that a field in the record header has a link as its value</p></td>
+            </tr>
+            
+            <tr class="kwrow" id="Salesforce.py.Header Field Should Have Value">
+              <td class="kwname">
+                Header Field Should Have Value
+              </td>
+              <td class="kwargs">
+                  
+                  <i>label</i>
+                  
+              </td>
+              <td class="kwdoc"><p>Validates that a field in the record header has a text value. NOTE: Use other keywords for non-string value types</p></td>
+            </tr>
+            
+            <tr class="kwrow" id="Salesforce.py.Header Field Should Not Have Link">
+              <td class="kwname">
+                Header Field Should Not Have Link
+              </td>
+              <td class="kwargs">
+                  
+                  <i>label</i>
+                  
+              </td>
+              <td class="kwdoc"><p>Validates that a field in the record header does not have a link as its value</p></td>
+            </tr>
+            
+            <tr class="kwrow" id="Salesforce.py.Header Field Should Not Have Value">
+              <td class="kwname">
+                Header Field Should Not Have Value
+              </td>
+              <td class="kwargs">
+                  
+                  <i>label</i>
+                  
+              </td>
+              <td class="kwdoc"><p>Validates that a field in the record header does not have a value. NOTE: Use other keywords for non-string value types</p></td>
+            </tr>
+            
+            <tr class="kwrow" id="Salesforce.py.Load Related List">
+              <td class="kwname">
+                Load Related List
+              </td>
+              <td class="kwargs">
+                  
+                  <i>heading</i>
+                  
+              </td>
+              <td class="kwdoc"><p>Scrolls down until the specified related list loads.</p></td>
+            </tr>
+            
+            <tr class="kwrow" id="Salesforce.py.Open App Launcher">
+              <td class="kwname">
+                Open App Launcher
+              </td>
+              <td class="kwargs">
+                  
+              </td>
+              <td class="kwdoc"><p>Opens the Saleforce App Launcher</p></td>
+            </tr>
+            
+            <tr class="kwrow" id="Salesforce.py.Populate Field">
+              <td class="kwname">
+                Populate Field
+              </td>
+              <td class="kwargs">
+                  
+                  <i>name</i>, 
+                  
+                  <i>value</i>
+                  
+              </td>
+              <td class="kwdoc"><p>Enters a value into a text field.</p>
+<p>Any existing value will be replaced.</p></td>
+            </tr>
+            
+            <tr class="kwrow" id="Salesforce.py.Populate Form">
+              <td class="kwname">
+                Populate Form
+              </td>
+              <td class="kwargs">
+                  
+                  <i>**kwargs</i>
+                  
+              </td>
+              <td class="kwdoc"><p>Enters multiple values from a mapping into form fields.</p></td>
+            </tr>
+            
+            <tr class="kwrow" id="Salesforce.py.Populate Lookup Field">
+              <td class="kwname">
+                Populate Lookup Field
+              </td>
+              <td class="kwargs">
+                  
+                  <i>name</i>, 
+                  
+                  <i>value</i>
+                  
+              </td>
+              <td class="kwdoc"><p>Enters a value into a lookup field.</p></td>
+            </tr>
+            
+            <tr class="kwrow" id="Salesforce.py.Remove Session Record">
+              <td class="kwname">
+                Remove Session Record
+              </td>
+              <td class="kwargs">
+                  
+                  <i>obj_type</i>, 
+                  
+                  <i>obj_id</i>
+                  
+              </td>
+              <td class="kwdoc"><p>Remove a record from the list of records that should be automatically removed.</p></td>
+            </tr>
+            
+            <tr class="kwrow" id="Salesforce.py.Salesforce Delete">
+              <td class="kwname">
+                Salesforce Delete
+              </td>
+              <td class="kwargs">
+                  
+                  <i>obj_name</i>, 
+                  
+                  <i>obj_id</i>
+                  
+              </td>
+              <td class="kwdoc"><p>Deletes a Saleforce object by id and returns the dict result</p></td>
+            </tr>
+            
+            <tr class="kwrow" id="Salesforce.py.Salesforce Get">
+              <td class="kwname">
+                Salesforce Get
+              </td>
+              <td class="kwargs">
+                  
+                  <i>obj_name</i>, 
+                  
+                  <i>obj_id</i>
+                  
+              </td>
+              <td class="kwdoc"><p>Gets a Salesforce object by id and returns the dict result</p></td>
+            </tr>
+            
+            <tr class="kwrow" id="Salesforce.py.Salesforce Insert">
+              <td class="kwname">
+                Salesforce Insert
+              </td>
+              <td class="kwargs">
+                  
+                  <i>obj_name</i>, 
+                  
+                  <i>**kwargs</i>
+                  
+              </td>
+              <td class="kwdoc"><p>Inserts a Salesforce object setting fields using kwargs and returns the id</p></td>
+            </tr>
+            
+            <tr class="kwrow" id="Salesforce.py.Salesforce Query">
+              <td class="kwname">
+                Salesforce Query
+              </td>
+              <td class="kwargs">
+                  
+                  <i>obj_name</i>, 
+                  
+                  <i>**kwargs</i>
+                  
+              </td>
+              <td class="kwdoc"><p>Constructs and runs a simple SOQL query and returns the dict results</p></td>
+            </tr>
+            
+            <tr class="kwrow" id="Salesforce.py.Salesforce Update">
+              <td class="kwname">
+                Salesforce Update
+              </td>
+              <td class="kwargs">
+                  
+                  <i>obj_name</i>, 
+                  
+                  <i>obj_id</i>, 
+                  
+                  <i>**kwargs</i>
+                  
+              </td>
+              <td class="kwdoc"><p>Updates a Salesforce object by id and returns the dict results</p></td>
+            </tr>
+            
+            <tr class="kwrow" id="Salesforce.py.Select App Launcher App">
+              <td class="kwname">
+                Select App Launcher App
+              </td>
+              <td class="kwargs">
+                  
+                  <i>app_name</i>
+                  
+              </td>
+              <td class="kwdoc"><p>Navigates to a Salesforce App via the App Launcher</p></td>
+            </tr>
+            
+            <tr class="kwrow" id="Salesforce.py.Select App Launcher Tab">
+              <td class="kwname">
+                Select App Launcher Tab
+              </td>
+              <td class="kwargs">
+                  
+                  <i>tab_name</i>
+                  
+              </td>
+              <td class="kwdoc"><p>Navigates to a tab via the App Launcher</p></td>
+            </tr>
+            
+            <tr class="kwrow" id="Salesforce.py.Select Record Type">
+              <td class="kwname">
+                Select Record Type
+              </td>
+              <td class="kwargs">
+                  
+                  <i>label</i>
+                  
+              </td>
+              <td class="kwdoc"><p>Selects a record type while adding an object.</p></td>
+            </tr>
+            
+            <tr class="kwrow" id="Salesforce.py.Selenium Execute With Retry">
+              <td class="kwname">
+                Selenium Execute With Retry
+              </td>
+              <td class="kwargs">
+                  
+                  <i>execute</i>, 
+                  
+                  <i>command</i>, 
+                  
+                  <i>params</i>
+                  
+              </td>
+              <td class="kwdoc"><p>Run a single selenium command and retry once.</p>
+<p>The retry happens for certain errors that are likely to be resolved by retrying.</p></td>
+            </tr>
+            
+            <tr class="kwrow" id="Salesforce.py.Soql Query">
+              <td class="kwname">
+                Soql Query
+              </td>
+              <td class="kwargs">
+                  
+                  <i>query</i>
+                  
+              </td>
+              <td class="kwdoc"><p>Runs a simple SOQL query and returns the dict results</p></td>
+            </tr>
+            
+            <tr class="kwrow" id="Salesforce.py.Store Session Record">
+              <td class="kwname">
+                Store Session Record
+              </td>
+              <td class="kwargs">
+                  
+                  <i>obj_type</i>, 
+                  
+                  <i>obj_id</i>
+                  
+              </td>
+              <td class="kwdoc"><p>Stores a Salesforce record's id for use in the Delete Session Records keyword</p></td>
+            </tr>
+            
+            <tr class="kwrow" id="Salesforce.py.Wait For Aura">
+              <td class="kwname">
+                Wait For Aura
+              </td>
+              <td class="kwargs">
+                  
+              </td>
+              <td class="kwdoc"><p>Run the WAIT_FOR_AURA_SCRIPT.</p>
+<p>This script polls Aura via $A in Javascript to determine when all in-flight XHTTP requests have completed before continuing.</p></td>
+            </tr>
+            
+            <tr class="kwrow" id="Salesforce.py.Wait Until Loading Is Complete">
+              <td class="kwname">
+                Wait Until Loading Is Complete
+              </td>
+              <td class="kwargs">
+                  
+                  <i>locator=//div[contains(@class, 'slds-template__container')]/*</i>
+                  
+              </td>
+              <td class="kwdoc"><p>Wait for LEX page to load.</p>
+<p>(We're actually waiting for the actions ribbon to appear.)</p></td>
+            </tr>
+            
+            <tr class="kwrow" id="Salesforce.py.Wait Until Modal Is Closed">
+              <td class="kwname">
+                Wait Until Modal Is Closed
+              </td>
+              <td class="kwargs">
+                  
+              </td>
+              <td class="kwdoc"><p>Wait for modal to close</p></td>
+            </tr>
+            
+            <tr class="kwrow" id="Salesforce.py.Wait Until Modal Is Open">
+              <td class="kwname">
+                Wait Until Modal Is Open
+              </td>
+              <td class="kwargs">
+                  
+              </td>
+              <td class="kwdoc"><p>Wait for modal to open</p></td>
+            </tr>
+            
+          </tbody>
+        </table>
+      </div>
+      
+      <div class="section" id="library-Salesforce">
+        <h1>Salesforce.robot</h1>
+        <div class="library-documentation">
+        <h2>Keywords</h2>
+<p>The keywords in this file support choosing and configuring the browser used for your tests.</p>
+<h2>Locator Strategies</h2>
+<p>In addition, it provides two new location strategies that can be used for finding elements on a page.</p>
+<p>The <code>text</code> locator strategy can be used to select an element based on the text inside the element. For example, to match the `&lt;h1&gt;` element in <code>&lt;h1&gt;Hello, world&lt;/h1&gt;</code>, you could use the locator like this:</p>
+<pre>
+${element}= Get webelement text:Hello, world
+</pre>
+<p>The <code>title</code> locator strategy can be used to select on element based on the <code>title</code> attribute. For example, given the markup <code>&lt;div title='Contacts'&gt;...&lt;/div&gt;</code>, you can use the locator like this:</p>
+<pre>
+${element}= Get webelement title:Contacts
+</pre>
+        </div>
+        <table class="kwtable">
+          <tbody>
+            <tr><th>Keyword</th><th>Arguments</th><th>Documentation</th></tr>
+            
+            <tr class="kwrow" id="Salesforce.robot.Chrome Set Binary">
+              <td class="kwname">
+                Chrome Set Binary
+              </td>
+              <td class="kwargs">
+                  
+                  <i>options</i>
+                  
+              </td>
+              <td class="kwdoc"></td>
+            </tr>
+            
+            <tr class="kwrow" id="Salesforce.robot.Chrome Set Headless">
+              <td class="kwname">
+                Chrome Set Headless
+              </td>
+              <td class="kwargs">
+                  
+                  <i>options</i>
+                  
+              </td>
+              <td class="kwdoc"></td>
+            </tr>
+            
+            <tr class="kwrow" id="Salesforce.robot.Delete Records and Close Browser">
+              <td class="kwname">
+                Delete Records and Close Browser
+              </td>
+              <td class="kwargs">
+                  
+              </td>
+              <td class="kwdoc"></td>
+            </tr>
+            
+            <tr class="kwrow" id="Salesforce.robot.Get Chrome Options">
+              <td class="kwname">
+                Get Chrome Options
+              </td>
+              <td class="kwargs">
+                  
+              </td>
+              <td class="kwdoc"></td>
+            </tr>
+            
+            <tr class="kwrow" id="Salesforce.robot.Locate Element By Text">
+              <td class="kwname">
+                Locate Element By Text
+              </td>
+              <td class="kwargs">
+                  
+                  <i>browser</i>, 
+                  
+                  <i>locator</i>, 
+                  
+                  <i>tag</i>, 
+                  
+                  <i>constraints</i>
+                  
+              </td>
+              <td class="kwdoc"></td>
+            </tr>
+            
+            <tr class="kwrow" id="Salesforce.robot.Locate Element By Title">
+              <td class="kwname">
+                Locate Element By Title
+              </td>
+              <td class="kwargs">
+                  
+                  <i>browser</i>, 
+                  
+                  <i>locator</i>, 
+                  
+                  <i>tag</i>, 
+                  
+                  <i>constraints</i>
+                  
+              </td>
+              <td class="kwdoc"></td>
+            </tr>
+            
+            <tr class="kwrow" id="Salesforce.robot.Open Test Browser">
+              <td class="kwname">
+                Open Test Browser
+              </td>
+              <td class="kwargs">
+                  
+              </td>
+              <td class="kwdoc"></td>
+            </tr>
+            
+            <tr class="kwrow" id="Salesforce.robot.Open Test Browser Chrome">
+              <td class="kwname">
+                Open Test Browser Chrome
+              </td>
+              <td class="kwargs">
+                  
+                  <i>login_url</i>
+                  
+              </td>
+              <td class="kwdoc"></td>
+            </tr>
+            
+            <tr class="kwrow" id="Salesforce.robot.Open Test Browser Firefox">
+              <td class="kwname">
+                Open Test Browser Firefox
+              </td>
+              <td class="kwargs">
+                  
+                  <i>login_url</i>
+                  
+              </td>
+              <td class="kwdoc"></td>
+            </tr>
+            
+            <tr class="kwrow" id="Salesforce.robot.Open Test Browser Headless Firefox">
+              <td class="kwname">
+                Open Test Browser Headless Firefox
+              </td>
+              <td class="kwargs">
+                  
+                  <i>login_url</i>
+                  
+              </td>
+              <td class="kwdoc"></td>
+            </tr>
+            
+          </tbody>
+        </table>
+      </div>
+      
+      <div class="section" id="library-CumulusCI">
+        <h1>CumulusCI.py</h1>
+        <div class="library-documentation">
+        <p>Library for accessing CumulusCI for the local git project</p>
+<p>This library allows Robot Framework tests to access credentials to a Salesforce org created by CumulusCI, including Scratch Orgs.  It also exposes the core logic of CumulusCI including interactions with the Salesforce API's and project specific configuration including custom and customized tasks and flows.</p>
+<p>Initialization requires a single argument, the org name for the target CumulusCI org.  If running your tests via cci's robot task (recommended), you can initialize the library in your tests taking advantage of the variable set by the robot task:</p>
+<pre>
+<code>*** Settings ***</code>
+
+Library  cumulusci.robotframework.CumulusCI  ${ORG}
+</pre>
+        </div>
+        <table class="kwtable">
+          <tbody>
+            <tr><th>Keyword</th><th>Arguments</th><th>Documentation</th></tr>
+            
+            <tr class="kwrow" id="CumulusCI.py.Debug">
+              <td class="kwname">
+                Debug
+              </td>
+              <td class="kwargs">
+                  
+              </td>
+              <td class="kwdoc"><p>Pauses execution and enters the Python debugger.</p></td>
+            </tr>
+            
+            <tr class="kwrow" id="CumulusCI.py.Get Namespace Prefix">
+              <td class="kwname">
+                Get Namespace Prefix
+              </td>
+              <td class="kwargs">
+                  
+                  <i>package=None</i>
+                  
+              </td>
+              <td class="kwdoc"><p>Returns the namespace prefix (including __) for the specified package name. (Defaults to project__package__name_managed from the current project config.)</p>
+<p>Returns an empty string if the package is not installed as a managed package.</p></td>
+            </tr>
+            
+            <tr class="kwrow" id="CumulusCI.py.Get Org Info">
+              <td class="kwname">
+                Get Org Info
+              </td>
+              <td class="kwargs">
+                  
+              </td>
+              <td class="kwdoc"><p>Returns a dictionary of the org information for the current target Salesforce org</p></td>
+            </tr>
+            
+            <tr class="kwrow" id="CumulusCI.py.Login Url">
+              <td class="kwname">
+                Login Url
+              </td>
+              <td class="kwargs">
+                  
+                  <i>org=None</i>
+                  
+              </td>
+              <td class="kwdoc"><p>Returns the login url which will automatically log into the target Salesforce org.  By default, the org_name passed to the library constructor is used but this can be overridden with the org option to log into a different org.</p></td>
+            </tr>
+            
+            <tr class="kwrow" id="CumulusCI.py.Run Task">
+              <td class="kwname">
+                Run Task
+              </td>
+              <td class="kwargs">
+                  
+                  <i>task_name</i>, 
+                  
+                  <i>**options</i>
+                  
+              </td>
+              <td class="kwdoc"><p>Runs a named CumulusCI task for the current project with optional support for overriding task options via kwargs.</p>
+<p>Examples:</p>
+<table border="1">
+<tr>
+<th>Keyword</th>
+<th>task_name</th>
+<th>task_options</th>
+<th>comment</th>
+</tr>
+<tr>
+<td>Run Task</td>
+<td>deploy</td>
+<td></td>
+<td>Run deploy with standard options</td>
+</tr>
+<tr>
+<td>Run Task</td>
+<td>deploy</td>
+<td>path=path/to/some/metadata</td>
+<td>Run deploy with custom path</td>
+</tr>
+</table></td>
+            </tr>
+            
+            <tr class="kwrow" id="CumulusCI.py.Run Task Class">
+              <td class="kwname">
+                Run Task Class
+              </td>
+              <td class="kwargs">
+                  
+                  <i>class_path</i>, 
+                  
+                  <i>**options</i>
+                  
+              </td>
+              <td class="kwdoc"><p>Runs a CumulusCI task class with task options via kwargs.</p>
+<p>Use this keyword to run logic from CumulusCI tasks which have not been configured in the project's cumulusci.yml file.  This is most useful in cases where a test needs to use task logic for logic unique to the test and thus not worth making into a named task for the project</p>
+<p>Examples:</p>
+<table border="1">
+<tr>
+<th>Keyword</th>
+<th>task_class</th>
+<th>task_options</th>
+</tr>
+<tr>
+<td>Run Task Class</td>
+<td>cumulusci.task.utils.DownloadZip</td>
+<td>url=http://test.com/test.zip dir=test_zip</td>
+</tr>
+</table></td>
+            </tr>
+            
+            <tr class="kwrow" id="CumulusCI.py.Set Login Url">
+              <td class="kwname">
+                Set Login Url
+              </td>
+              <td class="kwargs">
+                  
+              </td>
+              <td class="kwdoc"><p>Sets the LOGIN_URL variable in the suite scope which will automatically log into the target Salesforce org.</p>
+<p>Typically, this is run during Suite Setup</p></td>
+            </tr>
+            
+            <tr class="kwrow" id="CumulusCI.py.Set Project Config">
+              <td class="kwname">
+                Set Project Config
+              </td>
+              <td class="kwargs">
+                  
+                  <i>project_config</i>
+                  
+              </td>
+              <td class="kwdoc"></td>
+            </tr>
+            
+          </tbody>
+        </table>
+      </div>
+      
+    </div>
+    <div class="footer">
+      Generated on Thursday February 28, 03:20 PM - cumulusci v2.3.2
+    </div>
+  </body>
+</html>
