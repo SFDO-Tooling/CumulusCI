@@ -792,7 +792,15 @@ def org_info(config, org_name, print_json):
     org_config.refresh_oauth_token(config.keychain)
 
     if print_json:
-        click.echo(json.dumps(org_config.config, sort_keys=True, indent=4, default=str))
+        click.echo(
+            json.dumps(
+                org_config.config,
+                sort_keys=True,
+                indent=4,
+                default=str,
+                separators=(",", ": "),
+            )
+        )
     else:
         render_recursive(org_config.config)
 
