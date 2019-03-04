@@ -3,6 +3,7 @@ import base64
 import io
 import os
 import zipfile
+import re
 
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.salesforce_api.metadata import ApiDeploy
@@ -41,6 +42,26 @@ class Deploy(BaseSalesforceMetadataApiTask):
         },
     }
 
+    # ignore all files in ./lwc and all sub-directories of a lwc component (i.e. ./lwc/[lwc Component Name]/.*)
+    _directory_blacklist = re.compile("^\\.\\/lwc(\\/.*?\\/.*)?$")
+
+    def _include_directory(self, root):
+        return not self._directory_blacklist.match(root)
+
+    # ignore all lwc component sub-directories (usually __tests__ if anything)
+    _lwc_component_pattern = re.compile("^\\.\\/lwc\\/.*$")
+
+    def _is_lwc_component(self, root):
+        return self._lwc_component_pattern.match(root)
+
+    # whitelist all files ending in one of the following: .js, .js-meta.xml, .html, .css, .svg
+    _lwc_component_file_extension_whitelist = re.compile(
+        "^.*\\.(js(-meta\\.xml)?|html|css|svg)$"
+    )
+
+    def _include_lwc_component_file(self, f):
+        return self._lwc_component_file_extension_whitelist.match(f)
+
     def _get_api(self, path=None):
         if not path:
             path = self.task_config.options__path
@@ -56,8 +77,15 @@ class Deploy(BaseSalesforceMetadataApiTask):
 
         with cd(path):
             for root, dirs, files in os.walk("."):
-                for f in files:
-                    self._write_zip_file(zipf, root, f)
+                if self._include_directory(root):
+                    if self._is_lwc_component(root):
+                        for f in files:
+                            if self._include_lwc_component_file(f):
+                                self._write_zip_file(zipf, root, f)
+                    else:
+                        # Include all files
+                        for f in files:
+                            self._write_zip_file(zipf, root, f)
             zipf.close()
         zipf_processed = self._process_zip_file(zipfile.ZipFile(zip_bytes))
         fp = zipf_processed.fp
