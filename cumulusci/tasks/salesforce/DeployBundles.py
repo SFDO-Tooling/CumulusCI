@@ -40,6 +40,7 @@ class DeployBundles(Deploy):
         return api()
 
     def freeze(self, step):
+        ui_options = step.task_config.get("ui_options", {})
         path = self.options["path"]
         if not os.path.isdir(path):
             return []
@@ -61,15 +62,19 @@ class DeployBundles(Deploy):
                 }
             )
             task_config = {"options": {"dependencies": [dependency]}}
-            steps.append(
+            ui_step = {
+                "name": "Deploy {}".format(subpath),
+                "kind": "metadata",
+                "is_required": True,
+            }
+            ui_step.update(ui_options.get(name, {}))
+            ui_step.update(
                 {
-                    "name": "Deploy {}".format(subpath),
                     "path": "{}.{}".format(step.path, name),
                     "step_num": "{}.{}".format(step.step_num, i),
-                    "kind": "metadata",
-                    "is_required": True,
                     "task_class": "cumulusci.tasks.salesforce.UpdateDependencies",
                     "task_config": task_config,
                 }
             )
+            steps.append(ui_step)
         return steps
