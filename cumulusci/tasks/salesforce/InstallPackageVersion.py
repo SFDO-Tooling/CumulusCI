@@ -49,15 +49,21 @@ class InstallPackageVersion(Deploy):
             self.options["retry_interval"] = 5
         if "retry_interval_add" not in self.options:
             self.options["retry_interval_add"] = 30
-        if self.options.get("version") == "latest":
+        version = self.options.get("version")
+        if version == "latest":
             self.options["version"] = self.project_config.get_latest_version()
             self.logger.info(
                 "Installing latest release: {}".format(self.options["version"])
             )
-        elif self.options.get("version") == "latest_beta":
+        elif version == "latest_beta":
             self.options["version"] = self.project_config.get_latest_version(beta=True)
             self.logger.info(
                 "Installing latest beta release: {}".format(self.options["version"])
+            )
+        elif version == "previous":
+            self.options["version"] = self.project_config.get_previous_version()
+            self.logger.info(
+                "Installing previous release: {}".format(self.options["version"])
             )
         self.options["activateRSS"] = process_bool_arg(self.options.get("activateRSS"))
 
