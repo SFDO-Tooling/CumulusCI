@@ -533,11 +533,7 @@ class TestBaseProjectConfig(unittest.TestCase):
         config = BaseProjectConfig(BaseGlobalConfig())
         result = "\n".join(config.pretty_dependencies([dep]))
         self.assertEqual(
-            """  - dependencies: """
-            """    """
-            """      - repo_name: TestRepo
-    namespace: npsp
-    version: 3""",
+            """  - dependencies: \n    \n      - repo_name: TestRepo\n    namespace: npsp\n    version: 3""",
             result,
         )
 
