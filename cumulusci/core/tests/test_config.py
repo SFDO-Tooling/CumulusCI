@@ -233,6 +233,7 @@ class TestBaseProjectConfig(unittest.TestCase):
             "CumulusCI",
             {},
             [
+                DummyRelease("release/1.1", "1.1"),
                 DummyRelease("release/1.0", "1.0"),
                 DummyRelease("beta-wrongprefix", "wrong"),
                 DummyRelease("beta/1.0-Beta_2", "1.0 (Beta 2)"),
@@ -314,7 +315,7 @@ class TestBaseProjectConfig(unittest.TestCase):
 
     def test_repo_name_no_repo_root(self):
         config = BaseProjectConfig(BaseGlobalConfig())
-        with temporary_dir() as d:
+        with temporary_dir():
             self.assertIsNone(config.repo_name)
 
     def test_repo_name_from_git(self):
@@ -328,7 +329,7 @@ class TestBaseProjectConfig(unittest.TestCase):
 
     def test_repo_url_no_repo_root(self):
         config = BaseProjectConfig(BaseGlobalConfig())
-        with temporary_dir() as d:
+        with temporary_dir():
             self.assertIsNone(config.repo_url)
 
     def test_repo_url_from_git(self):
@@ -342,7 +343,7 @@ class TestBaseProjectConfig(unittest.TestCase):
 
     def test_repo_owner_no_repo_root(self):
         config = BaseProjectConfig(BaseGlobalConfig())
-        with temporary_dir() as d:
+        with temporary_dir():
             self.assertIsNone(config.repo_owner)
 
     def test_repo_branch_from_repo_info(self):
@@ -352,7 +353,7 @@ class TestBaseProjectConfig(unittest.TestCase):
 
     def test_repo_branch_no_repo_root(self):
         config = BaseProjectConfig(BaseGlobalConfig())
-        with temporary_dir() as d:
+        with temporary_dir():
             self.assertIsNone(config.repo_branch)
 
     def test_repo_commit_from_repo_info(self):
@@ -362,7 +363,7 @@ class TestBaseProjectConfig(unittest.TestCase):
 
     def test_repo_commit_no_repo_root(self):
         config = BaseProjectConfig(BaseGlobalConfig())
-        with temporary_dir() as d:
+        with temporary_dir():
             self.assertIsNone(config.repo_commit)
 
     def test_repo_commit_no_repo_branch(self):
@@ -413,7 +414,7 @@ class TestBaseProjectConfig(unittest.TestCase):
         )
         config.get_github_api = mock.Mock(return_value=self._make_github())
         result = config.get_latest_tag()
-        self.assertEqual("release/1.0", result)
+        self.assertEqual("release/1.1", result)
 
     def test_get_latest_tag_beta(self):
         config = BaseProjectConfig(
@@ -439,7 +440,7 @@ class TestBaseProjectConfig(unittest.TestCase):
         )
         config.get_github_api = mock.Mock(return_value=self._make_github())
         result = config.get_latest_version()
-        self.assertEqual("1.0", result)
+        self.assertEqual("1.1", result)
 
     def test_get_latest_version_beta(self):
         config = BaseProjectConfig(
@@ -454,9 +455,22 @@ class TestBaseProjectConfig(unittest.TestCase):
         result = config.get_latest_version(beta=True)
         self.assertEqual("1.0 (Beta 2)", result)
 
+    def test_get_previous_version(self):
+        config = BaseProjectConfig(
+            BaseGlobalConfig(),
+            {
+                "project": {
+                    "git": {"prefix_beta": "beta/", "prefix_release": "release/"}
+                }
+            },
+        )
+        config.get_github_api = mock.Mock(return_value=self._make_github())
+        result = config.get_previous_version()
+        self.assertEqual("1.0", result)
+
     def test_config_project_path_no_repo_root(self):
         config = BaseProjectConfig(BaseGlobalConfig())
-        with temporary_dir() as d:
+        with temporary_dir():
             self.assertIsNone(config.config_project_path)
 
     def test_get_tag_for_version(self):
@@ -519,9 +533,9 @@ class TestBaseProjectConfig(unittest.TestCase):
         config = BaseProjectConfig(BaseGlobalConfig())
         result = "\n".join(config.pretty_dependencies([dep]))
         self.assertEqual(
-            """  - dependencies: 
-    
-      - repo_name: TestRepo
+            """  - dependencies: """
+            """    """
+            """      - repo_name: TestRepo
     namespace: npsp
     version: 3""",
             result,
