@@ -5,9 +5,9 @@ History
 2.3.4 (2019-03-06)
 ------------------
 
-* Added a new flow, `install_upgrade`, which can be used for testing package upgrades.
+* Added a new flow, ``install_upgrade``, which can be used for testing package upgrades.
   It installs and configures the _previous_ release of the package, then installs the latest release.
-* Fixed an error when using `cci org info --json` (fixes #1013).
+* Fixed an error when using ``cci org info --json`` (fixes #1013).
 
 2.3.3 (2019-02-28)
 ------------------
