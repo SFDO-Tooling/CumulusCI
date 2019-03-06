@@ -594,6 +594,20 @@ flows:
             3:
                 task: deploy_post
 
+    install_upgrade:
+        description: Install the latest production version as an upgrade from the previous one
+        steps:
+            1:
+                flow: dependencies
+            2:
+                task: install_managed
+                options:
+                    version: previous
+            3:
+                flow: config_managed
+            4:
+                task: install_managed
+
     release_beta:
         description: Upload and release a beta version of the metadata currently in packaging
         steps:
