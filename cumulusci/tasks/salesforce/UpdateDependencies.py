@@ -284,7 +284,7 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
         return api()
 
     def freeze(self, step):
-        ui_options = step.task_config.get("ui_options", {})
+        ui_options = self.task_config.config.get("ui_options", {})
         dependencies = self.project_config.get_static_dependencies(
             self.options["dependencies"], include_beta=self.options["include_beta"]
         )

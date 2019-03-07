@@ -51,6 +51,8 @@ class Publish(BaseMetaDeployTask):
     }
 
     def _init_task(self):
+        super(Publish, self)._init_task()
+
         plan_name = self.options.get("plan")
         if plan_name:
             plan_configs = {}
@@ -64,8 +66,7 @@ class Publish(BaseMetaDeployTask):
     def _run_task(self):
         # Find or create Version
         tag = self.options["tag"]
-        # version = self._find_or_create_version()
-        version = None
+        version = self._find_or_create_version()
 
         # Check out the specified tag
         repo_owner = self.project_config.repo_owner
@@ -104,9 +105,6 @@ class Publish(BaseMetaDeployTask):
 
     def _publish_plan(self, project_config, version, plan_name, plan_config):
         steps = self._freeze_steps(project_config, plan_config)
-        import pdb
-
-        pdb.set_trace()
         self.logger.debug("Publishing steps:\n" + json.dumps(steps, indent=4))
 
         # Create Plan
@@ -158,13 +156,12 @@ class Publish(BaseMetaDeployTask):
     def _find_or_create_version(self):
         """Create a Version in MetaDeploy if it doesn't already exist
         """
-        repo_url = self.project_config.repo_url
+        repo_url = self.project_config.project__git__repo_url
         tag = self.options["tag"]
 
         # Find product
-        try:
-            result = self._call_api("GET", "/products", params={"repo_url": repo_url})
-        except requests.exceptions.HTTPError:
+        result = self._call_api("GET", "/products", params={"repo_url": repo_url})
+        if len(result["data"]) != 1:
             raise Exception(
                 "No product found in MetaDeploy with repo URL {}".format(repo_url)
             )
@@ -174,11 +171,10 @@ class Publish(BaseMetaDeployTask):
             product_url = result["url"]
 
         label = self.project_config.get_version_for_tag(tag)
-        try:
-            result = self._call_api(
-                "GET", "/versions", params={"product": product_id, "label": label}
-            )
-        except requests.exceptions.HTTPError:
+        result = self._call_api(
+            "GET", "/versions", params={"product": product_id, "label": label}
+        )
+        if len(result["data"]) == 0:
             version = self._call_api(
                 "POST",
                 "/versions",

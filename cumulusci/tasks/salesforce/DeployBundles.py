@@ -40,7 +40,7 @@ class DeployBundles(Deploy):
         return api()
 
     def freeze(self, step):
-        ui_options = step.task_config.get("ui_options", {})
+        ui_options = self.task_config.config.get("ui_options", {})
         path = self.options["path"]
         if not os.path.isdir(path):
             return []

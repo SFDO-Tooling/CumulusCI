@@ -234,7 +234,7 @@ class BaseTask(object):
             "kind": "other",
             "is_required": True,
         }
-        ui_step.update(self.task_config.get("ui_options", {}))
+        ui_step.update(self.task_config.config.get("ui_options", {}))
         ui_step.update(
             {
                 "path": step.path,
