@@ -136,6 +136,11 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
             json={"url": "https:/metadeploy/versions/1", "id": 1},
         )
         responses.add(
+            "GET",
+            "https://metadeploy/plantemplates?product=abcdef&name=install",
+            json={"data": [{"url": "https://metadeploy/plantemplates/1"}]},
+        )
+        responses.add(
             "POST",
             "https://metadeploy/plans",
             json={"url": "https://metadeploy/plans/1"},
@@ -186,11 +191,6 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
     def test_find_or_create_version__already_exists(self):
         responses.add(
             "GET",
-            "https://metadeploy/products?repo_url=EXISTING_REPO",
-            json={"data": [{"id": "abcdef", "url": "https://EXISTING_PRODUCT"}]},
-        )
-        responses.add(
-            "GET",
             "https://metadeploy/versions?product=abcdef&label=1.0",
             json={"data": [{"url": "http://EXISTING_VERSION"}]},
         )
@@ -211,11 +211,13 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
         task_config = TaskConfig({"options": {"tag": "release/1.0"}})
         task = Publish(project_config, task_config)
         task._init_task()
-        version = task._find_or_create_version()
+        version = task._find_or_create_version(
+            {"url": "http://EXISTING_PRODUCT", "id": "abcdef"}
+        )
         self.assertEqual("http://EXISTING_VERSION", version["url"])
 
     @responses.activate
-    def test_find_or_create_version__product_not_found(self):
+    def test_find_product__not_found(self):
         responses.add(
             "GET",
             "https://metadeploy/products?repo_url=EXISTING_REPO",
@@ -230,7 +232,7 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
         task = Publish(project_config, task_config)
         task._init_task()
         with self.assertRaises(Exception):
-            task._find_or_create_version()
+            task._find_product()
 
     @responses.activate
     def test_init_task__named_plan(self):
@@ -252,3 +254,43 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
         task = Publish(project_config, task_config)
         task._init_task()
         self.assertEqual(expected_plans, task.plan_configs)
+
+    @responses.activate
+    def test_find_or_create_plan_template__not_found(self):
+        responses.add(
+            "GET",
+            "https://metadeploy/plantemplates?product=abcdef&name=install",
+            json={"data": []},
+        )
+        responses.add(
+            "POST",
+            "https://metadeploy/plantemplates",
+            json={"url": "https://NEW_PLANTEMPLATE"},
+        )
+        responses.add(
+            "POST", "https://metadeploy/planslug", json={"url": "http://NEW_PLANSLUG"}
+        )
+
+        project_config = create_project_config()
+        project_config.config["project"]["git"]["repo_url"] = "EXISTING_REPO"
+        expected_plans = {
+            "install": {
+                "title": "Test Install",
+                "slug": "install",
+                "tier": "primary",
+                "steps": {1: {"flow": "install_prod"}},
+            }
+        }
+        project_config.config["plans"] = expected_plans
+        project_config.keychain.set_service(
+            "metadeploy", ServiceConfig({"url": "https://metadeploy", "token": "TOKEN"})
+        )
+        task_config = TaskConfig({"options": {"tag": "release/1.0"}})
+        task = Publish(project_config, task_config)
+        task._init_task()
+        plantemplate = task._find_or_create_plan_template(
+            {"url": "https://EXISTING_PRODUCT", "id": "abcdef"},
+            "install",
+            {"slug": "install"},
+        )
+        self.assertEqual("https://NEW_PLANTEMPLATE", plantemplate["url"])

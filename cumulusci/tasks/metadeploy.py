@@ -66,7 +66,8 @@ class Publish(BaseMetaDeployTask):
     def _run_task(self):
         # Find or create Version
         tag = self.options["tag"]
-        version = self._find_or_create_version()
+        product = self._find_product()
+        version = self._find_or_create_version(product)
 
         # Check out the specified tag
         repo_owner = self.project_config.repo_owner
@@ -95,7 +96,9 @@ class Publish(BaseMetaDeployTask):
 
             # create each plan
             for plan_name, plan_config in self.plan_configs.items():
-                self._publish_plan(project_config, version, plan_name, plan_config)
+                self._publish_plan(
+                    project_config, product, version, plan_name, plan_config
+                )
 
             # update version to set is_listed=True
             self._call_api(
@@ -103,17 +106,15 @@ class Publish(BaseMetaDeployTask):
             )
             self.logger.info("Published Version {}".format(version["url"]))
 
-    def _publish_plan(self, project_config, version, plan_name, plan_config):
+    def _publish_plan(self, project_config, product, version, plan_name, plan_config):
         steps = self._freeze_steps(project_config, plan_config)
         self.logger.debug("Publishing steps:\n" + json.dumps(steps, indent=4))
 
-        # Create Plan
-        plan_template_id = plan_config.get("plan_template_id")
-        plan_template_url = (
-            self.base_url + "/plantemplates/{}".format(plan_template_id)
-            if plan_template_id
-            else None
+        plan_template = self._find_or_create_plan_template(
+            product, plan_name, plan_config
         )
+
+        # Create Plan
         allowed_list_id = plan_config.get("allowed_list_id")
         allowed_list_url = (
             self.base_url + "/allowedlists/{}".format(allowed_list_id)
@@ -125,7 +126,7 @@ class Publish(BaseMetaDeployTask):
             "/plans",
             json={
                 "is_listed": plan_config.get("is_listed", True),
-                "plan_template": plan_template_url,
+                "plan_template": plan_template["url"],
                 "post_install_message_additional": plan_config.get(
                     "post_install_message_additional", ""
                 ),
@@ -153,33 +154,30 @@ class Publish(BaseMetaDeployTask):
             steps.extend(task.freeze(step))
         return steps
 
-    def _find_or_create_version(self):
-        """Create a Version in MetaDeploy if it doesn't already exist
-        """
+    def _find_product(self):
         repo_url = self.project_config.project__git__repo_url
-        tag = self.options["tag"]
-
-        # Find product
         result = self._call_api("GET", "/products", params={"repo_url": repo_url})
         if len(result["data"]) != 1:
             raise Exception(
                 "No product found in MetaDeploy with repo URL {}".format(repo_url)
             )
-        else:
-            result = result["data"][0]
-            product_id = result["id"]
-            product_url = result["url"]
+        return result["data"][0]
+
+    def _find_or_create_version(self, product):
+        """Create a Version in MetaDeploy if it doesn't already exist
+        """
+        tag = self.options["tag"]
 
         label = self.project_config.get_version_for_tag(tag)
         result = self._call_api(
-            "GET", "/versions", params={"product": product_id, "label": label}
+            "GET", "/versions", params={"product": product["id"], "label": label}
         )
         if len(result["data"]) == 0:
             version = self._call_api(
                 "POST",
                 "/versions",
                 json={
-                    "product": product_url,
+                    "product": product["url"],
                     "label": label,
                     "description": self.options.get("description", ""),
                     "is_production": True,
@@ -192,3 +190,27 @@ class Publish(BaseMetaDeployTask):
             version = result["data"][0]
             self.logger.info("Found {}".format(version["url"]))
         return version
+
+    def _find_or_create_plan_template(self, product, plan_name, plan_config):
+        result = self._call_api(
+            "GET",
+            "/plantemplates",
+            params={"product": product["id"], "name": plan_name},
+        )
+        if len(result["data"]) == 0:
+            plantemplate = self._call_api(
+                "POST",
+                "/plantemplates",
+                json={"name": plan_name, "product": product["url"]},
+            )
+            self.logger.info("Created {}".format(plantemplate["url"]))
+            planslug = self._call_api(
+                "POST",
+                "/planslug",
+                json={"slug": plan_config["slug"], "parent": plantemplate["url"]},
+            )
+            self.logger.info("Created {}".format(planslug["url"]))
+        else:
+            plantemplate = result["data"][0]
+            self.logger.info("Found {}".format(plantemplate["url"]))
+        return plantemplate
