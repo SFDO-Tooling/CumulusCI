@@ -48,10 +48,15 @@ class Publish(BaseMetaDeployTask):
             "By default, all plans will be published.",
             "required": False,
         },
+        "dry_run": {
+            "description": "If True, print steps without publishing.",
+            "required": False,
+        },
     }
 
     def _init_task(self):
         super(Publish, self)._init_task()
+        self.dry_run = self.options.get("dry_run")
 
         plan_name = self.options.get("plan")
         if plan_name:
@@ -65,15 +70,16 @@ class Publish(BaseMetaDeployTask):
 
     def _run_task(self):
         # Find or create Version
-        tag = self.options["tag"]
-        product = self._find_product()
-        version = self._find_or_create_version(product)
+        if not self.dry_run:
+            product = self._find_product()
+            version = self._find_or_create_version(product)
 
         # Check out the specified tag
         repo_owner = self.project_config.repo_owner
         repo_name = self.project_config.repo_name
         gh = self.project_config.get_github_api()
         repo = gh.repository(repo_owner, repo_name)
+        tag = self.options["tag"]
         commit_sha = repo.tag(repo.ref("tags/" + tag).object.sha).object.sha
         self.logger.info(
             "Downloading commit {} of {} from GitHub".format(commit_sha, repo.full_name)
@@ -94,33 +100,28 @@ class Publish(BaseMetaDeployTask):
             )
             project_config.set_keychain(self.project_config.keychain)
 
-            # create each plan
+            # Create each plan
             for plan_name, plan_config in self.plan_configs.items():
-                self._publish_plan(
-                    project_config, product, version, plan_name, plan_config
+                steps = self._freeze_steps(project_config, plan_config)
+                self.logger.debug("Prepared steps:\n" + json.dumps(steps, indent=4))
+                if not self.dry_run:
+                    self._publish_plan(product, version, plan_name, plan_config, steps)
+
+            # Update version to set is_listed=True
+            if not self.dry_run:
+                self._call_api(
+                    "PATCH",
+                    "/versions/{}".format(version["id"]),
+                    json={"is_listed": True},
                 )
+                self.logger.info("Published Version {}".format(version["url"]))
 
-            # update version to set is_listed=True
-            self._call_api(
-                "PATCH", "/versions/{}".format(version["id"]), json={"is_listed": True}
-            )
-            self.logger.info("Published Version {}".format(version["url"]))
-
-    def _publish_plan(self, project_config, product, version, plan_name, plan_config):
-        steps = self._freeze_steps(project_config, plan_config)
-        self.logger.debug("Publishing steps:\n" + json.dumps(steps, indent=4))
-
+    def _publish_plan(self, product, version, plan_name, plan_config, steps):
         plan_template = self._find_or_create_plan_template(
             product, plan_name, plan_config
         )
 
         # Create Plan
-        allowed_list_id = plan_config.get("allowed_list_id")
-        allowed_list_url = (
-            self.base_url + "/allowedlists/{}".format(allowed_list_id)
-            if allowed_list_id
-            else None
-        )
         plan = self._call_api(
             "POST",
             "/plans",
@@ -137,7 +138,8 @@ class Publish(BaseMetaDeployTask):
                 "tier": plan_config["tier"],
                 "title": plan_config["title"],
                 "version": version["url"],
-                "visible_to": allowed_list_url,
+                # Use same AllowedList as the product, if any
+                "visible_to": product.get("visible_to"),
             },
         )
         self.logger.info("Created Plan {}".format(plan["url"]))

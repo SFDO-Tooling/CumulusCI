@@ -302,7 +302,7 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
             task_config = {"options": self.options.copy()}
             task_config["options"]["dependencies"] = [dependency]
             ui_step = {"name": name, "kind": kind, "is_required": True}
-            ui_step.update(ui_options.get(str(i), {}))
+            ui_step.update(ui_options.get(i, {}))
             ui_step.update(
                 {
                     "path": "{}.{}".format(step.path, i),

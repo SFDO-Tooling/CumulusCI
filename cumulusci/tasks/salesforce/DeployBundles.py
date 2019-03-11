@@ -46,6 +46,8 @@ class DeployBundles(Deploy):
             return []
         steps = []
         for i, item in enumerate(sorted(os.listdir(path)), 1):
+            if not os.path.isdir(os.path.join(path, item)):
+                continue
             name = os.path.basename(item)
             subpath = os.path.relpath(
                 os.path.join(os.path.realpath(path), item),
