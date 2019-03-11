@@ -1,6 +1,5 @@
 import base64
 import io
-import mock
 import os
 import unittest
 import zipfile
@@ -13,7 +12,7 @@ from .util import create_task
 class TestDeploy(unittest.TestCase):
     def test_get_api(self):
         with temporary_dir() as path:
-            with open(os.path.join(path, "package.xml"), "w") as f:
+            with open(os.path.join(path, "package.xml"), "w"):
                 pass
             task = create_task(
                 Deploy,
@@ -31,7 +30,7 @@ class TestDeploy(unittest.TestCase):
 
     def test_get_api__managed(self):
         with temporary_dir() as path:
-            with open(os.path.join(path, "package.xml"), "w") as f:
+            with open(os.path.join(path, "package.xml"), "w"):
                 pass
             task = create_task(
                 Deploy, {"path": path, "namespace_inject": "ns", "unmanaged": False}
@@ -43,7 +42,7 @@ class TestDeploy(unittest.TestCase):
 
     def test_get_api__skip_clean_meta_xml(self):
         with temporary_dir() as path:
-            with open(os.path.join(path, "package.xml"), "w") as f:
+            with open(os.path.join(path, "package.xml"), "w"):
                 pass
             task = create_task(Deploy, {"path": path, "clean_meta_xml": False})
 
