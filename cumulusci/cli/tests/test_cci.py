@@ -506,8 +506,12 @@ test     Test Service  *""",
         config.keychain.set_org.assert_called_once_with(org_config)
 
     def test_org_info_json(self):
+        class Unserializable(object):
+            def __str__(self):
+                return "<unserializable>"
+
         org_config = mock.Mock()
-        org_config.config = {"test": "test"}
+        org_config.config = {"test": "test", "unserializable": Unserializable()}
         org_config.expires = date.today()
         config = mock.Mock()
         config.get_org.return_value = ("test", org_config)
@@ -519,7 +523,10 @@ test     Test Service  *""",
             )
 
         org_config.refresh_oauth_token.assert_called_once()
-        self.assertEqual('{\n    "test": "test"\n}', "".join(out))
+        self.assertEqual(
+            '{\n    "test": "test",\n    "unserializable": "<unserializable>"\n}',
+            "".join(out),
+        )
         config.keychain.set_org.assert_called_once_with(org_config)
 
     @mock.patch("click.echo")
