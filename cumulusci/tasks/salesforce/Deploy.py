@@ -3,7 +3,6 @@ import base64
 import io
 import os
 import zipfile
-import re
 
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.salesforce_api.metadata import ApiDeploy
@@ -42,25 +41,34 @@ class Deploy(BaseSalesforceMetadataApiTask):
         },
     }
 
-    # ignore all files in ./lwc and all sub-directories of a lwc component (i.e. ./lwc/[lwc Component Name]/.*)
-    _directory_blacklist = re.compile("^\\.\\/lwc(\\/.*?\\/.*)?$")
+    def _include_directory(self, root_parts):
+        # include the root directory, all non-lwc directories and sub-directories, and lwc component directories
+        return len(root_parts) == 0 or root_parts[0] != "lwc" or len(root_parts) == 2
 
-    def _include_directory(self, root):
-        return not self._directory_blacklist.match(root)
-
-    # ignore all lwc component sub-directories (usually __tests__ if anything)
-    _lwc_component_pattern = re.compile("^\\.\\/lwc\\/.*$")
-
-    def _is_lwc_component(self, root):
-        return self._lwc_component_pattern.match(root)
-
-    # whitelist all files ending in one of the following: .js, .js-meta.xml, .html, .css, .svg
-    _lwc_component_file_extension_whitelist = re.compile(
-        "^.*\\.(js(-meta\\.xml)?|html|css|svg)$"
-    )
-
-    def _include_lwc_component_file(self, f):
-        return self._lwc_component_file_extension_whitelist.match(f)
+    def _include_file(self, root_parts, f):
+        if len(root_parts) == 2 and root_parts[0] == "lwc":
+            # is file of lwc component directory
+            lower_f = f.lower()
+            is_included = (
+                lower_f.endswith(".js")
+                or lower_f.endswith(".js-meta.xml")
+                or lower_f.endswith(".html")
+                or lower_f.endswith(".css")
+                or lower_f.endswith(".svg")
+            )
+            if is_included:
+                print("    ++ lwc file: '" + f + "'")
+            else:
+                print("    xx lwc file: '" + f + "'")
+            return (
+                lower_f.endswith(".js")
+                or lower_f.endswith(".js-meta.xml")
+                or lower_f.endswith(".html")
+                or lower_f.endswith(".css")
+                or lower_f.endswith(".svg")
+            )
+        print("    ++ file: '" + f + "'")
+        return True
 
     def _get_api(self, path=None):
         if not path:
@@ -77,15 +85,20 @@ class Deploy(BaseSalesforceMetadataApiTask):
 
         with cd(path):
             for root, dirs, files in os.walk("."):
-                if self._include_directory(root):
-                    if self._is_lwc_component(root):
-                        for f in files:
-                            if self._include_lwc_component_file(f):
-                                self._write_zip_file(zipf, root, f)
-                    else:
-                        # Include all files
-                        for f in files:
+                root_parts = root.split(os.sep)[1:]
+                print("")
+                print("root: '" + root + "'")
+                print("root_parts: '" + str(root_parts) + "'")
+                print(
+                    "_include_directory(root_parts): '"
+                    + str(self._include_directory(root_parts))
+                    + "'"
+                )
+                if self._include_directory(root_parts):
+                    for f in files:
+                        if self._include_file(root_parts, f):
                             self._write_zip_file(zipf, root, f)
+                print("")
             zipf.close()
         zipf_processed = self._process_zip_file(zipfile.ZipFile(zip_bytes))
         fp = zipf_processed.fp
