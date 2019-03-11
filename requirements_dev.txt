@@ -2,7 +2,7 @@
 -e .
 black==18.9b0; python_version > '3'
 bump2version==0.5.10
-coverage==4.5.2
+coverage==4.5.3
 coveralls==1.6.0
 flake8==3.7.7
 mock==2.0.0
