@@ -374,10 +374,13 @@ flows:
                 task: github_parent_to_children
 
     ci_master:
-        description: Deploy the package metadata to the packaging org and prepare for managed package version upload.  Inteded for use against master branch commits.
+        description: Deploy the package metadata to the packaging org and prepare for managed package version upload.  Intended for use against master branch commits.
         steps:
             1:
                 flow: dependencies
+                options:
+                    update_dependencies:
+                        include_beta: False
             2:
                 flow: deploy_packaging
             3:
@@ -589,6 +592,20 @@ flows:
                 task: install_managed
             3:
                 task: deploy_post
+
+    install_upgrade:
+        description: Install the latest production version as an upgrade from the previous one
+        steps:
+            1:
+                flow: dependencies
+            2:
+                task: install_managed
+                options:
+                    version: previous
+            3:
+                flow: config_managed
+            4:
+                task: install_managed
 
     release_beta:
         description: Upload and release a beta version of the metadata currently in packaging

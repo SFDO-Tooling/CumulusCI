@@ -409,6 +409,19 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         if version is not None:
             return LooseVersion(version)
 
+    def get_previous_version(self):
+        """Query GitHub releases to find the previous production release"""
+        gh = self.get_github_api()
+        repo = gh.repository(self.repo_owner, self.repo_name)
+        most_recent = None
+        for release in repo.releases():
+            # Return the second release that matches the release prefix
+            if release.tag_name.startswith(self.project__git__prefix_release):
+                if most_recent is None:
+                    most_recent = release
+                else:
+                    return LooseVersion(self.get_version_for_tag(release.tag_name))
+
     @property
     def config_project_path(self):
         if not self.repo_root:
@@ -525,7 +538,9 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                 prefix = "{}    ".format(" " * indent)
         return pretty
 
-    def process_github_dependency(self, dependency, indent=None, include_beta=None):
+    def process_github_dependency(  # noqa: C901
+        self, dependency, indent=None, include_beta=None
+    ):
         if not indent:
             indent = ""
 
