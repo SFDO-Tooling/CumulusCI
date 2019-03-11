@@ -41,35 +41,6 @@ class Deploy(BaseSalesforceMetadataApiTask):
         },
     }
 
-    def _include_directory(self, root_parts):
-        # include the root directory, all non-lwc directories and sub-directories, and lwc component directories
-        return len(root_parts) == 0 or root_parts[0] != "lwc" or len(root_parts) == 2
-
-    def _include_file(self, root_parts, f):
-        if len(root_parts) == 2 and root_parts[0] == "lwc":
-            # is file of lwc component directory
-            lower_f = f.lower()
-            is_included = (
-                lower_f.endswith(".js")
-                or lower_f.endswith(".js-meta.xml")
-                or lower_f.endswith(".html")
-                or lower_f.endswith(".css")
-                or lower_f.endswith(".svg")
-            )
-            if is_included:
-                print("    ++ lwc file: '" + f + "'")
-            else:
-                print("    xx lwc file: '" + f + "'")
-            return (
-                lower_f.endswith(".js")
-                or lower_f.endswith(".js-meta.xml")
-                or lower_f.endswith(".html")
-                or lower_f.endswith(".css")
-                or lower_f.endswith(".svg")
-            )
-        print("    ++ file: '" + f + "'")
-        return True
-
     def _get_api(self, path=None):
         if not path:
             path = self.task_config.options__path
@@ -78,28 +49,43 @@ class Deploy(BaseSalesforceMetadataApiTask):
         self.logger.info("Payload size: {} bytes".format(len(package_zip)))
         return self.api_class(self, package_zip, purge_on_delete=False)
 
+    def _include_directory(self, root_parts):
+        # include the root directory, all non-lwc directories and sub-directories, and lwc component directories
+        return len(root_parts) == 0 or root_parts[0] != "lwc" or len(root_parts) == 2
+
+    def _include_file(self, root_parts, f):
+        if len(root_parts) == 2 and root_parts[0] == "lwc":
+            # is file of lwc component directory
+            lower_f = f.lower()
+            return (
+                lower_f.endswith(".js")
+                or lower_f.endswith(".js-meta.xml")
+                or lower_f.endswith(".html")
+                or lower_f.endswith(".css")
+                or lower_f.endswith(".svg")
+            )
+        return True
+
+    def _get_files_to_package(self, path):
+        files_to_pacakge = []
+        for root, dirs, files in os.walk("."):
+            root_parts = root.split(os.sep)[1:]
+            if self._include_directory(root_parts):
+                for f in files:
+                    if self._include_file(root_parts, f):
+                        files_to_pacakge.append(os.path.join(root, f))
+        return files_to_pacakge
+
     def _get_package_zip(self, path):
         # Build the zip file
         zip_bytes = io.BytesIO()
         zipf = zipfile.ZipFile(zip_bytes, "w", zipfile.ZIP_DEFLATED)
 
         with cd(path):
-            for root, dirs, files in os.walk("."):
-                root_parts = root.split(os.sep)[1:]
-                print("")
-                print("root: '" + root + "'")
-                print("root_parts: '" + str(root_parts) + "'")
-                print(
-                    "_include_directory(root_parts): '"
-                    + str(self._include_directory(root_parts))
-                    + "'"
-                )
-                if self._include_directory(root_parts):
-                    for f in files:
-                        if self._include_file(root_parts, f):
-                            self._write_zip_file(zipf, root, f)
-                print("")
+            for file_to_pacakge in self._get_files_to_package(path):
+                zipf.write(file_to_pacakge)
             zipf.close()
+
         zipf_processed = self._process_zip_file(zipfile.ZipFile(zip_bytes))
         fp = zipf_processed.fp
         zipf_processed.close()
@@ -157,6 +143,3 @@ class Deploy(BaseSalesforceMetadataApiTask):
         )
         zipf = zip_clean_metaxml(zipf, logger=self.logger)
         return zipf
-
-    def _write_zip_file(self, zipf, root, path):
-        zipf.write(os.path.join(root, path))
