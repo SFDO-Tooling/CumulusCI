@@ -4,7 +4,7 @@ applications:
       extension: app
 aura:
     - type: AuraDefinitionBundle
-      class: AuraBundleParser
+      class: BundleParser
 classes:
     - type: ApexClass
       class: MetadataFilenameParser
@@ -108,6 +108,9 @@ layouts:
 letterhead:
     - type: Letterhead
       class: MetadataFilenameParser
+lwc:
+    - type: LightningComponentBundle
+      class: BundleParser
 matchingRules:
     - type: MatchingRule
       class: MetadataXmlElementParser

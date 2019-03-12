@@ -2,7 +2,6 @@ from future.utils import bytes_to_native_str
 import base64
 import io
 import os
-import tempfile
 import zipfile
 
 from cumulusci.core.utils import process_bool_arg
@@ -42,21 +41,6 @@ class Deploy(BaseSalesforceMetadataApiTask):
         },
     }
 
-    def _get_package_zip(self, path):
-        # Build the zip file
-        zip_bytes = io.BytesIO()
-        zipf = zipfile.ZipFile(zip_bytes, "w", zipfile.ZIP_DEFLATED)
-
-        with cd(path):
-            for root, dirs, files in os.walk("."):
-                for f in files:
-                    self._write_zip_file(zipf, root, f)
-            zipf.close()
-        zipf_processed = self._process_zip_file(zipfile.ZipFile(zip_bytes))
-        fp = zipf_processed.fp
-        zipf_processed.close()
-        return bytes_to_native_str(base64.b64encode(fp.getvalue()))
-
     def _get_api(self, path=None):
         if not path:
             path = self.task_config.options__path
@@ -64,6 +48,40 @@ class Deploy(BaseSalesforceMetadataApiTask):
         package_zip = self._get_package_zip(path)
         self.logger.info("Payload size: {} bytes".format(len(package_zip)))
         return self.api_class(self, package_zip, purge_on_delete=False)
+
+    def _include_directory(self, root_parts):
+        # include the root directory, all non-lwc directories and sub-directories, and lwc component directories
+        return len(root_parts) == 0 or root_parts[0] != "lwc" or len(root_parts) == 2
+
+    def _include_file(self, root_parts, f):
+        if len(root_parts) == 2 and root_parts[0] == "lwc":
+            # is file of lwc component directory
+            lower_f = f.lower()
+            return lower_f.endswith((".js", ".js-meta.xml", ".html", ".css", ".svg"))
+        return True
+
+    def _get_files_to_package(self, path):
+        for root, dirs, files in os.walk("."):
+            root_parts = root.split(os.sep)[1:]
+            if self._include_directory(root_parts):
+                for f in files:
+                    if self._include_file(root_parts, f):
+                        yield os.path.join(root, f)
+
+    def _get_package_zip(self, path):
+        # Build the zip file
+        zip_bytes = io.BytesIO()
+        zipf = zipfile.ZipFile(zip_bytes, "w", zipfile.ZIP_DEFLATED)
+
+        with cd(path):
+            for file_to_package in self._get_files_to_package(path):
+                zipf.write(file_to_package)
+            zipf.close()
+
+        zipf_processed = self._process_zip_file(zipfile.ZipFile(zip_bytes))
+        fp = zipf_processed.fp
+        zipf_processed.close()
+        return bytes_to_native_str(base64.b64encode(fp.getvalue()))
 
     def _process_zip_file(self, zipf):
         zipf = self._process_namespace(zipf)
@@ -117,6 +135,3 @@ class Deploy(BaseSalesforceMetadataApiTask):
         )
         zipf = zip_clean_metaxml(zipf, logger=self.logger)
         return zipf
-
-    def _write_zip_file(self, zipf, root, path):
-        zipf.write(os.path.join(root, path))
