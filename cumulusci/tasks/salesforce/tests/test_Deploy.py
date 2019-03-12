@@ -394,8 +394,8 @@ class TestDeploy(unittest.TestCase):
             zipf = zipfile.ZipFile(zip_bytes, "w", zipfile.ZIP_DEFLATED)
 
             with cd(path):
-                for file_to_pacakge in task._get_files_to_package(path):
-                    zipf.write(file_to_pacakge)
+                for file_to_package in task._get_files_to_package(path):
+                    zipf.write(file_to_package)
                 zipf.close()
 
             zipf_processed = task._process_zip_file(zipfile.ZipFile(zip_bytes))
