@@ -282,7 +282,7 @@ class TestDeploy(unittest.TestCase):
 
             expected_set = set(expected)
             actual_set = set(task._get_files_to_package(path))
-            self.assertEquals(expected_set, actual_set)
+            self.assertEqual(expected_set, actual_set)
 
     def test_get_package_zip(self):
         with temporary_dir() as path:
@@ -405,4 +405,4 @@ class TestDeploy(unittest.TestCase):
 
             actual = task._get_package_zip(path)
 
-            self.assertEquals(expected, actual)
+            self.assertEqual(expected, actual)
