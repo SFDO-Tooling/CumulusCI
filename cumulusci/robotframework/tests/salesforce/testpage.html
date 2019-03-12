@@ -1,0 +1,53 @@
+<html>
+  <head>
+    <style>
+      body {
+          width: 600px;
+      }
+      .block {
+          position: fixed;
+          top: 150;
+          left: 10;
+          width: 100px;
+          height: 100px;
+          background-color: red;
+          display: flex;
+          text-align: center;
+          justify-content:center;
+          align-content:center;
+          flex-direction:column;
+      }
+      #red-div {
+          background-color: red;
+      }
+      #green-div {
+          background-color: green;
+      }
+    </style>
+    <script>
+      function raise_red() {
+          document.getElementById('red-div').style.zIndex = 1;
+          document.getElementById('green-div').style.zIndex = -1;
+      }
+      function raise_green() {
+          document.getElementById('red-div').style.zIndex = -1;
+          document.getElementById('green-div').style.zIndex = 1;
+      }
+    </script>
+  </head>
+  <body>
+    <p>This page is for testing the ability to click on an element
+    that is temporarily hidden by another element. The tests rely
+    on the fact that the green div is hidden behind the red div,
+    and is raised while the test is running.</p>
+
+    <p>
+      <button id='red-button' onclick='raise_red()'>Raise the red div</button>
+      <button id='green-button' onclick='raise_green()'>Raise the green div</button>
+    </p>
+
+    <div class='block' id='green-div'>Green means go</div>
+    <div class='block' id='red-div'>Red means stop</div>
+
+  </body>
+</html>

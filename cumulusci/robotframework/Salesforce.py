@@ -1,38 +1,32 @@
 import logging
 import re
 import time
-from robot.libraries.BuiltIn import BuiltIn
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.action_chains import ActionChains
 
 from simple_salesforce import SalesforceResourceNotFound
 from cumulusci.robotframework.locators import lex_locators
-from cumulusci.robotframework.utils import selenium_retry
 from SeleniumLibrary.errors import ElementNotFound
 from urllib3.exceptions import ProtocolError
+
+from cumulusci.robotframework.BaseLibrary import BaseLibrary
+from cumulusci.robotframework.FormsMixin import FormsMixin
 
 OID_REGEX = r"^(%2F)?([a-zA-Z0-9]{15,18})$"
 
 
-@selenium_retry
-class Salesforce(object):
+class Salesforce(BaseLibrary, FormsMixin):
     ROBOT_LIBRARY_SCOPE = "GLOBAL"
 
     def __init__(self, debug=False):
+        super(Salesforce, self).__init__()
         self.debug = debug
+
         self._session_records = []
         # Turn off info logging of all http requests
         logging.getLogger("requests.packages.urllib3.connectionpool").setLevel(
             logging.WARN
         )
-
-    @property
-    def builtin(self):
-        return BuiltIn()
-
-    @property
-    def cumulusci(self):
-        return self.builtin.get_library_instance("cumulusci.robotframework.CumulusCI")
 
     def create_webdriver_with_retry(self, *args, **kwargs):
         """Call the Create Webdriver keyword.

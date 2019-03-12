@@ -1,5 +1,6 @@
 import functools
 import time
+from selenium.common.exceptions import ElementClickInterceptedException
 from selenium.common.exceptions import ElementNotInteractableException
 from selenium.common.exceptions import StaleElementReferenceException
 from selenium.common.exceptions import WebDriverException
@@ -57,6 +58,7 @@ if (document.getElementById('auraAppcacheProgress')) {
 
 ALWAYS_RETRY_EXCEPTIONS = (
     ElementNotFound,
+    ElementClickInterceptedException,
     ElementNotInteractableException,
     StaleElementReferenceException,
 )
@@ -65,6 +67,7 @@ ALWAYS_RETRY_EXCEPTIONS = (
 class RetryingSeleniumLibraryMixin(object):
 
     debug = False
+    retry_count = 0
 
     @property
     def selenium(self):
@@ -116,6 +119,7 @@ class RetryingSeleniumLibraryMixin(object):
                 and "Other element would receive the click" in str(e)
             ):
                 # Retry
+                self.retry_count += 1
                 self.builtin.log("Retrying {} command".format(command), level="WARN")
                 time.sleep(2)
                 return execute(command, params)
@@ -183,14 +187,13 @@ def selenium_retry(target=None, retry=True):
         def run_with_retry(self, *args, **kwargs):
             # Set the retry setting and run the original function.
             old_retry = self.retry_selenium
-            self.retry = retry
+            self.retry_selenium = retry
             try:
                 return func(self, *args, **kwargs)
             finally:
                 # Restore the previous value
                 self.retry_selenium = old_retry
 
-        set_pdb_trace()
         run_with_retry.is_selenium_retry_decorator = True
         return run_with_retry
 

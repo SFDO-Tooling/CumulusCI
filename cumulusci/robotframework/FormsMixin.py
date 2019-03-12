@@ -1,0 +1,2 @@
+class FormsMixin(object):
+    pass
