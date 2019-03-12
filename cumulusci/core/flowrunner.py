@@ -367,6 +367,7 @@ class FlowCoordinator(object):
         step_config,
         visited_steps=None,
         parent_options=None,
+        parent_ui_options=None,
         from_flow=None,
     ):
         """
@@ -380,6 +381,7 @@ class FlowCoordinator(object):
         :param step_config: the current step's config (dict from YAML)
         :param visited_steps: used when called recursively for nested steps, becomes the return value
         :param parent_options: used when called recursively for nested steps, options from parent flow
+        :param parent_ui_options: used when called recursively for nested steps, UI options from parent flow
         :param from_flow: used when called recursively for nested steps, name of parent flow
         :return: List[StepSpec] a list of all resolved steps including/under the one passed in
         """
@@ -389,6 +391,8 @@ class FlowCoordinator(object):
             visited_steps = []
         if parent_options is None:
             parent_options = {}
+        if parent_ui_options is None:
+            parent_ui_options = {}
 
         # Step Validation
         # - A step is either a task OR a flow.
@@ -433,6 +437,13 @@ class FlowCoordinator(object):
             step_overrides.update(step_config.get("options", {}))
             task_config["options"].update(step_overrides)
 
+            # merge UI options from task config and parent flow
+            if "ui_options" not in task_config:
+                task_config["ui_options"] = {}
+            step_ui_overrides = copy.deepcopy(parent_ui_options.get(name, {}))
+            step_ui_overrides.update(step_config.get("ui_options", {}))
+            task_config["ui_options"].update(step_ui_overrides)
+
             # merge runtime options
             if name in self.runtime_options:
                 task_config["options"].update(self.runtime_options[name])
@@ -463,6 +474,7 @@ class FlowCoordinator(object):
             else:
                 path = name
             step_options = step_config.get("options", {})
+            step_ui_options = step_config.get("ui_options", {})
             flow_config = self.project_config.get_flow(name)
             for sub_number, sub_stepconf in flow_config.steps.items():
                 # append the flow number to the child number, since its a LooseVersion.
@@ -475,6 +487,7 @@ class FlowCoordinator(object):
                     sub_stepconf,
                     visited_steps,
                     parent_options=step_options,
+                    parent_ui_options=step_ui_options,
                     from_flow=path,
                 )
 
