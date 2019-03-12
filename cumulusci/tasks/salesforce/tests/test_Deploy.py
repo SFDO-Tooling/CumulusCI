@@ -159,6 +159,8 @@ class TestDeploy(unittest.TestCase):
         with temporary_dir() as path:
             expected = []
 
+            rel_path = "."
+
             # add package.xml
             with open(os.path.join(path, "package.xml"), "w") as f:
                 f.write(
@@ -167,10 +169,11 @@ class TestDeploy(unittest.TestCase):
     <version>45.0</version>
 </Package>"""
                 )
-                expected.append(os.path.join(".", "package.xml"))
+                expected.append(os.path.join(rel_path, "package.xml"))
 
             # add lwc
             lwc_path = os.path.join(path, "lwc")
+            rel_lwc_path = os.path.join(rel_path, "lwc")
             os.mkdir(lwc_path)
 
             # add lwc linting files (not included in zip)
@@ -181,6 +184,7 @@ class TestDeploy(unittest.TestCase):
 
             # add lwc component
             lwc_component_path = os.path.join(lwc_path, "myComponent")
+            rel_lwc_component_path = os.path.join(rel_lwc_path, "myComponent")
             os.mkdir(lwc_component_path)
 
             # add lwc component files included in zip (in alphabetical order)
@@ -207,7 +211,7 @@ class TestDeploy(unittest.TestCase):
                         f.write(lwc_component_file.get("body"))
                     expected.append(
                         os.path.join(
-                            "./lwc/myComponent", lwc_component_file.get("name")
+                            rel_lwc_component_path, lwc_component_file.get("name")
                         )
                     )
 
@@ -224,6 +228,7 @@ class TestDeploy(unittest.TestCase):
 
             # add classes
             classes_path = os.path.join(path, "classes")
+            rel_classes_path = os.path.join(rel_path, "classes")
             os.mkdir(classes_path)
             class_files = [
                 {
@@ -241,24 +246,28 @@ class TestDeploy(unittest.TestCase):
                 with open(os.path.join(classes_path, class_file.get("name")), "w") as f:
                     if class_file.get("body") is not None:
                         f.write(class_file.get("body"))
-                    expected.append(os.path.join("./classes", class_file.get("name")))
+                    expected.append(
+                        os.path.join(rel_classes_path, class_file.get("name"))
+                    )
 
             # add objects
             objects_path = os.path.join(path, "objects")
+            rel_objects_path = os.path.join(rel_path, "objects")
             os.mkdir(objects_path)
             object_file_names = ["Account.object", "Contact.object", "CustomObject__c"]
             object_file_names.sort()
             for object_file_name in object_file_names:
                 with open(os.path.join(objects_path, object_file_name), "w"):
-                    expected.append(os.path.join("./objects", object_file_name))
+                    expected.append(os.path.join(rel_objects_path, object_file_name))
 
             # add sub-directory of objects (that doesn't really exist)
             objects_sub_path = os.path.join(objects_path, "does-not-exist-in-schema")
+            rel_objects_sub_path = os.path.join(
+                rel_objects_path, "does-not-exist-in-schema"
+            )
             os.mkdir(objects_sub_path)
             with open(os.path.join(objects_sub_path, "some.file"), "w"):
-                expected.append(
-                    os.path.join("./objects/does-not-exist-in-schema", "some.file")
-                )
+                expected.append(os.path.join(rel_objects_sub_path, "some.file"))
 
             # test
             task = create_task(
