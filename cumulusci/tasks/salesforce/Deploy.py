@@ -61,14 +61,14 @@ class Deploy(BaseSalesforceMetadataApiTask):
         return True
 
     def _get_files_to_package(self, path):
-        files_to_pacakge = []
+        files_to_package = []
         for root, dirs, files in os.walk("."):
             root_parts = root.split(os.sep)[1:]
             if self._include_directory(root_parts):
                 for f in files:
                     if self._include_file(root_parts, f):
-                        files_to_pacakge.append(os.path.join(root, f))
-        return files_to_pacakge
+                        files_to_package.append(os.path.join(root, f))
+        return files_to_package
 
     def _get_package_zip(self, path):
         # Build the zip file
