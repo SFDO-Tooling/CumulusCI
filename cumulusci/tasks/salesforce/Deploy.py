@@ -61,7 +61,6 @@ class Deploy(BaseSalesforceMetadataApiTask):
         return True
 
     def _get_files_to_package(self, path):
-        # files_to_package = []
         for root, dirs, files in os.walk("."):
             root_parts = root.split(os.sep)[1:]
             if self._include_directory(root_parts):
