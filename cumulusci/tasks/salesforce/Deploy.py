@@ -57,13 +57,7 @@ class Deploy(BaseSalesforceMetadataApiTask):
         if len(root_parts) == 2 and root_parts[0] == "lwc":
             # is file of lwc component directory
             lower_f = f.lower()
-            return (
-                lower_f.endswith(".js")
-                or lower_f.endswith(".js-meta.xml")
-                or lower_f.endswith(".html")
-                or lower_f.endswith(".css")
-                or lower_f.endswith(".svg")
-            )
+            return lower_f.endswith((".js", ".js-meta.xml", ".html", ".css", ".svg"))
         return True
 
     def _get_files_to_package(self, path):
