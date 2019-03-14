@@ -40,6 +40,10 @@ tasks:
             path: src
             revert_path: src.orig
         group: Salesforce Metadata
+    choose_deployment_method:
+        description: Determine whether to deploy using SFDX or the metadata API
+        class_path: cumulusci.tasks.sfdx.ChooseDeploymentMethod
+        group: Salesforce DX
     deploy:
         description: Deploys the src directory of the repository to the org
         class_path: cumulusci.tasks.salesforce.Deploy
@@ -465,14 +469,31 @@ flows:
     deploy_unmanaged:
         description: Deploy the unmanaged metadata from the package
         steps:
+            0.1:
+                # (sets dx=True in the return values if it's a scratch org
+                # and source_format=sfdx in the project config,
+                # otherwise sets md=True)
+                task: choose_deployment_method
+            0.2:
+                task: dx_convert_to
+                when: choose_deployment_method.convert
             1:
                 task: unschedule_apex
             2:
                 task: update_package_xml
-            3:
+                when: choose_deployment_method.md
+            3.1:
                 task: deploy
+                when: choose_deployment_method.md
+            3.2:
+                task: dx_push
+                when: choose_deployment_method.dx
             4:
                 task: uninstall_packaged_incremental
+                when: choose_deployment_method.md
+            # 5:
+            #     task: delete_source
+            #     when: choose_deployment_method.convert
 
     deploy_unmanaged_ee:
         description: Deploy the unmanaged metadata from the package to an Enterprise Edition org

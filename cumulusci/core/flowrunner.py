@@ -82,6 +82,7 @@ class StepSpec(object):
         "allow_failure",  # type: bool
         "path",  # type: str
         "skip",  # type: bool
+        "when",  # type: str
     )
 
     def __init__(
@@ -93,6 +94,7 @@ class StepSpec(object):
         allow_failure=False,
         from_flow=None,
         skip=None,
+        when=None,
     ):
         self.step_num = step_num
         self.task_name = task_name
@@ -100,6 +102,7 @@ class StepSpec(object):
         self.task_class = task_class
         self.allow_failure = allow_failure
         self.skip = skip
+        self.when = when
 
         # Store the dotted path to this step.
         # This is not guaranteed to be unique, because multiple steps
@@ -317,6 +320,17 @@ class FlowCoordinator(object):
                     self._rule(fill="*", new_line=True)
                     continue
 
+                if step.when:
+                    path, name = step.when.rsplit(".", 1)
+                    value = self._find_result_by_path(path).return_values[name]
+                    if not value:
+                        self.logger.info(
+                            "Skipping task {} based on {}".format(
+                                step.task_name, step.when
+                            )
+                        )
+                        continue
+
                 self._rule(fill="-")
                 self.logger.info("Running task: {}".format(step.task_name))
                 self._rule(fill="-", new_line=True)
@@ -463,6 +477,7 @@ class FlowCoordinator(object):
                     task_class,
                     step_config.get("ignore_failure", False),
                     from_flow=from_flow,
+                    when=step_config.get("when"),
                 )
             )
             return visited_steps
@@ -551,6 +566,6 @@ class FlowCoordinator(object):
 
     def _find_result_by_path(self, path):
         for result in self.results:
-            if result.path == path:
+            if result.path[-len(path) :] == path:
                 return result
         raise NameError("Path not found: {}".format(path))
