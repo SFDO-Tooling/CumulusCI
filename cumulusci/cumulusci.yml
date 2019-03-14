@@ -245,7 +245,7 @@ tasks:
             title: $project_config.project__package__name
         group: Robot Framework
     robot_testdoc:
-        description: 
+        description: Generates html documentation of your Robot test suite and writes to tests/test_suite. 
         class_path: cumulusci.tasks.robotframework.RobotTestDoc
         options:
             path: tests
