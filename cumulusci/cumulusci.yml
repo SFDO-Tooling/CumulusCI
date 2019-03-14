@@ -597,19 +597,19 @@ flows:
             3:
                 task: deploy_post
 
-    install_upgrade:
-        description: Install the latest production version as an upgrade from the previous one
+    install_regression:
+        description: Install the latest beta dependencies and upgrade to the latest beta version from the most recent production version
         steps:
             1:
-                flow: dependencies
+                flow: beta_dependencies
             2:
                 task: install_managed
                 options:
                     version: previous
             3:
-                flow: config_managed
+                task: install_managed_beta
             4:
-                task: install_managed
+                flow: config_managed
 
     release_beta:
         description: Upload and release a beta version of the metadata currently in packaging
