@@ -342,13 +342,13 @@ class TestCCI(unittest.TestCase):
         config.project_config.services = {"test": {"description": "Test Service"}}
         config.keychain.list_services.return_value = ["test"]
 
-        run_click_command(cci.service_list, config=config)
+        run_click_command(
+            cci.service_list, config=config, plain=False, print_json=False
+        )
 
-        table = echo.call_args[0][0]
+        table = echo.call_args_list[0][0][0]
         self.assertEqual(
-            """service  description   is_configured
--------  ------------  -------------
-test     Test Service  *""",
+            """\x1b(0l\x1b(BServices\x1b(0qqqqqqqqqqqqqwqqqqqqqqqqqqk\x1b(B\n\x1b(0x\x1b(B Name \x1b(0x\x1b(B Description  \x1b(0x\x1b(B Configured \x1b(0x\x1b(B\n\x1b(0tqqqqqqnqqqqqqqqqqqqqqnqqqqqqqqqqqqu\x1b(B\n\x1b(0x\x1b(B test \x1b(0x\x1b(B Test Service \x1b(0x\x1b(B \x1b[32m✔\x1b[0m          \x1b(0x\x1b(B\n\x1b(0mqqqqqqvqqqqqqqqqqqqqqvqqqqqqqqqqqqj\x1b(B""",
             str(table),
         )
 
@@ -629,14 +629,12 @@ test     Test Service  *""",
             ),
         ]
 
-        run_click_command(cci.org_list, config=config)
+        run_click_command(cci.org_list, config=config, plain=False)
 
-        table = echo.call_args[0][0]
+        table = echo.call_args_list[0][0][0]
+        print(table)
         self.assertEqual(
-            """org    default  scratch  days    expired  config_name  username
------  -------  -------  ------  -------  -----------  -----------------
-test1  *        *        1 of 7           dev          test1@example.com
-test2                                     dev          test2@example.com""",
+            """\u001b(0l\u001b(BOrgs\u001b(0qqqwqqqqqqqqqwqqqqqqqqqwqqqqqqwqqqqqqqqqwqqqqqqqqwqqqqqqqqqqqqqqqqqqqk\u001b(B\n\u001b(0x\u001b(B Org   \u001b(0x\u001b(B Default \u001b(0x\u001b(B Scratch \u001b(0x\u001b(B Days \u001b(0x\u001b(B Expired \u001b(0x\u001b(B Config \u001b(0x\u001b(B Username          \u001b(0x\u001b(B\n\u001b(0tqqqqqqqnqqqqqqqqqnqqqqqqqqqnqqqqqqnqqqqqqqqqnqqqqqqqqnqqqqqqqqqqqqqqqqqqqu\u001b(B\n\u001b(0x\u001b(B test1 \u001b(0x\u001b(B \u001b[32m\u2714\u001b[0m       \u001b(0x\u001b(B \u001b[32m\u2714\u001b[0m       \u001b(0x\u001b(B 1/7  \u001b(0x\u001b(B \u001b[31m\u2718\u001b[0m       \u001b(0x\u001b(B dev    \u001b(0x\u001b(B test1@example.com \u001b(0x\u001b(B\n\u001b(0tqqqqqqqnqqqqqqqqqnqqqqqqqqqnqqqqqqnqqqqqqqqqnqqqqqqqqnqqqqqqqqqqqqqqqqqqqu\u001b(B\n\u001b(0x\u001b(B test2 \u001b(0x\u001b(B \u001b[31m\u2718\u001b[0m       \u001b(0x\u001b(B \u001b[31m\u2718\u001b[0m       \u001b(0x\u001b(B      \u001b(0x\u001b(B \u001b[31m\u2718\u001b[0m       \u001b(0x\u001b(B dev    \u001b(0x\u001b(B test2@example.com \u001b(0x\u001b(B\n\u001b(0mqqqqqqqvqqqqqqqqqvqqqqqqqqqvqqqqqqvqqqqqqqqqvqqqqqqqqvqqqqqqqqqqqqqqqqqqqj\u001b(B""",
             str(table),
         )
 
@@ -765,15 +763,11 @@ test2                                     dev          test2@example.com""",
             {"name": "test_task", "description": "Test Task", "group": "Test"}
         ]
 
-        run_click_command(cci.task_list, config=config)
+        run_click_command(cci.task_list, config=config, plain=False, print_json=False)
 
         table = echo.call_args_list[0][0][0]
         self.assertEqual(
-            """task        description
-----------  -----------
-
--- Test --
-test_task   Test Task""",
+            """\x1b(0l\x1b(BTest\x1b(0qqqqqqqwqqqqqqqqqqqqqk\x1b(B\n\x1b(0x\x1b(B Task      \x1b(0x\x1b(B Description \x1b(0x\x1b(B\n\x1b(0tqqqqqqqqqqqnqqqqqqqqqqqqqu\x1b(B\n\x1b(0x\x1b(B test_task \x1b(0x\x1b(B Test Task   \x1b(0x\x1b(B\n\x1b(0mqqqqqqqqqqqvqqqqqqqqqqqqqj\x1b(B""",
             str(table),
         )
 
@@ -973,13 +967,11 @@ test_task   Test Task""",
             {"name": "test_flow", "description": "Test Flow"}
         ]
 
-        run_click_command(cci.flow_list, config=config)
+        run_click_command(cci.flow_list, config=config, plain=False, print_json=False)
 
         table = echo.call_args_list[0][0][0]
         self.assertEqual(
-            """flow       description
----------  -----------
-test_flow  Test Flow""",
+            """\x1b(0l\x1b(BFlows\x1b(0qqqqqqwqqqqqqqqqqqqqk\x1b(B\n\x1b(0x\x1b(B Name      \x1b(0x\x1b(B Description \x1b(0x\x1b(B\n\x1b(0tqqqqqqqqqqqnqqqqqqqqqqqqqu\x1b(B\n\x1b(0x\x1b(B test_flow \x1b(0x\x1b(B Test Flow   \x1b(0x\x1b(B\n\x1b(0mqqqqqqqqqqqvqqqqqqqqqqqqqj\x1b(B""",
             str(table),
         )
 
