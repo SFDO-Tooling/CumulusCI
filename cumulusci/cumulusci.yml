@@ -475,17 +475,17 @@ flows:
                 # otherwise sets md=True)
                 task: choose_deployment_method
             0.2:
-                task: dx_convert_to
+                task: dx_convert_from
                 when: choose_deployment_method.convert
             1:
                 task: unschedule_apex
             2:
                 task: update_package_xml
                 when: choose_deployment_method.md
-            3.1:
+            3:
                 task: deploy
                 when: choose_deployment_method.md
-            3.2:
+            3.1:
                 task: dx_push
                 when: choose_deployment_method.dx
             4:
