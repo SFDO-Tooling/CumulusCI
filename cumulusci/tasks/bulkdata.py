@@ -50,8 +50,6 @@ class EpochType(types.TypeDecorator):
     def process_result_value(self, value, dialect):
         if value is not None:
             return self.epoch + datetime.timedelta(seconds=value / 1000)
-        else:
-            return None
 
 
 # Listen for sqlalchemy column_reflect event and map datetime fields to EpochType
