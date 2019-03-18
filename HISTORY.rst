@@ -7,7 +7,7 @@ History
 
 Critical changes:
 
-* There have been some significant changes to the task for publishing plans to MetaDeploy:
+* If you are publishing installation plans to MetaDeploy, there have been some significant changes:
 
     * Plan options are now read from a new ``plans`` section of ``cumulusci.yml`` instead of from task options. This means that a single run of the task can now handle publishing multiple plans, and there is now a generic ``metadeploy_publish`` task which can be used instead of setting up different tasks for each project.
     * Plan steps are now defined inline in the plan configuration rather than by naming a flow. This makes it easier to configure a plan that is like an existing flow with one or two adjustments.
