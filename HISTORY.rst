@@ -2,6 +2,31 @@
 History
 =======
 
+2.4.0 (2019-03-18)
+------------------
+
+Critical changes:
+
+* If you are publishing installation plans to MetaDeploy, there have been some significant changes:
+
+    * Plan options are now read from a new ``plans`` section of ``cumulusci.yml`` instead of from task options. This means that a single run of the task can now handle publishing multiple plans, and there is now a generic ``metadeploy_publish`` task which can be used instead of setting up different tasks for each project.
+    * Plan steps are now defined inline in the plan configuration rather than by naming a flow. This makes it easier to configure a plan that is like an existing flow with one or two adjustments.
+    * There is now a way to customize MetaDeploy step settings such as ``name`` and ``is_required`` on a step-by-step basis, using ``ui_options`` in the plan config.
+    * The task will now find or create a ``PlanTemplate`` as necessary, matching existing PlanTemplates on the product and plan name. This means the plan config no longer needs to reference a plan template by id, which makes it easier to publish to multiple instances of MetaDeploy.
+
+* The ``install_upgrade`` flow was renamed to ``install_regression`` to better reflect the use case it is focused on. There are also a few updates to what it does:
+
+    * It will now install the latest beta release of managed packages instead of the latest final release.
+    * It now runs the ``config_managed`` flow after upgrading the managed package, so that it will work if this flow has references to newly added components.
+
+Changes:
+
+* Added support for deploying Lightning Web Components.
+
+* Fixed the bulk data load task to handle null values in a datetime column.
+
+* The `ci_master` flow now explicitly avoids trying to install beta releases of dependencies (since it's meant for use with non-scratch orgs and we block installing betas there since they can't be upgraded).
+
 2.3.4 (2019-03-06)
 ------------------
 
