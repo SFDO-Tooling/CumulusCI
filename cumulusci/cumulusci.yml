@@ -596,6 +596,8 @@ flows:
                 task: install_managed
             3:
                 task: deploy_post
+                options:
+                    unmanaged: False
 
     install_regression:
         description: Install the latest beta dependencies and upgrade to the latest beta version from the most recent production version
