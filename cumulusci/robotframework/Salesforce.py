@@ -297,35 +297,63 @@ class Salesforce(object):
         self.selenium.get_webelement(menu_locator).click()
 
     def _populate_field(self, locator, value):
-        # clearing the field in a cross-browser, cross-platform
-        # way is surprisingly difficult. .clear() doesn't work in
-        # all browsers, and sending keyboard shortcuts doesn't work
-        # on all platforms. So, we'll take a belt-and-suspenders
-        # apprach and throw the whole arsenal at the problem.
-
         field = self.selenium.get_webelement(locator)
-
-        # first, force it to have keyboard focus
-        actions = ActionChains(self.selenium.driver)
-        actions.move_to_element(field).click().perform()
-        self.selenium.set_focus_to_element(locator)
-
-        # then, attempt to clear it
-        field.clear()
-        self.selenium.driver.execute_script("arguments[0].value = '';", field)
-
-        # then, select all just in case the field didn't get cleared
-        field.send_keys(Keys.HOME + Keys.SHIFT + Keys.END)
-
-        # Give the UI a chance to settle down. The sleep appears
-        # necessary. Without it, this keyword sometimes fails to work
-        # properly. With it, I was able to run 700+ tests without a single
-        # failure.
-        time.sleep(0.25)
-
-        # and finally, send the keys for the values.
+        self._focus(field)
+        if field.get_attribute("value"):
+            self._clear(field)
         actions = ActionChains(self.selenium.driver)
         actions.send_keys_to_element(field, value).perform()
+
+    def _focus(self, element):
+        """Set focus to an element
+
+        In addition to merely setting the focus, we click the mouse
+        to the field in case there are functions tied to that event.
+        """
+        actions = ActionChains(self.selenium.driver)
+        actions.move_to_element(element).click().perform()
+        self.selenium.set_focus_to_element(element)
+
+    def _clear(self, element):
+        """Clear the field, using any means necessary
+
+        This is surprisingly hard to do with a generic solution. Some
+        methods work for some components and/or on some browsers but
+        not others. Therefore, several techniques are employed.
+        """
+
+        element.clear()
+        self.selenium.driver.execute_script("arguments[0].value = '';", element)
+
+        # Select all and delete just in case the element didn't get cleared
+        element.send_keys(Keys.HOME + Keys.SHIFT + Keys.END)
+        element.send_keys(Keys.BACKSPACE)
+
+        if element.get_attribute("value"):
+            # Give the UI a chance to settle down. The sleep appears
+            # necessary. Without it, this keyword sometimes fails to work
+            # properly. With it, I was able to run 700+ tests without a single
+            # failure.
+            time.sleep(0.25)
+
+        # Even after all that, some elements refuse to be cleared out.
+        # I'm looking at you, currency fields on Firefox.
+        if element.get_attribute("value"):
+            self._force_clear(element)
+
+    def _force_clear(self, element):
+        """Use brute-force to clear an element
+
+        This moves the cursor to the end of the input field and
+        then issues a series of backspace keys to delete the data
+        in the field.
+        """
+        value = element.get_attribute("value")
+        actions = ActionChains(self.selenium.driver)
+        actions.move_to_element(element).click().send_keys(Keys.END)
+        for character in value:
+            actions.send_keys(Keys.BACKSPACE)
+        actions.perform()
 
     def populate_form(self, **kwargs):
         """Enters multiple values from a mapping into form fields."""
