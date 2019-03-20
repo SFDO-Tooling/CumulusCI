@@ -160,6 +160,14 @@ class Salesforce(object):
                 return oid_match.group(2)
         raise AssertionError("Could not parse record id from url: {}".format(url))
 
+    def get_field_value(self, label):
+        """Return the current value of a form field based on the field label"""
+        input_element_id = self.selenium.get_element_attribute(
+            "xpath://label[contains(., '{}')]".format(label), "for"
+        )
+        value = self.selenium.get_value(input_element_id)
+        return value
+
     def get_locator(self, path, *args, **kwargs):
         """ Returns a rendered locator string from the Salesforce lex_locators
             dictionary.  This can be useful if you want to use an element in
