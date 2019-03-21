@@ -30,7 +30,7 @@ Create opportunity
     ${random}=  Generate random string  8  [NUMBERS]
     ${opportunity_id}=    Salesforce Insert  Opportunity
     ...                   Name=Test Opportunity ${random}
-    ...                   CloseDate=2018-04-01
+    ...                   CloseDate=${30 days from now}
     ...                   Amount=100000
     ...                   Probability=42
     ...                   StageName=Prospecting
