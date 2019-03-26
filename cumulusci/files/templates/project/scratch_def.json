@@ -3,9 +3,11 @@
   "edition": "{{ edition }}",
   "settings": {
     "orgPreferenceSettings": {
-      "s1DesktopEnabled": true,
-      "chatterEnabled": true,
-      "translation": true
+      "s1DesktopEnabled": true
+      , "chatterEnabled": true
+      {% if not managed %}
+      , "translation": true 
+      {% endif %}
     }
   }
 }
