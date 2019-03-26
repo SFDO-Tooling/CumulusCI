@@ -102,7 +102,10 @@ class CliRuntime(BaseCumulusCI):
             click.echo(click.style("The scratch org is expired", fg="yellow"))
             if click.confirm("Attempt to recreate the scratch org?", default=True):
                 self.keychain.create_scratch_org(
-                    org_name, org_config.config_name, org_config.days
+                    org_name,
+                    org_config.config_name,
+                    days=org_config.days,
+                    set_password=org_config.set_password,
                 )
                 click.echo(
                     "Org config was refreshed, attempting to recreate scratch org"
