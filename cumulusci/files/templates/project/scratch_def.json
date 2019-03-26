@@ -1,10 +1,11 @@
 {
   "orgName": "{{ package_name }} - {{ org_name }}",
   "edition": "{{ edition }}",
-  "orgPreferences" : {
-    "enabled": [
-      "S1DesktopEnabled",
-      "ChatterEnabled"
-    ]
+  "settings": {
+    "orgPreferenceSettings": {
+      "s1DesktopEnabled": true,
+      "chatterEnabled": true,
+      "translation": true
+    }
   }
 }

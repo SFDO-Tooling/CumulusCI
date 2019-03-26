@@ -1,11 +1,11 @@
 {
   "orgName": "CumulusCI - Feature Test Org",
   "edition": "Developer",
-  "orgPreferences" : {
-    "enabled": [
-      "S1DesktopEnabled",
-      "Translation",
-      "ChatterEnabled" 
-    ]
+  "settings": {
+    "orgPreferenceSettings": {
+      "s1DesktopEnabled": true,
+      "chatterEnabled": true,
+      "translation": true
+    }
   }
 }
