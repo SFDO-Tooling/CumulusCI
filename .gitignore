@@ -23,6 +23,7 @@ selenium-screenshot-*
 log.html
 report.html
 output.xml
+geckodriver.log
 **/.sfdx
 htmlcov/
 .pytest_cache/
