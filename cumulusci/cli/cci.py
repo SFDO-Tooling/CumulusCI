@@ -488,6 +488,7 @@ def project_init(config):
                 package_name=context["package_name"],
                 org_name="Beta Test Org",
                 edition="Developer",
+                managed=True,
             )
         )
     with open(os.path.join("orgs", "dev.json"), "w") as f:
@@ -496,6 +497,7 @@ def project_init(config):
                 package_name=context["package_name"],
                 org_name="Dev Org",
                 edition="Developer",
+                managed=False,
             )
         )
     with open(os.path.join("orgs", "feature.json"), "w") as f:
@@ -504,6 +506,7 @@ def project_init(config):
                 package_name=context["package_name"],
                 org_name="Feature Test Org",
                 edition="Developer",
+                managed=False,
             )
         )
     with open(os.path.join("orgs", "release.json"), "w") as f:
@@ -512,6 +515,7 @@ def project_init(config):
                 package_name=context["package_name"],
                 org_name="Release Test Org",
                 edition="Enterprise",
+                managed=True,
             )
         )
 
