@@ -12,7 +12,7 @@ from .util import create_task
 
 class TestUninstallPackagedIncremental(unittest.TestCase):
     def test_get_destructive_changes(self):
-        with temporary_dir() as path:
+        with temporary_dir():
             os.mkdir("src")
             with open(os.path.join("src", "package.xml"), "w") as f:
                 f.write(

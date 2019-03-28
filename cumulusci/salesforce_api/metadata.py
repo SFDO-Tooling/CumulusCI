@@ -263,7 +263,7 @@ class ApiRetrieveUnpackaged(BaseMetadataApiCall):
         self._clean_package_xml()
 
     def _clean_package_xml(self):
-        self.package_xml = re.sub("<\?xml.*\?>", "", self.package_xml)
+        self.package_xml = re.sub("<\\?xml.*\\?>", "", self.package_xml)
         self.package_xml = re.sub("<Package.*>", "", self.package_xml, 1)
         self.package_xml = re.sub("</Package>", "", self.package_xml, 1)
         self.package_xml = re.sub("\n", "", self.package_xml)
@@ -364,7 +364,7 @@ class ApiDeploy(BaseMetadataApiCall):
         self.package_zip = package_zip
 
     def _set_purge_on_delete(self, purge_on_delete):
-        if purge_on_delete == False or purge_on_delete == "false":
+        if purge_on_delete is False or purge_on_delete == "false":
             self.purge_on_delete = "false"
         else:
             self.purge_on_delete = "true"

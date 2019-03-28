@@ -37,8 +37,8 @@ class RetrieveReportsAndDashboards(BaseRetrieveMetadata):
     def _validate_options(self):
         super(RetrieveReportsAndDashboards, self)._validate_options()
         if (
-            not "report_folders" in self.options
-            and not "dashboard_folders" in self.options
+            "report_folders" not in self.options
+            and "dashboard_folders" not in self.options
         ):
             raise TaskOptionsError(
                 "You must provide at least one folder name for either report_folders or dashboard_folders"
