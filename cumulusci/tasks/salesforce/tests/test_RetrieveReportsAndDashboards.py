@@ -23,6 +23,7 @@ class TestRetrievePackaged(unittest.TestCase):
                     "path": path,
                     "report_folders": ["Default"],
                     "dashboard_folders": ["Default"],
+                    "api_version": "43.0",
                 },
             )
             api = mock.Mock(

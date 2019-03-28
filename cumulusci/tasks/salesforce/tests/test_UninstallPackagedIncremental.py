@@ -35,6 +35,7 @@ class TestUninstallPackagedIncremental(unittest.TestCase):
                 )
             project_config = create_project_config()
             project_config.config["project"]["package"]["name"] = "TestPackage"
+            project_config.config["project"]["package"]["api_version"] = "43.0"
             task = create_task(
                 UninstallPackagedIncremental,
                 {"ignore": {"ApexClass": ["Ignored"]}},

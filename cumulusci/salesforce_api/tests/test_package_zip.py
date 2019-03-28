@@ -46,11 +46,15 @@ class TestCreatePackageZipBuilder(unittest.TestCase):
 class TestInstallPackageZipBuilder(unittest.TestCase):
     def test_init__missing_namespace(self):
         with self.assertRaises(ValueError):
-            builder = InstallPackageZipBuilder(None, "1.0")
+            builder = InstallPackageZipBuilder(None, "1.0", "43.0")
 
     def test_init__missing_version(self):
         with self.assertRaises(ValueError):
-            builder = InstallPackageZipBuilder("testns", None)
+            builder = InstallPackageZipBuilder("testns", None, "43.0")
+
+    def test_init__missing_api_version(self):
+        with self.assertRaises(ValueError):
+            builder = InstallPackageZipBuilder("testns", "1.0", None)
 
 
 class TestDestructiveChangesZipBuilder(unittest.TestCase):

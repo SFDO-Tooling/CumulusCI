@@ -294,8 +294,8 @@ class ApiRetrieveInstalledPackages(BaseMetadataApiCall):
     soap_action_status = "checkStatus"
     soap_action_result = "checkRetrieveStatus"
 
-    def __init__(self, task):
-        super(ApiRetrieveInstalledPackages, self).__init__(task)
+    def __init__(self, task, api_version=None):
+        super(ApiRetrieveInstalledPackages, self).__init__(task, api_version)
         self.packages = {}
 
     def _process_response(self, response):

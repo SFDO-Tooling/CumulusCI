@@ -79,6 +79,6 @@ class RetrieveReportsAndDashboards(BaseRetrieveMetadata):
             for dashboard in metadata["Dashboard"]:
                 items["Dashboard"].append(dashboard["fullName"])
 
-        api_version = self.project_config.project__package__api_version
+        api_version = self.options["api_version"]
         package_xml = package_xml_from_dict(items, api_version)
         return self.api_class(self, package_xml, api_version)

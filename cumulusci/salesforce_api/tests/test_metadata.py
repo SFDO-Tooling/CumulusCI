@@ -880,7 +880,7 @@ class TestApiRetrieveInstalledPackages(BaseTestMetadataApi):
     api_class = ApiRetrieveInstalledPackages
 
     def _create_instance(self, task, api_version=None):
-        api = self.api_class(task)
+        api = self.api_class(task, api_version)
         return api
 
     def _expected_call_success_result(self, result_response):
@@ -917,7 +917,7 @@ class TestApiRetrieveInstalledPackages(BaseTestMetadataApi):
         response.status_code = 200
         response.raw = io.BytesIO(
             retrieve_result.format(
-                zip=InstallPackageZipBuilder("foo", "1.1")(), extra=""
+                zip=InstallPackageZipBuilder("foo", "1.1", "43.0")(), extra=""
             ).encode()
         )
         resp = api._process_response(response)

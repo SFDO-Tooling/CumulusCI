@@ -108,7 +108,11 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
             yaml.dump(
                 {
                     "project": {
-                        "package": {"name_managed": "Test Product", "namespace": "ns"}
+                        "package": {
+                            "name_managed": "Test Product",
+                            "namespace": "ns",
+                            "api_version": "43.0",
+                        }
                     }
                 }
             ),
@@ -164,6 +168,7 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
                     "task_config": {
                         "options": {
                             "activateRSS": True,
+                            "api_version": "43.0",
                             "namespace": "ns",
                             "retries": 5,
                             "retry_interval": 5,

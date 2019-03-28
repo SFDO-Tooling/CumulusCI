@@ -18,6 +18,10 @@ class InstallPackageVersion(Deploy):
             "description": 'The version of the package to install.  "latest" and "latest_beta" can be used to trigger lookup via Github Releases on the repository.',
             "required": True,
         },
+        "api_version": {
+            "description": "The API version to use in package.xml.  Defaults to project__package__api_version",
+            "required": False,
+        },
         "activateRSS": {
             "description": "If True, preserve the isActive state of "
             "Remote Site Settings and Content Security Policy "
@@ -35,6 +39,10 @@ class InstallPackageVersion(Deploy):
 
     def _init_options(self, kwargs):
         super(InstallPackageVersion, self)._init_options(kwargs)
+        if "api_version" not in self.options:
+            self.options[
+                "api_version"
+            ] = self.project_config.project__package__api_version
         if "namespace" not in self.options:
             self.options["namespace"] = self.project_config.project__package__namespace
         if "name" not in self.options:
@@ -71,6 +79,7 @@ class InstallPackageVersion(Deploy):
         package_zip = InstallPackageZipBuilder(
             namespace=self.options["namespace"],
             version=self.options["version"],
+            api_version=self.options["api_version"],
             activateRSS=self.options["activateRSS"],
             password=self.options.get("password"),
         )

@@ -13,6 +13,7 @@ class TestUninstallPackaged(unittest.TestCase):
     def test_get_destructive_changes(self, ApiRetrievePackaged):
         project_config = create_project_config()
         project_config.config["project"]["package"]["name"] = "TestPackage"
+        project_config.config["project"]["package"]["api_version"] = "43.0"
         task = create_task(UninstallPackaged, {}, project_config)
         zf = zipfile.ZipFile(io.BytesIO(), "w")
         zf.writestr(
