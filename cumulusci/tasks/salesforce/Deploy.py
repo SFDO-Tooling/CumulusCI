@@ -135,3 +135,10 @@ class Deploy(BaseSalesforceMetadataApiTask):
         )
         zipf = zip_clean_metaxml(zipf, logger=self.logger)
         return zipf
+
+    def freeze(self, step):
+        steps = super(Deploy, self).freeze(step)
+        for step in steps:
+            if step["kind"] == "other":
+                step["kind"] = "metadata"
+        return steps

@@ -1,7 +1,8 @@
 *** Settings ***
 
-Resource       cumulusci/robotframework/Salesforce.robot
+Resource        cumulusci/robotframework/Salesforce.robot
 Suite Teardown  Delete Session Records
+Force Tags      api
 
 *** Keywords ***
 

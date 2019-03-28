@@ -174,7 +174,7 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
                 },
                 {
                     "is_required": True,
-                    "kind": "other",
+                    "kind": "metadata",
                     "name": "Update Admin Profile",
                     "path": "install_prod.config_managed.update_admin_profile",
                     "step_num": "1.3.2",
