@@ -263,7 +263,7 @@ class ApiRetrieveUnpackaged(BaseMetadataApiCall):
         self._clean_package_xml()
 
     def _clean_package_xml(self):
-        self.package_xml = re.sub("<\?xml.*\?>", "", self.package_xml)
+        self.package_xml = re.sub(r"<\?xml.*\?>", "", self.package_xml)
         self.package_xml = re.sub("<Package.*>", "", self.package_xml, 1)
         self.package_xml = re.sub("</Package>", "", self.package_xml, 1)
         self.package_xml = re.sub("\n", "", self.package_xml)
@@ -294,8 +294,8 @@ class ApiRetrieveInstalledPackages(BaseMetadataApiCall):
     soap_action_status = "checkStatus"
     soap_action_result = "checkRetrieveStatus"
 
-    def __init__(self, task):
-        super(ApiRetrieveInstalledPackages, self).__init__(task)
+    def __init__(self, task, api_version=None):
+        super(ApiRetrieveInstalledPackages, self).__init__(task, api_version)
         self.packages = {}
 
     def _process_response(self, response):
@@ -364,7 +364,7 @@ class ApiDeploy(BaseMetadataApiCall):
         self.package_zip = package_zip
 
     def _set_purge_on_delete(self, purge_on_delete):
-        if purge_on_delete == False or purge_on_delete == "false":
+        if not purge_on_delete or purge_on_delete == "false":
             self.purge_on_delete = "false"
         else:
             self.purge_on_delete = "true"
