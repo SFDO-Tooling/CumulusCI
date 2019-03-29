@@ -92,22 +92,24 @@ class CreateConnectedApp(SFDXBaseTask):
 
     def _set_default_username(self):
         self.logger.info("Getting username for the default devhub from sfdx")
+        output = []
         self._run_command(
             command="{} force:config:get defaultdevhubusername --json".format(SFDX_CLI),
             env=self._get_env(),
-            output_handler=self._process_devhub_output,
+            output_handler=output.append,
         )
+        self._process_devhub_output(b"\n".join(output))
 
-    def _process_json_output(self, line):
+    def _process_json_output(self, output):
         try:
-            data = json.loads(line)
+            data = json.loads(output)
             return data
         except Exception:
-            self.logger.error("Failed to parse json from line: {}".format(line))
+            self.logger.error("Failed to parse json from output: {}".format(output))
             raise
 
-    def _process_devhub_output(self, line):
-        data = self._process_json_output(line)
+    def _process_devhub_output(self, output):
+        data = self._process_json_output(output)
         if "value" not in data["result"][0]:
             raise TaskOptionsError(
                 "No sfdx config found for defaultdevhubusername.  Please use the sfdx force:config:set to set the defaultdevhubusername and run again"
@@ -140,14 +142,13 @@ class CreateConnectedApp(SFDXBaseTask):
     def _validate_connect_service(self):
         if not self.options["overwrite"]:
             try:
-                connected_app = self.project_config.keychain.get_service(
-                    "connected_app"
-                )
+                self.project_config.keychain.get_service("connected_app")
+            except ServiceNotConfigured:
+                pass
+            else:
                 raise TaskOptionsError(
                     "The CumulusCI keychain already contains a connected_app service.  Set the 'overwrite' option to True to overwrite the existing service"
                 )
-            except ServiceNotConfigured:
-                pass
 
     def _connect_service(self):
         self.project_config.keychain.set_service(
