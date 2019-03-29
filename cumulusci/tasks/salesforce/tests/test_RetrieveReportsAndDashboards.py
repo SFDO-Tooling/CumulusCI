@@ -52,6 +52,4 @@ class TestRetrievePackaged(unittest.TestCase):
 
     def test_init__missing_options(self):
         with self.assertRaises(TaskOptionsError):
-            task = create_task(  # noqa: F841
-                RetrieveReportsAndDashboards, {"path": None}
-            )
+            create_task(RetrieveReportsAndDashboards, {"path": None})

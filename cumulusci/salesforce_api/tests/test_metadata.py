@@ -224,7 +224,7 @@ class BaseTestMetadataApi(unittest.TestCase):
         response = '<?xml version="1.0" encoding="UTF-8"?><faultcode>foo</faultcode>'
         self._mock_call_mdapi(api, response)
         with self.assertRaises(MetadataApiError):
-            resp = api()  # noqa: F841
+            api()
 
     @responses.activate
     def test_call_success(self):
@@ -300,7 +300,7 @@ class BaseTestMetadataApi(unittest.TestCase):
         response = '<?xml version="1.0" encoding="UTF-8"?><faultcode>foo</faultcode>'
         self._mock_call_mdapi(api, response)
         with self.assertRaises(MetadataApiError):
-            resp = api._get_response()  # noqa: F841
+            api._get_response()
 
     @responses.activate
     def test_get_response_faultcode_and_string(self):
@@ -320,7 +320,7 @@ class BaseTestMetadataApi(unittest.TestCase):
         response += "\n</test>"
         self._mock_call_mdapi(api, response)
         with self.assertRaises(MetadataApiError):
-            resp = api._get_response()  # noqa: F841
+            api._get_response()
 
     @responses.activate
     def test_get_response_faultcode_invalid_session_no_refresh(self):
@@ -336,7 +336,7 @@ class BaseTestMetadataApi(unittest.TestCase):
         response = '<?xml version="1.0" encoding="UTF-8"?><faultcode>sf:INVALID_SESSION_ID</faultcode>'
         self._mock_call_mdapi(api, response)
         with self.assertRaises(MetadataApiError):
-            resp = api._get_response()  # noqa: F841
+            api._get_response()
         self.assertEqual(api.status, "Failed")
 
     @responses.activate
@@ -385,7 +385,7 @@ class BaseTestMetadataApi(unittest.TestCase):
         self._mock_call_mdapi(api, response, status_code)
 
         with self.assertRaises(MetadataApiError):
-            resp = api._get_response()  # noqa: F841
+            api._get_response()
 
     @responses.activate
     def test_get_response_status_error_500(self):
@@ -407,7 +407,7 @@ class BaseTestMetadataApi(unittest.TestCase):
         self._mock_call_mdapi(api, response, status_code)
 
         with self.assertRaises(MetadataApiError):
-            resp = api._get_response()  # noqa: F841
+            api._get_response()
 
     @responses.activate
     def test_get_response_status_no_loop(self):
@@ -724,7 +724,7 @@ class TestApiDeploy(BaseTestMetadataApi):
         response.status_code = 200
         response.raw = io.BytesIO(b"<status>Failed</status>")
         with self.assertRaises(MetadataApiError) as cm:
-            status = api._process_response(response)  # noqa: F841
+            api._process_response(response)
         self.assertEqual(response.text, str(cm.exception))
 
     def test_get_action(self):
@@ -792,7 +792,7 @@ class TestApiListMetadata(BaseTestMetadataApi):
 
         self._mock_call_mdapi(api, list_metadata_result_bad_val)
         with self.assertRaises(MetadataParseError):
-            resp = api()  # noqa: F841
+            api()
 
 
 class TestApiRetrieveUnpackaged(BaseTestMetadataApi):
@@ -889,7 +889,7 @@ class TestApiRetrieveInstalledPackages(BaseTestMetadataApi):
         response.status_code = 200
         response.raw = io.BytesIO(
             retrieve_result.format(
-                zip=InstallPackageZipBuilder("foo", "1.1", "43.0")(), extra=""
+                zip=InstallPackageZipBuilder("foo", "1.1")(), extra=""
             ).encode()
         )
         resp = api._process_response(response)

@@ -36,25 +36,21 @@ class TestZipfilePackageZipBuilder(unittest.TestCase):
 class TestCreatePackageZipBuilder(unittest.TestCase):
     def test_init__missing_name(self):
         with self.assertRaises(ValueError):
-            builder = CreatePackageZipBuilder(None, "43.0")  # noqa: F841
+            CreatePackageZipBuilder(None, "43.0")
 
     def test_init__missing_api_version(self):
         with self.assertRaises(ValueError):
-            builder = CreatePackageZipBuilder("TestPackage", None)  # noqa: F841
+            CreatePackageZipBuilder("TestPackage", None)
 
 
 class TestInstallPackageZipBuilder(unittest.TestCase):
     def test_init__missing_namespace(self):
         with self.assertRaises(ValueError):
-            builder = InstallPackageZipBuilder(None, "1.0", "43.0")  # noqa: F841
+            InstallPackageZipBuilder(None, "1.0")
 
     def test_init__missing_version(self):
         with self.assertRaises(ValueError):
-            builder = InstallPackageZipBuilder("testns", None, "43.0")  # noqa: F841
-
-    def test_init__missing_api_version(self):
-        with self.assertRaises(ValueError):
-            builder = InstallPackageZipBuilder("testns", "1.0", None)  # noqa: F841
+            InstallPackageZipBuilder("testns", None)
 
 
 class TestDestructiveChangesZipBuilder(unittest.TestCase):
@@ -69,7 +65,7 @@ class TestDestructiveChangesZipBuilder(unittest.TestCase):
 class TestUninstallPackageZipBuilder(unittest.TestCase):
     def test_init__missing_namespace(self):
         with self.assertRaises(ValueError):
-            builder = UninstallPackageZipBuilder(None, "1.0")  # noqa: F841
+            UninstallPackageZipBuilder(None, "1.0")
 
     def test_call(self):
         builder = UninstallPackageZipBuilder("testns", "1.0")

@@ -265,9 +265,7 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
                     )
                 )
                 package_zip = InstallPackageZipBuilder(
-                    dependency["namespace"],
-                    dependency["version"],
-                    self.project_config.project__package__api_version,
+                    dependency["namespace"], dependency["version"]
                 )()
 
         api = self.api_class(

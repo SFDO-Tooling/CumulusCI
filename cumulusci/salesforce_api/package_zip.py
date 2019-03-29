@@ -87,20 +87,17 @@ class CreatePackageZipBuilder(BasePackageZipBuilder):
 
 
 class InstallPackageZipBuilder(BasePackageZipBuilder):
-    def __init__(
-        self, namespace, version, api_version, activateRSS=False, password=None
-    ):
+    api_version = "43.0"
+
+    def __init__(self, namespace, version, activateRSS=False, password=None):
         if not namespace:
             raise ValueError("You must provide a namespace to install a package")
         if not version:
             raise ValueError("You must provide a version to install a package")
-        if not api_version:
-            raise ValueError("You must provide an API version to install a package")
         self.namespace = namespace
         self.version = version
         self.activateRSS = activateRSS
         self.password = password
-        self.api_version = api_version
 
     def _populate_zip(self):
         package_xml = INSTALLED_PACKAGE_PACKAGE_XML.format(
