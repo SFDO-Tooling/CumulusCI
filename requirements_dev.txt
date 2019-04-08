@@ -12,7 +12,7 @@ pytest-cov==2.6.1
 responses==0.10.6
 Sphinx==2.0.1
 testfixtures==6.6.2
-tox==3.7.0
+tox==3.8.6
 twine==1.13.0
 watchdog==0.9.0
 wheel==0.33.1
