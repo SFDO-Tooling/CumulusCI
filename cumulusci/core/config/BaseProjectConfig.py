@@ -395,12 +395,18 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         repo = gh.repository(self.repo_owner, self.repo_name)
         if not beta:
             release = repo.latest_release()
+            prefix = self.project__git__prefix_release
+            if not release.tag_name.startswith(prefix):
+                return self._get_latest_tag_for_prefix(repo, prefix)
             return release.tag_name
         else:
-            for release in repo.releases():
-                if not release.tag_name.startswith(self.project__git__prefix_beta):
-                    continue
-                return release.tag_name
+            return self._get_latest_tag_for_prefix(repo, self.project__git__prefix_beta)
+
+    def _get_latest_tag_for_prefix(self, repo, prefix):
+        for release in repo.releases():
+            if not release.tag_name.startswith(prefix):
+                continue
+            return release.tag_name
 
     def get_latest_version(self, beta=False):
         """ Query Github Releases to find the latest production or beta release """
