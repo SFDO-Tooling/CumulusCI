@@ -14,6 +14,17 @@ On macOS and Linux, the easiest way to install CumulusCI is using `homebrew <htt
     $ brew tap SFDO-Tooling/homebrew-sfdo
     $ brew install cumulusci
 
+On Windows 10, the easiest way to install CumulusCI is using ```pipx`` <https://github.com/pipxproject/pipx>`__: 
+
+1. In a new command prompt, run: ``python -m pip install --user pipx``
+2. Add the following paths to your ``PATH`` environment variable:
+
+   1. ``%USERPROFILE%\AppData\Roaming\Python\Python37\Scripts``
+   2. ``%USERPROFILE%\.local\bin``
+
+3. In a new command prompt, run: ``pipx install cumulusci``
+4. In a new command prompt, verify by running: ``cci version``
+
 The rest of this tutorial describes installing CumulusCI via pip.
 
 Install Requirements
