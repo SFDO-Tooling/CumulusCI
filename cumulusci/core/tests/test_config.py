@@ -416,6 +416,19 @@ class TestBaseProjectConfig(unittest.TestCase):
         result = config.get_latest_tag()
         self.assertEqual("release/1.1", result)
 
+    def test_get_latest_tag_matching_prefix(self):
+        config = BaseProjectConfig(
+            BaseGlobalConfig(),
+            {"project": {"git": {"prefix_beta": "beta/", "prefix_release": "rel/"}}},
+        )
+        github = self._make_github()
+        github.repositories["CumulusCI"]._releases.append(
+            DummyRelease("rel/0.9", "0.9")
+        )
+        config.get_github_api = mock.Mock(return_value=github)
+        result = config.get_latest_tag()
+        self.assertEqual("rel/0.9", result)
+
     def test_get_latest_tag_beta(self):
         config = BaseProjectConfig(
             BaseGlobalConfig(),
