@@ -31,6 +31,7 @@ UTF8 = text_to_native_str("UTF-8")
 
 BREW_UPDATE_CMD = "brew upgrade cumulusci"
 PIP_UPDATE_CMD = "pip install --upgrade cumulusci"
+PIPX_UPDATE_CMD = "pipx upgrade cumulusci"
 
 
 def parse_api_datetime(value):
@@ -508,11 +509,15 @@ def random_alphanumeric_underscore(length):
 
 
 def get_cci_upgrade_command():
-    homebrew_paths = ["cellar", "linuxbrew"]
-    if any(path in CUMULUSCI_PATH.lower() for path in homebrew_paths):
-        return BREW_UPDATE_CMD
-    else:
-        return PIP_UPDATE_CMD
+    commands_by_path = {
+        "cellar": BREW_UPDATE_CMD,
+        "linuxbrew": BREW_UPDATE_CMD,
+        "pipx": PIPX_UPDATE_CMD,
+    }
+    for path, cmd in commands_by_path.items():
+        if path in CUMULUSCI_PATH.lower():
+            return cmd
+    return PIP_UPDATE_CMD
 
 
 def convert_to_snake_case(content):
