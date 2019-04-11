@@ -8,46 +8,39 @@ Part 1: Installing CumulusCI
 ============================
 
 Install Requirements
-~~~~~~~~~~~~~~~~~~~~
+--------------------
 
 CumulusCI supports Python 2.7, 3.6, or 3.7.
 
 macOS
 ^^^^^
 
-Install Python 3:
-`https://www.python.org/downloads/mac-osx/ <https://www.python.org/downloads/mac-osx/>`__
+Install Python 3: https://www.python.org/downloads/mac-osx/
 
 Windows
 ^^^^^^^
 
-Install Python 3:
-`https://www.python.org/downloads/windows/ <https://www.python.org/downloads/windows/>`__
+Install Python 3: https://www.python.org/downloads/windows/
 
 In the installer, be sure to check the "Add Python to PATH" checkbox.
 
 Linux
 ^^^^^
 
-Python 3 is installed by default on most major distributions. If it is
-not, install it via your package manager.
+Python 3 is installed by default on most major distributions. If it is not, install it via your package manager.
 
 Install CumulusCI
-~~~~~~~~~~~~~~~~~
+-----------------
 
 macOS/Linux
 ^^^^^^^^^^^
 
-On macOS and Linux, the easiest way to install CumulusCI is using
-`homebrew <https://docs.brew.sh/>`__ and
-`linuxbrew <https://linuxbrew.sh/>`__, respectively:
+On macOS and Linux, the easiest way to install CumulusCI is using `homebrew <https://docs.brew.sh/>`_  and `linuxbrew <https://linuxbrew.sh/>`_, respectively:
 
 .. code:: console
 
    $ brew tap SFDO-Tooling/homebrew-sfdo
    $ brew install cumulusci
-
-.. _windows-1:
 
 Windows
 ^^^^^^^
@@ -67,6 +60,7 @@ Add the following paths to your ``PATH`` environment variable:
 2. ``%USERPROFILE%\.local\bin``
 
 .. note::
+
    From the `Python
    documentation <https://docs.python.org/3/using/windows.html#excursus-setting-environment-variables>`__:
    To permanently modify the default environment variables, click Start and
@@ -94,8 +88,7 @@ is installed correctly by running ``cci version``:
    Checking the version!
    2.4.1
 
-Still need help? Search issues on CumulusCI GitHub
-`https://github.com/SFDO-Tooling/CumulusCI/issues <https://github.com/SFDO-Tooling/CumulusCI/issues>`__
+Still need help? Search issues on CumulusCI GitHub https://github.com/SFDO-Tooling/CumulusCI/issues
 
 Part 2: Project Configuration
 =============================
