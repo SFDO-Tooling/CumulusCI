@@ -7,35 +7,13 @@ This tutorial is for macOS. Linux and Windows are not yet officially supported b
 Part 1: Installing CumulusCI
 ============================
 
-Install Requirements
---------------------
-
-CumulusCI supports Python 2.7, 3.6, or 3.7.
-
-macOS
-^^^^^
-
-Install Python 3: https://www.python.org/downloads/mac-osx/
-
-Windows
-^^^^^^^
-
-Install Python 3: https://www.python.org/downloads/windows/
-
-In the installer, be sure to check the "Add Python to PATH" checkbox.
-
-Linux
-^^^^^
-
-Python 3 is installed by default on most major distributions. If it is not, install it via your package manager.
-
 Install CumulusCI
 -----------------
 
 macOS/Linux
 ^^^^^^^^^^^
 
-On macOS and Linux, the easiest way to install CumulusCI is using `homebrew <https://docs.brew.sh/>`_  and `linuxbrew <https://linuxbrew.sh/>`_, respectively:
+On macOS and Linux, the easiest way to install CumulusCI is using `homebrew <https://docs.brew.sh/>`_ :
 
 .. code:: console
 
@@ -45,10 +23,18 @@ On macOS and Linux, the easiest way to install CumulusCI is using `homebrew <htt
 Windows
 ^^^^^^^
 
-On Windows 10, the easiest way to install CumulusCI is using
-`pipx <https://github.com/pipxproject/pipx>`__:
+Python
+~~~~~~
 
-In a new command prompt, run:
+First, install Python 3: https://www.python.org/downloads/windows/
+
+In the installer, be sure to check the "Add Python to PATH" checkbox.
+
+pipx
+~~~~
+
+On Windows 10, the easiest way to install CumulusCI is using
+`pipx <https://github.com/pipxproject/pipx>`__. In a new command prompt, run: 
 
 .. code:: powershell
 
