@@ -97,7 +97,3 @@ class OrgConfig(BaseConfig):
             "is_sandbox": org_info["IsSandbox"],
         }
         self.config.update(result)
-
-    @property
-    def org_type(self):
-        return self.config.get("org_type")
