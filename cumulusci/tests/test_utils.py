@@ -385,7 +385,7 @@ Options:
     def test_parse_api_datetime__bad(self):
         bad_str = "2018-08-07T16:00:56.000-20000"
         with self.assertRaises(AssertionError):
-            dt = utils.parse_api_datetime(bad_str)
+            utils.parse_api_datetime(bad_str)
 
     def test_log_progress(self):
         logger = mock.Mock()
@@ -407,6 +407,13 @@ Options:
         utils.CUMULUSCI_PATH = "/usr/local/pip-path/cumulusci/2.1.2"
         upgrade_cmd = utils.get_cci_upgrade_command()
         self.assertEqual(utils.PIP_UPDATE_CMD, upgrade_cmd)
+
+    def test_util__sets_pipx_upgrade_cmd(self):
+        utils.CUMULUSCI_PATH = (
+            "/Users/Username/.local/pipx/venvs/cumulusci/Lib/site-packages/cumulusci"
+        )
+        upgrade_cmd = utils.get_cci_upgrade_command()
+        self.assertEqual(utils.PIPX_UPDATE_CMD, upgrade_cmd)
 
     def test_convert_to_snake_case(self):
         self.assertEqual("one_two", utils.convert_to_snake_case("OneTwo"))

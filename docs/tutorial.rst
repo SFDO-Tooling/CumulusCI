@@ -2,87 +2,78 @@
 Tutorial
 ========
 
-This tutorial is for macOS. Linux and Windows are not yet officially supported but should work for the most part. We have added some Windows info where possible.
+This tutorial is for macOS. Linux and Windows are not yet officially supported but should work for the most part. We have added some Windows and Linux info where possible.
 
 Part 1: Installing CumulusCI
 ============================
 
-On macOS and Linux, the easiest way to install CumulusCI is using `homebrew <https://docs.brew.sh/>`_  and `linuxbrew <https://linuxbrew.sh/>`_, respectively:
-
-.. code-block:: console
-
-    $ brew tap SFDO-Tooling/homebrew-sfdo
-    $ brew install cumulusci
-
-The rest of this tutorial describes installing CumulusCI via pip.
-
-Install Requirements
---------------------
-
-CumulusCI supports Python 2.7, 3.6, or 3.7.
-
-macOS
-^^^^^
-
-Install Python 3: https://www.python.org/downloads/mac-osx/
-
-Windows
-^^^^^^^
-
-Install Python 3: https://www.python.org/downloads/windows/
-
-In the installer, be sure to check the "Add Python to PATH" checkbox.
-
-Create Virtual Environment
---------------------------
-
-A Python Virtual Environment (virtualenv) is an isolated Python environment where you can install packages without modifying the system Python.  Using a virtualenv for cumulusci is recommended to avoid issues and conflicts with other applications using your system Python.
-
-macOS
-^^^^^
-
-.. code-block:: console
-
-    $ python3 -m venv cci
-
-This creates a virtualenv in a new folder named ``cci``. Whenever you want to work with commands installed in this virtualenv, you must first activate it:
-
-.. code-block:: console
-
-    $ source cci/bin/activate
-
-Your shell prompt should change once you are in the virtual env to show (cci) at the start of the prompt.  You can exit the cci virtualenv with the following command:
-
-.. code-block:: console
-
-    (cci) $ deactivate
-
-If you would like to automatically activate the virtual environment whenever you open a new terminal, you can add the activate command to your ``~/.bash_profile``.
-
-For more information about virtual environments in Python, see the Python Packaging User Guide: https://packaging.python.org/tutorials/installing-packages/#creating-virtual-environments
-
-Windows
-^^^^^^^
-
-.. code-block:: powershell
-
-    python -m venv ~\cci
-    ~\cci\Scripts\Activate.ps1
-
-.. note::
-   If this fails because you don't have the ability to run scripts,
-   try running: ``Set-ExecutionPolicy Unrestricted -Scope CurrentUser``
-
 Install CumulusCI
 -----------------
 
-With the virtual environment now activated, install cumulusci using pip:
+macOS/Linux
+^^^^^^^^^^^
 
-.. code-block:: console
+On macOS and Linux, the easiest way to install CumulusCI is using `homebrew <https://docs.brew.sh/>`_ :
 
-    $ pip install cumulusci
+.. code:: console
 
-Errors during pip install are usually instructive, but there can be a lot of log, so make sure to scroll back for anything in red or important looking.
+   $ brew tap SFDO-Tooling/homebrew-sfdo
+   $ brew install cumulusci
+
+Windows
+^^^^^^^
+
+Python
+~~~~~~
+
+First, install Python 3: https://www.python.org/downloads/windows/
+
+In the installer, be sure to check the "Add Python to PATH" checkbox.
+
+pipx
+~~~~
+
+On Windows 10, the easiest way to install CumulusCI is using
+`pipx <https://github.com/pipxproject/pipx>`__. In a new command prompt, run: 
+
+.. code:: powershell
+
+   python -m pip install --user pipx
+
+Add the following paths to your ``PATH`` environment variable:
+
+1. ``%USERPROFILE%\AppData\Roaming\Python\Python37\Scripts``
+2. ``%USERPROFILE%\.local\bin``
+
+.. note::
+
+   From the `Python
+   documentation <https://docs.python.org/3/using/windows.html#excursus-setting-environment-variables>`__:
+   To permanently modify the default environment variables, click Start and
+   search for ‘edit environment variables’, or open System properties,
+   Advanced system settings and click the Environment Variables button. In
+   this dialog, you can add or modify User and System variables. To change
+   System variables, you need non-restricted access to your machine (i.e.
+   Administrator rights)
+
+In a new command prompt, run: ``pipx install cumulusci``
+
+.. code:: powershell
+
+   pipx install cumulusci
+
+Verify CumulusCI
+^^^^^^^^^^^^^^^^
+
+In a new terminal window or command prompt you can verify that CumulusCI
+is installed correctly by running ``cci version``:
+
+.. code:: console
+
+   $ cci version
+   Checking the version!
+   2.4.1
+
 Still need help? Search issues on CumulusCI GitHub https://github.com/SFDO-Tooling/CumulusCI/issues
 
 Part 2: Project Configuration
