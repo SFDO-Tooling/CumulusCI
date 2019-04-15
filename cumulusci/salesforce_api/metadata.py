@@ -370,10 +370,10 @@ class ApiDeploy(BaseMetadataApiCall):
             self.purge_on_delete = "true"
         # Disable purge on delete entirely for non sandbox or DE orgs as it is
         # not allowed
-        # FIXME: To implement this, the task needs to be able to provide the org_type
-        # org_type = self.task.org_config.org_type
-        # if org_type.find('Sandbox') == -1 and org_type != 'Developer Edition':
-        #    self.purge_on_delete = 'false'
+        org_type = self.task.org_config.org_type
+        is_sandbox = self.task.org_config.is_sandbox
+        if org_type != "Developer Edition" and not is_sandbox:
+            self.purge_on_delete = "false"
 
     def _build_envelope_start(self):
         if self.package_zip:
