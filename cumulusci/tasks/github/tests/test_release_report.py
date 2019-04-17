@@ -41,34 +41,31 @@ class TestReleaseReport(unittest.TestCase, GithubApiTestMixin):
             method=responses.GET,
             url=self.repo_api_url + "/releases?per_page=100",
             json=[
-                {
-                    "tag_name": "rel/2.0",
-                    "prerelease": False,
-                    "created_at": "2018-01-01T00:00:00Z",
-                    "url": "https://api.github.com/repos/SalesforceFoundation/Cumulus/releases/2",
-                    "body": """Sandbox orgs: 
+                self._get_expected_release(
+                    "rel/2.0",
+                    created_at="2018-01-01T00:00:00Z",
+                    url="https://api.github.com/repos/SalesforceFoundation/Cumulus/releases/2",
+                    body="""Sandbox orgs: 
 Sandbox orgs: bogusdate
 Sandbox orgs: 2018-08-01
 Production orgs: 2018-09-01""",
-                },
-                {
-                    "tag_name": "rel/1.0",
-                    "prerelease": False,
-                    "created_at": "2017-01-01T00:00:00Z",
-                    "url": "https://api.github.com/repos/SalesforceFoundation/Cumulus/releases/1",
-                },
-                {
-                    "tag_name": "rel/3.0",
-                    "prerelease": False,
-                    "created_at": "2019-01-01T00:00:00Z",
-                    "url": "https://api.github.com/repos/SalesforceFoundation/Cumulus/releases/3",
-                },
-                {
-                    "url": "https://api.github.com/repos/SalesforceFoundation/Cumulus/releases/4",
-                    "tag_name": "beta/3.0-Beta_1",
-                    "prerelease": True,
-                    "created_at": "2018-09-24T18:09:03Z",
-                },
+                ),
+                self._get_expected_release(
+                    "rel/1.0",
+                    created_at="2017-01-01T00:00:00Z",
+                    url="https://api.github.com/repos/SalesforceFoundation/Cumulus/releases/1",
+                ),
+                self._get_expected_release(
+                    "rel/3.0",
+                    created_at="2019-01-01T00:00:00Z",
+                    url="https://api.github.com/repos/SalesforceFoundation/Cumulus/releases/3",
+                ),
+                self._get_expected_release(
+                    "beta/3.0-Beta_1",
+                    prerelease=True,
+                    created_at="2018-09-24T18:09:03Z",
+                    url="https://api.github.com/repos/SalesforceFoundation/Cumulus/releases/4",
+                ),
             ],
         )
         task = ReleaseReport(
@@ -88,7 +85,7 @@ Production orgs: 2018-09-01""",
             [
                 {
                     "beta": False,
-                    "name": None,
+                    "name": "release",
                     "tag": u"rel/2.0",
                     "time_created": datetime(2018, 1, 1, 0, 0, tzinfo=pytz.UTC),
                     "time_push_production": datetime(
@@ -97,7 +94,7 @@ Production orgs: 2018-09-01""",
                     "time_push_sandbox": datetime(
                         2018, 8, 1, 0, 0, 0, 2, tzinfo=pytz.UTC
                     ),
-                    "url": None,
+                    "url": "",
                 }
             ],
             task.return_values["releases"],

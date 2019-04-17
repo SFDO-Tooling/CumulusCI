@@ -1,33 +1,114 @@
 from __future__ import unicode_literals
-from future.utils import bytes_to_native_str
 from collections import OrderedDict
 from distutils.version import LooseVersion
 import os
 
-import hiyapyco
 import raven
 
 import cumulusci
+from cumulusci.core.utils import ordered_yaml_load, merge_config
 from cumulusci.core.config import BaseTaskFlowConfig
-from cumulusci.core.exceptions import ConfigError
-from cumulusci.core.exceptions import DependencyResolutionError
-from cumulusci.core.exceptions import KeychainNotFound
-from cumulusci.core.exceptions import ServiceNotConfigured
-from cumulusci.core.exceptions import ServiceNotValid
+from cumulusci.core.exceptions import (
+    ConfigError,
+    DependencyResolutionError,
+    KeychainNotFound,
+    ServiceNotConfigured,
+    ServiceNotValid,
+    NotInProject,
+    ProjectConfigNotFound,
+)
 from cumulusci.core.github import get_github_api
+from github3.exceptions import NotFoundError
 
 
 class BaseProjectConfig(BaseTaskFlowConfig):
     """ Base class for a project's configuration which extends the global config """
 
-    search_path = ["config"]
+    config_filename = "cumulusci.yml"
 
-    def __init__(self, global_config_obj, config=None):
+    def __init__(self, global_config_obj, config=None, *args, **kwargs):
         self.global_config_obj = global_config_obj
         self.keychain = None
+
+        # optionally pass in a repo_info dict
+        self._repo_info = kwargs.pop("repo_info", None)
+
         if not config:
             config = {}
+
+        # Initialize the dictionaries for the individual configs
+        self.config_project = {}
+        self.config_project_local = {}
+        self.config_additional_yaml = {}
+
+        # optionally pass in a kwarg named 'additional_yaml' that will
+        # be added to the YAML merge stack.
+        self.additional_yaml = None
+        if "additional_yaml" in kwargs:
+            self.additional_yaml = kwargs.pop("additional_yaml")
+
         super(BaseProjectConfig, self).__init__(config=config)
+
+    @property
+    def config_project_local_path(self):
+        path = os.path.join(self.project_local_dir, self.config_filename)
+        if os.path.isfile(path):
+            return path
+
+    def _load_config(self):
+        """ Loads the configuration from YAML, if no override config was passed in initially. """
+
+        if (
+            self.config
+        ):  # any config being pre-set at init will short circuit out, but not a plain {}
+            return
+
+        # Verify that we're in a project
+        repo_root = self.repo_root
+        if not repo_root:
+            raise NotInProject(
+                "No git repository was found in the current path. You must be in a git repository to set up and use CCI for a project."
+            )
+
+        # Verify that the project's root has a config file
+        if not self.config_project_path:
+            raise ProjectConfigNotFound(
+                "The file {} was not found in the repo root: {}. Are you in a CumulusCI Project directory?".format(
+                    self.config_filename, repo_root
+                )
+            )
+
+        # Load the project's yaml config file
+        with open(self.config_project_path, "r") as f_config:
+            project_config = ordered_yaml_load(f_config)
+
+        if project_config:
+            self.config_project.update(project_config)
+
+        # Load the local project yaml config file if it exists
+        if self.config_project_local_path:
+            with open(self.config_project_local_path, "r") as f_local_config:
+                local_config = ordered_yaml_load(f_local_config)
+            if local_config:
+                self.config_project_local.update(local_config)
+
+        # merge in any additional yaml that was passed along
+        if self.additional_yaml:
+            additional_yaml_config = ordered_yaml_load(self.additional_yaml)
+            if additional_yaml_config:
+                self.config_additional_yaml.update(additional_yaml_config)
+
+        self.config = merge_config(
+            OrderedDict(
+                [
+                    ("global_config", self.config_global),
+                    ("global_local", self.config_global_local),
+                    ("project_config", self.config_project),
+                    ("project_local_config", self.config_project_local),
+                    ("additional_yaml", self.config_additional_yaml),
+                ]
+            )
+        )
 
     @property
     def config_global_local(self):
@@ -39,7 +120,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
     @property
     def repo_info(self):
-        if hasattr(self, "_repo_info"):
+        if self._repo_info is not None:
             return self._repo_info
 
         # Detect if we are running in a CI environment and get repo info
@@ -308,21 +389,44 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         gh = get_github_api(github_config.username, github_config.password)
         return gh
 
-    def get_latest_version(self, beta=False):
-        """ Query Github Releases to find the latest production or beta release """
+    def get_latest_tag(self, beta=False):
+        """ Query Github Releases to find the latest production or beta tag """
         gh = self.get_github_api()
         repo = gh.repository(self.repo_owner, self.repo_name)
-        latest_version = None
-        for release in repo.iter_releases():
-            if beta != release.tag_name.startswith(self.project__git__prefix_beta):
+        if not beta:
+            release = repo.latest_release()
+            prefix = self.project__git__prefix_release
+            if not release.tag_name.startswith(prefix):
+                return self._get_latest_tag_for_prefix(repo, prefix)
+            return release.tag_name
+        else:
+            return self._get_latest_tag_for_prefix(repo, self.project__git__prefix_beta)
+
+    def _get_latest_tag_for_prefix(self, repo, prefix):
+        for release in repo.releases():
+            if not release.tag_name.startswith(prefix):
                 continue
-            version = self.get_version_for_tag(release.tag_name)
-            if version is None:
-                continue
-            version = LooseVersion(version)
-            if not latest_version or version > latest_version:
-                latest_version = version
-        return latest_version
+            return release.tag_name
+
+    def get_latest_version(self, beta=False):
+        """ Query Github Releases to find the latest production or beta release """
+        tag = self.get_latest_tag(beta)
+        version = self.get_version_for_tag(tag)
+        if version is not None:
+            return LooseVersion(version)
+
+    def get_previous_version(self):
+        """Query GitHub releases to find the previous production release"""
+        gh = self.get_github_api()
+        repo = gh.repository(self.repo_owner, self.repo_name)
+        most_recent = None
+        for release in repo.releases():
+            # Return the second release that matches the release prefix
+            if release.tag_name.startswith(self.project__git__prefix_release):
+                if most_recent is None:
+                    most_recent = release
+                else:
+                    return LooseVersion(self.get_version_for_tag(release.tag_name))
 
     @property
     def config_project_path(self):
@@ -337,15 +441,16 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         """ location of the user local directory for the project
         e.g., ~/.cumulusci/NPSP-Extension-Test/ """
 
-        # depending on where we are in bootstrapping the YamlGlobalConfig
+        # depending on where we are in bootstrapping the BaseGlobalConfig
         # the canonical projectname could be located in one of two places
         if self.project__name:
             name = self.project__name
         else:
-            try:
-                name = self.config_project["project"]["name"]
-            except KeyError:
-                name = ""
+            name = self.config_project.get("project", {}).get("name", "")
+        if name is None:
+            name = (
+                ""
+            )  # not entirely sure why this was happening in tests but this is the goal...
 
         path = os.path.join(
             os.path.expanduser("~"), self.global_config_obj.config_local_dir, name
@@ -388,21 +493,6 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                 + "config.set_keychain(keychain) before accessing orgs"
             )
 
-    def list_orgs(self):
-        """ Returns a list of all org names for the project """
-        self._check_keychain()
-        return self.keychain.list_orgs()
-
-    def get_org(self, name):
-        """ Returns an OrgConfig for the given org_name """
-        self._check_keychain()
-        return self.keychain.get_org(name)
-
-    def set_org(self, name, org_config):
-        """ Creates or updates an org's oauth info """
-        self._check_keychain()
-        return self.keychain.set_org(org_config)
-
     def get_static_dependencies(self, dependencies=None, include_beta=None):
         """Resolves the project -> dependencies section of cumulusci.yml
             to convert dynamic github dependencies into static dependencies
@@ -417,7 +507,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             dependencies = self.project__dependencies
 
         if not dependencies:
-            return
+            return []
 
         static_dependencies = []
         for dependency in dependencies:
@@ -448,16 +538,15 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                         continue
                     value = "\n{}".format(" " * (indent + 4))
 
-                if key == "repo":
-                    pretty.append("{}{}: {}".format(prefix, key, value.full_name))
-                else:
-                    pretty.append("{}{}: {}".format(prefix, key, value))
+                pretty.append("{}{}: {}".format(prefix, key, value))
                 if extra:
                     pretty.extend(extra)
                 prefix = "{}    ".format(" " * indent)
         return pretty
 
-    def process_github_dependency(self, dependency, indent=None, include_beta=None):
+    def process_github_dependency(  # noqa: C901
+        self, dependency, indent=None, include_beta=None
+    ):
         if not indent:
             indent = ""
 
@@ -478,39 +567,72 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             repo_name = repo_name[:-4]
         repo = gh.repository(repo_owner, repo_name)
 
-        # Determine the ref if specified
-        kwargs = {}
-        if "tag" in dependency:
-            tag = dependency["tag"]
-            kwargs["ref"] = tag
+        # Determine the commit
+        release = None
+        if "ref" in dependency:
+            ref = dependency["ref"]
         else:
-            tag = None
+            if "tag" in dependency:
+                try:
+                    # Find the github release corresponding to this tag.
+                    release = repo.release_from_tag(dependency["tag"])
+                except NotFoundError:
+                    raise DependencyResolutionError(
+                        "{}No release found for tag {}".format(
+                            indent, dependency["tag"]
+                        )
+                    )
+            else:
+                release = self._find_latest_release(repo, include_beta)
+            if release:
+                ref = repo.tag(
+                    repo.ref("tags/" + release.tag_name).object.sha
+                ).object.sha
+            else:
+                self.logger.info(
+                    "{}No release found; using the latest commit from the {} branch.".format(
+                        indent, repo.default_branch
+                    )
+                )
+                ref = repo.branch(repo.default_branch).commit.sha
 
         # Get the cumulusci.yml file
-        contents = repo.contents("cumulusci.yml", **kwargs)
-        cumulusci_yml = hiyapyco.load(
-            bytes_to_native_str(contents.decoded), loglevel="INFO"
-        )
+        contents = repo.file_contents("cumulusci.yml", ref=ref)
+        cumulusci_yml = ordered_yaml_load(contents.decoded)
 
         # Get the namespace from the cumulusci.yml if set
-        namespace = cumulusci_yml.get("project", {}).get("package", {}).get("namespace")
+        package_config = cumulusci_yml.get("project", {}).get("package", {})
+        namespace = package_config.get("namespace")
+        package_name = (
+            package_config.get("name_managed")
+            or package_config.get("name")
+            or namespace
+        )
 
         # Check for unmanaged flag on a namespaced package
         unmanaged = namespace and dependency.get("unmanaged") is True
 
         # Look for subfolders under unpackaged/pre
         unpackaged_pre = []
-        contents = repo.contents("unpackaged/pre", **kwargs)
+        try:
+            contents = repo.directory_contents(
+                "unpackaged/pre", return_as=dict, ref=ref
+            )
+        except NotFoundError:
+            contents = None
         if contents:
             for dirname in list(contents.keys()):
                 subfolder = "unpackaged/pre/{}".format(dirname)
                 if subfolder in skip:
                     continue
+                name = "Deploy {}".format(subfolder)
 
                 unpackaged_pre.append(
                     {
-                        "repo": repo,
-                        "ref": tag,
+                        "name": name,
+                        "repo_owner": repo_owner,
+                        "repo_name": repo_name,
+                        "ref": ref,
                         "subfolder": subfolder,
                         "unmanaged": dependency.get("unmanaged"),
                         "namespace_tokenize": dependency.get("namespace_tokenize"),
@@ -522,13 +644,15 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         # Look for metadata under src (deployed if no namespace)
         unmanaged_src = None
         if unmanaged or not namespace:
-            contents = repo.contents("src", **kwargs)
+            contents = repo.directory_contents("src", ref=ref)
             if contents:
                 subfolder = "src"
 
                 unmanaged_src = {
-                    "repo": repo,
-                    "ref": tag,
+                    "name": "Deploy {}".format(package_name or repo_name),
+                    "repo_owner": repo_owner,
+                    "repo_name": repo_name,
+                    "ref": ref,
                     "subfolder": subfolder,
                     "unmanaged": dependency.get("unmanaged"),
                     "namespace_tokenize": dependency.get("namespace_tokenize"),
@@ -538,16 +662,24 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
         # Look for subfolders under unpackaged/post
         unpackaged_post = []
-        contents = repo.contents("unpackaged/post", **kwargs)
+        try:
+            contents = repo.directory_contents(
+                "unpackaged/post", return_as=dict, ref=ref
+            )
+        except NotFoundError:
+            contents = None
         if contents:
             for dirname in list(contents.keys()):
                 subfolder = "unpackaged/post/{}".format(dirname)
                 if subfolder in skip:
                     continue
+                name = "Deploy {}".format(subfolder)
 
                 dependency = {
-                    "repo": repo,
-                    "ref": tag,
+                    "name": name,
+                    "repo_owner": repo_owner,
+                    "repo_name": repo_name,
+                    "ref": ref,
                     "subfolder": subfolder,
                     "unmanaged": dependency.get("unmanaged"),
                     "namespace_tokenize": dependency.get("namespace_tokenize"),
@@ -563,8 +695,6 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
         # Parse values from the repo's cumulusci.yml
         project = cumulusci_yml.get("project", {})
-        prefix_beta = project.get("git", {}).get("prefix_beta", "beta/")
-        prefix_release = project.get("git", {}).get("prefix_release", "release/")
         dependencies = project.get("dependencies")
         if dependencies:
             dependencies = self.get_static_dependencies(
@@ -579,19 +709,18 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             repo_dependencies.extend(unpackaged_pre)
 
         if namespace and not unmanaged:
-            version = None
-            if tag:
-                version = self.get_version_for_tag(tag, prefix_beta, prefix_release)
-            else:
-                version = self._find_release_version(repo, indent, include_beta)
-
-            if not version:
+            if release is None:
                 raise DependencyResolutionError(
                     "{}Could not find latest release for {}".format(indent, namespace)
                 )
+            version = release.name
             # If a latest prod version was found, make the dependencies a
             # child of that install
-            dependency = {"namespace": namespace, "version": version}
+            dependency = {
+                "name": "Install {} {}".format(package_name or namespace, version),
+                "namespace": namespace,
+                "version": version,
+            }
             if dependencies:
                 dependency["dependencies"] = dependencies
             repo_dependencies.append(dependency)
@@ -610,19 +739,11 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
         return repo_dependencies
 
-    def _find_release_version(self, repo, indent, include_beta=None):
-        version = None
-        if include_beta:
-            latest_release = next(repo.iter_releases())
-            version = latest_release.name
-        else:
-            # github3.py doesn't support the latest release api so we hack
-            # it together here
-            url = repo._build_url("releases/latest", base_url=repo._api)
-            try:
-                version = repo._get(url).json()["name"]
-            except Exception as e:
-                self.logger.warning(
-                    "{}{}: {}".format(indent, e.__class__.__name__, str(e))
-                )
-        return version
+    def _find_latest_release(self, repo, include_beta=None):
+        try:
+            if include_beta:
+                return next(repo.releases())
+            else:
+                return repo.latest_release()
+        except Exception as e:
+            self.logger.warning("{}: {}".format(e.__class__.__name__, str(e)))

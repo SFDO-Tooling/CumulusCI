@@ -1,0 +1,78 @@
+body {
+    font-family: 'Open Sans', sans-serif;
+}
+.container {
+    margin: 2em;
+}
+#search {
+    width: 20em;
+}
+.header {
+    display: flex;
+    border-bottom: 1px solid #aaa;
+    align-items: bottom;
+}
+.header .title {
+    font-size: 2em;
+}
+.header search {
+    align-self: flex-end;
+    margin-bottom: 0px;
+}
+.right {
+    margin-left: auto;
+}
+.search {
+    align-self: center;
+}
+.search {
+    border: 0px;
+}
+.search input {
+    border: 1px solid gray;
+    padding: 4px;
+}
+.footer {
+    margin: 30px;
+    /* background: black; */
+    font-size: 80%;
+    /* color: gray; */
+    padding: 4px;
+}
+.section {
+    margin-bottom: 10px;
+}
+.kwtable {
+    box-shadow: 7px 7px 9px #d4d4d4;
+    border-collapse: collapse;
+    border: 1px solid gray;
+    text-align: left;
+    width: 100%;
+}
+.kwtable th {
+    font-weight: normal;
+    background: #109AD7;
+    color: #f0f0f0;
+    padding: 4px;
+    border: 1px solid gray;
+}
+.kwtable tr,td {
+    padding: 4px;
+    border: 1px solid gray;
+    vertical-align: top;
+}
+.kwtable tr:hover {
+    background-color: #dcdcdc;
+}
+.kwtable .kwargs {
+    width: 20%;
+}
+.kwtable .kwname {
+    font-weight: bold;
+    width: 25%;
+    /* min-width: 15em; */
+    /* max-width: 20%; */
+}
+.library-documentation {
+    margin-bottom: 2em;
+}

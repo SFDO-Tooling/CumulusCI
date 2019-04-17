@@ -1,14 +1,12 @@
-from builtins import str
 from future import standard_library
 
 standard_library.install_aliases()
+
 import os
 import re
 import urllib.parse
 
-import xml.etree.ElementTree as ET
-import yaml
-
+from cumulusci.core.utils import ordered_yaml_load
 from cumulusci.core.tasks import BaseTask
 from cumulusci.utils import elementtree_parse_file
 
@@ -58,7 +56,7 @@ class PackageXmlGenerator(object):
         types=None,
     ):
         with open(__location__ + "/metadata_map.yml", "r") as f_metadata_map:
-            self.metadata_map = yaml.safe_load(f_metadata_map)
+            self.metadata_map = ordered_yaml_load(f_metadata_map)
         self.directory = directory
         self.api_version = api_version
         self.package_name = package_name
@@ -357,11 +355,19 @@ class BusinessProcessParser(MetadataXmlElementParser):
             return True
 
 
-class AuraBundleParser(MetadataFilenameParser):
+class BundleParser(BaseMetadataParser):
     def _parse_item(self, item):
-        if item.startswith("."):
-            return []
-        return [item]
+        members = []
+        path = self.directory + "/" + item
+
+        # Skip non-directories
+        if not os.path.isdir(path):
+            return members
+
+        # item is a directory; add direcetory to members and ignore processing directory's files
+        members.append(item)
+
+        return members
 
 
 class DocumentParser(MetadataFolderParser):

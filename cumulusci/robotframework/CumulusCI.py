@@ -4,7 +4,7 @@ from robot.api import logger
 from robot.libraries.BuiltIn import BuiltIn
 from simple_salesforce import Salesforce
 
-from cumulusci.cli.config import CliConfig
+from cumulusci.cli.config import CliRuntime
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.tasks import CURRENT_TASK
@@ -18,7 +18,7 @@ class CumulusCI(object):
 
         This library allows Robot Framework tests to access credentials to a
         Salesforce org created by CumulusCI, including Scratch Orgs.  It also
-        exposes the core logic of CumulusCI including interactions with the 
+        exposes the core logic of CumulusCI including interactions with the
         Salesforce API's and project specific configuration including custom
         and customized tasks and flows.
 
@@ -50,12 +50,12 @@ class CumulusCI(object):
     @property
     def project_config(self):
         if self._project_config is None:
-            if CURRENT_TASK.instance and isinstance(CURRENT_TASK.instance, Robot):
+            if CURRENT_TASK.stack and isinstance(CURRENT_TASK.stack[0], Robot):
                 # If CumulusCI is running a task, use that task's config
-                return CURRENT_TASK.instance.project_config
+                return CURRENT_TASK.stack[0].project_config
             else:
                 logger.console("Initializing CumulusCI config\n")
-                self._project_config = CliConfig().project_config
+                self._project_config = CliRuntime().project_config
         return self._project_config
 
     def set_project_config(self, project_config):
@@ -69,9 +69,9 @@ class CumulusCI(object):
     @property
     def org(self):
         if self._org is None:
-            if CURRENT_TASK.instance and isinstance(CURRENT_TASK.instance, Robot):
+            if CURRENT_TASK.stack and isinstance(CURRENT_TASK.stack[0], Robot):
                 # If CumulusCI is running a task, use that task's org
-                return CURRENT_TASK.instance.org_config
+                return CURRENT_TASK.stack[0].org_config
             else:
                 self._org = self.keychain.get_org(self.org_name)
         return self._org
@@ -91,7 +91,7 @@ class CumulusCI(object):
     def set_login_url(self):
         """ Sets the LOGIN_URL variable in the suite scope which will
             automatically log into the target Salesforce org.
-    
+
             Typically, this is run during Suite Setup
         """
         BuiltIn().set_suite_variable("${LOGIN_URL}", self.org.start_url)
@@ -114,10 +114,30 @@ class CumulusCI(object):
             org = self.keychain.get_org(org)
         return org.start_url
 
+    def get_namespace_prefix(self, package=None):
+        """ Returns the namespace prefix (including __) for the specified package name.
+        (Defaults to project__package__name_managed from the current project config.)
+
+        Returns an empty string if the package is not installed as a managed package.
+        """
+        result = ""
+        if package is None:
+            package = self.project_config.project__package__name_managed
+        packages = self.tooling.query(
+            "SELECT SubscriberPackage.NamespacePrefix, SubscriberPackage.Name "
+            "FROM InstalledSubscriberPackage"
+        )
+        match = [
+            p for p in packages["records"] if p["SubscriberPackage"]["Name"] == package
+        ]
+        if match:
+            result = match[0]["SubscriberPackage"]["NamespacePrefix"] + "__"
+        return result
+
     def run_task(self, task_name, **options):
         """ Runs a named CumulusCI task for the current project with optional
             support for overriding task options via kwargs.
-            
+
             Examples:
             | =Keyword= | =task_name= | =task_options=             | =comment=                        |
             | Run Task  | deploy      |                            | Run deploy with standard options |
@@ -183,12 +203,11 @@ class CumulusCI(object):
         return task_config
 
     def _run_task(self, task_class, task_config):
-        exception = None
-
         task = task_class(self.project_config, task_config, org_config=self.org)
 
         task()
         return task.return_values
 
     def debug(self):
+        """Pauses execution and enters the Python debugger."""
         set_pdb_trace()

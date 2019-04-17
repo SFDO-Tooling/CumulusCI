@@ -31,8 +31,14 @@ class TestEpochType(unittest.TestCase):
 
     def test_process_result_value(self):
         obj = bulkdata.EpochType()
+
+        # Non-None value
         result = obj.process_result_value(1000, None)
         self.assertEqual(datetime(1970, 1, 1, 0, 0, 1), result)
+
+        # None value
+        result = obj.process_result_value(None, None)
+        self.assertEqual(None, result)
 
     def test_setup_epoch(self):
         column_info = {"type": types.DateTime()}
@@ -48,11 +54,11 @@ BULK_BATCH_RESPONSE = '<root xmlns="http://ns"><batch><state>{}</state></batch><
 def _make_task(task_class, task_config):
     task_config = TaskConfig(task_config)
     global_config = BaseGlobalConfig()
-    project_config = BaseProjectConfig(global_config)
+    project_config = BaseProjectConfig(global_config, config={"noyaml": True})
     keychain = BaseProjectKeychain(project_config, "")
     project_config.set_keychain(keychain)
     org_config = DummyOrgConfig(
-        {"instance_url": "example.com", "access_token": "abc123"}, "test"
+        {"instance_url": "https://example.com", "access_token": "abc123"}, "test"
     )
     return task_class(project_config, task_config, org_config)
 
@@ -70,7 +76,6 @@ class TestDeleteData(unittest.TestCase):
         api.get_all_results_for_query_batch.return_value = [BULK_DELETE_QUERY_RESULT]
         api.create_job.return_value = delete_job = "3"
         api.headers.return_value = {}
-        delete_batch = "4"
         responses.add(
             method="POST",
             url="http://api/job/3/batch",
@@ -95,8 +100,11 @@ class TestDeleteData(unittest.TestCase):
         )
 
         task = _make_task(bulkdata.DeleteData, {"options": {"objects": "Contact"}})
-        task.bulk = api
 
+        def _init_class():
+            task.bulk = api
+
+        task._init_class = _init_class
         task()
 
         api.create_query_job.assert_called_once_with("Contact", contentType="CSV")
@@ -166,14 +174,20 @@ class TestDeleteData(unittest.TestCase):
         api.endpoint = "http://api"
         api.headers.return_value = {}
         api.raise_error.side_effect = Exception
-        task.bulk = api
+
+        def _init_class():
+            task.bulk = api
+
+        task._init_class = _init_class
         responses.add(responses.POST, "http://api/job/1/batch", body=b"", status=500)
         with self.assertRaises(Exception):
             list(task._upload_batches("1", [{"Id": "1"}]))
 
 
 @mock.patch("cumulusci.tasks.bulkdata.time.sleep", mock.Mock())
-class TestLoadData(unittest.TestCase):
+class TestLoadDataWithSFIds(unittest.TestCase):
+    mapping_file = "mapping_v1.yml"
+
     @responses.activate
     def test_run(self):
         api = mock.Mock()
@@ -218,7 +232,7 @@ class TestLoadData(unittest.TestCase):
 
         base_path = os.path.dirname(__file__)
         db_path = os.path.join(base_path, "testdata.db")
-        mapping_path = os.path.join(base_path, "mapping.yml")
+        mapping_path = os.path.join(base_path, self.mapping_file)
         with temporary_dir() as d:
             tmp_db_path = os.path.join(d, "testdata.db")
             shutil.copyfile(db_path, tmp_db_path)
@@ -232,13 +246,17 @@ class TestLoadData(unittest.TestCase):
                     }
                 },
             )
-            task.bulk = api
+
+            def _init_class():
+                task.bulk = api
+
+            task._init_class = _init_class
             task()
             task.session.close()
 
         households_batch_file = api.post_batch.call_args_list[0][0][1]
         self.assertEqual(
-            b"Name,RecordTypeId\r\nHousehold,1\r\n", households_batch_file.read()
+            b"Name,RecordTypeId\r\nTestHousehold,1\r\n", households_batch_file.read()
         )
         contacts_batch_file = api.post_batch.call_args_list[1][0][1]
         self.assertEqual(
@@ -250,7 +268,7 @@ class TestLoadData(unittest.TestCase):
 
     def test_run_task__start_step(self):
         base_path = os.path.dirname(__file__)
-        mapping_path = os.path.join(base_path, "mapping.yml")
+        mapping_path = os.path.join(base_path, self.mapping_file)
         task = _make_task(
             bulkdata.LoadData,
             {
@@ -268,7 +286,7 @@ class TestLoadData(unittest.TestCase):
 
     def test_get_batches__multiple(self):
         base_path = os.path.dirname(__file__)
-        mapping_path = os.path.join(base_path, "mapping.yml")
+        mapping_path = os.path.join(base_path, self.mapping_file)
         task = _make_task(
             bulkdata.LoadData,
             {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
@@ -282,7 +300,7 @@ class TestLoadData(unittest.TestCase):
 
     def test_convert(self):
         base_path = os.path.dirname(__file__)
-        mapping_path = os.path.join(base_path, "mapping.yml")
+        mapping_path = os.path.join(base_path, self.mapping_file)
         task = _make_task(
             bulkdata.LoadData,
             {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
@@ -291,7 +309,7 @@ class TestLoadData(unittest.TestCase):
 
     def test_reset_id_table__already_exists(self):
         base_path = os.path.dirname(__file__)
-        mapping_path = os.path.join(base_path, "mapping.yml")
+        mapping_path = os.path.join(base_path, self.mapping_file)
         task = _make_task(
             bulkdata.LoadData,
             {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
@@ -307,12 +325,96 @@ class TestLoadData(unittest.TestCase):
         self.assertFalse(new_id_table is id_table)
 
 
-HOUSEHOLD_QUERY_RESULT = b'"Id"\n1'
-CONTACT_QUERY_RESULT = b'"Id",AccountId\n2,1'
+@mock.patch("cumulusci.tasks.bulkdata.time.sleep", mock.Mock())
+class TestLoadDataWithoutSFIds(unittest.TestCase):
+    mapping_file = "mapping_v2.yml"
+
+    @responses.activate
+    def test_run(self):
+        api = mock.Mock()
+        api.endpoint = "http://api"
+        api.headers.return_value = {}
+        api.create_insert_job.side_effect = ["1", "3"]
+        api.post_batch.side_effect = ["2", "4"]
+        api.job_status.return_value = {
+            "numberBatchesCompleted": 1,
+            "numberBatchesTotal": 1,
+        }
+        responses.add(
+            method="GET",
+            url="http://api/job/1/batch",
+            body=BULK_BATCH_RESPONSE.format("Completed"),
+            status=200,
+        )
+        responses.add(
+            method="GET",
+            url="http://api/job/3/batch",
+            body=BULK_BATCH_RESPONSE.format("Completed"),
+            status=200,
+        )
+        responses.add(
+            method="GET",
+            url="http://api/job/1/batch/2/result",
+            body=b"Id,Success,Created,Errors\n1,true,true,",
+            status=200,
+        )
+        responses.add(
+            method="GET",
+            url="https://example.com/services/data/vNone/query/?q=SELECT+Id+FROM+RecordType+WHERE+SObjectType%3D%27Account%27AND+DeveloperName+%3D+%27HH_Account%27+LIMIT+1",
+            body=json.dumps({"records": [{"Id": "1"}]}),
+            status=200,
+        )
+        responses.add(
+            method="GET",
+            url="http://api/job/3/batch/4/result",
+            body=b"Id,Success,Created,Errors\n1,true,true,\n2,false,false,Error",
+            status=200,
+        )
+
+        base_path = os.path.dirname(__file__)
+        db_path = os.path.join(base_path, "testdata.db")
+        mapping_path = os.path.join(base_path, self.mapping_file)
+        with temporary_dir() as d:
+            tmp_db_path = os.path.join(d, "testdata.db")
+            shutil.copyfile(db_path, tmp_db_path)
+
+            task = _make_task(
+                bulkdata.LoadData,
+                {
+                    "options": {
+                        "database_url": "sqlite:///{}".format(tmp_db_path),
+                        "mapping": mapping_path,
+                    }
+                },
+            )
+
+            def _init_class():
+                task.bulk = api
+
+            task._init_class = _init_class
+            task()
+            task.session.close()
+
+        households_batch_file = api.post_batch.call_args_list[0][0][1]
+        self.assertEqual(
+            b"Name,RecordTypeId\r\nTestHousehold,1\r\n", households_batch_file.read()
+        )
+        contacts_batch_file = api.post_batch.call_args_list[1][0][1]
+        self.assertEqual(
+            b"FirstName,LastName,Email,AccountId\r\n"
+            b"Test,User,test@example.com,1\r\n"
+            b"Error,User,error@example.com,1\r\n",
+            contacts_batch_file.read(),
+        )
 
 
 @mock.patch("cumulusci.tasks.bulkdata.time.sleep", mock.Mock())
-class TestQueryData(unittest.TestCase):
+class TestQueryDataWithSFIds(unittest.TestCase):
+
+    mapping_file = "mapping_v1.yml"
+    HOUSEHOLD_QUERY_RESULT = b'"Id"\n1\n'
+    CONTACT_QUERY_RESULT = b'"Id",AccountId\n2,1\n'
+
     @responses.activate
     def test_run(self):
         api = mock.Mock()
@@ -324,16 +426,16 @@ class TestQueryData(unittest.TestCase):
         responses.add(
             responses.GET,
             "http://api/job/1/batch/3/result/5",
-            body=HOUSEHOLD_QUERY_RESULT,
+            body=self.HOUSEHOLD_QUERY_RESULT,
         )
         responses.add(
             responses.GET,
             "http://api/job/2/batch/4/result/6",
-            body=CONTACT_QUERY_RESULT,
+            body=self.CONTACT_QUERY_RESULT,
         )
 
         base_path = os.path.dirname(__file__)
-        mapping_path = os.path.join(base_path, "mapping.yml")
+        mapping_path = os.path.join(base_path, self.mapping_file)
 
         task = _make_task(
             bulkdata.QueryData,
@@ -344,16 +446,23 @@ class TestQueryData(unittest.TestCase):
                 }
             },
         )
-        task.bulk = api
+
+        def _init_class():
+            task.bulk = api
+
+        task._init_class = _init_class
         task()
 
+        household = task.session.query(task.models["households"]).one()
+        self.assertEqual("1", household.sf_id)
+        self.assertEqual("HH_Account", household.record_type)
         contact = task.session.query(task.models["contacts"]).one()
         self.assertEqual("2", contact.sf_id)
         self.assertEqual("1", contact.household_id)
 
     def test_sql_bulk_insert_from_csv__postgres(self):
         base_path = os.path.dirname(__file__)
-        mapping_path = os.path.join(base_path, "mapping.yml")
+        mapping_path = os.path.join(base_path, self.mapping_file)
         task = _make_task(
             bulkdata.QueryData,
             {
@@ -380,7 +489,7 @@ class TestQueryData(unittest.TestCase):
 
     def test_import_results__no_results(self):
         base_path = os.path.dirname(__file__)
-        mapping_path = os.path.join(base_path, "mapping.yml")
+        mapping_path = os.path.join(base_path, self.mapping_file)
         task = _make_task(
             bulkdata.QueryData,
             {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
@@ -392,7 +501,7 @@ class TestQueryData(unittest.TestCase):
 
     def test_import_results__no_columns(self):
         base_path = os.path.dirname(__file__)
-        mapping_path = os.path.join(base_path, "mapping.yml")
+        mapping_path = os.path.join(base_path, self.mapping_file)
         task = _make_task(
             bulkdata.QueryData,
             {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
@@ -404,11 +513,68 @@ class TestQueryData(unittest.TestCase):
 
     def test_create_table__already_exists(self):
         base_path = os.path.dirname(__file__)
-        mapping_path = os.path.join(base_path, "mapping.yml")
+        mapping_path = os.path.join(base_path, self.mapping_file)
+        db_path = os.path.join(base_path, "testdata.db")
         task = _make_task(
             bulkdata.QueryData,
-            {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
+            {
+                "options": {
+                    "database_url": "sqlite:///{}".format(db_path),
+                    "mapping": mapping_path,
+                }
+            },
         )
-        task.models = {"test": mock.Mock()}
         with self.assertRaises(BulkDataException):
-            task._create_table({"table": "test"})
+            task()
+
+
+@mock.patch("cumulusci.tasks.bulkdata.time.sleep", mock.Mock())
+class TestQueryDataWithoutSFIds(unittest.TestCase):
+
+    mapping_file = "mapping_v2.yml"
+    HOUSEHOLD_QUERY_RESULT = b'"Id",Name\n"foo","TestHousehold"\n'
+    CONTACT_QUERY_RESULT = b'"Id",AccountId,\n2,"foo"\n'
+
+    @responses.activate
+    def test_run(self):
+        api = mock.Mock()
+        api.endpoint = "http://api"
+        api.headers.return_value = {}
+        api.create_query_job.side_effect = ["1", "2"]
+        api.query.side_effect = ["3", "4"]
+        api.get_query_batch_result_ids.side_effect = [["5"], ["6"]]
+        responses.add(
+            responses.GET,
+            "http://api/job/1/batch/3/result/5",
+            body=self.HOUSEHOLD_QUERY_RESULT,
+        )
+        responses.add(
+            responses.GET,
+            "http://api/job/2/batch/4/result/6",
+            body=self.CONTACT_QUERY_RESULT,
+        )
+
+        base_path = os.path.dirname(__file__)
+        mapping_path = os.path.join(base_path, self.mapping_file)
+
+        task = _make_task(
+            bulkdata.QueryData,
+            {
+                "options": {
+                    "database_url": "sqlite://",  # in memory
+                    "mapping": mapping_path,
+                }
+            },
+        )
+
+        def _init_class():
+            task.bulk = api
+
+        task._init_class = _init_class
+        task()
+
+        household = task.session.query(task.models["households"]).one()
+        self.assertEqual("TestHousehold", household.name)
+        self.assertEqual("HH_Account", household.record_type)
+        contact = task.session.query(task.models["contacts"]).one()
+        self.assertEqual("foo", contact.household_id)

@@ -4,7 +4,7 @@ Insert Households:
     fields:
         Id: sf_id
     static:
-        Name: Household
+        Name: TestHousehold
     record_type: HH_Account
 Insert Contacts:
     sf_object: Contact

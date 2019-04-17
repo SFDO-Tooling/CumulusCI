@@ -59,9 +59,8 @@ test: ## run tests quickly with the default Python
 test-all: ## run tests on every Python version with tox
 	tox
 
-coverage: ## check code coverage quickly with the default Python	
-	coverage run --source cumulusci pytest
-	
+coverage: ## check code coverage quickly with the default Python
+	coverage run --source cumulusci -m pytest
 	coverage report -m
 	coverage html
 	$(BROWSER) htmlcov/index.html
@@ -81,6 +80,11 @@ release: clean ## package and upload a release
 	python setup.py sdist 
 	python setup.py bdist_wheel 
 	twine upload dist/*
+
+release-homebrew: clean ## create a homebrew formula and associated pull request
+	utility/build-homebrew.sh cumulusci.rb
+	python utility/push-homebrew.py cumulusci.rb
+	rm -f cumulusci.rb
 
 dist: clean ## builds source and wheel package
 	python setup.py sdist

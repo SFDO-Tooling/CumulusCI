@@ -4,14 +4,15 @@ from future import standard_library
 standard_library.install_aliases()
 from past.builtins import basestring
 from builtins import str
-from builtins import object
+from collections import defaultdict
+from collections import OrderedDict
 import functools
 import json
+import operator
 import os
 import sys
 import webbrowser
 import code
-import yaml
 import time
 
 from contextlib import contextmanager
@@ -26,29 +27,23 @@ from jinja2 import Environment
 from jinja2 import PackageLoader
 
 import cumulusci
-from cumulusci.core.config import FlowConfig
 from cumulusci.core.config import BaseConfig
 from cumulusci.core.config import OrgConfig
 from cumulusci.core.config import ScratchOrgConfig
 from cumulusci.core.config import ServiceConfig
 from cumulusci.core.config import TaskConfig
-from cumulusci.core.config import YamlGlobalConfig
-from cumulusci.core.config import YamlProjectConfig
-from cumulusci.core.exceptions import ConfigError
+from cumulusci.core.config import BaseGlobalConfig
 from cumulusci.core.exceptions import CumulusCIFailure
 from cumulusci.core.exceptions import CumulusCIUsageError
-from cumulusci.core.exceptions import FlowNotFoundError
 from cumulusci.core.exceptions import OrgNotFound
-from cumulusci.core.exceptions import NotInProject
-from cumulusci.core.exceptions import ProjectConfigNotFound
 from cumulusci.core.exceptions import ScratchOrgException
 from cumulusci.core.exceptions import ServiceNotConfigured
 from cumulusci.core.exceptions import TaskNotFoundError
-from cumulusci.core.flows import BaseFlow
 from cumulusci.core.utils import import_class
-from cumulusci.cli.config import CliConfig
+from cumulusci.cli.config import CliRuntime
 from cumulusci.cli.config import get_installed_version
 from cumulusci.utils import doc_task
+from cumulusci.utils import get_cci_upgrade_command
 from cumulusci.oauth.salesforce import CaptureSalesforceOAuth
 from .logger import init_logger
 import re
@@ -58,14 +53,20 @@ import re
 def timestamp_file():
     """Opens a file for tracking the time of the last version check"""
     config_dir = os.path.join(
-        os.path.expanduser("~"), YamlGlobalConfig.config_local_dir
+        os.path.expanduser("~"), BaseGlobalConfig.config_local_dir
     )
 
     if not os.path.exists(config_dir):
         os.mkdir(config_dir)
 
-    with open(os.path.join(config_dir, "cumulus_timestamp"), "w+") as f:
-        yield f
+    timestamp_file = os.path.join(config_dir, "cumulus_timestamp")
+
+    try:
+        with open(timestamp_file, "r+") as f:
+            yield f
+    except IOError:  # file does not exist
+        with open(timestamp_file, "w+") as f:
+            yield f
 
 
 FINAL_VERSION_RE = re.compile(r"^[\d\.]+$")
@@ -116,7 +117,9 @@ def check_latest_version():
         click.echo("Checking the version!")
         if result:
             click.echo(
-                "An update to CumulusCI is available. Use pip install --upgrade cumulusci to update."
+                """An update to CumulusCI is available. Use {} to update.""".format(
+                    get_cci_upgrade_command()
+                )
             )
 
 
@@ -191,10 +194,14 @@ def handle_sentry_event(config, no_prompt):
 TEST_CONFIG = None
 
 
-def load_config(load_project_config=True, load_keychain=True):
+def load_config(
+    load_project_config=True, load_keychain=True, allow_global_keychain=False
+):
     try:
-        config = TEST_CONFIG or CliConfig(
-            load_project_config=load_project_config, load_keychain=load_keychain
+        config = TEST_CONFIG or CliRuntime(
+            load_project_config=load_project_config,
+            load_keychain=load_keychain,
+            allow_global_keychain=allow_global_keychain,
         )
         config.check_cumulusci_version()
     except click.UsageError as e:
@@ -229,7 +236,8 @@ def main():
     This runs as the first step in processing any CLI command.
     """
     check_latest_version()
-    init_logger()
+    log_requests = "--debug" in sys.argv
+    init_logger(log_requests=log_requests)
 
 
 @click.command(name="version", help="Print the current version of CumulusCI")
@@ -237,7 +245,7 @@ def version():
     click.echo(cumulusci.__version__)
 
 
-@click.command(name="shell", help="Drop into a python shell")
+@click.command(name="shell", help="Drop into a Python shell")
 def shell():
     try:
         config = load_config(load_project_config=True, load_keychain=True)
@@ -432,7 +440,6 @@ def project_init(config):
     context["git"] = git_config
 
     #     test:
-    test_config = []
     click.echo()
     click.echo(click.style("# Apex Tests Configuration", bold=True, fg="blue"))
     click.echo(
@@ -481,6 +488,7 @@ def project_init(config):
                 package_name=context["package_name"],
                 org_name="Beta Test Org",
                 edition="Developer",
+                managed=True,
             )
         )
     with open(os.path.join("orgs", "dev.json"), "w") as f:
@@ -489,6 +497,7 @@ def project_init(config):
                 package_name=context["package_name"],
                 org_name="Dev Org",
                 edition="Developer",
+                managed=False,
             )
         )
     with open(os.path.join("orgs", "feature.json"), "w") as f:
@@ -497,6 +506,7 @@ def project_init(config):
                 package_name=context["package_name"],
                 org_name="Feature Test Org",
                 edition="Developer",
+                managed=False,
             )
         )
     with open(os.path.join("orgs", "release.json"), "w") as f:
@@ -505,6 +515,7 @@ def project_init(config):
                 package_name=context["package_name"],
                 org_name="Release Test Org",
                 edition="Enterprise",
+                managed=True,
             )
         )
 
@@ -566,11 +577,16 @@ project.add_command(project_dependencies)
 
 
 @click.command(name="list", help="List services available for configuration and use")
-@pass_config
+@pass_config(allow_global_keychain=True)
 def service_list(config):
     headers = ["service", "description", "is_configured"]
     data = []
-    for serv, schema in list(config.project_config.services.items()):
+    services = (
+        config.project_config.services
+        if not config.is_global_keychain
+        else config.global_config.services
+    )
+    for serv, schema in services.items():
         is_configured = ""
         if serv in config.keychain.list_services():
             is_configured = "* "
@@ -580,31 +596,48 @@ def service_list(config):
 
 
 class ConnectServiceCommand(click.MultiCommand):
+    load_config_kwargs = {"allow_global_keychain": True}
+
+    def _get_services_config(self, config):
+        return (
+            config.project_config.services
+            if not config.is_global_keychain
+            else config.global_config.services
+        )
+
     def list_commands(self, ctx):
         """ list the services that can be configured """
-        config = load_config()
-        return sorted(config.project_config.services.keys())
+        config = load_config(**self.load_config_kwargs)
+        services = self._get_services_config(config)
+        return sorted(services.keys())
 
     def _build_param(self, attribute, details):
         req = details["required"]
         return click.Option(("--{0}".format(attribute),), prompt=req, required=req)
 
     def get_command(self, ctx, name):
-        config = load_config()
+        config = load_config(**self.load_config_kwargs)
 
-        attributes = iter(
-            list(
-                getattr(
-                    config.project_config, "services__{0}__attributes".format(name)
-                ).items()
+        try:
+            attributes = getattr(
+                config.project_config, "services__{0}__attributes".format(name)
+            ).items()
+        except AttributeError:
+            raise click.UsageError(
+                "Sorry, I don't know about the '{0}' service.".format(name)
             )
-        )
-        params = [self._build_param(attr, cnfg) for attr, cnfg in attributes]
-        params.append(click.Option(("--project",), is_flag=True))
 
-        def callback(project=False, *args, **kwargs):
+        params = [self._build_param(attr, cnfg) for attr, cnfg in attributes]
+        if not config.is_global_keychain:
+            params.append(click.Option(("--project",), is_flag=True))
+
+        def callback(*args, **kwargs):
+            if config.is_global_keychain:
+                project = False
+            else:
+                project = kwargs.get("project", False)
             serv_conf = dict(
-                (k, v) for k, v in list(kwargs.items()) if v != None
+                (k, v) for k, v in list(kwargs.items()) if v is not None
             )  # remove None values
             config.keychain.set_service(name, ServiceConfig(serv_conf), project)
             if project:
@@ -625,7 +658,7 @@ def service_connect():
 
 @click.command(name="info", help="Show the details of a connected service")
 @click.argument("service_name")
-@pass_config
+@pass_config(allow_global_keychain=True)
 def service_info(config, service_name):
     try:
         service_config = config.keychain.get_service(service_name)
@@ -688,7 +721,7 @@ def org_connect(config, org_name, sandbox, login_url, default, global_org):
 
     try:
         connected_app = config.keychain.get_service("connected_app")
-    except ServiceNotConfigured as e:
+    except ServiceNotConfigured:
         raise ServiceNotConfigured(
             "Connected App is required but not configured. "
             + "Configure the Connected App service:\n"
@@ -712,7 +745,7 @@ def org_connect(config, org_name, sandbox, login_url, default, global_org):
     config.keychain.set_org(org_config, global_org)
 
     if default:
-        org = config.keychain.set_default_org(org_name)
+        config.keychain.set_default_org(org_name)
         click.echo("{} is now the default org".format(org_name))
 
 
@@ -738,6 +771,22 @@ def org_default(config, org_name, unset):
         click.echo("{} is now the default org".format(org_name))
 
 
+@click.command(name="import", help="Import a scratch org from Salesforce DX")
+@click.argument("username_or_alias")
+@click.argument("org_name")
+@pass_config
+def org_import(config, username_or_alias, org_name):
+    org_config = {"username": username_or_alias}
+    scratch_org_config = ScratchOrgConfig(org_config, org_name)
+    scratch_org_config.config["created"] = True
+    config.keychain.set_org(scratch_org_config)
+    click.echo(
+        "Imported scratch org: {org_id}, username: {username}".format(
+            **scratch_org_config.scratch_info
+        )
+    )
+
+
 @click.command(name="info", help="Display information for a connected org")
 @click.argument("org_name", required=False)
 @click.option("print_json", "--json", is_flag=True, help="Print as JSON")
@@ -747,7 +796,15 @@ def org_info(config, org_name, print_json):
     org_config.refresh_oauth_token(config.keychain)
 
     if print_json:
-        click.echo(json.dumps(org_config.config, sort_keys=True, indent=4))
+        click.echo(
+            json.dumps(
+                org_config.config,
+                sort_keys=True,
+                indent=4,
+                default=str,
+                separators=(",", ": "),
+            )
+        )
     else:
         render_recursive(org_config.config)
 
@@ -771,8 +828,8 @@ def org_list(config):
         "config_name",
         "username",
     ]
-    for org in config.project_config.list_orgs():
-        org_config = config.project_config.get_org(org)
+    for org in config.project_config.keychain.list_orgs():
+        org_config = config.project_config.keychain.get_org(org)
         row = [org]
         row.append("*" if org_config.default else "")
         row.append("*" if org_config.scratch else "")
@@ -865,7 +922,7 @@ def org_scratch(config, config_name, org_name, default, devhub, days, no_passwor
     )
 
     if default:
-        org = config.keychain.set_default_org(org_name)
+        config.keychain.set_default_org(org_name)
         click.echo("{} is now the default org".format(org_name))
 
 
@@ -891,6 +948,7 @@ def org_scratch_delete(config, org_name):
 org.add_command(org_browser)
 org.add_command(org_connect)
 org.add_command(org_default)
+org.add_command(org_import)
 org.add_command(org_info)
 org.add_command(org_list)
 org.add_command(org_remove)
@@ -906,8 +964,17 @@ org.add_command(org_scratch_delete)
 def task_list(config):
     data = []
     headers = ["task", "description"]
+    task_groups = OrderedDict()
     for task in config.project_config.list_tasks():
-        data.append((task["name"], task["description"]))
+        group = task["group"] or "Other"
+        if group not in task_groups:
+            task_groups[group] = []
+        task_groups[group].append(task)
+    for group, tasks in task_groups.items():
+        data.append(("", ""))
+        data.append(("-- {} --".format(group), ""))
+        for task in sorted(tasks, key=operator.itemgetter("name")):
+            data.append((task["name"], task["description"]))
     table = Table(data, headers)
     click.echo(table)
     click.echo("")
@@ -1099,30 +1166,20 @@ def flow_run(config, flow_name, org, delete_org, debug, o, skip, no_prompt):
 
     # Get necessary configs
     org, org_config = config.get_org(org)
-
     if delete_org and not org_config.scratch:
         raise click.UsageError("--delete-org can only be used with a scratch org")
 
-    flow_config = config.project_config.get_flow(flow_name)
-
-    # Parse command line options and add to task config
-    options = {}
+    # Parse command line options
+    options = defaultdict(dict)
     if o:
-        for option in o:
-            options[option[0]] = option[1]
+        for key, value in o:
+            task_name, option_name = key.split("__")
+            options[task_name][option_name] = value
 
     # Create the flow and handle initialization exceptions
     try:
-        flow = BaseFlow(
-            config.project_config,
-            flow_config,
-            org_config,
-            options,
-            skip,
-            name=flow_name,
-        )
-
-        flow()
+        coordinator = config.get_flow(flow_name, options=options)
+        coordinator.run(org_config)
     except CumulusCIUsageError as e:
         exception = click.UsageError(str(e))
         handle_exception_debug(config, debug, throw_exception=exception)

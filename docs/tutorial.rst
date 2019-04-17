@@ -2,94 +2,78 @@
 Tutorial
 ========
 
-This tutorial is for macOS. Linux and Windows are not yet officially supported but should work for the most part. We have added some Windows info where possible.
+This tutorial is for macOS. Linux and Windows are not yet officially supported but should work for the most part. We have added some Windows and Linux info where possible.
 
 Part 1: Installing CumulusCI
 ============================
 
-Install Requirements
---------------------
-
-CumulusCI supports Python 2.7, 3.6, or 3.7.
-
-macOS
-^^^^^
-
-Due to an issue regarding TLS support in the Python included in macOS it is necessary to install Python with OpenSSL support using Homebrew. For more info on the TLS issue see here: http://pyfound.blogspot.com/2017/01/time-to-upgrade-your-python-tls-v12.html
-
-Install Homebrew: https://docs.brew.sh/Installation.html
-
-Use Homebrew to install OpenSSL:
-
-.. code-block:: console
-
-    $ brew install openssl
-
-Use Homebrew to install pyenv-virtualenv: 
-
-.. code-block:: console
-
-    $ brew install pyenv-virtualenv
-
-After installing pyenv-virtualenv, edit your ~/.bash_profile and add the following lines at the end of the file to activate pyenv in your shell by default:
-
-.. code-block:: console
-
-    eval "$(pyenv init -)"
-    eval "$(pyenv virtualenv-init -)"
-
-Windows
-^^^^^^^
-
-Install Python 3: https://www.python.org/downloads/release/python-370/
-
-In the installer, be sure to check the "Add Python to PATH" checkbox.
-
-Create Virtual Environment
---------------------------
-
-A Python Virtual Environment (virtualenv) is an isolated Python environment where you can install packages without modifying the system Python.  Using a virtualenv for cumulusci is recommended to avoid issues and conflicts with other applications using your system Python.
-
-macOS
-^^^^^
-
-.. code-block:: console
-
-    $ pyenv install 3.7.0
-    $ pyenv virtualenv 3.7.0 cci
-    $ # Copy the following line to ~/.bash_profile to automatically activate the virtual environment in all new shells.
-    $ pyenv activate cci
-
-Your shell prompt should change once you are in the virtual env to show (cci) at the start of the prompt.  You can exit the cci virtualenv with the following command:
-
-.. code-block:: console
-
-    (cci) $ pyenv deactivate
-
-For more information about pyenv-virtualenv, see the project's README: https://github.com/pyenv/pyenv-virtualenv/blob/master/README.md
-
-Windows
-^^^^^^^
-
-.. code-block:: powershell
-
-    python -m venv ~\cci
-    ~\cci\Scripts\Activate.ps1
-
-.. note::
-   If this fails because you don't have the ability to run scripts,
-   try running: ``Set-ExecutionPolicy Unrestricted -Scope CurrentUser``
-
 Install CumulusCI
 -----------------
 
-With the virtual environment now activated, install cumulusci using pip:
+macOS/Linux
+^^^^^^^^^^^
 
-.. code-block:: console
+On macOS and Linux, the easiest way to install CumulusCI is using `homebrew <https://docs.brew.sh/>`_ :
 
-    $ pip install cumulusci
+.. code:: console
 
-Errors during pip install are usually instructive, but there can be a lot of log, so make sure to scroll back for anything in red or important looking.
+   $ brew tap SFDO-Tooling/homebrew-sfdo
+   $ brew install cumulusci
+
+Windows
+^^^^^^^
+
+Python
+~~~~~~
+
+First, install Python 3: https://www.python.org/downloads/windows/
+
+In the installer, be sure to check the "Add Python to PATH" checkbox.
+
+pipx
+~~~~
+
+On Windows 10, the easiest way to install CumulusCI is using
+`pipx <https://github.com/pipxproject/pipx>`__. In a new command prompt, run: 
+
+.. code:: powershell
+
+   python -m pip install --user pipx
+
+Add the following paths to your ``PATH`` environment variable:
+
+1. ``%USERPROFILE%\AppData\Roaming\Python\Python37\Scripts``
+2. ``%USERPROFILE%\.local\bin``
+
+.. note::
+
+   From the `Python
+   documentation <https://docs.python.org/3/using/windows.html#excursus-setting-environment-variables>`__:
+   To permanently modify the default environment variables, click Start and
+   search for ‘edit environment variables’, or open System properties,
+   Advanced system settings and click the Environment Variables button. In
+   this dialog, you can add or modify User and System variables. To change
+   System variables, you need non-restricted access to your machine (i.e.
+   Administrator rights)
+
+In a new command prompt, run: ``pipx install cumulusci``
+
+.. code:: powershell
+
+   pipx install cumulusci
+
+Verify CumulusCI
+^^^^^^^^^^^^^^^^
+
+In a new terminal window or command prompt you can verify that CumulusCI
+is installed correctly by running ``cci version``:
+
+.. code:: console
+
+   $ cci version
+   Checking the version!
+   2.4.1
+
 Still need help? Search issues on CumulusCI GitHub https://github.com/SFDO-Tooling/CumulusCI/issues
 
 Part 2: Project Configuration
@@ -104,17 +88,6 @@ If you want to use our example project, fork our CumulusCI-Test repo:
     $ git clone https://github.com/YOUR_GITHUB_FORK_USER/CumulusCI-Test
 
 If you are using the CumulusCI-Test repo with a Developer Edition Salesforce org, you will need to enable Chatter in the org if it is not already enabled.  With Salesforce DX Scratch Orgs, this is handled for you.
-
-Keychain Key
-------------
-
-The cci command stores all credentials in AES encrypted files under the ~/.cumulusci folder (macOS). To use the CLI, you must set the environment variable `CUMULUSCI_KEY` to a 16 character string which is your password to access your keychain. You can use Last Pass to generate a key for you. Do not forget this password!:
-
-.. code-block:: console
-
-    $ export CUMULUSCI_KEY=0a2b4c6d8e0f2g4h  # Must be 16 characters long
-
-For Windows, go to Control Panel -> System and Security -> System -> Advanced System Settings and click the Environment Variables button. Create a new user variable and system variable with CUMULUSCI_KEY as the Name and your generated key as the Value.
 
 Project Initialization
 ----------------------
@@ -183,10 +156,9 @@ If you run the same command from inside a git repository that has not yet been s
 .. code-block:: console
 
     $ cci project info
-    Usage: cci project info [OPTIONS]
-    Error: No project configuration found. You can use the "project init" command to initilize the project for use with CumulusCI
+    The file cumulusci.yml was not found in the repo root. Are you in a CumulusCI project directory?
 
-As the instructions say, you can use the `cci project init` command to initialize the configuration:
+You can use the `cci project init` command to initialize the configuration:
 
 .. code-block:: console
 
@@ -244,44 +216,20 @@ The project keychain in CumulusCI allows you to store credentials to persistent 
 
 CumulusCI's Project Keychain is aware of your local repository and each repository configured for CumulusCI gets its own project keychain.  This means you can name your dev org for ProjectA `dev` and your dev org for ProjectB `dev` instead of `ProjectA_dev` and `ProjectB_dev`.  When you change directories between ProjectA and ProjectB's local git repositories, CumulusCI automatically switches your project keychain for you.  This allows you to keep your org names short, easy to read, and most important, easy to type.
 
-Creating a Connected App
-------------------------
-
-First, you will need to create a Salesforce Connected App with the following steps:
-
-* In a Salesforce Org, go to Setup -> Create -> Apps
-  * In Lightning, go to Setup -> Apps -> App Manager
-* Click "New" under Connected Apps or in Lightning "New Connected App"
-
-  * Enter a unique value for the Name and API Name field
-  * Enter a Contact Email
-  * Check "Enable OAuth Settings"
-  * Set the Callback URL to http://localhost:8080/callback
-  * Enable the scopes: full, refresh_token, and web
-  * Save the Connected App
-
-* Click the Manage button, then click Edit
-* Record the client_id (Consumer Key) and the client_secret (Consumer Secret)
-
-Configuring the Project's Connected App
----------------------------------------
-
-Configure the Connected App as a service:
-
-.. code-block:: console
-
-    $ cci service connect connected_app
-    Callback url: <input>
-    Client id: <input>
-    Client secret: <input>
-    connected_app is now configured for global use
-
-Configuring the Connected App is a one time operation. Once configured, you can start connecting Salesforce Orgs to your project's keychain.
-
 Using Salesforce DX Scratch Orgs
 --------------------------------
 
-While it is possible to use `cci org connect <org_name>` to connect to a Developer Edition org, the real fun is using CumulusCI along with Salesforce DX.  If you already have the `sfdx` command installed, have connected to your devhub, and have set the `defaultdevhubusername` config settting (use `sfdx force:config:list` to verify), you're ready to start using `cci` with `sfdx`.  If you haven't already set up Salesforce DX, you can learn how at https://developer.salesforce.com/platform/dx.
+While it is possible to use `cci org connect <org_name>` to connect to a Developer Edition org, the real fun is using CumulusCI along with scratch orgs created using Salesforce DX.
+
+If you haven't already set up Salesforce DX, you need to take care of a few steps:
+
+1. `Install the Salesforce CLI <https://developer.salesforce.com/docs/atlas.en-us.sfdx_setup.meta/sfdx_setup/sfdx_setup_install_cli.htm>`_
+2. `Enable Dev Hub in Your Org <https://developer.salesforce.com/docs/atlas.en-us.sfdx_setup.meta/sfdx_setup/sfdx_setup_enable_devhub.htm>`_
+3. `Connect SFDX to Your Dev Hub Org <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_auth_web_flow.htm>`_ (be sure to use the ``--setdefaultdevhubusername`` option).
+
+If you already have the `sfdx` command installed, have connected to your devhub, and have set the `defaultdevhubusername` config setting (use `sfdx force:config:list` to verify), you're ready to start using `cci` with `sfdx`. SFDX supports multiple DevHubs, so CumulusCI will use the one set as defaultdevhubusername when creating scratch orgs.
+
+You can learn more about Salesforce DX at https://developer.salesforce.com/platform/dx.
 
 CumulusCI wraps the creation of scratch orgs to provide a some useful extra features:
 
@@ -373,7 +321,66 @@ If for some reason the whole scratch org config misbehaves, you can easily recre
 
     $ cci org scratch dev dev
 
+There may be times when you need to import an existing scratch org that wasn't created by CumulusCI. You can do so with `cci org import <username_or_alias> <org_name>`:
+
+.. code-block:: console
+
+    $ cci org import test-...@example.com dev
+    2018-11-15 09:23:16: Getting scratch org info from Salesforce DX
+    Imported scratch org: 00D...........0, username: test-...@example.com
+
 You can hop into a browser logged into any org in your keychain with `cci org browser <org_name>`.
+
+Creating a Connected App
+------------------------
+
+In order to connect persistent orgs such as a Developer Edition, Enterprise Edition, or Sandbox org to CumulusCI, you need to have a Connected App configured in a persistent Salesforce org.  You have a choice of whether to create the Connected App from the command line or in Salesforce Setup.
+
+Create With CumulusCI
+^^^^^^^^^^^^^^^^^^^^^
+
+CumulusCI includes a task to easily deploy the Salesforce Connected App to any org in your sdfx keychain.  By default, this will deploy to the org configured as the defaultdevhubusername.
+
+.. code-block:: console
+
+    $ cci task run connected_app
+
+This command will also configure CumulusCI's connected_app service in the keychain for you.  If you want to see the information for the connected app, you can view it with:
+
+.. code-block:: console
+
+    $ cci service info connected_app
+
+Creating Manually
+^^^^^^^^^^^^^^^^^
+
+If you would rather create the Salesforce Connected App manually, use the following steps:
+
+* In a Salesforce Org, go to Setup -> Create -> Apps
+  * In Lightning, go to Setup -> Apps -> App Manager
+* Click "New" under Connected Apps or in Lightning "New Connected App"
+
+  * Enter a unique value for the Name and API Name field
+  * Enter a Contact Email
+  * Check "Enable OAuth Settings"
+  * Set the Callback URL to http://localhost:8080/callback
+  * Enable the scopes: full, refresh_token, and web
+  * Save the Connected App
+
+* Click the Manage button, then click Edit
+* Record the client_id (Consumer Key) and the client_secret (Consumer Secret)
+
+Configure the Connected App as a service:
+
+.. code-block:: console
+
+    $ cci service connect connected_app
+    Callback url: <input>
+    Client id: <input>
+    Client secret: <input>
+    connected_app is now configured for global use
+
+Configuring the Connected App is a one time operation. Once configured, you can start connecting Salesforce Orgs to your project's keychain.
 
 
 Connecting a Packaging Org

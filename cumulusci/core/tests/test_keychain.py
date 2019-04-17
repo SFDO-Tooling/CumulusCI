@@ -35,7 +35,9 @@ class ProjectKeychainTestMixin(unittest.TestCase):
 
     def setUp(self):
         self.global_config = BaseGlobalConfig()
-        self.project_config = BaseProjectConfig(self.global_config)
+        self.project_config = BaseProjectConfig(
+            self.global_config, config={"no_yaml": True}
+        )
         self.project_config.config["services"] = {
             "connected_app": {"attributes": {"test": {"required": True}}},
             "github": {"attributes": {"name": {"required": True}, "password": {}}},
@@ -376,7 +378,9 @@ class TestEncryptedFileProjectKeychain(ProjectKeychainTestMixin):
 
     def setUp(self):
         self.global_config = BaseGlobalConfig()
-        self.project_config = BaseProjectConfig(self.global_config)
+        self.project_config = BaseProjectConfig(
+            self.global_config, config={"noyaml": True}
+        )
         self.project_config.config["services"] = {
             "connected_app": {"attributes": {"test": {"required": True}}},
             "github": {"attributes": {"git": {"required": True}, "password": {}}},
@@ -438,6 +442,11 @@ class TestEncryptedFileProjectKeychain(ProjectKeychainTestMixin):
     def test_set_and_get_org_global(self):
         self.test_set_and_get_org(True)
 
+    def test_set_and_get_org__global_config(self):
+        keychain = self.keychain_class(self.global_config, self.key)
+        keychain.set_org(self.org_config, False)
+        self.assertEqual(list(keychain.orgs.keys()), [])
+
     def test_load_files__empty(self):
         dummy_keychain = BaseEncryptedProjectKeychain(self.project_config, self.key)
         os.makedirs(os.path.join(self.tempdir_home, ".cumulusci", self.project_name))
@@ -452,6 +461,13 @@ class TestEncryptedFileProjectKeychain(ProjectKeychainTestMixin):
 
     def test_load_file(self):
         dummy_keychain = BaseEncryptedProjectKeychain(self.project_config, self.key)
+        self._write_file(os.path.join(self.tempdir_home, "config"), "foo")
+        keychain = self.keychain_class(self.project_config, self.key)
+        keychain._load_file(self.tempdir_home, "config", "from_file")
+        self.assertEqual("foo", keychain.config["from_file"])
+
+    def test_load_file__global_config(self):
+        dummy_keychain = BaseEncryptedProjectKeychain(self.global_config, self.key)
         self._write_file(os.path.join(self.tempdir_home, "config"), "foo")
         keychain = self.keychain_class(self.project_config, self.key)
         keychain._load_file(self.tempdir_home, "config", "from_file")

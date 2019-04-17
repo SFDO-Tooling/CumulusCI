@@ -35,11 +35,6 @@ class UpdateAdminProfile(Deploy):
     def _init_options(self, kwargs):
         super(UpdateAdminProfile, self)._init_options(kwargs)
 
-        if "package_xml" not in self.options:
-            self.options["package_xml"] = os.path.join(
-                CUMULUSCI_PATH, "cumulusci", "files", "admin_profile.xml"
-            )
-
         self.options["managed"] = process_bool_arg(self.options.get("managed", False))
 
         self.options["namespaced_org"] = process_bool_arg(
@@ -61,10 +56,11 @@ class UpdateAdminProfile(Deploy):
             else "",
         }
 
-        # Read in the package.xml file
-        self.options["package_xml_path"] = self.options["package_xml"]
-        with open(self.options["package_xml_path"], "r") as f:
-            self.options["package_xml"] = f.read()
+        path = self.options.get("package_xml") or os.path.join(
+            CUMULUSCI_PATH, "cumulusci", "files", "admin_profile.xml"
+        )
+        with open(path, "r") as f:
+            self._package_xml_content = f.read()
 
     def _run_task(self):
         self.tempdir = tempfile.mkdtemp()
@@ -75,11 +71,13 @@ class UpdateAdminProfile(Deploy):
 
     def _retrieve_unpackaged(self):
         self.logger.info(
-            "Retrieving metadata using {}".format(self.options["package_xml_path"])
+            "Retrieving metadata using {}".format(
+                self.options.get("package_xml", "default package.xml")
+            )
         )
         api_retrieve = ApiRetrieveUnpackaged(
             self,
-            self.options.get("package_xml"),
+            self._package_xml_content,
             self.project_config.project__package__api_version,
         )
         unpackaged = api_retrieve()

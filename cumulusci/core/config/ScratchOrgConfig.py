@@ -27,6 +27,13 @@ class ScratchOrgConfig(OrgConfig):
 
         self.logger.info("Getting scratch org info from Salesforce DX")
 
+        username = self.config.get("username")
+        if not username:
+            raise ScratchOrgException(
+                "SFDX claimed to be successful but there was no username "
+                "in the output...maybe there was a gack?"
+            )
+
         # Call force:org:display and parse output to get instance_url and
         # access_token
         command = sarge.shell_format(
@@ -55,8 +62,6 @@ class ScratchOrgConfig(OrgConfig):
             raise ScratchOrgException(message)
 
         else:
-            json_txt = "".join(stdout_list)
-
             try:
                 org_info = json.loads("".join(stdout_list))
             except Exception as e:
@@ -177,24 +182,34 @@ class ScratchOrgConfig(OrgConfig):
             **options
         )
         self.logger.info("Creating scratch org with command {}".format(command))
-        p = sarge.Command(command, stdout=sarge.Capture(buffer_size=-1), shell=True)
+        p = sarge.Command(
+            command,
+            stdout=sarge.Capture(buffer_size=-1),
+            stderr=sarge.Capture(buffer_size=-1),
+            shell=True,
+        )
         p.run()
 
+        stderr = [line.strip() for line in io.TextIOWrapper(p.stderr)]
+        stdout = [line.strip() for line in io.TextIOWrapper(p.stdout)]
+
+        if p.returncode:
+            message = "{}: \n{}\n{}".format(
+                FAILED_TO_CREATE_SCRATCH_ORG, "\n".join(stdout), "\n".join(stderr)
+            )
+            raise ScratchOrgException(message)
+
         re_obj = re.compile("Successfully created scratch org: (.+), username: (.+)")
-        stdout = []
-        for line in io.TextIOWrapper(p.stdout):
+        for line in stdout:
             match = re_obj.search(line)
             if match:
                 self.config["org_id"] = match.group(1)
                 self.config["username"] = match.group(2)
-            stdout.append(line)
             self.logger.info(line)
+        for line in stderr:
+            self.logger.error(line)
 
         self.config["date_created"] = datetime.datetime.now()
-
-        if p.returncode:
-            message = "{}: \n{}".format(FAILED_TO_CREATE_SCRATCH_ORG, "".join(stdout))
-            raise ScratchOrgException(message)
 
         if self.config.get("set_password"):
             self.generate_password()
@@ -253,7 +268,6 @@ class ScratchOrgConfig(OrgConfig):
         p = sarge.Command(command, stdout=sarge.Capture(buffer_size=-1), shell=True)
         p.run()
 
-        org_info = None
         stdout = []
         for line in io.TextIOWrapper(p.stdout):
             stdout.append(line)
@@ -266,9 +280,10 @@ class ScratchOrgConfig(OrgConfig):
             message = "Failed to delete scratch org: \n{}".format("".join(stdout))
             raise ScratchOrgException(message)
 
-        # Flag that this org has been created
+        # Flag that this org has been deleted
         self.config["created"] = False
         self.config["username"] = None
+        self.config["date_created"] = None
 
     def force_refresh_oauth_token(self):
         # Call force:org:display and parse output to get instance_url and
@@ -301,3 +316,5 @@ class ScratchOrgConfig(OrgConfig):
 
         # Get org info via sfdx force:org:display
         self.scratch_info
+        # Get additional org info by querying API
+        self._load_orginfo()

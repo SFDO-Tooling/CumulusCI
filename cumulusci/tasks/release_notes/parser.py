@@ -2,6 +2,8 @@ from builtins import str
 import re
 import os
 
+import github3.exceptions
+
 from cumulusci.core.exceptions import GithubApiNotFoundError
 from .exceptions import GithubIssuesError
 
@@ -42,7 +44,7 @@ class ChangeNotesLinesParser(BaseChangeNotesParser):
 
             # Look for h2
             if line.startswith("## "):
-                self.h2_title = re.sub("\s+#+$", "", line[3:]).lstrip()
+                self.h2_title = re.sub(r"\s+#+$", "", line[3:]).lstrip()
                 continue
 
             # Add all content once in the section
@@ -222,12 +224,13 @@ class GithubIssuesParser(IssuesParser):
         return u"\r\n".join(content)
 
     def _get_issue(self, issue_number):
-        issue = self.github.issue(
-            self.release_notes_generator.github_info["github_owner"],
-            self.release_notes_generator.github_info["github_repo"],
-            issue_number,
-        )
-        if not issue:
+        try:
+            issue = self.github.issue(
+                self.release_notes_generator.github_info["github_owner"],
+                self.release_notes_generator.github_info["github_repo"],
+                issue_number,
+            )
+        except github3.exceptions.NotFoundError:
             raise GithubApiNotFoundError("Issue #{} not found".format(issue_number))
         return issue
 
@@ -250,7 +253,7 @@ class GithubIssuesParser(IssuesParser):
         if is_beta:
             comment_prefix = self.ISSUE_COMMENT["beta"]
             version_parts = re.findall(
-                "{}(\d+\.\d+)-Beta_(\d+)".format(prefix_beta),
+                r"{}(\d+\.\d+)-Beta_(\d+)".format(prefix_beta),
                 self.release_notes_generator.current_tag,
             )
             version_str = "{} (Beta {})".format(*version_parts[0])
@@ -260,7 +263,7 @@ class GithubIssuesParser(IssuesParser):
                 prefix_prod, ""
             )
         has_comment = False
-        for comment in issue.iter_comments():
+        for comment in issue.comments():
             if comment.body.startswith(comment_prefix):
                 has_comment = True
                 break

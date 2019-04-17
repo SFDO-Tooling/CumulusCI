@@ -4,6 +4,7 @@ standard_library.install_aliases()
 import http.client
 
 from github3 import GitHubError
+import github3.exceptions
 
 from cumulusci.core.exceptions import GithubApiNotFoundError
 from cumulusci.core.utils import process_bool_arg
@@ -53,8 +54,9 @@ class MergeBranch(BaseGithubTask):
         self._merge_branches(branch_tree)
 
     def _validate_branch(self):
-        head_branch = self.repo.branch(self.options["source_branch"])
-        if not head_branch:
+        try:
+            self.repo.branch(self.options["source_branch"])
+        except github3.exceptions.NotFoundError:
             message = "Branch {} not found".format(self.options["source_branch"])
             self.logger.error(message)
             raise GithubApiNotFoundError(message)
@@ -62,7 +64,7 @@ class MergeBranch(BaseGithubTask):
     def _get_existing_prs(self):
         # Get existing pull requests targeting a target branch
         self.existing_prs = []
-        for pr in self.repo.iter_pulls(state="open"):
+        for pr in self.repo.pull_requests(state="open"):
             if (
                 pr.base.ref.startswith(self.options["branch_prefix"])
                 and pr.head.ref == self.options["source_branch"]
@@ -73,7 +75,7 @@ class MergeBranch(BaseGithubTask):
         # Create list and dict of all target branches
         branches = []
         branches_dict = {}
-        for branch in self.repo.iter_branches():
+        for branch in self.repo.branches():
             if branch.name == self.options["source_branch"]:
                 if not self.options["children_only"]:
                     self.logger.debug(

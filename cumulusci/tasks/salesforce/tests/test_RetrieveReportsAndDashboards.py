@@ -1,14 +1,10 @@
-import io
 import mock
-import os
 import unittest
-import zipfile
 
 import responses
 
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.tasks.salesforce import RetrieveReportsAndDashboards
-from cumulusci.tests.util import create_project_config
 from cumulusci.utils import temporary_dir
 from .util import create_task
 
@@ -23,6 +19,7 @@ class TestRetrievePackaged(unittest.TestCase):
                     "path": path,
                     "report_folders": ["Default"],
                     "dashboard_folders": ["Default"],
+                    "api_version": "43.0",
                 },
             )
             api = mock.Mock(
@@ -55,4 +52,4 @@ class TestRetrievePackaged(unittest.TestCase):
 
     def test_init__missing_options(self):
         with self.assertRaises(TaskOptionsError):
-            task = create_task(RetrieveReportsAndDashboards, {"path": None})
+            create_task(RetrieveReportsAndDashboards, {"path": None})

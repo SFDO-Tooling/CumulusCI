@@ -23,7 +23,7 @@ class TestPullRequests(unittest.TestCase):
     task_config = TaskConfig()
     task = PullRequests(project_config, task_config)
     repo = mock.Mock()
-    repo.iter_pulls.return_value = [mock.Mock(number=1, title="Test PR")]
+    repo.pull_requests.return_value = [mock.Mock(number=1, title="Test PR")]
     task.get_repo = mock.Mock(return_value=repo)
     task.logger = mock.Mock()
     task()

@@ -19,32 +19,41 @@ class TestPackageUpload(unittest.TestCase):
                 "release_notes_url": "https://github.com",
             },
         )
-        task.tooling.query = mock.Mock(
-            side_effect=[
-                # Query for package by namespace
-                {"totalSize": 1, "records": [{"Id": "PKG_ID"}]},
-                # Query for upload status
-                {
-                    "totalSize": 1,
-                    "records": [
-                        {"Status": "SUCCESS", "MetadataPackageVersionId": "VERSION_ID"}
-                    ],
-                },
-                # Query for packge version details
-                {
-                    "totalSize": 1,
-                    "records": [
+
+        def _init_class():
+            task.tooling = mock.Mock(
+                query=mock.Mock(
+                    side_effect=[
+                        # Query for package by namespace
+                        {"totalSize": 1, "records": [{"Id": "PKG_ID"}]},
+                        # Query for upload status
                         {
-                            "MajorVersion": 1,
-                            "MinorVersion": 0,
-                            "PatchVersion": 1,
-                            "ReleaseState": "Beta",
-                            "BuildNumber": 1,
-                        }
-                    ],
-                },
-            ]
-        )
+                            "totalSize": 1,
+                            "records": [
+                                {
+                                    "Status": "SUCCESS",
+                                    "MetadataPackageVersionId": "VERSION_ID",
+                                }
+                            ],
+                        },
+                        # Query for packge version details
+                        {
+                            "totalSize": 1,
+                            "records": [
+                                {
+                                    "MajorVersion": 1,
+                                    "MinorVersion": 0,
+                                    "PatchVersion": 1,
+                                    "ReleaseState": "Beta",
+                                    "BuildNumber": 1,
+                                }
+                            ],
+                        },
+                    ]
+                )
+            )
+
+        task._init_class = _init_class
         task._get_tooling_object = mock.Mock(
             return_value=mock.Mock(create=mock.Mock(return_value={"id": "UPLOAD_ID"}))
         )
@@ -53,22 +62,30 @@ class TestPackageUpload(unittest.TestCase):
 
     def test_run_task__upload_error(self):
         task = create_task(PackageUpload, {"name": "Test Release"})
-        task.tooling.query = mock.Mock(
-            side_effect=[
-                # Query for package by namespace
-                {"totalSize": 1, "records": [{"Id": "PKG_ID"}]},
-                # Query for upload status
-                {
-                    "totalSize": 1,
-                    "records": [
+
+        def _init_class():
+            task.tooling = mock.Mock(
+                query=mock.Mock(
+                    side_effect=[
+                        # Query for package by namespace
+                        {"totalSize": 1, "records": [{"Id": "PKG_ID"}]},
+                        # Query for upload status
                         {
-                            "Status": "ERROR",
-                            "Errors": {"errors": [{"message": "ApexTestFailure"}]},
-                        }
-                    ],
-                },
-            ]
-        )
+                            "totalSize": 1,
+                            "records": [
+                                {
+                                    "Status": "ERROR",
+                                    "Errors": {
+                                        "errors": [{"message": "ApexTestFailure"}]
+                                    },
+                                }
+                            ],
+                        },
+                    ]
+                )
+            )
+
+        task._init_class = _init_class
         task._get_tooling_object = mock.Mock(
             return_value=mock.Mock(create=mock.Mock(return_value={"id": "UPLOAD_ID"}))
         )
@@ -78,6 +95,6 @@ class TestPackageUpload(unittest.TestCase):
 
     def test_get_one__no_result(self):
         task = create_task(PackageUpload, {"name": "Test Release"})
-        task.tooling.query = mock.Mock(return_value={"totalSize": 0})
+        task.tooling = mock.Mock(query=mock.Mock(return_value={"totalSize": 0}))
         with self.assertRaises(SalesforceException):
             task._get_one(None, None)

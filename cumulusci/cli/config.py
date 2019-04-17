@@ -1,66 +1,67 @@
 import os
 import sys
-import click
-import traceback
 from subprocess import call
 
+import click
+import keyring
 import pkg_resources
 
-from cumulusci.core.config import YamlGlobalConfig
+from cumulusci import __version__
+from cumulusci.core.runtime import BaseCumulusCI
 from cumulusci.core.exceptions import ConfigError
 from cumulusci.core.exceptions import NotInProject
 from cumulusci.core.exceptions import OrgNotFound
 from cumulusci.core.exceptions import KeychainKeyNotFound
 from cumulusci.core.exceptions import ProjectConfigNotFound
-
 from cumulusci.core.utils import import_class
+from cumulusci.utils import get_cci_upgrade_command
+from cumulusci.utils import random_alphanumeric_underscore
 
 
-class CliConfig(object):
-    def __init__(self, load_project_config=True, load_keychain=True):
-        self.global_config = None
-        self.project_config = None
-        self.keychain = None
-
-        self._load_global_config()
-        if load_project_config:
-            self._load_project_config()
-            self._add_repo_to_path()
-            if load_keychain:
-                self._load_keychain()
-
-    def _add_repo_to_path(self):
-        if self.project_config:
-            sys.path.append(self.project_config.repo_root)
-
-    def _load_global_config(self):
-        self.global_config = YamlGlobalConfig()
-
-    def _load_project_config(self):
+class CliRuntime(BaseCumulusCI):
+    def __init__(self, *args, **kwargs):
         try:
-            self.project_config = self.global_config.get_project_config()
-        except (
-            ProjectConfigNotFound,
-            NotInProject,
-        ) as e:  # not in a git repo or cci project (respectively)
+            super(CliRuntime, self).__init__(*args, **kwargs)
+        except (ProjectConfigNotFound, NotInProject) as e:
             raise click.UsageError(str(e))
         except ConfigError as e:
             raise click.UsageError("Config Error: {}".format(str(e)))
+        except (KeychainKeyNotFound) as e:
+            raise click.UsageError("Keychain Error: {}".format(str(e)))
 
-    def _load_keychain(self):
-        self.keychain_key = os.environ.get("CUMULUSCI_KEY")
-        if self.project_config:
-            keychain_class = os.environ.get(
-                "CUMULUSCI_KEYCHAIN_CLASS", self.project_config.cumulusci__keychain
-            )
-            self.keychain_class = import_class(keychain_class)
-            try:
-                self.keychain = self.keychain_class(
-                    self.project_config, self.keychain_key
+    def get_keychain_class(self):
+        default_keychain_class = (
+            self.project_config.cumulusci__keychain
+            if not self.is_global_keychain
+            else self.global_config.cumulusci__keychain
+        )
+        keychain_class = os.environ.get(
+            "CUMULUSCI_KEYCHAIN_CLASS", default_keychain_class
+        )
+        return import_class(keychain_class)
+
+    def get_keychain_key(self):
+        key_from_env = os.environ.get("CUMULUSCI_KEY")
+        try:
+            key_from_keyring = keyring.get_password("cumulusci", "CUMULUSCI_KEY")
+            has_functioning_keychain = True
+        except Exception:
+            key_from_keyring = None
+            has_functioning_keychain = False
+        # If no key in environment or file, generate one
+        key = key_from_env or key_from_keyring
+        if key is None:
+            if has_functioning_keychain:
+                key = random_alphanumeric_underscore(length=16)
+            else:
+                raise KeychainKeyNotFound(
+                    "Unable to store CumulusCI encryption key. "
+                    "You can configure it manually by setting the CUMULUSCI_KEY "
+                    "environment variable to a random 16-character string."
                 )
-            except (KeychainKeyNotFound, ConfigError) as e:
-                raise click.UsageError("Keychain Error: {}".format(str(e)))
-            self.project_config.set_keychain(self.keychain)
+        if has_functioning_keychain and not key_from_keyring:
+            keyring.set_password("cumulusci", "CUMULUSCI_KEY", key)
+        return key
 
     def alert(self, message="We need your attention!"):
         if self.project_config and self.project_config.dev_config__no_alert:
@@ -101,7 +102,10 @@ class CliConfig(object):
             click.echo(click.style("The scratch org is expired", fg="yellow"))
             if click.confirm("Attempt to recreate the scratch org?", default=True):
                 self.keychain.create_scratch_org(
-                    org_name, org_config.config_name, org_config.days
+                    org_name,
+                    org_config.config_name,
+                    days=org_config.days,
+                    set_password=org_config.set_password,
                 )
                 click.echo(
                     "Org config was refreshed, attempting to recreate scratch org"
@@ -145,14 +149,15 @@ class CliConfig(object):
                 if get_installed_version() < parsed_version:
                     raise click.UsageError(
                         "This project requires CumulusCI version {} or later. "
-                        "Please upgrade using pip install -U cumulusci".format(
-                            min_cci_version
+                        "Please upgrade using {}".format(
+                            min_cci_version, get_cci_upgrade_command()
                         )
                     )
 
 
+CliConfig = CliRuntime
+
+
 def get_installed_version():
     """ returns the version name (e.g. 2.0.0b58) that is installed """
-    req = pkg_resources.Requirement.parse("cumulusci")
-    dist = pkg_resources.WorkingSet().find(req)
-    return pkg_resources.parse_version(dist.version)
+    return pkg_resources.parse_version(__version__)

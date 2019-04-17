@@ -8,11 +8,11 @@ import tempfile
 import unittest
 
 import mock
-import yaml
 
+from cumulusci.core.utils import ordered_yaml_load
 from cumulusci.core.config import ScratchOrgConfig
-from cumulusci.core.config import YamlGlobalConfig
-from cumulusci.core.config import YamlProjectConfig
+from cumulusci.core.config import BaseGlobalConfig
+from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.exceptions import NotInProject
 from cumulusci.core.exceptions import ProjectConfigNotFound
 from cumulusci.core.exceptions import ScratchOrgException
@@ -21,7 +21,7 @@ __location__ = os.path.dirname(os.path.realpath(__file__))
 
 
 @mock.patch("os.path.expanduser")
-class TestYamlGlobalConfig(unittest.TestCase):
+class TestBaseGlobalConfig(unittest.TestCase):
     def setUp(self):
         self.tempdir_home = tempfile.mkdtemp()
 
@@ -29,7 +29,7 @@ class TestYamlGlobalConfig(unittest.TestCase):
         self.tempdir_home = tempfile.mkdtemp()
         global_local_dir = os.path.join(self.tempdir_home, ".cumulusci")
         os.makedirs(global_local_dir)
-        filename = os.path.join(global_local_dir, YamlGlobalConfig.config_filename)
+        filename = os.path.join(global_local_dir, BaseGlobalConfig.config_filename)
         self._write_file(filename, content)
 
     def _write_file(self, filename, content):
@@ -38,18 +38,18 @@ class TestYamlGlobalConfig(unittest.TestCase):
 
     def test_load_global_config_no_local(self, mock_class):
         mock_class.return_value = self.tempdir_home
-        config = YamlGlobalConfig()
+        config = BaseGlobalConfig()
         with open(__location__ + "/../../cumulusci.yml", "r") as f_expected_config:
-            expected_config = yaml.safe_load(f_expected_config)
+            expected_config = ordered_yaml_load(f_expected_config)
         self.assertEqual(config.config, expected_config)
 
     def test_load_global_config_empty_local(self, mock_class):
         self._create_global_config_local("")
         mock_class.return_value = self.tempdir_home
 
-        config = YamlGlobalConfig()
+        config = BaseGlobalConfig()
         with open(__location__ + "/../../cumulusci.yml", "r") as f_expected_config:
-            expected_config = yaml.safe_load(f_expected_config)
+            expected_config = ordered_yaml_load(f_expected_config)
         self.assertEqual(config.config, expected_config)
 
     def test_load_global_config_with_local(self, mock_class):
@@ -57,16 +57,16 @@ class TestYamlGlobalConfig(unittest.TestCase):
         self._create_global_config_local(local_yaml)
         mock_class.return_value = self.tempdir_home
 
-        config = YamlGlobalConfig()
+        config = BaseGlobalConfig()
         with open(__location__ + "/../../cumulusci.yml", "r") as f_expected_config:
-            expected_config = yaml.safe_load(f_expected_config)
+            expected_config = ordered_yaml_load(f_expected_config)
         expected_config["tasks"]["newtesttask"] = {}
         expected_config["tasks"]["newtesttask"]["description"] = "test description"
         self.assertEqual(config.config, expected_config)
 
 
 @mock.patch("os.path.expanduser")
-class TestYamlProjectConfig(unittest.TestCase):
+class TestBaseProjectConfig(unittest.TestCase):
     def _create_git_config(self):
 
         filename = os.path.join(self.tempdir_project, ".git", "config")
@@ -88,11 +88,11 @@ class TestYamlProjectConfig(unittest.TestCase):
     def _create_global_config_local(self, content):
         global_local_dir = os.path.join(self.tempdir_home, ".cumulusci")
         os.makedirs(global_local_dir)
-        filename = os.path.join(global_local_dir, YamlGlobalConfig.config_filename)
+        filename = os.path.join(global_local_dir, BaseGlobalConfig.config_filename)
         self._write_file(filename, content)
 
     def _create_project_config(self):
-        filename = os.path.join(self.tempdir_project, YamlProjectConfig.config_filename)
+        filename = os.path.join(self.tempdir_project, BaseProjectConfig.config_filename)
         content = (
             "project:\n"
             + "    name: TestRepo\n"
@@ -107,7 +107,7 @@ class TestYamlProjectConfig(unittest.TestCase):
             self.tempdir_home, ".cumulusci", self.project_name
         )
         os.makedirs(project_local_dir)
-        filename = os.path.join(project_local_dir, YamlProjectConfig.config_filename)
+        filename = os.path.join(project_local_dir, BaseProjectConfig.config_filename)
         self._write_file(filename, content)
 
     def _write_file(self, filename, content):
@@ -127,30 +127,30 @@ class TestYamlProjectConfig(unittest.TestCase):
     def test_load_project_config_not_repo(self, mock_class):
         mock_class.return_value = self.tempdir_home
         os.chdir(self.tempdir_project)
-        global_config = YamlGlobalConfig()
+        global_config = BaseGlobalConfig()
         with self.assertRaises(NotInProject):
-            config = YamlProjectConfig(global_config)
+            BaseProjectConfig(global_config)
 
     def test_load_project_config_no_config(self, mock_class):
         mock_class.return_value = self.tempdir_home
         os.mkdir(os.path.join(self.tempdir_project, ".git"))
         os.chdir(self.tempdir_project)
-        global_config = YamlGlobalConfig()
+        global_config = BaseGlobalConfig()
         with self.assertRaises(ProjectConfigNotFound):
-            config = YamlProjectConfig(global_config)
+            BaseProjectConfig(global_config)
 
     def test_load_project_config_empty_config(self, mock_class):
         mock_class.return_value = self.tempdir_home
         os.mkdir(os.path.join(self.tempdir_project, ".git"))
         self._create_git_config()
         # create empty project config file
-        filename = os.path.join(self.tempdir_project, YamlProjectConfig.config_filename)
+        filename = os.path.join(self.tempdir_project, BaseProjectConfig.config_filename)
         content = ""
         self._write_file(filename, content)
 
         os.chdir(self.tempdir_project)
-        global_config = YamlGlobalConfig()
-        config = YamlProjectConfig(global_config)
+        global_config = BaseGlobalConfig()
+        config = BaseProjectConfig(global_config)
         self.assertEqual(config.config_project, {})
 
     def test_load_project_config_valid_config(self, mock_class):
@@ -164,8 +164,8 @@ class TestYamlProjectConfig(unittest.TestCase):
         self._create_project_config()
 
         os.chdir(self.tempdir_project)
-        global_config = YamlGlobalConfig()
-        config = YamlProjectConfig(global_config)
+        global_config = BaseGlobalConfig()
+        config = BaseProjectConfig(global_config)
         self.assertEqual(config.project__package__name, "TestProject")
         self.assertEqual(config.project__package__namespace, "testproject")
 
@@ -178,8 +178,8 @@ class TestYamlProjectConfig(unittest.TestCase):
         self._create_project_config()
 
         os.chdir(self.tempdir_project)
-        global_config = YamlGlobalConfig()
-        config = YamlProjectConfig(global_config)
+        global_config = BaseGlobalConfig()
+        config = BaseProjectConfig(global_config)
         self.assertEqual(config.repo_owner, "TestOwner")
 
     def test_repo_branch(self, mock_class):
@@ -191,8 +191,8 @@ class TestYamlProjectConfig(unittest.TestCase):
         self._create_project_config()
 
         os.chdir(self.tempdir_project)
-        global_config = YamlGlobalConfig()
-        config = YamlProjectConfig(global_config)
+        global_config = BaseGlobalConfig()
+        config = BaseProjectConfig(global_config)
         self.assertEqual(config.repo_branch, self.current_branch)
 
     def test_repo_commit(self, mock_class):
@@ -204,8 +204,8 @@ class TestYamlProjectConfig(unittest.TestCase):
         self._create_project_config()
 
         os.chdir(self.tempdir_project)
-        global_config = YamlGlobalConfig()
-        config = YamlProjectConfig(global_config)
+        global_config = BaseGlobalConfig()
+        config = BaseProjectConfig(global_config)
         self.assertEqual(config.repo_commit, self.current_commit)
 
     def test_load_project_config_local(self, mock_class):
@@ -221,8 +221,8 @@ class TestYamlProjectConfig(unittest.TestCase):
         self._create_project_config_local(content)
 
         os.chdir(self.tempdir_project)
-        global_config = YamlGlobalConfig()
-        config = YamlProjectConfig(global_config)
+        global_config = BaseGlobalConfig()
+        config = BaseProjectConfig(global_config)
         self.assertNotEqual(config.config_project_local, {})
         self.assertEqual(config.project__package__api_version, 10)
 
@@ -238,8 +238,8 @@ class TestYamlProjectConfig(unittest.TestCase):
         content = "project:\n" + "    package:\n" + "        api_version: 10\n"
 
         os.chdir(self.tempdir_project)
-        global_config = YamlGlobalConfig()
-        config = YamlProjectConfig(global_config, additional_yaml=content)
+        global_config = BaseGlobalConfig()
+        config = BaseProjectConfig(global_config, additional_yaml=content)
         self.assertNotEqual(config.config_additional_yaml, {})
         self.assertEqual(config.project__package__api_version, 10)
 
@@ -304,6 +304,16 @@ class TestScratchOrgConfig(unittest.TestCase):
             self.assertEqual(str(err), "\nstderr:\nerror\nstdout:\nout")
         else:
             self.fail("Expected ScratchOrgException")
+
+    def test_scratch_info_username_not_found(self, Command):
+        Command.return_value = mock.Mock(
+            stderr=io.BytesIO(b"error"), stdout=io.BytesIO(b"out"), returncode=0
+        )
+
+        config = ScratchOrgConfig({"config_file": "tmp"}, "test")
+
+        with self.assertRaises(ScratchOrgException):
+            config.scratch_info
 
     def test_scratch_info_password_from_config(self, Command):
         result = b"""{
@@ -435,12 +445,13 @@ class TestScratchOrgConfig(unittest.TestCase):
 
     def test_create_org_command_error(self, Command):
         Command.return_value = mock.Mock(
-            stdout=io.BytesIO(b""), stderr=io.BytesIO(b"error"), returncode=1
+            stdout=io.BytesIO(b""), stderr=io.BytesIO(b"scratcherror"), returncode=1
         )
 
         config = ScratchOrgConfig({"config_file": "tmp"}, "test")
-        with self.assertRaises(ScratchOrgException):
+        with self.assertRaises(ScratchOrgException) as ctx:
             config.create_org()
+            self.assertIn("scratcherror", str(ctx.error))
 
     def test_generate_password(self, Command):
         p = mock.Mock(
@@ -514,7 +525,7 @@ class TestScratchOrgConfig(unittest.TestCase):
         p.run.assert_called_once()
 
     def test_force_refresh_oauth_token_error(self, Command):
-        Command.return_value = p = mock.Mock(
+        Command.return_value = mock.Mock(
             stdout=io.BytesIO(b"error"), stderr=io.BytesIO(b""), returncode=1
         )
 
@@ -539,6 +550,7 @@ class TestScratchOrgConfig(unittest.TestCase):
         config._scratch_info = {}
         config._scratch_info_date = datetime.now() - timedelta(days=1)
         config.force_refresh_oauth_token = mock.Mock()
+        config._load_orginfo = mock.Mock()
 
         config.refresh_oauth_token(keychain=None)
 

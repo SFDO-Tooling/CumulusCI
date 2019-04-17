@@ -59,11 +59,15 @@ Ready to contribute? Here's how to set up CumulusCI for local development.
 
     $ pip install -r requirements_dev.txt
 
-4. After making changes, run the tests and make sure they all pass::
+4. Install ``pre-commit`` hooks for ``black`` and ``flake8``::
+
+    $ pre-commit install --install-hooks
+
+5. After making changes, run the tests and make sure they all pass::
 
     $ pytest
 
-5. Push your changes to GitHub and submit a pull request. The base branch should be a new feature branch that we create to receive the changes (contact us to create the branch). This allows us to test the changes using our build system before merging to master.
+6. Push your changes to GitHub and submit a pull request. The base branch should be a new feature branch that we create to receive the changes (contact us to create the branch). This allows us to test the changes using our build system before merging to master.
 
 Pull Request Guidelines
 -----------------------
@@ -94,11 +98,17 @@ Open a Pull Request on GitHub and request approval from another committer. Once 
     $ git pull
     $ make tag release
 
+You can then create a pull request to update the `Homebrew Tap`_::
+
+    $ make release-homebrew
+
 Finally, head to the Release object that was autocreated in the GitHub repository, paste in the changelog notes and hit publish. Tada! You've published a new version of CCI.
 
 Configuring Your Environment
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-To release CCI, you'll need twine and bump2version, both of which are installed with the deveopment requirements. You'll also need to configure your `pypirc`_ file with your PyPI credentials.
+To release CCI, you'll need twine and bump2version, both of which are installed with the development requirements. You'll also need to configure your `pypirc`_ file with your PyPI credentials. The ``release-homebrew`` build step depends on the `jq`_ command line utility and is available via Homebrew or your package manager.
 
-.._pypirc: https://docs.python.org/distutils/packageindex.html#the-pypirc-file
+.. _pypirc: https://docs.python.org/distutils/packageindex.html#the-pypirc-file
+.. _Homebrew Tap: https://github.com/SFDO-Tooling/homebrew-sfdo
+.. _jq: https://stedolan.github.io/jq/

@@ -1,8 +1,8 @@
 from __future__ import unicode_literals
 
-from cumulusci.core.config.BaseConfig import BaseConfig
-from cumulusci.core.config.FlowConfig import FlowConfig
-from cumulusci.core.config.TaskConfig import TaskConfig
+from cumulusci.core.config import BaseConfig
+from cumulusci.core.config import FlowConfig
+from cumulusci.core.config import TaskConfig
 from cumulusci.core.exceptions import TaskNotFoundError, FlowNotFoundError
 
 
@@ -12,7 +12,13 @@ def list_infos(infos):
         info = infos[info_name]
         if not info:
             info = {}
-        rv.append({"name": info_name, "description": info.get("description", "")})
+        rv.append(
+            {
+                "name": info_name,
+                "description": info.get("description", ""),
+                "group": info.get("group"),
+            }
+        )
     return rv
 
 

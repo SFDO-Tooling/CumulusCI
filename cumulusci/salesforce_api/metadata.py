@@ -110,7 +110,7 @@ class BaseMetadataApiCall(object):
             headers=headers,
             data=auth_envelope.encode("utf-8"),
         )
-        faultcode = parseString(response.text).getElementsByTagName("faultcode")
+        faultcode = parseString(response.content).getElementsByTagName("faultcode")
         # refresh = False can be passed to prevent a loop if refresh fails
         if refresh is None:
             refresh = True
@@ -163,10 +163,10 @@ class BaseMetadataApiCall(object):
         return response
 
     def _handle_soap_error(self, headers, envelope, refresh, response):
-        faultcode = parseString(response.text).getElementsByTagName("faultcode")
+        faultcode = parseString(response.content).getElementsByTagName("faultcode")
         if faultcode:
             faultcode = faultcode[0].firstChild.nodeValue
-        faultstring = parseString(response.text).getElementsByTagName("faultstring")
+        faultstring = parseString(response.content).getElementsByTagName("faultstring")
         if faultstring:
             faultstring = faultstring[0].firstChild.nodeValue
         else:
@@ -196,7 +196,7 @@ class BaseMetadataApiCall(object):
                 "HTTP ERROR {}: {}".format(response.status_code, response.text),
                 response,
             )
-        ids = parseString(response.text).getElementsByTagName("id")
+        ids = parseString(response.content).getElementsByTagName("id")
         if ids:
             self.process_id = ids[0].firstChild.nodeValue
         return response
@@ -207,7 +207,7 @@ class BaseMetadataApiCall(object):
                 "HTTP ERROR {}: {}".format(response.status_code, response.text),
                 response,
             )
-        resp_xml = parseString(response.text)
+        resp_xml = parseString(response.content)
         done = resp_xml.getElementsByTagName("done")
         if done:
             if done[0].firstChild.nodeValue == "true":
@@ -263,7 +263,7 @@ class ApiRetrieveUnpackaged(BaseMetadataApiCall):
         self._clean_package_xml()
 
     def _clean_package_xml(self):
-        self.package_xml = re.sub("<\?xml.*\?>", "", self.package_xml)
+        self.package_xml = re.sub(r"<\?xml.*\?>", "", self.package_xml)
         self.package_xml = re.sub("<Package.*>", "", self.package_xml, 1)
         self.package_xml = re.sub("</Package>", "", self.package_xml, 1)
         self.package_xml = re.sub("\n", "", self.package_xml)
@@ -276,7 +276,7 @@ class ApiRetrieveUnpackaged(BaseMetadataApiCall):
 
     def _process_response(self, response):
         # Parse the metadata zip file from the response
-        zipstr = parseString(response.text).getElementsByTagName("zipFile")
+        zipstr = parseString(response.content).getElementsByTagName("zipFile")
         if zipstr:
             zipstr = zipstr[0].firstChild.nodeValue
         zipstringio = io.BytesIO(base64.b64decode(zipstr))
@@ -294,13 +294,13 @@ class ApiRetrieveInstalledPackages(BaseMetadataApiCall):
     soap_action_status = "checkStatus"
     soap_action_result = "checkRetrieveStatus"
 
-    def __init__(self, task):
-        super(ApiRetrieveInstalledPackages, self).__init__(task)
+    def __init__(self, task, api_version=None):
+        super(ApiRetrieveInstalledPackages, self).__init__(task, api_version)
         self.packages = {}
 
     def _process_response(self, response):
         # Parse the metadata zip file from the response
-        zipstr = parseString(response.text).getElementsByTagName("zipFile")
+        zipstr = parseString(response.content).getElementsByTagName("zipFile")
         if zipstr:
             zipstr = zipstr[0].firstChild.nodeValue
         else:
@@ -342,7 +342,7 @@ class ApiRetrievePackaged(BaseMetadataApiCall):
 
     def _process_response(self, response):
         # Parse the metadata zip file from the response
-        zipstr = parseString(response.text).getElementsByTagName("zipFile")
+        zipstr = parseString(response.content).getElementsByTagName("zipFile")
         if zipstr:
             zipstr = zipstr[0].firstChild.nodeValue
         zipstringio = io.BytesIO(base64.b64decode(zipstr))
@@ -364,16 +364,16 @@ class ApiDeploy(BaseMetadataApiCall):
         self.package_zip = package_zip
 
     def _set_purge_on_delete(self, purge_on_delete):
-        if purge_on_delete == False or purge_on_delete == "false":
+        if not purge_on_delete or purge_on_delete == "false":
             self.purge_on_delete = "false"
         else:
             self.purge_on_delete = "true"
         # Disable purge on delete entirely for non sandbox or DE orgs as it is
         # not allowed
-        # FIXME: To implement this, the task needs to be able to provide the org_type
-        # org_type = self.task.org_config.org_type
-        # if org_type.find('Sandbox') == -1 and org_type != 'Developer Edition':
-        #    self.purge_on_delete = 'false'
+        org_type = self.task.org_config.org_type
+        is_sandbox = self.task.org_config.is_sandbox
+        if org_type != "Developer Edition" and not is_sandbox:
+            self.purge_on_delete = "false"
 
     def _build_envelope_start(self):
         if self.package_zip:
@@ -384,7 +384,7 @@ class ApiDeploy(BaseMetadataApiCall):
             )
 
     def _process_response(self, response):
-        status = parseString(response.text).getElementsByTagName("status")
+        status = parseString(response.content).getElementsByTagName("status")
         if status:
             status = status[0].firstChild.nodeValue
         else:
@@ -399,7 +399,7 @@ class ApiDeploy(BaseMetadataApiCall):
         else:
             # If failed, parse out the problem text and raise appropriate exception
             messages = []
-            resp_xml = parseString(response.text)
+            resp_xml = parseString(response.content)
 
             component_failures = resp_xml.getElementsByTagName("componentFailures")
             for component_failure in component_failures:
@@ -468,7 +468,7 @@ class ApiDeploy(BaseMetadataApiCall):
                 raise MetadataComponentFailure(log, response)
 
             else:
-                problems = parseString(response.text).getElementsByTagName("problem")
+                problems = parseString(response.content).getElementsByTagName("problem")
                 for problem in problems:
                     messages.append(problem.firstChild.nodeValue)
                 if messages:
@@ -477,7 +477,7 @@ class ApiDeploy(BaseMetadataApiCall):
 
             # Parse out any failure text (from test failures in production
             # deployments) and add to log
-            failures = parseString(response.text).getElementsByTagName("failures")
+            failures = parseString(response.content).getElementsByTagName("failures")
             for failure in failures:
                 # Get needed values from subelements
                 namespace = self._get_element_value(failure, "namespace")
@@ -558,7 +558,7 @@ class ApiListMetadata(BaseMetadataApiCall):
         ]
         # These tags will be interpreted into dates
         parse_dates = ["createdDate", "lastModifiedDate"]
-        for result in parseString(response.text).getElementsByTagName("result"):
+        for result in parseString(response.content).getElementsByTagName("result"):
             result_data = {}
             # Parse fields
             for tag in tags:

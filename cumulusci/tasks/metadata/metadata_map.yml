@@ -4,7 +4,7 @@ applications:
       extension: app
 aura:
     - type: AuraDefinitionBundle
-      class: AuraBundleParser
+      class: BundleParser
 classes:
     - type: ApexClass
       class: MetadataFilenameParser
@@ -80,6 +80,10 @@ globalValueSetTranslations:
     - type: GlobalValueSetTranslation
       class: MetadataFilenameParser
       extension: globalValueSetTranslation
+groups:
+    - type: Group
+      class: MetadataFilenameParser
+      extension: group
 homePageComponents:
     - type: HomePageComponent
       class: MetadataFilenameParser
@@ -104,6 +108,9 @@ layouts:
 letterhead:
     - type: Letterhead
       class: MetadataFilenameParser
+lwc:
+    - type: LightningComponentBundle
+      class: BundleParser
 matchingRules:
     - type: MatchingRule
       class: MetadataXmlElementParser
@@ -216,6 +223,26 @@ settings:
 scontrols:
     - type: Scontrol
       class: MetadataFilenameParser
+sharingRules:
+    - type: SharingCriteriaRule
+      class: MetadataXmlElementParser
+      extension: sharingRules
+      options:
+            item_xpath: './sf:sharingCriteriaRules'
+    - type: SharingOwnerRule
+      class: MetadataXmlElementParser
+      extension: sharingRules
+      options:
+            item_xpath: './sf:sharingOwnerRules'
+    - type: SharingTerritoryRule
+      class: MetadataXmlElementParser
+      extension: sharingRules
+      options:
+            item_xpath: './sf:sharingTerritoryRules'
+sharingSets:
+    - type: SharingSet
+      class: MetadataFilenameParser
+      extension: sharingSet  
 siteDotComSites:
     - type: SiteDotCom 
       class: MetadataFilenameParser

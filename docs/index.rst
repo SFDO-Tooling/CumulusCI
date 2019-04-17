@@ -15,10 +15,12 @@ Contents:
    tutorial
    features
    robotframework
+   bulk_data
    cookbook
    cumulusci_flow
-   tasks
    api_reference
+   tasks
+   usage
    history
    authors
 

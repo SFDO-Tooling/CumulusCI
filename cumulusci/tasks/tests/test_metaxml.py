@@ -25,7 +25,9 @@ class TestUpdateApi(unittest.TestCase):
 """
                 )
 
-            project_config = BaseProjectConfig(BaseGlobalConfig())
+            project_config = BaseProjectConfig(
+                BaseGlobalConfig(), config={"noyaml": True}
+            )
             task_config = TaskConfig({"options": {"version": "43.0"}})
             task = UpdateApi(project_config, task_config)
             task()
@@ -66,7 +68,9 @@ class TestUpdateDependencies(unittest.TestCase):
 """
                 )
 
-            project_config = BaseProjectConfig(BaseGlobalConfig())
+            project_config = BaseProjectConfig(
+                BaseGlobalConfig(), config={"noyaml": True}
+            )
             project_config.get_static_dependencies = mock.Mock(
                 return_value=[
                     {
