@@ -41,6 +41,7 @@ class OrgConfig(BaseConfig):
         if info != self.config:
             self.config.update(info)
         self._load_userinfo()
+        self._load_orginfo()
 
     @property
     def lightning_base_url(self):
@@ -83,3 +84,16 @@ class OrgConfig(BaseConfig):
 
     def can_delete(self):
         return False
+
+    def _load_orginfo(self):
+        headers = {"Authorization": "Bearer " + self.access_token}
+        org_info = requests.get(
+            self.instance_url
+            + "/services/data/v45.0/sobjects/Organization/{}".format(self.org_id),
+            headers=headers,
+        ).json()
+        result = {
+            "org_type": org_info["OrganizationType"],
+            "is_sandbox": org_info["IsSandbox"],
+        }
+        self.config.update(result)

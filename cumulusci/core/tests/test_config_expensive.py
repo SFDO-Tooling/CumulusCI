@@ -129,7 +129,7 @@ class TestBaseProjectConfig(unittest.TestCase):
         os.chdir(self.tempdir_project)
         global_config = BaseGlobalConfig()
         with self.assertRaises(NotInProject):
-            config = BaseProjectConfig(global_config)
+            BaseProjectConfig(global_config)
 
     def test_load_project_config_no_config(self, mock_class):
         mock_class.return_value = self.tempdir_home
@@ -137,7 +137,7 @@ class TestBaseProjectConfig(unittest.TestCase):
         os.chdir(self.tempdir_project)
         global_config = BaseGlobalConfig()
         with self.assertRaises(ProjectConfigNotFound):
-            config = BaseProjectConfig(global_config)
+            BaseProjectConfig(global_config)
 
     def test_load_project_config_empty_config(self, mock_class):
         mock_class.return_value = self.tempdir_home
@@ -525,7 +525,7 @@ class TestScratchOrgConfig(unittest.TestCase):
         p.run.assert_called_once()
 
     def test_force_refresh_oauth_token_error(self, Command):
-        Command.return_value = p = mock.Mock(
+        Command.return_value = mock.Mock(
             stdout=io.BytesIO(b"error"), stderr=io.BytesIO(b""), returncode=1
         )
 
@@ -550,6 +550,7 @@ class TestScratchOrgConfig(unittest.TestCase):
         config._scratch_info = {}
         config._scratch_info_date = datetime.now() - timedelta(days=1)
         config.force_refresh_oauth_token = mock.Mock()
+        config._load_orginfo = mock.Mock()
 
         config.refresh_oauth_token(keychain=None)
 

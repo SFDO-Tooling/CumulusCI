@@ -62,8 +62,6 @@ class ScratchOrgConfig(OrgConfig):
             raise ScratchOrgException(message)
 
         else:
-            json_txt = "".join(stdout_list)
-
             try:
                 org_info = json.loads("".join(stdout_list))
             except Exception as e:
@@ -270,7 +268,6 @@ class ScratchOrgConfig(OrgConfig):
         p = sarge.Command(command, stdout=sarge.Capture(buffer_size=-1), shell=True)
         p.run()
 
-        org_info = None
         stdout = []
         for line in io.TextIOWrapper(p.stdout):
             stdout.append(line)
@@ -319,3 +316,5 @@ class ScratchOrgConfig(OrgConfig):
 
         # Get org info via sfdx force:org:display
         self.scratch_info
+        # Get additional org info by querying API
+        self._load_orginfo()
