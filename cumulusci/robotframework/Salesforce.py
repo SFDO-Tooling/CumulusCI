@@ -1,3 +1,4 @@
+from __future__ import print_function
 import logging
 import re
 import time
@@ -11,11 +12,13 @@ from cumulusci.robotframework.utils import selenium_retry
 from SeleniumLibrary.errors import ElementNotFound
 from urllib3.exceptions import ProtocolError
 
+from .pageobject_mixin import PageObjectMixin
+
 OID_REGEX = r"^(%2F)?([a-zA-Z0-9]{15,18})$"
 
 
 @selenium_retry
-class Salesforce(object):
+class Salesforce(PageObjectMixin, object):
     ROBOT_LIBRARY_SCOPE = "GLOBAL"
 
     def __init__(self, debug=False):
