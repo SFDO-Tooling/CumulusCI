@@ -1,6 +1,4 @@
 import re
-import os.path
-import sys
 import logging
 from robot.libraries.BuiltIn import BuiltIn
 
@@ -23,8 +21,8 @@ class PageObject(object):
 
     builtin    - robot's built-in keywords (eg: self.builtin.log("..."))
     selenium   - SeleniumLibrary keywords
-    cumulusci  - cumulusci.robotframework.Salesforce library
-    salesforce - cumulusci.robotframework.CumulusCI library
+    salesforce - cumulusci.robotframework.Salesforce library
+    cumulusci  - cumulusci.robotframework.CumulusCI library
 
     Derived classes can also define the following special methods:
 
@@ -41,10 +39,6 @@ class PageObject(object):
       it will get the current page location and compare it to a
       URL based on the PAGE_TYPE and OBJECT_API_NAME attributes.
 
-    When this library is imported it will be added to PYTHONPATH, which is
-    what python uses to resolve name conflicts. If your page object defines
-    a keyword with the same name as some other page object, you can control
-    which one has precedence based on the order that you import the libraries.
     """
 
     def __init__(self):
@@ -52,14 +46,6 @@ class PageObject(object):
         logging.getLogger("requests.packages.urllib3.connectionpool").setLevel(
             logging.WARN
         )
-
-        # put this module's location at the start of sys.path
-        module_dir = os.path.dirname(sys.modules[self.__module__].__file__)
-        if module_dir in sys.path:
-            # if it was in the path, remove it; we'll add it
-            # back at the front of the list
-            sys.path.remove(module_dir)
-        sys.path.insert(0, module_dir)
 
     @property
     def builtin(self):
