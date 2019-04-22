@@ -246,14 +246,54 @@ class TestCCI(unittest.TestCase):
                     "orgs/dev.json",
                     "orgs/feature.json",
                     "orgs/release.json",
+                    "robot/",
+                    "robot/testproj/",
+                    "robot/testproj/resources/",
+                    "robot/testproj/tests/",
+                    "robot/testproj/tests/create_contact.robot",
                     "sfdx-project.json",
                     "src/",
-                    "tests/",
-                    "tests/standard_objects/",
-                    "tests/standard_objects/create_contact.robot",
                 ],
                 recursive_list_files(),
             )
+
+    @mock.patch("cumulusci.cli.cci.click")
+    def test_project_init_tasks(self, click):
+        """Verify that the generated cumulusci.yml file is readable and has the proper robot task"""
+        with temporary_dir():
+            os.mkdir(".git")
+
+            click.prompt.side_effect = (
+                "testproj",  # project_name
+                "testpkg",  # package_name
+                "testns",  # package_namespace
+                "43.0",  # api_version
+                "3",  # extend other URL
+                "https://github.com/SalesforceFoundation/Cumulus",  # github_url
+                "default",  # git_default_branch
+                "work/",  # git_prefix_feature
+                "uat/",  # git_prefix_beta
+                "rel/",  # git_prefix_release
+                "%_TEST%",  # test_name_match
+            )
+            click.confirm.side_effect = (True, True)  # is managed?  # extending?
+
+            run_click_command(cci.project_init)
+
+            # verify we can load the generated yml
+            cli_runtime = CliRuntime(load_keychain=False)
+
+            # ...and verify it has the expected tasks
+            config = cli_runtime.project_config.config_project
+            expected_tasks = {
+                "robot": {
+                    "options": {
+                        "suites": u"robot/testproj/tests",
+                        "options": {"outputdir": "robot/testproj/results"},
+                    }
+                }
+            }
+            self.assertDictEqual(config["tasks"], expected_tasks)
 
     def test_project_init_no_git(self):
         with temporary_dir():
