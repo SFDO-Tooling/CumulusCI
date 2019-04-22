@@ -72,12 +72,12 @@ class PageObjectMixin(object):
         words = [
             word if word.isupper() else word.capitalize() for word in name.split(" ")
         ]
-        name = "".join(words)
-        return name
+        normalized_name = "".join(words)
+        self.builtin.log("{} normalized to {}".format(name, normalized_name), "DEBUG")
+        return normalized_name
 
     def _get_page_object(self, name):
         normalized_name = self._normalize_page_object_name(name)
-        self.builtin.log("{} normalized to {}".format(name, normalized_name), "DEBUG")
 
         try:
             # import it if it hasn't already been imported. Robot is smart
