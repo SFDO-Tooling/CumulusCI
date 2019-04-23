@@ -2,6 +2,15 @@
 History
 =======
 
+2.4.2 (2019-04-22)
+------------------
+
+* The ``purgeOnDelete`` flag for the ``deploy`` task will now automatically be set to false when
+  deploying metadata to production orgs (previously deployment would fail on production orgs
+  if this flag was true).
+* The installation documentation now recommends using ``pipx`` to install CumulusCI on Windows,
+  so that you don't have to set up a virtualenv manually.
+
 2.4.1 (2019-04-09)
 ------------------
 
