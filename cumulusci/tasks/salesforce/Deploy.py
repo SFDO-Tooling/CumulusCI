@@ -8,6 +8,7 @@ from cumulusci.core.utils import process_bool_arg
 from cumulusci.salesforce_api.metadata import ApiDeploy
 from cumulusci.tasks.salesforce import BaseSalesforceMetadataApiTask
 from cumulusci.utils import cd
+from cumulusci.utils import temporary_dir
 from cumulusci.utils import zip_clean_metaxml
 from cumulusci.utils import zip_inject_namespace
 from cumulusci.utils import zip_strip_namespace
@@ -35,6 +36,9 @@ class Deploy(BaseSalesforceMetadataApiTask):
         },
         "namespaced_org": {
             "description": "If True, the tokens %%%NAMESPACED_ORG%%% and ___NAMESPACED_ORG___ will get replaced with the namespace.  The default is false causing those tokens to get stripped and replaced with an empty string.  Set this if deploying to a namespaced scratch org or packaging org."
+        },
+        "static_resource_path": {
+            "description": "The path where decompressed static resources are stored.  Any subdirectories found will be zipped and added to the staticresources directory of the build."
         },
         "clean_meta_xml": {
             "description": "Defaults to True which strips the <packageVersions/> element from all meta.xml files.  The packageVersion element gets added automatically by the target org and is set to whatever version is installed in the org.  To disable this, set this option to False"
@@ -68,6 +72,13 @@ class Deploy(BaseSalesforceMetadataApiTask):
                     if self._include_file(root_parts, f):
                         yield os.path.join(root, f)
 
+    def _get_static_resource_files(self, path):
+        for root, dirs, files in os.walk("."):
+            root_parts = root.split(os.sep)[1:]
+            for f in files:
+                if self._include_file(root_parts, f):
+                    yield os.path.join(root, f)
+
     def _get_package_zip(self, path):
         # Build the zip file
         zip_bytes = io.BytesIO()
@@ -76,7 +87,8 @@ class Deploy(BaseSalesforceMetadataApiTask):
         with cd(path):
             for file_to_package in self._get_files_to_package(path):
                 zipf.write(file_to_package)
-            zipf.close()
+
+        zipf.close()
 
         zipf_processed = self._process_zip_file(zipfile.ZipFile(zip_bytes))
         fp = zipf_processed.fp
@@ -86,6 +98,7 @@ class Deploy(BaseSalesforceMetadataApiTask):
     def _process_zip_file(self, zipf):
         zipf = self._process_namespace(zipf)
         zipf = self._process_meta_xml(zipf)
+        zipf = self._process_static_resources(zipf)
         return zipf
 
     def _process_namespace(self, zipf):
@@ -135,6 +148,27 @@ class Deploy(BaseSalesforceMetadataApiTask):
         )
         zipf = zip_clean_metaxml(zipf, logger=self.logger)
         return zipf
+
+    def _process_static_resources(self, zipf):
+        path = self.options.get("static_resource_path", "static-resources")
+        with temporary_dir() as tempdir:
+            os.makedirs(os.path.join(tempdir, "staticresources"))
+            with cd(path):
+                for bundle in next(os.walk("."))[0]:
+                    zip_path = os.path.join(
+                        tempdir, "staticresources", "{}.zip".format(bundle)
+                    )
+                    bundle_fp = open(zip_path, "w")
+                    bundle_zip = bundle.ZipFile(bundle_fp, "w", zipfile.ZIP_DEFLATED)
+                    bundle_path = os.path.join(path, bundle)
+                    for resource_file in self._get_static_resource_files(bundle_path):
+                        bundle_zip.write(resource_file)
+                    bundle_zip.close()
+                with cd(tempdir):
+                    relative_path = os.path.join(
+                        ".", "staticresources", "{}.zip".format(bundle)
+                    )
+                    zipf.write(relative_path)
 
     def freeze(self, step):
         steps = super(Deploy, self).freeze(step)
