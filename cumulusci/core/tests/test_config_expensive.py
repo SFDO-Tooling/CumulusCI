@@ -403,18 +403,14 @@ class TestScratchOrgConfig(unittest.TestCase):
 
     def test_email_address_from_config(self, Command):
         config = ScratchOrgConfig({"email_address": "test@example.com"}, "test")
-        Command.return_value = p = mock.Mock(
-            stdout=io.BytesIO(b""), stderr=io.BytesIO(b""), returncode=0
-        )
 
         self.assertEqual("test@example.com", config.email_address)
-        p.run.assert_not_called()
+        Command.return_value.assert_not_called()
 
     def test_email_address_from_git(self, Command):
         config = ScratchOrgConfig({}, "test")
-        out = b"test@example.com"
         Command.return_value = p = mock.Mock(
-            stdout=io.BytesIO(out), stderr=io.BytesIO(b""), returncode=0
+            stdout=io.BytesIO(b"test@example.com"), stderr=io.BytesIO(b""), returncode=0
         )
 
         self.assertEqual("test@example.com", config.email_address)
@@ -425,15 +421,6 @@ class TestScratchOrgConfig(unittest.TestCase):
         config = ScratchOrgConfig({}, "test")
         Command.return_value = p = mock.Mock(
             stdout=io.BytesIO(b""), stderr=io.BytesIO(b""), returncode=0
-        )
-
-        self.assertEqual(None, config.email_address)
-        p.run.assert_called_once()
-
-    def test_email_address_git_error(self, Command):
-        config = ScratchOrgConfig({}, "test")
-        Command.return_value = p = mock.Mock(
-            stdout=io.BytesIO(b""), stderr=io.BytesIO(b""), returncode=-1
         )
 
         self.assertEqual(None, config.email_address)

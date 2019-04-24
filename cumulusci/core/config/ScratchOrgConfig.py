@@ -8,6 +8,7 @@ import re
 import sarge
 from simple_salesforce import Salesforce
 
+from cumulusci.utils import get_git_config
 from cumulusci.core.config import FAILED_TO_CREATE_SCRATCH_ORG
 from cumulusci.core.config import OrgConfig
 from cumulusci.core.exceptions import ScratchOrgException
@@ -140,20 +141,8 @@ class ScratchOrgConfig(OrgConfig):
     def email_address(self):
         email_address = self.config.get("email_address")
         if not email_address:
-            # Obtain a default email address from Git.
-            p = sarge.Command(
-                "git config --get user.email",
-                stderr=sarge.Capture(buffer_size=-1),
-                stdout=sarge.Capture(buffer_size=-1),
-                shell=True,
-            )
-            p.run()
-            email_address = io.TextIOWrapper(p.stdout).read().strip()
-
-            if p.returncode or not email_address:
-                email_address = None
-            else:
-                self.config["email_address"] = email_address
+            email_address = get_git_config("user.email")
+            self.config["email_address"] = email_address
 
         return email_address
 
