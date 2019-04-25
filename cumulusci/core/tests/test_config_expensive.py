@@ -9,6 +9,7 @@ import unittest
 
 import mock
 
+from cumulusci.utils import temporary_dir
 from cumulusci.core.utils import ordered_yaml_load
 from cumulusci.core.config import ScratchOrgConfig
 from cumulusci.core.config import BaseGlobalConfig
@@ -296,7 +297,9 @@ class TestScratchOrgConfig(unittest.TestCase):
             stderr=io.BytesIO(b"error"), stdout=io.BytesIO(b"out"), returncode=1
         )
 
-        config = ScratchOrgConfig({"username": "test"}, "test")
+        config = ScratchOrgConfig(
+            {"username": "test", "email_address": "test@example.com"}, "test"
+        )
 
         try:
             config.scratch_info
@@ -310,10 +313,15 @@ class TestScratchOrgConfig(unittest.TestCase):
             stderr=io.BytesIO(b"error"), stdout=io.BytesIO(b"out"), returncode=0
         )
 
-        config = ScratchOrgConfig({"config_file": "tmp"}, "test")
+        config = ScratchOrgConfig(
+            {"config_file": "tmp.json", "email_address": "test@example.com"}, "test"
+        )
 
-        with self.assertRaises(ScratchOrgException):
-            config.scratch_info
+        with temporary_dir():
+            with open("tmp.json", "w") as f:
+                f.write("{}")
+            with self.assertRaises(ScratchOrgException):
+                config.scratch_info
 
     def test_scratch_info_password_from_config(self, Command):
         result = b"""{
@@ -387,11 +395,36 @@ class TestScratchOrgConfig(unittest.TestCase):
         config = ScratchOrgConfig({"password": "test"}, "test")
         self.assertEqual(config.password, "test")
 
-    def test_pasword_from_scratch_info(self, Command):
+    def test_password_from_scratch_info(self, Command):
         config = ScratchOrgConfig({}, "test")
         _marker = object()
         config._scratch_info = {"password": _marker}
         self.assertIs(config.password, _marker)
+
+    def test_email_address_from_config(self, Command):
+        config = ScratchOrgConfig({"email_address": "test@example.com"}, "test")
+
+        self.assertEqual("test@example.com", config.email_address)
+        Command.return_value.assert_not_called()
+
+    def test_email_address_from_git(self, Command):
+        config = ScratchOrgConfig({}, "test")
+        Command.return_value = p = mock.Mock(
+            stdout=io.BytesIO(b"test@example.com"), stderr=io.BytesIO(b""), returncode=0
+        )
+
+        self.assertEqual("test@example.com", config.email_address)
+        config.email_address  # Make sure value is cached
+        p.run.assert_called_once()
+
+    def test_email_address_not_present(self, Command):
+        config = ScratchOrgConfig({}, "test")
+        Command.return_value = p = mock.Mock(
+            stdout=io.BytesIO(b""), stderr=io.BytesIO(b""), returncode=0
+        )
+
+        self.assertEqual(None, config.email_address)
+        p.run.assert_called_once()
 
     def test_days(self, Command):
         config = ScratchOrgConfig({"days": 2}, "test")
@@ -426,9 +459,20 @@ class TestScratchOrgConfig(unittest.TestCase):
             stdout=io.BytesIO(out), stderr=io.BytesIO(b""), returncode=0
         )
 
-        config = ScratchOrgConfig({"config_file": "tmp", "set_password": True}, "test")
+        config = ScratchOrgConfig(
+            {
+                "config_file": "tmp.json",
+                "set_password": True,
+                "email_address": "test@example.com",
+            },
+            "test",
+        )
         config.generate_password = mock.Mock()
-        config.create_org()
+        with temporary_dir():
+            with open("tmp.json", "w") as f:
+                f.write("{}")
+
+            config.create_org()
 
         p.run.assert_called_once()
         self.assertEqual(config.config["org_id"], "ORG_ID")
@@ -437,6 +481,40 @@ class TestScratchOrgConfig(unittest.TestCase):
         config.generate_password.assert_called_once()
         self.assertTrue(config.config["created"])
         self.assertEqual(config.scratch_org_type, "workspace")
+
+        # Validate the SFDX command generated uses the email address provided.
+        self.assertIn("test@example.com", Command.call_args[0][0])
+
+    def test_create_org_uses_org_def_email(self, Command):
+        out = b"Successfully created scratch org: ORG_ID, username: USERNAME"
+        Command.return_value = p = mock.Mock(
+            stdout=io.BytesIO(out), stderr=io.BytesIO(b""), returncode=0
+        )
+
+        config = ScratchOrgConfig(
+            {
+                "config_file": "tmp.json",
+                "set_password": True,
+                "email_address": "test@example.com",
+            },
+            "test",
+        )
+        config.generate_password = mock.Mock()
+        with temporary_dir():
+            with open("tmp.json", "w") as f:
+                f.write('{"adminEmail": "other_test@example.com"}')
+
+            config.create_org()
+
+        p.run.assert_called_once()
+        self.assertEqual(config.config["org_id"], "ORG_ID")
+        self.assertEqual(config.config["username"], "USERNAME")
+        self.assertIn("date_created", config.config)
+        config.generate_password.assert_called_once()
+        self.assertTrue(config.config["created"])
+        self.assertEqual(config.scratch_org_type, "workspace")
+
+        self.assertNotIn("test@example.com", Command.call_args[0][0])
 
     def test_create_org_no_config_file(self, Command):
         config = ScratchOrgConfig({}, "test")
@@ -448,10 +526,16 @@ class TestScratchOrgConfig(unittest.TestCase):
             stdout=io.BytesIO(b""), stderr=io.BytesIO(b"scratcherror"), returncode=1
         )
 
-        config = ScratchOrgConfig({"config_file": "tmp"}, "test")
-        with self.assertRaises(ScratchOrgException) as ctx:
-            config.create_org()
-            self.assertIn("scratcherror", str(ctx.error))
+        config = ScratchOrgConfig(
+            {"config_file": "tmp.json", "email_address": "test@example.com"}, "test"
+        )
+        with temporary_dir():
+            with open("tmp.json", "w") as f:
+                f.write("{}")
+
+            with self.assertRaises(ScratchOrgException) as ctx:
+                config.create_org()
+                self.assertIn("scratcherror", str(ctx.error))
 
     def test_generate_password(self, Command):
         p = mock.Mock(
