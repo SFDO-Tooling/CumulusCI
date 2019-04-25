@@ -64,7 +64,7 @@ class Deploy(BaseSalesforceMetadataApiTask):
             return lower_f.endswith((".js", ".js-meta.xml", ".html", ".css", ".svg"))
         return True
 
-    def _get_files_to_package(self, path):
+    def _get_files_to_package(self):
         for root, dirs, files in os.walk("."):
             root_parts = root.split(os.sep)[1:]
             if self._include_directory(root_parts):
@@ -72,7 +72,7 @@ class Deploy(BaseSalesforceMetadataApiTask):
                     if self._include_file(root_parts, f):
                         yield os.path.join(root, f)
 
-    def _get_static_resource_files(self, path):
+    def _get_static_resource_files(self):
         for root, dirs, files in os.walk("."):
             root_parts = root.split(os.sep)[1:]
             for f in files:
@@ -85,7 +85,7 @@ class Deploy(BaseSalesforceMetadataApiTask):
         zipf = zipfile.ZipFile(zip_bytes, "w", zipfile.ZIP_DEFLATED)
 
         with cd(path):
-            for file_to_package in self._get_files_to_package(path):
+            for file_to_package in self._get_files_to_package():
                 zipf.write(file_to_package)
 
         zipf.close()
@@ -151,24 +151,22 @@ class Deploy(BaseSalesforceMetadataApiTask):
 
     def _process_static_resources(self, zipf):
         path = self.options.get("static_resource_path", "static-resources")
-        with temporary_dir() as tempdir:
-            os.makedirs(os.path.join(tempdir, "staticresources"))
-            with cd(path):
-                for bundle in next(os.walk("."))[0]:
-                    zip_path = os.path.join(
-                        tempdir, "staticresources", "{}.zip".format(bundle)
-                    )
-                    bundle_fp = open(zip_path, "w")
-                    bundle_zip = bundle.ZipFile(bundle_fp, "w", zipfile.ZIP_DEFLATED)
-                    bundle_path = os.path.join(path, bundle)
-                    for resource_file in self._get_static_resource_files(bundle_path):
+        if not os.path.exists(path):
+            return zipf
+        path = os.path.realpath(path)
+        with temporary_dir():
+            os.mkdir("staticresources")
+            for bundle in os.listdir(path):
+                zip_path = os.path.join("staticresources", "{}.zip".format(bundle))
+                bundle_fp = open(zip_path, "wb")
+                bundle_zip = zipfile.ZipFile(bundle_fp, "w", zipfile.ZIP_DEFLATED)
+                bundle_path = os.path.join(path, bundle)
+                with cd(bundle_path):
+                    for resource_file in self._get_static_resource_files():
                         bundle_zip.write(resource_file)
-                    bundle_zip.close()
-                with cd(tempdir):
-                    relative_path = os.path.join(
-                        ".", "staticresources", "{}.zip".format(bundle)
-                    )
-                    zipf.write(relative_path)
+                bundle_zip.close()
+                zipf.write(zip_path)
+        return zipf
 
     def freeze(self, step):
         steps = super(Deploy, self).freeze(step)

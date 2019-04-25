@@ -281,7 +281,7 @@ class TestDeploy(unittest.TestCase):
             )
 
             expected_set = set(expected)
-            actual_set = set(task._get_files_to_package(path))
+            actual_set = set(task._get_files_to_package())
             self.assertEqual(expected_set, actual_set)
 
     def test_get_package_zip(self):
@@ -394,7 +394,7 @@ class TestDeploy(unittest.TestCase):
             zipf = zipfile.ZipFile(zip_bytes, "w", zipfile.ZIP_DEFLATED)
 
             with cd(path):
-                for file_to_package in task._get_files_to_package(path):
+                for file_to_package in task._get_files_to_package():
                     zipf.write(file_to_package)
                 zipf.close()
 
