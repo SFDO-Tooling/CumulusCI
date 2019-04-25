@@ -21,7 +21,7 @@ class TestLocators(unittest.TestCase):
         expected = "cumulusci.robotframework.locators_45"
         actual = sf.locators_module.__name__
         message = "expected to load '{}', actually loaded '{}'".format(expected, actual)
-        self.assertEquals(expected, actual, message)
+        self.assertEqual(expected, actual, message)
 
         pass
 
@@ -40,7 +40,7 @@ class TestLocators(unittest.TestCase):
         expected = "cumulusci.robotframework.locators_46"
         actual = sf.locators_module.__name__
         message = "expected to load '{}', actually loaded '{}'".format(expected, actual)
-        self.assertEquals(expected, actual, message)
+        self.assertEqual(expected, actual, message)
 
     def test_locators_46(self):
         """Verify that locators_46 is a superset of the locators_45
@@ -59,7 +59,7 @@ class TestLocators(unittest.TestCase):
         keys_45 = set(locators_45.lex_locators)
         keys_46 = set(locators_46.lex_locators)
 
-        self.assertNotEquals(
+        self.assertNotEqual(
             id(locators_45.lex_locators),
             id(locators_46.lex_locators),
             "locators_45.lex_locators and locators_46.lex_locators are the same object",

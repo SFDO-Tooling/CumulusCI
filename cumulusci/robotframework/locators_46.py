@@ -1,4 +1,4 @@
-import locators_45
+from cumulusci.robotframework import locators_45
 
 lex_locators = locators_45.lex_locators.copy()
 lex_locators.update(
