@@ -8,6 +8,7 @@ import io
 import math
 import os
 import re
+import sarge
 import shutil
 import sys
 import tempfile
@@ -535,3 +536,16 @@ def os_friendly_path(path):
     if os.sep != "/":
         path = path.replace("/", os.sep)
     return path
+
+
+def get_git_config(config_key):
+    p = sarge.Command(
+        sarge.shell_format('git config --get "{0!s}"', config_key),
+        stderr=sarge.Capture(buffer_size=-1),
+        stdout=sarge.Capture(buffer_size=-1),
+        shell=True,
+    )
+    p.run()
+    config_value = io.TextIOWrapper(p.stdout).read().strip()
+
+    return config_value if config_value and not p.returncode else None
