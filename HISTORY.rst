@@ -2,6 +2,15 @@
 History
 =======
 
+2.4.3 (2019-04-26)
+------------------
+
+* Allow configuration of the email address assigned to scratch org users, with the order of priority being (1) any ``adminEmail`` key in the scratch org definition; (2) the ``email_address`` property on the scratch org configuration in ``cumulusci.yml``; (3) the ``user.email`` configuration property in Git.
+* CumulusCI can now handle building static resource bundles (``*.resource``) while deploying using the Metadata API. To use this option, specify the ``static_resource_path`` option for the deploy task. Any subdirectory in this path will be turned into a resource file and added to the package during deployment. There must be a corresponding ``*.resource-meta.xml`` file for each static resource bundle.
+* Bulk data tasks: Fixed a bug that added extra underscores to field names when processing lookups.
+* Robot Framework: The Salesforce library now has the ability to switch between different sets of locators based on the Salesforce version, and thanks to it we've fixed the robot so it can click on modal buttons in the Summer '19 release.
+* The ``cci project init`` command now generates projects with a different preferred structure for Robot Framework tests and resources, with everything inside the ``robot`` directory. Existing projects with tests in the ``tests`` directory should continue to work.
+
 2.4.2 (2019-04-22)
 ------------------
 
