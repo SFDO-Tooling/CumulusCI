@@ -4,6 +4,8 @@ import io
 import os
 import zipfile
 
+import lxml.etree as ET
+
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.salesforce_api.metadata import ApiDeploy
 from cumulusci.tasks.salesforce import BaseSalesforceMetadataApiTask
@@ -34,16 +36,18 @@ class Deploy(BaseSalesforceMetadataApiTask):
         "namespace_tokenize": {
             "description": "If set, all namespace prefixes for the namespace specified are replaced with tokens for use with namespace_inject"
         },
-        "namespaced_org": {
-            "description": "If True, the tokens %%%NAMESPACED_ORG%%% and ___NAMESPACED_ORG___ will get replaced with the namespace.  The default is false causing those tokens to get stripped and replaced with an empty string.  Set this if deploying to a namespaced scratch org or packaging org."
-        },
         "static_resource_path": {
             "description": "The path where decompressed static resources are stored.  Any subdirectories found will be zipped and added to the staticresources directory of the build."
+        },
+        "namespaced_org": {
+            "description": "If True, the tokens %%%NAMESPACED_ORG%%% and ___NAMESPACED_ORG___ will get replaced with the namespace.  The default is false causing those tokens to get stripped and replaced with an empty string.  Set this if deploying to a namespaced scratch org or packaging org."
         },
         "clean_meta_xml": {
             "description": "Defaults to True which strips the <packageVersions/> element from all meta.xml files.  The packageVersion element gets added automatically by the target org and is set to whatever version is installed in the org.  To disable this, set this option to False"
         },
     }
+
+    namespaces = {"sf": "http://soap.sforce.com/2006/04/metadata"}
 
     def _get_api(self, path=None):
         if not path:
@@ -149,24 +153,67 @@ class Deploy(BaseSalesforceMetadataApiTask):
         zipf = zip_clean_metaxml(zipf, logger=self.logger)
         return zipf
 
-    def _process_static_resources(self, zipf):
-        path = self.options.get("static_resource_path", "static-resources")
-        if not os.path.exists(path):
-            return zipf
-        path = os.path.realpath(path)
+    def _process_static_resources(self, zip_src):
+        relpath = self.options.get("static_resource_path", "static-resources")
+        if not os.path.exists(relpath):
+            return zip_src
+        path = os.path.realpath(relpath)
+
+        # We need to build a new zip file so that we can replace package.xml
+        zip_dest = zipfile.ZipFile(io.BytesIO(), "w", zipfile.ZIP_DEFLATED)
+        for name in zip_src.namelist():
+            content = zip_src.read(name)
+            if name == "package.xml":
+                package_xml = content
+            else:
+                zip_dest.writestr(name, content)
+
+        # Build static resource bundles and add to package zip
         with temporary_dir():
             os.mkdir("staticresources")
-            for bundle in os.listdir(path):
-                zip_path = os.path.join("staticresources", "{}.zip".format(bundle))
+            bundles = []
+            for name in os.listdir(path):
+                bundle_relpath = os.path.join(relpath, name)
+                bundle_path = os.path.join(path, name)
+                if not os.path.isdir(bundle_path):
+                    continue
+                self.logger.info(
+                    "Zipping {} to add to staticresources".format(bundle_relpath)
+                )
+
+                # Add resource-meta.xml file
+                meta_name = "{}.resource-meta.xml".format(name)
+                meta_path = os.path.join(path, meta_name)
+                with open(meta_path, "rb") as f:
+                    zip_dest.writestr("staticresources/{}".format(meta_name), f.read())
+
+                # Add bundle
+                zip_path = os.path.join("staticresources", "{}.resource".format(name))
                 bundle_fp = open(zip_path, "wb")
                 bundle_zip = zipfile.ZipFile(bundle_fp, "w", zipfile.ZIP_DEFLATED)
-                bundle_path = os.path.join(path, bundle)
                 with cd(bundle_path):
                     for resource_file in self._get_static_resource_files():
                         bundle_zip.write(resource_file)
                 bundle_zip.close()
-                zipf.write(zip_path)
-        return zipf
+                zip_dest.write(zip_path)
+                bundles.append(name)
+
+        # Update package.xml
+        tree = ET.fromstring(package_xml)
+        section = tree.find(".//sf:types[sf:name='StaticResource']", self.namespaces)
+        if section is None:
+            section = ET.Element("{{}}types".format(self.namespaces["sf"]))
+            name = ET.Element("{{}}name".format(self.namespaces["sf"]))
+            section.append(name)
+            name.text = "StaticResource"
+            tree.find(".//sf:types[last()]", self.namespaces).addnext(section)
+        for name in bundles:
+            member = ET.Element("{{}}members".format(self.namespaces["sf"]))
+            member.text = name
+            section.find(".//sf:name", self.namespaces).addprevious(member)
+        package_xml = ET.tostring(tree)
+        zip_dest.writestr("package.xml", package_xml)
+        return zip_dest
 
     def freeze(self, step):
         steps = super(Deploy, self).freeze(step)
