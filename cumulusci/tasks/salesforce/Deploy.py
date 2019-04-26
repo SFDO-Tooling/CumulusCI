@@ -78,10 +78,8 @@ class Deploy(BaseSalesforceMetadataApiTask):
 
     def _get_static_resource_files(self):
         for root, dirs, files in os.walk("."):
-            root_parts = root.split(os.sep)[1:]
             for f in files:
-                if self._include_file(root_parts, f):
-                    yield os.path.join(root, f)
+                yield os.path.join(root, f)
 
     def _get_package_zip(self, path):
         # Build the zip file
@@ -154,8 +152,8 @@ class Deploy(BaseSalesforceMetadataApiTask):
         return zipf
 
     def _process_static_resources(self, zip_src):
-        relpath = self.options.get("static_resource_path", "static-resources")
-        if not os.path.exists(relpath):
+        relpath = self.options.get("static_resource_path")
+        if not relpath or not os.path.exists(relpath):
             return zip_src
         path = os.path.realpath(relpath)
 
