@@ -44,6 +44,11 @@ tasks:
             options:
                 outputdir: robot/{{project_name}}/results
 
+    robot_testdoc:
+        options:
+            path: robot/{{project_name}}/tests
+            output: robot/{{project_name}}/doc/{{project_name}}_tests.html
+
 {% if package_namespace %}
 orgs:
     scratch:

@@ -523,9 +523,11 @@ def project_init(config):
     if not os.path.isdir("robot"):
         test_folder = os.path.join("robot", context["project_name"], "tests")
         resource_folder = os.path.join("robot", context["project_name"], "resources")
+        doc_folder = os.path.join("robot", context["project_name"], "doc")
 
         os.makedirs(test_folder)
         os.makedirs(resource_folder)
+        os.makedirs(doc_folder)
         test_src = os.path.join(
             cumulusci.__location__,
             "robotframework",

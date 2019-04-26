@@ -248,6 +248,7 @@ class TestCCI(unittest.TestCase):
                     "orgs/release.json",
                     "robot/",
                     "robot/testproj/",
+                    "robot/testproj/doc/",
                     "robot/testproj/resources/",
                     "robot/testproj/tests/",
                     "robot/testproj/tests/create_contact.robot",
@@ -291,7 +292,13 @@ class TestCCI(unittest.TestCase):
                         "suites": u"robot/testproj/tests",
                         "options": {"outputdir": "robot/testproj/results"},
                     }
-                }
+                },
+                "robot_testdoc": {
+                    "options": {
+                        "path": "robot/testproj/tests",
+                        "output": "robot/testproj/doc/testproj_tests.html",
+                    }
+                },
             }
             self.assertDictEqual(config["tasks"], expected_tasks)
 
