@@ -189,12 +189,12 @@ class Deploy(BaseSalesforceMetadataApiTask):
 
                 # Add bundle
                 zip_path = os.path.join("staticresources", "{}.resource".format(name))
-                bundle_fp = open(zip_path, "wb")
-                bundle_zip = zipfile.ZipFile(bundle_fp, "w", zipfile.ZIP_DEFLATED)
-                with cd(bundle_path):
-                    for resource_file in self._get_static_resource_files():
-                        bundle_zip.write(resource_file)
-                bundle_zip.close()
+                with open(zip_path, "wb") as bundle_fp:
+                    bundle_zip = zipfile.ZipFile(bundle_fp, "w", zipfile.ZIP_DEFLATED)
+                    with cd(bundle_path):
+                        for resource_file in self._get_static_resource_files():
+                            bundle_zip.write(resource_file)
+                    bundle_zip.close()
                 zip_dest.write(zip_path)
                 bundles.append(name)
 
