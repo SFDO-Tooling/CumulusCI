@@ -459,6 +459,12 @@ def temporary_dir():
             shutil.rmtree(d)
 
 
+def touch(path):
+    """Ensure a file exists."""
+    with open(path, "a"):
+        pass
+
+
 def in_directory(filepath, dirpath):
     """Returns a boolean for whether filepath is contained in dirpath.
 

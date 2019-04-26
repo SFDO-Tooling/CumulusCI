@@ -5,8 +5,9 @@ import unittest
 import zipfile
 
 from cumulusci.tasks.salesforce import Deploy
-from cumulusci.utils import temporary_dir
 from cumulusci.utils import cd
+from cumulusci.utils import temporary_dir
+from cumulusci.utils import touch
 from .util import create_task
 from future.utils import bytes_to_native_str
 
@@ -14,8 +15,7 @@ from future.utils import bytes_to_native_str
 class TestDeploy(unittest.TestCase):
     def test_get_api(self):
         with temporary_dir() as path:
-            with open(os.path.join(path, "package.xml"), "w"):
-                pass
+            touch("package.xml")
             task = create_task(
                 Deploy,
                 {
@@ -32,8 +32,7 @@ class TestDeploy(unittest.TestCase):
 
     def test_get_api__managed(self):
         with temporary_dir() as path:
-            with open(os.path.join(path, "package.xml"), "w"):
-                pass
+            touch("package.xml")
             task = create_task(
                 Deploy, {"path": path, "namespace_inject": "ns", "unmanaged": False}
             )
@@ -44,13 +43,50 @@ class TestDeploy(unittest.TestCase):
 
     def test_get_api__skip_clean_meta_xml(self):
         with temporary_dir() as path:
-            with open(os.path.join(path, "package.xml"), "w"):
-                pass
+            touch("package.xml")
             task = create_task(Deploy, {"path": path, "clean_meta_xml": False})
 
             api = task._get_api()
             zf = zipfile.ZipFile(io.BytesIO(base64.b64decode(api.package_zip)), "r")
             self.assertIn("package.xml", zf.namelist())
+
+    def test_get_api__static_resources(self):
+        with temporary_dir() as path:
+            with open("package.xml", "w") as f:
+                f.write(
+                    """<?xml version="1.0" encoding="UTF-8"?>
+<Package xmlns="http://soap.sforce.com/2006/04/metadata">
+    <types>
+        <name>OtherType</name>
+    </types>
+</Package>"""
+                )
+                touch("otherfile")
+
+            with temporary_dir() as static_resource_path:
+                os.mkdir("TestBundle")
+                touch("TestBundle/test.txt")
+                touch("TestBundle.resource-meta.xml")
+
+                task = create_task(
+                    Deploy,
+                    {
+                        "path": path,
+                        "static_resource_path": static_resource_path,
+                        "namespace_tokenize": "ns",
+                        "namespace_inject": "ns",
+                        "namespace_strip": "ns",
+                    },
+                )
+
+                api = task._get_api()
+                zf = zipfile.ZipFile(io.BytesIO(base64.b64decode(api.package_zip)), "r")
+                namelist = zf.namelist()
+                self.assertIn("staticresources/TestBundle.resource", namelist)
+                self.assertIn("staticresources/TestBundle.resource-meta.xml", namelist)
+                package_xml = zf.read("package.xml").decode()
+                self.assertIn("<name>StaticResource</name>", package_xml)
+                self.assertIn("<members>TestBundle</members>", package_xml)
 
     def test_include_directory(self):
         # create task
@@ -179,8 +215,7 @@ class TestDeploy(unittest.TestCase):
             # add lwc linting files (not included in zip)
             lwc_ignored_files = [".eslintrc.json", "jsconfig.json"]
             for lwc_ignored_file in lwc_ignored_files:
-                with open(os.path.join(lwc_path, lwc_ignored_file), "w"):
-                    pass
+                touch(os.path.join(lwc_path, lwc_ignored_file))
 
             # add lwc component
             lwc_component_path = os.path.join(lwc_path, "myComponent")
@@ -217,14 +252,12 @@ class TestDeploy(unittest.TestCase):
 
             # add lwc component files not included in zip
             for lwc_ignored_file in lwc_ignored_files:
-                with open(os.path.join(lwc_component_path, lwc_ignored_file), "w"):
-                    pass
+                touch(os.path.join(lwc_component_path, lwc_ignored_file))
 
             # add lwc component sub-directory and files not included in zip
             lwc_component_test_path = os.path.join(lwc_component_path, "__tests__")
             os.mkdir(lwc_component_test_path)
-            with open(os.path.join(lwc_component_test_path, "test.js"), "w"):
-                pass
+            touch(os.path.join(lwc_component_test_path, "test.js"))
 
             # add classes
             classes_path = os.path.join(path, "classes")
@@ -303,8 +336,7 @@ class TestDeploy(unittest.TestCase):
             # add lwc linting files (not included in zip)
             lwc_ignored_files = [".eslintrc.json", "jsconfig.json"]
             for lwc_ignored_file in lwc_ignored_files:
-                with open(os.path.join(lwc_path, lwc_ignored_file), "w"):
-                    pass
+                touch(os.path.join(lwc_path, lwc_ignored_file))
 
             # add lwc component
             lwc_component_path = os.path.join(lwc_path, "myComponent")
@@ -335,14 +367,12 @@ class TestDeploy(unittest.TestCase):
 
             # add lwc component files not included in zip
             for lwc_ignored_file in lwc_ignored_files:
-                with open(os.path.join(lwc_component_path, lwc_ignored_file), "w"):
-                    pass
+                touch(os.path.join(lwc_component_path, lwc_ignored_file))
 
             # add lwc component sub-directory and files not included in zip
             lwc_component_test_path = os.path.join(lwc_component_path, "__tests__")
             os.mkdir(lwc_component_test_path)
-            with open(os.path.join(lwc_component_test_path, "test.js"), "w"):
-                pass
+            touch(os.path.join(lwc_component_test_path, "test.js"))
 
             # add classes
             classes_path = os.path.join(path, "classes")
@@ -370,14 +400,12 @@ class TestDeploy(unittest.TestCase):
             object_file_names = ["Account.object", "Contact.object", "CustomObject__c"]
             object_file_names.sort()
             for object_file_name in object_file_names:
-                with open(os.path.join(objects_path, object_file_name), "w"):
-                    pass
+                touch(os.path.join(objects_path, object_file_name))
 
             # add sub-directory of objects (that doesn't really exist)
             objects_sub_path = os.path.join(objects_path, "does-not-exist-in-schema")
             os.mkdir(objects_sub_path)
-            with open(os.path.join(objects_sub_path, "some.file"), "w"):
-                pass
+            touch(os.path.join(objects_sub_path, "some.file"))
 
             # test
             task = create_task(

@@ -202,13 +202,13 @@ class Deploy(BaseSalesforceMetadataApiTask):
         tree = ET.fromstring(package_xml)
         section = tree.find(".//sf:types[sf:name='StaticResource']", self.namespaces)
         if section is None:
-            section = ET.Element("{{}}types".format(self.namespaces["sf"]))
-            name = ET.Element("{{}}name".format(self.namespaces["sf"]))
+            section = ET.Element("{{{}}}types".format(self.namespaces["sf"]))
+            name = ET.Element("{{{}}}name".format(self.namespaces["sf"]))
             section.append(name)
             name.text = "StaticResource"
             tree.find(".//sf:types[last()]", self.namespaces).addnext(section)
         for name in bundles:
-            member = ET.Element("{{}}members".format(self.namespaces["sf"]))
+            member = ET.Element("{{{}}}members".format(self.namespaces["sf"]))
             member.text = name
             section.find(".//sf:name", self.namespaces).addprevious(member)
         package_xml = ET.tostring(tree)
