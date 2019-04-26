@@ -418,6 +418,7 @@ Options:
     def test_convert_to_snake_case(self):
         self.assertEqual("one_two", utils.convert_to_snake_case("OneTwo"))
         self.assertEqual("one_two", utils.convert_to_snake_case("ONETwo"))
+        self.assertEqual("one_two", utils.convert_to_snake_case("One_Two"))
 
     def test_os_friendly_path(self):
         with mock.patch("os.sep", "\\"):
