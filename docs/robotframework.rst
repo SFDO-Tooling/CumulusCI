@@ -23,18 +23,18 @@ The integration with Robot Framework adds a new dimension to CumulusCI.  Before,
 Example Robot Test
 ==================
 
-The following test file placed under **tests/create_contact.robot** in your project's repository automates the testing of creating a Contact through the Salesforce UI in a browser and via the API.  As an added convenience, it automatically deletes the created Contacts in the Suite Teardown step:
+The following test file placed under **robot/ExampleProject/tests/create_contact.robot** in your project's repository automates the testing of creating a Contact through the Salesforce UI in a browser and via the API.  As an added convenience, it automatically deletes the created Contacts in the Suite Teardown step:
 
 .. code-block:: robotframework
-   
+
    *** Settings ***
-   
+
    Resource        cumulusci/robotframework/Salesforce.robot
    Suite Setup     Open Test Browser
    Suite Teardown  Delete Records and Close Browser
-   
+
    *** Test Cases ***
-   
+
    Via API
        ${first_name} =       Generate Random String
        ${last_name} =        Generate Random String
@@ -43,7 +43,7 @@ The following test file placed under **tests/create_contact.robot** in your proj
        ...                     LastName=${last_name}
        &{contact} =          Salesforce Get  Contact  ${contact_id}
        Validate Contact      ${contact_id}  ${first_name}  ${last_name}
-   
+
    Via UI
        ${first_name} =       Generate Random String
        ${last_name} =        Generate Random String
@@ -57,10 +57,10 @@ The following test file placed under **tests/create_contact.robot** in your proj
        ${contact_id} =       Get Current Record Id
        Store Session Record  Contact  ${contact_id}
        Validate Contact      ${contact_id}  ${first_name}  ${last_name}
-        
-   
+
+
    *** Keywords ***
-   
+
    Validate Contact
        [Arguments]          ${contact_id}  ${first_name}  ${last_name}
        # Validate via UI
@@ -71,8 +71,6 @@ The following test file placed under **tests/create_contact.robot** in your proj
        Should Be Equal  ${first_name}  &{contact}[FirstName]
        Should Be Equal  ${last_name}  &{contact}[LastName]
 
-
-NOTE: In the example output, the WARN line shows functionality from the Salesforce Library which helps handle retry scenarios common to testing against Salesforce's Lightning UI.  In this case, it automatically retried the wait for the modal window to close after creating a contact in a browser.
 
 Settings
 --------
@@ -112,28 +110,34 @@ This simple test file can then be run via the **robot** task in CumulusCI:
 
 .. code-block:: console
 
-   $ cci task run robot -o suites tests/create_contact.robot -o vars BROWSER:firefox
-   2018-03-12 12:43:35: Getting scratch org info from Salesforce DX
-   2018-03-12 12:43:37: Beginning task: Robot
-   2018-03-12 12:43:37:        As user: test-zel2batn5wud@example.com
-   2018-03-12 12:43:37:         In org: 00D3B0000004X9z
-   2018-03-12 12:43:37:
-   2018-03-12 12:43:38: Getting scratch org info from Salesforce DX
+   $ cd ~/dev/MyProject
+   $ cci task run robot -o suites robot/MyProject/tests/create_contact.robot -o vars BROWSER:firefox
+   2019-04-26 09:47:24: Getting scratch org info from Salesforce DX
+   2019-04-26 09:47:28: Beginning task: Robot
+   2019-04-26 09:47:28:        As user: test-leiuvggcviyi@example.com
+   2019-04-26 09:47:28:         In org: 00DS0000003ORti
+   2019-04-26 09:47:28:
    ==============================================================================
    Create Contact
    ==============================================================================
    Via API                                                               | PASS |
-   ------------------------------------------------------------------------------
    [ WARN ] Retrying call to method _wait_until_modal_is_closed
+   ------------------------------------------------------------------------------
    Via UI                                                                | PASS |
    ------------------------------------------------------------------------------
    Create Contact                                                        | PASS |
    2 critical tests, 2 passed, 0 failed
    2 tests total, 2 passed, 0 failed
    ==============================================================================
-   Output:  /Users/jlantz/dev/HEDAP/output.xml
-   Log:     /Users/jlantz/dev/HEDAP/log.html
-   Report:  /Users/jlantz/dev/HEDAP/report.html
+   Output:  /Users/boakley/dev/MyProject/robot/MyProject/results/output.xml
+   Log:     /Users/boakley/dev/MyProject/robot/MyProject/results/log.html
+   Report:  /Users/boakley/dev/MyProject/robot/MyProject/results/report.html
+
+
+NOTE: In the example output, the WARN line shows functionality from the Salesforce Library which helps handle retry scenarios common to testing against Salesforce's Lightning UI.  In this case, it automatically retried the wait for the modal window to close after creating a contact in a browser.
+
+If you put all of your tests inside that **robot/<project name>/tests** folder you don't have to use the **suite** option. By default the robot task will run all tests in the folder and all subfolders. For example, to run all tests and use the default browser you just have to issue the command `cci task run robot`.
+
 
 CumulusCI Library
 =================
@@ -209,24 +213,49 @@ CumulusCI Robot Tasks
 
 CumulusCI includes two tasks for working with Robot Framework tests and keyword libraries:
 
-* **robot**: Runs robot test suites.  By default, recursively runs all tests located under tests/.  Test suites can be overridden via the **suites** keyword and variables inside robot files can be overridden using the **vars** option with the syntax VAR:value (ex: BROWSER:firefox).
-* **robot_testdoc**: Generates html documentation of your whole robot test suite and writes to tests/test_suite.html.
+* **robot**: Runs robot test suites.  By default, recursively runs all tests located under the folder robot/<project name>/tests/.  Test suites can be overridden via the **suites** keyword and variables inside robot files can be overridden using the **vars** option with the syntax VAR:value (ex: BROWSER:firefox).
+* **robot_testdoc**: Generates html documentation of your whole robot test suite and writes to robot/<project name>/doc/<project_name>.html.
 
-Additionally, the RobotLibDoc task class can be wired up to generate library documentation if you choose to create a library of robot keywords for your project using the following added to the cumulusci.yml file:
+Additionally, the RobotLibDoc task class can be wired up to generate library documentation if you choose to create a library of robot keywords for your project using. For example, if you have defined a robot resource file named MyProject.resource and placed it in the **resources** folder, you would add the following added to the cumulusci.yml file:
 
 .. code-block:: yaml
 
    tasks:
-       robot_libdoc:
-           description: Generates HTML documentation for the MyProject Robot Framework library
-           options:
-               path: tests/MyProject.robot
-               output: tests/MyProject_Library.html
- 
+      robot_libdoc:
+          description: Generates HTML documentation for the MyProject Robot Framework library
+          options:
+              path: robot/MyProject/resources/MyProject.robot
+              output: robot/MyProject/doc/MyProject_Library.html
+
+NOTE: you can generate documentation for more than one keyword file or library by giving a comma-separated list of files for the **path** option.
+
+Robot Directory Structure
+=========================
+
+When you use `cci project init`, it creates a folder named **robot** at the root of your repository. Immediately under that is a folder for your project robot files. If your project depends on keywords from other projects, they would also be in the **robot** folder under their own project name.
+
+.. code-block:: console
+
+   MyProject/
+   ├── robot
+   │   └── MyProject
+   │       ├── doc
+   │       ├── resources
+   │       ├── results
+   │       └── tests
+
+With the project folder inside the **robot** folder are the following additional folders:
+
+* **doc**: the location where generated documentation will be placed.
+* **resources**: this folder is where you can put your own keyword files. You can create `robot keyword files <http://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#creating-user-keywords>`_ (.resource or .robot) as well as `keyword libraries <http://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#creating-test-libraries>`_ (.py). For keyword files we recommend using the **.resource** suffix.
+* **results**: this folder isn't created by `cci project init`. Instead, it will automatically be created the first time you run your tests. It will contain all of the generated logs and screenshots.
+* **tests**: this is where you should put your test suites. You are free to organize this however you wish, including adding subfolders.
+
+
 Creating Project Tests
 ======================
 
-Like in the example above, all project tests live in .robot files stored under the tests/ directory in the project.  You can choose how you want to structure the .robot files into directories by just moving the files around.  Directories are treated by robot as a parent test suite so a directory named "standard_objects" would become the "Standard Objects" test suite.
+Like in the example above, all project tests live in .robot files stored under the robot/<project name>/tests/ directory in the project.  You can choose how you want to structure the .robot files into directories by just moving the files around.  Directories are treated by robot as a parent test suite so a directory named "standard_objects" would become the "Standard Objects" test suite.
 
 The following document is recommended reading:
 https://github.com/robotframework/HowToWriteGoodTestCases/blob/master/HowToWriteGoodTestCases.rst
