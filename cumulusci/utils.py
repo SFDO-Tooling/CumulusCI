@@ -528,7 +528,7 @@ def get_cci_upgrade_command():
 
 
 def convert_to_snake_case(content):
-    s1 = re.sub("(.)([A-Z][a-z]+)", r"\1_\2", content)
+    s1 = re.sub("([^_])([A-Z][a-z]+)", r"\1_\2", content)
     return re.sub("([a-z0-9])([A-Z])", r"\1_\2", s1).lower()
 
 
