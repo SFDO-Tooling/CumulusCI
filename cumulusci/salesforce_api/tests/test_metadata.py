@@ -583,7 +583,7 @@ class TestApiDeploy(BaseTestMetadataApi):
 
     def _expected_envelope_start(self):
         return self.envelope_start.format(
-            package_zip=self.package_zip, purge_on_delete="true"
+            package_zip=self.package_zip, purge_on_delete="false"
         )
 
     def _response_call_success_result(self, response_result):

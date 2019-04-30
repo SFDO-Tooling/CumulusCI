@@ -8,6 +8,7 @@ import io
 import math
 import os
 import re
+import sarge
 import shutil
 import sys
 import tempfile
@@ -459,6 +460,12 @@ def temporary_dir():
             shutil.rmtree(d)
 
 
+def touch(path):
+    """Ensure a file exists."""
+    with open(path, "a"):
+        pass
+
+
 def in_directory(filepath, dirpath):
     """Returns a boolean for whether filepath is contained in dirpath.
 
@@ -521,7 +528,7 @@ def get_cci_upgrade_command():
 
 
 def convert_to_snake_case(content):
-    s1 = re.sub("(.)([A-Z][a-z]+)", r"\1_\2", content)
+    s1 = re.sub("([^_])([A-Z][a-z]+)", r"\1_\2", content)
     return re.sub("([a-z0-9])([A-Z])", r"\1_\2", s1).lower()
 
 
@@ -529,3 +536,16 @@ def os_friendly_path(path):
     if os.sep != "/":
         path = path.replace("/", os.sep)
     return path
+
+
+def get_git_config(config_key):
+    p = sarge.Command(
+        sarge.shell_format('git config --get "{0!s}"', config_key),
+        stderr=sarge.Capture(buffer_size=-1),
+        stdout=sarge.Capture(buffer_size=-1),
+        shell=True,
+    )
+    p.run()
+    config_value = io.TextIOWrapper(p.stdout).read().strip()
+
+    return config_value if config_value and not p.returncode else None

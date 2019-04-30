@@ -3,6 +3,7 @@ import os
 import unittest
 
 import mock
+import responses
 
 from github3.exceptions import NotFoundError
 from cumulusci.core.config import BaseConfig
@@ -878,6 +879,7 @@ class TestOrgConfig(unittest.TestCase):
     def test_refresh_oauth_token(self, SalesforceOAuth2):
         config = OrgConfig({"refresh_token": mock.sentinel.refresh_token}, "test")
         config._load_userinfo = mock.Mock()
+        config._load_orginfo = mock.Mock()
         keychain = mock.Mock()
         SalesforceOAuth2.return_value = oauth = mock.Mock()
         oauth.refresh_token.return_value = resp = mock.Mock()
@@ -913,3 +915,24 @@ class TestOrgConfig(unittest.TestCase):
     def test_can_delete(self):
         config = OrgConfig({}, "test")
         self.assertFalse(config.can_delete())
+
+    @responses.activate
+    def test_load_orginfo(self):
+        config = OrgConfig(
+            {
+                "instance_url": "https://example.com",
+                "access_token": "TOKEN",
+                "id": "OODxxxxxxxxxxxx/user",
+            },
+            "test",
+        )
+        responses.add(
+            "GET",
+            "https://example.com/services/data/v45.0/sobjects/Organization/OODxxxxxxxxxxxx",
+            json={"OrganizationType": "Enterprise Edition", "IsSandbox": False},
+        )
+
+        config._load_orginfo()
+
+        self.assertEqual("Enterprise Edition", config.org_type)
+        self.assertEqual(False, config.is_sandbox)
