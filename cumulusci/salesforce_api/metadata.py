@@ -5,7 +5,6 @@ based on mrbelvedere/mpinstaller/mdapi.py
 
 # TO DO
 #   - add docstrings
-#   - use format() instead of %
 #   - look at https://github.com/rholder/retrying
 
 from __future__ import unicode_literals
