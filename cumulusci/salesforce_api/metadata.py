@@ -25,6 +25,8 @@ from zipfile import ZipFile
 import io
 
 import requests
+from requests.adapters import HTTPAdapter
+from requests.packages.urllib3.util.retry import Retry
 
 from cumulusci.salesforce_api import soap_envelopes
 from cumulusci.core.exceptions import ApexTestException
@@ -32,6 +34,9 @@ from cumulusci.utils import zip_subfolder, parse_api_datetime
 from cumulusci.salesforce_api.exceptions import MetadataComponentFailure
 from cumulusci.salesforce_api.exceptions import MetadataParseError
 from cumulusci.salesforce_api.exceptions import MetadataApiError
+
+retry_policy = Retry(backoff_factor=0.3)
+http_adapter = HTTPAdapter(max_retries=retry_policy)
 
 
 class BaseMetadataApiCall(object):
@@ -44,7 +49,7 @@ class BaseMetadataApiCall(object):
     soap_action_result = None
 
     def __init__(self, task, api_version=None):
-        # the cumulucci context object contains logger, oauth, ID, secret, etc
+        # the cumulusci context object contains logger, oauth, ID, secret, etc
         self.task = task
         self.status = None
         self.check_num = 1
@@ -105,7 +110,9 @@ class BaseMetadataApiCall(object):
         # Insert the session id
         session_id = self.task.org_config.access_token
         auth_envelope = envelope.replace("###SESSION_ID###", session_id)
-        response = requests.post(
+        session = requests.Session()
+        session.mount("https://", http_adapter)
+        response = session.post(
             self._build_endpoint_url(),
             headers=headers,
             data=auth_envelope.encode("utf-8"),
