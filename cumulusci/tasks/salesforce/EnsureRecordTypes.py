@@ -83,17 +83,17 @@ class EnsureRecordTypes(BaseSalesforceApiTask):
             self.options["generate_business_process"] = True
             describe_results = getattr(self.sf, sobject).describe()
             # Salesforce requires that at least one picklist value be present and active
-            self.options["stage_name"] = next(
+            self.options["stage_name"] = list(
                 filter(
                     lambda pl: pl["active"],
-                    next(
+                    list(
                         filter(
                             lambda f: f["name"] == SOBJECT_MAP[sobject],
                             describe_results["fields"],
                         )
-                    )["picklistValues"],
+                    )[0]["picklistValues"],
                 )
-            )["value"]
+            )[0]["value"]
 
     def _build_package(self):
         objects_app_path = "objects"
