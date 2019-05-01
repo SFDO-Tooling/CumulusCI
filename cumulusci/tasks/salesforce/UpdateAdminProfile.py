@@ -61,7 +61,7 @@ class UpdateAdminProfile(Deploy):
         )
         with open(path, "r") as f:
             self._package_xml_content = f.read()
-            
+
         self._package_xml_content = self._package_xml_content.format(
             **self.namespace_prefixes
         )
