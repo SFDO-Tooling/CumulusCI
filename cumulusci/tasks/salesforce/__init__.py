@@ -12,13 +12,15 @@ from cumulusci.tasks.salesforce.BaseSalesforceMetadataApiTask import (
 # inherit from BaseSalesforceApiTask
 from cumulusci.tasks.salesforce.PackageUpload import PackageUpload
 from cumulusci.tasks.salesforce.SOQLQuery import SOQLQuery
-from cumulusci.tasks.salesforce.EnsureRecordTypes import EnsureRecordTypes
 
 # inherit from BaseSalesforceMetadataApiTask
 from cumulusci.tasks.salesforce.BaseRetrieveMetadata import BaseRetrieveMetadata
 from cumulusci.tasks.salesforce.Deploy import Deploy
 from cumulusci.tasks.salesforce.GetInstalledPackages import GetInstalledPackages
 from cumulusci.tasks.salesforce.UpdateDependencies import UpdateDependencies
+
+# inherit from BaseSalesforceApiTask and use Deploy
+from cumulusci.tasks.salesforce.EnsureRecordTypes import EnsureRecordTypes
 
 # inherit from BaseRetrieveMetadata
 from cumulusci.tasks.salesforce.RetrievePackaged import RetrievePackaged
