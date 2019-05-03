@@ -74,26 +74,35 @@ class EnsureRecordTypes(BaseSalesforceApiTask):
                 "Record Type Developer Name value must contain only alphanumeric or underscore characters"
             )
 
-    def _infer_business_process(self):
+    def _infer_requirements(self):
         # If our sObject is Lead or Opportunity, we need to generate businessProcess
         # metadata to make the record type deployable.
-        sobject = self.options["sobject"]
 
-        if sobject in SOBJECT_MAP:
+        # Regardless of sObject, we don't need to do any work if it already
+        # has record types in the target org.
+        sobject = self.options["sobject"]
+        describe_results = getattr(self.sf, sobject).describe()
+
+        # Check for existing record types. We ignore the record type info with master: True,
+        # because it's present even if record types aren't enabled for the object.
+        record_types = [
+            rt for rt in describe_results["recordTypeInfos"] if not rt["master"]
+        ]
+
+        self.options["generate_record_type"] = len(record_types) == 0
+
+        if self.options["generate_record_type"] and sobject in SOBJECT_MAP:
             self.options["generate_business_process"] = True
-            describe_results = getattr(self.sf, sobject).describe()
             # Salesforce requires that at least one picklist value be present and active
-            self.options["stage_name"] = list(
-                filter(
-                    lambda pl: pl["active"],
-                    list(
-                        filter(
-                            lambda f: f["name"] == SOBJECT_MAP[sobject],
-                            describe_results["fields"],
-                        )
-                    )[0]["picklistValues"],
-                )
-            )[0]["value"]
+            stage_field = [
+                f
+                for f in describe_results["fields"]
+                if f["name"] == SOBJECT_MAP[sobject]
+            ][0]
+            active_picklist_values = [
+                value for value in stage_field["picklistValues"] if value["active"]
+            ]
+            self.options["stage_name"] = active_picklist_values[0]["value"]
 
     def _build_package(self):
         objects_app_path = "objects"
@@ -102,6 +111,11 @@ class EnsureRecordTypes(BaseSalesforceApiTask):
             os.path.join(objects_app_path, self.options["sobject"] + ".object"), "w"
         ) as f:
             if self.options["generate_business_process"]:
+                self.logger.info(
+                    "Generating record type and business process for sObject {}".format(
+                        self.options["sobject"]
+                    )
+                )
                 business_process_metadata = BUSINESS_PROCESS_METADATA.format(
                     record_type_developer_name=self.options[
                         "record_type_developer_name"
@@ -114,6 +128,11 @@ class EnsureRecordTypes(BaseSalesforceApiTask):
                     ]
                 )
             else:
+                self.logger.info(
+                    "Generating record type for sObject {}".format(
+                        self.options["sobject"]
+                    )
+                )
                 business_process_metadata = business_process_link = ""
 
             f.write(
@@ -130,7 +149,15 @@ class EnsureRecordTypes(BaseSalesforceApiTask):
             f.write(PACKAGE_XML)
 
     def _run_task(self):
-        self._infer_business_process()
+        self._infer_requirements()
+
+        if not self.options["generate_record_type"]:
+            self.logger.info(
+                "Record types already enabled for {} in target org; no action needed".format(
+                    self.options["sobject"]
+                )
+            )
+            return
 
         with temporary_dir() as tempdir:
             self._build_package()
