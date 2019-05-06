@@ -1,6 +1,5 @@
 from builtins import str
 import re
-import os
 
 import github3.exceptions
 
@@ -209,7 +208,7 @@ class GithubIssuesParser(IssuesParser):
             "resolves",
             "resolved",
         )
-        return r"(?:{})\s#(\d+)".format("|".join(keywords))
+        return r"(?:{})\s\[?#(\d+)\]?".format("|".join(keywords))
 
     def _render_content(self):
         content = []
