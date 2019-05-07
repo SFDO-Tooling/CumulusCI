@@ -1,0 +1,14 @@
+{
+  "orgName": "NPSP - Dev Workspace",
+  "edition": "Developer",
+  "instance": "CS46",
+  "hasSampleData": "true",
+  "orgPreferences" : {
+    "enabled": [
+      "ChatterEnabled",
+      "DisableParallelApexTesting",
+      "S1DesktopEnabled",
+      "Translation"
+    ]
+  }
+}
