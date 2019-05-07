@@ -42,20 +42,20 @@ class ListChanges(BaseSalesforceApiTask):
         if self.project_config.project__source__ignore:
             self._exclude.extend(self.project_config.project__source__ignore)
 
-        self._load_retrieve_status()
+        self._load_snapshot()
 
     @property
-    def _retrieve_status_path(self):
-        parent_dir = os.path.join(".cci", "retrieve_status")
+    def _snapshot_path(self):
+        parent_dir = os.path.join(".cci", "snapshot")
         if not os.path.isdir(parent_dir):
             os.makedirs(parent_dir)
         return os.path.join(parent_dir, "{}.json".format(self.org_config.name))
 
-    def _load_retrieve_status(self):
-        self._retrieve_status = {}
-        if os.path.isfile(self._retrieve_status_path):
-            with open(self._retrieve_status_path, "r") as f:
-                self._retrieve_status = json.load(f)
+    def _load_snapshot(self):
+        self._snapshot = {}
+        if os.path.isfile(self._snapshot_path):
+            with open(self._snapshot_path, "r") as f:
+                self._snapshot = json.load(f)
 
     def _get_changes(self):
         changes = self.tooling.query(
@@ -63,9 +63,9 @@ class ListChanges(BaseSalesforceApiTask):
         )
         return changes
 
-    def _write_retrieve_status(self):
-        with open(self._retrieve_status_path, "w") as f:
-            f.write(json.dumps(self._retrieve_status))
+    def _store_snapshot(self):
+        with open(self._snapshot_path, "w") as f:
+            f.write(json.dumps(self._snapshot))
 
     def _run_task(self):
         changes = self._get_changes()
@@ -90,7 +90,7 @@ class ListChanges(BaseSalesforceApiTask):
 
         if self.options["snapshot"]:
             self.logger.info("Storing snapshot of changes")
-            self._write_retrieve_status()
+            self._store_snapshot()
 
     def _filter_changes(self, changes):
         filtered = []
@@ -104,12 +104,12 @@ class ListChanges(BaseSalesforceApiTask):
                 continue
             if any(re.search(s, full_name) for s in self._exclude):
                 continue
-            revnum = self._retrieve_status.get(mdtype, {}).get(name)
+            revnum = self._snapshot.get(mdtype, {}).get(name)
             if revnum and revnum == change["RevisionNum"]:
                 continue
             filtered.append(change)
 
-            self._retrieve_status.setdefault(mdtype, {})[name] = change["RevisionNum"]
+            self._snapshot.setdefault(mdtype, {})[name] = change["RevisionNum"]
 
         return filtered
 
@@ -125,6 +125,9 @@ retrieve_changes_task_options["api_version"] = {
         + " Defaults to project__package__api_version"
     )
 }
+retrieve_changes_task_options["namespace_tokenize"] = BaseRetrieveMetadata.task_options[
+    "namespace_tokenize"
+]
 
 
 class RetrieveChanges(BaseRetrieveMetadata, ListChanges, BaseSalesforceApiTask):
@@ -133,7 +136,6 @@ class RetrieveChanges(BaseRetrieveMetadata, ListChanges, BaseSalesforceApiTask):
     task_options = retrieve_changes_task_options
 
     def _init_options(self, kwargs):
-        kwargs["snapshot"] = True
         super(RetrieveChanges, self)._init_options(kwargs)
 
         if "api_version" not in self.options:
@@ -144,7 +146,7 @@ class RetrieveChanges(BaseRetrieveMetadata, ListChanges, BaseSalesforceApiTask):
     def _get_api(self):
         self.logger.info("Querying Salesforce for changed source members")
         changes = self.tooling.query(
-            "SELECT MemberName, MemberType FROM SourceMember WHERE IsNameObsolete=false"
+            "SELECT MemberName, MemberType, RevisionNum FROM SourceMember WHERE IsNameObsolete=false"
         )
 
         type_members = defaultdict(list)
@@ -155,9 +157,6 @@ class RetrieveChanges(BaseRetrieveMetadata, ListChanges, BaseSalesforceApiTask):
 
         for change in filtered:
             type_members[change["MemberType"]].append(change["MemberName"])
-            self.retrieve_status.get(change["MemberType"], {})[
-                change["MemberName"]
-            ] = change["RevisionNum"]
             self.logger.info("{MemberType}: {MemberName}".format(**change))
 
         package_xml_path = os.path.join(self.options["path"], "package.xml")
@@ -168,16 +167,25 @@ class RetrieveChanges(BaseRetrieveMetadata, ListChanges, BaseSalesforceApiTask):
             current_package_xml = {"Package": {}}
         merged_type_members = {}
         for mdtype in current_package_xml["Package"].get("types", []):
+
             if "members" not in mdtype:
                 continue
-            members = []
-            if isinstance(mdtype["members"], str):
-                members.append(mdtype["members"])
+
+            if isinstance(mdtype, str):
+                type_name = mdtype
+                items = current_package_xml["Package"]["types"][type_name]
             else:
-                for item in mdtype["members"]:
+                type_name = mdtype["name"]
+                items = mdtype["members"]
+
+            members = []
+            if isinstance(items, str):
+                members.append(items)
+            else:
+                for item in items:
                     members.append(item)
             if members:
-                merged_type_members[mdtype["name"]] = members
+                merged_type_members[type_name] = members
 
         types = []
         for name, members in type_members.items():
@@ -196,13 +204,19 @@ class RetrieveChanges(BaseRetrieveMetadata, ListChanges, BaseSalesforceApiTask):
         super(RetrieveChanges, self)._run_task()
 
         # update package.xml
-        package_xml = PackageXmlGenerator(
-            directory=self.options["path"],
-            api_version=self.options["api_version"],
-            package_name=self.project_config.project__package__name,
-        )()
+        package_xml_opts = {
+            "directory": self.options["path"],
+            "api_version": self.options["api_version"],
+        }
+        if self.options["path"] == "src":
+            package_xml_opts[
+                "package_name"
+            ] = self.project_config.project__package__name
+        package_xml = PackageXmlGenerator(**package_xml_opts)()
         with open(os.path.join(self.options["path"], "package.xml"), "w") as f:
             f.write(package_xml)
+
+        self._store_snapshot()
 
 
 class MetadataType(object):
