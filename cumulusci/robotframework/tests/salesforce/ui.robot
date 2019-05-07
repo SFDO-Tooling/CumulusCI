@@ -81,15 +81,19 @@ Go To Setup Object Manager
     Go To Setup Object Manager
 
 Go To Object Home
+    [Tags]  smoke
     Go To Object List  Contact
 
 Go To Object List
+    [Tags]  smoke
     Go To Object List  Contact
 
 Go To Object List With Filter
+    [Tags]  smoke
     Go To Object List  Contact  filter=Recent
 
 Go To Record Home
+    [Tags]  smoke
     &{contact} =       Create Contact
     Go To Record Home  &{contact}[Id]
 

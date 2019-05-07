@@ -1,6 +1,2 @@
-from .pageobjects import (  # noqa: F401
-    PageObject,
-    ObjectHomePage,
-    ObjectListPage,
-    ObjectNewPage,
-)
+from .pageobjects import PageObjects, BasePage, ListingPage  # noqa: F401
+from .pageobjects import pageobject  # noqa: F401
