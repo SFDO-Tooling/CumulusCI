@@ -32,6 +32,6 @@ flows:
                 task: robot_testdoc
 
 orgs:
-    dev:
-        days: 1
-
+    scratch:
+        prerelease:
+            config_file: orgs/prerelease.json
