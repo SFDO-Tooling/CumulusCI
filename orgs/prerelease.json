@@ -1,14 +1,12 @@
 {
-  "orgName": "NPSP - Dev Workspace",
+  "orgName": "CumulusCI - Dev Workspace",
   "edition": "Developer",
-  "instance": "CS46",
-  "hasSampleData": "true",
-  "orgPreferences" : {
-    "enabled": [
-      "ChatterEnabled",
-      "DisableParallelApexTesting",
-      "S1DesktopEnabled",
-      "Translation"
-    ]
+  "instance": "cs46",
+  "settings": {
+    "orgPreferenceSettings": {
+      "s1DesktopEnabled": true
+      , "chatterEnabled": true
+      , "translation": true
+    }
   }
 }
