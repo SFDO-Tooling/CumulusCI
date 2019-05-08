@@ -53,6 +53,7 @@ class PackageXmlGenerator(object):
         delete=None,
         install_class=None,
         uninstall_class=None,
+        types=None,
     ):
         with open(__location__ + "/metadata_map.yml", "r") as f_metadata_map:
             self.metadata_map = ordered_yaml_load(f_metadata_map)
@@ -63,10 +64,11 @@ class PackageXmlGenerator(object):
         self.delete = delete
         self.install_class = install_class
         self.uninstall_class = uninstall_class
-        self.types = []
+        self.types = types or []
 
     def __call__(self):
-        self.parse_types()
+        if not self.types:
+            self.parse_types()
         return self.render_xml()
 
     def parse_types(self):
