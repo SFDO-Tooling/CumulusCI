@@ -275,7 +275,7 @@ Although CumulusCI has those scratch org configs in its org list, no actual scra
     password: Random Password Would be Here
     instance_url: https://inspiration-speed-3192-dev-ed.cs66.my.salesforce.com
 
-Now, if we look at the org list, we can see a username for our scratch org.  That means `dev` now has a real scratch org connect to it:
+Now, if we look at the org list, we can see a username for our scratch org.  That means `dev` now has a real scratch org connected to it:
 
 .. code-block:: console
 
