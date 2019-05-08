@@ -288,8 +288,8 @@ CumulusCI has support for tokenizing references to the namespace prefix in code.
 
     project:
         dependencies:
-            - zip_url: https://github.com/SalesforceFoundation/HEDAP/archive/master.zip
-              subfolder: HEDAP-master/dev_config/src/admin_config
+            - zip_url: https://github.com/SalesforceFoundation/EDA/archive/master.zip
+              subfolder: EDA-master/dev_config/src/admin_config
               namespace_inject: hed
 
 In the above example, the metadata in the zip contains the string tokens `%%%NAMESPACE%%%` and `___NAMESPACE___` which will be replaced with `hed__` before the metadata is deployed.
@@ -300,8 +300,8 @@ If you want to deploy tokenized metadata without any namespace references, you h
 
     project:
         dependencies:
-            - zip_url: https://github.com/SalesforceFoundation/HEDAP/archive/master.zip
-              subfolder: HEDAP-master/dev_config/src/admin_config
+            - zip_url: https://github.com/SalesforceFoundation/EDA/archive/master.zip
+              subfolder: EDA-master/dev_config/src/admin_config
               namespace_inject: hed
               unmanaged: True
 
@@ -332,7 +332,7 @@ Github Repository dependencies create a dynamic dependency between the current p
 
     project:
         dependencies:
-            - github: https://github.com/SalesforceFoundation/HEDAP
+            - github: https://github.com/SalesforceFoundation/EDA
 
 When `update_dependencies` runs, the following is doing against the referenced repository:
 
@@ -353,10 +353,10 @@ If the referenced repository does not have a namespace configured or if the depe
 
     project:
         dependencies:
-            - github: https://github.com/SalesforceFoundation/HEDAP
+            - github: https://github.com/SalesforceFoundation/EDA
               unmanaged: True
 
-In the above example, the HEDAP repository is configured for a namespace but the dependency specifies `unmanaged: True` so the dependency would deploy unmanaged HEDAP and its dependencies. 
+In the above example, the EDA repository is configured for a namespace but the dependency specifies `unmanaged: True` so the dependency would deploy unmanaged EDA and its dependencies. 
 
 Referencing a Specific Tag
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -367,10 +367,10 @@ If you want to reference a version other than HEAD and the latest production rel
 
     project:
         dependencies:
-            - github: https://github.com/SalesforceFoundation/HEDAP
+            - github: https://github.com/SalesforceFoundation/EDA
               tag: beta/1.47-Beta_2
 
-In the above example, the HEDAP repository's tag `beta/1.47-Beta_2` will be used instead of the latest production release of HEDAP (1.46 for this example).  This allows a build environment to use features in the next production release of HEDAP which are already merged but not yet included in a production release.
+In the above example, the EDA repository's tag `beta/1.47-Beta_2` will be used instead of the latest production release of EDA (1.46 for this example).  This allows a build environment to use features in the next production release of EDA which are already merged but not yet included in a production release.
 
 Skipping unpackaged/* in Reference Repositories
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -381,7 +381,7 @@ If the repository you are referring to has dependency metadata under unpackaged/
 
     project:
         dependencies:
-            - github: https://github.com/SalesforceFoundation/HEDAP
+            - github: https://github.com/SalesforceFoundation/EDA
               skip: unpackaged/post/course_connection_record_types
 
 Case Study: SalesforceFoundation/Cumulus
