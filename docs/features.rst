@@ -575,6 +575,9 @@ To check to make sure the snapshot was created correctly, you should see no chan
 
     cci task run list_changes --org dev
 
+Retrieving Changes
+==================
+
 Now, go make the changes in the org you want to capture as part of the dev config.  You can check what metadata has changed with the list_changes command
 
 .. code-block:: console
@@ -587,9 +590,6 @@ You can also include/exclude files from the list using the include/exclude optio
 
     cci task run list_changes --org dev -o include "test.*,another_regex" \
                                         -o exclude "something_to_exclude"
-
-Retrieving Changes
-==================
 
 When you are ready to capture the changes returned from list_changes, run the custom retrieve task
 
