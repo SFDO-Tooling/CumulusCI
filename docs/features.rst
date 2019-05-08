@@ -534,7 +534,7 @@ One drawback of this approach is that there may be diffs in the meta.xml files t
 Source Tracking
 ===============
 
-The new tasks **list_changes** and **retrieve_changes** were built to interact with the source change tracking in scratch orgs.  Using these tasks, you can get a list of new changes made in the scratch org and retrieve those changes as Metadata API format source.
+The new tasks **list_changes** and **retrieve_changes** were built to interact with the source change tracking in scratch orgs.  Using these tasks, you can get a list of new changes made in the scratch org and retrieve those changes in Metadata API format.
 
 Creating retrieve_config_* Tasks
 ================================
@@ -554,7 +554,7 @@ For each config directory, create a new task that wraps the retrieve_changes tas
 Setting up the Capture Scratch Org
 ==================================
 
-When capturing post install configuration, it is best to work with a managed version of the product.  This will ensure that namespace references get replaced by CumulusCI's namespace token strings so the retrieved config works against both managed and unmanaged deployments.
+When capturing post-install configuration, it is best to work with a managed version of the product.  This will ensure that namespace references are replaced by CumulusCI's namespace token strings, resulting in retrieved config metadata that works with both managed and unmanaged deployments.
 
 .. code-block:: console
 
@@ -563,7 +563,7 @@ When capturing post install configuration, it is best to work with a managed ver
 Starting a Snapshot
 ===================
 
-When you are ready to start making declarative changes you want to capture, the first step is to create a snapshot which will effectively set the source tracking to treat all current changes as already handled.  This will mean the list_changes command will list any new metadata but ignore any phantom changes from before
+When you are ready to start making declarative changes you want to capture, start by creating a snapshot, which will effectively set the source tracking to treat all current changes as already handled.  This will mean the list_changes command will list any new metadata but ignore any phantom changes from before
 
 .. code-block:: console
 
