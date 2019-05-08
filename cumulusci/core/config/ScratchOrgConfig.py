@@ -8,6 +8,7 @@ import re
 import sarge
 from simple_salesforce import Salesforce
 
+from cumulusci.utils import get_git_config
 from cumulusci.core.config import FAILED_TO_CREATE_SCRATCH_ORG
 from cumulusci.core.config import OrgConfig
 from cumulusci.core.exceptions import ScratchOrgException
@@ -137,6 +138,15 @@ class ScratchOrgConfig(OrgConfig):
         return password
 
     @property
+    def email_address(self):
+        email_address = self.config.get("email_address")
+        if not email_address:
+            email_address = get_git_config("user.email")
+            self.config["email_address"] = email_address
+
+        return email_address
+
+    @property
     def days(self):
         return self.config.setdefault("days", 1)
 
@@ -163,6 +173,14 @@ class ScratchOrgConfig(OrgConfig):
         if not self.scratch_org_type:
             self.config["scratch_org_type"] = "workspace"
 
+        # If the scratch org definition itself contains an `adminEmail` entry,
+        # we don't want to override it from our own configuration, which may
+        # simply come from the user's Git config.
+
+        with open(self.config_file, "r") as org_def:
+            org_def_data = json.load(org_def)
+            org_def_has_email = "adminEmail" in org_def_data
+
         options = {
             "config_file": self.config_file,
             "devhub": " --targetdevhubusername {}".format(self.devhub)
@@ -173,12 +191,15 @@ class ScratchOrgConfig(OrgConfig):
             "alias": sarge.shell_format(' -a "{0!s}"', self.sfdx_alias)
             if self.sfdx_alias
             else "",
+            "email": sarge.shell_format('adminEmail="{0!s}"', self.email_address)
+            if self.email_address and not org_def_has_email
+            else "",
             "extraargs": os.environ.get("SFDX_ORG_CREATE_ARGS", ""),
         }
 
         # This feels a little dirty, but the use cases for extra args would mostly
         # work best with env vars
-        command = "sfdx force:org:create -f {config_file}{devhub}{namespaced}{days}{alias} {extraargs}".format(
+        command = "sfdx force:org:create -f {config_file}{devhub}{namespaced}{days}{alias} {email} {extraargs}".format(
             **options
         )
         self.logger.info("Creating scratch org with command {}".format(command))

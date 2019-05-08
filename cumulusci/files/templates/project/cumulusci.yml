@@ -22,7 +22,6 @@ project:
       {% endif %}
     {% endfor %}
     {% endif %}
-
     {% if git %}
     git:{% endif %}
       {% if git.default_branch %} 
@@ -38,8 +37,19 @@ project:
     test:
         name_match: '{{ test_name_match }}'
     {% endif %}
-{% if package_namespace %}
+tasks:
+    robot:
+        options:
+            suites: robot/{{project_name}}/tests
+            options:
+                outputdir: robot/{{project_name}}/results
 
+    robot_testdoc:
+        options:
+            path: robot/{{project_name}}/tests
+            output: robot/{{project_name}}/doc/{{project_name}}_tests.html
+
+{% if package_namespace %}
 orgs:
     scratch:
         dev_namespaced:

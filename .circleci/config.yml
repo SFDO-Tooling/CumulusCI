@@ -21,7 +21,7 @@ jobs:
           name: Install dependencies
           command: |
             virtualenv venv
-            venv/bin/pip install $(grep black requirements_dev.txt | cut -d';' -f 1)
+            venv/bin/pip install --no-use-pep517 $(grep black requirements_dev.txt | cut -d';' -f 1)
       - run:
           name: Run black
           command: |
@@ -81,7 +81,7 @@ jobs:
           name: Install Python dependencies
           command: |
             virtualenv venv
-            venv/bin/pip install -r requirements_dev.txt
+            venv/bin/pip install --no-use-pep517 -r requirements_dev.txt
       - run:
           name: Install sfdx
           command: |
@@ -136,7 +136,7 @@ jobs:
           name: Install Python dependencies
           command: |
             virtualenv venv
-            venv/bin/pip install -r requirements_dev.txt
+            venv/bin/pip install --no-use-pep517 -r requirements_dev.txt
       - run:
           name: Check out CumulusCI-Test
           command: |

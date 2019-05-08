@@ -364,7 +364,7 @@ class BundleParser(BaseMetadataParser):
         if not os.path.isdir(path):
             return members
 
-        # item is a directory; add direcetory to members and ignore processing directory's files
+        # item is a directory; add directory to members and ignore processing directory's files
         members.append(item)
 
         return members
