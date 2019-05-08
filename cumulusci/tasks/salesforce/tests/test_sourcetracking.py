@@ -80,7 +80,7 @@ class TestListChanges(unittest.TestCase):
                 ],
             }
             task._run_task()
-            self.assertIn("Ignored 1 changed components in the scratch org:", messages)
+            self.assertIn("Ignored 1 changed components in the scratch org.", messages)
 
     def test_filter_changes__include(self):
         foo = {"MemberType": "CustomObject", "MemberName": "foo__c", "RevisionNum": 1}
