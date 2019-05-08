@@ -2,11 +2,7 @@ from builtins import str
 import json
 import functools
 
-from simple_salesforce import Salesforce
 from simple_salesforce import SalesforceMalformedRequest
-from simple_salesforce.util import date_to_iso8601
-
-from cumulusci.core.exceptions import CumulusCIException
 
 
 def memoize(obj):
@@ -86,7 +82,7 @@ class MetadataPackageVersion(BasePushApiObject):
     def version_number(self):
         parts = [str(self.major), str(self.minor)]
         if self.patch:
-            parts.append(str(patch))
+            parts.append(str(self.patch))
         version_number = ".".join(parts)
         if self.state == "Beta":
             version_number += " (Beta %s)" % self.build

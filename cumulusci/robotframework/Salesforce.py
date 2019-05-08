@@ -1,15 +1,21 @@
+import glob
+import importlib
 import logging
+import os.path
 import re
 import time
-from robot.libraries.BuiltIn import BuiltIn
+from robot.libraries.BuiltIn import BuiltIn, RobotNotRunningError
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.common.action_chains import ActionChains
+
 from simple_salesforce import SalesforceResourceNotFound
-from cumulusci.robotframework.locators import lex_locators
 from cumulusci.robotframework.utils import selenium_retry
 from SeleniumLibrary.errors import ElementNotFound
 from urllib3.exceptions import ProtocolError
 
 OID_REGEX = r"^(%2F)?([a-zA-Z0-9]{15,18})$"
+
+lex_locators = {}  # will be initialized when Salesforce is instantiated
 
 
 @selenium_retry
@@ -23,6 +29,34 @@ class Salesforce(object):
         logging.getLogger("requests.packages.urllib3.connectionpool").setLevel(
             logging.WARN
         )
+        self._init_locators()
+
+    def _init_locators(self):
+        """Load the appropriate locator file for the current version
+
+        If no version can be determined, we'll use the highest numbered
+        locator file name.
+        """
+        try:
+            client = self.cumulusci.tooling
+            response = client._call_salesforce(
+                "GET", "https://{}/services/data".format(client.sf_instance)
+            )
+            version = int(float(response.json()[-1]["version"]))
+            locator_module_name = "locators_{}".format(version)
+
+        except RobotNotRunningError:
+            # We aren't part of a running test, likely because we are
+            # generating keyword documentation. If that's the case we'll
+            # use the latest supported version
+            here = os.path.dirname(__file__)
+            files = sorted(glob.glob(os.path.join(here, "locators_*.py")))
+            locator_module_name = os.path.basename(files[-1])[:-3]
+
+        self.locators_module = importlib.import_module(
+            "cumulusci.robotframework." + locator_module_name
+        )
+        lex_locators.update(self.locators_module.lex_locators)
 
     @property
     def builtin(self):
@@ -157,6 +191,14 @@ class Salesforce(object):
             if oid_match is not None:
                 return oid_match.group(2)
         raise AssertionError("Could not parse record id from url: {}".format(url))
+
+    def get_field_value(self, label):
+        """Return the current value of a form field based on the field label"""
+        input_element_id = self.selenium.get_element_attribute(
+            "xpath://label[contains(., '{}')]".format(label), "for"
+        )
+        value = self.selenium.get_value(input_element_id)
+        return value
 
     def get_locator(self, path, *args, **kwargs):
         """ Returns a rendered locator string from the Salesforce lex_locators
@@ -295,10 +337,63 @@ class Salesforce(object):
         self.selenium.get_webelement(menu_locator).click()
 
     def _populate_field(self, locator, value):
-        self.selenium.set_focus_to_element(locator)
         field = self.selenium.get_webelement(locator)
-        field.send_keys(Keys.HOME + Keys.SHIFT + Keys.END)
-        field.send_keys(value)
+        self._focus(field)
+        if field.get_attribute("value"):
+            self._clear(field)
+        actions = ActionChains(self.selenium.driver)
+        actions.send_keys_to_element(field, value).perform()
+
+    def _focus(self, element):
+        """Set focus to an element
+
+        In addition to merely setting the focus, we click the mouse
+        to the field in case there are functions tied to that event.
+        """
+        actions = ActionChains(self.selenium.driver)
+        actions.move_to_element(element).click().perform()
+        self.selenium.set_focus_to_element(element)
+
+    def _clear(self, element):
+        """Clear the field, using any means necessary
+
+        This is surprisingly hard to do with a generic solution. Some
+        methods work for some components and/or on some browsers but
+        not others. Therefore, several techniques are employed.
+        """
+
+        element.clear()
+        self.selenium.driver.execute_script("arguments[0].value = '';", element)
+
+        # Select all and delete just in case the element didn't get cleared
+        element.send_keys(Keys.HOME + Keys.SHIFT + Keys.END)
+        element.send_keys(Keys.BACKSPACE)
+
+        if element.get_attribute("value"):
+            # Give the UI a chance to settle down. The sleep appears
+            # necessary. Without it, this keyword sometimes fails to work
+            # properly. With it, I was able to run 700+ tests without a single
+            # failure.
+            time.sleep(0.25)
+
+        # Even after all that, some elements refuse to be cleared out.
+        # I'm looking at you, currency fields on Firefox.
+        if element.get_attribute("value"):
+            self._force_clear(element)
+
+    def _force_clear(self, element):
+        """Use brute-force to clear an element
+
+        This moves the cursor to the end of the input field and
+        then issues a series of backspace keys to delete the data
+        in the field.
+        """
+        value = element.get_attribute("value")
+        actions = ActionChains(self.selenium.driver)
+        actions.move_to_element(element).click().send_keys(Keys.END)
+        for character in value:
+            actions.send_keys(Keys.BACKSPACE)
+        actions.perform()
 
     def populate_form(self, **kwargs):
         """Enters multiple values from a mapping into form fields."""
@@ -421,10 +516,11 @@ class Salesforce(object):
             lex_locators["modal"]["is_open"], timeout=15
         )
 
-    def wait_until_loading_is_complete(self, locator=lex_locators["body"]):
+    def wait_until_loading_is_complete(self, locator=None):
         """Wait for LEX page to load.
 
         (We're actually waiting for the actions ribbon to appear.)
         """
+        locator = lex_locators["body"] if locator is None else locator
         self.selenium.wait_until_page_contains_element(locator)
         self.wait_for_aura()

@@ -1,7 +1,6 @@
 import sys
 
 from robot import run as robot_run
-from robot.libdoc import libdoc
 from robot.testdoc import testdoc
 
 from cumulusci.core.exceptions import RobotTestFailure
@@ -18,7 +17,7 @@ class Robot(BaseSalesforceTask):
             "description": 'Paths to test case files/directories to be executed similarly as when running the robot command on the command line.  Defaults to "tests" to run all tests in the tests directory',
             "required": True,
         },
-        "tests": {
+        "test": {
             "description": "Run only tests matching name patterns.  Can be comma separated and use robot wildcards like *"
         },
         "include": {"description": "Includes tests with a given tag"},
@@ -37,7 +36,7 @@ class Robot(BaseSalesforceTask):
     def _init_options(self, kwargs):
         super(Robot, self)._init_options(kwargs)
 
-        for option in ("tests", "include", "exclude", "vars"):
+        for option in ("test", "include", "exclude", "vars"):
             if option in self.options:
                 self.options[option] = process_list_arg(self.options[option])
         if "vars" not in self.options:
@@ -56,7 +55,7 @@ class Robot(BaseSalesforceTask):
     def _run_task(self):
         self.options["vars"].append("org:{}".format(self.org_config.name))
         options = self.options["options"].copy()
-        for option in ("tests", "include", "exclude", "xunit"):
+        for option in ("test", "include", "exclude", "xunit"):
             if option in self.options:
                 options[option] = self.options[option]
         options["variable"] = self.options.get("vars") or []
@@ -64,22 +63,6 @@ class Robot(BaseSalesforceTask):
         num_failed = robot_run(self.options["suites"], **options)
         if num_failed:
             raise RobotTestFailure("{} tests failed".format(num_failed))
-
-
-class RobotLibDoc(BaseTask):
-    task_options = {
-        "path": {
-            "description": "The path to the robot library to be documented.  Can be a python file or a .robot file.",
-            "required": True,
-        },
-        "output": {
-            "description": "The output file where the documentation will be written",
-            "required": True,
-        },
-    }
-
-    def _run_task(self):
-        return libdoc(self.options["path"], self.options["output"])
 
 
 class RobotTestDoc(BaseTask):

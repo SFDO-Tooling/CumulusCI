@@ -5,7 +5,6 @@ based on mrbelvedere/mpinstaller/mdapi.py
 
 # TO DO
 #   - add docstrings
-#   - use format() instead of %
 #   - look at https://github.com/rholder/retrying
 
 from __future__ import unicode_literals
@@ -25,6 +24,8 @@ from zipfile import ZipFile
 import io
 
 import requests
+from requests.adapters import HTTPAdapter
+from requests.packages.urllib3.util.retry import Retry
 
 from cumulusci.salesforce_api import soap_envelopes
 from cumulusci.core.exceptions import ApexTestException
@@ -32,6 +33,9 @@ from cumulusci.utils import zip_subfolder, parse_api_datetime
 from cumulusci.salesforce_api.exceptions import MetadataComponentFailure
 from cumulusci.salesforce_api.exceptions import MetadataParseError
 from cumulusci.salesforce_api.exceptions import MetadataApiError
+
+retry_policy = Retry(backoff_factor=0.3)
+http_adapter = HTTPAdapter(max_retries=retry_policy)
 
 
 class BaseMetadataApiCall(object):
@@ -44,7 +48,7 @@ class BaseMetadataApiCall(object):
     soap_action_result = None
 
     def __init__(self, task, api_version=None):
-        # the cumulucci context object contains logger, oauth, ID, secret, etc
+        # the cumulusci context object contains logger, oauth, ID, secret, etc
         self.task = task
         self.status = None
         self.check_num = 1
@@ -105,7 +109,9 @@ class BaseMetadataApiCall(object):
         # Insert the session id
         session_id = self.task.org_config.access_token
         auth_envelope = envelope.replace("###SESSION_ID###", session_id)
-        response = requests.post(
+        session = requests.Session()
+        session.mount("https://", http_adapter)
+        response = session.post(
             self._build_endpoint_url(),
             headers=headers,
             data=auth_envelope.encode("utf-8"),
@@ -263,7 +269,7 @@ class ApiRetrieveUnpackaged(BaseMetadataApiCall):
         self._clean_package_xml()
 
     def _clean_package_xml(self):
-        self.package_xml = re.sub("<\?xml.*\?>", "", self.package_xml)
+        self.package_xml = re.sub(r"<\?xml.*\?>", "", self.package_xml)
         self.package_xml = re.sub("<Package.*>", "", self.package_xml, 1)
         self.package_xml = re.sub("</Package>", "", self.package_xml, 1)
         self.package_xml = re.sub("\n", "", self.package_xml)
@@ -294,8 +300,8 @@ class ApiRetrieveInstalledPackages(BaseMetadataApiCall):
     soap_action_status = "checkStatus"
     soap_action_result = "checkRetrieveStatus"
 
-    def __init__(self, task):
-        super(ApiRetrieveInstalledPackages, self).__init__(task)
+    def __init__(self, task, api_version=None):
+        super(ApiRetrieveInstalledPackages, self).__init__(task, api_version)
         self.packages = {}
 
     def _process_response(self, response):
@@ -364,16 +370,16 @@ class ApiDeploy(BaseMetadataApiCall):
         self.package_zip = package_zip
 
     def _set_purge_on_delete(self, purge_on_delete):
-        if purge_on_delete == False or purge_on_delete == "false":
+        if not purge_on_delete or purge_on_delete == "false":
             self.purge_on_delete = "false"
         else:
             self.purge_on_delete = "true"
         # Disable purge on delete entirely for non sandbox or DE orgs as it is
         # not allowed
-        # FIXME: To implement this, the task needs to be able to provide the org_type
-        # org_type = self.task.org_config.org_type
-        # if org_type.find('Sandbox') == -1 and org_type != 'Developer Edition':
-        #    self.purge_on_delete = 'false'
+        org_type = self.task.org_config.org_type
+        is_sandbox = self.task.org_config.is_sandbox
+        if org_type != "Developer Edition" and not is_sandbox:
+            self.purge_on_delete = "false"
 
     def _build_envelope_start(self):
         if self.package_zip:

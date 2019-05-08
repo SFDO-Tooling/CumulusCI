@@ -71,7 +71,7 @@ class BaseProjectKeychain(BaseConfig):
     def _load_services(self):
         pass
 
-    def create_scratch_org(self, org_name, config_name, days=None, set_password=False):
+    def create_scratch_org(self, org_name, config_name, days=None, set_password=True):
         """ Adds/Updates a scratch org config to the keychain from a named config """
         scratch_config = getattr(
             self.project_config, "orgs__scratch__{}".format(config_name)

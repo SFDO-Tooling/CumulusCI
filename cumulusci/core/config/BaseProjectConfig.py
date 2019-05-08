@@ -395,12 +395,18 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         repo = gh.repository(self.repo_owner, self.repo_name)
         if not beta:
             release = repo.latest_release()
+            prefix = self.project__git__prefix_release
+            if not release.tag_name.startswith(prefix):
+                return self._get_latest_tag_for_prefix(repo, prefix)
             return release.tag_name
         else:
-            for release in repo.releases():
-                if not release.tag_name.startswith(self.project__git__prefix_beta):
-                    continue
-                return release.tag_name
+            return self._get_latest_tag_for_prefix(repo, self.project__git__prefix_beta)
+
+    def _get_latest_tag_for_prefix(self, repo, prefix):
+        for release in repo.releases():
+            if not release.tag_name.startswith(prefix):
+                continue
+            return release.tag_name
 
     def get_latest_version(self, beta=False):
         """ Query Github Releases to find the latest production or beta release """
@@ -408,6 +414,19 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         version = self.get_version_for_tag(tag)
         if version is not None:
             return LooseVersion(version)
+
+    def get_previous_version(self):
+        """Query GitHub releases to find the previous production release"""
+        gh = self.get_github_api()
+        repo = gh.repository(self.repo_owner, self.repo_name)
+        most_recent = None
+        for release in repo.releases():
+            # Return the second release that matches the release prefix
+            if release.tag_name.startswith(self.project__git__prefix_release):
+                if most_recent is None:
+                    most_recent = release
+                else:
+                    return LooseVersion(self.get_version_for_tag(release.tag_name))
 
     @property
     def config_project_path(self):
@@ -525,7 +544,9 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                 prefix = "{}    ".format(" " * indent)
         return pretty
 
-    def process_github_dependency(self, dependency, indent=None, include_beta=None):
+    def process_github_dependency(  # noqa: C901
+        self, dependency, indent=None, include_beta=None
+    ):
         if not indent:
             indent = ""
 

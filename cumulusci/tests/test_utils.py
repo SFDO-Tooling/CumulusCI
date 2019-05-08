@@ -3,6 +3,7 @@
 from collections import OrderedDict
 import io
 import os
+import sarge
 import unittest
 import zipfile
 from datetime import datetime, timedelta
@@ -385,7 +386,7 @@ Options:
     def test_parse_api_datetime__bad(self):
         bad_str = "2018-08-07T16:00:56.000-20000"
         with self.assertRaises(AssertionError):
-            dt = utils.parse_api_datetime(bad_str)
+            utils.parse_api_datetime(bad_str)
 
     def test_log_progress(self):
         logger = mock.Mock()
@@ -408,13 +409,52 @@ Options:
         upgrade_cmd = utils.get_cci_upgrade_command()
         self.assertEqual(utils.PIP_UPDATE_CMD, upgrade_cmd)
 
+    def test_util__sets_pipx_upgrade_cmd(self):
+        utils.CUMULUSCI_PATH = (
+            "/Users/Username/.local/pipx/venvs/cumulusci/Lib/site-packages/cumulusci"
+        )
+        upgrade_cmd = utils.get_cci_upgrade_command()
+        self.assertEqual(utils.PIPX_UPDATE_CMD, upgrade_cmd)
+
     def test_convert_to_snake_case(self):
         self.assertEqual("one_two", utils.convert_to_snake_case("OneTwo"))
         self.assertEqual("one_two", utils.convert_to_snake_case("ONETwo"))
+        self.assertEqual("one_two", utils.convert_to_snake_case("One_Two"))
 
     def test_os_friendly_path(self):
         with mock.patch("os.sep", "\\"):
             self.assertEqual("\\", utils.os_friendly_path("/"))
+
+    @mock.patch("sarge.Command")
+    def test_get_git_config(self, Command):
+        Command.return_value = p = mock.Mock(
+            stdout=io.BytesIO(b"test@example.com"), stderr=io.BytesIO(b""), returncode=0
+        )
+
+        self.assertEqual("test@example.com", utils.get_git_config("user.email"))
+        self.assertEqual(
+            sarge.shell_format('git config --get "{0!s}"', "user.email"),
+            Command.call_args[0][0],
+        )
+        p.run.assert_called_once()
+
+    @mock.patch("sarge.Command")
+    def test_get_git_config_undefined(self, Command):
+        Command.return_value = p = mock.Mock(
+            stdout=io.BytesIO(b""), stderr=io.BytesIO(b""), returncode=0
+        )
+
+        self.assertIsNone(utils.get_git_config("user.email"))
+        p.run.assert_called_once()
+
+    @mock.patch("sarge.Command")
+    def test_get_git_config_error(self, Command):
+        Command.return_value = p = mock.Mock(
+            stdout=io.BytesIO(b"Text"), stderr=io.BytesIO(b""), returncode=-1
+        )
+
+        self.assertIsNone(utils.get_git_config("user.email"))
+        p.run.assert_called_once()
 
 
 class FunTestTask(BaseTask):

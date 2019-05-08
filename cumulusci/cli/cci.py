@@ -488,6 +488,7 @@ def project_init(config):
                 package_name=context["package_name"],
                 org_name="Beta Test Org",
                 edition="Developer",
+                managed=True,
             )
         )
     with open(os.path.join("orgs", "dev.json"), "w") as f:
@@ -496,6 +497,7 @@ def project_init(config):
                 package_name=context["package_name"],
                 org_name="Dev Org",
                 edition="Developer",
+                managed=False,
             )
         )
     with open(os.path.join("orgs", "feature.json"), "w") as f:
@@ -504,6 +506,7 @@ def project_init(config):
                 package_name=context["package_name"],
                 org_name="Feature Test Org",
                 edition="Developer",
+                managed=False,
             )
         )
     with open(os.path.join("orgs", "release.json"), "w") as f:
@@ -512,14 +515,19 @@ def project_init(config):
                 package_name=context["package_name"],
                 org_name="Release Test Org",
                 edition="Enterprise",
+                managed=True,
             )
         )
 
-    # Create initial create_contact.robot test
-    if not os.path.isdir("tests"):
-        os.mkdir("tests")
-        test_folder = os.path.join("tests", "standard_objects")
-        os.mkdir(test_folder)
+    # create robot folder structure and starter files
+    if not os.path.isdir("robot"):
+        test_folder = os.path.join("robot", context["project_name"], "tests")
+        resource_folder = os.path.join("robot", context["project_name"], "resources")
+        doc_folder = os.path.join("robot", context["project_name"], "doc")
+
+        os.makedirs(test_folder)
+        os.makedirs(resource_folder)
+        os.makedirs(doc_folder)
         test_src = os.path.join(
             cumulusci.__location__,
             "robotframework",
@@ -613,8 +621,16 @@ class ConnectServiceCommand(click.MultiCommand):
 
     def get_command(self, ctx, name):
         config = load_config(**self.load_config_kwargs)
-        services = self._get_services_config(config)
-        attributes = services.get(name, {}).get("attributes").items()
+
+        try:
+            attributes = getattr(
+                config.project_config, "services__{0}__attributes".format(name)
+            ).items()
+        except AttributeError:
+            raise click.UsageError(
+                "Sorry, I don't know about the '{0}' service.".format(name)
+            )
+
         params = [self._build_param(attr, cnfg) for attr, cnfg in attributes]
         if not config.is_global_keychain:
             params.append(click.Option(("--project",), is_flag=True))
@@ -784,7 +800,15 @@ def org_info(config, org_name, print_json):
     org_config.refresh_oauth_token(config.keychain)
 
     if print_json:
-        click.echo(json.dumps(org_config.config, sort_keys=True, indent=4))
+        click.echo(
+            json.dumps(
+                org_config.config,
+                sort_keys=True,
+                indent=4,
+                default=str,
+                separators=(",", ": "),
+            )
+        )
     else:
         render_recursive(org_config.config)
 

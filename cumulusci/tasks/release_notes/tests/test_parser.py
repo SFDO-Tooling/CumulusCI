@@ -3,7 +3,6 @@ from future import standard_library
 standard_library.install_aliases()
 import http.client
 import mock
-import os
 import unittest
 
 import responses
@@ -166,6 +165,14 @@ class TestIssuesParser(unittest.TestCase):
         parser.parse(change_note)
         self.assertEqual(parser.content, [2, 3, 5])
 
+    def test_issue_numbers_with_links(self):
+        change_note = "# {}\r\nfix [#2](https://issue)\r\nfix [#3](http://issue)\r\nfix #5\r\n".format(
+            self.title
+        )
+        parser = IssuesParser(None, self.title)
+        parser.parse(change_note)
+        self.assertEqual(parser.content, [2, 3, 5])
+
     def test_issue_numbers_and_other_numbers(self):
         change_note = "# {}\r\nfixes #2 but not # 3 or 5".format(self.title)
         parser = IssuesParser(None, self.title)
@@ -288,7 +295,7 @@ class TestGithubIssuesParser(unittest.TestCase, GithubApiTestMixin):
     def test_init__issues_disabled(self):
         generator = mock.Mock(has_issues=False)
         with self.assertRaises(GithubIssuesError):
-            parser = GithubIssuesParser(generator, self.title)
+            GithubIssuesParser(generator, self.title)
 
     def _create_expected_content(self, issue_numbers, pr_url):
         y = []
@@ -419,7 +426,6 @@ class TestCommentingGithubIssuesParser(unittest.TestCase, GithubApiTestMixin):
         # Mock the comments list
         api_url = "{}/issues/{}/comments".format(self.repo_api_url, issue_number)
         expected_comment_1 = self._get_expected_issue_comment("Some other comment")
-        expected_comments = [expected_comment_1]
         responses.add(
             method=responses.GET, url=api_url, json=[], content_type="application/json"
         )
@@ -496,7 +502,6 @@ class TestCommentingGithubIssuesParser(unittest.TestCase, GithubApiTestMixin):
         # Mock the comments list
         api_url = "{}/issues/{}/comments".format(self.repo_api_url, issue_number)
         expected_comment_1 = self._get_expected_issue_comment("Some other comment")
-        expected_comments = [expected_comment_1]
         responses.add(
             method=responses.GET, url=api_url, json=[], content_type="application/json"
         )

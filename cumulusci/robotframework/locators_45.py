@@ -17,7 +17,7 @@ lex_locators = {
     },
     "object": {
         "button": "css: div.windowViewMode-normal ul.forceActionsContainer.oneActionsRibbon a[title='{}']",
-        "field": "//div[contains(@class, 'uiInput')][.//label[contains(@class, 'uiLabel')][.//span[text()='{}']]]//input",
+        "field": "//div[contains(@class, 'uiInput')][.//label[contains(@class, 'uiLabel')][.//span[text()='{}']]]//*[self::input or self::textarea]",
         "field_lookup_link": "//a[@role='option'][.//div[@title='{}']]",
         "field_lookup_value": "//div[contains(@class, 'uiInput')][.//label[contains(@class, 'uiLabel')][.//span[text()='{}']]]//span[contains(@class,'pillText')]",
         "record_type_option": "//div[contains(@class, 'changeRecordTypeOptionRightColumn')]//span[text()='{}']",

@@ -1,6 +1,7 @@
 {
-  "orgName": "CumulusCI - Feature Test Org",
+  "orgName": "CumulusCI - Dev Workspace",
   "edition": "Developer",
+  "instance": "cs46",
   "settings": {
     "orgPreferenceSettings": {
       "s1DesktopEnabled": true

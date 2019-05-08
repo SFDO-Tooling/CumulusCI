@@ -31,8 +31,14 @@ class TestEpochType(unittest.TestCase):
 
     def test_process_result_value(self):
         obj = bulkdata.EpochType()
+
+        # Non-None value
         result = obj.process_result_value(1000, None)
         self.assertEqual(datetime(1970, 1, 1, 0, 0, 1), result)
+
+        # None value
+        result = obj.process_result_value(None, None)
+        self.assertEqual(None, result)
 
     def test_setup_epoch(self):
         column_info = {"type": types.DateTime()}
@@ -70,7 +76,6 @@ class TestDeleteData(unittest.TestCase):
         api.get_all_results_for_query_batch.return_value = [BULK_DELETE_QUERY_RESULT]
         api.create_job.return_value = delete_job = "3"
         api.headers.return_value = {}
-        delete_batch = "4"
         responses.add(
             method="POST",
             url="http://api/job/3/batch",

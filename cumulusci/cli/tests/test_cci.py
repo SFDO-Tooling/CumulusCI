@@ -246,14 +246,61 @@ class TestCCI(unittest.TestCase):
                     "orgs/dev.json",
                     "orgs/feature.json",
                     "orgs/release.json",
+                    "robot/",
+                    "robot/testproj/",
+                    "robot/testproj/doc/",
+                    "robot/testproj/resources/",
+                    "robot/testproj/tests/",
+                    "robot/testproj/tests/create_contact.robot",
                     "sfdx-project.json",
                     "src/",
-                    "tests/",
-                    "tests/standard_objects/",
-                    "tests/standard_objects/create_contact.robot",
                 ],
                 recursive_list_files(),
             )
+
+    @mock.patch("cumulusci.cli.cci.click")
+    def test_project_init_tasks(self, click):
+        """Verify that the generated cumulusci.yml file is readable and has the proper robot task"""
+        with temporary_dir():
+            os.mkdir(".git")
+
+            click.prompt.side_effect = (
+                "testproj",  # project_name
+                "testpkg",  # package_name
+                "testns",  # package_namespace
+                "43.0",  # api_version
+                "3",  # extend other URL
+                "https://github.com/SalesforceFoundation/Cumulus",  # github_url
+                "default",  # git_default_branch
+                "work/",  # git_prefix_feature
+                "uat/",  # git_prefix_beta
+                "rel/",  # git_prefix_release
+                "%_TEST%",  # test_name_match
+            )
+            click.confirm.side_effect = (True, True)  # is managed?  # extending?
+
+            run_click_command(cci.project_init)
+
+            # verify we can load the generated yml
+            cli_runtime = CliRuntime(load_keychain=False)
+
+            # ...and verify it has the expected tasks
+            config = cli_runtime.project_config.config_project
+            expected_tasks = {
+                "robot": {
+                    "options": {
+                        "suites": u"robot/testproj/tests",
+                        "options": {"outputdir": "robot/testproj/results"},
+                    }
+                },
+                "robot_testdoc": {
+                    "options": {
+                        "path": "robot/testproj/tests",
+                        "output": "robot/testproj/doc/testproj_tests.html",
+                    }
+                },
+            }
+            self.assertDictEqual(config["tasks"], expected_tasks)
 
     def test_project_init_no_git(self):
         with temporary_dir():
@@ -330,11 +377,9 @@ test     Test Service  *""",
     def test_service_connect(self):
         multi_cmd = cci.ConnectServiceCommand()
         ctx = mock.Mock()
-        config = mock.Mock()
+        config = mock.MagicMock()
         config.is_global_keychain = False
-        config.project_config.services = {
-            "test": {"attributes": {"attr": {"required": False}}}
-        }
+        config.project_config.services__test__attributes = {"attr": {"required": False}}
 
         with mock.patch("cumulusci.cli.cci.TEST_CONFIG", config):
             cmd = multi_cmd.get_command(ctx, "test")
@@ -347,7 +392,7 @@ test     Test Service  *""",
     def test_service_connect_global_keychain(self):
         multi_cmd = cci.ConnectServiceCommand()
         ctx = mock.Mock()
-        config = mock.Mock()
+        config = mock.MagicMock()
         config.is_global_keychain = True
         config.global_config.services = {
             "test": {"attributes": {"attr": {"required": False}}}
@@ -360,6 +405,16 @@ test     Test Service  *""",
         config.keychain.set_service.assert_called_once()
 
         run_click_command(cmd, project=False)
+
+    def test_service_connect_invalid_service(self):
+        multi_cmd = cci.ConnectServiceCommand()
+        ctx = mock.Mock()
+        config = mock.MagicMock()
+        del config.project_config.services__test__attributes
+
+        with mock.patch("cumulusci.cli.cci.TEST_CONFIG", config):
+            with self.assertRaises(click.UsageError):
+                multi_cmd.get_command(ctx, "test")
 
     @mock.patch("click.echo")
     def test_service_info(self, echo):
@@ -498,8 +553,12 @@ test     Test Service  *""",
         config.keychain.set_org.assert_called_once_with(org_config)
 
     def test_org_info_json(self):
+        class Unserializable(object):
+            def __str__(self):
+                return "<unserializable>"
+
         org_config = mock.Mock()
-        org_config.config = {"test": "test"}
+        org_config.config = {"test": "test", "unserializable": Unserializable()}
         org_config.expires = date.today()
         config = mock.Mock()
         config.get_org.return_value = ("test", org_config)
@@ -511,7 +570,10 @@ test     Test Service  *""",
             )
 
         org_config.refresh_oauth_token.assert_called_once()
-        self.assertEqual('{\n    "test": "test"\n}', "".join(out))
+        self.assertEqual(
+            '{\n    "test": "test",\n    "unserializable": "<unserializable>"\n}',
+            "".join(out),
+        )
         config.keychain.set_org.assert_called_once_with(org_config)
 
     @mock.patch("click.echo")

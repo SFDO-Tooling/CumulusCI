@@ -1,18 +1,18 @@
 -r requirements.txt
 -e .
-black==18.9b0; python_version > '3'
+black==19.3b0; python_version > '3'
 bump2version==0.5.10
-coverage==4.5.2
-coveralls==1.6.0
+coverage==4.5.3
+coveralls==1.7.0
 flake8==3.7.7
-mock==2.0.0
-pre-commit==1.14.4
-pytest==4.3.0
-pytest-cov==2.6.1
-responses==0.10.5
-Sphinx==1.8.4
-testfixtures==6.6.0
-tox==3.7.0
+mock==3.0.4
+pre-commit==1.16.0
+pytest==4.4.1
+pytest-cov==2.7.1
+responses==0.10.6
+Sphinx==1.8.5  # pyup: <2
+testfixtures==6.8.2
+tox==3.9.0
 twine==1.13.0
 watchdog==0.9.0
 wheel==0.33.1

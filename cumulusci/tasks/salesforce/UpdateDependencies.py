@@ -284,6 +284,7 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
         return api()
 
     def freeze(self, step):
+        ui_options = self.task_config.config.get("ui_options", {})
         dependencies = self.project_config.get_static_dependencies(
             self.options["dependencies"], include_beta=self.options["include_beta"]
         )
@@ -300,17 +301,17 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
                 name = name or "Deploy {}".format(dependency["subfolder"])
             task_config = {"options": self.options.copy()}
             task_config["options"]["dependencies"] = [dependency]
-            steps.append(
+            ui_step = {"name": name, "kind": kind, "is_required": True}
+            ui_step.update(ui_options.get(i, {}))
+            ui_step.update(
                 {
-                    "name": name,
                     "path": "{}.{}".format(step.path, i),
                     "step_num": "{}.{}".format(step.step_num, i),
-                    "kind": kind,
-                    "is_required": True,
                     "task_class": self.task_config.class_path,
                     "task_config": task_config,
                 }
             )
+            steps.append(ui_step)
         return steps
 
     def _flatten(self, dependencies):
