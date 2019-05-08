@@ -46,8 +46,8 @@ class MetadataParserMissingError(Exception):
 class PackageXmlGenerator(object):
     def __init__(
         self,
+        directory,
         api_version,
-        directory=None,
         package_name=None,
         managed=None,
         delete=None,

@@ -10,7 +10,6 @@ from cumulusci.salesforce_api.metadata import ApiRetrieveUnpackaged
 from cumulusci.tasks.salesforce import BaseRetrieveMetadata
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.tasks.metadata.package import PackageXmlGenerator
-from cumulusci.tasks.metadata.package import __location__
 
 
 class ListChanges(BaseSalesforceApiTask):
@@ -18,7 +17,6 @@ class ListChanges(BaseSalesforceApiTask):
     task_options = {
         "include": {"description": "Include changed components matching this string."},
         "exclude": {"description": "Exclude changed components matching this string."},
-        "exclude_namespace": {"description": "Namespaces that should be excluded."},
         "snapshot": {
             "description": "If True, all matching items will be set to be ignored at their current revision number.  This will exclude them from the results unless a new edit is made."
         },
@@ -28,20 +26,9 @@ class ListChanges(BaseSalesforceApiTask):
         super(ListChanges, self)._init_options(kwargs)
         self.options["include"] = process_list_arg(self.options.get("include", []))
         self.options["exclude"] = process_list_arg(self.options.get("exclude", []))
-        self.options["reset_status"] = process_bool_arg(
-            self.options.get("reset_status", [])
-        )
         self.options["snapshot"] = process_bool_arg(self.options.get("snapshot", []))
-        self.options["exclude_namespace"] = process_list_arg(
-            self.options.get("exclude_namespace", [])
-        )
         self._exclude = self.options.get("exclude", [])
-        for namespace in self.options["exclude_namespace"]:
-            self._exclude.append("CustomField: .*\.{}__.*__c".format(namespace))
-            self._exclude.append("CompactLayout: .*\.{}__.*__c".format(namespace))
-        if self.project_config.project__source__ignore:
-            self._exclude.extend(self.project_config.project__source__ignore)
-
+        self._exclude.extend(self.project_config.project__source__ignore or [])
         self._load_snapshot()
 
     @property
@@ -58,35 +45,38 @@ class ListChanges(BaseSalesforceApiTask):
                 self._snapshot = json.load(f)
 
     def _get_changes(self):
-        changes = self.tooling.query(
+        changes = self.tooling.query_all(
             "SELECT MemberName, MemberType, RevisionNum FROM SourceMember WHERE IsNameObsolete=false"
         )
         return changes
 
     def _store_snapshot(self):
         with open(self._snapshot_path, "w") as f:
-            f.write(json.dumps(self._snapshot))
+            json.dump(self._snapshot, f)
 
     def _run_task(self):
         changes = self._get_changes()
         if changes["totalSize"]:
             self.logger.info(
-                "Found {} changed components in the scratch org:".format(
+                "Found {} changed components in the scratch org.".format(
                     changes["totalSize"]
                 )
             )
-
-        filtered = self._filter_changes(changes)
-        for change in filtered:
-            self.logger.info("{MemberType}: {MemberName}".format(**change))
-        if not filtered:
+        else:
             self.logger.info("Found no changes.")
 
+        filtered = self._filter_changes(changes)
         ignored = len(changes["records"]) - len(filtered)
         if ignored:
             self.logger.info(
-                "Ignored {} changed components in the scratch org:".format(ignored)
+                "Ignored {} changed components in the scratch org.".format(ignored)
             )
+            self.logger.info(
+                "{} remaining changes after filtering.".format(len(filtered))
+            )
+
+        for change in filtered:
+            self.logger.info("{MemberType}: {MemberName}".format(**change))
 
         if self.options["snapshot"]:
             self.logger.info("Storing snapshot of changes")
@@ -144,18 +134,8 @@ class RetrieveChanges(BaseRetrieveMetadata, ListChanges, BaseSalesforceApiTask):
             ] = self.project_config.project__package__api_version
 
     def _get_api(self):
-        self.logger.info("Querying Salesforce for changed source members")
-        changes = self.tooling.query(
-            "SELECT MemberName, MemberType, RevisionNum FROM SourceMember WHERE IsNameObsolete=false"
-        )
-
         type_members = defaultdict(list)
-        filtered = self._filter_changes(changes)
-        if not filtered:
-            self.logger.info("No changes to retrieve")
-            return
-
-        for change in filtered:
+        for change in self._filtered:
             type_members[change["MemberType"]].append(change["MemberName"])
             self.logger.info("{MemberType}: {MemberName}".format(**change))
 
@@ -166,41 +146,39 @@ class RetrieveChanges(BaseRetrieveMetadata, ListChanges, BaseSalesforceApiTask):
         else:
             current_package_xml = {"Package": {}}
         merged_type_members = {}
-        for mdtype in current_package_xml["Package"].get("types", []):
-
-            if "members" not in mdtype:
-                continue
-
-            if isinstance(mdtype, str):
-                type_name = mdtype
-                items = current_package_xml["Package"]["types"][type_name]
-            else:
-                type_name = mdtype["name"]
-                items = mdtype["members"]
-
-            members = []
-            if isinstance(items, str):
-                members.append(items)
-            else:
-                for item in items:
-                    members.append(item)
+        mdtypes = current_package_xml["Package"].get("types", [])
+        mdtypes = mdtypes if isinstance(mdtypes, list) else [mdtypes]
+        for mdtype in mdtypes:
+            members = mdtype.get("members", [])
+            members = members if isinstance(members, list) else [members]
             if members:
+                type_name = mdtype["name"]
                 merged_type_members[type_name] = members
 
-        types = []
         for name, members in type_members.items():
             if name in merged_type_members:
                 merged_type_members[name].extend(members)
             else:
                 merged_type_members[name] = members
 
-        for name, members in type_members.items():
+        types = []
+        for name, members in merged_type_members.items():
             types.append(MetadataType(name, members))
-        package_xml = PackageXmlGenerator(self.options["api_version"], types=types)()
+        package_xml = PackageXmlGenerator(
+            ".", self.options["api_version"], types=types
+        )()
 
         return self.api_class(self, package_xml, self.options.get("api_version"))
 
     def _run_task(self):
+        self.logger.info("Querying Salesforce for changed source members")
+        changes = self._get_changes()
+
+        self._filtered = self._filter_changes(changes)
+        if not self._filtered:
+            self.logger.info("No changes to retrieve")
+            return
+
         super(RetrieveChanges, self)._run_task()
 
         # update package.xml
@@ -225,10 +203,11 @@ class MetadataType(object):
         self.members = members
 
     def __call__(self):
-        members = ["<members>{}</members>".format(member) for member in self.members]
-        return """<types>
-    {}
-    <name>{}</name>
-</types>""".format(
-            members, self.metadata_type
+        return (
+            ["    <types>"]
+            + [
+                "        <members>{}</members>".format(member)
+                for member in self.members
+            ]
+            + ["        <name>{}</name>".format(self.metadata_type), "    </types>"]
         )
