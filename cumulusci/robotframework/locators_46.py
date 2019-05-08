@@ -10,3 +10,8 @@ lex_locators["modal"]["button"] = "{}{}{}".format(
     "//div[contains(@class,'modal-footer') or contains(@class, 'actionsContainer')]",
     "//button[.//span[text()='{}']]",
 )
+
+# the app launcher links have changed a bit too...
+lex_locators["app_launcher"][
+    "app_link"
+] = "//div[@class='slds-card salesforceIdentityAppLauncherDesktopInternal']//section[@id='cards']//a[@class='appTileTitle' and text()='{}']"
