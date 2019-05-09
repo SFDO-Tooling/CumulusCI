@@ -2,6 +2,22 @@
 History
 =======
 
+2.4.4 (2019-05-09)
+------------------
+
+New features:
+
+* Added tasks ``list_changes`` and ``retrieve_changes`` which interact with source tracking in scratch orgs to handle retrieving changed metadata as Metadata API format source.
+* Added task ``EnsureRecordTypes`` to generate a Record Type and optional Business Process for a specific sObject and deploy the metadata, if the record type does not already exist.
+* The ``update_admin_profile`` task now uses Python string formatting on the ``package.xml`` file used for retrieve. This allows injection of namespace prefixes using ``{managed}`` and ``{namespaced_org}``.
+
+Issues fixed:
+
+* If CumulusCI gets a connection error while trying to call the Salesforce Metadata API, it will now retry several times before giving up.
+* The GitHub release notes parser now recognizes Issues Closed if they are linked in Markdown format.
+* Robot Framework: Fixed a locator used by the ``Select App Launcher App`` keyword to work in Summer '19.
+* The ``cci project init`` command now uses an updated repository URL when extending EDA.
+
 2.4.3 (2019-04-26)
 ------------------
 
