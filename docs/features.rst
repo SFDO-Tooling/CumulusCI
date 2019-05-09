@@ -288,8 +288,8 @@ CumulusCI has support for tokenizing references to the namespace prefix in code.
 
     project:
         dependencies:
-            - zip_url: https://github.com/SalesforceFoundation/HEDAP/archive/master.zip
-              subfolder: HEDAP-master/dev_config/src/admin_config
+            - zip_url: https://github.com/SalesforceFoundation/EDA/archive/master.zip
+              subfolder: EDA-master/dev_config/src/admin_config
               namespace_inject: hed
 
 In the above example, the metadata in the zip contains the string tokens `%%%NAMESPACE%%%` and `___NAMESPACE___` which will be replaced with `hed__` before the metadata is deployed.
@@ -300,8 +300,8 @@ If you want to deploy tokenized metadata without any namespace references, you h
 
     project:
         dependencies:
-            - zip_url: https://github.com/SalesforceFoundation/HEDAP/archive/master.zip
-              subfolder: HEDAP-master/dev_config/src/admin_config
+            - zip_url: https://github.com/SalesforceFoundation/EDA/archive/master.zip
+              subfolder: EDA-master/dev_config/src/admin_config
               namespace_inject: hed
               unmanaged: True
 
@@ -332,7 +332,7 @@ Github Repository dependencies create a dynamic dependency between the current p
 
     project:
         dependencies:
-            - github: https://github.com/SalesforceFoundation/HEDAP
+            - github: https://github.com/SalesforceFoundation/EDA
 
 When `update_dependencies` runs, the following is doing against the referenced repository:
 
@@ -353,10 +353,10 @@ If the referenced repository does not have a namespace configured or if the depe
 
     project:
         dependencies:
-            - github: https://github.com/SalesforceFoundation/HEDAP
+            - github: https://github.com/SalesforceFoundation/EDA
               unmanaged: True
 
-In the above example, the HEDAP repository is configured for a namespace but the dependency specifies `unmanaged: True` so the dependency would deploy unmanaged HEDAP and its dependencies. 
+In the above example, the EDA repository is configured for a namespace but the dependency specifies `unmanaged: True` so the dependency would deploy unmanaged EDA and its dependencies. 
 
 Referencing a Specific Tag
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -367,10 +367,10 @@ If you want to reference a version other than HEAD and the latest production rel
 
     project:
         dependencies:
-            - github: https://github.com/SalesforceFoundation/HEDAP
+            - github: https://github.com/SalesforceFoundation/EDA
               tag: beta/1.47-Beta_2
 
-In the above example, the HEDAP repository's tag `beta/1.47-Beta_2` will be used instead of the latest production release of HEDAP (1.46 for this example).  This allows a build environment to use features in the next production release of HEDAP which are already merged but not yet included in a production release.
+In the above example, the EDA repository's tag `beta/1.47-Beta_2` will be used instead of the latest production release of EDA (1.46 for this example).  This allows a build environment to use features in the next production release of EDA which are already merged but not yet included in a production release.
 
 Skipping unpackaged/* in Reference Repositories
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -381,7 +381,7 @@ If the repository you are referring to has dependency metadata under unpackaged/
 
     project:
         dependencies:
-            - github: https://github.com/SalesforceFoundation/HEDAP
+            - github: https://github.com/SalesforceFoundation/EDA
               skip: unpackaged/post/course_connection_record_types
 
 Case Study: SalesforceFoundation/Cumulus
@@ -529,3 +529,71 @@ The automatic cleaning of meta.xml files can be disabled using by setting the `c
 Prior to the addition of this functionality, we often experienced unnecessary delays in our release cycle due to the need to create a new commit on master (and thus a feature branch, PR, code review, etc) just to update the meta.xml files.  CumulusCI's Github Dependency functionality already handles requiring a new production release so the only reason we needed to do this commit was the meta.xml files.  Automatically cleaning the meta.xml files on deploy eliminates the need for this commit.
 
 One drawback of this approach is that there may be diffs in the meta.xml files that developers need to handle by either ignoring them or commiting them as part of their work in a feature branch.  The diffs come from a scenario of Package B which extends Package A.  When a new production release of Package A is published, the `update_dependencies` task for Package B will install the new version.  When metadata is then retrieved from the org, the meta.xml files will reference the new version while the repository's meta.xml files reference an older version.  The main difference between this situation and the previous situation without automatically cleaning the meta.xml is that avoiding the diffs in meta.xml files is a convenience for developers rather than a requirement for builds and releases.  Developers can also use the `meta_xml_dependencies` task to update the meta.xml files locally using the versions from CumulusCI's calculated project dependencies.
+
+Source Tracking
+===============
+
+The new tasks **list_changes** and **retrieve_changes** were built to interact with the source change tracking in scratch orgs.  Using these tasks, you can get a list of new changes made in the scratch org and retrieve those changes in Metadata API format.
+
+Creating retrieve_config_* Tasks
+--------------------------------
+
+For each config directory, create a new task that wraps the retrieve_changes task using yaml like below:
+
+.. code-block:: yaml
+
+    tasks:
+        retrieve_config_dev:
+            description: Retrieves the current changes in the scratch org into unpackaged/config/dev
+            class_path: cumulusci.tasks.salesforce.sourcetracking.RetrieveChanges
+            options:
+                path: unpackaged/config/dev
+                namespace_tokenize: $project_config.project__package__namespace
+
+Setting up the Capture Scratch Org
+----------------------------------
+
+When capturing post-install configuration, it is best to work with a managed version of the product.  This will ensure that namespace references are replaced by CumulusCI's namespace token strings, resulting in retrieved config metadata that works with both managed and unmanaged deployments.
+
+.. code-block:: console
+
+    cci flow run install_beta --org dev
+
+Starting a Snapshot
+-------------------
+
+When you are ready to start making declarative changes you want to capture, start by creating a snapshot, which will effectively set the source tracking to treat all current changes as already handled.  This will mean the list_changes command will list any new metadata but ignore any phantom changes from before
+
+.. code-block:: console
+
+    cci task run list_changes --org dev -o snapshot True
+
+To check to make sure the snapshot was created correctly, you should see no changes listed when re-running list_changes
+
+.. code-block:: console
+
+    cci task run list_changes --org dev
+
+Retrieving Changes
+------------------
+
+Now, go make the changes in the org you want to capture as part of the dev config.  You can check what metadata has changed with the list_changes command
+
+.. code-block:: console
+
+    cci task run list_changes --org dev
+
+You can also include/exclude files from the list using the include/exclude options
+
+.. code-block:: console
+
+    cci task run list_changes --org dev -o include "test.*,another_regex" \
+                                        -o exclude "something_to_exclude"
+
+When you are ready to capture the changes returned from list_changes, run the custom retrieve task
+
+.. code-block:: console
+
+    cci task run retrieve_config_dev --org dev
+
+If you used include/exclude to narrow down the list of changes, you can pass the same -o include and -o exclude arguments to the retrieve_config_dev task
