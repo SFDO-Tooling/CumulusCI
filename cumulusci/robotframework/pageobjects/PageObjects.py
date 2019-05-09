@@ -1,11 +1,8 @@
 from robot.libraries.BuiltIn import BuiltIn
-from .baseobjects import ListingPage, HomePage
+from .baseobjects import BasePage
 import inspect
 import robot.utils
 import os
-
-
-GENERICS = {"Listing": ListingPage, "Home": HomePage}  # will add more generics later...
 
 
 class PageObjects(object):
@@ -35,6 +32,10 @@ class PageObjects(object):
         # Start with this library at the front of the library search order;
         # that may change as page objects are loaded.
         BuiltIn().set_library_search_order("PageObjects")
+
+    @property
+    def selenium(self):
+        return BuiltIn().get_library_instance("SeleniumLibrary")
 
     def __getattr__(self, name):
         """Return the keyword from the current page object
@@ -79,16 +80,19 @@ class PageObjects(object):
             # not in cache, but it's registered so create an instance
             cls = self.registry[(page_type, object_name)]
             pobj = cls()
-            self.cache[(page_type, object_name)] = pobj
 
         else:
             # not in cache, and not registered. Use a generic class
-            cls = GENERICS.get(page_type, None)
-            pobj = cls(object_name) if cls else None
-            if pobj is not None:
-                self.cache[(page_type, object_name)] = pobj
+            target = "{}Page".format(page_type)
+            pobj = None
+            for subclass in BasePage.__subclasses__():
+                if subclass.__name__ == target:
+                    pobj = subclass(object_name)
+                    break
 
-        if pobj is None:
+        if pobj:
+            self.cache[(page_type, object_name)] = pobj
+        else:
             raise Exception(
                 "Unable to find a page object for '{} {}'".format(
                     page_type, object_name
@@ -102,14 +106,31 @@ class PageObjects(object):
 
         Different pages support different additional arguments. For
         example, a Listing page supports the keyword argument `filter_name`.
+
+        If this keyword is able to navigate to a page, the keywords for
+        this page object will be loaded.
         """
 
         pobj = self._get_page_object(page_type, object_name)
-        pobj._go_to_page(**kwargs)
+        try:
+            pobj._go_to_page(**kwargs)
+        except Exception:
+            self.selenium.capture_page_screenshot()
+            raise
 
     def current_page_should_be(self, page_type, object_name, **kwargs):
+        """Verifies that the page appears to be the requested page
+
+        If this is the expected page, the keywords for this page
+        object will be loaded.
+        """
         pobj = self._get_page_object(page_type, object_name)
-        pobj._is_current_page()
+        try:
+            pobj._is_current_page(**kwargs)
+            self.load_page_object(page_type, object_name)
+        except Exception:
+            self.selenium.capture_page_screenshot()
+            raise
 
     def load_page_object(self, page_type, object_name=None):
         """Load the keywords for the page object identified by the type and object name
@@ -118,6 +139,14 @@ class PageObjects(object):
         using the cumulusci.robotframework.pageobject decorator.
         """
         pobj = self._get_page_object(page_type, object_name)
+        self._set_current_page_object(pobj)
+
+    def _set_current_page_object(self, pobj):
+        """This does the work of importing the keywords for the given page object"""
+
+        # Note: at the moment only one object is loaded at a time. We might want
+        # to consider pushing and popping page objects on a stack so that more than
+        # one can be active at a time.
         self.current_page_object = pobj
         libname = self.current_page_object.__class__.__name__
 
