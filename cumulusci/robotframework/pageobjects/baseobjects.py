@@ -1,4 +1,5 @@
 from robot.libraries.BuiltIn import BuiltIn
+import re
 
 
 class BasePage(object):
@@ -60,6 +61,43 @@ class HomePage(BasePage):
         self.selenium.go_to(url)
         self.salesforce.wait_until_loading_is_complete()
 
+    def _is_current_page(self):
+        self.selenium.location_should_contain(
+            "/lightning/o/{}/home".format(self.object_name)
+        )
+
 
 class DetailPage(BasePage):
-    pass
+    def _is_current_page(self, **kwargs):
+        """Verify we are on a detail page.
+
+        If keyword arguments are present, this function will go a query
+        on the given parameters, assert that the query returns a single
+        result, and the verify that the returned object id is part of the url.
+        """
+        if kwargs:
+            # if we have kwargs, we need to query for that object, assert
+            # that we got back exactly one result, and then make sure that
+            # object id is part of the url
+            results = self.salesforce.salesforce_query(self.object_name, **kwargs)
+            if len(results) == 0:
+                raise Exception(
+                    "no {} matches {}".format(self.object_name, str(kwargs))
+                )
+            elif len(results) > 1:
+                raise Exception("Query returned {} objects".format(len(results)))
+            else:
+                pattern = r"/lightning/r/{}/{}/view$".format(
+                    self.object_name, results[0]["Id"]
+                )
+        else:
+            # no kwargs means we should just verify we are on a detail
+            # page without regard to which object
+            pattern = r"/lightning/r/{}/.*/view$".format(self.object_name)
+
+        location = self.selenium.get_location()
+        self.builtin.log_to_console("\npattern: {}".format(pattern))
+        if not re.search(pattern, location):
+            raise Exception(
+                "Location '{}' didn't match pattern {}".format(location, pattern)
+            )
