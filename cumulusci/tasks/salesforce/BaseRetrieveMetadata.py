@@ -1,3 +1,6 @@
+import os
+import shutil
+import zipfile
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.tasks.salesforce import BaseSalesforceMetadataApiTask
 from cumulusci.utils import zip_inject_namespace
@@ -26,12 +29,16 @@ class BaseRetrieveMetadata(BaseSalesforceMetadataApiTask):
         "namespaced_org": {
             "description": "If True, the tokens %%%NAMESPACED_ORG%%% and ___NAMESPACED_ORG___ will get replaced with the namespace.  The default is false causing those tokens to get stripped and replaced with an empty string.  Set this if deploying to a namespaced scratch org or packaging org."
         },
+        "static_resource_path": {
+            "description": "The path where decompressed static resources are stored.  Any retrieved StaticResource bundles will be unzipped into subdirectories under this path."
+        },
     }
 
     def _run_task(self):
         api = self._get_api()
         src_zip = api()
         self._extract_zip(src_zip)
+        self._decompress_static_resources()
         self.logger.info(
             "Extracted retrieved metadata into {}".format(self.options["path"])
         )
@@ -62,3 +69,24 @@ class BaseRetrieveMetadata(BaseSalesforceMetadataApiTask):
     def _extract_zip(self, src_zip):
         src_zip = self._process_namespace(src_zip)
         src_zip.extractall(self.options["path"])
+
+    def _decompress_static_resources(self):
+        sr_path = self.options.get("static_resource_path")
+        sr_src = os.path.join(self.options["path"], "staticresources")
+        if sr_path and os.path.isdir(sr_src):
+            if not os.path.isdir(sr_path):
+                os.makedirs(sr_path)
+            for filename in os.listdir(sr_src):
+                file_path = os.path.join(sr_src, filename)
+                if filename.endswith(".resource-meta.xml"):
+                    os.rename(file_path, os.path.join(sr_path, filename))
+                    continue
+                if not filename.endswith(".resource"):
+                    continue
+                basename = filename.replace(".resource", "")
+                self.logger.info("Decompressing {} static resource".format(basename))
+                with open(file_path, "rb") as f:
+                    zipf = zipfile.ZipFile(f)
+                    zipf.extractall(os.path.join(sr_path, basename))
+                os.remove(file_path)
+            shutil.rmtree(sr_src)

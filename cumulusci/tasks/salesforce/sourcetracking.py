@@ -118,6 +118,9 @@ retrieve_changes_task_options["api_version"] = {
 retrieve_changes_task_options["namespace_tokenize"] = BaseRetrieveMetadata.task_options[
     "namespace_tokenize"
 ]
+retrieve_changes_task_options[
+    "static_resource_path"
+] = BaseRetrieveMetadata.task_options["static_resource_path"]
 
 
 class RetrieveChanges(BaseRetrieveMetadata, ListChanges, BaseSalesforceApiTask):
