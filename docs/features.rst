@@ -530,14 +530,13 @@ Prior to the addition of this functionality, we often experienced unnecessary de
 
 One drawback of this approach is that there may be diffs in the meta.xml files that developers need to handle by either ignoring them or commiting them as part of their work in a feature branch.  The diffs come from a scenario of Package B which extends Package A.  When a new production release of Package A is published, the `update_dependencies` task for Package B will install the new version.  When metadata is then retrieved from the org, the meta.xml files will reference the new version while the repository's meta.xml files reference an older version.  The main difference between this situation and the previous situation without automatically cleaning the meta.xml is that avoiding the diffs in meta.xml files is a convenience for developers rather than a requirement for builds and releases.  Developers can also use the `meta_xml_dependencies` task to update the meta.xml files locally using the versions from CumulusCI's calculated project dependencies.
 
-===============
 Source Tracking
 ===============
 
 The new tasks **list_changes** and **retrieve_changes** were built to interact with the source change tracking in scratch orgs.  Using these tasks, you can get a list of new changes made in the scratch org and retrieve those changes in Metadata API format.
 
 Creating retrieve_config_* Tasks
-================================
+--------------------------------
 
 For each config directory, create a new task that wraps the retrieve_changes task using yaml like below:
 
@@ -552,7 +551,7 @@ For each config directory, create a new task that wraps the retrieve_changes tas
                 namespace_tokenize: $project_config.project__package__namespace
 
 Setting up the Capture Scratch Org
-==================================
+----------------------------------
 
 When capturing post-install configuration, it is best to work with a managed version of the product.  This will ensure that namespace references are replaced by CumulusCI's namespace token strings, resulting in retrieved config metadata that works with both managed and unmanaged deployments.
 
@@ -561,7 +560,7 @@ When capturing post-install configuration, it is best to work with a managed ver
     cci flow run install_beta --org dev
 
 Starting a Snapshot
-===================
+-------------------
 
 When you are ready to start making declarative changes you want to capture, start by creating a snapshot, which will effectively set the source tracking to treat all current changes as already handled.  This will mean the list_changes command will list any new metadata but ignore any phantom changes from before
 
@@ -576,7 +575,7 @@ To check to make sure the snapshot was created correctly, you should see no chan
     cci task run list_changes --org dev
 
 Retrieving Changes
-==================
+------------------
 
 Now, go make the changes in the org you want to capture as part of the dev config.  You can check what metadata has changed with the list_changes command
 
