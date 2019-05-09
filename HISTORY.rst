@@ -8,7 +8,7 @@ History
 New features:
 
 * Added tasks ``list_changes`` and ``retrieve_changes`` which interact with source tracking in scratch orgs to handle retrieving changed metadata as Metadata API format source.
-* Added task ``EnsureRecordTypes`` to generate a Record Type and optional Business Process for a specific sObject and deploy the metadata, if the record type does not already exist.
+* Added task ``EnsureRecordTypes`` to generate a Record Type and optional Business Process for a specific sObject and deploy the metadata, if the object does not already have Record Types.
 * The ``update_admin_profile`` task now uses Python string formatting on the ``package.xml`` file used for retrieve. This allows injection of namespace prefixes using ``{managed}`` and ``{namespaced_org}``.
 
 Issues fixed:
