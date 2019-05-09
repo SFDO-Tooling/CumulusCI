@@ -7,9 +7,6 @@ class BasePage(object):
         if object_name:
             self.object_name = object_name
 
-    def some_keyword(self):
-        BuiltIn().log("some keyword; object name is {}".format(self.object_name))
-
     @property
     def builtin(self):
         """Returns an instance of robot framework's BuiltIn library"""
@@ -96,7 +93,6 @@ class DetailPage(BasePage):
             pattern = r"/lightning/r/{}/.*/view$".format(self.object_name)
 
         location = self.selenium.get_location()
-        self.builtin.log_to_console("\npattern: {}".format(pattern))
         if not re.search(pattern, location):
             raise Exception(
                 "Location '{}' didn't match pattern {}".format(location, pattern)
