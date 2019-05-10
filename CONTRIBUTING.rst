@@ -57,7 +57,7 @@ Ready to contribute? Here's how to set up CumulusCI for local development.
 2. Clone your fork to your local workspace.
 3. Create a fresh virtual environment using virtualenv and install development requirements::
 
-    $ pip install --no-use-pep517 -r requirements_dev.txt
+    $ pip install -r requirements_dev.txt
 
 4. Install ``pre-commit`` hooks for ``black`` and ``flake8``::
 
