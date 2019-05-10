@@ -9,7 +9,7 @@ class PageObjects(object):
     """Dynamic robot library for importing and using page objects
 
     When importing, you can include one or more paths to python
-    modules that define page objects. For example, if you have a set
+    files that define page objects. For example, if you have a set
     of classes in robot/HEDA/resources/PageObjects.py, you can import
     this library into a test case like this:
 
@@ -63,12 +63,17 @@ class PageObjects(object):
         return (
             not name.startswith("_")
             and name != "get_keyword_names"
-            and inspect.ismethod(getattr(source, name))
+            and inspect.isroutine(getattr(source, name))
         )
 
-    def log_registry(self):
+    def log_page_object_keywords(self):
+        """Logs page objects and their keywords for all page objects which have been imported"""
         for key in sorted(self.registry.keys()):
-            BuiltIn().log("=> {} = '{}'".format(key, self.registry[key]))
+            pobj = self.registry[key]
+            keywords = sorted(
+                [method for method in dir(pobj) if self._is_keyword(method, pobj)]
+            )
+            BuiltIn().log("{}: {}".format(key, ", ".join(keywords)))
 
     def _get_page_object(self, page_type, object_name):
 
