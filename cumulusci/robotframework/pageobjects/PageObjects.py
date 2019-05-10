@@ -25,8 +25,13 @@ class PageObjects(object):
     def __init__(self, *args):
         BuiltIn().log("initializing PageObjects...", "DEBUG")
         importer = robot.utils.Importer()
+
         for file_path in args:
-            importer.import_class_or_module_by_path(os.path.abspath(file_path))
+            try:
+                importer.import_class_or_module_by_path(os.path.abspath(file_path))
+                BuiltIn().log("imported page object {}".format(file_path), "DEBUG")
+            except Exception as e:
+                BuiltIn().log(str(e), "WARN")
         self.current_page_object = None
 
         # Start with this library at the front of the library search order;
