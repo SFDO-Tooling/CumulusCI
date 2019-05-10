@@ -1,18 +1,72 @@
 *** Settings ***
 Resource        cumulusci/robotframework/Salesforce.robot
 Library         cumulusci.robotframework.PageObjects
-Library         Dialogs
+...  ${CURDIR}/example_page_object.py
 
 Suite Setup     Open Test Browser
 Suite Teardown  Delete Records and Close Browser
 
 *** Test Cases ***
-Go to page 
-    Go to page              Home  Contact
-    Current page should be  Listing  Contact  # due to automatic redirect
+Go to page and current page should be, using defined page object
+    [Documentation]  Verify we can go to an implemented page object
+    Go to page              About  Blank
+    Current page should be  About  Blank
+
+Go to page, using generic page object
+    [Documentation]
+    ...  Verify we can go to a page object for which there is
+    ...  no explicit definition, but for which there is a generic
+    ...  (base) class.
+    Go to page    Listing  Contact
+    Current page should be  Listing  Contact
+
+Call keyword of defined page object
+    # verify we can call the keyword in that page object
+    load page object  About  Blank
+    ${result}=  Hello  world
+    should be equal  ${result}  About:Blank Page says Hello, world
+
+Load page object, using defined page object
+    Load page object  About  Blank
+
+Load page object, using generic page object
+    [Documentation]
+    ...  Verify that 'load page object' works when using a generic
+    ...  page object
+    Load page object  Listing  Contact
+
+Current page should be, using generic page object
+    [Documentation]
+    ...  Verify that 'current page should be' works when
+    ...  using a generic page object
+    [Setup]  Go to page  Listing  Task
+
+    Current page should be  Listing  Task
+
+Current page should be throws appropriate error
+    [Documentation]
+    ...  Verifies the error that is thrown when 'current page should be'
+    ...  is false
+    [Setup]  load page object  Listing  Contact
+
+    ${location}=  get location
+    run keyword and expect error   Expected location to be 'about:blank' but it was '${location}'
+    ...  current page should be  About  Blank
 
 Error when no page object can be found
+    [Documentation]
+    ...  Verify we get an error if no page object exists, and
+    ...  there is no suitable base class
+
     Run keyword and expect error
     ...  Unable to find a page object for 'Foo Bar'
     ...  Go to page  Foo  Bar
-    
+
+Log page object keywords
+    [Documentation]  Verify that 'log page object keywords' doesn't throw an error
+    # All we're doing here is verifying it doesn't throw an error.
+    # Unfortunately there's no way to verify the robot log message
+    # was called (or is there...???)
+    [Setup]  Load Page Object  About  Blank
+
+    log page object keywords
