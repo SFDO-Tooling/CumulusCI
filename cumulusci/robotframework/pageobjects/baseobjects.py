@@ -27,6 +27,20 @@ class BasePage(object):
         """Returns the instance of the imported SeleniumLibrary library"""
         return self.builtin.get_library_instance("SeleniumLibrary")
 
+    def _get_object(self, **kwargs):
+        """Get the object associated with the given keyword arguments.
+
+        This performs a salesforce query. It will raise an exception unless
+        exactly one result is returned from the query.
+        """
+        results = self.salesforce.salesforce_query(self.object_name, **kwargs)
+        if len(results) == 0:
+            raise Exception("no {} matches {}".format(self.object_name, str(kwargs)))
+        elif len(results) > 1:
+            raise Exception("Query returned {} objects".format(len(results)))
+        else:
+            return results[0]
+
 
 class ListingPage(BasePage):
     # This needs to be defined by a subclass, or passed in to
@@ -65,6 +79,30 @@ class HomePage(BasePage):
 
 
 class DetailPage(BasePage):
+    def _go_to_page(self, object_id=None, **kwargs):
+        """Go to the detail page for the given object.
+
+        You may pass in an object id, or you may pass in keyword arguments
+        which can be used to look up the object.
+        """
+
+        if kwargs and object_id:
+            raise Exception("Specify an object id or keyword arguments, but not both")
+
+        if kwargs:
+            # note: this will raise an exception if no object is found,
+            # or if multiple objects are found.
+            object_id = self._get_object(**kwargs)["Id"]
+
+        url_template = "{root}/lightning/r/{object_name}/{object_id}/view"
+        url = url_template.format(
+            root=self.cumulusci.org.lightning_base_url,
+            object_name=self.object_name,
+            object_id=object_id,
+        )
+        self.selenium.go_to(url)
+        self.salesforce.wait_until_loading_is_complete()
+
     def _is_current_page(self, **kwargs):
         """Verify we are on a detail page.
 
@@ -73,20 +111,9 @@ class DetailPage(BasePage):
         result, and the verify that the returned object id is part of the url.
         """
         if kwargs:
-            # if we have kwargs, we need to query for that object, assert
-            # that we got back exactly one result, and then make sure that
-            # object id is part of the url
-            results = self.salesforce.salesforce_query(self.object_name, **kwargs)
-            if len(results) == 0:
-                raise Exception(
-                    "no {} matches {}".format(self.object_name, str(kwargs))
-                )
-            elif len(results) > 1:
-                raise Exception("Query returned {} objects".format(len(results)))
-            else:
-                pattern = r"/lightning/r/{}/{}/view$".format(
-                    self.object_name, results[0]["Id"]
-                )
+            # do a lookup to get the object i
+            object_id = self._get_object(**kwargs)["Id"]
+            pattern = r"/lightning/r/{}/{}/view$".format(self.object_name, object_id)
         else:
             # no kwargs means we should just verify we are on a detail
             # page without regard to which object
