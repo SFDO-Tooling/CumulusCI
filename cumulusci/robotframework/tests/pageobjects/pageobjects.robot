@@ -3,8 +3,14 @@ Resource        cumulusci/robotframework/Salesforce.robot
 Library         cumulusci.robotframework.PageObjects
 ...  ${CURDIR}/example_page_object.py
 
-Suite Setup     Open Test Browser
+Suite Setup     Run keywords
+...  Create test data
+...  AND  Open Test Browser
 Suite Teardown  Delete Records and Close Browser
+
+*** Keywords ***
+Create Test Data
+    Salesforce Insert  Contact  FirstName=Inigo  LastName=Montoya
 
 *** Test Cases ***
 Go to page and current page should be, using defined page object
@@ -70,3 +76,25 @@ Log page object keywords
     [Setup]  Load Page Object  About  Blank
 
     log page object keywords
+
+Base class: HomePage
+    [Documentation]
+    ...  Verify we can go to the generic Home page
+    ...  (assuming we don't have an explicit TaskHomePage)
+    go to page  Home  Task
+    Current page should be  Home  Task
+
+Base class: ListingPage
+    [Documentation]
+    ...  Verify we can go to the generic Listing page
+    ...  (assuming we don't have an explicit TaskListingPage)
+    Go to page              Listing  Task
+    Current page should be  Listing  Task
+
+Base class: DetailPage
+    [Documentation]
+    ...  Verify we can go to the generic Detail page
+    ...  (assuming we don't have an explicit TaskDetailPage)
+
+    go to page  Detail  Contact  firstName=Inigo  lastName=Montoya
+    Current page should be  Detail  Contact  firstName=Inigo  lastName=Montoya
