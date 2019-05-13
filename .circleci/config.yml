@@ -37,6 +37,7 @@ jobs:
           name: Install Python dependencies
           command: |
             virtualenv venv
+            venv/bin/pip install -U virtualenv pip
             venv/bin/pip install tox
       - run:
           name: Run Python tests
@@ -59,6 +60,7 @@ jobs:
           name: Install Python dependencies
           command: |
             virtualenv venv
+            venv/bin/pip install -U virtualenv pip
             venv/bin/pip install tox
       - run:
           name: Run Python tests
@@ -81,6 +83,7 @@ jobs:
           name: Install Python dependencies
           command: |
             virtualenv venv
+            venv/bin/pip install -U virtualenv pip
             venv/bin/pip install -r requirements_dev.txt
       - run:
           name: Install sfdx
@@ -136,6 +139,7 @@ jobs:
           name: Install Python dependencies
           command: |
             virtualenv venv
+            venv/bin/pip install -U virtualenv pip
             venv/bin/pip install -r requirements_dev.txt
       - run:
           name: Check out CumulusCI-Test
