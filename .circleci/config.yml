@@ -44,6 +44,7 @@ jobs:
       - run:
           name: Run Python tests
           command: |
+            source venv/bin/activate
             mkdir -p testresults/py2
             tox -e py27 -- --junitxml=testresults/py2/junit.xml
             mv .coverage .coverage.py2
@@ -68,6 +69,7 @@ jobs:
       - run:
           name: Run Python tests
           command: |
+            source venv/bin/activate
             mkdir -p testresults/py3
             tox -e py36 -- --junitxml=testresults/py3/junit.xml
             mv .coverage .coverage.py3
@@ -98,6 +100,7 @@ jobs:
       - run:
           name: Create scratch org
           command: |
+            source venv/bin/activate
             echo $SFDX_HUB_KEY | base64 --decode > sfdx.key
             sfdx force:auth:jwt:grant --clientid $SFDX_CLIENT_KEY --jwtkeyfile sfdx.key --username $SFDX_HUB_USERNAME --setdefaultdevhubusername -a hub
             cci org info dev > org_info.txt
@@ -105,6 +108,7 @@ jobs:
       - run:
           name: Run robot tests
           command: |
+            source venv/bin/activate
             mkdir -p robot_results/robot
             coverage run --append cci task run robot -o suites cumulusci/robotframework/tests/cumulusci  -o xunit robot_results/robot/cumulusci.xml
             coverage run --append cci task run robot -o suites cumulusci/robotframework/tests/salesforce -o include api -o xunit robot_results/robot/salesforce_api.xml
@@ -113,6 +117,7 @@ jobs:
       - run:
           name: Delete scratch org
           command: |
+            source venv/bin/activate
             cci org scratch_delete dev
           when: always
       - run:
@@ -162,21 +167,25 @@ jobs:
       - run:
           name: Run ci_feature flow
           command: |
+            source venv/bin/activate
             cd CumulusCI-Test
             coverage run --append --rcfile=../.coveragerc --source=../cumulusci cci flow run ci_feature --org scratch --delete-org
       - run:
           name: Run ci_beta flow
           command: |
+            source venv/bin/activate
             cd CumulusCI-Test
             coverage run --append --rcfile=../.coveragerc --source=../cumulusci cci flow run ci_beta --org scratch --delete-org
       - run:
           name: Run ci_master flow
           command: |
+            source venv/bin/activate
             cd CumulusCI-Test
             coverage run --append --rcfile=../.coveragerc --source=../cumulusci cci flow run ci_master --org scratch --delete-org
       - run:
           name: Run release_beta flow
           command: |
+            source venv/bin/activate
             cd CumulusCI-Test
             coverage run --append --rcfile=../.coveragerc --source=../cumulusci cci flow run release_beta --org packaging
       - run:
