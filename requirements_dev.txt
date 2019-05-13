@@ -5,7 +5,7 @@ bump2version==0.5.10
 coverage==4.5.3
 coveralls==1.7.0
 flake8==3.7.7
-mock==3.0.4
+mock==3.0.5
 pre-commit==1.16.0
 pytest==4.4.1
 pytest-cov==2.7.1
