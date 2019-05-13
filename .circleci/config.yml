@@ -21,11 +21,12 @@ jobs:
           name: Install dependencies
           command: |
             virtualenv venv
-            venv/bin/pip install $(grep black requirements_dev.txt | cut -d';' -f 1)
+            source venv/bin/activate
+            pip install $(grep black requirements_dev.txt | cut -d';' -f 1)
       - run:
           name: Run black
           command: |
-            venv/bin/black --check --diff .
+            black --check --diff .
 
   test_py2:
     <<: *defaults
@@ -37,13 +38,14 @@ jobs:
           name: Install Python dependencies
           command: |
             virtualenv venv
-            venv/bin/pip install -U virtualenv pip
-            venv/bin/pip install tox
+            source venv/bin/activate
+            pip install -U pip
+            pip install tox
       - run:
           name: Run Python tests
           command: |
             mkdir -p testresults/py2
-            venv/bin/tox -e py27 -- --junitxml=testresults/py2/junit.xml
+            tox -e py27 -- --junitxml=testresults/py2/junit.xml
             mv .coverage .coverage.py2
       - store_test_results:
           path: testresults
@@ -60,13 +62,14 @@ jobs:
           name: Install Python dependencies
           command: |
             virtualenv venv
-            venv/bin/pip install -U virtualenv pip
-            venv/bin/pip install tox
+            source venv/bin/activate
+            pip install -U pip
+            pip install tox
       - run:
           name: Run Python tests
           command: |
             mkdir -p testresults/py3
-            venv/bin/tox -e py36 -- --junitxml=testresults/py3/junit.xml
+            tox -e py36 -- --junitxml=testresults/py3/junit.xml
             mv .coverage .coverage.py3
       - store_test_results:
           path: testresults
@@ -83,8 +86,9 @@ jobs:
           name: Install Python dependencies
           command: |
             virtualenv venv
-            venv/bin/pip install -U virtualenv pip
-            venv/bin/pip install -r requirements_dev.txt
+            source venv/bin/activate
+            pip install -U pip
+            pip install -r requirements_dev.txt
       - run:
           name: Install sfdx
           command: |
@@ -96,20 +100,20 @@ jobs:
           command: |
             echo $SFDX_HUB_KEY | base64 --decode > sfdx.key
             sfdx force:auth:jwt:grant --clientid $SFDX_CLIENT_KEY --jwtkeyfile sfdx.key --username $SFDX_HUB_USERNAME --setdefaultdevhubusername -a hub
-            venv/bin/cci org info dev > org_info.txt
-            venv/bin/cci org default dev
+            cci org info dev > org_info.txt
+            cci org default dev
       - run:
           name: Run robot tests
           command: |
             mkdir -p robot_results/robot
-            venv/bin/coverage run --append venv/bin/cci task run robot -o suites cumulusci/robotframework/tests/cumulusci  -o xunit robot_results/robot/cumulusci.xml
-            venv/bin/coverage run --append venv/bin/cci task run robot -o suites cumulusci/robotframework/tests/salesforce -o include api -o xunit robot_results/robot/salesforce_api.xml
-            venv/bin/coverage run --append venv/bin/cci task run robot -o suites cumulusci/robotframework/tests/salesforce -o exclude api -o xunit robot_results/robot/salesforce_ui_chrome.xml
-            venv/bin/coverage run --append venv/bin/cci task run robot -o suites cumulusci/robotframework/tests/salesforce -o exclude api -o vars BROWSER:headlessfirefox -o xunit robot_results/robot/salesforce_ui_firefox.xml
+            coverage run --append cci task run robot -o suites cumulusci/robotframework/tests/cumulusci  -o xunit robot_results/robot/cumulusci.xml
+            coverage run --append cci task run robot -o suites cumulusci/robotframework/tests/salesforce -o include api -o xunit robot_results/robot/salesforce_api.xml
+            coverage run --append cci task run robot -o suites cumulusci/robotframework/tests/salesforce -o exclude api -o xunit robot_results/robot/salesforce_ui_chrome.xml
+            coverage run --append cci task run robot -o suites cumulusci/robotframework/tests/salesforce -o exclude api -o vars BROWSER:headlessfirefox -o xunit robot_results/robot/salesforce_ui_firefox.xml
       - run:
           name: Delete scratch org
           command: |
-            venv/bin/cci org scratch_delete dev
+            cci org scratch_delete dev
           when: always
       - run:
           name: Preserve coverage
@@ -139,8 +143,9 @@ jobs:
           name: Install Python dependencies
           command: |
             virtualenv venv
-            venv/bin/pip install -U virtualenv pip
-            venv/bin/pip install -r requirements_dev.txt
+            source venv/bin/activate
+            pip install -U pip
+            pip install -r requirements_dev.txt
       - run:
           name: Check out CumulusCI-Test
           command: |
@@ -158,22 +163,22 @@ jobs:
           name: Run ci_feature flow
           command: |
             cd CumulusCI-Test
-            ../venv/bin/coverage run --append --rcfile=../.coveragerc --source=../cumulusci ../venv/bin/cci flow run ci_feature --org scratch --delete-org
+            coverage run --append --rcfile=../.coveragerc --source=../cumulusci cci flow run ci_feature --org scratch --delete-org
       - run:
           name: Run ci_beta flow
           command: |
             cd CumulusCI-Test
-            ../venv/bin/coverage run --append --rcfile=../.coveragerc --source=../cumulusci ../venv/bin/cci flow run ci_beta --org scratch --delete-org
+            coverage run --append --rcfile=../.coveragerc --source=../cumulusci cci flow run ci_beta --org scratch --delete-org
       - run:
           name: Run ci_master flow
           command: |
             cd CumulusCI-Test
-            ../venv/bin/coverage run --append --rcfile=../.coveragerc --source=../cumulusci ../venv/bin/cci flow run ci_master --org scratch --delete-org
+            coverage run --append --rcfile=../.coveragerc --source=../cumulusci cci flow run ci_master --org scratch --delete-org
       - run:
           name: Run release_beta flow
           command: |
             cd CumulusCI-Test
-            ../venv/bin/coverage run --append --rcfile=../.coveragerc --source=../cumulusci ../venv/bin/cci flow run release_beta --org packaging
+            coverage run --append --rcfile=../.coveragerc --source=../cumulusci cci flow run release_beta --org packaging
       - run:
           name: Preserve coverage
           command: |
@@ -193,10 +198,11 @@ jobs:
           name: Report coverage
           command: |
             virtualenv venv
-            venv/bin/pip install coverage coveralls
-            venv/bin/coverage combine .coverage.*
-            venv/bin/coverage report -m
-            venv/bin/coveralls
+            source venv/bin/activate
+            pip install coverage coveralls
+            coverage combine .coverage.*
+            coverage report -m
+            coveralls
 
 
 workflows:
