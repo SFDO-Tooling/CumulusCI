@@ -108,7 +108,7 @@ jobs:
             mv output.xml robot_results/robot/salesforce_api-output.xml
             venv/bin/coverage run --append venv/bin/cci task run robot -o name "Salesforce UI Chrome" -o suites cumulusci/robotframework/tests/salesforce -o exclude api -o xunit robot_results/robot/salesforce_ui_chrome.xml
             mv output.xml robot_results/robot/salesforce_ui_chrome-output.xml
-            Salesforce\ UI\ Firefoxvenv/bin/coverage run --append venv/bin/cci task run robot -o name "Salesforce UI Firefox" -o suites cumulusci/robotframework/tests/salesforce -o exclude api -o vars BROWSER:headlessfirefox -o xunit robot_results/robot/salesforce_ui_firefox.xml
+            venv/bin/coverage run --append venv/bin/cci task run robot -o name "Salesforce UI Firefox" -o suites cumulusci/robotframework/tests/salesforce -o exclude api -o vars BROWSER:headlessfirefox -o xunit robot_results/robot/salesforce_ui_firefox.xml
             mv output.xml robot_results/robot/salesforce_ui_firefox-output.xml
       - run:
           name: Consolidate robot outputs into a single report and log
