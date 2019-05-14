@@ -200,6 +200,180 @@ In addition to browser interactions, the Salesforce Library also provides the fo
 * **Salesforce Update**: Updates a record using its type, ID, and field=value syntax
 * **SOQL Query**: Runs a SOQL query and returns a REST API result dictionary
 
+PageObjects Library
+===================
+
+The **PageObjects** library provides support for page objects,
+robotframework-style. Even though robot is a keyword driven framework,
+we've implemented a way to dynamically load in keywords that are
+unique to a page or an object on the page.
+
+With this library, you can define classes which represent page
+objects. Each class has keywords that are unique to a page or a
+component. These classes can be imported on demand only for tests
+which use these pages or components.
+
+The pageobject Decorator
+------------------------
+
+Page objects are normal python classes which use the :code:`pageobject`
+decorator provided by cumulusci. Unlike traditional robot framework
+keyword libraries, you may define multiple sets of keywords in a
+single file.
+
+For example, the following example shows the definition of a page
+object for the listing page of the Contact object. It adds a new
+keyword named :code:`Click contact link`:
+
+.. code-block:: python
+
+   from cumulusci.robotframework.pageobjects import pageobject, ListingPage
+
+   @pageobject(page_type="Listing", object_name="Contact")
+   class ContactListingPage(ListingPage):
+
+       def click_contact_link(self, name):
+           self.selenium.click_link('xpath://a[@title="{}"]'.format(name))
+           self.salesforce.wait_until_loading_is_complete()
+
+The :code:`pageobject` decorator takes two arguments: :code:`page_type` and
+:code:`object_name`. These two arguments are used to identify the page
+object (eg: :code:`Go To Page  Listing  Contact`). The values can be
+any arbitrary string, but ordinarily should represent standard page
+types ("Listing", "Detail", "Home"), and standard object names.
+
+
+Importing the library
+---------------------
+
+The **PageObjects** library is somewhat unique in that it is not only a
+keyword library, but also the mechanism by which you can import files
+which contain page object classes. This is done by providing the paths
+to one or more python files which implement page objects. You may also
+import **PageObjects** without passing any files to it in order to take
+advantage of some general purpose page objects.
+
+For example, consider the case where you've created two files that
+each have one or more page object definitions. For example, lets say
+in robot/MyProject/resources you have the files PageObjects.py and
+MorePageObjects.py. You can import these page objects into a test
+suite like so:
+
+.. code-block:: robotframework
+
+   *** Settings ***
+   Library         cumulusci.robotframework.PageObjects
+   ...  robot/MyProject/resources/PageObjects.py
+   ...  robot/MyProject/resources/MorePageObjects.py
+
+
+Using Page Objects
+------------------
+
+There are two things that must be done in order to use the keywords in
+a page object. The first has already been covered, and that is to
+import the **PageObjects** library and any custom page object files you
+wish to use.
+
+The second thing you must do is either explicitly load the keywords
+for a page object, or reference a page object with one of the generic
+keywords provided by the **PageObjects** library.
+
+To explicitly load the keywords for a page object you can use the
+:code:`load page object` keyword provided by the **PageObjects**
+library. Other keywords provided by that library will automatically
+import the keywords if they are successful. For example, you can call
+:code:`Go To Page` followed by a page object reference, and if that page is
+able to be navigated to, its keywords will automatically be loaded.
+
+Page Object Keywords
+--------------------
+
+The **PageObjects** library provides the following keywords:
+
+* Current Page Should Be
+* Go To Page Object
+* Load Page Object
+* Log Page Object Keywords
+
+Current Page Should Be
+^^^^^^^^^^^^^^^^^^^^^^
+
+Example: :code:`Current Page Should Be  Listing  Contact`
+
+This keyword will attempt to validate that the given page object
+represents the current page. Each page object may use its own method
+for making the determination, but the built-in page objects all
+compare the page location to an expected pattern
+(eg: _.../lightning/o/..._). If the assertion passes, the keywords for
+that page object will autoamtically be loaded.
+
+This keyword is useful if you get to a page via a button or some other
+form of navigation, in that it allows you to both assert that you are
+on the page you think you should be on, and load the keywords for that
+page, all with a single statement.
+
+Go To Page Object
+^^^^^^^^^^^^^^^^^
+
+Example: :code:`Go to page object  Listing  Contact`
+
+This will attempt to go to the listing page for the Contact object,
+and then load the keywords for that page.
+
+Log Page Object Keywords
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+Example: :code:`Load Page Object Keywords`
+
+This keyword is primarily a debugging tool. When called it will log
+each of the keywords for the current page object.
+
+Load Page Object
+^^^^^^^^^^^^^^^^
+
+Example: :code:`Load page object  Listing  Contact`
+
+This will load the page object for the given **page_type** and
+**object_name_**. It is useful when you want to use the keywords from a
+page object without first navigating to that page (ie: when you are
+already on the page and don't want to navigate away).
+
+
+Generic Page Objects
+--------------------
+
+You do not need to create a page object in order to take advantage of
+the new page object keywords. If you use one of the page object
+keywords for a page that does not have its own page object, the
+**PageObjects** library will try to find a generic page.
+
+For example, if you use :code:`Current page should be  Home  Event` and
+there is no page object by that name, a generic :code:`Home` page object
+will be loaded, and it's object name will be set to :code:`Event`.
+
+For example, lets say your project has created a custom object named
+**Island**. You don't have a home page, but the object does have a
+standard listing page. Without creating any page objects, this test
+should work by using generic implementations of the Home and Listing
+page objects:
+
+.. code-block:: robotframework
+
+   *** Test Cases ***
+   Example test which uses generic page objects
+       # Go to the custom object home page, which should
+       # redirect to the listing page
+       Go To Page  Home  Islands
+
+       # Verify that the redirect happened
+       Current Page Should Be  Listing  Islands
+
+Of course, the real power comes when you create your own page object
+class which implements keywords which can be used with your custom
+objects.
+
+
 Keyword Documentation
 =====================
 
