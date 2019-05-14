@@ -5,10 +5,8 @@ from cumulusci.robotframework.pageobjects import BasePage
 from cumulusci.robotframework.pageobjects import pageobject
 
 
-@pageobject("Test", "Bar")
+@pageobject(page_type="Test", object_name="Bar")
 class BarTestPage(BasePage):
-    object_name = "Bar"
-
     def bar_keyword_1(self, message):
         self.builtin.log(message)
         return "bar keyword 1: {}".format(message)
