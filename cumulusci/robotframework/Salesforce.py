@@ -168,7 +168,7 @@ class Salesforce(object):
         """
         self._session_records.reverse()
         self.builtin.log("Deleting {} records".format(len(self._session_records)))
-        for record in self._session_records:
+        for record in self._session_records[:]:
             self.builtin.log("  Deleting {type} {id}".format(**record))
             try:
                 self.salesforce_delete(record["type"], record["id"])
