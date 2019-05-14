@@ -96,5 +96,18 @@ Base class: DetailPage
     ...  Verify we can go to the generic Detail page
     ...  (assuming we don't have an explicit TaskDetailPage)
 
-    go to page  Detail  Contact  firstName=Inigo  lastName=Montoya
+    Go to page  Detail  Contact  firstName=Inigo  lastName=Montoya
     Current page should be  Detail  Contact  firstName=Inigo  lastName=Montoya
+
+Base class: DetailPage with no matches
+
+    run keyword and expect error  no Contact matches firstName=Nobody, lastName=Nobody
+    ...  Go to page  Detail  Contact  firstName=Nobody  lastName=Nobody
+
+Base class: DetailPage with more than one match
+    [Setup]  run keywords
+    ...  Salesforce Insert  Contact  FirstName=John  LastName=Smith
+    ...  AND  Salesforce Insert  Contact  FirstName=John  LastName=Jones
+
+    run keyword and expect error  Query returned 2 objects
+    ...  Go to page  Detail  Contact  firstName=John

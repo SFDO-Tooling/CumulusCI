@@ -35,7 +35,12 @@ class BasePage(object):
         """
         results = self.salesforce.salesforce_query(self.object_name, **kwargs)
         if len(results) == 0:
-            raise Exception("no {} matches {}".format(self.object_name, str(kwargs)))
+            human_friendly_args = ", ".join(
+                ["{}={}".format(key, kwargs[key]) for key in kwargs]
+            )
+            raise Exception(
+                "no {} matches {}".format(self.object_name, human_friendly_args)
+            )
         elif len(results) > 1:
             raise Exception("Query returned {} objects".format(len(results)))
         else:
