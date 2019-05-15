@@ -82,9 +82,17 @@ tasks:
         group: Salesforce DX
     dx_push:
         description: Uses sfdx to push the force-app directory metadata into a scratch org
-        class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+        class_path: cumulusci.tasks.sfdx.SFDXBaseTask
         options:
             command: 'force:source:push'
+        group: Salesforce DX
+    dx_set_defaultusername:
+        description: Sets sfdx's defaultusername as Org's sfdx alias
+        class_path: cumulusci.tasks.sfdx.SFDXBaseTask
+        options:
+            command: 'force:config:set'
+            extra: 'defaultusername="{org_config.sfdx_alias}"'
+            format_extra_with_org_config: True
         group: Salesforce DX
     execute_anon:
         description: Execute anonymous apex via the tooling api.

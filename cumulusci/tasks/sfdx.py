@@ -28,6 +28,9 @@ class SFDXBaseTask(Command):
             "required": True,
         },
         "extra": {"description": "Append additional options to the command"},
+        "format_extra_with_org_config": {
+            "description": "Formats extra with org_config.  Example: {org_config.sfdx_alias}"
+        },
     }
 
     def _init_options(self, kwargs):
@@ -35,7 +38,12 @@ class SFDXBaseTask(Command):
         self.options["command"] = self._get_command()
         # Add extra command args from
         if self.options.get("extra"):
-            self.options["command"] += " {}".format(self.options["extra"])
+            extra = self.options["extra"]
+
+            if self.options.get("format_extra_with_org_config"):
+                extra = extra.format(org_config=self.org_config)
+
+            self.options["command"] += " {}".format(extra)
 
     def _get_command(self):
         command = "{SFDX_CLI} {command}".format(
