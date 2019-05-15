@@ -204,7 +204,7 @@ PageObjects Library
 ===================
 
 The **PageObjects** library provides support for page objects,
-robotframework-style. Even though robot is a keyword driven framework,
+Robot Framework-style. Even though robot is a keyword-driven framework,
 we've implemented a way to dynamically load in keywords that are
 unique to a page or an object on the page.
 
@@ -213,11 +213,11 @@ objects. Each class has keywords that are unique to a page or a
 component. These classes can be imported on demand only for tests
 which use these pages or components.
 
-The pageobject Decorator
+The ``pageobject`` Decorator
 ------------------------
 
-Page objects are normal python classes which use the :code:`pageobject`
-decorator provided by cumulusci. Unlike traditional robot framework
+Page objects are normal Python classes which use the :code:`pageobject`
+decorator provided by CumulusCI. Unlike traditional Robot Framework
 keyword libraries, you may define multiple sets of keywords in a
 single file.
 
@@ -249,14 +249,14 @@ Importing the library
 The **PageObjects** library is somewhat unique in that it is not only a
 keyword library, but also the mechanism by which you can import files
 which contain page object classes. This is done by providing the paths
-to one or more python files which implement page objects. You may also
+to one or more Python files which implement page objects. You may also
 import **PageObjects** without passing any files to it in order to take
 advantage of some general purpose page objects.
 
 For example, consider the case where you've created two files that
 each have one or more page object definitions. For example, lets say
-in robot/MyProject/resources you have the files PageObjects.py and
-MorePageObjects.py. You can import these page objects into a test
+in ``robot/MyProject/resources`` you have the files ``PageObjects.py`` and
+``MorePageObjects.py``. You can import these page objects into a test
 suite like so:
 
 .. code-block:: robotframework
@@ -336,7 +336,7 @@ Example: :code:`Load page object  Listing  Contact`
 
 This will load the page object for the given **page_type** and
 **object_name_**. It is useful when you want to use the keywords from a
-page object without first navigating to that page (ie: when you are
+page object without first navigating to that page (i.e. when you are
 already on the page and don't want to navigate away).
 
 
@@ -350,9 +350,9 @@ keywords for a page that does not have its own page object, the
 
 For example, if you use :code:`Current page should be  Home  Event` and
 there is no page object by that name, a generic :code:`Home` page object
-will be loaded, and it's object name will be set to :code:`Event`.
+will be loaded, and its object name will be set to :code:`Event`.
 
-For example, lets say your project has created a custom object named
+For example, let's say your project has created a custom object named
 **Island**. You don't have a home page, but the object does have a
 standard listing page. Without creating any page objects, this test
 should work by using generic implementations of the Home and Listing
