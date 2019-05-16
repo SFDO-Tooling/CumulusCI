@@ -194,12 +194,13 @@ class ScratchOrgConfig(OrgConfig):
             "email": sarge.shell_format('adminEmail="{0!s}"', self.email_address)
             if self.email_address and not org_def_has_email
             else "",
+            "default": " -s" if self.default else "",
             "extraargs": os.environ.get("SFDX_ORG_CREATE_ARGS", ""),
         }
 
         # This feels a little dirty, but the use cases for extra args would mostly
         # work best with env vars
-        command = "sfdx force:org:create -f {config_file}{devhub}{namespaced}{days}{alias} {email} {extraargs}".format(
+        command = "sfdx force:org:create -f {config_file}{devhub}{namespaced}{days}{alias}{default} {email} {extraargs}".format(
             **options
         )
         self.logger.info("Creating scratch org with command {}".format(command))

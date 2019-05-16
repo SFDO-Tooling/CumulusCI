@@ -156,13 +156,14 @@ class BaseProjectKeychain(BaseConfig):
         self.unset_default_org()
         org.config["default"] = True
         self.set_org(org)
-        sarge.run(
-            sarge.shell_format(
-                "sfdx force:config:set defaultusername={}", org.sfdx_alias
-            ),
-            stdout=sarge.Capture(buffer_size=-1),
-            stderr=sarge.Capture(buffer_size=-1),
-        )
+        if org.created:
+            sarge.run(
+                sarge.shell_format(
+                    "sfdx force:config:set defaultusername={}", org.sfdx_alias
+                ),
+                stdout=sarge.Capture(buffer_size=-1),
+                stderr=sarge.Capture(buffer_size=-1),
+            )
 
     def unset_default_org(self):
         """ unset the default orgs for tasks """
