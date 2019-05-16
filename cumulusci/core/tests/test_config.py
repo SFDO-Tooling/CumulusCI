@@ -15,6 +15,7 @@ from cumulusci.core.exceptions import ConfigError
 from cumulusci.core.exceptions import DependencyResolutionError
 from cumulusci.core.exceptions import KeychainNotFound
 from cumulusci.core.exceptions import FlowNotFoundError
+from cumulusci.core.exceptions import SalesforceCredentialsException
 from cumulusci.core.exceptions import TaskNotFoundError
 from cumulusci.utils import temporary_dir
 
@@ -882,7 +883,7 @@ class TestOrgConfig(unittest.TestCase):
         config._load_orginfo = mock.Mock()
         keychain = mock.Mock()
         SalesforceOAuth2.return_value = oauth = mock.Mock()
-        oauth.refresh_token.return_value = resp = mock.Mock()
+        oauth.refresh_token.return_value = resp = mock.Mock(status_code=200)
         resp.json.return_value = {}
 
         config.refresh_oauth_token(keychain)
@@ -893,6 +894,16 @@ class TestOrgConfig(unittest.TestCase):
         config = OrgConfig({}, "test")
         with self.assertRaises(AttributeError):
             config.refresh_oauth_token(None)
+
+    @mock.patch("cumulusci.core.config.OrgConfig.SalesforceOAuth2")
+    def test_refresh_oauth_token_error(self, SalesforceOAuth2):
+        config = OrgConfig({"refresh_token": mock.sentinel.refresh_token}, "test")
+        keychain = mock.Mock()
+        SalesforceOAuth2.return_value = oauth = mock.Mock()
+        oauth.refresh_token.return_value = mock.Mock(status_code=400, text=":(")
+
+        with self.assertRaises(SalesforceCredentialsException):
+            config.refresh_oauth_token(keychain)
 
     def test_lightning_base_url(self):
         config = OrgConfig({"instance_url": "https://na01.salesforce.com"}, "test")

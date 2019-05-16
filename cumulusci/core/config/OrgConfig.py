@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 import requests
 
 from cumulusci.core.config import BaseConfig
+from cumulusci.core.exceptions import SalesforceCredentialsException
 from cumulusci.oauth.salesforce import SalesforceOAuth2
 
 
@@ -36,7 +37,10 @@ class OrgConfig(BaseConfig):
         )
 
         resp = sf_oauth.refresh_token(self.refresh_token)
-        resp.raise_for_status()
+        if resp.status_code != 200:
+            raise SalesforceCredentialsException(
+                "Error refreshing OAuth token: {}".format(resp.text)
+            )
         info = resp.json()
         if info != self.config:
             self.config.update(info)
