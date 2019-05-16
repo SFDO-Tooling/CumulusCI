@@ -150,6 +150,7 @@ class PageObjects(object):
         """
         pobj = self._get_page_object(page_type, object_name)
         self._set_current_page_object(pobj)
+        return pobj
 
     def _set_current_page_object(self, pobj):
         """This does the work of importing the keywords for the given page object"""

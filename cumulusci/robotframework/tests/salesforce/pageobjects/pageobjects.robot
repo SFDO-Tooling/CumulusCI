@@ -48,6 +48,7 @@ Current page should be, using generic page object
     [Setup]  Go to page  Listing  Task
 
     Current page should be  Listing  Task
+    Location should contain  /lightning/o/Task/list
 
 Current page should be throws appropriate error
     [Documentation]

@@ -3,9 +3,27 @@ import re
 
 
 class BasePage(object):
+    _object_name = None
+
     def __init__(self, object_name=None):
         if object_name:
-            self.object_name = object_name
+            self._object_name = object_name
+
+    @property
+    def object_name(self):
+        object_name = self._object_name
+
+        # the length check is to skip objects from a different namespace
+        # like foobar__otherpackageobject__c
+        if object_name is not None:
+            parts = object_name.split("__")
+            if len(parts) == 2 and parts[-1] == "c":
+                # get_namespace_prefix already takes care of returning an actual
+                # prefix or an empty string depending on whether the package is managed
+                object_name = "{}{}".format(
+                    self.cumulusci.get_namespace_prefix(), object_name
+                )
+        return object_name
 
     @property
     def builtin(self):
@@ -48,10 +66,6 @@ class BasePage(object):
 
 
 class ListingPage(BasePage):
-    # This needs to be defined by a subclass, or passed in to
-    # the constructor
-    object_name = None
-
     def _go_to_page(self, filter_name=None):
         url_template = "{root}/lightning/o/{object_name}/list"
         url = url_template.format(

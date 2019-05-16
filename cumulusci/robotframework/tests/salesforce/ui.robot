@@ -1,9 +1,9 @@
 *** Settings ***
 
 Resource        cumulusci/robotframework/Salesforce.robot
+Library         cumulusci.robotframework.PageObjects
 Suite Setup     Open Test Browser
 Suite Teardown  Delete Records and Close Browser
-Library         cumulusci.robotframework.PageObjects
 
 
 *** Keywords ***

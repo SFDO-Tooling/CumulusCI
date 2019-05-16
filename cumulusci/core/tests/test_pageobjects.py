@@ -17,6 +17,7 @@ import unittest
 import os.path
 import mock
 from cumulusci.robotframework import PageObjects
+from cumulusci.robotframework.CumulusCI import CumulusCI
 
 HERE = os.path.dirname(__file__)
 FOO_PATH = os.path.join(HERE, "FooTestPage.py")
@@ -29,17 +30,28 @@ CORE_KEYWORDS = [
 ]
 
 
+def mock_builtin_get_library_instance(libname):
+    if libname == "cumulusci.robotframework.CumulusCI":
+        return CumulusCI()
+    return mock.Mock()
+
+
+@mock.patch(
+    "robot.libraries.BuiltIn.BuiltIn.get_library_instance",
+    side_effect=mock_builtin_get_library_instance,
+)
+# We have to mock out _get_context or the robot libraries will
+# throw an exception saying it cannot access the execution context.
+@mock.patch("robot.libraries.BuiltIn.BuiltIn._get_context")
 class TestPageObjects(unittest.TestCase):
-    @mock.patch("robot.libraries.BuiltIn.BuiltIn._get_context")
-    def test_PageObject(self, get_context_mock):
+    def test_PageObject(self, get_context_mock, get_library_instance_mock):
         po = PageObjects()
         # no page objects loaded, so get_keyword_names should only return
         # the core keywords
         self.assertEqual(po.get_keyword_names(), CORE_KEYWORDS)
         self.assertEqual(po.registry, {})
 
-    @mock.patch("robot.libraries.BuiltIn.BuiltIn._get_context")
-    def test_load_single_page_object(self, get_context_mock):
+    def test_load_single_page_object(self, get_context_mock, get_library_instance_mock):
         """Verify that we don't see page object keywords until they are explicitly requested"""
 
         po = PageObjects(FOO_PATH)
@@ -52,17 +64,19 @@ class TestPageObjects(unittest.TestCase):
         po.load_page_object("Test", "Foo")
         self.assertEqual(po.get_keyword_names(), CORE_KEYWORDS + ["foo_keyword_1"])
 
-    @mock.patch("robot.libraries.BuiltIn.BuiltIn._get_context")
-    def test_page_object_keyword_is_callable(self, get_context_mock):
+    def test_page_object_keyword_is_callable(
+        self, get_context_mock, get_library_instance_mock
+    ):
         """Assert that the page object keyword is callable"""
         po = PageObjects(FOO_PATH)
         po.load_page_object("Test", "Foo")
         result = po.foo_keyword_1("hello")
         self.assertEqual(result, "foo keyword 1: hello")
 
-    @mock.patch("robot.libraries.BuiltIn.BuiltIn._get_context")
-    def test_load_two_page_objects(self, get_context_mock):
-        """Verify that we can import to page objects, but only one is visible at a time
+    def test_load_multiple_page_objects(
+        self, get_context_mock, get_library_instance_mock
+    ):
+        """Verify that we can import multiple page objects, but only one is visible at a time
 
         This test is based on the current design of only allowing a
         single page object to be active at a time. That might change
@@ -91,8 +105,10 @@ class TestPageObjects(unittest.TestCase):
         self.assertEqual(po.bar_keyword_1("hello"), "bar keyword 1: hello")
 
     @mock.patch("robot.libraries.BuiltIn.BuiltIn.log")
-    @mock.patch("robot.libraries.BuiltIn.BuiltIn._get_context")
-    def test_log_page_object_keywords(self, get_context_mock, log_mock):
+    def test_log_page_object_keywords(
+        self, log_mock, get_context_mock, get_library_instance_mock
+    ):
+        """Verify that the log_page_objects keyword logs keywords from all imported page objects"""
         po = PageObjects(FOO_PATH, BAR_PATH)
         po.log_page_object_keywords()
         expected_calls = [
@@ -100,3 +116,19 @@ class TestPageObjects(unittest.TestCase):
             mock.call("('Test', 'Bar'): bar_keyword_1, bar_keyword_2"),
         ]
         log_mock.assert_has_calls(expected_calls, any_order=True)
+
+    def test_namespaced_object_name(self, get_context_mock, get_library_instance_mock):
+        """Verify that the object name is prefixed by the namespace when there's a namespace"""
+        with mock.patch.object(
+            CumulusCI, "get_namespace_prefix", return_value="foobar__"
+        ):
+            pobj = PageObjects().load_page_object("Listing", "CustomObject__c")
+            self.assertEqual(pobj.object_name, "foobar__CustomObject__c")
+
+    def test_non_namespaced_object_name(
+        self, get_context_mock, get_library_instance_mock
+    ):
+        """Verify that the object name is not prefixed by a namespace when there is no namespace"""
+        with mock.patch.object(CumulusCI, "get_namespace_prefix", return_value=""):
+            pobj = PageObjects().load_page_object("Listing", "CustomObject__c")
+            self.assertEqual(pobj.object_name, "CustomObject__c")
