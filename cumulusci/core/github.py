@@ -1,5 +1,6 @@
 """Wraps the github3 library to configure request retries."""
 
+from cumulusci.core.exceptions import GithubException
 from github3 import login
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
@@ -13,3 +14,15 @@ def get_github_api(username, password):
     gh.session.mount("http://", adapter)
     gh.session.mount("https://", adapter)
     return gh
+
+
+def validate_service(options):
+    username = options["username"]
+    password = options["password"]
+    gh = get_github_api(username, password)
+    try:
+        gh.rate_limit()
+    except Exception as e:
+        raise GithubException(
+            "Could not confirm access to the GitHub API: {}".format(str(e))
+        )

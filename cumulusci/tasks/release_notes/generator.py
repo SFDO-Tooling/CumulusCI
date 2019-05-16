@@ -1,6 +1,6 @@
 import github3.exceptions
 
-from cumulusci.core.utils import import_class
+from cumulusci.core.utils import import_global
 from cumulusci.tasks.release_notes.exceptions import CumulusCIException
 from cumulusci.tasks.release_notes.parser import ChangeNotesLinesParser
 from cumulusci.tasks.release_notes.parser import IssuesParser
@@ -121,7 +121,7 @@ class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator):
 
     def _init_parsers(self):
         for cfg in self.parser_config:
-            parser_class = import_class(cfg["class_path"])
+            parser_class = import_global(cfg["class_path"])
             self.parsers.append(parser_class(self, cfg["title"]))
 
     def _init_change_notes(self):
