@@ -1,5 +1,7 @@
 from __future__ import print_function
 
+import sarge
+
 from cumulusci.core.config import BaseConfig
 from cumulusci.core.config import ScratchOrgConfig
 from cumulusci.core.config import ServiceConfig
@@ -154,6 +156,13 @@ class BaseProjectKeychain(BaseConfig):
         self.unset_default_org()
         org.config["default"] = True
         self.set_org(org)
+        sarge.run(
+            sarge.shell_format(
+                "sfdx force:config:set defaultusername={}", org.sfdx_alias
+            ),
+            stdout=sarge.Capture(buffer_size=-1),
+            stderr=sarge.Capture(buffer_size=-1),
+        )
 
     def unset_default_org(self):
         """ unset the default orgs for tasks """
@@ -162,6 +171,11 @@ class BaseProjectKeychain(BaseConfig):
             if org_config.default:
                 del org_config.config["default"]
                 self.set_org(org_config)
+        sarge.run(
+            "sfdx force:config:set defaultusername=",
+            stdout=sarge.Capture(buffer_size=-1),
+            stderr=sarge.Capture(buffer_size=-1),
+        )
 
     def get_org(self, name):
         """ retrieve an org configuration by name key """
