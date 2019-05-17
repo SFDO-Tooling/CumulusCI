@@ -164,7 +164,8 @@ class ProjectKeychainTestMixin(unittest.TestCase):
         keychain = self.keychain_class(self.project_config, self.key)
         self.assertEqual(keychain.get_default_org()[1], None)
 
-    def test_set_default_org(self):
+    @mock.patch("cumulusci.core.sfdx.sfdx")
+    def test_set_default_org(self, sfdx):
         keychain = self.keychain_class(self.project_config, self.key)
         org_config = self.org_config.config.copy()
         org_config = OrgConfig(org_config, "test")
@@ -175,7 +176,8 @@ class ProjectKeychainTestMixin(unittest.TestCase):
 
         self.assertEqual(expected_org_config, keychain.get_default_org()[1].config)
 
-    def test_unset_default_org(self):
+    @mock.patch("cumulusci.core.sfdx.sfdx")
+    def test_unset_default_org(self, sfdx):
         keychain = self.keychain_class(self.project_config, self.key)
         org_config = self.org_config.config.copy()
         org_config = OrgConfig(org_config, "test")

@@ -9,6 +9,7 @@ import sarge
 from simple_salesforce import Salesforce
 
 from cumulusci.utils import get_git_config
+from cumulusci.core.sfdx import sfdx
 from cumulusci.core.config import FAILED_TO_CREATE_SCRATCH_ORG
 from cumulusci.core.config import OrgConfig
 from cumulusci.core.exceptions import ScratchOrgException
@@ -37,16 +38,7 @@ class ScratchOrgConfig(OrgConfig):
 
         # Call force:org:display and parse output to get instance_url and
         # access_token
-        command = sarge.shell_format(
-            "sfdx force:org:display -u {0} --json", self.username
-        )
-        p = sarge.Command(
-            command,
-            stderr=sarge.Capture(buffer_size=-1),
-            stdout=sarge.Capture(buffer_size=-1),
-            shell=True,
-        )
-        p.run()
+        p = sfdx("force:org:display --json", self.username)
 
         org_info = None
         stderr_list = [line.strip() for line in io.TextIOWrapper(p.stderr)]
@@ -200,17 +192,10 @@ class ScratchOrgConfig(OrgConfig):
 
         # This feels a little dirty, but the use cases for extra args would mostly
         # work best with env vars
-        command = "sfdx force:org:create -f {config_file}{devhub}{namespaced}{days}{alias}{default} {email} {extraargs}".format(
+        command = "force:org:create -f {config_file}{devhub}{namespaced}{days}{alias}{default} {email} {extraargs}".format(
             **options
         )
-        self.logger.info("Creating scratch org with command {}".format(command))
-        p = sarge.Command(
-            command,
-            stdout=sarge.Capture(buffer_size=-1),
-            stderr=sarge.Capture(buffer_size=-1),
-            shell=True,
-        )
-        p.run()
+        p = sfdx(command, username=None, log_note="Creating scratch org")
 
         stderr = [line.strip() for line in io.TextIOWrapper(p.stderr)]
         stdout = [line.strip() for line in io.TextIOWrapper(p.stdout)]
@@ -247,19 +232,12 @@ class ScratchOrgConfig(OrgConfig):
             return
 
         # Set a random password so it's available via cci org info
-        command = sarge.shell_format(
-            "sfdx force:user:password:generate -u {0}", self.username
+
+        p = sfdx(
+            "force:user:password:generate",
+            self.username,
+            log_note="Generating scratch org user password",
         )
-        self.logger.info(
-            "Generating scratch org user password with command {}".format(command)
-        )
-        p = sarge.Command(
-            command,
-            stdout=sarge.Capture(buffer_size=-1),
-            stderr=sarge.Capture(buffer_size=-1),
-            shell=True,
-        )
-        p.run()
 
         stderr = io.TextIOWrapper(p.stderr).readlines()
         stdout = io.TextIOWrapper(p.stdout).readlines()
@@ -285,10 +263,7 @@ class ScratchOrgConfig(OrgConfig):
             )
             return
 
-        command = sarge.shell_format("sfdx force:org:delete -p -u {0}", self.username)
-        self.logger.info("Deleting scratch org with command {}".format(command))
-        p = sarge.Command(command, stdout=sarge.Capture(buffer_size=-1), shell=True)
-        p.run()
+        p = sfdx("force:org:delete -p", self.username, "Deleting scratch org")
 
         stdout = []
         for line in io.TextIOWrapper(p.stdout):
@@ -310,10 +285,7 @@ class ScratchOrgConfig(OrgConfig):
     def force_refresh_oauth_token(self):
         # Call force:org:display and parse output to get instance_url and
         # access_token
-        command = sarge.shell_format("sfdx force:org:open -r -u {0}", self.username)
-        self.logger.info("Refreshing OAuth token with command: {}".format(command))
-        p = sarge.Command(command, stdout=sarge.Capture(buffer_size=-1), shell=True)
-        p.run()
+        p = sfdx("force:org:open -r", self.username, log_note="Refreshing OAuth token")
 
         stdout_list = [line.strip() for line in io.TextIOWrapper(p.stdout)]
 

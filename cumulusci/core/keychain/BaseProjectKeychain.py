@@ -8,6 +8,7 @@ from cumulusci.core.config import ServiceConfig
 from cumulusci.core.exceptions import OrgNotFound
 from cumulusci.core.exceptions import ServiceNotConfigured
 from cumulusci.core.exceptions import ServiceNotValid
+from cumulusci.core.sfdx import sfdx
 
 
 class BaseProjectKeychain(BaseConfig):
@@ -157,12 +158,10 @@ class BaseProjectKeychain(BaseConfig):
         org.config["default"] = True
         self.set_org(org)
         if org.created:
-            sarge.run(
+            sfdx(
                 sarge.shell_format(
-                    "sfdx force:config:set defaultusername={}", org.sfdx_alias
-                ),
-                stdout=sarge.Capture(buffer_size=-1),
-                stderr=sarge.Capture(buffer_size=-1),
+                    "force:config:set defaultusername={}", org.sfdx_alias
+                )
             )
 
     def unset_default_org(self):
@@ -172,11 +171,7 @@ class BaseProjectKeychain(BaseConfig):
             if org_config.default:
                 del org_config.config["default"]
                 self.set_org(org_config)
-        sarge.run(
-            "sfdx force:config:set defaultusername=",
-            stdout=sarge.Capture(buffer_size=-1),
-            stderr=sarge.Capture(buffer_size=-1),
-        )
+        sfdx("force:config:set defaultusername=")
 
     def get_org(self, name):
         """ retrieve an org configuration by name key """
