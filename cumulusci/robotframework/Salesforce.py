@@ -1,17 +1,21 @@
+import glob
+import importlib
 import logging
+import os.path
 import re
 import time
-from robot.libraries.BuiltIn import BuiltIn
+from robot.libraries.BuiltIn import BuiltIn, RobotNotRunningError
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.action_chains import ActionChains
 
 from simple_salesforce import SalesforceResourceNotFound
-from cumulusci.robotframework.locators import lex_locators
 from cumulusci.robotframework.utils import selenium_retry
 from SeleniumLibrary.errors import ElementNotFound
 from urllib3.exceptions import ProtocolError
 
 OID_REGEX = r"^(%2F)?([a-zA-Z0-9]{15,18})$"
+
+lex_locators = {}  # will be initialized when Salesforce is instantiated
 
 
 @selenium_retry
@@ -25,6 +29,34 @@ class Salesforce(object):
         logging.getLogger("requests.packages.urllib3.connectionpool").setLevel(
             logging.WARN
         )
+        self._init_locators()
+
+    def _init_locators(self):
+        """Load the appropriate locator file for the current version
+
+        If no version can be determined, we'll use the highest numbered
+        locator file name.
+        """
+        try:
+            client = self.cumulusci.tooling
+            response = client._call_salesforce(
+                "GET", "https://{}/services/data".format(client.sf_instance)
+            )
+            version = int(float(response.json()[-1]["version"]))
+            locator_module_name = "locators_{}".format(version)
+
+        except RobotNotRunningError:
+            # We aren't part of a running test, likely because we are
+            # generating keyword documentation. If that's the case we'll
+            # use the latest supported version
+            here = os.path.dirname(__file__)
+            files = sorted(glob.glob(os.path.join(here, "locators_*.py")))
+            locator_module_name = os.path.basename(files[-1])[:-3]
+
+        self.locators_module = importlib.import_module(
+            "cumulusci.robotframework." + locator_module_name
+        )
+        lex_locators.update(self.locators_module.lex_locators)
 
     @property
     def builtin(self):
@@ -136,7 +168,7 @@ class Salesforce(object):
         """
         self._session_records.reverse()
         self.builtin.log("Deleting {} records".format(len(self._session_records)))
-        for record in self._session_records:
+        for record in self._session_records[:]:
             self.builtin.log("  Deleting {type} {id}".format(**record))
             try:
                 self.salesforce_delete(record["type"], record["id"])
@@ -484,10 +516,11 @@ class Salesforce(object):
             lex_locators["modal"]["is_open"], timeout=15
         )
 
-    def wait_until_loading_is_complete(self, locator=lex_locators["body"]):
+    def wait_until_loading_is_complete(self, locator=None):
         """Wait for LEX page to load.
 
         (We're actually waiting for the actions ribbon to appear.)
         """
+        locator = lex_locators["body"] if locator is None else locator
         self.selenium.wait_until_page_contains_element(locator)
         self.wait_for_aura()

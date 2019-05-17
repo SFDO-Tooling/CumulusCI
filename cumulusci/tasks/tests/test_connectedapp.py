@@ -11,20 +11,16 @@ try:
 except ImportError:
     JSONDecodeError = ValueError
 from mock import MagicMock
-from mock import patch
 
-import cumulusci.core.tasks
 from cumulusci.core.config import (
     BaseGlobalConfig,
     BaseProjectConfig,
     TaskConfig,
-    OrgConfig,
     ServiceConfig,
 )
 from cumulusci.core.exceptions import ServiceNotConfigured, TaskOptionsError
 from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.core.tests.utils import MockLoggerMixin
-from cumulusci.tasks.salesforce.tests.util import create_task
 from cumulusci.tasks.connectedapp import CreateConnectedApp
 from cumulusci.utils import temporary_dir
 
@@ -77,7 +73,7 @@ class TestCreateConnectedApp(MockLoggerMixin, unittest.TestCase):
         """ Non-alphanumeric + _ label raises TaskOptionsError """
         self.task_config.config["options"]["label"] = "Test Label"
         with pytest.raises(TaskOptionsError, match="^label value must contain only"):
-            task = CreateConnectedApp(self.project_config, self.task_config)
+            CreateConnectedApp(self.project_config, self.task_config)
 
     def test_init_options_email_default(self):
         """ email option defaults to email from github service """
@@ -96,15 +92,15 @@ class TestCreateConnectedApp(MockLoggerMixin, unittest.TestCase):
         del self.task_config.config["options"]["email"]
         self.project_config.config["services"] = {"github": {"attributes": {}}}
         with pytest.raises(TaskOptionsError, match="github"):
-            task = CreateConnectedApp(self.project_config, self.task_config)
+            CreateConnectedApp(self.project_config, self.task_config)
 
     @mock.patch("cumulusci.tasks.connectedapp.CreateConnectedApp._set_default_username")
     def test_init_options_default_username(self, set_mock):
         """ Not passing username calls _get_default_username """
         del self.task_config.config["options"]["username"]
         try:
-            task = CreateConnectedApp(self.project_config, self.task_config)
-        except:
+            CreateConnectedApp(self.project_config, self.task_config)
+        except Exception:
             pass
         set_mock.assert_called_once()
 
@@ -112,6 +108,9 @@ class TestCreateConnectedApp(MockLoggerMixin, unittest.TestCase):
     def test_set_default_username(self, run_command_mock):
         """ _set_default_username calls _run_command """
         task = CreateConnectedApp(self.project_config, self.task_config)
+        run_command_mock.side_effect = lambda **kw: kw["output_handler"](
+            b'{"result":[{"value":"username"}]}'
+        )
         task._set_default_username()
         run_command_mock.assert_called_once()
         self.assertEqual(
@@ -128,9 +127,9 @@ class TestCreateConnectedApp(MockLoggerMixin, unittest.TestCase):
         """ _process_json_output with invalid input logs output and raises JSONDecodeError """
         task = CreateConnectedApp(self.project_config, self.task_config)
         with pytest.raises(JSONDecodeError):
-            output = task._process_json_output("invalid")
+            task._process_json_output("invalid")
         self.assertEqual(
-            self.task_log["error"], ["Failed to parse json from line: invalid"]
+            self.task_log["error"], ["Failed to parse json from output: invalid"]
         )
 
     @mock.patch(

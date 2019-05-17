@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 import requests
 
 from cumulusci.core.config import BaseConfig
+from cumulusci.core.exceptions import SalesforceCredentialsException
 from cumulusci.oauth.salesforce import SalesforceOAuth2
 
 
@@ -36,11 +37,15 @@ class OrgConfig(BaseConfig):
         )
 
         resp = sf_oauth.refresh_token(self.refresh_token)
-        resp.raise_for_status()
+        if resp.status_code != 200:
+            raise SalesforceCredentialsException(
+                "Error refreshing OAuth token: {}".format(resp.text)
+            )
         info = resp.json()
         if info != self.config:
             self.config.update(info)
         self._load_userinfo()
+        self._load_orginfo()
 
     @property
     def lightning_base_url(self):
@@ -83,3 +88,16 @@ class OrgConfig(BaseConfig):
 
     def can_delete(self):
         return False
+
+    def _load_orginfo(self):
+        headers = {"Authorization": "Bearer " + self.access_token}
+        org_info = requests.get(
+            self.instance_url
+            + "/services/data/v45.0/sobjects/Organization/{}".format(self.org_id),
+            headers=headers,
+        ).json()
+        result = {
+            "org_type": org_info["OrganizationType"],
+            "is_sandbox": org_info["IsSandbox"],
+        }
+        self.config.update(result)

@@ -220,6 +220,15 @@ tasks:
     retrieve_unpackaged:
         description: Retrieve the contents of a package.xml file.
         class_path: cumulusci.tasks.salesforce.RetrieveUnpackaged
+    list_changes:
+        description: List the changes from a scratch org
+        class_path: cumulusci.tasks.salesforce.sourcetracking.ListChanges
+        group: Salesforce Metadata
+    retrieve_changes:
+        description: Retrieve changed components from a scratch org
+        class_path: cumulusci.tasks.salesforce.sourcetracking.RetrieveChanges
+        options:
+            path: src
         group: Salesforce Metadata
     revert_managed_src:
         description: Reverts the changes from create_managed_src
@@ -806,7 +815,7 @@ project:
         namespace:
         install_class:
         uninstall_class:
-        api_version: '43.0'
+        api_version: '45.0'
     git:
         default_branch: master
         prefix_feature: feature/

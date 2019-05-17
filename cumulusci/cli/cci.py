@@ -365,24 +365,24 @@ def project_init(config):
     dependencies = []
     click.echo(click.style("# Extend Project", bold=True, fg="blue"))
     click.echo(
-        "CumulusCI makes it easy to build extensions of other projects configured for CumulusCI like Salesforce.org's NPSP and HEDA.  If you are building an extension of another project using CumulusCI and have access to its Github repository, use this section to configure this project as an extension."
+        "CumulusCI makes it easy to build extensions of other projects configured for CumulusCI like Salesforce.org's NPSP and EDA.  If you are building an extension of another project using CumulusCI and have access to its Github repository, use this section to configure this project as an extension."
     )
     if click.confirm(
         click.style(
-            "Are you extending another CumulusCI project such as NPSP or HEDA?",
+            "Are you extending another CumulusCI project such as NPSP or EDA?",
             bold=True,
         ),
         default=False,
     ):
         click.echo("Please select from the following options:")
-        click.echo("  1: HEDA (https://github.com/SalesforceFoundation/HEDAP)")
+        click.echo("  1: EDA (https://github.com/SalesforceFoundation/EDA)")
         click.echo("  2: NPSP (https://github.com/SalesforceFoundation/Cumulus)")
         click.echo(
             "  3: Github URL (provide a URL to a Github repository configured for CumulusCI)"
         )
         selection = click.prompt(click.style("Enter your selection", bold=True))
         github_url = {
-            "1": "https://github.com/SalesforceFoundation/HEDAP",
+            "1": "https://github.com/SalesforceFoundation/EDA",
             "2": "https://github.com/SalesforceFoundation/Cumulus",
         }.get(selection)
         if github_url is None:
@@ -519,11 +519,15 @@ def project_init(config):
             )
         )
 
-    # Create initial create_contact.robot test
-    if not os.path.isdir("tests"):
-        os.mkdir("tests")
-        test_folder = os.path.join("tests", "standard_objects")
-        os.mkdir(test_folder)
+    # create robot folder structure and starter files
+    if not os.path.isdir("robot"):
+        test_folder = os.path.join("robot", context["project_name"], "tests")
+        resource_folder = os.path.join("robot", context["project_name"], "resources")
+        doc_folder = os.path.join("robot", context["project_name"], "doc")
+
+        os.makedirs(test_folder)
+        os.makedirs(resource_folder)
+        os.makedirs(doc_folder)
         test_src = os.path.join(
             cumulusci.__location__,
             "robotframework",

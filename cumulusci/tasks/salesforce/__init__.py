@@ -19,6 +19,9 @@ from cumulusci.tasks.salesforce.Deploy import Deploy
 from cumulusci.tasks.salesforce.GetInstalledPackages import GetInstalledPackages
 from cumulusci.tasks.salesforce.UpdateDependencies import UpdateDependencies
 
+# inherit from BaseSalesforceApiTask and use Deploy
+from cumulusci.tasks.salesforce.EnsureRecordTypes import EnsureRecordTypes
+
 # inherit from BaseRetrieveMetadata
 from cumulusci.tasks.salesforce.RetrievePackaged import RetrievePackaged
 from cumulusci.tasks.salesforce.RetrieveReportsAndDashboards import (

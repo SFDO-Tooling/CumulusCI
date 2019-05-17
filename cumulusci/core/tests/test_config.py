@@ -3,6 +3,7 @@ import os
 import unittest
 
 import mock
+import responses
 
 from github3.exceptions import NotFoundError
 from cumulusci.core.config import BaseConfig
@@ -14,6 +15,7 @@ from cumulusci.core.exceptions import ConfigError
 from cumulusci.core.exceptions import DependencyResolutionError
 from cumulusci.core.exceptions import KeychainNotFound
 from cumulusci.core.exceptions import FlowNotFoundError
+from cumulusci.core.exceptions import SalesforceCredentialsException
 from cumulusci.core.exceptions import TaskNotFoundError
 from cumulusci.utils import temporary_dir
 
@@ -415,6 +417,19 @@ class TestBaseProjectConfig(unittest.TestCase):
         config.get_github_api = mock.Mock(return_value=self._make_github())
         result = config.get_latest_tag()
         self.assertEqual("release/1.1", result)
+
+    def test_get_latest_tag_matching_prefix(self):
+        config = BaseProjectConfig(
+            BaseGlobalConfig(),
+            {"project": {"git": {"prefix_beta": "beta/", "prefix_release": "rel/"}}},
+        )
+        github = self._make_github()
+        github.repositories["CumulusCI"]._releases.append(
+            DummyRelease("rel/0.9", "0.9")
+        )
+        config.get_github_api = mock.Mock(return_value=github)
+        result = config.get_latest_tag()
+        self.assertEqual("rel/0.9", result)
 
     def test_get_latest_tag_beta(self):
         config = BaseProjectConfig(
@@ -865,9 +880,10 @@ class TestOrgConfig(unittest.TestCase):
     def test_refresh_oauth_token(self, SalesforceOAuth2):
         config = OrgConfig({"refresh_token": mock.sentinel.refresh_token}, "test")
         config._load_userinfo = mock.Mock()
+        config._load_orginfo = mock.Mock()
         keychain = mock.Mock()
         SalesforceOAuth2.return_value = oauth = mock.Mock()
-        oauth.refresh_token.return_value = resp = mock.Mock()
+        oauth.refresh_token.return_value = resp = mock.Mock(status_code=200)
         resp.json.return_value = {}
 
         config.refresh_oauth_token(keychain)
@@ -878,6 +894,16 @@ class TestOrgConfig(unittest.TestCase):
         config = OrgConfig({}, "test")
         with self.assertRaises(AttributeError):
             config.refresh_oauth_token(None)
+
+    @mock.patch("cumulusci.core.config.OrgConfig.SalesforceOAuth2")
+    def test_refresh_oauth_token_error(self, SalesforceOAuth2):
+        config = OrgConfig({"refresh_token": mock.sentinel.refresh_token}, "test")
+        keychain = mock.Mock()
+        SalesforceOAuth2.return_value = oauth = mock.Mock()
+        oauth.refresh_token.return_value = mock.Mock(status_code=400, text=":(")
+
+        with self.assertRaises(SalesforceCredentialsException):
+            config.refresh_oauth_token(keychain)
 
     def test_lightning_base_url(self):
         config = OrgConfig({"instance_url": "https://na01.salesforce.com"}, "test")
@@ -900,3 +926,24 @@ class TestOrgConfig(unittest.TestCase):
     def test_can_delete(self):
         config = OrgConfig({}, "test")
         self.assertFalse(config.can_delete())
+
+    @responses.activate
+    def test_load_orginfo(self):
+        config = OrgConfig(
+            {
+                "instance_url": "https://example.com",
+                "access_token": "TOKEN",
+                "id": "OODxxxxxxxxxxxx/user",
+            },
+            "test",
+        )
+        responses.add(
+            "GET",
+            "https://example.com/services/data/v45.0/sobjects/Organization/OODxxxxxxxxxxxx",
+            json={"OrganizationType": "Enterprise Edition", "IsSandbox": False},
+        )
+
+        config._load_orginfo()
+
+        self.assertEqual("Enterprise Edition", config.org_type)
+        self.assertEqual(False, config.is_sandbox)

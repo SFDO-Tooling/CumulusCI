@@ -8,6 +8,7 @@ import io
 import math
 import os
 import re
+import sarge
 import shutil
 import sys
 import tempfile
@@ -31,6 +32,7 @@ UTF8 = text_to_native_str("UTF-8")
 
 BREW_UPDATE_CMD = "brew upgrade cumulusci"
 PIP_UPDATE_CMD = "pip install --upgrade cumulusci"
+PIPX_UPDATE_CMD = "pipx upgrade cumulusci"
 
 
 def parse_api_datetime(value):
@@ -458,6 +460,12 @@ def temporary_dir():
             shutil.rmtree(d)
 
 
+def touch(path):
+    """Ensure a file exists."""
+    with open(path, "a"):
+        pass
+
+
 def in_directory(filepath, dirpath):
     """Returns a boolean for whether filepath is contained in dirpath.
 
@@ -508,15 +516,19 @@ def random_alphanumeric_underscore(length):
 
 
 def get_cci_upgrade_command():
-    homebrew_paths = ["cellar", "linuxbrew"]
-    if any(path in CUMULUSCI_PATH.lower() for path in homebrew_paths):
-        return BREW_UPDATE_CMD
-    else:
-        return PIP_UPDATE_CMD
+    commands_by_path = {
+        "cellar": BREW_UPDATE_CMD,
+        "linuxbrew": BREW_UPDATE_CMD,
+        "pipx": PIPX_UPDATE_CMD,
+    }
+    for path, cmd in commands_by_path.items():
+        if path in CUMULUSCI_PATH.lower():
+            return cmd
+    return PIP_UPDATE_CMD
 
 
 def convert_to_snake_case(content):
-    s1 = re.sub("(.)([A-Z][a-z]+)", r"\1_\2", content)
+    s1 = re.sub("([^_])([A-Z][a-z]+)", r"\1_\2", content)
     return re.sub("([a-z0-9])([A-Z])", r"\1_\2", s1).lower()
 
 
@@ -524,3 +536,16 @@ def os_friendly_path(path):
     if os.sep != "/":
         path = path.replace("/", os.sep)
     return path
+
+
+def get_git_config(config_key):
+    p = sarge.Command(
+        sarge.shell_format('git config --get "{0!s}"', config_key),
+        stderr=sarge.Capture(buffer_size=-1),
+        stdout=sarge.Capture(buffer_size=-1),
+        shell=True,
+    )
+    p.run()
+    config_value = io.TextIOWrapper(p.stdout).read().strip()
+
+    return config_value if config_value and not p.returncode else None
