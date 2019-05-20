@@ -1,8 +1,10 @@
 *** Settings ***
 
 Resource        cumulusci/robotframework/Salesforce.robot
+Library         cumulusci.robotframework.PageObjects
 Suite Setup     Open Test Browser
 Suite Teardown  Delete Records and Close Browser
+
 
 *** Keywords ***
 
@@ -59,6 +61,21 @@ Current App Should Be
     Select App Launcher App  Service
     Current App Should Be    Service
 
+Select App Launcher Tab
+    [Documentation]  Verify that 'Select App Launcher Tab' works
+    [Setup]  run keywords
+    ...  load page object  Listing  User
+    ...  AND  load page object  Home  Event
+
+    Select App Launcher Tab  People
+    Current page should be   Listing  User
+
+    # Just for good measure, let's switch to another page
+    # to make sure it's not a fluke and we really did
+    # switch to a different page.
+    Select App Launcher Tab  Calendar
+    Current page should be   Home  Event
+
 Get Current Record Id
     &{contact} =       Create Contact
     Go To Record Home  &{contact}[Id]
@@ -81,15 +98,19 @@ Go To Setup Object Manager
     Go To Setup Object Manager
 
 Go To Object Home
+    [Tags]  smoke
     Go To Object List  Contact
 
 Go To Object List
+    [Tags]  smoke
     Go To Object List  Contact
 
 Go To Object List With Filter
+    [Tags]  smoke
     Go To Object List  Contact  filter=Recent
 
 Go To Record Home
+    [Tags]  smoke
     &{contact} =       Create Contact
     Go To Record Home  &{contact}[Id]
 
