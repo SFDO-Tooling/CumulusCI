@@ -112,6 +112,7 @@ jobs:
             mv output.xml robot_results/robot/salesforce_ui_firefox-output.xml
       - run:
           name: Consolidate robot outputs into a single report and log
+          when: always
           command: |
             venv/bin/rebot --outputdir robot_results/robot  robot_results/robot/*-output.xml
       - run:
