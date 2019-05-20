@@ -8,7 +8,6 @@ import io
 import math
 import os
 import re
-import sarge
 import shutil
 import sys
 import tempfile
@@ -19,7 +18,7 @@ from contextlib import contextmanager
 from datetime import datetime
 
 import requests
-
+import sarge
 import xml.etree.ElementTree as ET
 
 CUMULUSCI_PATH = os.path.realpath(
