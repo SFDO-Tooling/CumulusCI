@@ -1,6 +1,6 @@
 """ Utilities for CumulusCI Core
 
-import_class: task class defn import helper
+import_global: task class defn import helper
 process_bool_arg: determine true/false for a commandline arg
 decode_to_unicode: get unicode string from sf api """
 from __future__ import unicode_literals
@@ -21,13 +21,17 @@ from collections import OrderedDict
 from cumulusci.core.exceptions import ConfigMergeError
 
 
-def import_class(path):
+def import_global(path):
     """ Import a class from a string module class path """
     components = path.split(".")
     module = components[:-1]
     module = ".".join(module)
     mod = __import__(module, fromlist=[native_str(components[-1])])
     return getattr(mod, native_str(components[-1]))
+
+
+# For backwards-compatibility
+import_class = import_global
 
 
 def parse_datetime(dt_str, format):

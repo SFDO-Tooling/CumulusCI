@@ -719,6 +719,7 @@ services:
       email:
         description: The email address to used by Github tasks when an operation requires an email address.
         required: True
+    validator: cumulusci.core.github.validate_service
   metaci:
     description: Connect with a MetaCI site to run builds of projects from this repository
     attributes:

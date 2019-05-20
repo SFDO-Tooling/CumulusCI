@@ -8,7 +8,7 @@ from cumulusci.cli.config import CliRuntime
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.tasks import CURRENT_TASK
-from cumulusci.core.utils import import_class
+from cumulusci.core.utils import import_global
 from cumulusci.robotframework.utils import set_pdb_trace
 from cumulusci.tasks.robotframework.robotframework import Robot
 
@@ -179,7 +179,7 @@ class CumulusCI(object):
         return rv
 
     def _init_task(self, class_path, options, task_config):
-        task_class = import_class(class_path)
+        task_class = import_global(class_path)
         task_config = self._parse_task_options(options, task_class, task_config)
         return task_class, task_config
 

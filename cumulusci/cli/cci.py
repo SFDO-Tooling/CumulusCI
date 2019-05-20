@@ -39,7 +39,7 @@ from cumulusci.core.exceptions import OrgNotFound
 from cumulusci.core.exceptions import ScratchOrgException
 from cumulusci.core.exceptions import ServiceNotConfigured
 from cumulusci.core.exceptions import TaskNotFoundError
-from cumulusci.core.utils import import_class
+from cumulusci.core.utils import import_global
 from cumulusci.cli.config import CliRuntime
 from cumulusci.cli.config import get_installed_version
 from cumulusci.utils import doc_task
@@ -621,15 +621,13 @@ class ConnectServiceCommand(click.MultiCommand):
 
     def get_command(self, ctx, name):
         config = load_config(**self.load_config_kwargs)
-
         try:
-            attributes = getattr(
-                config.project_config, "services__{0}__attributes".format(name)
-            ).items()
+            service_config = getattr(config.project_config, "services__{}".format(name))
         except AttributeError:
             raise click.UsageError(
                 "Sorry, I don't know about the '{0}' service.".format(name)
             )
+        attributes = service_config["attributes"].items()
 
         params = [self._build_param(attr, cnfg) for attr, cnfg in attributes]
         if not config.is_global_keychain:
@@ -639,15 +637,27 @@ class ConnectServiceCommand(click.MultiCommand):
             if config.is_global_keychain:
                 project = False
             else:
-                project = kwargs.get("project", False)
+                project = kwargs.pop("project", False)
             serv_conf = dict(
                 (k, v) for k, v in list(kwargs.items()) if v is not None
             )  # remove None values
+
+            # A service can define a callable to validate the service config
+            validator_path = service_config.get("validator")
+            if validator_path:
+                validator = import_global(validator_path)
+                try:
+                    validator(serv_conf)
+                except Exception as e:
+                    raise click.UsageError(str(e))
+
             config.keychain.set_service(name, ServiceConfig(serv_conf), project)
             if project:
-                click.echo("{0} is now configured for this project".format(name))
+                click.echo("{0} is now configured for this project.".format(name))
             else:
-                click.echo("{0} is now configured for global use".format(name))
+                click.echo(
+                    "{0} is now configured for all CumulusCI projects.".format(name)
+                )
 
         ret = click.Command(name, params=params, callback=callback)
         return ret
@@ -1051,7 +1061,7 @@ def task_run(config, task_name, org, o, debug, debug_before, debug_after, no_pro
 
     # Get the class to look up options
     class_path = task_config.get("class_path")
-    task_class = import_class(class_path)
+    task_class = import_global(class_path)
 
     # Parse command line options and add to task config
     if o:
