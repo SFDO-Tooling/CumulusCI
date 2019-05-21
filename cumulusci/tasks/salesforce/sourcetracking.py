@@ -199,6 +199,9 @@ class SnapshotChanges(ListChanges):
 
     task_options = {}
 
+    def _init_options(self, options):
+        pass
+
     def _run_task(self):
         if self.org_config.scratch:
             result = self.tooling.query("SELECT MAX(RevisionNum) num FROM SourceMember")
