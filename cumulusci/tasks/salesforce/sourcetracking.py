@@ -82,7 +82,7 @@ class ListChanges(BaseSalesforceApiTask):
         if self.options["snapshot"]:
             self.logger.info("Storing snapshot of changes")
             self._maxrevision = max(r["RevisionNum"] for r in changes["records"])
-            self._store_maxrevision(changes)
+            self._store_maxrevision()
 
     def _filter_changes(self, changes):
         filtered = []
@@ -207,6 +207,9 @@ class SnapshotChanges(ListChanges):
                 "Setting source tracking max revision to {}".format(self._maxrevision)
             )
             self._store_maxrevision()
+
+    def freeze(self, step):
+        return []
 
 
 class MetadataType(object):
