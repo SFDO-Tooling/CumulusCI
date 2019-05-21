@@ -3,8 +3,11 @@ import io
 import unittest
 
 import mock
+import responses
 
+from cumulusci.core.exceptions import GithubException
 from cumulusci.core.github import get_github_api
+from cumulusci.core.github import validate_service
 
 
 class MockHttpResponse(mock.Mock):
@@ -39,3 +42,9 @@ class TestGithub(unittest.TestCase):
 
         gh.octocat("meow")
         self.assertEqual(_make_request.call_count, 2)
+
+    @responses.activate
+    def test_validate_service(self):
+        responses.add("GET", "/rate_limit", status=401)
+        with self.assertRaises(GithubException):
+            validate_service({"username": "BOGUS", "password": "BOGUS"})

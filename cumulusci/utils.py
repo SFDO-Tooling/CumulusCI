@@ -8,7 +8,6 @@ import io
 import math
 import os
 import re
-import sarge
 import shutil
 import sys
 import tempfile
@@ -19,7 +18,7 @@ from contextlib import contextmanager
 from datetime import datetime
 
 import requests
-
+import sarge
 import xml.etree.ElementTree as ET
 
 CUMULUSCI_PATH = os.path.realpath(
@@ -368,14 +367,14 @@ def zip_clean_metaxml(zip_src, logger=None):
 
 def doc_task(task_name, task_config, project_config=None, org_config=None):
     """ Document a (project specific) task configuration in RST format. """
-    from cumulusci.core.utils import import_class
+    from cumulusci.core.utils import import_global
 
     doc = []
     doc.append("{}\n==========================================\n".format(task_name))
     doc.append("**Description:** {}\n".format(task_config.description))
     doc.append("**Class::** {}\n".format(task_config.class_path))
 
-    task_class = import_class(task_config.class_path)
+    task_class = import_global(task_config.class_path)
     task_docs = textwrap.dedent(task_class.task_docs.strip("\n"))
     if task_docs:
         doc.append(task_docs + "\n")

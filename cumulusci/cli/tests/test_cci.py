@@ -379,7 +379,9 @@ test     Test Service  *""",
         ctx = mock.Mock()
         config = mock.MagicMock()
         config.is_global_keychain = False
-        config.project_config.services__test__attributes = {"attr": {"required": False}}
+        config.project_config.services__test = {
+            "attributes": {"attr": {"required": False}}
+        }
 
         with mock.patch("cumulusci.cli.cci.TEST_CONFIG", config):
             cmd = multi_cmd.get_command(ctx, "test")
@@ -394,8 +396,8 @@ test     Test Service  *""",
         ctx = mock.Mock()
         config = mock.MagicMock()
         config.is_global_keychain = True
-        config.global_config.services = {
-            "test": {"attributes": {"attr": {"required": False}}}
+        config.project_config.services__test = {
+            "attributes": {"attr": {"required": False}}
         }
 
         with mock.patch("cumulusci.cli.cci.TEST_CONFIG", config):
@@ -410,11 +412,29 @@ test     Test Service  *""",
         multi_cmd = cci.ConnectServiceCommand()
         ctx = mock.Mock()
         config = mock.MagicMock()
-        del config.project_config.services__test__attributes
+        del config.project_config.services__test
 
         with mock.patch("cumulusci.cli.cci.TEST_CONFIG", config):
             with self.assertRaises(click.UsageError):
                 multi_cmd.get_command(ctx, "test")
+
+    def test_service_connect_validator(self):
+        multi_cmd = cci.ConnectServiceCommand()
+        ctx = mock.Mock()
+        config = mock.MagicMock()
+        config.project_config.services__test = {
+            "attributes": {},
+            "validator": "cumulusci.cli.tests.test_cci.validate_service",
+        }
+
+        with mock.patch("cumulusci.cli.cci.TEST_CONFIG", config):
+            cmd = multi_cmd.get_command(ctx, "test")
+            try:
+                run_click_command(cmd, project=True)
+            except click.UsageError as e:
+                self.assertEqual("Validation failed", str(e))
+            else:
+                self.fail("Did not raise expected click.UsageError")
 
     @mock.patch("click.echo")
     def test_service_info(self, echo):
@@ -1157,3 +1177,7 @@ class SetTrace(Exception):
 
 class DummyTask(BaseTask):
     task_options = {"color": {}}
+
+
+def validate_service(options):
+    raise Exception("Validation failed")
