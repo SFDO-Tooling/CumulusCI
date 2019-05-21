@@ -39,21 +39,21 @@ class ListChanges(BaseSalesforceApiTask):
         return os.path.join(parent_dir, "maxrevision.json")
 
     def _load_maxrevision(self):
-        self._max_revision = 0
+        self._maxrevision = 0
         if os.path.isfile(self._maxrevision_path):
             with open(self._maxrevision_path, "r") as f:
-                self._max_revision = json.load(f)
+                self._maxrevision = json.load(f)
 
     def _get_changes(self):
         changes = self.tooling.query_all(
             "SELECT MemberName, MemberType, RevisionNum FROM SourceMember "
-            "WHERE IsNameObsolete=false AND RevisionNum>{}".format(self._max_revision)
+            "WHERE IsNameObsolete=false AND RevisionNum>{}".format(self._maxrevision)
         )
         return changes
 
     def _store_maxrevision(self):
         with open(self._maxrevision_path, "w") as f:
-            json.dump(self._max_revision, f)
+            json.dump(self._maxrevision, f)
 
     def _run_task(self):
         changes = self._get_changes()
@@ -81,7 +81,7 @@ class ListChanges(BaseSalesforceApiTask):
 
         if self.options["snapshot"]:
             self.logger.info("Storing snapshot of changes")
-            self._max_revision = max(r["RevisionNum"] for r in changes["records"])
+            self._maxrevision = max(r["RevisionNum"] for r in changes["records"])
             self._store_maxrevision(changes)
 
     def _filter_changes(self, changes):
@@ -191,7 +191,7 @@ class RetrieveChanges(BaseRetrieveMetadata, ListChanges, BaseSalesforceApiTask):
         with open(os.path.join(self.options["path"], "package.xml"), "w") as f:
             f.write(package_xml)
 
-        self._max_revision = max(r["RevisionNum"] for r in changes["records"])
+        self._maxrevision = max(r["RevisionNum"] for r in changes["records"])
         self._store_maxrevision()
 
 
@@ -200,9 +200,13 @@ class SnapshotChanges(ListChanges):
     task_options = {}
 
     def _run_task(self):
-        result = self.tooling.query("SELECT MAX(RevisionNum) num FROM SourceMember")
-        self._maxrevision = result["records"][0]["num"]
-        self._store_maxrevision()
+        if self.org_config.scratch:
+            result = self.tooling.query("SELECT MAX(RevisionNum) num FROM SourceMember")
+            self._maxrevision = result["records"][0]["num"]
+            self.logger.info(
+                "Setting source tracking max revision to {}".format(self._maxrevision)
+            )
+            self._store_maxrevision()
 
 
 class MetadataType(object):

@@ -432,8 +432,6 @@ flows:
                 task: deploy_post
             2:
                 task: update_admin_profile
-            3:
-                task: snapshot_changes
 
     config_managed:
         description: Configure an org for use as a dev org after package metadata is deployed
@@ -446,8 +444,6 @@ flows:
                 task: update_admin_profile
                 options:
                     managed: true
-            3:
-                task: snapshot_changes
 
     config_packaging:
         description: Configure packaging org for upload after package metadata is deployed
@@ -464,8 +460,6 @@ flows:
                 task: deploy_post
             2:
                 task: update_admin_profile
-            3:
-                task: snapshot_changes
 
     dependencies:
         description: Deploy dependencies to prepare the org environment for the package metadata
@@ -484,7 +478,7 @@ flows:
                     include_beta: True
             2:
                 task: deploy_pre
-                            
+
     deploy_unmanaged:
         description: Deploy the unmanaged metadata from the package
         steps:
@@ -572,6 +566,8 @@ flows:
                 flow: deploy_unmanaged
             3:
                 flow: config_dev
+            4:
+                task: snapshot_changes
 
     dev_org_beta_deps:
         description: Set up an org as a development environment for unmanaged metadata based on the latest dependencies (including betas).
@@ -611,6 +607,8 @@ flows:
                 flow: deploy_unmanaged
             3:
                 flow: config_qa
+            4:
+                task: snapshot_changes
 
     uninstall_managed:
         description: Uninstall the installed managed version of the package.  Run this before install_beta or install_prod if a version is already installed in the target org.
@@ -629,6 +627,8 @@ flows:
                 task: install_managed_beta
             3:
                 flow: config_managed
+            4:
+                task: snapshot_changes
 
     install_prod:
         description: Install and configure the latest production version
@@ -639,6 +639,8 @@ flows:
                 task: install_managed
             3:
                 flow: config_managed
+            4:
+                task: snapshot_changes
 
     install_prod_no_config:
         description: Install but do not configure the latest production version
@@ -665,6 +667,8 @@ flows:
                 task: install_managed_beta
             4:
                 flow: config_managed
+            5:
+                task: snapshot_changes
 
     release_beta:
         description: Upload and release a beta version of the metadata currently in packaging
