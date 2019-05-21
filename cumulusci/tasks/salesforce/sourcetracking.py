@@ -198,6 +198,7 @@ class RetrieveChanges(BaseRetrieveMetadata, ListChanges, BaseSalesforceApiTask):
 class SnapshotChanges(ListChanges):
 
     task_options = {}
+    api_version = "45.0"
 
     def _init_options(self, options):
         pass
