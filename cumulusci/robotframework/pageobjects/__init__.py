@@ -10,7 +10,7 @@ def pageobject(page_type, object_name=None):
     def wrapper(cls):
         key = (page_type, object_name)
         PageObjects.registry[key] = cls
-        if not hasattr(cls, "_object_name"):
+        if getattr(cls, "_object_name", None) is None:
             cls._object_name = object_name
         return cls
 
