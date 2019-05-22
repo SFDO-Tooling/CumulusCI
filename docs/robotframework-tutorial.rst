@@ -32,7 +32,7 @@ Part 2: Creating a custom object
 ================================
 
 For this tutorial we're going to use a custom object named
-``MyObject`` (eg: ``MyObject__c``). In addition, we need a custom tab that is associated
+``MyObject`` (e.g. ``MyObject__c``). In addition, we need a custom tab that is associated
 with that object.
 
 If you want to run the tests and keywords in this tutorial verbatim, 
@@ -115,9 +115,9 @@ a batch gift entry form, EDA has a keyword with some custom logic for
 validating and affiliated contact, and so on.
 
 The best way to create and organize these keywords is to place them in
-page object libraries. These libraries contain normal python classes
+page object libraries. These libraries contain normal Python classes
 and methods which have been decorated with the ``pageobjects``
-decorator provided by cumulusci. By using page objects, you can write
+decorator provided by CumulusCI. By using page objects, you can write
 keywords that are unique to a given page, making them easier to find
 and easier to manage.
 
@@ -125,7 +125,7 @@ and easier to manage.
 Defining the class
 ------------------
 
-cumulusci provides some base classes that are a good starting point
+CumulusCI provides some base classes that are a good starting point
 for your page object. In this case we're writing a keyword that works
 on the listing page, so we want our class to inherit from the
 ``ListingPage`` class. 
@@ -149,7 +149,7 @@ lines:
     @pageobject(page_type="Listing", object_name="MyObject__c")
     class MyObjectListingPage(ListingPage):
 
-The first line register this class as a page object for a listing page
+The first line registers this class as a page object for a listing page
 for the object ``MyObject__c``. The second line begins the class
 definition.
 

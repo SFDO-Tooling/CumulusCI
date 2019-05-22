@@ -223,7 +223,7 @@ keyword libraries, you may define multiple sets of keywords in a
 single file.
 
 When you create a page object class, you should start by inheriting
-from one of the following base classes provided by cumulusci. No
+from one of the following base classes provided by CumulusCI. No
 matter which class your inherit from, your class gets the following
 predefined properties:
 
