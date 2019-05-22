@@ -213,6 +213,7 @@ objects. Each class has keywords that are unique to a page or a
 component. These classes can be imported on demand only for tests
 which use these pages or components.
 
+
 The ``pageobject`` Decorator
 ------------------------
 
@@ -221,18 +222,61 @@ decorator provided by CumulusCI. Unlike traditional Robot Framework
 keyword libraries, you may define multiple sets of keywords in a
 single file.
 
-For example, the following example shows the definition of a page
-object for the listing page of the Contact object. It adds a new
-keyword named :code:`Click contact link`:
+When you create a page object class, you should start by inheriting
+from one of the following base classes provided by cumulusci. No
+matter which class your inherit from, your class gets the following
+predefined properties:
+
+- **self.object_name** - the name of the object related to the
+  class. This is defined via the `object_name` parameter to the
+  ``pageobject`` decorator.
+
+- **self.builtin** - this is a reference to the robot framework
+  ``BuiltIn`` library, and can be used to directly call built-in
+  keywords. Any built-in keyword can be called by converting the name
+  to all lowercase, and replace spaces with underscores (eg:
+  ``self.builtin.log``, ``self.builtin.get_variable_value``, etc).
+
+- **self.cumulusci** - this is a reference to the CumulusCI keyword
+  library. You can call any keyword in this library by converting the
+  name to all lowercase, and replace spaces with understcores (eg:
+  ``self.cumulusci.get_org_info``, etc).
+
+- **salesforce** - this is a reference to the Salesforce keyword
+  library. You can call any keyword in this library by converting the
+  name to all lowercase, and replace spaces with understcores (eg:
+  ``self.salesforce.wait_until_loading_is_complete``, etc).
+
+- **selenium** - this is a reference to SeleniumLibrary. You can call any keyword in this library by converting the
+  name to all lowercase, and replace spaces with understcores (eg:
+  ``self.selenim.wait_until_page_contains_element``, etc)
+
+Presently, cumulusci provides the following page object base classes:
+
+- ``cumulusci.robotframework.pageobjects.BasePage`` - the core base
+  class, which should be used if none of the following classes are used.
+- ``cumulusci.robotframework.pageobjects.DetailPage`` - a class
+  for a page object which represents a detail page
+- ``cumulusci.robotframework.pageobjects.HomePage`` - a class for a
+  page object which represents a home page
+- ``cumulusci.robotframework.pageobjects.ListingPage`` - a class for a
+  page object which represents a listing page
+
+Example Page Object
+-------------------
+
+The following example shows the definition of a page
+object for the listing page of a custom object named MyObject__c. It adds a new
+keyword named :code:`Click on the row with name`:
 
 .. code-block:: python
 
    from cumulusci.robotframework.pageobjects import pageobject, ListingPage
 
-   @pageobject(page_type="Listing", object_name="Contact")
-   class ContactListingPage(ListingPage):
+   @pageobject(page_type="Listing", object_name="MyObject__c")
+   class MyObjectListingPage(ListingPage):
 
-       def click_contact_link(self, name):
+       def click_on_the_row_with_name(self, name):
            self.selenium.click_link('xpath://a[@title="{}"]'.format(name))
            self.salesforce.wait_until_loading_is_complete()
 
@@ -243,8 +287,8 @@ any arbitrary string, but ordinarily should represent standard page
 types ("Listing", "Detail", "Home"), and standard object names.
 
 
-Importing the library
----------------------
+Importing the library into a test
+---------------------------------
 
 The **PageObjects** library is somewhat unique in that it is not only a
 keyword library, but also the mechanism by which you can import files
