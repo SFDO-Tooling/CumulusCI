@@ -4,8 +4,8 @@ Robot Framework Tutorial
 
 This tutorial will step you through writing your first test, then
 enhancing that test with a custom keyword implemented as a page
-object. It is not a comprehensive tutorial on using robot
-framework. For robot framework documentations see the
+object. It is not a comprehensive tutorial on using Robot
+Framework. For Robot Framework documentations see the
 `Robot Framework User Guide <http://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html>`_
 
 It is assumed you've worked through the CumulusCI :doc:`tutorial` at least up to the
@@ -25,7 +25,7 @@ have been created under ``MyProject/robot/MyProject``:
 - ``resources`` - a place to put robot libraries and keyword files that
   are unique to your project
 - ``results`` - a place for robot to write its log and report files
-- ``tests`` - a place for all of your tests. 
+- ``tests`` - a place for all of your tests.
 
 
 Part 2: Creating a custom object
@@ -35,7 +35,7 @@ For this tutorial we're going to use a custom object named
 ``MyObject`` (eg: ``MyObject__c``). In addition, we need a custom tab that is associated
 with that object.
 
-If you want to run the tests and keywords in this tutorial verbatim, 
+If you want to run the tests and keywords in this tutorial verbatim,
 you will need to go to Setup and create the following:
 
 1. A custom object with the name ``MyObject``.
@@ -47,7 +47,7 @@ Part 3: Creating and running your first robot test
 
 The first thing we want to do is create a test that verifies
 we can get to the listing page of the custom object. This will
-let us know that everything is configure properly. 
+let us know that everything is configure properly.
 
 Open up your favorite editor and create a file named ``MyObject.robot``
 in the folder ``robot/MyProject/tests``. Copy and paste the
@@ -74,8 +74,8 @@ following into this file, and then save it.
    (MyObject__c). Even though we have yet to create that page object,
    the keywords will work by using a generic implementation. Later,
    once we've created the page object, the test will start using our
-   implementation. 
-   
+   implementation.
+
 To run just this test, run the following command at the prompt:
 
 .. code-block:: console
@@ -92,9 +92,9 @@ looks similar to this:
     2019-05-21 17:29:29: Beginning task: Robot
     2019-05-21 17:29:29:        As user: test-wftmq9afc3ud@example.com
     2019-05-21 17:29:29:         In org: 00Df0000003cuDx
-    2019-05-21 17:29:29: 
+    2019-05-21 17:29:29:
     ==============================================================================
-    MyObject                                                                      
+    MyObject
     ==============================================================================
     Test the MyObject listing page                                        | PASS |
     ------------------------------------------------------------------------------
@@ -128,14 +128,14 @@ Defining the class
 cumulusci provides some base classes that are a good starting point
 for your page object. In this case we're writing a keyword that works
 on the listing page, so we want our class to inherit from the
-``ListingPage`` class. 
+``ListingPage`` class.
 
 Our class also needs to use the ``pageobject`` decorator, so we must
 import that along with the ``ListingPage`` class.
 
 To get started, create a new file named ``MyObjectPages.py`` in the
 folder ``robot/MyProject/resources``. At the top of the new keyword
-file, add the following import statement: 
+file, add the following import statement:
 
 .. code-block:: python
 
@@ -234,8 +234,8 @@ first argument is the page type (eg: `Listing`, `Home`, etc) and the
 second argument is the object name (eg: ``MyObject__c``).
 
 Our test is already using ``Go to page``, so our keyword should
-already be available to us once we've gone to that page. 
-            
+already be available to us once we've gone to that page.
+
 
 Part 5: Adding test data
 ========================
@@ -255,7 +255,7 @@ right in the test to add some test data for us.
 It is not necessary to do it in a setup. It could be a step in an
 individual test case, for example. However, putting it in the ``Suite
 Setup`` guarantees it will run before any tests in the same file are
-run. 
+run.
 
 Open up ``MyObject.robot`` and add the following just before ``***
 Test Cases ***`:
@@ -280,7 +280,7 @@ Test Cases ***`:
 We also need to modify our ``Suite Setup`` to call this keyword in
 addition to calling the ``Open Test Browser`` keyword. Since ``Suite
 Setup`` only accepts a single keyword, we can use the built-in keyword
-`Run keywords` to run more than one keyword in the setup. 
+``Run keywords`` to run more than one keyword in the setup.
 
 Change the suite setup to look like the following, again using robot's
 continuation characters to spread the code across multipe rows for
@@ -290,7 +290,7 @@ readability.
 
     Note: it is critical that you use all caps for ``AND``, as
     that's the way robot knows where one keyword ends and the next
-    begins. 
+    begins.
 
 .. code-block:: console
 
@@ -305,7 +305,7 @@ both create and later clean up temporary data used for a test.
 
 It is important to note that the suite teardown isn't guaranteed to run
 if you forcibly kill a running robot test. That is why we added the
-check in the ``Create test data`` keyword. 
+check in the ``Create test data`` keyword.
 
 Part 6: Using the new keyword
 =============================
@@ -338,7 +338,7 @@ The complete test should now look like this:
 
     *** Keywords ***
     Create test data
-        [Documentation]  Creates a MyObject record named "Yoshi" if one doesn't exist
+        [Documentation]  Creates a MyObject record named "Leeroy Jenkins" if one doesn't exist
 
         # Check to see if the record is already in the database,
         # and do nothing if it already exists
@@ -367,9 +367,9 @@ same command as before:
     2019-05-21 22:02:31: Beginning task: Robot
     2019-05-21 22:02:31:        As user: test-wftmq9afc3ud@example.com
     2019-05-21 22:02:31:         In org: 00Df0000003cuDx
-    2019-05-21 22:02:31: 
+    2019-05-21 22:02:31:
     ==============================================================================
-    MyObject                                                                      
+    MyObject
     ==============================================================================
     Test the MyObject listing page                                        | PASS |
     ------------------------------------------------------------------------------

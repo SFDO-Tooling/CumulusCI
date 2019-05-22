@@ -223,13 +223,15 @@ keyword libraries, you may define multiple sets of keywords in a
 single file.
 
 When you create a page object class, you should start by inheriting
-from one of the following base classes provided by cumulusci. No
+from one of the following base classes provided by CumulusCI. No
 matter which class your inherit from, your class gets the following
 predefined properties:
 
 - **self.object_name** - the name of the object related to the
   class. This is defined via the `object_name` parameter to the
-  ``pageobject`` decorator.
+  ``pageobject`` decorator. You should not add the namespace
+  prefix in the dectorator. This attribute will automatically add the
+  prefix from cumulusci.yml when necessary.
 
 - **self.builtin** - this is a reference to the robot framework
   ``BuiltIn`` library, and can be used to directly call built-in
