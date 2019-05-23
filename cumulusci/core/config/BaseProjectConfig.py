@@ -495,13 +495,12 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
     def get_static_dependencies(self, dependencies=None, include_beta=None):
         """Resolves the project -> dependencies section of cumulusci.yml
-            to convert dynamic github dependencies into static dependencies
-            by inspecting the referenced repositories
+        to convert dynamic github dependencies into static dependencies
+        by inspecting the referenced repositories.
 
         Keyword arguments:
         :param dependencies: a list of dependencies to resolve
-        :param include_beta: when true, return the latest github release,
-            even if pre-release; else return the latest stable release
+        :param include_beta: when true, return the latest github release, even if pre-release; else return the latest stable release
         """
         if not dependencies:
             dependencies = self.project__dependencies

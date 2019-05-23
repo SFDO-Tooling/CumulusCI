@@ -338,8 +338,8 @@ def zip_tokenize_namespace(zip_src, namespace, logger=None):
 
 
 def zip_clean_metaxml(zip_src, logger=None):
-    """ Given a zipfile, cleans all *-meta.xml files in the zip for
-        deployment by stripping all <packageVersions/> elements
+    """ Given a zipfile, cleans all ``*-meta.xml`` files in the zip for
+    deployment by stripping all ``<packageVersions/>`` elements
     """
     zip_dest = zipfile.ZipFile(io.BytesIO(), "w", zipfile.ZIP_DEFLATED)
     changed = []
