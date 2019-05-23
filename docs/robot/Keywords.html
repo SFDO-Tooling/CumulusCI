@@ -263,6 +263,18 @@
               <td class="kwdoc"><p>Parses the current url to get the object id of the current record. Expects url format like: [a-zA-Z0-9]{15,18}</p></td>
             </tr>
             
+            <tr class="kwrow" id="Salesforce.py.Get Field Value">
+              <td class="kwname">
+                Get Field Value
+              </td>
+              <td class="kwargs">
+                  
+                  <i>label</i>
+                  
+              </td>
+              <td class="kwdoc"><p>Return the current value of a form field based on the field label</p></td>
+            </tr>
+            
             <tr class="kwrow" id="Salesforce.py.Get Locator">
               <td class="kwname">
                 Get Locator
@@ -680,7 +692,7 @@
               </td>
               <td class="kwargs">
                   
-                  <i>locator=//div[contains(@class, 'slds-template__container')]/*</i>
+                  <i>locator=None</i>
                   
               </td>
               <td class="kwdoc"><p>Wait for LEX page to load.</p>
@@ -714,18 +726,7 @@
       <div class="section" id="library-Salesforce">
         <h1>Salesforce.robot</h1>
         <div class="library-documentation">
-        <h2>Keywords</h2>
-<p>The keywords in this file support choosing and configuring the browser used for your tests.</p>
-<h2>Locator Strategies</h2>
-<p>In addition, it provides two new location strategies that can be used for finding elements on a page.</p>
-<p>The <code>text</code> locator strategy can be used to select an element based on the text inside the element. For example, to match the `&lt;h1&gt;` element in <code>&lt;h1&gt;Hello, world&lt;/h1&gt;</code>, you could use the locator like this:</p>
-<pre>
-${element}= Get webelement text:Hello, world
-</pre>
-<p>The <code>title</code> locator strategy can be used to select on element based on the <code>title</code> attribute. For example, given the markup <code>&lt;div title='Contacts'&gt;...&lt;/div&gt;</code>, you can use the locator like this:</p>
-<pre>
-${element}= Get webelement title:Contacts
-</pre>
+        <p>Documentation for resource file <code>Salesforce</code>.</p>
         </div>
         <table class="kwtable">
           <tbody>
@@ -1014,7 +1015,7 @@ Library  cumulusci.robotframework.CumulusCI  ${ORG}
       
     </div>
     <div class="footer">
-      Generated on Thursday February 28, 03:20 PM - cumulusci v2.3.2
+      Generated on Friday April 26, 10:17 AM - cumulusci v2.4.2
     </div>
   </body>
 </html>

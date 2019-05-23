@@ -1,6 +1,6 @@
-==========================================	
-Tasks Reference	
-==========================================	
+==========================================
+Tasks Reference
+==========================================
 
 batch_apex_wait
 ==========================================
@@ -117,6 +117,7 @@ Options:
 * **namespace_inject**: If set, the namespace tokens in files and filenames are replaced with the namespace's prefix
 * **namespace_strip**: If set, all namespace prefixes for the namespace specified are stripped from files and filenames
 * **namespace_tokenize**: If set, all namespace prefixes for the namespace specified are replaced with tokens for use with namespace_inject
+* **static_resource_path**: The path where decompressed static resources are stored.  Any subdirectories found will be zipped and added to the staticresources directory of the build.
 * **namespaced_org**: If True, the tokens %%%NAMESPACED_ORG%%% and ___NAMESPACED_ORG___ will get replaced with the namespace.  The default is false causing those tokens to get stripped and replaced with an empty string.  Set this if deploying to a namespaced scratch org or packaging org.
 * **clean_meta_xml**: Defaults to True which strips the <packageVersions/> element from all meta.xml files.  The packageVersion element gets added automatically by the target org and is set to whatever version is installed in the org.  To disable this, set this option to False
 
@@ -135,6 +136,7 @@ Options:
 * **namespace_inject**: If set, the namespace tokens in files and filenames are replaced with the namespace's prefix
 * **namespace_strip**: If set, all namespace prefixes for the namespace specified are stripped from files and filenames
 * **namespace_tokenize**: If set, all namespace prefixes for the namespace specified are replaced with tokens for use with namespace_inject
+* **static_resource_path**: The path where decompressed static resources are stored.  Any subdirectories found will be zipped and added to the staticresources directory of the build.
 * **namespaced_org**: If True, the tokens %%%NAMESPACED_ORG%%% and ___NAMESPACED_ORG___ will get replaced with the namespace.  The default is false causing those tokens to get stripped and replaced with an empty string.  Set this if deploying to a namespaced scratch org or packaging org.
 * **clean_meta_xml**: Defaults to True which strips the <packageVersions/> element from all meta.xml files.  The packageVersion element gets added automatically by the target org and is set to whatever version is installed in the org.  To disable this, set this option to False
 
@@ -153,6 +155,7 @@ Options:
 * **namespace_inject**: If set, the namespace tokens in files and filenames are replaced with the namespace's prefix **Default: $project_config.project__package__namespace**
 * **namespace_strip**: If set, all namespace prefixes for the namespace specified are stripped from files and filenames
 * **namespace_tokenize**: If set, all namespace prefixes for the namespace specified are replaced with tokens for use with namespace_inject
+* **static_resource_path**: The path where decompressed static resources are stored.  Any subdirectories found will be zipped and added to the staticresources directory of the build.
 * **namespaced_org**: If True, the tokens %%%NAMESPACED_ORG%%% and ___NAMESPACED_ORG___ will get replaced with the namespace.  The default is false causing those tokens to get stripped and replaced with an empty string.  Set this if deploying to a namespaced scratch org or packaging org.
 * **clean_meta_xml**: Defaults to True which strips the <packageVersions/> element from all meta.xml files.  The packageVersion element gets added automatically by the target org and is set to whatever version is installed in the org.  To disable this, set this option to False
 
@@ -616,6 +619,37 @@ Options:
 * **package_xml** *(required)*: The path to a package.xml manifest to use for the retrieve.
 * **api_version**: Override the default api version for the retrieve. Defaults to project__package__api_version
 
+list_changes
+==========================================
+
+**Description:** List the changes from a scratch org
+
+**Class::** cumulusci.tasks.salesforce.sourcetracking.ListChanges
+
+Options:
+------------------------------------------
+
+* **include**: Include changed components matching this string.
+* **exclude**: Exclude changed components matching this string.
+* **snapshot**: If True, all matching items will be set to be ignored at their current revision number.  This will exclude them from the results unless a new edit is made.
+
+retrieve_changes
+==========================================
+
+**Description:** Retrieve changed components from a scratch org
+
+**Class::** cumulusci.tasks.salesforce.sourcetracking.RetrieveChanges
+
+Options:
+------------------------------------------
+
+* **include**: Include changed components matching this string.
+* **exclude**: Exclude changed components matching this string.
+* **snapshot**: If True, all matching items will be set to be ignored at their current revision number.  This will exclude them from the results unless a new edit is made.
+* **path** *(required)*: The path to write the retrieved metadata **Default: src**
+* **api_version**: Override the default api version for the retrieve. Defaults to project__package__api_version
+* **namespace_tokenize**: If set, all namespace prefixes for the namespace specified are replaced with tokens for use with namespace_inject
+
 revert_managed_src
 ==========================================
 
@@ -766,6 +800,7 @@ Options:
 * **namespace_inject**: If set, the namespace tokens in files and filenames are replaced with the namespace's prefix
 * **namespace_strip**: If set, all namespace prefixes for the namespace specified are stripped from files and filenames
 * **namespace_tokenize**: If set, all namespace prefixes for the namespace specified are replaced with tokens for use with namespace_inject
+* **static_resource_path**: The path where decompressed static resources are stored.  Any subdirectories found will be zipped and added to the staticresources directory of the build.
 * **namespaced_org**: If True, the tokens %%%NAMESPACED_ORG%%% and ___NAMESPACED_ORG___ will get replaced with the namespace.  The default is false causing those tokens to get stripped and replaced with an empty string.  Set this if deploying to a namespaced scratch org or packaging org.
 * **clean_meta_xml**: Defaults to True which strips the <packageVersions/> element from all meta.xml files.  The packageVersion element gets added automatically by the target org and is set to whatever version is installed in the org.  To disable this, set this option to False
 * **purge_on_delete**: Sets the purgeOnDelete option for the deployment. Defaults to True
@@ -785,6 +820,7 @@ Options:
 * **namespace_inject**: If set, the namespace tokens in files and filenames are replaced with the namespace's prefix
 * **namespace_strip**: If set, all namespace prefixes for the namespace specified are stripped from files and filenames
 * **namespace_tokenize**: If set, all namespace prefixes for the namespace specified are replaced with tokens for use with namespace_inject
+* **static_resource_path**: The path where decompressed static resources are stored.  Any subdirectories found will be zipped and added to the staticresources directory of the build.
 * **namespaced_org**: If True, the tokens %%%NAMESPACED_ORG%%% and ___NAMESPACED_ORG___ will get replaced with the namespace.  The default is false causing those tokens to get stripped and replaced with an empty string.  Set this if deploying to a namespaced scratch org or packaging org.
 * **clean_meta_xml**: Defaults to True which strips the <packageVersions/> element from all meta.xml files.  The packageVersion element gets added automatically by the target org and is set to whatever version is installed in the org.  To disable this, set this option to False
 * **purge_on_delete**: Sets the purgeOnDelete option for the deployment. Defaults to True

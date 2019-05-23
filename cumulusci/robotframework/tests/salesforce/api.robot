@@ -58,3 +58,31 @@ SOQL Query
     Should Be Equal  &{result}[totalSize]  ${1}
     Should Be Equal  &{contact}[FirstName]  &{new_contact}[FirstName]
     Should Be Equal  &{contact}[LastName]  &{new_contact}[LastName]
+
+Salesforce Delete Session Records
+    [Documentation]
+    ...  Verify that 'Delete Session Records' deletes all session records
+    ...  This verifies that we fixed a bug which resulted in some records
+    ...  not being deleted.
+
+    # We'll use this to uniquely identify all records created in this test
+    ${random string}=  Generate Random String
+
+    # First, make sure we have no records that match
+    @{query}=  Salesforce Query  Contact  LastName=${random string}
+    length should be  ${query}  0         Expected the query to return no records, but it returned ${query}
+
+    # Next, create some records
+    FOR  ${i}  IN RANGE  5
+        ${contact_id} =  Salesforce Insert  Contact
+        ...  FirstName=User-${i}
+        ...  LastName=${random string}
+    END
+    @{query}=  Salesforce Query    Contact  LastName=${random string}
+    length should be  ${query}  5  Expected the query to return five records, but it returned ${query}
+
+    # Now, call 'Delete Session Records' and verify all five were deleted
+    Delete Session Records
+    @{query}=  Salesforce Query  Contact
+    ...  LastName=${random string}
+    length should be  ${query}  0  Expected the query to return 0 records, but it returned ${query}

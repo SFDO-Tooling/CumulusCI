@@ -64,7 +64,7 @@ from operator import attrgetter
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.config import FlowConfig
 from cumulusci.core.exceptions import FlowConfigError, FlowInfiniteLoopError
-from cumulusci.core.utils import import_class
+from cumulusci.core.utils import import_global
 
 # TODO: define exception types: flowfailure, taskimporterror, etc?
 
@@ -450,7 +450,7 @@ class FlowCoordinator(object):
 
             # get implementation class. raise/fail if it doesn't exist, because why continue
             try:
-                task_class = import_class(task_config["class_path"])
+                task_class = import_global(task_config["class_path"])
             except (ImportError, AttributeError):
                 # TODO: clean this up and raise a taskimporterror or something else correcter.
                 raise FlowConfigError("Task named {} has bad classpath")

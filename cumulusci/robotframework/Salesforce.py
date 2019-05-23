@@ -168,7 +168,7 @@ class Salesforce(object):
         """
         self._session_records.reverse()
         self.builtin.log("Deleting {} records".format(len(self._session_records)))
-        for record in self._session_records:
+        for record in self._session_records[:]:
             self.builtin.log("  Deleting {type} {id}".format(**record))
             try:
                 self.salesforce_delete(record["type"], record["id"])
@@ -542,5 +542,12 @@ class Salesforce(object):
         (We're actually waiting for the actions ribbon to appear.)
         """
         locator = lex_locators["body"] if locator is None else locator
-        self.selenium.wait_until_page_contains_element(locator)
-        self.wait_for_aura()
+        try:
+            self.selenium.wait_until_page_contains_element(locator)
+            self.wait_for_aura()
+        except Exception:
+            try:
+                self.selenium.capture_page_screenshot()
+            except Exception as e:
+                self.builtin.warn("unable to capture screenshot: {}".format(str(e)))
+            raise
