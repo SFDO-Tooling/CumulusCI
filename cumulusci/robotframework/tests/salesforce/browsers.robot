@@ -17,6 +17,20 @@ Assert active browser count
     Length should be  ${browsers}  ${expected count}
     ...  Expected to find ${expected count} open browsers, found ${actual count}
 
+Assert window size
+    [Documentation]
+    ...  Verify the actual window size is the expected size
+    ...  give or take a pixel or five.
+    [Arguments]  ${expected width}  ${expected height}
+
+    # On circleci, the browser size is sometimes off by a pixel. How rude!
+    # Since we don't so much care about the precise size as we do that
+    # we are able to change the size, we'll allow a tiny bit of wiggle room.
+    ${actual width}  ${actual height}=  Get window size
+    ${xdelta}=  evaluate  abs(int($actual_width)-int($expected_width))
+    ${ydelta}=  evaluate  abs(int($actual_height)-int($expected_height))
+    Run keyword if  $xdelta > 5 or $ydelta > 5
+    ...  Fail  Window size of ${actual width}x${actual height} is not close enough to expected ${expected width}x${expected height}
 
 *** Test Cases ***
 Open Test Browser Twice
@@ -53,16 +67,11 @@ Default browser size
     [Teardown]  Close all browsers
 
     Open test browser
-    ${width}  ${height}=  Get window size
-    Should be equal as strings  ${width}x${height}  ${DEFAULT WINDOW SIZE}
-    ...  Expected window size to be ${DEFAULT WINDOW SIZE} but it was ${width}x${height}
+    Assert window size  1280  1024
 
 Explicit browser size
     [Documentation]  Verify we can set an explicit browser size when opening the window
     [Teardown]  Close all browsers
 
     Open test browser           size=1400x1200
-
-    ${width}  ${height}=        Get window size
-    Should be equal as strings  ${width}x${height}  1400x1200
-    ...  Expected window size to be 1400x1200 but it was ${width}x${height}
+    Assert window size  1400  1200
