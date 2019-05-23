@@ -40,10 +40,6 @@ tasks:
             path: src
             revert_path: src.orig
         group: Salesforce Metadata
-    choose_deployment_method:
-        description: Determine whether to deploy using SFDX or the metadata API
-        class_path: cumulusci.tasks.sfdx.ChooseDeploymentMethod
-        group: Salesforce DX
     deploy:
         description: Deploys the src directory of the repository to the org
         class_path: cumulusci.tasks.salesforce.Deploy
@@ -482,40 +478,30 @@ flows:
     deploy_unmanaged:
         description: Deploy the unmanaged metadata from the package
         steps:
-            0.1:
-                # (sets dx=True in the return values if it's a scratch org
-                # and source_format=sfdx in the project config,
-                # otherwise sets md=True)
-                task: choose_deployment_method
-            0.2:
+            0:
                 task: dx_convert_from
-                when: choose_deployment_method.convert
+                when: project_config.project__source_format == "sfdx" and not org_config.scratch
             1:
                 task: unschedule_apex
             2:
                 task: update_package_xml
-                when: choose_deployment_method.md
+                when: project_config.project__source_format != "sfdx" or not org_config.scratch
             3:
                 task: deploy
-                when: choose_deployment_method.md
+                when: project_config.project__source_format != "sfdx" or not org_config.scratch
             3.1:
                 task: dx_push
-                when: choose_deployment_method.dx
+                when: project_config.project__source_format == "sfdx" and org_config.scratch
             4:
                 task: uninstall_packaged_incremental
-                when: choose_deployment_method.md
+                when: project_config.project__source_format != "sfdx" or not org_config.scratch
 
     deploy_unmanaged_ee:
         description: Deploy the unmanaged metadata from the package to an Enterprise Edition org
         steps:
-            0.1:
-                # (sets dx=True in the return values if it's a scratch org
-                # and source_format=sfdx in the project config,
-                # otherwise sets md=True)
-                task: choose_deployment_method
-            0.2:
+            0:
                 task: dx_convert_from
-                when: choose_deployment_method.dx
+                when: project_config.project__source_format == "sfdx"
             1:
                 task: unschedule_apex
             2:
@@ -534,14 +520,9 @@ flows:
     deploy_packaging:
         description: Process and deploy the package metadata to the packaging org
         steps:
-            0.1:
-                # (sets dx=True in the return values if it's a scratch org
-                # and source_format=sfdx in the project config,
-                # otherwise sets md=True)
-                task: choose_deployment_method
-            0.2:
+            0:
                 task: dx_convert_from
-                when: choose_deployment_method.dx
+                when: project_config.project__source_format == "sfdx"
             1:
                 task: unschedule_apex
             2:
