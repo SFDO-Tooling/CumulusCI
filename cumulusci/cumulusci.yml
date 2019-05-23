@@ -453,6 +453,12 @@ flows:
             2:
                 task: update_admin_profile
 
+    config_regression:
+        description: Configure an org for QA regression after the package is installed
+        steps:
+            1:
+                flow: config_managed
+
     dependencies:
         description: Deploy dependencies to prepare the org environment for the package metadata
         steps:
@@ -568,6 +574,14 @@ flows:
             3:
                 flow: config_qa
 
+    regression_org:
+        description: Set up an org for QA regression by upgrading from the previous managed package release to the current beta release.
+        steps:
+            1:
+                flow: install_regression
+            2:
+                flow: config_regression
+
     uninstall_managed:
         description: Uninstall the installed managed version of the package.  Run this before install_beta or install_prod if a version is already installed in the target org.
         steps:
@@ -619,8 +633,6 @@ flows:
                     version: previous
             3:
                 task: install_managed_beta
-            4:
-                flow: config_managed
 
     release_beta:
         description: Upload and release a beta version of the metadata currently in packaging
