@@ -72,7 +72,7 @@ is installed correctly by running ``cci version``:
 
    $ cci version
    Checking the version!
-   2.4.4
+   2.5.0
 
 Still need help? Search issues on CumulusCI GitHub https://github.com/SFDO-Tooling/CumulusCI/issues
 
