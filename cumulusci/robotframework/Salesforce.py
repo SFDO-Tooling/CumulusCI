@@ -10,7 +10,7 @@ from selenium.webdriver.common.action_chains import ActionChains
 
 from simple_salesforce import SalesforceResourceNotFound
 from cumulusci.robotframework.utils import selenium_retry
-from SeleniumLibrary.errors import ElementNotFound
+from SeleniumLibrary.errors import ElementNotFound, NoOpenBrowser
 from urllib3.exceptions import ProtocolError
 
 OID_REGEX = r"^(%2F)?([a-zA-Z0-9]{15,18})$"
@@ -180,6 +180,26 @@ class Salesforce(object):
                     level="WARN",
                 )
                 self.builtin.log("      {}".format(e), level="WARN")
+
+    def get_active_browser_ids(self):
+        """Return the id of all open browser ids"""
+
+        # This relies on some private data structures, but presently
+        # there is no other way. There's been a discussion in the
+        # robot slack channels about adding a new keyword that does
+        # what this keyword does. When that happens, we can remove
+        # this keyword.
+        driver_ids = []
+        try:
+            driver_cache = self.selenium._drivers
+        except NoOpenBrowser:
+            return []
+
+        for index, driver in enumerate(driver_cache._connections):
+            if driver not in driver_cache._closed:
+                # SeleniumLibrary driver ids start at one rather than zero
+                driver_ids.append(index + 1)
+        return driver_ids
 
     def get_current_record_id(self):
         """ Parses the current url to get the object id of the current record.
