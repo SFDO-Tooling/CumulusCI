@@ -1,13 +1,11 @@
 """ Tests for the SFDX Command Wrapper"""
 
-import logging
 import mock
 import unittest
 
 from mock import MagicMock
 from mock import patch
 
-import cumulusci.core.tasks
 from cumulusci.core.config import BaseGlobalConfig
 from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.config import TaskConfig

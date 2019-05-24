@@ -4,8 +4,10 @@ import os
 import unittest
 import zipfile
 
+from cumulusci.core.config import OrgConfig
 from cumulusci.tasks.salesforce.sourcetracking import ListChanges
 from cumulusci.tasks.salesforce.sourcetracking import RetrieveChanges
+from cumulusci.tasks.salesforce.sourcetracking import SnapshotChanges
 from cumulusci.tasks.salesforce.tests.util import create_task
 from cumulusci.utils import temporary_dir
 
@@ -14,7 +16,7 @@ class TestListChanges(unittest.TestCase):
     """List the changes from a scratch org"""
 
     def test_run_task(self):
-        task = create_task(ListChanges)
+        task = create_task(ListChanges, {"exclude": "Ignore"})
         task._init_task()
         task.tooling = mock.Mock()
         task.logger = mock.Mock()
@@ -25,7 +27,12 @@ class TestListChanges(unittest.TestCase):
                     "MemberType": "CustomObject",
                     "MemberName": "Test__c",
                     "RevisionNum": 1,
-                }
+                },
+                {
+                    "MemberType": "CustomObject",
+                    "MemberName": "Ignored__c",
+                    "RevisionNum": 2,
+                },
             ],
         }
         task._run_task()
@@ -60,7 +67,11 @@ class TestListChanges(unittest.TestCase):
             }
             task._run_task()
             self.assertTrue(
-                os.path.exists(os.path.join(".cci", "snapshot", "test.json"))
+                os.path.exists(
+                    os.path.join(
+                        ".sfdx", "orgs", "test-cci@example.com", "maxrevision.json"
+                    )
+                )
             )
             self.assertIn("CustomObject: Test__c", messages)
 
@@ -69,18 +80,9 @@ class TestListChanges(unittest.TestCase):
             task.tooling = mock.Mock()
             task.logger = mock.Mock()
             task.logger.info = messages.append
-            task.tooling.query_all.return_value = {
-                "totalSize": 1,
-                "records": [
-                    {
-                        "MemberType": "CustomObject",
-                        "MemberName": "Test__c",
-                        "RevisionNum": 1,
-                    }
-                ],
-            }
+            task.tooling.query_all.return_value = {"totalSize": 0, "records": []}
             task._run_task()
-            self.assertIn("Ignored 1 changed components in the scratch org.", messages)
+            self.assertIn("Found no changes.", messages)
 
     def test_filter_changes__include(self):
         foo = {"MemberType": "CustomObject", "MemberName": "foo__c", "RevisionNum": 1}
@@ -178,3 +180,33 @@ class TestRetrieveChanges(unittest.TestCase):
             task.logger.info = messages.append
             task._run_task()
             self.assertIn("No changes to retrieve", messages)
+
+
+class TestSnapshotChanges(unittest.TestCase):
+    def test_run_task(self):
+        with temporary_dir():
+            org_config = OrgConfig(
+                {
+                    "username": "test-cci@example.com",
+                    "scratch": True,
+                    "instance_url": "https://test.salesforce.com",
+                    "access_token": "TOKEN",
+                },
+                "test",
+            )
+            task = create_task(SnapshotChanges, org_config=org_config)
+            task._init_task()
+            task.tooling.query = mock.Mock(return_value={"records": [{"num": 1}]})
+            task._run_task()
+            self.assertTrue(
+                os.path.exists(
+                    os.path.join(
+                        ".sfdx", "orgs", "test-cci@example.com", "maxrevision.json"
+                    )
+                )
+            )
+
+    def test_freeze(self):
+        task = create_task(SnapshotChanges)
+        steps = task.freeze(None)
+        self.assertEqual([], steps)

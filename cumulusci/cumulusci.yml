@@ -226,6 +226,10 @@ tasks:
         options:
             path: src
         group: Salesforce Metadata
+    snapshot_changes:
+        description: Tell SFDX source tracking to ignore previous changes in a scratch org
+        class_path: cumulusci.tasks.salesforce.sourcetracking.SnapshotChanges
+        group: Salesforce Metadata
     revert_managed_src:
         description: Reverts the changes from create_managed_src
         class_path: cumulusci.tasks.metadata.managed_src.RevertManagedSrc
@@ -476,22 +480,34 @@ flows:
                     include_beta: True
             2:
                 task: deploy_pre
-                            
+
     deploy_unmanaged:
         description: Deploy the unmanaged metadata from the package
         steps:
+            0:
+                task: dx_convert_from
+                when: project_config.project__source_format == "sfdx" and not org_config.scratch
             1:
                 task: unschedule_apex
             2:
                 task: update_package_xml
+                when: project_config.project__source_format != "sfdx" or not org_config.scratch
             3:
                 task: deploy
+                when: project_config.project__source_format != "sfdx" or not org_config.scratch
+            3.1:
+                task: dx_push
+                when: project_config.project__source_format == "sfdx" and org_config.scratch
             4:
                 task: uninstall_packaged_incremental
+                when: project_config.project__source_format != "sfdx" or not org_config.scratch
 
     deploy_unmanaged_ee:
         description: Deploy the unmanaged metadata from the package to an Enterprise Edition org
         steps:
+            0:
+                task: dx_convert_from
+                when: project_config.project__source_format == "sfdx"
             1:
                 task: unschedule_apex
             2:
@@ -510,6 +526,9 @@ flows:
     deploy_packaging:
         description: Process and deploy the package metadata to the packaging org
         steps:
+            0:
+                task: dx_convert_from
+                when: project_config.project__source_format == "sfdx"
             1:
                 task: unschedule_apex
             2:
@@ -534,6 +553,8 @@ flows:
                 flow: deploy_unmanaged
             3:
                 flow: config_dev
+            4:
+                task: snapshot_changes
 
     dev_org_beta_deps:
         description: Set up an org as a development environment for unmanaged metadata based on the latest dependencies (including betas).
@@ -573,6 +594,8 @@ flows:
                 flow: deploy_unmanaged
             3:
                 flow: config_qa
+            4:
+                task: snapshot_changes
 
     regression_org:
         description: Set up an org for QA regression by upgrading from the previous managed package release to the current beta release.
@@ -581,6 +604,8 @@ flows:
                 flow: install_regression
             2:
                 flow: config_regression
+            3:
+                task: snapshot_changes
 
     uninstall_managed:
         description: Uninstall the installed managed version of the package.  Run this before install_beta or install_prod if a version is already installed in the target org.
@@ -599,6 +624,8 @@ flows:
                 task: install_managed_beta
             3:
                 flow: config_managed
+            4:
+                task: snapshot_changes
 
     install_prod:
         description: Install and configure the latest production version
@@ -609,6 +636,8 @@ flows:
                 task: install_managed
             3:
                 flow: config_managed
+            4:
+                task: snapshot_changes
 
     install_prod_no_config:
         description: Install but do not configure the latest production version
