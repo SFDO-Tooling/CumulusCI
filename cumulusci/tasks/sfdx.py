@@ -14,7 +14,6 @@ how the CLI formats args opts commands etc.
 import json
 
 from cumulusci.core.config import ScratchOrgConfig
-from cumulusci.core.tasks import BaseTask
 from cumulusci.tasks.command import Command
 
 SFDX_CLI = "sfdx"
@@ -96,17 +95,3 @@ class SFDXJsonTask(SFDXOrgTask):
 
     def _process_data(self, data):
         self.logger.info("JSON = {}".format(data))
-
-
-class ChooseDeploymentMethod(BaseTask):
-    """Choose whether to deploy using SFDX or the metadata API.
-    """
-
-    def _run_task(self):
-        is_dx_format = self.project_config.project__source_format == "sfdx"
-        is_scratch_org = self.org_config.scratch
-        self.return_values = {
-            "dx": is_dx_format and is_scratch_org,
-            "md": not is_dx_format or not is_scratch_org,
-            "convert": is_dx_format and not is_scratch_org,
-        }

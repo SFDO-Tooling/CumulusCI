@@ -40,10 +40,6 @@ tasks:
             path: src
             revert_path: src.orig
         group: Salesforce Metadata
-    choose_deployment_method:
-        description: Determine whether to deploy using SFDX or the metadata API
-        class_path: cumulusci.tasks.sfdx.ChooseDeploymentMethod
-        group: Salesforce DX
     deploy:
         description: Deploys the src directory of the repository to the org
         class_path: cumulusci.tasks.salesforce.Deploy
@@ -461,6 +457,12 @@ flows:
             2:
                 task: update_admin_profile
 
+    config_regression:
+        description: Configure an org for QA regression after the package is installed
+        steps:
+            1:
+                flow: config_managed
+
     dependencies:
         description: Deploy dependencies to prepare the org environment for the package metadata
         steps:
@@ -482,40 +484,30 @@ flows:
     deploy_unmanaged:
         description: Deploy the unmanaged metadata from the package
         steps:
-            0.1:
-                # (sets dx=True in the return values if it's a scratch org
-                # and source_format=sfdx in the project config,
-                # otherwise sets md=True)
-                task: choose_deployment_method
-            0.2:
+            0:
                 task: dx_convert_from
-                when: choose_deployment_method.convert
+                when: project_config.project__source_format == "sfdx" and not org_config.scratch
             1:
                 task: unschedule_apex
             2:
                 task: update_package_xml
-                when: choose_deployment_method.md
+                when: project_config.project__source_format != "sfdx" or not org_config.scratch
             3:
                 task: deploy
-                when: choose_deployment_method.md
+                when: project_config.project__source_format != "sfdx" or not org_config.scratch
             3.1:
                 task: dx_push
-                when: choose_deployment_method.dx
+                when: project_config.project__source_format == "sfdx" and org_config.scratch
             4:
                 task: uninstall_packaged_incremental
-                when: choose_deployment_method.md
+                when: project_config.project__source_format != "sfdx" or not org_config.scratch
 
     deploy_unmanaged_ee:
         description: Deploy the unmanaged metadata from the package to an Enterprise Edition org
         steps:
-            0.1:
-                # (sets dx=True in the return values if it's a scratch org
-                # and source_format=sfdx in the project config,
-                # otherwise sets md=True)
-                task: choose_deployment_method
-            0.2:
+            0:
                 task: dx_convert_from
-                when: choose_deployment_method.dx
+                when: project_config.project__source_format == "sfdx"
             1:
                 task: unschedule_apex
             2:
@@ -534,14 +526,9 @@ flows:
     deploy_packaging:
         description: Process and deploy the package metadata to the packaging org
         steps:
-            0.1:
-                # (sets dx=True in the return values if it's a scratch org
-                # and source_format=sfdx in the project config,
-                # otherwise sets md=True)
-                task: choose_deployment_method
-            0.2:
+            0:
                 task: dx_convert_from
-                when: choose_deployment_method.dx
+                when: project_config.project__source_format == "sfdx"
             1:
                 task: unschedule_apex
             2:
@@ -610,6 +597,16 @@ flows:
             4:
                 task: snapshot_changes
 
+    regression_org:
+        description: Set up an org for QA regression by upgrading from the previous managed package release to the current beta release.
+        steps:
+            1:
+                flow: install_regression
+            2:
+                flow: config_regression
+            3:
+                task: snapshot_changes
+
     uninstall_managed:
         description: Uninstall the installed managed version of the package.  Run this before install_beta or install_prod if a version is already installed in the target org.
         steps:
@@ -665,10 +662,6 @@ flows:
                     version: previous
             3:
                 task: install_managed_beta
-            4:
-                flow: config_managed
-            5:
-                task: snapshot_changes
 
     release_beta:
         description: Upload and release a beta version of the metadata currently in packaging

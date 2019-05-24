@@ -64,6 +64,8 @@ from collections import namedtuple
 from distutils.version import LooseVersion
 from operator import attrgetter
 
+from jinja2.sandbox import ImmutableSandboxedEnvironment
+
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.config import FlowConfig
 from cumulusci.core.exceptions import FlowConfigError, FlowInfiniteLoopError
@@ -72,6 +74,8 @@ from cumulusci.core.utils import import_global
 # TODO: define exception types: flowfailure, taskimporterror, etc?
 
 RETURN_VALUE_OPTION_PREFIX = "^^"
+
+jinja2_env = ImmutableSandboxedEnvironment()
 
 
 class StepSpec(object):
@@ -315,6 +319,11 @@ class FlowCoordinator(object):
         self.logger.info("Starting execution")
         self._rule(new_line=True)
 
+        jinja2_context = {
+            "project_config": self.project_config,
+            "org_config": self.org_config,
+        }
+
         try:
             for step in self.steps:
                 if step.skip:
@@ -324,11 +333,11 @@ class FlowCoordinator(object):
                     continue
 
                 if step.when:
-                    path, name = step.when.rsplit(".", 1)
-                    value = self._find_result_by_path(path).return_values[name]
+                    expr = jinja2_env.compile_expression(step.when)
+                    value = expr(**jinja2_context)
                     if not value:
                         self.logger.info(
-                            "Skipping task {} based on {}".format(
+                            "Skipping task {} (skipped when {})".format(
                                 step.task_name, step.when
                             )
                         )
