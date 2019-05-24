@@ -48,17 +48,18 @@ Browser aliases
     [Tags]  issue:1068
     [Setup]  Run keywords
     ...  Open test browser  alias=browser1
-    ...  AND  Go to  https://metadeploy.herokuapp.com/products
     ...  AND  Open test browser  alias=browser2
-    ...  AND  Go to  https://mrbelvedereci.herokuapp.com/
+    ...  AND  Go to  about:blank
     [Teardown]  Close all browsers
 
+    # This also doubles as a test which verifies the default
+    # landing page is the Setup home page
     Switch browser  browser1
-    Location should be  https://metadeploy.herokuapp.com/products
+    Location should contain  /lightning/setup/SetupOneHome/home
     Capture page screenshot
 
     Switch browser  browser2
-    Location should be  https://mrbelvedereci.herokuapp.com/
+    Location should be  about:blank
     Capture page screenshot
 
 
