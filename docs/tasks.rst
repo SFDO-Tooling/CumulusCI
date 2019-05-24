@@ -102,6 +102,14 @@ Options:
 * **path** *(required)*: The path containing metadata to process for managed deployment **Default: src**
 * **revert_path** *(required)*: The path to copy the original metadata to for the revert call **Default: src.orig**
 
+choose_deployment_method
+==========================================
+
+**Description:** Determine whether to deploy using SFDX or the metadata API
+
+**Class::** cumulusci.tasks.sfdx.ChooseDeploymentMethod
+
+
 deploy
 ==========================================
 
@@ -406,14 +414,14 @@ Options:
 meta_xml_apiversion
 ==========================================
 
-**Description:** Set the API version in *meta.xml files
+**Description:** Set the API version in ``*meta.xml`` files
 
 **Class::** cumulusci.tasks.metaxml.UpdateApi
 
 Options:
 ------------------------------------------
 
-* **dir**: Base directory to search for *-meta.xml files
+* **dir**: Base directory to search for ``*-meta.xml`` files
 * **version** *(required)*: API version number e.g. 37.0
 
 meta_xml_dependencies
@@ -426,7 +434,7 @@ meta_xml_dependencies
 Options:
 ------------------------------------------
 
-* **dir**: Base directory to search for *-meta.xml files
+* **dir**: Base directory to search for ``*-meta.xml`` files
 
 mrbelvedere_publish
 ==========================================
@@ -650,6 +658,14 @@ Options:
 * **api_version**: Override the default api version for the retrieve. Defaults to project__package__api_version
 * **namespace_tokenize**: If set, all namespace prefixes for the namespace specified are replaced with tokens for use with namespace_inject
 
+snapshot_changes
+==========================================
+
+**Description:** Tell SFDX source tracking to ignore previous changes in a scratch org
+
+**Class::** cumulusci.tasks.salesforce.sourcetracking.SnapshotChanges
+
+
 revert_managed_src
 ==========================================
 
@@ -693,6 +709,7 @@ Options:
 * **vars**: Pass values to override variables in the format VAR1:foo,VAR2:bar
 * **xunit**: Set an XUnit format output file for test results
 * **options**: A dictionary of options to robot.run method.  See docs here for format.  NOTE: There is no cci CLI support for this option since it requires a dictionary.  Use this option in the cumulusci.yml when defining custom tasks where you can easily create a dictionary in yaml.
+* **name**: Sets the name of the top level test suite
 * **pdb**: If true, run the Python debugger when tests fail.
 * **verbose**: If true, log each keyword as it runs.
 

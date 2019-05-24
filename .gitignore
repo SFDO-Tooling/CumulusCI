@@ -11,6 +11,7 @@ pybuild
 cumulusci.egg-info
 build/
 dist/
+docs/api/
 .eggs/
 .idea/
 .tox/

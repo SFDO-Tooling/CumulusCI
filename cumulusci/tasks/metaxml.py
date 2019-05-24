@@ -37,7 +37,7 @@ class MetaXmlBaseTask(BaseTask):
 
 class UpdateApi(MetaXmlBaseTask):
     task_options = {
-        "dir": {"description": "Base directory to search for *-meta.xml files"},
+        "dir": {"description": "Base directory to search for ``*-meta.xml`` files"},
         "version": {"description": "API version number e.g. 37.0", "required": True},
     }
 
@@ -53,7 +53,7 @@ class UpdateApi(MetaXmlBaseTask):
 
 class UpdateDependencies(MetaXmlBaseTask):
     task_options = {
-        "dir": {"description": "Base directory to search for *-meta.xml files"}
+        "dir": {"description": "Base directory to search for ``*-meta.xml`` files"}
     }
 
     def _init_task(self):
