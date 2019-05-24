@@ -14,6 +14,7 @@ def create_task(task_class, options=None, project_config=None, org_config=None):
                 "instance_url": "https://test.salesforce.com",
                 "access_token": "TOKEN",
                 "org_id": "ORG_ID",
+                "username": "test-cci@example.com",
             },
             "test",
         )
