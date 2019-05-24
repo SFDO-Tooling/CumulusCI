@@ -2,6 +2,43 @@
 History
 =======
 
+2.5.0 (2019-05-25)
+------------------
+
+Breaking changes:
+
+* We reorganized the flows for setting up a package for regression testing for better symmetry with other flows.
+  If you were running the ``install_regression`` flow before, you now probably want ``regression_org``.
+
+  Details: The ``install_regression`` flow now installs the package _without_ configuring it.
+  There is a new ``config_regression`` flow to configure the package (it defaults to calling ``config_managed``)
+  and a ``regression_org`` flow that includes both ``install_regression`` and ``config_regression``.
+
+New features:
+
+* CumulusCI now has experimental support for deploying projects in `DX source format <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_source_file_format.htm>`_.
+  To enable this, set ``source_format: sfdx`` in the project section of ``cumulusci.yml``.
+  CumulusCI will deploy DX-format projects to scratch orgs using ``sfdx force:source:push`` and to other orgs using the Metadata API (by converting to metadata source format in a temporary directory).
+* Setting a default org in CumulusCI (using ``cci org default`` or the ``--default`` flag when creating a scratch org) will now also update the sfdx ``defaultusername``. (#868)
+* When connecting to GitHub using ``cci service connect github``, CumulusCI will now check to make sure the credentials are valid before saving them.
+* Robot Framework:
+
+  * Added a framework for creating "page object" classes to contain keywords related to a particular page or component.
+  * The ``robot`` task now takes a ``name`` option to control the name of the robot suite in output.
+  * Updates to the keyword ``Open Test Browser``:
+
+    * It allows you to open more than one browser in a single test case. (#1068)
+    * It sets the default size for the browser window to 1280x1024.
+    * Added a new keyword argument ``size`` to override the default size.
+    * Added a new keyword argument ``alias`` to let you assign an alias to multiple browser windows.
+
+Issues fixed:
+
+* Robot Framework: Fixed a bug where the ``Delete Session Records`` keyword would skip deleting some records. (#973)
+* If Salesforce returns an error response while refreshing an OAuth token, CumulusCI will now show the response instead of just the HTTP status code.
+* Fixed a bug in reporting errors from the Metadata API if the response contains ``componentFailures`` with no ``problem`` or ``problemType``.
+
+
 2.4.4 (2019-05-09)
 ------------------
 
