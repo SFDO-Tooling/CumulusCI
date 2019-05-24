@@ -23,6 +23,7 @@ Contents:
    usage
    history
    authors
+   contributing
 
 Indices and tables
 ==================

@@ -11,19 +11,21 @@ for host systems embedding cci, like web apps, to inspect the flow in progress.
 BaseFlow suited us well.
 
 FlowRunner is a v2 API for flows in CCI. There are two objects of interest:
-- FlowCoordinator: takes a flow_config & runtime options to create a set of `StepSpec`s
- - Meant to replace the public API of BaseFlow, including override hooks.
- - Precomputes a flat list of steps, instead of running Flow recursively.
- -
+
+- FlowCoordinator: takes a flow_config & runtime options to create a set of StepSpecs
+  - Meant to replace the public API of BaseFlow, including override hooks.
+  - Precomputes a flat list of steps, instead of running Flow recursively.
 - TaskRunner: encapsulates the actual task running, result providing logic.
 
 Upon initialization, FlowRunner:
+
 - Creates a logger
 - Validates that there are no cycles in the given flow_config
 - Validates that the flow_config is using new-style-steps
 - Collects a list of StepSpec objects that define what the flow will do.
 
 Upon running the flow, FlowRunner:
+
 - Refreshes the org credentials
 - Runs each StepSpec in order
 - * Logs the task or skip
@@ -33,18 +35,19 @@ Upon running the flow, FlowRunner:
 - * collects StepResults into the flow.
 
 TaskRunner:
+
 - Imports the actual task module.
 - Constructs an instance of the BaseTask subclass.
 - Runs/calls the task instance.
 - Returns results or exception into an immutable StepResult
 
 Option values/overrides can be passed in at a number of levels, in increasing order of priority:
+
 - Task default (i.e. `.tasks__TASKNAME__options`)
 - Flow definition task options (i.e. `.flows__FLOWNAME__steps__STEPNUM__options`)
 - Flow definition subflow options (i.e. `.flows__FLOWNAME__steps__STEPNUM__options__TASKNAME`)
     see `dev_org_namespaced` for an example
 - Flow runtime (i.e. on the commandline)
-
 
 """
 

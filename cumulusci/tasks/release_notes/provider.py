@@ -1,4 +1,3 @@
-import re
 import os
 import pytz
 import time
@@ -8,9 +7,7 @@ from distutils.version import LooseVersion
 import github3.exceptions
 
 from cumulusci.core.exceptions import GithubApiError
-from cumulusci.core.exceptions import GithubApiNoResultsError
 from cumulusci.core.exceptions import GithubApiNotFoundError
-from cumulusci.tasks.release_notes.exceptions import LastReleaseTagNotFoundError
 
 
 class BaseChangeNotesProvider(object):
@@ -45,20 +42,20 @@ class DirectoryChangeNotesProvider(BaseChangeNotesProvider):
 
 class GithubChangeNotesProvider(BaseChangeNotesProvider):
     """ Provides changes notes by finding all merged pull requests to
-        the default branch between two tags.
+    the default branch between two tags.
 
-        Expects the passed release_notes_generator instance to have a github_info
-        property that contains a dictionary of settings for accessing Github:
-            - github_repo
-            - github_owner
-            - github_username
-            - github_password
+    Expects the passed release_notes_generator instance to have a github_info
+    property that contains a dictionary of settings for accessing Github:
 
-        Will optionally use the following if set provided by release_notes_generator
-            - master_branch: Name of the default branch.
-                Defaults to 'master'
-            - prefix_prod: Tag prefix for production release tags.
-                Defaults to 'prod/'
+        - github_repo
+        - github_owner
+        - github_username
+        - github_password
+
+    Will optionally use the following if provided by release_notes_generator:
+
+        - master_branch: Name of the default branch. Defaults to 'master'
+        - prefix_prod: Tag prefix for production release tags. Defaults to 'prod/'
     """
 
     def __init__(self, release_notes_generator, current_tag, last_tag=None):

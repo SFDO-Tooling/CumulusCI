@@ -80,7 +80,7 @@ release = cumulusci.__version__
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
-exclude_patterns = ["_build", "api/cumulusci.rst", "*/tests/"]
+exclude_patterns = ["_build", "*/tests/"]
 
 # The reST default role (used for this markup: `text`) to use for all
 # documents.
@@ -124,7 +124,7 @@ if not on_rtd:  # only import and set the theme if we're building docs locally
 
         html_theme = "sphinx_rtd_theme"
         html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
-    except ImportError as e:
+    except ImportError:
         print("sphinx_rtd_theme not found, using default")
         html_theme = "default"
 
@@ -286,6 +286,7 @@ texinfo_documents = [
 
 # If true, do not generate a @detailmenu in the "Top" node's menu.
 # texinfo_no_detailmenu = False
+
 
 # Run sphinx api-doc
 def run_apidoc(_):

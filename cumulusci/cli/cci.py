@@ -1005,6 +1005,11 @@ def task_list(config):
 def task_doc(config):
     config_src = config.global_config
 
+    click.echo("==========================================")
+    click.echo("Tasks Reference")
+    click.echo("==========================================")
+    click.echo("")
+
     for name, options in list(config_src.tasks.items()):
         task_config = TaskConfig(options)
         doc = doc_task(name, task_config)

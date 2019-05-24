@@ -214,7 +214,7 @@ component. These classes can be imported on demand only for tests
 which use these pages or components.
 
 The ``pageobject`` Decorator
-------------------------
+----------------------------
 
 Page objects are normal Python classes which use the :code:`pageobject`
 decorator provided by CumulusCI. Unlike traditional Robot Framework

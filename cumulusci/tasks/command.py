@@ -2,8 +2,7 @@
 
 Command - run a command with optional environment variables
 SalesforceCommand - run a command with credentials passed
-SalesforceBrowserTest - a task designed to wrap browser testing that could
-                        run locally or remotely
+SalesforceBrowserTest - a task designed to wrap browser testing that could run locally or remotely
 """
 
 import json
