@@ -9,7 +9,9 @@ Framework. For Robot Framework documentation see the
 `Robot Framework User Guide <http://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html>`_
 
 It is assumed you've worked through the CumulusCI :doc:`tutorial` at least up to the
-point where you've called ``cci project init``.
+point where you've called ``cci project init``. It is also assumed
+that you've read the :doc:`robotframework` section of this document, which gives
+an overview of CumulusCI / Robot Framework integration.
 
 
 
@@ -306,8 +308,11 @@ records created by ``Salesforce Insert``. This makes it possible to
 both create and later clean up temporary data used for a test.
 
 It is important to note that the suite teardown isn't guaranteed to run
-if you forcibly kill a running robot test. That is why we added the
-check in the ``Create test data`` keyword.
+if you forcibly kill a running robot test. For that reason, we added a
+check in the ``Create test data`` to check for an existing record
+before adding it. If a previous test was interrupted and the record
+already exists, there's no reason to create a new record.
+
 
 Part 6: Using the new keyword
 =============================
