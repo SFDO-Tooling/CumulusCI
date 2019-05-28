@@ -17,15 +17,15 @@ Part 1: Folder Structure
 ========================
 
 We recommend that all robot tests, keywords, data, and log and report files live under
-a folder named ``robot``, at the root of your repository. If you worked
+a folder named **robot**, at the root of your repository. If you worked
 through the CumulusCI :doc:`tutorial`, the following folders will
-have been created under ``MyProject/robot/MyProject``:
+have been created under **MyProject/robot/MyProject**:
 
-- ``doc`` - a place to put documentation for your tests
-- ``resources`` - a place to put robot libraries and keyword files that
+- **doc** - a place to put documentation for your tests
+- **resources** - a place to put robot libraries and keyword files that
   are unique to your project
-- ``results`` - a place for robot to write its log and report files
-- ``tests`` - a place for all of your tests.
+- **results** - a place for robot to write its log and report files
+- **tests** - a place for all of your tests.
 
 
 Part 2: Creating a custom object
@@ -70,8 +70,8 @@ following into this file, and then save it.
 .. note::
 
    The above code uses ``Go to page`` and ``Current page should be``
-   which accept a page type (Listing) and object name
-   (MyObject__c). Even though we have yet to create that page object,
+   which accept a page type (``Listing``) and object name
+   (``MyObject__c``). Even though we have yet to create that page object,
    the keywords will work by using a generic implementation. Later,
    once we've created the page object, the test will start using our
    implementation.
@@ -125,19 +125,17 @@ and easier to manage.
 Defining the class
 ------------------
 
-CumulusCI provides the base classes that are a good starting point
-for your page object (see :ref:`page-object-base-classes`). 
-
-In this case we're writing a keyword that works
-on the listing page, so we want our class to inherit from the
-``ListingPage`` class.
+CumulusCI provides the base classes that are a good starting point for
+your page object (see :ref:`page-object-base-classes`). In this case
+we're writing a keyword that works on the listing page, so we want our
+class to inherit from the ``ListingPage`` class.
 
 .. note::
 
     Our class also needs to use the ``pageobject`` decorator, so we must
     import that along with the ``ListingPage`` class.
 
-To get started, create a new file named ``MyObjectPages.py`` in the
+To get started, create a new file named **MyObjectPages.py** in the
 folder ``robot/MyProject/resources``. At the top of the new keyword
 file, add the following import statement:
 
