@@ -138,7 +138,7 @@ def selenium_retry(target=None, retry=True):
     """Decorator to turn on automatic retries of flaky selenium failures.
 
     Decorate a robotframework library class to turn on retries for all
-    selenium calls from that library:
+    selenium calls from that library::
 
         @selenium_retry
         class MyLibrary(object):
@@ -149,7 +149,7 @@ def selenium_retry(target=None, retry=True):
                 self.selenium.click_button('foo')
 
     Or turn it off by default but turn it on for some methods
-    (the class-level decorator is still required):
+    (the class-level decorator is still required)::
 
         @selenium_retry(False)
         class MyLibrary(object):
@@ -157,7 +157,6 @@ def selenium_retry(target=None, retry=True):
             @selenium_retry(True)
             def some_keyword(self):
                 self.selenium.click_button('foo')
-
     """
 
     if isinstance(target, bool):

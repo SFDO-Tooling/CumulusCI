@@ -11,19 +11,21 @@ for host systems embedding cci, like web apps, to inspect the flow in progress.
 BaseFlow suited us well.
 
 FlowRunner is a v2 API for flows in CCI. There are two objects of interest:
-- FlowCoordinator: takes a flow_config & runtime options to create a set of `StepSpec`s
- - Meant to replace the public API of BaseFlow, including override hooks.
- - Precomputes a flat list of steps, instead of running Flow recursively.
- -
+
+- FlowCoordinator: takes a flow_config & runtime options to create a set of StepSpecs
+  - Meant to replace the public API of BaseFlow, including override hooks.
+  - Precomputes a flat list of steps, instead of running Flow recursively.
 - TaskRunner: encapsulates the actual task running, result providing logic.
 
 Upon initialization, FlowRunner:
+
 - Creates a logger
 - Validates that there are no cycles in the given flow_config
 - Validates that the flow_config is using new-style-steps
 - Collects a list of StepSpec objects that define what the flow will do.
 
 Upon running the flow, FlowRunner:
+
 - Refreshes the org credentials
 - Runs each StepSpec in order
 - * Logs the task or skip
@@ -33,18 +35,19 @@ Upon running the flow, FlowRunner:
 - * collects StepResults into the flow.
 
 TaskRunner:
+
 - Imports the actual task module.
 - Constructs an instance of the BaseTask subclass.
 - Runs/calls the task instance.
 - Returns results or exception into an immutable StepResult
 
 Option values/overrides can be passed in at a number of levels, in increasing order of priority:
+
 - Task default (i.e. `.tasks__TASKNAME__options`)
 - Flow definition task options (i.e. `.flows__FLOWNAME__steps__STEPNUM__options`)
 - Flow definition subflow options (i.e. `.flows__FLOWNAME__steps__STEPNUM__options__TASKNAME`)
     see `dev_org_namespaced` for an example
 - Flow runtime (i.e. on the commandline)
-
 
 """
 
@@ -61,6 +64,8 @@ from collections import namedtuple
 from distutils.version import LooseVersion
 from operator import attrgetter
 
+from jinja2.sandbox import ImmutableSandboxedEnvironment
+
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.config import FlowConfig
 from cumulusci.core.exceptions import FlowConfigError, FlowInfiniteLoopError
@@ -69,6 +74,8 @@ from cumulusci.core.utils import import_global
 # TODO: define exception types: flowfailure, taskimporterror, etc?
 
 RETURN_VALUE_OPTION_PREFIX = "^^"
+
+jinja2_env = ImmutableSandboxedEnvironment()
 
 
 class StepSpec(object):
@@ -82,6 +89,7 @@ class StepSpec(object):
         "allow_failure",  # type: bool
         "path",  # type: str
         "skip",  # type: bool
+        "when",  # type: str
     )
 
     def __init__(
@@ -93,6 +101,7 @@ class StepSpec(object):
         allow_failure=False,
         from_flow=None,
         skip=None,
+        when=None,
     ):
         self.step_num = step_num
         self.task_name = task_name
@@ -100,6 +109,7 @@ class StepSpec(object):
         self.task_class = task_class
         self.allow_failure = allow_failure
         self.skip = skip
+        self.when = when
 
         # Store the dotted path to this step.
         # This is not guaranteed to be unique, because multiple steps
@@ -309,6 +319,11 @@ class FlowCoordinator(object):
         self.logger.info("Starting execution")
         self._rule(new_line=True)
 
+        jinja2_context = {
+            "project_config": self.project_config,
+            "org_config": self.org_config,
+        }
+
         try:
             for step in self.steps:
                 if step.skip:
@@ -316,6 +331,17 @@ class FlowCoordinator(object):
                     self.logger.info("Skipping task: {}".format(step.task_name))
                     self._rule(fill="*", new_line=True)
                     continue
+
+                if step.when:
+                    expr = jinja2_env.compile_expression(step.when)
+                    value = expr(**jinja2_context)
+                    if not value:
+                        self.logger.info(
+                            "Skipping task {} (skipped when {})".format(
+                                step.task_name, step.when
+                            )
+                        )
+                        continue
 
                 self._rule(fill="-")
                 self.logger.info("Running task: {}".format(step.task_name))
@@ -463,6 +489,7 @@ class FlowCoordinator(object):
                     task_class,
                     step_config.get("ignore_failure", False),
                     from_flow=from_flow,
+                    when=step_config.get("when"),
                 )
             )
             return visited_steps
@@ -551,6 +578,6 @@ class FlowCoordinator(object):
 
     def _find_result_by_path(self, path):
         for result in self.results:
-            if result.path == path:
+            if result.path[-len(path) :] == path:
                 return result
         raise NameError("Path not found: {}".format(path))

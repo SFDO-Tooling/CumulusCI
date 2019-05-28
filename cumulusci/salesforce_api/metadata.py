@@ -409,17 +409,19 @@ class ApiDeploy(BaseMetadataApiCall):
 
             component_failures = resp_xml.getElementsByTagName("componentFailures")
             for component_failure in component_failures:
+                problems = component_failure.getElementsByTagName("problem")
+                problem_types = component_failure.getElementsByTagName("problemType")
                 failure_info = {
                     "component_type": None,
                     "file_name": None,
                     "line_num": None,
                     "column_num": None,
-                    "problem": component_failure.getElementsByTagName("problem")[
-                        0
-                    ].firstChild.nodeValue,
-                    "problem_type": component_failure.getElementsByTagName(
-                        "problemType"
-                    )[0].firstChild.nodeValue,
+                    "problem": problems[0].firstChild.nodeValue
+                    if problems
+                    else "Unknown problem",
+                    "problem_type": problem_types[0].firstChild.nodeValue
+                    if problem_types
+                    else "Error",
                 }
                 failure_info["component_type"] = self._get_element_value(
                     component_failure, "componentType"

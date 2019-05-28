@@ -34,7 +34,7 @@ pipx
 ~~~~
 
 On Windows 10, the easiest way to install CumulusCI is using
-`pipx <https://github.com/pipxproject/pipx>`__. In a new command prompt, run: 
+`pipx <https://github.com/pipxproject/pipx>`_. In a new command prompt, run:
 
 .. code:: powershell
 
@@ -48,7 +48,7 @@ Add the following paths to your ``PATH`` environment variable:
 .. note::
 
    From the `Python
-   documentation <https://docs.python.org/3/using/windows.html#excursus-setting-environment-variables>`__:
+   documentation <https://docs.python.org/3/using/windows.html#excursus-setting-environment-variables>`_:
    To permanently modify the default environment variables, click Start and
    search for ‘edit environment variables’, or open System properties,
    Advanced system settings and click the Environment Variables button. In
@@ -72,7 +72,7 @@ is installed correctly by running ``cci version``:
 
    $ cci version
    Checking the version!
-   2.4.4
+   2.5.0
 
 Still need help? Search issues on CumulusCI GitHub https://github.com/SFDO-Tooling/CumulusCI/issues
 
@@ -252,13 +252,13 @@ So, let's try that all out.  One important thing to note is that CumulusCI autom
     dev                 *        dev
     feature             *        feature
     release             *        release
-    
+
 Although CumulusCI has those scratch org configs in its org list, no actual scratch orgs have been created yet.  The reason why is that scratch orgs in the CumulusCI keychain are really just a lazy configuration to create a scratch org.  An actual scratch org will be created when you try to do something against that org name (i.e. `dev`) for the first time.  If you run an action against a scratch org config that hasn't yet generated a scratch org, it will create the org and remember that it has now created the org:
 
 .. code-block:: console
 
     $ cci org info dev
-    2017-11-02 15:20:04: Creating scratch org with command sfdx force:org:create -f orgs/dev.json -n -a "CumulusCI Test__dev" 
+    2017-11-02 15:20:04: Creating scratch org with command sfdx force:org:create -f orgs/dev.json -n -a "CumulusCI Test__dev"
     2017-11-02 15:20:15: Successfully created scratch org: 00D..., username: test-...@cumulusci-test_dev_workspace.net
     2017-11-02 15:20:15: Generating scratch org user password with command sfdx force:user:password:generate -u test-...@cumulusci-test_dev_workspace.net
     2017-11-02 15:20:18: Getting scratch org info from Salesforce DX
@@ -544,7 +544,7 @@ You can run a task:
 .. code-block:: console
 
     $ cci task run update_package_xml
-    
+
     2016-11-03 11:57:53: Generating src/package.xml from metadata in src
 
 Task Options
@@ -688,7 +688,7 @@ To set up our newly connected dev org, run the dev_org flow:
     2016-11-03 12:01:48:   deploy: Deploys the src directory of the repository to the org
     2016-11-03 12:01:48:   uninstall_packaged_incremental: Deletes any metadata from the package in the target org not in the local workspace
     2016-11-03 12:01:48:   deploy_post: Deploys all metadata bundles under unpackaged/post/
-    2016-11-03 12:01:48: 
+    2016-11-03 12:01:48:
     2016-11-03 12:01:48: Running task: create_package
     2016-11-03 12:01:49: Options:
     2016-11-03 12:01:49:   api_version: 33.0
@@ -696,11 +696,11 @@ To set up our newly connected dev org, run the dev_org flow:
     2016-11-03 12:01:49: Pending
     2016-11-03 12:01:53: [Done]
     2016-11-03 12:01:54: [Success]: Succeeded
-    2016-11-03 12:01:54: 
+    2016-11-03 12:01:54:
     2016-11-03 12:01:54: Running task: update_dependencies
     2016-11-03 12:01:56: Options:
     2016-11-03 12:01:56: Project has no dependencies, doing nothing
-    2016-11-03 12:01:56: 
+    2016-11-03 12:01:56:
     2016-11-03 12:01:56: Running task: deploy_pre
     2016-11-03 12:01:56: Options:
     2016-11-03 12:01:56:   path: unpackaged/pre
@@ -718,7 +718,7 @@ To set up our newly connected dev org, run the dev_org flow:
     2016-11-03 12:02:09: [InProgress]: Processing Type: CustomObject
     2016-11-03 12:02:12: [Done]
     2016-11-03 12:02:13: [Success]: Succeeded
-    2016-11-03 12:02:13: 
+    2016-11-03 12:02:13:
     2016-11-03 12:02:13: Running task: deploy
     2016-11-03 12:02:14: Options:
     2016-11-03 12:02:14:   path: src
@@ -729,7 +729,7 @@ To set up our newly connected dev org, run the dev_org flow:
     2016-11-03 12:02:22: [InProgress]: Processing Type: ApexClass
     2016-11-03 12:02:28: [Done]
     2016-11-03 12:02:29: [Success]: Succeeded
-    2016-11-03 12:02:29: 
+    2016-11-03 12:02:29:
     2016-11-03 12:02:29: Running task: uninstall_packaged_incremental
     2016-11-03 12:02:29: Options:
     2016-11-03 12:02:29:   path: src
@@ -741,7 +741,7 @@ To set up our newly connected dev org, run the dev_org flow:
     2016-11-03 12:02:35: Pending
     2016-11-03 12:02:41: [Done]
     2016-11-03 12:02:42: [Success]: Succeeded
-    2016-11-03 12:02:42: 
+    2016-11-03 12:02:42:
     2016-11-03 12:02:42: Running task: deploy_post
     2016-11-03 12:02:43: Options:
     2016-11-03 12:02:43:   namespace_token: %%%NAMESPACE%%%
@@ -785,20 +785,21 @@ Beta Test
 The `ci_beta` flow uses the Github API to determine the latest beta release for the project.  NOTE: This requires that you're using `release_beta` to create Github Releases:
 
 .. code-block:: console
-   $ cci flow run ci_beta --org beta
+
+    $ cci flow run ci_beta --org beta
 
 You can also pass the version number:
 
 .. code-block:: console
 
-   $ cci flow run ci_beta --org beta -o install_managed_beta__version "1.1 (Beta 12)"
+    $ cci flow run ci_beta --org beta -o install_managed_beta__version "1.1 (Beta 12)"
 
 Automate it with MetaCI
 -----------------------
 
 Once you have these flows set up, you can now use MetaCI to run these same builds against your project automatically on Heroku.  For more information, check out http://metaci-cli.readthedocs.io
 
-    
+
 Part 7: Digging Deeper
 ======================
 

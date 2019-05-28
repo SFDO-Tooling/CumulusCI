@@ -621,9 +621,10 @@ class ConnectServiceCommand(click.MultiCommand):
 
     def get_command(self, ctx, name):
         config = load_config(**self.load_config_kwargs)
+        services = self._get_services_config(config)
         try:
-            service_config = getattr(config.project_config, "services__{}".format(name))
-        except AttributeError:
+            service_config = services[name]
+        except KeyError:
             raise click.UsageError(
                 "Sorry, I don't know about the '{0}' service.".format(name)
             )
@@ -1003,6 +1004,11 @@ def task_list(config):
 @pass_config(load_keychain=False)
 def task_doc(config):
     config_src = config.global_config
+
+    click.echo("==========================================")
+    click.echo("Tasks Reference")
+    click.echo("==========================================")
+    click.echo("")
 
     for name, options in list(config_src.tasks.items()):
         task_config = TaskConfig(options)
