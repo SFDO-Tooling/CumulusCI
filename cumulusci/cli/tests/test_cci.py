@@ -379,8 +379,8 @@ test     Test Service  *""",
         ctx = mock.Mock()
         config = mock.MagicMock()
         config.is_global_keychain = False
-        config.project_config.services__test = {
-            "attributes": {"attr": {"required": False}}
+        config.project_config.services = {
+            "test": {"attributes": {"attr": {"required": False}}}
         }
 
         with mock.patch("cumulusci.cli.cci.TEST_CONFIG", config):
@@ -396,8 +396,8 @@ test     Test Service  *""",
         ctx = mock.Mock()
         config = mock.MagicMock()
         config.is_global_keychain = True
-        config.project_config.services__test = {
-            "attributes": {"attr": {"required": False}}
+        config.global_config.services = {
+            "test": {"attributes": {"attr": {"required": False}}}
         }
 
         with mock.patch("cumulusci.cli.cci.TEST_CONFIG", config):
@@ -412,7 +412,8 @@ test     Test Service  *""",
         multi_cmd = cci.ConnectServiceCommand()
         ctx = mock.Mock()
         config = mock.MagicMock()
-        del config.project_config.services__test
+        config.is_global_keychain = False
+        config.project_config.services = {}
 
         with mock.patch("cumulusci.cli.cci.TEST_CONFIG", config):
             with self.assertRaises(click.UsageError):
@@ -422,9 +423,12 @@ test     Test Service  *""",
         multi_cmd = cci.ConnectServiceCommand()
         ctx = mock.Mock()
         config = mock.MagicMock()
-        config.project_config.services__test = {
-            "attributes": {},
-            "validator": "cumulusci.cli.tests.test_cci.validate_service",
+        config.is_global_keychain = False
+        config.project_config.services = {
+            "test": {
+                "attributes": {},
+                "validator": "cumulusci.cli.tests.test_cci.validate_service",
+            }
         }
 
         with mock.patch("cumulusci.cli.cci.TEST_CONFIG", config):
