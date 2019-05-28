@@ -5,7 +5,7 @@ Robot Framework Tutorial
 This tutorial will step you through writing your first test, then
 enhancing that test with a custom keyword implemented as a page
 object. It is not a comprehensive tutorial on using Robot
-Framework. For Robot Framework documentations see the
+Framework. For Robot Framework documentation see the
 `Robot Framework User Guide <http://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html>`_
 
 It is assumed you've worked through the CumulusCI :doc:`tutorial` at least up to the
@@ -17,8 +17,8 @@ Part 1: Folder Structure
 ========================
 
 We recommend that all robot tests, keywords, data, and log and report files live under
-a folder named ``robot``, at the root of you repository. If you worked
-through the :doc:`CumulusCI tutorial`, the following folders will
+a folder named ``robot``, at the root of your repository. If you worked
+through the CumulusCI :doc:`tutorial`, the following folders will
 have been created under ``MyProject/robot/MyProject``:
 
 - ``doc`` - a place to put documentation for your tests
@@ -47,7 +47,7 @@ Part 3: Creating and running your first robot test
 
 The first thing we want to do is create a test that verifies
 we can get to the listing page of the custom object. This will
-let us know that everything is configure properly.
+let us know that everything is configured properly.
 
 Open up your favorite editor and create a file named ``MyObject.robot``
 in the folder ``robot/MyProject/tests``. Copy and paste the
@@ -125,13 +125,17 @@ and easier to manage.
 Defining the class
 ------------------
 
-CumulusCI provides some base classes that are a good starting point
-for your page object. In this case we're writing a keyword that works
+CumulusCI provides the base classes that are a good starting point
+for your page object (see :ref:`page-object-base-classes`). 
+
+In this case we're writing a keyword that works
 on the listing page, so we want our class to inherit from the
 ``ListingPage`` class.
 
-Our class also needs to use the ``pageobject`` decorator, so we must
-import that along with the ``ListingPage`` class.
+.. note::
+
+    Our class also needs to use the ``pageobject`` decorator, so we must
+    import that along with the ``ListingPage`` class.
 
 To get started, create a new file named ``MyObjectPages.py`` in the
 folder ``robot/MyProject/resources``. At the top of the new keyword
@@ -244,7 +248,7 @@ We want to be able to test that when we click on one of our custom
 objects on the listing page that it will take us to the detail page
 for that object. To do that, our test needs some test data. While that
 can be very complicated in a real-world scenario, for simple tests we
-can use the salesforce API to create test data when the suite first
+can use the Salesforce API to create test data when the suite first
 starts up.
 
 To create the data when the suite starts, we can add a ``Suite Setup``
@@ -288,7 +292,7 @@ readability.
 
 .. note::
 
-    Note: it is critical that you use all caps for ``AND``, as
+    It is critical that you use all caps for ``AND``, as
     that's the way robot knows where one keyword ends and the next
     begins.
 
@@ -357,7 +361,7 @@ The complete test should now look like this:
         Click on the row with name  Leeroy Jenkins
         Current page should be  Detail  MyObject__c
 
-With everthing in place, we should be able to run the test using the
+With everything in place, we should be able to run the test using the
 same command as before:
 
 .. code-block:: console

@@ -2,7 +2,7 @@
 Robot Framework
 ===============
 
-This document provides details about CumulusCI's integration with Robot Framework for automating tests using the CumulusCI, Salesforce API's, and Selenium.
+This document provides details about CumulusCI's integration with `Robot Framework <http://robotframework.org>`_ for automating tests using the CumulusCI, Salesforce API's, and Selenium.
 
 Why Robot Framework?
 ====================
@@ -134,7 +134,13 @@ This simple test file can then be run via the **robot** task in CumulusCI:
    Report:  /Users/boakley/dev/MyProject/robot/MyProject/results/report.html
 
 
-NOTE: In the example output, the WARN line shows functionality from the Salesforce Library which helps handle retry scenarios common to testing against Salesforce's Lightning UI.  In this case, it automatically retried the wait for the modal window to close after creating a contact in a browser.
+.. note::
+
+   In the example output, the WARN line shows functionality from the
+   Salesforce Library which helps handle retry scenarios common to
+   testing against Salesforce's Lightning UI.  In this case, it
+   automatically retried the wait for the modal window to close after
+   creating a contact in a browser.
 
 If you put all of your tests inside that **robot/<project name>/tests** folder you don't have to use the **suite** option. By default the robot task will run all tests in the folder and all subfolders. For example, to run all tests and use the default browser you just have to issue the command `cci task run robot`.
 
@@ -209,7 +215,7 @@ we've implemented a way to dynamically load in keywords that are
 unique to a page or an object on the page.
 
 With this library, you can define classes which represent page
-objects. Each class has keywords that are unique to a page or a
+objects. Each class provides keywords that are unique to a page or a
 component. These classes can be imported on demand only for tests
 which use these pages or components.
 
@@ -222,15 +228,14 @@ decorator provided by CumulusCI. Unlike traditional Robot Framework
 keyword libraries, you may define multiple sets of keywords in a
 single file.
 
-When you create a page object class, you should start by inheriting
-from one of the following base classes provided by CumulusCI. No
-matter which class your inherit from, your class gets the following
-predefined properties:
+When you create a page object class, you start by inheriting from one
+of the provided base classes. No matter which class your inherit from,
+your class gets the following predefined properties:
 
 - **self.object_name** - the name of the object related to the
   class. This is defined via the `object_name` parameter to the
   ``pageobject`` decorator. You should not add the namespace
-  prefix in the dectorator. This attribute will automatically add the
+  prefix in the decorator. This attribute will automatically add the
   prefix from cumulusci.yml when necessary.
 
 - **self.builtin** - this is a reference to the robot framework
@@ -253,9 +258,16 @@ predefined properties:
   name to all lowercase, and replace spaces with understcores (eg:
   ``self.selenim.wait_until_page_contains_element``, etc)
 
-Presently, cumulusci provides the following page object base classes:
 
-- ``cumulusci.robotframework.pageobjects.BasePage`` - the core base
+.. _page-object-base-classes:
+
+Page Object Base Classes
+------------------------
+
+Presently, cumulusci provides the following base classes,
+which should be used for all classes that use the ``pageobject`` decorator:
+
+- ``cumulusci.robotframework.pageobjects.BasePage`` - a generic base
   class, which should be used if none of the following classes are used.
 - ``cumulusci.robotframework.pageobjects.DetailPage`` - a class
   for a page object which represents a detail page
@@ -370,7 +382,7 @@ and then load the keywords for that page.
 Log Page Object Keywords
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-Example: :code:`Load Page Object Keywords`
+Example: :code:`Log Page Object Keywords`
 
 This keyword is primarily a debugging tool. When called it will log
 each of the keywords for the current page object.
@@ -447,7 +459,12 @@ Additionally, the RobotLibDoc task class can be wired up to generate library doc
               path: robot/MyProject/resources/MyProject.robot
               output: robot/MyProject/doc/MyProject_Library.html
 
-NOTE: you can generate documentation for more than one keyword file or library by giving a comma-separated list of files for the **path** option.
+.. note::
+
+   You can generate documentation for more than one keyword file or
+   library by giving a comma-separated list of files for the **path**
+   option.
+
 
 Robot Directory Structure
 =========================
