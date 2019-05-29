@@ -309,7 +309,7 @@ both create and later clean up temporary data used for a test.
 
 It is important to note that the suite teardown isn't guaranteed to run
 if you forcibly kill a running robot test. For that reason, we added a
-check in the ``Create test data`` to check for an existing record
+step in ``Create test data`` to check for an existing record
 before adding it. If a previous test was interrupted and the record
 already exists, there's no reason to create a new record.
 
