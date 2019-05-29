@@ -813,7 +813,7 @@ Create a local python tasks module:
     $ mkdir tasks
     $ touch tasks/__init__.py
 
-Create the file `tasks/salesforce.py` with the following content:
+Create the file **tasks/salesforce.py** with the following content:
 
 .. code-block:: python
 
