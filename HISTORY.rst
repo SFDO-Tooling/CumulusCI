@@ -2,6 +2,13 @@
 History
 =======
 
+2.5.1 (2019-05-31)
+------------------
+
+Issues fixed:
+
+* Fixed ``cci service connect`` when run outside of a directory containing a CumulusCI project.
+
 2.5.0 (2019-05-25)
 ------------------
 
