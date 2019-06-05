@@ -5,6 +5,7 @@ import os.path
 import re
 import time
 from robot.libraries.BuiltIn import BuiltIn, RobotNotRunningError
+from robot.utils import timestr_to_secs
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.action_chains import ActionChains
 
@@ -536,18 +537,59 @@ class Salesforce(object):
             lex_locators["modal"]["is_open"], timeout=15
         )
 
-    def wait_until_loading_is_complete(self, locator=None):
-        """Wait for LEX page to load.
+    def wait_until_loading_is_complete(self, locator=None, timeout=None):
+        """Waits until a lightning page has loaded
 
-        (We're actually waiting for the actions ribbon to appear.)
+        It will continue to refresh the page until we land on a
+        lightning page or until a timeout has been reached. The
+        timeout can be specified in any time string supported by robot
+        (eg: number of seconds, "3 minutes", etc.). If not specified,
+        the default selenium timeout will be used.
+
+        This keyword will wait a few seconds between each refresh, as
+        well as wait after each refresh for the page to fully render
+        (ie: it calls wait_for_aura())
+
         """
+
+        # Note: we can't just ask selenium to wait for an element,
+        # because the org might not be availble due to infrastructure
+        # issues (eg: the domain not being propagated). In such a case
+        # the element will never come. Instead, what we need to do is
+        # repeatedly refresh the page until the org responds.
+        #
+        # This assumes that any lightning page is a valid stopping
+        # point.  If salesforce starts rendering error pages with
+        # lightning, or an org's default home page is not a lightning
+        # page, we may have to rethink that strategy.
+
+        interval = 5  # seconds between each refresh.
+        timeout = timeout if timeout else self.selenium.get_selenium_timeout()
+        timeout_seconds = timestr_to_secs(timeout)
+        start_time = time.time()
+        login_url = self.cumulusci.login_url()
         locator = lex_locators["body"] if locator is None else locator
-        try:
-            self.selenium.wait_until_page_contains_element(locator)
-            self.wait_for_aura()
-        except Exception:
+
+        while True:
             try:
-                self.selenium.capture_page_screenshot()
+                self.selenium.wait_for_condition(
+                    "return (document.readyState == 'complete')"
+                )
+                self.wait_for_aura()
+                self.selenium.get_webelement(locator)
+                return
+
             except Exception as e:
-                self.builtin.warn("unable to capture screenshot: {}".format(str(e)))
-            raise
+                self.builtin.log(
+                    "caught exception while waiting: {}".format(str(e)), "DEBUG"
+                )
+                if time.time() - start_time > timeout_seconds:
+                    break
+                self.builtin.log("waiting for a refresh...", "DEBUG")
+                self.selenium.capture_page_screenshot()
+                time.sleep(interval)
+                self.selenium.go_to(login_url)
+
+        self.selenium.log_location()
+        self.selenium.capture_page_screenshot()
+        raise Exception("Timed out waiting for a lightning page")
