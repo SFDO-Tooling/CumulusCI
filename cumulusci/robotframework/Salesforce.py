@@ -5,6 +5,7 @@ import os.path
 import re
 import time
 from robot.libraries.BuiltIn import BuiltIn, RobotNotRunningError
+from robot.utils import timestr_to_secs
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.action_chains import ActionChains
 
@@ -22,14 +23,17 @@ lex_locators = {}  # will be initialized when Salesforce is instantiated
 class Salesforce(object):
     ROBOT_LIBRARY_SCOPE = "GLOBAL"
 
-    def __init__(self, debug=False):
+    def __init__(self, debug=False, locators=None):
         self.debug = debug
         self._session_records = []
         # Turn off info logging of all http requests
         logging.getLogger("requests.packages.urllib3.connectionpool").setLevel(
             logging.WARN
         )
-        self._init_locators()
+        if locators:
+            lex_locators.update(locators)
+        else:
+            self._init_locators()
 
     def _init_locators(self):
         """Load the appropriate locator file for the current version
@@ -551,3 +555,60 @@ class Salesforce(object):
             except Exception as e:
                 self.builtin.warn("unable to capture screenshot: {}".format(str(e)))
             raise
+
+    def wait_until_salesforce_is_ready(self, locator=None, timeout=None, interval=5):
+        """Waits until we are able to render the initial salesforce landing page
+
+        It will continue to refresh the page until we land on a
+        lightning page or until a timeout has been reached. The
+        timeout can be specified in any time string supported by robot
+        (eg: number of seconds, "3 minutes", etc.). If not specified,
+        the default selenium timeout will be used.
+
+        This keyword will wait a few seconds between each refresh, as
+        well as wait after each refresh for the page to fully render
+        (ie: it calls wait_for_aura())
+
+        """
+
+        # Note: we can't just ask selenium to wait for an element,
+        # because the org might not be availble due to infrastructure
+        # issues (eg: the domain not being propagated). In such a case
+        # the element will never come. Instead, what we need to do is
+        # repeatedly refresh the page until the org responds.
+        #
+        # This assumes that any lightning page is a valid stopping
+        # point.  If salesforce starts rendering error pages with
+        # lightning, or an org's default home page is not a lightning
+        # page, we may have to rethink that strategy.
+
+        interval = 5  # seconds between each refresh.
+        timeout = timeout if timeout else self.selenium.get_selenium_timeout()
+        timeout_seconds = timestr_to_secs(timeout)
+        start_time = time.time()
+        login_url = self.cumulusci.login_url()
+        locator = lex_locators["body"] if locator is None else locator
+
+        while True:
+            try:
+                self.selenium.wait_for_condition(
+                    "return (document.readyState == 'complete')"
+                )
+                self.wait_for_aura()
+                # If the following doesn't throw an error, we're good to go.
+                self.selenium.get_webelement(locator)
+                break
+
+            except Exception as e:
+                self.builtin.log(
+                    "caught exception while waiting: {}".format(str(e)), "DEBUG"
+                )
+                if time.time() - start_time > timeout_seconds:
+                    self.selenium.log_location()
+                    self.selenium.capture_page_screenshot()
+                    raise Exception("Timed out waiting for a lightning page")
+
+            self.builtin.log("waiting for a refresh...", "DEBUG")
+            self.selenium.capture_page_screenshot()
+            time.sleep(interval)
+            self.selenium.go_to(login_url)

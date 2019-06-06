@@ -1,0 +1,48 @@
+import unittest
+import mock
+from cumulusci.robotframework.Salesforce import Salesforce
+from SeleniumLibrary.errors import ElementNotFound
+
+
+@mock.patch("robot.libraries.BuiltIn.BuiltIn._get_context")
+class TestKeyword_wait_until_loading_is_complete(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        super(TestKeyword_wait_until_loading_is_complete, cls).setUpClass()
+        cls.sflib = Salesforce(locators={"body": "//whatever"})
+
+    def test_successful_page_load(self, mock_robot_context):
+        """Verify that a succesful page load returns no errors"""
+        with mock.patch.object(Salesforce, "wait_for_aura", return_value=True):
+            self.sflib.wait_until_salesforce_is_ready(timeout="1")
+
+            self.sflib.wait_for_aura.assert_called_once()
+            self.sflib.selenium.get_webelement.assert_called_once_with("//whatever")
+
+    def test_reload_on_initial_failure(self, mock_robot_context):
+        """Verify that we attempt a reload when we don't find the lightning component"""
+        with mock.patch.object(Salesforce, "wait_for_aura", return_value=True):
+            with mock.patch.object(
+                self.sflib.selenium,
+                "get_webelement",
+                side_effect=(ElementNotFound(), True),
+            ):
+                self.sflib.wait_until_salesforce_is_ready(timeout="10")
+                self.sflib.selenium.go_to.assert_called_once()
+
+    def test_exception_on_timeout(self, mock_robot_context):
+        """Verify that we through an appropriate exception after the timeout"""
+        with mock.patch.object(Salesforce, "wait_for_aura", return_value=True):
+            self.sflib.selenium.get_webelement.side_effect = ElementNotFound()
+
+            with self.assertRaisesRegex(
+                Exception, "Timed out waiting for a lightning page"
+            ):
+                # The timeout needs to be longer than the duration of
+                # one loop iteration, but less than the retry interval
+                # of 5 seconds. Making it longer should still pass the
+                # test, it just makes the test run longer than necessary.
+                self.sflib.wait_until_salesforce_is_ready(timeout="2")
+
+            self.sflib.selenium.capture_page_screenshot.assert_called()
+            self.assertEqual(self.sflib.wait_for_aura.call_count, 2)
