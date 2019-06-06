@@ -8,6 +8,7 @@ from cumulusci.core.exceptions import FlowInfiniteLoopError
 from cumulusci.core.exceptions import TaskNotFoundError
 from cumulusci.core.config import FlowConfig
 from cumulusci.core.flowrunner import FlowCoordinator
+from cumulusci.core.flowrunner import PreflightFlowCoordinator
 from cumulusci.core.flowrunner import StepSpec
 from cumulusci.core.tasks import BaseTask
 from cumulusci.core.config import OrgConfig
@@ -194,7 +195,7 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
             }
         )
         with self.assertRaises(TaskNotFoundError):
-            flow = FlowCoordinator(self.project_config, flow_config)
+            FlowCoordinator(self.project_config, flow_config)
 
     def test_init__no_steps_in_config(self):
         flow_config = FlowConfig({})
@@ -404,3 +405,41 @@ class StepSpecTest(unittest.TestCase):
     def test_for_display(self):
         spec = StepSpec(1, "test_task", {}, None, skip=True)
         assert "1: test_task [SKIP]" == spec.for_display
+
+
+class PreflightFlowCoordinatorTest(AbstractFlowCoordinatorTest, unittest.TestCase):
+    def test_run(self):
+        flow_config = FlowConfig(
+            {
+                "checks": [
+                    {
+                        "when": "tasks.log(level='info', line='plan') or True",
+                        "action": "error",
+                        "message": "Failed plan check",
+                    }
+                ],
+                "steps": {
+                    1: {
+                        "task": "log",
+                        "options": {"level": "info", "line": "step"},
+                        "checks": [
+                            {
+                                "when": "tasks.log(level='info', line='plan') or True",
+                                "action": "error",
+                                "message": "Failed step check",
+                            }
+                        ],
+                    }
+                },
+            }
+        )
+        flow = PreflightFlowCoordinator(self.project_config, flow_config)
+        flow.run(self.org_config)
+
+        self.assertDictEqual(
+            {
+                None: [{"status": "error", "message": "Failed plan check"}],
+                "log": [{"status": "error", "message": "Failed step check"}],
+            },
+            flow.preflight_results,
+        )
