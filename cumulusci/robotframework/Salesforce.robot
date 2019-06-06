@@ -59,8 +59,7 @@ Open Test Browser
     ...    ELSE IF  '${BROWSER}' == 'headlesschrome'  Open Test Browser Chrome  ${login_url}  alias=${alias}
     ...    ELSE IF  '${BROWSER}' == 'headlessfirefox'  Open Test Browser Headless Firefox  ${login_url}  alias=${alias}
     ...    ELSE  Open Browser  ${login_url}  ${BROWSER}  alias=${alias}
-    Set Selenium Timeout  ${INITIAL_TIMEOUT}
-    Wait Until Loading Is Complete
+    Wait Until Salesforce Is Ready  timeout=180
     Set Selenium Timeout  ${TIMEOUT}
     Initialize Location Strategies
     ${width}  ${height}=  split string  ${size}  separator=x  max_split=1
