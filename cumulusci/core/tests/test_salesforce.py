@@ -4,11 +4,29 @@ from cumulusci.robotframework.Salesforce import Salesforce
 from SeleniumLibrary.errors import ElementNotFound
 
 
-@mock.patch("robot.libraries.BuiltIn.BuiltIn._get_context")
-class TestKeyword_wait_until_loading_is_complete(unittest.TestCase):
+# _init_locators has a special code block
+class TestSeleniumLibrary(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        super(TestKeyword_wait_until_loading_is_complete, cls).setUpClass()
+        super(TestSeleniumLibrary, cls).setUpClass()
+
+    def test_init_locators(self):
+        """Verify that locators are initialized if not passed in"""
+        with mock.patch.object(Salesforce, "_init_locators"):
+            # _init_locators should NOT be called if we pass them in
+            sflib = Salesforce(locators={"body": "//whatever"})
+            assert not sflib._init_locators.called
+
+            # _init_locators SHOULD be called if we don't pass them in
+            sflib = Salesforce()
+            sflib._init_locators.assert_called_once()
+
+
+@mock.patch("robot.libraries.BuiltIn.BuiltIn._get_context")
+class TestKeyword_wait_until_salesforce_is_ready(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        super(TestKeyword_wait_until_salesforce_is_ready, cls).setUpClass()
         cls.sflib = Salesforce(locators={"body": "//whatever"})
 
     def test_successful_page_load(self, mock_robot_context):
