@@ -41,8 +41,8 @@ class ScratchOrgConfig(OrgConfig):
         p = sfdx("force:org:display --json", self.username)
 
         org_info = None
-        stderr_list = [line.strip() for line in io.TextIOWrapper(p.stderr)]
-        stdout_list = [line.strip() for line in io.TextIOWrapper(p.stdout)]
+        stderr_list = [line.strip() for line in io.TextIOWrapper(p.stderr, encoding='utf8')]
+        stdout_list = [line.strip() for line in io.TextIOWrapper(p.stdout, encoding='utf8')]
 
         if p.returncode:
             self.logger.error("Return code: {}".format(p.returncode))
