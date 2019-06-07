@@ -235,7 +235,10 @@ def main():
 
     This runs as the first step in processing any CLI command.
     """
-    check_latest_version()
+    # Avoid checking for updates if we've been asked to output JSON,
+    # because we don't want to pollute the output
+    if "--json" not in sys.argv:
+        check_latest_version()
     log_requests = "--debug" in sys.argv
     init_logger(log_requests=log_requests)
 
