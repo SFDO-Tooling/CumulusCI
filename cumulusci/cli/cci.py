@@ -1115,8 +1115,8 @@ def task_run(config, task_name, org, o, debug, debug_before, debug_after, no_pro
     except Exception:
         # Unexpected exception; log to sentry and raise
         handle_exception_debug(config, debug, no_prompt=no_prompt)
-
-    config.alert("Task complete: {}".format(task_name))
+    finally:
+        config.alert("Task complete: {}".format(task_name))
 
 
 # Add the task commands to the task group
@@ -1141,7 +1141,7 @@ def flow_list(config):
     click.echo("")
     click.echo(
         "Use "
-        + click.style("cci flow info <task_name>", bold=True)
+        + click.style("cci flow info <flow_name>", bold=True)
         + " to get more information about a flow."
     )
 
@@ -1211,6 +1211,8 @@ def flow_run(config, flow_name, org, delete_org, debug, o, skip, no_prompt):
         handle_exception_debug(config, debug, throw_exception=exception)
     except Exception:
         handle_exception_debug(config, debug, no_prompt=no_prompt)
+    finally:
+        config.alert("Flow Complete: {}".format(flow_name))
 
     # Delete the scratch org if --delete-org was set
     if delete_org:
@@ -1221,8 +1223,6 @@ def flow_run(config, flow_name, org, delete_org, debug, o, skip, no_prompt):
                 "Scratch org deletion failed.  Ignoring the error below to complete the flow:"
             )
             click.echo(str(e))
-
-    config.alert("Flow Complete: {}".format(flow_name))
 
 
 flow.add_command(flow_list)
