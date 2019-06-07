@@ -300,6 +300,8 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
                 kind = "metadata"
                 name = name or "Deploy {}".format(dependency["subfolder"])
             task_config = {"options": self.options.copy()}
+            if self.task_config.checks:
+                task_config["checks"] = self.task_config.checks
             task_config["options"]["dependencies"] = [dependency]
             ui_step = {"name": name, "kind": kind, "is_required": True}
             ui_step.update(ui_options.get(i, {}))

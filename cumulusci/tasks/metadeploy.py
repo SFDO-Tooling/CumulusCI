@@ -121,27 +121,27 @@ class Publish(BaseMetaDeployTask):
             product, plan_name, plan_config
         )
 
+        plan_json = {
+            "is_listed": plan_config.get("is_listed", True),
+            "plan_template": plan_template["url"],
+            "post_install_message_additional": plan_config.get(
+                "post_install_message_additional", ""
+            ),
+            "preflight_message_additional": plan_config.get(
+                "preflight_message_additional", ""
+            ),
+            "steps": steps,
+            "tier": plan_config["tier"],
+            "title": plan_config["title"],
+            "version": version["url"],
+            # Use same AllowedList as the product, if any
+            "visible_to": product.get("visible_to"),
+        }
+        if plan_config.get("checks"):
+            plan_json["preflight_checks"] = plan_config["checks"]
+
         # Create Plan
-        plan = self._call_api(
-            "POST",
-            "/plans",
-            json={
-                "is_listed": plan_config.get("is_listed", True),
-                "plan_template": plan_template["url"],
-                "post_install_message_additional": plan_config.get(
-                    "post_install_message_additional", ""
-                ),
-                "preflight_message_additional": plan_config.get(
-                    "preflight_message_additional", ""
-                ),
-                "steps": steps,
-                "tier": plan_config["tier"],
-                "title": plan_config["title"],
-                "version": version["url"],
-                # Use same AllowedList as the product, if any
-                "visible_to": product.get("visible_to"),
-            },
-        )
+        plan = self._call_api("POST", "/plans", json=plan_json)
         self.logger.info("Created Plan {}".format(plan["url"]))
 
     def _freeze_steps(self, project_config, plan_config):

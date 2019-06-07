@@ -94,6 +94,9 @@ class InstallPackageVersion(Deploy):
         options = self.options.copy()
         options["version"] = str(options["version"])
         name = options.pop("name")
+        task_config = {"options": options}
+        if self.task_config.checks:
+            task_config["checks"] = self.task_config.checks
         ui_step = {
             "name": "Install {} {}".format(name, options["version"]),
             "kind": "managed",
@@ -105,7 +108,7 @@ class InstallPackageVersion(Deploy):
                 "path": step.path,
                 "step_num": str(step.step_num),
                 "task_class": self.task_config.class_path,
-                "task_config": {"options": options},
+                "task_config": task_config,
             }
         )
         return [ui_step]

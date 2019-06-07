@@ -235,12 +235,15 @@ class BaseTask(object):
             "is_required": True,
         }
         ui_step.update(self.task_config.config.get("ui_options", {}))
+        task_config = {"options": self.options}
+        if self.task_config.checks:
+            task_config["checks"] = self.task_config.checks
         ui_step.update(
             {
                 "path": step.path,
                 "step_num": str(step.step_num),
                 "task_class": self.task_config.class_path,
-                "task_config": {"options": self.options},
+                "task_config": task_config,
             }
         )
         return [ui_step]

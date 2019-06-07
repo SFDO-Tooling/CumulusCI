@@ -64,6 +64,8 @@ class DeployBundles(Deploy):
                 }
             )
             task_config = {"options": {"dependencies": [dependency]}}
+            if self.task_config.checks:
+                task_config["checks"] = self.task_config.checks
             ui_step = {
                 "name": "Deploy {}".format(subpath),
                 "kind": "metadata",
