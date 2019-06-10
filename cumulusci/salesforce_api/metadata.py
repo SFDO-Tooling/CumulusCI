@@ -62,7 +62,13 @@ class BaseMetadataApiCall(object):
         self.task.logger.info("Pending")
         response = self._get_response()
         if self.status != "Failed":
-            return self._process_response(response)
+            try:
+                return self._process_response(response)
+            except Exception as e:
+                raise MetadataParseError(
+                    "Could not process MDAPI response: {}".format(str(e)),
+                    response=response,
+                )
 
     def _build_endpoint_url(self):
         # Parse org id from id which ends in /ORGID/USERID
