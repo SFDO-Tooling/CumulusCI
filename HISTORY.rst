@@ -2,6 +2,17 @@
 History
 =======
 
+2.5.2 (2019-06-10)
+------------------
+
+Issues fixed:
+
+* When generating package.xml, translate ``___NAMESPACE___`` tokens in filenames into ``%%%NAMESPACE%%%`` tokens in package.xml (#1104).
+* Avoid extraneous output when ``--json`` output was requested (#1103).
+* Display OS notification when a task or flow completes even if it failed.
+* Robot Framework: Added logic to retry the initial page load if it is not loading successfully.
+* Internal API change: Errors while processing a response from the Metadata API are now raised as MetadataParseError.
+
 2.5.1 (2019-05-31)
 ------------------
 
