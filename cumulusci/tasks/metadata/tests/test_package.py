@@ -23,6 +23,7 @@ from cumulusci.tasks.metadata.package import ParserConfigurationError
 from cumulusci.tasks.metadata.package import RecordTypeParser
 from cumulusci.tasks.metadata.package import UpdatePackageXml
 from cumulusci.utils import temporary_dir
+from cumulusci.utils import touch
 
 __location__ = os.path.dirname(os.path.realpath(__file__))
 
@@ -120,8 +121,7 @@ class TestBaseMetadataParser(unittest.TestCase):
                 "Account.object",
                 "Custom__c.object",
             ):
-                with open(filename, "w"):
-                    pass
+                touch(filename)
 
             parser = BaseMetadataParser("TestMDT", path, "object", delete=True)
             parser.parse_item = mock.Mock()
@@ -147,6 +147,13 @@ class TestMetadataFilenameParser(unittest.TestCase):
         parser = MetadataFilenameParser("TestMDT", None, "object", delete=False)
         result = parser._parse_item("Test.object")
         self.assertEqual(["Test"], result)
+
+    def test_parse_item_translates_namespace_tokens(self):
+        with temporary_dir() as path:
+            touch("___NAMESPACE___Foo__c.object")
+            parser = MetadataFilenameParser("TestMDT", path, "object", delete=False)
+            parser.parse_items()
+        self.assertEqual(["%%%NAMESPACE%%%Foo__c"], parser.members)
 
 
 class TestMetadataFolderParser(unittest.TestCase):

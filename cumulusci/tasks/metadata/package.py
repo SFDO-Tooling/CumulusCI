@@ -189,7 +189,10 @@ class BaseMetadataParser(object):
     def parse_item(self, item):
         members = self._parse_item(item)
         if members:
-            self.members.extend(members)
+            for member in members:
+                # Translate filename namespace tokens into in-file namespace tokens
+                member = member.replace("___NAMESPACE___", "%%%NAMESPACE%%%")
+                self.members.append(member)
 
     def _parse_item(self, item):
         "Receives a file or directory name and returns a list of members"
