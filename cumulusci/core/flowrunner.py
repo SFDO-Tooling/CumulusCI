@@ -202,7 +202,7 @@ class TaskRunner(object):
 
         # Resolve ^^task_name.return_value style option syntax
         task_config = self.step.task_config.copy()
-        task_config["options"] = task_config["options"].copy()
+        task_config["options"] = task_config.get("options", {}).copy()
         self.flow.resolve_return_value_options(task_config["options"])
 
         task_config["options"].update(options)
