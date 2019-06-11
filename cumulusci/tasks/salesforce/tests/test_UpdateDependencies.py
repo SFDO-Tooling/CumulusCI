@@ -14,7 +14,7 @@ class TestUpdateDependencies(unittest.TestCase):
     @mock.patch(
         "cumulusci.salesforce_api.metadata.ApiRetrieveInstalledPackages.__call__"
     )
-    def test_run_task(self, ApiRetrieveInstalledPackages):
+    def test_run_task_with_downgrades(self, ApiRetrieveInstalledPackages):
         project_config = create_project_config()
         project_config.get_github_api = mock.Mock()
         project_config.config["project"]["dependencies"] = [
@@ -45,7 +45,11 @@ class TestUpdateDependencies(unittest.TestCase):
                 ],
             },
         ]
-        task = create_task(UpdateDependencies, project_config=project_config)
+        task = create_task(
+            UpdateDependencies,
+            {"allow_newer": False, "allow_uninstalls": True},
+            project_config=project_config,
+        )
         ApiRetrieveInstalledPackages.return_value = {
             "upgradeddep": "1.0",
             "samedep": "1.0",
@@ -115,6 +119,56 @@ class TestUpdateDependencies(unittest.TestCase):
             task.uninstall_queue,
         )
         self.assertEqual(10, task.api_class.call_count)
+
+    @mock.patch(
+        "cumulusci.salesforce_api.metadata.ApiRetrieveInstalledPackages.__call__"
+    )
+    def test_run_task_without_downgrades(self, ApiRetrieveInstalledPackages):
+        project_config = create_project_config()
+        project_config.get_github_api = mock.Mock()
+        project_config.config["project"]["dependencies"] = [
+            {
+                "zip_url": "http://zipurl",
+                "subfolder": "src",
+                "namespace_tokenize": "ns",
+                "namespace_inject": "ns",
+                "namespace_strip": "ns",
+                "dependencies": [
+                    {"namespace": "upgradeddep", "version": "1.1"},
+                    {"namespace": "samedep", "version": "1.0"},
+                    {"namespace": "downgradeddep", "version": "1.0"},
+                    {"namespace": "newdep", "version": "1.0"},
+                    {
+                        "repo_owner": "TestOwner",
+                        "repo_name": "TestRepo",
+                        "subfolder": "subfolder",
+                        "ref": "ref",
+                    },
+                ],
+            },
+            {
+                "namespace": "dependsonupgradedbeta",
+                "version": "1.0",
+                "dependencies": [
+                    {"namespace": "upgradedbeta", "version": "1.0 (Beta 2)"}
+                ],
+            },
+        ]
+        task = create_task(UpdateDependencies, project_config=project_config)
+        ApiRetrieveInstalledPackages.return_value = {
+            "upgradeddep": "1.0",
+            "samedep": "1.0",
+            "downgradeddep": "1.1",
+            "removeddep": "1.0",
+            "upgradedbeta": "1.0 (Beta 1)",
+            "dependsonupgradedbeta": "1.0",
+        }
+        task.api_class = mock.Mock()
+        zf = zipfile.ZipFile(io.BytesIO(), "w")
+        task._download_extract_github = mock.Mock(return_value=zf)
+        task._download_extract_zip = mock.Mock(return_value=zf)
+        with self.assertRaises(TaskOptionsError):
+            task()
 
     def test_run_task__no_dependencies(self):
         task = create_task(UpdateDependencies)
@@ -206,6 +260,8 @@ class TestUpdateDependencies(unittest.TestCase):
                             "include_beta": False,
                             "namespaced_org": False,
                             "purge_on_delete": True,
+                            "allow_newer": True,
+                            "allow_uninstalls": False,
                         }
                     },
                 },
@@ -229,6 +285,8 @@ class TestUpdateDependencies(unittest.TestCase):
                             "include_beta": False,
                             "namespaced_org": False,
                             "purge_on_delete": True,
+                            "allow_newer": True,
+                            "allow_uninstalls": False,
                         }
                     },
                 },
