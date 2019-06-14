@@ -37,6 +37,14 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
         "include_beta": {
             "description": "Install the most recent release, even if beta. Defaults to False."
         },
+        "allow_newer": {
+            "description": "If the org already has a newer release, use it. Defaults to True."
+        },
+        "allow_uninstalls": {
+            "description": "Allow uninstalling a beta release or newer final release "
+            "in order to install the requested version. Defaults to False. "
+            "Warning: Enabling this may destroy data."
+        },
     }
 
     def _init_options(self, kwargs):
@@ -53,6 +61,12 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
         self.options["dependencies"] = (
             self.options.get("dependencies")
             or self.project_config.project__dependencies
+        )
+        self.options["allow_newer"] = process_bool_arg(
+            self.options.get("allow_newer", True)
+        )
+        self.options["allow_uninstalls"] = process_bool_arg(
+            self.options.get("allow_uninstalls", False)
         )
 
     def _run_task(self):
@@ -106,6 +120,14 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
                 # zip_url or repo dependency
                 self.install_queue.append(dependency)
 
+        if self.uninstall_queue and not self.options["allow_uninstalls"]:
+            raise TaskOptionsError(
+                "Updating dependencies would require uninstalling these packages "
+                "but uninstalls are not enabled: {}".format(
+                    ", ".join(dep["namespace"] for dep in self.uninstall_queue)
+                )
+            )
+
     def _process_namespace_dependency(self, dependency, dependency_uninstalled=None):
         dependency_version = str(dependency["version"])
 
@@ -115,16 +137,20 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
         if dependency["namespace"] in self.installed:
             # Some version is installed, check what to do
             installed_version = self.installed[dependency["namespace"]]
-            if dependency_version == installed_version and not dependency_uninstalled:
+            required_version = LooseVersion(dependency_version)
+            installed_version = LooseVersion(installed_version)
+
+            if installed_version > required_version and self.options["allow_newer"]:
+                # Avoid downgrading if allow_newer = True
+                required_version = installed_version
+
+            if required_version == installed_version and not dependency_uninstalled:
                 self.logger.info(
                     "  {}: version {} already installed".format(
                         dependency["namespace"], dependency_version
                     )
                 )
                 return
-
-            required_version = LooseVersion(dependency_version)
-            installed_version = LooseVersion(installed_version)
 
             if "Beta" in installed_version.vstring:
                 # Always uninstall Beta versions if required is different
