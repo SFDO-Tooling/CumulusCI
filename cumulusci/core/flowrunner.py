@@ -60,6 +60,7 @@ except ImportError:  # pragma: no cover
 
 import copy
 import logging
+from collections import defaultdict
 from collections import namedtuple
 from distutils.version import LooseVersion
 from operator import attrgetter
@@ -180,8 +181,6 @@ class FlowCallback(object):
 
 class TaskRunner(object):
     """ TaskRunner encapsulates the job of instantiating and running a task.
-
-    TODO: Abstract out how "step" gets passed in, so that TaskRunner can run a task on the cli, only one step.
     """
 
     def __init__(self, project_config, step, org_config, flow=None):
@@ -194,7 +193,7 @@ class TaskRunner(object):
     def from_flow(cls, flow, step):
         return cls(flow.project_config, step, flow.org_config, flow=flow)
 
-    def run_step(self):
+    def run_step(self, **options):
         """
         Run a step.
 
@@ -203,20 +202,22 @@ class TaskRunner(object):
 
         # Resolve ^^task_name.return_value style option syntax
         task_config = self.step.task_config.copy()
-        task_config["options"] = task_config["options"].copy()
+        task_config["options"] = task_config.get("options", {}).copy()
         self.flow.resolve_return_value_options(task_config["options"])
 
+        task_config["options"].update(options)
+
+        task = self.step.task_class(
+            self.project_config,
+            TaskConfig(task_config),
+            org_config=self.org_config,
+            name=self.step.task_name,
+            stepnum=self.step.step_num,
+            flow=self.flow,
+        )
+        self._log_options(task)
         exc = None
         try:
-            task = self.step.task_class(
-                self.project_config,
-                TaskConfig(task_config),
-                org_config=self.org_config,
-                name=self.step.task_name,
-                stepnum=self.step.step_num,
-                flow=self.flow,
-            )
-            self._log_options(task)
             task()
         except Exception as e:
             self.flow.logger.exception(
@@ -238,9 +239,8 @@ class TaskRunner(object):
             return
         for key, info in task.task_options.items():
             value = task.options.get(key)
-            if value is None:
-                continue
-            task.logger.info("  {}: {}".format(key, value))
+            if value is not None:
+                task.logger.info("  {}: {}".format(key, value))
 
 
 class FlowCoordinator(object):
@@ -275,7 +275,7 @@ class FlowCoordinator(object):
 
     @classmethod
     def from_steps(cls, project_config, steps, name=None, callbacks=None):
-        instance = FlowCoordinator(
+        instance = cls(
             project_config,
             flow_config=FlowConfig({"steps": {}}),
             name=name,
@@ -470,6 +470,11 @@ class FlowCoordinator(object):
             step_ui_overrides.update(step_config.get("ui_options", {}))
             task_config["ui_options"].update(step_ui_overrides)
 
+            # merge checks from task config and flow step
+            if "checks" not in task_config:
+                task_config["checks"] = []
+            task_config["checks"].extend(step_config.get("checks", []))
+
             # merge runtime options
             if name in self.runtime_options:
                 task_config["options"].update(self.runtime_options[name])
@@ -581,3 +586,97 @@ class FlowCoordinator(object):
             if result.path[-len(path) :] == path:
                 return result
         raise NameError("Path not found: {}".format(path))
+
+
+class PreflightFlowCoordinator(FlowCoordinator):
+    """Coordinates running preflight checks instead of the actual flow steps.
+    """
+
+    def run(self, org_config):
+        self.org_config = org_config
+        self.callbacks.pre_flow(self)
+
+        self._init_org()
+        self._rule(fill="-")
+        self.logger.info("Organization:")
+        self.logger.info("  {}: {}".format("Username", org_config.username))
+        self.logger.info("  {}: {}".format("  Org Id", org_config.org_id))
+        self._rule(fill="-", new_line=True)
+
+        self.logger.info("Running preflight checks...")
+        self._rule(new_line=True)
+
+        self.jinja2_context = {
+            "tasks": TaskCache(self),
+            "project_config": self.project_config,
+            "org_config": self.org_config,
+        }
+
+        self.preflight_results = defaultdict(list)
+        try:
+            # flow-level checks
+            for check in self.flow_config.checks or []:
+                result = self.evaluate_check(check)
+                if result:
+                    self.preflight_results[None].append(result)
+
+            # Step-level checks
+            for step in self.steps:
+                for check in step.task_config.get("checks", []):
+                    result = self.evaluate_check(check)
+                    if result:
+                        self.preflight_results[step.path].append(result)
+        finally:
+            self.callbacks.post_flow(self)
+
+    def evaluate_check(self, check):
+        self.logger.info("Evaluating check: {}".format(check["when"]))
+        expr = jinja2_env.compile_expression(check["when"])
+        value = bool(expr(**self.jinja2_context))
+        self.logger.info("Check result: {}".format(value))
+        if value:
+            return {"status": check["action"], "message": check.get("message")}
+
+
+class TaskCache(object):
+    """Provides access to named tasks and caches their results.
+
+    This is intended for use in a jinja2 expression context
+    so that multiple expressions evaluated in the same context
+    can avoid running a task more than once with the same options.
+    """
+
+    def __init__(self, flow):
+        self.flow = flow
+        self.results = {}
+
+    def __getattr__(self, task_name):
+        return CachedTaskRunner(self, task_name)
+
+
+class CachedTaskRunner(object):
+    """Runs a task and caches the result in a TaskCache"""
+
+    def __init__(self, cache, task_name):
+        self.cache = cache
+        self.task_name = task_name
+
+    def __call__(self, **options):
+        cache_key = (self.task_name, tuple(options.items()))
+        if cache_key in self.cache.results:
+            return self.cache.results[cache_key]
+
+        task_config = self.cache.flow.project_config.tasks[self.task_name]
+        task_class = import_global(task_config["class_path"])
+        step = StepSpec(1, self.task_name, task_config, task_class)
+        self.cache.flow.callbacks.pre_task(step)
+        result = TaskRunner(
+            self.cache.flow.project_config,
+            step,
+            self.cache.flow.org_config,
+            self.cache.flow,
+        ).run_step(**options)
+        self.cache.flow.callbacks.post_task(step, result)
+
+        self.cache.results[cache_key] = result
+        return result.return_values

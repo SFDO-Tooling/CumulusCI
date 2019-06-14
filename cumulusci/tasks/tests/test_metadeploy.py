@@ -67,6 +67,7 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
                 "slug": "install",
                 "tier": "primary",
                 "steps": {1: {"flow": "install_prod"}},
+                "checks": [],
             }
         }
         project_config.keychain.set_service(
@@ -169,7 +170,8 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
                             "retry_interval": 5,
                             "retry_interval_add": 30,
                             "version": "1.0",
-                        }
+                        },
+                        "checks": [],
                     },
                 },
                 {
@@ -180,7 +182,8 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
                     "step_num": "1.3.2",
                     "task_class": "cumulusci.tasks.salesforce.UpdateAdminProfile",
                     "task_config": {
-                        "options": {"managed": True, "namespaced_org": False}
+                        "options": {"managed": True, "namespaced_org": False},
+                        "checks": [],
                     },
                 },
             ],

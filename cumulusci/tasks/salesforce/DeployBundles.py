@@ -63,7 +63,10 @@ class DeployBundles(Deploy):
                     "subfolder": subpath,
                 }
             )
-            task_config = {"options": {"dependencies": [dependency]}}
+            task_config = {
+                "options": {"dependencies": [dependency]},
+                "checks": self.task_config.checks or [],
+            }
             ui_step = {
                 "name": "Deploy {}".format(subpath),
                 "kind": "metadata",

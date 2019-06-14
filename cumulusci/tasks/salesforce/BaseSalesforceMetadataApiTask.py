@@ -10,5 +10,8 @@ class BaseSalesforceMetadataApiTask(BaseSalesforceTask):
 
     def _run_task(self):
         api = self._get_api()
+        result = None
         if api:
-            return api()
+            result = api()
+            self.return_values = result
+        return result

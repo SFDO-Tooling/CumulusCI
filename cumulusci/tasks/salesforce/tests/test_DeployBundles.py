@@ -53,7 +53,8 @@ class TestDeployBundles(unittest.TestCase):
                                         "subfolder": "unpackaged/test",
                                     }
                                 ]
-                            }
+                            },
+                            "checks": [],
                         },
                     }
                 ],
