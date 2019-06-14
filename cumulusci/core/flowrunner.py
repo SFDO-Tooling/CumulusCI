@@ -607,7 +607,7 @@ class PreflightFlowCoordinator(FlowCoordinator):
         self._rule(new_line=True)
 
         self.jinja2_context = {
-            "tasks": TaskCache(self, self.project_config, org_config),
+            "tasks": TaskCache(self),
             "project_config": self.project_config,
             "org_config": self.org_config,
         }
@@ -646,10 +646,8 @@ class TaskCache(object):
     can avoid running a task more than once with the same options.
     """
 
-    def __init__(self, flow, project_config, org_config):
+    def __init__(self, flow):
         self.flow = flow
-        self.project_config = project_config
-        self.org_config = org_config
         self.results = {}
 
     def __getattr__(self, task_name):
@@ -668,12 +666,15 @@ class CachedTaskRunner(object):
         if cache_key in self.cache.results:
             return self.cache.results[cache_key]
 
-        task_config = self.cache.project_config.tasks[self.task_name]
+        task_config = self.cache.flow.project_config.tasks[self.task_name]
         task_class = import_global(task_config["class_path"])
         step = StepSpec(1, self.task_name, task_config, task_class)
         self.cache.flow.callbacks.pre_task(step)
         result = TaskRunner(
-            self.cache.project_config, step, self.cache.org_config, self.cache.flow
+            self.cache.flow.project_config,
+            step,
+            self.cache.flow.org_config,
+            self.cache.flow,
         ).run_step(**options)
         self.cache.flow.callbacks.post_task(step, result)
 

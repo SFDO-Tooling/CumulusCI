@@ -282,7 +282,8 @@ class TestUpdateDependencies(unittest.TestCase):
                             "purge_on_delete": True,
                             "allow_newer": True,
                             "allow_uninstalls": False,
-                        }
+                        },
+                        "checks": [],
                     },
                 },
                 {
@@ -307,7 +308,8 @@ class TestUpdateDependencies(unittest.TestCase):
                             "purge_on_delete": True,
                             "allow_newer": True,
                             "allow_uninstalls": False,
-                        }
+                        },
+                        "checks": [],
                     },
                 },
             ],
