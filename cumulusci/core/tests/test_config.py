@@ -874,6 +874,12 @@ class TestBaseTaskFlowConfig(unittest.TestCase):
         coffee = [flow for flow in flows if flow["name"] == "coffee"][0]
         self.assertEqual(coffee["description"], "Coffee Flow")
 
+    def test_suggested_name(self):
+        flows = self.task_flow_config.flows
+        self.assertEqual(len(flows), 2)
+        error_msg = self.task_flow_config.get_suggested_name("bofee", flows)
+        self.assertIn("coffee", error_msg)
+
 
 class TestOrgConfig(unittest.TestCase):
     @mock.patch("cumulusci.core.config.OrgConfig.SalesforceOAuth2")

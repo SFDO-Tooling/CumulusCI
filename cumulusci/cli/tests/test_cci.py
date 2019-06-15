@@ -21,7 +21,6 @@ from cumulusci.core.tasks import BaseTask
 from cumulusci.core.exceptions import OrgNotFound
 from cumulusci.core.exceptions import ScratchOrgException
 from cumulusci.core.exceptions import ServiceNotConfigured
-from cumulusci.core.exceptions import TaskNotFoundError
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.cli import cci
 from cumulusci.cli.config import CliRuntime
@@ -823,7 +822,7 @@ test_task   Test Task""",
         config.get_org.return_value = (None, None)
         config.project_config.tasks__test = None
 
-        with self.assertRaises(TaskNotFoundError):
+        with self.assertRaises(click.UsageError):
             run_click_command(
                 cci.task_run,
                 config=config,

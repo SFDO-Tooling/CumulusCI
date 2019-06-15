@@ -38,6 +38,7 @@ from cumulusci.core.exceptions import CumulusCIUsageError
 from cumulusci.core.exceptions import OrgNotFound
 from cumulusci.core.exceptions import ScratchOrgException
 from cumulusci.core.exceptions import ServiceNotConfigured
+from cumulusci.core.exceptions import FlowNotFoundError
 from cumulusci.core.exceptions import TaskNotFoundError
 from cumulusci.core.utils import import_global
 from cumulusci.cli.config import CliRuntime
@@ -1024,7 +1025,11 @@ def task_doc(config):
 @click.argument("task_name")
 @pass_config(load_keychain=False)
 def task_info(config, task_name):
-    task_config = config.project_config.get_task(task_name)
+    try:
+        task_config = config.project_config.get_task(task_name)
+    except (CumulusCIUsageError, TaskNotFoundError) as e:
+        raise click.UsageError(str(e))
+
     doc = doc_task(task_name, task_config).encode()
     click.echo(rst2ansi(doc))
 
@@ -1066,7 +1071,14 @@ def task_run(config, task_name, org, o, debug, debug_before, debug_after, no_pro
     org, org_config = config.get_org(org, fail_if_missing=False)
     task_config = getattr(config.project_config, "tasks__{}".format(task_name))
     if not task_config:
-        raise TaskNotFoundError("Task not found: {}".format(task_name))
+        raise click.UsageError(
+            "Task not found: {}. Did you mean {}".format(
+                task_name,
+                config.project_config.get_suggested_name(
+                    task_name, config.project_config.tasks
+                ),
+            )
+        )
 
     # Get the class to look up options
     class_path = task_config.get("class_path")
@@ -1104,7 +1116,7 @@ def task_run(config, task_name, org, o, debug, debug_before, debug_after, no_pro
 
             pdb.set_trace()
 
-    except CumulusCIUsageError as e:
+    except (CumulusCIUsageError, TaskNotFoundError) as e:
         # Usage error; report with usage line and no traceback
         exception = click.UsageError(str(e))
         handle_exception_debug(config, debug, throw_exception=exception)
@@ -1150,8 +1162,11 @@ def flow_list(config):
 @click.argument("flow_name")
 @pass_config(load_keychain=False)
 def flow_info(config, flow_name):
-    flow = config.project_config.get_flow(flow_name)
-    render_recursive(flow)
+    try:
+        flow = config.project_config.get_flow(flow_name)
+        render_recursive(flow)
+    except FlowNotFoundError as e:
+        raise click.UsageError(str(e))
 
 
 @click.command(name="run", help="Runs a flow")
@@ -1203,7 +1218,7 @@ def flow_run(config, flow_name, org, delete_org, debug, o, skip, no_prompt):
     try:
         coordinator = config.get_flow(flow_name, options=options)
         coordinator.run(org_config)
-    except CumulusCIUsageError as e:
+    except (CumulusCIUsageError, FlowNotFoundError) as e:
         exception = click.UsageError(str(e))
         handle_exception_debug(config, debug, throw_exception=exception)
     except (CumulusCIFailure, ScratchOrgException) as e:
