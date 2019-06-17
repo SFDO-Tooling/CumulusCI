@@ -3,11 +3,11 @@
 black==19.3b0; python_version > '3'
 bump2version==0.5.10
 coverage==4.5.3
-coveralls==1.8.0
+coveralls==1.8.1
 flake8==3.7.7
 mock==3.0.5
 pre-commit==1.17.0
-pytest==4.6.2
+pytest==4.6.3
 pytest-cov==2.7.1
 responses==0.10.6
 Sphinx==1.8.5  # pyup: <2
