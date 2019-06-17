@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import mock
 import pytest
 from cumulusci.cli.ui import CliTable
@@ -47,41 +48,35 @@ def pretty_output():
 @pytest.fixture
 def plain_output():
     return {
-        "service_list": """+-----------+------------------------------------------------------+------------+
-| Name      | Description                                          | Configured |
-+-----------+------------------------------------------------------+------------+
-| saucelabs | Configure connection for saucelabs tasks.            | False      |
-+-----------+------------------------------------------------------+------------+
-| sentry    | Configure connection to sentry.io for error tracking | False      |
-+-----------+------------------------------------------------------+------------+
+        "service_list": """+-----------------------------------------------------------------------------+
+| Name       Description                                           Configured |
++-----------------------------------------------------------------------------+
+| saucelabs  Configure connection for saucelabs tasks.             False      |
+| sentry     Configure connection to sentry.io for error tracking  False      |
++-----------------------------------------------------------------------------+
 """,
-        "org_list": """+---------+---------+---------+------+---------+---------+-------------------------------+
-| Org     | Default | Scratch | Days | Expired | Config  | Username                      |
-+---------+---------+---------+------+---------+---------+-------------------------------+
-| beta    | None    | True    | 1    | None    | beta    |                               |
-+---------+---------+---------+------+---------+---------+-------------------------------+
-| dev     | True    | True    | 1/7  | False   | dev     | test-h8znvutwnctb@example.com |
-+---------+---------+---------+------+---------+---------+-------------------------------+
-| feature | None    | True    | 1    | None    | feature |                               |
-+---------+---------+---------+------+---------+---------+-------------------------------+
+        "org_list": """+----------------------------------------------------------------------------------+
+| Org      Default  Scratch  Days  Expired  Config   Username                      |
++----------------------------------------------------------------------------------+
+| beta     None     True     1     None     beta                                   |
+| dev      True     True     1/7   False    dev      test-h8znvutwnctb@example.com |
+| feature  None     True     1     None     feature                                |
++----------------------------------------------------------------------------------+
 """,
-        "task_list_util": """+------------+-------------------------------+
-| Task       | Description                   |
-+------------+-------------------------------+
-| command    | Run an arbitrary command      |
-+------------+-------------------------------+
-| log        | Log a line at the info level. |
-+------------+-------------------------------+
-| util_sleep | Sleeps for N seconds          |
-+------------+-------------------------------+
+        "task_list_util": """+-------------------------------------------+
+| Task        Description                   |
++-------------------------------------------+
+| command     Run an arbitrary command      |
+| log         Log a line at the info level. |
+| util_sleep  Sleeps for N seconds          |
++-------------------------------------------+
 """,
-        "task_list_robot": """+--------------+-------------------------------------------------------------------------------------------+
-| Task         | Description                                                                               |
-+--------------+-------------------------------------------------------------------------------------------+
-| robot        | Runs a Robot Framework test from a .robot file                                            |
-+--------------+-------------------------------------------------------------------------------------------+
-| robot_libdoc | Generates html documentation for the Salesorce and CumulusCI libraries and resource files |
-+--------------+-------------------------------------------------------------------------------------------+
+        "task_list_robot": """+---------------------------------------------------------------------------------------------------------+
+| Task          Description                                                                               |
++---------------------------------------------------------------------------------------------------------+
+| robot         Runs a Robot Framework test from a .robot file                                            |
+| robot_libdoc  Generates html documentation for the Salesorce and CumulusCI libraries and resource files |
++---------------------------------------------------------------------------------------------------------+
 """,
     }
 
@@ -101,7 +96,8 @@ def test_table_plain_output(sample_data, plain_output, fixture_key, capsys):
     instance = CliTable(sample_data[fixture_key])
     instance.ascii_table()
     captured = capsys.readouterr()
-    assert plain_output[fixture_key] == captured.out
+    expected = plain_output[fixture_key] + "\n\n"
+    assert expected == captured.out
 
 
 @pytest.mark.parametrize(
@@ -111,13 +107,14 @@ def test_table_plain_echo(sample_data, plain_output, fixture_key, capsys):
     instance = CliTable(sample_data[fixture_key])
     instance.echo(plain=True)
     captured = capsys.readouterr()
-    assert plain_output[fixture_key] == captured.out
+    expected = plain_output[fixture_key] + "\n\n"
+    assert expected == captured.out
 
 
 def test_table_plain_fallback(sample_data, plain_output, capsys):
     with mock.patch("cumulusci.cli.ui.CliTable.pretty_table") as pretty_table:
         pretty_table.side_effect = UnicodeEncodeError(
-            "cp1542", "", 42, 43, "Fake exception"
+            "cp1542", u"", 42, 43, "Fake exception"
         )
         instance = CliTable(sample_data["service_list"])
         instance.echo(plain=False)
@@ -130,6 +127,6 @@ def test_table_stringify_booleans(sample_data):
     data = sample_data["service_list"]
     data[1][2] = True
     instance = CliTable(data)
-    instance.stringify_boolean_cols(2)
+    instance.stringify_boolean_col("Configured")
     assert instance.PICTOGRAM_TRUE in instance.table.table_data[1]
     assert instance.PICTOGRAM_FALSE in instance.table.table_data[2]

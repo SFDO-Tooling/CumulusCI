@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from collections import OrderedDict
 from datetime import date
 import io
@@ -13,6 +14,7 @@ import mock
 import pkg_resources
 import requests
 import responses
+import six
 
 import cumulusci
 from cumulusci.core.config import OrgConfig
@@ -356,6 +358,7 @@ class TestCCI(unittest.TestCase):
         config.is_global_keychain = False
         config.project_config.services = {"test": {"description": "Test Service"}}
         config.keychain.list_services.return_value = ["test"]
+        config.global_config.cli_options__plain_output = None
 
         run_click_command(
             cci.service_list, config=config, plain=False, print_json=False
@@ -364,7 +367,7 @@ class TestCCI(unittest.TestCase):
         table = echo.call_args_list[0][0][0]
         self.assertEqual(
             """\x1b(0l\x1b(BServices\x1b(0qqqqqqqqqqqqqwqqqqqqqqqqqqk\x1b(B\n\x1b(0x\x1b(B Name \x1b(0x\x1b(B Description  \x1b(0x\x1b(B Configured \x1b(0x\x1b(B\n\x1b(0tqqqqqqnqqqqqqqqqqqqqqnqqqqqqqqqqqqu\x1b(B\n\x1b(0x\x1b(B test \x1b(0x\x1b(B Test Service \x1b(0x\x1b(B \x1b[32m✔\x1b[0m          \x1b(0x\x1b(B\n\x1b(0mqqqqqqvqqqqqqqqqqqqqqvqqqqqqqqqqqqj\x1b(B""",
-            str(table),
+            table,
         )
 
     def test_service_connect_list(self):
@@ -464,7 +467,10 @@ class TestCCI(unittest.TestCase):
 
         run_click_command(cci.service_info, config=config, service_name="test")
 
-        echo.assert_called_with("\x1b[1mdescription:\x1b[0m Test Service")
+        table = echo.call_args_list[0][0][0]
+        expected = u"""\u001b(0l\u001b(Btest\u001b(0qqqqqqqqqwqqqqqqqqqqqqqqk\u001b(B\n\u001b(0x\u001b(B Key         \u001b(0x\u001b(B Value        \u001b(0x\u001b(B\n\u001b(0tqqqqqqqqqqqqqnqqqqqqqqqqqqqqu\u001b(B\n\u001b(0x\u001b(B \u001b[1mdescription\u001b[0m \u001b(0x\u001b(B Test Service \u001b(0x\u001b(B\n\u001b(0mqqqqqqqqqqqqqvqqqqqqqqqqqqqqj\u001b(B"""
+
+        self.assertEqual(expected, table)
 
     @mock.patch("click.echo")
     def test_service_info_not_configured(self, echo):
@@ -587,7 +593,9 @@ class TestCCI(unittest.TestCase):
 
         org_config.refresh_oauth_token.assert_called_once()
         self.assertTrue(
-            "".join(out).startswith("\x1b[1mtest:\x1b[0m testOrg expires on ")
+            "".join(out).startswith(
+                "\x1b(0lqqqqqwqqqqqqqk\x1b(B\n\x1b(0x\x1b(B Key \x1b(0x\x1b(B Value \x1b(0x\x1b(B\n\x1b(0mqqqqqvqqqqqqqj\x1b(B\nOrg expires on"
+            )
         )
         config.keychain.set_org.assert_called_once_with(org_config)
 
@@ -618,6 +626,7 @@ class TestCCI(unittest.TestCase):
     @mock.patch("click.echo")
     def test_org_list(self, echo):
         config = mock.Mock()
+        config.global_config.cli_options__plain_output = None
         config.project_config.keychain.list_orgs.return_value = ["test1", "test2"]
         config.project_config.keychain.get_org.side_effect = [
             OrgConfig(
@@ -647,10 +656,12 @@ class TestCCI(unittest.TestCase):
         run_click_command(cci.org_list, config=config, plain=False)
 
         table = echo.call_args_list[0][0][0]
-        print(table)
+        if six.PY2:
+            table = six.text_type(table, "utf-8")
+
         self.assertEqual(
-            """\u001b(0l\u001b(BOrgs\u001b(0qqqwqqqqqqqqqwqqqqqqqqqwqqqqqqwqqqqqqqqqwqqqqqqqqwqqqqqqqqqqqqqqqqqqqk\u001b(B\n\u001b(0x\u001b(B Org   \u001b(0x\u001b(B Default \u001b(0x\u001b(B Scratch \u001b(0x\u001b(B Days \u001b(0x\u001b(B Expired \u001b(0x\u001b(B Config \u001b(0x\u001b(B Username          \u001b(0x\u001b(B\n\u001b(0tqqqqqqqnqqqqqqqqqnqqqqqqqqqnqqqqqqnqqqqqqqqqnqqqqqqqqnqqqqqqqqqqqqqqqqqqqu\u001b(B\n\u001b(0x\u001b(B test1 \u001b(0x\u001b(B \u001b[32m\u2714\u001b[0m       \u001b(0x\u001b(B \u001b[32m\u2714\u001b[0m       \u001b(0x\u001b(B 1/7  \u001b(0x\u001b(B \u001b[31m\u2718\u001b[0m       \u001b(0x\u001b(B dev    \u001b(0x\u001b(B test1@example.com \u001b(0x\u001b(B\n\u001b(0tqqqqqqqnqqqqqqqqqnqqqqqqqqqnqqqqqqnqqqqqqqqqnqqqqqqqqnqqqqqqqqqqqqqqqqqqqu\u001b(B\n\u001b(0x\u001b(B test2 \u001b(0x\u001b(B \u001b[31m\u2718\u001b[0m       \u001b(0x\u001b(B \u001b[31m\u2718\u001b[0m       \u001b(0x\u001b(B      \u001b(0x\u001b(B \u001b[31m\u2718\u001b[0m       \u001b(0x\u001b(B dev    \u001b(0x\u001b(B test2@example.com \u001b(0x\u001b(B\n\u001b(0mqqqqqqqvqqqqqqqqqvqqqqqqqqqvqqqqqqvqqqqqqqqqvqqqqqqqqvqqqqqqqqqqqqqqqqqqqj\u001b(B""",
-            str(table),
+            u"""\u001b(0l\u001b(BScratch Orgs\u001b(0qqqqqwqqqqqqwqqqqqqqqqwqqqqqqqqk\u001b(B\n\u001b(0x\u001b(B Name  \u001b(0x\u001b(B Default \u001b(0x\u001b(B Days \u001b(0x\u001b(B Expired \u001b(0x\u001b(B Config \u001b(0x\u001b(B\n\u001b(0tqqqqqqqnqqqqqqqqqnqqqqqqnqqqqqqqqqnqqqqqqqqu\u001b(B\n\u001b(0x\u001b(B test1 \u001b(0x\u001b(B \u001b[32m\u2714\u001b[0m       \u001b(0x\u001b(B 1/7  \u001b(0x\u001b(B         \u001b(0x\u001b(B dev    \u001b(0x\u001b(B\n\u001b(0mqqqqqqqvqqqqqqqqqvqqqqqqvqqqqqqqqqvqqqqqqqqj\u001b(B""",
+            table,
         )
 
     def test_org_remove(self):
@@ -792,6 +803,7 @@ class TestCCI(unittest.TestCase):
     @mock.patch("click.echo")
     def test_task_list(self, echo):
         config = mock.Mock()
+        config.global_config.cli_options__plain_output = None
         config.project_config.list_tasks.return_value = [
             {"name": "test_task", "description": "Test Task", "group": "Test"}
         ]
@@ -801,7 +813,7 @@ class TestCCI(unittest.TestCase):
         table = echo.call_args_list[0][0][0]
         self.assertEqual(
             """\x1b(0l\x1b(BTest\x1b(0qqqqqqqwqqqqqqqqqqqqqk\x1b(B\n\x1b(0x\x1b(B Task      \x1b(0x\x1b(B Description \x1b(0x\x1b(B\n\x1b(0tqqqqqqqqqqqnqqqqqqqqqqqqqu\x1b(B\n\x1b(0x\x1b(B test_task \x1b(0x\x1b(B Test Task   \x1b(0x\x1b(B\n\x1b(0mqqqqqqqqqqqvqqqqqqqqqqqqqj\x1b(B""",
-            str(table),
+            table,
         )
 
     @mock.patch("cumulusci.cli.cci.doc_task")
@@ -1005,13 +1017,13 @@ class TestCCI(unittest.TestCase):
         config.project_config.list_flows.return_value = [
             {"name": "test_flow", "description": "Test Flow"}
         ]
-
+        config.global_config.cli_options__plain_output = None
         run_click_command(cci.flow_list, config=config, plain=False, print_json=False)
 
         table = echo.call_args_list[0][0][0]
         self.assertEqual(
             """\x1b(0l\x1b(BFlows\x1b(0qqqqqqwqqqqqqqqqqqqqk\x1b(B\n\x1b(0x\x1b(B Name      \x1b(0x\x1b(B Description \x1b(0x\x1b(B\n\x1b(0tqqqqqqqqqqqnqqqqqqqqqqqqqu\x1b(B\n\x1b(0x\x1b(B test_flow \x1b(0x\x1b(B Test Flow   \x1b(0x\x1b(B\n\x1b(0mqqqqqqqqqqqvqqqqqqqqqqqqqj\x1b(B""",
-            str(table),
+            table,
         )
 
     @mock.patch("click.echo")

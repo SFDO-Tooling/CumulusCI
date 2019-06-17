@@ -41,8 +41,8 @@ from cumulusci.core.exceptions import FlowNotFoundError
 from cumulusci.core.utils import import_global
 from cumulusci.cli.config import CliRuntime
 from cumulusci.cli.config import get_installed_version
+from cumulusci.cli.ui import CliTable, CROSSMARK
 from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
-from cumulusci.cli.ui import CliTable
 from cumulusci.utils import doc_task
 from cumulusci.utils import get_cci_upgrade_command
 from cumulusci.oauth.salesforce import CaptureSalesforceOAuth
@@ -263,40 +263,31 @@ def shell():
 # Top Level Groups
 
 
-@click.group(
+@main.group(
     "project", help="Commands for interacting with project repository configurations"
 )
 def project():
     pass
 
 
-@click.group("org", help="Commands for connecting and interacting with Salesforce orgs")
+@main.group("org", help="Commands for connecting and interacting with Salesforce orgs")
 def org():
     pass
 
 
-@click.group("task", help="Commands for finding and running tasks for a project")
+@main.group("task", help="Commands for finding and running tasks for a project")
 def task():
     pass
 
 
-@click.group("flow", help="Commands for finding and running flows for a project")
+@main.group("flow", help="Commands for finding and running flows for a project")
 def flow():
     pass
 
 
-@click.group("service", help="Commands for connecting services to the keychain")
+@main.group("service", help="Commands for connecting services to the keychain")
 def service():
     pass
-
-
-main.add_command(project)
-main.add_command(org)
-main.add_command(task)
-main.add_command(flow)
-main.add_command(version)
-main.add_command(shell)
-main.add_command(service)
 
 
 # Commands for group: project
@@ -311,7 +302,7 @@ def validate_project_name(value):
     return value
 
 
-@click.command(
+@project.command(
     name="init", help="Initialize a new project for use with the cumulusci toolbelt"
 )
 @pass_config(load_project_config=False)
@@ -604,7 +595,7 @@ def project_init(config):
     )
 
 
-@click.command(
+@project.command(
     name="info", help="Display information about the current project's configuration"
 )
 @pass_config(load_keychain=False)
@@ -612,7 +603,7 @@ def project_info(config):
     render_recursive(config.project_config.project)
 
 
-@click.command(
+@project.command(
     name="dependencies",
     help="Displays the current dependencies for the project.  If the dependencies section has references to other github repositories, the repositories are inspected and a static list of dependencies is created",
 )
@@ -623,15 +614,10 @@ def project_dependencies(config):
         click.echo(line)
 
 
-project.add_command(project_init)
-project.add_command(project_info)
-project.add_command(project_dependencies)
-
-
 # Commands for group: service
 
 
-@click.command(name="list", help="List services available for configuration and use")
+@service.command(name="list", help="List services available for configuration and use")
 @click.option("--plain", is_flag=True, help="Print the table using plain ascii.")
 @click.option("--json", "print_json", is_flag=True, help="Print a json string")
 @pass_config(allow_global_keychain=True)
@@ -642,6 +628,7 @@ def service_list(config, plain, print_json):
         else config.global_config.services
     )
     configured_services = config.keychain.list_services()
+    plain = plain or config.global_config.cli_options__plain_output
 
     data = [["Name", "Description", "Configured"]]
     for serv, schema in services.items():
@@ -652,8 +639,14 @@ def service_list(config, plain, print_json):
         click.echo(json.dumps(data[1:]))
         return None
 
-    table = CliTable(data, title="Services", wrap_cols=[1])
-    table.stringify_boolean_cols(2)
+    rows_to_dim = [row_index for row_index, row in enumerate(data) if not row[2]]
+    table = CliTable(
+        data,
+        title="Services",
+        wrap_cols=["Description"],
+        bool_cols=["Configured"],
+        dim_rows=rows_to_dim,
+    )
     table.echo(plain)
 
 
@@ -722,20 +715,29 @@ class ConnectServiceCommand(click.MultiCommand):
         return ret
 
 
-@click.command(
+@service.command(
     cls=ConnectServiceCommand, name="connect", help="Connect a CumulusCI task service"
 )
 def service_connect():
     pass
 
 
-@click.command(name="info", help="Show the details of a connected service")
+@service.command(name="info", help="Show the details of a connected service")
 @click.argument("service_name")
 @pass_config(allow_global_keychain=True)
 def service_info(config, service_name):
     try:
         service_config = config.keychain.get_service(service_name)
-        render_recursive(service_config.config)
+        service_data = [["Key", "Value"]]
+        service_data.extend(
+            [
+                [click.style(k, bold=True), str(v)]
+                for k, v in service_config.config.items()
+            ]
+        )
+        service_table = CliTable(service_data, title=service_name, wrap_cols=["Value"])
+        service_table.table.inner_heading_row_border = False
+        service_table.echo()
     except ServiceNotConfigured:
         click.echo(
             "{0} is not configured for this project.  Use service connect {0} to configure.".format(
@@ -744,15 +746,10 @@ def service_info(config, service_name):
         )
 
 
-service.add_command(service_connect)
-service.add_command(service_list)
-service.add_command(service_info)
-
-
 # Commands for group: org
 
 
-@click.command(
+@org.command(
     name="browser",
     help="Opens a browser window and logs into the org using the stored OAuth credentials",
 )
@@ -768,7 +765,7 @@ def org_browser(config, org_name):
     config.keychain.set_org(org_config)
 
 
-@click.command(
+@org.command(
     name="connect", help="Connects a new org's credentials using OAuth Web Flow"
 )
 @click.argument("org_name")
@@ -822,9 +819,7 @@ def org_connect(config, org_name, sandbox, login_url, default, global_org):
         click.echo("{} is now the default org".format(org_name))
 
 
-@click.command(
-    name="default", help="Sets an org as the default org for tasks and flows"
-)
+@org.command(name="default", help="Sets an org as the default org for tasks and flows")
 @click.argument("org_name")
 @click.option(
     "--unset",
@@ -844,7 +839,7 @@ def org_default(config, org_name, unset):
         click.echo("{} is now the default org".format(org_name))
 
 
-@click.command(name="import", help="Import a scratch org from Salesforce DX")
+@org.command(name="import", help="Import a scratch org from Salesforce DX")
 @click.argument("username_or_alias")
 @click.argument("org_name")
 @pass_config
@@ -860,13 +855,16 @@ def org_import(config, username_or_alias, org_name):
     )
 
 
-@click.command(name="info", help="Display information for a connected org")
+@org.command(name="info", help="Display information for a connected org")
 @click.argument("org_name", required=False)
 @click.option("print_json", "--json", is_flag=True, help="Print as JSON")
 @pass_config
 def org_info(config, org_name, print_json):
-    org_name, org_config = config.get_org(org_name)
-    org_config.refresh_oauth_token(config.keychain)
+    try:
+        org_name, org_config = config.get_org(org_name)
+        org_config.refresh_oauth_token(config.keychain)
+    except OrgNotFound as e:
+        raise click.ClickException(e)
 
     if print_json:
         click.echo(
@@ -879,7 +877,35 @@ def org_info(config, org_name, print_json):
             )
         )
     else:
-        render_recursive(org_config.config)
+        UI_KEYS = [
+            "access_token",
+            "config_file",
+            "config_name",
+            "created",
+            "date_created",
+            "days",
+            "default",
+            "email_address",
+            "instance_url",
+            "is_sandbox",
+            "namespaced",
+            "org_id",
+            "org_type",
+            "password",
+            "scratch",
+            "scratch_org_type",
+            "set_password",
+            "sfdx_alias",
+            "username",
+        ]
+        keys = [key for key in org_config.config.keys() if key in UI_KEYS]
+        keys.sort()
+        table_data = [["Key", "Value"]]
+        table_data.extend(
+            [[click.style(key, bold=True), str(org_config.config[key])] for key in keys]
+        )
+        table = CliTable(table_data, wrap_cols=["Value"])
+        table.echo()
 
         if org_config.scratch and org_config.expires:
             click.echo("Org expires on {:%c}".format(org_config.expires))
@@ -888,50 +914,56 @@ def org_info(config, org_name, print_json):
     config.keychain.set_org(org_config)
 
 
-@click.command(name="list", help="Lists the connected orgs for the current project")
+@org.command(name="list", help="Lists the connected orgs for the current project")
 @click.option("--plain", is_flag=True, help="Print the table using plain ascii.")
 @pass_config
 def org_list(config, plain):
-    data = [["Org", "Default", "Scratch", "Days", "Expired", "Config", "Username"]]
-    for org in config.project_config.keychain.list_orgs():
-        org_config = config.project_config.keychain.get_org(org)
+    plain = plain or config.global_config.cli_options__plain_output
+    header = ["Name", "Default", "Username"]
+    persistent_data = [header]
+    scratch_data = [header[:2] + ["Days", "Expired", "Config"]]
 
-        org_expired = org_config.scratch and org_config.expired
-        config_name = org_config.config_name if org_config.config_name else ""
-        username = org_config.config.get(
-            "username", org_config.userinfo__preferred_username
-        )
-        username = username if username else ""
-        if org_config.days_alive:
-            org_days = (
-                "{}/{}".format(org_config.days_alive, org_config.days)
-                if org_config.scratch
-                else ""
-            )
+    org_configs = {
+        org: config.project_config.keychain.get_org(org)
+        for org in config.project_config.keychain.list_orgs()
+    }
+
+    for org, org_config in org_configs.items():
+        row = [org, org_config.default]
+        if org_config.scratch:
+            org_days = _format_org_days(org_config)
+            row.extend([org_days, org_config.expired, org_config.config_name])
+            scratch_data.append(row)
         else:
-            org_days = org_config.days if org_config.scratch else ""
+            username = org_config.config.get(
+                "username", org_config.userinfo__preferred_username
+            )
+            row.append(username)
+            persistent_data.append(row)
 
-        data.append(
-            [
-                org,
-                org_config.default,
-                org_config.scratch,
-                org_days,
-                org_expired,
-                config_name,
-                username,
-            ]
-        )
+    scratch_table = CliTable(scratch_data, title="Scratch Orgs", bool_cols=["Default"])
+    scratch_table.stringify_boolean_col(col_name="Expired", true_str=CROSSMARK)
+    scratch_table.echo(plain)
 
-    wrap_cols = [-1] if not plain else None
-    table = CliTable(data, title="Orgs", wrap_cols=wrap_cols)
-    table.stringify_boolean_cols(
-        [data[0].index(col) for col in ["Default", "Scratch", "Expired"]]
+    wrap_cols = ["Username"] if not plain else None
+    persistent_table = CliTable(
+        persistent_data,
+        title="Persistent Orgs",
+        wrap_cols=wrap_cols,
+        bool_cols=["Default"],
     )
-    table.echo(plain)
+    persistent_table.echo(plain)
 
 
-@click.command(name="remove", help="Removes an org from the keychain")
+def _format_org_days(org_config):
+    if org_config.days_alive:
+        org_days = "{}/{}".format(org_config.days_alive, org_config.days)
+    else:
+        org_days = org_config.days
+    return org_days
+
+
+@org.command(name="remove", help="Removes an org from the keychain")
 @click.argument("org_name")
 @click.option(
     "--global-org",
@@ -958,7 +990,7 @@ def org_remove(config, org_name, global_org):
     config.keychain.remove_org(org_name, global_org)
 
 
-@click.command(
+@org.command(
     name="scratch", help="Connects a Salesforce DX Scratch Org to the keychain"
 )
 @click.argument("config_name")
@@ -1005,7 +1037,7 @@ def org_scratch(config, config_name, org_name, default, devhub, days, no_passwor
         click.echo("{} is now the default org".format(org_name))
 
 
-@click.command(
+@org.command(
     name="scratch_delete",
     help="Deletes a Salesforce DX Scratch Org leaving the config in the keychain for regeneration",
 )
@@ -1024,7 +1056,7 @@ def org_scratch_delete(config, org_name):
     config.keychain.set_org(org_config)
 
 
-@click.command(
+@org.command(
     name="shell",
     help="Drop into a Python shell with a simple_salesforce connection in `sf`, "
     "as well as the `org_config` and `project_config`.",
@@ -1050,27 +1082,16 @@ def org_shell(config, org_name):
     config.keychain.set_org(org_config)
 
 
-org.add_command(org_browser)
-org.add_command(org_connect)
-org.add_command(org_default)
-org.add_command(org_import)
-org.add_command(org_info)
-org.add_command(org_list)
-org.add_command(org_remove)
-org.add_command(org_scratch)
-org.add_command(org_scratch_delete)
-org.add_command(org_shell)
-
-
 # Commands for group: task
 
 
-@click.command(name="list", help="List available tasks for the current context")
+@task.command(name="list", help="List available tasks for the current context")
 @click.option("--plain", is_flag=True, help="Print the table using plain ascii.")
 @click.option("--json", "print_json", is_flag=True, help="Print a json string")
 @pass_config(load_keychain=False)
 def task_list(config, plain, print_json):
     task_groups = OrderedDict()
+    plain = plain or config.global_config.cli_options__plain_output
 
     for task in config.project_config.list_tasks():
         group = task["group"] or "Other"
@@ -1083,10 +1104,9 @@ def task_list(config, plain, print_json):
         return None
 
     for group, tasks in task_groups.items():
-        title = click.style(group, bold=True, underline=True)
         data = [["Task", "Description"]]
         data.extend(sorted(tasks))
-        table = CliTable(data, group, wrap_cols=[1])
+        table = CliTable(data, group, wrap_cols=["Description"])
         table.echo(plain)
 
     click.echo(
@@ -1096,7 +1116,7 @@ def task_list(config, plain, print_json):
     )
 
 
-@click.command(name="doc", help="Exports RST format documentation for all tasks")
+@task.command(name="doc", help="Exports RST format documentation for all tasks")
 @pass_config(load_keychain=False)
 def task_doc(config):
     config_src = config.global_config
@@ -1113,7 +1133,7 @@ def task_doc(config):
         click.echo("")
 
 
-@click.command(name="info", help="Displays information for a task")
+@task.command(name="info", help="Displays information for a task")
 @click.argument("task_name")
 @pass_config(load_keychain=False)
 def task_info(config, task_name):
@@ -1126,7 +1146,7 @@ def task_info(config, task_name):
     click.echo(rst2ansi(doc))
 
 
-@click.command(name="run", help="Runs a task")
+@task.command(name="run", help="Runs a task")
 @click.argument("task_name")
 @click.option(
     "--org",
@@ -1215,21 +1235,15 @@ def task_run(config, task_name, org, o, debug, debug_before, debug_after, no_pro
         config.alert("Task complete: {}".format(task_name))
 
 
-# Add the task commands to the task group
-task.add_command(task_doc)
-task.add_command(task_info)
-task.add_command(task_list)
-task.add_command(task_run)
-
-
 # Commands for group: flow
 
 
-@click.command(name="list", help="List available flows for the current context")
+@flow.command(name="list", help="List available flows for the current context")
 @click.option("--plain", is_flag=True, help="Print the table using plain ascii.")
 @click.option("--json", "print_json", is_flag=True, help="Print a json string")
 @pass_config(load_keychain=False)
 def flow_list(config, plain, print_json):
+    plain = plain or config.global_config.cli_options__plain_output
     if print_json:
         click.echo(json.dumps(config.project_config.list_flows()))
         return None
@@ -1242,10 +1256,9 @@ def flow_list(config, plain, print_json):
         ]
     )
 
-    table = CliTable(data, title="Flows", wrap_cols=[1])
+    table = CliTable(data, title="Flows", wrap_cols=["Description"])
     table.echo(plain=plain)
 
-    click.echo("")
     click.echo(
         "Use "
         + click.style("cci flow info <flow_name>", bold=True)
@@ -1253,7 +1266,7 @@ def flow_list(config, plain, print_json):
     )
 
 
-@click.command(name="info", help="Displays information for a flow")
+@flow.command(name="info", help="Displays information for a flow")
 @click.argument("flow_name")
 @pass_config(load_keychain=False)
 def flow_info(config, flow_name):
@@ -1265,7 +1278,7 @@ def flow_info(config, flow_name):
         raise click.UsageError(str(e))
 
 
-@click.command(name="run", help="Runs a flow")
+@flow.command(name="run", help="Runs a flow")
 @click.argument("flow_name")
 @click.option(
     "--org",
@@ -1334,8 +1347,3 @@ def flow_run(config, flow_name, org, delete_org, debug, o, skip, no_prompt):
                 "Scratch org deletion failed.  Ignoring the error below to complete the flow:"
             )
             click.echo(str(e))
-
-
-flow.add_command(flow_list)
-flow.add_command(flow_info)
-flow.add_command(flow_run)
