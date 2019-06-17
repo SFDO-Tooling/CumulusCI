@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Format and display CLI output.
 
 Classes:
