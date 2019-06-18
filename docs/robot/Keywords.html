@@ -6,10 +6,10 @@
       crossorigin="anonymous">
     </script>
     <script>
-      function search() {
-          var search_string = $("#search").val().toLowerCase();
+      function filter() {
+          var filter_string = $("#filter").val().toLowerCase();
           $(".kwtable .kwname").each(function() {
-              if ($(this).text().toLowerCase().indexOf(search_string) !== -1) {
+              if ($(this).text().toLowerCase().indexOf(filter_string) !== -1) {
                   $(this).parent().show();
               } else {
                   $(this).parent().hide();
@@ -17,11 +17,11 @@
           })
       }
       $(document).ready(function() {
-          $("#search").on("input", function() {
-              search()
+          $("#filter").on("input", function() {
+              filter()
           })
-          $("#search").keyup(function() {
-              search()
+          $("#filter").keyup(function() {
+              filter()
           })
       });
     </script>
@@ -122,7 +122,7 @@
     <div class="container">
       <div class="header">
         <div class="title">CumulusCI Robot Framework Keywords</div>
-        <div class="search right">search: <input id="search" type="search"></input></div>
+        <div class="filter right">filter: <input id="filter" type="filter"></input></div>
       </div>
 
       
@@ -1086,7 +1086,7 @@ Library  cumulusci.robotframework.CumulusCI  ${ORG}
       
     </div>
     <div class="footer">
-      Generated on Monday June 17, 09:32 PM - cumulusci v2.5.2
+      Generated on Tuesday June 18, 06:12 PM - cumulusci v2.5.2
     </div>
   </body>
 </html>
