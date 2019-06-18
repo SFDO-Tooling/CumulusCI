@@ -40,7 +40,8 @@ body {
     padding: 4px;
 }
 .section {
-    margin-bottom: 10px;
+    margin-bottom: 2em;
+    margin-left: 2em;
 }
 .kwtable {
     box-shadow: 7px 7px 9px #d4d4d4;
@@ -75,4 +76,14 @@ body {
 }
 .library-documentation {
     margin-bottom: 2em;
+    margin-left: 2em;
+}
+
+.pageobject-header {
+    font-size: 1.2em;
+    font-weight: bold;
+}
+
+.object_name, .page_type {
+    padding: 2px 10px ;
 }

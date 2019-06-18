@@ -35,30 +35,39 @@
         <div class="title">{{title}}</div>
         <div class="search right">search: <input id="search" type="search"></input></div>
       </div>
-      {% for library in libraries %}
-      <div class="section" id="library-{{library.name}}">
-        <h1>{{library.src}}</h1>
-        <div class="library-documentation">
-        {{library.doc|robot_html}}
-        </div>
-        <table class="kwtable">
-          <tbody>
-            <tr><th>Keyword</th><th>Arguments</th><th>Documentation</th></tr>
-            {% for keyword in library.keywords %}
-            <tr class="kwrow" id="{{library.src}}.{{keyword.name}}">
-              <td class="kwname">
-                {{keyword.name}}
-              </td>
-              <td class="kwargs">
+
+      {% for kwfile in libraries %}
+      <div class="file" id="file-{{kwfile.path}}">
+        <h1 title='{{kwfile.path}}'>{{kwfile.filename}}</h1>
+        {% for pageobject, library in kwfile.keywords.items() %}
+        <div class="section" pageobject="{{pageobject|join('-')}}">
+          {% if pageobject %}
+          <div class='pageobject-header'>
+            Page Object: <span class='page_type'>{{pageobject[0]}}</span>
+            <span class='object_name'>{{pageobject[1]}}</span>
+          </div>
+          {% endif %}
+          <div class='description'>{{library.doc|robot_html}}</div>
+          <table class="kwtable">
+            <tbody>
+              <tr><th>Keyword</th><th>Arguments</th><th>Documentation</th></tr>
+              {% for keyword in library.keywords %}
+              <tr class="kwrow" id="{{kwfile.filename}}.{{keyword.name}}">
+                <td class="kwname">
+                  {{keyword.name}}
+                </td>
+                <td class="kwargs">
                   {% for arg in keyword.args %}
                   <i>{{arg}}</i>{% if not loop.last %}, {% endif %}
                   {% endfor %}
-              </td>
-              <td class="kwdoc">{{keyword.doc|robot_html}}</td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
+                </td>
+                <td class="kwdoc">{{keyword.doc|robot_html}}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div> {# class="library-whatever" #}
+        {% endfor %}
       </div>
       {% endfor %}
     </div>

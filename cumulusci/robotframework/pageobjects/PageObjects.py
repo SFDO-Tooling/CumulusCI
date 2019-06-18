@@ -1,8 +1,10 @@
-from robot.libraries.BuiltIn import BuiltIn
+from robot.api import logger
+from robot.libraries.BuiltIn import BuiltIn, RobotNotRunningError
 from .baseobjects import BasePage
 import inspect
 import robot.utils
 import os
+import sys
 
 
 class PageObjects(object):
@@ -23,24 +25,43 @@ class PageObjects(object):
     cache = {}
 
     def __init__(self, *args):
-        BuiltIn().log("initializing PageObjects...", "DEBUG")
+        logger.info("initializing PageObjects...", "DEBUG")
         importer = robot.utils.Importer()
 
         for file_path in args:
             try:
                 importer.import_class_or_module_by_path(os.path.abspath(file_path))
-                BuiltIn().log("imported page object {}".format(file_path), "DEBUG")
+                logger.debug("imported page object {}".format(file_path))
             except Exception as e:
-                BuiltIn().log(str(e), "WARN")
+                logger.warn(str(e))
         self.current_page_object = None
 
         # Start with this library at the front of the library search order;
         # that may change as page objects are loaded.
-        BuiltIn().set_library_search_order("PageObjects")
+        try:
+            BuiltIn().set_library_search_order("PageObjects")
+        except RobotNotRunningError:
+            pass
+
+    @classmethod
+    def reset(cls):
+        """Reset the internal data structures used to manage page objects
+
+        This is to aid testing. It probably shouldn't be used at any other time.
+        """
+        for pobj in cls.registry.values():
+            if pobj.__module__ in sys.modules:
+                del sys.modules[pobj.__module__]
+            del pobj
+        cls.registry = {}
+        cls.cache = {}
 
     @property
     def selenium(self):
-        return BuiltIn().get_library_instance("SeleniumLibrary")
+        try:
+            return BuiltIn().get_library_instance("SeleniumLibrary")
+        except RobotNotRunningError:
+            return None
 
     def __getattr__(self, name):
         """Return the keyword from the current page object
@@ -78,7 +99,7 @@ class PageObjects(object):
             keywords = sorted(
                 [method for method in dir(pobj) if self._is_keyword(method, pobj)]
             )
-            BuiltIn().log("{}: {}".format(key, ", ".join(keywords)))
+            logger.info("{}: {}".format(key, ", ".join(keywords)))
 
     def _get_page_object(self, page_type, object_name):
 

@@ -1,5 +1,6 @@
 import os
 import os.path
+import re
 import time
 import jinja2
 import robot.utils
@@ -8,9 +9,12 @@ import cumulusci
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.tasks import BaseTask
 from cumulusci.core.utils import process_list_arg
+from cumulusci.robotframework import PageObjects
 
 from robot.libdocpkg import DocumentationBuilder
 from robot.libraries.BuiltIn import RobotNotRunningError
+from robot.libdocpkg.robotbuilder import LibraryDocBuilder
+from robot.utils import Importer
 
 
 class RobotLibDoc(BaseTask):
@@ -51,23 +55,42 @@ class RobotLibDoc(BaseTask):
                 )
             raise TaskOptionsError(error_message)
 
+    def is_pageobject_library(self, path):
+        """Return True if the file looks like a page object library"""
+        if path.endswith(".py"):
+            with open(path, "r") as f:
+                data = f.read()
+                if re.search(r"@pageobject\(", data):
+                    return True
+        return False
+
     def _run_task(self):
-        libraries = []
-        processed_files = {}
+        kwfiles = []
+        processed_files = []
         for input_file in self.options["path"]:
+            kwfile = KeywordFile(input_file)
             try:
-                libdoc = DocumentationBuilder(input_file).build(input_file)
-                libraries.append(libdoc)
-                processed_files[input_file] = libdoc
+                if self.is_pageobject_library(input_file):
+                    PageObjects.reset()
+                    Importer().import_class_or_module_by_path(
+                        os.path.abspath(input_file)
+                    )
 
-                # robot doesn't save the orginal name but we want to use that
-                # in our generated file
-                libdoc.src = os.path.basename(input_file)
+                    for pobj_name in sorted(PageObjects.registry.keys()):
+                        pobj = PageObjects.registry[pobj_name]
+                        libname = "{}.{}".format(pobj.__module__, pobj.__name__)
+                        libdoc = LibraryDocBuilder().build(libname)
+                        libdoc.src = os.path.basename(input_file)
+                        libdoc.pobj = libname
+                        kwfile.add_keywords(libdoc, pobj_name)
 
-                # if we want to save the official libdoc file, uncomment the following
-                # two lines:
-                # libdoc.save(self.options['output_file'], "HTML")
-                # self.logger.info("created {}".format(output_file))
+                else:
+                    libdoc = DocumentationBuilder(input_file).build(input_file)
+                    kwfile.add_keywords(libdoc)
+
+                # if we get here, we were able to process the file correctly
+                kwfiles.append(kwfile)
+                processed_files.append(input_file)
 
             except RobotNotRunningError as e:
                 # oddly, robot's exception has a traceback embedded in the message, so we'll
@@ -75,7 +98,7 @@ class RobotLibDoc(BaseTask):
                 self.logger.warn("unexpected error: {}".format(str(e).split("\n")[0]))
 
         with open(self.options["output"], "w") as f:
-            html = self._render_html(libraries)
+            html = self._render_html(kwfiles)
             f.write(html)
             self.logger.info("created {}".format(f.name))
 
@@ -104,3 +127,23 @@ class RobotLibDoc(BaseTask):
             stylesheet=stylesheet,
             date=date,
         )
+
+
+class KeywordFile:
+    """Helper class which represents a file and its keywords
+
+    A file may have just a bunch of keywords, or groups of
+    keywords organized as page objects. Each group of keywords
+    is stored in self.keywords, with the page object metadata
+    as a key.
+
+    For normal libraries, the key is an empty tuple.
+    """
+
+    def __init__(self, path):
+        self.filename = os.path.basename(path)
+        self.path = path
+        self.keywords = {}
+
+    def add_keywords(self, libdoc, page_object=tuple()):
+        self.keywords[page_object] = libdoc
