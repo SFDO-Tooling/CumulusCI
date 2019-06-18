@@ -44,7 +44,7 @@ class PageObjects(object):
             pass
 
     @classmethod
-    def reset(cls):
+    def _reset(cls):
         """Reset the internal data structures used to manage page objects
 
         This is to aid testing. It probably shouldn't be used at any other time.

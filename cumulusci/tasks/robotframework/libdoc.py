@@ -71,7 +71,7 @@ class RobotLibDoc(BaseTask):
             kwfile = KeywordFile(input_file)
             try:
                 if self.is_pageobject_library(input_file):
-                    PageObjects.reset()
+                    PageObjects._reset()
                     Importer().import_class_or_module_by_path(
                         os.path.abspath(input_file)
                     )
