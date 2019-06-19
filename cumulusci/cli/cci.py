@@ -6,17 +6,17 @@ from past.builtins import basestring
 from builtins import str
 from collections import defaultdict
 from collections import OrderedDict
+import code
 import functools
 import json
 import operator
 import os
+import shutil
 import sys
-import webbrowser
-import code
 import time
+import webbrowser
 
 from contextlib import contextmanager
-from shutil import copyfile
 
 import click
 import pkg_resources
@@ -540,7 +540,7 @@ def project_init(config):
             "create_contact.robot",
         )
         test_dest = os.path.join(test_folder, "create_contact.robot")
-        copyfile(test_src, test_dest)
+        shutil.copyfile(test_src, test_dest)
 
     # Create pull request template
     if not os.path.isdir(".github"):
@@ -556,6 +556,13 @@ def project_init(config):
 # Issues Closed
 """
             )
+
+    # Create datasets folder
+    if not os.path.isdir("datasets"):
+        os.mkdir("datasets")
+        template = env.get_template("mapping.yml")
+        with open(os.path.join("datasets", "mapping.yml"), "w") as f:
+            f.write(template.render(**context))
 
     click.echo(
         click.style(

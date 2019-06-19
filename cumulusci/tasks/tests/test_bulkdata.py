@@ -409,7 +409,7 @@ class TestLoadDataWithoutSFIds(unittest.TestCase):
 
 
 @mock.patch("cumulusci.tasks.bulkdata.time.sleep", mock.Mock())
-class TestQueryDataWithSFIds(unittest.TestCase):
+class TestExtractDataWithSFIds(unittest.TestCase):
 
     mapping_file = "mapping_v1.yml"
     HOUSEHOLD_QUERY_RESULT = b'"Id"\n1\n'
@@ -438,7 +438,7 @@ class TestQueryDataWithSFIds(unittest.TestCase):
         mapping_path = os.path.join(base_path, self.mapping_file)
 
         task = _make_task(
-            bulkdata.QueryData,
+            bulkdata.ExtractData,
             {
                 "options": {
                     "database_url": "sqlite://",  # in memory
@@ -464,7 +464,7 @@ class TestQueryDataWithSFIds(unittest.TestCase):
         base_path = os.path.dirname(__file__)
         mapping_path = os.path.join(base_path, self.mapping_file)
         task = _make_task(
-            bulkdata.QueryData,
+            bulkdata.ExtractData,
             {
                 "options": {
                     "database_url": "sqlite://",  # in memory
@@ -491,7 +491,7 @@ class TestQueryDataWithSFIds(unittest.TestCase):
         base_path = os.path.dirname(__file__)
         mapping_path = os.path.join(base_path, self.mapping_file)
         task = _make_task(
-            bulkdata.QueryData,
+            bulkdata.ExtractData,
             {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
         )
         task._sql_bulk_insert_from_csv = mock.Mock()
@@ -503,7 +503,7 @@ class TestQueryDataWithSFIds(unittest.TestCase):
         base_path = os.path.dirname(__file__)
         mapping_path = os.path.join(base_path, self.mapping_file)
         task = _make_task(
-            bulkdata.QueryData,
+            bulkdata.ExtractData,
             {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
         )
         task._sql_bulk_insert_from_csv = mock.Mock()
@@ -516,7 +516,7 @@ class TestQueryDataWithSFIds(unittest.TestCase):
         mapping_path = os.path.join(base_path, self.mapping_file)
         db_path = os.path.join(base_path, "testdata.db")
         task = _make_task(
-            bulkdata.QueryData,
+            bulkdata.ExtractData,
             {
                 "options": {
                     "database_url": "sqlite:///{}".format(db_path),
@@ -529,7 +529,7 @@ class TestQueryDataWithSFIds(unittest.TestCase):
 
 
 @mock.patch("cumulusci.tasks.bulkdata.time.sleep", mock.Mock())
-class TestQueryDataWithoutSFIds(unittest.TestCase):
+class TestExtractDataWithoutSFIds(unittest.TestCase):
 
     mapping_file = "mapping_v2.yml"
     HOUSEHOLD_QUERY_RESULT = b'"Id",Name\n"foo","TestHousehold"\n'
@@ -558,7 +558,7 @@ class TestQueryDataWithoutSFIds(unittest.TestCase):
         mapping_path = os.path.join(base_path, self.mapping_file)
 
         task = _make_task(
-            bulkdata.QueryData,
+            bulkdata.ExtractData,
             {
                 "options": {
                     "database_url": "sqlite://",  # in memory

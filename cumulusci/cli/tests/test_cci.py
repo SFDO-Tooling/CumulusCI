@@ -245,6 +245,8 @@ class TestCCI(unittest.TestCase):
                     ".gitignore",
                     "README.md",
                     "cumulusci.yml",
+                    "datasets/",
+                    "datasets/mapping.yml",
                     "orgs/",
                     "orgs/beta.json",
                     "orgs/dev.json",

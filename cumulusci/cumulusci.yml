@@ -342,6 +342,18 @@ tasks:
         options:
             level: info
         group: Utilities
+    extract_dataset:
+        description: Extract a sample dataset using the bulk API.
+        class_path: cumulusci.tasks.bulkdata.ExtractData
+        options:
+            database_url: 'sqlite:///datasets/sample.db'
+            mapping: 'datasets/mapping.yml'
+    load_dataset:
+        description: Load a sample dataset using the bulk API.
+        class_path: cumulusci.tasks.bulkdata.LoadData
+        options:
+            database_url: 'sqlite:///datasets/sample.db'
+            mapping: 'datasets/mapping.yml'
 
 flows:
     apex_docs:
