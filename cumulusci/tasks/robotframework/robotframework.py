@@ -49,7 +49,7 @@ class Robot(BaseSalesforceTask):
 
         self.options["options"]["listener"] = self.default_listeners[:]
         if process_bool_arg(self.options.get("verbose")):
-            self.options["options"]["listener"].append(KeywordLogger)
+            self.register_listener(KeywordLogger)
 
         if process_bool_arg(self.options.get("pdb")):
             patch_statusreporter()
