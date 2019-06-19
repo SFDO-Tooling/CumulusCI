@@ -240,6 +240,10 @@ class TestCCI(unittest.TestCase):
             self.assertEqual(
                 [
                     ".git/",
+                    ".github/",
+                    ".github/PULL_REQUEST_TEMPLATE.md",
+                    ".gitignore",
+                    "README.md",
                     "cumulusci.yml",
                     "orgs/",
                     "orgs/beta.json",

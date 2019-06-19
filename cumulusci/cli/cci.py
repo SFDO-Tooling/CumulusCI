@@ -311,7 +311,7 @@ def project_init(config):
     if os.path.isfile("cumulusci.yml"):
         raise click.ClickException("This project already has a cumulusci.yml file")
 
-    context = {}
+    context = {"cci_version": cumulusci.__version__}
 
     # Prep jinja2 environment for rendering files
     env = Environment(
@@ -460,10 +460,11 @@ def project_init(config):
         test_name_match = None
     context["test_name_match"] = test_name_match
 
-    # Render the cumulusci.yml file
-    template = env.get_template("cumulusci.yml")
-    with open("cumulusci.yml", "w") as f:
-        f.write(template.render(**context))
+    # Render templates
+    for name in (".gitignore", "README.md", "cumulusci.yml"):
+        template = env.get_template(name)
+        with open(name, "w") as f:
+            f.write(template.render(**context))
 
     # Create src directory
     if not os.path.isdir("src"):
@@ -540,6 +541,21 @@ def project_init(config):
         )
         test_dest = os.path.join(test_folder, "create_contact.robot")
         copyfile(test_src, test_dest)
+
+    # Create pull request template
+    if not os.path.isdir(".github"):
+        os.mkdir(".github")
+        with open(os.path.join(".github", "PULL_REQUEST_TEMPLATE.md"), "w") as f:
+            f.write(
+                """
+
+# Critical Changes
+
+# Changes
+
+# Issues Closed
+"""
+            )
 
     click.echo(
         click.style(
