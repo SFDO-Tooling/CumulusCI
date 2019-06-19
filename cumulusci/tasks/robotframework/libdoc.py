@@ -76,7 +76,7 @@ class RobotLibDoc(BaseTask):
                         os.path.abspath(input_file)
                     )
 
-                    for pobj_name in sorted(PageObjects.registry.keys()):
+                    for pobj_name, pobj in sorted(PageObjects.registry.items()):
                         pobj = PageObjects.registry[pobj_name]
                         libname = "{}.{}".format(pobj.__module__, pobj.__name__)
                         libdoc = LibraryDocBuilder().build(libname)
