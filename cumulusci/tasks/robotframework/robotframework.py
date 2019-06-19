@@ -47,11 +47,22 @@ class Robot(BaseSalesforceTask):
         if "options" not in self.options:
             self.options["options"] = {}
 
+        self.options["options"]["listener"] = self.default_listeners[:]
         if process_bool_arg(self.options.get("verbose")):
-            self.options["options"]["listener"] = KeywordLogger
+            self.options["options"]["listener"].append(KeywordLogger)
 
         if process_bool_arg(self.options.get("pdb")):
             patch_statusreporter()
+
+    default_listeners = []
+
+    @classmethod
+    def register_default_listener(cls, listener_class):
+        """Register listeners to run on classes"""
+        cls.default_listeners.append(listener_class)
+
+    def register_listener(self, listener):
+        self.options["options"]["listener"].append(listener)
 
     def _run_task(self):
         self.options["vars"].append("org:{}".format(self.org_config.name))
@@ -103,3 +114,7 @@ def patch_statusreporter():
         return orig_exit(self, exc_type, exc_val, exc_tb)
 
     StatusReporter.__exit__ = __exit__
+
+
+# Temp code to demonstrate that the features above work
+Robot.register_default_listener(KeywordLogger)
