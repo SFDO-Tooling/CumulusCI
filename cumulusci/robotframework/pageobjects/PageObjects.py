@@ -25,7 +25,7 @@ class PageObjects(object):
     cache = {}
 
     def __init__(self, *args):
-        logger.info("initializing PageObjects...", "DEBUG")
+        logger.debug("initializing PageObjects...")
         importer = robot.utils.Importer()
 
         for file_path in args:
