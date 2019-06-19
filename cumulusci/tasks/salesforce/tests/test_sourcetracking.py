@@ -67,11 +67,7 @@ class TestListChanges(unittest.TestCase):
             }
             task._run_task()
             self.assertTrue(
-                os.path.exists(
-                    os.path.join(
-                        ".sfdx", "orgs", "test-cci@example.com", "maxrevision.json"
-                    )
-                )
+                os.path.exists(os.path.join(".cci", "snapshot", "test.json"))
             )
             self.assertIn("CustomObject: Test__c", messages)
 
@@ -80,9 +76,18 @@ class TestListChanges(unittest.TestCase):
             task.tooling = mock.Mock()
             task.logger = mock.Mock()
             task.logger.info = messages.append
-            task.tooling.query_all.return_value = {"totalSize": 0, "records": []}
+            task.tooling.query_all.return_value = {
+                "totalSize": 1,
+                "records": [
+                    {
+                        "MemberType": "CustomObject",
+                        "MemberName": "Test__c",
+                        "RevisionNum": 1,
+                    }
+                ],
+            }
             task._run_task()
-            self.assertIn("Found no changes.", messages)
+            self.assertIn("Ignored 1 changed components in the scratch org.", messages)
 
     def test_filter_changes__include(self):
         foo = {"MemberType": "CustomObject", "MemberName": "foo__c", "RevisionNum": 1}
@@ -102,7 +107,8 @@ class TestRetrieveChanges(unittest.TestCase):
 
     def test_run_task(self):
         with temporary_dir() as path:
-            task = create_task(RetrieveChanges, {"path": path, "include": "Test"})
+            os.mkdir("src")
+            task = create_task(RetrieveChanges, {"path": "src", "include": "Test"})
             task._init_task()
             task.tooling = mock.Mock()
             task.tooling.query_all.return_value = {
@@ -119,7 +125,7 @@ class TestRetrieveChanges(unittest.TestCase):
             zf.writestr("objects/Test__c.object", "<root />")
             task.api_class = mock.Mock(return_value=mock.Mock(return_value=zf))
             task._run_task()
-            with open(os.path.join(path, "package.xml"), "r") as f:
+            with open(os.path.join(path, "src", "package.xml"), "r") as f:
                 package_xml = f.read()
         self.assertIn("<members>Test__c</members>", package_xml)
 
@@ -196,7 +202,19 @@ class TestSnapshotChanges(unittest.TestCase):
             )
             task = create_task(SnapshotChanges, org_config=org_config)
             task._init_task()
-            task.tooling.query = mock.Mock(return_value={"records": [{"num": 1}]})
+            task.tooling.query = mock.Mock(
+                return_value={
+                    "totalSize": 1,
+                    "done": True,
+                    "records": [
+                        {
+                            "MemberType": "CustomObject",
+                            "MemberName": "Object2",
+                            "RevisionNum": 1,
+                        }
+                    ],
+                }
+            )
             task._run_task()
             self.assertTrue(
                 os.path.exists(
