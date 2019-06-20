@@ -50,6 +50,11 @@ tasks:
             path: robot/{{project_name}}/tests
             output: robot/{{project_name}}/doc/{{project_name}}_tests.html
 
+flows:
+    config_qa:
+        1.1:
+            task: deploy_qa_config
+
 {% if package_namespace %}
 orgs:
     scratch:
