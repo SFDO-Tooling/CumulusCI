@@ -27,7 +27,7 @@ class ListChanges(BaseSalesforceApiTask):
         super(ListChanges, self)._init_options(kwargs)
         self.options["include"] = process_list_arg(self.options.get("include", []))
         self.options["exclude"] = process_list_arg(self.options.get("exclude", []))
-        self.options["snapshot"] = process_bool_arg(self.options.get("snapshot", []))
+        self.options["snapshot"] = process_bool_arg(self.options.get("snapshot", False))
         self._exclude = self.options.get("exclude", [])
         self._exclude.extend(self.project_config.project__source__ignore or [])
         self._load_snapshot()
