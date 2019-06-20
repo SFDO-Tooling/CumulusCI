@@ -1,5 +1,5 @@
 from robot.api import logger
-from robot.libraries.BuiltIn import BuiltIn, RobotNotRunningError
+from robot.libraries.BuiltIn import BuiltIn
 from .baseobjects import BasePage
 import inspect
 import robot.utils
@@ -38,10 +38,7 @@ class PageObjects(object):
 
         # Start with this library at the front of the library search order;
         # that may change as page objects are loaded.
-        try:
-            BuiltIn().set_library_search_order("PageObjects")
-        except RobotNotRunningError:
-            pass
+        BuiltIn().set_library_search_order("PageObjects")
 
     @classmethod
     def _reset(cls):
@@ -52,16 +49,12 @@ class PageObjects(object):
         for pobj in cls.registry.values():
             if pobj.__module__ in sys.modules:
                 del sys.modules[pobj.__module__]
-            del pobj
         cls.registry = {}
         cls.cache = {}
 
     @property
     def selenium(self):
-        try:
-            return BuiltIn().get_library_instance("SeleniumLibrary")
-        except RobotNotRunningError:
-            return None
+        return BuiltIn().get_library_instance("SeleniumLibrary")
 
     def __getattr__(self, name):
         """Return the keyword from the current page object
