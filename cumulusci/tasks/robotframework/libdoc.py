@@ -39,9 +39,10 @@ class RobotLibDoc(BaseTask):
         self.options["path"] = process_list_arg(self.options["path"])
 
         bad_files = []
-        for input_file in self.options["path"]:
-            if not os.path.exists(input_file):
-                bad_files.append(input_file)
+        for library_name in self.options["path"]:
+            name, extension = os.path.splitext(library_name)
+            if extension in (".py", ".robot") and not os.path.exists(library_name):
+                bad_files.append(library_name)
 
         if bad_files:
             if len(bad_files) == 1:
@@ -67,30 +68,30 @@ class RobotLibDoc(BaseTask):
     def _run_task(self):
         kwfiles = []
         processed_files = []
-        for input_file in self.options["path"]:
-            kwfile = KeywordFile(input_file)
+        for library_name in self.options["path"]:
+            kwfile = KeywordFile(library_name)
             try:
-                if self.is_pageobject_library(input_file):
+                if self.is_pageobject_library(library_name):
                     PageObjects._reset()
                     Importer().import_class_or_module_by_path(
-                        os.path.abspath(input_file)
+                        os.path.abspath(library_name)
                     )
 
                     for pobj_name, pobj in sorted(PageObjects.registry.items()):
                         pobj = PageObjects.registry[pobj_name]
                         libname = "{}.{}".format(pobj.__module__, pobj.__name__)
                         libdoc = LibraryDocBuilder().build(libname)
-                        libdoc.src = os.path.basename(input_file)
+                        libdoc.src = os.path.basename(library_name)
                         libdoc.pobj = libname
                         kwfile.add_keywords(libdoc, pobj_name)
 
                 else:
-                    libdoc = DocumentationBuilder(input_file).build(input_file)
+                    libdoc = DocumentationBuilder(library_name).build(library_name)
                     kwfile.add_keywords(libdoc)
 
                 # if we get here, we were able to process the file correctly
                 kwfiles.append(kwfile)
-                processed_files.append(input_file)
+                processed_files.append(library_name)
 
             except RobotNotRunningError as e:
                 # oddly, robot's exception has a traceback embedded in the message, so we'll
@@ -141,7 +142,11 @@ class KeywordFile:
     """
 
     def __init__(self, path):
-        self.filename = os.path.basename(path)
+        if os.path.exists(path):
+            self.filename = os.path.basename(path)
+        else:
+            # if it's not a file, it must be a module
+            self.filename = path.split(".")[-1]
         self.path = path
         self.keywords = {}
 
