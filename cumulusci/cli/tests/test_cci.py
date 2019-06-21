@@ -1016,7 +1016,7 @@ test_flow  Test Flow""",
 
     def test_flow_info__not_found(self):
         config = mock.Mock()
-        config.project_config.get_flow.return_value = FlowNotFoundError
+        config.project_config.get_flow.side_effect = FlowNotFoundError
         with self.assertRaises(click.UsageError):
             run_click_command(cci.flow_info, config=config, flow_name="test")
 
