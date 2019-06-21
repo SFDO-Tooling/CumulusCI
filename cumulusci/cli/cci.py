@@ -364,6 +364,17 @@ def project_init(config):
         default=config.global_config.project__package__api_version,
     )
 
+    click.echo()
+    click.echo(
+        "Salesforce metadata can be stored using Metadata API format or DX source format. "
+        "Which do you want to use?"
+    )
+    context["source_format"] = click.prompt(
+        click.style("Source format", bold=True),
+        type=click.Choice(["sfdx", "mdapi"]),
+        default="sfdx",
+    )
+
     # Dependencies
     dependencies = []
     click.echo(click.style("# Extend Project", bold=True, fg="blue"))
@@ -466,9 +477,10 @@ def project_init(config):
         with open(name, "w") as f:
             f.write(template.render(**context))
 
-    # Create src directory
-    if not os.path.isdir("src"):
-        os.mkdir("src")
+    # Create source directory
+    source_path = "force-app" if context["source_format"] == "sfdx" else "src"
+    if not os.path.isdir(source_path):
+        os.mkdir(source_path)
 
     # Create sfdx-project.json
     if not os.path.isfile("sfdx-project.json"):

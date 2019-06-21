@@ -2,6 +2,16 @@
 .cci
 .sfdx
 /src.orig
+{% if source_format == "sfdx" %}
+/src
+{% endif %}
+{% if source_format != "sfdx" %}
+/force-app
+{% endif %}
+
+# Python
+*.pyc
+__pycache__
 
 # Robot Framework results
 robot/{{ project_name }}/results/
@@ -16,3 +26,4 @@ robot/{{ project_name }}/results/
 
 # Misc
 .DS_Store
+

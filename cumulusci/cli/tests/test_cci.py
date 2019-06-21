@@ -224,6 +224,7 @@ class TestCCI(unittest.TestCase):
                 "testpkg",  # package_name
                 "testns",  # package_namespace
                 "43.0",  # api_version
+                "mdapi",  # source_format
                 "3",  # extend other URL
                 "https://github.com/SalesforceFoundation/Cumulus",  # github_url
                 "default",  # git_default_branch
@@ -275,6 +276,7 @@ class TestCCI(unittest.TestCase):
                 "testpkg",  # package_name
                 "testns",  # package_namespace
                 "43.0",  # api_version
+                "mdapi",  # source_format
                 "3",  # extend other URL
                 "https://github.com/SalesforceFoundation/Cumulus",  # github_url
                 "default",  # git_default_branch
