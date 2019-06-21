@@ -1,0 +1,45 @@
+Insert Accounts:
+  sf_object: Account
+  table: accounts
+  fields:
+    Name: Name
+    Description: Description
+    BillingStreet: Street
+    BillingCity: City
+    BillingState: State
+    BillingPostalCode: PostalCode
+    BillingCountry: Country
+    ShippingStreet: Street
+    ShippingCity: City
+    ShippingState: State
+    ShippingPostalCode: PostalCode
+    ShippingCountry: Country
+    Phone: Phone
+    Fax: Fax
+    Website: Website
+    NumberOfEmployees: NumberOfEmployees
+    AccountNumber: AccountNumber
+    Site: Site
+    Type: Type
+Insert Contacts:
+  sf_object: Contact
+  table: contacts
+  fields:
+    Salutation: salutation
+    FirstName: firstname
+    LastName: lastname
+    Email: email
+    Phone: phone
+    MobilePhone: mobile
+    OtherPhone: OtherPhone
+    HomePhone: HomePhone
+    Title: title
+    Birthdate: birthdate
+    MailingStreet: mailingstreet
+    MailingCity: mailingcity
+    MailingState: mailingstate
+    MailingPostalCode: mailingpostalcode
+    MailingCountry: mailingcountry
+  lookups:
+    AccountId:
+      table: accounts

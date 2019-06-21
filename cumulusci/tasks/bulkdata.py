@@ -529,7 +529,7 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
             self.mapping = ordered_yaml_load(f)
 
 
-class QueryData(BulkJobTaskMixin, BaseSalesforceApiTask):
+class ExtractData(BulkJobTaskMixin, BaseSalesforceApiTask):
     task_options = {
         "database_url": {
             "description": "A DATABASE_URL where the query output should be written",
@@ -546,7 +546,7 @@ class QueryData(BulkJobTaskMixin, BaseSalesforceApiTask):
     }
 
     def _init_options(self, kwargs):
-        super(QueryData, self)._init_options(kwargs)
+        super(ExtractData, self)._init_options(kwargs)
         if self.options.get("sql_path"):
             if self.options.get("database_url"):
                 raise TaskOptionsError(
@@ -795,6 +795,10 @@ class QueryData(BulkJobTaskMixin, BaseSalesforceApiTask):
         with open(path, "w") as f:
             for line in self.session.connection().connection.iterdump():
                 f.write(line + "\n")
+
+
+# For backwards-compatibility
+QueryData = ExtractData
 
 
 @contextmanager
