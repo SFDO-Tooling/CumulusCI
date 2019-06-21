@@ -54,12 +54,3 @@ flows:
     config_qa:
         1.1:
             task: deploy_qa_config
-
-{% if package_namespace %}
-orgs:
-    scratch:
-        dev_namespaced:
-            config_file: orgs/dev.json
-            days: 7
-            namespaced: True
-{% endif %}
