@@ -32,13 +32,16 @@
   <body>
     <div class="container">
       <div class="header">
-        <div class="title">{{title}}</div>
+        <h1 class="title">{{title}}</h1>
         <div class="filter right">filter: <input id="filter" type="filter"></input></div>
       </div>
 
       {% for kwfile in libraries %}
       <div class="file" id="file-{{kwfile.path}}">
-        <h1 title='{{kwfile.path}}'>{{kwfile.filename}}</h1>
+        <div class='file-header'>
+          <h2 title='{{kwfile.path}}'>{{kwfile.filename}}</h2>
+          <div class='file-path'>{{kwfile.path}}</div>
+        </div>
         {% for pageobject, library in kwfile.keywords.items() %}
         <div class="section" pageobject="{{pageobject|join('-')}}">
           {% if pageobject %}

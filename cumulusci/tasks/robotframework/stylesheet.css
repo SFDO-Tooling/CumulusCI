@@ -9,15 +9,22 @@ body {
 }
 .header {
     display: flex;
-    border-bottom: 1px solid #aaa;
     align-items: bottom;
 }
-.header .title {
-    font-size: 2em;
+.header h1 {
+    margin-top: 0px;
 }
 .header search {
     align-self: flex-end;
     margin-bottom: 0px;
+}
+.file-header: {
+    margin-bottom: 10em;
+}
+.file-header h2 {
+    padding-bottom: 4px;
+    margin-bottom: 4px;
+    border-bottom: 1px solid #127a9a
 }
 .right {
     margin-left: auto;
@@ -43,6 +50,15 @@ body {
     margin-bottom: 2em;
     margin-left: 2em;
 }
+.description {
+    margin-top: .5em;
+    margin-bottom: 1em;
+    background: #f4f6f9;
+    padding-left: 1em;
+    padding-top: .5em;
+    padding-bottom: 1em;
+}
+
 .kwtable {
     box-shadow: 7px 7px 9px #d4d4d4;
     border-collapse: collapse;
@@ -78,12 +94,10 @@ body {
     margin-bottom: 2em;
     margin-left: 2em;
 }
-
 .pageobject-header {
     font-size: 1.2em;
     font-weight: bold;
 }
-
 .object_name, .page_type {
     padding: 2px 10px ;
 }
