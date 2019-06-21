@@ -991,7 +991,7 @@ fetch_data
 
 **Description:** None
 
-**Class::** cumulusci.tasks.bulkdata.QueryData
+**Class::** cumulusci.tasks.bulkdata.ExtractData
 
 Options:
 ------------------------------------------
