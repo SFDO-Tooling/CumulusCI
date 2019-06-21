@@ -114,7 +114,7 @@ class TestRobotLibDocOutput(unittest.TestCase):
     def test_output_title(self):
         """Verify the document has the expected title"""
         title_element = self.html_body.find(
-            ".//div[@class='header']/div[@class='title']"
+            ".//div[@class='header']/h1[@class='title']"
         )
         assert title_element is not None
         assert title_element.text.strip() == "Keyword Documentation, yo."
@@ -135,7 +135,9 @@ class TestRobotLibDocOutput(unittest.TestCase):
     def test_output_sections(self):
         """Verify that the output has a section for each file"""
         sections = self.html_body.findall(".//div[@class='file']")
-        section_titles = [x.find("h1").text for x in sections]
+        section_titles = [
+            x.find(".//div[@class='file-header']/h2").text for x in sections
+        ]
         assert len(sections) == 2, "expected to find 2 sections, found {}".format(
             len(sections)
         )
