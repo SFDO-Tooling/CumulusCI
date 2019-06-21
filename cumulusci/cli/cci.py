@@ -39,7 +39,6 @@ from cumulusci.core.exceptions import OrgNotFound
 from cumulusci.core.exceptions import ScratchOrgException
 from cumulusci.core.exceptions import ServiceNotConfigured
 from cumulusci.core.exceptions import FlowNotFoundError
-from cumulusci.core.exceptions import TaskNotFoundError
 from cumulusci.core.utils import import_global
 from cumulusci.cli.config import CliRuntime
 from cumulusci.cli.config import get_installed_version
@@ -1073,7 +1072,7 @@ def task_doc(config):
 def task_info(config, task_name):
     try:
         task_config = config.project_config.get_task(task_name)
-    except (CumulusCIUsageError, TaskNotFoundError) as e:
+    except CumulusCIUsageError as e:
         raise click.UsageError(str(e))
 
     doc = doc_task(task_name, task_config).encode()
@@ -1115,25 +1114,19 @@ def task_run(config, task_name, org, o, debug, debug_before, debug_after, no_pro
 
     # Get necessary configs
     org, org_config = config.get_org(org, fail_if_missing=False)
-    task_config = getattr(config.project_config, "tasks__{}".format(task_name))
-    if not task_config:
-        raise click.UsageError(
-            "Task not found: {}. Did you mean {}".format(
-                task_name,
-                config.project_config.get_suggested_name(
-                    task_name, config.project_config.tasks
-                ),
-            )
-        )
+    try:
+        task_config = config.project_config.get_task(task_name)
+    except CumulusCIUsageError as e:
+        raise click.UsageError(str(e))
 
     # Get the class to look up options
-    class_path = task_config.get("class_path")
+    class_path = task_config.class_path
     task_class = import_global(class_path)
 
     # Parse command line options and add to task config
     if o:
-        if "options" not in task_config:
-            task_config["options"] = {}
+        if "options" not in task_config.config:
+            task_config.config["options"] = {}
         for name, value in o:
             # Validate the option
             if name not in task_class.task_options:
@@ -1142,9 +1135,7 @@ def task_run(config, task_name, org, o, debug, debug_before, debug_after, no_pro
                 )
 
             # Override the option in the task config
-            task_config["options"][name] = value
-
-    task_config = TaskConfig(task_config)
+            task_config.config["options"][name] = value
 
     # Create and run the task
     try:
@@ -1162,7 +1153,7 @@ def task_run(config, task_name, org, o, debug, debug_before, debug_after, no_pro
 
             pdb.set_trace()
 
-    except (CumulusCIUsageError, TaskNotFoundError) as e:
+    except CumulusCIUsageError as e:
         # Usage error; report with usage line and no traceback
         exception = click.UsageError(str(e))
         handle_exception_debug(config, debug, throw_exception=exception)
@@ -1264,7 +1255,7 @@ def flow_run(config, flow_name, org, delete_org, debug, o, skip, no_prompt):
     try:
         coordinator = config.get_flow(flow_name, options=options)
         coordinator.run(org_config)
-    except (CumulusCIUsageError, FlowNotFoundError) as e:
+    except CumulusCIUsageError as e:
         exception = click.UsageError(str(e))
         handle_exception_debug(config, debug, throw_exception=exception)
     except (CumulusCIFailure, ScratchOrgException) as e:
