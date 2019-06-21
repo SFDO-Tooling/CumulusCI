@@ -19,6 +19,7 @@ from cumulusci.core.config import OrgConfig
 from cumulusci.core.config import FlowConfig
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.tasks import BaseTask
+from cumulusci.core.exceptions import FlowNotFoundError
 from cumulusci.core.exceptions import OrgNotFound
 from cumulusci.core.exceptions import ScratchOrgException
 from cumulusci.core.exceptions import ServiceNotConfigured
@@ -1012,6 +1013,12 @@ test_flow  Test Flow""",
         run_click_command(cci.flow_info, config=config, flow_name="test")
 
         echo.assert_called_with("\x1b[1mdescription:\x1b[0m Test Flow")
+
+    def test_flow_info__not_found(self):
+        config = mock.Mock()
+        config.project_config.get_flow.return_value = FlowNotFoundError
+        with self.assertRaises(click.UsageError):
+            run_click_command(cci.flow_info, config=config, flow_name="test")
 
     def test_flow_run(self):
         org_config = mock.Mock(scratch=True, config={})
