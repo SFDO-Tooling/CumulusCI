@@ -213,6 +213,10 @@ class TestCCI(unittest.TestCase):
         run_click_command(cci.service_connect)
         # no assertion; this test is for coverage of empty methods
 
+    def test_validate_project_name(self):
+        with self.assertRaises(click.UsageError):
+            cci.validate_project_name("with spaces")
+
     @mock.patch("cumulusci.cli.cci.click")
     def test_project_init(self, click):
         with temporary_dir():
@@ -223,6 +227,7 @@ class TestCCI(unittest.TestCase):
                 "testpkg",  # package_name
                 "testns",  # package_namespace
                 "43.0",  # api_version
+                "mdapi",  # source_format
                 "3",  # extend other URL
                 "https://github.com/SalesforceFoundation/Cumulus",  # github_url
                 "default",  # git_default_branch
@@ -239,7 +244,13 @@ class TestCCI(unittest.TestCase):
             self.assertEqual(
                 [
                     ".git/",
+                    ".github/",
+                    ".github/PULL_REQUEST_TEMPLATE.md",
+                    ".gitignore",
+                    "README.md",
                     "cumulusci.yml",
+                    "datasets/",
+                    "datasets/mapping.yml",
                     "orgs/",
                     "orgs/beta.json",
                     "orgs/dev.json",
@@ -268,6 +279,7 @@ class TestCCI(unittest.TestCase):
                 "testpkg",  # package_name
                 "testns",  # package_namespace
                 "43.0",  # api_version
+                "mdapi",  # source_format
                 "3",  # extend other URL
                 "https://github.com/SalesforceFoundation/Cumulus",  # github_url
                 "default",  # git_default_branch

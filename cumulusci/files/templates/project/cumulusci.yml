@@ -1,3 +1,4 @@
+minimum_cumulusci_version: '{{ cci_version }}'
 project:
     name: {{ project_name }}
     package:
@@ -32,11 +33,14 @@ project:
         prefix_beta: '{{ git.prefix_beta }}'{% endif %}
       {% if git.prefix_release %} 
         prefix_release: '{{ git.prefix_release }}'{% endif %}
-
     {% if test_name_match %}
     test:
         name_match: '{{ test_name_match }}'
     {% endif %}
+    {% if source_format != 'mdapi' %}
+    source_format: {{ source_format }}
+    {% endif %}
+
 tasks:
     robot:
         options:
@@ -49,11 +53,8 @@ tasks:
             path: robot/{{project_name}}/tests
             output: robot/{{project_name}}/doc/{{project_name}}_tests.html
 
-{% if package_namespace %}
-orgs:
-    scratch:
-        dev_namespaced:
-            config_file: orgs/dev.json
-            days: 7
-            namespaced: True
-{% endif %}
+flows:
+    config_qa:
+        1.1:
+            task: deploy_qa_config
+

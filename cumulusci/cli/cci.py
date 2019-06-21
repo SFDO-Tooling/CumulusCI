@@ -6,17 +6,17 @@ from past.builtins import basestring
 from builtins import str
 from collections import defaultdict
 from collections import OrderedDict
+import code
 import functools
 import json
 import operator
 import os
+import shutil
 import sys
-import webbrowser
-import code
 import time
+import webbrowser
 
 from contextlib import contextmanager
-from shutil import copyfile
 
 import click
 import pkg_resources
@@ -301,6 +301,15 @@ main.add_command(service)
 # Commands for group: project
 
 
+def validate_project_name(value):
+    if not re.match(r"^[a-zA-Z0-9_-]+$", value):
+        raise click.UsageError(
+            "Invalid project name. Allowed characters: "
+            "letters, numbers, dash, and underscore"
+        )
+    return value
+
+
 @click.command(
     name="init", help="Initialize a new project for use with the cumulusci toolbelt"
 )
@@ -312,7 +321,7 @@ def project_init(config):
     if os.path.isfile("cumulusci.yml"):
         raise click.ClickException("This project already has a cumulusci.yml file")
 
-    context = {}
+    context = {"cci_version": cumulusci.__version__}
 
     # Prep jinja2 environment for rendering files
     env = Environment(
@@ -336,7 +345,9 @@ def project_init(config):
         "Enter the project name.  The name is usually the same as your repository name.  NOTE: Do not use spaces in the project name!"
     )
     context["project_name"] = click.prompt(
-        click.style("Project Name", bold=True), default=project_name
+        click.style("Project Name", bold=True),
+        default=project_name,
+        value_proc=validate_project_name,
     )
 
     click.echo()
@@ -363,6 +374,17 @@ def project_init(config):
     context["api_version"] = click.prompt(
         click.style("Salesforce API Version", bold=True),
         default=config.global_config.project__package__api_version,
+    )
+
+    click.echo()
+    click.echo(
+        "Salesforce metadata can be stored using Metadata API format or DX source format. "
+        "Which do you want to use?"
+    )
+    context["source_format"] = click.prompt(
+        click.style("Source format", bold=True),
+        type=click.Choice(["sfdx", "mdapi"]),
+        default="sfdx",
     )
 
     # Dependencies
@@ -461,14 +483,16 @@ def project_init(config):
         test_name_match = None
     context["test_name_match"] = test_name_match
 
-    # Render the cumulusci.yml file
-    template = env.get_template("cumulusci.yml")
-    with open("cumulusci.yml", "w") as f:
-        f.write(template.render(**context))
+    # Render templates
+    for name in (".gitignore", "README.md", "cumulusci.yml"):
+        template = env.get_template(name)
+        with open(name, "w") as f:
+            f.write(template.render(**context))
 
-    # Create src directory
-    if not os.path.isdir("src"):
-        os.mkdir("src")
+    # Create source directory
+    source_path = "force-app" if context["source_format"] == "sfdx" else "src"
+    if not os.path.isdir(source_path):
+        os.mkdir(source_path)
 
     # Create sfdx-project.json
     if not os.path.isfile("sfdx-project.json"):
@@ -540,7 +564,29 @@ def project_init(config):
             "create_contact.robot",
         )
         test_dest = os.path.join(test_folder, "create_contact.robot")
-        copyfile(test_src, test_dest)
+        shutil.copyfile(test_src, test_dest)
+
+    # Create pull request template
+    if not os.path.isdir(".github"):
+        os.mkdir(".github")
+        with open(os.path.join(".github", "PULL_REQUEST_TEMPLATE.md"), "w") as f:
+            f.write(
+                """
+
+# Critical Changes
+
+# Changes
+
+# Issues Closed
+"""
+            )
+
+    # Create datasets folder
+    if not os.path.isdir("datasets"):
+        os.mkdir("datasets")
+        template = env.get_template("mapping.yml")
+        with open(os.path.join("datasets", "mapping.yml"), "w") as f:
+            f.write(template.render(**context))
 
     click.echo(
         click.style(

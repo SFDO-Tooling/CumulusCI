@@ -5,7 +5,7 @@ Bulk Data
 The cumulusci.tasks.bulkdata module contains three tasks for dealing with 
 test and sample data.
 
-QueryData
+ExtractData
 ^^^^^^^^^
 Runs the mapping YAML in order, from top to bottom, selecting data from the specified
 sf_object and inserting it into the local table.
@@ -41,9 +41,9 @@ Mapping File
 Salesforce OID as Primary key
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-By default, the QueryData and LoadData task will use an autoincrementing integer field named `id` as the primary key.  In order to make the references using an integer, the QueryData task has to do a multitable update that could impact performance when querying large data sets.
+By default, the ExtractData and LoadData task will use an autoincrementing integer field named `id` as the primary key.  In order to make the references using an integer, the ExtractData task has to do a multitable update that could impact performance when querying large data sets.
 
-If the performance of QueryData on large data sets is more important than the advantages of abstracting references to use integer ID's, you can configure a mapping to use the queried Salesforce OID's as the reference for lookup fields by adding the following to the fields section:
+If the performance of ExtractData on large data sets is more important than the advantages of abstracting references to use integer ID's, you can configure a mapping to use the queried Salesforce OID's as the reference for lookup fields by adding the following to the fields section:
 .. code-block:: yaml    
 
         fields:

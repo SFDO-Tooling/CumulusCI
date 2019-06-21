@@ -62,6 +62,14 @@ tasks:
             namespace_token: '%%%NAMESPACE%%%'
             filename_token: '___NAMESPACE___'
         group: Salesforce Metadata
+    deploy_qa_config:
+        description: Deploys configuration for QA.
+        class_path: cumulusci.tasks.salesforce.Deploy
+        options:
+            namespace_inject: $project_config.project__package__namespace
+            path: unpackaged/config/qa
+            unmanaged: True
+        group: Salesforce Metadata
     dx_convert_to:
         description: Converts src directory metadata format into sfdx format under force-app
         class_path: cumulusci.tasks.sfdx.SFDXBaseTask
@@ -226,6 +234,13 @@ tasks:
         options:
             path: src
         group: Salesforce Metadata
+    retrieve_qa_config:
+        description: Retrieves the current changes in the scratch org into unpackaged/config/qa
+        class_path: cumulusci.tasks.salesforce.sourcetracking.RetrieveChanges
+        options:
+            path: unpackaged/config/qa
+            namespace_tokenize: $project_config.project__package__namespace
+        group: Salesforce Metadata
     snapshot_changes:
         description: Tell SFDX source tracking to ignore previous changes in a scratch org
         class_path: cumulusci.tasks.salesforce.sourcetracking.SnapshotChanges
@@ -328,6 +343,7 @@ tasks:
         description: Uploads a production release of the metadata currently in the packaging org
         class_path: cumulusci.tasks.salesforce.PackageUpload
         options:
+            name: Release
             production: True
         group: Release Management
     util_sleep:
@@ -342,6 +358,18 @@ tasks:
         options:
             level: info
         group: Utilities
+    extract_dataset:
+        description: Extract a sample dataset using the bulk API.
+        class_path: cumulusci.tasks.bulkdata.ExtractData
+        options:
+            database_url: 'sqlite:///datasets/sample.db'
+            mapping: 'datasets/mapping.yml'
+    load_dataset:
+        description: Load a sample dataset using the bulk API.
+        class_path: cumulusci.tasks.bulkdata.LoadData
+        options:
+            database_url: 'sqlite:///datasets/sample.db'
+            mapping: 'datasets/mapping.yml'
 
 flows:
     apex_docs:
@@ -689,8 +717,6 @@ flows:
         steps:
             1:
                 task: upload_production
-                options:
-                    name: $project_config.project__package__name
             2:
                 task: github_release
                 options:
