@@ -2,6 +2,7 @@ from collections import defaultdict
 import json
 import os
 import re
+import time
 import xmltodict
 
 from cumulusci.core.utils import process_bool_arg
@@ -26,34 +27,34 @@ class ListChanges(BaseSalesforceApiTask):
         super(ListChanges, self)._init_options(kwargs)
         self.options["include"] = process_list_arg(self.options.get("include", []))
         self.options["exclude"] = process_list_arg(self.options.get("exclude", []))
-        self.options["snapshot"] = process_bool_arg(self.options.get("snapshot", []))
+        self.options["snapshot"] = process_bool_arg(self.options.get("snapshot", False))
         self._exclude = self.options.get("exclude", [])
         self._exclude.extend(self.project_config.project__source__ignore or [])
-        self._load_maxrevision()
+        self._load_snapshot()
 
     @property
-    def _maxrevision_path(self):
-        parent_dir = os.path.join(".sfdx", "orgs", self.org_config.username)
+    def _snapshot_path(self):
+        parent_dir = os.path.join(".cci", "snapshot")
         if not os.path.isdir(parent_dir):
             os.makedirs(parent_dir)
-        return os.path.join(parent_dir, "maxrevision.json")
+        return os.path.join(parent_dir, "{}.json".format(self.org_config.name))
 
-    def _load_maxrevision(self):
-        self._maxrevision = 0
-        if os.path.isfile(self._maxrevision_path):
-            with open(self._maxrevision_path, "r") as f:
-                self._maxrevision = json.load(f)
+    def _load_snapshot(self):
+        self._snapshot = {}
+        if os.path.isfile(self._snapshot_path):
+            with open(self._snapshot_path, "r") as f:
+                self._snapshot = json.load(f)
 
     def _get_changes(self):
         changes = self.tooling.query_all(
             "SELECT MemberName, MemberType, RevisionNum FROM SourceMember "
-            "WHERE IsNameObsolete=false AND RevisionNum>{}".format(self._maxrevision)
+            "WHERE IsNameObsolete=false"
         )
         return changes
 
-    def _store_maxrevision(self):
-        with open(self._maxrevision_path, "w") as f:
-            json.dump(self._maxrevision, f)
+    def _store_snapshot(self):
+        with open(self._snapshot_path, "w") as f:
+            json.dump(self._snapshot, f)
 
     def _run_task(self):
         changes = self._get_changes()
@@ -81,8 +82,7 @@ class ListChanges(BaseSalesforceApiTask):
 
         if self.options["snapshot"]:
             self.logger.info("Storing snapshot of changes")
-            self._maxrevision = max(r["RevisionNum"] for r in changes["records"])
-            self._store_maxrevision()
+            self._store_snapshot()
 
     def _filter_changes(self, changes):
         filtered = []
@@ -96,7 +96,12 @@ class ListChanges(BaseSalesforceApiTask):
                 continue
             if any(re.search(s, full_name) for s in self._exclude):
                 continue
+            revnum = self._snapshot.get(mdtype, {}).get(name)
+            if revnum and revnum == change["RevisionNum"]:
+                continue
             filtered.append(change)
+
+            self._snapshot.setdefault(mdtype, {})[name] = change["RevisionNum"]
 
         return filtered
 
@@ -191,8 +196,7 @@ class RetrieveChanges(BaseRetrieveMetadata, ListChanges, BaseSalesforceApiTask):
         with open(os.path.join(self.options["path"], "package.xml"), "w") as f:
             f.write(package_xml)
 
-        self._maxrevision = max(r["RevisionNum"] for r in changes["records"])
-        self._store_maxrevision()
+        self._store_snapshot()
 
 
 class SnapshotChanges(ListChanges):
@@ -205,12 +209,39 @@ class SnapshotChanges(ListChanges):
 
     def _run_task(self):
         if self.org_config.scratch:
-            result = self.tooling.query("SELECT MAX(RevisionNum) num FROM SourceMember")
-            self._maxrevision = result["records"][0]["num"]
-            self.logger.info(
-                "Setting source tracking max revision to {}".format(self._maxrevision)
-            )
-            self._store_maxrevision()
+            self._load_snapshot()
+
+            changes = self._get_changes()
+            if not changes["records"]:
+                # Try again if source tracking hasn't updated
+                time.sleep(5)
+                changes = self._get_changes()
+
+            if changes["records"]:
+                for change in changes["records"]:
+                    mdtype = change["MemberType"]
+                    name = change["MemberName"]
+                    self._snapshot.setdefault(mdtype, {})[name] = change["RevisionNum"]
+                self._store_snapshot()
+
+                maxrevision = max(
+                    change["RevisionNum"] for change in changes["records"]
+                )
+                self.logger.info(
+                    "Setting source tracking max revision to {}".format(maxrevision)
+                )
+                self._store_maxrevision(maxrevision)
+
+    def _store_maxrevision(self, value):
+        with open(self._maxrevision_path, "w") as f:
+            json.dump(value, f)
+
+    @property
+    def _maxrevision_path(self):
+        parent_dir = os.path.join(".sfdx", "orgs", self.org_config.username)
+        if not os.path.isdir(parent_dir):
+            os.makedirs(parent_dir)
+        return os.path.join(parent_dir, "maxrevision.json")
 
     def freeze(self, step):
         return []
