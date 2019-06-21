@@ -300,6 +300,15 @@ main.add_command(service)
 # Commands for group: project
 
 
+def validate_project_name(value):
+    if not re.match(r"^[a-zA-Z0-9_-]+$", value):
+        raise click.UsageError(
+            "Invalid project name. Allowed characters: "
+            "letters, numbers, dash, and underscore"
+        )
+    return value
+
+
 @click.command(
     name="init", help="Initialize a new project for use with the cumulusci toolbelt"
 )
@@ -335,7 +344,9 @@ def project_init(config):
         "Enter the project name.  The name is usually the same as your repository name.  NOTE: Do not use spaces in the project name!"
     )
     context["project_name"] = click.prompt(
-        click.style("Project Name", bold=True), default=project_name
+        click.style("Project Name", bold=True),
+        default=project_name,
+        value_proc=validate_project_name,
     )
 
     click.echo()

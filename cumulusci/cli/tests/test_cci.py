@@ -214,6 +214,10 @@ class TestCCI(unittest.TestCase):
         run_click_command(cci.service_connect)
         # no assertion; this test is for coverage of empty methods
 
+    def test_validate_project_name(self):
+        with self.assertRaises(click.UsageError):
+            cci.validate_project_name("with spaces")
+
     @mock.patch("cumulusci.cli.cci.click")
     def test_project_init(self, click):
         with temporary_dir():

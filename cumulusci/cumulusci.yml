@@ -343,6 +343,7 @@ tasks:
         description: Uploads a production release of the metadata currently in the packaging org
         class_path: cumulusci.tasks.salesforce.PackageUpload
         options:
+            name: Release
             production: True
         group: Release Management
     util_sleep:
@@ -716,8 +717,6 @@ flows:
         steps:
             1:
                 task: upload_production
-                options:
-                    name: $project_config.project__package__name
             2:
                 task: github_release
                 options:
