@@ -17,7 +17,9 @@ import responses
 import cumulusci
 from cumulusci.core.config import OrgConfig
 from cumulusci.core.config import FlowConfig
+from cumulusci.core.config import TaskConfig
 from cumulusci.core.tasks import BaseTask
+from cumulusci.core.exceptions import FlowNotFoundError
 from cumulusci.core.exceptions import OrgNotFound
 from cumulusci.core.exceptions import ScratchOrgException
 from cumulusci.core.exceptions import ServiceNotConfigured
@@ -808,12 +810,18 @@ test_task   Test Task""",
         doc_task.assert_called_once()
         rst2ansi.assert_called_once()
 
+    def test_task_info__not_found(self):
+        config = mock.Mock()
+        config.project_config.get_task.side_effect = TaskNotFoundError
+        with self.assertRaises(click.UsageError):
+            run_click_command(cci.task_info, config=config, task_name="test")
+
     def test_task_run(self):
         config = mock.Mock()
         config.get_org.return_value = (None, None)
-        config.project_config.tasks__test = {
-            "class_path": "cumulusci.cli.tests.test_cci.DummyTask"
-        }
+        config.project_config.get_task.return_value = TaskConfig(
+            {"class_path": "cumulusci.cli.tests.test_cci.DummyTask"}
+        )
         DummyTask._run_task = mock.Mock()
 
         run_click_command(
@@ -833,9 +841,9 @@ test_task   Test Task""",
     def test_task_run_not_found(self):
         config = mock.Mock()
         config.get_org.return_value = (None, None)
-        config.project_config.tasks__test = None
+        config.project_config.get_task.side_effect = TaskNotFoundError
 
-        with self.assertRaises(TaskNotFoundError):
+        with self.assertRaises(click.UsageError):
             run_click_command(
                 cci.task_run,
                 config=config,
@@ -851,9 +859,9 @@ test_task   Test Task""",
     def test_task_run_invalid_option(self):
         config = mock.Mock()
         config.get_org.return_value = (None, None)
-        config.project_config.tasks__test = {
-            "class_path": "cumulusci.cli.tests.test_cci.DummyTask"
-        }
+        config.project_config.get_task.return_value = TaskConfig(
+            {"class_path": "cumulusci.cli.tests.test_cci.DummyTask"}
+        )
 
         with self.assertRaises(click.UsageError):
             run_click_command(
@@ -872,9 +880,9 @@ test_task   Test Task""",
     def test_task_run_debug_before(self, set_trace):
         config = mock.Mock()
         config.get_org.return_value = (None, None)
-        config.project_config.tasks__test = {
-            "class_path": "cumulusci.cli.tests.test_cci.DummyTask"
-        }
+        config.project_config.get_task.return_value = TaskConfig(
+            {"class_path": "cumulusci.cli.tests.test_cci.DummyTask"}
+        )
         set_trace.side_effect = SetTrace
 
         with self.assertRaises(SetTrace):
@@ -894,9 +902,9 @@ test_task   Test Task""",
     def test_task_run_debug_after(self, set_trace):
         config = mock.Mock()
         config.get_org.return_value = (None, None)
-        config.project_config.tasks__test = {
-            "class_path": "cumulusci.cli.tests.test_cci.DummyTask"
-        }
+        config.project_config.get_task.return_value = TaskConfig(
+            {"class_path": "cumulusci.cli.tests.test_cci.DummyTask"}
+        )
         set_trace.side_effect = SetTrace
 
         with self.assertRaises(SetTrace):
@@ -915,9 +923,9 @@ test_task   Test Task""",
     def test_task_run_usage_error(self):
         config = mock.Mock()
         config.get_org.return_value = (None, None)
-        config.project_config.tasks__test = {
-            "class_path": "cumulusci.cli.tests.test_cci.DummyTask"
-        }
+        config.project_config.get_task.return_value = TaskConfig(
+            {"class_path": "cumulusci.cli.tests.test_cci.DummyTask"}
+        )
         DummyTask._run_task.side_effect = TaskOptionsError
 
         with self.assertRaises(click.UsageError):
@@ -936,9 +944,9 @@ test_task   Test Task""",
     def test_task_run_expected_failure(self):
         config = mock.Mock()
         config.get_org.return_value = (None, None)
-        config.project_config.tasks__test = {
-            "class_path": "cumulusci.cli.tests.test_cci.DummyTask"
-        }
+        config.project_config.get_task.return_value = TaskConfig(
+            {"class_path": "cumulusci.cli.tests.test_cci.DummyTask"}
+        )
         DummyTask._run_task.side_effect = ScratchOrgException
 
         with self.assertRaises(click.ClickException):
@@ -958,9 +966,9 @@ test_task   Test Task""",
     def test_task_run_unexpected_exception(self, handle_sentry_event):
         config = mock.Mock()
         config.get_org.return_value = (None, None)
-        config.project_config.tasks__test = {
-            "class_path": "cumulusci.cli.tests.test_cci.DummyTask"
-        }
+        config.project_config.get_task.return_value = TaskConfig(
+            {"class_path": "cumulusci.cli.tests.test_cci.DummyTask"}
+        )
         DummyTask._run_task.side_effect = Exception
 
         with self.assertRaises(Exception):
@@ -1005,6 +1013,12 @@ test_flow  Test Flow""",
         run_click_command(cci.flow_info, config=config, flow_name="test")
 
         echo.assert_called_with("\x1b[1mdescription:\x1b[0m Test Flow")
+
+    def test_flow_info__not_found(self):
+        config = mock.Mock()
+        config.project_config.get_flow.side_effect = FlowNotFoundError
+        with self.assertRaises(click.UsageError):
+            run_click_command(cci.flow_info, config=config, flow_name="test")
 
     def test_flow_run(self):
         org_config = mock.Mock(scratch=True, config={})
