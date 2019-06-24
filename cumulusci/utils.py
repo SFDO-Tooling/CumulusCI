@@ -545,6 +545,8 @@ def get_git_config(config_key):
         shell=True,
     )
     p.run()
-    config_value = io.TextIOWrapper(p.stdout).read().strip()
+    config_value = (
+        io.TextIOWrapper(p.stdout, encoding=sys.stdout.encoding).read().strip()
+    )
 
     return config_value if config_value and not p.returncode else None

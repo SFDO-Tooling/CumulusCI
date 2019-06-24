@@ -33,6 +33,7 @@ Issues fixed:
 * Colors in terminal output are now displayed correctly in Windows. (#813)
 * ``cci`` no longer prints tracebacks when a flow or task is not found.
   Additionally, it will suggest a name if a close enough match can be found. (#960)
+* Fixed UnicodeDecodeError when reading output from subprocesses if the console encoding is different from Python's preferred file encoding.
 * Fixes related to source tracking:
 
   * Track the max revision retrieved for each component instead of the overall max revision.

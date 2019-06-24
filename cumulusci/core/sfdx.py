@@ -1,5 +1,7 @@
+import io
 import logging
 import sarge
+import sys
 
 logger = logging.getLogger(__name__)
 
@@ -23,4 +25,6 @@ def sfdx(command, username=None, log_note=None):
         shell=True,
     )
     p.run()
+    p.stdout_text = io.TextIOWrapper(p.stdout, encoding=sys.stdout.encoding)
+    p.stderr_text = io.TextIOWrapper(p.stderr, encoding=sys.stdout.encoding)
     return p
