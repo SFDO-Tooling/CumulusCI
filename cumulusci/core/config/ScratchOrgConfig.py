@@ -1,6 +1,5 @@
 from __future__ import unicode_literals
 import datetime
-import io
 import json
 import os
 import re
@@ -41,8 +40,8 @@ class ScratchOrgConfig(OrgConfig):
         p = sfdx("force:org:display --json", self.username)
 
         org_info = None
-        stderr_list = [line.strip() for line in io.TextIOWrapper(p.stderr)]
-        stdout_list = [line.strip() for line in io.TextIOWrapper(p.stdout)]
+        stderr_list = [line.strip() for line in p.stderr_text]
+        stdout_list = [line.strip() for line in p.stdout_text]
 
         if p.returncode:
             self.logger.error("Return code: {}".format(p.returncode))
@@ -197,8 +196,8 @@ class ScratchOrgConfig(OrgConfig):
         )
         p = sfdx(command, username=None, log_note="Creating scratch org")
 
-        stderr = [line.strip() for line in io.TextIOWrapper(p.stderr)]
-        stdout = [line.strip() for line in io.TextIOWrapper(p.stdout)]
+        stderr = [line.strip() for line in p.stderr_text]
+        stdout = [line.strip() for line in p.stdout_text]
 
         if p.returncode:
             message = "{}: \n{}\n{}".format(
@@ -239,8 +238,8 @@ class ScratchOrgConfig(OrgConfig):
             log_note="Generating scratch org user password",
         )
 
-        stderr = io.TextIOWrapper(p.stderr).readlines()
-        stdout = io.TextIOWrapper(p.stdout).readlines()
+        stderr = p.stderr_text.readlines()
+        stdout = p.stdout_text.readlines()
 
         if p.returncode:
             self.config["password_failed"] = True
@@ -266,7 +265,7 @@ class ScratchOrgConfig(OrgConfig):
         p = sfdx("force:org:delete -p", self.username, "Deleting scratch org")
 
         stdout = []
-        for line in io.TextIOWrapper(p.stdout):
+        for line in p.stdout_text:
             stdout.append(line)
             if line.startswith("An error occurred deleting this org"):
                 self.logger.error(line)
@@ -287,7 +286,7 @@ class ScratchOrgConfig(OrgConfig):
         # access_token
         p = sfdx("force:org:open -r", self.username, log_note="Refreshing OAuth token")
 
-        stdout_list = [line.strip() for line in io.TextIOWrapper(p.stdout)]
+        stdout_list = [line.strip() for line in p.stdout_text]
 
         if p.returncode:
             self.logger.error("Return code: {}".format(p.returncode))
