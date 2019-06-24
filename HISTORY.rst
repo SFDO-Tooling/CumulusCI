@@ -2,6 +2,44 @@
 History
 =======
 
+2.5.3 (2019-06-24)
+------------------
+
+Breaking changes:
+
+* Added two new options to the UpdateDependencies task:
+
+  * ``allow_newer``: If the org already has a newer release, use it. Defaults to True.
+  * ``allow_uninstalls``: Allow uninstalling a beta release or newer final release if needed in order to install the requested version. Defaults to False.
+
+  These defaults are a change from prior behavior since uninstalling packages is not commonly needed when working with scratch orgs, and it is potentially destructive.
+
+New features:
+
+* Added support for defining and evaluating preflight checks for MetaDeploy plans.
+* The tasks for bulk data extract and load are now configured by default as ``extract_data`` and ``load_data``.
+* Updated the project template created by ``cci project init``:
+
+  * Added ``.gitignore``, ``README.md``, and a template for GitHub pull requests
+  * Added an option to store metadata in DX source format
+  * Added a sample ``mapping.yml`` for the bulk data tasks
+  * Specify the currently installed CumulusCI version as the project's ``minimum_cumulusci_version``
+  * Check to make sure the project name only contains supported characters
+
+* The ``robot_libdoc`` task can now generate documentation for Robot Framework page objects.
+
+Issues fixed:
+
+* Colors in terminal output are now displayed correctly in Windows. (#813)
+* ``cci`` no longer prints tracebacks when a flow or task is not found.
+  Additionally, it will suggest a name if a close enough match can be found. (#960)
+* Fixes related to source tracking:
+
+  * Track the max revision retrieved for each component instead of the overall max revision.
+    This way components can be retrieved in stages into different paths.
+  * If ``snapshot_changes`` doesn't find any changes, wait 5 seconds and try again.
+    There can be a delay after a deployment before source tracking is updated.
+
 2.5.2 (2019-06-10)
 ------------------
 
