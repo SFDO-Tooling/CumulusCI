@@ -4,6 +4,7 @@ import io
 import json
 import os
 import re
+import sys
 
 import sarge
 from simple_salesforce import Salesforce
@@ -41,8 +42,8 @@ class ScratchOrgConfig(OrgConfig):
         p = sfdx("force:org:display --json", self.username)
 
         org_info = None
-        stderr_list = [line.strip() for line in io.TextIOWrapper(p.stderr, encoding='utf8')]
-        stdout_list = [line.strip() for line in io.TextIOWrapper(p.stdout, encoding='utf8')]
+        stderr_list = [line.strip() for line in io.TextIOWrapper(p.stderr, encoding=sys.stdout.encoding)]
+        stdout_list = [line.strip() for line in io.TextIOWrapper(p.stdout, encoding=sys.stdout.encoding)]
 
         if p.returncode:
             self.logger.error("Return code: {}".format(p.returncode))
