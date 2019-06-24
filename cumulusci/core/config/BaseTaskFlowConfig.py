@@ -1,4 +1,5 @@
 from __future__ import unicode_literals
+from difflib import get_close_matches
 
 from cumulusci.core.config import BaseConfig
 from cumulusci.core.config import FlowConfig
@@ -33,7 +34,9 @@ class BaseTaskFlowConfig(BaseConfig):
         """ Returns a TaskConfig """
         config = getattr(self, "tasks__{}".format(name))
         if not config:
-            raise TaskNotFoundError("Task not found: {}".format(name))
+            error_msg = "Task not found: {}".format(name)
+            suggestion = self.get_suggested_name(name, self.tasks)
+            raise TaskNotFoundError(error_msg + suggestion)
         return TaskConfig(config)
 
     def list_flows(self):
@@ -44,5 +47,17 @@ class BaseTaskFlowConfig(BaseConfig):
         """ Returns a FlowConfig """
         config = getattr(self, "flows__{}".format(name))
         if not config:
-            raise FlowNotFoundError("Flow not found: {}".format(name))
+            error_msg = "Flow not found: {}".format(name)
+            suggestion = self.get_suggested_name(name, self.flows)
+            raise FlowNotFoundError(error_msg + suggestion)
         return FlowConfig(config)
+
+    def get_suggested_name(self, name, steps):
+        """
+        Given a name that cannot be resolved and a list of tasks/flow dicts, returns the nearest match.
+        """
+        match_list = get_close_matches(name, steps.keys(), n=1)
+        if match_list:
+            return '. Did you mean "{}"?'.format(match_list[0])
+        else:
+            return ""

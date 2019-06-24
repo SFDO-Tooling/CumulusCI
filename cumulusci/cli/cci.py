@@ -38,7 +38,7 @@ from cumulusci.core.exceptions import CumulusCIUsageError
 from cumulusci.core.exceptions import OrgNotFound
 from cumulusci.core.exceptions import ScratchOrgException
 from cumulusci.core.exceptions import ServiceNotConfigured
-from cumulusci.core.exceptions import TaskNotFoundError
+from cumulusci.core.exceptions import FlowNotFoundError
 from cumulusci.core.utils import import_global
 from cumulusci.cli.config import CliRuntime
 from cumulusci.cli.config import get_installed_version
@@ -1070,7 +1070,11 @@ def task_doc(config):
 @click.argument("task_name")
 @pass_config(load_keychain=False)
 def task_info(config, task_name):
-    task_config = config.project_config.get_task(task_name)
+    try:
+        task_config = config.project_config.get_task(task_name)
+    except CumulusCIUsageError as e:
+        raise click.UsageError(str(e))
+
     doc = doc_task(task_name, task_config).encode()
     click.echo(rst2ansi(doc))
 
@@ -1110,18 +1114,19 @@ def task_run(config, task_name, org, o, debug, debug_before, debug_after, no_pro
 
     # Get necessary configs
     org, org_config = config.get_org(org, fail_if_missing=False)
-    task_config = getattr(config.project_config, "tasks__{}".format(task_name))
-    if not task_config:
-        raise TaskNotFoundError("Task not found: {}".format(task_name))
+    try:
+        task_config = config.project_config.get_task(task_name)
+    except CumulusCIUsageError as e:
+        raise click.UsageError(str(e))
 
     # Get the class to look up options
-    class_path = task_config.get("class_path")
+    class_path = task_config.class_path
     task_class = import_global(class_path)
 
     # Parse command line options and add to task config
     if o:
-        if "options" not in task_config:
-            task_config["options"] = {}
+        if "options" not in task_config.config:
+            task_config.config["options"] = {}
         for name, value in o:
             # Validate the option
             if name not in task_class.task_options:
@@ -1130,9 +1135,7 @@ def task_run(config, task_name, org, o, debug, debug_before, debug_after, no_pro
                 )
 
             # Override the option in the task config
-            task_config["options"][name] = value
-
-    task_config = TaskConfig(task_config)
+            task_config.config["options"][name] = value
 
     # Create and run the task
     try:
@@ -1196,8 +1199,11 @@ def flow_list(config):
 @click.argument("flow_name")
 @pass_config(load_keychain=False)
 def flow_info(config, flow_name):
-    flow = config.project_config.get_flow(flow_name)
-    render_recursive(flow)
+    try:
+        flow = config.project_config.get_flow(flow_name)
+        render_recursive(flow)
+    except FlowNotFoundError as e:
+        raise click.UsageError(str(e))
 
 
 @click.command(name="run", help="Runs a flow")
