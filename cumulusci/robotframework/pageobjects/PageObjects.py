@@ -1,20 +1,36 @@
-from robot.libraries.BuiltIn import BuiltIn
-from .baseobjects import BasePage
+from robot.api import logger
+from robot.libraries.BuiltIn import BuiltIn, RobotNotRunningError
+from cumulusci.robotframework.pageobjects.baseobjects import BasePage
 import inspect
 import robot.utils
 import os
+import sys
+
+
+def get_keyword_names(obj):
+    """Returns a list of method names for the given object
+
+    This excludes methods that begin with an underscore, and
+    also excludes the special method `get_keyword_names`.
+    """
+    names = [
+        member[0]
+        for member in inspect.getmembers(obj, inspect.isroutine)
+        if (not member[0].startswith("_")) and member[0] != "get_keyword_names"
+    ]
+    return names
 
 
 class PageObjects(object):
-    """Dynamic robot library for importing and using page objects
+    """Keyword library for importing and using page objects
 
     When importing, you can include one or more paths to python
     files that define page objects. For example, if you have a set
     of classes in robot/HEDA/resources/PageObjects.py, you can import
     this library into a test case like this:
 
-        Library  cumulusci.robotframework.PageObjects
-        ...  robot/HEDA/resources/PageObjects.py
+    | Library  cumulusci.robotframework.PageObjects
+    | ...  robot/HEDA/resources/PageObjects.py
 
     """
 
@@ -23,20 +39,38 @@ class PageObjects(object):
     cache = {}
 
     def __init__(self, *args):
-        BuiltIn().log("initializing PageObjects...", "DEBUG")
+        logger.debug("initializing PageObjects...")
         importer = robot.utils.Importer()
 
         for file_path in args:
             try:
                 importer.import_class_or_module_by_path(os.path.abspath(file_path))
-                BuiltIn().log("imported page object {}".format(file_path), "DEBUG")
+                logger.debug("imported page object {}".format(file_path))
             except Exception as e:
-                BuiltIn().log(str(e), "WARN")
+                logger.warn(str(e))
         self.current_page_object = None
 
         # Start with this library at the front of the library search order;
         # that may change as page objects are loaded.
-        BuiltIn().set_library_search_order("PageObjects")
+        try:
+            BuiltIn().set_library_search_order("PageObjects")
+        except RobotNotRunningError:
+            # this should only happen when trying to load this library
+            # via the robot_libdoc task, in which case we don't care
+            # whether this throws an error or not.
+            pass
+
+    @classmethod
+    def _reset(cls):
+        """Reset the internal data structures used to manage page objects
+
+        This is to aid testing. It probably shouldn't be used at any other time.
+        """
+        for pobj in cls.registry.values():
+            if pobj.__module__ in sys.modules:
+                del sys.modules[pobj.__module__]
+        cls.registry = {}
+        cls.cache = {}
 
     @property
     def selenium(self):
@@ -55,30 +89,17 @@ class PageObjects(object):
         """
         This method is required by robot's dynamic library api
         """
-        names = [name for name in dir(self) if self._is_keyword(name, self)]
+        names = get_keyword_names(self)
         if self.current_page_object is not None:
-            names = names + [
-                name
-                for name in dir(self.current_page_object)
-                if self._is_keyword(name, self.current_page_object)
-            ]
+            names = names + get_keyword_names(self.current_page_object)
         return names
-
-    def _is_keyword(self, name, source):
-        return (
-            not name.startswith("_")
-            and name != "get_keyword_names"
-            and inspect.isroutine(getattr(source, name))
-        )
 
     def log_page_object_keywords(self):
         """Logs page objects and their keywords for all page objects which have been imported"""
         for key in sorted(self.registry.keys()):
             pobj = self.registry[key]
-            keywords = sorted(
-                [method for method in dir(pobj) if self._is_keyword(method, pobj)]
-            )
-            BuiltIn().log("{}: {}".format(key, ", ".join(keywords)))
+            keywords = get_keyword_names(pobj)
+            logger.info("{}: {}".format(key, ", ".join(keywords)))
 
     def _get_page_object(self, page_type, object_name):
 

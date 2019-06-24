@@ -6,10 +6,10 @@
       crossorigin="anonymous">
     </script>
     <script>
-      function search() {
-          var search_string = $("#search").val().toLowerCase();
+      function filter() {
+          var filter_string = $("#filter").val().toLowerCase();
           $(".kwtable .kwname").each(function() {
-              if ($(this).text().toLowerCase().indexOf(search_string) !== -1) {
+              if ($(this).text().toLowerCase().indexOf(filter_string) !== -1) {
                   $(this).parent().show();
               } else {
                   $(this).parent().hide();
@@ -17,11 +17,11 @@
           })
       }
       $(document).ready(function() {
-          $("#search").on("input", function() {
-              search()
+          $("#filter").on("input", function() {
+              filter()
           })
-          $("#search").keyup(function() {
-              search()
+          $("#filter").keyup(function() {
+              filter()
           })
       });
     </script>
@@ -32,33 +32,45 @@
   <body>
     <div class="container">
       <div class="header">
-        <div class="title">{{title}}</div>
-        <div class="search right">search: <input id="search" type="search"></input></div>
+        <h1 class="title">{{title}}</h1>
+        <div class="filter right">filter: <input id="filter" type="filter"></input></div>
       </div>
-      {% for library in libraries %}
-      <div class="section" id="library-{{library.name}}">
-        <h1>{{library.src}}</h1>
-        <div class="library-documentation">
-        {{library.doc|robot_html}}
+
+      {% for kwfile in libraries %}
+      <div class="file" id="file-{{kwfile.path}}">
+        <div class='file-header'>
+          <h2 title='{{kwfile.path}}'>{{kwfile.filename}}</h2>
+          <div class='file-path'>{{kwfile.path}}</div>
         </div>
-        <table class="kwtable">
-          <tbody>
-            <tr><th>Keyword</th><th>Arguments</th><th>Documentation</th></tr>
-            {% for keyword in library.keywords %}
-            <tr class="kwrow" id="{{library.src}}.{{keyword.name}}">
-              <td class="kwname">
-                {{keyword.name}}
-              </td>
-              <td class="kwargs">
+        {% for pageobject, library in kwfile.keywords.items() %}
+        <div class="section" pageobject="{{pageobject|join('-')}}">
+          {% if pageobject %}
+          <div class='pageobject-header'>
+            Page Object: <span class='page_type'>{{pageobject[0]}}</span>
+            <span class='object_name'>{{pageobject[1]}}</span>
+          </div>
+          {% endif %}
+          <div class='description'>{{library.doc|robot_html}}</div>
+          <table class="kwtable">
+            <tbody>
+              <tr><th>Keyword</th><th>Arguments</th><th>Documentation</th></tr>
+              {% for keyword in library.keywords %}
+              <tr class="kwrow" id="{{kwfile.filename}}.{{keyword.name}}">
+                <td class="kwname">
+                  {{keyword.name}}
+                </td>
+                <td class="kwargs">
                   {% for arg in keyword.args %}
                   <i>{{arg}}</i>{% if not loop.last %}, {% endif %}
                   {% endfor %}
-              </td>
-              <td class="kwdoc">{{keyword.doc|robot_html}}</td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
+                </td>
+                <td class="kwdoc">{{keyword.doc|robot_html}}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div> {# class="library-whatever" #}
+        {% endfor %}
       </div>
       {% endfor %}
     </div>

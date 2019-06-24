@@ -79,6 +79,15 @@ class TestRobotLibDoc(MockLoggerMixin, unittest.TestCase):
         assert "created {}".format(output) in self.task_log["info"]
         assert os.path.exists(output)
 
+    def test_pageobject(self):
+        """Verify that we can parse a page object file"""
+        path = os.path.join(self.datadir, "TestPageObjects.py")
+        output = os.path.join(self.tmpdir, "index.html")
+        task = create_task(RobotLibDoc, {"path": path, "output": output})
+        task()
+        assert "created {}".format(output) in self.task_log["info"]
+        assert os.path.exists(output)
+
 
 class TestRobotLibDocOutput(unittest.TestCase):
     """Tests for the generated robot keyword documentation"""
@@ -105,7 +114,7 @@ class TestRobotLibDocOutput(unittest.TestCase):
     def test_output_title(self):
         """Verify the document has the expected title"""
         title_element = self.html_body.find(
-            ".//div[@class='header']/div[@class='title']"
+            ".//div[@class='header']/h1[@class='title']"
         )
         assert title_element is not None
         assert title_element.text.strip() == "Keyword Documentation, yo."
@@ -125,8 +134,10 @@ class TestRobotLibDocOutput(unittest.TestCase):
 
     def test_output_sections(self):
         """Verify that the output has a section for each file"""
-        sections = self.html_body.findall(".//div[@class='section']")
-        section_titles = [x.find("h1").text for x in sections]
+        sections = self.html_body.findall(".//div[@class='file']")
+        section_titles = [
+            x.find(".//div[@class='file-header']/h2").text for x in sections
+        ]
         assert len(sections) == 2, "expected to find 2 sections, found {}".format(
             len(sections)
         )
@@ -144,3 +155,47 @@ class TestRobotLibDocOutput(unittest.TestCase):
             "Resource keyword one",
             "Resource keyword two",
         ]
+
+
+class TestLibdocPageObjects(unittest.TestCase):
+    """Tests for generating docs for page objects"""
+
+    def setUp(self):
+        self.tmpdir = tempfile.mkdtemp(dir=".")
+        self.datadir = os.path.dirname(__file__)
+        path = [os.path.join(self.datadir, "TestPageObjects.py")]
+        self.output = os.path.join(self.tmpdir, "index.html")
+        self.task = create_task(
+            RobotLibDoc,
+            {"path": path, "output": self.output, "title": "Keyword Documentation, yo"},
+        )
+        self.task()
+
+        self.docroot = ET.parse(self.output).getroot()
+        self.html_body = self.docroot.find("body")
+
+    def tearDown(self):
+        shutil.rmtree(self.tmpdir)
+
+    def test_pageobject_sections(self):
+        # the TestPageObjects.py file has two page objects,
+        # one with two keywords and one with three
+        sections = self.html_body.findall(".//div[@class='pageobject-header']")
+        assert len(sections) == 2
+
+    def test_pageobject_docstring(self):
+        section = self.html_body.find(".//div[@pageobject='Detail-Something__c']")
+        description = section.find("div[@class='description']")
+        expected = (
+            '<div class="description"><p>Description of SomethingDetailPage</p></div>'
+        )
+        actual = ET.tostring(description).decode("utf-8").strip()
+        assert actual == expected
+
+        section = self.html_body.find(".//div[@pageobject='Listing-Something__c']")
+        description = section.find("div[@class='description']")
+        expected = (
+            '<div class="description"><p>Description of SomethingListingPage</p></div>'
+        )
+        actual = ET.tostring(description).decode("utf-8").strip()
+        assert actual == expected

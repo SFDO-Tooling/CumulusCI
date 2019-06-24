@@ -104,7 +104,7 @@ class TestPageObjects(unittest.TestCase):
         )
         self.assertEqual(po.bar_keyword_1("hello"), "bar keyword 1: hello")
 
-    @mock.patch("robot.libraries.BuiltIn.BuiltIn.log")
+    @mock.patch("robot.api.logger.info")
     def test_log_page_object_keywords(
         self, log_mock, get_context_mock, get_library_instance_mock
     ):

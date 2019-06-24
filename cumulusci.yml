@@ -18,9 +18,10 @@ tasks:
             title: CumulusCI Robot Framework Keywords
             output: docs/robot/Keywords.html
             path:
-              - cumulusci/robotframework/Salesforce.py
+              - cumulusci.robotframework.CumulusCI
+              - cumulusci.robotframework.PageObjects
+              - cumulusci.robotframework.Salesforce
               - cumulusci/robotframework/Salesforce.robot
-              - cumulusci/robotframework/CumulusCI.py
 
 flows:
     robot_docs:
