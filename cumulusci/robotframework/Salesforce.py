@@ -5,6 +5,7 @@ import os.path
 import re
 import time
 from robot.libraries.BuiltIn import BuiltIn, RobotNotRunningError
+from robot.libraries.String import String
 from robot.utils import timestr_to_secs
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.action_chains import ActionChains
@@ -491,6 +492,38 @@ class Salesforce(object):
         res = obj_class.create(kwargs)
         self.store_session_record(obj_name, res["id"])
         return res["id"]
+
+    def salesforce_collection_insert(self, objects):
+        def dict_to_insertable(d):
+            insertable = {"attributes": {"type": d["type"]}}
+            for key, value in d.items():
+                if key != "type":
+                    insertable[key] = value
+            return insertable
+
+        insertables = [dict_to_insertable(o) for o in objects]
+
+        return self.cumulusci.sf.restful(
+            "composite/sobjects",
+            method="POST",
+            json={"allOrNone": False, "records": insertables},
+        )
+
+    def salesforce_init_objects(self, obj_name, number_to_create, **fields):
+        """Create an array of dictionaries with template-formatted arguments"""
+        self.builtin.log("Inserting {} with values {}".format(obj_name, fields))
+        objs = []
+        for i in range(int(number_to_create)):
+            obj = {"type": obj_name}  # Object type to create
+            for name, value in fields.items():
+                if hasattr(value, "format"):  # Duck-check for if it is string-like
+                    obj[name] = value.format(
+                        number=i, random_str=String().generate_random_string()
+                    )
+                else:
+                    obj[name] = value
+            objs.append(obj)
+        return objs
 
     def salesforce_query(self, obj_name, **kwargs):
         """ Constructs and runs a simple SOQL query and returns the dict results """

@@ -86,3 +86,9 @@ Salesforce Delete Session Records
     @{query}=  Salesforce Query  Contact
     ...  LastName=${random string}
     length should be  ${query}  0  Expected the query to return 0 records, but it returned ${query}
+
+Bulk Insert Contacts
+    @{objects} =  Salesforce Init Objects  Contact  20  
+        ...  FirstName="User {number}"
+        ...  LastName="{random_str}"
+    Salesforce Collection Insert  ${objects}
