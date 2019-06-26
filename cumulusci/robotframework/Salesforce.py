@@ -494,6 +494,8 @@ class Salesforce(object):
         return res["id"]
 
     def salesforce_collection_insert(self, objects):
+        """Inserts up to 200 records that were created with Salesforce Init Objects"""
+
         def dict_to_insertable(d):
             insertable = {"attributes": {"type": d["type"]}}
             for key, value in d.items():
