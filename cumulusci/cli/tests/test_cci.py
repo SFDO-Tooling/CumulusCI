@@ -1117,9 +1117,9 @@ test_flow  Test Flow""",
             load_keychain=False,
         )
         config.get_org = mock.Mock(return_value=("test", org_config))
-        DummyTask._run_task = mock.Mock(side_effect=ScratchOrgException)
+        DummyTask._run_task = mock.Mock(side_effect=ScratchOrgException("msg"))
 
-        with self.assertRaises(click.ClickException):
+        with self.assertRaises(click.ClickException) as e:
             run_click_command(
                 cci.flow_run,
                 config=config,
@@ -1131,6 +1131,7 @@ test_flow  Test Flow""",
                 skip=(),
                 no_prompt=True,
             )
+            assert "msg" in str(e)
 
     @mock.patch("cumulusci.cli.cci.handle_sentry_event")
     def test_flow_run_unexpected_exception(self, handle_sentry_event):
