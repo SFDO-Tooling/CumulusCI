@@ -510,7 +510,9 @@ class Salesforce(object):
         )
 
     def salesforce_init_objects(self, obj_name, number_to_create, **fields):
-        """Create an array of dictionaries with template-formatted arguments"""
+        """Create an array of dictionaries with template-formatted arguments.
+           Use '{number}' to represent the unique index of the row in the list of rows
+           and '{random_str} to represent a random string."""
         self.builtin.log("Inserting {} with values {}".format(obj_name, fields))
         objs = []
         for i in range(int(number_to_create)):
