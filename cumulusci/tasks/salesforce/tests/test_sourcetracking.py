@@ -170,7 +170,7 @@ class TestRetrieveChanges(unittest.TestCase):
         <members>Object2</members>
         <name>CustomObject</name>
     </types>
-    <version>45.0</version>
+    <version>46.0</version>
 </Package>""",
                 package_xml,
             )
