@@ -86,3 +86,23 @@ Salesforce Delete Session Records
     @{query}=  Salesforce Query  Contact
     ...  LastName=${random string}
     length should be  ${query}  0  Expected the query to return 0 records, but it returned ${query}
+
+Insert Collection API Test
+    @{objects} =  Salesforce Init Objects  Contact  20  
+        ...  FirstName="User {number}"
+        ...  LastName="{random_str}"
+    Salesforce Collection Insert  ${objects}
+
+Custom Perf Metrics API Test
+     Create Duration Metric  Total Duration
+     Create Aggregate Metric  Avg Duration  average
+     Create Aggregate Metric  Avg DB Time   average
+     Create Aggregate Metric  Total DB Time   sum
+     FOR  ${i}  IN RANGE  20
+         ${last_name} =  Generate Random String
+         ${contact} =    Salesforce Insert  Contact  LastName=${last_name}
+         ${perfmetrics} =   Get Performance Metrics
+         Store Metric Value  Avg Duration  ${perfmetrics}[rest-api-totalTime]
+         Store Metric Value  Avg DB Time   ${perfmetrics}[db-exec-totalTime]
+     END
+     End Duration Metric  Total Duration
