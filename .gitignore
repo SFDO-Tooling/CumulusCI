@@ -24,6 +24,7 @@ selenium-screenshot-*
 log.html
 report.html
 output.xml
+perf.json
 geckodriver.log
 **/.sfdx
 htmlcov/
