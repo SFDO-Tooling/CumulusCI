@@ -208,7 +208,7 @@ class PerfJSONConverter:
 
     def perfJSON2Dict(self, include_raw=False):
         rc = {
-            f"{metric['metrics']}-{metricType}": metric[metricType]
+            metric["metrics"] + "-" + metricType: metric[metricType]
             for metricType in ("totalTime", "totalCalls")
             for metric in self.data["summary"]
         }
