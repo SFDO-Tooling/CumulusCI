@@ -21,8 +21,8 @@ class TestMetrics:
 
         aggregations = {}
         for metric_name, metricset in collections.items():
-            aggregations[f"{metric_name}-sum"] = sum(metricset)
-            aggregations[f"{metric_name}-avg"] = mean(metricset)
+            aggregations[metric_name + "-sum"] = sum(metricset)
+            aggregations[metric_name + "-avg"] = mean(metricset)
 
         return aggregations
 
