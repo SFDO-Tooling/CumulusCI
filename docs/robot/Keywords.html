@@ -160,6 +160,32 @@ Library  cumulusci.robotframework.CumulusCI  ${ORG}
             <tbody>
               <tr><th>Keyword</th><th>Arguments</th><th>Documentation</th></tr>
               
+              <tr class="kwrow" id="CumulusCI.Create Aggregate Metric">
+                <td class="kwname">
+                  Create Aggregate Metric
+                </td>
+                <td class="kwargs">
+                  
+                  <i>name</i>, 
+                  
+                  <i>aggregation</i>
+                  
+                </td>
+                <td class="kwdoc"><p>Custom metric keyword: Start averaging/summing/... something: EXPERIMENTAL aggregation should be "average", or "sum"</p></td>
+              </tr>
+              
+              <tr class="kwrow" id="CumulusCI.Create Duration Metric">
+                <td class="kwname">
+                  Create Duration Metric
+                </td>
+                <td class="kwargs">
+                  
+                  <i>name</i>
+                  
+                </td>
+                <td class="kwdoc"><p>Custom metric keyword: Start measuring the time it takes to do something: EXPERIMENTAL</p></td>
+              </tr>
+              
               <tr class="kwrow" id="CumulusCI.Debug">
                 <td class="kwname">
                   Debug
@@ -168,6 +194,18 @@ Library  cumulusci.robotframework.CumulusCI  ${ORG}
                   
                 </td>
                 <td class="kwdoc"><p>Pauses execution and enters the Python debugger.</p></td>
+              </tr>
+              
+              <tr class="kwrow" id="CumulusCI.End Duration Metric">
+                <td class="kwname">
+                  End Duration Metric
+                </td>
+                <td class="kwargs">
+                  
+                  <i>name</i>
+                  
+                </td>
+                <td class="kwdoc"><p>Custom metric keyword: Finish measuring a duration: EXPERIMENTAL</p></td>
               </tr>
               
               <tr class="kwrow" id="CumulusCI.Get Namespace Prefix">
@@ -191,6 +229,16 @@ Library  cumulusci.robotframework.CumulusCI  ${ORG}
                   
                 </td>
                 <td class="kwdoc"><p>Returns a dictionary of the org information for the current target Salesforce org</p></td>
+              </tr>
+              
+              <tr class="kwrow" id="CumulusCI.Get Performance Metrics">
+                <td class="kwname">
+                  Get Performance Metrics
+                </td>
+                <td class="kwargs">
+                  
+                </td>
+                <td class="kwdoc"><p>Performance metrics keyword: Get the last recorded performance metrics</p></td>
               </tr>
               
               <tr class="kwrow" id="CumulusCI.Login Url">
@@ -289,6 +337,20 @@ Library  cumulusci.robotframework.CumulusCI  ${ORG}
                   
                 </td>
                 <td class="kwdoc"></td>
+              </tr>
+              
+              <tr class="kwrow" id="CumulusCI.Store Metric Value">
+                <td class="kwname">
+                  Store Metric Value
+                </td>
+                <td class="kwargs">
+                  
+                  <i>name</i>, 
+                  
+                  <i>value</i>
+                  
+                </td>
+                <td class="kwdoc"><p>Custom metric keyword: Add this number to the average or sum. EXPERIMENTAL</p></td>
               </tr>
               
             </tbody>
@@ -805,6 +867,18 @@ Library  cumulusci.robotframework.PageObjects
                 <td class="kwdoc"><p>Remove a record from the list of records that should be automatically removed.</p></td>
               </tr>
               
+              <tr class="kwrow" id="Salesforce.Salesforce Collection Insert">
+                <td class="kwname">
+                  Salesforce Collection Insert
+                </td>
+                <td class="kwargs">
+                  
+                  <i>objects</i>
+                  
+                </td>
+                <td class="kwdoc"><p>Inserts up to 200 records that were created with Salesforce Init Objects</p></td>
+              </tr>
+              
               <tr class="kwrow" id="Salesforce.Salesforce Delete">
                 <td class="kwname">
                   Salesforce Delete
@@ -831,6 +905,33 @@ Library  cumulusci.robotframework.PageObjects
                   
                 </td>
                 <td class="kwdoc"><p>Gets a Salesforce object by id and returns the dict result</p></td>
+              </tr>
+              
+              <tr class="kwrow" id="Salesforce.Salesforce Init Objects">
+                <td class="kwname">
+                  Salesforce Init Objects
+                </td>
+                <td class="kwargs">
+                  
+                  <i>obj_name</i>, 
+                  
+                  <i>number_to_create</i>, 
+                  
+                  <i>**fields</i>
+                  
+                </td>
+                <td class="kwdoc"><p>Create an array of dictionaries with template-formatted arguments appropriate for a Collection Insert. Use <code>{number}</code> to represent the unique index of the row in the list of rows and <code>{random_str}</code> to represent a random string. For example:</p>
+<pre>
+@{objects} =  Salesforce Init Objects  Contact  3
+...  FirstName="User {number}"
+...  LastName="{random_str}"
+</pre>
+<p>Which would generate:</p>
+<pre>
+[{'FirstName': '"User 0"', 'LastName': '"u4PNlGUD"', 'type': 'Contact'},
+ {'FirstName': '"User 1"', 'LastName': '"Kyd4PC5x"', 'type': 'Contact'},
+ {'FirstName': '"User 2"', 'LastName': '"n4EGs4Vp"', 'type': 'Contact'}]
+</pre></td>
               </tr>
               
               <tr class="kwrow" id="Salesforce.Salesforce Insert">
@@ -1193,7 +1294,7 @@ Library  cumulusci.robotframework.PageObjects
       
     </div>
     <div class="footer">
-      Generated on Friday June 21, 05:17 PM - cumulusci v2.5.2
+      Generated on Friday June 28, 04:03 PM - cumulusci v2.5.3
     </div>
   </body>
 </html>
