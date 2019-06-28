@@ -519,10 +519,20 @@ class Salesforce(object):
             )
 
     def salesforce_init_objects(self, obj_name, number_to_create, **fields):
-        """Create an array of dictionaries with template-formatted arguments.
-           Use '{number}' to represent the unique index of the row in the list of rows
-           and '{random_str} to represent a random string."""
-        self.builtin.log("Inserting {} with values {}".format(obj_name, fields))
+        """Create an array of dictionaries with template-formatted arguments appropriate for a Collection Insert.
+            Use ``{number}`` to represent the unique index of the row in the list of rows and ``{random_str}`` to represent a random string.
+            For example:
+
+                | @{objects} =  Salesforce Init Objects  Contact  3
+                | ...  FirstName="User {number}"
+                | ...  LastName="{random_str}"
+
+            Which would generate:
+
+                | [{'FirstName': '"User 0"', 'LastName': '"u4PNlGUD"', 'type': 'Contact'},
+                |  {'FirstName': '"User 1"', 'LastName': '"Kyd4PC5x"', 'type': 'Contact'},
+                |  {'FirstName': '"User 2"', 'LastName': '"n4EGs4Vp"', 'type': 'Contact'}]
+           """
         objs = []
         for i in range(int(number_to_create)):
             obj = {"type": obj_name}  # Object type to create
