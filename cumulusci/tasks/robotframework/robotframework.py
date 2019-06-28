@@ -9,6 +9,7 @@ from cumulusci.core.utils import process_bool_arg
 from cumulusci.core.utils import process_list_arg
 from cumulusci.robotframework.utils import set_pdb_trace
 from cumulusci.tasks.salesforce import BaseSalesforceTask
+from .robotperflistener import RobotPerfListener
 
 
 class Robot(BaseSalesforceTask):
@@ -32,6 +33,9 @@ class Robot(BaseSalesforceTask):
         "name": {"description": "Sets the name of the top level test suite"},
         "pdb": {"description": "If true, run the Python debugger when tests fail."},
         "verbose": {"description": "If true, log each keyword as it runs."},
+        "perf_trace_level": {
+            "description": "Level of detail in 'perf.json'. If 1, trace individual API calls. If 2, caputre more detailed information from within each call."
+        },
     }
 
     def _init_options(self, kwargs):
@@ -46,6 +50,15 @@ class Robot(BaseSalesforceTask):
         # Initialize options as a dict
         if "options" not in self.options:
             self.options["options"] = {}
+
+        listeners = process_list_arg(self.options["options"].get("listeners")) or []
+
+        verbosity = int(self.options.get("perf_trace_level", 0))
+        self.robot_perf_listener = RobotPerfListener(self, verbosity)
+        listeners.append(self.robot_perf_listener)
+        if process_bool_arg(self.options.get("verbose")):
+            listeners.append(KeywordLogger)
+        self.options["options"]["listener"] = listeners
 
         if process_bool_arg(self.options.get("verbose")):
             self.options["options"]["listener"] = KeywordLogger
