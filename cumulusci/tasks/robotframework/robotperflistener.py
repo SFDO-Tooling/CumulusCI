@@ -1,7 +1,10 @@
 import os
 import json
-from statistics import mean
 import time
+
+
+def mean(numbers):
+    return float(sum(numbers)) / max(len(numbers), 1)
 
 
 class TestMetrics:
