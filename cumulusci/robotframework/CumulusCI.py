@@ -10,8 +10,9 @@ from cumulusci.core.config import TaskConfig
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.tasks import CURRENT_TASK
 from cumulusci.core.utils import import_global
-from cumulusci.robotframework.utils import set_pdb_trace
+from cumulusci.robotframework.utils import set_pdb_trace, perfJSON2Dict
 from cumulusci.tasks.robotframework.robotframework import Robot
+from contextlib import contextmanager
 
 
 class CumulusCI(object):
@@ -226,3 +227,65 @@ class CumulusCI(object):
     def debug(self):
         """Pauses execution and enters the Python debugger."""
         set_pdb_trace()
+
+    def _register_response_hook(self, hook):
+        if hook not in self.sf.session.hooks["response"]:
+            self.sf.session.hooks["response"].append(hook)
+
+    def _unregister_response_hook(self, hook):
+        if hook in self.sf.session.hooks["response"]:
+            self.sf.session.hooks["response"].remove(hook)
+
+    @contextmanager
+    def _perf_wrapper(self):
+        self._last_performance_metrics = {}
+        if not self.perf_listener:
+            yield  # just ignore me if I'm not relevant.
+
+        def response_callback(response, **kwargs):
+            if "perfmetrics" in response.headers.keys():
+                metric_str = response.headers["perfmetrics"]
+                metadata = {}
+                metadata["url"] = response.request.url
+                metadata["method"] = response.request.method
+                self._last_performance_metrics["_meta"] = metadata
+                include_raw = self.perf_listener.verbosity >= 2
+                self._last_performance_metrics.update(
+                    perfJSON2Dict(metric_str, include_raw=include_raw)
+                )
+
+                # sometimes it is handy to log this stuff
+                # BuiltIn().log(perfJSON2LogMessage())
+
+        # https://github.com/forcedotcom/idecore/blob/f107a6cb61ee38cd7f5b24fc9610893f24a33264/config/wsdls/src/main/resources/apex.wsdl#L239
+        self.sf.session.headers["Sforce-Call-Options"] = "perfOption=MINIMUM"
+        self._register_response_hook(response_callback)
+        try:
+
+            yield self._last_performance_metrics
+            if self.perf_listener:
+                self.perf_listener.report(self._last_performance_metrics)
+        finally:
+            self.sf.session.headers["Sforce-Call-Options"] = ""
+            self._unregister_response_hook(response_callback)
+
+    def get_performance_metrics(self):
+        """Performance metrics keyword: Get the last recorded performance metrics"""
+        return self._last_performance_metrics
+
+    def create_duration_metric(self, name):
+        """Custom metric keyword: Start measuring the time it takes to do something: EXPERIMENTAL"""
+        self.perf_listener.create_duration_metric(name)
+
+    def end_duration_metric(self, name):
+        """Custom metric keyword: Finish measuring a duration: EXPERIMENTAL"""
+        self.perf_listener.end_duration_metric(name)
+
+    def create_aggregate_metric(self, name, aggregation):
+        """Custom metric keyword: Start averaging/summing/... something: EXPERIMENTAL
+            aggregation should be "average", or "sum"  """
+        self.perf_listener.create_aggregate_metric(name, aggregation)
+
+    def store_metric_value(self, name, value):
+        """Custom metric keyword: Add this number to the average or sum. EXPERIMENTAL"""
+        self.perf_listener.store_metric_value(name, value)
