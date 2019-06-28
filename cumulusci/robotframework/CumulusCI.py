@@ -67,6 +67,11 @@ class CumulusCI(object):
         return self.project_config.keychain
 
     @property
+    def perf_listener(self):
+        if self.robot_task:
+            return self.robot_task.robot_perf_listener
+
+    @property
     def org(self):
         if self._org is None:
             if CURRENT_TASK.stack and isinstance(CURRENT_TASK.stack[0], Robot):
