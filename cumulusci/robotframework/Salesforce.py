@@ -5,6 +5,7 @@ import os.path
 import re
 import time
 from robot.libraries.BuiltIn import BuiltIn, RobotNotRunningError
+from robot.libraries.String import String
 from robot.utils import timestr_to_secs
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.action_chains import ActionChains
@@ -239,7 +240,8 @@ class Salesforce(object):
         soql = "SELECT Id FROM RecordType WHERE SObjectType='{}' and DeveloperName='{}'".format(
             obj_type, developer_name
         )
-        res = self.cumulusci.sf.query_all(soql)
+        with self.cumulusci._perf_wrapper():
+            res = self.cumulusci.sf.query_all(soql)
         return res["records"][0]["Id"]
 
     def get_related_list_count(self, heading):
@@ -475,22 +477,61 @@ class Salesforce(object):
         """ Deletes a Saleforce object by id and returns the dict result """
         self.builtin.log("Deleting {} with Id {}".format(obj_name, obj_id))
         obj_class = getattr(self.cumulusci.sf, obj_name)
-        obj_class.delete(obj_id)
+        with self.cumulusci._perf_wrapper():
+            obj_class.delete(obj_id)
         self.remove_session_record(obj_name, obj_id)
 
     def salesforce_get(self, obj_name, obj_id):
         """ Gets a Salesforce object by id and returns the dict result """
         self.builtin.log("Getting {} with Id {}".format(obj_name, obj_id))
         obj_class = getattr(self.cumulusci.sf, obj_name)
-        return obj_class.get(obj_id)
+        with self.cumulusci._perf_wrapper():
+            return obj_class.get(obj_id)
 
     def salesforce_insert(self, obj_name, **kwargs):
         """ Inserts a Salesforce object setting fields using kwargs and returns the id """
         self.builtin.log("Inserting {} with values {}".format(obj_name, kwargs))
         obj_class = getattr(self.cumulusci.sf, obj_name)
-        res = obj_class.create(kwargs)
-        self.store_session_record(obj_name, res["id"])
+
+        with self.cumulusci._perf_wrapper():
+            res = obj_class.create(kwargs)
+            self.store_session_record(obj_name, res["id"])
+
         return res["id"]
+
+    def salesforce_collection_insert(self, objects):
+        def dict_to_insertable(d):
+            insertable = {"attributes": {"type": d["type"]}}
+            for key, value in d.items():
+                if key != "type":
+                    insertable[key] = value
+            return insertable
+
+        insertables = [dict_to_insertable(o) for o in objects]
+
+        with self.cumulusci._perf_wrapper():
+            res = self.cumulusci.sf.restful(
+                "composite/sobjects",
+                method="POST",
+                json={"allOrNone": False, "records": insertables},
+            )
+            return res
+
+    def salesforce_init_objects(self, obj_name, number, **kwargs):
+        """Create an array of dictionaries with formatted arguments"""
+        self.builtin.log("Inserting {} with values {}".format(obj_name, kwargs))
+        objs = []
+        for i in range(int(number)):
+            obj = {"type": obj_name}
+            for name, value in kwargs.items():
+                if hasattr(value, "format"):
+                    obj[name] = value.format(
+                        number=i, random_str=String().generate_random_string()
+                    )
+                else:
+                    obj[name] = value
+            objs.append(obj)
+        return objs
 
     def salesforce_query(self, obj_name, **kwargs):
         """ Constructs and runs a simple SOQL query and returns the dict results """
@@ -508,7 +549,8 @@ class Salesforce(object):
         if where:
             query += " WHERE " + " AND ".join(where)
         self.builtin.log("Running SOQL Query: {}".format(query))
-        return self.cumulusci.sf.query_all(query).get("records", [])
+        with self.cumulusci._perf_wrapper():
+            return self.cumulusci.sf.query_all(query).get("records", [])
 
     def salesforce_update(self, obj_name, obj_id, **kwargs):
         """ Updates a Salesforce object by id and returns the dict results """
@@ -516,12 +558,14 @@ class Salesforce(object):
             "Updating {} {} with values {}".format(obj_name, obj_id, kwargs)
         )
         obj_class = getattr(self.cumulusci.sf, obj_name)
-        return obj_class.update(obj_id, kwargs)
+        with self.cumulusci._perf_wrapper():
+            return obj_class.update(obj_id, kwargs)
 
     def soql_query(self, query):
         """ Runs a simple SOQL query and returns the dict results """
         self.builtin.log("Running SOQL Query: {}".format(query))
-        return self.cumulusci.sf.query_all(query)
+        with self.cumulusci._perf_wrapper():
+            return self.cumulusci.sf.query_all(query)
 
     def store_session_record(self, obj_type, obj_id):
         """ Stores a Salesforce record's id for use in the Delete Session Records keyword """
