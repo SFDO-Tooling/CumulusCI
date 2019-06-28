@@ -202,32 +202,33 @@ def selenium_retry(target=None, retry=True):
         return decorate(target)
 
 
-def perfJSON2Dict(jsondata, include_raw):
-    data = json.loads(jsondata)
-    rc = {
-        f"{metric['metrics']}-{metricType}": metric[metricType]
-        for metricType in ("totalTime", "totalCalls")
-        for metric in data["summary"]
-    }
-    rc["_raw"] = data
-    return rc
+class PerfJSONConverter:
+    def __init__(self, jsondata):
+        self.data = json.loads(jsondata)
 
+    def perfJSON2Dict(self, include_raw=False):
+        rc = {
+            f"{metric['metrics']}-{metricType}": metric[metricType]
+            for metricType in ("totalTime", "totalCalls")
+            for metric in self.data["summary"]
+        }
+        if include_raw:
+            rc["_raw"] = self.data
+        return rc
 
-def perfJSON2CSV(jsondata):
-    """Helper function to generate CSV-like data from performance metrics JSON"""
+    def perfJSON2CSV(self):
+        """Helper function to generate CSV-like data from performance metrics JSON"""
 
-    def row(values):
-        return ",".join(values) + "\n"
+        def row(values):
+            return ",".join(values) + "\n"
 
-    res = ""
-    data = json.loads(jsondata)
-    metrics = data["summary"]
-    res += "#" + row(metrics[0].keys())
-    for metric in metrics:
-        res += row((str(m) for m in metric.values()))
+        res = ""
+        metrics = self.data["summary"]
+        res += "#" + row(metrics[0].keys())
+        for metric in metrics:
+            res += row((str(m) for m in metric.values()))
 
-    return res
+        return res
 
-
-def perfJSON2LogMessage(jsondata, metadata, metrics_str):
-    return "#perfmetrics {} \n{}".format(metadata or "", perfJSON2CSV(metrics_str))
+    def perfJSON2LogMessage(self, metadata):
+        return "#perfmetrics {} \n{}".format(metadata or "", self.perfJSON2CSV())
