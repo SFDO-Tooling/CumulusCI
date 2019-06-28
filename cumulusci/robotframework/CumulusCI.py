@@ -3,6 +3,7 @@ import logging
 from robot.api import logger
 from robot.libraries.BuiltIn import BuiltIn
 from simple_salesforce import Salesforce
+from requests import Session
 
 from cumulusci.cli.config import CliRuntime
 from cumulusci.core.config import TaskConfig
@@ -174,14 +175,18 @@ class CumulusCI(object):
     def _init_api(self, base_url=None):
         api_version = self.project_config.project__package__api_version
 
-        rv = Salesforce(
+        session = Session()
+        session.hooks = {"response": []}
+
+        sf = Salesforce(
             instance=self.org.instance_url.replace("https://", ""),
             session_id=self.org.access_token,
             version=api_version,
+            session=session,
         )
         if base_url is not None:
-            rv.base_url += base_url
-        return rv
+            sf.base_url += base_url
+        return sf
 
     def _init_task(self, class_path, options, task_config):
         task_class = import_global(class_path)
