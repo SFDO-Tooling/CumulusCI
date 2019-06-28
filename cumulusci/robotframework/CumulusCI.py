@@ -53,6 +53,8 @@ class CumulusCI(object):
     def robot_task(self):
         if CURRENT_TASK.stack and isinstance(CURRENT_TASK.stack[0], Robot):
             return CURRENT_TASK.stack[0]
+        else:
+            return None
 
     @property
     def project_config(self):
