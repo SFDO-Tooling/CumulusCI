@@ -11,6 +11,21 @@ class TestMetrics:
         self.api_metrics = []
         self.custom_metrics = {}
 
+    def summarize(self):
+        collections = {}
+        for metricset in self.api_metrics:
+            assert isinstance(metricset, dict), metricset
+            for name, value in metricset.items():
+                if not name.startswith("_"):
+                    collections.setdefault(name, []).append(float(value))
+
+        aggregations = {}
+        for metric_name, metricset in collections.items():
+            aggregations[f"{metric_name}-sum"] = sum(metricset)
+            aggregations[f"{metric_name}-avg"] = mean(metricset)
+
+        return aggregations
+
 
 class RobotPerfListener:
     """A robot listener for performance metrics from REST APIs and other code"""
@@ -33,7 +48,7 @@ class RobotPerfListener:
         self._current_test = TestMetrics()
 
     def end_test(self, name, attributes=None):
-        totals = summarize(self._current_test.api_metrics)
+        totals = self._current_test.summarize()
         totals.update(
             {
                 name: metric.value
@@ -58,41 +73,30 @@ class RobotPerfListener:
         self.task.robot_perf_listener = None
         self.task = None
 
-    def report(self, metrics):
-        if self._current_test:  # sometimes we are called in suite teardown
-            self._current_test.api_metrics.append(metrics)
-
     def output_file(self, path):
         self.outputdir = os.path.dirname(path)
 
+    def report(self, metrics):
+        """Extension to the Listener API for reporting custom metrics."""
+        if self._current_test:  # sometimes we are called in suite teardown
+            self._current_test.api_metrics.append(metrics)
+
     def create_aggregate_metric(self, name, aggregation):
+        """Extension to the Listener API for creating new aggregate metrics (.e.g. averages, sums)."""
         self._current_test.custom_metrics[name] = Aggregations[aggregation]()
 
     def store_metric_value(self, name, value):
+        """Extension to the Listener API for adding new values to a metric."""
         self._current_test.custom_metrics[name].reduce(value)
 
     def create_duration_metric(self, name):
+        """Extension to the Listener API for creating new durations."""
         self._current_test.custom_metrics[name] = DurationAggregator()
 
     def end_duration_metric(self, name):
+        """Extension to the Listener API for finishing durations."""
         metric_obj = self._current_test.custom_metrics[name]
         metric_obj.finish()
-
-
-def summarize(test_metrics):
-    collections = {}
-    for metricset in test_metrics:
-        assert isinstance(metricset, dict), metricset
-        for name, value in metricset.items():
-            if not name.startswith("_"):
-                collections.setdefault(name, []).append(float(value))
-
-    aggregations = {}
-    for metric_name, metricset in collections.items():
-        aggregations[f"{metric_name}-sum"] = sum(metricset)
-        aggregations[f"{metric_name}-avg"] = mean(metricset)
-
-    return aggregations
 
 
 class AverageAggregator:
