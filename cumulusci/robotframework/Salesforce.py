@@ -500,6 +500,8 @@ class Salesforce(object):
         return res["id"]
 
     def salesforce_collection_insert(self, objects):
+        """Inserts up to 200 records that were created with Salesforce Init Objects"""
+
         def dict_to_insertable(d):
             insertable = {"attributes": {"type": d["type"]}}
             for key, value in d.items():
@@ -510,21 +512,22 @@ class Salesforce(object):
         insertables = [dict_to_insertable(o) for o in objects]
 
         with self.cumulusci._perf_wrapper():
-            res = self.cumulusci.sf.restful(
+            return self.cumulusci.sf.restful(
                 "composite/sobjects",
                 method="POST",
                 json={"allOrNone": False, "records": insertables},
             )
-            return res
 
-    def salesforce_init_objects(self, obj_name, number, **kwargs):
-        """Create an array of dictionaries with formatted arguments"""
-        self.builtin.log("Inserting {} with values {}".format(obj_name, kwargs))
+    def salesforce_init_objects(self, obj_name, number_to_create, **fields):
+        """Create an array of dictionaries with template-formatted arguments.
+           Use '{number}' to represent the unique index of the row in the list of rows
+           and '{random_str} to represent a random string."""
+        self.builtin.log("Inserting {} with values {}".format(obj_name, fields))
         objs = []
-        for i in range(int(number)):
-            obj = {"type": obj_name}
-            for name, value in kwargs.items():
-                if hasattr(value, "format"):
+        for i in range(int(number_to_create)):
+            obj = {"type": obj_name}  # Object type to create
+            for name, value in fields.items():
+                if hasattr(value, "format"):  # Duck-check for if it is string-like
                     obj[name] = value.format(
                         number=i, random_str=String().generate_random_string()
                     )
