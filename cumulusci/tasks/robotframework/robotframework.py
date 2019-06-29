@@ -56,12 +56,10 @@ class Robot(BaseSalesforceTask):
         verbosity = int(self.options.get("perf_trace_level", 0))
         self.robot_perf_listener = RobotPerfListener(self, verbosity)
         listeners.append(self.robot_perf_listener)
-        if process_bool_arg(self.options.get("verbose")):
-            listeners.append(KeywordLogger)
-        self.options["options"]["listener"] = listeners
 
         if process_bool_arg(self.options.get("verbose")):
-            self.options["options"]["listener"] = KeywordLogger
+            listeners.append(KeywordLogger())
+        self.options["options"]["listener"] = listeners
 
         if process_bool_arg(self.options.get("pdb")):
             patch_statusreporter()
@@ -98,7 +96,7 @@ class RobotTestDoc(BaseTask):
 class KeywordLogger(object):
     ROBOT_LISTENER_API_VERSION = 2
 
-    def start_keyword(name, attrs):
+    def start_keyword(self, name, attrs):
         sys.stdout.write("  {}  {}\n".format(attrs["kwname"], "  ".join(attrs["args"])))
         sys.stdout.flush()
 
