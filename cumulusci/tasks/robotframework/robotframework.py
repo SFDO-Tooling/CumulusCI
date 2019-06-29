@@ -34,7 +34,7 @@ class Robot(BaseSalesforceTask):
         "pdb": {"description": "If true, run the Python debugger when tests fail."},
         "verbose": {"description": "If true, log each keyword as it runs."},
         "perf_trace_level": {
-            "description": "Level of detail in 'perf.json'. If 1, trace individual API calls. If 2, caputre more detailed information from within each call."
+            "description": "Level of detail in 'perf.json'. 0 (the default) captures high-level summaries of method calls. 1 traces individual API calls. 2, captures more detailed information from within each call."
         },
     }
 
