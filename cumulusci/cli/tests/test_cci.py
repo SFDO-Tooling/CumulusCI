@@ -772,6 +772,41 @@ test2                                     dev          test2@example.com""",
         with self.assertRaises(click.UsageError):
             run_click_command(cci.org_scratch_delete, config=config, org_name="test")
 
+    @mock.patch("simple_salesforce.Salesforce")
+    @mock.patch("code.interact")
+    def test_org_shell(self, mock_code, mock_sf):
+        org_config = mock.Mock()
+        config = mock.Mock()
+        config.get_org.return_value = ("test", org_config)
+
+        run_click_command(cci.org_shell, config=config, org_name="test")
+
+        org_config.refresh_oauth_token.assert_called_once()
+        mock_sf.assert_called_once_with(
+            instance_url=org_config.instance_url,
+            session_id=org_config.access_token,
+            api_version=config.project_config.project__package__api_version,
+        )
+        config.keychain.set_org.assert_called_once_with(org_config)
+
+        mock_code.assert_called_once()
+        self.assertIn("sf", mock_code.call_args[1]["local"])
+
+    @mock.patch("simple_salesforce.Salesforce")
+    @mock.patch("code.interact")
+    def test_org_shell__no_connected_app(self, mock_code, mock_sf):
+        org_config = mock.Mock()
+        config = mock.Mock()
+        config.get_org.return_value = ("test", org_config)
+        config.project_config.keychain.get_service.side_effect = ServiceNotConfigured
+
+        run_click_command(cci.org_shell, config=config, org_name="test")
+
+        mock_sf.return_value.headers.setdefault.assert_called_once_with(
+            "Sforce-Call-Options",
+            "client={}".format("CumulusCI/{}".format(cumulusci.__version__)),
+        )
+
     @mock.patch("click.echo")
     def test_task_list(self, echo):
         config = mock.Mock()
