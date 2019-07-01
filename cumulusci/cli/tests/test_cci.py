@@ -785,7 +785,7 @@ test2                                     dev          test2@example.com""",
         mock_sf.assert_called_once_with(
             instance_url=org_config.instance_url,
             session_id=org_config.access_token,
-            api_version=config.project_config.project__package__api_version,
+            version=config.project_config.project__package__api_version,
         )
         config.keychain.set_org.assert_called_once_with(org_config)
 

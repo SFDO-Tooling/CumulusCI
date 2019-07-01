@@ -1026,7 +1026,7 @@ def org_shell(config, org_name):
     sf = simple_salesforce.Salesforce(
         instance_url=org_config.instance_url,
         session_id=org_config.access_token,
-        api_version=config.project_config.project__package__api_version,
+        version=config.project_config.project__package__api_version,
     )
     try:
         app = config.project_config.keychain.get_service("connectedapp")
