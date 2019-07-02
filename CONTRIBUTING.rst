@@ -67,7 +67,12 @@ Ready to contribute? Here's how to set up CumulusCI for local development.
 
     $ pytest
 
-6. Push your changes to GitHub and submit a pull request. The base branch should be a new feature branch that we create to receive the changes (contact us to create the branch). This allows us to test the changes using our build system before merging to master.
+6. Your new code should also have meaningful tests. One way to double check that
+   your tests cover everything is to ensure that your new code has test code coverage:
+
+   $ make coverage
+
+7. Push your changes to GitHub and submit a pull request. The base branch should be a new feature branch that we create to receive the changes (contact us to create the branch). This allows us to test the changes using our build system before merging to master.
 
 Pull Request Guidelines
 -----------------------
