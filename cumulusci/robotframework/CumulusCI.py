@@ -252,13 +252,13 @@ class CumulusCI(object):
                 metadata["method"] = response.request.method
                 self._last_performance_metrics["_meta"] = metadata
                 include_raw = self.perf_listener.verbosity >= 2
-                converter = PerfJSONConverter(metric_str)
+                perfjson = PerfJSONConverter(metric_str)
                 self._last_performance_metrics.update(
-                    converter.perfJSON2Dict(include_raw=include_raw)
+                    perfjson.to_dict(include_raw=include_raw)
                 )
 
                 # sometimes it is handy to log this stuff
-                # BuiltIn().log(perfJSON2LogMessage(metadata))
+                # BuiltIn().log(perfjson.to_log_message(metadata))
 
         # https://github.com/forcedotcom/idecore/blob/f107a6cb61ee38cd7f5b24fc9610893f24a33264/config/wsdls/src/main/resources/apex.wsdl#L239
         self.sf.session.headers["Sforce-Call-Options"] = "perfOption=MINIMUM"

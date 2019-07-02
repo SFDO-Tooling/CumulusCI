@@ -206,7 +206,7 @@ class PerfJSONConverter:
     def __init__(self, jsondata):
         self.data = json.loads(jsondata)
 
-    def perfJSON2Dict(self, include_raw=False):
+    def to_dict(self, include_raw=False):
         rc = {
             metric["metrics"] + "-" + metricType: metric[metricType]
             for metricType in ("totalTime", "totalCalls")
@@ -216,7 +216,7 @@ class PerfJSONConverter:
             rc["_raw"] = self.data
         return rc
 
-    def perfJSON2CSV(self):
+    def to_csv(self):
         """Helper function to generate CSV-like data from performance metrics JSON"""
 
         def row(values):
@@ -230,5 +230,5 @@ class PerfJSONConverter:
 
         return res
 
-    def perfJSON2LogMessage(self, metadata):
+    def to_log_message(self, metadata):
         return "#perfmetrics {} \n{}".format(metadata or "", self.perfJSON2CSV())
