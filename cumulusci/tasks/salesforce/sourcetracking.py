@@ -97,11 +97,12 @@ class ListChanges(BaseSalesforceApiTask):
             if any(re.search(s, full_name) for s in self._exclude):
                 continue
             revnum = self._snapshot.get(mdtype, {}).get(name)
-            if revnum and revnum == change["RevisionNum"]:
+            server_revnum = change["RevisionNum"] or -1
+            if revnum and revnum == server_revnum:
                 continue
             filtered.append(change)
 
-            self._snapshot.setdefault(mdtype, {})[name] = change["RevisionNum"]
+            self._snapshot.setdefault(mdtype, {})[name] = server_revnum
 
         return filtered
 
@@ -221,16 +222,20 @@ class SnapshotChanges(ListChanges):
                 for change in changes["records"]:
                     mdtype = change["MemberType"]
                     name = change["MemberName"]
-                    self._snapshot.setdefault(mdtype, {})[name] = change["RevisionNum"]
+                    self._snapshot.setdefault(mdtype, {})[name] = (
+                        change["RevisionNum"] or -1
+                    )
                 self._store_snapshot()
 
                 maxrevision = max(
-                    change["RevisionNum"] for change in changes["records"]
+                    change["RevisionNum"] or -1 for change in changes["records"]
                 )
                 self.logger.info(
                     "Setting source tracking max revision to {}".format(maxrevision)
                 )
-                self._store_maxrevision(maxrevision)
+
+                if maxrevision != -1:
+                    self._store_maxrevision(maxrevision)
 
     def _store_maxrevision(self, value):
         with open(self._maxrevision_path, "w") as f:

@@ -862,7 +862,7 @@ project:
         namespace:
         install_class:
         uninstall_class:
-        api_version: '45.0'
+        api_version: '46.0'
     git:
         default_branch: master
         prefix_feature: feature/

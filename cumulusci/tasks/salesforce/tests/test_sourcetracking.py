@@ -101,6 +101,25 @@ class TestListChanges(unittest.TestCase):
         filtered = task._filter_changes({"records": [foo, bar, foobar]})
         self.assertEqual([foo], filtered)
 
+    def test_filter_changes__null_revnum(self):
+        foo = {
+            "MemberType": "CustomObject",
+            "MemberName": "foo__c",
+            "RevisionNum": None,
+        }
+        bar = {"MemberType": "CustomObject", "MemberName": "bar__c", "RevisionNum": 1}
+        task = create_task(ListChanges, {})
+        filtered = task._filter_changes({"records": [foo, bar]})
+        self.assertEqual([foo, bar], filtered)
+
+        self.assertEqual(-1, task._snapshot["CustomObject"]["foo__c"])
+        filtered = task._filter_changes({"records": [foo, bar]})
+        self.assertEqual([], filtered)
+
+        foo["RevisionNum"] = 12
+        filtered = task._filter_changes({"records": [foo, bar]})
+        self.assertEqual([foo], filtered)
+
 
 class TestRetrieveChanges(unittest.TestCase):
     """Retrieve changed components from a scratch org"""
@@ -170,7 +189,7 @@ class TestRetrieveChanges(unittest.TestCase):
         <members>Object2</members>
         <name>CustomObject</name>
     </types>
-    <version>45.0</version>
+    <version>46.0</version>
 </Package>""",
                 package_xml,
             )
@@ -217,6 +236,42 @@ class TestSnapshotChanges(unittest.TestCase):
             )
             task._run_task()
             self.assertTrue(
+                os.path.exists(
+                    os.path.join(
+                        ".sfdx", "orgs", "test-cci@example.com", "maxrevision.json"
+                    )
+                )
+            )
+
+    def test_run_task__null_revnum(self):
+        with temporary_dir():
+            org_config = OrgConfig(
+                {
+                    "username": "test-cci@example.com",
+                    "scratch": True,
+                    "instance_url": "https://test.salesforce.com",
+                    "access_token": "TOKEN",
+                },
+                "test",
+            )
+            task = create_task(SnapshotChanges, org_config=org_config)
+            task._init_task()
+            task.tooling.query = mock.Mock(
+                return_value={
+                    "totalSize": 1,
+                    "done": True,
+                    "records": [
+                        {
+                            "MemberType": "CustomObject",
+                            "MemberName": "Object2",
+                            "RevisionNum": None,
+                        }
+                    ],
+                }
+            )
+            task._run_task()
+            self.assertEqual(-1, task._snapshot["CustomObject"]["Object2"])
+            self.assertFalse(
                 os.path.exists(
                     os.path.join(
                         ".sfdx", "orgs", "test-cci@example.com", "maxrevision.json"

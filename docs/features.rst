@@ -631,7 +631,7 @@ follow these steps to convert your project to store DX format source code in the
         "default": true
         }
     ],
-    "sourceApiVersion": "45.0”
+    "sourceApiVersion": "46.0”
     }
 
 2. Add ``source_format: sfdx`` to the project section of ``cumulusci.yml``.
