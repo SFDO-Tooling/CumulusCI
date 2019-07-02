@@ -38,19 +38,18 @@ from cumulusci.core.exceptions import CumulusCIUsageError
 from cumulusci.core.exceptions import OrgNotFound
 from cumulusci.core.exceptions import ScratchOrgException
 from cumulusci.core.exceptions import ServiceNotConfigured
-from cumulusci.core.exceptions import ServiceNotValid
 from cumulusci.core.exceptions import FlowNotFoundError
 
 from cumulusci.core.utils import import_global
 from cumulusci.cli.config import CliRuntime
 from cumulusci.cli.config import get_installed_version
+from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
 from cumulusci.utils import doc_task
 from cumulusci.utils import get_cci_upgrade_command
 from cumulusci.oauth.salesforce import CaptureSalesforceOAuth
 
 from .logger import init_logger
 import re
-import simple_salesforce
 
 
 @contextmanager
@@ -1023,18 +1022,7 @@ def org_shell(config, org_name):
     org_name, org_config = config.get_org(org_name)
     org_config.refresh_oauth_token(config.keychain)
 
-    sf = simple_salesforce.Salesforce(
-        instance_url=org_config.instance_url,
-        session_id=org_config.access_token,
-        version=config.project_config.project__package__api_version,
-    )
-    try:
-        app = config.project_config.keychain.get_service("connectedapp")
-        client_name = app.client_id
-    except (ServiceNotValid, ServiceNotConfigured):
-        client_name = "CumulusCI/{}".format(cumulusci.__version__)
-
-    sf.headers.setdefault("Sforce-Call-Options", "client={}".format(client_name))
+    sf = get_simple_salesforce_connection(config.project_config, org_config)
 
     code.interact(
         banner="Use `sf` to access org `{}` via simple_salesforce".format(org_name),
