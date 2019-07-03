@@ -102,9 +102,9 @@ jobs:
             # we need to modify our task to make it easier to save the
             # output.xml file with a unique name. Until then, we have
             # to manually preserve each file under a different name
-            venv/bin/coverage run --append venv/bin/cci task run robot -o name "CumulusCI" -o suites cumulusci/robotframework/tests/cumulusci  -o xunit -o verbose True robot_results/robot/cumulusci.xml || true
+            venv/bin/coverage run --append venv/bin/cci task run robot -o name "CumulusCI" -o suites cumulusci/robotframework/tests/cumulusci  -o xunit robot_results/robot/cumulusci.xml -o verbose True || true
             mv output.xml robot_results/robot/cumulusci-output.xml
-            venv/bin/coverage run --append venv/bin/cci task run robot -o name "Salesforce API" -o suites cumulusci/robotframework/tests/salesforce -o include api -o xunit -o perf_tracelevel 2 robot_results/robot/salesforce_api.xml || true
+            venv/bin/coverage run --append venv/bin/cci task run robot -o name "Salesforce API" -o suites cumulusci/robotframework/tests/salesforce -o include api -o xunit robot_results/robot/salesforce_api.xml -o perf_tracelevel 2 || true
             mv output.xml robot_results/robot/salesforce_api-output.xml
             venv/bin/coverage run --append venv/bin/cci task run robot -o name "Salesforce UI Chrome" -o suites cumulusci/robotframework/tests/salesforce -o exclude api -o xunit robot_results/robot/salesforce_ui_chrome.xml || true
             mv output.xml robot_results/robot/salesforce_ui_chrome-output.xml
