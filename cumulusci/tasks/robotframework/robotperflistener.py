@@ -137,7 +137,7 @@ class DurationAggregator:
         self.duration = -1
 
     def process(self, value):
-        pass
+        pass  # pragma: no cover
 
     def finish(self):
         self.duration = time.time() - self.start_time
