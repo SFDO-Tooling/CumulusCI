@@ -39,6 +39,7 @@ class RobotPerfListener:
         self._metrics = {}
         self.task = task
         self.verbosity = verbosity
+        self.outputdir = None
 
     def start_suite(self, name, attributes=None):
         self._current_suite = {}
@@ -115,7 +116,7 @@ class AverageAggregator:
 
     @property
     def value(self):
-        return self.value / self.count
+        return self.sum / self.count
 
 
 class TotalAggregator:
