@@ -2,7 +2,7 @@ import os
 import time
 import mock
 import json
-import tempfile
+from cumulusci.utils import temporary_dir
 import unittest
 
 from cumulusci.tasks.robotframework import robotperflistener
@@ -21,7 +21,8 @@ class TestRobotPerfListener(unittest.TestCase):
         """Helper function that does teardown and returns json"""
         self.rpl.end_test("fake_test")
         self.rpl.end_suite("fake_suite")
-        with tempfile.TemporaryDirectory() as tempdir:
+
+        with temporary_dir() as tempdir:
             self.rpl.output_file(os.path.join(tempdir, "junk.xml"))
             self.rpl.close()
             return json.load(open(os.path.join(tempdir, "perf.json")))
