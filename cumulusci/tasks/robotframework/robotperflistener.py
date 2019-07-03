@@ -90,7 +90,7 @@ class RobotPerfListener:
 
     def store_metric_value(self, name, value):
         """Extension to the Listener API for adding new values to a metric."""
-        self._current_test.custom_metrics[name].reduce(value)
+        self._current_test.custom_metrics[name].process(value)
 
     def create_duration_metric(self, name):
         """Extension to the Listener API for creating new durations."""
@@ -109,7 +109,7 @@ class AverageAggregator:
         self.value = 0
         self.count = 0
 
-    def reduce(self, value):
+    def process(self, value):
         self.value = (self.value * self.count + float(value)) / (self.count + 1)
         self.count += 1
 
@@ -120,7 +120,7 @@ class TotalAggregator:
     def __init__(self):
         self.value = 0
 
-    def reduce(self, value):
+    def process(self, value):
         self.value += value
 
 
@@ -131,7 +131,7 @@ class DurationAggregator:
         self.start_time = time.time()
         self.duration = -1
 
-    def reduce(self, value):
+    def process(self, value):
         pass
 
     def finish(self):
