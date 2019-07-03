@@ -39,12 +39,15 @@ from cumulusci.core.exceptions import OrgNotFound
 from cumulusci.core.exceptions import ScratchOrgException
 from cumulusci.core.exceptions import ServiceNotConfigured
 from cumulusci.core.exceptions import FlowNotFoundError
+
 from cumulusci.core.utils import import_global
 from cumulusci.cli.config import CliRuntime
 from cumulusci.cli.config import get_installed_version
+from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
 from cumulusci.utils import doc_task
 from cumulusci.utils import get_cci_upgrade_command
 from cumulusci.oauth.salesforce import CaptureSalesforceOAuth
+
 from .logger import init_logger
 import re
 
@@ -1009,6 +1012,32 @@ def org_scratch_delete(config, org_name):
     config.keychain.set_org(org_config)
 
 
+@click.command(
+    name="shell",
+    help="Drop into a Python shell with a simple_salesforce connection in `sf`, "
+    "as well as the `org_config` and `project_config`.",
+)
+@click.argument("org_name", required=False)
+@pass_config
+def org_shell(config, org_name):
+    org_name, org_config = config.get_org(org_name)
+    org_config.refresh_oauth_token(config.keychain)
+
+    sf = get_simple_salesforce_connection(config.project_config, org_config)
+
+    code.interact(
+        banner="Use `sf` to access org `{}` via simple_salesforce".format(org_name),
+        local={
+            "sf": sf,
+            "org_config": org_config,
+            "project_config": config.project_config,
+        },
+    )
+
+    # Save the org config in case it was modified
+    config.keychain.set_org(org_config)
+
+
 org.add_command(org_browser)
 org.add_command(org_connect)
 org.add_command(org_default)
@@ -1018,6 +1047,7 @@ org.add_command(org_list)
 org.add_command(org_remove)
 org.add_command(org_scratch)
 org.add_command(org_scratch_delete)
+org.add_command(org_shell)
 
 
 # Commands for group: task
