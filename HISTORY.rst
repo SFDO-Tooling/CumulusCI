@@ -2,6 +2,13 @@
 History
 =======
 
+2.5.4 (2019-07-03)
+------------------
+
+* Updated the default API version for new projects to 46.0
+* Fixed a bug in reporting scratch org creation errors encountered while running a flow.
+* Fixed the ``snapshot_changes`` and ``list_changes`` tasks to avoid breaking when the last revision number of a component is null.
+
 2.5.3 (2019-06-24)
 ------------------
 
