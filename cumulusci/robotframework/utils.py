@@ -230,5 +230,5 @@ class PerfJSONConverter:
 
         return res
 
-    def to_log_message(self, metadata):
-        return "#perfmetrics {} \n{}".format(metadata or "", self.perfJSON2CSV())
+    def to_log_message(self, metadata=""):
+        return "#perfmetrics {} \n{}".format(metadata or "", self.to_csv())
