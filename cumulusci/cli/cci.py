@@ -1014,7 +1014,8 @@ def org_scratch_delete(config, org_name):
 
 @click.command(
     name="shell",
-    help="Drop into a Python shell with a simple_salesforce connection in `sf`",
+    help="Drop into a Python shell with a simple_salesforce connection in `sf`, "
+    "as well as the `org_config` and `project_config`.",
 )
 @click.argument("org_name", required=False)
 @pass_config
@@ -1026,7 +1027,11 @@ def org_shell(config, org_name):
 
     code.interact(
         banner="Use `sf` to access org `{}` via simple_salesforce".format(org_name),
-        local=dict(globals(), **locals()),
+        local={
+            "sf": sf,
+            "org_config": org_config,
+            "project_config": config.project_config,
+        },
     )
 
     # Save the org config in case it was modified
