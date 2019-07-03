@@ -12,7 +12,6 @@ from cumulusci.core.tasks import CURRENT_TASK
 from cumulusci.core.utils import import_global
 from cumulusci.robotframework.utils import set_pdb_trace, PerfJSONConverter
 from cumulusci.tasks.robotframework.robotframework import Robot
-from contextlib import contextmanager
 
 
 class CumulusCI(object):
@@ -48,6 +47,10 @@ class CumulusCI(object):
         logging.getLogger("requests.packages.urllib3.connectionpool").setLevel(
             logging.WARN
         )
+        if self.perf_listener:
+            # we never uninstall because the objects we are hooking are
+            # scoped to the lifetime of this task anyhow
+            self._install_perf_hook()
 
     @property
     def robot_task(self):
@@ -234,43 +237,27 @@ class CumulusCI(object):
         if hook not in self.sf.session.hooks["response"]:
             self.sf.session.hooks["response"].append(hook)
 
-    def _unregister_response_hook(self, hook):
-        if hook in self.sf.session.hooks["response"]:
-            self.sf.session.hooks["response"].remove(hook)
-
-    @contextmanager
-    def _perf_wrapper(self):
+    def _response_callback(self, response, **kwargs):
         self._last_performance_metrics = {}
-        if not self.perf_listener:
-            yield  # just ignore me if I'm not relevant.
+        if "perfmetrics" in response.headers.keys():
+            metric_str = response.headers["perfmetrics"]
+            metadata = {}
+            metadata["url"] = response.request.url
+            metadata["method"] = response.request.method
+            self._last_performance_metrics["_meta"] = metadata
+            include_raw = self.perf_listener.verbosity >= 2
+            perfjson = PerfJSONConverter(metric_str)
+            self._last_performance_metrics.update(
+                perfjson.to_dict(include_raw=include_raw)
+            )
+            self.perf_listener.report(self._last_performance_metrics)
+            # sometimes it is handy to log this stuff
+            # BuiltIn().log(perfjson.to_log_message(metadata))
 
-        def response_callback(response, **kwargs):
-            if "perfmetrics" in response.headers.keys():
-                metric_str = response.headers["perfmetrics"]
-                metadata = {}
-                metadata["url"] = response.request.url
-                metadata["method"] = response.request.method
-                self._last_performance_metrics["_meta"] = metadata
-                include_raw = self.perf_listener.verbosity >= 2
-                perfjson = PerfJSONConverter(metric_str)
-                self._last_performance_metrics.update(
-                    perfjson.to_dict(include_raw=include_raw)
-                )
-
-                # sometimes it is handy to log this stuff
-                # BuiltIn().log(perfjson.to_log_message(metadata))
-
+    def _install_perf_hook(self):
         # https://github.com/forcedotcom/idecore/blob/f107a6cb61ee38cd7f5b24fc9610893f24a33264/config/wsdls/src/main/resources/apex.wsdl#L239
         self.sf.session.headers["Sforce-Call-Options"] = "perfOption=MINIMUM"
-        self._register_response_hook(response_callback)
-        try:
-
-            yield self._last_performance_metrics
-            if self.perf_listener:
-                self.perf_listener.report(self._last_performance_metrics)
-        finally:
-            self.sf.session.headers["Sforce-Call-Options"] = ""
-            self._unregister_response_hook(response_callback)
+        self._register_response_hook(self._response_callback)
 
     def get_performance_metrics(self):
         """Performance metrics keyword: Get the last recorded performance metrics"""
