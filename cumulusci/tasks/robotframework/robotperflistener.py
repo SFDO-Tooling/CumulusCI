@@ -106,12 +106,16 @@ class AverageAggregator:
     """Takes a stream of numbers delivered to the "reduce" function and averages them"""
 
     def __init__(self):
-        self.value = 0
+        self.sum = 0
         self.count = 0
 
     def process(self, value):
-        self.value = (self.value * self.count + float(value)) / (self.count + 1)
+        self.sum += float(value)
         self.count += 1
+
+    @property
+    def value(self):
+        return self.value / self.count
 
 
 class TotalAggregator:
