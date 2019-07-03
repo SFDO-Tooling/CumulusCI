@@ -23,6 +23,10 @@ class TestRobot(unittest.TestCase):
         with self.assertRaises(RobotTestFailure):
             task()
 
+    @mock.patch("cumulusci.tasks.robotframework.robotframework.robot_run")
+    def test_run_verbose(self, robot_run):
+        create_task(Robot, {"suites": "tests", "verbose": True})
+
 
 class TestRobotTestDoc(unittest.TestCase):
     @mock.patch("cumulusci.tasks.robotframework.robotframework.testdoc")
