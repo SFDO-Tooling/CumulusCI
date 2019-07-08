@@ -16,6 +16,7 @@ from SeleniumLibrary.errors import ElementNotFound, NoOpenBrowser
 from urllib3.exceptions import ProtocolError
 
 OID_REGEX = r"^(%2F)?([a-zA-Z0-9]{15,18})$"
+TYPE_KEY = ("type",)
 
 lex_locators = {}  # will be initialized when Salesforce is instantiated
 
@@ -499,9 +500,9 @@ class Salesforce(object):
         """Inserts up to 200 records that were created with Salesforce Init Objects"""
 
         def dict_to_insertable(d):
-            insertable = {"attributes": {"type": d["type"]}}
+            insertable = {"attributes": {"type": d[TYPE_KEY]}}
             for key, value in d.items():
-                if key != "type":
+                if key != TYPE_KEY:
                     insertable[key] = value
             return insertable
 
@@ -530,7 +531,7 @@ class Salesforce(object):
            """
         objs = []
         for i in range(int(number_to_create)):
-            obj = {"type": obj_name}  # Object type to create
+            obj = {("type",): obj_name}  # Object type to create
             for name, value in fields.items():
                 if hasattr(value, "format"):  # Duck-check for if it is string-like
                     obj[name] = value.format(
