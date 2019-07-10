@@ -93,7 +93,8 @@ Collection API Test
         ...  LastName="{random_str}"
     @{records} =    Salesforce Collection Insert  ${objects}
     FOR     ${record}   IN  @{records}
-        set to dictionary   ${record}   LastName    Generate Random String
+        ${new_last_name} =  Generate Random String
+        set to dictionary   ${record}   LastName    ${new_last_name}
     END
     Salesforce Collection Update    ${records}
 
