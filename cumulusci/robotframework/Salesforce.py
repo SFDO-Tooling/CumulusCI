@@ -16,7 +16,7 @@ from SeleniumLibrary.errors import ElementNotFound, NoOpenBrowser
 from urllib3.exceptions import ProtocolError
 
 OID_REGEX = r"^(%2F)?([a-zA-Z0-9]{15,18})$"
-TYPE_KEY = ("type",)
+STATUS_KEY = ("status",)
 
 lex_locators = {}  # will be initialized when Salesforce is instantiated
 
@@ -496,27 +496,6 @@ class Salesforce(object):
 
         return res["id"]
 
-    def salesforce_collection_insert(self, objects):
-        """Inserts up to 200 records that were created with Salesforce Init Objects"""
-
-        def dict_to_insertable(d):
-            insertable = {"attributes": {"type": d[TYPE_KEY]}}
-            for key, value in d.items():
-                if key != TYPE_KEY:
-                    insertable[key] = value
-            return insertable
-
-        insertables = [dict_to_insertable(o) for o in objects]
-
-        records = self.cumulusci.sf.restful(
-            "composite/sobjects",
-            method="POST",
-            json={"allOrNone": False, "records": insertables},
-        )
-        for record, insertable in zip(records, insertables):
-            self.store_session_record(insertable["attributes"]["type"], record["id"])
-        return records
-
     def salesforce_init_objects(self, obj_name, number_to_create, **fields):
         """Create an array of dictionaries with template-formatted arguments appropriate for a Collection Insert.
             Use ``{number}`` to represent the unique index of the row in the list of rows and ``{random_str}`` to represent a random string.
@@ -534,7 +513,7 @@ class Salesforce(object):
            """
         objs = []
         for i in range(int(number_to_create)):
-            obj = {("type",): obj_name}  # Object type to create
+            obj = {"attributes": {"type": obj_name}}  # Object type to create
             for name, value in fields.items():
                 if hasattr(value, "format"):  # Duck-check for if it is string-like
                     obj[name] = value.format(
@@ -544,6 +523,40 @@ class Salesforce(object):
                     obj[name] = value
             objs.append(obj)
         return objs
+
+    def salesforce_collection_insert(self, objects):
+        """Inserts up to 200 records that were created with Salesforce Init Objects"""
+        assert (
+            not obj["id"] for obj in objects
+        ), "Insertable objects should not have IDs"
+
+        records = self.cumulusci.sf.restful(
+            "composite/sobjects",
+            method="POST",
+            json={"allOrNone": True, "records": objects},
+        )
+
+        for record, obj in zip(records, objects):
+            self.store_session_record(obj["attributes"]["type"], record["id"])
+            obj["id"] = record["id"]
+            obj[STATUS_KEY] = record
+
+        return objects
+
+    def salesforce_collection_update(self, objects):
+        """Updates up to 200 records described as Robot/Python dictionaries"""
+        for obj in objects:
+            assert obj["id"], "Should be a list of objects with Ids"
+            del obj[STATUS_KEY]
+
+        records = self.cumulusci.sf.restful(
+            "composite/sobjects",
+            method="PATCH",
+            json={"allOrNone": True, "records": objects},
+        )
+
+        for record, obj in zip(records, objects):
+            obj[STATUS_KEY] = record
 
     def salesforce_query(self, obj_name, **kwargs):
         """ Constructs and runs a simple SOQL query and returns the dict results """
