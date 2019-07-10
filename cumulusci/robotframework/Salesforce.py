@@ -508,11 +508,14 @@ class Salesforce(object):
 
         insertables = [dict_to_insertable(o) for o in objects]
 
-        return self.cumulusci.sf.restful(
+        records = self.cumulusci.sf.restful(
             "composite/sobjects",
             method="POST",
             json={"allOrNone": False, "records": insertables},
         )
+        for record, insertable in zip(records, insertables):
+            self.store_session_record(insertable["attributes"]["type"], record["id"])
+        return records
 
     def salesforce_init_objects(self, obj_name, number_to_create, **fields):
         """Create an array of dictionaries with template-formatted arguments appropriate for a Collection Insert.
