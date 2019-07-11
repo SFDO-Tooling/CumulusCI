@@ -9,7 +9,7 @@ Force Tags      api200
 
 *** Keywords ***
 Insert 200 Contacts
-    [Documentation] Create 200 Contacts in CONTACTS suite variable
+    [Documentation]  Create 200 Contacts in CONTACTS suite variable
     @{objects}=  Salesforce Init Objects  Contact  200  
         ...  FirstName="User {number}"
         ...  LastName="{random_str}"
@@ -18,8 +18,8 @@ Insert 200 Contacts
     [return]    ${objects}
 
 Create Accounts If Necessary
-    [Documentation] Create 200 Accounts corresponding to CONTACTS suite variable
-    ... and update the contacts to connect to them
+    [Documentation]  Create 200 Accounts corresponding to CONTACTS suite variable
+    ...              and update the contacts to connect to them
     ${idlist} =     Evaluate    ",".join([f"'{contact['id']}'" for contact in $CONTACTS])
     ${query} =      Set Variable   SELECT id FROM Contact WHERE AccountId=null AND id in (${idlist})
     ${query_results} =   SOQL Query    ${query}
@@ -31,7 +31,7 @@ Create Accounts If Necessary
         ${new_account}=   Salesforce Init Object     Account   
         ...                                          Name=${account_name}
         Append to list      ${newobjects}       ${new_account}
-    END
+    ENDg
 
     ${created_records}=     Salesforce Collection Insert  ${newobjects}
 
@@ -46,7 +46,7 @@ Create Accounts If Necessary
 
 
 Insert 200 Pledged Opportunities
-    [Documentation] Create 200 Opportunities in OPPORTUNITIES suite variable
+    [Documentation]  Create 200 Opportunities in OPPORTUNITIES suite variable
     ...             Associate with accounts queried from Salesforce
     ...             These may have been created by ``Create Accounts If Necessary``
     ...             or may have been created automatically by a package like NPSP.
