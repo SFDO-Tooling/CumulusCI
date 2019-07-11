@@ -31,7 +31,7 @@ Create Accounts If Necessary
         ${new_account}=   Salesforce Init Object     Account   
         ...                                          Name=${account_name}
         Append to list      ${newobjects}       ${new_account}
-    ENDg
+    END
 
     ${created_records}=     Salesforce Collection Insert  ${newobjects}
 
