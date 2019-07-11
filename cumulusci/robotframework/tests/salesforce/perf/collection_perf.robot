@@ -1,6 +1,7 @@
 *** Settings ***
 Documentation   Tests of collections of records based on Jess Lopez's work here: 
 ...             https://salesforce.quip.com/dsUXAOxiKz28  (Salesforce Internal)
+...             Note that keywords referenced in Setup are NOT performance measure.
 Library         DateTime
 Resource        cumulusci/robotframework/Salesforce.robot
 # Suite Teardown  Delete Session Records
@@ -8,6 +9,7 @@ Force Tags      api200
 
 *** Keywords ***
 Insert 200 Contacts
+    [Documentation] Create 200 Contacts in CONTACTS suite variable
     @{objects}=  Salesforce Init Objects  Contact  200  
         ...  FirstName="User {number}"
         ...  LastName="{random_str}"
@@ -16,9 +18,9 @@ Insert 200 Contacts
     [return]    ${objects}
 
 Create Accounts If Necessary
-    [Arguments]      ${contacts}
-
-    ${idlist} =     Evaluate    ",".join([f"'{contact['id']}'" for contact in $contacts])
+    [Documentation] Create 200 Accounts corresponding to CONTACTS suite variable
+    ... and update the contacts to connect to them
+    ${idlist} =     Evaluate    ",".join([f"'{contact['id']}'" for contact in $CONTACTS])
     ${query} =      Set Variable   SELECT id FROM Contact WHERE AccountId=null AND id in (${idlist})
     ${query_results} =   SOQL Query    ${query}
     ${contacts_without_accounts} =    Set Variable    ${query_results}[records]
@@ -40,18 +42,22 @@ Create Accounts If Necessary
         Set To Dictionary   ${contact}    'AccountId'     ${account_id}
     END
 
-    ${created_records}=     Salesforce Collection Update  ${contacts}
+    Salesforce Collection Update  ${CONTACTS}
 
 
 Insert 200 Pledged Opportunities
-    Create Accounts If Necessary        ${CONTACTS}
+    [Documentation] Create 200 Opportunities in OPPORTUNITIES suite variable
+    ...             Associate with accounts queried from Salesforce
+    ...             These may have been created by ``Create Accounts If Necessary``
+    ...             or may have been created automatically by a package like NPSP.
+    Create Accounts If Necessary
     @{accounts}=    Salesforce Query    Account
 
     ${date}=    Get Current Date     result_format=%Y-%m-%d
     @{objects}=  Salesforce Init Objects  Opportunity  200  
-        ...  Name= "Opp {number}"
-        ...  StageName=Pledged
-        ...  Amount=0   # FIXME
+        ...  Name= Opp {number}
+        ...  StageName= Pledged
+        ...  Amount= {int}
         ...  CloseDate=${date}
     ${numobjects}=  Get Length     ${objects}
     FOR     ${index}   IN RANGE   ${numobjects}
