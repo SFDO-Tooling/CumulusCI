@@ -503,32 +503,38 @@ class Salesforce(object):
 
     def salesforce_init_objects(self, obj_name, number_to_create, **fields):
         """Create an array of dictionaries with template-formatted arguments appropriate for a Collection Insert.
-            Use ``{number}`` to represent the unique index of the row in the list of rows and ``{random_str}`` to represent a random string.
+            Use ``{number}`` to represent the unique index of the row in the list of rows, ``{random_str}`` to represent a random string
+            and a string that consists of just ``{int}`` to generate an actual integer (as opposed to a string-encoded number)
+
             For example:
 
                 | @{objects} =  Salesforce Init Objects  Contact  3
                 | ...  FirstName="User {number}"
                 | ...  LastName="{random_str}"
+                | ...  Age="{int()}
 
             Which would generate:
 
-                | [{'FirstName': '"User 0"', 'LastName': '"u4PNlGUD"', 'type': 'Contact'},
-                |  {'FirstName': '"User 1"', 'LastName': '"Kyd4PC5x"', 'type': 'Contact'},
-                |  {'FirstName': '"User 2"', 'LastName': '"n4EGs4Vp"', 'type': 'Contact'}]
+                | [{'FirstName': '"User 0"', 'LastName': '"u4PNlGUD"', 'type': 'Contact', 'Age': 0},
+                |  {'FirstName': '"User 1"', 'LastName': '"Kyd4PC5x"', 'type': 'Contact', 'Age': 1},
+                |  {'FirstName': '"User 2"', 'LastName': '"n4EGs4Vp"', 'type': 'Contact', 'Age': 2}]
            """
         objs = []
 
-        def format_str(value):
+        def format_str(value, i):
             if hasattr(value, "format"):  # Duck-check for if it is string-like
-                return value.format(
-                    number=i, random_str=String().generate_random_string()
-                )
+                if value.strip().lower() == "{int}":
+                    return i
+                else:
+                    return value.format(
+                        number=i, random_str=String().generate_random_string()
+                    )
             else:
                 return value
 
         for i in range(int(number_to_create)):
             formatted_fields = {
-                name: format_str(value) for name, value in fields.items()
+                name: format_str(value, i) for name, value in fields.items()
             }
             newobj = self.salesforce_init_object(obj_name, **formatted_fields)
             objs.append(newobj)
