@@ -496,6 +496,11 @@ class Salesforce(object):
 
         return res["id"]
 
+    def salesforce_init_object(self, obj_name, **fields):
+        obj = {"attributes": {"type": obj_name}}  # Object type to create
+        obj.update(fields)
+        return obj
+
     def salesforce_init_objects(self, obj_name, number_to_create, **fields):
         """Create an array of dictionaries with template-formatted arguments appropriate for a Collection Insert.
             Use ``{number}`` to represent the unique index of the row in the list of rows and ``{random_str}`` to represent a random string.
@@ -512,22 +517,28 @@ class Salesforce(object):
                 |  {'FirstName': '"User 2"', 'LastName': '"n4EGs4Vp"', 'type': 'Contact'}]
            """
         objs = []
+
+        def format_str(value):
+            if hasattr(value, "format"):  # Duck-check for if it is string-like
+                return value.format(
+                    number=i, random_str=String().generate_random_string()
+                )
+            else:
+                return value
+
         for i in range(int(number_to_create)):
-            obj = {"attributes": {"type": obj_name}}  # Object type to create
-            for name, value in fields.items():
-                if hasattr(value, "format"):  # Duck-check for if it is string-like
-                    obj[name] = value.format(
-                        number=i, random_str=String().generate_random_string()
-                    )
-                else:
-                    obj[name] = value
-            objs.append(obj)
+            formatted_fields = {
+                name: format_str(value) for name, value in fields.items()
+            }
+            newobj = self.salesforce_init_object(obj_name, **formatted_fields)
+            objs.append(newobj)
+
         return objs
 
     def salesforce_collection_insert(self, objects):
         """Inserts up to 200 records that were created with Salesforce Init Objects"""
         assert (
-            not obj["id"] for obj in objects
+            not obj.get("id", None) for obj in objects
         ), "Insertable objects should not have IDs"
 
         records = self.cumulusci.sf.restful(
@@ -537,6 +548,8 @@ class Salesforce(object):
         )
 
         for record, obj in zip(records, objects):
+            if record["errors"]:
+                raise AssertionError(*record["errors"])
             self.store_session_record(obj["attributes"]["type"], record["id"])
             obj["id"] = record["id"]
             obj[STATUS_KEY] = record
