@@ -7,7 +7,6 @@ from contextlib import contextmanager
 import datetime
 import io
 import os
-import re
 import time
 import tempfile
 import xml.etree.ElementTree as ET
@@ -800,6 +799,21 @@ class ExtractData(BulkJobTaskMixin, BaseSalesforceApiTask):
                 f.write(line + "\n")
 
 
+def represent_ordereddict(dumper, data):
+    value = []
+
+    for item_key, item_value in data.items():
+        node_key = dumper.represent_data(item_key)
+        node_value = dumper.represent_data(item_value)
+
+        value.append((node_key, node_value))
+
+    return yaml.nodes.MappingNode(u"tag:yaml.org,2002:map", value)
+
+
+yaml.add_representer(OrderedDict, represent_ordereddict)
+
+
 class GenerateMapping(BaseSalesforceApiTask):
     task_options = {
         "path": {"description": "Location to write the mapping file", "required": True},
@@ -834,6 +848,8 @@ class GenerateMapping(BaseSalesforceApiTask):
 
     def _is_audit_field(self, api_name):
         # This list will be revised when we change our user support.
+        # It's also a bit of a misnomer; "Name" is not an audit field
+        # We always include these fields on all objects.
         return api_name in ["Id", "Name", "CreatedDate", "LastModifiedDate"]
 
     def _is_object_mappable(self, obj):
@@ -856,56 +872,71 @@ class GenerateMapping(BaseSalesforceApiTask):
             ]
         )
 
-    def _run_task(self):
-        refs = {}
-        mapping_objects = []
+    def _has_our_custom_field(self, obj):
+        return any(
+            [self._is_our_custom_api_name(field["name"]) for field in obj["fields"]]
+        )
+
+    def _collect_objects(self):
+        self.refs = {}
+        self.mapping_objects = []
 
         # Cache the global describe, which we'll walk.
-        global_describe = self.sf.describe()
+        self.global_describe = self.sf.describe()
 
         # First, we'll get a list of all objects that are either
         # (a) custom, no namespace
         # (b) custom, with our namespace
         # (c) not ours (standard or other package), but have fields with our namespace or no namespace
-        describes = {}  # Cache per-object describes for efficiency
-        for obj in global_describe["sobjects"]:
-            describes[obj["name"]] = getattr(self.sf, obj["name"]).describe()
-            if self._is_our_custom_api_name(obj["name"]) or any(
-                [
-                    self._is_our_custom_api_name(field["name"])
-                    for field in describes[obj["name"]]["fields"]
-                ]
+        self.describes = {}  # Cache per-object describes for efficiency
+        for obj in self.global_describe["sobjects"]:
+            self.describes[obj["name"]] = getattr(self.sf, obj["name"]).describe()
+            if self._is_our_custom_api_name(obj["name"]) or self._has_our_custom_fields(
+                obj
             ):
                 if self._is_object_mappable(obj):
-                    mapping_objects.append(obj["name"])
+                    self.mapping_objects.append(obj["name"])
 
-        # FIXME: add any objects to which ours look up
-        # Either a custom field (master-detail or lookup), or a master-detail on a standard object.
+        # Add any objects that are required by our own,
+        # meaning any object we are looking up to with a custom field,
+        # or any master-detail parent of any included object.
+        index = 0
+        while index < len(self.mapping_objects):
+            obj = self.mapping_objects[index]
+            for field in self.describes[obj]["fields"]:
+                if field["type"] == "reference":
+                    if field["relationshipOrder"] == 1 or self._is_any_custom_api_name(
+                        field["name"]
+                    ):
+                        self.mapping_objects.extend(field["referenceTo"])
+            index += 1
 
+    def _build_schema(self):
         # Now, find all the fields we need to include.
         # For custom objects, we include all custom fields. This includes custom objects
         # that our package doesn't own.
         # For standard objects, we include all custom fields, all required standard fields,
         # and master-detail relationships.
-        schema = {}
-        for obj in mapping_objects:
-            schema[obj] = {}
+        self.schema = {}
+        for obj in self.mapping_objects:
+            self.schema[obj] = {}
 
-            for field in describes[obj]["fields"]:
+            for field in self.describes[obj]["fields"]:
                 if (
                     self._is_any_custom_api_name(field["name"])
                     or self._is_audit_field(field["name"])
                 ) and self._is_field_mappable(obj, field):
-                    schema[obj][field["name"]] = field
+                    self.schema[obj][field["name"]] = field
 
                     if field["type"] == "reference":
                         for target in field["referenceTo"]:
-                            if obj not in refs and obj in mapping_objects:
-                                refs[obj] = set()
-                            refs[obj].add(target)
+                            if obj not in self.refs and obj in self.mapping_objects:
+                                self.refs[obj] = set()
+                            self.refs[obj].add(target)
 
-        objs = set(schema.keys())
-        stack = self._split_dependencies(objs, refs)
+    def _build_mapping(self):
+        objs = set(self.schema.keys())
+        stack = self._split_dependencies(objs, self.refs)
 
         mapping = OrderedDict()
         for obj in stack:
@@ -916,7 +947,7 @@ class GenerateMapping(BaseSalesforceApiTask):
             mapping[key]["table"] = "{}".format(obj.lower())
             fields = []
             lookups = []
-            for field in schema[obj].values():
+            for field in self.schema[obj].values():
                 if field["referenceTo"]:
                     lookups.append(field["name"])
                 else:
@@ -925,32 +956,37 @@ class GenerateMapping(BaseSalesforceApiTask):
             if fields:
                 fields.sort()
                 for field in fields:
-                    namespaced_field = field
-                    if not re.match(r".*__.*__c", field) and field.endswith("__c"):
-                        namespaced_field = self.options["namespace_prefix"] + field
-
-                    mapping[key]["fields"][namespaced_field] = (
+                    mapping[key]["fields"][field] = (
                         field.lower().replace("__c", "") if field != "Id" else "sf_id"
                     )
             if lookups:
                 lookups.sort()
                 mapping[key]["lookups"] = OrderedDict()
                 for field in lookups:
-                    namespaced_field = self.options["namespace_prefix"] + field
-                    mapping[key]["lookups"][namespaced_field] = {
-                        "table": schema[obj][field]["referenceTo"][
-                            0
-                        ].lower()  # FIXME: raise a warning on polymorphic lookups
+                    mapping[key]["lookups"][field] = {
+                        "table": self.schema[obj][field]["referenceTo"][0].lower()
                     }
+                    if len(self.schema[obj][field]["referenceTo"]) > 1:
+                        self.logger.warning(
+                            "Field {}.{} is a polymorphic lookup, which is not supported".format(
+                                obj, field
+                            )
+                        )
 
         with open(self.options["path"], "w") as f:
             yaml.dump(mapping, f)
+
+    def _run_task(self):
+        self._collect_objects()
+        self._build_schema()
+        self._build_mapping()
 
     def _split_dependencies(self, objs, dependencies):
         stack = []
         objs_remaining = objs.copy()
 
-        # dependencies' structure is: key = object, value = list of objects it references.
+        # The structure of `dependencies` is:
+        # key = object, value = list of objects it references.
 
         # Iterate through our list of objects
         # For each object, if it is not dependent on any other objects, place it at the end of the stack.
