@@ -509,9 +509,9 @@ class Salesforce(object):
             For example:
 
                 | @{objects} =  Salesforce Init Objects  Contact  3
-                | ...  FirstName="User {number}"
-                | ...  LastName="{random_str}"
-                | ...  Age="{int()}
+                | ...  FirstName=User {number}
+                | ...  LastName={random_str}
+                | ...  Age={int()}
 
             Which would generate:
 
