@@ -2,13 +2,16 @@ from future import standard_library
 
 standard_library.install_aliases()
 from builtins import zip
+from collections import OrderedDict
 from contextlib import contextmanager
 import datetime
 import io
 import os
+import re
 import time
 import tempfile
 import xml.etree.ElementTree as ET
+import yaml
 
 from salesforce_bulk.util import IteratorBytesIO
 from sqlalchemy.ext.automap import automap_base
@@ -795,6 +798,198 @@ class ExtractData(BulkJobTaskMixin, BaseSalesforceApiTask):
         with open(path, "w") as f:
             for line in self.session.connection().connection.iterdump():
                 f.write(line + "\n")
+
+
+class GenerateMapping(BaseSalesforceApiTask):
+    task_options = {
+        "path": {"description": "Location to write the mapping file", "required": True},
+        "namespace_prefix": {"description": "The namespace prefix to use"},
+        "ignore": {
+            "description": "Object API names, or fields in Object.Field format, to ignore"
+        },
+    }
+
+    def _init_options(self, kwargs):
+        super(GenerateMapping, self)._init_options(kwargs)
+        if "namespace_prefix" not in self.options:
+            self.options["namespace_prefix"] = ""
+
+        if "ignore" in self.options:
+            if type(self.options["ignore"]) is str:
+                self.options["ignore"] = [
+                    f.strip() for f in self.options["ignore"].split(";")
+                ]
+
+    def _is_any_custom_api_name(self, api_name):
+        return api_name.endswith("__c")
+
+    def _is_our_custom_api_name(self, api_name):
+        return self._is_any_custom_api_name(api_name) and (
+            (
+                self.options["namespace_prefix"]
+                and api_name.startswith(self.options["namespace_prefix"])
+            )
+            or api_name.count("__") == 1
+        )
+
+    def _is_audit_field(self, api_name):
+        # This list will be revised when we change our user support.
+        return api_name in ["Id", "Name", "CreatedDate", "LastModifiedDate"]
+
+    def _is_object_mappable(self, obj):
+        return not any(
+            [
+                obj["name"] in self.options["ignore"],
+                obj["name"].endswith("ChangeEvent"),
+                obj["customSetting"] == "true",
+            ]
+        )
+
+    def _is_field_mappable(self, obj, field):
+        return not any(
+            [
+                "(Deprecated)" in field["label"],
+                field["type"] in ["base64", "address", "location"],
+                field["calculated"] == "true",
+                field["autoNumber"] == "true",
+                "{}.{}".format(obj, field["name"]) in self.options["ignore"],
+            ]
+        )
+
+    def _run_task(self):
+        refs = {}
+        mapping_objects = []
+
+        # Cache the global describe, which we'll walk.
+        global_describe = self.sf.describe()
+
+        # First, we'll get a list of all objects that are either
+        # (a) custom, no namespace
+        # (b) custom, with our namespace
+        # (c) not ours (standard or other package), but have fields with our namespace or no namespace
+        describes = {}  # Cache per-object describes for efficiency
+        for obj in global_describe["sobjects"]:
+            describes[obj["name"]] = getattr(self.sf, obj["name"]).describe()
+            if self._is_our_custom_api_name(obj["name"]) or any(
+                [
+                    self._is_our_custom_api_name(field["name"])
+                    for field in describes[obj["name"]]["fields"]
+                ]
+            ):
+                if self._is_object_mappable(obj):
+                    mapping_objects.append(obj["name"])
+
+        # FIXME: add any objects to which ours look up
+        # Either a custom field (master-detail or lookup), or a master-detail on a standard object.
+
+        # Now, find all the fields we need to include.
+        # For custom objects, we include all custom fields. This includes custom objects
+        # that our package doesn't own.
+        # For standard objects, we include all custom fields, all required standard fields,
+        # and master-detail relationships.
+        schema = {}
+        for obj in mapping_objects:
+            schema[obj] = {}
+
+            for field in describes[obj]["fields"]:
+                if (
+                    self._is_any_custom_api_name(field["name"])
+                    or self._is_audit_field(field["name"])
+                ) and self._is_field_mappable(obj, field):
+                    schema[obj][field["name"]] = field
+
+                    if field["type"] == "reference":
+                        for target in field["referenceTo"]:
+                            if obj not in refs and obj in mapping_objects:
+                                refs[obj] = set()
+                            refs[obj].add(target)
+
+        objs = set(schema.keys())
+        stack = self._split_dependencies(objs, refs)
+
+        mapping = OrderedDict()
+        for obj in stack:
+            namespaced_obj = obj  # FIXME:
+            key = "Insert {}".format(namespaced_obj)
+            mapping[key] = OrderedDict()
+            mapping[key]["sf_object"] = "{}".format(namespaced_obj)
+            mapping[key]["table"] = "{}".format(obj.lower())
+            fields = []
+            lookups = []
+            for field in schema[obj].values():
+                if field["referenceTo"]:
+                    lookups.append(field["name"])
+                else:
+                    fields.append(field["name"])
+            mapping[key]["fields"] = OrderedDict()
+            if fields:
+                fields.sort()
+                for field in fields:
+                    namespaced_field = field
+                    if not re.match(r".*__.*__c", field) and field.endswith("__c"):
+                        namespaced_field = self.options["namespace_prefix"] + field
+
+                    mapping[key]["fields"][namespaced_field] = (
+                        field.lower().replace("__c", "") if field != "Id" else "sf_id"
+                    )
+            if lookups:
+                lookups.sort()
+                mapping[key]["lookups"] = OrderedDict()
+                for field in lookups:
+                    namespaced_field = self.options["namespace_prefix"] + field
+                    mapping[key]["lookups"][namespaced_field] = {
+                        "table": schema[obj][field]["referenceTo"][
+                            0
+                        ].lower()  # FIXME: raise a warning on polymorphic lookups
+                    }
+
+        with open(self.options["path"], "w") as f:
+            yaml.dump(mapping, f)
+
+    def _split_dependencies(self, objs, dependencies):
+        stack = []
+        objs_remaining = objs.copy()
+
+        # dependencies' structure is: key = object, value = list of objects it references.
+
+        # Iterate through our list of objects
+        # For each object, if it is not dependent on any other objects, place it at the end of the stack.
+        # Once an object is placed in the stack, remove dependencies to it (they're satisfied)
+        while objs_remaining:
+            objs_without_deps = list(
+                filter(
+                    lambda obj: obj not in dependencies or not dependencies[obj],
+                    objs_remaining,
+                )
+            )
+
+            if not objs_without_deps:
+                self.logger.error(
+                    "Unable to complete mapping; the schema contains reference cycles."
+                )
+                self.logger.info("Mapped objects: {}".format(", ".join(stack)))
+                self.logger.info("Remaining objects:")
+                for obj in objs_remaining:
+                    self.logger.info(
+                        "{} (depends on {})".format(
+                            obj,
+                            ", ".join(dependencies[obj]) if obj in dependencies else "",
+                        )
+                    )
+                raise Exception("Cannot complete mapping")
+
+            for obj in objs_without_deps:
+                stack.append(obj)
+
+                # Remove all dependencies on this object (they're satisfied)
+                for other_obj in dependencies:
+                    if obj in dependencies.get(other_obj):
+                        dependencies.get(other_obj).remove(obj)
+
+                # Remove this object from our remaining set.
+                objs_remaining.remove(obj)
+
+        return stack
 
 
 # For backwards-compatibility
