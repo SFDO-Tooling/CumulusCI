@@ -1,9 +1,7 @@
 from salesforce_bulk import SalesforceBulk
-from simple_salesforce import Salesforce
 
 from cumulusci.tasks.salesforce import BaseSalesforceTask
-
-CALL_OPTS_HEADER_KEY = "Sforce-Call-Options"
+from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
 
 
 class BaseSalesforceApiTask(BaseSalesforceTask):
@@ -17,22 +15,11 @@ class BaseSalesforceApiTask(BaseSalesforceTask):
         self._init_class()
 
     def _init_api(self, base_url=None):
-        if self.api_version:
-            api_version = self.api_version
-        else:
-            api_version = self.project_config.project__package__api_version
-
-        rv = Salesforce(
-            instance_url=self.org_config.instance_url,
-            session_id=self.org_config.access_token,
-            version=api_version,
+        rv = get_simple_salesforce_connection(
+            self.project_config, self.org_config, api_version=self.api_version
         )
         if base_url is not None:
             rv.base_url += base_url
-
-        rv.headers.setdefault(
-            CALL_OPTS_HEADER_KEY, "client={}".format(self._get_client_name())
-        )
 
         return rv
 

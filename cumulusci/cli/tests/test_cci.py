@@ -772,6 +772,24 @@ test2                                     dev          test2@example.com""",
         with self.assertRaises(click.UsageError):
             run_click_command(cci.org_scratch_delete, config=config, org_name="test")
 
+    @mock.patch("cumulusci.cli.cci.get_simple_salesforce_connection")
+    @mock.patch("code.interact")
+    def test_org_shell(self, mock_code, mock_sf):
+        org_config = mock.Mock()
+        org_config.instance_url = "https://salesforce.com"
+        org_config.access_token = "TEST"
+        config = mock.Mock()
+        config.get_org.return_value = ("test", org_config)
+
+        run_click_command(cci.org_shell, config=config, org_name="test")
+
+        org_config.refresh_oauth_token.assert_called_once()
+        mock_sf.assert_called_once_with(config.project_config, org_config)
+        config.keychain.set_org.assert_called_once_with(org_config)
+
+        mock_code.assert_called_once()
+        self.assertIn("sf", mock_code.call_args[1]["local"])
+
     @mock.patch("click.echo")
     def test_task_list(self, echo):
         config = mock.Mock()
