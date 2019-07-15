@@ -542,7 +542,8 @@ class Salesforce(object):
         return objs
 
     def salesforce_collection_insert(self, objects):
-        """Inserts up to 200 records that were created with Salesforce Init Objects"""
+        """Inserts up to 200 records that were created with Salesforce Init Objects.
+           The 200 record limit is enforced by the Salesforce APIs"""
         assert (
             not obj.get("id", None) for obj in objects
         ), "Insertable objects should not have IDs"
