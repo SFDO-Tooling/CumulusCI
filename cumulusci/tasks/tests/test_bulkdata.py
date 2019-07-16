@@ -578,3 +578,322 @@ class TestExtractDataWithoutSFIds(unittest.TestCase):
         self.assertEqual("HH_Account", household.record_type)
         contact = task.session.query(task.models["contacts"]).one()
         self.assertEqual("foo", contact.household_id)
+
+
+class TestMappingGenerator(unittest.TestCase):
+    def test_defaults_options(self):
+        t = _make_task(bulkdata.GenerateMapping, {"options": {"path": "t"}})
+
+        self.assertEqual([], t.options["ignore"])
+        self.assertEqual("", t.options["namespace_prefix"])
+
+    def test_postfixes_underscores_to_namespace(self):
+        t = _make_task(
+            bulkdata.GenerateMapping,
+            {"options": {"namespace_prefix": "t", "path": "t"}},
+        )
+
+        self.assertEqual("t__", t.options["namespace_prefix"])
+
+    def test_splits_ignore_string(self):
+        t = _make_task(
+            bulkdata.GenerateMapping,
+            {"options": {"ignore": "Account; Contact", "path": "t"}},
+        )
+
+        self.assertEqual(["Account", "Contact"], t.options["ignore"])
+
+    def test_accepts_ignore_list(self):
+        t = _make_task(
+            bulkdata.GenerateMapping,
+            {"options": {"ignore": ["Account", "Contact"], "path": "t"}},
+        )
+
+        self.assertEqual(["Account", "Contact"], t.options["ignore"])
+
+    def test_is_any_custom_api_name(self):
+        t = _make_task(bulkdata.GenerateMapping, {"options": {"path": "t"}})
+
+        self.assertTrue(t._is_any_custom_api_name("Custom__c"))
+        self.assertFalse(t._is_any_custom_api_name("Standard"))
+
+    def test_is_our_custom_api_name(self):
+        t = _make_task(bulkdata.GenerateMapping, {"options": {"path": "t"}})
+
+        self.assertTrue(t._is_our_custom_api_name("Custom__c"))
+        self.assertFalse(t._is_our_custom_api_name("Standard"))
+        self.assertFalse(t._is_our_custom_api_name("t__Custom__c"))
+        self.assertFalse(t._is_our_custom_api_name("f__Custom__c"))
+
+        t.options["namespace_prefix"] = "t__"
+        self.assertTrue(t._is_our_custom_api_name("Custom__c"))
+        self.assertTrue(t._is_our_custom_api_name("t__Custom__c"))
+        self.assertFalse(t._is_our_custom_api_name("f__Custom__c"))
+
+    def test_is_audit_field(self):
+        t = _make_task(bulkdata.GenerateMapping, {"options": {"path": "t"}})
+
+        self.assertTrue(t._is_audit_field("Id"))
+        self.assertFalse(t._is_audit_field("Custom__c"))
+
+    def test_is_object_mappable(self):
+        t = _make_task(
+            bulkdata.GenerateMapping, {"options": {"ignore": "Account", "path": "t"}}
+        )
+
+        self.assertTrue(
+            t._is_object_mappable({"name": "Contact", "customSetting": False})
+        )
+        self.assertFalse(
+            t._is_object_mappable({"name": "Account", "customSetting": False})
+        )
+        self.assertFalse(
+            t._is_object_mappable(
+                {"name": "Contact__ChangeEvent", "customSetting": False}
+            )
+        )
+        self.assertFalse(
+            t._is_object_mappable({"name": "Custom__c", "customSetting": True})
+        )
+
+    def test_is_field_mappable(self):
+        t = _make_task(
+            bulkdata.GenerateMapping,
+            {"options": {"ignore": "Account.ParentId", "path": "t"}},
+        )
+
+        self.assertTrue(
+            t._is_field_mappable(
+                "Account",
+                {
+                    "name": "Name",
+                    "type": "string",
+                    "autoNumber": False,
+                    "calculated": False,
+                    "label": "Name",
+                },
+            )
+        )
+        self.assertFalse(
+            t._is_field_mappable(
+                "Account",
+                {
+                    "name": "Name",
+                    "type": "base64",
+                    "autoNumber": False,
+                    "calculated": False,
+                    "label": "Name",
+                },
+            )
+        )
+        self.assertFalse(
+            t._is_field_mappable(
+                "Account",
+                {
+                    "name": "Name",
+                    "type": "string",
+                    "autoNumber": True,
+                    "calculated": False,
+                    "label": "Name",
+                },
+            )
+        )
+        self.assertFalse(
+            t._is_field_mappable(
+                "Account",
+                {
+                    "name": "Name",
+                    "type": "string",
+                    "autoNumber": False,
+                    "calculated": True,
+                    "label": "Name",
+                },
+            )
+        )
+        self.assertFalse(
+            t._is_field_mappable(
+                "Account",
+                {
+                    "name": "Name",
+                    "type": "string",
+                    "autoNumber": False,
+                    "calculated": False,
+                    "label": "Name (Deprecated)",
+                },
+            )
+        )
+        self.assertFalse(
+            t._is_field_mappable(
+                "Account",
+                {
+                    "name": "ParentId",
+                    "type": "reference",
+                    "autoNumber": False,
+                    "calculated": False,
+                    "label": "Parent",
+                },
+            )
+        )
+
+    def test_has_our_custom_fields(self):
+        t = _make_task(bulkdata.GenerateMapping, {"options": {"path": "t"}})
+
+        self.assertTrue(t._has_our_custom_fields({"fields": [{"name": "Custom__c"}]}))
+        self.assertTrue(
+            t._has_our_custom_fields(
+                {"fields": [{"name": "Custom__c"}, {"name": "Standard"}]}
+            )
+        )
+        self.assertFalse(t._has_our_custom_fields({"fields": [{"name": "Standard"}]}))
+        self.assertFalse(t._has_our_custom_fields({"fields": []}))
+
+    def _prepare_describe_mock(self, describe_data):
+        sf = mock.Mock()
+        sf.describe.return_value = {"sobjects": []}
+        for s in describe_data:
+            sf.describe.return_value["sobjects"].append(
+                {"name": s, "customSetting": False}
+            )
+            sobject_mock = mock.Mock()
+            setattr(sf, s, sobject_mock)
+            sobject_mock.describe.return_value = describe_data[s]
+
+        return sf
+
+    def _mock_field(self, name, field_type="string", **kwargs):
+        return {
+            "name": name,
+            "type": field_type,
+            "autoNumber": False,
+            "calculated": False,
+            "label": name,
+            **kwargs,
+        }
+
+    def test_collect_objects__simple_custom_objects(self):
+        t = _make_task(bulkdata.GenerateMapping, {"options": {"path": "t"}})
+
+        describe_data = {
+            "Account": {
+                "fields": [self._mock_field("Name"), self._mock_field("Custom__c")]
+            },
+            "Contact": {"fields": [self._mock_field("Name")]},
+            "Custom__c": {
+                "fields": [self._mock_field("Name"), self._mock_field("Custom__c")]
+            },
+        }
+
+        t.sf = self._prepare_describe_mock(describe_data)
+        t._collect_objects()
+
+        self.assertEqual(["Account", "Custom__c"], t.mapping_objects)
+
+    def test_collect_objects__custom_lookup_fields(self):
+        t = _make_task(bulkdata.GenerateMapping, {"options": {"path": "t"}})
+
+        describe_data = {
+            "Account": {
+                "fields": [self._mock_field("Name"), self._mock_field("Custom__c")]
+            },
+            "Contact": {"fields": [self._mock_field("Name")]},
+            "Custom__c": {
+                "fields": [
+                    self._mock_field("Name"),
+                    self._mock_field("Custom__c"),
+                    self._mock_field(
+                        "Lookup__c",
+                        field_type="reference",
+                        relationshipOrder=None,
+                        referenceTo=["Contact"],
+                    ),
+                ]
+            },
+        }
+
+        t.sf = self._prepare_describe_mock(describe_data)
+        t._collect_objects()
+
+        self.assertEqual(["Account", "Custom__c", "Contact"], t.mapping_objects)
+
+    def test_collect_objects__master_detail_fields(self):
+        t = _make_task(bulkdata.GenerateMapping, {"options": {"path": "t"}})
+
+        describe_data = {
+            "Account": {
+                "fields": [self._mock_field("Name"), self._mock_field("Custom__c")]
+            },
+            "Opportunity": {"fields": [self._mock_field("Name")]},
+            "OpportunityLineItem": {
+                "fields": [
+                    self._mock_field("Name"),
+                    self._mock_field("Custom__c"),
+                    self._mock_field(
+                        "OpportunityId",
+                        field_type="reference",
+                        relationshipOrder=1,
+                        referenceTo=["Opportunity"],
+                    ),
+                ]
+            },
+        }
+
+        t.sf = self._prepare_describe_mock(describe_data)
+        t._collect_objects()
+
+        self.assertEqual(
+            ["Account", "OpportunityLineItem", "Opportunity"], t.mapping_objects
+        )
+
+    def test_collect_objects__duplicate_references(self):
+        t = _make_task(bulkdata.GenerateMapping, {"options": {"path": "t"}})
+
+        def mock_field(name, field_type="string", **kwargs):
+            return {
+                "name": name,
+                "type": field_type,
+                "autoNumber": False,
+                "calculated": False,
+                "label": name,
+                **kwargs,
+            }
+
+        describe_data = {
+            "Account": {
+                "fields": [self._mock_field("Name"), self._mock_field("Custom__c")]
+            },
+            "Opportunity": {"fields": [self._mock_field("Name")]},
+            "OpportunityLineItem": {
+                "fields": [
+                    self._mock_field("Name"),
+                    self._mock_field("Custom__c"),
+                    self._mock_field(
+                        "OpportunityId",
+                        field_type="reference",
+                        relationshipOrder=1,
+                        referenceTo=["Opportunity"],
+                    ),
+                    mock_field(
+                        "CustomLookup__c",
+                        field_type="reference",
+                        relationshipOrder=None,
+                        referenceTo=["Opportunity"],
+                    ),
+                ]
+            },
+        }
+
+        t.sf = self._prepare_describe_mock(describe_data)
+        t._collect_objects()
+
+        self.assertEqual(
+            ["Account", "OpportunityLineItem", "Opportunity"], t.mapping_objects
+        )
+
+    def test_build_schema(self):
+        pass
+
+    def test_build_mapping(self):
+        pass
+
+    def test_split_dependencies(self):
+        pass

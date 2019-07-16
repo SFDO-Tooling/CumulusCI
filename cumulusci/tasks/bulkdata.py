@@ -828,11 +828,18 @@ class GenerateMapping(BaseSalesforceApiTask):
         if "namespace_prefix" not in self.options:
             self.options["namespace_prefix"] = ""
 
+        if self.options["namespace_prefix"] and not self.options[
+            "namespace_prefix"
+        ].endswith("__"):
+            self.options["namespace_prefix"] += "__"
+
         if "ignore" in self.options:
             if type(self.options["ignore"]) is str:
                 self.options["ignore"] = [
                     f.strip() for f in self.options["ignore"].split(";")
                 ]
+        else:
+            self.options["ignore"] = []
 
     def _is_any_custom_api_name(self, api_name):
         return api_name.endswith("__c")
@@ -857,7 +864,18 @@ class GenerateMapping(BaseSalesforceApiTask):
             [
                 obj["name"] in self.options["ignore"],
                 obj["name"].endswith("ChangeEvent"),
-                obj["customSetting"] == "true",
+                obj["name"].endswith("__mdt"),
+                obj["name"].endswith("__e"),
+                obj["customSetting"],
+                obj["name"]
+                in [
+                    "User",
+                    "LookedUpFromActivity",
+                    "OpenActivity",
+                    "Task",
+                    "Event",
+                    "ActivityHistory",
+                ],
             ]
         )
 
@@ -866,13 +884,13 @@ class GenerateMapping(BaseSalesforceApiTask):
             [
                 "(Deprecated)" in field["label"],
                 field["type"] in ["base64", "address", "location"],
-                field["calculated"] == "true",
-                field["autoNumber"] == "true",
+                field["calculated"],
+                field["autoNumber"],
                 "{}.{}".format(obj, field["name"]) in self.options["ignore"],
             ]
         )
 
-    def _has_our_custom_field(self, obj):
+    def _has_our_custom_fields(self, obj):
         return any(
             [self._is_our_custom_api_name(field["name"]) for field in obj["fields"]]
         )
@@ -892,7 +910,7 @@ class GenerateMapping(BaseSalesforceApiTask):
         for obj in self.global_describe["sobjects"]:
             self.describes[obj["name"]] = getattr(self.sf, obj["name"]).describe()
             if self._is_our_custom_api_name(obj["name"]) or self._has_our_custom_fields(
-                obj
+                self.describes[obj["name"]]
             ):
                 if self._is_object_mappable(obj):
                     self.mapping_objects.append(obj["name"])
@@ -908,7 +926,13 @@ class GenerateMapping(BaseSalesforceApiTask):
                     if field["relationshipOrder"] == 1 or self._is_any_custom_api_name(
                         field["name"]
                     ):
-                        self.mapping_objects.extend(field["referenceTo"])
+                        self.mapping_objects.extend(
+                            filter(
+                                lambda o: o not in self.mapping_objects
+                                and self._is_object_mappable(self.describes[o]),
+                                field["referenceTo"],
+                            )
+                        )
             index += 1
 
     def _build_schema(self):
@@ -1001,7 +1025,7 @@ class GenerateMapping(BaseSalesforceApiTask):
 
             if not objs_without_deps:
                 self.logger.error(
-                    "Unable to complete mapping; the schema contains reference cycles."
+                    "Unable to complete mapping; the schema contains reference cycles or unresolved dependencies."
                 )
                 self.logger.info("Mapped objects: {}".format(", ".join(stack)))
                 self.logger.info("Remaining objects:")
