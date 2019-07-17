@@ -7,6 +7,11 @@ from cumulusci.core.exceptions import SalesforceException
 
 class CreateCommunity(BaseSalesforceApiTask):
     api_version = "46.0"
+    task_docs = """
+    Create a Salesforce Community via the Connect API.
+    Specify the `template` "VF Template" for Visualforce Tabs community,
+    or the name for a specific desired template
+    """
     task_options = {
         "template": {
             "description": "Name of the template for the community.",
@@ -45,11 +50,7 @@ class CreateCommunity(BaseSalesforceApiTask):
         # Let's simulate that without actually using a browser.
         self.logger.info("Preparing org for Communities")
         s = requests.Session()
-        s.get(
-            "{}/secur/frontdoor.jsp?sid={}".format(
-                self.org_config.instance_url, self.org_config.access_token
-            )
-        )
+        s.get(self.org_config.start_url)
         r = s.get(
             "{}/sites/servlet.SitePrerequisiteServlet".format(
                 self.org_config.instance_url

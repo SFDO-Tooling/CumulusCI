@@ -20,29 +20,34 @@ class test_CreateCommunity(unittest.TestCase):
     @responses.activate
     def test_creates_community(self):
         cc_task = create_task(CreateCommunity, task_options)
-        cc_task.sf = mock.Mock()
-        cc_task.sf.restful.return_value = {
-            "communities": [{"name": "Test Community", "id": "000000000000000"}]
-        }
-        frontdoor_url = "{}/secur/frontdoor.jsp?sid={}".format(
-            cc_task.org_config.instance_url, cc_task.org_config.access_token
-        )
         servlet_url = "{}/sites/servlet.SitePrerequisiteServlet".format(
             cc_task.org_config.instance_url
         )
+        community_url = "{}/services/data/v46.0/connect/communities".format(
+            cc_task.org_config.instance_url
+        )
 
-        responses.add(method=responses.GET, url=frontdoor_url, status=200)
+        responses.add(
+            method=responses.GET, url=cc_task.org_config.start_url, status=200
+        )
         responses.add(method=responses.GET, url=servlet_url, status=200)
+        responses.add(method=responses.POST, url=community_url, status=200, json={})
+        responses.add(
+            method=responses.GET,
+            url=community_url,
+            status=200,
+            json={"communities": [{"name": "Test Community", "id": "000000000000000"}]},
+        )
 
-        cc_task._run_task()
+        cc_task()
 
-        self.assertEqual(2, len(responses.calls))
-        self.assertEqual(frontdoor_url, responses.calls[0].request.url)
+        self.assertEqual(4, len(responses.calls))
+        self.assertEqual(cc_task.org_config.start_url, responses.calls[0].request.url)
         self.assertEqual(servlet_url, responses.calls[1].request.url)
-        cc_task.sf.restful.assert_any_call(
-            "connect/communities",
-            method="POST",
-            data=json.dumps(
+        self.assertEqual(community_url, responses.calls[2].request.url)
+        self.assertEqual(community_url, responses.calls[3].request.url)
+        self.assertEqual(
+            json.dumps(
                 {
                     "name": "Test Community",
                     "description": "Community Details",
@@ -50,28 +55,45 @@ class test_CreateCommunity(unittest.TestCase):
                     "urlPathPrefix": "test",
                 }
             ),
+            responses.calls[2].request.body,
         )
 
+    @responses.activate
     def test_waits_for_community_result__not_complete(self):
         cc_task = create_task(CreateCommunity, task_options)
-        cc_task.sf = mock.Mock()
-        cc_task.sf.restful.return_value = {"communities": []}
-        cc_task.logger = mock.Mock()
-        cc_task.time_start = datetime.now()
 
+        community_url = "{}/services/data/v46.0/connect/communities".format(
+            cc_task.org_config.instance_url
+        )
+        responses.add(
+            method=responses.GET,
+            url=community_url,
+            status=200,
+            json={"communities": []},
+        )
+
+        cc_task._init_task()
+        cc_task.time_start = datetime.now()
         cc_task._poll_action()
 
         self.assertFalse(cc_task.poll_complete)
 
+    @responses.activate
     def test_waits_for_community_result__complete(self):
         cc_task = create_task(CreateCommunity, task_options)
-        cc_task.sf = mock.Mock()
-        cc_task.sf.restful.return_value = {
-            "communities": [{"name": "Test Community", "id": "000000000000000"}]
-        }
+        community_url = "{}/services/data/v46.0/connect/communities".format(
+            cc_task.org_config.instance_url
+        )
+        responses.add(
+            method=responses.GET,
+            url=community_url,
+            status=200,
+            json={"communities": [{"name": "Test Community", "id": "000000000000000"}]},
+        )
         cc_task.logger = mock.Mock()
-        cc_task.time_start = datetime.now()
 
+        cc_task._init_task()
+        cc_task.time_start = datetime.now()
         cc_task._poll_action()
 
         self.assertTrue(cc_task.poll_complete)
@@ -79,7 +101,6 @@ class test_CreateCommunity(unittest.TestCase):
 
     def test_throws_exception_for_timeout(self):
         cc_task = create_task(CreateCommunity, task_options)
-        cc_task.sf = mock.Mock()
 
         cc_task.time_start = datetime(2019, 1, 1)
         with self.assertRaises(SalesforceException):
@@ -88,18 +109,13 @@ class test_CreateCommunity(unittest.TestCase):
     @responses.activate
     def test_throws_exception_for_failed_prepare_step(self):
         cc_task = create_task(CreateCommunity, task_options)
-        cc_task.sf = mock.Mock()
-        cc_task.sf.restful.return_value = {
-            "communities": [{"name": "Test Community", "id": "000000000000000"}]
-        }
-        frontdoor_url = "{}/secur/frontdoor.jsp?sid={}".format(
-            cc_task.org_config.instance_url, cc_task.org_config.access_token
-        )
         servlet_url = "{}/sites/servlet.SitePrerequisiteServlet".format(
             cc_task.org_config.instance_url
         )
 
-        responses.add(method=responses.GET, url=frontdoor_url, status=200)
+        responses.add(
+            method=responses.GET, url=cc_task.org_config.start_url, status=200
+        )
         responses.add(method=responses.GET, url=servlet_url, status=500)
 
         with self.assertRaises(SalesforceException):
