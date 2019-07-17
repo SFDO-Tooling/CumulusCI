@@ -756,7 +756,11 @@ class TestMappingGenerator(unittest.TestCase):
             )
             sobject_mock = mock.Mock()
             setattr(sf, s, sobject_mock)
-            sobject_mock.describe.return_value = describe_data[s]
+            sobject_mock.describe.return_value = {
+                "name": s,
+                "customSetting": False,
+                **describe_data[s],
+            }
 
         return sf
 
@@ -766,6 +770,8 @@ class TestMappingGenerator(unittest.TestCase):
             "type": field_type,
             "autoNumber": False,
             "calculated": False,
+            "createable": True,
+            "nillable": True,
             "label": name,
             **kwargs,
         }
@@ -847,16 +853,6 @@ class TestMappingGenerator(unittest.TestCase):
     def test_collect_objects__duplicate_references(self):
         t = _make_task(bulkdata.GenerateMapping, {"options": {"path": "t"}})
 
-        def mock_field(name, field_type="string", **kwargs):
-            return {
-                "name": name,
-                "type": field_type,
-                "autoNumber": False,
-                "calculated": False,
-                "label": name,
-                **kwargs,
-            }
-
         describe_data = {
             "Account": {
                 "fields": [self._mock_field("Name"), self._mock_field("Custom__c")]
@@ -872,7 +868,7 @@ class TestMappingGenerator(unittest.TestCase):
                         relationshipOrder=1,
                         referenceTo=["Opportunity"],
                     ),
-                    mock_field(
+                    self._mock_field(
                         "CustomLookup__c",
                         field_type="reference",
                         relationshipOrder=None,
@@ -890,7 +886,62 @@ class TestMappingGenerator(unittest.TestCase):
         )
 
     def test_build_schema(self):
-        pass
+        t = _make_task(bulkdata.GenerateMapping, {"options": {"path": "t"}})
+
+        t.mapping_objects = ["Account", "Opportunity", "Child__c"]
+        stage_name = self._mock_field("StageName")
+        stage_name["nillable"] = False
+        t.describes = {
+            "Account": {
+                "fields": [self._mock_field("Name"), self._mock_field("Industry")]
+            },
+            "Opportunity": {"fields": [self._mock_field("Name"), stage_name]},
+            "Child__c": {
+                "fields": [
+                    self._mock_field("Name"),
+                    self._mock_field("Test__c"),
+                    self._mock_field("Place__c", field_type="location"),
+                ]
+            },
+        }
+
+        t._build_schema()
+        self.assertEqual(
+            {
+                "Account": {"Name": self._mock_field("Name")},
+                "Opportunity": {
+                    "Name": self._mock_field("Name"),
+                    "StageName": stage_name,
+                },
+                "Child__c": {
+                    "Name": self._mock_field("Name"),
+                    "Test__c": self._mock_field("Test__c"),
+                },
+            },
+            t.schema,
+        )
+
+    def test_build_schema__tracks_references(self):
+        t = _make_task(bulkdata.GenerateMapping, {"options": {"path": "t"}})
+
+        t.mapping_objects = ["Account", "Opportunity"]
+        t.describes = {
+            "Account": {"fields": [self._mock_field("Name")]},
+            "Opportunity": {
+                "fields": [
+                    self._mock_field("Name"),
+                    self._mock_field(
+                        "AccountId",
+                        field_type="reference",
+                        referenceTo=["Account"],
+                        relationshipOrder=1,
+                    ),
+                ]
+            },
+        }
+
+        t._build_schema()
+        self.assertEqual({"Opportunity": set(["Account"])}, t.refs)
 
     def test_build_mapping(self):
         pass
