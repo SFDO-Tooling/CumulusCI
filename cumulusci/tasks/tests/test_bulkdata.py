@@ -11,6 +11,7 @@ from sqlalchemy import types
 from sqlalchemy import Unicode
 import mock
 import responses
+import yaml
 
 from cumulusci.core.config import BaseGlobalConfig
 from cumulusci.core.config import BaseProjectConfig
@@ -747,22 +748,30 @@ class TestMappingGenerator(unittest.TestCase):
         self.assertFalse(t._has_our_custom_fields({"fields": [{"name": "Standard"}]}))
         self.assertFalse(t._has_our_custom_fields({"fields": []}))
 
-    def _prepare_describe_mock(self, describe_data):
-        sf = mock.Mock()
-        sf.describe.return_value = {"sobjects": []}
+    def _prepare_describe_mock(self, task, describe_data):
+        responses.add(
+            method="GET",
+            url="{}/services/data/v45.0/sobjects".format(task.org_config.instance_url),
+            body=json.dumps(
+                {
+                    "sobjects": [
+                        {"name": s, "customSetting": False} for s in describe_data
+                    ]
+                }
+            ),
+            status=200,
+        )
         for s in describe_data:
-            sf.describe.return_value["sobjects"].append(
-                {"name": s, "customSetting": False}
+            responses.add(
+                method="GET",
+                url="{}/services/data/v45.0/sobjects/{}/describe".format(
+                    task.org_config.instance_url, s
+                ),
+                body=json.dumps(
+                    {"name": s, "customSetting": False, **describe_data[s]}
+                ),
+                status=200,
             )
-            sobject_mock = mock.Mock()
-            setattr(sf, s, sobject_mock)
-            sobject_mock.describe.return_value = {
-                "name": s,
-                "customSetting": False,
-                **describe_data[s],
-            }
-
-        return sf
 
     def _mock_field(self, name, field_type="string", **kwargs):
         return {
@@ -776,8 +785,65 @@ class TestMappingGenerator(unittest.TestCase):
             **kwargs,
         }
 
+    @responses.activate
+    def test_run_task(self):
+        t = _make_task(bulkdata.GenerateMapping, {"options": {"path": "mapping.yaml"}})
+        t.project_config.project__package__api_version = "45.0"
+        describe_data = {
+            "Account": {
+                "fields": [self._mock_field("Id"), self._mock_field("Custom__c")]
+            },
+            "Child__c": {
+                "fields": [
+                    self._mock_field("Id"),
+                    self._mock_field(
+                        "Account__c",
+                        field_type="reference",
+                        referenceTo=["Account"],
+                        relationshipOrder=None,
+                    ),
+                ]
+            },
+        }
+
+        self._prepare_describe_mock(t, describe_data)
+        with temporary_dir():
+            t()
+
+            with open("mapping.yaml", "r") as fh:
+                content = yaml.safe_load(fh.read())
+
+            self.assertEqual(
+                ["Insert Account", "Insert Child__c"], list(content.keys())
+            )
+            self.assertEqual("Account", t.mapping["Insert Account"]["sf_object"])
+            self.assertEqual("account", t.mapping["Insert Account"]["table"])
+            self.assertEqual(
+                ["Custom__c", "Id"], list(t.mapping["Insert Account"]["fields"].keys())
+            )
+            self.assertEqual("sf_id", t.mapping["Insert Account"]["fields"]["Id"])
+            self.assertEqual(
+                "custom", t.mapping["Insert Account"]["fields"]["Custom__c"]
+            )
+
+            self.assertEqual("Child__c", t.mapping["Insert Child__c"]["sf_object"])
+            self.assertEqual("child__c", t.mapping["Insert Child__c"]["table"])
+            self.assertEqual(
+                ["Id"], list(t.mapping["Insert Child__c"]["fields"].keys())
+            )
+            self.assertEqual(
+                ["Account__c"], list(t.mapping["Insert Child__c"]["lookups"].keys())
+            )
+            self.assertEqual("sf_id", t.mapping["Insert Child__c"]["fields"]["Id"])
+            self.assertEqual(
+                "account",
+                t.mapping["Insert Child__c"]["lookups"]["Account__c"]["table"],
+            )
+
+    @responses.activate
     def test_collect_objects__simple_custom_objects(self):
         t = _make_task(bulkdata.GenerateMapping, {"options": {"path": "t"}})
+        t.project_config.project__package__api_version = "45.0"
 
         describe_data = {
             "Account": {
@@ -789,13 +855,16 @@ class TestMappingGenerator(unittest.TestCase):
             },
         }
 
-        t.sf = self._prepare_describe_mock(describe_data)
+        self._prepare_describe_mock(t, describe_data)
+        t._init_task()
         t._collect_objects()
 
         self.assertEqual(["Account", "Custom__c"], t.mapping_objects)
 
+    @responses.activate
     def test_collect_objects__custom_lookup_fields(self):
         t = _make_task(bulkdata.GenerateMapping, {"options": {"path": "t"}})
+        t.project_config.project__package__api_version = "45.0"
 
         describe_data = {
             "Account": {
@@ -816,13 +885,16 @@ class TestMappingGenerator(unittest.TestCase):
             },
         }
 
-        t.sf = self._prepare_describe_mock(describe_data)
+        self._prepare_describe_mock(t, describe_data)
+        t._init_task()
         t._collect_objects()
 
         self.assertEqual(["Account", "Custom__c", "Contact"], t.mapping_objects)
 
+    @responses.activate
     def test_collect_objects__master_detail_fields(self):
         t = _make_task(bulkdata.GenerateMapping, {"options": {"path": "t"}})
+        t.project_config.project__package__api_version = "45.0"
 
         describe_data = {
             "Account": {
@@ -843,15 +915,18 @@ class TestMappingGenerator(unittest.TestCase):
             },
         }
 
-        t.sf = self._prepare_describe_mock(describe_data)
+        self._prepare_describe_mock(t, describe_data)
+        t._init_task()
         t._collect_objects()
 
         self.assertEqual(
             ["Account", "OpportunityLineItem", "Opportunity"], t.mapping_objects
         )
 
+    @responses.activate
     def test_collect_objects__duplicate_references(self):
         t = _make_task(bulkdata.GenerateMapping, {"options": {"path": "t"}})
+        t.project_config.project__package__api_version = "45.0"
 
         describe_data = {
             "Account": {
@@ -878,7 +953,8 @@ class TestMappingGenerator(unittest.TestCase):
             },
         }
 
-        t.sf = self._prepare_describe_mock(describe_data)
+        self._prepare_describe_mock(t, describe_data)
+        t._init_task()
         t._collect_objects()
 
         self.assertEqual(
@@ -944,7 +1020,66 @@ class TestMappingGenerator(unittest.TestCase):
         self.assertEqual({"Opportunity": set(["Account"])}, t.refs)
 
     def test_build_mapping(self):
-        pass
+        t = _make_task(bulkdata.GenerateMapping, {"options": {"path": "t"}})
+        t.schema = {
+            "Account": {"Id": self._mock_field("Id"), "Name": self._mock_field("Name")},
+            "Child__c": {
+                "Id": self._mock_field("Id"),
+                "Name": self._mock_field("Name"),
+                "Account__c": self._mock_field(
+                    "Account__c", field_type="reference", referenceTo=["Account"]
+                ),
+            },
+        }
+        t.refs = {"Child__c": set(["Account"])}
 
-    def test_split_dependencies(self):
-        pass
+        t._build_mapping()
+        self.assertEqual(["Insert Account", "Insert Child__c"], list(t.mapping.keys()))
+        self.assertEqual("Account", t.mapping["Insert Account"]["sf_object"])
+        self.assertEqual("account", t.mapping["Insert Account"]["table"])
+        self.assertEqual(
+            ["Id", "Name"], list(t.mapping["Insert Account"]["fields"].keys())
+        )
+        self.assertEqual("sf_id", t.mapping["Insert Account"]["fields"]["Id"])
+        self.assertEqual("name", t.mapping["Insert Account"]["fields"]["Name"])
+
+        self.assertEqual("Child__c", t.mapping["Insert Child__c"]["sf_object"])
+        self.assertEqual("child__c", t.mapping["Insert Child__c"]["table"])
+        self.assertEqual(
+            ["Id", "Name"], list(t.mapping["Insert Child__c"]["fields"].keys())
+        )
+        self.assertEqual(
+            ["Account__c"], list(t.mapping["Insert Child__c"]["lookups"].keys())
+        )
+        self.assertEqual("sf_id", t.mapping["Insert Child__c"]["fields"]["Id"])
+        self.assertEqual("name", t.mapping["Insert Child__c"]["fields"]["Name"])
+        self.assertEqual(
+            "account", t.mapping["Insert Child__c"]["lookups"]["Account__c"]["table"]
+        )
+
+    def test_split_dependencies__no_cycles(self):
+        t = _make_task(bulkdata.GenerateMapping, {"options": {"path": "t"}})
+
+        stack = t._split_dependencies(
+            set(["Account", "Contact", "Opportunity", "Custom__c"]),
+            {
+                "Contact": set(["Account"]),
+                "Opportunity": set(["Account", "Contact"]),
+                "Custom__c": set(["Account", "Contact", "Opportunity"]),
+            },
+        )
+
+        self.assertEqual(["Account", "Contact", "Opportunity", "Custom__c"], stack)
+
+    def test_split_dependencies__with_cycles(self):
+        t = _make_task(bulkdata.GenerateMapping, {"options": {"path": "t"}})
+
+        with self.assertRaises(BulkDataException):
+            t._split_dependencies(
+                set(["Account", "Contact", "Opportunity", "Custom__c"]),
+                {
+                    "Account": set(["Contact"]),
+                    "Contact": set(["Account"]),
+                    "Opportunity": set(["Account", "Contact"]),
+                },
+            )

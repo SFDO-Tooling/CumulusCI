@@ -971,32 +971,31 @@ class GenerateMapping(BaseSalesforceApiTask):
         objs = set(self.schema.keys())
         stack = self._split_dependencies(objs, self.refs)
 
-        mapping = OrderedDict()
+        self.mapping = OrderedDict()
         for obj in stack:
-            namespaced_obj = obj  # FIXME:
-            key = "Insert {}".format(namespaced_obj)
-            mapping[key] = OrderedDict()
-            mapping[key]["sf_object"] = "{}".format(namespaced_obj)
-            mapping[key]["table"] = "{}".format(obj.lower())
+            key = "Insert {}".format(obj)
+            self.mapping[key] = OrderedDict()
+            self.mapping[key]["sf_object"] = "{}".format(obj)
+            self.mapping[key]["table"] = "{}".format(obj.lower())
             fields = []
             lookups = []
             for field in self.schema[obj].values():
-                if field["referenceTo"]:
+                if field["type"] == "reference":
                     lookups.append(field["name"])
                 else:
                     fields.append(field["name"])
-            mapping[key]["fields"] = OrderedDict()
+            self.mapping[key]["fields"] = OrderedDict()
             if fields:
                 fields.sort()
                 for field in fields:
-                    mapping[key]["fields"][field] = (
+                    self.mapping[key]["fields"][field] = (
                         field.lower().replace("__c", "") if field != "Id" else "sf_id"
                     )
             if lookups:
                 lookups.sort()
-                mapping[key]["lookups"] = OrderedDict()
+                self.mapping[key]["lookups"] = OrderedDict()
                 for field in lookups:
-                    mapping[key]["lookups"][field] = {
+                    self.mapping[key]["lookups"][field] = {
                         "table": self.schema[obj][field]["referenceTo"][0].lower()
                     }
                     if len(self.schema[obj][field]["referenceTo"]) > 1:
@@ -1006,20 +1005,19 @@ class GenerateMapping(BaseSalesforceApiTask):
                             )
                         )
 
-        with open(self.options["path"], "w") as f:
-            yaml.dump(mapping, f)
-
     def _run_task(self):
         self._collect_objects()
         self._build_schema()
         self._build_mapping()
+        with open(self.options["path"], "w") as f:
+            yaml.dump(self.mapping, f)
 
     def _split_dependencies(self, objs, dependencies):
         stack = []
         objs_remaining = objs.copy()
 
         # The structure of `dependencies` is:
-        # key = object, value = list of objects it references.
+        # key = object, value = set of objects it references.
 
         # Iterate through our list of objects
         # For each object, if it is not dependent on any other objects, place it at the end of the stack.
@@ -1045,7 +1043,7 @@ class GenerateMapping(BaseSalesforceApiTask):
                             ", ".join(dependencies[obj]) if obj in dependencies else "",
                         )
                     )
-                raise Exception("Cannot complete mapping")
+                raise BulkDataException("Cannot complete mapping")
 
             for obj in objs_without_deps:
                 stack.append(obj)
