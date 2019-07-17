@@ -762,19 +762,19 @@ class TestMappingGenerator(unittest.TestCase):
             status=200,
         )
         for s in describe_data:
+            body = {"name": s, "customSetting": False}
+            body.update(describe_data[s])
             responses.add(
                 method="GET",
                 url="{}/services/data/v45.0/sobjects/{}/describe".format(
                     task.org_config.instance_url, s
                 ),
-                body=json.dumps(
-                    {"name": s, "customSetting": False, **describe_data[s]}
-                ),
+                body=json.dumps(body),
                 status=200,
             )
 
     def _mock_field(self, name, field_type="string", **kwargs):
-        return {
+        field_data = {
             "name": name,
             "type": field_type,
             "autoNumber": False,
@@ -782,8 +782,9 @@ class TestMappingGenerator(unittest.TestCase):
             "createable": True,
             "nillable": True,
             "label": name,
-            **kwargs,
         }
+        field_data.update(kwargs)
+        return field_data
 
     @responses.activate
     def test_run_task(self):
