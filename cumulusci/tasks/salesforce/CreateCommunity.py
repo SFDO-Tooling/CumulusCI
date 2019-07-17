@@ -50,7 +50,7 @@ class CreateCommunity(BaseSalesforceApiTask):
         # Let's simulate that without actually using a browser.
         self.logger.info("Preparing org for Communities")
         s = requests.Session()
-        s.get(self.org_config.start_url)
+        s.get(self.org_config.start_url).raise_for_status()
         r = s.get(
             "{}/sites/servlet.SitePrerequisiteServlet".format(
                 self.org_config.instance_url
