@@ -631,11 +631,11 @@ class TestMappingGenerator(unittest.TestCase):
         self.assertTrue(t._is_our_custom_api_name("t__Custom__c"))
         self.assertFalse(t._is_our_custom_api_name("f__Custom__c"))
 
-    def test_is_audit_field(self):
+    def test_is_core_field(self):
         t = _make_task(bulkdata.GenerateMapping, {"options": {"path": "t"}})
 
-        self.assertTrue(t._is_audit_field("Id"))
-        self.assertFalse(t._is_audit_field("Custom__c"))
+        self.assertTrue(t._is_core_field("Id"))
+        self.assertFalse(t._is_core_field("Custom__c"))
 
     def test_is_object_mappable(self):
         t = _make_task(
@@ -672,6 +672,7 @@ class TestMappingGenerator(unittest.TestCase):
                     "autoNumber": False,
                     "calculated": False,
                     "label": "Name",
+                    "createable": True,
                 },
             )
         )
@@ -684,6 +685,7 @@ class TestMappingGenerator(unittest.TestCase):
                     "autoNumber": False,
                     "calculated": False,
                     "label": "Name",
+                    "createable": True,
                 },
             )
         )
@@ -696,6 +698,7 @@ class TestMappingGenerator(unittest.TestCase):
                     "autoNumber": True,
                     "calculated": False,
                     "label": "Name",
+                    "createable": True,
                 },
             )
         )
@@ -708,6 +711,7 @@ class TestMappingGenerator(unittest.TestCase):
                     "autoNumber": False,
                     "calculated": True,
                     "label": "Name",
+                    "createable": True,
                 },
             )
         )
@@ -720,6 +724,7 @@ class TestMappingGenerator(unittest.TestCase):
                     "autoNumber": False,
                     "calculated": False,
                     "label": "Name (Deprecated)",
+                    "createable": True,
                 },
             )
         )
@@ -732,6 +737,20 @@ class TestMappingGenerator(unittest.TestCase):
                     "autoNumber": False,
                     "calculated": False,
                     "label": "Parent",
+                    "createable": True,
+                },
+            )
+        )
+        self.assertFalse(
+            t._is_field_mappable(
+                "Account",
+                {
+                    "name": "Name",
+                    "type": "string",
+                    "autoNumber": False,
+                    "calculated": False,
+                    "label": "Name",
+                    "createable": False,
                 },
             )
         )
@@ -747,6 +766,27 @@ class TestMappingGenerator(unittest.TestCase):
         )
         self.assertFalse(t._has_our_custom_fields({"fields": [{"name": "Standard"}]}))
         self.assertFalse(t._has_our_custom_fields({"fields": []}))
+
+    def test_is_lookup_to_included_object(self):
+        t = _make_task(bulkdata.GenerateMapping, {"options": {"path": "t"}})
+
+        t.mapping_objects = ["Account"]
+
+        self.assertTrue(
+            t._is_lookup_to_included_object(
+                {"type": "reference", "referenceTo": ["Account"]}
+            )
+        )
+        self.assertFalse(
+            t._is_lookup_to_included_object(
+                {"type": "reference", "referenceTo": ["Contact"]}
+            )
+        )
+        self.assertFalse(
+            t._is_lookup_to_included_object(
+                {"type": "reference", "referenceTo": ["Account", "Contact"]}
+            )
+        )
 
     def _prepare_describe_mock(self, task, describe_data):
         responses.add(

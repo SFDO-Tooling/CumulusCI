@@ -853,11 +853,10 @@ class GenerateMapping(BaseSalesforceApiTask):
             or api_name.count("__") == 1
         )
 
-    def _is_audit_field(self, api_name):
+    def _is_core_field(self, api_name):
         # This list will be revised when we change our user support.
-        # It's also a bit of a misnomer; "Name" is not an audit field
         # We always include these fields on all objects.
-        return api_name in ["Id", "Name", "CreatedDate", "LastModifiedDate"]
+        return api_name in ["Id", "Name", "FirstName", "LastName"]
 
     def _is_object_mappable(self, obj):
         return not any(
@@ -887,6 +886,8 @@ class GenerateMapping(BaseSalesforceApiTask):
                 field["calculated"],
                 field["autoNumber"],
                 "{}.{}".format(obj, field["name"]) in self.options["ignore"],
+                field["name"] == "OwnerId",
+                not field["createable"],
             ]
         )
 
@@ -898,6 +899,11 @@ class GenerateMapping(BaseSalesforceApiTask):
     def _has_our_custom_fields(self, obj):
         return any(
             [self._is_our_custom_api_name(field["name"]) for field in obj["fields"]]
+        )
+
+    def _is_lookup_to_included_object(self, field):
+        return field["type"] == "reference" and all(
+            [f in self.mapping_objects for f in field["referenceTo"]]
         )
 
     def _collect_objects(self):
@@ -954,8 +960,9 @@ class GenerateMapping(BaseSalesforceApiTask):
                 if any(
                     [
                         self._is_any_custom_api_name(field["name"]),
-                        self._is_audit_field(field["name"]),
+                        self._is_core_field(field["name"]),
                         self._is_required_field(field),
+                        self._is_lookup_to_included_object(field),
                     ]
                 ):
                     if self._is_field_mappable(obj, field):
@@ -963,9 +970,13 @@ class GenerateMapping(BaseSalesforceApiTask):
 
                         if field["type"] == "reference":
                             for target in field["referenceTo"]:
-                                if obj not in self.refs and obj in self.mapping_objects:
-                                    self.refs[obj] = set()
-                                self.refs[obj].add(target)
+                                if (
+                                    obj in self.mapping_objects
+                                    and target in self.mapping_objects
+                                ):
+                                    if obj not in self.refs:
+                                        self.refs[obj] = set()
+                                    self.refs[obj].add(target)
 
     def _build_mapping(self):
         objs = set(self.schema.keys())
