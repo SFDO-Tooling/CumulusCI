@@ -663,30 +663,18 @@ class TestMappingGenerator(unittest.TestCase):
             {"options": {"ignore": "Account.ParentId", "path": "t"}},
         )
 
+        t.mapping_objects = ["Account", "Contact"]
+
         self.assertTrue(
             t._is_field_mappable(
                 "Account",
-                {
-                    "name": "Name",
-                    "type": "string",
-                    "autoNumber": False,
-                    "calculated": False,
-                    "label": "Name",
-                    "createable": True,
-                },
+                {"name": "Name", "type": "string", "label": "Name", "createable": True},
             )
         )
         self.assertFalse(
             t._is_field_mappable(
                 "Account",
-                {
-                    "name": "Name",
-                    "type": "base64",
-                    "autoNumber": False,
-                    "calculated": False,
-                    "label": "Name",
-                    "createable": True,
-                },
+                {"name": "Name", "type": "base64", "label": "Name", "createable": True},
             )
         )
         self.assertFalse(
@@ -695,34 +683,6 @@ class TestMappingGenerator(unittest.TestCase):
                 {
                     "name": "Name",
                     "type": "string",
-                    "autoNumber": True,
-                    "calculated": False,
-                    "label": "Name",
-                    "createable": True,
-                },
-            )
-        )
-        self.assertFalse(
-            t._is_field_mappable(
-                "Account",
-                {
-                    "name": "Name",
-                    "type": "string",
-                    "autoNumber": False,
-                    "calculated": True,
-                    "label": "Name",
-                    "createable": True,
-                },
-            )
-        )
-        self.assertFalse(
-            t._is_field_mappable(
-                "Account",
-                {
-                    "name": "Name",
-                    "type": "string",
-                    "autoNumber": False,
-                    "calculated": False,
                     "label": "Name (Deprecated)",
                     "createable": True,
                 },
@@ -734,10 +694,9 @@ class TestMappingGenerator(unittest.TestCase):
                 {
                     "name": "ParentId",
                     "type": "reference",
-                    "autoNumber": False,
-                    "calculated": False,
                     "label": "Parent",
                     "createable": True,
+                    "referenceTo": ["Account"],
                 },
             )
         )
@@ -747,10 +706,32 @@ class TestMappingGenerator(unittest.TestCase):
                 {
                     "name": "Name",
                     "type": "string",
-                    "autoNumber": False,
-                    "calculated": False,
                     "label": "Name",
                     "createable": False,
+                },
+            )
+        )
+        self.assertFalse(
+            t._is_field_mappable(
+                "Contact",
+                {
+                    "name": "ReportsToId",
+                    "type": "reference",
+                    "label": "Reports To",
+                    "createable": True,
+                    "referenceTo": ["Contact"],
+                },
+            )
+        )
+        self.assertFalse(
+            t._is_field_mappable(
+                "Contact",
+                {
+                    "name": "OwnerId",
+                    "type": "reference",
+                    "label": "Owner",
+                    "createable": True,
+                    "referenceTo": ["User", "Group"],
                 },
             )
         )
@@ -817,8 +798,6 @@ class TestMappingGenerator(unittest.TestCase):
         field_data = {
             "name": name,
             "type": field_type,
-            "autoNumber": False,
-            "calculated": False,
             "createable": True,
             "nillable": True,
             "label": name,
@@ -860,11 +839,11 @@ class TestMappingGenerator(unittest.TestCase):
             self.assertEqual("Account", t.mapping["Insert Account"]["sf_object"])
             self.assertEqual("account", t.mapping["Insert Account"]["table"])
             self.assertEqual(
-                ["Custom__c", "Id"], list(t.mapping["Insert Account"]["fields"].keys())
+                ["Id", "Custom__c"], list(t.mapping["Insert Account"]["fields"].keys())
             )
             self.assertEqual("sf_id", t.mapping["Insert Account"]["fields"]["Id"])
             self.assertEqual(
-                "custom", t.mapping["Insert Account"]["fields"]["Custom__c"]
+                "custom__c", t.mapping["Insert Account"]["fields"]["Custom__c"]
             )
 
             self.assertEqual("Child__c", t.mapping["Insert Child__c"]["sf_object"])
@@ -900,7 +879,7 @@ class TestMappingGenerator(unittest.TestCase):
         t._init_task()
         t._collect_objects()
 
-        self.assertEqual(["Account", "Custom__c"], t.mapping_objects)
+        self.assertEqual(set(["Account", "Custom__c"]), set(t.mapping_objects))
 
     @responses.activate
     def test_collect_objects__custom_lookup_fields(self):
@@ -930,7 +909,9 @@ class TestMappingGenerator(unittest.TestCase):
         t._init_task()
         t._collect_objects()
 
-        self.assertEqual(["Account", "Custom__c", "Contact"], t.mapping_objects)
+        self.assertEqual(
+            set(["Account", "Custom__c", "Contact"]), set(t.mapping_objects)
+        )
 
     @responses.activate
     def test_collect_objects__master_detail_fields(self):
@@ -961,7 +942,8 @@ class TestMappingGenerator(unittest.TestCase):
         t._collect_objects()
 
         self.assertEqual(
-            ["Account", "OpportunityLineItem", "Opportunity"], t.mapping_objects
+            set(["Account", "OpportunityLineItem", "Opportunity"]),
+            set(t.mapping_objects),
         )
 
     @responses.activate
@@ -999,7 +981,8 @@ class TestMappingGenerator(unittest.TestCase):
         t._collect_objects()
 
         self.assertEqual(
-            ["Account", "OpportunityLineItem", "Opportunity"], t.mapping_objects
+            set(["Account", "OpportunityLineItem", "Opportunity"]),
+            set(t.mapping_objects),
         )
 
     def test_build_schema(self):
@@ -1017,7 +1000,7 @@ class TestMappingGenerator(unittest.TestCase):
                 "fields": [
                     self._mock_field("Name"),
                     self._mock_field("Test__c"),
-                    self._mock_field("Place__c", field_type="location"),
+                    self._mock_field("Attachment__c", field_type="base64"),
                 ]
             },
         }

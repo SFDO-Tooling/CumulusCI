@@ -823,6 +823,8 @@ class GenerateMapping(BaseSalesforceApiTask):
         },
     }
 
+    core_fields = ["Id", "Name", "FirstName", "LastName"]
+
     def _init_options(self, kwargs):
         super(GenerateMapping, self)._init_options(kwargs)
         if "namespace_prefix" not in self.options:
@@ -855,20 +857,23 @@ class GenerateMapping(BaseSalesforceApiTask):
 
     def _is_core_field(self, api_name):
         # This list will be revised when we change our user support.
-        # We always include these fields on all objects.
-        return api_name in ["Id", "Name", "FirstName", "LastName"]
+        # We always include these fields on all objects (if present)
+        return api_name in self.core_fields
 
     def _is_object_mappable(self, obj):
         return not any(
             [
-                obj["name"] in self.options["ignore"],
-                obj["name"].endswith("ChangeEvent"),
-                obj["name"].endswith("__mdt"),
-                obj["name"].endswith("__e"),
-                obj["customSetting"],
-                obj["name"]
+                obj["name"] in self.options["ignore"],  # User-specified exclusions
+                obj["name"].endswith(
+                    "ChangeEvent"
+                ),  # Change Data Capture entities (which get custom fields)
+                obj["name"].endswith("__mdt"),  # Custom Metadata Types (MDAPI only)
+                obj["name"].endswith("__e"),  # Platform Events
+                obj["customSetting"],  # Not Bulk API compatible
+                obj["name"]  # Objects we can't or shouldn't load/save
                 in [
                     "User",
+                    "Group",
                     "LookedUpFromActivity",
                     "OpenActivity",
                     "Task",
@@ -881,13 +886,15 @@ class GenerateMapping(BaseSalesforceApiTask):
     def _is_field_mappable(self, obj, field):
         return not any(
             [
-                "(Deprecated)" in field["label"],
-                field["type"] in ["base64", "address", "location"],
-                field["calculated"],
-                field["autoNumber"],
-                "{}.{}".format(obj, field["name"]) in self.options["ignore"],
-                field["name"] == "OwnerId",
-                not field["createable"],
+                "{}.{}".format(obj, field["name"])  # User-ignored list
+                in self.options["ignore"],
+                "(Deprecated)" in field["label"],  # Deprecated managed fields
+                field["type"] == "base64",  # No Bulk API support for base64 blob fields
+                not field["createable"],  # Non-writeable fields
+                field["type"] == "reference"  # Self-lookups
+                and field["referenceTo"] == [obj],
+                field["type"] == "reference"  # Outside lookups
+                and not self._are_lookup_targets_in_operation(field),
             ]
         )
 
@@ -901,9 +908,12 @@ class GenerateMapping(BaseSalesforceApiTask):
             [self._is_our_custom_api_name(field["name"]) for field in obj["fields"]]
         )
 
+    def _are_lookup_targets_in_operation(self, field):
+        return all([f in self.mapping_objects for f in field["referenceTo"]])
+
     def _is_lookup_to_included_object(self, field):
-        return field["type"] == "reference" and all(
-            [f in self.mapping_objects for f in field["referenceTo"]]
+        return field["type"] == "reference" and self._are_lookup_targets_in_operation(
+            field
         )
 
     def _collect_objects(self):
@@ -982,6 +992,12 @@ class GenerateMapping(BaseSalesforceApiTask):
         objs = set(self.schema.keys())
         stack = self._split_dependencies(objs, self.refs)
 
+        field_sort = (
+            lambda f: "  " + f
+            if f == "Id"
+            else (" " + f if f in self.core_fields else f)
+        )
+
         self.mapping = OrderedDict()
         for obj in stack:
             key = "Insert {}".format(obj)
@@ -997,13 +1013,15 @@ class GenerateMapping(BaseSalesforceApiTask):
                     fields.append(field["name"])
             self.mapping[key]["fields"] = OrderedDict()
             if fields:
-                fields.sort()
+                if "Id" not in fields:
+                    fields.append("Id")
+                fields.sort(key=field_sort)
                 for field in fields:
                     self.mapping[key]["fields"][field] = (
-                        field.lower().replace("__c", "") if field != "Id" else "sf_id"
+                        field.lower() if field != "Id" else "sf_id"
                     )
             if lookups:
-                lookups.sort()
+                lookups.sort(key=field_sort)
                 self.mapping[key]["lookups"] = OrderedDict()
                 for field in lookups:
                     self.mapping[key]["lookups"][field] = {
