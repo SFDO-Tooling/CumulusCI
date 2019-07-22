@@ -811,7 +811,7 @@ def represent_ordereddict(dumper, data):
     return yaml.nodes.MappingNode(u"tag:yaml.org,2002:map", value)
 
 
-yaml.add_representer(OrderedDict, represent_ordereddict)
+yaml.SafeDumper.add_representer(OrderedDict, represent_ordereddict)
 
 
 class GenerateMapping(BaseSalesforceApiTask):
@@ -1039,7 +1039,7 @@ class GenerateMapping(BaseSalesforceApiTask):
         self._build_schema()
         self._build_mapping()
         with open(self.options["path"], "w") as f:
-            yaml.dump(self.mapping, f)
+            yaml.safe_dump(self.mapping, f)
 
     def _split_dependencies(self, objs, dependencies):
         stack = []

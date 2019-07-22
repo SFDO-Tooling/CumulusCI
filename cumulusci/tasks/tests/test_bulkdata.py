@@ -11,13 +11,13 @@ from sqlalchemy import types
 from sqlalchemy import Unicode
 import mock
 import responses
-import yaml
 
 from cumulusci.core.config import BaseGlobalConfig
 from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.exceptions import BulkDataException
 from cumulusci.core.keychain import BaseProjectKeychain
+from cumulusci.core.utils import ordered_yaml_load
 from cumulusci.tasks import bulkdata
 from cumulusci.tests.util import DummyOrgConfig
 from cumulusci.utils import temporary_dir
@@ -831,7 +831,7 @@ class TestMappingGenerator(unittest.TestCase):
             t()
 
             with open("mapping.yaml", "r") as fh:
-                content = yaml.safe_load(fh.read())
+                content = ordered_yaml_load(fh)
 
             self.assertEqual(
                 ["Insert Account", "Insert Child__c"], list(content.keys())
