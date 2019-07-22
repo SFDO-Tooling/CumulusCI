@@ -102,14 +102,6 @@ Options:
 * **path** *(required)*: The path containing metadata to process for managed deployment **Default: src**
 * **revert_path** *(required)*: The path to copy the original metadata to for the revert call **Default: src.orig**
 
-choose_deployment_method
-==========================================
-
-**Description:** Determine whether to deploy using SFDX or the metadata API
-
-**Class::** cumulusci.tasks.sfdx.ChooseDeploymentMethod
-
-
 deploy
 ==========================================
 
@@ -159,6 +151,25 @@ Options:
 ------------------------------------------
 
 * **path** *(required)*: The path to the parent directory containing the metadata bundles directories **Default: unpackaged/post**
+* **unmanaged**: If True, changes namespace_inject to replace tokens with a blank string **Default: True**
+* **namespace_inject**: If set, the namespace tokens in files and filenames are replaced with the namespace's prefix **Default: $project_config.project__package__namespace**
+* **namespace_strip**: If set, all namespace prefixes for the namespace specified are stripped from files and filenames
+* **namespace_tokenize**: If set, all namespace prefixes for the namespace specified are replaced with tokens for use with namespace_inject
+* **static_resource_path**: The path where decompressed static resources are stored.  Any subdirectories found will be zipped and added to the staticresources directory of the build.
+* **namespaced_org**: If True, the tokens %%%NAMESPACED_ORG%%% and ___NAMESPACED_ORG___ will get replaced with the namespace.  The default is false causing those tokens to get stripped and replaced with an empty string.  Set this if deploying to a namespaced scratch org or packaging org.
+* **clean_meta_xml**: Defaults to True which strips the <packageVersions/> element from all meta.xml files.  The packageVersion element gets added automatically by the target org and is set to whatever version is installed in the org.  To disable this, set this option to False
+
+deploy_qa_config
+==========================================
+
+**Description:** Deploys configuration for QA.
+
+**Class::** cumulusci.tasks.salesforce.Deploy
+
+Options:
+------------------------------------------
+
+* **path** *(required)*: The path to the parent directory containing the metadata bundles directories **Default: unpackaged/config/qa**
 * **unmanaged**: If True, changes namespace_inject to replace tokens with a blank string **Default: True**
 * **namespace_inject**: If set, the namespace tokens in files and filenames are replaced with the namespace's prefix **Default: $project_config.project__package__namespace**
 * **namespace_strip**: If set, all namespace prefixes for the namespace specified are stripped from files and filenames
@@ -658,6 +669,23 @@ Options:
 * **api_version**: Override the default api version for the retrieve. Defaults to project__package__api_version
 * **namespace_tokenize**: If set, all namespace prefixes for the namespace specified are replaced with tokens for use with namespace_inject
 
+retrieve_qa_config
+==========================================
+
+**Description:** Retrieves the current changes in the scratch org into unpackaged/config/qa
+
+**Class::** cumulusci.tasks.salesforce.sourcetracking.RetrieveChanges
+
+Options:
+------------------------------------------
+
+* **include**: Include changed components matching this string.
+* **exclude**: Exclude changed components matching this string.
+* **snapshot**: If True, all matching items will be set to be ignored at their current revision number.  This will exclude them from the results unless a new edit is made.
+* **path** *(required)*: The path to write the retrieved metadata **Default: unpackaged/config/qa**
+* **api_version**: Override the default api version for the retrieve. Defaults to project__package__api_version
+* **namespace_tokenize**: If set, all namespace prefixes for the namespace specified are replaced with tokens for use with namespace_inject **Default: $project_config.project__package__namespace**
+
 snapshot_changes
 ==========================================
 
@@ -723,7 +751,7 @@ robot_libdoc
 Options:
 ------------------------------------------
 
-* **path** *(required)*: The path to the robot library to be documented.  Can be single a python file or a .robot file, or a comma separated list of those files. The order of the files will be preserved in the generated documentation. **Default: ['cumulusci/robotframework/Salesforce.py', 'cumulusci/robotframework/Salesforce.robot', 'cumulusci/robotframework/CumulusCI.py']**
+* **path** *(required)*: The path to the robot library to be documented.  Can be single a python file or a .robot file, or a comma separated list of those files. The order of the files will be preserved in the generated documentation. **Default: ['cumulusci.robotframework.CumulusCI', 'cumulusci.robotframework.PageObjects', 'cumulusci.robotframework.Salesforce', 'cumulusci/robotframework/Salesforce.robot']**
 * **output** *(required)*: The output file where the documentation will be written **Default: docs/robot/Keywords.html**
 * **title**: A string to use as the title of the generated output **Default: CumulusCI Robot Framework Keywords**
 
@@ -907,6 +935,8 @@ Options:
 * **namespaced_org**: If True, the changes namespace token injection on any dependencies so tokens %%%NAMESPACED_ORG%%% and ___NAMESPACED_ORG___ will get replaced with the namespace.  The default is false causing those tokens to get stripped and replaced with an empty string.  Set this if deploying to a namespaced scratch org or packaging org.
 * **purge_on_delete**: Sets the purgeOnDelete option for the deployment. Defaults to True
 * **include_beta**: Install the most recent release, even if beta. Defaults to False.
+* **allow_newer**: If the org already has a newer release, use it. Defaults to True.
+* **allow_uninstalls**: Allow uninstalling a beta release or newer final release in order to install the requested version. Defaults to False. Warning: Enabling this may destroy data.
 
 update_package_xml
 ==========================================
@@ -952,7 +982,7 @@ upload_production
 Options:
 ------------------------------------------
 
-* **name** *(required)*: The name of the package version.
+* **name** *(required)*: The name of the package version. **Default: Release**
 * **production**: If True, uploads a production release.  Defaults to uploading a beta **Default: True**
 * **description**: A description of the package and what this version contains.
 * **password**: An optional password for sharing the package privately with anyone who has the password. Don't enter a password if you want to make the package available to anyone on AppExchange and share your package publicly.
@@ -986,45 +1016,32 @@ Options:
 * **line** *(required)*: A formatstring like line to log
 * **format_vars**: A Dict of format vars
 
-fetch_data
+extract_dataset
 ==========================================
 
-**Description:** None
+**Description:** Extract a sample dataset using the bulk API.
 
 **Class::** cumulusci.tasks.bulkdata.ExtractData
 
 Options:
 ------------------------------------------
 
-* **database_url** *(required)*: A DATABASE_URL where the query output should be written
-* **mapping** *(required)*: The path to a yaml file containing mappings of the database fields to Salesforce object fields
+* **database_url** *(required)*: A DATABASE_URL where the query output should be written **Default: sqlite:///datasets/sample.db**
+* **mapping** *(required)*: The path to a yaml file containing mappings of the database fields to Salesforce object fields **Default: datasets/mapping.yml**
 * **sql_path**: If set, an SQL script will be generated at the path provided This is useful for keeping data in the repository and allowing diffs.
 
-load_data
+load_dataset
 ==========================================
 
-**Description:** None
+**Description:** Load a sample dataset using the bulk API.
 
 **Class::** cumulusci.tasks.bulkdata.LoadData
 
 Options:
 ------------------------------------------
 
-* **database_url** *(required)*: The database url to a database containing the test data to load
-* **mapping** *(required)*: The path to a yaml file containing mappings of the database fields to Salesforce object fields
+* **database_url** *(required)*: The database url to a database containing the test data to load **Default: sqlite:///datasets/sample.db**
+* **mapping** *(required)*: The path to a yaml file containing mappings of the database fields to Salesforce object fields **Default: datasets/mapping.yml**
 * **start_step**: If specified, skip steps before this one in the mapping
 * **sql_path**: If specified, a database will be created from an SQL script at the provided path
-
-delete_data
-==========================================
-
-**Description:** None
-
-**Class::** cumulusci.tasks.bulkdata.DeleteData
-
-Options:
-------------------------------------------
-
-* **objects** *(required)*: A list of objects to delete records from in order of deletion.  If passed via command line, use a comma separated string **Default: ['CampaignMember', 'npe4__Relationship__c', 'npsp__Allocation__c', 'npsp__General_Accounting_Unit__c', 'npsp__Partial_Soft_Credit__c', 'npe01__OppPayment__c', 'OpportunityContactRole', 'Opportunity', 'npe03__Recurring_Donation__c', 'Campaign', 'Contact', 'npsp__Address__c', 'Account']**
-* **hardDelete**: If True, perform a hard delete, bypassing the recycle bin. Default: False
 

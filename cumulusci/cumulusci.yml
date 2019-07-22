@@ -358,6 +358,12 @@ tasks:
         options:
             level: info
         group: Utilities
+    generate_dataset_mapping:
+        description: Create a mapping for extracting data from an org.
+        class_path: cumulusci.tasks.bulkdata.GenerateMapping
+        options:
+            namespace_prefix: $project_config.project__package__namespace
+            path: 'datasets/generated_mapping.yml'
     extract_dataset:
         description: Extract a sample dataset using the bulk API.
         class_path: cumulusci.tasks.bulkdata.ExtractData
