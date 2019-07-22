@@ -22,6 +22,10 @@ tasks:
             label: CumulusCI
             connect: True
             overwrite: False
+    create_community:
+        description: Creates a Community in the target org using the Connect API
+        class_path: cumulusci.tasks.salesforce.CreateCommunity
+        group: Salesforce
     create_package:
         description: Creates a package in the target org with the default package name for the project
         class_path: cumulusci.tasks.salesforce.CreatePackage

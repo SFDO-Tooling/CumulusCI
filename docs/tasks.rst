@@ -63,6 +63,27 @@ Options:
 * **connect**: If True, the created connected app will be stored as the CumulusCI connected_app service in the keychain. **Default: True**
 * **overwrite**: If True, any existing connected_app service in the CumulusCI keychain will be overwritten.  Has no effect if the connect option is False.
 
+create_community
+==========================================
+
+**Description:** Creates a Community in the target org using the Connect API
+
+**Class::** cumulusci.tasks.salesforce.CreateCommunity
+
+Create a Salesforce Community via the Connect API.
+Specify the `template` "VF Template" for Visualforce Tabs community,
+or the name for a specific desired template
+
+
+Options:
+------------------------------------------
+
+* **template** *(required)*: Name of the template for the community.
+* **name** *(required)*: Name of the community.
+* **description**: Description of the community.
+* **url_path_prefix** *(required)*: URL prefix for the community.
+* **timeout**: Time to wait, in seconds, for the community to be created
+
 create_package
 ==========================================
 
