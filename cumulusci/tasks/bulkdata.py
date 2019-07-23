@@ -2,6 +2,7 @@ from future import standard_library
 
 standard_library.install_aliases()
 from builtins import zip
+from collections import defaultdict
 from collections import OrderedDict
 from contextlib import contextmanager
 import datetime
@@ -980,7 +981,7 @@ class GenerateMapping(BaseSalesforceApiTask):
         # For standard objects, we include all custom fields, all required standard fields,
         # and master-detail relationships. Required means createable and not nillable.
         self.schema = {}
-        self.refs = {}
+        self.refs = defaultdict(lambda: defaultdict(set))
         for obj in self.mapping_objects:
             self.schema[obj] = {}
 
@@ -1002,9 +1003,7 @@ class GenerateMapping(BaseSalesforceApiTask):
                                     obj in self.mapping_objects
                                     and target in self.mapping_objects
                                 ):
-                                    if obj not in self.refs:
-                                        self.refs[obj] = set()
-                                    self.refs[obj].add(target)
+                                    self.refs[obj][target].add(field["name"])
 
     def _build_mapping(self):
         objs = set(self.schema.keys())
@@ -1084,12 +1083,13 @@ class GenerateMapping(BaseSalesforceApiTask):
                 self.logger.info("Mapped objects: {}".format(", ".join(stack)))
                 self.logger.info("Remaining objects:")
                 for obj in objs_remaining:
-                    self.logger.info(
-                        "{} (depends on {})".format(
-                            obj,
-                            ", ".join(dependencies[obj]) if obj in dependencies else "",
+                    self.logger.info(obj)
+                    for other_obj in dependencies[obj]:
+                        self.logger.info(
+                            "   references {} via: {}".format(
+                                other_obj, ", ".join(dependencies[obj][other_obj])
+                            )
                         )
-                    )
                 raise BulkDataException("Cannot complete mapping")
 
             for obj in objs_without_deps:
@@ -1098,7 +1098,7 @@ class GenerateMapping(BaseSalesforceApiTask):
                 # Remove all dependencies on this object (they're satisfied)
                 for other_obj in dependencies:
                     if obj in dependencies.get(other_obj):
-                        dependencies.get(other_obj).remove(obj)
+                        del dependencies[other_obj][obj]
 
                 # Remove this object from our remaining set.
                 objs_remaining.remove(obj)
