@@ -324,6 +324,50 @@ class TestLoadDataWithSFIds(unittest.TestCase):
         new_id_table = task.metadata.tables["test_sf_ids"]
         self.assertFalse(new_id_table is id_table)
 
+    def test_run_task__exception_failure(self):
+        pass
+
+    @responses.activate
+    def test_store_inserted_ids__exception_failure(self):
+        base_path = os.path.dirname(__file__)
+        mapping_path = os.path.join(base_path, self.mapping_file)
+        task = _make_task(
+            bulkdata.LoadData,
+            {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
+        )
+
+        task._reset_id_table = mock.Mock()
+        task.session = mock.Mock()
+        responses.add(
+            method="GET",
+            url="https://example.com/services/data/vNone/query/?q=SELECT+Id+FROM+RecordType+WHERE+SObjectType%3D%27Account%27AND+DeveloperName+%3D+%27HH_Account%27+LIMIT+1",
+            body=json.dumps({"records": [{"Id": "1"}]}),
+            status=200,
+        )
+
+        with self.assertRaises(BulkDataException):
+            task._store_inserted_ids("JOB_ID", {"BATCH_ID": ["001000000000000"]})
+
+    def test_store_inserted_ids_for_batch__exception_failure(self):
+        result_data = io.StringIO(
+            """
+"Id","Success","Created","Error"
+"001111111111111","false","false","DUPLICATED_DETECTED"
+"""
+        )
+
+        base_path = os.path.dirname(__file__)
+        mapping_path = os.path.join(base_path, self.mapping_file)
+        task = _make_task(
+            bulkdata.LoadData,
+            {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
+        )
+
+        with self.assertRaises(BulkDataException):
+            task._store_inserted_ids_for_batch(
+                result_data, ["001111111111111"], "table", None
+            )
+
 
 @mock.patch("cumulusci.tasks.bulkdata.time.sleep", mock.Mock())
 class TestLoadDataWithoutSFIds(unittest.TestCase):

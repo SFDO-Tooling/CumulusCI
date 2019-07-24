@@ -263,7 +263,9 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
             self.logger.info("Running Job: {}".format(name))
             result = self._load_mapping(mapping)
             if result != "Completed":
-                break
+                raise BulkDataException(
+                    "Job {} did not complete successfully".format(name)
+                )
 
     def _load_mapping(self, mapping):
         """Load data for a single step."""
@@ -440,12 +442,12 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
                     "  Updated {} for batch {}".format(id_table_name, batch_id)
                 )
             except Exception:  # pragma: nocover
-                # If we can't download one result file,
-                # don't let that stop us from downloading the others
-                self.logger.error(
-                    "Could not download batch results: {}".format(batch_id)
+                # We can't get new Ids for some reason, or determine batch status.
+                # Fail the job to preserve integrity of data store.
+                raise BulkDataException(
+                    "Failed to download results for batch {}".format(batch_id)
                 )
-                continue
+
         self.session.commit()
 
     def _reset_id_table(self, mapping):
@@ -482,7 +484,7 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
                     sf_id = row[0]
                     yield "{},{}\n".format(local_id, sf_id).encode("utf-8")
                 else:
-                    self.logger.warning("      Error on row {}: {}".format(i, row[3]))
+                    raise BulkDataException("Error on row {}: {}".format(i, row[3]))
                 i += 1
 
         # Bulk insert rows into id table
