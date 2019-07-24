@@ -953,3 +953,4 @@ class TestOrgConfig(unittest.TestCase):
 
         self.assertEqual("Enterprise Edition", config.org_type)
         self.assertEqual(False, config.is_sandbox)
+        self.assertIsNotNone(config.organization_sobject)
