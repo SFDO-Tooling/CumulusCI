@@ -1037,6 +1037,37 @@ Options:
 * **line** *(required)*: A formatstring like line to log
 * **format_vars**: A Dict of format vars
 
+generate_dataset_mapping
+==========================================
+
+**Description:** Create a mapping for extracting data from an org.
+
+**Class::** cumulusci.tasks.bulkdata.GenerateMapping
+
+Generate a mapping file for use with the `extract_dataset` and `load_dataset` tasks.
+This task will examine the schema in the specified org and attempt to infer a
+mapping suitable for extracting data in packaged and custom objects as well as
+customized standard objects.
+
+Mappings cannot include reference cycles - situations where Object A refers to B,
+and B also refers to A. Mapping generation will fail for such data models; to
+resolve the issue, specify the `ignore` option with the name of one of the
+involved lookup fields to suppress it. `ignore` can be specified as a list in
+`cumulusci.yml` or as a comma-separated string at the command line.
+
+In most cases, the mapping generated will need minor tweaking by the user. Note
+that the mapping omits features that are not currently well supported by the
+`extract_dataset` and `load_dataset` tasks, including self-lookups and references to
+the `User` object.
+
+
+Options:
+------------------------------------------
+
+* **path** *(required)*: Location to write the mapping file **Default: datasets/generated_mapping.yml**
+* **namespace_prefix**: The namespace prefix to use **Default: $project_config.project__package__namespace**
+* **ignore**: Object API names, or fields in Object.Field format, to ignore
+
 extract_dataset
 ==========================================
 
