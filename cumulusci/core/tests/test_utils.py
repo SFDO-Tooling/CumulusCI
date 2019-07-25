@@ -1,4 +1,5 @@
 import datetime
+import io
 import unittest
 
 import pytz
@@ -49,7 +50,7 @@ class TestMergedConfig(unittest.TestCase):
 
     def test_merge_failure(self):
         with self.assertRaises(ConfigMergeError) as cm:
-            config = utils.merge_config(
+            utils.merge_config(
                 OrderedDict(
                     [
                         ("global_config", {"hello": "world", "test": {"sample": 1}}),
@@ -70,8 +71,34 @@ class TestDictMerger(unittest.TestCase):
 
     def test_cant_merge_into_dict(self):
         with self.assertRaises(ConfigMergeError):
-            combo = utils.dictmerge({"a": "b"}, 2)
+            utils.dictmerge({"a": "b"}, 2)
 
     def test_cant_merge_nonsense(self):
         with self.assertRaises(ConfigMergeError):
-            combo = utils.dictmerge(pytz, 2)
+            utils.dictmerge(pytz, 2)
+
+
+class TestYamlUtils(unittest.TestCase):
+    yaml = """first: 1
+second: 2
+third:
+  first: 1
+  second: 2
+"""
+
+    def test_ordered_yaml_dump(self):
+        ordered_data = OrderedDict()
+        ordered_data["first"] = 1
+        ordered_data["second"] = 2
+        ordered_data["third"] = OrderedDict()
+        ordered_data["third"]["first"] = 1
+        ordered_data["third"]["second"] = 2
+
+        result = io.StringIO()
+        utils.ordered_yaml_dump(ordered_data, result)
+        self.assertEqual(self.yaml, result.getvalue())
+
+    def test_ordered_yaml_load(self):
+        result = utils.ordered_yaml_load(self.yaml)
+        self.assertIsInstance(result, OrderedDict)
+        self.assertIsInstance(result["third"], OrderedDict)

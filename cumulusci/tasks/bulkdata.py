@@ -11,7 +11,6 @@ import os
 import time
 import tempfile
 import xml.etree.ElementTree as ET
-import yaml
 
 from salesforce_bulk.util import IteratorBytesIO
 from sqlalchemy.ext.automap import automap_base
@@ -31,7 +30,12 @@ from sqlalchemy import event
 import requests
 import unicodecsv
 
-from cumulusci.core.utils import process_bool_arg, ordered_yaml_load
+from cumulusci.core.utils import (
+    process_bool_arg,
+    process_list_arg,
+    ordered_yaml_load,
+    ordered_yaml_dump,
+)
 from cumulusci.core.exceptions import BulkDataException
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
@@ -146,11 +150,7 @@ class DeleteData(BaseSalesforceApiTask, BulkJobTaskMixin):
         super(DeleteData, self)._init_options(kwargs)
 
         # Split and trim objects string into a list if not already a list
-        if not isinstance(self.options["objects"], list):
-            self.options["objects"] = [
-                obj.strip() for obj in self.options["objects"].split(",")
-            ]
-
+        self.options["objects"] = process_list_arg(self.options["objects"])
         self.options["hardDelete"] = process_bool_arg(self.options.get("hardDelete"))
 
     def _run_task(self):
@@ -800,21 +800,6 @@ class ExtractData(BulkJobTaskMixin, BaseSalesforceApiTask):
                 f.write(line + "\n")
 
 
-def represent_ordereddict(dumper, data):
-    value = []
-
-    for item_key, item_value in data.items():
-        node_key = dumper.represent_data(item_key)
-        node_value = dumper.represent_data(item_value)
-
-        value.append((node_key, node_value))
-
-    return yaml.nodes.MappingNode(u"tag:yaml.org,2002:map", value)
-
-
-yaml.SafeDumper.add_representer(OrderedDict, represent_ordereddict)
-
-
 class GenerateMapping(BaseSalesforceApiTask):
     task_docs = """
     Generate a mapping file for use with the `extract_dataset` and `load_dataset` tasks.
@@ -826,7 +811,7 @@ class GenerateMapping(BaseSalesforceApiTask):
     and B also refers to A. Mapping generation will fail for such data models; to
     resolve the issue, specify the `ignore` option with the name of one of the
     involved lookup fields to suppress it. `ignore` can be specified as a list in
-    `cumulusci.yml` or as a semicolon-separated string at the command line.
+    `cumulusci.yml` or as a comma-separated string at the command line.
 
     In most cases, the mapping generated will need minor tweaking by the user. Note
     that the mapping omits features that are not currently well supported by the
@@ -855,87 +840,21 @@ class GenerateMapping(BaseSalesforceApiTask):
             self.options["namespace_prefix"] += "__"
 
         if "ignore" in self.options:
-            if type(self.options["ignore"]) is str:
-                self.options["ignore"] = [
-                    f.strip() for f in self.options["ignore"].split(";")
-                ]
+            self.options["ignore"] = process_list_arg(self.options["ignore"])
         else:
             self.options["ignore"] = []
 
-    def _is_any_custom_api_name(self, api_name):
-        return api_name.endswith("__c")
-
-    def _is_our_custom_api_name(self, api_name):
-        return self._is_any_custom_api_name(api_name) and (
-            (
-                self.options["namespace_prefix"]
-                and api_name.startswith(self.options["namespace_prefix"])
-            )
-            or api_name.count("__") == 1
-        )
-
-    def _is_core_field(self, api_name):
-        # This list will be revised when we change our user support.
-        # We always include these fields on all objects (if present)
-        return api_name in self.core_fields
-
-    def _is_object_mappable(self, obj):
-        return not any(
-            [
-                obj["name"] in self.options["ignore"],  # User-specified exclusions
-                obj["name"].endswith(
-                    "ChangeEvent"
-                ),  # Change Data Capture entities (which get custom fields)
-                obj["name"].endswith("__mdt"),  # Custom Metadata Types (MDAPI only)
-                obj["name"].endswith("__e"),  # Platform Events
-                obj["customSetting"],  # Not Bulk API compatible
-                obj["name"]  # Objects we can't or shouldn't load/save
-                in [
-                    "User",
-                    "Group",
-                    "LookedUpFromActivity",
-                    "OpenActivity",
-                    "Task",
-                    "Event",
-                    "ActivityHistory",
-                ],
-            ]
-        )
-
-    def _is_field_mappable(self, obj, field):
-        return not any(
-            [
-                "{}.{}".format(obj, field["name"])  # User-ignored list
-                in self.options["ignore"],
-                "(Deprecated)" in field["label"],  # Deprecated managed fields
-                field["type"] == "base64",  # No Bulk API support for base64 blob fields
-                not field["createable"],  # Non-writeable fields
-                field["type"] == "reference"  # Self-lookups
-                and field["referenceTo"] == [obj],
-                field["type"] == "reference"  # Outside lookups
-                and not self._are_lookup_targets_in_operation(field),
-            ]
-        )
-
-    def _is_required_field(self, field):
-        return (field["createable"] and not field["nillable"]) or (
-            field["type"] == "reference" and field["relationshipOrder"] == 1
-        )
-
-    def _has_our_custom_fields(self, obj):
-        return any(
-            [self._is_our_custom_api_name(field["name"]) for field in obj["fields"]]
-        )
-
-    def _are_lookup_targets_in_operation(self, field):
-        return all([f in self.mapping_objects for f in field["referenceTo"]])
-
-    def _is_lookup_to_included_object(self, field):
-        return field["type"] == "reference" and self._are_lookup_targets_in_operation(
-            field
-        )
+    def _run_task(self):
+        self.logger.info("Collecting sObject information")
+        self._collect_objects()
+        self._build_schema()
+        self.logger.info("Creating mapping schema")
+        self._build_mapping()
+        with open(self.options["path"], "w") as f:
+            ordered_yaml_dump(self.mapping, f)
 
     def _collect_objects(self):
+        """Walk the global describe and identify the sObjects we need to include in a minimal operation."""
         self.mapping_objects = []
 
         # Cache the global describe, which we'll walk.
@@ -966,15 +885,20 @@ class GenerateMapping(BaseSalesforceApiTask):
                         field["name"]
                     ):
                         self.mapping_objects.extend(
-                            filter(
-                                lambda o: o not in self.mapping_objects
-                                and self._is_object_mappable(self.describes[o]),
-                                field["referenceTo"],
-                            )
+                            [
+                                obj
+                                for obj in field["referenceTo"]
+                                if obj not in self.mapping_objects
+                                and self._is_object_mappable(self.describes[obj])
+                            ]
                         )
+
             index += 1
 
     def _build_schema(self):
+        """Convert self.mapping_objects into a schema, including field details and interobject references,
+        in self.schema and self.refs"""
+
         # Now, find all the fields we need to include.
         # For custom objects, we include all custom fields. This includes custom objects
         # that our package doesn't own.
@@ -999,13 +923,12 @@ class GenerateMapping(BaseSalesforceApiTask):
 
                         if field["type"] == "reference":
                             for target in field["referenceTo"]:
-                                if (
-                                    obj in self.mapping_objects
-                                    and target in self.mapping_objects
-                                ):
-                                    self.refs[obj][target].add(field["name"])
+                                # We've already vetted that this field is referencing
+                                # included objects, via `_is_field_mappable()`
+                                self.refs[obj][target].add(field["name"])
 
     def _build_mapping(self):
+        """Output self.schema in mapping file format by constructing an OrderedDict and serializing to YAML"""
         objs = set(self.schema.keys())
         stack = self._split_dependencies(objs, self.refs)
 
@@ -1051,14 +974,9 @@ class GenerateMapping(BaseSalesforceApiTask):
                             )
                         )
 
-    def _run_task(self):
-        self._collect_objects()
-        self._build_schema()
-        self._build_mapping()
-        with open(self.options["path"], "w") as f:
-            yaml.safe_dump(self.mapping, f)
-
     def _split_dependencies(self, objs, dependencies):
+        """Attempt to flatten the object network into a sequence of load operations. May throw BulkDataException
+        if reference cycles exist in the network"""
         stack = []
         objs_remaining = objs.copy()
 
@@ -1104,6 +1022,100 @@ class GenerateMapping(BaseSalesforceApiTask):
                 objs_remaining.remove(obj)
 
         return stack
+
+    def _is_any_custom_api_name(self, api_name):
+        """True if the entity name is custom (including any package)."""
+        return api_name.endswith("__c")
+
+    def _is_our_custom_api_name(self, api_name):
+        """True if the entity name is custom and has our namespace prefix (if we have one)
+        or if the entity does not have a namespace"""
+        return self._is_any_custom_api_name(api_name) and (
+            (
+                self.options["namespace_prefix"]
+                and api_name.startswith(self.options["namespace_prefix"])
+            )
+            or api_name.count("__") == 1
+        )
+
+    def _is_core_field(self, api_name):
+        """True if this field is one that we should always include regardless
+        of other settings or field configuration, such as Contact.FirstName.
+        DB-level required fields don't need to be so handled."""
+
+        return api_name in self.core_fields
+
+    def _is_object_mappable(self, obj):
+        """True if this object is one we can map, meaning it's an sObject and not
+        some other kind of entity, it's not ignored, it's Bulk API compatible,
+        and it's not in a hard-coded list of entities we can't currently handle."""
+
+        return not any(
+            [
+                obj["name"] in self.options["ignore"],  # User-specified exclusions
+                obj["name"].endswith(
+                    "ChangeEvent"
+                ),  # Change Data Capture entities (which get custom fields)
+                obj["name"].endswith("__mdt"),  # Custom Metadata Types (MDAPI only)
+                obj["name"].endswith("__e"),  # Platform Events
+                obj["customSetting"],  # Not Bulk API compatible
+                obj["name"]  # Objects we can't or shouldn't load/save
+                in [
+                    "User",
+                    "Group",
+                    "LookedUpFromActivity",
+                    "OpenActivity",
+                    "Task",
+                    "Event",
+                    "ActivityHistory",
+                ],
+            ]
+        )
+
+    def _is_field_mappable(self, obj, field):
+        """True if this field is one we can map, meaning it's not ignored,
+        it's createable by the Bulk API, it's not a deprecated field,
+        and it's not a type of reference we can't handle without special
+        configuration (self-lookup or reference to objects not included
+        in this operation)."""
+        return not any(
+            [
+                "{}.{}".format(obj, field["name"])  # User-ignored list
+                in self.options["ignore"],
+                "(Deprecated)" in field["label"],  # Deprecated managed fields
+                field["type"] == "base64",  # No Bulk API support for base64 blob fields
+                not field["createable"],  # Non-writeable fields
+                field["type"] == "reference"  # Self-lookups
+                and field["referenceTo"] == [obj],
+                field["type"] == "reference"  # Outside lookups
+                and not self._are_lookup_targets_in_operation(field),
+            ]
+        )
+
+    def _is_required_field(self, field):
+        """True if the field is either database-level required or a master-detail
+        relationship field."""
+        return (field["createable"] and not field["nillable"]) or (
+            field["type"] == "reference" and field["relationshipOrder"] == 1
+        )
+
+    def _has_our_custom_fields(self, obj):
+        """True if the object is owned by us or contains any field owned by us."""
+        return any(
+            [self._is_our_custom_api_name(field["name"]) for field in obj["fields"]]
+        )
+
+    def _are_lookup_targets_in_operation(self, field):
+        """True if this lookup field aims at objects we are already including (all targets
+        must match, although we don't provide actual support for polymorphism)."""
+        return all([f in self.mapping_objects for f in field["referenceTo"]])
+
+    def _is_lookup_to_included_object(self, field):
+        """True if this field is a lookup and also references only objects we are
+        already including."""
+        return field["type"] == "reference" and self._are_lookup_targets_in_operation(
+            field
+        )
 
 
 # For backwards-compatibility

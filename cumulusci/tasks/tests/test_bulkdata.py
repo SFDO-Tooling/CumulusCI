@@ -599,7 +599,7 @@ class TestMappingGenerator(unittest.TestCase):
     def test_splits_ignore_string(self):
         t = _make_task(
             bulkdata.GenerateMapping,
-            {"options": {"ignore": "Account; Contact", "path": "t"}},
+            {"options": {"ignore": "Account, Contact", "path": "t"}},
         )
 
         self.assertEqual(["Account", "Contact"], t.options["ignore"])
@@ -1041,7 +1041,7 @@ class TestMappingGenerator(unittest.TestCase):
         }
 
         t._build_schema()
-        self.assertEqual({"Opportunity": set(["Account"])}, t.refs)
+        self.assertEqual({"Opportunity": {"Account": set(["AccountId"])}}, t.refs)
 
     def test_build_mapping(self):
         t = _make_task(bulkdata.GenerateMapping, {"options": {"path": "t"}})
@@ -1055,7 +1055,7 @@ class TestMappingGenerator(unittest.TestCase):
                 ),
             },
         }
-        t.refs = {"Child__c": set(["Account"])}
+        t.refs = {"Child__c": {"Account": set(["Account__c"])}}
 
         t._build_mapping()
         self.assertEqual(["Insert Account", "Insert Child__c"], list(t.mapping.keys()))
@@ -1081,15 +1081,45 @@ class TestMappingGenerator(unittest.TestCase):
             "account", t.mapping["Insert Child__c"]["lookups"]["Account__c"]["table"]
         )
 
+    def test_build_mapping__warns_polymorphic_lookups(self):
+        t = _make_task(bulkdata.GenerateMapping, {"options": {"path": "t"}})
+
+        t.mapping_objects = ["Account", "Contact", "Custom__c"]
+        t.schema = {
+            "Account": {"Name": self._mock_field("Name")},
+            "Contact": {"Name": self._mock_field("Name")},
+            "Custom__c": {
+                "Name": self._mock_field("Name"),
+                "PolyLookup__c": self._mock_field(
+                    "PolyLookup__c",
+                    field_type="reference",
+                    referenceTo=["Account", "Contact"],
+                ),
+            },
+        }
+        t.logger = mock.Mock()
+
+        t._build_mapping()
+        t.logger.warning.assert_called_once_with(
+            "Field Custom__c.PolyLookup__c is a polymorphic lookup, which is not supported"
+        )
+
     def test_split_dependencies__no_cycles(self):
         t = _make_task(bulkdata.GenerateMapping, {"options": {"path": "t"}})
 
         stack = t._split_dependencies(
             set(["Account", "Contact", "Opportunity", "Custom__c"]),
             {
-                "Contact": set(["Account"]),
-                "Opportunity": set(["Account", "Contact"]),
-                "Custom__c": set(["Account", "Contact", "Opportunity"]),
+                "Contact": {"Account": set(["AccountId"])},
+                "Opportunity": {
+                    "Account": set(["AccountId"]),
+                    "Contact": set(["Primary_Contact__c"]),
+                },
+                "Custom__c": {
+                    "Account": set(["Account__c"]),
+                    "Contact": set(["Contact__c"]),
+                    "Opportunity": set(["Opp__c"]),
+                },
             },
         )
 
@@ -1102,8 +1132,11 @@ class TestMappingGenerator(unittest.TestCase):
             t._split_dependencies(
                 set(["Account", "Contact", "Opportunity", "Custom__c"]),
                 {
-                    "Account": set(["Contact"]),
-                    "Contact": set(["Account"]),
-                    "Opportunity": set(["Account", "Contact"]),
+                    "Account": {"Contact": set(["Primary_Contact__c"])},
+                    "Contact": {"Account": set(["AccountId"])},
+                    "Opportunity": {
+                        "Account": set(["AccountId"]),
+                        "Contact": set(["Primary_Contact__c"]),
+                    },
                 },
             )

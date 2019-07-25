@@ -1053,7 +1053,7 @@ Mappings cannot include reference cycles - situations where Object A refers to B
 and B also refers to A. Mapping generation will fail for such data models; to
 resolve the issue, specify the `ignore` option with the name of one of the
 involved lookup fields to suppress it. `ignore` can be specified as a list in
-`cumulusci.yml` or as a semicolon-separated string at the command line.
+`cumulusci.yml` or as a comma-separated string at the command line.
 
 In most cases, the mapping generated will need minor tweaking by the user. Note
 that the mapping omits features that are not currently well supported by the
