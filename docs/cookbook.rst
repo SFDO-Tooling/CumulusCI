@@ -115,7 +115,7 @@ While the built in tasks are designed to be highly configurable via the cumulusc
 When the cci command runs, it adds your current repo's root to the python path.  This means you can write your python customizations to CumulusCI and store them in your project's repo along with your code.
 
 All of the following examples assume that you've created a tasks module in your repo::
- 
+
     mkdir tasks
     touch tasks/__init__.py
 
@@ -124,7 +124,12 @@ Quick background about CumulusCI tasks
 
 All tasks in CumulusCI are python classes that subclass `cumulusci.core.tasks.BaseTask`.  The general usage of a task is two step: initialize an instance then call it to run the task.
 
-For most tasks, you'll want to override the `_run_task` method in your subclass to provide implementation.
+For most tasks, you'll want to override the `_run_task` method in your subclass to provide the implementation. The return value of this function is ignored. Exceptions from `cumulus.core.exceptions` should be raised to communicate task status to the user or flow. If no exceptions are thrown, the task is considered to have completed successfully.
+
+Task Exceptions
+---------------
+
+If the task has an error that should be considered a build failure (e.g. a metadata deployment failure, test failure, etc) it can raise the exception `cumulus.core.exceptions.CumulusCIFailure`. If you want to flag a usage error (e.g. the task receives an invalid set of options) it should raise the exception `cumulus.core.exceptions.CumulusCiUsageError`.
 
 Query the Enterprise API for Data
 ---------------------------------
@@ -152,7 +157,7 @@ Verify that the task shows up::
 
     cci task list
     cci task info list_contacts
-        
+
 
 Query the Tooling API
 ---------------------
@@ -168,7 +173,7 @@ Create the file `tasks/tooling.py`::
             res = self.tooling.query('Select Id, Name, NamespacePrefix from ApexClass LIMIT 10')
             for apexclass in res['records']:
                 self.logger.info('{Id}: [{NamespacePrefix}] {Name}'.format(**apexclass))
-    
+
 To wire this task up to CumulusCI, add the following in your project's cumulusci.yml::
 
     tasks:
@@ -192,7 +197,7 @@ The following is the content of the `tasks/salesforce.py` file in the Cumulus re
     from cumulusci.tasks.salesforce import UpdateAdminProfile as BaseUpdateAdminProfile
     from cumulusci.utils import findReplace
     from cumulusci.utils import findReplaceRegex
-    
+
     rt_visibility_template = """
     <recordTypeVisibilities>
         <default>{}</default>
@@ -201,12 +206,12 @@ The following is the content of the `tasks/salesforce.py` file in the Cumulus re
         <visible>true</visible>
     </recordTypeVisibilities>
     """
-    
+
     class UpdateAdminProfile(BaseUpdateAdminProfile):
-            
+
         def _process_metadata(self):
             super(UpdateAdminProfile, self)._process_metadata()
-            
+
             # Strip record type visibilities
             findReplaceRegex(
                 '<recordTypeVisibilities>([^\$]+)</recordTypeVisibilities>',
@@ -214,12 +219,12 @@ The following is the content of the `tasks/salesforce.py` file in the Cumulus re
                 os.path.join(self.tempdir, 'profiles'),
                 'Admin.profile'
             )
-            
+
             # Set record type visibilities
             self._set_record_type('Account.HH_Account', 'false')
             self._set_record_type('Account.Organization', 'true')
             self._set_record_type('Opportunity.NPSP_Default', 'true')
-    
+
         def _set_record_type(self, name, default):
             rt = rt_visibility_template.format(default, name)
             findReplace(
@@ -288,7 +293,7 @@ First, set up your project in CircleCI and add the following Environment Variabl
 
 * CUMULUSCI_SERVICE_connected_app: The output from `cci service show connected_app`
 * CUMULUSCI_ORG_feature: The output from `cci org info feature`, assuming you've already connected your feature org to your local toolbelt.
-    
+
 
 The following circle.yml file added to your repo will build all branches as unmanaged code::
 
@@ -312,7 +317,7 @@ If you want to run the full packaging flow where feature branches build unmanage
 
 * CUMULUSCI_ORG_packaging: The output from `cci org info packaging`, assuming you've already connected your packaging org to your local toolbelt.
 * CUMULUSCI_ORG_beta: The output from `cci org info beta`, assuming you've already connected your beta org to your local toolbelt.
-* CUMULUSCI_SERVICE_github: The output from `cci project show_github`, assuming you've already configured github locally via `cci project connect_github` 
+* CUMULUSCI_SERVICE_github: The output from `cci project show_github`, assuming you've already configured github locally via `cci project connect_github`
 
 Next, use the following circle.yml::
 
@@ -393,7 +398,7 @@ To run the full feature/master flow using scratch orgs for feature and beta test
 
 * CUMULUSCI_ORG_packaging: The output from `cci org info packaging`, assuming you've already connected your packaging org to your local toolbelt.
 * CUMULUSCI_ORG_beta: The output from `cci org info beta`, assuming you've already connected your beta org to your local toolbelt.
-* CUMULUSCI_SERVICE_github: The output from `cci project show_github`, assuming you've already configured github locally via `cci project connect_github` 
+* CUMULUSCI_SERVICE_github: The output from `cci project show_github`, assuming you've already configured github locally via `cci project connect_github`
 
 The following circle.yml should set up the whole feature/master flow using scratch orgs for feature and beta test builds::
 
