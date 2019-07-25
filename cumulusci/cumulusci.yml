@@ -276,6 +276,13 @@ tasks:
             output: Keywords.html
             title: $project_config.project__package__name
         group: Robot Framework
+    robot_lint:
+        description: Static analysis tool for robot framework files
+        class_path: cumulusci.tasks.robotframework.RobotLint
+        group: Robot Framework
+        options:
+            path:
+              - robot
     robot_testdoc:
         description: Generates html documentation of your Robot test suite and writes to tests/test_suite. 
         class_path: cumulusci.tasks.robotframework.RobotTestDoc
