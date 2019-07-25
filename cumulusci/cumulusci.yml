@@ -696,8 +696,6 @@ flows:
                 flow: beta_dependencies
             2:
                 task: install_managed
-                options:
-                    version: previous
             3:
                 task: install_managed_beta
 
