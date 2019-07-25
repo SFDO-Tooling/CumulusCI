@@ -839,10 +839,7 @@ class GenerateMapping(BaseSalesforceApiTask):
         ].endswith("__"):
             self.options["namespace_prefix"] += "__"
 
-        if "ignore" in self.options:
-            self.options["ignore"] = process_list_arg(self.options["ignore"])
-        else:
-            self.options["ignore"] = []
+        self.options["ignore"] = process_list_arg(self.options.get("ignore", []))
 
     def _run_task(self):
         self.logger.info("Collecting sObject information")
@@ -987,12 +984,11 @@ class GenerateMapping(BaseSalesforceApiTask):
         # For each object, if it is not dependent on any other objects, place it at the end of the stack.
         # Once an object is placed in the stack, remove dependencies to it (they're satisfied)
         while objs_remaining:
-            objs_without_deps = list(
-                filter(
-                    lambda obj: obj not in dependencies or not dependencies[obj],
-                    objs_remaining,
-                )
-            )
+            objs_without_deps = [
+                obj
+                for obj in objs_remaining
+                if obj not in dependencies or not dependencies[obj]
+            ]
 
             if not objs_without_deps:
                 self.logger.error(
