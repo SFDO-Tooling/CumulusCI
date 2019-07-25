@@ -1097,6 +1097,12 @@ class TestMappingGenerator(unittest.TestCase):
                 ),
             },
         }
+        t.refs = {
+            "Custom__c": {
+                "Account": set(["PolyLookup__c"]),
+                "Contact": set(["PolyLookup__c"]),
+            }
+        }
         t.logger = mock.Mock()
 
         t._build_mapping()

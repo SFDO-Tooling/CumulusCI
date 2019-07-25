@@ -1,5 +1,4 @@
 import datetime
-import io
 import unittest
 
 import pytz
@@ -8,6 +7,11 @@ from .. import utils
 
 from collections import OrderedDict
 from cumulusci.core.exceptions import ConfigMergeError
+
+try:
+    from StringIO import StringIO
+except ImportError:
+    from io import StringIO
 
 
 class TestUtils(unittest.TestCase):
@@ -94,7 +98,7 @@ third:
         ordered_data["third"]["first"] = 1
         ordered_data["third"]["second"] = 2
 
-        result = io.StringIO()
+        result = StringIO()
         utils.ordered_yaml_dump(ordered_data, result)
         self.assertEqual(self.yaml, result.getvalue())
 
