@@ -289,6 +289,35 @@ class FlowCoordinator(object):
         if new_line:
             self.logger.info("")
 
+    def show_summary(self):
+        """ Display the description and steps contained within a given FlowCoordinator """
+        self.logger.info(
+            "Description: {}".format(self.flow_config.config["description"])
+        )
+        previous_step = []
+        step_paths = [step.path.split(".") for step in self.steps]
+        step_num_by_level = [1 for i in range(max(len(path) for path in step_paths))]
+        for step in step_paths:
+            indent = 0
+            for idx, item in enumerate(step):
+                step_num = step_num_by_level[indent]
+                item_type = "task" if idx == len(step) - 1 else "flow"
+                if item not in previous_step:
+                    self.logger.info(
+                        "{}{}) {}: {}".format(
+                            "    " * indent, step_num, item_type, item
+                        )
+                    )
+                    step_num_by_level[indent] += 1
+                    # when a step num increases we need to
+                    # reset step levels below this to 1
+                    index = indent + 1
+                    while index < len(step_num_by_level):
+                        step_num_by_level[index] = 1
+                        index += 1
+                indent += 1
+            previous_step = step
+
     def run(self, org_config):
         self.org_config = org_config
         line = "Initializing flow: {}".format(self.__class__.__name__)
