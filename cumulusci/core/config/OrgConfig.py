@@ -91,13 +91,17 @@ class OrgConfig(BaseConfig):
 
     def _load_orginfo(self):
         headers = {"Authorization": "Bearer " + self.access_token}
-        org_info = requests.get(
+        self._org_sobject = requests.get(
             self.instance_url
             + "/services/data/v45.0/sobjects/Organization/{}".format(self.org_id),
             headers=headers,
         ).json()
         result = {
-            "org_type": org_info["OrganizationType"],
-            "is_sandbox": org_info["IsSandbox"],
+            "org_type": self._org_sobject["OrganizationType"],
+            "is_sandbox": self._org_sobject["IsSandbox"],
         }
         self.config.update(result)
+
+    @property
+    def organization_sobject(self):
+        return self._org_sobject
