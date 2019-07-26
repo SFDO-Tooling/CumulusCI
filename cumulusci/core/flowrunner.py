@@ -310,10 +310,10 @@ class FlowCoordinator(object):
                     step_num_by_level[indent] += 1
                     # when a step num increases we need to
                     # reset step levels below it to 1
-                    index = indent + 1
-                    while index < len(step_num_by_level):
-                        step_num_by_level[index] = 1
-                        index += 1
+                    idx2 = indent + 1
+                    while idx2 < len(step_num_by_level):
+                        step_num_by_level[idx2] = 1
+                        idx2 += 1
                 indent += 1
             previous_step = step
 
