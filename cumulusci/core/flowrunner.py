@@ -300,12 +300,11 @@ class FlowCoordinator(object):
         for step in step_paths:
             indent = 0
             for idx, item in enumerate(step):
-                step_num = step_num_by_level[indent]
                 item_type = "task" if idx == len(step) - 1 else "flow"
                 if item not in previous_step:
                     self.logger.info(
                         "{}{}) {}: {}".format(
-                            "    " * indent, step_num, item_type, item
+                            "    " * indent, step_num_by_level[indent], item_type, item
                         )
                     )
                     step_num_by_level[indent] += 1
