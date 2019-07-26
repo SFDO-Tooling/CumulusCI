@@ -7,7 +7,7 @@ from cumulusci.tasks.github import PullRequests
 from cumulusci.tests.util import create_project_config
 
 
-@mock.patch("cumulusci.tasks.github.base.get_github_api", mock.Mock())
+@mock.patch("cumulusci.tasks.github.base.get_github_api_for_user", mock.Mock())
 class TestPullRequests(unittest.TestCase):
     project_config = create_project_config()
     project_config.keychain.set_service(

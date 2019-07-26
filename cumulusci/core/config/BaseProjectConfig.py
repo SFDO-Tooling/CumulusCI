@@ -17,7 +17,7 @@ from cumulusci.core.exceptions import (
     NotInProject,
     ProjectConfigNotFound,
 )
-from cumulusci.core.github import get_github_api
+from cumulusci.core.github import get_github_api_for_repo
 from github3.exceptions import NotFoundError
 
 
@@ -382,12 +382,10 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             processors=("raven.processors.SanitizePasswordsProcessor",),
         )
 
-    # Skipping coverage because the module structure
-    # makes it hard to patch our get_github_api global
-    def get_github_api(self):  # pragma: nocover
-        github_config = self.keychain.get_service("github")
-        gh = get_github_api(github_config.username, github_config.password)
-        return gh
+    def get_github_api(self, owner=None, repo=None):
+        return get_github_api_for_repo(
+            self.keychain, owner or self.repo_owner, repo or self.repo_name
+        )
 
     def get_latest_tag(self, beta=False):
         """ Query Github Releases to find the latest production or beta tag """
@@ -560,10 +558,10 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             skip = [skip]
 
         # Initialize github3.py API against repo
-        gh = self.get_github_api()
         repo_owner, repo_name = dependency["github"].split("/")[3:5]
         if repo_name.endswith(".git"):
             repo_name = repo_name[:-4]
+        gh = self.get_github_api(repo_owner, repo_name)
         repo = gh.repository(repo_owner, repo_name)
 
         # Determine the commit

@@ -5,7 +5,7 @@ import unittest
 import mock
 import responses
 
-from cumulusci.core.exceptions import GithubException
+from cumulusci.core.exceptions import CumulusCIFailure
 from cumulusci.core.github import get_github_api
 from cumulusci.core.github import validate_service
 
@@ -45,6 +45,6 @@ class TestGithub(unittest.TestCase):
 
     @responses.activate
     def test_validate_service(self):
-        responses.add("GET", "/rate_limit", status=401)
-        with self.assertRaises(GithubException):
+        responses.add("GET", "https://api.github.com/rate_limit", status=401)
+        with self.assertRaises(CumulusCIFailure):
             validate_service({"username": "BOGUS", "password": "BOGUS"})
