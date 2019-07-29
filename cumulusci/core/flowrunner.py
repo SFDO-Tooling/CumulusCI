@@ -295,20 +295,22 @@ class FlowCoordinator(object):
         previous_parts = []
         for step in self.steps:
             parts = step.path.split(".")
-            number = str(step.step_num)
+            numbers = str(step.step_num).split(".")
             when = step.when or None
             task_name = parts.pop()
             i = -1
             for i, flow_name in enumerate(parts):
                 if len(previous_parts) < i + 1 or previous_parts[i] != flow_name:
-                    lines.append("{}{}) flow: {}".format("    " * i, number, flow_name))
+                    lines.append(
+                        "{}{}) flow: {}".format("    " * i, numbers[i], flow_name)
+                    )
             lines.append(
                 "{}{}) task: {}{}".format(
                     "    " * (i + 1),
-                    number,
+                    ".".join(numbers[i + 1 :]),
                     task_name,
                     "\n{}when: {}".format(
-                        ("    " * (i + 1)) + (" " * len(number)) + "  ", when
+                        ("    " * (i + 1)) + (" " * len(numbers[i + 1 :])) + "  ", when
                     )
                     if when is not None
                     else "",
