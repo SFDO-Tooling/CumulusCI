@@ -4,6 +4,7 @@ import json
 import os
 import shutil
 import unittest
+from collections import OrderedDict
 
 from sqlalchemy import Column
 from sqlalchemy import Table
@@ -227,7 +228,7 @@ class TestLoadDataWithSFIds(unittest.TestCase):
         responses.add(
             method="GET",
             url="http://api/job/3/batch/4/result",
-            body=b"Id,Success,Created,Errors\n1,true,true,\n2,false,false,Error",
+            body=b"Id,Success,Created,Errors\n1,true,true,\n2,true,true,Error",
             status=200,
         )
 
@@ -281,9 +282,13 @@ class TestLoadDataWithSFIds(unittest.TestCase):
             },
         )
         task._init_db = mock.Mock()
-        task._load_mapping = mock.Mock()
+        task._init_mapping = mock.Mock()
+        task.mapping = OrderedDict()
+        task.mapping["Insert Households"] = 1
+        task.mapping["Insert Contacts"] = 2
+        task._load_mapping = mock.Mock(return_value="Completed")
         task()
-        task._load_mapping.assert_called_once()
+        task._load_mapping.assert_called_once_with(2)
 
     def test_get_batches__multiple(self):
         base_path = os.path.dirname(__file__)
@@ -326,7 +331,22 @@ class TestLoadDataWithSFIds(unittest.TestCase):
         self.assertFalse(new_id_table is id_table)
 
     def test_run_task__exception_failure(self):
-        pass
+        base_path = os.path.dirname(__file__)
+        mapping_path = os.path.join(base_path, self.mapping_file)
+        task = _make_task(
+            bulkdata.LoadData,
+            {
+                "options": {
+                    "database_url": "sqlite://",
+                    "mapping": mapping_path,
+                    "start_step": "Insert Contacts",
+                }
+            },
+        )
+        task._init_db = mock.Mock()
+        task._load_mapping = mock.Mock(return_value="Failed")
+        with self.assertRaises(BulkDataException):
+            task()
 
     @responses.activate
     def test_store_inserted_ids__exception_failure(self):
@@ -337,24 +357,29 @@ class TestLoadDataWithSFIds(unittest.TestCase):
             {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
         )
 
-        task._reset_id_table = mock.Mock()
-        task.session = mock.Mock()
+        api = mock.Mock()
+        api.endpoint = "http://api"
+
         responses.add(
             method="GET",
-            url="https://example.com/services/data/vNone/query/?q=SELECT+Id+FROM+RecordType+WHERE+SObjectType%3D%27Account%27AND+DeveloperName+%3D+%27HH_Account%27+LIMIT+1",
-            body=json.dumps({"records": [{"Id": "1"}]}),
-            status=200,
+            url="http://api/job/1/batch/2/result",
+            body=Exception,
+            status=500,
         )
+        task.session = mock.Mock()
+        task._reset_id_table = mock.Mock()
 
         with self.assertRaises(BulkDataException):
-            task._store_inserted_ids("JOB_ID", {"BATCH_ID": ["001000000000000"]})
+            task._store_inserted_ids({"table": "Account"}, "1", {"2": []})
 
     def test_store_inserted_ids_for_batch__exception_failure(self):
-        result_data = io.StringIO(
+        result_data = io.BytesIO(
             """
-"Id","Success","Created","Error"
-"001111111111111","false","false","DUPLICATED_DETECTED"
-"""
+Id,Success,Created,Error
+001111111111111,false,false,DUPLICATES_DETECTED
+""".encode(
+                "utf-8"
+            )
         )
 
         base_path = os.path.dirname(__file__)
@@ -364,9 +389,12 @@ class TestLoadDataWithSFIds(unittest.TestCase):
             {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
         )
 
+        task.metadata = mock.Mock()
+        task.metadata.tables = {"table": "test"}
+
         with self.assertRaises(BulkDataException):
             task._store_inserted_ids_for_batch(
-                result_data, ["001111111111111"], "table", None
+                result_data, ["001111111111111"], "table", mock.Mock()
             )
 
 
@@ -412,7 +440,7 @@ class TestLoadDataWithoutSFIds(unittest.TestCase):
         responses.add(
             method="GET",
             url="http://api/job/3/batch/4/result",
-            body=b"Id,Success,Created,Errors\n1,true,true,\n2,false,false,Error",
+            body=b"Id,Success,Created,Errors\n1,true,true,\n2,true,true,",
             status=200,
         )
 

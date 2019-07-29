@@ -275,7 +275,7 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
         mapping["oid_as_pk"] = bool(mapping.get("fields", {}).get("Id"))
         job_id, local_ids_for_batch = self._create_job(mapping)
         result = self._wait_for_job(job_id)
-        # We store inserted ids even if some batches failed
+
         self._store_inserted_ids(mapping, job_id, local_ids_for_batch)
         return result
 
@@ -444,12 +444,17 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
                 self.logger.info(
                     "  Updated {} for batch {}".format(id_table_name, batch_id)
                 )
-            except Exception:  # pragma: nocover
+            except Exception as e:  # pragma: nocover
                 # We can't get new Ids for some reason, or determine batch status.
                 # Fail the job to preserve integrity of data store.
-                raise BulkDataException(
-                    "Failed to download results for batch {}".format(batch_id)
-                )
+                if not isinstance(e, BulkDataException):
+                    raise BulkDataException(
+                        "Failed to download results for batch {} ({})".format(
+                            batch_id, e
+                        )
+                    )
+                else:
+                    raise e
 
         self.session.commit()
 
