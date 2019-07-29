@@ -290,32 +290,33 @@ class FlowCoordinator(object):
             self.logger.info("")
 
     def show_summary(self):
-        """ Display the description and steps contained within a given FlowCoordinator """
-        self.logger.info(
-            "Description: {}".format(self.flow_config.config["description"])
-        )
-        previous_step = []
-        step_paths = [step.path.split(".") for step in self.steps]
-        step_num_by_level = [1 for i in range(max(len(path) for path in step_paths))]
-        for step in step_paths:
-            indent = 0
-            for idx, item in enumerate(step):
-                item_type = "task" if idx == len(step) - 1 else "flow"
-                if item not in previous_step:
-                    self.logger.info(
-                        "{}{}) {}: {}".format(
-                            "    " * indent, step_num_by_level[indent], item_type, item
-                        )
+        lines = []
+        lines.append("Description: {}".format(self.flow_config.config["description"]))
+        previous_parts = []
+        for step in self.steps:
+            parts = step.path.split(".")
+            # numbers = str(step.step_num).split(".")
+            number = str(step.step_num)
+            when = step.when or None
+            task_name = parts.pop()
+            i = -1
+            for i, flow_name in enumerate(parts):
+                if len(previous_parts) < i + 1 or previous_parts[i] != flow_name:
+                    lines.append("{}{}) flow: {}".format("    " * i, number, flow_name))
+            lines.append(
+                "{}{}) task: {}{}".format(
+                    "    " * (i + 1),
+                    number,
+                    task_name,
+                    "\n{}when: {}".format(
+                        ("    " * (i + 1)) + (" " * len(number)) + "  ", when
                     )
-                    step_num_by_level[indent] += 1
-                    # when a step num increases we need to
-                    # reset step levels below it to 1
-                    idx2 = indent + 1
-                    while idx2 < len(step_num_by_level):
-                        step_num_by_level[idx2] = 1
-                        idx2 += 1
-                indent += 1
-            previous_step = step
+                    if when is not None
+                    else "",
+                )
+            )
+            previous_parts = parts
+        return "\n".join(lines)
 
     def run(self, org_config):
         self.org_config = org_config
