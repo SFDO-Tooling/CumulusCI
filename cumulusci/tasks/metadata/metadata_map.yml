@@ -2,6 +2,9 @@ applications:
     - type: CustomApplication
       class: MetadataFilenameParser
       extension: app
+appMenus:
+    - type: AppMenu
+      class: MetadataFilenameParser
 aura:
     - type: AuraDefinitionBundle
       class: BundleParser
