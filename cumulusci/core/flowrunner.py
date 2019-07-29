@@ -295,7 +295,6 @@ class FlowCoordinator(object):
         previous_parts = []
         for step in self.steps:
             parts = step.path.split(".")
-            # numbers = str(step.step_num).split(".")
             number = str(step.step_num)
             when = step.when or None
             task_name = parts.pop()
