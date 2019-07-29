@@ -4,6 +4,7 @@ from future import standard_library
 
 standard_library.install_aliases()
 from builtins import str
+from future.utils import native_str_to_bytes
 from cumulusci.core.exceptions import CumulusCIFailure
 from github3 import GitHub
 from github3 import login
@@ -14,10 +15,6 @@ import os
 
 retries = Retry(status_forcelist=(502, 503, 504), backoff_factor=0.3)
 adapter = HTTPAdapter(max_retries=retries)
-APP_KEY = os.environ.get("GITHUB_APP_KEY")
-if isinstance(APP_KEY, str):
-    APP_KEY = APP_KEY.encode("utf-8")
-APP_ID = os.environ.get("GITHUB_APP_ID")
 
 
 def get_github_api(username=None, password=None):
@@ -40,6 +37,8 @@ def get_github_api_for_repo(keychain, owner, repo):
     gh.session.mount("http://", adapter)
     gh.session.mount("https://", adapter)
 
+    APP_KEY = native_str_to_bytes(os.environ.get("GITHUB_APP_KEY", ""))
+    APP_ID = os.environ.get("GITHUB_APP_ID")
     if APP_ID and APP_KEY:
         installation = INSTALLATIONS.get((owner, repo))
         if installation is None:
