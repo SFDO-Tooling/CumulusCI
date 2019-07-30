@@ -6,6 +6,7 @@ import os.path
 import textwrap
 
 from cumulusci.tasks.salesforce.tests.util import create_task
+from cumulusci.tests.util import create_project_config
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.tests.utils import MockLoggerMixin
 from cumulusci.tasks.robotframework import RobotLint
@@ -22,9 +23,10 @@ class TestRobotLint(MockLoggerMixin, unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.tmpdir)
 
-    def make_test_file(self, data, suffix=".robot", name="test"):
+    def make_test_file(self, data, suffix=".robot", name="test", dir=None):
         """Create a temporary test file"""
-        filename = os.path.join(self.tmpdir, "{}{}".format(name, suffix))
+        dir = self.tmpdir if dir is None else dir
+        filename = os.path.join(dir, "{}{}".format(name, suffix))
         with open(filename, "w") as f:
             f.write(textwrap.dedent(data))
         return filename
@@ -136,3 +138,58 @@ class TestRobotLint(MockLoggerMixin, unittest.TestCase):
         assert len(self.task_log["error"]) == 0
         assert len(self.task_log["critical"]) == 0
         assert len(self.task_log["debug"]) == 0
+
+    def test_default_path(self):
+        """Verify that if no path is provided, we search robot/<project>"""
+
+        project_config = create_project_config()
+        project_config.config["project"]["name"] = "TestPackage"
+        task = create_task(RobotLint, {}, project_config=project_config)
+        assert task.options["path"] == ["robot/TestPackage"]
+
+    def test_explicit_path(self):
+        """Verify an explicit path is used when given
+
+        This also verifies that the path is converted to a proper list
+        if it is a comma-separated string.
+        """
+        task = create_task(RobotLint, {"path": "/tmp/tests,/tmp/resources"})
+        assert task.options["path"] == ["/tmp/tests", "/tmp/resources"]
+
+    def test_wildcards(self):
+        """Verify that wildcards in the path are expanded"""
+        file1 = self.make_test_file("", name="a", suffix=".resource")
+        file2 = self.make_test_file("", name="b", suffix=".robot")
+        file3 = self.make_test_file("", name="c", suffix=".robot")
+
+        # path with one wildcard should find one file
+        task = create_task(RobotLint, {"path": "{}/*.resource".format(self.tmpdir)})
+        files = sorted(task._get_files())
+        self.assertEqual(files, [file1])
+
+        # two paths with wildcards should find all three files
+        task = create_task(
+            RobotLint,
+            {"path": "{dir}/*.resource, {dir}/*.robot".format(dir=self.tmpdir)},
+        )
+        files = sorted(task._get_files())
+        self.assertEqual(files, [file1, file2, file3])
+
+    def test_folder_for_path(self):
+        """Verify that if the path is a folder, we process all files in the folder"""
+        file1 = self.make_test_file("", name="a", suffix=".resource")
+        file2 = self.make_test_file("", name="b", suffix=".robot")
+        file3 = self.make_test_file("", name="c", suffix=".robot")
+
+        task = create_task(RobotLint, {"path": self.tmpdir})
+        files = sorted(task._get_files())
+        self.assertEqual(files, [file1, file2, file3])
+
+    def test_recursive_folder(self):
+        """Verify that subdirectories are included when finding files"""
+        subdir = tempfile.mkdtemp(dir=self.tmpdir)
+        file1 = self.make_test_file("", dir=subdir)
+
+        task = create_task(RobotLint, {"path": self.tmpdir})
+        files = sorted(task._get_files())
+        self.assertEqual(files, [file1])
