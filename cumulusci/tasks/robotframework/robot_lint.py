@@ -76,8 +76,10 @@ class RobotLint(BaseTask):
         },
         "path": {
             "description": "The path to one or more files or folders. "
-            "If the path includes wildcard characters, they will be expanded.",
-            "required": True,
+            "If the path includes wildcard characters, they will be expanded. "
+            "If not provided, the default will be to process all files "
+            "under robot/<project name>",
+            "required": False,
         },
     }
 
@@ -93,8 +95,13 @@ class RobotLint(BaseTask):
             self.options.get("configure", None)
         )
 
+        if self.options["path"] is None:
+            self.options["path"] = [
+                "robot/{}".format(self.project_config.project["name"])
+            ]
+
     def _get_files(self):
-        """Returns the working set of files to process"""
+        """Returns the working set of files to be processed"""
         expanded_paths = []
         for path in self.options["path"]:
             expanded_paths.extend(glob.glob(path))
