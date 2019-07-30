@@ -84,7 +84,6 @@ class StepSpec(object):
 
     __slots__ = (
         "step_num",  # type: str
-        "step_sequence",  # type list(int)
         "task_name",  # type: str
         "task_config",  # type: dict
         "task_class",  # type: str
@@ -97,7 +96,6 @@ class StepSpec(object):
     def __init__(
         self,
         step_num,
-        step_sequence,
         task_name,
         task_config,
         task_class,
@@ -107,7 +105,6 @@ class StepSpec(object):
         when=None,
     ):
         self.step_num = step_num
-        self.step_sequence = step_sequence
         self.task_name = task_name
         self.task_config = task_config
         self.task_class = task_class
@@ -301,26 +298,24 @@ class FlowCoordinator(object):
         previous_parts = []
         for step in self.steps:
             parts = step.path.split(".")
+            steps = step.number.split("/")
             task_name = parts.pop()
 
             i = -1
             for i, flow_name in enumerate(parts):
                 if len(previous_parts) < i + 1 or previous_parts[i] != flow_name:
                     lines.append(
-                        "{}{}) flow: {}".format(
-                            "    " * i, step.step_sequence[i], flow_name
-                        )
+                        "{}{}) flow: {}".format("    " * i, steps[i], flow_name)
                     )
 
             when = step.when or None
-            step_num = step.step_sequence[i + 1]
             lines.append(
                 "{}{}) task: {}{}".format(
                     "    " * (i + 1),
-                    step_num,
+                    steps[i + 1],
                     task_name,
                     "\n{}  when: {}".format(
-                        "    " * (i + 1) + " " * len(str(step_num)), when
+                        "    " * (i + 1) + " " * len(str(steps[i + 1])), when
                     )
                     if when is not None
                     else "",
@@ -422,7 +417,7 @@ class FlowCoordinator(object):
         steps = []
 
         for number, step_config in config_steps.items():
-            specs = self._visit_step(number, [number], step_config)
+            specs = self._visit_step(number, step_config)
             steps.extend(specs)
 
         return sorted(steps, key=attrgetter("step_num"))
@@ -430,7 +425,6 @@ class FlowCoordinator(object):
     def _visit_step(
         self,
         number,
-        step_sequence,
         step_config,
         visited_steps=None,
         parent_options=None,
@@ -445,7 +439,6 @@ class FlowCoordinator(object):
         If it is a flow, we recursively call _visit_step with the rest of the parameters of context.
 
         :param number: LooseVersion representation of the current step number
-        :param step_sequence: the sequence of step numbers up until the current step
         :param step_config: the current step's config (dict from YAML)
         :param visited_steps: used when called recursively for nested steps, becomes the return value
         :param parent_options: used when called recursively for nested steps, options from parent flow
@@ -482,7 +475,6 @@ class FlowCoordinator(object):
             visited_steps.append(
                 StepSpec(
                     number,
-                    step_sequence.copy(),
                     step_config.get("task", step_config.get("flow")),
                     step_config.get("options", {}),
                     None,
@@ -532,7 +524,6 @@ class FlowCoordinator(object):
             visited_steps.append(
                 StepSpec(
                     number,
-                    step_sequence.copy(),
                     name,
                     task_config,
                     task_class,
@@ -557,18 +548,15 @@ class FlowCoordinator(object):
                 # e.g. if we're in step 2.3 which references a flow with steps 1-5, it
                 #   simply ends up as five steps: 2.3.1, 2.3.2, 2.3.3, 2.3.4, 2.3.5
                 # TODO: how does this work with nested flowveride? what does defining step 2.3.2 later do?
-                num = "{}.{}".format(number, sub_number)
-                step_sequence.append(sub_number)
+                num = "{}/{}".format(number, sub_number)
                 self._visit_step(
                     num,
-                    step_sequence,
                     sub_stepconf,
                     visited_steps,
                     parent_options=step_options,
                     parent_ui_options=step_ui_options,
                     from_flow=path,
                 )
-                step_sequence.pop()
         return visited_steps
 
     def _check_old_yaml_format(self):
