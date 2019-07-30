@@ -1231,7 +1231,7 @@ def flow_list(config):
 def flow_info(config, flow_name):
     try:
         coordinator = config.get_flow(flow_name)
-        output = coordinator.show_summary()
+        output = coordinator.get_summary()
         click.echo(output)
     except FlowNotFoundError as e:
         raise click.UsageError(str(e))
