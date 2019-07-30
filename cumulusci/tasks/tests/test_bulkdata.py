@@ -132,26 +132,26 @@ class TestDeleteData(unittest.TestCase):
         api.jobNS = "http://ns"
         task.bulk = api
         self.assertEqual(
-            "InProgress",
+            ("InProgress", None),
             task._parse_job_state(
                 '<root xmlns="http://ns">'
                 "  <batch><state>InProgress</state></batch>"
-                "  <batch><state>Failed</state></batch>"
+                "  <batch><state>Failed</state><stateMessage>test</stateMessage></batch>"
                 "  <batch><state>Completed</state></batch>"
                 "</root>"
             ),
         )
         self.assertEqual(
-            "Failed",
+            ("Failed", ["test"]),
             task._parse_job_state(
                 '<root xmlns="http://ns">'
-                "  <batch><state>Failed</state></batch>"
+                "  <batch><state>Failed</state><stateMessage>test</stateMessage></batch>"
                 "  <batch><state>Completed</state></batch>"
                 "</root>"
             ),
         )
         self.assertEqual(
-            "Completed",
+            ("Completed", None),
             task._parse_job_state(
                 '<root xmlns="http://ns">'
                 "  <batch><state>Completed</state></batch>"
@@ -160,7 +160,7 @@ class TestDeleteData(unittest.TestCase):
             ),
         )
         self.assertEqual(
-            "Aborted",
+            ("Aborted", None),
             task._parse_job_state(
                 '<root xmlns="http://ns">'
                 "  <batch><state>Not Processed</state></batch>"
@@ -366,6 +366,38 @@ class TestLoadDataWithSFIds(unittest.TestCase):
             body=Exception,
             status=500,
         )
+        task.session = mock.Mock()
+        task._reset_id_table = mock.Mock()
+
+        with self.assertRaises(BulkDataException):
+            task._store_inserted_ids({"table": "Account"}, "1", {"2": []})
+
+    @responses.activate
+    def test_store_inserted_ids__underlying_exception_failure(self):
+        result_data = io.BytesIO(
+            """
+Id,Success,Created,Error
+001111111111111,false,false,DUPLICATES_DETECTED
+""".encode(
+                "utf-8"
+            )
+        )
+        base_path = os.path.dirname(__file__)
+        mapping_path = os.path.join(base_path, self.mapping_file)
+        task = _make_task(
+            bulkdata.LoadData,
+            {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
+        )
+
+        task.bulk = mock.Mock()
+        task.bulk.endpoint = "http://api"
+
+        results_url = "{}/job/1/batch/2/result".format(task.bulk.endpoint)
+        responses.add(method="GET", url=results_url, body=result_data, status=200)
+
+        task.metadata = mock.Mock()
+        task.metadata.tables = {"table": "test"}
+
         task.session = mock.Mock()
         task._reset_id_table = mock.Mock()
 
