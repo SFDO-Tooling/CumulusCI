@@ -28,7 +28,15 @@ class RobotLint(BaseTask):
     - *<description>* is a short description of the issue
     - *<name>* is the name of the rule that raised the issue
 
-    Note: the rule name can be used with the ignore, warning, and error options.
+    Note: the rule name can be used with the ignore, warning, error,
+    and configure options.
+
+    Some rules are configurable, and can be configured with the
+    `configure` option. This option takes a list of values in the form
+    *<rule>*:*<value>*,*<rule>*:*<value>*,etc.  For example, to set
+    the line length for the LineTooLong rule you can use '-o configure
+    LineTooLong:80'. If a rule is configurable, it will show the
+    configuration options in the documentation for that rule
 
     The filename will be printed once before any errors or warnings
     for that file. The filename is preceeded by `+ `
@@ -46,6 +54,10 @@ class RobotLint(BaseTask):
     """
 
     task_options = {
+        "configure": {
+            "description": "List of rule configuration values, in the form of rule:args.",
+            "default": None,
+        },
         "ignore": {
             "description": "List of rules to ignore. Use 'all' to ignore all rules",
             "default": None,
@@ -59,7 +71,7 @@ class RobotLint(BaseTask):
             "default": None,
         },
         "list": {
-            "description": "If option is True, print a list of known rules.",
+            "description": "If option is True, print a list of known rules instead of processing files.",
             "default": None,
         },
         "path": {
@@ -77,6 +89,9 @@ class RobotLint(BaseTask):
         self.options["ignore"] = process_list_arg(self.options.get("ignore", None))
         self.options["warning"] = process_list_arg(self.options.get("warning", None))
         self.options["error"] = process_list_arg(self.options.get("error", None))
+        self.options["configure"] = process_list_arg(
+            self.options.get("configure", None)
+        )
 
     def _get_files(self):
         """Returns the working set of files to process"""
@@ -110,6 +125,9 @@ class RobotLint(BaseTask):
         if self.options["error"]:
             for rule in self.options["error"]:
                 args.extend(["--error", rule])
+        if self.options["configure"]:
+            for config in self.options["configure"]:
+                args.extend(["--configure", config])
 
         return args
 
@@ -156,8 +174,8 @@ class CustomRfLint(rflint.RfLint):
     def list_rules(self):
         """Print a list of all rules"""
         # note: rflint supports terse and verbose output. I don't
-        # think the terse output is very useful, so we'll force
-        # the verbose output.
+        # think the terse output is very useful, so this will always
+        # print all of the documentation.
         for rule in sorted(self.all_rules, key=lambda rule: rule.name):
             self.task.logger.info("")
             self.task.logger.info(rule)
