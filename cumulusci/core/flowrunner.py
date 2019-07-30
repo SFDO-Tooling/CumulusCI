@@ -445,6 +445,7 @@ class FlowCoordinator(object):
         If it is a flow, we recursively call _visit_step with the rest of the parameters of context.
 
         :param number: LooseVersion representation of the current step number
+        :param step_sequence: the sequence of step numbers up until the current step
         :param step_config: the current step's config (dict from YAML)
         :param visited_steps: used when called recursively for nested steps, becomes the return value
         :param parent_options: used when called recursively for nested steps, options from parent flow
