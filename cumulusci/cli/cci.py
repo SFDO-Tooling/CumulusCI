@@ -724,9 +724,11 @@ def service_connect():
 
 @service.command(name="info", help="Show the details of a connected service")
 @click.argument("service_name")
+@click.option("--plain", is_flag=True, help="Print the table using plain ascii.")
 @pass_config(allow_global_keychain=True)
-def service_info(config, service_name):
+def service_info(config, service_name, plain):
     try:
+        plain = plain or config.global_config.cli_options__plain_output
         service_config = config.keychain.get_service(service_name)
         service_data = [["Key", "Value"]]
         service_data.extend(
@@ -735,9 +737,10 @@ def service_info(config, service_name):
                 for k, v in service_config.config.items()
             ]
         )
-        service_table = CliTable(service_data, title=service_name, wrap_cols=["Value"])
+        wrap_cols = ["Value"] if not plain else None
+        service_table = CliTable(service_data, title=service_name, wrap_cols=wrap_cols)
         service_table.table.inner_heading_row_border = False
-        service_table.echo()
+        service_table.echo(plain)
     except ServiceNotConfigured:
         click.echo(
             "{0} is not configured for this project.  Use service connect {0} to configure.".format(

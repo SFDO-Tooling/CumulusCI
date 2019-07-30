@@ -464,8 +464,11 @@ class TestCCI(unittest.TestCase):
         service_config.config = {"description": "Test Service"}
         config = mock.Mock()
         config.keychain.get_service.return_value = service_config
+        config.global_config.cli_options__plain_output = None
 
-        run_click_command(cci.service_info, config=config, service_name="test")
+        run_click_command(
+            cci.service_info, config=config, service_name="test", plain=False
+        )
 
         table = echo.call_args_list[0][0][0]
         expected = u"""\u001b(0l\u001b(Btest\u001b(0qqqqqqqqqwqqqqqqqqqqqqqqk\u001b(B\n\u001b(0x\u001b(B Key         \u001b(0x\u001b(B Value        \u001b(0x\u001b(B\n\u001b(0tqqqqqqqqqqqqqnqqqqqqqqqqqqqqu\u001b(B\n\u001b(0x\u001b(B \u001b[1mdescription\u001b[0m \u001b(0x\u001b(B Test Service \u001b(0x\u001b(B\n\u001b(0mqqqqqqqqqqqqqvqqqqqqqqqqqqqqj\u001b(B"""
@@ -477,7 +480,9 @@ class TestCCI(unittest.TestCase):
         config = mock.Mock()
         config.keychain.get_service.side_effect = ServiceNotConfigured
 
-        run_click_command(cci.service_info, config=config, service_name="test")
+        run_click_command(
+            cci.service_info, config=config, service_name="test", plain=False
+        )
 
         self.assertIn("not configured for this project", echo.call_args[0][0])
 
