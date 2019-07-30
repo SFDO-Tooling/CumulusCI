@@ -292,7 +292,7 @@ class FlowCoordinator(object):
         if new_line:
             self.logger.info("")
 
-    def show_summary(self):
+    def get_summary(self):
         """ Returns an output string that contains the description of the flow,
             the sequence of tasks and subflows, and any "when" conditions associated
             with tasks. """
