@@ -131,6 +131,24 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
         self.assertEqual(len(flow.steps), 1)
         self.assertEqual(hasattr(flow, "logger"), True)
 
+    def test_get_summary(self):
+        flow_config = FlowConfig(
+            {
+                "description": "test description",
+                "steps": {"1": {"flow": "nested_flow_2"}},
+            }
+        )
+        flow = FlowCoordinator(self.project_config, flow_config, name="test_flow")
+        actual_output = flow.get_summary()
+        expected_output = (
+            "Description: test description"
+            + "\n1) flow: nested_flow_2"
+            + "\n    1) task: pass_name"
+            + "\n    2) flow: nested_flow"
+            + "\n        1) task: pass_name"
+        )
+        self.assertEquals(expected_output, actual_output)
+
     def test_init__options(self):
         """ A flow can accept task options and pass them to the task. """
 
