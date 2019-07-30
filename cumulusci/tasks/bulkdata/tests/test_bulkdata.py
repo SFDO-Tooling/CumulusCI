@@ -26,13 +26,13 @@ from cumulusci.utils import temporary_dir
 
 class TestEpochType(unittest.TestCase):
     def test_process_bind_param(self):
-        obj = bulkdata.EpochType()
+        obj = bulkdata.utils.EpochType()
         dt = datetime(1970, 1, 1, 0, 0, 1)
         result = obj.process_bind_param(dt, None)
         self.assertEqual(1000, result)
 
     def test_process_result_value(self):
-        obj = bulkdata.EpochType()
+        obj = bulkdata.utils.EpochType()
 
         # Non-None value
         result = obj.process_result_value(1000, None)
@@ -44,8 +44,8 @@ class TestEpochType(unittest.TestCase):
 
     def test_setup_epoch(self):
         column_info = {"type": types.DateTime()}
-        bulkdata.setup_epoch(mock.Mock(), mock.Mock(), column_info)
-        self.assertIsInstance(column_info["type"], bulkdata.EpochType)
+        bulkdata.utils.setup_epoch(mock.Mock(), mock.Mock(), column_info)
+        self.assertIsInstance(column_info["type"], bulkdata.utils.EpochType)
 
 
 BULK_DELETE_QUERY_RESULT = b"Id\n003000000000001".splitlines()
@@ -65,7 +65,7 @@ def _make_task(task_class, task_config):
     return task_class(project_config, task_config, org_config)
 
 
-@mock.patch("cumulusci.tasks.bulkdata.time.sleep", mock.Mock())
+@mock.patch("cumulusci.tasks.bulkdata.delete.time.sleep", mock.Mock())
 class TestDeleteData(unittest.TestCase):
     @responses.activate
     def test_run(self):
@@ -186,7 +186,6 @@ class TestDeleteData(unittest.TestCase):
             list(task._upload_batches("1", [{"Id": "1"}]))
 
 
-@mock.patch("cumulusci.tasks.bulkdata.time.sleep", mock.Mock())
 class TestLoadDataWithSFIds(unittest.TestCase):
     mapping_file = "mapping_v1.yml"
 
@@ -398,7 +397,6 @@ Id,Success,Created,Error
             )
 
 
-@mock.patch("cumulusci.tasks.bulkdata.time.sleep", mock.Mock())
 class TestLoadDataWithoutSFIds(unittest.TestCase):
     mapping_file = "mapping_v2.yml"
 
@@ -481,7 +479,6 @@ class TestLoadDataWithoutSFIds(unittest.TestCase):
         )
 
 
-@mock.patch("cumulusci.tasks.bulkdata.time.sleep", mock.Mock())
 class TestExtractDataWithSFIds(unittest.TestCase):
 
     mapping_file = "mapping_v1.yml"
@@ -601,7 +598,6 @@ class TestExtractDataWithSFIds(unittest.TestCase):
             task()
 
 
-@mock.patch("cumulusci.tasks.bulkdata.time.sleep", mock.Mock())
 class TestExtractDataWithoutSFIds(unittest.TestCase):
 
     mapping_file = "mapping_v2.yml"

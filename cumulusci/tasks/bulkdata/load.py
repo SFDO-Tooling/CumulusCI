@@ -10,10 +10,14 @@ from sqlalchemy.ext.automap import automap_base
 
 from cumulusci.core.exceptions import BulkDataException
 from cumulusci.core.exceptions import TaskOptionsError
-from cumulusci.tasks.bulkdata.utils import BulkJobTaskMixin
+from cumulusci.tasks.bulkdata.utils import (
+    BulkJobTaskMixin,
+    get_lookup_key_field,
+    download_file,
+)
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.core.utils import ordered_yaml_load
-from cumulusci.utils import os_friendly_path, get_lookup_key_field, _download_file
+from cumulusci.utils import os_friendly_path
 
 
 class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
@@ -235,7 +239,7 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
                 )
                 # Download entire result file to a temporary file first
                 # to avoid the server dropping connections
-                with _download_file(results_url, self.bulk) as f:
+                with download_file(results_url, self.bulk) as f:
                     self.logger.info(
                         "  Downloaded results for batch {}".format(batch_id)
                     )

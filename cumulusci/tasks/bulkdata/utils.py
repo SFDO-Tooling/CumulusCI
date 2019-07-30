@@ -14,7 +14,7 @@ from cumulusci.utils import convert_to_snake_case
 
 
 @contextmanager
-def _download_file(uri, bulk_api):
+def download_file(uri, bulk_api):
     """Download the bulk API result file for a single batch"""
     resp = requests.get(uri, headers=bulk_api.headers(), stream=True)
     with tempfile.TemporaryFile("w+b") as f:

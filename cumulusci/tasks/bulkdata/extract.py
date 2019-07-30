@@ -13,7 +13,7 @@ from sqlalchemy.ext.automap import automap_base
 
 from cumulusci.tasks.bulkdata.utils import (
     BulkJobTaskMixin,
-    _download_file,
+    download_file,
     process_incoming_rows,
     get_lookup_key_field,
 )
@@ -21,7 +21,7 @@ from cumulusci.core.exceptions import BulkDataException, TaskOptionsError
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.core.utils import ordered_yaml_load
 from cumulusci.utils import log_progress, os_friendly_path
-from salesforce_bulk.utils import IteratorBytesIO
+from salesforce_bulk.util import IteratorBytesIO
 
 
 class ExtractData(BulkJobTaskMixin, BaseSalesforceApiTask):
@@ -126,7 +126,7 @@ class ExtractData(BulkJobTaskMixin, BaseSalesforceApiTask):
             uri = "{}/job/{}/batch/{}/result/{}".format(
                 self.bulk.endpoint, job_id, batch_id, result_id
             )
-            with _download_file(uri, self.bulk) as f:
+            with download_file(uri, self.bulk) as f:
                 self.logger.info("Result {} downloaded".format(result_id))
                 yield f
 
