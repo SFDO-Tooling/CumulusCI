@@ -294,7 +294,10 @@ class FlowCoordinator(object):
             the sequence of tasks and subflows, and any "when" conditions associated
             with tasks. """
         lines = []
-        lines.append("Description: {}".format(self.flow_config.config["description"]))
+        if "description" in self.flow_config.config:
+            lines.append(
+                "Description: {}".format(self.flow_config.config["description"])
+            )
         previous_parts = []
         for step in self.steps:
             parts = step.path.split(".")
