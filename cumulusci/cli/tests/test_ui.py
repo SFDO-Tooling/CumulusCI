@@ -3,7 +3,7 @@ import sys
 
 import mock
 import pytest
-from cumulusci.cli.ui import CHECKMARK,CliTable
+from cumulusci.cli.ui import CHECKMARK, CliTable
 
 
 @pytest.fixture
@@ -37,6 +37,7 @@ def pretty_output():
         "task_list_util": "\x1b(0lqqqqqqqqqqqqwqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqk\x1b(B\n\x1b(0x\x1b(B Task       \x1b(0x\x1b(B Description                   \x1b(0x\x1b(B\n\x1b(0tqqqqqqqqqqqqnqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqu\x1b(B\n\x1b(0x\x1b(B command    \x1b(0x\x1b(B Run an arbitrary command      \x1b(0x\x1b(B\n\x1b(0x\x1b(B log        \x1b(0x\x1b(B Log a line at the info level. \x1b(0x\x1b(B\n\x1b(0x\x1b(B util_sleep \x1b(0x\x1b(B Sleeps for N seconds          \x1b(0x\x1b(B\n\x1b(0mqqqqqqqqqqqqvqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqj\x1b(B",
     }
 
+
 @pytest.fixture
 def pretty_output_win():
     return {
@@ -57,7 +58,7 @@ def pretty_output_win():
 │ feature │ None    │ True    │ 1    │ None    │ feature │                               │
 └─────────┴─────────┴─────────┴──────┴─────────┴─────────┴───────────────────────────────┘
 """,
-"task_list_util": """
+        "task_list_util": """
 ┌────────────┬───────────────────────────────┐
 │ Task       │ Description                   │
 ├────────────┼───────────────────────────────┤
@@ -65,8 +66,9 @@ def pretty_output_win():
 │ log        │ Log a line at the info level. │
 │ util_sleep │ Sleeps for N seconds          │
 └────────────┴───────────────────────────────┘
-"""
+""",
     }
+
 
 @pytest.fixture
 def plain_output():
@@ -97,27 +99,27 @@ def plain_output():
     }
 
 
-@pytest.mark.skipif(sys.platform.startswith('win'), reason='Windows uses unicode chars instead of ASCII box chars.')
-@pytest.mark.parametrize(
-    "fixture_key", ["service_list", "org_list", "task_list_util"]
+@pytest.mark.skipif(
+    sys.platform.startswith("win"),
+    reason="Windows uses unicode chars instead of ASCII box chars.",
 )
+@pytest.mark.parametrize("fixture_key", ["service_list", "org_list", "task_list_util"])
 def test_table_pretty_output(sample_data, pretty_output, fixture_key):
     instance = CliTable(sample_data[fixture_key])
     assert pretty_output[fixture_key] == instance.table.table
 
-@pytest.mark.skipif(not sys.platform.startswith('win'), reason='Windows uses unicode chars instead of ASCII box chars.')
-@pytest.mark.parametrize(
-    "fixture_key", ["service_list"]
+
+@pytest.mark.skipif(
+    not sys.platform.startswith("win"),
+    reason="Windows uses unicode chars instead of ASCII box chars.",
 )
+@pytest.mark.parametrize("fixture_key", ["service_list"])
 def test_table_pretty_output_windows(sample_data, pretty_output_win, fixture_key):
     instance = CliTable(sample_data[fixture_key])
     assert pretty_output_win[fixture_key].strip() == instance.table.table
 
 
-
-@pytest.mark.parametrize(
-    "fixture_key", ["service_list", "org_list", "task_list_util"]
-)
+@pytest.mark.parametrize("fixture_key", ["service_list", "org_list", "task_list_util"])
 def test_table_plain_output(sample_data, plain_output, fixture_key, capsys):
     instance = CliTable(sample_data[fixture_key])
     instance.ascii_table()
@@ -126,9 +128,7 @@ def test_table_plain_output(sample_data, plain_output, fixture_key, capsys):
     assert expected == captured.out
 
 
-@pytest.mark.parametrize(
-    "fixture_key", ["service_list", "org_list", "task_list_util"]
-)
+@pytest.mark.parametrize("fixture_key", ["service_list", "org_list", "task_list_util"])
 def test_table_plain_echo(sample_data, plain_output, fixture_key, capsys):
     instance = CliTable(sample_data[fixture_key])
     instance.echo(plain=True)
