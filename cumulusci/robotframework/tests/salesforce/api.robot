@@ -89,8 +89,8 @@ Salesforce Delete Session Records
 
 Collection API Test
     @{objects} =  Salesforce Init Objects  Contact  20  
-        ...  FirstName="User {number}"
-        ...  LastName="{random_str}"
+        ...  FirstName=User {number}
+        ...  LastName={random_str}
     @{records} =    Salesforce Collection Insert  ${objects}
     FOR     ${record}   IN  @{records}
         ${new_last_name} =  Generate Random String
