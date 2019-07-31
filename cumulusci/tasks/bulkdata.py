@@ -105,7 +105,7 @@ class BulkJobTaskMixin(object):
         self.logger.info("Job {} finished with result: {}".format(job_id, result))
         if result == "Failed":
             for state_message in messages:
-                self.logger.info("Batch failure message: {}".format(state_message))
+                self.logger.error("Batch failure message: {}".format(state_message))
 
         return result
 

@@ -359,29 +359,78 @@ class TestLoadDataWithSFIds(unittest.TestCase):
 
         api = mock.Mock()
         api.endpoint = "http://api"
+        api.headers.return_value = {}
+        task.bulk = api
 
         responses.add(
             method="GET",
             url="http://api/job/1/batch/2/result",
-            body=Exception,
+            body=Exception(),
             status=500,
         )
         task.session = mock.Mock()
         task._reset_id_table = mock.Mock()
 
-        with self.assertRaises(BulkDataException):
+        with self.assertRaises(BulkDataException) as ex:
             task._store_inserted_ids({"table": "Account"}, "1", {"2": []})
+
+        self.assertIn("Failed to download results", str(ex.exception))
 
     @responses.activate
     def test_store_inserted_ids__underlying_exception_failure(self):
-        result_data = io.BytesIO(
-            """
-Id,Success,Created,Error
-001111111111111,false,false,DUPLICATES_DETECTED
-""".encode(
-                "utf-8"
-            )
+        result_data = (
+            b"Id,Success,Created,Error\n001111111111111,false,false,DUPLICATES_DETECTED"
         )
+
+        base_path = os.path.dirname(__file__)
+        mapping_path = os.path.join(base_path, self.mapping_file)
+        task = _make_task(
+            bulkdata.LoadData,
+            {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
+        )
+
+        api = mock.Mock()
+        api.endpoint = "http://api"
+        api.headers.return_value = {}
+        task.bulk = api
+
+        results_url = "{}/job/1/batch/2/result".format(task.bulk.endpoint)
+        responses.add(method="GET", url=results_url, body=result_data, status=200)
+
+        task.metadata = mock.Mock()
+        task.metadata.tables = {"Account": "test"}
+
+        task.session = mock.Mock()
+        task._reset_id_table = mock.Mock(return_value="Account")
+
+        with self.assertRaises(BulkDataException) as ex:
+            task._store_inserted_ids({"table": "Account"}, "1", {"2": ["3"]})
+
+        self.assertIn("Error on row", str(ex.exception))
+
+    def test_store_inserted_ids_for_batch__exception_failure(self):
+        result_data = io.BytesIO(
+            b"Id,Success,Created,Error\n001111111111111,false,false,DUPLICATES_DETECTED"
+        )
+
+        base_path = os.path.dirname(__file__)
+        mapping_path = os.path.join(base_path, self.mapping_file)
+        task = _make_task(
+            bulkdata.LoadData,
+            {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
+        )
+
+        task.metadata = mock.Mock()
+        task.metadata.tables = {"table": "test"}
+
+        with self.assertRaises(BulkDataException) as ex:
+            task._store_inserted_ids_for_batch(
+                result_data, ["001111111111111"], "table", mock.Mock()
+            )
+
+        self.assertIn("Error on row", str(ex.exception))
+
+    def test_wait_for_job__logs_state_messages(self):
         base_path = os.path.dirname(__file__)
         mapping_path = os.path.join(base_path, self.mapping_file)
         task = _make_task(
@@ -390,44 +439,18 @@ Id,Success,Created,Error
         )
 
         task.bulk = mock.Mock()
-        task.bulk.endpoint = "http://api"
-
-        results_url = "{}/job/1/batch/2/result".format(task.bulk.endpoint)
-        responses.add(method="GET", url=results_url, body=result_data, status=200)
-
-        task.metadata = mock.Mock()
-        task.metadata.tables = {"table": "test"}
-
-        task.session = mock.Mock()
-        task._reset_id_table = mock.Mock()
-
-        with self.assertRaises(BulkDataException):
-            task._store_inserted_ids({"table": "Account"}, "1", {"2": []})
-
-    def test_store_inserted_ids_for_batch__exception_failure(self):
-        result_data = io.BytesIO(
-            """
-Id,Success,Created,Error
-001111111111111,false,false,DUPLICATES_DETECTED
-""".encode(
-                "utf-8"
-            )
+        task.bulk.job_status.return_value = {
+            "numberBatchesCompleted": 1,
+            "numberBatchesTotal": 1,
+        }
+        task._job_state_from_batches = mock.Mock(
+            return_value=("Failed", ["Test1", "Test2"])
         )
+        task.logger = mock.Mock()
 
-        base_path = os.path.dirname(__file__)
-        mapping_path = os.path.join(base_path, self.mapping_file)
-        task = _make_task(
-            bulkdata.LoadData,
-            {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
-        )
-
-        task.metadata = mock.Mock()
-        task.metadata.tables = {"table": "test"}
-
-        with self.assertRaises(BulkDataException):
-            task._store_inserted_ids_for_batch(
-                result_data, ["001111111111111"], "table", mock.Mock()
-            )
+        task._wait_for_job("750000000000000")
+        task.logger.error.assert_any_call("Batch failure message: Test1")
+        task.logger.error.assert_any_call("Batch failure message: Test2")
 
 
 @mock.patch("cumulusci.tasks.bulkdata.time.sleep", mock.Mock())
