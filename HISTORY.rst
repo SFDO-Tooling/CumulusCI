@@ -2,6 +2,23 @@
 History
 =======
 
+2.5.5 (2019-07-31)
+------------------
+
+New features:
+* Add the ``cci org shell`` command, which opens a Python shell pre-populated with a simple_salesforce session on the selected org (as ``sf``).
+* The ``cci flow info`` command now shows nested subflows.
+* Added the ``create_community`` task allowing for API-based Community creation.
+* Added the ``generate_dataset_mapping`` task to generate a Bulk Data mapping file for a package.
+* CumulusCI can now authenticate for GitHub API calls as either a user or an app. The latter is for use when CumulusCI is used as part of a hosted service.
+* The ``OrgConfig`` object now provides access to the Organization SObject data via the ``organization_sobject`` attribute.
+
+Issues closed:
+
+* The ``install_regression`` flow now upgrades to the latest beta from the most recent final release instead of from the previous final release.
+* Made sure that an ``errorMessage`` returned from a metadata API deploy will be reported.
+* The ``load_dataset`` task will now stop with an exception if any records fail during the load operation.
+
 2.5.4 (2019-07-03)
 ------------------
 

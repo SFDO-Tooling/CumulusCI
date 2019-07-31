@@ -29,3 +29,6 @@ geckodriver.log
 htmlcov/
 .pytest_cache/
 pip-wheel-metadata
+.mypy_cache/
+/docs/_build
+*~
