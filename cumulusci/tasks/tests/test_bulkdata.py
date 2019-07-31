@@ -430,6 +430,34 @@ class TestLoadDataWithSFIds(unittest.TestCase):
 
         self.assertIn("Error on row", str(ex.exception))
 
+    def test_store_inserted_ids_for_batch__respects_silent_error_flag(self):
+        result_data = io.BytesIO(
+            b"Id,Success,Created,Error\n001111111111111,false,false,DUPLICATES_DETECTED"
+        )
+
+        base_path = os.path.dirname(__file__)
+        mapping_path = os.path.join(base_path, self.mapping_file)
+        task = _make_task(
+            bulkdata.LoadData,
+            {
+                "options": {
+                    "ignore_row_errors": True,
+                    "database_url": "sqlite://",
+                    "mapping": mapping_path,
+                }
+            },
+        )
+
+        task.metadata = mock.Mock()
+        task.metadata.tables = {"table": "test"}
+        task.session = mock.Mock()
+
+        # This is identical to the test above save the option set to ignore_row_errors
+        # We should get no exception.
+        task._store_inserted_ids_for_batch(
+            result_data, ["001111111111111"], "table", mock.Mock()
+        )
+
     def test_wait_for_job__logs_state_messages(self):
         base_path = os.path.dirname(__file__)
         mapping_path = os.path.join(base_path, self.mapping_file)

@@ -231,10 +231,17 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
         "sql_path": {
             "description": "If specified, a database will be created from an SQL script at the provided path"
         },
+        "ignore_row_errors": {
+            "description": "If True, allow the load to continue even if individual rows fail to load."
+        },
     }
 
     def _init_options(self, kwargs):
         super(LoadData, self)._init_options(kwargs)
+
+        self.options["ignore_row_errors"] = process_bool_arg(
+            self.options.get("ignore_row_errors", False)
+        )
         if self.options.get("sql_path"):
             if self.options.get("database_url"):
                 raise TaskOptionsError(
@@ -487,7 +494,12 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
                     sf_id = row[0]
                     yield "{},{}\n".format(local_id, sf_id).encode("utf-8")
                 else:
-                    raise BulkDataException("Error on row {}: {}".format(i, row[3]))
+                    if self.options["ignore_row_errors"]:
+                        self.logger.warning(
+                            "      Error on row {}: {}".format(i, row[3])
+                        )
+                    else:
+                        raise BulkDataException("Error on row {}: {}".format(i, row[3]))
                 i += 1
 
         # Bulk insert rows into id table
