@@ -16,7 +16,8 @@ from cumulusci.tasks.bulkdata.utils import (
     download_file,
 )
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
-from cumulusci.core.utils import ordered_yaml_load
+from cumulusci.core.utils import ordered_yaml_load, process_bool_arg
+
 from cumulusci.utils import os_friendly_path
 
 
@@ -38,10 +39,17 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
         "sql_path": {
             "description": "If specified, a database will be created from an SQL script at the provided path"
         },
+        "ignore_row_errors": {
+            "description": "If True, allow the load to continue even if individual rows fail to load."
+        },
     }
 
     def _init_options(self, kwargs):
         super(LoadData, self)._init_options(kwargs)
+
+        self.options["ignore_row_errors"] = process_bool_arg(
+            self.options.get("ignore_row_errors", False)
+        )
         if self.options.get("sql_path"):
             if self.options.get("database_url"):
                 raise TaskOptionsError(
@@ -249,17 +257,14 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
                 self.logger.info(
                     "  Updated {} for batch {}".format(id_table_name, batch_id)
                 )
-            except Exception as e:  # pragma: nocover
-                # We can't get new Ids for some reason, or determine batch status.
-                # Fail the job to preserve integrity of data store.
-                if not isinstance(e, BulkDataException):
-                    raise BulkDataException(
-                        "Failed to download results for batch {} ({})".format(
-                            batch_id, e
-                        )
+            except BulkDataException:
+                raise
+            except Exception as e:
+                raise BulkDataException(
+                    "Failed to download results for batch {} ({})".format(
+                        batch_id, str(e)
                     )
-                else:
-                    raise e
+                )
 
         self.session.commit()
 
@@ -297,7 +302,12 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
                     sf_id = row[0]
                     yield "{},{}\n".format(local_id, sf_id).encode("utf-8")
                 else:
-                    raise BulkDataException("Error on row {}: {}".format(i, row[3]))
+                    if self.options["ignore_row_errors"]:
+                        self.logger.warning(
+                            "      Error on row {}: {}".format(i, row[3])
+                        )
+                    else:
+                        raise BulkDataException("Error on row {}: {}".format(i, row[3]))
                 i += 1
 
         # Bulk insert rows into id table

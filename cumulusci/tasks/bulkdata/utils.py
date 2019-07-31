@@ -67,25 +67,19 @@ class BulkJobTaskMixin(object):
 
     def _parse_job_state(self, xml):
         tree = ET.fromstring(xml)
-        completed = 0
-        pending = 0
-        failed = 0
-        for el in tree.iterfind(".//{%s}state" % self.bulk.jobNS):
-            state = el.text
-            if state == "Not Processed":
-                return "Aborted"
-            elif state == "Failed":
-                failed += 1
-            elif state == "Completed":
-                completed += 1
-            else:  # Queued, InProgress
-                pending += 1
-        if pending:
-            return "InProgress"
-        elif failed:
-            return "Failed"
-        else:
-            return "Completed"
+        statuses = [el.text for el in tree.iterfind(".//{%s}state" % self.bulk.jobNS)]
+        state_messages = [
+            el.text for el in tree.iterfind(".//{%s}stateMessage" % self.bulk.jobNS)
+        ]
+
+        if "Not Processed" in statuses:
+            return "Aborted", None
+        elif "InProgress" in statuses or "Queued" in statuses:
+            return "InProgress", None
+        elif "Failed" in statuses:
+            return "Failed", state_messages
+
+        return "Completed", None
 
     def _wait_for_job(self, job_id):
         while True:
@@ -97,11 +91,15 @@ class BulkJobTaskMixin(object):
                     job_status["numberBatchesTotal"],
                 )
             )
-            result = self._job_state_from_batches(job_id)
+            result, messages = self._job_state_from_batches(job_id)
             if result != "InProgress":
                 break
             time.sleep(10)
         self.logger.info("Job {} finished with result: {}".format(job_id, result))
+        if result == "Failed":
+            for state_message in messages:
+                self.logger.error("Batch failure message: {}".format(state_message))
+
         return result
 
     def _sql_bulk_insert_from_csv(self, conn, table, columns, data_file):
