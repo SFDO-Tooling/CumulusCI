@@ -12,6 +12,7 @@ cumulusci.egg-info
 build/
 dist/
 docs/api/
+docs/_build/
 .eggs/
 .idea/
 .tox/
