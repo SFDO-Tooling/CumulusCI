@@ -11,7 +11,6 @@ import tempfile
 import unittest
 
 from cumulusci.core.github import get_github_api
-import requests
 import responses
 
 from cumulusci.core.exceptions import GithubApiError
@@ -21,7 +20,6 @@ from cumulusci.tasks.release_notes.provider import BaseChangeNotesProvider
 from cumulusci.tasks.release_notes.provider import StaticChangeNotesProvider
 from cumulusci.tasks.release_notes.provider import DirectoryChangeNotesProvider
 from cumulusci.tasks.release_notes.provider import GithubChangeNotesProvider
-from cumulusci.tasks.release_notes.exceptions import LastReleaseTagNotFoundError
 from cumulusci.tasks.github.tests.util_github_api import GithubApiTestMixin
 from cumulusci.tasks.release_notes.tests.utils import MockUtil
 
