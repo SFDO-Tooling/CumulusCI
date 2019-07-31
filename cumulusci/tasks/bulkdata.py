@@ -74,25 +74,19 @@ class BulkJobTaskMixin(object):
 
     def _parse_job_state(self, xml):
         tree = ET.fromstring(xml)
-        completed = 0
-        pending = 0
-        failed = 0
-        for el in tree.iterfind(".//{%s}state" % self.bulk.jobNS):
-            state = el.text
-            if state == "Not Processed":
-                return "Aborted"
-            elif state == "Failed":
-                failed += 1
-            elif state == "Completed":
-                completed += 1
-            else:  # Queued, InProgress
-                pending += 1
-        if pending:
-            return "InProgress"
-        elif failed:
-            return "Failed"
-        else:
-            return "Completed"
+        statuses = [el.text for el in tree.iterfind(".//{%s}state" % self.bulk.jobNS)]
+        state_messages = [
+            el.text for el in tree.iterfind(".//{%s}stateMessage" % self.bulk.jobNS)
+        ]
+
+        if "Not Processed" in statuses:
+            return "Aborted", None
+        elif "InProgress" in statuses or "Queued" in statuses:
+            return "InProgress", None
+        elif "Failed" in statuses:
+            return "Failed", state_messages
+
+        return "Completed", None
 
     def _wait_for_job(self, job_id):
         while True:
@@ -104,11 +98,15 @@ class BulkJobTaskMixin(object):
                     job_status["numberBatchesTotal"],
                 )
             )
-            result = self._job_state_from_batches(job_id)
+            result, messages = self._job_state_from_batches(job_id)
             if result != "InProgress":
                 break
             time.sleep(10)
         self.logger.info("Job {} finished with result: {}".format(job_id, result))
+        if result == "Failed":
+            for state_message in messages:
+                self.logger.error("Batch failure message: {}".format(state_message))
+
         return result
 
     def _sql_bulk_insert_from_csv(self, conn, table, columns, data_file):
@@ -233,10 +231,17 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
         "sql_path": {
             "description": "If specified, a database will be created from an SQL script at the provided path"
         },
+        "ignore_row_errors": {
+            "description": "If True, allow the load to continue even if individual rows fail to load."
+        },
     }
 
     def _init_options(self, kwargs):
         super(LoadData, self)._init_options(kwargs)
+
+        self.options["ignore_row_errors"] = process_bool_arg(
+            self.options.get("ignore_row_errors", False)
+        )
         if self.options.get("sql_path"):
             if self.options.get("database_url"):
                 raise TaskOptionsError(
@@ -266,14 +271,16 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
             self.logger.info("Running Job: {}".format(name))
             result = self._load_mapping(mapping)
             if result != "Completed":
-                break
+                raise BulkDataException(
+                    "Job {} did not complete successfully".format(name)
+                )
 
     def _load_mapping(self, mapping):
         """Load data for a single step."""
         mapping["oid_as_pk"] = bool(mapping.get("fields", {}).get("Id"))
         job_id, local_ids_for_batch = self._create_job(mapping)
         result = self._wait_for_job(job_id)
-        # We store inserted ids even if some batches failed
+
         self._store_inserted_ids(mapping, job_id, local_ids_for_batch)
         return result
 
@@ -442,13 +449,15 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
                 self.logger.info(
                     "  Updated {} for batch {}".format(id_table_name, batch_id)
                 )
-            except Exception:  # pragma: nocover
-                # If we can't download one result file,
-                # don't let that stop us from downloading the others
-                self.logger.error(
-                    "Could not download batch results: {}".format(batch_id)
+            except BulkDataException:
+                raise
+            except Exception as e:
+                raise BulkDataException(
+                    "Failed to download results for batch {} ({})".format(
+                        batch_id, str(e)
+                    )
                 )
-                continue
+
         self.session.commit()
 
     def _reset_id_table(self, mapping):
@@ -485,7 +494,12 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
                     sf_id = row[0]
                     yield "{},{}\n".format(local_id, sf_id).encode("utf-8")
                 else:
-                    self.logger.warning("      Error on row {}: {}".format(i, row[3]))
+                    if self.options["ignore_row_errors"]:
+                        self.logger.warning(
+                            "      Error on row {}: {}".format(i, row[3])
+                        )
+                    else:
+                        raise BulkDataException("Error on row {}: {}".format(i, row[3]))
                 i += 1
 
         # Bulk insert rows into id table
