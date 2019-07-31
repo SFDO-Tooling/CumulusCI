@@ -235,8 +235,11 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
                         dependency["repo_name"],
                     )
                 )
+                gh_for_repo = self.project_config.get_github_api(
+                    dependency["repo_owner"], dependency["repo_name"]
+                )
                 package_zip = self._download_extract_github(
-                    self.project_config.get_github_api(),
+                    gh_for_repo,
                     dependency["repo_owner"],
                     dependency["repo_name"],
                     dependency["subfolder"],

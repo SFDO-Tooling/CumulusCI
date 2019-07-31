@@ -1230,8 +1230,9 @@ def flow_list(config):
 @pass_config(load_keychain=False)
 def flow_info(config, flow_name):
     try:
-        flow = config.project_config.get_flow(flow_name)
-        render_recursive(flow)
+        coordinator = config.get_flow(flow_name)
+        output = coordinator.get_summary()
+        click.echo(output)
     except FlowNotFoundError as e:
         raise click.UsageError(str(e))
 

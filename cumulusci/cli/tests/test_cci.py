@@ -19,6 +19,7 @@ from cumulusci.core.config import OrgConfig
 from cumulusci.core.config import FlowConfig
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.tasks import BaseTask
+from cumulusci.core.flowrunner import FlowCoordinator
 from cumulusci.core.exceptions import FlowNotFoundError
 from cumulusci.core.exceptions import OrgNotFound
 from cumulusci.core.exceptions import ScratchOrgException
@@ -1024,17 +1025,16 @@ test_flow  Test Flow""",
     @mock.patch("click.echo")
     def test_flow_info(self, echo):
         config = mock.Mock()
-        config.project_config.get_flow.return_value = FlowConfig(
-            {"description": "Test Flow"}
-        )
+        flow_config = FlowConfig({"description": "Test Flow", "steps": {}})
+        config.get_flow.return_value = FlowCoordinator(None, flow_config)
 
         run_click_command(cci.flow_info, config=config, flow_name="test")
 
-        echo.assert_called_with("\x1b[1mdescription:\x1b[0m Test Flow")
+        echo.assert_called_with("Description: Test Flow")
 
     def test_flow_info__not_found(self):
         config = mock.Mock()
-        config.project_config.get_flow.side_effect = FlowNotFoundError
+        config.get_flow.side_effect = FlowNotFoundError
         with self.assertRaises(click.UsageError):
             run_click_command(cci.flow_info, config=config, flow_name="test")
 
