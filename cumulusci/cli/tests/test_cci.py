@@ -5,7 +5,6 @@ import io
 import json
 import os
 import shutil
-import sys
 import tempfile
 import time
 import unittest
@@ -15,7 +14,6 @@ import mock
 import pkg_resources
 import requests
 import responses
-import six
 
 import cumulusci
 from cumulusci.core.config import OrgConfig
@@ -353,11 +351,14 @@ class TestCCI(unittest.TestCase):
 
         self.assertEqual("test:", "".join(out))
 
-    @mock.patch("click.echo")
-    def test_service_list(self, echo):
+    @mock.patch("cumulusci.cli.cci.CliTable")
+    def test_service_list(self, cli_tbl):
         config = mock.Mock()
         config.is_global_keychain = False
-        config.project_config.services = {"test": {"description": "Test Service"}}
+        config.project_config.services = {
+            "bad": {"description": "Unconfigured Service"},
+            "test": {"description": "Test Service"},
+        }
         config.keychain.list_services.return_value = ["test"]
         config.global_config.cli_options__plain_output = None
 
@@ -365,10 +366,16 @@ class TestCCI(unittest.TestCase):
             cci.service_list, config=config, plain=False, print_json=False
         )
 
-        table = echo.call_args_list[0][0][0]
-        self.assertEqual(
-            """\x1b(0l\x1b(BServices\x1b(0qqqqqqqqqqqqqwqqqqqqqqqqqqk\x1b(B\n\x1b(0x\x1b(B Name \x1b(0x\x1b(B Description  \x1b(0x\x1b(B Configured \x1b(0x\x1b(B\n\x1b(0tqqqqqqnqqqqqqqqqqqqqqnqqqqqqqqqqqqu\x1b(B\n\x1b(0x\x1b(B test \x1b(0x\x1b(B Test Service \x1b(0x\x1b(B \x1b[32m✔\x1b[0m          \x1b(0x\x1b(B\n\x1b(0mqqqqqqvqqqqqqqqqqqqqqvqqqqqqqqqqqqj\x1b(B""",
-            table,
+        cli_tbl.assert_called_with(
+            [
+                ["Name", "Description", "Configured"],
+                ["bad", "Unconfigured Service", False],
+                ["test", "Test Service", True],
+            ],
+            bool_cols=["Configured"],
+            dim_rows=[1],
+            title="Services",
+            wrap_cols=["Description"],
         )
 
     def test_service_connect_list(self):
@@ -459,8 +466,9 @@ class TestCCI(unittest.TestCase):
             else:
                 self.fail("Did not raise expected click.UsageError")
 
-    @mock.patch("click.echo")
-    def test_service_info(self, echo):
+    @mock.patch("cumulusci.cli.cci.CliTable")
+    def test_service_info(self, cli_tbl):
+        cli_tbl.table = mock.Mock()
         service_config = mock.Mock()
         service_config.config = {"description": "Test Service"}
         config = mock.Mock()
@@ -471,10 +479,11 @@ class TestCCI(unittest.TestCase):
             cci.service_info, config=config, service_name="test", plain=False
         )
 
-        table = echo.call_args_list[0][0][0]
-        expected = u"""\u001b(0l\u001b(Btest\u001b(0qqqqqqqqqwqqqqqqqqqqqqqqk\u001b(B\n\u001b(0x\u001b(B Key         \u001b(0x\u001b(B Value        \u001b(0x\u001b(B\n\u001b(0tqqqqqqqqqqqqqnqqqqqqqqqqqqqqu\u001b(B\n\u001b(0x\u001b(B \u001b[1mdescription\u001b[0m \u001b(0x\u001b(B Test Service \u001b(0x\u001b(B\n\u001b(0mqqqqqqqqqqqqqvqqqqqqqqqqqqqqj\u001b(B"""
-
-        self.assertEqual(expected, table)
+        cli_tbl.assert_called_with(
+            [["Key", "Value"], ["\x1b[1mdescription\x1b[0m", "Test Service"]],
+            title="test",
+            wrap_cols=["Value"],
+        )
 
     @mock.patch("click.echo")
     def test_service_info_not_configured(self, echo):
@@ -586,23 +595,25 @@ class TestCCI(unittest.TestCase):
 
     def test_org_info(self):
         org_config = mock.Mock()
-        org_config.config = {"test": "test"}
+        org_config.config = {"days": 1, "default": True, "password": None}
         org_config.expires = date.today()
         config = mock.Mock()
         config.get_org.return_value = ("test", org_config)
 
-        out = []
-        with mock.patch("click.echo", out.append):
+        with mock.patch("cumulusci.cli.cci.CliTable") as cli_tbl:
             run_click_command(
                 cci.org_info, config=config, org_name="test", print_json=False
             )
-
-        org_config.refresh_oauth_token.assert_called_once()
-        self.assertTrue(
-            "".join(out).startswith(
-                "\x1b(0lqqqqqwqqqqqqqk\x1b(B\n\x1b(0x\x1b(B Key \x1b(0x\x1b(B Value \x1b(0x\x1b(B\n\x1b(0mqqqqqvqqqqqqqj\x1b(B\nOrg expires on"
+            cli_tbl.assert_called_with(
+                [
+                    ["Key", "Value"],
+                    ["\x1b[1mdays\x1b[0m", "1"],
+                    ["\x1b[1mdefault\x1b[0m", "True"],
+                    ["\x1b[1mpassword\x1b[0m", "None"],
+                ],
+                wrap_cols=["Value"],
             )
-        )
+
         config.keychain.set_org.assert_called_once_with(org_config)
 
     def test_org_info_json(self):
@@ -629,8 +640,8 @@ class TestCCI(unittest.TestCase):
         )
         config.keychain.set_org.assert_called_once_with(org_config)
 
-    @mock.patch("click.echo")
-    def test_org_list(self, echo):
+    @mock.patch("cumulusci.cli.cci.CliTable")
+    def test_org_list(self, cli_tbl):
         config = mock.Mock()
         config.global_config.cli_options__plain_output = None
         config.project_config.keychain.list_orgs.return_value = ["test1", "test2"]
@@ -661,17 +672,23 @@ class TestCCI(unittest.TestCase):
 
         run_click_command(cci.org_list, config=config, plain=False)
 
-        table = echo.call_args_list[0][0][0]
-        if six.PY2:
-            table = six.text_type(table, "utf-8")
-
-        posix_tbl = u"""\u001b(0l\u001b(BScratch Orgs\u001b(0qqqqqwqqqqqqwqqqqqqqqqwqqqqqqqqk\u001b(B\n\u001b(0x\u001b(B Name  \u001b(0x\u001b(B Default \u001b(0x\u001b(B Days \u001b(0x\u001b(B Expired \u001b(0x\u001b(B Config \u001b(0x\u001b(B\n\u001b(0tqqqqqqqnqqqqqqqqqnqqqqqqnqqqqqqqqqnqqqqqqqqu\u001b(B\n\u001b(0x\u001b(B test1 \u001b(0x\u001b(B \u001b[32m\u2714\u001b[0m       \u001b(0x\u001b(B 1/7  \u001b(0x\u001b(B         \u001b(0x\u001b(B dev    \u001b(0x\u001b(B\n\u001b(0mqqqqqqqvqqqqqqqqqvqqqqqqvqqqqqqqqqvqqqqqqqqj\u001b(B"""
-        windows_tbl = """┌Scratch Orgs─────┬──────┬─────────┬────────┐\n│ Name  │ Default │ Days │ Expired │ Config │\n├───────┼─────────┼──────┼─────────┼────────┤\n│ test1 │ \x1b[32m+\x1b[0m       │ 1/7  │         │ dev    │\n└───────┴─────────┴──────┴─────────┴────────┘"""
-
-        self.assertEqual(
-            windows_tbl if sys.platform.startswith('win') else posix_tbl,
-            table,
+        scratch_table_call = mock.call(
+            [
+                ["Name", "Default", "Days", "Expired", "Config"],
+                ["test1", True, "1/7", False, "dev"],
+            ],
+            bool_cols=["Default"],
+            title="Scratch Orgs",
         )
+        persistent_table_call = mock.call(
+            [["Name", "Default", "Username"], ["test2", False, "test2@example.com"]],
+            bool_cols=["Default"],
+            title="Persistent Orgs",
+            wrap_cols=["Username"],
+        )
+
+        self.assertIn(scratch_table_call, cli_tbl.call_args_list)
+        self.assertIn(persistent_table_call, cli_tbl.call_args_list)
 
     def test_org_remove(self):
         org_config = mock.Mock()
@@ -809,20 +826,20 @@ class TestCCI(unittest.TestCase):
         mock_code.assert_called_once()
         self.assertIn("sf", mock_code.call_args[1]["local"])
 
-    @mock.patch("click.echo")
-    def test_task_list(self, echo):
+    @mock.patch("cumulusci.cli.cci.CliTable")
+    def test_task_list(self, cli_tbl):
         config = mock.Mock()
         config.global_config.cli_options__plain_output = None
         config.project_config.list_tasks.return_value = [
-            {"name": "test_task", "description": "Test Task", "group": "Test"}
+            {"name": "test_task", "description": "Test Task", "group": "Test Group"}
         ]
 
         run_click_command(cci.task_list, config=config, plain=False, print_json=False)
 
-        table = echo.call_args_list[0][0][0]
-        self.assertEqual(
-            """\x1b(0l\x1b(BTest\x1b(0qqqqqqqwqqqqqqqqqqqqqk\x1b(B\n\x1b(0x\x1b(B Task      \x1b(0x\x1b(B Description \x1b(0x\x1b(B\n\x1b(0tqqqqqqqqqqqnqqqqqqqqqqqqqu\x1b(B\n\x1b(0x\x1b(B test_task \x1b(0x\x1b(B Test Task   \x1b(0x\x1b(B\n\x1b(0mqqqqqqqqqqqvqqqqqqqqqqqqqj\x1b(B""",
-            table,
+        cli_tbl.assert_called_with(
+            [["Task", "Description"], ["test_task", "Test Task"]],
+            "Test Group",
+            wrap_cols=["Description"],
         )
 
     @mock.patch("cumulusci.cli.cci.doc_task")
@@ -1020,8 +1037,8 @@ class TestCCI(unittest.TestCase):
 
         handle_sentry_event.assert_called_once()
 
-    @mock.patch("click.echo")
-    def test_flow_list(self, echo):
+    @mock.patch("cumulusci.cli.cci.CliTable")
+    def test_flow_list(self, cli_tbl):
         config = mock.Mock()
         config.project_config.list_flows.return_value = [
             {"name": "test_flow", "description": "Test Flow"}
@@ -1029,10 +1046,11 @@ class TestCCI(unittest.TestCase):
         config.global_config.cli_options__plain_output = None
         run_click_command(cci.flow_list, config=config, plain=False, print_json=False)
 
-        table = echo.call_args_list[0][0][0]
-        self.assertEqual(
-            """\x1b(0l\x1b(BFlows\x1b(0qqqqqqwqqqqqqqqqqqqqk\x1b(B\n\x1b(0x\x1b(B Name      \x1b(0x\x1b(B Description \x1b(0x\x1b(B\n\x1b(0tqqqqqqqqqqqnqqqqqqqqqqqqqu\x1b(B\n\x1b(0x\x1b(B test_flow \x1b(0x\x1b(B Test Flow   \x1b(0x\x1b(B\n\x1b(0mqqqqqqqqqqqvqqqqqqqqqqqqqj\x1b(B""",
-            table,
+        print(cli_tbl.call_args)
+        cli_tbl.assert_called_with(
+            [["Name", "Description"], ["test_flow", "Test Flow"]],
+            title="Flows",
+            wrap_cols=["Description"],
         )
 
     @mock.patch("click.echo")
