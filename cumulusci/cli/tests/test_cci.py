@@ -355,10 +355,12 @@ class TestCCI(unittest.TestCase):
     def test_service_list(self, cli_tbl):
         config = mock.Mock()
         config.is_global_keychain = False
-        config.project_config.services = {
-            "bad": {"description": "Unconfigured Service"},
-            "test": {"description": "Test Service"},
-        }
+        config.project_config.services = OrderedDict(
+            (
+                ("bad", {"description": "Unconfigured Service"}),
+                ("test", {"description": "Test Service"}),
+            )
+        )
         config.keychain.list_services.return_value = ["test"]
         config.global_config.cli_options__plain_output = None
 
