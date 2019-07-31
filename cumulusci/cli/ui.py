@@ -71,13 +71,12 @@ class CliTable:
         """
         col_index = self._get_index_for_col_name(col_name)
 
-        if os.name == "posix":
-            true_str = (
-                click.style(true_str, fg="green") if true_str else self.PICTOGRAM_TRUE
-            )
-            false_str = (
-                click.style(false_str, fg="red") if false_str else self.PICTOGRAM_FALSE
-            )
+        true_str = (
+            click.style(true_str, fg="green") if true_str else self.PICTOGRAM_TRUE
+        )
+        false_str = (
+            click.style(false_str, fg="red") if false_str else self.PICTOGRAM_FALSE
+        )
         for row in self.table.table_data[1:]:
             row[col_index] = true_str if row[col_index] else false_str
 
