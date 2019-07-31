@@ -5,6 +5,7 @@ import io
 import json
 import os
 import shutil
+import sys
 import tempfile
 import time
 import unittest
@@ -664,8 +665,11 @@ class TestCCI(unittest.TestCase):
         if six.PY2:
             table = six.text_type(table, "utf-8")
 
+        posix_tbl = u"""\u001b(0l\u001b(BScratch Orgs\u001b(0qqqqqwqqqqqqwqqqqqqqqqwqqqqqqqqk\u001b(B\n\u001b(0x\u001b(B Name  \u001b(0x\u001b(B Default \u001b(0x\u001b(B Days \u001b(0x\u001b(B Expired \u001b(0x\u001b(B Config \u001b(0x\u001b(B\n\u001b(0tqqqqqqqnqqqqqqqqqnqqqqqqnqqqqqqqqqnqqqqqqqqu\u001b(B\n\u001b(0x\u001b(B test1 \u001b(0x\u001b(B \u001b[32m\u2714\u001b[0m       \u001b(0x\u001b(B 1/7  \u001b(0x\u001b(B         \u001b(0x\u001b(B dev    \u001b(0x\u001b(B\n\u001b(0mqqqqqqqvqqqqqqqqqvqqqqqqvqqqqqqqqqvqqqqqqqqj\u001b(B"""
+        windows_tbl = """┌Scratch Orgs─────┬──────┬─────────┬────────┐\n│ Name  │ Default │ Days │ Expired │ Config │\n├───────┼─────────┼──────┼─────────┼────────┤\n│ test1 │ \x1b[32m+\x1b[0m       │ 1/7  │         │ dev    │\n└───────┴─────────┴──────┴─────────┴────────┘"""
+
         self.assertEqual(
-            u"""\u001b(0l\u001b(BScratch Orgs\u001b(0qqqqqwqqqqqqwqqqqqqqqqwqqqqqqqqk\u001b(B\n\u001b(0x\u001b(B Name  \u001b(0x\u001b(B Default \u001b(0x\u001b(B Days \u001b(0x\u001b(B Expired \u001b(0x\u001b(B Config \u001b(0x\u001b(B\n\u001b(0tqqqqqqqnqqqqqqqqqnqqqqqqnqqqqqqqqqnqqqqqqqqu\u001b(B\n\u001b(0x\u001b(B test1 \u001b(0x\u001b(B \u001b[32m\u2714\u001b[0m       \u001b(0x\u001b(B 1/7  \u001b(0x\u001b(B         \u001b(0x\u001b(B dev    \u001b(0x\u001b(B\n\u001b(0mqqqqqqqvqqqqqqqqqvqqqqqqvqqqqqqqqqvqqqqqqqqj\u001b(B""",
+            windows_tbl if sys.platform.startswith('win') else posix_tbl,
             table,
         )
 
