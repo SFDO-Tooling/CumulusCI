@@ -1,9 +1,4 @@
-import random
-
 from datetime import datetime
-from datetime import timedelta
-
-import responses
 
 from cumulusci.tests.util import random_sha
 
@@ -347,7 +342,7 @@ class GithubApiTestMixin(object):
             "mergeable": not merged_date,
             "mergeable_state": "clean",
             "merged_at": merged_date,
-            "merged": merged_date != None,
+            "merged": merged_date is not None,
             "merged_by": None,
             "number": issue_number,
             "patch_url": "",
@@ -367,9 +362,9 @@ class GithubApiTestMixin(object):
         return pr
 
     def _get_expected_issue(self, issue_number, owner=None, repo=None):
-        if owner == None:
+        if owner is None:
             owner = "TestOwner"
-        if repo == None:
+        if repo is None:
             repo = "TestRepo"
         now = datetime.now().isoformat()
         response_body = {
