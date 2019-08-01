@@ -6,6 +6,7 @@ History
 ------------------
 
 New features:
+
 * Add the ``cci org shell`` command, which opens a Python shell pre-populated with a simple_salesforce session on the selected org (as ``sf``).
 * The ``cci flow info`` command now shows nested subflows.
 * Added the ``create_community`` task allowing for API-based Community creation.
