@@ -185,3 +185,13 @@ def test_table_stringify_booleans(sample_data):
     instance = CliTable(data, bool_cols=["Configured"])
     assert CHECKMARK in instance.table.table_data[1]
     assert CliTable.PICTOGRAM_FALSE in instance.table.table_data[2]
+
+
+@mock.patch("terminaltables.SingleTable.column_max_width")
+def test_table_wrap_cols(max_width, sample_data):
+    width = 80
+    max_width.return_value = width
+    data = sample_data["service_list"]
+    data[1][1] = data[1][1] + "a" * 256
+    instance = CliTable(data, wrap_cols=["Description"])
+    assert all((len(line) for line in instance.table.table_data[1][1].split("\n")))
