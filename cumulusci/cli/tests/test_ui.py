@@ -128,6 +128,21 @@ def test_table_plain_output(sample_data, plain_output, fixture_key, capsys):
     assert expected == captured.out
 
 
+@pytest.mark.skipif(
+    sys.platform.startswith("win"),
+    reason="Windows uses unicode chars instead of ASCII box chars.",
+)
+@pytest.mark.parametrize("fixture_key", ["service_list", "org_list", "task_list_util"])
+def test_table_pretty_echo(sample_data, pretty_output, fixture_key, capsys):
+    instance = CliTable(sample_data[fixture_key])
+    instance.INNER_BORDER = False
+    instance.echo(plain=False)
+
+    captured = capsys.readouterr()
+    expected = pretty_output[fixture_key] + "\n\n\n"
+    assert expected == captured.out
+
+
 @pytest.mark.parametrize("fixture_key", ["service_list", "org_list", "task_list_util"])
 def test_table_plain_echo(sample_data, plain_output, fixture_key, capsys):
     instance = CliTable(sample_data[fixture_key])
@@ -149,10 +164,24 @@ def test_table_plain_fallback(sample_data, plain_output, capsys):
         assert plain_output["service_list"] + "\n\n" == captured.out
 
 
+@pytest.mark.skipif(
+    sys.platform.startswith("win"),
+    reason="Click.echo does not support row dimming on Windows.",
+)
+def test_table_dim_rows(sample_data):
+    data = sample_data["service_list"]
+    instance = CliTable(data, dim_rows=[1])
+    assert all(
+        (
+            cell.startswith("\x1b[2m") and cell.endswith("\x1b[0m")
+            for cell in instance.table.table_data[1]
+        )
+    )
+
+
 def test_table_stringify_booleans(sample_data):
     data = sample_data["service_list"]
     data[1][2] = True
-    instance = CliTable(data)
-    instance.stringify_boolean_col(col_name="Configured")
+    instance = CliTable(data, bool_cols=["Configured"])
     assert CHECKMARK in instance.table.table_data[1]
     assert CliTable.PICTOGRAM_FALSE in instance.table.table_data[2]
