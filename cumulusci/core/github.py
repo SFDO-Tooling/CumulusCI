@@ -13,7 +13,10 @@ from requests.packages.urllib3.util.retry import Retry
 import github3
 import os
 
-retries = Retry(status_forcelist=(502, 503, 504), backoff_factor=0.3)
+# Prepare request retry policy to be attached to github sessions.
+# 401 is a weird status code to retry, but sometimes it happens spuriously
+# and https://github.community/t5/GitHub-API-Development-and/Random-401-errors-after-using-freshly-generated-installation/m-p/22905 suggests retrying
+retries = Retry(status_forcelist=(401, 502, 503, 504), backoff_factor=0.3)
 adapter = HTTPAdapter(max_retries=retries)
 
 
