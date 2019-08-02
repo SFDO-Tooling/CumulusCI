@@ -5,7 +5,7 @@ from future import standard_library
 standard_library.install_aliases()
 from builtins import str
 from future.utils import native_str_to_bytes
-from cumulusci.core.exceptions import CumulusCIFailure
+from cumulusci.core.exceptions import GithubException
 from github3 import GitHub
 from github3 import login
 from requests.adapters import HTTPAdapter
@@ -13,7 +13,10 @@ from requests.packages.urllib3.util.retry import Retry
 import github3
 import os
 
-retries = Retry(status_forcelist=(502, 503, 504), backoff_factor=0.3)
+# Prepare request retry policy to be attached to github sessions.
+# 401 is a weird status code to retry, but sometimes it happens spuriously
+# and https://github.community/t5/GitHub-API-Development-and/Random-401-errors-after-using-freshly-generated-installation/m-p/22905 suggests retrying
+retries = Retry(status_forcelist=(401, 502, 503, 504), backoff_factor=0.3)
 adapter = HTTPAdapter(max_retries=retries)
 
 
@@ -46,7 +49,7 @@ def get_github_api_for_repo(keychain, owner, repo):
             try:
                 installation = gh.app_installation_for_repository(owner, repo)
             except github3.exceptions.NotFoundError:
-                raise CumulusCIFailure(
+                raise GithubException(
                     "Could not access {}/{} using GitHub app. "
                     "Does the app need to be installed for this repository?".format(
                         owner, repo
@@ -67,6 +70,6 @@ def validate_service(options):
     try:
         gh.rate_limit()
     except Exception as e:
-        raise CumulusCIFailure(
+        raise GithubException(
             "Could not confirm access to the GitHub API: {}".format(str(e))
         )
