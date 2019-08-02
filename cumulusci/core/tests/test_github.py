@@ -8,7 +8,7 @@ from github3.session import AppInstallationTokenAuth
 import mock
 import responses
 
-from cumulusci.core.exceptions import CumulusCIFailure
+from cumulusci.core.exceptions import GithubException
 from cumulusci.core import github
 from cumulusci.core.github import get_github_api
 from cumulusci.core.github import get_github_api_for_repo
@@ -101,11 +101,11 @@ class TestGithub(unittest.TestCase):
         with mock.patch.dict(
             os.environ, {"GITHUB_APP_KEY": "bogus", "GITHUB_APP_ID": "1234"}
         ):
-            with self.assertRaises(CumulusCIFailure):
+            with self.assertRaises(GithubException):
                 get_github_api_for_repo(None, "TestOwner", "TestRepo")
 
     @responses.activate
     def test_validate_service(self):
         responses.add("GET", "https://api.github.com/rate_limit", status=401)
-        with self.assertRaises(CumulusCIFailure):
+        with self.assertRaises(GithubException):
             validate_service({"username": "BOGUS", "password": "BOGUS"})

@@ -5,7 +5,7 @@ from future import standard_library
 standard_library.install_aliases()
 from builtins import str
 from future.utils import native_str_to_bytes
-from cumulusci.core.exceptions import CumulusCIFailure
+from cumulusci.core.exceptions import GithubException
 from github3 import GitHub
 from github3 import login
 from requests.adapters import HTTPAdapter
@@ -49,7 +49,7 @@ def get_github_api_for_repo(keychain, owner, repo):
             try:
                 installation = gh.app_installation_for_repository(owner, repo)
             except github3.exceptions.NotFoundError:
-                raise CumulusCIFailure(
+                raise GithubException(
                     "Could not access {}/{} using GitHub app. "
                     "Does the app need to be installed for this repository?".format(
                         owner, repo
@@ -70,6 +70,6 @@ def validate_service(options):
     try:
         gh.rate_limit()
     except Exception as e:
-        raise CumulusCIFailure(
+        raise GithubException(
             "Could not confirm access to the GitHub API: {}".format(str(e))
         )
