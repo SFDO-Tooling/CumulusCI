@@ -4,6 +4,7 @@ import json
 import os
 import shutil
 import unittest
+from collections import OrderedDict
 
 from sqlalchemy import Column
 from sqlalchemy import Table
@@ -25,13 +26,13 @@ from cumulusci.utils import temporary_dir
 
 class TestEpochType(unittest.TestCase):
     def test_process_bind_param(self):
-        obj = bulkdata.EpochType()
+        obj = bulkdata.utils.EpochType()
         dt = datetime(1970, 1, 1, 0, 0, 1)
         result = obj.process_bind_param(dt, None)
         self.assertEqual(1000, result)
 
     def test_process_result_value(self):
-        obj = bulkdata.EpochType()
+        obj = bulkdata.utils.EpochType()
 
         # Non-None value
         result = obj.process_result_value(1000, None)
@@ -43,8 +44,8 @@ class TestEpochType(unittest.TestCase):
 
     def test_setup_epoch(self):
         column_info = {"type": types.DateTime()}
-        bulkdata.setup_epoch(mock.Mock(), mock.Mock(), column_info)
-        self.assertIsInstance(column_info["type"], bulkdata.EpochType)
+        bulkdata.utils.setup_epoch(mock.Mock(), mock.Mock(), column_info)
+        self.assertIsInstance(column_info["type"], bulkdata.utils.EpochType)
 
 
 BULK_DELETE_QUERY_RESULT = b"Id\n003000000000001".splitlines()
@@ -64,7 +65,7 @@ def _make_task(task_class, task_config):
     return task_class(project_config, task_config, org_config)
 
 
-@mock.patch("cumulusci.tasks.bulkdata.time.sleep", mock.Mock())
+@mock.patch("cumulusci.tasks.bulkdata.delete.time.sleep", mock.Mock())
 class TestDeleteData(unittest.TestCase):
     @responses.activate
     def test_run(self):
@@ -131,26 +132,26 @@ class TestDeleteData(unittest.TestCase):
         api.jobNS = "http://ns"
         task.bulk = api
         self.assertEqual(
-            "InProgress",
+            ("InProgress", None),
             task._parse_job_state(
                 '<root xmlns="http://ns">'
                 "  <batch><state>InProgress</state></batch>"
-                "  <batch><state>Failed</state></batch>"
+                "  <batch><state>Failed</state><stateMessage>test</stateMessage></batch>"
                 "  <batch><state>Completed</state></batch>"
                 "</root>"
             ),
         )
         self.assertEqual(
-            "Failed",
+            ("Failed", ["test"]),
             task._parse_job_state(
                 '<root xmlns="http://ns">'
-                "  <batch><state>Failed</state></batch>"
+                "  <batch><state>Failed</state><stateMessage>test</stateMessage></batch>"
                 "  <batch><state>Completed</state></batch>"
                 "</root>"
             ),
         )
         self.assertEqual(
-            "Completed",
+            ("Completed", None),
             task._parse_job_state(
                 '<root xmlns="http://ns">'
                 "  <batch><state>Completed</state></batch>"
@@ -159,7 +160,7 @@ class TestDeleteData(unittest.TestCase):
             ),
         )
         self.assertEqual(
-            "Aborted",
+            ("Aborted", None),
             task._parse_job_state(
                 '<root xmlns="http://ns">'
                 "  <batch><state>Not Processed</state></batch>"
@@ -185,7 +186,6 @@ class TestDeleteData(unittest.TestCase):
             list(task._upload_batches("1", [{"Id": "1"}]))
 
 
-@mock.patch("cumulusci.tasks.bulkdata.time.sleep", mock.Mock())
 class TestLoadDataWithSFIds(unittest.TestCase):
     mapping_file = "mapping_v1.yml"
 
@@ -227,7 +227,7 @@ class TestLoadDataWithSFIds(unittest.TestCase):
         responses.add(
             method="GET",
             url="http://api/job/3/batch/4/result",
-            body=b"Id,Success,Created,Errors\n1,true,true,\n2,false,false,Error",
+            body=b"Id,Success,Created,Errors\n1,true,true,\n2,true,true,Error",
             status=200,
         )
 
@@ -281,9 +281,13 @@ class TestLoadDataWithSFIds(unittest.TestCase):
             },
         )
         task._init_db = mock.Mock()
-        task._load_mapping = mock.Mock()
+        task._init_mapping = mock.Mock()
+        task.mapping = OrderedDict()
+        task.mapping["Insert Households"] = 1
+        task.mapping["Insert Contacts"] = 2
+        task._load_mapping = mock.Mock(return_value="Completed")
         task()
-        task._load_mapping.assert_called_once()
+        task._load_mapping.assert_called_once_with(2)
 
     def test_get_batches__multiple(self):
         base_path = os.path.dirname(__file__)
@@ -325,8 +329,157 @@ class TestLoadDataWithSFIds(unittest.TestCase):
         new_id_table = task.metadata.tables["test_sf_ids"]
         self.assertFalse(new_id_table is id_table)
 
+    def test_run_task__exception_failure(self):
+        base_path = os.path.dirname(__file__)
+        mapping_path = os.path.join(base_path, self.mapping_file)
+        task = _make_task(
+            bulkdata.LoadData,
+            {
+                "options": {
+                    "database_url": "sqlite://",
+                    "mapping": mapping_path,
+                    "start_step": "Insert Contacts",
+                }
+            },
+        )
+        task._init_db = mock.Mock()
+        task._load_mapping = mock.Mock(return_value="Failed")
+        with self.assertRaises(BulkDataException):
+            task()
 
-@mock.patch("cumulusci.tasks.bulkdata.time.sleep", mock.Mock())
+    @responses.activate
+    def test_store_inserted_ids__exception_failure(self):
+        base_path = os.path.dirname(__file__)
+        mapping_path = os.path.join(base_path, self.mapping_file)
+        task = _make_task(
+            bulkdata.LoadData,
+            {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
+        )
+
+        api = mock.Mock()
+        api.endpoint = "http://api"
+        api.headers.return_value = {}
+        task.bulk = api
+
+        responses.add(
+            method="GET",
+            url="http://api/job/1/batch/2/result",
+            body=Exception(),
+            status=500,
+        )
+        task.session = mock.Mock()
+        task._reset_id_table = mock.Mock()
+
+        with self.assertRaises(BulkDataException) as ex:
+            task._store_inserted_ids({"table": "Account"}, "1", {"2": []})
+
+        self.assertIn("Failed to download results", str(ex.exception))
+
+    @responses.activate
+    def test_store_inserted_ids__underlying_exception_failure(self):
+        result_data = (
+            b"Id,Success,Created,Error\n001111111111111,false,false,DUPLICATES_DETECTED"
+        )
+
+        base_path = os.path.dirname(__file__)
+        mapping_path = os.path.join(base_path, self.mapping_file)
+        task = _make_task(
+            bulkdata.LoadData,
+            {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
+        )
+
+        api = mock.Mock()
+        api.endpoint = "http://api"
+        api.headers.return_value = {}
+        task.bulk = api
+
+        results_url = "{}/job/1/batch/2/result".format(task.bulk.endpoint)
+        responses.add(method="GET", url=results_url, body=result_data, status=200)
+
+        task.metadata = mock.Mock()
+        task.metadata.tables = {"Account": "test"}
+
+        task.session = mock.Mock()
+        task._reset_id_table = mock.Mock(return_value="Account")
+
+        with self.assertRaises(BulkDataException) as ex:
+            task._store_inserted_ids({"table": "Account"}, "1", {"2": ["3"]})
+
+        self.assertIn("Error on row", str(ex.exception))
+
+    def test_store_inserted_ids_for_batch__exception_failure(self):
+        result_data = io.BytesIO(
+            b"Id,Success,Created,Error\n001111111111111,false,false,DUPLICATES_DETECTED"
+        )
+
+        base_path = os.path.dirname(__file__)
+        mapping_path = os.path.join(base_path, self.mapping_file)
+        task = _make_task(
+            bulkdata.LoadData,
+            {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
+        )
+
+        task.metadata = mock.Mock()
+        task.metadata.tables = {"table": "test"}
+
+        with self.assertRaises(BulkDataException) as ex:
+            task._store_inserted_ids_for_batch(
+                result_data, ["001111111111111"], "table", mock.Mock()
+            )
+
+        self.assertIn("Error on row", str(ex.exception))
+
+    def test_store_inserted_ids_for_batch__respects_silent_error_flag(self):
+        result_data = io.BytesIO(
+            b"Id,Success,Created,Error\n001111111111111,false,false,DUPLICATES_DETECTED"
+        )
+
+        base_path = os.path.dirname(__file__)
+        mapping_path = os.path.join(base_path, self.mapping_file)
+        task = _make_task(
+            bulkdata.LoadData,
+            {
+                "options": {
+                    "ignore_row_errors": True,
+                    "database_url": "sqlite://",
+                    "mapping": mapping_path,
+                }
+            },
+        )
+
+        task.metadata = mock.Mock()
+        task.metadata.tables = {"table": "test"}
+        task.session = mock.Mock()
+
+        # This is identical to the test above save the option set to ignore_row_errors
+        # We should get no exception.
+        task._store_inserted_ids_for_batch(
+            result_data, ["001111111111111"], "table", mock.Mock()
+        )
+
+    def test_wait_for_job__logs_state_messages(self):
+        base_path = os.path.dirname(__file__)
+        mapping_path = os.path.join(base_path, self.mapping_file)
+        task = _make_task(
+            bulkdata.LoadData,
+            {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
+        )
+
+        task.bulk = mock.Mock()
+        task.bulk.job_status.return_value = {
+            "numberBatchesCompleted": 1,
+            "numberBatchesTotal": 1,
+        }
+        task._job_state_from_batches = mock.Mock(
+            return_value=("Failed", ["Test1", "Test2"])
+        )
+        task.logger = mock.Mock()
+
+        task._wait_for_job("750000000000000")
+        task.logger.error.assert_any_call("Batch failure message: Test1")
+        task.logger.error.assert_any_call("Batch failure message: Test2")
+
+
 class TestLoadDataWithoutSFIds(unittest.TestCase):
     mapping_file = "mapping_v2.yml"
 
@@ -368,7 +521,7 @@ class TestLoadDataWithoutSFIds(unittest.TestCase):
         responses.add(
             method="GET",
             url="http://api/job/3/batch/4/result",
-            body=b"Id,Success,Created,Errors\n1,true,true,\n2,false,false,Error",
+            body=b"Id,Success,Created,Errors\n1,true,true,\n2,true,true,",
             status=200,
         )
 
@@ -409,7 +562,6 @@ class TestLoadDataWithoutSFIds(unittest.TestCase):
         )
 
 
-@mock.patch("cumulusci.tasks.bulkdata.time.sleep", mock.Mock())
 class TestExtractDataWithSFIds(unittest.TestCase):
 
     mapping_file = "mapping_v1.yml"
@@ -529,7 +681,6 @@ class TestExtractDataWithSFIds(unittest.TestCase):
             task()
 
 
-@mock.patch("cumulusci.tasks.bulkdata.time.sleep", mock.Mock())
 class TestExtractDataWithoutSFIds(unittest.TestCase):
 
     mapping_file = "mapping_v2.yml"

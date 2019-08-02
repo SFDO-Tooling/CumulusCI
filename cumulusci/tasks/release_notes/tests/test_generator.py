@@ -1,7 +1,5 @@
 # coding=utf-8
 
-import datetime
-import json
 import mock
 import os
 import unittest
@@ -335,4 +333,4 @@ class TestPublishingGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTest
             status=404,
         )
         with self.assertRaises(CumulusCIException):
-            result = generator()
+            generator()
