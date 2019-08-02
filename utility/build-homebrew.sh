@@ -20,6 +20,7 @@ echo " "
 source deactivate
 python3 -m venv "$ENV_DIR" || exit 1
 source "$ENV_DIR/bin/activate" || exit 1
+pip install -U pip
 pip install --no-cache cumulusci==$PACKAGE_VERSION homebrew-pypi-poet || exit 1
 
 echo " "
