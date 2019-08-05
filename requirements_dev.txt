@@ -7,7 +7,7 @@ coveralls==1.8.2
 flake8==3.7.8
 mock==3.0.5
 pre-commit==1.18.0
-pytest==4.6.4  # pyup: <5
+pytest==4.6.5  # pyup: <5
 pytest-cov==2.7.1
 responses==0.10.6
 Sphinx==1.8.5  # pyup: <2
