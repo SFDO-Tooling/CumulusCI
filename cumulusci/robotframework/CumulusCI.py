@@ -42,6 +42,8 @@ class CumulusCI(object):
         self._org = None
         self._sf = None
         self._tooling = None
+        self._community_info_cache = {}
+
         # Turn off info logging of all http requests
         logging.getLogger("requests.packages.urllib3.connectionpool").setLevel(
             logging.WARN
@@ -113,6 +115,45 @@ class CumulusCI(object):
         else:
             org = self.keychain.get_org(org)
         return org.start_url
+
+    def _refresh_community_info_cache(self):
+        response = self.sf.restful("connect/communities")
+        self._community_info_cache = {
+            community["name"]: community for community in response["communities"]
+        }
+
+    def get_community_info(self, community_name, key=None, force_refresh=False):
+        """This keyword uses the Salesforce API to get information about a community.
+
+        This keyword requires the exact community name as its first argumment.
+        - If no key is given, all of the information returned by the API will be
+          returned by this keyword in the form of a dictionary
+        - If a key is given, only the value for that key will be returned.
+
+        Some of the supported keys include name, siteUrl, and
+        loginUrl. For a comprehensive list see the API documentation,
+        or call this keyword without the key argument and examine the
+        results.
+
+        An API call will be made the first time this keyword is used, and
+        the return values will be cached. Subsequent calls will not call
+        the API unless the requested community name is not in the cached
+        results, or unless the force_refresh parameter is set to True.
+        """
+        if force_refresh or community_name not in self._community_info_cache:
+            self._refresh_community_info_cache()
+
+        if community_name not in self._community_info_cache:
+            raise Exception(
+                "Unable to find community information for '{}'".format(community_name)
+            )
+
+        if key is None:
+            return self._community_info_cache[community_name]
+        else:
+            if key not in self._community_info_cache[community_name]:
+                raise Exception("Invalid key '{}'".format(key))
+            return self._community_info_cache[community_name][key]
 
     def get_namespace_prefix(self, package=None):
         """ Returns the namespace prefix (including __) for the specified package name.

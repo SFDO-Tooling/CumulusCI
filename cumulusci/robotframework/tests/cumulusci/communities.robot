@@ -3,8 +3,8 @@ Resource  cumulusci/robotframework/CumulusCI.robot
 Library   Collections
 
 Suite Setup  run keywords
-...  # Note: the first community name intentionally includes a unicode
-...  # character to make sure we can handle it.
+     # Note: the first community name intentionally includes a unicode
+     # character to make sure we can handle it.
 ...  Insure community exists       Kōkua   kokua
 ...  AND  Insure community exists  Ohana   ohana
 
