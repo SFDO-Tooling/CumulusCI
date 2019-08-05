@@ -18,7 +18,7 @@ plaintable==0.1.1
 pycparser==2.19
 python-dateutil==2.8.0
 pytz==2019.2
-PyYAML==5.1.1
+PyYAML==5.1.2
 raven==6.10.0
 requests[security]==2.22.0
 robotframework==3.1.2
