@@ -14,7 +14,7 @@ from simple_salesforce import SalesforceGeneralError
 
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.core.exceptions import TaskOptionsError, ApexTestException
-from cumulusci.core.utils import process_bool_arg, decode_to_unicode
+from cumulusci.core.utils import process_bool_arg, process_list_arg, decode_to_unicode
 
 APEX_LIMITS = {
     "Soql": {
@@ -132,6 +132,11 @@ class RunApexTests(BaseSalesforceApiTask):
         "json_output": {
             "description": "File name for json output.  Defaults to test_results.json"
         },
+        "retry_errors": {
+            "description": "A list of regular expression patterns to match against "
+            "test failures. If all failures match, the failing tests are retried in "
+            "serial mode"
+        }
     }
 
     def _init_options(self, kwargs):
@@ -168,6 +173,7 @@ class RunApexTests(BaseSalesforceApiTask):
 
         self.options["managed"] = process_bool_arg(self.options.get("managed", False))
 
+        self.options["retry_errors"]  = process_list_arg(self.options.get("retry_errors", []))
         self.counts = {}
 
     # pylint: disable=W0201
@@ -224,7 +230,7 @@ class RunApexTests(BaseSalesforceApiTask):
 
     def _get_test_results(self):
         result = self.tooling.query_all(TEST_RESULT_QUERY.format(self.job_id))
-        self.counts = {"Pass": 0, "Fail": 0, "CompileFail": 0, "Skip": 0}
+        self.counts = {"Pass": 0, "Fail": 0, "CompileFail": 0, "Skip": 0, "Retriable": 0}
         for test_result in result["records"]:
             class_name = self.classes_by_id[test_result["ApexClassId"]]
             self.results_by_class_name[class_name][
@@ -305,6 +311,15 @@ class RunApexTests(BaseSalesforceApiTask):
 
         return stats
 
+    def _enqueue_test_run(self, class_ids=None, test_methods=None):
+        if class_ids:
+            return self.tooling._call_salesforce(
+                method="POST",
+                url=self.tooling.base_url + "runTestsAsynchronous",
+                json={"classids": ",".join(class_ids)},
+            ).json()
+
+
     def _run_task(self):
         result = self._get_test_classes()
         if result["totalSize"] == 0:
@@ -314,13 +329,11 @@ class RunApexTests(BaseSalesforceApiTask):
             self.classes_by_name[test_class["Name"]] = test_class["Id"]
             self.results_by_class_name[test_class["Name"]] = {}
         self.logger.info("Queuing tests for execution...")
-        ids = list(self.classes_by_id.keys())
-        result = self.tooling._call_salesforce(
-            method="POST",
-            url=self.tooling.base_url + "runTestsAsynchronous",
-            json={"classids": ",".join(str(id) for id in ids)},
+
+        self.job_id = self._enqueue_test_run(
+            class_ids=(str(id) for id in self.classes_by_id.keys())
         )
-        self.job_id = result.json()
+
         self._wait_for_tests()
         test_results = self._get_test_results()
         self._write_output(test_results)
