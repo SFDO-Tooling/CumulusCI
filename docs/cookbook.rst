@@ -124,7 +124,7 @@ Quick background about CumulusCI tasks
 
 All tasks in CumulusCI are python classes that subclass `cumulusci.core.tasks.BaseTask`.  The general usage of a task is two step: initialize an instance then call it to run the task.
 
-For most tasks, you'll want to override the `_run_task` method in your subclass to provide the implementation. The return value of this function is ignored. Exceptions from `cumulus.core.exceptions` should be raised to communicate task status to the user or flow. If no exceptions are thrown, the task is considered to have completed successfully.
+For most tasks, you'll want to override the `_run_task` method in your subclass to provide the implementation. The return value of this function is saved as part of the StepResult. Exceptions from `cumulus.core.exceptions` should be raised to communicate task status to the user or flow. If no exceptions are thrown, the task is considered to have completed successfully.
 
 Task Exceptions
 ---------------
