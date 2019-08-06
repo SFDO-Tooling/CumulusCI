@@ -99,6 +99,34 @@ class RobotLint(BaseTask):
                 "robot/{}".format(self.project_config.project["name"])
             ]
 
+    def _run_task(self):
+        linter = CustomRfLint(task=self)
+        result = 0
+
+        if self.options["list"]:
+            linter.run(["--list"])
+
+        else:
+            try:
+                files = self._get_files()
+                args = self._get_args()
+
+                # the result is a count of the number of errors,
+                # though I don't think the caller cares.
+                result = linter.run(args + sorted(files))
+
+            except Exception as e:
+                raise CumulusCIUsageError(str(e))
+
+        # result is the number of errors detected
+        if result > 0:
+            message = (
+                "1 error was detected"
+                if result == 1
+                else "{} errors were detected".format(result)
+            )
+            raise CumulusCIFailure(message)
+
     def _get_files(self):
         """Returns the working set of files to be processed"""
         expanded_paths = set()
@@ -136,34 +164,6 @@ class RobotLint(BaseTask):
                 args.extend(["--configure", config])
 
         return args
-
-    def _run_task(self):
-        linter = CustomRfLint(task=self)
-        result = 0
-
-        if self.options["list"]:
-            linter.run(["--list"])
-
-        else:
-            try:
-                files = self._get_files()
-                args = self._get_args()
-
-                # the result is a count of the number of errors,
-                # though I don't think the caller cares.
-                result = linter.run(args + sorted(files))
-
-            except Exception as e:
-                raise CumulusCIUsageError(str(e))
-
-        # result is the number of errors detected
-        if result > 0:
-            message = (
-                "1 error was detected"
-                if result == 1
-                else "{} errors were detected".format(result)
-            )
-            raise CumulusCIFailure(message)
 
 
 # A better solution might be to modify rflint so we can pass in a
