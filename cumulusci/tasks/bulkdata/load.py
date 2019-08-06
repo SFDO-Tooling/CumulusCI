@@ -3,6 +3,7 @@ import os
 import io
 import unicodecsv
 
+from collections import defaultdict, OrderedDict
 from salesforce_bulk.util import IteratorBytesIO
 from sqlalchemy import Column, MetaData, Table, Unicode, create_engine, text
 from sqlalchemy.orm import aliased, Session
@@ -82,6 +83,16 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
                 raise BulkDataException(
                     "Job {} did not complete successfully".format(name)
                 )
+            if self.after_steps[name]:
+                for after_name, after_step in self.after_steps[name].items():
+                    self.logger.info("Running post-load step: {}".format(after_name))
+                    self.logger.info("{}".format(after_step))
+                    result = self._load_mapping(after_step)
+                    # FIXME: we need to pull the results and check for successes
+                    if result != "Completed":
+                        raise BulkDataException(
+                            "Job {} did not complete successfully".format(after_name)
+                        )
 
     def _load_mapping(self, mapping):
         """Load data for a single step."""
@@ -89,12 +100,24 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
         job_id, local_ids_for_batch = self._create_job(mapping)
         result = self._wait_for_job(job_id)
 
-        self._store_inserted_ids(mapping, job_id, local_ids_for_batch)
+        if mapping.get("action", "insert") == "insert":
+            self._store_inserted_ids(mapping, job_id, local_ids_for_batch)
+
         return result
 
     def _create_job(self, mapping):
-        """Initiate a bulk insert and upload batches to run in parallel."""
-        job_id = self.bulk.create_insert_job(mapping["sf_object"], contentType="CSV")
+        """Initiate a bulk insert or update and upload batches to run in parallel."""
+        action = mapping.get("action", "insert")
+
+        if action == "insert":
+            job_id = self.bulk.create_insert_job(
+                mapping["sf_object"], contentType="CSV"
+            )
+        else:
+            job_id = self.bulk.create_update_job(
+                mapping["sf_object"], contentType="CSV"
+            )
+
         self.logger.info("  Created bulk job {}".format(job_id))
 
         # Upload batches
@@ -122,7 +145,8 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
         # Build the list of fields to import
         columns = []
         columns.extend(fields.keys())
-        columns.extend(lookups.keys())
+        # Don't include lookups with an `after:` spec (dependent lookups)
+        columns.extend([f for f in lookups if "after" not in lookups[f]])
         columns.extend(static.keys())
 
         if record_type:
@@ -159,7 +183,12 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
             if record_type:
                 row.append(record_type_id)
 
-            writer.writerow([self._convert(value) for value in row])
+            row = [self._convert(value) for value in row]
+            if all([f is None for f in row]):
+                # Skip rows that contain no values
+                continue
+
+            writer.writerow(row)
             batch_ids.append(pkey)
 
             # Yield and start a new file every [batch_size] rows
@@ -194,12 +223,18 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
         fields = mapping.get("fields", {}).copy()
         if mapping["oid_as_pk"]:
             del fields["Id"]
+
         id_column = model.__table__.primary_key.columns.keys()[0]
         columns = [getattr(model, id_column)]
 
         for f in fields.values():
             columns.append(model.__table__.columns[f])
-        lookups = mapping.get("lookups", {}).copy()
+
+        lookups = {
+            lookup_field: lookup
+            for lookup_field, lookup in mapping.get("lookups", {}).items()
+            if "after" not in lookup
+        }
         for lookup in lookups.values():
             lookup["aliased_table"] = aliased(
                 self.metadata.tables["{}_sf_ids".format(lookup["table"])]
@@ -214,6 +249,7 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
             for f in mapping["filters"]:
                 filter_args.append(text(f))
             query = query.filter(*filter_args)
+
         for sf_field, lookup in lookups.items():
             # Outer join with lookup ids table:
             # returns main obj even if lookup is null
@@ -227,7 +263,9 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
             # by trying to keep lookup targets in the same batch
             lookup_column = getattr(model, key_field)
             query = query.order_by(lookup_column)
-        self.logger.info(str(query))
+
+        self.logger.debug(str(query))
+
         return query
 
     def _convert(self, value):
@@ -352,3 +390,42 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
     def _init_mapping(self):
         with open(self.options["mapping"], "r") as f:
             self.mapping = ordered_yaml_load(f)
+
+        # Expand the mapping to handle dependent lookups
+        self.after_steps = defaultdict(lambda: OrderedDict())
+
+        for step in self.mapping.values():
+            if "lookups" in step and any(
+                ["after" in l for l in step["lookups"].values()]
+            ):
+                # We have deferred/dependent lookups.
+                # Synthesize mapping steps for them.
+
+                sobject = step["sf_object"]
+                after_list = {
+                    l["after"] for l in step["lookups"].values() if "after" in l
+                }
+
+                for after in after_list:
+                    lookups = {
+                        lookup_field: lookup
+                        for lookup_field, lookup in step["lookups"].items()
+                        if lookup.get("after") == after
+                    }
+                    name = "Update {} Dependencies After {}".format(sobject, after)
+                    mapping = {
+                        "sf_object": sobject,
+                        "action": "update",
+                        "table": step["table"],
+                        "lookups": OrderedDict(),
+                        "fields": {},
+                    }
+                    mapping["lookups"]["Id"] = {
+                        "table": step["table"],
+                        "key_field": "sf_id",
+                    }
+                    for l in lookups:
+                        mapping["lookups"][l] = lookups[l].copy()
+                        del mapping["lookups"][l]["after"]
+
+                    self.after_steps[after][name] = mapping
