@@ -1,7 +1,7 @@
 from cumulusci.core.tasks import BaseTask
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.core.utils import process_list_arg
-from cumulusci.core.exceptions import CumulusCIFailure, CumulusCIUsageError
+from cumulusci.core.exceptions import CumulusCIFailure
 import rflint
 import glob
 import os
@@ -107,16 +107,12 @@ class RobotLint(BaseTask):
             linter.run(["--list"])
 
         else:
-            try:
-                files = self._get_files()
-                args = self._get_args()
+            files = self._get_files()
+            args = self._get_args()
 
-                # the result is a count of the number of errors,
-                # though I don't think the caller cares.
-                result = linter.run(args + sorted(files))
-
-            except Exception as e:
-                raise CumulusCIUsageError(str(e))
+            # the result is a count of the number of errors,
+            # though I don't think the caller cares.
+            result = linter.run(args + sorted(files))
 
         # result is the number of errors detected
         if result > 0:
