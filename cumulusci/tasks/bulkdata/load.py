@@ -86,7 +86,6 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
             if self.after_steps[name]:
                 for after_name, after_step in self.after_steps[name].items():
                     self.logger.info("Running post-load step: {}".format(after_name))
-                    self.logger.info("{}".format(after_step))
                     result = self._load_mapping(after_step)
                     # FIXME: we need to pull the results and check for successes
                     if result != "Completed":
@@ -422,7 +421,7 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
                     }
                     mapping["lookups"]["Id"] = {
                         "table": step["table"],
-                        "key_field": "sf_id",
+                        "key_field": step["fields"]["Id"],
                     }
                     for l in lookups:
                         mapping["lookups"][l] = lookups[l].copy()

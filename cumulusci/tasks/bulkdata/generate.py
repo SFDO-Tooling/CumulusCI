@@ -1,6 +1,7 @@
 from collections import defaultdict, OrderedDict
 
-from cumulusci.core.exceptions import BulkDataException
+import click
+
 from cumulusci.core.utils import ordered_yaml_dump, process_list_arg
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 
@@ -12,15 +13,16 @@ class GenerateMapping(BaseSalesforceApiTask):
     mapping suitable for extracting data in packaged and custom objects as well as
     customized standard objects.
 
-    Mappings cannot include reference cycles - situations where Object A refers to B,
-    and B also refers to A. Mapping generation will fail for such data models; to
-    resolve the issue, specify the `ignore` option with the name of one of the
-    involved lookup fields to suppress it. `ignore` can be specified as a list in
+    Mappings must be serializable, and hence must resolvereference cycles - situations
+    where Object A refers to B, and B also refers to A. Mapping generation will stop
+    and request user input to resolve such cycles by identifying the correct load order.
+    Alternately, specify the `ignore` option with the name of one of the
+    lookup fields to suppress it and break the cycle. `ignore` can be specified as a list in
     `cumulusci.yml` or as a comma-separated string at the command line.
 
     In most cases, the mapping generated will need minor tweaking by the user. Note
     that the mapping omits features that are not currently well supported by the
-    `extract_dataset` and `load_dataset` tasks, including self-lookups and references to
+    `extract_dataset` and `load_dataset` tasks, such as references to
     the `User` object.
     """
 
@@ -127,7 +129,8 @@ class GenerateMapping(BaseSalesforceApiTask):
                             for target in field["referenceTo"]:
                                 # We've already vetted that this field is referencing
                                 # included objects, via `_is_field_mappable()`
-                                self.refs[obj][target].add(field["name"])
+                                if target != obj:
+                                    self.refs[obj][target].add(field["name"])
 
     def _build_mapping(self):
         """Output self.schema in mapping file format by constructing an OrderedDict and serializing to YAML"""
@@ -166,19 +169,34 @@ class GenerateMapping(BaseSalesforceApiTask):
                 lookups.sort(key=field_sort)
                 self.mapping[key]["lookups"] = OrderedDict()
                 for field in lookups:
-                    self.mapping[key]["lookups"][field] = {
-                        "table": self.schema[obj][field]["referenceTo"][0].lower()
-                    }
-                    if len(self.schema[obj][field]["referenceTo"]) > 1:
+                    # First, determine what manner of lookup we have here.
+                    referenceTo = self.schema[obj][field]["referenceTo"]
+
+                    if len(referenceTo) > 1:  # Polymorphiy lookup
                         self.logger.warning(
                             "Field {}.{} is a polymorphic lookup, which is not supported".format(
                                 obj, field
                             )
                         )
+                    elif referenceTo[0] == obj:  # Self-lookup
+                        self.mapping[key]["lookups"][field] = {
+                            "table": referenceTo[0].lower(),
+                            "after": key,
+                        }
+                    elif stack.index(referenceTo[0]) > stack.index(
+                        obj
+                    ):  # Dependent lookup
+                        self.mapping[key]["lookups"][field] = {
+                            "table": referenceTo[0].lower(),
+                            "after": "Insert {}".format(referenceTo[0]),
+                        }
+                    else:  # Regular lookup
+                        self.mapping[key]["lookups"][field] = {
+                            "table": referenceTo[0].lower()
+                        }
 
     def _split_dependencies(self, objs, dependencies):
-        """Attempt to flatten the object network into a sequence of load operations. May throw BulkDataException
-        if reference cycles exist in the network"""
+        """Attempt to flatten the object network into a sequence of load operations."""
         stack = []
         objs_remaining = objs.copy()
 
@@ -196,8 +214,8 @@ class GenerateMapping(BaseSalesforceApiTask):
             ]
 
             if not objs_without_deps:
-                self.logger.error(
-                    "Unable to complete mapping; the schema contains reference cycles or unresolved dependencies."
+                self.logger.info(
+                    "CCI needs help to complete the mapping; the schema contains reference cycles and unresolved dependencies."
                 )
                 self.logger.info("Mapped objects: {}".format(", ".join(stack)))
                 self.logger.info("Remaining objects:")
@@ -209,7 +227,12 @@ class GenerateMapping(BaseSalesforceApiTask):
                                 other_obj, ", ".join(dependencies[obj][other_obj])
                             )
                         )
-                raise BulkDataException("Cannot complete mapping")
+                choice = click.prompt(
+                    "Which object should we load first?",
+                    type=click.Choice(list(objs_remaining)),
+                    show_choices=True,
+                )
+                objs_without_deps = [choice]
 
             for obj in objs_without_deps:
                 stack.append(obj)
@@ -286,8 +309,6 @@ class GenerateMapping(BaseSalesforceApiTask):
                 "(Deprecated)" in field["label"],  # Deprecated managed fields
                 field["type"] == "base64",  # No Bulk API support for base64 blob fields
                 not field["createable"],  # Non-writeable fields
-                field["type"] == "reference"  # Self-lookups
-                and field["referenceTo"] == [obj],
                 field["type"] == "reference"  # Outside lookups
                 and not self._are_lookup_targets_in_operation(field),
             ]
