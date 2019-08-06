@@ -15,6 +15,8 @@ tasks:
         options:
             path:
               - cumulusci/robotframework
+            ignore:
+              - RequireTestDocumentation
     robot_libdoc:
         description: Generates html documentation for the Salesorce and CumulusCI libraries and resource files
         class_path: cumulusci.tasks.robotframework.RobotLibDoc
