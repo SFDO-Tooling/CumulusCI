@@ -87,12 +87,10 @@ class RobotLint(BaseTask):
         self.options["list"] = process_bool_arg(self.options.get("list", False))
 
         self.options["path"] = process_list_arg(self.options.get("path", None))
-        self.options["ignore"] = process_list_arg(self.options.get("ignore", None))
-        self.options["warning"] = process_list_arg(self.options.get("warning", None))
-        self.options["error"] = process_list_arg(self.options.get("error", None))
-        self.options["configure"] = process_list_arg(
-            self.options.get("configure", None)
-        )
+        self.options["ignore"] = process_list_arg(self.options.get("ignore", []))
+        self.options["warning"] = process_list_arg(self.options.get("warning", []))
+        self.options["error"] = process_list_arg(self.options.get("error", []))
+        self.options["configure"] = process_list_arg(self.options.get("configure", []))
 
         if self.options["path"] is None:
             self.options["path"] = [
@@ -146,19 +144,14 @@ class RobotLint(BaseTask):
         """Return rflint-style args based on the task options"""
 
         args = []
-        if self.options["ignore"]:
-            for rule in self.options["ignore"]:
-                args.extend(["--ignore", rule])
-        if self.options["warning"]:
-            for rule in self.options["warning"]:
-                args.extend(["--warning", rule])
-        if self.options["error"]:
-            for rule in self.options["error"]:
-                args.extend(["--error", rule])
-        if self.options["configure"]:
-            for config in self.options["configure"]:
-                args.extend(["--configure", config])
-
+        for rule in self.options["ignore"]:
+            args.extend(["--ignore", rule])
+        for rule in self.options["warning"]:
+            args.extend(["--warning", rule])
+        for rule in self.options["error"]:
+            args.extend(["--error", rule])
+        for config in self.options["configure"]:
+            args.extend(["--configure", config])
         return args
 
 
