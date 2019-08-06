@@ -8,13 +8,12 @@ import os
 
 
 class RobotLint(BaseTask):
-    salesforce_task = False  # does not require an org
     task_docs = """
     The robot_lint task performs static analysis on one or more .robot
     and .resource files. Each line is parsed, and the result passed through
     a series of rules. Rules can issue warnings or errors about each line.
 
-    If any errors are reported, the task will exit with a non-zero status
+    If any errors are reported, the task will exit with a non-zero status.
 
     When a rule has been violated, a line will appear on the output in
     the following format:
@@ -102,11 +101,11 @@ class RobotLint(BaseTask):
 
     def _get_files(self):
         """Returns the working set of files to be processed"""
-        expanded_paths = []
+        expanded_paths = set()
         for path in self.options["path"]:
-            expanded_paths.extend(glob.glob(path))
+            expanded_paths.update(glob.glob(path))
 
-        all_files = []
+        all_files = set()
         for path in expanded_paths:
             if os.path.isdir(path):
                 for root, dirs, files in os.walk(path):
@@ -114,9 +113,9 @@ class RobotLint(BaseTask):
                         if filename.endswith(".robot") or filename.endswith(
                             ".resource"
                         ):
-                            all_files.append(os.path.join(root, filename))
+                            all_files.add(os.path.join(root, filename))
             else:
-                all_files.append(path)
+                all_files.add(path)
         return all_files
 
     def _get_args(self):

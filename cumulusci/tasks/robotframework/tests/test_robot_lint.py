@@ -31,6 +31,30 @@ class TestRobotLint(MockLoggerMixin, unittest.TestCase):
             f.write(textwrap.dedent(data))
         return filename
 
+    def test_no_duplicate_files(self):
+        """Verify that the working set of files has no duplicates"""
+        path = self.make_test_file(
+            """
+            *** Test Cases ***
+            Example
+                log  hello, world
+            """,
+            suffix=".robot",
+        )
+        glob_path = "{}/*.robot".format(self.tmpdir)
+
+        task = create_task(
+            RobotLint,
+            {
+                "path": [glob_path, path],
+                "ignore": "all",
+                "error": "RequireTestDocumentation",
+            },
+        )
+        expected = "1 error was detected"
+        with pytest.raises(CumulusCIFailure, match=expected):
+            task()
+
     def test_exception_on_error(self):
         """Verify CumulusCIFailure is thrown on rule violations"""
         path = self.make_test_file(
