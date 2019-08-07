@@ -12,6 +12,7 @@ from cumulusci.tasks.release_notes.provider import GithubChangeNotesProvider
 class BaseReleaseNotesGenerator(object):
     def __init__(self):
         self.change_notes = []
+        self.empty_pull_requests = []
         self.init_parsers()
         self.init_change_notes()
 
@@ -45,9 +46,16 @@ class BaseReleaseNotesGenerator(object):
 
     def _parse_change_note(self, change_note):
         """ Parses an individual change note through all parsers in
-        self.parsers """
+        self.parsers. If no lines were added then appends the change
+        note to the list of empty PRs"""
+        line_added_by_parsers = False
         for parser in self.parsers:
-            parser.parse(change_note)
+            line_added = parser.parse(change_note)
+            if not line_added_by_parsers:
+                line_added_by_parsers = line_added
+
+        if not line_added_by_parsers:
+            self.empty_pull_requests.append(change_note)
 
     def render(self):
         """ Returns the rendered release notes from all parsers as a string """
@@ -98,6 +106,7 @@ class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator):
         link_pr=False,
         publish=False,
         has_issues=True,
+        include_empty=False,
     ):
         self.github = github
         self.github_info = github_info
@@ -107,6 +116,7 @@ class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator):
         self.link_pr = link_pr
         self.do_publish = publish
         self.has_issues = has_issues
+        self.include_empty_pull_requests = include_empty
         self.lines_parser_class = None
         self.issues_parser_class = None
         super(GithubReleaseNotesGenerator, self).__init__()
@@ -135,6 +145,21 @@ class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator):
             raise CumulusCIException(
                 "Release not found for tag: {}".format(self.current_tag)
             )
+
+    def _render_empty_pr_section(self):
+        section_lines = []
+        if self.empty_pull_requests:
+            section_lines.append("\n# Pull requests with no release notes")
+            for content in self.empty_pull_requests:
+                section_lines.append(
+                    "\n* {}".format(self._mark_down_link_to_pr(content))
+                )
+
+        return section_lines
+
+    def _mark_down_link_to_pr(self, pull_request):
+        if pull_request:
+            return " [[PR{}]({})]".format(pull_request.number, pull_request.html_url)
 
     def _update_release_content(self, release, content):
         """Merge existing and new release content."""
@@ -186,8 +211,10 @@ class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator):
                 if parser_content and not parser.replaced:
                     new_body.append(parser_content + "\r\n")
 
-            content = u"\r\n".join(new_body)
-
+        # add empty PRs section
+        if self.include_empty_pull_requests:
+            new_body.extend(self._render_empty_pr_section())
+        content = u"\r\n".join(new_body)
         return content
 
     def get_repo(self):
