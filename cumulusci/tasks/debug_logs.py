@@ -90,10 +90,7 @@ class DownloadDebugLogs(BaseSalesforceApiTask):
     """
 
     task_options = {
-        "debug_log_dir": {
-            "description": "What directory to put the logs in",
-            "required": True,
-        }
+        "debug_log_dir": {"description": "Where to put the logs", "required": True}
     }
 
     def _run_task(self):
