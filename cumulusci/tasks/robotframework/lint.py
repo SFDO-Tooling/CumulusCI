@@ -38,7 +38,7 @@ class RobotLint(BaseTask):
     configuration options in the documentation for that rule
 
     The filename will be printed once before any errors or warnings
-    for that file. The filename is preceeded by `+ `
+    for that file. The filename is preceeded by `+`
 
     Example Output::
 
