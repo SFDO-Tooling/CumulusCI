@@ -122,6 +122,18 @@ class TestGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTestMixin):
         self.assertEqual(generator.change_notes.current_tag, self.current_tag)
         self.assertEqual(generator.change_notes._last_tag, self.last_tag)
 
+    @responses.activate
+    def test_mark_down_link_to_pr(self):
+        pr = mock.Mock(number=1, html_url="http://pr", body="# Changes\r\n\r\nfoo")
+        github_info = self.github_info.copy()
+        self.mock_util.mock_get_repo()
+        generator = GithubReleaseNotesGenerator(
+            self.gh, github_info, PARSER_CONFIG, self.current_tag, self.last_tag
+        )
+        actual_link = generator._mark_down_link_to_pr(pr)
+        expected_link = "[[PR{}]({})]".format(pr.number, pr.html_url)
+        self.assertEquals(expected_link, actual_link)
+
 
 class TestPublishingGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTestMixin):
     def setUp(self):
