@@ -129,7 +129,7 @@ For most tasks, you'll want to override the `_run_task` method in your subclass 
 Task Exceptions
 ---------------
 
-If the task has an error that should be considered a build failure (e.g. a metadata deployment failure, test failure, etc) it can raise the exception `cumulus.core.exceptions.CumulusCIFailure`. If you want to flag a usage error (e.g. the task receives an invalid set of options) it should raise the exception `cumulus.core.exceptions.CumulusCiUsageError`.
+If the task has an error that should be considered a build failure (e.g. a metadata deployment failure, test failure, etc) it can raise the exception `cumulus.core.exceptions.CumulusCIFailure`. If you want to flag a usage error (e.g. the task receives an invalid set of options) it should raise the exception `cumulus.core.exceptions.CumulusCIUsageError`.
 
 Query the Enterprise API for Data
 ---------------------------------
