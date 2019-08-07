@@ -740,6 +740,20 @@ Library  cumulusci.robotframework.PageObjects
                 <td class="kwdoc"><p>Scrolls down until the specified related list loads.</p></td>
               </tr>
               
+              <tr class="kwrow" id="Salesforce.Log Browser Config">
+                <td class="kwname">
+                  Log Browser Config
+                </td>
+                <td class="kwargs">
+                  
+                  <i>loglevel=INFO</i>, 
+                  
+                  <i>alias=None</i>
+                  
+                </td>
+                <td class="kwdoc"><p>Logs all of the browser configuration options</p></td>
+              </tr>
+              
               <tr class="kwrow" id="Salesforce.Open App Launcher">
                 <td class="kwname">
                   Open App Launcher
@@ -1140,7 +1154,8 @@ Library  cumulusci.robotframework.PageObjects
                 </td>
                 <td class="kwdoc"><p>Opens a test browser to the org.</p>
 <p>The variable ${BROWSER} determines which browser should open. The following four browsers are explicitly supported: chrome, firefox, headlesschrome, and headlessfirefox. Any other value will be passed directly to the SeleniumLibrary 'Open Browser' keyword.</p>
-<p>Once the browser has been opened, it will be set to the given size (default=${DEFAULT BROWSER SIZE})</p></td>
+<p>Once the browser has been opened, it will be set to the given size (default=${DEFAULT BROWSER SIZE})</p>
+<p>The keyword `Log Browser Config` will automatically be called.</p></td>
               </tr>
               
               <tr class="kwrow" id="Salesforce.robot.Open Test Browser Chrome">
@@ -1193,7 +1208,7 @@ Library  cumulusci.robotframework.PageObjects
       
     </div>
     <div class="footer">
-      Generated on Friday June 21, 05:17 PM - cumulusci v2.5.2
+      Generated on Wednesday August 07, 05:47 PM - cumulusci v2.5.5
     </div>
   </body>
 </html>

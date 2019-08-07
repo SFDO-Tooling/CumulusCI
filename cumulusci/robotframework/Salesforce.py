@@ -4,6 +4,7 @@ import logging
 import os.path
 import re
 import time
+from pprint import pformat
 from robot.libraries.BuiltIn import BuiltIn, RobotNotRunningError
 from robot.utils import timestr_to_secs
 from selenium.webdriver.common.keys import Keys
@@ -324,6 +325,12 @@ class Salesforce(object):
             label
         )
         self.selenium.page_should_contain_element(locator)
+
+    def log_browser_config(self, loglevel="INFO", alias=None):
+        """Logs all of the browser configuration options"""
+        output = "selenium driver capabilities:\n"
+        output += pformat(self.selenium.driver.capabilities, indent=4)
+        self.builtin.log(output, level=loglevel)
 
     def open_app_launcher(self):
         """ Opens the Saleforce App Launcher """
