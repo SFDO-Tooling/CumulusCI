@@ -156,6 +156,32 @@ class TestGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTestMixin):
             content[2],
         )
 
+    @responses.activate
+    def test_update_content_with_empty_release_body(self):
+        self.mock_util.mock_get_repo()
+        self.mock_util.mock_pull_request(88, body="Just a small note.")
+        self.mock_util.mock_pull_request(89, body="")
+        generator = self._create_generator()
+        repo = generator.get_repo()
+        pr1 = repo.pull_request(88)
+        pr2 = repo.pull_request(89)
+        generator.include_empty_pull_requests = True
+        generator.empty_change_notes = [pr1, pr2]
+        release = mock.Mock(body=None)
+        content = generator._update_release_content(release, "new content")
+
+        split_content = content.split("\r\n")
+        self.assertEquals(4, len(split_content))
+        self.assertEquals("new content", split_content[0])
+        self.assertEquals("\n# Pull requests with no release notes", split_content[1])
+        self.assertEquals(
+            "\n* Pull Request #{0} [[PR{0}]({1})]".format(pr1.number, pr1.html_url),
+            split_content[2],
+        )
+        self.assertEquals(
+            "\n* Pull Request #{0} [[PR{0}]({1})]".format(pr2.number, pr2.html_url),
+            split_content[3],
+        )
 
 class TestPublishingGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTestMixin):
     def setUp(self):
