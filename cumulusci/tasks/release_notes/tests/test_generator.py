@@ -183,11 +183,33 @@ class TestGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTestMixin):
             split_content[3],
         )
 
+    @responses.activate
+    def test_detect_empty_change_note(self):
+        self.mock_util.mock_get_repo()
+        self.mock_util.mock_pull_request(1, body="# Changes\r\n\r\nfoo")
+        self.mock_util.mock_pull_request(2, body="Nothing under headers we track")
+        self.mock_util.mock_pull_request(3, body="")
+        generator = self._create_generator()
+        repo = generator.get_repo()
+        pr1 = repo.pull_request(1)
+        pr2 = repo.pull_request(2)
+        pr3 = repo.pull_request(3)
+
+        generator._parse_change_note(pr1)
+        generator._parse_change_note(pr2)
+        generator._parse_change_note(pr3)
+
+        # PR1 is "non-empty" second two are "empty"
+        self.assertEquals(2, len(generator.empty_change_notes))
+        self.assertEquals(2, generator.empty_change_notes[0].number)
+        self.assertEquals(3, generator.empty_change_notes[1].number)
+
     def _create_generator(self):
         generator = GithubReleaseNotesGenerator(
             self.gh, self.github_info.copy(), PARSER_CONFIG, self.current_tag
         )
         return generator
+
 
 class TestPublishingGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTestMixin):
     def setUp(self):
