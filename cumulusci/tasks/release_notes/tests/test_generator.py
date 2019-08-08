@@ -124,37 +124,25 @@ class TestGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTestMixin):
 
     @responses.activate
     def test_mark_down_link_to_pr(self):
-        pr = mock.Mock(
-            number=1, html_url="http://pr", body="# Changes\r\n\r\nfoo", title="Title 1"
-        )
-        github_info = self.github_info.copy()
         self.mock_util.mock_get_repo()
-        generator = GithubReleaseNotesGenerator(
-            self.gh, github_info, PARSER_CONFIG, self.current_tag, self.last_tag
+        self.mock_util.mock_pull_request(
+            1, body="# Changes\r\n\r\nfoo", title="Title 1"
         )
+        generator = self._create_generator()
+        pr = generator.get_repo().pull_request(1)
         actual_link = generator._mark_down_link_to_pr(pr)
         expected_link = "{} [[PR{}]({})]".format(pr.title, pr.number, pr.html_url)
         self.assertEquals(expected_link, actual_link)
 
     @responses.activate
     def test_render_empty_pr_section(self):
-        pr1 = mock.Mock(
-            number=1,
-            html_url="http://pr1",
-            body="# Changes\r\n\r\nfoo",
-            title="Title 1",
-        )
-        pr2 = mock.Mock(
-            number=2,
-            html_url="http://pr2",
-            body="# Changes\r\n\r\nbar",
-            title="Title 2",
-        )
-        github_info = self.github_info.copy()
         self.mock_util.mock_get_repo()
-        generator = GithubReleaseNotesGenerator(
-            self.gh, github_info, PARSER_CONFIG, self.current_tag, self.last_tag
-        )
+        self.mock_util.mock_pull_request(1, body="# Changes\r\n\r\nfoo")
+        self.mock_util.mock_pull_request(2, body="# Changes\r\n\r\nbar")
+        generator = self._create_generator()
+        repo = generator.get_repo()
+        pr1 = repo.pull_request(1)
+        pr2 = repo.pull_request(2)
         generator.empty_change_notes.extend([pr1, pr2])
         content = generator._render_empty_pr_section()
         self.assertEquals(3, len(content))
