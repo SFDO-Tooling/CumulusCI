@@ -131,7 +131,7 @@ class TestGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTestMixin):
             self.gh, github_info, PARSER_CONFIG, self.current_tag, self.last_tag
         )
         actual_link = generator._mark_down_link_to_pr(pr)
-        expected_link = "[[PR{}]({})]".format(pr.number, pr.html_url)
+        expected_link = "{} [[PR{}]({})]".format(pr.title, pr.number, pr.html_url)
         self.assertEquals(expected_link, actual_link)
 
 
