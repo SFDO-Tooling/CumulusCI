@@ -2,7 +2,7 @@
 """Format and display CLI output.
 
 Classes:
-    CliTable: Pretty prints tabluar data to stdout, via click.echo.
+    CliTable: Pretty prints tabular data to stdout, via click.echo.
 """
 import os
 import click
@@ -81,7 +81,7 @@ class CliTable:
             row[col_index] = true_str if row[col_index] else false_str
 
     def echo(self, plain=False):
-        """Print this tables data using click.echo().
+        """Print this table's data using click.echo().
 
         Automatically falls back to AsciiTable if there's an encoding error.
         """
