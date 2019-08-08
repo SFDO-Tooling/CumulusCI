@@ -164,8 +164,8 @@ class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator):
 
     def _update_release_content(self, release, content):
         """Merge existing and new release content."""
+        new_body = []
         if release.body:
-            new_body = []
             current_parser = None
             is_start_line = False
             for parser in self.parsers:
@@ -212,7 +212,10 @@ class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator):
                 if parser_content and not parser.replaced:
                     new_body.append(parser_content + "\r\n")
 
-        # add empty PRs section
+        else:  # no release.body
+            new_body.append(content)
+
+        # add empty PR section
         if self.include_empty_pull_requests:
             new_body.extend(self._render_empty_pr_section())
         content = u"\r\n".join(new_body)
