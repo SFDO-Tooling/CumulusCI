@@ -150,16 +150,17 @@ class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator):
         section_lines = []
         if self.empty_change_notes:
             section_lines.append("\n# Pull requests with no release notes")
-            for content in self.empty_change_notes:
+            for change_note in self.empty_change_notes:
                 section_lines.append(
-                    "\n* {}".format(self._mark_down_link_to_pr(content))
+                    "\n* {}".format(self._mark_down_link_to_pr(change_note))
                 )
 
         return section_lines
 
-    def _mark_down_link_to_pr(self, pull_request):
-        if pull_request:
-            return "[[PR{}]({})]".format(pull_request.number, pull_request.html_url)
+    def _mark_down_link_to_pr(self, change_note):
+        return "{} [[PR{}]({})]".format(
+            change_note.title, change_note.number, change_note.html_url
+        )
 
     def _update_release_content(self, release, content):
         """Merge existing and new release content."""
