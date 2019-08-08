@@ -12,7 +12,7 @@ from cumulusci.tasks.release_notes.provider import GithubChangeNotesProvider
 class BaseReleaseNotesGenerator(object):
     def __init__(self):
         self.change_notes = []
-        self.empty_pull_requests = []
+        self.empty_change_notes = []
         self.init_parsers()
         self.init_change_notes()
 
@@ -55,7 +55,7 @@ class BaseReleaseNotesGenerator(object):
                 line_added_by_parsers = line_added
 
         if not line_added_by_parsers:
-            self.empty_pull_requests.append(change_note)
+            self.empty_change_notes.append(change_note)
 
     def render(self):
         """ Returns the rendered release notes from all parsers as a string """
@@ -148,9 +148,9 @@ class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator):
 
     def _render_empty_pr_section(self):
         section_lines = []
-        if self.empty_pull_requests:
+        if self.empty_change_notes:
             section_lines.append("\n# Pull requests with no release notes")
-            for content in self.empty_pull_requests:
+            for content in self.empty_change_notes:
                 section_lines.append(
                     "\n* {}".format(self._mark_down_link_to_pr(content))
                 )
