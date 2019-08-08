@@ -124,7 +124,9 @@ class TestGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTestMixin):
 
     @responses.activate
     def test_mark_down_link_to_pr(self):
-        pr = mock.Mock(number=1, html_url="http://pr", body="# Changes\r\n\r\nfoo")
+        pr = mock.Mock(
+            number=1, html_url="http://pr", body="# Changes\r\n\r\nfoo", title="Title 1"
+        )
         github_info = self.github_info.copy()
         self.mock_util.mock_get_repo()
         generator = GithubReleaseNotesGenerator(
@@ -133,6 +135,38 @@ class TestGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTestMixin):
         actual_link = generator._mark_down_link_to_pr(pr)
         expected_link = "{} [[PR{}]({})]".format(pr.title, pr.number, pr.html_url)
         self.assertEquals(expected_link, actual_link)
+
+    @responses.activate
+    def test_render_empty_pr_section(self):
+        pr1 = mock.Mock(
+            number=1,
+            html_url="http://pr1",
+            body="# Changes\r\n\r\nfoo",
+            title="Title 1",
+        )
+        pr2 = mock.Mock(
+            number=2,
+            html_url="http://pr2",
+            body="# Changes\r\n\r\nbar",
+            title="Title 2",
+        )
+        github_info = self.github_info.copy()
+        self.mock_util.mock_get_repo()
+        generator = GithubReleaseNotesGenerator(
+            self.gh, github_info, PARSER_CONFIG, self.current_tag, self.last_tag
+        )
+        generator.empty_change_notes.extend([pr1, pr2])
+        content = generator._render_empty_pr_section()
+        self.assertEquals(3, len(content))
+        self.assertEquals("\n# Pull requests with no release notes", content[0])
+        self.assertEquals(
+            "\n* {} [[PR{}]({})]".format(pr1.title, pr1.number, pr1.html_url),
+            content[1],
+        )
+        self.assertEquals(
+            "\n* {} [[PR{}]({})]".format(pr2.title, pr2.number, pr2.html_url),
+            content[2],
+        )
 
 
 class TestPublishingGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTestMixin):
