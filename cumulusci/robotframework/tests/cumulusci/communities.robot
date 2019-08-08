@@ -5,7 +5,7 @@ Library   Collections
 Suite Setup  run keywords
      # Note: the first community name intentionally includes a unicode
      # character to make sure we can handle it.
-...  Insure community exists       Kōkua   kokua
+...  Ensure community exists       Kōkua   kokua
 ...  AND  Insure community exists  Ohana   ohana
 
 *** Keywords ***
