@@ -83,7 +83,7 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
                 raise BulkDataException(
                     "Job {} did not complete successfully".format(name)
                 )
-            if self.after_steps[name]:
+            if name in self.after_steps:
                 for after_name, after_step in self.after_steps[name].items():
                     self.logger.info("Running post-load step: {}".format(after_name))
                     result = self._load_mapping(after_step)
@@ -99,14 +99,14 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
         job_id, local_ids_for_batch = self._create_job(mapping)
         result = self._wait_for_job(job_id)
 
-        if mapping.get("action", "insert") == "insert":
+        if mapping["action"] == "insert":
             self._store_inserted_ids(mapping, job_id, local_ids_for_batch)
 
         return result
 
     def _create_job(self, mapping):
         """Initiate a bulk insert or update and upload batches to run in parallel."""
-        action = mapping.get("action", "insert")
+        action = mapping["action"]
 
         if action == "insert":
             job_id = self.bulk.create_insert_job(
@@ -131,7 +131,7 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
 
     def _get_batches(self, mapping, batch_size=10000):
         """Get data from the local db"""
-        action = mapping.get("action", "insert")
+        action = mapping["action"]
         fields = mapping.get("fields", {}).copy()
         static = mapping.get("static", {})
         lookups = mapping.get("lookups", {})
@@ -288,9 +288,27 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
                     self.logger.info(
                         "  Downloaded results for batch {}".format(batch_id)
                     )
-                    self._store_inserted_ids_for_batch(
-                        f, local_ids, id_table_name, conn
-                    )
+                    if mapping["action"] == "insert":
+                        self._store_inserted_ids_for_batch(
+                            f, local_ids, id_table_name, conn
+                        )
+                    else:
+                        # Just check to ensure updates succeeded.
+                        reader = unicodecsv.reader(f)
+                        next(reader)  # skip header
+                        i = 0
+                        for row, local_id in zip(reader, local_ids):
+                            if row[1] != "true":  # Update failed
+                                if self.options["ignore_row_errors"]:
+                                    self.logger.warning(
+                                        "      Error on row {}: {}".format(i, row[3])
+                                    )
+                                else:
+                                    raise BulkDataException(
+                                        "Error on row {}: {}".format(i, row[3])
+                                    )
+                            i += 1
+
                 self.logger.info(
                     "  Updated {} for batch {}".format(id_table_name, batch_id)
                 )
@@ -394,6 +412,7 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
         self.after_steps = defaultdict(lambda: OrderedDict())
 
         for step in self.mapping.values():
+            step["action"] = step.get("action", "insert")
             if "lookups" in step and any(
                 ["after" in l for l in step["lookups"].values()]
             ):

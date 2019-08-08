@@ -285,6 +285,7 @@ class TestLoadDataWithSFIds(unittest.TestCase):
         task.mapping = OrderedDict()
         task.mapping["Insert Households"] = 1
         task.mapping["Insert Contacts"] = 2
+        task.after_steps = {}
         task._load_mapping = mock.Mock(return_value="Completed")
         task()
         task._load_mapping.assert_called_once_with(2)
@@ -299,7 +300,7 @@ class TestLoadDataWithSFIds(unittest.TestCase):
         query = mock.Mock()
         query.yield_per.return_value = [[1, 1], [2, 2]]
         task._query_db = mock.Mock(return_value=query)
-        mapping = {"sf_object": "Contact"}
+        mapping = {"sf_object": "Contact", "action": "insert"}
         result = list(task._get_batches(mapping, 1))
         self.assertEqual(2, len(result))
 
@@ -403,7 +404,9 @@ class TestLoadDataWithSFIds(unittest.TestCase):
         task._reset_id_table = mock.Mock(return_value="Account")
 
         with self.assertRaises(BulkDataException) as ex:
-            task._store_inserted_ids({"table": "Account"}, "1", {"2": ["3"]})
+            task._store_inserted_ids(
+                {"table": "Account", "action": "insert"}, "1", {"2": ["3"]}
+            )
 
         self.assertIn("Error on row", str(ex.exception))
 
@@ -866,18 +869,6 @@ class TestMappingGenerator(unittest.TestCase):
             t._is_field_mappable(
                 "Contact",
                 {
-                    "name": "ReportsToId",
-                    "type": "reference",
-                    "label": "Reports To",
-                    "createable": True,
-                    "referenceTo": ["Contact"],
-                },
-            )
-        )
-        self.assertFalse(
-            t._is_field_mappable(
-                "Contact",
-                {
                     "name": "OwnerId",
                     "type": "reference",
                     "label": "Owner",
@@ -1282,10 +1273,14 @@ class TestMappingGenerator(unittest.TestCase):
 
         self.assertEqual(["Account", "Contact", "Opportunity", "Custom__c"], stack)
 
-    def test_split_dependencies__with_cycles(self):
+    @mock.patch("click.prompt")
+    def test_split_dependencies__interviews_for_cycles(self, prompt):
         t = _make_task(bulkdata.GenerateMapping, {"options": {"path": "t"}})
 
-        with self.assertRaises(BulkDataException):
+        prompt.return_value = "Account"
+
+        self.assertEqual(
+            ["Custom__c", "Account", "Contact", "Opportunity"],
             t._split_dependencies(
                 set(["Account", "Contact", "Opportunity", "Custom__c"]),
                 {
@@ -1296,4 +1291,5 @@ class TestMappingGenerator(unittest.TestCase):
                         "Contact": set(["Primary_Contact__c"]),
                     },
                 },
-            )
+            ),
+        )
