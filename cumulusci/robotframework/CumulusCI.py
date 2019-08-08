@@ -131,7 +131,8 @@ class CumulusCI(object):
         - If a key is given, only the value for that key will be returned.
 
         Some of the supported keys include name, siteUrl, and
-        loginUrl. For a comprehensive list see the API documentation,
+        loginUrl. For a comprehensive list see the
+        [https://developer.salesforce.com/docs/atlas.en-us.chatterapi.meta/chatterapi/connect_responses_community.htm|API documentation],
         or call this keyword without the key argument and examine the
         results.
 
