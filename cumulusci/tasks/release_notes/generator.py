@@ -159,7 +159,7 @@ class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator):
 
     def _mark_down_link_to_pr(self, pull_request):
         if pull_request:
-            return " [[PR{}]({})]".format(pull_request.number, pull_request.html_url)
+            return "[[PR{}]({})]".format(pull_request.number, pull_request.html_url)
 
     def _update_release_content(self, release, content):
         """Merge existing and new release content."""
