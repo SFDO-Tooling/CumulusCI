@@ -45,7 +45,7 @@ def get_github_api_for_repo(keychain, owner, repo):
     if APP_ID and APP_KEY:
         installation = INSTALLATIONS.get((owner, repo))
         if installation is None:
-            gh.login_as_app(APP_KEY, APP_ID)
+            gh.login_as_app(APP_KEY, APP_ID, expire_in=120)
             try:
                 installation = gh.app_installation_for_repository(owner, repo)
             except github3.exceptions.NotFoundError:
