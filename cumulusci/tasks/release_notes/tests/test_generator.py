@@ -183,6 +183,12 @@ class TestGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTestMixin):
             split_content[3],
         )
 
+    def _create_generator(self):
+        generator = GithubReleaseNotesGenerator(
+            self.gh, self.github_info.copy(), PARSER_CONFIG, self.current_tag
+        )
+        return generator
+
 class TestPublishingGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTestMixin):
     def setUp(self):
         self.init_github()
