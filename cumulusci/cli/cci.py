@@ -632,11 +632,11 @@ def service_list(config, plain, print_json):
 
     data = [["Name", "Description", "Configured"]]
     for serv, schema in services.items():
-        is_configured = serv in configured_services
-        data.append([serv, schema["description"], is_configured])
+        schema["configured"] = serv in configured_services
+        data.append([serv, schema["description"], schema["configured"]])
 
     if print_json:
-        click.echo(json.dumps(data[1:]))
+        click.echo(json.dumps(services))
         return None
 
     rows_to_dim = [row_index for row_index, row in enumerate(data) if not row[2]]
@@ -1094,17 +1094,18 @@ def org_shell(config, org_name):
 @pass_config(load_keychain=False)
 def task_list(config, plain, print_json):
     task_groups = OrderedDict()
+    tasks = config.project_config.list_tasks()
     plain = plain or config.global_config.cli__plain_output
 
-    for task in config.project_config.list_tasks():
+    if print_json:
+        click.echo(json.dumps(tasks))
+        return None
+
+    for task in tasks:
         group = task["group"] or "Other"
         if group not in task_groups:
             task_groups[group] = []
         task_groups[group].append([task["name"], task["description"]])
-
-    if print_json:
-        click.echo(json.dumps(task_groups))
-        return None
 
     for group, tasks in task_groups.items():
         data = [["Task", "Description"]]
@@ -1247,17 +1248,14 @@ def task_run(config, task_name, org, o, debug, debug_before, debug_after, no_pro
 @pass_config(load_keychain=False)
 def flow_list(config, plain, print_json):
     plain = plain or config.global_config.cli__plain_output
+    flows = config.project_config.list_flows()
+
     if print_json:
-        click.echo(json.dumps(config.project_config.list_flows()))
+        click.echo(json.dumps(flows))
         return None
 
     data = [["Name", "Description"]]
-    data.extend(
-        [
-            [flow["name"], flow["description"]]
-            for flow in config.project_config.list_flows()
-        ]
-    )
+    data.extend([flow["name"], flow["description"]] for flow in flows)
 
     table = CliTable(data, title="Flows", wrap_cols=["Description"])
     table.echo(plain=plain)
