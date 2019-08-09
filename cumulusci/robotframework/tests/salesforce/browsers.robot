@@ -78,16 +78,16 @@ Explicit browser size
     Open test browser           size=1400x1200
     Assert window size  1400  1200
 
-Open Test Browser calls Log Browser Config
+Open Test Browser calls Log Browser Capabilities
     [Documentation]
-    ...  Verify that driver capabilities are logged when we call
+    ...  Verify that browser capabilities are logged when we call
     ...  Open Test Browser
     [Teardown]  Close all browsers
 
     Reset robot log cache
     Set test variable  ${BROWSER}  headlesschrome
     Open test browser  alias=chrome
-    Assert robot log   selenium driver capabilities:  INFO
+    Assert robot log   selenium browser capabilities:  INFO
     Assert robot log   browserName.*chrome
 
     # Make sure we don't just log the capabilities of the
@@ -95,5 +95,5 @@ Open Test Browser calls Log Browser Config
     Reset robot log cache
     Set test variable  ${BROWSER}  headlessfirefox
     Open test browser  alias=firefox
-    Assert robot log   selenium driver capabilities:  INFO
+    Assert robot log   selenium browser capabilities:  INFO
     Assert robot log   browserName.*firefox
