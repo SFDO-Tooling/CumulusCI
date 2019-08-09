@@ -362,7 +362,7 @@ class TestCCI(unittest.TestCase):
             )
         )
         config.keychain.list_services.return_value = ["test"]
-        config.global_config.cli_options__plain_output = None
+        config.global_config.cli__plain_output = None
 
         run_click_command(
             cci.service_list, config=config, plain=False, print_json=False
@@ -475,7 +475,7 @@ class TestCCI(unittest.TestCase):
         service_config.config = {"description": "Test Service"}
         config = mock.Mock()
         config.keychain.get_service.return_value = service_config
-        config.global_config.cli_options__plain_output = None
+        config.global_config.cli__plain_output = None
 
         run_click_command(
             cci.service_info, config=config, service_name="test", plain=False
@@ -645,7 +645,7 @@ class TestCCI(unittest.TestCase):
     @mock.patch("cumulusci.cli.cci.CliTable")
     def test_org_list(self, cli_tbl):
         config = mock.Mock()
-        config.global_config.cli_options__plain_output = None
+        config.global_config.cli__plain_output = None
         config.project_config.keychain.list_orgs.return_value = ["test1", "test2"]
         config.project_config.keychain.get_org.side_effect = [
             OrgConfig(
@@ -831,7 +831,7 @@ class TestCCI(unittest.TestCase):
     @mock.patch("cumulusci.cli.cci.CliTable")
     def test_task_list(self, cli_tbl):
         config = mock.Mock()
-        config.global_config.cli_options__plain_output = None
+        config.global_config.cli__plain_output = None
         config.project_config.list_tasks.return_value = [
             {"name": "test_task", "description": "Test Task", "group": "Test Group"}
         ]
@@ -1045,7 +1045,7 @@ class TestCCI(unittest.TestCase):
         config.project_config.list_flows.return_value = [
             {"name": "test_flow", "description": "Test Flow"}
         ]
-        config.global_config.cli_options__plain_output = None
+        config.global_config.cli__plain_output = None
         run_click_command(cci.flow_list, config=config, plain=False, print_json=False)
 
         print(cli_tbl.call_args)

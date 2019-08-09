@@ -628,7 +628,7 @@ def service_list(config, plain, print_json):
         else config.global_config.services
     )
     configured_services = config.keychain.list_services()
-    plain = plain or config.global_config.cli_options__plain_output
+    plain = plain or config.global_config.cli__plain_output
 
     data = [["Name", "Description", "Configured"]]
     for serv, schema in services.items():
@@ -728,7 +728,7 @@ def service_connect():
 @pass_config(allow_global_keychain=True)
 def service_info(config, service_name, plain):
     try:
-        plain = plain or config.global_config.cli_options__plain_output
+        plain = plain or config.global_config.cli__plain_output
         service_config = config.keychain.get_service(service_name)
         service_data = [["Key", "Value"]]
         service_data.extend(
@@ -921,7 +921,7 @@ def org_info(config, org_name, print_json):
 @click.option("--plain", is_flag=True, help="Print the table using plain ascii.")
 @pass_config
 def org_list(config, plain):
-    plain = plain or config.global_config.cli_options__plain_output
+    plain = plain or config.global_config.cli__plain_output
     header = ["Name", "Default", "Username"]
     persistent_data = [header]
     scratch_data = [header[:2] + ["Days", "Expired", "Config"]]
@@ -1094,7 +1094,7 @@ def org_shell(config, org_name):
 @pass_config(load_keychain=False)
 def task_list(config, plain, print_json):
     task_groups = OrderedDict()
-    plain = plain or config.global_config.cli_options__plain_output
+    plain = plain or config.global_config.cli__plain_output
 
     for task in config.project_config.list_tasks():
         group = task["group"] or "Other"
@@ -1246,7 +1246,7 @@ def task_run(config, task_name, org, o, debug, debug_before, debug_after, no_pro
 @click.option("--json", "print_json", is_flag=True, help="Print a json string")
 @pass_config(load_keychain=False)
 def flow_list(config, plain, print_json):
-    plain = plain or config.global_config.cli_options__plain_output
+    plain = plain or config.global_config.cli__plain_output
     if print_json:
         click.echo(json.dumps(config.project_config.list_flows()))
         return None
