@@ -881,7 +881,6 @@ def org_info(config, org_name, print_json):
         )
     else:
         UI_KEYS = [
-            "access_token",
             "config_file",
             "config_name",
             "created",
