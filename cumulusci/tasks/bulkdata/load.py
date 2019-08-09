@@ -87,7 +87,6 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
                 for after_name, after_step in self.after_steps[name].items():
                     self.logger.info("Running post-load step: {}".format(after_name))
                     result = self._load_mapping(after_step)
-                    # FIXME: we need to pull the results and check for successes
                     if result != "Completed":
                         raise BulkDataException(
                             "Job {} did not complete successfully".format(after_name)
@@ -99,8 +98,7 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
         job_id, local_ids_for_batch = self._create_job(mapping)
         result = self._wait_for_job(job_id)
 
-        if mapping["action"] == "insert":
-            self._store_inserted_ids(mapping, job_id, local_ids_for_batch)
+        self._process_job_results(mapping, job_id, local_ids_for_batch)
 
         return result
 
@@ -131,57 +129,21 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
 
     def _get_batches(self, mapping, batch_size=10000):
         """Get data from the local db"""
-        action = mapping["action"]
-        fields = mapping.get("fields", {}).copy()
-        static = mapping.get("static", {})
-        lookups = mapping.get("lookups", {})
-        record_type = mapping.get("record_type")
 
-        # Skip Id field on insert
-        if action == "insert" and "Id" in fields:
-            del fields["Id"]
-
-        # Build the list of fields to import
-        columns = []
-        columns.extend(fields.keys())
-        # Don't include lookups with an `after:` spec (dependent lookups)
-        columns.extend([f for f in lookups if "after" not in lookups[f]])
-        columns.extend(static.keys())
-
-        if record_type:
-            columns.append("RecordTypeId")
-            # default to the profile assigned recordtype if we can't find any
-            # query for the RT by developer name
-            query = (
-                "SELECT Id FROM RecordType WHERE SObjectType='{0}'"
-                "AND DeveloperName = '{1}' LIMIT 1"
-            )
-            record_type_id = self.sf.query(
-                query.format(mapping.get("sf_object"), record_type)
-            )["records"][0]["Id"]
-
+        columns = self._get_columns(mapping)
+        statics = self._get_statics(mapping)
         query = self._query_db(mapping)
 
         total_rows = 0
         batch_num = 1
 
-        def start_batch():
-            batch_file = io.BytesIO()
-            writer = unicodecsv.writer(batch_file)
-            writer.writerow(columns)
-            batch_ids = []
-            return batch_file, writer, batch_ids
-
-        batch_file, writer, batch_ids = start_batch()
+        batch_file, writer, batch_ids = self._start_batch(columns)
         for row in query.yield_per(batch_size):
             total_rows += 1
 
             # Add static values to row
             pkey = row[0]
-            row = list(row[1:]) + list(static.values())
-            if record_type:
-                row.append(record_type_id)
-
+            row = list(row[1:]) + statics
             row = [self._convert(value) for value in row]
             if all([f is None for f in row]):
                 # Skip rows that contain no values
@@ -195,7 +157,7 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
                 batch_file.seek(0)
                 self.logger.info("    Processing batch {}".format(batch_num))
                 yield batch_file, batch_ids
-                batch_file, writer, batch_ids = start_batch()
+                batch_file, writer, batch_ids = self._start_batch(columns)
                 batch_num += 1
 
         # Yield result file for final batch
@@ -208,6 +170,44 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
                 total_rows, mapping["sf_object"]
             )
         )
+
+    def _get_columns(self, mapping):
+        lookups = mapping.get("lookups", {})
+
+        # Build the list of fields to import
+        columns = []
+        columns.extend(mapping.get("fields", {}).keys())
+        # Don't include lookups with an `after:` spec (dependent lookups)
+        columns.extend([f for f in lookups if "after" not in lookups[f]])
+        columns.extend(mapping.get("static", {}).keys())
+
+        if mapping["action"] == "insert" and "Id" in columns:
+            columns.remove("Id")
+        if mapping.get("record_type"):
+            columns.append("RecordTypeId")
+
+        return columns
+
+    def _get_statics(self, mapping):
+        statics = list(mapping.get("static", {}).values())
+        if mapping.get("record_type"):
+            query = (
+                "SELECT Id FROM RecordType WHERE SObjectType='{0}'"
+                "AND DeveloperName = '{1}' LIMIT 1"
+            )
+            record_type_id = self.sf.query(
+                query.format(mapping.get("sf_object"), mapping["record_type"])
+            )["records"][0]["Id"]
+            statics.append(record_type_id)
+
+        return statics
+
+    def _start_batch(self, columns):
+        batch_file = io.BytesIO()
+        writer = unicodecsv.writer(batch_file)
+        writer.writerow(columns)
+        batch_ids = []
+        return batch_file, writer, batch_ids
 
     def _query_db(self, mapping):
         """Build a query to retrieve data from the local db.
@@ -273,10 +273,13 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
                 return value.isoformat()
             return value
 
-    def _store_inserted_ids(self, mapping, job_id, local_ids_for_batch):
-        """Get the job results and store inserted SF Ids in a new table"""
-        id_table_name = self._reset_id_table(mapping)
-        conn = self.session.connection()
+    def _process_job_results(self, mapping, job_id, local_ids_for_batch):
+        """Get the job results and process the results. If we're raising for
+        row-level errors, do so; if we're inserting, store the new Ids."""
+        if mapping["action"] == "insert":
+            id_table_name = self._reset_id_table(mapping)
+            conn = self.session.connection()
+
         for batch_id, local_ids in local_ids_for_batch.items():
             try:
                 results_url = "{}/job/{}/batch/{}/result".format(
@@ -288,30 +291,21 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
                     self.logger.info(
                         "  Downloaded results for batch {}".format(batch_id)
                     )
+                    results_generator = self._generate_results_id_map(f, local_ids)
                     if mapping["action"] == "insert":
-                        self._store_inserted_ids_for_batch(
-                            f, local_ids, id_table_name, conn
+                        self._sql_bulk_insert_from_csv(
+                            conn,
+                            id_table_name,
+                            ("id", "sf_id"),
+                            IteratorBytesIO(results_generator),
+                        )
+                        self.logger.info(
+                            "  Updated {} for batch {}".format(id_table_name, batch_id)
                         )
                     else:
-                        # Just check to ensure updates succeeded.
-                        reader = unicodecsv.reader(f)
-                        next(reader)  # skip header
-                        i = 0
-                        for row, local_id in zip(reader, local_ids):
-                            if row[1] != "true":  # Update failed
-                                if self.options["ignore_row_errors"]:
-                                    self.logger.warning(
-                                        "      Error on row {}: {}".format(i, row[3])
-                                    )
-                                else:
-                                    raise BulkDataException(
-                                        "Error on row {}: {}".format(i, row[3])
-                                    )
-                            i += 1
+                        for r in results_generator:
+                            pass  # Drain generator to validate results
 
-                self.logger.info(
-                    "  Updated {} for batch {}".format(id_table_name, batch_id)
-                )
             except BulkDataException:
                 raise
             except Exception as e:
@@ -321,7 +315,24 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
                     )
                 )
 
-        self.session.commit()
+        if mapping["action"] == "insert":
+            self.session.commit()
+
+    def _generate_results_id_map(self, result_file, local_ids):
+        """Iterate over job results and prepare rows for id table"""
+        reader = unicodecsv.reader(result_file)
+        next(reader)  # skip header
+        i = 0
+        for row, local_id in zip(reader, local_ids):
+            if row[1] == "true":  # Success
+                sf_id = row[0]
+                yield "{},{}\n".format(local_id, sf_id).encode("utf-8")
+            else:
+                if self.options["ignore_row_errors"]:
+                    self.logger.warning("      Error on row {}: {}".format(i, row[3]))
+                else:
+                    raise BulkDataException("Error on row {}: {}".format(i, row[3]))
+            i += 1
 
     def _reset_id_table(self, mapping):
         """Create an empty table to hold the inserted SF Ids"""
@@ -342,33 +353,6 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
             id_table.create()
             self._initialized_id_tables.add(id_table_name)
         return id_table_name
-
-    def _store_inserted_ids_for_batch(
-        self, result_file, local_ids, id_table_name, conn
-    ):
-        # Set up a function to generate rows based on this result file
-        def produce_csv():
-            """Iterate over job results and prepare rows for id table"""
-            reader = unicodecsv.reader(result_file)
-            next(reader)  # skip header
-            i = 0
-            for row, local_id in zip(reader, local_ids):
-                if row[1] == "true":  # Success
-                    sf_id = row[0]
-                    yield "{},{}\n".format(local_id, sf_id).encode("utf-8")
-                else:
-                    if self.options["ignore_row_errors"]:
-                        self.logger.warning(
-                            "      Error on row {}: {}".format(i, row[3])
-                        )
-                    else:
-                        raise BulkDataException("Error on row {}: {}".format(i, row[3]))
-                i += 1
-
-        # Bulk insert rows into id table
-        columns = ("id", "sf_id")
-        data_file = IteratorBytesIO(produce_csv())
-        self._sql_bulk_insert_from_csv(conn, id_table_name, columns, data_file)
 
     def _sqlite_load(self):
         conn = self.session.connection()
@@ -440,7 +424,9 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
                     }
                     mapping["lookups"]["Id"] = {
                         "table": step["table"],
-                        "key_field": step["fields"]["Id"],
+                        "key_field": step["fields"][
+                            "Id"
+                        ],  # FIXME: this bombs if there's no Id mapping
                     }
                     for l in lookups:
                         mapping["lookups"][l] = lookups[l].copy()

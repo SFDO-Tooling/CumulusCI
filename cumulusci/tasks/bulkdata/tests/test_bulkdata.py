@@ -3,6 +3,7 @@ import io
 import json
 import os
 import shutil
+import unicodecsv
 import unittest
 from collections import OrderedDict
 
@@ -290,6 +291,96 @@ class TestLoadDataWithSFIds(unittest.TestCase):
         task()
         task._load_mapping.assert_called_once_with(2)
 
+    def test_run_task__after_steps(self):
+        base_path = os.path.dirname(__file__)
+        mapping_path = os.path.join(base_path, self.mapping_file)
+        task = _make_task(
+            bulkdata.LoadData,
+            {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
+        )
+        task._init_db = mock.Mock()
+        task._init_mapping = mock.Mock()
+        task.mapping = OrderedDict()
+        task.mapping["Insert Households"] = 1
+        task.mapping["Insert Contacts"] = 2
+        task.after_steps = {
+            "Insert Contacts": OrderedDict(three=3),
+            "Insert Households": OrderedDict(four=4, five=5),
+        }
+        task._load_mapping = mock.Mock(return_value="Completed")
+        task()
+        task._load_mapping.assert_has_calls(
+            [mock.call(1), mock.call(4), mock.call(5), mock.call(2), mock.call(3)]
+        )
+
+    def test_init_mapping_creates_after_steps(self):
+        base_path = os.path.dirname(__file__)
+        mapping_path = os.path.join(base_path, "mapping_after.yml")
+        task = _make_task(
+            bulkdata.LoadData,
+            {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
+        )
+
+        task._init_mapping()
+
+        self.assertEqual({}, task.after_steps["Insert Opportunities"])
+        self.assertEqual(
+            [
+                "Update Account Dependencies After Insert Contacts",
+                "Update Contact Dependencies After Insert Contacts",
+            ],
+            list(task.after_steps["Insert Contacts"].keys()),
+        )
+        self.assertEqual(
+            {
+                "sf_object": "Account",
+                "action": "update",
+                "table": "accounts",
+                "lookups": OrderedDict(
+                    Id={"table": "accounts", "key_field": "sf_id"},
+                    Primary_Contact__c=OrderedDict({"table": "contacts"}),
+                ),
+                "fields": {},
+            },
+            task.after_steps["Insert Contacts"][
+                "Update Account Dependencies After Insert Contacts"
+            ],
+        )
+        self.assertEqual(
+            {
+                "sf_object": "Contact",
+                "action": "update",
+                "table": "contacts",
+                "fields": {},
+                "lookups": OrderedDict(
+                    Id={"table": "contacts", "key_field": "sf_id"},
+                    ReportsToId=OrderedDict({"table": "contacts"}),
+                ),
+            },
+            task.after_steps["Insert Contacts"][
+                "Update Contact Dependencies After Insert Contacts"
+            ],
+        )
+        self.assertEqual(
+            ["Update Account Dependencies After Insert Accounts"],
+            list(task.after_steps["Insert Accounts"].keys()),
+        )
+        self.assertEqual(
+            {
+                "sf_object": "Account",
+                "action": "update",
+                "table": "accounts",
+                "fields": {},
+                "lookups": OrderedDict(
+                    Id={"table": "accounts", "key_field": "sf_id"},
+                    ParentId=OrderedDict({"table": "accounts"}),
+                ),
+            },
+            task.after_steps["Insert Accounts"][
+                "Update Account Dependencies After Insert Accounts"
+            ],
+        )
+
     def test_get_batches__multiple(self):
         base_path = os.path.dirname(__file__)
         mapping_path = os.path.join(base_path, self.mapping_file)
@@ -303,6 +394,133 @@ class TestLoadDataWithSFIds(unittest.TestCase):
         mapping = {"sf_object": "Contact", "action": "insert"}
         result = list(task._get_batches(mapping, 1))
         self.assertEqual(2, len(result))
+
+    def test_get_batches__columns(self):
+        task = _make_task(
+            bulkdata.LoadData,
+            {"options": {"database_url": "sqlite://", "mapping": "test.yml"}},
+        )
+        task.sf = mock.Mock()
+        task.sf.query.return_value = {"records": [{"Id": "012000000000000"}]}
+
+        mapping = OrderedDict(
+            sf_object="Account",
+            action="insert",
+            fields=OrderedDict(Id="sf_id", Name="Name"),
+            static=OrderedDict(Industry="Technology"),
+            record_type="Organization",
+        )
+
+        writer = mock.Mock()
+        batch_ids = mock.Mock()
+        batch_file = mock.Mock()
+
+        task._query_db = mock.Mock()
+        task._query_db.return_value.yield_per = mock.Mock(
+            return_value=[["001000000001", "TestCo"]]
+        )
+        task._start_batch = mock.Mock(return_value=(batch_file, writer, batch_ids))
+        batches = list(task._get_batches(mapping))
+
+        self.assertEqual(1, len(batches))
+        self.assertEqual((batch_file, batch_ids), batches[0])
+
+        writer.writerow.assert_has_calls(
+            [mock.call(["TestCo", "Technology", "012000000000000"])]
+        )
+        batch_ids.append.assert_called_once_with("001000000001")
+
+    def test_get_batches__skips_empty_rows(self):
+        task = _make_task(
+            bulkdata.LoadData,
+            {"options": {"database_url": "sqlite://", "mapping": "test.yml"}},
+        )
+        task.sf = mock.Mock()
+
+        mapping = OrderedDict(
+            sf_object="Account",
+            action="update",
+            fields=OrderedDict(),
+            lookups=OrderedDict(
+                ParentId=OrderedDict(table="accounts", key_field="sf_id")
+            ),
+        )
+
+        writer = mock.Mock()
+        batch_ids = []
+        batch_file = mock.Mock()
+
+        task._query_db = mock.Mock()
+        task._query_db.return_value.yield_per = mock.Mock(
+            return_value=[["001000000001", None]]
+        )
+        task._start_batch = mock.Mock(return_value=(batch_file, writer, batch_ids))
+        batches = list(task._get_batches(mapping))
+        self.assertEqual(0, len(batches))
+
+    def test_get_columns(self):
+        task = _make_task(
+            bulkdata.LoadData,
+            {"options": {"database_url": "sqlite://", "mapping": "test.yml"}},
+        )
+
+        self.assertEqual(
+            ["Name", "Industry", "RecordTypeId"],
+            task._get_columns(
+                OrderedDict(
+                    sf_object="Account",
+                    action="insert",
+                    fields=OrderedDict(Id="sf_id", Name="Name"),
+                    static=OrderedDict(Industry="Technology"),
+                    record_type="Organization",
+                )
+            ),
+        )
+        self.assertEqual(
+            ["Id", "Name", "Industry", "RecordTypeId"],
+            task._get_columns(
+                OrderedDict(
+                    sf_object="Account",
+                    action="update",
+                    fields=OrderedDict(Id="sf_id", Name="Name"),
+                    static=OrderedDict(Industry="Technology"),
+                    record_type="Organization",
+                )
+            ),
+        )
+
+    def test_get_statics(self):
+        task = _make_task(
+            bulkdata.LoadData,
+            {"options": {"database_url": "sqlite://", "mapping": "test.yml"}},
+        )
+        task.sf = mock.Mock()
+        task.sf.query.return_value = {"records": [{"Id": "012000000000000"}]}
+
+        self.assertEqual(
+            ["Technology", "012000000000000"],
+            task._get_statics(
+                OrderedDict(
+                    sf_object="Account",
+                    action="insert",
+                    fields=OrderedDict(Id="sf_id", Name="Name"),
+                    static=OrderedDict(Industry="Technology"),
+                    record_type="Organization",
+                )
+            ),
+        )
+
+    def test_start_batch(self):
+        task = _make_task(
+            bulkdata.LoadData,
+            {"options": {"database_url": "sqlite://", "mapping": "test.yml"}},
+        )
+
+        batch_file, writer, batch_ids = task._start_batch(["Test"])
+        self.assertIsInstance(writer, unicodecsv.writer)
+
+    def test_query_db__joins_self_lookups(self):
+        pass  # FIXME
 
     def test_convert(self):
         base_path = os.path.dirname(__file__)
@@ -349,7 +567,75 @@ class TestLoadDataWithSFIds(unittest.TestCase):
             task()
 
     @responses.activate
-    def test_store_inserted_ids__exception_failure(self):
+    def test_process_job_results__insert_success(self):
+        base_path = os.path.dirname(__file__)
+        mapping_path = os.path.join(base_path, self.mapping_file)
+        task = _make_task(
+            bulkdata.LoadData,
+            {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
+        )
+
+        api = mock.Mock()
+        api.endpoint = "http://api"
+        api.headers.return_value = {}
+        task.bulk = api
+
+        result_data = b"Id,Success,Created,Error\n001111111111111,true,true,"
+
+        responses.add(
+            method="GET",
+            url="http://api/job/1/batch/2/result",
+            body=result_data,
+            status=200,
+        )
+        task.session = mock.Mock()
+        task._reset_id_table = mock.Mock()
+        task._sql_bulk_insert_from_csv = mock.Mock()
+
+        mapping = {"table": "Account", "action": "insert"}
+        task._process_job_results(mapping, "1", {"2": ["001111111111112"]})
+
+        task.session.connection.assert_called_once()
+        task._reset_id_table.assert_called_once_with(mapping)
+        task._sql_bulk_insert_from_csv.assert_called_once()
+        task.session.commit.assert_called_once()
+
+    @responses.activate
+    def test_process_job_results__update_success(self):
+        base_path = os.path.dirname(__file__)
+        mapping_path = os.path.join(base_path, self.mapping_file)
+        task = _make_task(
+            bulkdata.LoadData,
+            {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
+        )
+
+        api = mock.Mock()
+        api.endpoint = "http://api"
+        api.headers.return_value = {}
+        task.bulk = api
+
+        result_data = b"Id,Success,Created,Error\n001111111111111,true,false,"
+
+        responses.add(
+            method="GET",
+            url="http://api/job/1/batch/2/result",
+            body=result_data,
+            status=200,
+        )
+        task.session = mock.Mock()
+        task._reset_id_table = mock.Mock()
+        task._sql_bulk_insert_from_csv = mock.Mock()
+
+        mapping = {"table": "Account", "action": "update"}
+        task._process_job_results(mapping, "1", {"2": ["001111111111112"]})
+
+        task.session.connection.assert_not_called()
+        task._reset_id_table.assert_not_called()
+        task._sql_bulk_insert_from_csv.assert_not_called()
+        task.session.commit.assert_not_called()
+
+    @responses.activate
+    def test_process_job_results__exception_failure(self):
         base_path = os.path.dirname(__file__)
         mapping_path = os.path.join(base_path, self.mapping_file)
         task = _make_task(
@@ -372,12 +658,14 @@ class TestLoadDataWithSFIds(unittest.TestCase):
         task._reset_id_table = mock.Mock()
 
         with self.assertRaises(BulkDataException) as ex:
-            task._store_inserted_ids({"table": "Account"}, "1", {"2": []})
+            task._process_job_results(
+                {"table": "Account", "action": "insert"}, "1", {"2": []}
+            )
 
         self.assertIn("Failed to download results", str(ex.exception))
 
     @responses.activate
-    def test_store_inserted_ids__underlying_exception_failure(self):
+    def test_process_job_results__underlying_exception_failure(self):
         result_data = (
             b"Id,Success,Created,Error\n001111111111111,false,false,DUPLICATES_DETECTED"
         )
@@ -404,13 +692,42 @@ class TestLoadDataWithSFIds(unittest.TestCase):
         task._reset_id_table = mock.Mock(return_value="Account")
 
         with self.assertRaises(BulkDataException) as ex:
-            task._store_inserted_ids(
+            task._process_job_results(
                 {"table": "Account", "action": "insert"}, "1", {"2": ["3"]}
             )
 
         self.assertIn("Error on row", str(ex.exception))
 
-    def test_store_inserted_ids_for_batch__exception_failure(self):
+    def test_generate_results_id_map__success(self):
+        result_data = io.BytesIO(
+            b"Id,Success,Created,Error\n"
+            b"001111111111111,true,true,\n"
+            b"001111111111112,true,true,"
+        )
+
+        base_path = os.path.dirname(__file__)
+        mapping_path = os.path.join(base_path, self.mapping_file)
+        task = _make_task(
+            bulkdata.LoadData,
+            {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
+        )
+
+        task.metadata = mock.Mock()
+        task.metadata.tables = {"table": "test"}
+
+        generator = task._generate_results_id_map(
+            result_data, ["001000000000000", "001000000000001"]
+        )
+
+        self.assertEqual(
+            [
+                b"001000000000000,001111111111111\n",
+                b"001000000000001,001111111111112\n",
+            ],
+            list(generator),
+        )
+
+    def test_generate_results_id_map__exception_failure(self):
         result_data = io.BytesIO(
             b"Id,Success,Created,Error\n001111111111111,false,false,DUPLICATES_DETECTED"
         )
@@ -426,13 +743,11 @@ class TestLoadDataWithSFIds(unittest.TestCase):
         task.metadata.tables = {"table": "test"}
 
         with self.assertRaises(BulkDataException) as ex:
-            task._store_inserted_ids_for_batch(
-                result_data, ["001111111111111"], "table", mock.Mock()
-            )
+            list(task._generate_results_id_map(result_data, ["001111111111111"]))
 
         self.assertIn("Error on row", str(ex.exception))
 
-    def test_store_inserted_ids_for_batch__respects_silent_error_flag(self):
+    def test_generate_results_id_map__respects_silent_error_flag(self):
         result_data = io.BytesIO(
             b"Id,Success,Created,Error\n001111111111111,false,false,DUPLICATES_DETECTED"
         )
@@ -456,9 +771,7 @@ class TestLoadDataWithSFIds(unittest.TestCase):
 
         # This is identical to the test above save the option set to ignore_row_errors
         # We should get no exception.
-        task._store_inserted_ids_for_batch(
-            result_data, ["001111111111111"], "table", mock.Mock()
-        )
+        list(task._generate_results_id_map(result_data, ["001111111111111"]))
 
     def test_wait_for_job__logs_state_messages(self):
         base_path = os.path.dirname(__file__)
