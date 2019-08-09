@@ -9,7 +9,7 @@ Suite Setup  run keywords
 ...  AND  Insure community exists  Ohana   ohana
 
 *** Keywords ***
-Insure community exists
+Ensure community exists
     [Arguments]      ${community name}  ${url prefix}
     [Documentation]  Creates a community with the given name if it doesn't exist
 
