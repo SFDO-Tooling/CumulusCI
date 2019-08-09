@@ -6,7 +6,7 @@ Suite Setup  run keywords
      # Note: the first community name intentionally includes a unicode
      # character to make sure we can handle it.
 ...  Ensure community exists       Kōkua   kokua
-...  AND  Insure community exists  Ohana   ohana
+...  AND  Ensure community exists  Ohana   ohana
 
 *** Keywords ***
 Ensure community exists
