@@ -380,6 +380,24 @@ class TestCCI(unittest.TestCase):
             wrap_cols=["Description"],
         )
 
+    @mock.patch("json.dumps")
+    def test_service_list_json(self, json_):
+        services = OrderedDict(
+            (
+                ("bad", {"description": "Unconfigured Service"}),
+                ("test", {"description": "Test Service"}),
+            )
+        )
+        config = mock.Mock()
+        config.is_global_keychain = False
+        config.project_config.services = services
+        config.keychain.list_services.return_value = ["test"]
+        config.global_config.cli__plain_output = None
+
+        run_click_command(cci.service_list, config=config, plain=False, print_json=True)
+
+        json_.assert_called_with(services)
+
     def test_service_connect_list(self):
         multi_cmd = cci.ConnectServiceCommand()
         config = mock.Mock()
@@ -844,6 +862,21 @@ class TestCCI(unittest.TestCase):
             wrap_cols=["Description"],
         )
 
+    @mock.patch("json.dumps")
+    def test_task_list_json(self, json_):
+        task_dicts = {
+            "name": "test_task",
+            "description": "Test Task",
+            "group": "Test Group",
+        }
+        config = mock.Mock()
+        config.global_config.cli__plain_output = None
+        config.project_config.list_tasks.return_value = [task_dicts]
+
+        run_click_command(cci.task_list, config=config, plain=False, print_json=True)
+
+        json_.assert_called_with([task_dicts])
+
     @mock.patch("cumulusci.cli.cci.doc_task")
     def test_task_doc(self, doc_task):
         config = mock.Mock()
@@ -1048,12 +1081,22 @@ class TestCCI(unittest.TestCase):
         config.global_config.cli__plain_output = None
         run_click_command(cci.flow_list, config=config, plain=False, print_json=False)
 
-        print(cli_tbl.call_args)
         cli_tbl.assert_called_with(
             [["Name", "Description"], ["test_flow", "Test Flow"]],
             title="Flows",
             wrap_cols=["Description"],
         )
+
+    @mock.patch("json.dumps")
+    def test_flow_list_json(self, json_):
+        flows = [{"name": "test_flow", "description": "Test Flow"}]
+        config = mock.Mock()
+        config.project_config.list_flows.return_value = flows
+        config.global_config.cli__plain_output = None
+
+        run_click_command(cci.flow_list, config=config, plain=False, print_json=True)
+
+        json_.assert_called_with(flows)
 
     @mock.patch("click.echo")
     def test_flow_info(self, echo):
