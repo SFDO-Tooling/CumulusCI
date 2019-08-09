@@ -450,7 +450,7 @@ CumulusCI includes two tasks for working with Robot Framework tests and keyword 
 * **robot_lint**: Performs static analysis of robot files (files with
   .robot and .resource), flagging issues that may reduce the quality of the code.
 
-Additionally, the **robot_libdoc** task can be wired up to generate library documentation if you choose to create a library of robot keywords for your project using. For example, if you have defined a robot resource file named MyProject.resource and placed it in the **resources** folder, you would add the following added to the cumulusci.yml file:
+Additionally, the **robot_libdoc** task can be wired up to generate library documentation if you choose to create a library of robot keywords for your project. For example, if you have defined a robot resource file named MyProject.resource and placed it in the **resources** folder, you would add the following to the cumulusci.yml file:
 
 .. code-block:: yaml
 
