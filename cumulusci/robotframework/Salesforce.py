@@ -326,7 +326,7 @@ class Salesforce(object):
         )
         self.selenium.page_should_contain_element(locator)
 
-    def log_browser_capabilities(self, loglevel="INFO", alias=None):
+    def log_browser_capabilities(self, loglevel="INFO"):
         """Logs all of the browser capabilities as reported by selenium"""
         output = "selenium browser capabilities:\n"
         output += pformat(self.selenium.driver.capabilities, indent=4)
