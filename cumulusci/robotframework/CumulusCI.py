@@ -42,7 +42,6 @@ class CumulusCI(object):
         self._org = None
         self._sf = None
         self._tooling = None
-        self._community_info_cache = {}
 
         # Turn off info logging of all http requests
         logging.getLogger("requests.packages.urllib3.connectionpool").setLevel(
@@ -116,12 +115,6 @@ class CumulusCI(object):
             org = self.keychain.get_org(org)
         return org.start_url
 
-    def _refresh_community_info_cache(self):
-        response = self.sf.restful("connect/communities")
-        self._community_info_cache = {
-            community["name"]: community for community in response["communities"]
-        }
-
     def get_community_info(self, community_name, key=None, force_refresh=False):
         """This keyword uses the Salesforce API to get information about a community.
 
@@ -141,20 +134,15 @@ class CumulusCI(object):
         the API unless the requested community name is not in the cached
         results, or unless the force_refresh parameter is set to True.
         """
-        if force_refresh or community_name not in self._community_info_cache:
-            self._refresh_community_info_cache()
-
-        if community_name not in self._community_info_cache:
-            raise Exception(
-                "Unable to find community information for '{}'".format(community_name)
-            )
-
+        community_info = self.org.get_community_info(
+            community_name, force_refresh=force_refresh
+        )
         if key is None:
-            return self._community_info_cache[community_name]
+            return community_info
         else:
-            if key not in self._community_info_cache[community_name]:
+            if key not in community_info:
                 raise Exception("Invalid key '{}'".format(key))
-            return self._community_info_cache[community_name][key]
+            return community_info[key]
 
     def get_namespace_prefix(self, package=None):
         """ Returns the namespace prefix (including __) for the specified package name.
@@ -209,8 +197,8 @@ class CumulusCI(object):
         return self._run_task(task_class, task_config)
 
     def _init_api(self, base_url=None):
-        api_version = self.project_config.project__package__api_version
 
+        api_version = self.project_config.project__package__api_version
         rv = Salesforce(
             instance=self.org.instance_url.replace("https://", ""),
             session_id=self.org.access_token,
