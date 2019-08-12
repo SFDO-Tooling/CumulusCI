@@ -519,8 +519,48 @@ class TestLoadDataWithSFIds(unittest.TestCase):
         batch_file, writer, batch_ids = task._start_batch(["Test"])
         self.assertIsInstance(writer, unicodecsv.writer)
 
-    def test_query_db__joins_self_lookups(self):
-        pass  # FIXME
+    @mock.patch("cumulusci.tasks.bulkdata.load.aliased")
+    def test_query_db__joins_self_lookups(self, aliased):
+        task = _make_task(
+            bulkdata.LoadData,
+            {"options": {"database_url": "sqlite://", "mapping": "test.yml"}},
+        )
+        model = mock.Mock()
+        task.models = {"accounts": model}
+        task.metadata = mock.Mock()
+        task.metadata.tables = {"accounts_sf_ids": mock.Mock()}
+        task.session = mock.Mock()
+
+        model.__table__ = mock.Mock()
+        model.__table__.primary_key.columns.keys.return_value = ["sf_id"]
+        columns = {"sf_id": mock.Mock(), "name": mock.Mock()}
+        model.__table__.columns = columns
+
+        mapping = OrderedDict(
+            sf_object="Account",
+            table="accounts",
+            action="update",
+            oid_as_pk=True,
+            fields=OrderedDict(Id="sf_id", Name="name"),
+            lookups=OrderedDict(
+                ParentId=OrderedDict(table="accounts", key_field="sf_id")
+            ),
+        )
+
+        task._query_db(mapping)
+
+        # Validate that the column set is accurate
+        task.session.query.assert_called_once_with(
+            model.sf_id,
+            model.__table__.columns["name"],
+            aliased.return_value.columns.sf_id,
+        )
+
+        # Validate that we asked for an outer join on the self-lookup
+        aliased.assert_called_once_with(task.metadata.tables["accounts_sf_ids"])
+        task.session.query.return_value.outerjoin.assert_called_once_with(
+            aliased.return_value, False
+        )
 
     def test_convert(self):
         base_path = os.path.dirname(__file__)
