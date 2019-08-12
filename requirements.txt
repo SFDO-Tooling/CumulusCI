@@ -12,7 +12,7 @@ humanfriendly==4.18
 jinja2==2.10.1
 jwcrypto==0.6.0
 keyring==18.0.1  # pyup: <19
-lxml==4.4.0
+lxml==4.4.1
 MarkupSafe==1.1.1
 plaintable==0.1.1
 pycparser==2.19
