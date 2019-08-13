@@ -15,6 +15,7 @@ class OrgConfig(BaseConfig):
 
     def __init__(self, config, name):
         self.name = name
+        self._community_info_cache = {}
         super(OrgConfig, self).__init__(config)
 
     def refresh_oauth_token(self, keychain, connected_app=None):
@@ -105,3 +106,37 @@ class OrgConfig(BaseConfig):
     @property
     def organization_sobject(self):
         return self._org_sobject
+
+    def _fetch_community_info(self):
+        """Use the API to re-fetch information about communities"""
+        headers = {"Authorization": "Bearer " + self.access_token}
+        response = requests.get(
+            self.instance_url + "/services/data/v45.0/connect/communities",
+            headers=headers,
+        ).json()
+
+        # Since community names must be unique, we'll return a dictionary
+        # with the community names as keys
+        result = {community["name"]: community for community in response["communities"]}
+        return result
+
+    def get_community_info(self, community_name, force_refresh=False):
+        """Return the community information for the given community
+
+        An API call will be made the first time this function is used,
+        and the return values will be cached. Subsequent calls will
+        not call the API unless the requested community name is not in
+        the cached results, or unless the force_refresh parameter is
+        set to True.
+
+        """
+
+        if force_refresh or community_name not in self._community_info_cache:
+            self._community_info_cache = self._fetch_community_info()
+
+        if community_name not in self._community_info_cache:
+            raise Exception(
+                "Unable to find community information for '{}'".format(community_name)
+            )
+
+        return self._community_info_cache[community_name]
