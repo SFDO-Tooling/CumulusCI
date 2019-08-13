@@ -25,6 +25,9 @@ class GithubReleaseNotes(BaseGithubTask):
             )
         },
         "publish": {"description": "Publish to GitHub release if True (default=False)"},
+        "include_empty": {
+            "description": "If True, include links to PRs that have no release notes (default=False)"
+        },
     }
 
     def _run_task(self):
@@ -47,6 +50,7 @@ class GithubReleaseNotes(BaseGithubTask):
             process_bool_arg(self.options.get("link_pr", False)),
             process_bool_arg(self.options.get("publish", False)),
             self.get_repo().has_issues,
+            process_bool_arg(self.options.get("include_empty", False)),
         )
 
         release_notes = generator()
