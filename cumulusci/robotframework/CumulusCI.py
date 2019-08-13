@@ -42,6 +42,7 @@ class CumulusCI(object):
         self._org = None
         self._sf = None
         self._tooling = None
+
         # Turn off info logging of all http requests
         logging.getLogger("requests.packages.urllib3.connectionpool").setLevel(
             logging.WARN
@@ -114,6 +115,35 @@ class CumulusCI(object):
             org = self.keychain.get_org(org)
         return org.start_url
 
+    def get_community_info(self, community_name, key=None, force_refresh=False):
+        """This keyword uses the Salesforce API to get information about a community.
+
+        This keyword requires the exact community name as its first argumment.
+        - If no key is given, all of the information returned by the API will be
+          returned by this keyword in the form of a dictionary
+        - If a key is given, only the value for that key will be returned.
+
+        Some of the supported keys include name, siteUrl, and
+        loginUrl. For a comprehensive list see the
+        [https://developer.salesforce.com/docs/atlas.en-us.chatterapi.meta/chatterapi/connect_responses_community.htm|API documentation],
+        or call this keyword without the key argument and examine the
+        results.
+
+        An API call will be made the first time this keyword is used, and
+        the return values will be cached. Subsequent calls will not call
+        the API unless the requested community name is not in the cached
+        results, or unless the force_refresh parameter is set to True.
+        """
+        community_info = self.org.get_community_info(
+            community_name, force_refresh=force_refresh
+        )
+        if key is None:
+            return community_info
+        else:
+            if key not in community_info:
+                raise Exception("Invalid key '{}'".format(key))
+            return community_info[key]
+
     def get_namespace_prefix(self, package=None):
         """ Returns the namespace prefix (including __) for the specified package name.
         (Defaults to project__package__name_managed from the current project config.)
@@ -167,8 +197,8 @@ class CumulusCI(object):
         return self._run_task(task_class, task_config)
 
     def _init_api(self, base_url=None):
-        api_version = self.project_config.project__package__api_version
 
+        api_version = self.project_config.project__package__api_version
         rv = Salesforce(
             instance=self.org.instance_url.replace("https://", ""),
             session_id=self.org.access_token,
