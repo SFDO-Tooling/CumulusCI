@@ -50,19 +50,18 @@ class Cumulusci < Formula
 $(cat "$RES_FILE")
 
   def install
-    xy = Language::Python.major_minor_version "python3"
-    site_packages = libexec/"lib/python#{xy}/site-packages"
-    ENV.prepend_create_path "PYTHONPATH", site_packages
-
-    deps = resources.map(&:name).to_set
-    deps.each do |r|
-      resource(r).stage do
-        system "python3", *Language::Python.setup_install_args(libexec)
-      end
+    venv = virtualenv_create(libexec, "python3")
+    resource("entrypoints").stage do
+      # Without removing this file, `pip` will ignore the `setup.py` file and
+      # attempt to download the [`flit`](https://github.com/takluyver/flit)
+      # build system.
+      rm_f "pyproject.toml"
+      venv.pip_install Pathname.pwd
     end
-
-    bin.install Dir["#{libexec}/bin/cci"]
-    bin.env_script_all_files(libexec/"bin", :PYTHONPATH => ENV["PYTHONPATH"])
+    (resources.map(&:name).to_set - ["entrypoints"]).each do |r|
+      venv.pip_install resource(r)
+    end
+    venv.pip_install_and_link buildpath
   end
 
   test do

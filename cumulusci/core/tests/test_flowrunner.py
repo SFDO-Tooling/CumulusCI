@@ -147,7 +147,7 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
             + "\n    2) flow: nested_flow"
             + "\n        1) task: pass_name"
         )
-        self.assertEquals(expected_output, actual_output)
+        self.assertEqual(expected_output, actual_output)
 
     def test_init__options(self):
         """ A flow can accept task options and pass them to the task. """

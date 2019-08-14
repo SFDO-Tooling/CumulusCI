@@ -32,6 +32,8 @@ class ChangeNotesLinesParser(BaseChangeNotesParser):
         self.h2_title = None  # has value when in h2 section
 
     def parse(self, change_note):
+        """Returns True if a line was added to self._add_line was called, False otherwise"""
+        line_added = False
         change_note = self._process_change_note(change_note)
         for line in change_note.splitlines():
             line = self._process_line(line)
@@ -60,8 +62,10 @@ class ChangeNotesLinesParser(BaseChangeNotesParser):
                     continue
 
                 self._add_line(line)
+                line_added = True
 
         self._in_section = False
+        return line_added
 
     def _process_change_note(self, change_note):
         # subclasses override this if some manipulation is needed
