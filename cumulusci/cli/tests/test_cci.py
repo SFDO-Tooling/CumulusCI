@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 from collections import OrderedDict
 from datetime import date
+from datetime import datetime
+from datetime import timedelta
 import io
 import json
 import os
@@ -18,6 +20,7 @@ import responses
 import cumulusci
 from cumulusci.core.config import OrgConfig
 from cumulusci.core.config import FlowConfig
+from cumulusci.core.config import ScratchOrgConfig
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.tasks import BaseTask
 from cumulusci.core.flowrunner import FlowCoordinator
@@ -670,25 +673,23 @@ class TestCCI(unittest.TestCase):
             "test2",
         ]
         config.project_config.keychain.get_org.side_effect = [
-            OrgConfig(
+            ScratchOrgConfig(
                 {
                     "default": True,
                     "scratch": True,
-                    "days_alive": 8,
+                    "date_created": datetime.now() - timedelta(days=7),
                     "days": 7,
-                    "expired": True,
                     "config_name": "dev",
                     "username": "test0@example.com",
                 },
                 "test0",
             ),
-            OrgConfig(
+            ScratchOrgConfig(
                 {
                     "default": False,
                     "scratch": True,
-                    "days_alive": 1,
+                    "date_created": datetime.now(),
                     "days": 7,
-                    "expired": False,
                     "config_name": "dev",
                     "username": "test1@example.com",
                 },
@@ -711,12 +712,12 @@ class TestCCI(unittest.TestCase):
         scratch_table_call = mock.call(
             [
                 ["Name", "Default", "Days", "Expired", "Config"],
-                ["test0", True, "8/7", True, "dev"],
+                ["test0", True, "7", True, "dev"],
                 ["test1", False, "1/7", False, "dev"],
             ],
             bool_cols=["Default"],
             title="Scratch Orgs",
-            dim_rows=[0, 1, 2],
+            dim_rows=[0, 1],
         )
         persistent_table_call = mock.call(
             [["Name", "Default", "Username"], ["test2", False, "test2@example.com"]],

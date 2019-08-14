@@ -933,7 +933,7 @@ def org_list(config, plain):
     rows_to_dim = []
     for org, org_config in org_configs.items():
         row = [org, org_config.default]
-        if org_config.scratch:
+        if isinstance(org_config, ScratchOrgConfig):
             org_days = org_config.format_org_days()
             row.extend([org_days, org_config.expired, org_config.config_name])
             scratch_data.append(row)

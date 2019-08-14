@@ -85,7 +85,7 @@ class CliTable:
 
         Automatically falls back to AsciiTable if there's an encoding error.
         """
-        if plain or os.environ["TERM"] == "dumb":
+        if plain or os.environ.get("TERM") == "dumb":
             self.ascii_table()
             return None
 
