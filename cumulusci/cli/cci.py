@@ -925,10 +925,10 @@ def org_list(config, plain):
     persistent_data = [header]
     scratch_data = [header[:2] + ["Days", "Expired", "Config"]]
 
-    org_configs = {
-        org: config.project_config.keychain.get_org(org)
+    org_configs = OrderedDict(
+        (org, config.project_config.keychain.get_org(org))
         for org in config.project_config.keychain.list_orgs()
-    }
+    )
 
     rows_to_dim = []
     for org, org_config in org_configs.items():
