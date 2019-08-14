@@ -716,7 +716,7 @@ class TestCCI(unittest.TestCase):
             ],
             bool_cols=["Default"],
             title="Scratch Orgs",
-            dim_rows=[1, 2],
+            dim_rows=[0, 1, 2],
         )
         persistent_table_call = mock.call(
             [["Name", "Default", "Username"], ["test2", False, "test2@example.com"]],

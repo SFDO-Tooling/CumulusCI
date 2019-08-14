@@ -117,9 +117,10 @@ class CliTable:
         Converts each value into a string.
         """
         for row_index in dim_rows:
-            self.table.table_data[row_index] = [
-                self._dim_value(cell) for cell in self.table.table_data[row_index]
-            ]
+            if row_index != 0:
+                self.table.table_data[row_index] = [
+                    self._dim_value(cell) for cell in self.table.table_data[row_index]
+                ]
 
     def _dim_value(self, val):
         """Given an object, convert to a string and wrap using click.style."""

@@ -946,7 +946,7 @@ def org_list(config, plain):
 
     rows_to_dim = [
         row_index
-        for row_index, row in enumerate(scratch_data[1:], start=1)
+        for row_index, row in enumerate(scratch_data)
         if row[3] or not org_configs[row[0]].date_created
     ]
     scratch_table = CliTable(
