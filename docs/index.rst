@@ -12,6 +12,7 @@ Contents:
    :maxdepth: 2
 
    why_cumulusci
+   install
    tutorial
    features
    robotframework

@@ -239,8 +239,9 @@ def main():
     This runs as the first step in processing any CLI command.
     """
     # Avoid checking for updates if we've been asked to output JSON,
-    # because we don't want to pollute the output
-    if "--json" not in sys.argv:
+    # or if we're going to check anyway as part of the `version` command.
+    is_version_command = len(sys.argv) > 1 and sys.argv[1] == "version"
+    if "--json" not in sys.argv and not is_version_command:
         check_latest_version()
     log_requests = "--debug" in sys.argv
     init_logger(log_requests=log_requests)
@@ -254,10 +255,10 @@ def version():
     click.echo("Python version: {}".format(sys.version.split()[0]), nl=False)
     click.echo(" ({})".format(sys.executable))
 
+    click.echo()
     current_version = get_installed_version()
     latest_version = get_latest_final_version()
     if latest_version > current_version:
-        click.echo()
         click.echo(
             "There is a newer version of CumulusCI available ({}).".format(
                 str(latest_version)
@@ -269,13 +270,15 @@ def version():
                 str(latest_version)
             )
         )
+    else:
+        click.echo("You have the latest version of CumulusCI.")
 
     if sys.version_info.major == 2:
         click.echo()
         click.echo("WARNING: You are running CumulusCI using Python 2.")
         click.echo("Soon CumulusCI will only support Python 3.")
         click.echo("To reinstall CumulusCI on Python 3, follow these instructions:")
-        click.echo("https://cumulusci.readthedocs.io/en/latest/tutorial.html")
+        click.echo("https://cumulusci.readthedocs.io/en/latest/install.html")
 
     click.echo()
 
