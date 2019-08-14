@@ -436,7 +436,7 @@ class TestScratchOrgConfig(unittest.TestCase):
 
     def test_format_days(self, Command):
         config = ScratchOrgConfig({"days": 2}, "test")
-        self.assertEqual(config.format_org_days(), 2)
+        self.assertEqual(config.format_org_days(), "2")
         now = datetime.now()
         config.date_created = now
         self.assertEqual(config.format_org_days(), "1/2")
