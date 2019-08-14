@@ -440,7 +440,7 @@ class TestScratchOrgConfig(unittest.TestCase):
         now = datetime.now()
         config.date_created = now
         self.assertEqual(config.format_org_days(), "1/2")
-        config.date_created = now - timedelta(days=2)
+        config.date_created = now - timedelta(days=3)
         self.assertEqual(config.format_org_days(), "2")
 
     def test_expired(self, Command):

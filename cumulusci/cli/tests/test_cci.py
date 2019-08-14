@@ -677,7 +677,7 @@ class TestCCI(unittest.TestCase):
                 {
                     "default": True,
                     "scratch": True,
-                    "date_created": datetime.now() - timedelta(days=7),
+                    "date_created": datetime.now() - timedelta(days=8),
                     "days": 7,
                     "config_name": "dev",
                     "username": "test0@example.com",
