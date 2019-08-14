@@ -930,6 +930,7 @@ def org_list(config, plain):
         for org in config.project_config.keychain.list_orgs()
     }
 
+    rows_to_dim = []
     for org, org_config in org_configs.items():
         row = [org, org_config.default]
         if org_config.scratch:
@@ -943,7 +944,14 @@ def org_list(config, plain):
             row.append(username)
             persistent_data.append(row)
 
-    scratch_table = CliTable(scratch_data, title="Scratch Orgs", bool_cols=["Default"])
+    rows_to_dim = [
+        row_index
+        for row_index, row in enumerate(scratch_data[1:], start=1)
+        if row[3] or not org_configs[row[0]].date_created
+    ]
+    scratch_table = CliTable(
+        scratch_data, title="Scratch Orgs", bool_cols=["Default"], dim_rows=rows_to_dim
+    )
     scratch_table.stringify_boolean_col(col_name="Expired", true_str=CROSSMARK)
     scratch_table.echo(plain)
 

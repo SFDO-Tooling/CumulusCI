@@ -664,11 +664,27 @@ class TestCCI(unittest.TestCase):
     def test_org_list(self, cli_tbl):
         config = mock.Mock()
         config.global_config.cli__plain_output = None
-        config.project_config.keychain.list_orgs.return_value = ["test1", "test2"]
+        config.project_config.keychain.list_orgs.return_value = [
+            "test0",
+            "test1",
+            "test2",
+        ]
         config.project_config.keychain.get_org.side_effect = [
             OrgConfig(
                 {
                     "default": True,
+                    "scratch": True,
+                    "days_alive": 8,
+                    "days": 7,
+                    "expired": True,
+                    "config_name": "dev",
+                    "username": "test0@example.com",
+                },
+                "test0",
+            ),
+            OrgConfig(
+                {
+                    "default": False,
                     "scratch": True,
                     "days_alive": 1,
                     "days": 7,
@@ -695,10 +711,12 @@ class TestCCI(unittest.TestCase):
         scratch_table_call = mock.call(
             [
                 ["Name", "Default", "Days", "Expired", "Config"],
-                ["test1", True, "1/7", False, "dev"],
+                ["test0", True, "8/7", True, "dev"],
+                ["test1", False, "1/7", False, "dev"],
             ],
             bool_cols=["Default"],
             title="Scratch Orgs",
+            dim_rows=[1, 2],
         )
         persistent_table_call = mock.call(
             [["Name", "Default", "Username"], ["test2", False, "test2@example.com"]],
