@@ -248,7 +248,36 @@ def main():
 
 @click.command(name="version", help="Print the current version of CumulusCI")
 def version():
-    click.echo(cumulusci.__version__)
+    click.echo("CumulusCI version: ", nl=False)
+    click.echo(click.style(cumulusci.__version__, bold=True), nl=False)
+    click.echo(" ({})".format(sys.argv[0]))
+    click.echo("Python version: {}".format(sys.version.split()[0]), nl=False)
+    click.echo(" ({})".format(sys.executable))
+
+    current_version = get_installed_version()
+    latest_version = get_latest_final_version()
+    if latest_version > current_version:
+        click.echo()
+        click.echo(
+            "There is a newer version of CumulusCI available ({}).".format(
+                str(latest_version)
+            )
+        )
+        click.echo("To upgrade, run `{}`".format(get_cci_upgrade_command()))
+        click.echo(
+            "Release notes: https://github.com/SFDO-Tooling/CumulusCI/releases/tag/v{}".format(
+                str(latest_version)
+            )
+        )
+
+    if sys.version_info.major == 2:
+        click.echo()
+        click.echo("WARNING: You are running CumulusCI using Python 2.")
+        click.echo("Soon CumulusCI will only support Python 3.")
+        click.echo("To reinstall CumulusCI on Python 3, follow these instructions:")
+        click.echo("https://cumulusci.readthedocs.io/en/latest/tutorial.html")
+
+    click.echo()
 
 
 @click.command(name="shell", help="Drop into a Python shell")
