@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from __future__ import absolute_import
 import os
 import unittest
@@ -954,3 +955,51 @@ class TestOrgConfig(unittest.TestCase):
         self.assertEqual("Enterprise Edition", config.org_type)
         self.assertEqual(False, config.is_sandbox)
         self.assertIsNotNone(config.organization_sobject)
+
+    @mock.patch("cumulusci.core.config.OrgConfig._fetch_community_info")
+    def test_community_info(self, mock_fetch):
+        """Verify that get_community_info returns data from the cache"""
+        config = OrgConfig({}, "test")
+        config._community_info_cache = {"Kōkua": {"name": "Kōkua"}}
+        info = config.get_community_info("Kōkua")
+        self.assertEquals(info["name"], "Kōkua")
+        mock_fetch.assert_not_called()
+
+    @mock.patch("cumulusci.core.config.OrgConfig._fetch_community_info")
+    def test_community_info_auto_refresh_cache(self, mock_fetch):
+        """Verify that the internal cache is automatically refreshed
+
+        The cache should be refreshed automatically if the requested community
+        is not in the cache.
+        """
+        mock_fetch.return_value = {"Kōkua": {"name": "Kōkua"}}
+
+        config = OrgConfig({}, "test")
+        config._community_info_cache = {}
+        info = config.get_community_info("Kōkua")
+        mock_fetch.assert_called()
+        self.assertEqual(info["name"], "Kōkua")
+
+    @mock.patch("cumulusci.core.config.OrgConfig._fetch_community_info")
+    def test_community_info_force_refresh(self, mock_fetch):
+        """Verify that the force_refresh parameter has an effect"""
+        mock_fetch.return_value = {"Kōkua": {"name": "Kōkua"}}
+        config = OrgConfig({}, "test")
+
+        # With the cache seeded with the target community, first
+        # verify that the cache isn't refreshed automatically
+        config._community_info_cache = {"Kōkua": {"name": "Kōkua"}}
+        config.get_community_info("Kōkua")
+        mock_fetch.assert_not_called()
+
+        # Now, set force_refresh and make sure it is refreshed
+        config.get_community_info("Kōkua", force_refresh=True)
+        mock_fetch.assert_called()
+
+    @mock.patch("cumulusci.core.config.OrgConfig._fetch_community_info")
+    def test_community_info_exception(self, mock_fetch):
+        """Verify an exception is thrown when the community doesn't exist"""
+        config = OrgConfig({}, "test")
+        expected_exception = "Unable to find community information for 'bogus'"
+        with self.assertRaisesRegexp(Exception, expected_exception):
+            config.get_community_info("bogus")

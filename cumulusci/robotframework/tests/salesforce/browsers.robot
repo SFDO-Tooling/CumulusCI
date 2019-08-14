@@ -1,6 +1,7 @@
 *** Settings ***
 
 Resource        cumulusci/robotframework/Salesforce.robot
+Library         TestListener.py
 Suite Teardown  Close all browsers
 
 
@@ -76,3 +77,23 @@ Explicit browser size
 
     Open test browser           size=1400x1200
     Assert window size  1400  1200
+
+Open Test Browser calls Log Browser Capabilities
+    [Documentation]
+    ...  Verify that browser capabilities are logged when we call
+    ...  Open Test Browser
+    [Teardown]  Close all browsers
+
+    Reset robot log cache
+    Set test variable  ${BROWSER}  headlesschrome
+    Open test browser  alias=chrome
+    Assert robot log   selenium browser capabilities:  INFO
+    Assert robot log   browserName.*chrome
+
+    # Make sure we don't just log the capabilities of the
+    # first browser that was opened
+    Reset robot log cache
+    Set test variable  ${BROWSER}  headlessfirefox
+    Open test browser  alias=firefox
+    Assert robot log   selenium browser capabilities:  INFO
+    Assert robot log   browserName.*firefox

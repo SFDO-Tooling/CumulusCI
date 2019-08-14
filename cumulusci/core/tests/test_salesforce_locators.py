@@ -37,7 +37,7 @@ class TestLocators(unittest.TestCase):
         # we expect the library to still be instantiated, but with the latest
         # version of the locators.
         sf = Salesforce()
-        expected = "cumulusci.robotframework.locators_46"
+        expected = "cumulusci.robotframework.locators_47"
         actual = sf.locators_module.__name__
         message = "expected to load '{}', actually loaded '{}'".format(expected, actual)
         self.assertEqual(expected, actual, message)
