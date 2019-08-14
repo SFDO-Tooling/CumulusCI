@@ -934,7 +934,7 @@ def org_list(config, plain):
     for org, org_config in org_configs.items():
         row = [org, org_config.default]
         if org_config.scratch:
-            org_days = _format_org_days(org_config)
+            org_days = org_config.format_org_days()
             row.extend([org_days, org_config.expired, org_config.config_name])
             scratch_data.append(row)
         else:
@@ -963,14 +963,6 @@ def org_list(config, plain):
         bool_cols=["Default"],
     )
     persistent_table.echo(plain)
-
-
-def _format_org_days(org_config):
-    if org_config.days_alive:
-        org_days = "{}/{}".format(org_config.days_alive, org_config.days)
-    else:
-        org_days = org_config.days
-    return org_days
 
 
 @org.command(name="remove", help="Removes an org from the keychain")

@@ -251,6 +251,13 @@ class ScratchOrgConfig(OrgConfig):
                 )
             )
 
+    def format_org_days(self):
+        if self.days_alive:
+            org_days = "{}/{}".format(self.days_alive, self.days)
+        else:
+            org_days = self.days
+        return org_days
+
     def can_delete(self):
         return bool(self.date_created)
 
