@@ -962,7 +962,7 @@ class TestOrgConfig(unittest.TestCase):
         config = OrgConfig({}, "test")
         config._community_info_cache = {"Kōkua": {"name": "Kōkua"}}
         info = config.get_community_info("Kōkua")
-        self.assertEquals(info["name"], "Kōkua")
+        self.assertEqual(info["name"], "Kōkua")
         mock_fetch.assert_not_called()
 
     @mock.patch("cumulusci.core.config.OrgConfig._fetch_community_info")
