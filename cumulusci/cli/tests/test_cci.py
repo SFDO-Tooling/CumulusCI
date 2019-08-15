@@ -195,10 +195,14 @@ class TestCCI(unittest.TestCase):
         check_latest_version.assert_called_once()
         init_logger.assert_called_once()
 
+    @mock.patch(
+        "cumulusci.cli.cci.get_latest_final_version",
+        mock.Mock(return_value=pkg_resources.parse_version("100")),
+    )
     @mock.patch("click.echo")
     def test_version(self, echo):
         run_click_command(cci.version)
-        echo.assert_called_once_with(cumulusci.__version__)
+        assert cumulusci.__version__ in echo.call_args_list[1][0][0]
 
     @mock.patch("code.interact")
     def test_shell(self, interact):

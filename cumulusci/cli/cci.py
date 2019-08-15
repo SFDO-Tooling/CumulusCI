@@ -238,19 +238,51 @@ def main():
     This runs as the first step in processing any CLI command.
     """
     # Avoid checking for updates if we've been asked to output JSON,
-    # because we don't want to pollute the output
-    if "--json" not in sys.argv:
+    # or if we're going to check anyway as part of the `version` command.
+    is_version_command = len(sys.argv) > 1 and sys.argv[1] == "version"
+    if "--json" not in sys.argv and not is_version_command:
         check_latest_version()
     log_requests = "--debug" in sys.argv
     init_logger(log_requests=log_requests)
 
 
-@click.command(name="version", help="Print the current version of CumulusCI")
+@main.command(name="version", help="Print the current version of CumulusCI")
 def version():
-    click.echo(cumulusci.__version__)
+    click.echo("CumulusCI version: ", nl=False)
+    click.echo(click.style(cumulusci.__version__, bold=True), nl=False)
+    click.echo(" ({})".format(sys.argv[0]))
+    click.echo("Python version: {}".format(sys.version.split()[0]), nl=False)
+    click.echo(" ({})".format(sys.executable))
+
+    click.echo()
+    current_version = get_installed_version()
+    latest_version = get_latest_final_version()
+    if latest_version > current_version:
+        click.echo(
+            "There is a newer version of CumulusCI available ({}).".format(
+                str(latest_version)
+            )
+        )
+        click.echo("To upgrade, run `{}`".format(get_cci_upgrade_command()))
+        click.echo(
+            "Release notes: https://github.com/SFDO-Tooling/CumulusCI/releases/tag/v{}".format(
+                str(latest_version)
+            )
+        )
+    else:
+        click.echo("You have the latest version of CumulusCI.")
+
+    if sys.version_info.major == 2:
+        click.echo()
+        click.echo("WARNING: You are running CumulusCI using Python 2.")
+        click.echo("Soon CumulusCI will only support Python 3.")
+        click.echo("To reinstall CumulusCI on Python 3, follow these instructions:")
+        click.echo("https://cumulusci.readthedocs.io/en/latest/install.html")
+
+    click.echo()
 
 
-@click.command(name="shell", help="Drop into a Python shell")
+@main.command(name="shell", help="Drop into a Python shell")
 def shell():
     try:
         config = load_config(load_project_config=True, load_keychain=True)
