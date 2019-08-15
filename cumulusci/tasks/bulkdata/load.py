@@ -67,6 +67,7 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
     def _run_task(self):
         self._init_mapping()
         self._init_db()
+        self._expand_mapping()
 
         start_step = self.options.get("start_step")
         started = False
@@ -145,8 +146,9 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
             pkey = row[0]
             row = list(row[1:]) + statics
             row = [self._convert(value) for value in row]
-            if all([f is None for f in row]):
-                # Skip rows that contain no values
+            if mapping["action"] == "update" and all([f is None for f in row]):
+                # Skip update rows that contain no values
+                total_rows -= 1
                 continue
 
             writer.writerow(row)
@@ -166,8 +168,8 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
             yield batch_file, batch_ids
 
         self.logger.info(
-            "  Prepared {} rows for import to {}".format(
-                total_rows, mapping["sf_object"]
+            "  Prepared {} rows for {} to {}".format(
+                total_rows, mapping["action"], mapping["sf_object"]
             )
         )
 
@@ -392,6 +394,7 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
         with open(self.options["mapping"], "r") as f:
             self.mapping = ordered_yaml_load(f)
 
+    def _expand_mapping(self):
         # Expand the mapping to handle dependent lookups
         self.after_steps = defaultdict(lambda: OrderedDict())
 
@@ -424,9 +427,9 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
                     }
                     mapping["lookups"]["Id"] = {
                         "table": step["table"],
-                        "key_field": step["fields"][
-                            "Id"
-                        ],  # FIXME: this bombs if there's no Id mapping
+                        "key_field": self.models[
+                            step["table"]
+                        ].__table__.primary_key.columns.keys()[0],
                     }
                     for l in lookups:
                         mapping["lookups"][l] = lookups[l].copy()

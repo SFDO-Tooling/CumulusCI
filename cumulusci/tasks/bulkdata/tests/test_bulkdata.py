@@ -284,12 +284,12 @@ class TestLoadDataWithSFIds(unittest.TestCase):
         task._init_db = mock.Mock()
         task._init_mapping = mock.Mock()
         task.mapping = OrderedDict()
-        task.mapping["Insert Households"] = 1
-        task.mapping["Insert Contacts"] = 2
+        task.mapping["Insert Households"] = {"one": 1}
+        task.mapping["Insert Contacts"] = {"two": 2}
         task.after_steps = {}
         task._load_mapping = mock.Mock(return_value="Completed")
         task()
-        task._load_mapping.assert_called_once_with(2)
+        task._load_mapping.assert_called_once_with({"two": 2, "action": "insert"})
 
     def test_run_task__after_steps(self):
         base_path = os.path.dirname(__file__)
@@ -300,6 +300,7 @@ class TestLoadDataWithSFIds(unittest.TestCase):
         )
         task._init_db = mock.Mock()
         task._init_mapping = mock.Mock()
+        task._expand_mapping = mock.Mock()
         task.mapping = OrderedDict()
         task.mapping["Insert Households"] = 1
         task.mapping["Insert Contacts"] = 2
@@ -313,7 +314,7 @@ class TestLoadDataWithSFIds(unittest.TestCase):
             [mock.call(1), mock.call(4), mock.call(5), mock.call(2), mock.call(3)]
         )
 
-    def test_init_mapping_creates_after_steps(self):
+    def test_expand_mapping_creates_after_steps(self):
         base_path = os.path.dirname(__file__)
         mapping_path = os.path.join(base_path, "mapping_after.yml")
         task = _make_task(
@@ -322,6 +323,13 @@ class TestLoadDataWithSFIds(unittest.TestCase):
         )
 
         task._init_mapping()
+
+        model = mock.Mock()
+        model.__table__ = mock.Mock()
+        model.__table__.primary_key.columns.keys.return_value = ["sf_id"]
+        task.models = {"accounts": model, "contacts": model}
+
+        task._expand_mapping()
 
         self.assertEqual({}, task.after_steps["Insert Opportunities"])
         self.assertEqual(
@@ -1035,6 +1043,9 @@ class TestExtractDataWithSFIds(unittest.TestCase):
         )
         with self.assertRaises(BulkDataException):
             task()
+
+            # FIXME: skipping no-updates is not working
+            # FIXME: import fails if no fields besides Id
 
 
 class TestExtractDataWithoutSFIds(unittest.TestCase):
