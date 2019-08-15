@@ -27,7 +27,7 @@ echo " "
 echo "=> Collecting dependencies and generating resource stanzas..."
 echo " "
 # Filter poet's output through awk to delete the cumulusci resource stanza
-poet cumulusci > "$RES_FILE"
+poet cumulusci | awk '/resource "cumulusci"/{c=5} !(c&&c--)' > "$RES_FILE"
 if [ $? -ne 0 ]; then
    exit 1
 fi
