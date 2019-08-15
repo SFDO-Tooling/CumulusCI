@@ -70,7 +70,7 @@ class TestChangeNotesLinesParser(unittest.TestCase):
         parser = ChangeNotesLinesParser(None, self.title)
         line_added = parser.parse(change_note)
         self.assertEqual(parser.content, ["foo", "bar"])
-        self.assertEquals(True, line_added)
+        self.assertEqual(True, line_added)
 
     def test_parse_start_line_end_at_header(self):
         change_note = "# {}\r\nfoo\r\n# Another Header\r\nbar".format(self.title)
