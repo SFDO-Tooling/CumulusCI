@@ -246,7 +246,7 @@ def main():
     init_logger(log_requests=log_requests)
 
 
-@click.command(name="version", help="Print the current version of CumulusCI")
+@main.command(name="version", help="Print the current version of CumulusCI")
 def version():
     click.echo("CumulusCI version: ", nl=False)
     click.echo(click.style(cumulusci.__version__, bold=True), nl=False)
@@ -282,7 +282,7 @@ def version():
     click.echo()
 
 
-@click.command(name="shell", help="Drop into a Python shell")
+@main.command(name="shell", help="Drop into a Python shell")
 def shell():
     try:
         config = load_config(load_project_config=True, load_keychain=True)
