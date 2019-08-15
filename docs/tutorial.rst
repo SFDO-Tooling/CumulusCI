@@ -231,7 +231,7 @@ If you already have the `sfdx` command installed, have connected to your devhub,
 
 You can learn more about Salesforce DX at https://developer.salesforce.com/platform/dx.
 
-CumulusCI wraps the creation of scratch orgs to provide a some useful extra features:
+CumulusCI wraps the creation of scratch orgs to provide some useful extra features:
 
 * Each project starts with 4 scratch org configs meant for different phases of the development process: `beta`, `dev`, `feature`, `release`
 * Scratch org configs for each project can be overridden in the project's cumulusci.yml
