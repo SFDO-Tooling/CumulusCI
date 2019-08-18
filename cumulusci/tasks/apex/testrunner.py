@@ -6,11 +6,10 @@ from future import standard_library
 standard_library.install_aliases()
 import html
 import io
-import cgi
 import json
-import http.client
+import re
 
-from simple_salesforce import SalesforceGeneralError
+from collections import defaultdict
 
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.core.exceptions import TaskOptionsError, ApexTestException
@@ -70,12 +69,12 @@ TEST_RESULT_QUERY = """
 SELECT Id,ApexClassId,TestTimestamp,
        Message,MethodName,Outcome,
        RunTime,StackTrace,
-       (SELECT 
+       (SELECT
           Id,Callouts,AsyncCalls,DmlRows,Email,
           LimitContext,LimitExceptions,MobilePush,
-          QueryRows,Sosl,Cpu,Dml,Soql 
-        FROM ApexTestResults) 
-FROM ApexTestResult 
+          QueryRows,Sosl,Cpu,Dml,Soql
+        FROM ApexTestResults)
+FROM ApexTestResult
 WHERE AsyncApexJobId='{}'
 """
 
@@ -119,7 +118,6 @@ class RunApexTests(BaseSalesforceApiTask):
                 + "results.  Defaults to 3"
             )
         },
-        "retries": {"description": "Number of retries (default=10)"},
         "retry_interval": {
             "description": "Number of seconds to wait before the next retry (default=5),"
         },
@@ -136,7 +134,7 @@ class RunApexTests(BaseSalesforceApiTask):
             "description": "A list of regular expression patterns to match against "
             "test failures. If all failures match, the failing tests are retried in "
             "serial mode"
-        }
+        },
     }
 
     def _init_options(self, kwargs):
@@ -157,12 +155,6 @@ class RunApexTests(BaseSalesforceApiTask):
             "namespace", self.project_config.project__package__namespace
         )
 
-        self.options["retries"] = self.options.get("retries", 10)
-
-        self.options["retry_interval"] = self.options.get("retry_interval", 5)
-
-        self.options["retry_interval_add"] = self.options.get("retry_interval_add", 5)
-
         self.options["junit_output"] = self.options.get(
             "junit_output", "test_results.xml"
         )
@@ -173,7 +165,13 @@ class RunApexTests(BaseSalesforceApiTask):
 
         self.options["managed"] = process_bool_arg(self.options.get("managed", False))
 
-        self.options["retry_errors"]  = process_list_arg(self.options.get("retry_errors", []))
+        self.options["retries"] = int(self.options.get("retries", 3))
+        self.options["retry_errors"] = process_list_arg(
+            self.options.get("retry_errors", [])
+        )
+        self.options["retry_errors"] = [
+            re.compile(r) for r in self.options["retry_errors"]
+        ]
         self.counts = {}
 
     # pylint: disable=W0201
@@ -228,15 +226,44 @@ class RunApexTests(BaseSalesforceApiTask):
         self.logger.info("Found {} test classes".format(result["totalSize"]))
         return result
 
-    def _get_test_results(self):
+    def _get_test_results(self, allow_retries=True):
         result = self.tooling.query_all(TEST_RESULT_QUERY.format(self.job_id))
-        self.counts = {"Pass": 0, "Fail": 0, "CompileFail": 0, "Skip": 0, "Retriable": 0}
+
+        retry_details = defaultdict(lambda: list())
         for test_result in result["records"]:
             class_name = self.classes_by_id[test_result["ApexClassId"]]
             self.results_by_class_name[class_name][
                 test_result["MethodName"]
             ] = test_result
             self.counts[test_result["Outcome"]] += 1
+
+            # Determine whether this failure is retriable.
+            if allow_retries and any(
+                [
+                    reg.search(test_result["Message"])
+                    or reg.search(test_result["StackTrace"])
+                    for reg in self.options["retry_errors"]
+                ]
+            ):
+                self.counts["Retriable"] += 1
+                retry_details[test_result["ApexClassId"]].append(
+                    test_result["MethodName"]
+                )
+
+        # Once we've evaluated all of the results, if all failures are retriable,
+        # start another test run.
+        if (
+            self.counts["Fail"] > 0
+            and self.counts["CompileFail"] == 0
+            and self.counts["Retriable"] == self.counts["Fail"]
+        ):
+            # Reset the counts of failed and retriable tests, but persist the remainder.
+            self.counts["Fail"] = 0
+            return retry_details
+
+        return None
+
+    def _process_test_results(self):
         test_results = []
         class_names = list(self.results_by_class_name.keys())
         class_names.sort()
@@ -296,6 +323,7 @@ class RunApexTests(BaseSalesforceApiTask):
                     )
                     self.logger.error("\tMessage: {}".format(result["Message"]))
                     self.logger.error("\tStackTrace: {}".format(result["StackTrace"]))
+
         return test_results
 
     def _get_stats_from_result(self, result):
@@ -311,14 +339,25 @@ class RunApexTests(BaseSalesforceApiTask):
 
         return stats
 
-    def _enqueue_test_run(self, class_ids=None, test_methods=None):
+    def _enqueue_test_run(self, class_ids=None):
         if class_ids:
-            return self.tooling._call_salesforce(
-                method="POST",
-                url=self.tooling.base_url + "runTestsAsynchronous",
-                json={"classids": ",".join(class_ids)},
-            ).json()
-
+            if isinstance(class_ids, list):
+                return self.tooling._call_salesforce(
+                    method="POST",
+                    url=self.tooling.base_url + "runTestsAsynchronous",
+                    json={"classids": ",".join(class_ids)},
+                ).json()
+            elif isinstance(class_ids, dict):
+                return self.tooling._call_salesforce(
+                    method="POST",
+                    url=self.tooling.base_url + "runTestsAsynchronous",
+                    json={
+                        "tests": [
+                            {"classId": class_id, "testMethods": class_ids[class_id]}
+                            for class_id in class_ids
+                        ]
+                    },
+                ).json()
 
     def _run_task(self):
         result = self._get_test_classes()
@@ -330,12 +369,42 @@ class RunApexTests(BaseSalesforceApiTask):
             self.results_by_class_name[test_class["Name"]] = {}
         self.logger.info("Queuing tests for execution...")
 
+        self.counts = {
+            "Pass": 0,
+            "Fail": 0,
+            "CompileFail": 0,
+            "Skip": 0,
+            "Retriable": 0,
+        }
         self.job_id = self._enqueue_test_run(
             class_ids=(str(id) for id in self.classes_by_id.keys())
         )
 
         self._wait_for_tests()
-        test_results = self._get_test_results()
+        retry_details = self._get_test_results()
+        # Did we get back any retriable test results? Enqueue new runs.
+        if retry_details:
+            self.logger.info(
+                "Retrying failed methods from {} test classes".format(
+                    len(retry_details)
+                )
+            )
+            for class_id, test_list in retry_details.items():
+                self.logger.info(
+                    "Retrying {} failures from test class {}".format(
+                        len(test_list, self.classes_by_name[class_id])
+                    )
+                )
+                self.job_id = self._enqueue_test_run({class_id: test_list})
+                self._wait_for_tests()
+                self._get_test_results(allow_retries=False)
+                # If the retry failed, stop and count all retried tests
+                # under their original failures.
+                if self.counts["Fail"] != 0:
+                    self.counts["Fail"] = self.counts["Retriable"]
+                    break
+
+        test_results = self._process_test_results()
         self._write_output(test_results)
         if self.counts.get("Fail") or self.counts.get("CompileFail"):
             raise ApexTestException(
@@ -349,7 +418,10 @@ class RunApexTests(BaseSalesforceApiTask):
         self._poll()
 
     def _poll_action(self):
-        self._retry()
+        self.result = self.tooling.query_all(
+            "SELECT Id, Status, ApexClassId FROM ApexTestQueueItem "
+            + "WHERE ParentJobId = '{}'".format(self.job_id)
+        )
         counts = {
             "Aborted": 0,
             "Completed": 0,
@@ -369,12 +441,6 @@ class RunApexTests(BaseSalesforceApiTask):
         if counts["Queued"] == 0 and counts["Processing"] == 0:
             self.logger.info("Apex tests completed")
             self.poll_complete = True
-
-    def _try(self):
-        self.result = self.tooling.query_all(
-            "SELECT Id, Status, ApexClassId FROM ApexTestQueueItem "
-            + "WHERE ParentJobId = '{}'".format(self.job_id)
-        )
 
     def _write_output(self, test_results):
         junit_output = self.options["junit_output"]
