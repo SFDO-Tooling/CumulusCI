@@ -69,12 +69,12 @@ TEST_RESULT_QUERY = """
 SELECT Id,ApexClassId,TestTimestamp,
        Message,MethodName,Outcome,
        RunTime,StackTrace,
-       (SELECT
+       (SELECT 
           Id,Callouts,AsyncCalls,DmlRows,Email,
           LimitContext,LimitExceptions,MobilePush,
-          QueryRows,Sosl,Cpu,Dml,Soql
-        FROM ApexTestResults)
-FROM ApexTestResult
+          QueryRows,Sosl,Cpu,Dml,Soql 
+        FROM ApexTestResults) 
+FROM ApexTestResult 
 WHERE AsyncApexJobId='{}'
 """
 
@@ -226,6 +226,15 @@ class RunApexTests(BaseSalesforceApiTask):
         self.logger.info("Found {} test classes".format(result["totalSize"]))
         return result
 
+    def _is_retriable_failure(self, test_result):
+        return test_result["Outcome"] == "Fail" and any(
+            [
+                reg.search(test_result["Message"] or "")
+                or reg.search(test_result["StackTrace"] or "")
+                for reg in self.options["retry_errors"]
+            ]
+        )
+
     def _get_test_results(self, allow_retries=True):
         result = self.tooling.query_all(TEST_RESULT_QUERY.format(self.job_id))
 
@@ -238,27 +247,19 @@ class RunApexTests(BaseSalesforceApiTask):
             self.counts[test_result["Outcome"]] += 1
 
             # Determine whether this failure is retriable.
-            if allow_retries and any(
-                [
-                    reg.search(test_result["Message"])
-                    or reg.search(test_result["StackTrace"])
-                    for reg in self.options["retry_errors"]
-                ]
-            ):
+            if allow_retries and self._is_retriable_failure(test_result):
                 self.counts["Retriable"] += 1
                 retry_details[test_result["ApexClassId"]].append(
                     test_result["MethodName"]
                 )
 
         # Once we've evaluated all of the results, if all failures are retriable,
-        # start another test run.
+        # return the details for retry.
         if (
             self.counts["Fail"] > 0
             and self.counts["CompileFail"] == 0
             and self.counts["Retriable"] == self.counts["Fail"]
         ):
-            # Reset the counts of failed and retriable tests, but persist the remainder.
-            self.counts["Fail"] = 0
             return retry_details
 
         return None
@@ -297,8 +298,9 @@ class RunApexTests(BaseSalesforceApiTask):
                     self.logger.info("\tStackTrace: {}".format(result["StackTrace"]))
         self.logger.info("-" * 80)
         self.logger.info(
-            "Pass: {}  Fail: {}  CompileFail: {}  Skip: {}".format(
+            "Pass: {}  Retried: {}  Fail: {}  CompileFail: {}  Skip: {}".format(
                 self.counts["Pass"],
+                self.counts["Retriable"],
                 self.counts["Fail"],
                 self.counts["CompileFail"],
                 self.counts["Skip"],
@@ -341,13 +343,7 @@ class RunApexTests(BaseSalesforceApiTask):
 
     def _enqueue_test_run(self, class_ids=None):
         if class_ids:
-            if isinstance(class_ids, list):
-                return self.tooling._call_salesforce(
-                    method="POST",
-                    url=self.tooling.base_url + "runTestsAsynchronous",
-                    json={"classids": ",".join(class_ids)},
-                ).json()
-            elif isinstance(class_ids, dict):
+            if isinstance(class_ids, dict):
                 return self.tooling._call_salesforce(
                     method="POST",
                     url=self.tooling.base_url + "runTestsAsynchronous",
@@ -357,6 +353,12 @@ class RunApexTests(BaseSalesforceApiTask):
                             for class_id in class_ids
                         ]
                     },
+                ).json()
+            else:
+                return self.tooling._call_salesforce(
+                    method="POST",
+                    url=self.tooling.base_url + "runTestsAsynchronous",
+                    json={"classids": ",".join(class_ids)},
                 ).json()
 
     def _run_task(self):
@@ -382,30 +384,39 @@ class RunApexTests(BaseSalesforceApiTask):
 
         self._wait_for_tests()
         retry_details = self._get_test_results()
-        # Did we get back any retriable test results? Enqueue new runs.
+        # Did we get back any retriable test results? Enqueue new runs individually,
+        # until either (a) all retriable tests succeed or (b) a test fails.
         if retry_details:
-            self.logger.info(
+            self.logger.warning(
                 "Retrying failed methods from {} test classes".format(
                     len(retry_details)
                 )
             )
             for class_id, test_list in retry_details.items():
-                self.logger.info(
-                    "Retrying {} failures from test class {}".format(
-                        len(test_list, self.classes_by_name[class_id])
+                for each_test in test_list:
+                    self.logger.warning(
+                        "Retrying {}.{}".format(self.classes_by_id[class_id], each_test)
                     )
-                )
-                self.job_id = self._enqueue_test_run({class_id: test_list})
-                self._wait_for_tests()
-                self._get_test_results(allow_retries=False)
-                # If the retry failed, stop and count all retried tests
-                # under their original failures.
-                if self.counts["Fail"] != 0:
-                    self.counts["Fail"] = self.counts["Retriable"]
-                    break
+                    self.job_id = self._enqueue_test_run({class_id: [each_test]})
+                    self._wait_for_tests()
+                    self._get_test_results(allow_retries=False)
+                    # If the retry failed, stop and count all retried tests
+                    # under their original failures.
+                    if self.counts["Fail"] > self.counts["Retriable"]:
+                        # Reset counts to avoid double-counting retried failures
+                        self.counts["Fail"] = self.counts["Retriable"]
+                        self.counts["Retriable"] = 0
+                        break
+
+        if self.counts["Retriable"] and (
+            self.counts["Fail"] == self.counts["Retriable"]
+        ):
+            # All our retries succeeded. Clear the failure counter.
+            self.counts["Fail"] = 0
 
         test_results = self._process_test_results()
         self._write_output(test_results)
+
         if self.counts.get("Fail") or self.counts.get("CompileFail"):
             raise ApexTestException(
                 "{} tests failed and {} tests failed compilation".format(

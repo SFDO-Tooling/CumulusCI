@@ -3,6 +3,7 @@ from future import standard_library
 standard_library.install_aliases()
 import http.client
 import os
+import re
 import shutil
 import tempfile
 import unittest
@@ -28,7 +29,6 @@ from cumulusci.core.exceptions import (
 from cumulusci.tasks.apex.anon import AnonymousApexTask
 from cumulusci.tasks.apex.batch import BatchApexWait
 from cumulusci.tasks.apex.testrunner import RunApexTests
-from cumulusci.utils import temporary_dir
 
 
 @patch(
@@ -83,13 +83,8 @@ class TestRunApexTests(unittest.TestCase):
             responses.GET, url, match_querystring=True, json=expected_response
         )
 
-    def _mock_get_test_results(self, outcome="Pass"):
-        url = (
-            self.base_tooling_url
-            + "query/?q=%0ASELECT+Id%2CApexClassId%2CTestTimestamp%2C%0A+++++++Message%2CMethodName%2COutcome%2C%0A+++++++RunTime%2CStackTrace%2C%0A+++++++%28SELECT+%0A++++++++++Id%2CCallouts%2CAsyncCalls%2CDmlRows%2CEmail%2C%0A++++++++++LimitContext%2CLimitExceptions%2CMobilePush%2C%0A++++++++++QueryRows%2CSosl%2CCpu%2CDml%2CSoql+%0A++++++++FROM+ApexTestResults%29+%0AFROM+ApexTestResult+%0AWHERE+AsyncApexJobId%3D%27JOB_ID1234567%27%0A"
-        )
-
-        expected_response = {
+    def _get_mock_test_query_results(self, outcome, message):
+        return {
             "done": True,
             "records": [
                 {
@@ -108,7 +103,7 @@ class TestRunApexTests(unittest.TestCase):
                     "ApexLogId": 1,
                     "TestTimestamp": "2017-07-18T20:36:04.000+0000",
                     "Id": "07M41000009gbT3EAI",
-                    "Message": "Test Passed",
+                    "Message": message,
                     "MethodName": "TestMethod",
                     "Outcome": outcome,
                     "QueueItem": {
@@ -155,27 +150,40 @@ class TestRunApexTests(unittest.TestCase):
             ],
         }
 
+    def _get_mock_test_query_url(self, job_id):
+        return (
+            self.base_tooling_url
+            + "query/?q=%0ASELECT+Id%2CApexClassId%2CTestTimestamp%2C%0A+++++++Message%2CMethodName%2COutcome%2C%0A+++++++RunTime%2CStackTrace%2C%0A+++++++%28SELECT+%0A++++++++++Id%2CCallouts%2CAsyncCalls%2CDmlRows%2CEmail%2C%0A++++++++++LimitContext%2CLimitExceptions%2CMobilePush%2C%0A++++++++++QueryRows%2CSosl%2CCpu%2CDml%2CSoql+%0A++++++++FROM+ApexTestResults%29+%0AFROM+ApexTestResult+%0AWHERE+AsyncApexJobId%3D%27{}%27%0A".format(
+                job_id
+            )
+        )
+
+    def _mock_get_test_results(
+        self, outcome="Pass", message="Test Passed", job_id="JOB_ID1234567"
+    ):
+        url = self._get_mock_test_query_url(job_id)
+
+        expected_response = self._get_mock_test_query_results(outcome, message)
         responses.add(
             responses.GET, url, match_querystring=True, json=expected_response
         )
 
-    def _mock_tests_complete(self):
+    def _mock_tests_complete(self, job_id="JOB_ID1234567"):
         url = (
             self.base_tooling_url
             + "query/?q=SELECT+Id%2C+Status%2C+"
             + "ApexClassId+FROM+ApexTestQueueItem+WHERE+ParentJobId+%3D+%27"
-            + "JOB_ID1234567%27"
+            + "{}%27".format(job_id)
         )
         expected_response = {"done": True, "records": [{"Status": "Completed"}]}
         responses.add(
             responses.GET, url, match_querystring=True, json=expected_response
         )
 
-    def _mock_run_tests(self, success=True):
+    def _mock_run_tests(self, success=True, body="JOB_ID1234567"):
         url = self.base_tooling_url + "runTestsAsynchronous"
         if success:
-            expected_response = "JOB_ID1234567"
-            responses.add(responses.POST, url, json=expected_response)
+            responses.add(responses.POST, url, json=body)
         else:
             responses.add(responses.POST, url, status=http.client.SERVICE_UNAVAILABLE)
 
@@ -207,6 +215,113 @@ class TestRunApexTests(unittest.TestCase):
         with self.assertRaises(ApexTestException):
             task()
 
+    @responses.activate
+    def test_init_options__regexes(self):
+        task_config = TaskConfig()
+        task_config.config["options"] = {
+            "junit_output": "results_junit.xml",
+            "poll_interval": 1,
+            "test_name_match": "%_TEST",
+            "retry_errors": ["UNABLE_TO_LOCK_ROW"],
+        }
+        task = RunApexTests(self.project_config, task_config, self.org_config)
+        task._init_options(task_config.config["options"])
+
+        self.assertIsInstance(task.options["retry_errors"][0], re.Pattern)
+
+    @responses.activate
+    def test_run_task__retry_tests(self):
+        self._mock_apex_class_query()
+        self._mock_run_tests()
+        self._mock_run_tests(body="JOBID_9999")
+        self._mock_tests_complete()
+        self._mock_tests_complete(job_id="JOBID_9999")
+        self._mock_get_test_results("Fail", "UNABLE_TO_LOCK_ROW")
+        self._mock_get_test_results(job_id="JOBID_9999")
+
+        task_config = TaskConfig()
+        task_config.config["options"] = {
+            "junit_output": "results_junit.xml",
+            "poll_interval": 1,
+            "test_name_match": "%_TEST",
+            "retry_errors": ["UNABLE_TO_LOCK_ROW"],
+        }
+        task = RunApexTests(self.project_config, task_config, self.org_config)
+        task()
+        self.assertEqual(len(responses.calls), 7)
+
+    @responses.activate
+    def test_run_task__retry_tests_fails(self):
+        self._mock_apex_class_query()
+        self._mock_run_tests()
+        self._mock_run_tests(body="JOBID_9999")
+        self._mock_tests_complete()
+        self._mock_tests_complete(job_id="JOBID_9999")
+        self._mock_get_test_results("Fail", "UNABLE_TO_LOCK_ROW")
+        self._mock_get_test_results("Fail", "DUPLICATES_DETECTED", job_id="JOBID_9999")
+
+        task_config = TaskConfig()
+        task_config.config["options"] = {
+            "junit_output": "results_junit.xml",
+            "poll_interval": 1,
+            "test_name_match": "%_TEST",
+            "retry_errors": ["UNABLE_TO_LOCK_ROW"],
+        }
+        task = RunApexTests(self.project_config, task_config, self.org_config)
+        with self.assertRaises(ApexTestException):
+            task()
+
+    def test_is_retriable_failure(self):
+        task_config = TaskConfig()
+        task_config.config["options"] = {
+            "junit_output": "results_junit.xml",
+            "poll_interval": 1,
+            "test_name_match": "%_TEST",
+            "retry_errors": [
+                "UNABLE_TO_LOCK_ROW",
+                "unable to obtain exclusive access to this record",
+            ],
+        }
+        task = RunApexTests(self.project_config, task_config, self.org_config)
+        task._init_options(task_config.config["options"])
+
+        self.assertTrue(
+            task._is_retriable_failure(
+                {
+                    "Message": "UNABLE_TO_LOCK_ROW",
+                    "StackTrace": "test",
+                    "Outcome": "Fail",
+                }
+            )
+        )
+        self.assertTrue(
+            task._is_retriable_failure(
+                {
+                    "Message": "TEST",
+                    "StackTrace": "unable to obtain exclusive access to this record",
+                    "Outcome": "Fail",
+                }
+            )
+        )
+        self.assertFalse(
+            task._is_retriable_failure(
+                {
+                    "Message": "DUPLICATES_DETECTED",
+                    "StackTrace": "test",
+                    "Outcome": "Fail",
+                }
+            )
+        )
+        self.assertFalse(
+            task._is_retriable_failure(
+                {
+                    "Message": "UNABLE_TO_LOCK_ROW",
+                    "StackTrace": "test",
+                    "Outcome": "Pass",
+                }
+            )
+        )
+
     def test_get_namespace_filter__managed(self):
         task_config = TaskConfig({"options": {"managed": True, "namespace": "testns"}})
         task = RunApexTests(self.project_config, task_config, self.org_config)
@@ -217,7 +332,7 @@ class TestRunApexTests(unittest.TestCase):
         task_config = TaskConfig({"options": {"managed": True}})
         task = RunApexTests(self.project_config, task_config, self.org_config)
         with self.assertRaises(TaskOptionsError):
-            namespace = task._get_namespace_filter()
+            task._get_namespace_filter()
 
     def test_get_test_class_query__exclude(self):
         task_config = TaskConfig(
