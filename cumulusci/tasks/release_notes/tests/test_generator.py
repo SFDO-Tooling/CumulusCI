@@ -122,6 +122,94 @@ class TestGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTestMixin):
         self.assertEqual(generator.change_notes.current_tag, self.current_tag)
         self.assertEqual(generator.change_notes._last_tag, self.last_tag)
 
+    @responses.activate
+    def test_mark_down_link_to_pr(self):
+        self.mock_util.mock_get_repo()
+        self.mock_util.mock_pull_request(
+            1, body="# Changes\r\n\r\nfoo", title="Title 1"
+        )
+        generator = self._create_generator()
+        pr = generator.get_repo().pull_request(1)
+        actual_link = generator._mark_down_link_to_pr(pr)
+        expected_link = "{} [[PR{}]({})]".format(pr.title, pr.number, pr.html_url)
+        self.assertEquals(expected_link, actual_link)
+
+    @responses.activate
+    def test_render_empty_pr_section(self):
+        self.mock_util.mock_get_repo()
+        self.mock_util.mock_pull_request(1, body="# Changes\r\n\r\nfoo")
+        self.mock_util.mock_pull_request(2, body="# Changes\r\n\r\nbar")
+        generator = self._create_generator()
+        repo = generator.get_repo()
+        pr1 = repo.pull_request(1)
+        pr2 = repo.pull_request(2)
+        generator.empty_change_notes.extend([pr1, pr2])
+        content = generator._render_empty_pr_section()
+        self.assertEquals(3, len(content))
+        self.assertEquals("\n# Pull requests with no release notes", content[0])
+        self.assertEquals(
+            "\n* {} [[PR{}]({})]".format(pr1.title, pr1.number, pr1.html_url),
+            content[1],
+        )
+        self.assertEquals(
+            "\n* {} [[PR{}]({})]".format(pr2.title, pr2.number, pr2.html_url),
+            content[2],
+        )
+
+    @responses.activate
+    def test_update_content_with_empty_release_body(self):
+        self.mock_util.mock_get_repo()
+        self.mock_util.mock_pull_request(88, body="Just a small note.")
+        self.mock_util.mock_pull_request(89, body="")
+        generator = self._create_generator()
+        repo = generator.get_repo()
+        pr1 = repo.pull_request(88)
+        pr2 = repo.pull_request(89)
+        generator.include_empty_pull_requests = True
+        generator.empty_change_notes = [pr1, pr2]
+        release = mock.Mock(body=None)
+        content = generator._update_release_content(release, "new content")
+
+        split_content = content.split("\r\n")
+        self.assertEquals(4, len(split_content))
+        self.assertEquals("new content", split_content[0])
+        self.assertEquals("\n# Pull requests with no release notes", split_content[1])
+        self.assertEquals(
+            "\n* Pull Request #{0} [[PR{0}]({1})]".format(pr1.number, pr1.html_url),
+            split_content[2],
+        )
+        self.assertEquals(
+            "\n* Pull Request #{0} [[PR{0}]({1})]".format(pr2.number, pr2.html_url),
+            split_content[3],
+        )
+
+    @responses.activate
+    def test_detect_empty_change_note(self):
+        self.mock_util.mock_get_repo()
+        self.mock_util.mock_pull_request(1, body="# Changes\r\n\r\nfoo")
+        self.mock_util.mock_pull_request(2, body="Nothing under headers we track")
+        self.mock_util.mock_pull_request(3, body="")
+        generator = self._create_generator()
+        repo = generator.get_repo()
+        pr1 = repo.pull_request(1)
+        pr2 = repo.pull_request(2)
+        pr3 = repo.pull_request(3)
+
+        generator._parse_change_note(pr1)
+        generator._parse_change_note(pr2)
+        generator._parse_change_note(pr3)
+
+        # PR1 is "non-empty" second two are "empty"
+        self.assertEquals(2, len(generator.empty_change_notes))
+        self.assertEquals(2, generator.empty_change_notes[0].number)
+        self.assertEquals(3, generator.empty_change_notes[1].number)
+
+    def _create_generator(self):
+        generator = GithubReleaseNotesGenerator(
+            self.gh, self.github_info.copy(), PARSER_CONFIG, self.current_tag
+        )
+        return generator
+
 
 class TestPublishingGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTestMixin):
     def setUp(self):

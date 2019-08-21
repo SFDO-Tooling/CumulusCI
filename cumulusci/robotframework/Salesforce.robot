@@ -51,6 +51,8 @@ Open Test Browser
     ...
     ...  Once the browser has been opened, it will be set to the given
     ...  size (default=${DEFAULT BROWSER SIZE})
+    ...
+    ...  The keyword `Log Browser Capabilities` will automatically be called.
 
     [Arguments]  ${size}=${DEFAULT BROWSER SIZE}  ${alias}=${NONE}
     ${login_url} =  Login Url
@@ -64,6 +66,7 @@ Open Test Browser
     Initialize Location Strategies
     ${width}  ${height}=  split string  ${size}  separator=x  max_split=1
     Set window size  ${width}  ${height}
+    Log browser capabilities
 
 Initialize Location Strategies
     [Documentation]  Initialize the Salesforce location strategies 'text' and 'title'

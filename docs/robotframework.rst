@@ -447,8 +447,10 @@ CumulusCI includes two tasks for working with Robot Framework tests and keyword 
 
 * **robot**: Runs robot test suites.  By default, recursively runs all tests located under the folder **robot/<project name>/tests/**.  Test suites can be overridden via the **suites** keyword and variables inside robot files can be overridden using the **vars** option with the syntax VAR:value (ex: BROWSER:firefox).
 * **robot_testdoc**: Generates html documentation of your whole robot test suite and writes to **robot/<project name>/doc/<project_name>.html**.
+* **robot_lint**: Performs static analysis of robot files (files with
+  .robot and .resource), flagging issues that may reduce the quality of the code.
 
-Additionally, the RobotLibDoc task class can be wired up to generate library documentation if you choose to create a library of robot keywords for your project using. For example, if you have defined a robot resource file named MyProject.resource and placed it in the **resources** folder, you would add the following added to the cumulusci.yml file:
+Additionally, the **robot_libdoc** task can be wired up to generate library documentation if you choose to create a library of robot keywords for your project. For example, if you have defined a robot resource file named MyProject.resource and placed it in the **resources** folder, you would add the following to the cumulusci.yml file:
 
 .. code-block:: yaml
 
@@ -495,4 +497,5 @@ Creating Project Tests
 Like in the example above, all project tests live in .robot files stored under the **robot/<project name>/tests/** directory in the project.  You can choose how you want to structure the .robot files into directories by just moving the files around.  Directories are treated by robot as a parent test suite so a directory named "standard_objects" would become the "Standard Objects" test suite.
 
 The following document is recommended reading:
+
 https://github.com/robotframework/HowToWriteGoodTestCases/blob/master/HowToWriteGoodTestCases.rst

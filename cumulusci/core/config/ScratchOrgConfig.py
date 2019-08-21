@@ -152,7 +152,7 @@ class ScratchOrgConfig(OrgConfig):
 
     @property
     def days_alive(self):
-        if self.expires:
+        if self.date_created and not self.expired:
             delta = datetime.datetime.now() - self.date_created
             return delta.days + 1
 
@@ -250,6 +250,13 @@ class ScratchOrgConfig(OrgConfig):
                     "\n".join(stdout), "\n".join(stderr)
                 )
             )
+
+    def format_org_days(self):
+        if self.days_alive:
+            org_days = "{}/{}".format(self.days_alive, self.days)
+        else:
+            org_days = str(self.days)
+        return org_days
 
     def can_delete(self):
         return bool(self.date_created)

@@ -776,6 +776,66 @@ Options:
 * **output** *(required)*: The output file where the documentation will be written **Default: docs/robot/Keywords.html**
 * **title**: A string to use as the title of the generated output **Default: CumulusCI Robot Framework Keywords**
 
+robot_lint
+==========================================
+
+**Description:** Static analysis tool for robot framework files
+
+**Class::** cumulusci.tasks.robotframework.RobotLint
+
+The robot_lint task performs static analysis on one or more .robot
+and .resource files. Each line is parsed, and the result passed through
+a series of rules. Rules can issue warnings or errors about each line.
+
+If any errors are reported, the task will exit with a non-zero status.
+
+When a rule has been violated, a line will appear on the output in
+the following format:
+
+*<severity>*: *<line>*, *<character>*: *<description>* (*<name>*)
+
+- *<severity>* will be either W for warning or E for error
+- *<line>* is the line number where the rule was triggered
+- *<character>* is the character where the rule was triggered,
+  or 0 if the rule applies to the whole line
+- *<description>* is a short description of the issue
+- *<name>* is the name of the rule that raised the issue
+
+Note: the rule name can be used with the ignore, warning, error,
+and configure options.
+
+Some rules are configurable, and can be configured with the
+`configure` option. This option takes a list of values in the form
+*<rule>*:*<value>*,*<rule>*:*<value>*,etc.  For example, to set
+the line length for the LineTooLong rule you can use '-o configure
+LineTooLong:80'. If a rule is configurable, it will show the
+configuration options in the documentation for that rule
+
+The filename will be printed once before any errors or warnings
+for that file. The filename is preceeded by `+ `
+
+Example Output::
+
+    + example.robot
+    W: 2, 0: No suite documentation (RequireSuiteDocumentation)
+    E: 30, 0: No testcase documentation (RequireTestDocumentation)
+
+To see a list of all configured options, set the 'list' option to True:
+
+    cci task run robot_list -o list True
+
+
+
+Options:
+------------------------------------------
+
+* **configure**: List of rule configuration values, in the form of rule:args.
+* **ignore**: List of rules to ignore. Use 'all' to ignore all rules
+* **error**: List of rules to treat as errors. Use 'all' to affect all rules.
+* **warning**: List of rules to treat as warnings. Use 'all' to affect all rules.
+* **list**: If option is True, print a list of known rules instead of processing files.
+* **path**: The path to one or more files or folders. If the path includes wildcard characters, they will be expanded. If not provided, the default will be to process all files under robot/<project name> **Default: ['cumulusci/robotframework']**
+
 robot_testdoc
 ==========================================
 
@@ -1096,4 +1156,5 @@ Options:
 * **mapping** *(required)*: The path to a yaml file containing mappings of the database fields to Salesforce object fields **Default: datasets/mapping.yml**
 * **start_step**: If specified, skip steps before this one in the mapping
 * **sql_path**: If specified, a database will be created from an SQL script at the provided path
+* **ignore_row_errors**: If True, allow the load to continue even if individual rows fail to load.
 
