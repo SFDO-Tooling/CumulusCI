@@ -216,20 +216,6 @@ class TestRunApexTests(unittest.TestCase):
             task()
 
     @responses.activate
-    def test_init_options__regexes(self):
-        task_config = TaskConfig()
-        task_config.config["options"] = {
-            "junit_output": "results_junit.xml",
-            "poll_interval": 1,
-            "test_name_match": "%_TEST",
-            "retry_errors": ["UNABLE_TO_LOCK_ROW"],
-        }
-        task = RunApexTests(self.project_config, task_config, self.org_config)
-        task._init_options(task_config.config["options"])
-
-        self.assertIsInstance(task.options["retry_errors"][0], re.Pattern)
-
-    @responses.activate
     def test_run_task__retry_tests(self):
         self._mock_apex_class_query()
         self._mock_run_tests()
@@ -321,6 +307,31 @@ class TestRunApexTests(unittest.TestCase):
                 }
             )
         )
+
+    def test_init_options__regexes(self):
+        task_config = TaskConfig()
+        task_config.config["options"] = {
+            "junit_output": "results_junit.xml",
+            "poll_interval": 1,
+            "test_name_match": "%_TEST",
+            "retry_errors": ["UNABLE_TO_LOCK_ROW"],
+        }
+        task = RunApexTests(self.project_config, task_config, self.org_config)
+        task._init_options(task_config.config["options"])
+
+        self.assertIsInstance(task.options["retry_errors"][0], re.Pattern)
+
+    def test_init_options__bad_regexes(self):
+        task_config = TaskConfig()
+        task_config.config["options"] = {
+            "junit_output": "results_junit.xml",
+            "poll_interval": 1,
+            "test_name_match": "%_TEST",
+            "retry_errors": ["("],
+        }
+        with self.assertRaises(TaskOptionsError):
+            task = RunApexTests(self.project_config, task_config, self.org_config)
+            task._init_options(task_config.config["options"])
 
     def test_get_namespace_filter__managed(self):
         task_config = TaskConfig({"options": {"managed": True, "namespace": "testns"}})

@@ -287,6 +287,11 @@ tasks:
         description: Runs all apex tests
         class_path: cumulusci.tasks.apex.testrunner.RunApexTests
         group: Salesforce
+        options:
+            retry_errors:
+                - "unable to obtain exclusive access to this record"
+                - "UNABLE_TO_LOCK_ROW"
+
     uninstall_managed:
         description: Uninstalls the managed version of the package
         class_path: cumulusci.tasks.salesforce.UninstallPackage
