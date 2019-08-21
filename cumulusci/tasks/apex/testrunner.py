@@ -184,7 +184,7 @@ class RunApexTests(BaseSalesforceApiTask):
         self.job_id = None
         self.results_by_class_name = {}
         self.result = None
-        self.retries = None
+        self.retry_details = None
 
     def _get_namespace_filter(self):
         if self.options["managed"]:

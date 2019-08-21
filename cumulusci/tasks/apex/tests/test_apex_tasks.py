@@ -3,7 +3,6 @@ from future import standard_library
 standard_library.install_aliases()
 import http.client
 import os
-import re
 import shutil
 import tempfile
 import unittest
@@ -319,7 +318,9 @@ class TestRunApexTests(unittest.TestCase):
         task = RunApexTests(self.project_config, task_config, self.org_config)
         task._init_options(task_config.config["options"])
 
-        self.assertIsInstance(task.options["retry_errors"][0], re.Pattern)
+        self.assertIsNotNone(
+            task.options["retry_errors"][0].search("UNABLE_TO_LOCK_ROW: test failed")
+        )
 
     def test_init_options__bad_regexes(self):
         task_config = TaskConfig()
