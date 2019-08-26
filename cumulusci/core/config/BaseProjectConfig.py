@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 from collections import OrderedDict
 from distutils.version import LooseVersion
 import os
+import tempfile
 
 import raven
 
@@ -14,10 +15,12 @@ from cumulusci.core.exceptions import (
     KeychainNotFound,
     ServiceNotConfigured,
     ServiceNotValid,
+    NamespaceNotFoundError,
     NotInProject,
     ProjectConfigNotFound,
 )
 from cumulusci.core.github import get_github_api_for_repo
+from cumulusci.utils import download_extract_github
 from github3.exceptions import NotFoundError
 
 
@@ -46,6 +49,9 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         self.additional_yaml = None
         if "additional_yaml" in kwargs:
             self.additional_yaml = kwargs.pop("additional_yaml")
+
+        # initialize map of included project configs
+        self.included_projects = kwargs.pop("included_projects", {})
 
         super(BaseProjectConfig, self).__init__(config=config)
 
@@ -744,3 +750,78 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                 return repo.latest_release()
         except Exception as e:
             self.logger.warning("{}: {}".format(e.__class__.__name__, str(e)))
+
+    def get_namespace(self, ns):
+        spec = getattr(self, "include__{}".format(ns))
+        if spec is None:
+            raise NamespaceNotFoundError("Namespace not found: {}".format(ns))
+        if spec not in self.included_projects:
+            self.include_project(spec)
+        project_config = self.included_projects[spec]
+        return project_config
+
+    def include_project(self, spec):
+        # Refactor to separate Loader classes
+        if "github" in spec:
+            project_config = self.fetch_github_project(spec)
+        else:
+            raise Exception("Not sure how to load project: {}".format(spec))
+        project_config.set_keychain(self.keychain)
+        self.included_projects[spec] = project_config
+        # XXX when are we going to clean up the temp dirs?
+
+    def fetch_github_project(self, spec):
+        # Initialize github3.py API against repo
+        repo_owner, repo_name = spec["github"].split("/")[3:5]
+        if repo_name.endswith(".git"):
+            repo_name = repo_name[:-4]
+        gh = self.get_github_api(repo_owner, repo_name)
+        repo = gh.repository(repo_owner, repo_name)
+
+        # Determine the commit
+        release = None
+        if "ref" in spec:
+            ref = spec["ref"]
+        else:
+            if "tag" in spec:
+                try:
+                    # Find the github release corresponding to this tag.
+                    release = repo.release_from_tag(spec["tag"])
+                except NotFoundError:
+                    raise DependencyResolutionError(
+                        "No release found for tag {}".format(spec["tag"])
+                    )
+            else:
+                release = self._find_latest_release(repo, include_beta=False)
+            if release:
+                ref = repo.tag(
+                    repo.ref("tags/" + release.tag_name).object.sha
+                ).object.sha
+            else:
+                self.logger.info(
+                    "No release found; using the latest commit from the {} branch.".format(
+                        repo.default_branch
+                    )
+                )
+                ref = repo.branch(repo.default_branch).commit.sha
+
+        # Fetch the project
+        self.logger.info(
+            "Downloading commit {} of {} from GitHub".format(ref, repo.full_name)
+        )
+        zf = download_extract_github(gh, repo_owner, repo_name, ref=ref)
+        project_path = tempfile.mkdtemp()
+        zf.extractall(project_path)
+
+        project_config = BaseProjectConfig(
+            self.project_config.global_config_obj,
+            repo_info={
+                "root": project_path,
+                "owner": repo_owner,
+                "name": repo_name,
+                "url": self.project_config.repo_url,
+                "commit": ref,
+            },
+            included_projects=self.included_projects,
+        )
+        return project_config

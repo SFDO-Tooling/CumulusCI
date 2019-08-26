@@ -125,6 +125,10 @@ class TaskOptionsError(CumulusCIUsageError):
     pass
 
 
+class NamespaceNotFoundError(CumulusCIUsageError):
+    """Raise when namespace is not found in project includes"""
+
+
 class TaskNotFoundError(CumulusCIUsageError):
     """ Raise when task is not found in project config """
 
