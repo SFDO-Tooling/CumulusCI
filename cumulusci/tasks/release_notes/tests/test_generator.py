@@ -3,15 +3,15 @@
 import mock
 import os
 import unittest
-
 import responses
-
 from cumulusci.core.exceptions import CumulusCIException
 from cumulusci.core.github import get_github_api
 from cumulusci.tasks.release_notes.generator import BaseReleaseNotesGenerator
 from cumulusci.tasks.release_notes.generator import StaticReleaseNotesGenerator
 from cumulusci.tasks.release_notes.generator import DirectoryReleaseNotesGenerator
 from cumulusci.tasks.release_notes.generator import GithubReleaseNotesGenerator
+from cumulusci.tasks.release_notes.generator import markdown_link_to_pr
+from cumulusci.tasks.release_notes.generator import render_empty_pr_section
 from cumulusci.tasks.release_notes.parser import BaseChangeNotesParser
 from cumulusci.tasks.github.tests.util_github_api import GithubApiTestMixin
 from cumulusci.tasks.release_notes.tests.utils import MockUtil
@@ -130,7 +130,7 @@ class TestGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTestMixin):
         )
         generator = self._create_generator()
         pr = generator.get_repo().pull_request(1)
-        actual_link = generator._mark_down_link_to_pr(pr)
+        actual_link = markdown_link_to_pr(pr)
         expected_link = "{} [[PR{}]({})]".format(pr.title, pr.number, pr.html_url)
         self.assertEquals(expected_link, actual_link)
 
@@ -144,7 +144,7 @@ class TestGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTestMixin):
         pr1 = repo.pull_request(1)
         pr2 = repo.pull_request(2)
         generator.empty_change_notes.extend([pr1, pr2])
-        content = generator._render_empty_pr_section()
+        content = render_empty_pr_section(generator.empty_change_notes)
         self.assertEquals(3, len(content))
         self.assertEquals("\n# Pull requests with no release notes", content[0])
         self.assertEquals(
