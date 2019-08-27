@@ -151,7 +151,7 @@ class ParentPullRequestNotesGenerator(BaseReleaseNotesGenerator):
                     )
                 )
         else:
-            # if we don't have parent branch specified AND potential_child_branch is
+            # if we don't have parent branch specified AND target_branch is
             # not a child of a feature branch, then we're done
             return
         self._process_parent_pull_request(parent_pull_request)
