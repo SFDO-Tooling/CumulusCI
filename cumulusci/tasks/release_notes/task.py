@@ -1,6 +1,11 @@
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.tasks.github.base import BaseGithubTask
-from cumulusci.tasks.release_notes.generator import GithubReleaseNotesGenerator
+from cumulusci.tasks.release_notes.generator import (
+    GithubReleaseNotesGenerator,
+    ParentPullRequestNotesGenerator,
+)
+from github3.pulls import ShortPullRequest
+from cumulusci.core.exceptions import TaskOptionsError
 
 
 class GithubReleaseNotes(BaseGithubTask):
@@ -55,3 +60,32 @@ class GithubReleaseNotes(BaseGithubTask):
 
         release_notes = generator()
         self.logger.info("\n" + release_notes)
+
+
+class ParentPullRequestNotes(BaseGithubTask):
+    task_options = {
+        "branch_name": {"description": "Name of branch with a pull request"},
+        "parent_branch_name": {
+            "description": "name of the parent branch to rebuild change notes for (default=None)"
+        },
+    }
+
+    def _run_task(self):
+        branch_name = self.options.get("branch_name")
+        parent_branch_name = self.options.get("parent_branch_name")
+
+        if not branch_name and not parent_branch_name:
+            raise TaskOptionsError(
+                "You must specify either branch_name or parent_branch_name."
+            )
+
+        parent_notes_generator = ParentPullRequestNotesGenerator(
+            self.github,
+            self.get_repo(),
+            self.project_config.repo_owner,
+            self.project_config.project__git__release_notes__parsers.values(),
+            self.project_config.project__git__prefix_feature,
+            branch_name,
+            parent_branch_name,
+        )
+        parent_notes_generator.execute()
