@@ -110,6 +110,10 @@ tasks:
         description: Retrieves a list of the currently installed managed package namespaces and their versions
         class_path: cumulusci.tasks.salesforce.GetInstalledPackages
         group: Salesforce Metadata
+    github_parent_pr_notes:
+        description: Merges the description of a child PRs to the respective Parent's PR (if one exists).
+        class_path: cumulusci.tasks.release_notes.task.ParentPullRequestNotes
+        group: GitHub
     github_clone_tag:
         description: Lists open pull requests in project Github repository
         class_path: cumulusci.tasks.github.CloneTag
