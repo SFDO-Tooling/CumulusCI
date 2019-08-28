@@ -13,7 +13,7 @@ class GenerateMapping(BaseSalesforceApiTask):
     mapping suitable for extracting data in packaged and custom objects as well as
     customized standard objects.
 
-    Mappings must be serializable, and hence must resolvereference cycles - situations
+    Mappings must be serializable, and hence must resolve reference cycles - situations
     where Object A refers to B, and B also refers to A. Mapping generation will stop
     and request user input to resolve such cycles by identifying the correct load order.
     Alternately, specify the `ignore` option with the name of one of the
@@ -172,7 +172,7 @@ class GenerateMapping(BaseSalesforceApiTask):
                     # First, determine what manner of lookup we have here.
                     referenceTo = self.schema[obj][field]["referenceTo"]
 
-                    if len(referenceTo) > 1:  # Polymorphiy lookup
+                    if len(referenceTo) > 1:  # Polymorphic lookup
                         self.logger.warning(
                             "Field {}.{} is a polymorphic lookup, which is not supported".format(
                                 obj, field
