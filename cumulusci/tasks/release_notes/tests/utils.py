@@ -44,7 +44,11 @@ class MockUtil(GithubApiTestMixin):
             status=http.client.OK,
         )
 
-    def mock_list_pulls(self):
+    def mock_pulls(self, pulls=None):
+        api_url = "{}/pulls".format(self.repo_url)
+        expected_response = self._get_expected_pulls(pulls=pulls)
+        responses.add(method=responses.GET, url=api_url, json=expected_response)
+
         responses.add(
             method=responses.GET,
             url="{}/pulls".format(self.repo_url),
