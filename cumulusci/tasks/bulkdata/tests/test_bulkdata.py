@@ -1103,7 +1103,7 @@ class TestExtractDataWithoutSFIds(unittest.TestCase):
         self.assertEqual("TestHousehold", household.name)
         self.assertEqual("HH_Account", household.record_type)
         contact = task.session.query(task.models["contacts"]).one()
-        self.assertEqual("foo", contact.household_id)
+        self.assertEqual("1", contact.household_id)
 
 
 class TestMappingGenerator(unittest.TestCase):
