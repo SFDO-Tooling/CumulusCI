@@ -304,9 +304,12 @@ class TestLoadDataWithSFIds(unittest.TestCase):
         task.mapping = OrderedDict()
         task.mapping["Insert Households"] = 1
         task.mapping["Insert Contacts"] = 2
+        households_steps = OrderedDict()
+        households_steps["four"] = 4
+        households_steps["five"] = 5
         task.after_steps = {
             "Insert Contacts": OrderedDict(three=3),
-            "Insert Households": OrderedDict(four=4, five=5),
+            "Insert Households": households_steps,
         }
         task._load_mapping = mock.Mock(return_value="Completed")
         task()
@@ -339,31 +342,31 @@ class TestLoadDataWithSFIds(unittest.TestCase):
             ],
             list(task.after_steps["Insert Contacts"].keys()),
         )
+        lookups = OrderedDict()
+        lookups["Id"] = {"table": "accounts", "key_field": "sf_id"}
+        lookups["Primary_Contact__c"] = OrderedDict({"table": "contacts"})
         self.assertEqual(
             {
                 "sf_object": "Account",
                 "action": "update",
                 "table": "accounts",
-                "lookups": OrderedDict(
-                    Id={"table": "accounts", "key_field": "sf_id"},
-                    Primary_Contact__c=OrderedDict({"table": "contacts"}),
-                ),
+                "lookups": lookups,
                 "fields": {},
             },
             task.after_steps["Insert Contacts"][
                 "Update Account Dependencies After Insert Contacts"
             ],
         )
+        lookups = OrderedDict()
+        lookups["Id"] = {"table": "contacts", "key_field": "sf_id"}
+        lookups["ReportsToId"] = OrderedDict({"table": "contacts"})
         self.assertEqual(
             {
                 "sf_object": "Contact",
                 "action": "update",
                 "table": "contacts",
                 "fields": {},
-                "lookups": OrderedDict(
-                    Id={"table": "contacts", "key_field": "sf_id"},
-                    ReportsToId=OrderedDict({"table": "contacts"}),
-                ),
+                "lookups": lookups,
             },
             task.after_steps["Insert Contacts"][
                 "Update Contact Dependencies After Insert Contacts"
@@ -373,16 +376,16 @@ class TestLoadDataWithSFIds(unittest.TestCase):
             ["Update Account Dependencies After Insert Accounts"],
             list(task.after_steps["Insert Accounts"].keys()),
         )
+        lookups = OrderedDict()
+        lookups["Id"] = {"table": "accounts", "key_field": "sf_id"}
+        lookups["ParentId"] = OrderedDict({"table": "accounts"})
         self.assertEqual(
             {
                 "sf_object": "Account",
                 "action": "update",
                 "table": "accounts",
                 "fields": {},
-                "lookups": OrderedDict(
-                    Id={"table": "accounts", "key_field": "sf_id"},
-                    ParentId=OrderedDict({"table": "accounts"}),
-                ),
+                "lookups": lookups,
             },
             task.after_steps["Insert Accounts"][
                 "Update Account Dependencies After Insert Accounts"
@@ -472,13 +475,17 @@ class TestLoadDataWithSFIds(unittest.TestCase):
             {"options": {"database_url": "sqlite://", "mapping": "test.yml"}},
         )
 
+        fields = OrderedDict()
+        fields["Id"] = "sf_id"
+        fields["Name"] = "Name"
+
         self.assertEqual(
             ["Name", "Industry", "RecordTypeId"],
             task._get_columns(
                 OrderedDict(
                     sf_object="Account",
                     action="insert",
-                    fields=OrderedDict(Id="sf_id", Name="Name"),
+                    fields=fields,
                     static=OrderedDict(Industry="Technology"),
                     record_type="Organization",
                 )
@@ -490,7 +497,7 @@ class TestLoadDataWithSFIds(unittest.TestCase):
                 OrderedDict(
                     sf_object="Account",
                     action="update",
-                    fields=OrderedDict(Id="sf_id", Name="Name"),
+                    fields=fields,
                     static=OrderedDict(Industry="Technology"),
                     record_type="Organization",
                 )
