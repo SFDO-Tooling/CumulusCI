@@ -2,6 +2,38 @@
 History
 =======
 
+2.5.6 (2019-08-15)
+------------------
+
+New features:
+
+* We've changed how the output of some commands are displayed in tables.
+  For users that prefer simpler style tables we've added a ``--plain`` option
+  to approximate the previous behavior. To permanently set this option,
+  add this in ``~/.cumulusci/cumulusci.yml``::
+
+    cli:
+        plain_output: True
+
+* Added additional info to the ``cci version`` command, including the Python version,
+  an upgrade check, and a warning on Python 2.
+* Improved the summary of flow steps that is shown at the start of running a flow.
+* The ``github_release_notes`` task now has an ``include_empty`` option
+  to include links to pull requests that have no release notes.
+  This is enabled by default when this task is called as part of the ``release_beta`` flow.
+* Robot Framework:
+
+  * Added locators file to support the Winter '20 release of Salesforce.
+  * New ``robot_lint`` task to check for common problems in Robot Framework test suites.
+  * The ``Open Test Browser`` keyword will now log details about the browser.
+  * Added a new keyword to the CumulusCI library, ``Get Community Info``.
+    It can be used to get information about a Community by name via the Salesforce API.
+
+Issues closed:
+
+* Added workarounds for some intermittent 401 errors when authenticating to the GitHub API as a GitHub App.
+* ``cci org info`` shouldn't show traceback if the org isn't found (#1023)
+
 2.5.5 (2019-07-31)
 ------------------
 

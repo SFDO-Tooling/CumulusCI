@@ -350,8 +350,8 @@ class FlowCoordinator(object):
 
         self._rule(fill="-")
         self.logger.info("Steps:")
-        for step in self.steps:
-            self.logger.info(step.for_display)
+        for line in self.get_summary().splitlines():
+            self.logger.info(line)
         self._rule(fill="-", new_line=True)
 
         self.logger.info("Starting execution")
