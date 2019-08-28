@@ -101,28 +101,22 @@ class DirectoryReleaseNotesGenerator(BaseReleaseNotesGenerator):
 class ParentPullRequestNotesGenerator(BaseReleaseNotesGenerator):
     """Aggregates notes from PRs with parent_pr_num as their base."""
 
-    def __init__(
-        self,
-        github,
-        repo,
-        repo_owner,
-        parser_config,
-        feature_branch_prefix,
-        branch_name,
-        parent_branch,
-    ):
+    def __init__(self, github, repo, project_config, branch_name, parent_branch_name):
+        self.REPO_OWNER = project_config.repo_owner
+        self.BUILD_NOTES_LABEL = "Build Change Notes"
+        self.UNAGGREGATED_SECTION_HEADER = "\r\n\r\n# Unaggregated Pull Requests"
+
         self.repo = repo
         self.link_pr = True  # create links to pr on parsed change notes
         self.github = github
         self.has_issues = True
         self.do_publish = True
-        self.REPO_OWNER = repo_owner
         self.target_branch = branch_name
-        self.parser_config = parser_config
-        self.parent_branch = parent_branch
-        self.BUILD_NOTES_LABEL = "Build Change Notes"
-        self.feature_branch_prefix = feature_branch_prefix
-        self.UNAGGREGATED_SECTION_HEADER = "\r\n\r\n# Unaggregated Pull Requests"
+        self.parent_branch = parent_branch_name
+        self.feature_branch_prefix = project_config.project__git__prefix_feature
+        self.parser_config = (
+            project_config.project__git__release_notes__parsers.values()
+        )
         super(ParentPullRequestNotesGenerator, self).__init__()
 
     def _init_parsers(self):
@@ -214,7 +208,8 @@ class ParentPullRequestNotesGenerator(BaseReleaseNotesGenerator):
         return list(self.repo.pull_requests(base=parent_branch))
 
     def _create_parent_pr(self):
-        """Creates a pull request for self.parent_branch."""
+        """Creates a pull request for self.parent_branch,
+        and adds the BUILD_NOTES_LABEL labe to it."""
         try:
             parent_pr = self.repo.create_pull(
                 "Auto Generated Pull Request", "master", self.parent_branch
