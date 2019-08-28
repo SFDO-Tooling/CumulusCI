@@ -3,12 +3,20 @@ from __future__ import print_function
 import sarge
 
 from cumulusci.core.config import BaseConfig
+from cumulusci.core.config import ConnectedAppOAuthConfig
 from cumulusci.core.config import ScratchOrgConfig
 from cumulusci.core.config import ServiceConfig
 from cumulusci.core.exceptions import OrgNotFound
 from cumulusci.core.exceptions import ServiceNotConfigured
 from cumulusci.core.exceptions import ServiceNotValid
 from cumulusci.core.sfdx import sfdx
+
+
+DEFAULT_CONNECTED_APP = ConnectedAppOAuthConfig({
+    "client_id": "3MVG9i1HRpGLXp.or6OVlWVWyn8DXi9xueKNM4npq_AWh.yqswojK9sE5WY7f.biP0w7bNJIENfXc7JMDZGO1",
+    "client_secret": None,
+    "callback_url": "http://localhost:8080/callback",
+})
 
 
 class BaseProjectKeychain(BaseConfig):
@@ -215,6 +223,8 @@ class BaseProjectKeychain(BaseConfig):
         if not self.project_config.services or name not in self.project_config.services:
             self._raise_service_not_valid(name)
         if name not in self.services:
+            if name == "connected_app":
+                return DEFAULT_CONNECTED_APP
             self._raise_service_not_configured(name)
 
         return self._get_service(name)
