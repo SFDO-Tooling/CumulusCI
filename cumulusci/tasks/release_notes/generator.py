@@ -1,6 +1,11 @@
 import github3.exceptions
 
 from cumulusci.core.utils import import_global
+from cumulusci.core.github import (
+    is_label_on_pull_request,
+    get_pull_request_by_branch_name,
+    get_pull_requests_with_base_branch,
+)
 from cumulusci.tasks.release_notes.exceptions import CumulusCIException
 from cumulusci.tasks.release_notes.parser import ChangeNotesLinesParser
 from cumulusci.tasks.release_notes.parser import GithubLinesParser
@@ -101,9 +106,9 @@ class DirectoryReleaseNotesGenerator(BaseReleaseNotesGenerator):
 class ParentPullRequestNotesGenerator(BaseReleaseNotesGenerator):
     """Aggregates notes from PRs with parent_pr_num as their base."""
 
-    def __init__(self, github, repo, project_config, branch_name, parent_branch_name):
+    def __init__(self, github, repo, project_config, build_notes_label):
         self.REPO_OWNER = project_config.repo_owner
-        self.BUILD_NOTES_LABEL = "Build Change Notes"
+        self.BUILD_NOTES_LABEL = build_notes_label
         self.UNAGGREGATED_SECTION_HEADER = "\r\n\r\n# Unaggregated Pull Requests"
 
         self.repo = repo
@@ -111,8 +116,6 @@ class ParentPullRequestNotesGenerator(BaseReleaseNotesGenerator):
         self.github = github
         self.has_issues = True
         self.do_publish = True
-        self.target_branch = branch_name
-        self.parent_branch = parent_branch_name
         self.feature_branch_prefix = project_config.project__git__prefix_feature
         self.parser_config = (
             project_config.project__git__release_notes__parsers.values()
@@ -120,136 +123,55 @@ class ParentPullRequestNotesGenerator(BaseReleaseNotesGenerator):
         super(ParentPullRequestNotesGenerator, self).__init__()
 
     def _init_parsers(self):
+        """Invoked from Super Class"""
         for cfg in self.parser_config:
             parser_class = import_global(cfg["class_path"])
             self.parsers.append(parser_class(self, cfg["title"]))
 
-        # New parser to collect notes above tracked sections
+        # New parser to collect developer notes above tracked headers
         self.parsers.append(GithubLinesParser(self, "Notes From Child PRs"))
         self.parsers[-1]._in_section = True
 
-    def execute(self):
-        """Determines how to acquire the 'parent' pull request given the available parameters"""
-        if self.parent_branch:
-            parent_pull_request = self._get_pr_by_branch_name(self.parent_branch)
-        elif self._branch_is_child_of_feature(self.target_branch):
-            pull_requests = self._get_parent_pull_request(self.parent_branch)
-            if len(pull_requests) == 0:
-                parent_pull_request = self._create_parent_pr()
-            elif len(pull_requests) == 1:
-                parent_pull_request = pull_requests[0]
-            else:
-                raise CumulusCIException(
-                    "Expected 0 or 1 pull request, but received {}".format(
-                        len(pull_requests)
-                    )
-                )
-        else:
-            # if we don't have parent branch specified AND target_branch is
-            # not a child of a feature branch, then we're done
-            return
-        self._process_parent_pull_request(parent_pull_request)
-
-    def _process_parent_pull_request(self, parent_pull_request):
-        """Alters the body of the parent pull request based on the presence of the 'Build Change Notes'
-        label. 
-        
-        If the label is present, we aggregate all change note information
-        from child pull requests and recreates the parent_pull_reqeust body. 
-
-        In the absence of the label, we append links to any new child PRs to the
-        'Unaggregated Pull Requests' section of the parent_pull_request"""
-        if self._is_label_on_pr(parent_pull_request.number, self.BUILD_NOTES_LABEL):
-            self.change_notes = self._get_child_pull_requests(self.parent_branch)
-            if not self.change_notes:
-                raise CumulusCIException(
-                    "No child PRs found for Pull Request #{}".format(
-                        parent_pull_request.number
-                    )
-                )
-            for change_note in self.change_notes:
-                self._parse_change_note(change_note)
-
-            body = []
-            for parser in self.parsers:
-                parser_content = parser.render()
-                if parser_content:
-                    body.append(parser_content)
-
-            if self.empty_change_notes:
-                body.extend(render_empty_pr_section(self.empty_change_notes))
-            new_body = "\r\n".join(body)
-            if not parent_pull_request.update(body=new_body):
-                raise CumulusCIException(
-                    "Update of pull request {} failed.".format(
-                        parent_pull_request.number
-                    )
-                )
-        elif self.target_branch:
-            self._update_unaggregated_pr_list(parent_pull_request)
-
-    def _branch_is_child_of_feature(self, target_branch):
-        """Returns true if the branch with the given name is the child of a feature branch. False otherwise."""
-        pr = self._get_pr_by_branch_name(target_branch)
-        self.parent_branch = pr.base.ref
-        return self.parent_branch.startswith(self.feature_branch_prefix)
-
-    def _get_parent_pull_request(self, parent_branch):
-        """Returns a list of all pull requests with head=parent_branch
-        and base=master"""
-        return list(
-            self.repo.pull_requests(
-                head=self.REPO_OWNER + ":" + parent_branch, base="master"
-            )
+    def aggregate_child_change_notes(self, pull_request):
+        """Aggregates all change notes from child pull reqeusts.
+        Child pull reqeusts are pull requests that have a base branch
+        equal to the the given pull requests head."""
+        self.change_notes = get_pull_requests_with_base_branch(
+            self.repo, pull_request.head.label.split(":")[1]
         )
-
-    def _get_child_pull_requests(self, parent_branch):
-        """Get all pull requests with parent_branch as base"""
-        return list(self.repo.pull_requests(base=parent_branch))
-
-    def _create_parent_pr(self):
-        """Creates a pull request for self.parent_branch,
-        and adds the BUILD_NOTES_LABEL labe to it."""
-        try:
-            parent_pr = self.repo.create_pull(
-                "Auto Generated Pull Request", "master", self.parent_branch
+        if len(self.change_notes) == 0:
+            raise CumulusCIException(
+                "No pull requests with base branch {} found.".format(pull_request.head)
             )
-        except Exception as e:
-            raise CumulusCIException("Error creating pull request:\n{}".format(e))
-        self._add_label_to_pr(parent_pr.number, [self.BUILD_NOTES_LABEL])
-        return parent_pr
 
-    def _add_label_to_pr(self, pr_num, labels):
-        """Adds a label to a pull request via the issue object"""
-        issue = self.repo.issue(pr_num)
-        issue.add_label(labels)
+        for change_note in self.change_notes:
+            self._parse_change_note(change_note)
 
-    def _is_label_on_pr(self, pr_num, label_name):
-        """Returns True if the given label is on the pull request with the given
-        pull request number. False otherwise."""
-        return any(
-            label_name in pr_label.name for pr_label in self.repo.issue(pr_num).labels()
-        )
+        body = []
+        for parser in self.parsers:
+            parser_content = parser.render()
+            if parser_content:
+                body.append(parser_content)
 
-    def _update_unaggregated_pr_list(self, parent_pr):
-        body = parent_pr.body
+        if self.empty_change_notes:
+            body.extend(render_empty_pr_section(self.empty_change_notes))
+        new_body = "\r\n".join(body)
+
+        if not pull_request.update(body=new_body):
+            raise CumulusCIException(
+                "Update of pull request #{} failed.".format(pull_request.number)
+            )
+
+    def update_unaggregated_pr_header(self, pull_request_to_update, branch_name_to_add):
+        body = pull_request_to_update.body
         if self.UNAGGREGATED_SECTION_HEADER not in body:
             body += self.UNAGGREGATED_SECTION_HEADER
 
-        pull_request = self._get_pr_by_branch_name(self.target_branch)
-        body += "\r\n* " + markdown_link_to_pr(pull_request)
-        parent_pr.update(body=body)
-
-    def _get_pr_by_branch_name(self, branch_name):
-        pull_requests = list(
-            self.repo.pull_requests(head=self.REPO_OWNER + ":" + branch_name)
-        )
-        if len(pull_requests) == 1:
-            return pull_requests[0]
-        else:
-            raise CumulusCIException(
-                "Expected one pull request but received {}".format(len(pull_requests))
-            )
+        pull_request = get_pull_request_by_branch_name(self.repo, branch_name_to_add)
+        pull_request_link = markdown_link_to_pr(pull_request)
+        if pull_request_link not in body:
+            body += "\r\n* " + markdown_link_to_pr(pull_request)
+            pull_request_to_update.update(body=body)
 
 
 class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator):
