@@ -63,6 +63,25 @@ class GithubReleaseNotes(BaseGithubTask):
 
 
 class ParentPullRequestNotes(BaseGithubTask):
+    task_docs = """
+    Aggregate change notes from a child pull request to its corresponding
+    parent pull request.
+    
+    When given the branch_name option, this task will: (1) check if the base branch
+    of the corresponding pull request starts with the feature branch prefix and if so (2) attempt
+    to query for a pull request corresponding to this parent feature branch. (3) if a pull request
+    isn't found one is created and the BUILD_NOTES_LABEL is added to it.
+
+    If the BUILD_NOTES_LABEL is present on the pull request, then all notes from the 
+    child pull request are aggregated into the parent pull request. If the BUILD_NOTES_LABEL
+    is not detected on the parent pull request then a link to the child pull request
+    is placed under the "Unaggregated Pull Reqeusts" header.
+
+    When given the parent_branch_name option, this task will query for a corresponding pull request.
+    If a pull request is not found, the task exits. If a pull request is found, then all notes
+    from child pull requests are re-aggregated and the body of the parent is replace entirely.
+    """
+
     task_options = {
         "branch_name": {"description": "Name of branch with a pull request"},
         "parent_branch_name": {
