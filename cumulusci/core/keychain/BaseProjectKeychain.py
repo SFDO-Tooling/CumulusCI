@@ -12,11 +12,13 @@ from cumulusci.core.exceptions import ServiceNotValid
 from cumulusci.core.sfdx import sfdx
 
 
-DEFAULT_CONNECTED_APP = ConnectedAppOAuthConfig({
-    "client_id": "3MVG9i1HRpGLXp.or6OVlWVWyn8DXi9xueKNM4npq_AWh.yqswojK9sE5WY7f.biP0w7bNJIENfXc7JMDZGO1",
-    "client_secret": None,
-    "callback_url": "http://localhost:8080/callback",
-})
+DEFAULT_CONNECTED_APP = ConnectedAppOAuthConfig(
+    {
+        "client_id": "3MVG9i1HRpGLXp.or6OVlWVWyn8DXi9xueKNM4npq_AWh.yqswojK9sE5WY7f.biP0w7bNJIENfXc7JMDZGO1",
+        "client_secret": None,
+        "callback_url": "http://localhost:8080/callback",
+    }
+)
 
 
 class BaseProjectKeychain(BaseConfig):

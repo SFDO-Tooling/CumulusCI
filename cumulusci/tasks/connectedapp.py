@@ -143,7 +143,9 @@ class CreateConnectedApp(SFDXBaseTask):
     def _validate_connect_service(self):
         if not self.options["overwrite"]:
             try:
-                connected_app = self.project_config.keychain.get_service("connected_app")
+                connected_app = self.project_config.keychain.get_service(
+                    "connected_app"
+                )
             except ServiceNotConfigured:
                 pass
             else:
