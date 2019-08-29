@@ -6,7 +6,7 @@ coverage==4.5.4
 coveralls==1.8.2
 flake8==3.7.8
 mock==3.0.5
-pre-commit==1.18.1
+pre-commit==1.18.2
 pytest==4.6.5  # pyup: <5
 pytest-cov==2.7.1
 responses==0.10.6
@@ -15,4 +15,4 @@ testfixtures==6.10.0
 tox==3.13.2
 twine==1.13.0
 watchdog==0.9.0
-wheel==0.33.4
+wheel==0.33.6
