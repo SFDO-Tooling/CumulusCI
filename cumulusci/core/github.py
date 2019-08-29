@@ -108,8 +108,8 @@ def create_pull_request(repo, branch_name, base=None, title=None):
 def add_labels_to_pull_request(repo, pull_request, labels):
     """Adds a label to a pull request via the issue object
         Args:
-            repo: github repository object
-            pull_request: ShortPullRequest object
+            repo: Repository object
+            pull_request: ShortPullRequest object that exists in repo
             labels: list(str) of labels to add to the pull request"""
     issue = repo.issue(pull_request.number)
     issue.add_label(labels)
