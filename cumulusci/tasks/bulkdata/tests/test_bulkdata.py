@@ -463,7 +463,7 @@ class TestLoadDataWithSFIds(unittest.TestCase):
 
         task._query_db = mock.Mock()
         task._query_db.return_value.yield_per = mock.Mock(
-            return_value=[["001000000001", None]]
+            return_value=[["001000000001", "001000000002", None]]
         )
         task._start_batch = mock.Mock(return_value=(batch_file, writer, batch_ids))
         batches = list(task._get_batches(mapping))
@@ -1050,9 +1050,6 @@ class TestExtractDataWithSFIds(unittest.TestCase):
         )
         with self.assertRaises(BulkDataException):
             task()
-
-            # FIXME: skipping no-updates is not working
-            # FIXME: import fails if no fields besides Id
 
 
 class TestExtractDataWithoutSFIds(unittest.TestCase):

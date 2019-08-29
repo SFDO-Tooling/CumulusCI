@@ -146,10 +146,11 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
             pkey = row[0]
             row = list(row[1:]) + statics
             row = [self._convert(value) for value in row]
-            if mapping["action"] == "update" and all([f is None for f in row]):
-                # Skip update rows that contain no values
-                total_rows -= 1
-                continue
+            if mapping["action"] == "update":
+                if len(row) > 1 and all([f is None for f in row[1:]]):
+                    # Skip update rows that contain no values
+                    total_rows -= 1
+                    continue
 
             writer.writerow(row)
             batch_ids.append(pkey)
