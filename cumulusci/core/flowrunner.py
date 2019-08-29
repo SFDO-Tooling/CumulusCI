@@ -704,7 +704,7 @@ class CachedTaskRunner(object):
     def __call__(self, **options):
         cache_key = (self.task_name, tuple(options.items()))
         if cache_key in self.cache.results:
-            return self.cache.results[cache_key]
+            return self.cache.results[cache_key].return_values
 
         task_config = self.cache.flow.project_config.tasks[self.task_name]
         task_class = import_global(task_config["class_path"])
