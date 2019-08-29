@@ -73,3 +73,52 @@ def validate_service(options):
         raise GithubException(
             "Could not confirm access to the GitHub API: {}".format(str(e))
         )
+
+
+def get_pull_requests_with_base_branch(repo, base_branch_name):
+    """Returns a list of pull requests with the given base branch"""
+    return list(repo.pull_requests(base=base_branch_name))
+
+
+def get_pull_request_by_branch_name(repo, branch_name):
+    """Returns a single pull request if found, or None if nothing is returned.
+    Will throw an error is more than one pull request is returned"""
+    pull_requests = list(repo.pull_requests(head=repo.owner.login + ":" + branch_name))
+    if len(pull_requests) == 0:
+        return None
+    elif len(pull_requests) == 1:
+        return pull_requests[0]
+    else:
+        raise GithubException(
+            "Expected one pull request but received {}".format(len(pull_requests))
+        )
+
+
+def create_pull_request(repo, branch_name, base=None, title=None):
+    """Creates a pull request for the given branch"""
+    base = base or "master"
+    title = title or "Auto-Generate Pull Request"
+    try:
+        pull_request = repo.create_pull(title, base, branch_name)
+    except Exception as e:
+        raise GithubException("Error creating pull request:\n{}".format(e))
+    return pull_request
+
+
+def add_labels_to_pull_request(repo, pull_request, labels):
+    """Adds a label to a pull request via the issue object
+        Args:
+            repo: github repository object
+            pull_request: ShortPullRequest object
+            labels: list(str) of labels to add to the pull request"""
+    issue = repo.issue(pull_request.number)
+    issue.add_label(labels)
+
+
+def is_label_on_pull_request(repo, pull_request, label_name):
+    """Returns True if the given label is on the pull request with the given
+    pull request number. False otherwise."""
+    return any(
+        label_name in pr_label.name
+        for pr_label in repo.issue(pull_request.number).labels()
+    )
