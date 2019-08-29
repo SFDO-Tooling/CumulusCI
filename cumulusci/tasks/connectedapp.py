@@ -3,6 +3,7 @@ import re
 import os
 from cumulusci.core.config import ServiceConfig
 from cumulusci.core.exceptions import TaskOptionsError, ServiceNotConfigured
+from cumulusci.core.keychain import DEFAULT_CONNECTED_APP
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.tasks.sfdx import SFDXBaseTask, SFDX_CLI
 from cumulusci.utils import random_alphanumeric_underscore
@@ -142,13 +143,14 @@ class CreateConnectedApp(SFDXBaseTask):
     def _validate_connect_service(self):
         if not self.options["overwrite"]:
             try:
-                self.project_config.keychain.get_service("connected_app")
+                connected_app = self.project_config.keychain.get_service("connected_app")
             except ServiceNotConfigured:
                 pass
             else:
-                raise TaskOptionsError(
-                    "The CumulusCI keychain already contains a connected_app service.  Set the 'overwrite' option to True to overwrite the existing service"
-                )
+                if connected_app is not DEFAULT_CONNECTED_APP:
+                    raise TaskOptionsError(
+                        "The CumulusCI keychain already contains a connected_app service.  Set the 'overwrite' option to True to overwrite the existing service"
+                    )
 
     def _connect_service(self):
         self.project_config.keychain.set_service(
