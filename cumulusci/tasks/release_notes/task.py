@@ -5,14 +5,14 @@ Classes:
     GithubReleaseNotes
     ParentPullRequestNotes
 """
+from github3.pulls import ShortPullRequest
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.tasks.github.base import BaseGithubTask
+from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.tasks.release_notes.generator import (
     GithubReleaseNotesGenerator,
     ParentPullRequestNotesGenerator,
 )
-from github3.pulls import ShortPullRequest
-from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.github import (
     create_pull_request,
     is_label_on_pull_request,
