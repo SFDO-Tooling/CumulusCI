@@ -494,6 +494,21 @@ Options:
 * **plan**: Name of the plan(s) to publish. This refers to the `plans` section of cumulusci.yml. By default, all plans will be published.
 * **dry_run**: If True, print steps without publishing.
 
+publish_community
+==========================================
+
+**Description:** Publishes a Community in the target org using the Connect API
+
+**Class::** cumulusci.tasks.salesforce.PublishCommunity
+
+Publish a Salesforce Community via the Connect API.
+
+
+Options:
+------------------------------------------
+
+* **communityid** *(required)*: Id of the community.
+
 push_all
 ==========================================
 
