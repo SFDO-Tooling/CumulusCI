@@ -104,19 +104,25 @@ class DirectoryReleaseNotesGenerator(BaseReleaseNotesGenerator):
 
 
 class ParentPullRequestNotesGenerator(BaseReleaseNotesGenerator):
-    """Aggregates notes from PRs with parent_pr_num as their base."""
+    """Aggregates notes from child pull requests in to a parent pull request
+    Attributes:
+        UNAGGREGATED_SECTION_HEADER: Str header for section on pull requests where
+        unaggregated chile pull requests are linked to.
 
-    def __init__(self, github, repo, project_config, build_notes_label):
-        self.REPO_OWNER = project_config.repo_owner
-        self.BUILD_NOTES_LABEL = build_notes_label
-        self.UNAGGREGATED_SECTION_HEADER = "\r\n\r\n# Unaggregated Pull Requests"
+    Methods:
+        aggregate_child_change_notes: Aggregates change notes from child prs into parent
+        update_unaggregated_pr_header: Adds a new child pr to the section
+    """
+
+    UNAGGREGATED_SECTION_HEADER = "\r\n\r\n# Unaggregated Pull Requests"
+
+    def __init__(self, github, repo, project_config):
 
         self.repo = repo
-        self.link_pr = True  # create links to pr on parsed change notes
         self.github = github
-        self.has_issues = True
-        self.do_publish = True
-        self.feature_branch_prefix = project_config.project__git__prefix_feature
+        self.link_pr = True  # create links to pr on parsed change notes
+        self.has_issues = True  # need for parsers
+        self.do_publish = True  # need for parsers
         self.parser_config = (
             project_config.project__git__release_notes__parsers.values()
         )
