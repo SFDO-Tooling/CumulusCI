@@ -1,3 +1,10 @@
+# -*- coding: utf-8 -*-
+"""Release Note Tasks
+
+Classes:
+    GithubReleaseNotes
+    ParentPullRequestNotes
+"""
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.tasks.github.base import BaseGithubTask
 from cumulusci.tasks.release_notes.generator import (
@@ -88,7 +95,6 @@ class ParentPullRequestNotes(BaseGithubTask):
     from child pull requests are re-aggregated and the body of the parent is replace entirely.
     """
 
-    # Class member
     BUILD_NOTES_LABEL = "Build Change Notes"
 
     task_options = {
@@ -111,7 +117,7 @@ class ParentPullRequestNotes(BaseGithubTask):
 
         self.repo = self.get_repo()
         generator = ParentPullRequestNotesGenerator(
-            self.github, self.repo, self.project_config, self.BUILD_NOTES_LABEL
+            self.github, self.repo, self.project_config
         )
 
         if branch_name:
