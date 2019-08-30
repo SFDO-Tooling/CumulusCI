@@ -302,6 +302,9 @@ class FlowCoordinator(object):
         for step in self.steps:
             parts = step.path.split(".")
             steps = str(step.step_num).split("/")
+            if len(parts) > len(steps):
+                # Sub-step generated during freeze process; skip it
+                continue
             task_name = parts.pop()
 
             i = -1
