@@ -41,7 +41,8 @@ class MockHttpResponse(mock.Mock):
 
 
 class TestGithub:
-    def tearDown(self):
+    @classmethod
+    def teardown(cls):
         # clear cached repo -> installation mapping
         github.INSTALLATIONS.clear()
 
