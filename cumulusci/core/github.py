@@ -98,10 +98,7 @@ def create_pull_request(repo, branch_name, base=None, title=None):
     """Creates a pull request for the given branch"""
     base = base or "master"
     title = title or "Auto-Generate Pull Request"
-    try:
-        pull_request = repo.create_pull(title, base, branch_name)
-    except Exception as e:
-        raise GithubException("Error creating pull request:\n{}".format(e))
+    pull_request = repo.create_pull(title, base, branch_name)
     return pull_request
 
 
