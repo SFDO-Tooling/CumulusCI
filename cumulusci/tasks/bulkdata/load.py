@@ -95,6 +95,12 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
 
     def _load_mapping(self, mapping):
         """Load data for a single step."""
+
+        if "RecordTypeId" in mapping["fields"]:
+            conn = self.session.connection()
+            self._load_record_types([mapping["sf_object"]], conn)
+            conn.commit()
+
         mapping["oid_as_pk"] = bool(mapping.get("fields", {}).get("Id"))
         job_id, local_ids_for_batch = self._create_job(mapping)
         result = self._wait_for_job(job_id)
@@ -190,11 +196,10 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
             columns.append("RecordTypeId")
 
         return columns
-    
+
     def _load_record_types(self, sobjects, conn):
         for sobject in sobjects:
-            table_name = sobject + "_new_rt_mapping"
-            self._create_record_type_table(table_name)
+            table_name = sobject + "_rt_target_mapping"
             self._extract_record_types(sobject, table_name, conn)
 
     def _get_statics(self, mapping):
@@ -258,17 +263,20 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
             for f in mapping["filters"]:
                 filter_args.append(text(f))
             query = query.filter(*filter_args)
-        
+
         if "RecordTypeId" in mapping["fields"]:
-            rt_source_table = self.metadata.tables[mapping["table"] + "_rt_mapping"]
-            rt_dest_table = self.metadata.tables[mapping["table"] + "_rt_target_mapping"]
+            rt_source_table = self.metadata.tables[mapping["sf_object"] + "_rt_mapping"]
+            rt_dest_table = self.metadata.tables[
+                mapping["sf_object"] + "_rt_target_mapping"
+            ]
             query = query.outerjoin(
                 rt_source_table,
-                rt_source_table.columns.Id == getattr(model, "RecordTypeId")
+                rt_source_table.columns.Id == getattr(model, "RecordTypeId"),
             )
             query = query.outerjoin(
                 rt_dest_table,
-                rt_dest_table.columns.DeveloperName == rt_source_table.columns.DeveloperName
+                rt_dest_table.columns.DeveloperName
+                == rt_source_table.columns.DeveloperName,
             )
             columns.append(rt_dest_table.columns.Id)
 
@@ -410,6 +418,13 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
         for name, mapping in self.mapping.items():
             if "table" in mapping and mapping["table"] not in self.models:
                 self.models[mapping["table"]] = self.base.classes[mapping["table"]]
+
+            # create any Record Type tables we need
+            if "fields" in mapping and "RecordTypeId" in mapping["fields"]:
+                print("Creating record type table for {}".format(mapping["sf_object"]))
+                self._create_record_type_table(
+                    mapping["sf_object"] + "_rt_target_mapping"
+                )
 
     def _init_mapping(self):
         with open(self.options["mapping"], "r") as f:

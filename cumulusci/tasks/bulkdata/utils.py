@@ -1,4 +1,5 @@
 import datetime
+import io
 import requests
 import tempfile
 import time
@@ -9,6 +10,9 @@ from contextlib import contextmanager
 from sqlalchemy import types
 from sqlalchemy import event
 from sqlalchemy import Table
+from sqlalchemy import Column
+from sqlalchemy import Unicode
+from sqlalchemy.orm import mapper
 
 from cumulusci.utils import convert_to_snake_case
 
@@ -126,27 +130,23 @@ class BulkJobTaskMixin(object):
 
     def _create_record_type_table(self, table_name):
         rt_map_model_name = "{}Model".format(table_name)
-        self.models[table_name] = type(
-            rt_map_model_name, (object,), {}
-        )
+        self.models[table_name] = type(rt_map_model_name, (object,), {})
         rt_map_fields = [
             Column("record_type_id", Unicode(18), primary_key=True),
             Column("developer_name", Unicode(255)),
         ]
-        rt_map_table = Table(
-            table_name, self.metadata, *rt_map_fields
-        )
+        rt_map_table = Table(table_name, self.metadata, *rt_map_fields)
         mapper(self.models[table_name], rt_map_table)
 
     def _extract_record_types(self, sobject, table, conn):
+        self.logger.info("Extracting Record Types for {}".format(sobject))
         query = "SELECT Id, DeveloperName FROM RecordType WHERE SObjectType='{0}'"
         data_file = io.BytesIO()
-        columns = ["Id", "DeveloperName"]
-        writer = unicodecsv.writer(columns)
+        writer = unicodecsv.writer(data_file)
         for rt in self.sf.query(query.format(sobject))["records"]:
             writer.writerow([rt["Id"], rt["DeveloperName"]])
+        data_file.seek(0)
 
         self._sql_bulk_insert_from_csv(
-            conn, table, columns, data_file
+            conn, table, ["record_type_id", "developer_name"], data_file
         )
-

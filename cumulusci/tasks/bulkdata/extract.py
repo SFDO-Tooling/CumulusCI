@@ -1,4 +1,3 @@
-import io
 import os
 import tempfile
 import unicodecsv
@@ -178,13 +177,15 @@ class ExtractData(BulkJobTaskMixin, BaseSalesforceApiTask):
                         conn, mapping["sf_id_table"], ["sf_id"], data_file_ids
                     )
 
+        if "RecordTypeId" in mapping["fields"]:
+            self._extract_record_types(
+                mapping["sf_object"], mapping["record_type_table"], conn
+            )
+
         self.session.commit()
 
         if lookup_keys and not mapping["oid_as_pk"]:
             self._convert_lookups_to_id(mapping, lookup_keys)
-
-        if "RecordTypeId" in mapping["fields"]:
-            self._extract_record_types(mapping["sobject"], mapping["record_type_table"], conn)
 
     def _get_mapping_for_table(self, table):
         """ Returns the first mapping for a table name """
@@ -256,7 +257,7 @@ class ExtractData(BulkJobTaskMixin, BaseSalesforceApiTask):
 
         if "RecordTypeId" in mapping["fields"]:
             # We're using Record Type Mapping support.
-            mapping["record_type_table"] = mapping["table"] + "_rt_mapping"
+            mapping["record_type_table"] = mapping["sf_object"] + "_rt_mapping"
             # If multiple mappings point to the same table, don't recreate the table
             if mapping["record_type_table"] not in self.models:
                 self._create_record_type_table(mapping["record_type_table"])
