@@ -111,9 +111,7 @@ class RunApexTests(BaseSalesforceApiTask):
             )
         },
         "poll_interval": {
-            "description": (
-                "Seconds to wait between polling for Apex test " + "results."
-            )
+            "description": ("Seconds to wait between polling for Apex test results.")
         },
         "junit_output": {
             "description": "File name for JUnit output.  Defaults to test_results.xml"
@@ -163,14 +161,17 @@ class RunApexTests(BaseSalesforceApiTask):
         self.options["retry_errors"] = process_list_arg(
             self.options.get("retry_errors", [])
         )
-        try:
-            self.options["retry_errors"] = [
-                re.compile(r) for r in self.options["retry_errors"]
-            ]
-        except re.error as e:
-            raise TaskOptionsError(
-                "An invalid regular expression was provided ({})".format(e)
-            )
+        compiled_res = []
+        for regex in self.options["retry_errors"]:
+            try:
+                compiled_res.append(re.compile(regex))
+            except re.error as e:
+                raise TaskOptionsError(
+                    "An invalid regular expression ({}) was provided ({})".format(
+                        regex, e
+                    )
+                )
+        self.options["retry_errors"] = compiled_res
         self.options["retry_always"] = process_bool_arg(
             self.options.get("retry_always", False)
         )
@@ -384,29 +385,7 @@ class RunApexTests(BaseSalesforceApiTask):
         if not able_to_retry:
             self.counts["Retriable"] = 0
         else:
-            self.logger.warning(
-                "Retrying failed methods from {} test classes".format(
-                    len(self.retry_details)
-                )
-            )
-            # Save the pre-retry status counts. If the retries fail, we'll report the originals.
-            original_counts = self.counts.copy()
-            for class_id, test_list in self.retry_details.items():
-                for each_test in test_list:
-                    self.logger.warning(
-                        "Retrying {}.{}".format(self.classes_by_id[class_id], each_test)
-                    )
-                    self.job_id = self._enqueue_test_run({class_id: [each_test]})
-                    self._wait_for_tests()
-                    self._get_test_results(allow_retries=False)
-                    # If the retry failed, stop and count all retried tests
-                    # under their original failures.
-                    if self.counts["Fail"] > original_counts["Fail"]:
-                        self.logger.error("Test retry failed.")
-                        # Reset counts to avoid double-counting retried failures
-                        self.counts = original_counts
-                        self.counts["Retriable"] = 0
-                        break
+            self._attempt_retries()
 
         if self.counts["Retriable"]:
             # All our retries succeeded. Clear the failure counter.
@@ -421,6 +400,31 @@ class RunApexTests(BaseSalesforceApiTask):
                     self.counts.get("Fail"), self.counts.get("CompileFail")
                 )
             )
+
+    def _attempt_retries(self):
+        self.logger.warning(
+            "Retrying failed methods from {} test classes".format(
+                len(self.retry_details)
+            )
+        )
+        # Save the pre-retry status counts. If the retries fail, we'll report the originals.
+        original_counts = self.counts.copy()
+        for class_id, test_list in self.retry_details.items():
+            for each_test in test_list:
+                self.logger.warning(
+                    "Retrying {}.{}".format(self.classes_by_id[class_id], each_test)
+                )
+                self.job_id = self._enqueue_test_run({class_id: [each_test]})
+                self._wait_for_tests()
+                self._get_test_results(allow_retries=False)
+                # If the retry failed, stop and count all retried tests
+                # under their original failures.
+                if self.counts["Fail"] > original_counts["Fail"]:
+                    self.logger.error("Test retry failed.")
+                    # Reset counts to avoid double-counting retried failures
+                    self.counts = original_counts
+                    self.counts["Retriable"] = 0
+                    return
 
     def _wait_for_tests(self):
         self.poll_complete = False
