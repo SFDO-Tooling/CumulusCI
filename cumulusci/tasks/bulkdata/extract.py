@@ -16,8 +16,10 @@ from cumulusci.tasks.bulkdata.utils import (
     download_file,
     process_incoming_rows,
     get_lookup_key_field,
+    create_table,
+    fields_for_mapping,
 )
-from cumulusci.core.exceptions import BulkDataException, TaskOptionsError
+from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.core.utils import ordered_yaml_load
 from cumulusci.utils import log_progress, os_friendly_path
@@ -93,7 +95,7 @@ class ExtractData(BulkJobTaskMixin, BaseSalesforceApiTask):
         fields = []
         if not mapping["oid_as_pk"]:
             fields.append("Id")
-        fields += [field["sf"] for field in self._fields_for_mapping(mapping)]
+        fields += [field["sf"] for field in fields_for_mapping(mapping)]
         soql = "SELECT {fields} FROM {sf_object}".format(
             **{"fields": ", ".join(fields), "sf_object": sf_object}
         )
@@ -228,27 +230,9 @@ class ExtractData(BulkJobTaskMixin, BaseSalesforceApiTask):
     def _create_table(self, mapping):
         model_name = "{}Model".format(mapping["table"])
         mapper_kwargs = {}
-        table_kwargs = {}
         self.models[mapping["table"]] = type(model_name, (object,), {})
 
-        # Provide support for legacy mappings which used the OID as the pk but
-        # default to using an autoincrementing int pk and a separate sf_id column
-        fields = []
-        mapping["oid_as_pk"] = bool(mapping.get("fields", {}).get("Id"))
-        if mapping["oid_as_pk"]:
-            id_column = mapping["fields"]["Id"]
-            fields.append(Column(id_column, Unicode(255), primary_key=True))
-        else:
-            fields.append(Column("id", Integer(), primary_key=True, autoincrement=True))
-        for field in self._fields_for_mapping(mapping):
-            if mapping["oid_as_pk"] and field["sf"] == "Id":
-                continue
-            fields.append(Column(field["db"], Unicode(255)))
-        if "record_type" in mapping:
-            fields.append(Column("record_type", Unicode(255)))
-        t = Table(mapping["table"], self.metadata, *fields, **table_kwargs)
-        if t.exists():
-            raise BulkDataException("Table already exists: {}".format(mapping["table"]))
+        t = create_table(mapping, self.metadata)
 
         if not mapping["oid_as_pk"]:
             mapping["sf_id_table"] = mapping["table"] + "_sf_id"
@@ -266,16 +250,6 @@ class ExtractData(BulkJobTaskMixin, BaseSalesforceApiTask):
                 mapper(self.models[mapping["sf_id_table"]], id_t)
 
         mapper(self.models[mapping["table"]], t, **mapper_kwargs)
-
-    def _fields_for_mapping(self, mapping):
-        fields = []
-        for sf_field, db_field in mapping.get("fields", {}).items():
-            fields.append({"sf": sf_field, "db": db_field})
-        for sf_field, lookup in mapping.get("lookups", {}).items():
-            fields.append(
-                {"sf": sf_field, "db": get_lookup_key_field(lookup, sf_field)}
-            )
-        return fields
 
     def _drop_sf_id_columns(self):
         for mapping in self.mappings.values():
