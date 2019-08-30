@@ -119,13 +119,13 @@ class RunApexTests(BaseSalesforceApiTask):
         "json_output": {
             "description": "File name for json output.  Defaults to test_results.json"
         },
-        "retry_errors": {
+        "retry_failures": {
             "description": "A list of regular expression patterns to match against "
             "test failures. If failures match, the failing tests are retried in "
             "serial mode."
         },
         "retry_always": {
-            "description": "By default, all failures must match retry_errors to perform "
+            "description": "By default, all failures must match retry_failures to perform "
             "a retry. Set retry_always to True to retry all failed tests if any failure matches."
         },
     }
@@ -158,11 +158,11 @@ class RunApexTests(BaseSalesforceApiTask):
 
         self.options["managed"] = process_bool_arg(self.options.get("managed", False))
 
-        self.options["retry_errors"] = process_list_arg(
-            self.options.get("retry_errors", [])
+        self.options["retry_failures"] = process_list_arg(
+            self.options.get("retry_failures", [])
         )
         compiled_res = []
-        for regex in self.options["retry_errors"]:
+        for regex in self.options["retry_failures"]:
             try:
                 compiled_res.append(re.compile(regex))
             except re.error as e:
@@ -171,7 +171,7 @@ class RunApexTests(BaseSalesforceApiTask):
                         regex, e
                     )
                 )
-        self.options["retry_errors"] = compiled_res
+        self.options["retry_failures"] = compiled_res
         self.options["retry_always"] = process_bool_arg(
             self.options.get("retry_always", False)
         )
@@ -236,7 +236,7 @@ class RunApexTests(BaseSalesforceApiTask):
             [
                 reg.search(test_result["Message"] or "")
                 or reg.search(test_result["StackTrace"] or "")
-                for reg in self.options["retry_errors"]
+                for reg in self.options["retry_failures"]
             ]
         )
 

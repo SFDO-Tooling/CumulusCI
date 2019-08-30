@@ -229,7 +229,7 @@ class TestRunApexTests(unittest.TestCase):
             "junit_output": "results_junit.xml",
             "poll_interval": 1,
             "test_name_match": "%_TEST",
-            "retry_errors": ["UNABLE_TO_LOCK_ROW"],
+            "retry_failures": ["UNABLE_TO_LOCK_ROW"],
         }
         task = RunApexTests(self.project_config, task_config, self.org_config)
         task()
@@ -250,7 +250,7 @@ class TestRunApexTests(unittest.TestCase):
             "junit_output": "results_junit.xml",
             "poll_interval": 1,
             "test_name_match": "%_TEST",
-            "retry_errors": ["UNABLE_TO_LOCK_ROW"],
+            "retry_failures": ["UNABLE_TO_LOCK_ROW"],
         }
         task = RunApexTests(self.project_config, task_config, self.org_config)
         with self.assertRaises(ApexTestException):
@@ -262,7 +262,7 @@ class TestRunApexTests(unittest.TestCase):
             "junit_output": "results_junit.xml",
             "poll_interval": 1,
             "test_name_match": "%_TEST",
-            "retry_errors": [
+            "retry_failures": [
                 "UNABLE_TO_LOCK_ROW",
                 "unable to obtain exclusive access to this record",
             ],
@@ -313,13 +313,13 @@ class TestRunApexTests(unittest.TestCase):
             "junit_output": "results_junit.xml",
             "poll_interval": 1,
             "test_name_match": "%_TEST",
-            "retry_errors": ["UNABLE_TO_LOCK_ROW"],
+            "retry_failures": ["UNABLE_TO_LOCK_ROW"],
         }
         task = RunApexTests(self.project_config, task_config, self.org_config)
         task._init_options(task_config.config["options"])
 
         self.assertIsNotNone(
-            task.options["retry_errors"][0].search("UNABLE_TO_LOCK_ROW: test failed")
+            task.options["retry_failures"][0].search("UNABLE_TO_LOCK_ROW: test failed")
         )
 
     def test_init_options__bad_regexes(self):
@@ -328,7 +328,7 @@ class TestRunApexTests(unittest.TestCase):
             "junit_output": "results_junit.xml",
             "poll_interval": 1,
             "test_name_match": "%_TEST",
-            "retry_errors": ["("],
+            "retry_failures": ["("],
         }
         with self.assertRaises(TaskOptionsError):
             task = RunApexTests(self.project_config, task_config, self.org_config)
