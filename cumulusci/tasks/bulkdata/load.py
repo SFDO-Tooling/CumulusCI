@@ -190,6 +190,12 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
             columns.append("RecordTypeId")
 
         return columns
+    
+    def _load_record_types(self, sobjects, conn):
+        for sobject in sobjects:
+            table_name = sobject + "_new_rt_mapping"
+            self._create_record_type_table(table_name)
+            self._extract_record_types(sobject, table_name, conn)
 
     def _get_statics(self, mapping):
         statics = list(mapping.get("static", {}).values())
@@ -230,7 +236,8 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
         columns = [getattr(model, id_column)]
 
         for f in fields.values():
-            columns.append(model.__table__.columns[f])
+            if f != "RecordTypeId":
+                columns.append(model.__table__.columns[f])
 
         lookups = {
             lookup_field: lookup
@@ -251,6 +258,19 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
             for f in mapping["filters"]:
                 filter_args.append(text(f))
             query = query.filter(*filter_args)
+        
+        if "RecordTypeId" in mapping["fields"]:
+            rt_source_table = self.metadata.tables[mapping["table"] + "_rt_mapping"]
+            rt_dest_table = self.metadata.tables[mapping["table"] + "_rt_target_mapping"]
+            query = query.outerjoin(
+                rt_source_table,
+                rt_source_table.columns.Id == getattr(model, "RecordTypeId")
+            )
+            query = query.outerjoin(
+                rt_dest_table,
+                rt_dest_table.columns.DeveloperName == rt_source_table.columns.DeveloperName
+            )
+            columns.append(rt_dest_table.columns.Id)
 
         for sf_field, lookup in lookups.items():
             # Outer join with lookup ids table:

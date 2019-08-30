@@ -123,3 +123,30 @@ class BulkJobTaskMixin(object):
             if rows:
                 conn.execute(table.insert().values(rows))
         self.session.flush()
+
+    def _create_record_type_table(self, table_name):
+        rt_map_model_name = "{}Model".format(table_name)
+        self.models[table_name] = type(
+            rt_map_model_name, (object,), {}
+        )
+        rt_map_fields = [
+            Column("record_type_id", Unicode(18), primary_key=True),
+            Column("developer_name", Unicode(255)),
+        ]
+        rt_map_table = Table(
+            table_name, self.metadata, *rt_map_fields
+        )
+        mapper(self.models[table_name], rt_map_table)
+
+    def _extract_record_types(self, sobject, table, conn):
+        query = "SELECT Id, DeveloperName FROM RecordType WHERE SObjectType='{0}'"
+        data_file = io.BytesIO()
+        columns = ["Id", "DeveloperName"]
+        writer = unicodecsv.writer(columns)
+        for rt in self.sf.query(query.format(sobject))["records"]:
+            writer.writerow([rt["Id"], rt["DeveloperName"]])
+
+        self._sql_bulk_insert_from_csv(
+            conn, table, columns, data_file
+        )
+

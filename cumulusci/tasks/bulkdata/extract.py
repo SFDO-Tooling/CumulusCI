@@ -184,19 +184,7 @@ class ExtractData(BulkJobTaskMixin, BaseSalesforceApiTask):
             self._convert_lookups_to_id(mapping, lookup_keys)
 
         if "RecordTypeId" in mapping["fields"]:
-            self._extract_record_types(mapping, conn)
-
-    def _extract_record_types(self, mapping, conn):
-        query = "SELECT Id, DeveloperName FROM RecordType WHERE SObjectType='{0}'"
-        data_file = io.BytesIO()
-        columns = ["Id", "DeveloperName"]
-        writer = unicodecsv.writer(columns)
-        for rt in self.sf.query(query.format(mapping["sf_object"]))["records"]:
-            writer.writerow()
-
-        self._sql_bulk_insert_from_csv(
-            conn, mapping["record_type_table"], columns, data_file
-        )
+            self._extract_record_types(mapping["sobject"], mapping["record_type_table"], conn)
 
     def _get_mapping_for_table(self, table):
         """ Returns the first mapping for a table name """
@@ -271,18 +259,7 @@ class ExtractData(BulkJobTaskMixin, BaseSalesforceApiTask):
             mapping["record_type_table"] = mapping["table"] + "_rt_mapping"
             # If multiple mappings point to the same table, don't recreate the table
             if mapping["record_type_table"] not in self.models:
-                rt_map_model_name = "{}Model".format(mapping["record_type_table"])
-                self.models[mapping["record_type_table"]] = type(
-                    rt_map_model_name, (object,), {}
-                )
-                rt_map_fields = [
-                    Column("record_type_id", Unicode(18), primary_key=True),
-                    Column("developer_name", Unicode(255)),
-                ]
-                rt_map_table = Table(
-                    mapping["record_type_table"], self.metadata, *rt_map_fields
-                )
-                mapper(self.models[mapping["record_type_table"]], rt_map_table)
+                self._create_record_type_table(mapping["record_type_table"])
 
         if not mapping["oid_as_pk"]:
             mapping["sf_id_table"] = mapping["table"] + "_sf_id"
