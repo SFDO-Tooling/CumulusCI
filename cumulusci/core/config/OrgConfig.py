@@ -1,10 +1,13 @@
 from __future__ import unicode_literals
 
+import os
+
 import requests
 
 from cumulusci.core.config import BaseConfig
 from cumulusci.core.exceptions import SalesforceCredentialsException
 from cumulusci.oauth.salesforce import SalesforceOAuth2
+from cumulusci.oauth.salesforce import jwt_session
 
 
 class OrgConfig(BaseConfig):
@@ -19,6 +22,23 @@ class OrgConfig(BaseConfig):
         super(OrgConfig, self).__init__(config)
 
     def refresh_oauth_token(self, keychain, connected_app=None):
+        SFDX_CLIENT_ID = os.environ.get("SFDX_CLIENT_ID")
+        SFDX_HUB_KEY = os.environ.get("SFDX_HUB_KEY")
+        if SFDX_CLIENT_ID and SFDX_HUB_KEY:
+            login_url = (
+                "https://test.salesforce.com"
+                if self.is_sandbox
+                else "https://login.salesforce.com"
+            )
+            info = jwt_session(SFDX_CLIENT_ID, SFDX_HUB_KEY, self.username, login_url)
+        else:
+            info = self._refresh_token(keychain, connected_app)
+        if info != self.config:
+            self.config.update(info)
+        self._load_userinfo()
+        self._load_orginfo()
+
+    def _refresh_token(self, keychain, connected_app):
         if keychain:  # it might be none'd and caller adds connected_app
             connected_app = keychain.get_service("connected_app")
         if connected_app is None:
@@ -42,11 +62,7 @@ class OrgConfig(BaseConfig):
             raise SalesforceCredentialsException(
                 "Error refreshing OAuth token: {}".format(resp.text)
             )
-        info = resp.json()
-        if info != self.config:
-            self.config.update(info)
-        self._load_userinfo()
-        self._load_orginfo()
+        return resp.json()
 
     @property
     def lightning_base_url(self):

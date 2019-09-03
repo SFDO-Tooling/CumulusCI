@@ -430,11 +430,7 @@ class PreflightFlowCoordinatorTest(AbstractFlowCoordinatorTest, unittest.TestCas
         flow_config = FlowConfig(
             {
                 "checks": [
-                    {
-                        "when": "tasks.log(level='info', line='plan') or True",
-                        "action": "error",
-                        "message": "Failed plan check",
-                    }
+                    {"when": "True", "action": "error", "message": "Failed plan check"}
                 ],
                 "steps": {
                     1: {
@@ -442,10 +438,15 @@ class PreflightFlowCoordinatorTest(AbstractFlowCoordinatorTest, unittest.TestCas
                         "options": {"level": "info", "line": "step"},
                         "checks": [
                             {
-                                "when": "tasks.log(level='info', line='plan') or True",
+                                "when": "tasks.log(level='info', line='plan')",
                                 "action": "error",
-                                "message": "Failed step check",
-                            }
+                                "message": "Failed step check 1",
+                            },
+                            {
+                                "when": "not tasks.log(level='info', line='plan')",
+                                "action": "error",
+                                "message": "Failed step check 2",
+                            },
                         ],
                     }
                 },
@@ -457,7 +458,10 @@ class PreflightFlowCoordinatorTest(AbstractFlowCoordinatorTest, unittest.TestCas
         self.assertDictEqual(
             {
                 None: [{"status": "error", "message": "Failed plan check"}],
-                "log": [{"status": "error", "message": "Failed step check"}],
+                "log": [{"status": "error", "message": "Failed step check 2"}],
             },
             flow.preflight_results,
         )
+        # Make sure task result got cached
+        key = ("log", (("level", "info"), ("line", "plan")))
+        assert key in flow.jinja2_context["tasks"].results
