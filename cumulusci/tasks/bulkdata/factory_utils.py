@@ -11,9 +11,22 @@ from .base_generate_data_task import BaseGenerateDataTask
 enums.SPLITTER = "____"
 
 
-# More flexible than FactoryBoy's sequences because you can create and
-# destroy them where-ever you want.
 class Adder:
+    """A more flexible alternative to Factoryboy sequences. You can create and
+        destroy them wherever you want.
+
+    >>> x = Adder(10)
+    >>> x(1)
+    11
+    >>> x(1)
+    12
+    >>> x.reset(5)
+    >>> x(2)
+    7
+    >>> x(2)
+    9
+    """
+
     def __init__(self, x=0):
         self.x = x
 
@@ -25,9 +38,11 @@ class Adder:
         self.x = x
 
 
-# Thin collector for the factories and a place to try to achieve better
-# scalability than the create_batch function from FactoryBoy.
 class Factories:
+    """Thin collector for the factories and a place to experiment with
+    techniques for better scalability than the create_batch function
+    from FactoryBoy."""
+
     def __init__(self, session, orm_classes, collection):
         """Add a session to factories and then store them."""
 
@@ -49,16 +64,17 @@ class Factories:
                 fact._meta.model = orm_classes[fact._meta.model]
             except KeyError:
                 raise KeyError(
-                    f"ORM Class not found matching {fact._meta.model}. Check mapping.yml"
+                    "ORM Class not found matching %s. Check mapping.yml"
+                    % fact._meta.model
                 )
 
         return fact
 
     def create_batch(self, classname, batchsize, **kwargs):
         cls = self.factory_classes.get(classname, None)
-        assert (
-            cls
-        ), f"Cannot find a factory class named {classname}. Did you misspell it?"
+        assert cls, (
+            "Cannot find a factory class named %s. Did you misspell it?" % classname
+        )
         for _ in range(batchsize):
             cls.create(**kwargs)
 

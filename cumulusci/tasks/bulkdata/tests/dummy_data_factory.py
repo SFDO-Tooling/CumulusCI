@@ -23,7 +23,7 @@ class Household(factory.alchemy.SQLAlchemyModelFactory):
     class Meta:
         model = Models.households
 
-    name = factory.sequence(lambda i: f"Household {i}")
+    name = factory.sequence(lambda i: "Household %d" % i)
 
 
 class Contact(factory.alchemy.SQLAlchemyModelFactory):
@@ -35,7 +35,7 @@ class Contact(factory.alchemy.SQLAlchemyModelFactory):
 
     id = factory.Sequence(lambda n: n + 1)
     household = factory.SubFactory(Household)  # create households automatically
-    first_name = factory.sequence(lambda i: f"Gordon {i}")
-    last_name = factory.sequence(lambda i: f"Everyman {i}")
-    email = factory.sequence(lambda i: f"gevm{i}@example.com")
+    first_name = factory.sequence(lambda i: "Gordon %d" % i)
+    last_name = factory.sequence(lambda i: "Everyman %d" % i)
+    email = factory.sequence(lambda i: "gevm%d@example.com" % i)
     household_id = factory.LazyAttribute(lambda o: o.household.id)
