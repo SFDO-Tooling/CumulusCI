@@ -65,6 +65,6 @@ is installed correctly by running ``cci version``:
 .. code:: console
 
    $ cci version
-   CumulusCI version: 2.5.6
+   CumulusCI version: 2.5.7
 
 Still need help? Search issues on CumulusCI GitHub https://github.com/SFDO-Tooling/CumulusCI/issues
