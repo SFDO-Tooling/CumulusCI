@@ -12,7 +12,7 @@ START_DATE = date(2019, 1, 1)  # Per https://salesforce.quip.com/gLfGAPtqVzUS
 
 
 class GenerateDummyData(ModuleDataFactory):
-    """Generate data specific to a particular use case"""
+    """Generate data based on test mapping.yml"""
 
     def make_records(self, num_records, factories):
         factories.create_batch("Contact", 10)
