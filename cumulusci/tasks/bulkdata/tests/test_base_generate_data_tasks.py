@@ -12,6 +12,8 @@ NUM_RECORDS = 20
 
 
 class DummyBaseBatchDataTask(BaseGenerateDataTask):
+    """Doesn't actually generate data but validates that we could if we wanted to."""
+
     def generate_data(self, session, engine, base, num_records):
         assert os.path.exists(self._testfilename)
         assert session

@@ -165,6 +165,7 @@ def create_table(mapping, metadata):
 
 
 def fields_for_mapping(mapping):
+    """Summarize the list of fields in a table mapping"""
     fields = []
     for sf_field, db_field in mapping.get("fields", {}).items():
         fields.append({"sf": sf_field, "db": db_field})

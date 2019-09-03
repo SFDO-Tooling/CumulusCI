@@ -1,5 +1,5 @@
 import os
-from abc import ABC, abstractmethod
+from abc import abstractmethod, ABCMeta
 
 from sqlalchemy import create_engine
 from sqlalchemy import MetaData
@@ -12,8 +12,10 @@ from cumulusci.core.utils import ordered_yaml_load
 from .utils import create_table
 
 
-class BaseGenerateDataTask(BaseTask, ABC):
+class BaseGenerateDataTask(BaseTask):
     """Abstract base class for any class that generates data using a SQL DB."""
+
+    __metaclass__ = ABCMeta  # Python 2 syntax
 
     task_docs = """
     Use the `num_records` option to specify how many records to generate.
@@ -66,4 +68,6 @@ class BaseGenerateDataTask(BaseTask, ABC):
 
     @abstractmethod
     def generate_data(self, session, engine, base, num_records):
+        """Abstract methods for base classes to really generate
+           the data into an open session."""
         pass

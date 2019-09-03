@@ -5,18 +5,45 @@ from future import standard_library
 standard_library.install_aliases()
 from builtins import str
 from builtins import object
+from calendar import timegm
+from datetime import datetime
 from http.server import BaseHTTPRequestHandler
 from http.server import HTTPServer
 import http.client
+import jwt
 import requests
 from urllib.parse import quote
 from urllib.parse import parse_qs
+from urllib.parse import urljoin
 from urllib.parse import urlparse
 import webbrowser
 
 from cumulusci.oauth.exceptions import SalesforceOAuthError
 
 HTTP_HEADERS = {"Content-Type": "application/x-www-form-urlencoded"}
+
+
+def jwt_session(client_id, private_key, username, url=None):
+    if url is None:
+        url = "https://login.salesforce.com"
+
+    payload = {
+        "alg": "RS256",
+        "iss": client_id,
+        "sub": username,
+        "aud": url,  # jwt aud is NOT mydomain
+        "exp": timegm(datetime.utcnow().utctimetuple()),
+    }
+    encoded_jwt = jwt.encode(payload, private_key, algorithm="RS256")
+    data = {
+        "grant_type": "urn:ietf:params:oauth:grant-type:jwt-bearer",
+        "assertion": encoded_jwt,
+    }
+    headers = {"Content-Type": "application/x-www-form-urlencoded"}
+    auth_url = urljoin(url, "services/oauth2/token")
+    response = requests.post(url=auth_url, data=data, headers=headers)
+    response.raise_for_status()
+    return response.json()
 
 
 class SalesforceOAuth2(object):
