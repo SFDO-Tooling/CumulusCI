@@ -824,15 +824,7 @@ def org_browser(config, org_name):
 def org_connect(config, org_name, sandbox, login_url, default, global_org):
     config.check_org_overwrite(org_name)
 
-    try:
-        connected_app = config.keychain.get_service("connected_app")
-    except ServiceNotConfigured:
-        raise ServiceNotConfigured(
-            "Connected App is required but not configured. "
-            + "Configure the Connected App service:\n"
-            + "http://cumulusci.readthedocs.io/en/latest/"
-            + "tutorial.html#configuring-the-project-s-connected-app"
-        )
+    connected_app = config.keychain.get_service("connected_app")
     if sandbox:
         login_url = "https://test.salesforce.com"
 

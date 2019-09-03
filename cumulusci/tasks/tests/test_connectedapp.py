@@ -20,6 +20,7 @@ from cumulusci.core.config import (
 )
 from cumulusci.core.exceptions import ServiceNotConfigured, TaskOptionsError
 from cumulusci.core.keychain import BaseProjectKeychain
+from cumulusci.core.keychain import DEFAULT_CONNECTED_APP
 from cumulusci.core.tests.utils import MockLoggerMixin
 from cumulusci.tasks.connectedapp import CreateConnectedApp
 from cumulusci.utils import temporary_dir
@@ -240,8 +241,8 @@ class TestCreateConnectedApp(MockLoggerMixin, unittest.TestCase):
             task.options["command"],
             self.base_command + " -u {} -d {}".format(self.username, task.tempdir),
         )
-        with pytest.raises(ServiceNotConfigured):
-            self.project_config.keychain.get_service("connected_app")
+        connected_app = self.project_config.keychain.get_service("connected_app")
+        assert connected_app is DEFAULT_CONNECTED_APP
 
     @mock.patch("cumulusci.tasks.sfdx.SFDXBaseTask._run_task")
     @mock.patch("cumulusci.tasks.connectedapp.CreateConnectedApp._connect_service")
