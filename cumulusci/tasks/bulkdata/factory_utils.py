@@ -1,4 +1,4 @@
-from abc import ABC, abstractmethod
+from abc import ABCMeta, abstractmethod
 from importlib import import_module
 
 from factory import enums, base
@@ -82,7 +82,7 @@ class Factories:
         return self.factory_classes[name]
 
 
-class BaseDataFactory(BaseGenerateDataTask, ABC):
+class BaseDataFactory(BaseGenerateDataTask, ABCMeta):
     """Abstract base class for any FactoryBoy based generator"""
 
     def generate_data(self, session, engine, base, num_records):
