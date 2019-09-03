@@ -134,7 +134,7 @@ class ParentPullRequestNotesGenerator(BaseReleaseNotesGenerator):
             parser_class = import_global(cfg["class_path"])
             self.parsers.append(parser_class(self, cfg["title"]))
 
-        # New parser to collect developer notes above tracked headers
+        # Additional parser to collect developer notes above tracked headers
         self.parsers.append(GithubLinesParser(self, "Notes From Child PRs"))
         self.parsers[-1]._in_section = True
 
