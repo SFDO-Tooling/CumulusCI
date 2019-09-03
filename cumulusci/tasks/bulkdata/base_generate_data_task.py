@@ -68,4 +68,6 @@ class BaseGenerateDataTask(BaseTask):
 
     @abstractmethod
     def generate_data(self, session, engine, base, num_records):
+        """Abstract methods for base classes to really generate
+           the data into an open session."""
         pass
