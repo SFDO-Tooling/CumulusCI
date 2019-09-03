@@ -165,7 +165,7 @@ jobs:
             ./sfdx/install
             cd CumulusCI-Test
             echo $SFDX_HUB_KEY_BASE64 | base64 --decode > sfdx.key
-            echo "export SFDX_HUB_KEY=$(echo $SFDX_HUB_KEY_BASE64 | base64 --decode)" >> $BASH_ENV
+            echo 'export SFDX_HUB_KEY="$(echo $SFDX_HUB_KEY_BASE64 | base64 --decode)"' >> $BASH_ENV
             sfdx force:auth:jwt:grant --clientid $SFDX_CLIENT_ID --jwtkeyfile sfdx.key --username $SFDX_HUB_USERNAME --setdefaultdevhubusername -a hub
       - run:
           name: Run ci_feature flow
