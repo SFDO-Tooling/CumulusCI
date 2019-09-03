@@ -1,5 +1,5 @@
+from random import randint
 from datetime import datetime
-
 from cumulusci.tests.util import random_sha
 
 date_format = "%Y-%m-%dT%H:%M:%SZ"
@@ -361,7 +361,10 @@ class GithubApiTestMixin(object):
         pr.update(kw)
         return pr
 
-    def _get_expected_issue(self, issue_number, owner=None, repo=None):
+    def get_expected_pull_requests(self, num_pull_requests):
+        return [self._get_expected_pull_request(i, i) for i in range(num_pull_requests)]
+
+    def _get_expected_issue(self, issue_number, owner=None, repo=None, labels=None):
         if owner is None:
             owner = "TestOwner"
         if repo is None:
@@ -383,7 +386,7 @@ class GithubApiTestMixin(object):
                 owner, repo, issue_number
             ),
             "id": issue_number,
-            "labels": [],
+            "labels": labels or [],
             "labels_url": "",
             "locked": False,
             "milestone": None,
@@ -446,3 +449,17 @@ class GithubApiTestMixin(object):
             "message": "Not Found",
             "documentation_url": "https://developer.github.com/v3",
         }
+
+    def get_expected_label(self, name=None, desc=None):
+        return {
+            "id": randint(100000000, 999999999),
+            "node_id": "MDU6TGFiZWwyMDgwNDU5NDY=",
+            "url": "https://api.github.com/repos/octocat/Hello-World/labels/bug",
+            "name": name or "Test Label",
+            "description": desc or "Test label description.",
+            "color": "f29513",
+            "default": False,
+        }
+
+    def get_expected_labels(self, labels):
+        return [self.get_expected_label(name=label) for label in labels]

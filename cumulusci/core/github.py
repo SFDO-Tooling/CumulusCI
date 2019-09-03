@@ -82,7 +82,7 @@ def get_pull_requests_with_base_branch(repo, base_branch_name):
 
 def get_pull_request_by_branch_name(repo, branch_name):
     """Returns a single pull request if found, or None if nothing is returned.
-    Will throw an error is more than one pull request is returned"""
+    Will throw an error if more than one pull request is returned"""
     pull_requests = list(repo.pull_requests(head=repo.owner.login + ":" + branch_name))
     if len(pull_requests) == 0:
         return None
@@ -102,20 +102,19 @@ def create_pull_request(repo, branch_name, base=None, title=None):
     return pull_request
 
 
-def add_labels_to_pull_request(repo, pull_request, labels):
+def add_labels_to_pull_request(repo, pull_request, *labels):
     """Adds a label to a pull request via the issue object
         Args:
             repo: Repository object
             pull_request: ShortPullRequest object that exists in repo
             labels: list(str) of labels to add to the pull request"""
     issue = repo.issue(pull_request.number)
-    issue.add_label(labels)
+    issue.add_labels(*labels)
 
 
 def is_label_on_pull_request(repo, pull_request, label_name):
     """Returns True if the given label is on the pull request with the given
     pull request number. False otherwise."""
-    return any(
-        label_name in pr_label.name
-        for pr_label in repo.issue(pull_request.number).labels()
-    )
+    issue = repo.issue(pull_request.number)
+    labels = issue.labels()
+    return any(label_name in issue_label.name for issue_label in labels)
