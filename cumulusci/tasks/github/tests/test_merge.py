@@ -295,7 +295,7 @@ class TestMergeBranch(unittest.TestCase, MockUtil):
         pull["base"]["ref"] = branch_name
         pull["base"]["sha"] = branches[1]["commit"]["sha"]
         pull["head"]["ref"] = self.branch
-        self.mock_pulls([pull])
+        self.mock_pulls(pulls=[pull])
 
         self._mock_compare(
             base=branches[1]["name"],
@@ -337,7 +337,7 @@ class TestMergeBranch(unittest.TestCase, MockUtil):
         pull["base"]["ref"] = parent_branch_name
         pull["base"]["sha"] = branches[1]["commit"]["sha"]
         pull["head"]["ref"] = child_branch_name
-        self.mock_pulls([pull])
+        self.mock_pulls(pulls=[pull])
         # compare
         self._mock_compare(
             base=parent_branch_name,
