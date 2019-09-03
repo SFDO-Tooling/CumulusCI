@@ -82,8 +82,10 @@ class Factories:
         return self.factory_classes[name]
 
 
-class BaseDataFactory(BaseGenerateDataTask, ABCMeta):
+class BaseDataFactory(BaseGenerateDataTask):
     """Abstract base class for any FactoryBoy based generator"""
+
+    __metaclass__ = ABCMeta
 
     def generate_data(self, session, engine, base, num_records):
         raw_factories = self.make_factories(base.classes)
