@@ -13,7 +13,7 @@ from cumulusci.tasks.bulkdata.utils import create_table
 
 
 def create_db_file(filename):
-    db_url = f"sqlite:///{filename}"
+    db_url = "sqlite:///%s" % filename
     engine = create_engine(db_url)
     metadata = MetaData()
     metadata.bind = engine
