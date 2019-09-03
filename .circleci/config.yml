@@ -92,7 +92,7 @@ jobs:
           name: Create scratch org
           command: |
             echo $SFDX_HUB_KEY | base64 --decode > sfdx.key
-            sfdx force:auth:jwt:grant --clientid $SFDX_CLIENT_KEY --jwtkeyfile sfdx.key --username $SFDX_HUB_USERNAME --setdefaultdevhubusername -a hub
+            sfdx force:auth:jwt:grant --clientid $SFDX_CLIENT_ID --jwtkeyfile sfdx.key --username $SFDX_HUB_USERNAME --setdefaultdevhubusername -a hub
             venv/bin/cci org info dev > org_info.txt
             venv/bin/cci org default dev
       - run:
@@ -165,7 +165,7 @@ jobs:
             ./sfdx/install
             cd CumulusCI-Test
             echo $SFDX_HUB_KEY | base64 --decode > sfdx.key
-            sfdx force:auth:jwt:grant --clientid $SFDX_CLIENT_KEY --jwtkeyfile sfdx.key --username $SFDX_HUB_USERNAME --setdefaultdevhubusername -a hub
+            sfdx force:auth:jwt:grant --clientid $SFDX_CLIENT_ID --jwtkeyfile sfdx.key --username $SFDX_HUB_USERNAME --setdefaultdevhubusername -a hub
       - run:
           name: Run ci_feature flow
           command: |
