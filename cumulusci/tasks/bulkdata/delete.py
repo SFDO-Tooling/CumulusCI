@@ -14,6 +14,10 @@ class DeleteData(BaseSalesforceApiTask, BulkJobTaskMixin):
             "description": "A list of objects to delete records from in order of deletion.  If passed via command line, use a comma separated string",
             "required": True,
         },
+        "criteria": {
+            "description": "A criteria using the same syntax as a where-clause",
+            "required": False,
+        },
         "hardDelete": {
             "description": "If True, perform a hard delete, bypassing the recycle bin. Default: False"
         },
@@ -24,18 +28,19 @@ class DeleteData(BaseSalesforceApiTask, BulkJobTaskMixin):
 
         # Split and trim objects string into a list if not already a list
         self.options["objects"] = process_list_arg(self.options["objects"])
+        self.options["criteria"] = self.options.get("criteria", None)
         self.options["hardDelete"] = process_bool_arg(self.options.get("hardDelete"))
 
     def _run_task(self):
         for obj in self.options["objects"]:
-            self.logger.info("Deleting all {} records".format(obj))
-            delete_job = self._create_job(obj)
+            self.logger.info("Deleting ".format(self._object_description(obj)))
+            delete_job = self._create_job(obj, self.options["criteria"])
             if delete_job is not None:
                 self._wait_for_job(delete_job)
 
-    def _create_job(self, obj):
+    def _create_job(self, obj, criteria):
         # Query for rows to delete
-        delete_rows = self._query_salesforce_for_records_to_delete(obj)
+        delete_rows = self._query_salesforce_for_records_to_delete(obj, criteria)
         if not delete_rows:
             self.logger.info("  No {} objects found, skipping delete".format(obj))
             return
@@ -51,11 +56,25 @@ class DeleteData(BaseSalesforceApiTask, BulkJobTaskMixin):
         self.bulk.close_job(delete_job)
         return delete_job
 
-    def _query_salesforce_for_records_to_delete(self, obj):
+    def compose_query(self, obj, criteria):
+        query = "select Id from {}".format(obj)
+        if criteria:
+            query += " where {}".format(criteria)
+
+        print(f"QUERY: {query}")
+        return query
+
+    def _object_description(self, obj):
+        if self.options["criteria"]:
+            return '{} objects matching "{}"'.format(obj, self.options["criteria"])
+        else:
+            return "all {} objects".format(obj)
+
+    def _query_salesforce_for_records_to_delete(self, obj, criteria):
         # Query for all record ids
-        self.logger.info("  Querying for all {} objects".format(obj))
+        self.logger.info("  Querying for {}".format(self._object_description(obj)))
         query_job = self.bulk.create_query_job(obj, contentType="CSV")
-        batch = self.bulk.query(query_job, "select Id from {}".format(obj))
+        batch = self.bulk.query(query_job, self.compose_query(obj, criteria))
         while not self.bulk.is_batch_done(batch, query_job):
             time.sleep(10)
         self.bulk.close_job(query_job)
