@@ -139,16 +139,14 @@ class ParentPullRequestNotesGenerator(BaseReleaseNotesGenerator):
         self.parsers[-1]._in_section = True
 
     def aggregate_child_change_notes(self, pull_request):
-        """Aggregates all change notes from child pull reqeusts.
+        """Given a pull request, aggregate all change notes from child pull reqeusts.
         Child pull reqeusts are pull requests that have a base branch
         equal to the the given pull requests head."""
         self.change_notes = get_pull_requests_with_base_branch(
             self.repo, pull_request.head.label.split(":")[1]
         )
         if len(self.change_notes) == 0:
-            raise CumulusCIException(
-                "No pull requests with base branch {} found.".format(pull_request.head)
-            )
+            return
 
         for change_note in self.change_notes:
             self._parse_change_note(change_note)
@@ -174,10 +172,12 @@ class ParentPullRequestNotesGenerator(BaseReleaseNotesGenerator):
             body += self.UNAGGREGATED_SECTION_HEADER
 
         pull_request = get_pull_request_by_branch_name(self.repo, branch_name_to_add)
-        pull_request_link = markdown_link_to_pr(pull_request)
-        if pull_request_link not in body:
-            body += "\r\n* " + markdown_link_to_pr(pull_request)
-            pull_request_to_update.update(body=body)
+        if pull_request:
+            # TODO: Should we alert user if PR isn't found?
+            pull_request_link = markdown_link_to_pr(pull_request)
+            if pull_request_link not in body:
+                body += "\r\n* " + markdown_link_to_pr(pull_request)
+                pull_request_to_update.update(body=body)
 
 
 class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator):
