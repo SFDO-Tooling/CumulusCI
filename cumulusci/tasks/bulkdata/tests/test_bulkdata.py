@@ -67,16 +67,15 @@ def _make_task(task_class, task_config):
 
 @mock.patch("cumulusci.tasks.bulkdata.delete.time.sleep", mock.Mock())
 class TestDeleteData(unittest.TestCase):
-    @responses.activate
-    def test_run(self):
+    def _configure_mocks(self, query_job, query_batch, delete_job):
         api = mock.Mock()
         api.endpoint = "http://api"
         api.jobNS = "http://ns"
-        api.create_query_job.return_value = query_job = "1"
-        api.query.return_value = query_batch = "2"
+        api.create_query_job.return_value = query_job
+        api.query.return_value = query_batch
         api.is_batch_done.side_effect = [False, True, False, True]
         api.get_all_results_for_query_batch.return_value = [BULK_DELETE_QUERY_RESULT]
-        api.create_job.return_value = delete_job = "3"
+        api.create_job.return_value = delete_job
         api.headers.return_value = {}
         responses.add(
             method="POST",
@@ -100,7 +99,15 @@ class TestDeleteData(unittest.TestCase):
             body=BULK_BATCH_RESPONSE.format("Completed"),
             status=200,
         )
+        return api
 
+    @responses.activate
+    def test_run(self):
+        query_job = "1"
+        query_batch = "2"
+        delete_job = "3"
+
+        api = self._configure_mocks(query_job, query_batch, delete_job)
         task = _make_task(bulkdata.DeleteData, {"options": {"objects": "Contact"}})
 
         def _init_class():
@@ -111,6 +118,34 @@ class TestDeleteData(unittest.TestCase):
 
         api.create_query_job.assert_called_once_with("Contact", contentType="CSV")
         api.query.assert_called_once_with(query_job, "select Id from Contact")
+        api.is_batch_done.assert_has_calls(
+            [mock.call(query_batch, query_job), mock.call(query_batch, query_job)]
+        )
+        api.create_job.assert_called_once_with("Contact", "delete")
+        api.close_job.assert_has_calls([mock.call(query_job), mock.call(delete_job)])
+
+    @responses.activate
+    def test_run_with_criteria(self):
+        query_job = "1"
+        query_batch = "2"
+        delete_job = "3"
+
+        api = self._configure_mocks(query_job, query_batch, delete_job)
+        task = _make_task(
+            bulkdata.DeleteData,
+            {"options": {"objects": "Contact", "criteria": "city='Goshen'"}},
+        )
+
+        def _init_class():
+            task.bulk = api
+
+        task._init_class = _init_class
+        task()
+
+        api.create_query_job.assert_called_once_with("Contact", contentType="CSV")
+        api.query.assert_called_once_with(
+            query_job, "select Id from Contact where city='Goshen'"
+        )
         api.is_batch_done.assert_has_calls(
             [mock.call(query_batch, query_job), mock.call(query_batch, query_job)]
         )

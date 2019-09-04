@@ -38,7 +38,7 @@ class DeleteData(BaseSalesforceApiTask, BulkJobTaskMixin):
             if delete_job is not None:
                 self._wait_for_job(delete_job)
 
-    def _create_job(self, obj, criteria):
+    def _create_job(self, obj, criteria=None):
         # Query for rows to delete
         delete_rows = self._query_salesforce_for_records_to_delete(obj, criteria)
         if not delete_rows:
