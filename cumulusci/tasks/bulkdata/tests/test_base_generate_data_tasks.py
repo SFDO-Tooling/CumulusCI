@@ -15,7 +15,7 @@ class DummyBaseBatchDataTask(BaseGenerateDataTask):
     """Doesn't actually generate data but validates that we could if we wanted to."""
 
     def generate_data(self, session, engine, base, num_records):
-        assert os.path.exists(self._testfilename)
+        assert os.path.exists(self.options["database_url"].split("///")[1])
         assert session
         assert engine
         assert base.classes["households"]
@@ -24,6 +24,7 @@ class DummyBaseBatchDataTask(BaseGenerateDataTask):
         assert isinstance(t.email.type, Unicode)
 
         assert num_records == NUM_RECORDS
+        DummyBaseBatchDataTask.was_called = True
 
 
 class TestBaseBatchDataTask(unittest.TestCase):
@@ -43,5 +44,5 @@ class TestBaseBatchDataTask(unittest.TestCase):
                     }
                 },
             )
-            task._testfilename = tmp_db_path
             task()
+            assert DummyBaseBatchDataTask.was_called
