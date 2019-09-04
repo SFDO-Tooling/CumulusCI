@@ -117,7 +117,7 @@ class TestDeleteData(unittest.TestCase):
         task()
 
         api.create_query_job.assert_called_once_with("Contact", contentType="CSV")
-        api.query.assert_called_once_with(query_job, "select Id from Contact")
+        api.query.assert_called_once_with(query_job, "SELECT Id FROM Contact")
         api.is_batch_done.assert_has_calls(
             [mock.call(query_batch, query_job), mock.call(query_batch, query_job)]
         )
@@ -125,7 +125,7 @@ class TestDeleteData(unittest.TestCase):
         api.close_job.assert_has_calls([mock.call(query_job), mock.call(delete_job)])
 
     @responses.activate
-    def test_run_with_criteria(self):
+    def test_run_with_where(self):
         query_job = "1"
         query_batch = "2"
         delete_job = "3"
@@ -133,7 +133,7 @@ class TestDeleteData(unittest.TestCase):
         api = self._configure_mocks(query_job, query_batch, delete_job)
         task = _make_task(
             bulkdata.DeleteData,
-            {"options": {"objects": "Contact", "criteria": "city='Goshen'"}},
+            {"options": {"objects": "Contact", "where": "city='Goshen'"}},
         )
 
         def _init_class():
@@ -144,7 +144,7 @@ class TestDeleteData(unittest.TestCase):
 
         api.create_query_job.assert_called_once_with("Contact", contentType="CSV")
         api.query.assert_called_once_with(
-            query_job, "select Id from Contact where city='Goshen'"
+            query_job, "SELECT Id FROM Contact WHERE city='Goshen'"
         )
         api.is_batch_done.assert_has_calls(
             [mock.call(query_batch, query_job), mock.call(query_batch, query_job)]
