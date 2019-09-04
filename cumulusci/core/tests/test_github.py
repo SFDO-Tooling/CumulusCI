@@ -47,7 +47,7 @@ class MockHttpResponse(mock.Mock):
 
 class TestGithub(GithubApiTestMixin):
     @classmethod
-    def teardown(cls):
+    def teardown_method(cls):
         # clear cached repo -> installation mapping
         github.INSTALLATIONS.clear()
 
@@ -148,8 +148,8 @@ class TestGithub(GithubApiTestMixin):
         pull_request = get_pull_request_by_branch_name(repo, "some-other-branch")
         assert pull_request is not None
 
-        # Responses raises ConnectionError when endpoing doesn't
-        # exist with the correct url params
+        # ConnectionError present when we reachout with
+        # a branch name (url parameter) that we aren't expecting
         with pytest.raises(ConnectionError):
             get_pull_request_by_branch_name(repo, "does-not-exist")
 
