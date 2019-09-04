@@ -1,14 +1,5 @@
-from datetime import date, datetime
-
 import factory
 from cumulusci.tasks.bulkdata.factory_utils import ModuleDataFactory, Models
-
-
-def now():
-    return datetime.now().date()
-
-
-START_DATE = date(2019, 1, 1)  # Per https://salesforce.quip.com/gLfGAPtqVzUS
 
 
 class GenerateDummyData(ModuleDataFactory):
