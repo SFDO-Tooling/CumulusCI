@@ -215,7 +215,7 @@ class GenerateMapping(BaseSalesforceApiTask):
 
             if not objs_without_deps:
                 self.logger.info(
-                    "CCI needs help to complete the mapping; the schema contains reference cycles and unresolved dependencies."
+                    "CumulusCI needs help to complete the mapping; the schema contains reference cycles and unresolved dependencies."
                 )
                 self.logger.info("Mapped objects: {}".format(", ".join(stack)))
                 self.logger.info("Remaining objects:")

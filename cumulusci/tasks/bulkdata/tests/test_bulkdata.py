@@ -317,6 +317,47 @@ class TestLoadDataWithSFIds(unittest.TestCase):
             [mock.call(1), mock.call(4), mock.call(5), mock.call(2), mock.call(3)]
         )
 
+    def test_create_job__update(self):
+        base_path = os.path.dirname(__file__)
+        mapping_path = os.path.join(base_path, self.mapping_file)
+        task = _make_task(
+            bulkdata.LoadData,
+            {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
+        )
+        task.bulk = mock.Mock()
+        task._get_batches = mock.Mock(return_value=[])
+        mapping = OrderedDict(action="update", sf_object="Account")
+
+        task._create_job(mapping)
+
+        task.bulk.create_update_job.assert_called_once_with(
+            "Account", contentType="CSV"
+        )
+
+    def test_run_task__after_steps_failure(self):
+        base_path = os.path.dirname(__file__)
+        mapping_path = os.path.join(base_path, self.mapping_file)
+        task = _make_task(
+            bulkdata.LoadData,
+            {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
+        )
+        task._init_db = mock.Mock()
+        task._init_mapping = mock.Mock()
+        task._expand_mapping = mock.Mock()
+        task.mapping = OrderedDict()
+        task.mapping["Insert Households"] = 1
+        task.mapping["Insert Contacts"] = 2
+        households_steps = OrderedDict()
+        households_steps["four"] = 4
+        households_steps["five"] = 5
+        task.after_steps = {
+            "Insert Contacts": OrderedDict(three=3),
+            "Insert Households": households_steps,
+        }
+        task._load_mapping = mock.Mock(side_effect=["Completed", "Failed"])
+        with self.assertRaises(BulkDataException):
+            task()
+
     def test_expand_mapping_creates_after_steps(self):
         base_path = os.path.dirname(__file__)
         mapping_path = os.path.join(base_path, "mapping_after.yml")
@@ -1553,19 +1594,34 @@ class TestMappingGenerator(unittest.TestCase):
         t._build_schema()
         self.assertEqual({"Opportunity": {"Account": set(["AccountId"])}}, t.refs)
 
-    def test_build_mapping(self):
+    @mock.patch("click.prompt")
+    def test_build_mapping(self, prompt):
         t = _make_task(bulkdata.GenerateMapping, {"options": {"path": "t"}})
+        prompt.return_value = "Account"
+
         t.schema = {
-            "Account": {"Id": self._mock_field("Id"), "Name": self._mock_field("Name")},
+            "Account": {
+                "Id": self._mock_field("Id"),
+                "Name": self._mock_field("Name"),
+                "Dependent__c": self._mock_field(
+                    "Dependent__c", field_type="reference", referenceTo=["Child__c"]
+                ),
+            },
             "Child__c": {
                 "Id": self._mock_field("Id"),
                 "Name": self._mock_field("Name"),
                 "Account__c": self._mock_field(
                     "Account__c", field_type="reference", referenceTo=["Account"]
                 ),
+                "Self__c": self._mock_field(
+                    "Self__c", field_type="reference", referenceTo=["Child__c"]
+                ),
             },
         }
-        t.refs = {"Child__c": {"Account": set(["Account__c"])}}
+        t.refs = {
+            "Child__c": {"Account": set(["Account__c"])},
+            "Account": {"Child__c": set(["Dependent__c"])},
+        }
 
         t._build_mapping()
         self.assertEqual(["Insert Account", "Insert Child__c"], list(t.mapping.keys()))
@@ -1576,6 +1632,12 @@ class TestMappingGenerator(unittest.TestCase):
         )
         self.assertEqual("sf_id", t.mapping["Insert Account"]["fields"]["Id"])
         self.assertEqual("name", t.mapping["Insert Account"]["fields"]["Name"])
+        self.assertEqual(
+            ["Dependent__c"], list(t.mapping["Insert Account"]["lookups"].keys())
+        )
+        self.assertEqual(
+            "child__c", t.mapping["Insert Account"]["lookups"]["Dependent__c"]["table"]
+        )
 
         self.assertEqual("Child__c", t.mapping["Insert Child__c"]["sf_object"])
         self.assertEqual("child__c", t.mapping["Insert Child__c"]["table"])
@@ -1583,12 +1645,16 @@ class TestMappingGenerator(unittest.TestCase):
             ["Id", "Name"], list(t.mapping["Insert Child__c"]["fields"].keys())
         )
         self.assertEqual(
-            ["Account__c"], list(t.mapping["Insert Child__c"]["lookups"].keys())
+            ["Account__c", "Self__c"],
+            list(t.mapping["Insert Child__c"]["lookups"].keys()),
         )
         self.assertEqual("sf_id", t.mapping["Insert Child__c"]["fields"]["Id"])
         self.assertEqual("name", t.mapping["Insert Child__c"]["fields"]["Name"])
         self.assertEqual(
             "account", t.mapping["Insert Child__c"]["lookups"]["Account__c"]["table"]
+        )
+        self.assertEqual(
+            "child__c", t.mapping["Insert Child__c"]["lookups"]["Self__c"]["table"]
         )
 
     def test_build_mapping__warns_polymorphic_lookups(self):
