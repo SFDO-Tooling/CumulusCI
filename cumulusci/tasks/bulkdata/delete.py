@@ -15,8 +15,8 @@ class DeleteData(BaseSalesforceApiTask, BulkJobTaskMixin):
             "description": "A list of objects to delete records from in order of deletion.  If passed via command line, use a comma separated string",
             "required": True,
         },
-        "criteria": {
-            "description": "A criteria using the same syntax as a where-clause. Only available when 'objects' is length 1.",
+        "where": {
+            "description": "A SOQL where-clause (without the keyword WHERE). Only available when 'objects' is length 1.",
             "required": False,
         },
         "hardDelete": {
@@ -32,8 +32,8 @@ class DeleteData(BaseSalesforceApiTask, BulkJobTaskMixin):
         if not len(self.options["objects"]):
             raise TaskOptionsError("At least one object must be specified.")
 
-        self.options["criteria"] = self.options.get("criteria", None)
-        if len(self.options["objects"]) > 1 and self.options["criteria"]:
+        self.options["where"] = self.options.get("where", None)
+        if len(self.options["objects"]) > 1 and self.options["where"]:
             raise TaskOptionsError(
                 "Criteria cannot be specified if more than one object is specified."
             )
@@ -42,13 +42,13 @@ class DeleteData(BaseSalesforceApiTask, BulkJobTaskMixin):
     def _run_task(self):
         for obj in self.options["objects"]:
             self.logger.info("Deleting ".format(self._object_description(obj)))
-            delete_job = self._create_job(obj, self.options["criteria"])
+            delete_job = self._create_job(obj, self.options["where"])
             if delete_job is not None:
                 self._wait_for_job(delete_job)
 
-    def _create_job(self, obj, criteria=None):
+    def _create_job(self, obj, where=None):
         # Query for rows to delete
-        delete_rows = self._query_salesforce_for_records_to_delete(obj, criteria)
+        delete_rows = self._query_salesforce_for_records_to_delete(obj, where)
         if not delete_rows:
             self.logger.info("  No {} objects found, skipping delete".format(obj))
             return
@@ -64,24 +64,24 @@ class DeleteData(BaseSalesforceApiTask, BulkJobTaskMixin):
         self.bulk.close_job(delete_job)
         return delete_job
 
-    def compose_query(self, obj, criteria):
+    def compose_query(self, obj, where):
         query = "SELECT Id FROM {}".format(obj)
-        if criteria:
-            query += " WHERE {}".format(criteria)
+        if where:
+            query += " WHERE {}".format(where)
 
         return query
 
     def _object_description(self, obj):
-        if self.options["criteria"]:
-            return '{} objects matching "{}"'.format(obj, self.options["criteria"])
+        if self.options["where"]:
+            return '{} objects matching "{}"'.format(obj, self.options["where"])
         else:
             return "all {} objects".format(obj)
 
-    def _query_salesforce_for_records_to_delete(self, obj, criteria):
+    def _query_salesforce_for_records_to_delete(self, obj, where):
         # Query for all record ids
         self.logger.info("  Querying for {}".format(self._object_description(obj)))
         query_job = self.bulk.create_query_job(obj, contentType="CSV")
-        batch = self.bulk.query(query_job, self.compose_query(obj, criteria))
+        batch = self.bulk.query(query_job, self.compose_query(obj, where))
         while not self.bulk.is_batch_done(batch, query_job):
             time.sleep(10)
         self.bulk.close_job(query_job)
