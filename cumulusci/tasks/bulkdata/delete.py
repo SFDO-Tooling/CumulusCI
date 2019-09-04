@@ -6,6 +6,7 @@ import xml.etree.ElementTree as ET
 from cumulusci.core.utils import process_bool_arg, process_list_arg
 from cumulusci.tasks.bulkdata.utils import BulkJobTaskMixin
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
+from cumulusci.core.exceptions import TaskOptionsError
 
 
 class DeleteData(BaseSalesforceApiTask, BulkJobTaskMixin):
@@ -15,7 +16,7 @@ class DeleteData(BaseSalesforceApiTask, BulkJobTaskMixin):
             "required": True,
         },
         "criteria": {
-            "description": "A criteria using the same syntax as a where-clause",
+            "description": "A criteria using the same syntax as a where-clause. Only available when 'objects' is length 1.",
             "required": False,
         },
         "hardDelete": {
@@ -28,7 +29,14 @@ class DeleteData(BaseSalesforceApiTask, BulkJobTaskMixin):
 
         # Split and trim objects string into a list if not already a list
         self.options["objects"] = process_list_arg(self.options["objects"])
+        if not len(self.options["objects"]):
+            raise TaskOptionsError("At least one object must be specified.")
+
         self.options["criteria"] = self.options.get("criteria", None)
+        if len(self.options["objects"]) > 1 and self.options["criteria"]:
+            raise TaskOptionsError(
+                "Criteria cannot be specified if more than one object is specified."
+            )
         self.options["hardDelete"] = process_bool_arg(self.options.get("hardDelete"))
 
     def _run_task(self):
