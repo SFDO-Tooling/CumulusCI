@@ -57,9 +57,9 @@ class DeleteData(BaseSalesforceApiTask, BulkJobTaskMixin):
         return delete_job
 
     def compose_query(self, obj, criteria):
-        query = "select Id from {}".format(obj)
+        query = "SELECT Id FROM {}".format(obj)
         if criteria:
-            query += " where {}".format(criteria)
+            query += " WHERE {}".format(criteria)
 
         return query
 
