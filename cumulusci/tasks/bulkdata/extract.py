@@ -195,7 +195,7 @@ class ExtractData(BulkJobTaskMixin, BaseSalesforceApiTask):
         writer_ids = unicodecsv.writer(f_ids)
         for row in unicodecsv.reader(data_file):
             writer_values.writerow(row[1:])
-            writer_ids.writerow([row[:1]])
+            writer_ids.writerow(row[:1])
         f_values.seek(0)
         f_ids.seek(0)
         return f_values, f_ids

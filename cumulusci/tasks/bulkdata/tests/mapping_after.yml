@@ -1,0 +1,32 @@
+Insert Accounts:
+    sf_object: Account
+    action: insert
+    table: accounts
+    fields:
+        Id: sf_id
+    lookups:
+        ParentId: 
+            after: Insert Accounts
+            table: accounts
+        Primary_Contact__c:
+            after: Insert Contacts
+            table: contacts
+Insert Contacts:
+    sf_object: Contact
+    action: insert
+    table: contacts
+    fields:
+        Id: sf_id
+    lookups:
+        ReportsToId:
+            after: Insert Contacts
+            table: contacts
+Insert Opportunities:
+    sf_object: Opportunity
+    action: insert
+    table: opportunities
+    fields:
+        Id: sf_id
+    lookups: 
+        AccountId:
+            table: accounts
