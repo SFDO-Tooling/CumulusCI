@@ -61,7 +61,6 @@ class DeleteData(BaseSalesforceApiTask, BulkJobTaskMixin):
         if criteria:
             query += " where {}".format(criteria)
 
-        print(f"QUERY: {query}")
         return query
 
     def _object_description(self, obj):
