@@ -515,6 +515,19 @@ class TestParentPullRequestNotesGenerator(GithubApiTestMixin):
         parent_pr.update.assert_called_once()
 
     @responses.activate
+    def test_aggregate_child_change_notes__empty_change_note(
+        self, generator, mock_util, gh_api
+    ):
+        self.init_github()
+        mock_util.mock_pulls()  # no change notes returned
+
+        parent_pr = ShortPullRequest(self._get_expected_pull_request(3, 3, "Body"), gh_api)
+        parent_pr.head.label = "repo:branch"
+
+        generator.aggregate_child_change_notes(parent_pr)
+        assert 0 == len(generator.change_notes)
+
+    @responses.activate
     def test_update_unaggregated_pr_header(self, generator, mock_util, repo, gh_api):
         def pr_update_callback(request):
             """Method to intercept the call to
