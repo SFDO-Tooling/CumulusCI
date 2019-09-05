@@ -565,4 +565,3 @@ class TestParentPullRequestNotesGenerator(GithubApiTestMixin):
             )
         )
         assert 1 == num_pr_links
-
