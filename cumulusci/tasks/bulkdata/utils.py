@@ -145,7 +145,7 @@ def create_table(mapping, metadata):
        metadata, create a table matching the mapping.
 
        Mapping should be a dict-like with keys "fields", "table" and
-       optionally "oid_as_pk" and "recored_type" """
+       optionally "oid_as_pk" and "record_type" """
 
     fields = []
     _handle_primary_key(mapping, fields)

@@ -13,7 +13,7 @@ from .utils import create_table
 
 
 class BaseGenerateDataTask(BaseTask):
-    """Abstract base class for any class that generates data using a SQL DB."""
+    """Abstract base class for any class that generates data in a SQL DB."""
 
     __metaclass__ = ABCMeta  # Python 2 syntax
 
