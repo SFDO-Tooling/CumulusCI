@@ -104,16 +104,9 @@ class DirectoryReleaseNotesGenerator(BaseReleaseNotesGenerator):
 
 
 class ParentPullRequestNotesGenerator(BaseReleaseNotesGenerator):
-    """Aggregates notes from child pull requests in to a parent pull request
-    Attributes:
-        UNAGGREGATED_SECTION_HEADER: Str header for section on pull requests where
-        unaggregated chile pull requests are linked to.
+    """Aggregates notes from child pull requests in to a parent pull request"""
 
-    Methods:
-        aggregate_child_change_notes: Aggregates change notes from child prs into parent
-        update_unaggregated_pr_header: Adds a new child pr to the section
-    """
-
+    # Header where unaggregated child pull requests are linked to
     UNAGGREGATED_SECTION_HEADER = "\r\n\r\n# Unaggregated Pull Requests"
 
     def __init__(self, github, repo, project_config):
@@ -139,9 +132,9 @@ class ParentPullRequestNotesGenerator(BaseReleaseNotesGenerator):
         self.parsers[-1]._in_section = True
 
     def aggregate_child_change_notes(self, pull_request):
-        """Given a pull request, aggregate all change notes from child pull reqeusts.
+        """Given a pull request, aggregate all change notes from child pull requests.
         Child pull reqeusts are pull requests that have a base branch
-        equal to the the given pull requests head."""
+        equal to the the given pull request's head."""
         self.change_notes = get_pull_requests_with_base_branch(
             self.repo, pull_request.head.label.split(":")[1]
         )
@@ -167,6 +160,8 @@ class ParentPullRequestNotesGenerator(BaseReleaseNotesGenerator):
             )
 
     def update_unaggregated_pr_header(self, pull_request_to_update, branch_name_to_add):
+        """Updates the 'Unaggregated Pull Requests' section header with a link
+        to the new child branch pull request"""
         body = pull_request_to_update.body
         if self.UNAGGREGATED_SECTION_HEADER not in body:
             body += self.UNAGGREGATED_SECTION_HEADER
