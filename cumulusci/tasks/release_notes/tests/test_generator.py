@@ -512,6 +512,7 @@ class TestParentPullRequestNotesGenerator(GithubApiTestMixin):
         parent_pr.update = mock.Mock(return_value=False)
         with pytest.raises(CumulusCIException):
             generator.aggregate_child_change_notes(parent_pr)
+        parent_pr.update.assert_called_once()
 
     @responses.activate
     def test_update_unaggregated_pr_header(self, generator, mock_util, repo, gh_api):
