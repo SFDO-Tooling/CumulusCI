@@ -470,6 +470,10 @@ class TestParentPullRequestNotesGenerator(GithubApiTestMixin):
                 in body
             )
             assert "# Notes From Child PRs\r\n\r\n* Dev note 1 [[PR1](https://github.com/TestOwner/TestRepo/pulls/1)]\r\n\r\n* Dev note 2 [[PR2](https://github.com/TestOwner/TestRepo/pulls/2)]"
+            assert (
+                "# Pull requests with no release notes\r\n\n* Pull Request #4 [[PR4](https://github.com/TestOwner/TestRepo/pulls/4)]"
+                in body
+            )
             return (200, {}, json.dumps(self._get_expected_pull_request(3, 3, body)))
 
         self.init_github()
@@ -482,7 +486,10 @@ class TestParentPullRequestNotesGenerator(GithubApiTestMixin):
         pr2_json = self._get_expected_pull_request(
             2, 2, dev_note2 + "\r\n" + critical_change
         )
-        mock_util.mock_pulls(pulls=[pr1_json, pr2_json])
+        pr3_json = self._get_expected_pull_request(4, 4, None)
+        pr3_json["body"] = ""
+
+        mock_util.mock_pulls(pulls=[pr1_json, pr2_json, pr3_json])
 
         pr_json = self._get_expected_pull_request(3, 3, "Body of Parent PR")
         parent_pr = ShortPullRequest(pr_json, gh_api)
@@ -521,7 +528,9 @@ class TestParentPullRequestNotesGenerator(GithubApiTestMixin):
         self.init_github()
         mock_util.mock_pulls()  # no change notes returned
 
-        parent_pr = ShortPullRequest(self._get_expected_pull_request(3, 3, "Body"), gh_api)
+        parent_pr = ShortPullRequest(
+            self._get_expected_pull_request(3, 3, "Body"), gh_api
+        )
         parent_pr.head.label = "repo:branch"
 
         generator.aggregate_child_change_notes(parent_pr)
