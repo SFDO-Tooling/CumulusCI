@@ -224,3 +224,91 @@ class TestParentPullRequestNotes(GithubApiTestMixin):
                 task.BUILD_NOTES_LABEL, pull_request.number, task.BUILD_NOTES_LABEL
             )
         )
+
+    @mock.patch("cumulusci.tasks.release_notes.task.get_pull_request_by_branch_name")
+    def test_handle_branch_name_option__pr_not_found(self, get_pr, task_provider):
+        get_pr.return_values = None
+        task = task_provider({"options": {"branch_name": self.BRANCH_NAME}})
+        task.logger = mock.Mock()
+
+        generator = mock.Mock()
+        get_pr.return_value = None
+        task._handle_branch_name_option(generator, self.BRANCH_NAME)
+
+        task.logger.info.assert_called_once_with(
+            "Pull request not found for branch: {}.\nExiting...".format(
+                self.BRANCH_NAME
+            )
+        )
+
+    @mock.patch("cumulusci.tasks.release_notes.task.get_pull_request_by_branch_name")
+    def test_handle_branch_name_option__base_branch_not_feature(
+        self, get_pr, task_provider, project_config, gh_api
+    ):
+        self.init_github()
+        self.project_config = project_config  # GithubApiMixin wants this
+        get_pr.return_values = None
+        task = task_provider({"options": {"branch_name": self.BRANCH_NAME}})
+        task.logger = mock.Mock()
+
+        generator = mock.Mock()
+        get_pr.return_value = ShortPullRequest(
+            self._get_expected_pull_request(1, 1, "Body"), gh_api
+        )
+        task._handle_branch_name_option(generator, self.BRANCH_NAME)
+
+        task.logger.info.assert_called_once_with(
+            "Pull request's base is not a feature branch.\nExiting...".format(
+                self.BRANCH_NAME
+            )
+        )
+
+    @mock.patch("cumulusci.tasks.release_notes.task.is_label_on_pull_request")
+    @mock.patch("cumulusci.tasks.release_notes.task.get_pull_request_by_branch_name")
+    def test_handle_branch_name_option__review_label_found(
+        self, get_pr, label_found, task_provider, project_config, gh_api
+    ):
+        self.init_github()
+        self.project_config = project_config  # GithubApiMixin wants this
+        get_pr.return_values = None
+        task = task_provider({"options": {"branch_name": self.BRANCH_NAME}})
+        task.logger = mock.Mock()
+
+        generator = mock.Mock()
+        label_found.return_value = True
+
+        pull_request = ShortPullRequest(
+            self._get_expected_pull_request(1, 1, "Body"), gh_api
+        )
+        pull_request.base.ref = "feature/cool-new-thing"
+        get_pr.return_value = pull_request
+        task._get_parent_pull_request = mock.Mock(return_value=pull_request)
+
+        task._handle_branch_name_option(generator, self.BRANCH_NAME)
+        assert not generator.update_unaggregated_pr_header.called
+        generator.aggregate_child_change_notes.assert_called_once()
+
+    @mock.patch("cumulusci.tasks.release_notes.task.is_label_on_pull_request")
+    @mock.patch("cumulusci.tasks.release_notes.task.get_pull_request_by_branch_name")
+    def test_handle_branch_name_option__review_label_not_found(
+        self, get_pr, label_found, task_provider, project_config, gh_api
+    ):
+        self.init_github()
+        self.project_config = project_config  # GithubApiMixin wants this
+        get_pr.return_values = None
+        task = task_provider({"options": {"branch_name": self.BRANCH_NAME}})
+        task.logger = mock.Mock()
+
+        generator = mock.Mock()
+        label_found.return_value = False
+
+        pull_request = ShortPullRequest(
+            self._get_expected_pull_request(1, 1, "Body"), gh_api
+        )
+        pull_request.base.ref = "feature/cool-new-thing"
+        get_pr.return_value = pull_request
+        task._get_parent_pull_request = mock.Mock(return_value=pull_request)
+
+        task._handle_branch_name_option(generator, self.BRANCH_NAME)
+        assert not generator.aggregate_child_change_notes.called
+        generator.update_unaggregated_pr_header.assert_called_once()
