@@ -192,6 +192,6 @@ class ParentPullRequestNotes(BaseGithubTask):
             )
             parent_pull_request = create_pull_request(self.repo, branch_name)
             add_labels_to_pull_request(
-                self.repo, parent_pull_request.number, [self.BUILD_NOTES_LABEL]
+                self.repo, parent_pull_request.number, self.BUILD_NOTES_LABEL
             )
         return parent_pull_request
