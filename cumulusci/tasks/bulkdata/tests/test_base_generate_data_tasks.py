@@ -1,5 +1,6 @@
 import os
 import unittest
+import mock
 
 from sqlalchemy import Unicode
 
@@ -46,3 +47,17 @@ class TestBaseBatchDataTask(unittest.TestCase):
             )
             task()
             assert DummyBaseBatchDataTask.was_called
+
+    def test_default_database(self):
+        mapping_file = os.path.join(os.path.dirname(__file__), "mapping_v2.yml")
+        with mock.patch(
+            "cumulusci.tasks.bulkdata.base_generate_data_task.BaseGenerateDataTask._generate_data"
+        ) as gen_data:
+            task = _make_task(
+                DummyBaseBatchDataTask,
+                {"options": {"num_records": NUM_RECORDS, "mapping": mapping_file}},
+            )
+            task()
+            gen_data.assert_called_once_with(
+                "sqlite:///generated_data.db", mock.ANY, 20
+            )
