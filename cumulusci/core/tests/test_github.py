@@ -217,4 +217,3 @@ class TestGithub(GithubApiTestMixin):
         assert "first" in body
         assert "second" in body
         assert "third" in body
-
