@@ -48,9 +48,5 @@ class TestFactories(unittest.TestCase):
             class Meta:
                 model = "xyzzy"
 
-        try:
+        with self.assertRaises(KeyError):
             factory_utils.Factories(None, {}, {"A": Contact, "B": Broken})
-        except KeyError as e:
-            assert "not found" in repr(e)
-            return
-        assert False, "Should not get to this point"
