@@ -6,6 +6,7 @@ import xml.etree.ElementTree as ET
 from cumulusci.core.utils import process_bool_arg, process_list_arg
 from cumulusci.tasks.bulkdata.utils import BulkJobTaskMixin
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
+from cumulusci.core.exceptions import TaskOptionsError
 
 
 class DeleteData(BaseSalesforceApiTask, BulkJobTaskMixin):
@@ -13,6 +14,10 @@ class DeleteData(BaseSalesforceApiTask, BulkJobTaskMixin):
         "objects": {
             "description": "A list of objects to delete records from in order of deletion.  If passed via command line, use a comma separated string",
             "required": True,
+        },
+        "where": {
+            "description": "A SOQL where-clause (without the keyword WHERE). Only available when 'objects' is length 1.",
+            "required": False,
         },
         "hardDelete": {
             "description": "If True, perform a hard delete, bypassing the recycle bin. Default: False"
@@ -24,18 +29,26 @@ class DeleteData(BaseSalesforceApiTask, BulkJobTaskMixin):
 
         # Split and trim objects string into a list if not already a list
         self.options["objects"] = process_list_arg(self.options["objects"])
+        if not len(self.options["objects"]) or not self.options["objects"][0]:
+            raise TaskOptionsError("At least one object must be specified.")
+
+        self.options["where"] = self.options.get("where", None)
+        if len(self.options["objects"]) > 1 and self.options["where"]:
+            raise TaskOptionsError(
+                "Criteria cannot be specified if more than one object is specified."
+            )
         self.options["hardDelete"] = process_bool_arg(self.options.get("hardDelete"))
 
     def _run_task(self):
         for obj in self.options["objects"]:
-            self.logger.info("Deleting all {} records".format(obj))
-            delete_job = self._create_job(obj)
+            self.logger.info("Deleting ".format(self._object_description(obj)))
+            delete_job = self._create_job(obj, self.options["where"])
             if delete_job is not None:
                 self._wait_for_job(delete_job)
 
-    def _create_job(self, obj):
+    def _create_job(self, obj, where=None):
         # Query for rows to delete
-        delete_rows = self._query_salesforce_for_records_to_delete(obj)
+        delete_rows = self._query_salesforce_for_records_to_delete(obj, where)
         if not delete_rows:
             self.logger.info("  No {} objects found, skipping delete".format(obj))
             return
@@ -51,11 +64,24 @@ class DeleteData(BaseSalesforceApiTask, BulkJobTaskMixin):
         self.bulk.close_job(delete_job)
         return delete_job
 
-    def _query_salesforce_for_records_to_delete(self, obj):
+    def compose_query(self, obj, where):
+        query = "SELECT Id FROM {}".format(obj)
+        if where:
+            query += " WHERE {}".format(where)
+
+        return query
+
+    def _object_description(self, obj):
+        if self.options["where"]:
+            return '{} objects matching "{}"'.format(obj, self.options["where"])
+        else:
+            return "all {} objects".format(obj)
+
+    def _query_salesforce_for_records_to_delete(self, obj, where):
         # Query for all record ids
-        self.logger.info("  Querying for all {} objects".format(obj))
+        self.logger.info("  Querying for {}".format(self._object_description(obj)))
         query_job = self.bulk.create_query_job(obj, contentType="CSV")
-        batch = self.bulk.query(query_job, "select Id from {}".format(obj))
+        batch = self.bulk.query(query_job, self.compose_query(obj, where))
         while not self.bulk.is_batch_done(batch, query_job):
             time.sleep(10)
         self.bulk.close_job(query_job)
