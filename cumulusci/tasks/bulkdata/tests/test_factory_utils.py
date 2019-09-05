@@ -1,10 +1,12 @@
 import unittest
 import os
 
-from cumulusci.utils import temporary_dir
+import factory
 
+from cumulusci.utils import temporary_dir
 from cumulusci.tasks.bulkdata.tests.test_bulkdata import _make_task
-from cumulusci.tasks.bulkdata.tests.dummy_data_factory import GenerateDummyData
+from cumulusci.tasks.bulkdata.tests.dummy_data_factory import GenerateDummyData, Contact
+from cumulusci.tasks.bulkdata import factory_utils
 
 
 class TestFactoryUtils(unittest.TestCase):
@@ -25,3 +27,30 @@ class TestFactoryUtils(unittest.TestCase):
                 },
             )
             task()
+
+
+class TestAdder(unittest.TestCase):
+    def test_adder(self):
+        a = factory_utils.Adder(10)
+        b = a(20)
+        assert b == 30
+        c = a(0)
+        assert c == 30
+        d = a(-5)
+        assert d == 25
+        a.reset(3)
+        assert a(0) == 3
+
+
+class TestFactories(unittest.TestCase):
+    def test_factories(self):
+        class Broken(factory.alchemy.SQLAlchemyModelFactory):
+            class Meta:
+                model = "xyzzy"
+
+        try:
+            factory_utils.Factories(None, {}, {"A": Contact, "B": Broken})
+        except KeyError as e:
+            assert "not found" in repr(e)
+            return
+        assert False, "Should not get to this point"

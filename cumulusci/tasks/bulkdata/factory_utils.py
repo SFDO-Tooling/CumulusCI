@@ -94,11 +94,11 @@ class BaseDataFactory(BaseGenerateDataTask):
 
     @abstractmethod
     def make_factories(self, classes):
-        pass
+        """Subclass to generate factory classes based on ORM classes."""
 
     @abstractmethod
     def make_records(self, num_records, factories):
-        pass
+        """Subclass to make db records using factories."""
 
 
 class ModuleDataFactory(BaseDataFactory):

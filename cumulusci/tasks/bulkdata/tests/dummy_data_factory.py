@@ -7,6 +7,7 @@ class GenerateDummyData(ModuleDataFactory):
 
     def make_records(self, num_records, factories):
         factories.create_batch("Contact", 10)
+        factories["Contact"].create_batch(5)
         factories.create_batch("Household", 5)
 
 
