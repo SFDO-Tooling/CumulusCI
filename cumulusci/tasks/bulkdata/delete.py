@@ -29,7 +29,7 @@ class DeleteData(BaseSalesforceApiTask, BulkJobTaskMixin):
 
         # Split and trim objects string into a list if not already a list
         self.options["objects"] = process_list_arg(self.options["objects"])
-        if not len(self.options["objects"]):
+        if not len(self.options["objects"]) or not self.options["objects"][0]:
             raise TaskOptionsError("At least one object must be specified.")
 
         self.options["where"] = self.options.get("where", None)
