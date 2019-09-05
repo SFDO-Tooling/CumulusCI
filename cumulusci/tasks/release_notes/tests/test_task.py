@@ -1,18 +1,19 @@
 import mock
 import pytest
+from github3.pulls import ShortPullRequest
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.config import ServiceConfig
+from cumulusci.core.github import get_github_api
 from cumulusci.tests.util import create_project_config
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.tasks.release_notes.task import GithubReleaseNotes
 from cumulusci.tasks.release_notes.task import ParentPullRequestNotes
+from cumulusci.tasks.github.tests.util_github_api import GithubApiTestMixin
 
 
 class TestGithubReleaseNotes:
-    @mock.patch("cumulusci.tasks.release_notes.task.GithubReleaseNotesGenerator")
-    def test_run_GithubReleaseNotes_task(self, GithubReleaseNotesGenerator):
-        generator = mock.Mock(return_value="notes")
-        GithubReleaseNotesGenerator.return_value = generator
+    @pytest.fixture
+    def project_config(self):
         project_config = create_project_config()
         project_config.keychain.set_service(
             "github",
@@ -24,6 +25,15 @@ class TestGithubReleaseNotes:
                 }
             ),
         )
+        project_config.project__git__default_branch = "master"
+        return project_config
+
+    @mock.patch("cumulusci.tasks.release_notes.task.GithubReleaseNotesGenerator")
+    def test_run_GithubReleaseNotes_task(
+        self, GithubReleaseNotesGenerator, project_config
+    ):
+        generator = mock.Mock(return_value="notes")
+        GithubReleaseNotesGenerator.return_value = generator
         task_config = TaskConfig({"options": {"tag": "release/1.0"}})
         task = GithubReleaseNotes(project_config, task_config)
         task.github = mock.Mock()
@@ -32,13 +42,16 @@ class TestGithubReleaseNotes:
         generator.assert_called_once()
 
 
-class TestParentPullRequestNotes:
-    @mock.patch("cumulusci.tasks.release_notes.task.ParentPullRequestNotes")
+class TestParentPullRequestNotes(GithubApiTestMixin):
 
-    def _get_ParentPullRequestNotes_generator(self, task_config)
-    def test_run_task(self, ParentPullRequestNotes):
-        generator = mock.Mock(return_value=None)
-        ParentPullRequestNotes.return_value = generator
+    BRANCH_NAME = "test-branch"
+
+    @pytest.fixture
+    def gh_api(self):
+        return get_github_api("TestOwner", "TestRepo")
+
+    @pytest.fixture
+    def project_config(self):
         project_config = create_project_config()
         project_config.keychain.set_service(
             "github",
@@ -50,26 +63,164 @@ class TestParentPullRequestNotes:
                 }
             ),
         )
-        task_config = TaskConfig({"options": {"branch_name": "test_branch"}})
-        task = ParentPullRequestNotes(project_config, task_config)
-        task.github = mock.Mock()
-        task.get_repo = mock.Mock()
-        task()
-        generator.assert_called_once()
+        return project_config
 
-    def test_run_task_without_options(self):
-        project_config = create_project_config()
-        project_config.keychain.set_service(
-            "github",
-            ServiceConfig(
-                {
-                    "username": "TestUser",
-                    "password": "TestPass",
-                    "email": "testuser@testdomain.com",
-                }
-            ),
-        )
-        task_config = TaskConfig({"options": {}})
-        task = ParentPullRequestNotes(project_config, task_config)
+    @pytest.fixture
+    def task_provider(self, project_config):
+        def _task_provider(options):
+            task_config = TaskConfig(options)
+            task = ParentPullRequestNotes(project_config, task_config)
+            task.repo = mock.Mock()
+            task.logger = mock.Mock()
+            task.github = mock.Mock()
+            return task
+
+        return _task_provider
+
+    def test_run_task_without_options(self, task_provider):
+        task = task_provider({"options": {}})
         with pytest.raises(TaskOptionsError):
             task()
+
+    def test_run_task_with_both_options(self, task_provider):
+        task = task_provider(
+            {
+                "options": {
+                    "branch_name": "test_branch",
+                    "parent_branch_name": "parent_branch",
+                }
+            }
+        )
+        with pytest.raises(TaskOptionsError):
+            task()
+
+    def test_run_task__branch_option(self, task_provider):
+        task = task_provider({"options": {"branch_name": self.BRANCH_NAME}})
+        task._handle_branch_name_option = mock.Mock()
+        task._handle_parent_branch_name_option = mock.Mock()
+        task._run_task()
+
+        task._handle_branch_name_option.assert_called_once()
+        assert (
+            not task._handle_parent_branch_name_option.called
+        ), "method should not have been called"
+
+    def test_run_task__parent_branch_option(self, task_provider):
+        task = task_provider({"options": {"parent_branch_name": self.BRANCH_NAME}})
+        task._handle_branch_name_option = mock.Mock()
+        task._handle_parent_branch_name_option = mock.Mock()
+        task._run_task()
+
+        task._handle_parent_branch_name_option.assert_called_once()
+        assert (
+            not task._handle_branch_name_option.called
+        ), "method should not have been called"
+
+    @mock.patch("cumulusci.tasks.release_notes.task.get_pull_request_by_branch_name")
+    def test_get_parent_pull_request__parent_pull_request_exists(
+        self, get_pull_request, task_provider, project_config, gh_api
+    ):
+        self.init_github()
+        self.project_config = project_config  # GithubApiMixin wants this
+        get_pull_request.return_value = ShortPullRequest(
+            self._get_expected_pull_request(1, 1, "Body"), gh_api
+        )
+
+        task = task_provider({"options": {"branch_name": self.BRANCH_NAME}})
+
+        actual_pull_request = task._get_parent_pull_request(self.BRANCH_NAME)
+        get_pull_request.assert_called_once_with(task.repo, self.BRANCH_NAME)
+        assert 1 == actual_pull_request.number
+        assert "Body" == actual_pull_request.body
+
+    @mock.patch("cumulusci.tasks.release_notes.task.get_pull_request_by_branch_name")
+    @mock.patch("cumulusci.tasks.release_notes.task.create_pull_request")
+    @mock.patch("cumulusci.tasks.release_notes.task.add_labels_to_pull_request")
+    def test_get_parent_pull_request__create_parent_pull_request(
+        self,
+        add_labels,
+        create_pull_request,
+        get_pull_request,
+        task_provider,
+        project_config,
+        gh_api,
+    ):
+        self.init_github()
+        self.project_config = project_config  # GithubApiMixin wants this
+
+        get_pull_request.return_value = None
+        create_pull_request.return_value = ShortPullRequest(
+            self._get_expected_pull_request(62, 62, "parent body"), gh_api
+        )
+
+        task = task_provider({"options": {"branch_name": self.BRANCH_NAME}})
+
+        actual_pull_request = task._get_parent_pull_request(self.BRANCH_NAME)
+        get_pull_request.assert_called_once_with(task.repo, self.BRANCH_NAME)
+        assert 62 == actual_pull_request.number
+        assert "parent body" == actual_pull_request.body
+
+    @mock.patch("cumulusci.tasks.release_notes.task.get_pull_request_by_branch_name")
+    def test_handle_parent_branch_name_option__no_branch_found(
+        self, get_pull_request, task_provider, project_config
+    ):
+        self.init_github()
+        self.project_config = project_config  # GithubApiMixin wants this
+
+        get_pull_request.return_value = None
+
+        task = task_provider({"options": {"branch_name": self.BRANCH_NAME}})
+        task._handle_parent_branch_name_option(mock.Mock(), self.BRANCH_NAME)
+
+        task.logger.info.assert_called_once_with(
+            "No pull request found for branch: {}.\nExiting...".format(self.BRANCH_NAME)
+        )
+
+    @mock.patch("cumulusci.tasks.release_notes.task.is_label_on_pull_request")
+    @mock.patch("cumulusci.tasks.release_notes.task.get_pull_request_by_branch_name")
+    def test_handle_parent_branch_name_option__branch_found_with_label(
+        self, get_pr, is_label_on_pr, task_provider, project_config, gh_api
+    ):
+        self.init_github()
+        self.project_config = project_config  # GithubApiMixin wants this
+
+        pull_request = ShortPullRequest(
+            self._get_expected_pull_request(1, 1, "Body"), gh_api
+        )
+        get_pr.return_value = pull_request
+        is_label_on_pr.return_value = True
+
+        generator = mock.Mock()
+        task = task_provider({"options": {"branch_name": self.BRANCH_NAME}})
+        task._handle_parent_branch_name_option(generator, self.BRANCH_NAME)
+
+        generator.aggregate_child_change_notes.assert_called_once_with(pull_request)
+
+    @mock.patch("cumulusci.tasks.release_notes.task.is_label_on_pull_request")
+    @mock.patch("cumulusci.tasks.release_notes.task.get_pull_request_by_branch_name")
+    def test_handle_parent_branch_name_option__branch_found_without_label(
+        self, get_pr, is_label_on_pr, task_provider, project_config, gh_api
+    ):
+        self.init_github()
+        self.project_config = project_config  # GithubApiMixin wants this
+
+        pull_request = ShortPullRequest(
+            self._get_expected_pull_request(1, 1, "Body"), gh_api
+        )
+        get_pr.return_value = pull_request
+        is_label_on_pr.return_value = False
+
+        generator = mock.Mock()
+        task = task_provider({"options": {"branch_name": self.BRANCH_NAME}})
+        task._handle_parent_branch_name_option(generator, self.BRANCH_NAME)
+
+        assert 0 == generator.aggregate_child_change_notes.call_count
+        task.logger.info.assert_called_once_with(
+            (
+                "Missing label {}, on pull request #{}. "
+                "If you want to recreate the body of this pull request "
+                "please apply the label '{}' and run this command again."
+            ).format(
+                task.BUILD_NOTES_LABEL, pull_request.number, task.BUILD_NOTES_LABEL
+            )
+        )
