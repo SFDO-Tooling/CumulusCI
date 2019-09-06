@@ -171,9 +171,11 @@ class ParentPullRequestNotes(BaseGithubTask):
         else:
             self.logger.info(
                 (
-                    "Missing label {}, on pull request #{}. "
+                    "Missing label '{}', on pull request #{}. "
                     "If you want to recreate the body of this pull request "
-                    "please apply the label '{}' and run this command again."
+                    "please apply the label '{}' and run this command again. "
+                    "Note that any existing modifications to the change "
+                    "notes will be lost."
                 ).format(
                     self.BUILD_NOTES_LABEL, pull_request.number, self.BUILD_NOTES_LABEL
                 )
