@@ -421,6 +421,10 @@ flows:
                 task: run_tests
             5:
                 task: github_parent_to_children
+            6:
+                task: github_parent_pr_notes
+                options:
+                    branch_name: $project_config.repo_branch
 
     ci_feature_beta_deps:
         description: Install the latest beta version of dependencies and run apex tests.
