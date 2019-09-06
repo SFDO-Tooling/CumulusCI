@@ -217,9 +217,11 @@ class TestParentPullRequestNotes(GithubApiTestMixin):
         assert 0 == generator.aggregate_child_change_notes.call_count
         task.logger.info.assert_called_once_with(
             (
-                "Missing label {}, on pull request #{}. "
+                "Missing label '{}', on pull request #{}. "
                 "If you want to recreate the body of this pull request "
-                "please apply the label '{}' and run this command again."
+                "please apply the label '{}' and run this command again. "
+                "Note that any existing modifications to the change notes "
+                "will be lost."
             ).format(
                 task.BUILD_NOTES_LABEL, pull_request.number, task.BUILD_NOTES_LABEL
             )
