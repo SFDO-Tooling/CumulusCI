@@ -120,4 +120,4 @@ def is_label_on_pull_request(repo, pull_request, label_name):
     pull request number. False otherwise."""
     issue = repo.issue(pull_request.number)
     labels = issue.labels()
-    return any(label_name in issue_label.name for issue_label in labels)
+    return any(label_name == issue_label.name for issue_label in labels)
