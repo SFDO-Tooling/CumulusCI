@@ -88,7 +88,7 @@ class ParentPullRequestNotes(BaseGithubTask):
     If the BUILD_NOTES_LABEL is present on the pull request, then all notes from the 
     child pull request are aggregated into the parent pull request. If the BUILD_NOTES_LABEL
     is not detected on the parent pull request then a link to the child pull request
-    is placed under the "Unaggregated Pull Reqeusts" header.
+    is placed under the "Unaggregated Pull Requests" header.
 
     When given the parent_branch_name option, this task will query for a corresponding pull request.
     If a pull request is not found, the task exits. If a pull request is found, then all notes
@@ -162,7 +162,7 @@ class ParentPullRequestNotes(BaseGithubTask):
         elif is_label_on_pull_request(self.repo, pull_request, self.BUILD_NOTES_LABEL):
             # We can only aggregate child change notes when given the parent_branch option
             #
-            # We aren't able to append to the 'Unaggregated Pull Reqeusts' header.
+            # We aren't able to append to the 'Unaggregated Pull Requests' header.
             # We don't know at what time the label was applied to the pull request;
             # and therefore, we cannot determine which child pull requests are already
             # aggregated into the parent pull request, and which ones should be

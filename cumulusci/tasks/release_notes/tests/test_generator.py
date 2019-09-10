@@ -550,7 +550,7 @@ class TestParentPullRequestNotesGenerator(GithubApiTestMixin):
         pr_update_api_url = "https://github.com/TestOwner/TestRepo/pulls/{}".format(
             pr_num
         )
-        # Mock endpoint that updates the pull reqeust
+        # Mock endpoint that updates the pull request
         responses.add_callback(
             responses.PATCH,
             pr_update_api_url,

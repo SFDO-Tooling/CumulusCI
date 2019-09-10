@@ -133,7 +133,7 @@ class ParentPullRequestNotesGenerator(BaseReleaseNotesGenerator):
 
     def aggregate_child_change_notes(self, pull_request):
         """Given a pull request, aggregate all change notes from child pull requests.
-        Child pull reqeusts are pull requests that have a base branch
+        Child pull requests are pull requests that have a base branch
         equal to the the given pull request's head."""
         self.change_notes = get_pull_requests_with_base_branch(
             self.repo, pull_request.head.label.split(":")[1]

@@ -179,7 +179,7 @@ class TestGithub(GithubApiTestMixin):
         assert 3 == len(pull_requests)
 
     @responses.activate
-    def test_create_pull_reqeust(self, mock_util, repo, gh_api):
+    def test_create_pull_request(self, mock_util, repo, gh_api):
         self.init_github()
         mock_util.mock_pulls(
             method=responses.POST,
