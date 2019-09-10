@@ -171,7 +171,7 @@ class ParentPullRequestNotesGenerator(BaseReleaseNotesGenerator):
             # TODO: Should we alert user if PR isn't found?
             pull_request_link = markdown_link_to_pr(pull_request)
             if pull_request_link not in body:
-                body += "\r\n* " + markdown_link_to_pr(pull_request)
+                body += "\r\n* " + pull_request_link
                 pull_request_to_update.update(body=body)
 
 
