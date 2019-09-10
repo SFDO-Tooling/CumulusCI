@@ -83,7 +83,7 @@ def get_pull_requests_with_base_branch(repo, base_branch_name):
 def get_pull_request_by_branch_name(repo, branch_name):
     """Returns a single pull request if found, or None if nothing is returned.
     Will throw an error if more than one pull request is returned"""
-    if branch_name == "master":
+    if branch_name == repo.default_branch:
         return None
 
     pull_requests = list(repo.pull_requests(head=repo.owner.login + ":" + branch_name))
