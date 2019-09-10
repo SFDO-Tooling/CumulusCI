@@ -947,7 +947,7 @@ def org_list(config, plain):
     plain = plain or config.global_config.cli__plain_output
     header = ["Name", "Default", "Username"]
     persistent_data = [header]
-    scratch_data = [header[:2] + ["Days", "Expired", "Config"]]
+    scratch_data = [header[:2] + ["Days", "Expired", "Config", "Domain"]]
 
     org_configs = OrderedDict(
         (org, config.project_config.keychain.get_org(org))
@@ -959,7 +959,12 @@ def org_list(config, plain):
         row = [org, org_config.default]
         if isinstance(org_config, ScratchOrgConfig):
             org_days = org_config.format_org_days()
-            row.extend([org_days, org_config.expired, org_config.config_name])
+            instance_url = org_config.instance_url if org_config.expired == False else ''
+            try:
+                instance_url = instance_url.split('//')[-1].rsplit('.',3)[0]
+            except Exception:
+                pass
+            row.extend([org_days, org_config.expired, org_config.config_name, instance_url])
             scratch_data.append(row)
         else:
             username = org_config.config.get(
