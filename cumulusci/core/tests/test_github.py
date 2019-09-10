@@ -1,22 +1,21 @@
-from datetime import datetime
-from http.client import HTTPMessage
 import io
 import os
+import mock
 import pytest
 import unittest
-
-import mock
 import responses
+from datetime import datetime
+from http.client import HTTPMessage
 
 from github3.repos.repo import Repository
 from github3.pulls import ShortPullRequest
 from github3.exceptions import ConnectionError
 from github3.session import AppInstallationTokenAuth
 
-from cumulusci.tasks.github.tests.util_github_api import GithubApiTestMixin
-from cumulusci.tasks.release_notes.tests.utils import MockUtil
-from cumulusci.core.exceptions import GithubException
 from cumulusci.core import github
+from cumulusci.core.exceptions import GithubException
+from cumulusci.tasks.release_notes.tests.utils import MockUtil
+from cumulusci.tasks.github.tests.util_github_api import GithubApiTestMixin
 from cumulusci.core.github import (
     add_labels_to_pull_request,
     create_pull_request,
