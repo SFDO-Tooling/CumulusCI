@@ -75,9 +75,9 @@ def validate_service(options):
         )
 
 
-def get_pull_requests_with_base_branch(repo, base_branch_name):
+def get_pull_requests_with_base_branch(repo, base_branch_name, head=None):
     """Returns a list of pull requests with the given base branch"""
-    return list(repo.pull_requests(base=base_branch_name))
+    return list(repo.pull_requests(base=base_branch_name, head=head))
 
 
 def get_pull_request_by_branch_name(repo, branch_name):
