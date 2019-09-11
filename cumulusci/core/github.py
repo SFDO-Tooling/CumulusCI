@@ -80,21 +80,12 @@ def get_pull_requests_with_base_branch(repo, base_branch_name, head=None):
     return list(repo.pull_requests(base=base_branch_name, head=head))
 
 
-def get_pull_request_by_branch_name(repo, branch_name):
-    """Returns a single pull request if found, or None if nothing is returned.
-    Will throw an error if more than one pull request is returned"""
+def get_pull_request_by_head(repo, branch_name):
+    """Returns all pull requests with head equal to the given branch name."""
     if branch_name == repo.default_branch:
         return None
 
-    pull_requests = list(repo.pull_requests(head=repo.owner.login + ":" + branch_name))
-    if len(pull_requests) == 0:
-        return None
-    elif len(pull_requests) == 1:
-        return pull_requests[0]
-    else:
-        raise GithubException(
-            "Expected one pull request but received {}".format(len(pull_requests))
-        )
+    return list(repo.pull_requests(head=repo.owner.login + ":" + branch_name))
 
 
 def create_pull_request(repo, branch_name, base=None, title=None):
