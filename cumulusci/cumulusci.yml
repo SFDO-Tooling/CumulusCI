@@ -111,7 +111,7 @@ tasks:
         class_path: cumulusci.tasks.salesforce.GetInstalledPackages
         group: Salesforce Metadata
     github_parent_pr_notes:
-        description: Merges the description of a child PRs to the respective Parent's PR (if one exists).
+        description: Merges the description of a child pull request to the respective parent's pull request (if one exists).
         class_path: cumulusci.tasks.release_notes.task.ParentPullRequestNotes
         group: GitHub
     github_clone_tag:
