@@ -13,6 +13,7 @@ from cumulusci.core.github import (
     is_label_on_pull_request,
     add_labels_to_pull_request,
     get_pull_request_by_branch_name,
+    get_pull_requests_with_base_branch,
 )
 
 
@@ -121,22 +122,15 @@ class ParentPullRequestNotes(BaseGithubTask):
             self._handle_parent_branch_name_option(generator, parent_branch_name)
 
     def _handle_branch_name_option(self, generator, branch_name):
-        parent_pull_request = None
-        pull_request = get_pull_request_by_branch_name(self.repo, branch_name)
-
-        if not pull_request:
+        if "__" not in branch_name:
             self.logger.info(
-                "Pull request not found for branch: {}.\nExiting...".format(branch_name)
+                "Branch {} is not a child branch. Exiting...".format(branch_name)
             )
-            return
+            return  # not a child branch
 
-        base_branch = pull_request.base.ref
-        feature_prefix = self.project_config.project__git__prefix_feature
-        if not base_branch.startswith(feature_prefix):
-            self.logger.info("Pull request's base is not a feature branch.\nExiting...")
-            return
-
-        parent_pull_request = self._get_parent_pull_request(base_branch)
+        parent_pull_request = None
+        parent_branch_name = branch_name.split("__")[0]
+        parent_pull_request = self._get_parent_pull_request(parent_branch_name)
         if is_label_on_pull_request(
             self.repo, parent_pull_request, self.BUILD_NOTES_LABEL
         ):
@@ -180,8 +174,10 @@ class ParentPullRequestNotes(BaseGithubTask):
         """Attempts to retrieve a pull request for the given branch.
         If one is not found, then it is created and the 'Build Change Notes' 
         label is applied to it."""
-        parent_pull_request = get_pull_request_by_branch_name(self.repo, branch_name)
-        if not parent_pull_request:
+        requests = get_pull_requests_with_base_branch(
+            self.repo, self.repo.default_branch, branch_name
+        )
+        if len(requests) == 0:
             self.logger.info(
                 "Pull request not found. Creating pull request for branch: {} with base of 'master'.".format(
                     branch_name
@@ -191,4 +187,6 @@ class ParentPullRequestNotes(BaseGithubTask):
             add_labels_to_pull_request(
                 self.repo, parent_pull_request, self.BUILD_NOTES_LABEL
             )
+        else:
+            parent_pull_request = requests[0]
         return parent_pull_request

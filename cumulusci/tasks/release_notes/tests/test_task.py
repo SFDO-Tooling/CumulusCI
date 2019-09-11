@@ -47,7 +47,7 @@ class TestGithubReleaseNotes:
 
 class TestParentPullRequestNotes(GithubApiTestMixin):
 
-    BRANCH_NAME = "test-branch"
+    BRANCH_NAME = "feature/long__test-branch"
 
     @pytest.fixture
     def project_config(self):
@@ -115,24 +115,25 @@ class TestParentPullRequestNotes(GithubApiTestMixin):
             not task._handle_branch_name_option.called
         ), "method should not have been called"
 
-    @mock.patch("cumulusci.tasks.release_notes.task.get_pull_request_by_branch_name")
+    @mock.patch("cumulusci.tasks.release_notes.task.get_pull_requests_with_base_branch")
     def test_get_parent_pull_request__parent_pull_request_exists(
         self, get_pull_request, task_factory, project_config, gh_api
     ):
         self.init_github()
         self.project_config = project_config  # GithubApiMixin wants this
-        get_pull_request.return_value = ShortPullRequest(
-            self._get_expected_pull_request(1, 1, "Body"), gh_api
-        )
+        get_pull_request.return_value = [
+            ShortPullRequest(self._get_expected_pull_request(1, 1, "Body"), gh_api)
+        ]
 
         task = task_factory({"options": {"branch_name": self.BRANCH_NAME}})
+        task.repo.default_branch = "master"
 
         actual_pull_request = task._get_parent_pull_request(self.BRANCH_NAME)
-        get_pull_request.assert_called_once_with(task.repo, self.BRANCH_NAME)
+        get_pull_request.assert_called_once_with(task.repo, "master", self.BRANCH_NAME)
         assert 1 == actual_pull_request.number
         assert "Body" == actual_pull_request.body
 
-    @mock.patch("cumulusci.tasks.release_notes.task.get_pull_request_by_branch_name")
+    @mock.patch("cumulusci.tasks.release_notes.task.get_pull_requests_with_base_branch")
     @mock.patch("cumulusci.tasks.release_notes.task.create_pull_request")
     @mock.patch("cumulusci.tasks.release_notes.task.add_labels_to_pull_request")
     def test_get_parent_pull_request__create_parent_pull_request(
@@ -147,7 +148,7 @@ class TestParentPullRequestNotes(GithubApiTestMixin):
         self.init_github()
         self.project_config = project_config  # GithubApiMixin wants this
 
-        get_pull_request.return_value = None
+        get_pull_request.return_value = []
         create_pull_request.return_value = ShortPullRequest(
             self._get_expected_pull_request(62, 62, "parent body"), gh_api
         )
@@ -155,7 +156,9 @@ class TestParentPullRequestNotes(GithubApiTestMixin):
         task = task_factory({"options": {"branch_name": self.BRANCH_NAME}})
 
         actual_pull_request = task._get_parent_pull_request(self.BRANCH_NAME)
-        get_pull_request.assert_called_once_with(task.repo, self.BRANCH_NAME)
+        get_pull_request.assert_called_once_with(
+            task.repo, task.repo.default_branch, self.BRANCH_NAME
+        )
         assert 62 == actual_pull_request.number
         assert "parent body" == actual_pull_request.body
 
@@ -227,41 +230,19 @@ class TestParentPullRequestNotes(GithubApiTestMixin):
         )
 
     @mock.patch("cumulusci.tasks.release_notes.task.get_pull_request_by_branch_name")
-    def test_handle_branch_name_option__pr_not_found(self, get_pr, task_factory):
+    def test_handle_branch_name_option__branch_not_child(self, get_pr, task_factory):
         get_pr.return_values = None
         task = task_factory({"options": {"branch_name": self.BRANCH_NAME}})
         task.logger = mock.Mock()
 
         generator = mock.Mock()
         get_pr.return_value = None
-        task._handle_branch_name_option(generator, self.BRANCH_NAME)
+
+        not_child_branch = "not-child-branch-format"
+        task._handle_branch_name_option(generator, not_child_branch)
 
         task.logger.info.assert_called_once_with(
-            "Pull request not found for branch: {}.\nExiting...".format(
-                self.BRANCH_NAME
-            )
-        )
-
-    @mock.patch("cumulusci.tasks.release_notes.task.get_pull_request_by_branch_name")
-    def test_handle_branch_name_option__base_branch_not_feature(
-        self, get_pr, task_factory, project_config, gh_api
-    ):
-        self.init_github()
-        self.project_config = project_config  # GithubApiMixin wants this
-        get_pr.return_values = None
-        task = task_factory({"options": {"branch_name": self.BRANCH_NAME}})
-        task.logger = mock.Mock()
-
-        generator = mock.Mock()
-        get_pr.return_value = ShortPullRequest(
-            self._get_expected_pull_request(1, 1, "Body"), gh_api
-        )
-        task._handle_branch_name_option(generator, self.BRANCH_NAME)
-
-        task.logger.info.assert_called_once_with(
-            "Pull request's base is not a feature branch.\nExiting...".format(
-                self.BRANCH_NAME
-            )
+            "Branch {} is not a child branch. Exiting...".format(not_child_branch)
         )
 
     @mock.patch("cumulusci.tasks.release_notes.task.is_label_on_pull_request")
