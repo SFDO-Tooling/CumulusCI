@@ -156,6 +156,9 @@ class TestGithub(GithubApiTestMixin):
         pull_requests = get_pull_requests_by_head(repo, "test_branch")
         assert pull_requests == []
 
+        pull_requests = get_pull_requests_by_head(repo, "master")
+        assert pull_requests is None
+
     @responses.activate
     def test_get_pull_request_by_head__multiple_pulls(self, mock_util, repo):
         self.init_github()

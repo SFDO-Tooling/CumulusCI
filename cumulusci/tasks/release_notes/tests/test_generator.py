@@ -547,7 +547,6 @@ class TestParentPullRequestNotesGenerator(GithubApiTestMixin):
             return (200, {}, json.dumps(resp_body))
 
         pr_num = 1
-        # TODO: '.api' is not in this url and it works. Why?
         pr_update_api_url = "https://github.com/TestOwner/TestRepo/pulls/{}".format(
             pr_num
         )
@@ -560,6 +559,7 @@ class TestParentPullRequestNotesGenerator(GithubApiTestMixin):
         )
 
         BODY = "Sample Body"
+        TEST_BRANCH_NAME = "feature/long__child-branch"
         self.init_github()
         pr_to_update = ShortPullRequest(
             self._get_expected_pull_request(pr_num, pr_num, BODY), gh_api
@@ -567,16 +567,17 @@ class TestParentPullRequestNotesGenerator(GithubApiTestMixin):
 
         NEW_PR_BODY = "* Random Dev Note\r\n\r\n# Changes\r\n\r\n* Now more code!"
         unaggregated_pr_json = self._get_expected_pull_request(2, 2, NEW_PR_BODY)
+        unaggregated_pr_json["base"]["ref"] = "feature/long"
         # Mock pull request for retrieval by branch name
         mock_util.mock_pulls(pulls=[unaggregated_pr_json])
 
-        generator.update_unaggregated_pr_header(pr_to_update, "some-other-branch")
+        generator.update_unaggregated_pr_header(pr_to_update, TEST_BRANCH_NAME)
         pr_link = markdown_link_to_pr(ShortPullRequest(unaggregated_pr_json, gh_api))
         assert generator.UNAGGREGATED_SECTION_HEADER in pr_to_update.body
         assert pr_link in pr_to_update.body
 
         # Ensure we don't duplicate things
-        generator.update_unaggregated_pr_header(pr_to_update, "some-other-branch")
+        generator.update_unaggregated_pr_header(pr_to_update, TEST_BRANCH_NAME)
         num_headers = len(
             re.findall(generator.UNAGGREGATED_SECTION_HEADER, pr_to_update.body)
         )
