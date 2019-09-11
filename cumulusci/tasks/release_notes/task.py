@@ -87,7 +87,7 @@ class ParentPullRequestNotes(BaseGithubTask):
 
     When given the parent_branch_name option, this task will query for a corresponding pull request.
     If a pull request is not found, the task exits. If a pull request is found, then all notes
-    from child pull requests are re-aggregated and the body of the parent is replace entirely.
+    from child pull requests are re-aggregated and the body of the parent is replaced entirely.
     """
 
     BUILD_NOTES_LABEL = "Build Change Notes"
