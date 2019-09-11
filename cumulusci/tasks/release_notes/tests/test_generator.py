@@ -6,9 +6,12 @@ import json
 import pytest
 import unittest
 import responses
+
 from github3 import GitHub
 from github3.repos.repo import Repository
 from github3.pulls import ShortPullRequest
+
+from cumulusci.tests.conftest import gh_api
 from cumulusci.core.github import get_github_api
 from cumulusci.tests.util import create_project_config
 from cumulusci.core.exceptions import CumulusCIException
@@ -18,11 +21,13 @@ from cumulusci.tasks.release_notes.parser import BaseChangeNotesParser
 from cumulusci.tasks.release_notes.generator import markdown_link_to_pr
 from cumulusci.tasks.release_notes.generator import render_empty_pr_section
 from cumulusci.tasks.github.tests.util_github_api import GithubApiTestMixin
-from cumulusci.tasks.release_notes.generator import BaseReleaseNotesGenerator
-from cumulusci.tasks.release_notes.generator import StaticReleaseNotesGenerator
-from cumulusci.tasks.release_notes.generator import GithubReleaseNotesGenerator
-from cumulusci.tasks.release_notes.generator import DirectoryReleaseNotesGenerator
-from cumulusci.tasks.release_notes.generator import ParentPullRequestNotesGenerator
+from cumulusci.tasks.release_notes.generator import (
+    BaseReleaseNotesGenerator,
+    StaticReleaseNotesGenerator,
+    GithubReleaseNotesGenerator,
+    DirectoryReleaseNotesGenerator,
+    ParentPullRequestNotesGenerator,
+)
 
 __location__ = os.path.split(os.path.realpath(__file__))[0]
 
@@ -436,10 +441,6 @@ class TestParentPullRequestNotesGenerator(GithubApiTestMixin):
     @pytest.fixture
     def mock_util(self):
         return MockUtil("TestOwner", "TestRepo")
-
-    @pytest.fixture
-    def gh_api(self):
-        return get_github_api("TestUser", "TestPass")
 
     @pytest.fixture
     def repo(self, gh_api):

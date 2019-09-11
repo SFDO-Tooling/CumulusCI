@@ -1,6 +1,9 @@
 import mock
 import pytest
+
 from github3.pulls import ShortPullRequest
+
+from cumulusci.tests.conftest import gh_api
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.config import ServiceConfig
 from cumulusci.core.github import get_github_api
@@ -45,10 +48,6 @@ class TestGithubReleaseNotes:
 class TestParentPullRequestNotes(GithubApiTestMixin):
 
     BRANCH_NAME = "test-branch"
-
-    @pytest.fixture
-    def gh_api(self):
-        return get_github_api("TestOwner", "TestRepo")
 
     @pytest.fixture
     def project_config(self):

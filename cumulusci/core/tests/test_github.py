@@ -13,6 +13,7 @@ from github3.exceptions import ConnectionError
 from github3.session import AppInstallationTokenAuth
 
 from cumulusci.core import github
+from cumulusci.tests.conftest import gh_api
 from cumulusci.core.exceptions import GithubException
 from cumulusci.tasks.release_notes.tests.utils import MockUtil
 from cumulusci.tasks.github.tests.util_github_api import GithubApiTestMixin
@@ -53,10 +54,6 @@ class TestGithub(GithubApiTestMixin):
     @pytest.fixture
     def mock_util(self):
         return MockUtil("TestOwner", "TestRepo")
-
-    @pytest.fixture
-    def gh_api(self):
-        return get_github_api("TestUser", "TestPass")
 
     @pytest.fixture
     def repo(self, gh_api):
@@ -141,7 +138,7 @@ class TestGithub(GithubApiTestMixin):
     def test_get_pull_request_by_branch_name(self, mock_util, repo):
         self.init_github()
         mock_util.mock_pulls(
-            pulls=self.get_expected_pull_requests(1),
+            pulls=self._get_expected_pull_requests(1),
             head=repo.owner.login + ":" + "some-other-branch",
         )
         pull_request = get_pull_request_by_branch_name(repo, "some-other-branch")
@@ -162,7 +159,7 @@ class TestGithub(GithubApiTestMixin):
     @responses.activate
     def test_get_pull_request_by_branch_name__multiple_pulls(self, mock_util, repo):
         self.init_github()
-        mock_util.mock_pulls(pulls=self.get_expected_pull_requests(2))
+        mock_util.mock_pulls(pulls=self._get_expected_pull_requests(2))
         with pytest.raises(GithubException):
             get_pull_request_by_branch_name(repo, "test_branch")
 
@@ -174,7 +171,7 @@ class TestGithub(GithubApiTestMixin):
         assert 0 == len(pull_requests)
 
         responses.reset()
-        mock_util.mock_pulls(pulls=self.get_expected_pull_requests(3), base="master")
+        mock_util.mock_pulls(pulls=self._get_expected_pull_requests(3), base="master")
         pull_requests = get_pull_requests_with_base_branch(repo, "master")
         assert 3 == len(pull_requests)
 
