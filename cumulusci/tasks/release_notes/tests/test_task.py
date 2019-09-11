@@ -191,7 +191,7 @@ class TestParentPullRequestNotes(GithubApiTestMixin):
         assert 62 == actual_pull_request.number
         assert "parent body" == actual_pull_request.body
 
-    @mock.patch("cumulusci.tasks.release_notes.task.get_pull_request_by_branch_name")
+    @mock.patch("cumulusci.tasks.release_notes.task.get_pull_requests_by_head")
     def test_handle_parent_branch_name_option__no_branch_found(
         self, get_pull_request, task_factory, project_config
     ):
@@ -214,7 +214,7 @@ class TestParentPullRequestNotes(GithubApiTestMixin):
             "No pull request found for branch: {}. Exiting...".format(self.BRANCH_NAME)
         )
 
-    @mock.patch("cumulusci.tasks.release_notes.task.get_pull_request_by_branch_name")
+    @mock.patch("cumulusci.tasks.release_notes.task.get_pull_requests_by_head")
     def test_handle_parent_branch_name_option__no_branch_with_base_of_master(
         self, get_pull_request, task_factory, project_config
     ):
@@ -242,7 +242,7 @@ class TestParentPullRequestNotes(GithubApiTestMixin):
         )
 
     @mock.patch("cumulusci.tasks.release_notes.task.is_label_on_pull_request")
-    @mock.patch("cumulusci.tasks.release_notes.task.get_pull_request_by_branch_name")
+    @mock.patch("cumulusci.tasks.release_notes.task.get_pull_requests_by_head")
     def test_handle_parent_branch_name_option__branch_found_with_label(
         self, get_pr, is_label_on_pr, task_factory, project_config, gh_api
     ):
@@ -269,7 +269,7 @@ class TestParentPullRequestNotes(GithubApiTestMixin):
 
         generator.aggregate_child_change_notes.assert_called_once_with(pull_request)
 
-    @mock.patch("cumulusci.tasks.release_notes.task.get_pull_request_by_branch_name")
+    @mock.patch("cumulusci.tasks.release_notes.task.get_pull_requests_by_head")
     def test_handle_branch_name_option__branch_not_child(self, get_pr, task_factory):
         get_pr.return_values = None
         task = task_factory(
@@ -293,7 +293,7 @@ class TestParentPullRequestNotes(GithubApiTestMixin):
         )
 
     @mock.patch("cumulusci.tasks.release_notes.task.is_label_on_pull_request")
-    @mock.patch("cumulusci.tasks.release_notes.task.get_pull_request_by_branch_name")
+    @mock.patch("cumulusci.tasks.release_notes.task.get_pull_requests_by_head")
     def test_handle_branch_name_option__review_label_found(
         self, get_pr, label_found, task_factory, project_config, gh_api
     ):
@@ -326,7 +326,7 @@ class TestParentPullRequestNotes(GithubApiTestMixin):
         generator.aggregate_child_change_notes.assert_called_once()
 
     @mock.patch("cumulusci.tasks.release_notes.task.is_label_on_pull_request")
-    @mock.patch("cumulusci.tasks.release_notes.task.get_pull_request_by_branch_name")
+    @mock.patch("cumulusci.tasks.release_notes.task.get_pull_requests_by_head")
     def test_handle_branch_name_option__review_label_not_found(
         self, get_pr, label_found, task_factory, project_config, gh_api
     ):
