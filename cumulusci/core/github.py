@@ -80,7 +80,7 @@ def get_pull_requests_with_base_branch(repo, base_branch_name, head=None):
     return list(repo.pull_requests(base=base_branch_name, head=head))
 
 
-def get_pull_request_by_head(repo, branch_name):
+def get_pull_requests_by_head(repo, branch_name):
     """Returns all pull requests with head equal to the given branch name."""
     if branch_name == repo.default_branch:
         return None

@@ -3,7 +3,7 @@ import github3.exceptions
 from cumulusci.core.utils import import_global
 from cumulusci.core.github import (
     is_label_on_pull_request,
-    get_pull_request_by_branch_name,
+    get_pull_requests_by_head,
     get_pull_requests_with_base_branch,
 )
 from cumulusci.tasks.release_notes.exceptions import CumulusCIException
@@ -166,13 +166,23 @@ class ParentPullRequestNotesGenerator(BaseReleaseNotesGenerator):
         if self.UNAGGREGATED_SECTION_HEADER not in body:
             body += self.UNAGGREGATED_SECTION_HEADER
 
-        pull_request = get_pull_request_by_branch_name(self.repo, branch_name_to_add)
-        if pull_request:
-            # TODO: Should we alert user if PR isn't found?
-            pull_request_link = markdown_link_to_pr(pull_request)
-            if pull_request_link not in body:
-                body += "\r\n* " + pull_request_link
-                pull_request_to_update.update(body=body)
+        pull_request = None
+        pull_requests = get_pull_requests_by_head(self.repo, branch_name_to_add)
+        if pull_requests:
+            for pr in pull_requests:
+                if pr.base.ref == branch_name_to_add.split("__")[0]:
+                    pull_request = pr
+                    break
+        if not pull_request:
+            raise CumulusCIException(
+                "No pull request for branch {} found.".format(branch_name_to_add)
+            )
+
+        pull_request_link = markdown_link_to_pr(pull_request)
+        if pull_request_link not in body:
+            body += "\r\n* " + pull_request_link
+            pull_request_to_update.update(body=body)
+            return
 
 
 class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator):

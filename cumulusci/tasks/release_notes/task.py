@@ -12,7 +12,7 @@ from cumulusci.core.github import (
     create_pull_request,
     is_label_on_pull_request,
     add_labels_to_pull_request,
-    get_pull_request_by_branch_name,
+    get_pull_requests_by_head,
     get_pull_requests_with_base_branch,
 )
 
@@ -98,18 +98,34 @@ class ParentPullRequestNotes(BaseGithubTask):
         "parent_branch_name": {
             "description": "name of the parent branch to rebuild change notes for"
         },
+        "build_notes_label": {
+            "description": (
+                "Name of the label that indicates that change notes on parent pull "
+                "requests should be reaggregated when a child branch pull request is created."
+            ),
+            "required": True,
+        },
     }
+
+    def _init_options(self, kwargs):
+        super(ParentPullRequestNotes, self)._init_options(kwargs)
+        self.options["branch_name"] = self.options.get("branch_name")
+        self.options["parent_branch_name"] = self.options.get("parent_branch_name")
+        self.options["build_notes_label"] = self.options.get("build_notes_label")
+
+    def _validate_options(self):
+        super(ParentPullRequestNotes, self)._validate_options()
+        if (
+            not self.options["branch_name"] and not self.options["parent_branch_name"]
+        ) or (self.options["branch_name"] and self.options["parent_branch_name"]):
+            raise TaskOptionsError(
+                "You must specify either branch_name or (exclusive) parent_branch_name."
+            )
 
     def _run_task(self):
         branch_name = self.options.get("branch_name")
         parent_branch_name = self.options.get("parent_branch_name")
-
-        if (not branch_name and not parent_branch_name) or (
-            branch_name and parent_branch_name
-        ):
-            raise TaskOptionsError(
-                "You must specify either branch_name or (exclusive) parent_branch_name."
-            )
+        self.build_notes_label = self.options.get("build_notes_label")
 
         self.repo = self.get_repo()
         generator = ParentPullRequestNotesGenerator(
@@ -132,24 +148,30 @@ class ParentPullRequestNotes(BaseGithubTask):
         parent_branch_name = branch_name.split("__")[0]
         parent_pull_request = self._get_parent_pull_request(parent_branch_name)
         if is_label_on_pull_request(
-            self.repo, parent_pull_request, self.BUILD_NOTES_LABEL
+            self.repo, parent_pull_request, self.build_notes_label
         ):
             generator.aggregate_child_change_notes(parent_pull_request)
         else:
             generator.update_unaggregated_pr_header(parent_pull_request, branch_name)
 
     def _handle_parent_branch_name_option(self, generator, parent_branch_name):
-        pull_request = get_pull_request_by_branch_name(self.repo, parent_branch_name)
+        pull_requests = get_pull_requests_by_head(self.repo, parent_branch_name)
+        if not pull_requests:
+            self._log_cant_find_pull_request(parent_branch_name)
+            return
+        # There could be multiple requests with head == parent_branch, filter through
+        # and look for one with base equal to 'master'
+        pull_request = None
+        for pr in pull_requests:
+            if pr.base.ref == self.repo.default_branch:
+                pull_request = pr
+                break
+
         if not pull_request:
-            # If we don't find a pull request for a specified parent
-            # branch we don't create one. Notify the user, and exit
-            self.logger.info(
-                "No pull request found for branch: {}.\nExiting...".format(
-                    parent_branch_name
-                )
-            )
-        elif is_label_on_pull_request(self.repo, pull_request, self.BUILD_NOTES_LABEL):
-            # We can only aggregate child change notes when given the parent_branch option
+            self._log_cant_find_pull_request(parent_branch_name)
+            return
+        else:
+            # We can ONLY aggregate child change notes when given the parent_branch option
             #
             # We aren't able to append to the 'Unaggregated Pull Requests' header.
             # We don't know at what time the label was applied to the pull request;
@@ -157,18 +179,6 @@ class ParentPullRequestNotes(BaseGithubTask):
             # aggregated into the parent pull request, and which ones should be
             # included in the 'Unaggregated Pull Requests' section.
             generator.aggregate_child_change_notes(pull_request)
-        else:
-            self.logger.info(
-                (
-                    "Missing label '{}', on pull request #{}. "
-                    "If you want to recreate the body of this pull request "
-                    "please apply the label '{}' and run this command again. "
-                    "Note that any existing modifications to the change "
-                    "notes will be lost."
-                ).format(
-                    self.BUILD_NOTES_LABEL, pull_request.number, self.BUILD_NOTES_LABEL
-                )
-            )
 
     def _get_parent_pull_request(self, branch_name):
         """Attempts to retrieve a pull request for the given branch.
@@ -190,3 +200,9 @@ class ParentPullRequestNotes(BaseGithubTask):
         else:
             parent_pull_request = requests[0]
         return parent_pull_request
+
+    def _log_cant_find_pull_request(self, branch_name):
+        self.logger.info(
+            "No pull request found for branch: {}. Exiting...".format(branch_name)
+        )
+

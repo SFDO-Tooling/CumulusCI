@@ -18,14 +18,14 @@ from cumulusci.core.exceptions import GithubException
 from cumulusci.tasks.release_notes.tests.utils import MockUtil
 from cumulusci.tasks.github.tests.util_github_api import GithubApiTestMixin
 from cumulusci.core.github import (
-    add_labels_to_pull_request,
-    create_pull_request,
     get_github_api,
-    get_github_api_for_repo,
-    get_pull_requests_with_base_branch,
-    get_pull_request_by_branch_name,
-    is_label_on_pull_request,
     validate_service,
+    create_pull_request,
+    get_github_api_for_repo,
+    is_label_on_pull_request,
+    get_pull_requests_by_head,
+    add_labels_to_pull_request,
+    get_pull_requests_with_base_branch,
 )
 
 
@@ -135,33 +135,33 @@ class TestGithub(GithubApiTestMixin):
             validate_service({"username": "BOGUS", "password": "BOGUS"})
 
     @responses.activate
-    def test_get_pull_request_by_branch_name(self, mock_util, repo):
+    def test_get_pull_requests_by_head(self, mock_util, repo):
         self.init_github()
         mock_util.mock_pulls(
             pulls=self._get_expected_pull_requests(1),
             head=repo.owner.login + ":" + "some-other-branch",
         )
-        pull_request = get_pull_request_by_branch_name(repo, "some-other-branch")
-        assert pull_request is not None
+        pull_requests = get_pull_requests_by_head(repo, "some-other-branch")
+        assert 1 == len(pull_requests)
 
         # ConnectionError present when we reachout with
         # a branch name (url parameter) that we aren't expecting
         with pytest.raises(ConnectionError):
-            get_pull_request_by_branch_name(repo, "does-not-exist")
+            get_pull_requests_by_head(repo, "does-not-exist")
 
     @responses.activate
-    def test_get_pull_request_by_branch_name__no_pulls(self, mock_util, repo):
+    def test_get_pull_requests_by_head__no_pulls(self, mock_util, repo):
         self.init_github()
         mock_util.mock_pulls()
-        pull_request = get_pull_request_by_branch_name(repo, "test_branch")
-        assert pull_request is None
+        pull_requests = get_pull_requests_by_head(repo, "test_branch")
+        assert pull_requests == []
 
     @responses.activate
-    def test_get_pull_request_by_branch_name__multiple_pulls(self, mock_util, repo):
+    def test_get_pull_request_by_head__multiple_pulls(self, mock_util, repo):
         self.init_github()
         mock_util.mock_pulls(pulls=self._get_expected_pull_requests(2))
-        with pytest.raises(GithubException):
-            get_pull_request_by_branch_name(repo, "test_branch")
+        pull_requests = get_pull_requests_by_head(repo, "test_branch")
+        assert 2 == len(pull_requests)
 
     @responses.activate
     def test_get_pull_requests_with_base_branch(self, mock_util, repo):
