@@ -117,7 +117,7 @@ class MockUtil(GithubApiTestMixin):
         responses.add(
             method=method,
             url="{}/issues/{}/labels".format(self.repo_url, issue_num),
-            json=self.get_expected_labels(labels),
+            json=self._get_expected_labels(labels),
             status=http.client.OK,
         )
 
@@ -128,6 +128,6 @@ class MockUtil(GithubApiTestMixin):
         responses.add(
             method=responses.POST,
             url="{}/issues/{}/labels".format(self.repo_url, issue_num),
-            json=self.get_expected_labels(labels),
+            json=self._get_expected_labels(labels),
             status=http.client.OK,
         )
