@@ -128,7 +128,7 @@ class ParentPullRequestNotesGenerator(BaseReleaseNotesGenerator):
             self.parsers.append(parser_class(self, cfg["title"]))
 
         # Additional parser to collect developer notes above tracked headers
-        self.parsers.append(GithubLinesParser(self, "Notes From Child PRs"))
+        self.parsers.append(GithubLinesParser(self, title=None))
         self.parsers[-1]._in_section = True
 
     def aggregate_child_change_notes(self, pull_request):
@@ -146,6 +146,8 @@ class ParentPullRequestNotesGenerator(BaseReleaseNotesGenerator):
 
         body = []
         for parser in self.parsers:
+            if parser.title == None:
+                parser.title = "Notes From Child PRs"
             parser_content = parser.render()
             if parser_content:
                 body.append(parser_content)
