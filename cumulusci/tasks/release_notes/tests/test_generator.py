@@ -542,12 +542,17 @@ class TestParentPullRequestNotesGenerator(GithubApiTestMixin):
         self, generator, mock_util, repo, gh_api
     ):
         self.init_github()
+        mock_util.mock_pulls(pulls=[])
         mock_util.mock_pulls(pulls=self._get_expected_pull_requests(3))
         pr_to_update = ShortPullRequest(
             self._get_expected_pull_request(20, 20, "Body here"), gh_api
         )
-        # None of the pull requests have a base that matches
-        # the parent branch name
+
+        # No pull requests are returned
+        with pytest.raises(CumulusCIException):
+            generator.update_unaggregated_pr_header(pr_to_update, "branch_name")
+
+        # More than one pull request returned
         with pytest.raises(CumulusCIException):
             generator.update_unaggregated_pr_header(pr_to_update, "branch_name")
 
