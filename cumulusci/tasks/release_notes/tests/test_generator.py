@@ -538,8 +538,11 @@ class TestParentPullRequestNotesGenerator(GithubApiTestMixin):
         assert 0 == len(generator.change_notes)
 
     @responses.activate
-    def test_update_unaggregated_pr_header(self, generator, mock_util, repo, gh_api):
-        mock_util.mock_pulls(self._get_expected_pulls(3))
+    def test_update_unaggregated_pr_header__no_pull_request_found(
+        self, generator, mock_util, repo, gh_api
+    ):
+        self.init_github()
+        mock_util.mock_pulls(pulls=self._get_expected_pull_requests(3))
         pr_to_update = ShortPullRequest(
             self._get_expected_pull_request(20, 20, "Body here"), gh_api
         )

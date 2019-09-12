@@ -198,11 +198,6 @@ class GithubApiTestMixin(object):
             "zipball_url": "",
         }
 
-    def _get_expected_pulls(self, pulls=None):
-        if not pulls:
-            pulls = []
-        return pulls
-
     def _get_expected_branches(self, branches=None):
         if not branches:
             branches = []
