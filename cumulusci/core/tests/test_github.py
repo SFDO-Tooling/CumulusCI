@@ -169,8 +169,10 @@ class TestGithub(GithubApiTestMixin):
     @responses.activate
     def test_get_pull_requests_with_base_branch(self, mock_util, repo):
         self.init_github()
-        mock_util.mock_pulls(base="master")
-        pull_requests = get_pull_requests_with_base_branch(repo, "master")
+        mock_util.mock_pulls(base="master", head="TestOwner:some-branch")
+        pull_requests = get_pull_requests_with_base_branch(
+            repo, "master", head="some-branch"
+        )
         assert 0 == len(pull_requests)
 
         responses.reset()
