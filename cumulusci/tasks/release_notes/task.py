@@ -79,10 +79,10 @@ class ParentPullRequestNotes(BaseGithubTask):
     When given the branch_name option, this task will: (1) check if the base branch
     of the corresponding pull request starts with the feature branch prefix and if so (2) attempt
     to query for a pull request corresponding to this parent feature branch. (3) if a pull request
-    isn't found, one is created and the BUILD_NOTES_LABEL is applied to it.
+    isn't found, one is created and the build_notes_label is applied to it.
 
-    If the BUILD_NOTES_LABEL is present on the pull request, then all notes from the 
-    child pull request are aggregated into the parent pull request. If the BUILD_NOTES_LABEL
+    If the build_notes_label is present on the pull request, then all notes from the 
+    child pull request are aggregated into the parent pull request. if the build_notes_label
     is not detected on the parent pull request then a link to the child pull request
     is placed under the "Unaggregated Pull Requests" header.
 
@@ -192,7 +192,7 @@ class ParentPullRequestNotes(BaseGithubTask):
             )
             parent_pull_request = create_pull_request(self.repo, branch_name)
             add_labels_to_pull_request(
-                self.repo, parent_pull_request, self.BUILD_NOTES_LABEL
+                self.repo, parent_pull_request, self.build_notes_label
             )
         else:
             parent_pull_request = requests[0]
