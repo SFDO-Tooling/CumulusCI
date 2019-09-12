@@ -959,12 +959,15 @@ def org_list(config, plain):
         row = [org, org_config.default]
         if isinstance(org_config, ScratchOrgConfig):
             org_days = org_config.format_org_days()
-            instance_url = org_config.instance_url if org_config.expired == False else ''
-            try:
-                instance_url = instance_url.split('//')[-1].rsplit('.',3)[0]
-            except Exception:
-                pass
-            row.extend([org_days, org_config.expired, org_config.config_name, instance_url])
+            if org_config.expired:
+                instance_url = ""
+            else:
+                instance_url = org_config.config.get("instance_url", "")
+                # next line does something reasonable even with empty string.
+                instance_url = instance_url.split("//")[-1].rsplit(".", 3)[0]
+            row.extend(
+                [org_days, org_config.expired, org_config.config_name, instance_url]
+            )
             scratch_data.append(row)
         else:
             username = org_config.config.get(
