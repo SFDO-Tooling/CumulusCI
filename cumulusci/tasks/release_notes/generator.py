@@ -168,17 +168,25 @@ class ParentPullRequestNotesGenerator(BaseReleaseNotesGenerator):
         if self.UNAGGREGATED_SECTION_HEADER not in body:
             body += self.UNAGGREGATED_SECTION_HEADER
 
-        pull_requests = get_pull_requests_by_head(self.repo, branch_name_to_add)
-        pull_request = self._find_child_pull_request(
-            pull_requests, branch_name_to_add.split("__")[0]
+        pull_requests = get_pull_requests_with_base_branch(
+            self.repo, branch_name_to_add.split("__")[0], branch_name_to_add
         )
+        # pull_request = self._find_child_pull_request(
+        # pull_requests, branch_name_to_add.split("__")[0]
+        # )
 
-        if not pull_request:
+        if len(pull_requests) == 0:
             raise CumulusCIException(
                 "No pull request for branch {} found.".format(branch_name_to_add)
             )
+        elif len(pull_requests) > 1:
+            raise CumulusCIException(
+                "Expected one pull request, found {} for branch {}".format(
+                    len(pull_requests), branch_name_to_add
+                )
+            )
 
-        pull_request_link = markdown_link_to_pr(pull_request)
+        pull_request_link = markdown_link_to_pr(pull_requests[0])
         if pull_request_link not in body:
             body += "\r\n* " + pull_request_link
             pull_request_to_update.update(body=body)

@@ -152,20 +152,24 @@ class ParentPullRequestNotes(BaseGithubTask):
             generator.update_unaggregated_pr_header(parent_pull_request, branch_name)
 
     def _handle_parent_branch_name_option(self, generator, parent_branch_name):
-        pull_requests = get_pull_requests_by_head(self.repo, parent_branch_name)
-        if not pull_requests:
-            self._log_cant_find_pull_request(parent_branch_name)
-            return
-        # There could be multiple requests with head == parent_branch, filter through
-        # and look for one with base equal to 'master'
-        pull_request = None
-        for pr in pull_requests:
-            if pr.base.ref == self.repo.default_branch:
-                pull_request = pr
-                break
 
-        if not pull_request:
-            self._log_cant_find_pull_request(parent_branch_name)
+        pull_requests = get_pull_requests_with_base_branch(
+            self.repo, self.repo.default_branch, parent_branch_name
+        )
+
+        if len(pull_requests) == 0:
+            self.logger.info(
+                "No pull request found for branch: {}. Exiting...".format(
+                    parent_branch_name
+                )
+            )
+            return
+        elif len(pull_requests) > 1:
+            self.logger.info(
+                "More than one pull request returned with base='master' for branch {}".format(
+                    parent_branch_name
+                )
+            )
             return
         else:
             # We can ONLY aggregate child change notes when given the parent_branch option
@@ -175,7 +179,7 @@ class ParentPullRequestNotes(BaseGithubTask):
             # and therefore, we cannot determine which child pull requests are already
             # aggregated into the parent pull request, and which ones should be
             # included in the 'Unaggregated Pull Requests' section.
-            generator.aggregate_child_change_notes(pull_request)
+            generator.aggregate_child_change_notes(pull_requests[0])
 
     def _get_parent_pull_request(self, branch_name):
         """Attempts to retrieve a pull request for the given branch.
@@ -197,9 +201,4 @@ class ParentPullRequestNotes(BaseGithubTask):
         else:
             parent_pull_request = requests[0]
         return parent_pull_request
-
-    def _log_cant_find_pull_request(self, branch_name):
-        self.logger.info(
-            "No pull request found for branch: {}. Exiting...".format(branch_name)
-        )
 

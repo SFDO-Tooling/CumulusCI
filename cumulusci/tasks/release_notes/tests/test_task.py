@@ -72,6 +72,7 @@ class TestParentPullRequestNotes(GithubApiTestMixin):
             task = ParentPullRequestNotes(project_config, task_config)
             task.repo = mock.Mock()
             task.repo.default_branch = "master"
+            task.repo.owner.login = "SFDO-Tooling"
             task.logger = mock.Mock()
             task.github = mock.Mock()
             return task
@@ -193,7 +194,7 @@ class TestParentPullRequestNotes(GithubApiTestMixin):
         assert 62 == actual_pull_request.number
         assert "parent body" == actual_pull_request.body
 
-    @mock.patch("cumulusci.tasks.release_notes.task.get_pull_requests_by_head")
+    @mock.patch("cumulusci.tasks.release_notes.task.get_pull_requests_with_base_branch")
     def test_handle_parent_branch_name_option__no_branch_found(
         self, get_pull_request, task_factory, project_config
     ):
@@ -210,24 +211,20 @@ class TestParentPullRequestNotes(GithubApiTestMixin):
                 }
             }
         )
-        task._handle_parent_branch_name_option(mock.Mock(), self.BRANCH_NAME)
 
+        task._handle_parent_branch_name_option(mock.Mock(), self.BRANCH_NAME)
         task.logger.info.assert_called_once_with(
             "No pull request found for branch: {}. Exiting...".format(self.BRANCH_NAME)
         )
 
-    @mock.patch("cumulusci.tasks.release_notes.task.get_pull_requests_by_head")
-    def test_handle_parent_branch_name_option__no_branch_with_base_of_master(
+    @mock.patch("cumulusci.tasks.release_notes.task.get_pull_requests_with_base_branch")
+    def test_handle_parent_branch_name_option__multiple_branches_found(
         self, get_pull_request, task_factory, project_config
     ):
         self.init_github()
         self.project_config = project_config  # GithubApiMixin wants this
 
-        pull_request = ShortPullRequest(
-            self._get_expected_pull_request(1, 1, "Body"), gh_api
-        )
-        pull_request.base.ref = "not-master"
-        get_pull_request.return_value = [pull_request]
+        get_pull_request.return_value = ["Pull Request 1", "Pull Request 2"]
 
         task = task_factory(
             {
@@ -237,15 +234,17 @@ class TestParentPullRequestNotes(GithubApiTestMixin):
                 }
             }
         )
-        task._handle_parent_branch_name_option(mock.Mock(), self.BRANCH_NAME)
 
+        task._handle_parent_branch_name_option(mock.Mock(), self.BRANCH_NAME)
         task.logger.info.assert_called_once_with(
-            "No pull request found for branch: {}. Exiting...".format(self.BRANCH_NAME)
+            "More than one pull request returned with base='master' for branch {}".format(
+                self.BRANCH_NAME
+            )
         )
 
     @mock.patch("cumulusci.tasks.release_notes.task.is_label_on_pull_request")
-    @mock.patch("cumulusci.tasks.release_notes.task.get_pull_requests_by_head")
-    def test_handle_parent_branch_name_option__branch_found_with_label(
+    @mock.patch("cumulusci.tasks.release_notes.task.get_pull_requests_with_base_branch")
+    def test_handle_parent_branch_name_option__branch_found(
         self, get_pr, is_label_on_pr, task_factory, project_config, gh_api
     ):
         self.init_github()
