@@ -201,4 +201,3 @@ class ParentPullRequestNotes(BaseGithubTask):
         else:
             parent_pull_request = requests[0]
         return parent_pull_request
-
