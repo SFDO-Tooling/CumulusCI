@@ -175,14 +175,16 @@ class TestParentPullRequestNotes(GithubApiTestMixin):
             self._get_expected_pull_request(62, 62, "parent body"), gh_api
         )
 
+        label_name = "Build Change Notes"
         task = task_factory(
             {
                 "options": {
                     "branch_name": self.BRANCH_NAME,
-                    "build_notes_label": self.BUILD_NOTES_LABEL,
+                    "build_notes_label": label_name,
                 }
             }
         )
+        task.build_notes_label = label_name
 
         actual_pull_request = task._get_parent_pull_request(self.BRANCH_NAME)
         get_pull_request.assert_called_once_with(
