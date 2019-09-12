@@ -143,14 +143,12 @@ class ScratchOrgConfig(OrgConfig):
 
     @property
     def expired(self):
-        return self.expires and self.expires < datetime.datetime.now()
+        return bool(self.expires) and self.expires < datetime.datetime.now()
 
     @property
     def expires(self):
         if self.date_created:
             return self.date_created + datetime.timedelta(days=int(self.days))
-        else:
-            return False
 
     @property
     def days_alive(self):
