@@ -619,3 +619,7 @@ class Salesforce(object):
             self.selenium.capture_page_screenshot()
             time.sleep(interval)
             self.selenium.go_to(login_url)
+
+    def breakpoint(self):
+        """Serves as a breakpoint for the robot debugger"""
+        pass
