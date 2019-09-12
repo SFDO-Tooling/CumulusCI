@@ -602,8 +602,6 @@ class Salesforce(object):
                     "return (document.readyState == 'complete')"
                 )
                 self.wait_for_aura()
-                # If the following doesn't throw an error, we're good to go.
-                self.selenium.get_webelement(locator)
                 break
 
             except Exception as e:
