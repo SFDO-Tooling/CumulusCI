@@ -539,6 +539,17 @@ class TestParentPullRequestNotesGenerator(GithubApiTestMixin):
 
     @responses.activate
     def test_update_unaggregated_pr_header(self, generator, mock_util, repo, gh_api):
+        mock_util.mock_pulls(self._get_expected_pulls(3))
+        pr_to_update = ShortPullRequest(
+            self._get_expected_pull_request(20, 20, "Body here"), gh_api
+        )
+        # None of the pull requests have a base that matches
+        # the parent branch name
+        with pytest.raises(CumulusCIException):
+            generator.update_unaggregated_pr_header(pr_to_update, "branch_name")
+
+    @responses.activate
+    def test_update_unaggregated_pr_header(self, generator, mock_util, repo, gh_api):
         def pr_update_callback(request):
             """Method to intercept the call to
             github3.pull.ShortPullRequest.update()"""

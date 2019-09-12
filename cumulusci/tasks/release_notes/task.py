@@ -91,8 +91,6 @@ class ParentPullRequestNotes(BaseGithubTask):
     from child pull requests are re-aggregated and the body of the parent is replaced entirely.
     """
 
-    BUILD_NOTES_LABEL = "Build Change Notes"
-
     task_options = {
         "branch_name": {"description": "Name of branch with a pull request"},
         "parent_branch_name": {
@@ -142,9 +140,8 @@ class ParentPullRequestNotes(BaseGithubTask):
             self.logger.info(
                 "Branch {} is not a child branch. Exiting...".format(branch_name)
             )
-            return  # not a child branch
+            return
 
-        parent_pull_request = None
         parent_branch_name = branch_name.split("__")[0]
         parent_pull_request = self._get_parent_pull_request(parent_branch_name)
         if is_label_on_pull_request(

@@ -77,6 +77,8 @@ def validate_service(options):
 
 def get_pull_requests_with_base_branch(repo, base_branch_name, head=None):
     """Returns a list of pull requests with the given base branch"""
+    if head:
+        head = repo.owner.login + ":" + head
     return list(repo.pull_requests(base=base_branch_name, head=head))
 
 
@@ -109,6 +111,5 @@ def add_labels_to_pull_request(repo, pull_request, *labels):
 def is_label_on_pull_request(repo, pull_request, label_name):
     """Returns True if the given label is on the pull request with the given
     pull request number. False otherwise."""
-    issue = repo.issue(pull_request.number)
-    labels = issue.labels()
+    labels = list(repo.issue(pull_request.number).labels())
     return any(label_name == issue_label.name for issue_label in labels)

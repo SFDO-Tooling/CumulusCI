@@ -166,13 +166,11 @@ class ParentPullRequestNotesGenerator(BaseReleaseNotesGenerator):
         if self.UNAGGREGATED_SECTION_HEADER not in body:
             body += self.UNAGGREGATED_SECTION_HEADER
 
-        pull_request = None
         pull_requests = get_pull_requests_by_head(self.repo, branch_name_to_add)
-        if pull_requests:
-            for pr in pull_requests:
-                if pr.base.ref == branch_name_to_add.split("__")[0]:
-                    pull_request = pr
-                    break
+        pull_request = self._find_child_pull_request(
+            pull_requests, branch_name_to_add.split("__")[0]
+        )
+
         if not pull_request:
             raise CumulusCIException(
                 "No pull request for branch {} found.".format(branch_name_to_add)
@@ -183,6 +181,14 @@ class ParentPullRequestNotesGenerator(BaseReleaseNotesGenerator):
             body += "\r\n* " + pull_request_link
             pull_request_to_update.update(body=body)
             return
+
+    def _find_child_pull_request(self, pull_requests, parent_branch_name):
+        """Find the pull request that has a base equal to the parent branch name"""
+        child_pull_request = None
+        for pr in pull_requests:
+            if pr.base.ref == parent_branch_name:
+                child_pull_request = pr
+        return child_pull_request
 
 
 class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator):
