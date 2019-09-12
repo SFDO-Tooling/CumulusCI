@@ -15,7 +15,6 @@ class PublishCommunity(BaseSalesforceApiTask):
 
     def _init_options(self, kwargs):
         super(PublishCommunity, self)._init_options(kwargs)
-        self.options["timeout"] = int(self.options.get("timeout", 120))
 
     def _run_task(self):
         self.logger.info(
