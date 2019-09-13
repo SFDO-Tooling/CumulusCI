@@ -6,6 +6,8 @@ from past.builtins import basestring
 from builtins import str
 from collections import defaultdict
 from collections import OrderedDict
+from urllib.parse import urlparse
+
 import code
 import functools
 import json
@@ -960,14 +962,13 @@ def org_list(config, plain):
         if isinstance(org_config, ScratchOrgConfig):
             org_days = org_config.format_org_days()
             if org_config.expired:
-                instance_url = ""
+                domain = ""
             else:
                 instance_url = org_config.config.get("instance_url", "")
-                # next line does something reasonable even with empty string.
-                instance_url = instance_url.split("//")[-1].rsplit(".", 3)[0]
-            row.extend(
-                [org_days, org_config.expired, org_config.config_name, instance_url]
-            )
+                domain = urlparse(instance_url).hostname or ""
+                if domain:
+                    domain = domain.replace(".my.salesforce.com", "")
+            row.extend([org_days, org_config.expired, org_config.config_name, domain])
             scratch_data.append(row)
         else:
             username = org_config.config.get(
