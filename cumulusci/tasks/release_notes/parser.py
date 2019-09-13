@@ -65,7 +65,8 @@ class ChangeNotesLinesParser(BaseChangeNotesParser):
                     continue
 
                 self._add_line(line)
-                line_added = True
+                if self.title:
+                    line_added = True
 
         self._in_section = False
         return line_added
