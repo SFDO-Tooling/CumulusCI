@@ -27,8 +27,8 @@ class test_PublishCommunity(unittest.TestCase):
             json={
                 "communities": [
                     {
-                        "allowChatter​AccessWithoutLogin": "false",
-                        "allowMembers​ToFlag": "false",
+                        "allowChatterAccessWithoutLogin": "false",
+                        "allowMembersToFlag": "false",
                         "description": "This is a test community",
                         "id": "{}".format(task_options_with_id["communityid"]),
                         "invitations​Enabled": "false",
@@ -87,12 +87,12 @@ class test_PublishCommunity(unittest.TestCase):
             url=community_url,
             status=200,
             json={
-                "allowChatter​AccessWithoutLogin": "false",
-                "allowMembers​ToFlag": "false",
+                "allowChatterAccessWithoutLogin": "false",
+                "allowMembersToFlag": "false",
                 "description": "This is a test community",
                 "id": "{}".format(task_options_with_id["communityid"]),
-                "invitations​Enabled": "false",
-                "knowledgeable​Enabled": "false",
+                "invitationsEnabled": "false",
+                "knowledgeableEnabled": "false",
                 "loginUrl": "https://mydomain.force.com/test/s/login",
                 "memberVisibilityEnabled": "true",
                 "name": "{}".format(task_options["name"]),
@@ -143,12 +143,12 @@ class test_PublishCommunity(unittest.TestCase):
             json={
                 "communities": [
                     {
-                        "allowChatter​AccessWithoutLogin": "false",
-                        "allowMembers​ToFlag": "false",
+                        "allowChatterAccessWithoutLogin": "false",
+                        "allowMembersToFlag": "false",
                         "description": "This is a test community",
                         "id": "{}".format(task_options_with_id["communityid"]),
-                        "invitations​Enabled": "false",
-                        "knowledgeable​Enabled": "false",
+                        "invitationsEnabled": "false",
+                        "knowledgeableEnabled": "false",
                         "loginUrl": "https://mydomain.force.com/test/s/login",
                         "memberVisibilityEnabled": "true",
                         "name": "Not {}".format(task_options["name"]),
@@ -207,12 +207,12 @@ class test_PublishCommunity(unittest.TestCase):
             url=community_url,
             status=200,
             json={
-                "allowChatter​AccessWithoutLogin": "false",
-                "allowMembers​ToFlag": "false",
+                "allowChatterAccessWithoutLogin": "false",
+                "allowMembersToFlag": "false",
                 "description": "This is a test community",
                 "id": "{}".format(task_options_with_id["communityid"]),
-                "invitations​Enabled": "false",
-                "knowledgeable​Enabled": "false",
+                "invitationsEnabled": "false",
+                "knowledgeableEnabled": "false",
                 "loginUrl": "https://mydomain.force.com/test/s/login",
                 "memberVisibilityEnabled": "true",
                 "name": "Not {}".format(task_options["name"]),
