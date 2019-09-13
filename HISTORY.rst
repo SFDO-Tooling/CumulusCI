@@ -4,9 +4,6 @@ History
 
 2.5.8 (2019-09-13)
 ------------------
-Breaking changes:
-
-* Patch selenium to convert ``executeScript`` to ``executeAsyncScript``. This is a workaround for the ``executeScript`` issue in chromedriver 77.
 
 New features:
 
@@ -16,6 +13,7 @@ New features:
 
 Issues closed:
 
+* Patch selenium to convert ``executeScript`` to ``executeAsyncScript``. This is a workaround for the ``executeScript`` issue in chromedriver 77.
 * A small issue in ``QueryData`` affecting mappings using ``oid_as_pk: False`` has been fixed.
 
 2.5.7 (2019-09-03)
