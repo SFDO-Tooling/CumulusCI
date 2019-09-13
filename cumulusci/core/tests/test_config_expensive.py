@@ -457,10 +457,28 @@ class TestScratchOrgConfig(unittest.TestCase):
         config.date_created = now
         self.assertEqual(config.expires, now + timedelta(days=1))
 
+        config = ScratchOrgConfig({"days": 1}, "test")
+        now = datetime.now()
+        config.date_created = None
+        self.assertIsNone(config.expires)
+
     def test_days_alive(self, Command):
         config = ScratchOrgConfig({}, "test")
         config.date_created = datetime.now()
         self.assertEqual(config.days_alive, 1)
+
+    def test_alive(self, Command):
+        config = ScratchOrgConfig({}, "test")
+        config.date_created = None
+        self.assertFalse(config.alive)
+
+        config = ScratchOrgConfig({}, "test")
+        config.date_created = datetime.now()
+        self.assertTrue(config.alive)
+
+        config = ScratchOrgConfig({}, "test")
+        config.date_created = datetime.now() - timedelta(days=10)
+        self.assertFalse(config.alive)
 
     def test_create_org(self, Command):
         out = b"Successfully created scratch org: ORG_ID, username: USERNAME"

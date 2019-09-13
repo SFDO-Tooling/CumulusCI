@@ -959,7 +959,7 @@ def org_list(config, plain):
         row = [org, org_config.default]
         if isinstance(org_config, ScratchOrgConfig):
             org_days = org_config.format_org_days()
-            row.extend([org_days, org_config.expired, org_config.config_name])
+            row.extend([org_days, not org_config.alive, org_config.config_name])
             scratch_data.append(row)
         else:
             username = org_config.config.get(
@@ -968,11 +968,7 @@ def org_list(config, plain):
             row.append(username)
             persistent_data.append(row)
 
-    rows_to_dim = [
-        row_index
-        for row_index, row in enumerate(scratch_data)
-        if row[3] or not org_configs[row[0]].date_created
-    ]
+    rows_to_dim = [row_index for row_index, row in enumerate(scratch_data) if row[3]]
     scratch_table = CliTable(
         scratch_data, title="Scratch Orgs", bool_cols=["Default"], dim_rows=rows_to_dim
     )
