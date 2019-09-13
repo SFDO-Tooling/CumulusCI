@@ -4,18 +4,80 @@ from cumulusci.tasks.salesforce import PublishCommunity
 from .util import create_task
 
 
-task_options = {"communityid": "000000000000000000"}
+task_options = {"name": "Test Community"}
+task_options_with_id = {"name": "Test Community", "communityid": "000000000000000000"}
 
 
 class test_PublishCommunity(unittest.TestCase):
     @responses.activate
     def test_publishes_community(self):
         cc_task = create_task(PublishCommunity, task_options)
-        community_url = "{}/services/data/v46.0/connect/communities/{}".format(
-            cc_task.org_config.instance_url, task_options["communityid"]
+        communities_url = "{}/services/data/v46.0/connect/communities".format(
+            cc_task.org_config.instance_url
         )
         community_publish_url = "{}/services/data/v46.0/connect/communities/{}/publish".format(
-            cc_task.org_config.instance_url, task_options["communityid"]
+            cc_task.org_config.instance_url, task_options_with_id["communityid"]
+        )
+
+        responses.add(
+            method=responses.GET,
+            url=communities_url,
+            status=200,
+            json={
+                "communities:": [
+                    {
+                        "allowChatter​AccessWithoutLogin": "false",
+                        "allowMembers​ToFlag": "false",
+                        "description": "This is a test community",
+                        "id": "{}".format(task_options_with_id["communityid"]),
+                        "invitations​Enabled": "false",
+                        "knowledgeable​Enabled": "false",
+                        "loginUrl": "https://mydomain.force.com/test/s/login",
+                        "memberVisibilityEnabled": "true",
+                        "name": "{}".format(task_options["name"]),
+                        "nicknameDisplayEnabled": "false",
+                        "privateMessagesEnabled": "false",
+                        "reputationEnabled": "false",
+                        "sendWelcomeEmail": "true",
+                        "siteAsContainerEnabled": "true",
+                        "siteUrl": "https://mydomain.force.com/test",
+                        "status": "Live",
+                        "templateName": "VF Template",
+                        "url": "/services/data/v46.0/connect/communities/{}".format(
+                            task_options_with_id["communityid"]
+                        ),
+                        "urlPathPrefix": "test",
+                    }
+                ]
+            },
+        )
+
+        responses.add(
+            method=responses.POST,
+            url=community_publish_url,
+            status=200,
+            json={
+                "id": "{}".format(task_options_with_id["communityid"]),
+                "message": "We are publishing your changes now. You will receive an email confirmation when your changes are live.",
+                "name": "{}".format(task_options["name"]),
+                "url": "https://mydomain.force.com/test",
+            },
+        )
+
+        cc_task()
+
+        self.assertEqual(2, len(responses.calls))
+        self.assertEqual(communities_url, responses.calls[0].request.url)
+        self.assertEqual(community_publish_url, responses.calls[1].request.url)
+
+    @responses.activate
+    def test_publishes_community_with_id(self):
+        cc_task = create_task(PublishCommunity, task_options_with_id)
+        community_url = "{}/services/data/v46.0/connect/communities/{}".format(
+            cc_task.org_config.instance_url, task_options_with_id["communityid"]
+        )
+        community_publish_url = "{}/services/data/v46.0/connect/communities/{}/publish".format(
+            cc_task.org_config.instance_url, task_options_with_id["communityid"]
         )
 
         responses.add(
@@ -26,12 +88,12 @@ class test_PublishCommunity(unittest.TestCase):
                 "allowChatter​AccessWithoutLogin": "false",
                 "allowMembers​ToFlag": "false",
                 "description": "This is a test community",
-                "id": "{}".format(task_options["communityid"]),
+                "id": "{}".format(task_options_with_id["communityid"]),
                 "invitations​Enabled": "false",
                 "knowledgeable​Enabled": "false",
                 "loginUrl": "https://mydomain.force.com/test/s/login",
                 "memberVisibilityEnabled": "true",
-                "name": "Test Community",
+                "name": "{}".format(task_options["name"]),
                 "nicknameDisplayEnabled": "false",
                 "privateMessagesEnabled": "false",
                 "reputationEnabled": "false",
@@ -41,7 +103,7 @@ class test_PublishCommunity(unittest.TestCase):
                 "status": "Live",
                 "templateName": "VF Template",
                 "url": "/services/data/v46.0/connect/communities/{}".format(
-                    task_options["communityid"]
+                    task_options_with_id["communityid"]
                 ),
                 "urlPathPrefix": "test",
             },
@@ -52,9 +114,9 @@ class test_PublishCommunity(unittest.TestCase):
             url=community_publish_url,
             status=200,
             json={
-                "id": "{}".format(task_options["communityid"]),
+                "id": "{}".format(task_options_with_id["communityid"]),
                 "message": "We are publishing your changes now. You will receive an email confirmation when your changes are live.",
-                "name": "Test Community",
+                "name": "{}".format(task_options_with_id["name"]),
                 "url": "https://mydomain.force.com/test",
             },
         )
