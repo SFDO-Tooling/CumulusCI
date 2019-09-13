@@ -6,16 +6,17 @@ History
 ------------------
 Breaking changes:
 
-* Patch selenium to convert `executeScript` to `executeAsyncScript`. This is a workaround for the `executeScript` issue in chromedriver 77.
+* Patch selenium to convert ``executeScript`` to ``executeAsyncScript``. This is a workaround for the ``executeScript`` issue in chromedriver 77.
 
 New features:
 
-* `LoadData` now supports the key `action: update` to perform a Bulk API update job
-* `LoadData` now supports an `after: <step name>` on a lookup entry to defer updating that lookup until a dependent sObject step is completed.
-* `GenerateMapping` now handles self-lookups and reference cycles by generating `after:` markers wherever needed. 
+* ``LoadData`` now supports the key ``action: update`` to perform a Bulk API update job
+* ``LoadData`` now supports an ``after: <step name>`` on a lookup entry to defer updating that lookup until a dependent sObject step is completed.
+* ``GenerateMapping`` now handles self-lookups and reference cycles by generating ``after:`` markers wherever needed. 
 
 Issues closed:
-* A small issue in `QueryData` affecting mappings using `oid_as_pk: False` has been fixed.
+
+* A small issue in ``QueryData`` affecting mappings using ``oid_as_pk: False`` has been fixed.
 
 2.5.7 (2019-09-03)
 ------------------
