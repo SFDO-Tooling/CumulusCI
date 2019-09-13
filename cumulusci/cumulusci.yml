@@ -179,6 +179,10 @@ tasks:
         description: Publish a release to the MetaDeploy web installer
         class_path: cumulusci.tasks.metadeploy.Publish
         group: Release Management
+    publish_community:
+        description: Publishes a Community in the target org using the Connect API
+        class_path: cumulusci.tasks.salesforce.PublishCommunity
+        group: Salesforce
     push_all:
         description: Schedules a push upgrade of a package version to all subscribers
         class_path: cumulusci.tasks.push.tasks.SchedulePushOrgQuery
