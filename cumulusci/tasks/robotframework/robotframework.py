@@ -121,3 +121,24 @@ def patch_statusreporter():
         return orig_exit(self, exc_type, exc_val, exc_tb)
 
     StatusReporter.__exit__ = __exit__
+
+
+def patch_executescript():
+    # convert executeScript calls into executeAsyncScript
+    # to work around an issue in chromedriver 77
+    # https://bugs.chromium.org/p/chromedriver/issues/detail?id=3103
+    from selenium.webdriver.remote.webdriver import WebDriver
+
+    def execute_script(self, script, *args):
+        # the last argument is the function called to say the async operation is done
+        script = (
+            "arguments[arguments.length - 1](function(){"
+            + script
+            + "}.apply(null, Array.prototype.slice.call(arguments, 0, -1)));"
+        )
+        return self.execute_async_script(script, *args)
+
+    WebDriver.execute_script = execute_script
+
+
+patch_executescript()
