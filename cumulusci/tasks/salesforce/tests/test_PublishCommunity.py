@@ -31,8 +31,8 @@ class test_PublishCommunity(unittest.TestCase):
                         "allowMembersToFlag": "false",
                         "description": "This is a test community",
                         "id": "{}".format(task_options_with_id["communityid"]),
-                        "invitations​Enabled": "false",
-                        "knowledgeable​Enabled": "false",
+                        "invitationsEnabled": "false",
+                        "knowledgeableEnabled": "false",
                         "loginUrl": "https://mydomain.force.com/test/s/login",
                         "memberVisibilityEnabled": "true",
                         "name": "{}".format(task_options["name"]),
@@ -230,6 +230,6 @@ class test_PublishCommunity(unittest.TestCase):
                 "urlPathPrefix": "test",
             },
         )
-
+        self._init_options(self, {})
         with self.assertRaises(SalesforceException):
             cc_task._run_task()
