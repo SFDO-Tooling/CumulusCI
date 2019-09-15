@@ -60,11 +60,11 @@ class CreateCommunity(BaseSalesforceApiTask):
             community_list = self.sf.restful("connect/communities")["communities"]
             communities = {c["name"]: c for c in community_list}
 
-            for community in communities.items():
-                if community["url_path_prefix"] is None:
+            for community_name in communities.keys():
+                if communities[community_name].get("urlPathPrefix") is None:
                     raise SalesforceException(
                         "A community without a url path prefix already exists, named {}. Try again with the url path prefix".format(
-                            community["name"]
+                            community_name
                         )
                     )
                 self.logger.info("No community without a url path prefix found.")
@@ -73,7 +73,7 @@ class CreateCommunity(BaseSalesforceApiTask):
             "name": self.options["name"],
             "description": self.options.get("description") or "",
             "templateName": self.options["template"],
-            "urlPathPrefix": self.options["url_path_prefix"] or "",
+            "urlPathPrefix": self.options.get("url_path_prefix") or "",
         }
 
         self.logger.info("Sending request to create Community")

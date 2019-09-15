@@ -14,6 +14,11 @@ task_options = {
     "template": "VF Template",
     "url_path_prefix": "test",
 }
+task_options_no_url_path_prefix = {
+    "name": "Test Community",
+    "description": "Community Details",
+    "template": "VF Template",
+}
 
 
 class test_CreateCommunity(unittest.TestCase):
@@ -57,6 +62,150 @@ class test_CreateCommunity(unittest.TestCase):
             ),
             responses.calls[2].request.body,
         )
+
+    @responses.activate
+    def test_creates_community_no_url_path_prefix(self):
+        cc_task = create_task(CreateCommunity, task_options_no_url_path_prefix)
+        servlet_url = "{}/sites/servlet.SitePrerequisiteServlet".format(
+            cc_task.org_config.instance_url
+        )
+        community_url = "{}/services/data/v46.0/connect/communities".format(
+            cc_task.org_config.instance_url
+        )
+
+        responses.add(
+            method=responses.GET, url=cc_task.org_config.start_url, status=200
+        )
+        responses.add(method=responses.GET, url=servlet_url, status=200)
+
+        other_community_id = "000000000000000001"
+        responses.add(
+            method=responses.GET,
+            url=community_url,
+            status=200,
+            json={
+                "communities": [
+                    {
+                        "allowChatterAccessWithoutLogin": "false",
+                        "allowMembersToFlag": "false",
+                        "description": "This is a test community",
+                        "id": "{}".format(other_community_id),
+                        "invitationsEnabled": "false",
+                        "knowledgeableEnabled": "false",
+                        "loginUrl": "https://mydomain.force.com/test/s/login",
+                        "memberVisibilityEnabled": "true",
+                        "name": "Not {}".format(task_options["name"]),
+                        "nicknameDisplayEnabled": "false",
+                        "privateMessagesEnabled": "false",
+                        "reputationEnabled": "false",
+                        "sendWelcomeEmail": "true",
+                        "siteAsContainerEnabled": "true",
+                        "siteUrl": "https://mydomain.force.com/test",
+                        "status": "Live",
+                        "templateName": "VF Template",
+                        "url": "/services/data/v46.0/connect/communities/{}".format(
+                            other_community_id
+                        ),
+                        "urlPathPrefix": "test",
+                    }
+                ],
+                "total": "1",
+            },
+        )
+        responses.add(method=responses.POST, url=community_url, status=200, json={})
+
+        community_id = "000000000000000"
+        responses.add(
+            method=responses.GET,
+            url=community_url,
+            status=200,
+            json={
+                "communities": [
+                    {
+                        "name": "{}".format(task_options_no_url_path_prefix["name"]),
+                        "id": "{}".format(community_id),
+                    }
+                ]
+            },
+        )
+
+        cc_task()
+
+        self.assertEqual(5, len(responses.calls))
+        self.assertEqual(cc_task.org_config.start_url, responses.calls[0].request.url)
+        self.assertEqual(servlet_url, responses.calls[1].request.url)
+        self.assertEqual(community_url, responses.calls[2].request.url)
+        self.assertEqual(community_url, responses.calls[3].request.url)
+        self.assertEqual(community_url, responses.calls[4].request.url)
+        self.assertEqual(
+            json.dumps(
+                {
+                    "name": "{}".format(task_options_no_url_path_prefix["name"]),
+                    "description": "{}".format(
+                        task_options_no_url_path_prefix["description"]
+                    ),
+                    "templateName": "{}".format(
+                        task_options_no_url_path_prefix["template"]
+                    ),
+                    "urlPathPrefix": "",
+                }
+            ),
+            responses.calls[3].request.body,
+        )
+
+    @responses.activate
+    def test_throws_exception_for_existing_no_url_path_prefix(self):
+        cc_task = create_task(CreateCommunity, task_options_no_url_path_prefix)
+        servlet_url = "{}/sites/servlet.SitePrerequisiteServlet".format(
+            cc_task.org_config.instance_url
+        )
+        community_url = "{}/services/data/v46.0/connect/communities".format(
+            cc_task.org_config.instance_url
+        )
+
+        responses.add(
+            method=responses.GET, url=cc_task.org_config.start_url, status=200
+        )
+        responses.add(method=responses.GET, url=servlet_url, status=200)
+
+        other_community_id = "000000000000000001"
+        responses.add(
+            method=responses.GET,
+            url=community_url,
+            status=200,
+            json={
+                "communities": [
+                    {
+                        "allowChatterAccessWithoutLogin": "false",
+                        "allowMembersToFlag": "false",
+                        "description": "This is a test community",
+                        "id": "{}".format(other_community_id),
+                        "invitationsEnabled": "false",
+                        "knowledgeableEnabled": "false",
+                        "loginUrl": "https://mydomain.force.com/test/s/login",
+                        "memberVisibilityEnabled": "true",
+                        "name": "Not {}".format(task_options["name"]),
+                        "nicknameDisplayEnabled": "false",
+                        "privateMessagesEnabled": "false",
+                        "reputationEnabled": "false",
+                        "sendWelcomeEmail": "true",
+                        "siteAsContainerEnabled": "true",
+                        "siteUrl": "https://mydomain.force.com/",
+                        "status": "Live",
+                        "templateName": "VF Template",
+                        "url": "/services/data/v46.0/connect/communities/{}".format(
+                            other_community_id
+                        ),
+                        "urlPathPrefix": None,
+                    }
+                ],
+                "total": "1",
+            },
+        )
+
+        cc_task._init_task()
+        with self.assertRaises(SalesforceException):
+            cc_task._run_task()()
 
     @responses.activate
     def test_waits_for_community_result__not_complete(self):
