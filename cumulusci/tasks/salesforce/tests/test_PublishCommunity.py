@@ -170,6 +170,7 @@ class test_PublishCommunity(unittest.TestCase):
             },
         )
 
+        cc_task._init_task()
         with self.assertRaises(SalesforceException):
             cc_task._run_task()
 
@@ -193,6 +194,7 @@ class test_PublishCommunity(unittest.TestCase):
         )
 
         with self.assertRaises(SalesforceException):
+            cc_task._init_task()
             cc_task._run_task()
 
     @responses.activate
@@ -230,6 +232,6 @@ class test_PublishCommunity(unittest.TestCase):
                 "urlPathPrefix": "test",
             },
         )
-        self._init_options(self, {})
+        cc_task._init_task()
         with self.assertRaises(SalesforceException):
             cc_task._run_task()
