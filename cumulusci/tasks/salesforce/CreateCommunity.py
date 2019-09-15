@@ -24,7 +24,7 @@ class CreateCommunity(BaseSalesforceApiTask):
         },
         "url_path_prefix": {
             "description": "URL prefix for the community.",
-            "required": True,
+            "required": False,
         },
         "timeout": {
             "description": "Time to wait, in seconds, for the community to be created",
@@ -38,12 +38,8 @@ class CreateCommunity(BaseSalesforceApiTask):
 
     def _run_task(self):
         self.logger.info('Creating community "{}"'.format(self.options["name"]))
-        payload = {
-            "name": self.options["name"],
-            "description": self.options.get("description") or "",
-            "templateName": self.options["template"],
-            "urlPathPrefix": self.options["url_path_prefix"],
-        }
+
+        payload = {}
 
         # Before we can create a Community, we have to click through the "New Community"
         # button in the All Communities setup page. (This does some unknown behind-the-scenes setup).
@@ -58,6 +54,27 @@ class CreateCommunity(BaseSalesforceApiTask):
         )
         if r.status_code != 200:
             raise SalesforceException("Unable to prepare org for Communities")
+
+        if self.options.get("url_path_prefix") is None:
+            self.logger.info("Checking for community without a url path prefix.")
+            community_list = self.sf.restful("connect/communities")["communities"]
+            communities = {c["name"]: c for c in community_list}
+
+            for community in communities.items():
+                if community["url_path_prefix"] is None:
+                    raise SalesforceException(
+                        "A community without a url path prefix already exists, named {}. Try again with the url path prefix".format(
+                            community["name"]
+                        )
+                    )
+                self.logger.info("No community without a url path prefix found.")
+
+        payload = {
+            "name": self.options["name"],
+            "description": self.options.get("description") or "",
+            "templateName": self.options["template"],
+            "urlPathPrefix": self.options["url_path_prefix"] or "",
+        }
 
         self.logger.info("Sending request to create Community")
         self.sf.restful("connect/communities", method="POST", data=json.dumps(payload))
