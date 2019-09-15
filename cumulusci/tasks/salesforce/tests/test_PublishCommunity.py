@@ -2,6 +2,7 @@ import responses
 import unittest
 from cumulusci.tasks.salesforce import PublishCommunity
 from cumulusci.core.exceptions import SalesforceException
+from simple_salesforce.exceptions import SalesforceResourceNotFound
 from .util import create_task
 
 
@@ -193,7 +194,7 @@ class test_PublishCommunity(unittest.TestCase):
             ],
         )
 
-        with self.assertRaises(SalesforceException):
+        with self.assertRaises(SalesforceResourceNotFound):
             cc_task._init_task()
             cc_task._run_task()
 
