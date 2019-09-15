@@ -5,6 +5,7 @@ import sys
 import re
 from robot.libraries.BuiltIn import BuiltIn
 from cumulusci.cli.ui import CliTable
+from selenium.common.exceptions import InvalidSelectorException
 
 
 class DebuggerCli(cmd.Cmd):
@@ -47,9 +48,9 @@ class DebuggerCli(cmd.Cmd):
         elif re.match(r"^[$@&]\{.*\}$", line):
             try:
                 value = self.builtin.get_variable_value(line)
-                print(value)
+                print(value, file=self.stdout)
             except Exception:
-                print("unknown variable '{}'".format(line))
+                print("unknown variable '{}'".format(line), file=self.stdout)
 
         else:
             super().default(line)
@@ -67,12 +68,15 @@ class DebuggerCli(cmd.Cmd):
         """
         try:
             elements = self.selenium.get_webelements(arg)
-            print("Found {} matches".format(len(elements)))
+            print("Found {} matches".format(len(elements)), file=self.stdout)
             for element in elements:
                 self._highlight_element(element)
 
+        except InvalidSelectorException:
+            print("invalid locator '{}'".format(arg))
+
         except Exception as e:
-            print("dang.", e)
+            print(str(e))
 
     def do_pdb(self, arg):
         """Start pdb
@@ -122,9 +126,9 @@ class DebuggerCli(cmd.Cmd):
 
         try:
             status, result = self.builtin.run_keyword_and_ignore_error(*statement)
-            print("status: {}".format(status))
+            print("status: {}".format(status), file=self.stdout)
             if not vars:
-                print("result: {}".format(result))
+                print("result: {}".format(result), file=self.stdout)
 
             else:
                 # Assign test variables given on the command line
@@ -132,14 +136,16 @@ class DebuggerCli(cmd.Cmd):
                 # but I think it's good enough for all normal cases.
                 if len(vars) == 1:
                     self.builtin.set_test_variable(vars[0], result)
-                    print("{} was set to {}".format(vars[0], result))
+                    print("{} was set to {}".format(vars[0], result), file=self.stdout)
                 else:
                     for (varname, value) in zip(vars, result):
                         self.builtin.set_test_variable(varname, value)
-                        print("{} was set to {}".format(varname, value))
+                        print(
+                            "{} was set to {}".format(varname, value), file=self.stdout
+                        )
 
         except Exception as e:
-            print("error running keyword: {}".format(e))
+            print("error running keyword: {}".format(e), file=self.stdout)
 
     def do_step(self, arg):
         """Run the next step in the test
@@ -165,8 +171,8 @@ class DebuggerCli(cmd.Cmd):
         prefix = "  "
         for i, x in enumerate(self.listener.stack):
             indent = prefix * i
-            print("{}: {}-> {}".format(i, indent, x.name))
-        print("")
+            print("{}: {}-> {}".format(i, indent, x.longname), file=self.stdout)
+        print("", file=self.stdout)
 
     def _highlight_element(self, element, style=None):
         """Highlight a Selenium Webdriver element
