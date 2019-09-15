@@ -438,11 +438,6 @@ list_community_templates
 
 **Class::** cumulusci.tasks.salesforce.ListCommunityTemplates
 
-Options:
-------------------------------------------
-
-* **package_xml**: The project package.xml file. Defaults to <project_root>/src/package.xml
-
 list_metadata_types
 ==========================================
 
