@@ -82,21 +82,12 @@ class Breakpoint:
 
     def __init__(self, breakpoint_type, pattern, temporary=False):
         self.breakpoint_type = breakpoint_type
-        self.pattern = fnmatch.translate(pattern)
+        self.pattern = pattern
+        self.regex = fnmatch.translate(pattern)
         self.temporary = temporary
-
-    # this was useful in an earlier version of the code; now
-    # I'm not sure it's needed anymore.
-    # def __eq__(self, other):
-    #     """Breakpoints are equal if all of their attributes are equal"""
-    #     return (
-    #         self.breakpoint_type == other.breakpoint_type
-    #         and self.pattern == other.pattern
-    #         and self.temporary == other.temporary
-    #     )
 
     def match(self, context):
         """Return True if the breakpoint matches the current context"""
-        if re.match(self.pattern, context, re.IGNORECASE):
+        if re.match(self.regex, context, re.IGNORECASE):
             return True
         return False
