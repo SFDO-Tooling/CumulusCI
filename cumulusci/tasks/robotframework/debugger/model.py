@@ -17,6 +17,15 @@ class Base:
     def __str__(self):
         return "<{}: {}>".format(self.__class__.__name__, self.name)
 
+    @property
+    def longname(self):
+        # Robot's a bit inconsistent here: suites and test cases have
+        # a longname attribute, for the keyword the name is the longname.
+        if "longname" in self.attrs:
+            return self.attrs["longname"]
+        else:
+            return self.name
+
 
 class Testcase(Base):
     pass

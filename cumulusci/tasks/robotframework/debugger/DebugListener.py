@@ -31,10 +31,10 @@ class DebugListener(object):
             ]
 
     def start_suite(self, name, attrs):
-        self.stack.append(Suite(attrs["longname"], attrs))
+        self.stack.append(Suite(name, attrs))
 
     def start_test(self, name, attrs):
-        self.stack.append(Testcase(attrs["longname"], attrs))
+        self.stack.append(Testcase(name, attrs))
 
     def _break_if_breakpoint(self):
         for breakpoint in [
@@ -42,13 +42,13 @@ class DebugListener(object):
             for bp in self.breakpoints
             if isinstance(self.stack[-1], bp.breakpoint_type)
         ]:
-            statement = "{}::{}".format(self.stack[-2].name, self.stack[-1].name)
+            statement = "{}::{}".format(self.stack[-2].longname, self.stack[-1].name)
             if breakpoint.match(statement):
                 if breakpoint.temporary:
                     self.breakpoints.remove(breakpoint)
 
                 self.rdb.cmdloop(
-                    "\n> {}\n-> {}".format(self.stack[-2].name, str(self.stack[-1]))
+                    "\n> {}\n-> {}".format(self.stack[-2].longname, str(self.stack[-1]))
                 )
                 return
 
@@ -77,7 +77,7 @@ class DebugListener(object):
         # create new breakpoint on the next keyword in the parent of
         # the current context
         breakpoint = Breakpoint(
-            Keyword, "{}::*".format(self.stack[-2].name), temporary=True
+            Keyword, "{}::*".format(self.stack[-2].longname), temporary=True
         )
         self.breakpoints.append(breakpoint)
 
