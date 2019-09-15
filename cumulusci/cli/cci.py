@@ -6,6 +6,8 @@ from past.builtins import basestring
 from builtins import str
 from collections import defaultdict
 from collections import OrderedDict
+from urllib.parse import urlparse
+
 import code
 import functools
 import json
@@ -947,7 +949,7 @@ def org_list(config, plain):
     plain = plain or config.global_config.cli__plain_output
     header = ["Name", "Default", "Username"]
     persistent_data = [header]
-    scratch_data = [header[:2] + ["Days", "Expired", "Config"]]
+    scratch_data = [header[:2] + ["Days", "Expired", "Config", "Domain"]]
 
     org_configs = OrderedDict(
         (org, config.project_config.keychain.get_org(org))
@@ -959,7 +961,14 @@ def org_list(config, plain):
         row = [org, org_config.default]
         if isinstance(org_config, ScratchOrgConfig):
             org_days = org_config.format_org_days()
-            row.extend([org_days, not org_config.alive, org_config.config_name])
+            if org_config.expired:
+                domain = ""
+            else:
+                instance_url = org_config.config.get("instance_url", "")
+                domain = urlparse(instance_url).hostname or ""
+                if domain:
+                    domain = domain.replace(".my.salesforce.com", "")
+            row.extend([org_days, not org_config.alive, org_config.config_name, domain])
             scratch_data.append(row)
         else:
             username = org_config.config.get(

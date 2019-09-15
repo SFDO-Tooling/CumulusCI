@@ -91,7 +91,7 @@ class ScratchOrgConfig(OrgConfig):
 
     @property
     def instance_url(self):
-        return self.scratch_info["instance_url"]
+        return self.config.get("instance_url") or self.scratch_info["instance_url"]
 
     @property
     def org_id(self):
