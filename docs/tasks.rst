@@ -431,6 +431,18 @@ Options:
 * **retry_interval**: Number of seconds to wait before the next retry (default=5),
 * **retry_interval_add**: Number of seconds to add before each retry (default=30),
 
+list_community_templates
+==========================================
+
+**Description:** Prints the community templates available to the current org
+
+**Class::** cumulusci.tasks.salesforce.ListCommunityTemplates
+
+Options:
+------------------------------------------
+
+* **package_xml**: The project package.xml file. Defaults to <project_root>/src/package.xml
+
 list_metadata_types
 ==========================================
 

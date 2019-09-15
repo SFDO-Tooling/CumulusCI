@@ -159,6 +159,10 @@ tasks:
             version: latest_beta
             activateRSS: True
         group: Salesforce Packages
+    list_community_templates:
+        description: Prints the community templates available to the current org
+        class_path: cumulusci.tasks.salesforce.ListCommunityTemplates
+        group: Salesforce
     list_metadata_types:
         description: Prints the metadata types in a project
         class_path: cumulusci.tasks.util.ListMetadataTypes
