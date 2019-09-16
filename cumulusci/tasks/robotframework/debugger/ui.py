@@ -3,6 +3,7 @@ import textwrap
 import os
 import sys
 import re
+import pdb
 from robot.libraries.BuiltIn import BuiltIn
 from cumulusci.cli.ui import CliTable
 from selenium.common.exceptions import InvalidSelectorException
@@ -84,9 +85,8 @@ class DebuggerCli(cmd.Cmd):
         The context will be this function, which won't be particularly
         useful. This is mostly for debugging the debug code. How meta!
         """
-        import pdb
 
-        pdb.Pdb(stdout=sys.__stdout__).set_trace()
+        pdb.Pdb(stdout=self.stdout).set_trace()
 
     def do_reset_elements(self, arg):
         """Remove all highlighting added by `locate_elements`"""
@@ -98,7 +98,7 @@ class DebuggerCli(cmd.Cmd):
         """
         Execute a robot framework keyword. (shortcut: !)
 
-        The statement should be formatted just line in a .robot
+        The statement should be formatted just like in a .robot
         file, with two spaces between each argument.
 
         Example:
