@@ -609,9 +609,7 @@ class TestRunBatchApex(MockLoggerMixin, unittest.TestCase):
         responses.add(responses.GET, url, json=response)
         task()
 
-        self.assertIn("The final record counts do not add up.", self.task_log["info"]),
-        #     mock.call("This is probably related to W-1132237"),
-        # ]
+        self.assertIn("The final record counts do not add up.", self.task_log["info"])
 
     @responses.activate
     def test_run_batch_apex_status_ok(self):
