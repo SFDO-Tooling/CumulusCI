@@ -143,10 +143,12 @@ class ScratchOrgConfig(OrgConfig):
 
     @property
     def alive(self):
+        """Check if an org is alive"""
         return self.date_created and not self.expired
 
     @property
     def expired(self):
+        """Check if an org has already expired"""
         return bool(self.expires) and self.expires < datetime.datetime.now()
 
     @property
