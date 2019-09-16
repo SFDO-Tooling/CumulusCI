@@ -1,5 +1,6 @@
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.core.exceptions import SalesforceException
+from cumulusci.core.exceptions import TaskOptionsError
 
 
 class PublishCommunity(BaseSalesforceApiTask):
@@ -10,9 +11,9 @@ class PublishCommunity(BaseSalesforceApiTask):
     task_options = {
         "name": {
             "description": "The name of the Community to publish.",
-            "required": True,
+            "required": False,
         },
-        "communityid": {
+        "community_id": {
             "description": "The id of the Community to publish.",
             "required": False,
         },
@@ -22,10 +23,19 @@ class PublishCommunity(BaseSalesforceApiTask):
         super(PublishCommunity, self)._init_options(kwargs)
 
     def _run_task(self):
-        community_id = self.options.get("communityid", None)
-        community_name = self.options["name"]
+        community_id = self.options.get("community_id", None)
+        community_name = self.options.get("name", None)
 
         if community_id is None:
+            if community_name is None:
+                missing_required = ["name", "community_id"]
+                raise TaskOptionsError(
+                    "{} requires one of options ({}) "
+                    "and no values were provided".format(
+                        self.__class__.__name__, ", ".join(missing_required)
+                    )
+                )
+
             self.logger.info(
                 'Finding id for Community "{}"'.format(self.options["name"])
             )
@@ -37,15 +47,6 @@ class PublishCommunity(BaseSalesforceApiTask):
             else:
                 raise SalesforceException(
                     'Unable to find a Community named "{}"'.format(community_id)
-                )
-        else:
-            self.logger.info('Checking name for community "{}"'.format(community_id))
-            community = self.sf.restful("connect/communities/{}".format(community_id))
-            if community_name != community["name"]:
-                raise SalesforceException(
-                    'The Community name for {} is "{}" and does not match "{}", the name you provided'.format(
-                        community_id, community["name"], community_name
-                    )
                 )
 
         self.logger.info(
