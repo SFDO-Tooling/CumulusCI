@@ -9,11 +9,11 @@ class PublishCommunity(BaseSalesforceApiTask):
     """
     task_options = {
         "name": {
-            "description": "The name of the community to publish.",
+            "description": "The name of the Community to publish.",
             "required": True,
         },
         "communityid": {
-            "description": "The id of the community to publish.",
+            "description": "The id of the Community to publish.",
             "required": False,
         },
     }
@@ -27,7 +27,7 @@ class PublishCommunity(BaseSalesforceApiTask):
 
         if community_id is None:
             self.logger.info(
-                'Finding id for community "{}"'.format(self.options["name"])
+                'Finding id for Community "{}"'.format(self.options["name"])
             )
             community_list = self.sf.restful("connect/communities")["communities"]
             communities = {c["name"]: c for c in community_list}
@@ -36,14 +36,14 @@ class PublishCommunity(BaseSalesforceApiTask):
                 community_id = communities[self.options["name"]]["id"]
             else:
                 raise SalesforceException(
-                    'Unable to find a community named "{}"'.format(community_id)
+                    'Unable to find a Community named "{}"'.format(community_id)
                 )
         else:
             self.logger.info('Checking name for community "{}"'.format(community_id))
             community = self.sf.restful("connect/communities/{}".format(community_id))
             if community_name != community["name"]:
                 raise SalesforceException(
-                    'The community name for {} is "{}" and does not match "{}", the name you provided'.format(
+                    'The Community name for {} is "{}" and does not match "{}", the name you provided'.format(
                         community_id, community["name"], community_name
                     )
                 )
