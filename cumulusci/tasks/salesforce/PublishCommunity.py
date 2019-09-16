@@ -49,11 +49,16 @@ class PublishCommunity(BaseSalesforceApiTask):
                     'Unable to find a Community named "{}"'.format(community_id)
                 )
 
-        self.logger.info(
-            'Sending request to publish Community "{}"({})'.format(
-                community_name, community_id
+            self.logger.info(
+                'Sending request to publish Community "{}" ({})'.format(
+                    community_name, community_id
+                )
             )
-        )
+        else:
+            self.logger.info(
+                "Sending request to publish Community ({})".format(community_id)
+            )
+
         response = self.sf.restful(
             "connect/communities/{}/publish".format(community_id), method="POST"
         )
