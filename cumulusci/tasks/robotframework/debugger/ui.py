@@ -10,7 +10,7 @@ from cumulusci.cli.ui import CliTable
 from selenium.common.exceptions import InvalidSelectorException
 
 
-class DebuggerCli(cmd.Cmd):
+class DebuggerCli(cmd.Cmd, object):
     intro = textwrap.dedent(
         """\
         Welcome to rdb, the Robot Framework debugger
@@ -55,7 +55,7 @@ class DebuggerCli(cmd.Cmd):
                 print("unknown variable '{}'".format(line), file=self.stdout)
 
         else:
-            super().default(line)
+            super(DebuggerCli, self).default(line)
 
     def do_continue(self, arg):
         """Let the test continue"""
@@ -160,7 +160,7 @@ class DebuggerCli(cmd.Cmd):
     def do_vars(self, arg):
         """Print the value of all known variables"""
         vars = self.builtin.get_variables()
-        vars = [["Variable", "Value"]] + [x for x in map(list, vars.items())]
+        vars = [["Variable", "Value"]] + [x for x in map(list, sorted(vars.items()))]
         CliTable(vars).echo()
 
     def do_where(self, arg):
