@@ -968,7 +968,9 @@ def org_list(config, plain):
                 domain = urlparse(instance_url).hostname or ""
                 if domain:
                     domain = domain.replace(".my.salesforce.com", "")
-            row.extend([org_days, not org_config.alive, org_config.config_name, domain])
+            row.extend(
+                [org_days, not org_config.active, org_config.config_name, domain]
+            )
             scratch_data.append(row)
         else:
             username = org_config.config.get(
