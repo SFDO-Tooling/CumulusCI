@@ -507,8 +507,8 @@ Publish a Salesforce Community via the Connect API.
 Options:
 ------------------------------------------
 
-* **name** *(required)*: The name of the community.
-* **communityid**: Id of the community.
+* **name**: The name of the community.
+* **community_id**: Id of the community.
 
 push_all
 ==========================================
