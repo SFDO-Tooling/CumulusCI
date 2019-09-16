@@ -434,7 +434,7 @@ Options:
 list_communities
 ==========================================
 
-**Description:** Prints the communities for the current org
+**Description:** Prints the Communities for the current org
 
 **Class::** cumulusci.tasks.salesforce.ListCommunities
 

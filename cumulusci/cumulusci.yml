@@ -160,7 +160,7 @@ tasks:
             activateRSS: True
         group: Salesforce Packages
     list_communities:
-        description: Lists communities for the current org using the Connect API.
+        description: Lists Communities for the current org using the Connect API.
         class_path: cumulusci.tasks.salesforce.ListCommunities
     list_metadata_types:
         description: Prints the metadata types in a project

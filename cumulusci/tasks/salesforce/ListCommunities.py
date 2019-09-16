@@ -5,7 +5,7 @@ from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 class ListCommunities(BaseSalesforceApiTask):
     api_version = "46.0"
     task_docs = """
-    Lists communities for the current org via the Connect API.
+    Lists Communities for the current org via the Connect API.
     """
     task_options = {}
 
@@ -18,7 +18,7 @@ class ListCommunities(BaseSalesforceApiTask):
 
         nameString = "\n==========================================\n"
 
-        communities_output = ["The current communities in the org are:\n"]
+        communities_output = ["The current Communities in the org are:\n"]
         for community in communities:
             communities_output.append("\n{}{}".format(community["name"], nameString))
             communities_output.append("* **Id:** {}\n".format(community["id"]))
