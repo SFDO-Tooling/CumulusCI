@@ -434,7 +434,7 @@ Options:
 list_community_templates
 ==========================================
 
-**Description:** Prints the community templates available to the current org
+**Description:** Prints the Community Templates available to the current org
 
 **Class::** cumulusci.tasks.salesforce.ListCommunityTemplates
 
