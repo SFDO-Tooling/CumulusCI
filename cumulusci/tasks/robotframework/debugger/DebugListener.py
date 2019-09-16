@@ -10,10 +10,12 @@ from cumulusci.tasks.robotframework.debugger import Breakpoint, Suite, Testcase,
 class DebugListener(object):
     """A robot framework listener for debugging test cases
 
-    This acts as the controller for the debugger. It is responsible for
-    managing breakpoints.
+    This acts as the controller for the debugger. It is responsible
+    for managing breakpoints, and pausing execution of a test when a
+    breakpoint is hit.
 
-    Note to self: in Breakpoint.match, "context" refers to testcase::keyword combination
+    The listener is also responsible for instantiating the debugger UI
+    (class DebuggerCli).
 
     """
 
@@ -36,28 +38,10 @@ class DebugListener(object):
     def start_test(self, name, attrs):
         self.stack.append(Testcase(name, attrs))
 
-    def _break_if_breakpoint(self):
-        for breakpoint in [
-            bp
-            for bp in self.breakpoints
-            if isinstance(self.stack[-1], bp.breakpoint_type)
-        ]:
-            statement = "{}::{}".format(self.stack[-2].longname, self.stack[-1].name)
-            if breakpoint.match(statement):
-                if breakpoint.temporary:
-                    self.breakpoints.remove(breakpoint)
-
-                self.rdb.cmdloop(
-                    "\n> {}\n-> {}".format(self.stack[-2].longname, str(self.stack[-1]))
-                )
-                return
-
     def start_keyword(self, name, attrs):
-        # at this point, context might be ['suite', 'subsuite', 'testcase']
-
         context = Keyword(name, attrs)
         self.stack.append(context)
-        self._break_if_breakpoint()
+        self.break_if_breakpoint()
 
     def end_keyword(self, name, attrs):
         self.stack.pop()
@@ -71,11 +55,10 @@ class DebugListener(object):
     def do_step(self):
         """Single-step through the code
 
-        This will set a breakpoint on the next keyword in
-        the current context before continuing
+        This will set a temporary breakpoint on the next keyword in
+        the current context before continuing. Once the breakpoint
+        is hit, it will be removed from the list of breakpoints.
         """
-        # create new breakpoint on the next keyword in the parent of
-        # the current context
         breakpoint = Breakpoint(
             Keyword, "{}::*".format(self.stack[-2].longname), temporary=True
         )
@@ -91,3 +74,26 @@ class DebugListener(object):
         breakpoint = Breakpoint(breakpoint_type, pattern, temporary)
         if breakpoint not in self.breakpoints:
             self.breakpoints.append(breakpoint)
+
+    def break_if_breakpoint(self):
+        """Pause test execution and issue a prompt if we are at a breakpoint"""
+
+        # filter breakpoints to only those that match the current context
+        # (eg: Suite, Testcase, Keyword), and iterate over them looking
+        # for a match.
+        for breakpoint in [
+            bp
+            for bp in self.breakpoints
+            if isinstance(self.stack[-1], bp.breakpoint_type)
+        ]:
+            statement = "{}::{}".format(self.stack[-2].longname, self.stack[-1].name)
+            if breakpoint.match(statement):
+                if breakpoint.temporary:
+                    self.breakpoints.remove(breakpoint)
+
+                # Note: this call won't return until a debugger command
+                # has been issued which returns True (eg: 'continue' or 'step')
+                self.rdb.cmdloop(
+                    "\n> {}\n-> {}".format(self.stack[-2].longname, str(self.stack[-1]))
+                )
+                return
