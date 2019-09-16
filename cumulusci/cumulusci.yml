@@ -160,7 +160,7 @@ tasks:
             activateRSS: True
         group: Salesforce Packages
     list_community_templates:
-        description: Prints the community templates available to the current org
+        description: Prints the Community Templates available to the current org
         class_path: cumulusci.tasks.salesforce.ListCommunityTemplates
         group: Salesforce
     list_metadata_types:
