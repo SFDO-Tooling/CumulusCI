@@ -1,7 +1,6 @@
 from __future__ import print_function
 import cmd
 import textwrap
-import os
 import sys
 import re
 import pdb
@@ -27,12 +26,8 @@ class DebuggerCli(cmd.Cmd, object):
 
         self.listener = listener
         self.builtin = BuiltIn()
-        if os.getenv("EMACS", False):
-            # Running a shell inside of emacs sets this environment
-            # variable. Handy, because when running in a shell inside emacs
-            # we need to turn off raw input
-            self.use_rawinput = False
 
+        # some simple aliases.
         self.do_c = self.do_continue
         self.do_l = self.do_locate_elements
         self.do_s = self.do_step
