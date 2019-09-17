@@ -19,9 +19,6 @@ class PublishCommunity(BaseSalesforceApiTask):
         },
     }
 
-    def _init_options(self, kwargs):
-        super(PublishCommunity, self)._init_options(kwargs)
-
     def _run_task(self):
         community_id = self.options.get("community_id", None)
         community_name = self.options.get("name", None)
