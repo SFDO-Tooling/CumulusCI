@@ -162,6 +162,7 @@ tasks:
     list_communities:
         description: Lists Communities for the current org using the Connect API.
         class_path: cumulusci.tasks.salesforce.ListCommunities
+        group: Salesforce Communities
     list_metadata_types:
         description: Prints the metadata types in a project
         class_path: cumulusci.tasks.util.ListMetadataTypes
