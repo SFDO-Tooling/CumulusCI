@@ -49,7 +49,7 @@ class BatchApexWait(BaseSalesforceApiTask):
             self.logger.info("There have been some batch failures.")
             self.logger.info("Error values:")
             self.logger.info(repr(vals))
-            raise SalesforceException("There were import errors", vals)
+            raise SalesforceException("There were import errors: %s" % repr(vals))
         elif not self.done_for_sure:
             self.logger.info("The final record counts do not add up.")
             self.logger.info("This is probably related to W-1132237")

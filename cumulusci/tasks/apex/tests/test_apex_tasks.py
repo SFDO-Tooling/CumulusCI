@@ -598,7 +598,7 @@ class TestRunBatchApex(MockLoggerMixin, unittest.TestCase):
         with self.assertRaises(SalesforceException) as cm:
             task()
         err = cm.exception
-        self.assertIn("Bad Status", err.args[1].values())
+        self.assertIn("Bad Status", err.args[0])
 
     @responses.activate
     def test_run_batch_apex_number_mismatch(self):
