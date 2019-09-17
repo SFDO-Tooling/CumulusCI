@@ -36,14 +36,14 @@ class BatchApexWait(BaseSalesforceApiTask):
             key: value
             for key, value in self.batch.items()
             if key
-            in [
+            in {
                 "Id",
                 "Status",
                 "ExtendedStatus",
                 "NumberOfErrors",
                 "JobItemsProcessed",
                 "TotalJobItems",
-            ]
+            }
         }
         if not self.success:
             self.logger.info("There have been some batch failures.")
