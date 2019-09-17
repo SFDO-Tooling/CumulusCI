@@ -458,7 +458,6 @@ class TestScratchOrgConfig(unittest.TestCase):
         self.assertEqual(config.expires, now + timedelta(days=1))
 
         config = ScratchOrgConfig({"days": 1}, "test")
-        now = datetime.now()
         config.date_created = None
         self.assertIsNone(config.expires)
 
