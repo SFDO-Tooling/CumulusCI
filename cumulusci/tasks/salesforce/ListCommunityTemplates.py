@@ -8,9 +8,6 @@ class ListCommunityTemplates(BaseSalesforceApiTask):
     """
     task_options = {}
 
-    def _init_options(self, kwargs):
-        super(ListCommunityTemplates, self)._init_options(kwargs)
-
     def _run_task(self):
         community_template_list = self.sf.restful("connect/communities/templates")[
             "templates"
