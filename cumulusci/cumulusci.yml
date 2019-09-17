@@ -110,6 +110,10 @@ tasks:
         description: Retrieves a list of the currently installed managed package namespaces and their versions
         class_path: cumulusci.tasks.salesforce.GetInstalledPackages
         group: Salesforce Metadata
+    github_parent_pr_notes:
+        description: Merges the description of a child pull request to the respective parent's pull request (if one exists).
+        class_path: cumulusci.tasks.release_notes.task.ParentPullRequestNotes
+        group: GitHub
     github_clone_tag:
         description: Clones a github tag under a new name.
         class_path: cumulusci.tasks.github.CloneTag
@@ -417,6 +421,11 @@ flows:
                 task: run_tests
             5:
                 task: github_parent_to_children
+            6:
+                task: github_parent_pr_notes
+                options:
+                    branch_name: $project_config.repo_branch
+                    build_notes_label: "Build Notes"
 
     ci_feature_beta_deps:
         description: Install the latest beta version of dependencies and run apex tests.
