@@ -13,11 +13,7 @@ class ListCommunityTemplates(BaseSalesforceApiTask):
             "templates"
         ]
 
-        community_template_names = {
-            t["templateName"]: t for t in community_template_list
-        }
-
         self.logger.info(
             "Community Templates available to the current org:%s",
-            "\r\n".join(community_template_names),
+            "\r\n".join(t["templateName"] for t in community_template_list),
         )
