@@ -501,8 +501,7 @@ publish_community
 
 **Class::** cumulusci.tasks.salesforce.PublishCommunity
 
-Publish a Salesforce Community via the Connect API.
-
+Publish a Salesforce Community via the Connect API. Warning: This does not work with the Community Template "VF Template" due to an existing bug in the API.
 
 Options:
 ------------------------------------------
