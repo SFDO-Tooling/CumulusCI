@@ -167,7 +167,7 @@ class test_PublishCommunity(unittest.TestCase):
             cc_task._run_task()
 
     @responses.activate
-    def test_throws_exeption_for_unset_name_and_id(self):
+    def test_throws_exception_for_unset_name_and_id(self):
         cc_task = create_task(PublishCommunity, {})
 
         cc_task._init_task()
