@@ -9,12 +9,8 @@ class ListCommunities(BaseSalesforceApiTask):
     """
     task_options = {}
 
-    def _init_options(self, kwargs):
-        super(ListCommunities, self)._init_options(kwargs)
-
     def _run_task(self):
-        community_list = self.sf.restful("connect/communities")["communities"]
-        communities = [c for c in community_list]
+        communities = self.sf.restful("connect/communities")["communities"]
 
         nameString = "\n==========================================\n"
 
