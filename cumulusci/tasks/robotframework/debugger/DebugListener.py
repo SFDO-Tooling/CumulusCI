@@ -64,17 +64,6 @@ class DebugListener(object):
         )
         self.breakpoints.append(breakpoint)
 
-    def add_breakpoint(self, breakpoint_type, pattern, temporary=False):
-        """Add a breakpoint
-
-        Pattern is a glob-style pattern (eg: *.breakpoint). If temporary
-        is True, the breakpoint will be automatically removed once it
-        has been encountered.
-        """
-        breakpoint = Breakpoint(breakpoint_type, pattern, temporary)
-        if breakpoint not in self.breakpoints:
-            self.breakpoints.append(breakpoint)
-
     def break_if_breakpoint(self):
         """Pause test execution and issue a prompt if we are at a breakpoint"""
 
