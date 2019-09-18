@@ -4,6 +4,8 @@ import logging
 import os.path
 import re
 import time
+
+from jinja2 import Template
 from pprint import pformat
 from robot.libraries.BuiltIn import BuiltIn, RobotNotRunningError
 from robot.libraries.String import String
@@ -508,17 +510,23 @@ class Salesforce(object):
         obj.update(fields)
         return obj
 
-    def salesforce_init_objects(self, obj_name, number_to_create, **fields):
+    class RandomStringGenerator:
+        def __str__(self):
+            return String().generate_random_string()
+
+    random_string_generator = RandomStringGenerator()
+
+    def salesforce_collection_generate(self, obj_name, number_to_create, **fields):
         """Create an array of dictionaries with template-formatted arguments appropriate for a Collection Insert.
-            Use ``{number}`` to represent the unique index of the row in the list of rows, ``{random_str}`` to represent a random string
-            and a string that consists of just ``{int}`` to generate an actual integer (as opposed to a string-encoded number)
+            Use ``{{number}}`` to represent the unique index of the row in the list of rows, ``{random_str}`` to represent a random string
+            and a string that consists of just ``{{int}}`` to generate an actual integer (as opposed to a string-encoded number)
 
             For example:
 
                 | @{objects} =  Salesforce Init Objects  Contact  3
-                | ...  FirstName=User {number}
-                | ...  LastName={random_str}
-                | ...  Age={int()}
+                | ...  FirstName=User {{number}}
+                | ...  LastName={{random_str}}
+                | ...  Age={{int}}
 
             Which would generate:
 
@@ -529,15 +537,12 @@ class Salesforce(object):
         objs = []
 
         def format_str(value, i):
-            if hasattr(value, "format"):  # Duck-check for if it is string-like
-                if value.strip().lower() == "{int}":
-                    return i
-                else:
-                    return value.format(
-                        number=i, random_str=String().generate_random_string()
-                    )
-            else:
-                return value
+            if isinstance(value, str):
+                value = Template(value).render(
+                    number=i, random_str=self.random_string_generator
+                )
+
+            return value
 
         for i in range(int(number_to_create)):
             formatted_fields = {
