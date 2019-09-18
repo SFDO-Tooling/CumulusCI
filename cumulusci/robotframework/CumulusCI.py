@@ -3,14 +3,13 @@ import logging
 from robot.api import logger
 from robot.libraries.BuiltIn import BuiltIn
 from simple_salesforce import Salesforce
-from requests import Session
 
 from cumulusci.cli.config import CliRuntime
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.tasks import CURRENT_TASK
 from cumulusci.core.utils import import_global
-from cumulusci.robotframework.utils import set_pdb_trace, PerfJSONConverter
+from cumulusci.robotframework.utils import set_pdb_trace
 from cumulusci.tasks.robotframework.robotframework import Robot
 
 
@@ -48,24 +47,13 @@ class CumulusCI(object):
         logging.getLogger("requests.packages.urllib3.connectionpool").setLevel(
             logging.WARN
         )
-        if self.perf_listener:
-            # we never uninstall because the objects we are hooking are
-            # scoped to the lifetime of this task anyhow
-            self._install_perf_hook()
-
-    @property
-    def robot_task(self):
-        if CURRENT_TASK.stack and isinstance(CURRENT_TASK.stack[0], Robot):
-            return CURRENT_TASK.stack[0]
-        else:
-            return None
 
     @property
     def project_config(self):
         if self._project_config is None:
-            if self.robot_task:
+            if CURRENT_TASK.stack and isinstance(CURRENT_TASK.stack[0], Robot):
                 # If CumulusCI is running a task, use that task's config
-                return self.robot_task.project_config
+                return CURRENT_TASK.stack[0].project_config
             else:
                 logger.console("Initializing CumulusCI config\n")
                 self._project_config = CliRuntime().project_config
@@ -80,16 +68,11 @@ class CumulusCI(object):
         return self.project_config.keychain
 
     @property
-    def perf_listener(self):
-        if self.robot_task:
-            return self.robot_task.robot_perf_listener
-
-    @property
     def org(self):
         if self._org is None:
-            if self.robot_task:
+            if CURRENT_TASK.stack and isinstance(CURRENT_TASK.stack[0], Robot):
                 # If CumulusCI is running a task, use that task's org
-                return self.robot_task.org_config
+                return CURRENT_TASK.stack[0].org_config
             else:
                 self._org = self.keychain.get_org(self.org_name)
         return self._org
@@ -215,19 +198,15 @@ class CumulusCI(object):
 
     def _init_api(self, base_url=None):
 
-        session = Session()
         api_version = self.project_config.project__package__api_version
-        session.hooks = {"response": []}
-
-        sf = Salesforce(
+        rv = Salesforce(
             instance=self.org.instance_url.replace("https://", ""),
             session_id=self.org.access_token,
             version=api_version,
-            session=session,
         )
         if base_url is not None:
-            sf.base_url += base_url
-        return sf
+            rv.base_url += base_url
+        return rv
 
     def _init_task(self, class_path, options, task_config):
         task_class = import_global(class_path)
@@ -262,50 +241,3 @@ class CumulusCI(object):
     def debug(self):
         """Pauses execution and enters the Python debugger."""
         set_pdb_trace()
-
-    def _register_response_hook(self, hook):
-        if hook not in self.sf.session.hooks["response"]:
-            self.sf.session.hooks["response"].append(hook)
-
-    def _response_callback(self, response, **kwargs):
-        self._last_performance_metrics = {}
-        if "perfmetrics" in response.headers.keys():
-            metric_str = response.headers["perfmetrics"]
-            metadata = {}
-            metadata["url"] = response.request.url
-            metadata["method"] = response.request.method
-            self._last_performance_metrics["_meta"] = metadata
-            include_raw = self.perf_listener.verbosity >= 2
-            perfjson = PerfJSONConverter(metric_str)
-            self._last_performance_metrics.update(
-                perfjson.to_dict(include_raw=include_raw)
-            )
-            self.perf_listener.report(self._last_performance_metrics)
-            # sometimes it is handy to log this stuff
-            # BuiltIn().log(perfjson.to_log_message(metadata))
-
-    def _install_perf_hook(self):
-        # https://github.com/forcedotcom/idecore/blob/f107a6cb61ee38cd7f5b24fc9610893f24a33264/config/wsdls/src/main/resources/apex.wsdl#L239
-        self.sf.session.headers["Sforce-Call-Options"] = "perfOption=MINIMUM"
-        self._register_response_hook(self._response_callback)
-
-    def get_performance_metrics(self):
-        """Performance metrics keyword: Get the last recorded performance metrics"""
-        return self._last_performance_metrics
-
-    def create_duration_metric(self, name):
-        """Custom metric keyword: Start measuring the time it takes to do something: EXPERIMENTAL"""
-        self.perf_listener.create_duration_metric(name)
-
-    def end_duration_metric(self, name):
-        """Custom metric keyword: Finish measuring a duration: EXPERIMENTAL"""
-        self.perf_listener.end_duration_metric(name)
-
-    def create_aggregate_metric(self, name, aggregation):
-        """Custom metric keyword: Start averaging/summing/... something: EXPERIMENTAL
-            aggregation should be "average", or "sum"  """
-        self.perf_listener.create_aggregate_metric(name, aggregation)
-
-    def store_metric_value(self, name, value):
-        """Custom metric keyword: Add this number to the average or sum. EXPERIMENTAL"""
-        self.perf_listener.store_metric_value(name, value)

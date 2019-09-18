@@ -1,6 +1,5 @@
 import functools
 import time
-import json
 from selenium.common.exceptions import ElementNotInteractableException
 from selenium.common.exceptions import StaleElementReferenceException
 from selenium.common.exceptions import WebDriverException
@@ -200,35 +199,3 @@ def selenium_retry(target=None, retry=True):
     else:
         # Decorator was used without arguments
         return decorate(target)
-
-
-class PerfJSONConverter:
-    def __init__(self, jsondata):
-        self.data = json.loads(jsondata)
-
-    def to_dict(self, include_raw=False):
-        rc = {
-            metric["metrics"] + "-" + metricType: metric[metricType]
-            for metricType in ("totalTime", "totalCalls")
-            for metric in self.data["summary"]
-        }
-        if include_raw:
-            rc["_raw"] = self.data
-        return rc
-
-    def to_csv(self):
-        """Helper function to generate CSV-like data from performance metrics JSON"""
-
-        def row(values):
-            return ",".join(values) + "\n"
-
-        res = ""
-        metrics = self.data["summary"]
-        res += "#" + row(metrics[0].keys())
-        for metric in metrics:
-            res += row((str(m) for m in metric.values()))
-
-        return res
-
-    def to_log_message(self, metadata=""):
-        return "#perfmetrics {} \n{}".format(metadata or "", self.to_csv())

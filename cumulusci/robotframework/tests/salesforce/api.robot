@@ -97,17 +97,3 @@ Collection API Test
         set to dictionary   ${record}   LastName    ${new_last_name}
     END
     Salesforce Collection Update    ${records}
-
-Custom Perf Metrics API Test
-     Create Duration Metric  Total Duration
-     Create Aggregate Metric  Avg Duration  average
-     Create Aggregate Metric  Avg DB Time   average
-     Create Aggregate Metric  Total DB Time   sum
-     FOR  ${i}  IN RANGE  20
-         ${last_name} =  Generate Random String
-         ${contact} =    Salesforce Insert  Contact  LastName=${last_name}
-         ${perfmetrics} =   Get Performance Metrics
-         Store Metric Value  Avg Duration  ${perfmetrics}[rest-api-totalTime]
-         Store Metric Value  Avg DB Time   ${perfmetrics}[db-exec-totalTime]
-     END
-     End Duration Metric  Total Duration
