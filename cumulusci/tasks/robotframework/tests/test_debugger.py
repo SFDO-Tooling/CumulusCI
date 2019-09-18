@@ -2,6 +2,7 @@ import mock
 import unittest
 from cumulusci.tasks.robotframework import debugger
 from selenium.common.exceptions import InvalidSelectorException
+import fnmatch
 
 
 class TestDebugListener(unittest.TestCase):
@@ -9,6 +10,28 @@ class TestDebugListener(unittest.TestCase):
     def setUpClass(cls):
         super(TestDebugListener, cls).setUpClass()
         cls.listener = debugger.DebugListener()
+
+    def test_listener_default_breakpoint(self):
+        """Verify we get the correct default breakpoint"""
+        listener = debugger.DebugListener()
+        self.assertEqual(len(listener.breakpoints), 1)
+        bp = listener.breakpoints[0]
+        self.assertFalse(bp.temporary)
+        self.assertEqual(
+            bp.pattern, "*::cumulusci.robotframework.Salesforce.Breakpoint"
+        )
+        self.assertEqual(bp.breakpoint_type, debugger.Keyword)
+        self.assertEqual(bp.regex, fnmatch.translate(bp.pattern))
+
+    def test_listener_custom_breakpoints(self):
+        """Verify we can create a cli with custom breakpoints"""
+        breakpoints = (
+            debugger.Breakpoint(debugger.Keyword, "*::keyword breakpoint"),
+            debugger.Breakpoint(debugger.Testcase, "*::test breakpoint"),
+            debugger.Breakpoint(debugger.Suite, "*::suite breakpoint"),
+        )
+        listener = debugger.DebugListener(*breakpoints)
+        self.assertEqual(listener.breakpoints, breakpoints)
 
     def test_listener_stack(self):
         """Verify that the listener properly tracks the stack as a test is executed"""
@@ -31,9 +54,9 @@ class TestDebugListener(unittest.TestCase):
         # now, unwind the stack and make sure it's empty
         self.listener.end_keyword("BuiltIn.Log", {})
         self.listener.end_test("Test 1", {})
-        self.listener.end_test("example", {})
-        self.listener.end_test("folder", {})
-        self.listener.end_test("Root", {})
+        self.listener.end_suite("example", {})
+        self.listener.end_suite("folder", {})
+        self.listener.end_suite("Root", {})
         self.assertEquals(len(self.listener.stack), 0)
 
     def test_listener_step(self):
@@ -248,3 +271,39 @@ class TestRobotDebugger(unittest.TestCase):
         self.cli.do_vars("")
         mock_clitbl.assert_called_with([["Variable", "Value"], ["one", 1], ["two", 2]])
         mock_clitbl.return_value.echo.assert_called()
+
+
+class TestInternalModels(unittest.TestCase):
+    def test_testcase(self):
+        testcase = debugger.Testcase(
+            name="Test Case #1", attrs={"longname": "Root.Test Case #1"}
+        )
+        self.assertEqual(repr(testcase), "<Testcase: Test Case #1>")
+
+        # robot passes in a longname, so make sure the property reflects it
+        self.assertEqual(testcase.longname, "Root.Test Case #1")
+
+    def test_keyword(self):
+        keyword = debugger.Keyword(name="Keyword #1", attrs={"args": ["foo", "bar"]})
+        self.assertEqual(repr(keyword), "<Keyword: Keyword #1  foo  bar>")
+        # robot will NOT pass in a longname; make sure the property handles that case
+        self.assertEqual(keyword.longname, keyword.name)
+
+    def test_suite(self):
+        suite = debugger.Suite(
+            name="Suite #1", attrs={"source": "test.robot", "longname": "Root.Suite #1"}
+        )
+        self.assertEqual(repr(suite), "<Suite: Suite #1 (test.robot)>")
+        # robot passes in a longname, so make sure the property reflects it
+        self.assertEqual(suite.longname, "Root.Suite #1")
+
+    def test_breakpoint_match(self):
+        bp = debugger.Breakpoint(debugger.Keyword, "*::breakpoint")
+        self.assertTrue(
+            bp.match(context="Suite.Test Case::breakpoint"),
+            "expected breakpoint to match, but it didn't",
+        )
+        self.assertFalse(
+            bp.match(context="Suite.Test Case::some other keyword"),
+            "didn't expect breakpoint to match, but it did",
+        )

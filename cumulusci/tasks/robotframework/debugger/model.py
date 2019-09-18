@@ -14,9 +14,6 @@ class Base:
         self.name = name
         self.attrs = attrs
 
-    def __str__(self):
-        return "<{}: {}>".format(self.__class__.__name__, self.name)
-
     @property
     def longname(self):
         # Robot's a bit inconsistent here: suites and test cases have
@@ -28,23 +25,20 @@ class Base:
 
 
 class Testcase(Base):
-    pass
+    def __repr__(self):
+        return "<Testcase: {}>".format(self.name)
 
 
 class Keyword(Base):
-    # should this be __repr__?
-    def __str__(self):
-        return "  ".join([self.name] + self.attrs["args"])
+    def __repr__(self):
+        return "<Keyword: {}>".format("  ".join([self.name] + self.attrs["args"]))
 
 
 class Suite(Base):
-    # should this be __repr__?
-    def __str__(self):
+    def __repr__(self):
         path = self.attrs["source"]
         rel_path = os.path.relpath(path)
-        if not rel_path.startswith("."):
-            rel_path = "./" + rel_path
-        return "<{}: {}>".format(self.__class__.__name__, rel_path)
+        return "<Suite: {} ({})>".format(self.name, rel_path)
 
 
 class Breakpoint:

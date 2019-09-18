@@ -622,4 +622,4 @@ class Salesforce(object):
 
     def breakpoint(self):
         """Serves as a breakpoint for the robot debugger"""
-        pass
+        return None
