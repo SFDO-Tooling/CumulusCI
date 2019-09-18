@@ -1,6 +1,5 @@
 """ a task for waiting on a Batch Apex job to complete """
 
-import datetime
 from cumulusci.utils import parse_api_datetime
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.core.exceptions import SalesforceException
@@ -33,9 +32,28 @@ class BatchApexWait(BaseSalesforceApiTask):
 
         self.logger.info("Job is complete.")
 
+        vals = {
+            key: value
+            for key, value in self.batch.items()
+            if key
+            in {
+                "Id",
+                "Status",
+                "ExtendedStatus",
+                "NumberOfErrors",
+                "JobItemsProcessed",
+                "TotalJobItems",
+            }
+        }
         if not self.success:
-            self.logger.info("There were some batch failures.")
-            raise SalesforceException(self.batch["ExtendedStatus"])
+            self.logger.info("There have been some batch failures.")
+            self.logger.info("Error values:")
+            self.logger.info(repr(vals))
+            raise SalesforceException("There were import errors: %s" % repr(vals))
+        elif not self.done_for_sure:
+            self.logger.info("The final record counts do not add up.")
+            self.logger.info("This is probably related to W-1132237")
+            self.logger.info(repr(vals))
 
         self.logger.info(
             "%s took %d seconds to process %d batches.",
@@ -66,9 +84,13 @@ class BatchApexWait(BaseSalesforceApiTask):
 
     @property
     def success(self):
-        """ returns True if all batches succeeded """
-        return (self.batch["JobItemsProcessed"] is self.batch["TotalJobItems"]) and (
-            self.batch["NumberOfErrors"] is 0
+        return self.batch["NumberOfErrors"] == 0
+
+    @property
+    def done_for_sure(self):
+        """ returns True if all batches were counted and succeeded """
+        return (self.batch["JobItemsProcessed"] == self.batch["TotalJobItems"]) and (
+            self.batch["NumberOfErrors"] == 0
         )
 
     @property

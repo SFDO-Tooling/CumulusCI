@@ -28,6 +28,7 @@ from cumulusci.core.exceptions import (
 from cumulusci.tasks.apex.anon import AnonymousApexTask
 from cumulusci.tasks.apex.batch import BatchApexWait
 from cumulusci.tasks.apex.testrunner import RunApexTests
+from cumulusci.core.tests.utils import MockLoggerMixin
 
 
 @patch(
@@ -515,7 +516,7 @@ class TestAnonymousApexTask(unittest.TestCase):
     "cumulusci.tasks.salesforce.BaseSalesforceTask._update_credentials",
     MagicMock(return_value=None),
 )
-class TestRunBatchApex(unittest.TestCase):
+class TestRunBatchApex(MockLoggerMixin, unittest.TestCase):
     def setUp(self):
         self.api_version = 42.0
         self.global_config = BaseGlobalConfig(
@@ -545,6 +546,7 @@ class TestRunBatchApex(unittest.TestCase):
         self.base_tooling_url = "{}/services/data/v{}/tooling/".format(
             self.org_config.instance_url, self.api_version
         )
+        self.task_log = self._task_log_handler.messages
 
     def _get_query_resp(self):
         return {
@@ -596,7 +598,18 @@ class TestRunBatchApex(unittest.TestCase):
         with self.assertRaises(SalesforceException) as cm:
             task()
         err = cm.exception
-        self.assertEqual(err.args[0], "Bad Status")
+        self.assertIn("Bad Status", err.args[0])
+
+    @responses.activate
+    def test_run_batch_apex_number_mismatch(self):
+        task, url = self._get_url_and_task()
+        response = self._get_query_resp()
+        response["records"][0]["JobItemsProcessed"] = 1
+        response["records"][0]["TotalJobItems"] = 3
+        responses.add(responses.GET, url, json=response)
+        task()
+
+        self.assertIn("The final record counts do not add up.", self.task_log["info"])
 
     @responses.activate
     def test_run_batch_apex_status_ok(self):
