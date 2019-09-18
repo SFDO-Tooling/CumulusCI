@@ -6,7 +6,7 @@ from cumulusci.core.exceptions import TaskOptionsError
 class PublishCommunity(BaseSalesforceApiTask):
     api_version = "46.0"
     task_docs = """
-    Publishes a Salesforce Community via the Connect API. Publish a Salesforce Community via the Connect API. Warning: This does not work with the Community Template 'VF Template' due to an existing bug in the API.
+    Publish a Salesforce Community via the Connect API. Warning: This does not work with the Community Template 'VF Template' due to an existing bug in the API.
     """
     task_options = {
         "name": {
