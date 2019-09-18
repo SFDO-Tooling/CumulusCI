@@ -24,6 +24,11 @@ STATUS_KEY = ("status",)
 lex_locators = {}  # will be initialized when Salesforce is instantiated
 
 
+class RandomStringGenerator:
+    def __str__(self):
+        return String().generate_random_string()
+
+
 @selenium_retry
 class Salesforce(object):
     ROBOT_LIBRARY_SCOPE = "GLOBAL"
@@ -499,20 +504,14 @@ class Salesforce(object):
         """ Inserts a Salesforce object setting fields using kwargs and returns the id """
         self.builtin.log("Inserting {} with values {}".format(obj_name, kwargs))
         obj_class = getattr(self.cumulusci.sf, obj_name)
-
         res = obj_class.create(kwargs)
         self.store_session_record(obj_name, res["id"])
-
         return res["id"]
 
     def _salesforce_generate_object(self, obj_name, **fields):
         obj = {"attributes": {"type": obj_name}}  # Object type to create
         obj.update(fields)
         return obj
-
-    class RandomStringGenerator:
-        def __str__(self):
-            return String().generate_random_string()
 
     random_string_generator = RandomStringGenerator()
 
