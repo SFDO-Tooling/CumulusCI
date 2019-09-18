@@ -4,13 +4,17 @@ import tempfile
 import time
 import unicodecsv
 import xml.etree.ElementTree as ET
-
 from contextlib import contextmanager
+
 from sqlalchemy import types
 from sqlalchemy import event
+from sqlalchemy import Column
+from sqlalchemy import Integer
 from sqlalchemy import Table
+from sqlalchemy import Unicode
 
 from cumulusci.utils import convert_to_snake_case
+from cumulusci.core.exceptions import BulkDataException
 
 
 @contextmanager
@@ -123,3 +127,48 @@ class BulkJobTaskMixin(object):
             if rows:
                 conn.execute(table.insert().values(rows))
         self.session.flush()
+
+
+def _handle_primary_key(mapping, fields):
+    # Provide support for legacy mappings which used the OID as the pk but
+    # default to using an autoincrementing int pk and a separate sf_id column
+    mapping["oid_as_pk"] = bool(mapping.get("fields", {}).get("Id"))
+    if mapping["oid_as_pk"]:
+        id_column = mapping["fields"]["Id"]
+        fields.append(Column(id_column, Unicode(255), primary_key=True))
+    else:
+        fields.append(Column("id", Integer(), primary_key=True, autoincrement=True))
+
+
+def create_table(mapping, metadata):
+    """Given a mapping data structure (from mapping.yml) and SQLAlchemy
+       metadata, create a table matching the mapping.
+
+       Mapping should be a dict-like with keys "fields", "table" and
+       optionally "oid_as_pk" and "record_type" """
+
+    fields = []
+    _handle_primary_key(mapping, fields)
+
+    # make a field list to create
+    for field in fields_for_mapping(mapping):
+        if mapping["oid_as_pk"] and field["sf"] == "Id":
+            continue
+        fields.append(Column(field["db"], Unicode(255)))
+
+    if "record_type" in mapping:
+        fields.append(Column("record_type", Unicode(255)))
+    t = Table(mapping["table"], metadata, *fields)
+    if t.exists():
+        raise BulkDataException("Table already exists: {}".format(mapping["table"]))
+    return t
+
+
+def fields_for_mapping(mapping):
+    """Summarize the list of fields in a table mapping"""
+    fields = []
+    for sf_field, db_field in mapping.get("fields", {}).items():
+        fields.append({"sf": sf_field, "db": db_field})
+    for sf_field, lookup in mapping.get("lookups", {}).items():
+        fields.append({"sf": sf_field, "db": get_lookup_key_field(lookup, sf_field)})
+    return fields

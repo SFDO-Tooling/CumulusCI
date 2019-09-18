@@ -2,6 +2,38 @@
 History
 =======
 
+2.5.8 (2019-09-13)
+------------------
+
+New features:
+
+* ``LoadData`` now supports the key ``action: update`` to perform a Bulk API update job
+* ``LoadData`` now supports an ``after: <step name>`` on a lookup entry to defer updating that lookup until a dependent sObject step is completed.
+* ``GenerateMapping`` now handles self-lookups and reference cycles by generating ``after:`` markers wherever needed. 
+
+Issues closed:
+
+* Patch selenium to convert ``executeScript`` to ``executeAsyncScript``. This is a workaround for the ``executeScript`` issue in chromedriver 77.
+* A small issue in ``QueryData`` affecting mappings using ``oid_as_pk: False`` has been fixed.
+
+2.5.7 (2019-09-03)
+------------------
+
+Breaking changes:
+
+* The ``retries``, ``retry_interval``, and ``retry_interval_add`` options have been removed from the ``run_tests`` task. These were misleading as they did not actually retry failing tests.
+
+New features:
+
+* The ``run_tests`` task now supports a ``retry_failures`` parameter. This is a list of regular expressions to match against each unit test failure's message and stack trace; if all failing tests match, the failing tests will be retried serially. Set ``retry_always`` to True to trigger this behavior when any failure matches.
+* There is now a default CumulusCI global connected app that can be used to connect to persistent orgs (assuming you know the credentials) without creating a new connected app. It's still possible to configure a custom connected app using ``cci service connect connected_app`` if more control over the connected app settings is needed.
+* When CumulusCI is being run in a non-interactive context it can now obtain an access token for a persistent org using a JWT instead of a refresh token. This approach is used if the SFDX_CLIENT_ID and SFDX_HUB_KEY environment variables are set. This makes it easier to manage persistent org connections in the context of a hosted service because it's possible to replace the connected app's certificate without needing to obtain new refresh tokens for each org.
+
+Issues closed:
+
+* Fixed a bug where showing the summary of flow steps would break with sub-steps in MetaDeploy.
+* Fixed a bug in the caching of preflight task results in MetaDeploy.
+
 2.5.6 (2019-08-15)
 ------------------
 

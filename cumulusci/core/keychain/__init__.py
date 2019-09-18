@@ -2,6 +2,7 @@
 
 # inherit from BaseConfig
 from cumulusci.core.keychain.BaseProjectKeychain import BaseProjectKeychain
+from cumulusci.core.keychain.BaseProjectKeychain import DEFAULT_CONNECTED_APP
 
 # inherit from BaseProjectKeychain
 from cumulusci.core.keychain.BaseEncryptedProjectKeychain import (

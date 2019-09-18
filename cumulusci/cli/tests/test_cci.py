@@ -696,6 +696,7 @@ class TestCCI(unittest.TestCase):
                     "days": 7,
                     "config_name": "dev",
                     "username": "test1@example.com",
+                    "instance_url": "https://sneaky-master-2330-dev-ed.cs22.my.salesforce.com",
                 },
                 "test1",
             ),
@@ -706,6 +707,7 @@ class TestCCI(unittest.TestCase):
                     "expired": False,
                     "config_name": "dev",
                     "username": "test2@example.com",
+                    "instance_url": "https://dude-chillin-2330-dev-ed.cs22.my.salesforce.com",
                 },
                 "test2",
             ),
@@ -715,9 +717,9 @@ class TestCCI(unittest.TestCase):
 
         scratch_table_call = mock.call(
             [
-                ["Name", "Default", "Days", "Expired", "Config"],
-                ["test0", True, "7", True, "dev"],
-                ["test1", False, "1/7", False, "dev"],
+                ["Name", "Default", "Days", "Expired", "Config", "Domain"],
+                ["test0", True, "7", True, "dev", ""],
+                ["test1", False, "1/7", False, "dev", "sneaky-master-2330-dev-ed.cs22"],
             ],
             bool_cols=["Default"],
             title="Scratch Orgs",
