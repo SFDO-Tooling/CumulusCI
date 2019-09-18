@@ -505,7 +505,7 @@ class Salesforce(object):
 
         return res["id"]
 
-    def salesforce_init_object(self, obj_name, **fields):
+    def _salesforce_generate_object(self, obj_name, **fields):
         obj = {"attributes": {"type": obj_name}}  # Object type to create
         obj.update(fields)
         return obj
@@ -518,15 +518,15 @@ class Salesforce(object):
 
     def salesforce_collection_generate(self, obj_name, number_to_create, **fields):
         """Create an array of dictionaries with template-formatted arguments appropriate for a Collection Insert.
-            Use ``{{number}}`` to represent the unique index of the row in the list of rows, ``{random_str}`` to represent a random string
-            and a string that consists of just ``{{int}}`` to generate an actual integer (as opposed to a string-encoded number)
+            Use ``{{number}}`` to represent the unique index of the row in the list of rows, ``{{random_str}}`` to represent a random string
+            and a string that consists of just ``{{number}}`` to generate an actual integer (as opposed to a string-encoded number)
 
             For example:
 
-                | @{objects} =  Salesforce Init Objects  Contact  3
+                | @{objects} =  Salesforce Collection Generate  Contact  3
                 | ...  FirstName=User {{number}}
                 | ...  LastName={{random_str}}
-                | ...  Age={{int}}
+                | ...  Age={{number}}
 
             Which would generate:
 
@@ -548,13 +548,13 @@ class Salesforce(object):
             formatted_fields = {
                 name: format_str(value, i) for name, value in fields.items()
             }
-            newobj = self.salesforce_init_object(obj_name, **formatted_fields)
+            newobj = self._salesforce_generate_object(obj_name, **formatted_fields)
             objs.append(newobj)
 
         return objs
 
     def salesforce_collection_insert(self, objects):
-        """Inserts up to 200 records that were created with Salesforce Init Objects.
+        """Inserts up to 200 records that were created with Salesforce Collection Generate.
            The 200 record limit is enforced by the Salesforce APIs"""
         assert (
             not obj.get("id", None) for obj in objects

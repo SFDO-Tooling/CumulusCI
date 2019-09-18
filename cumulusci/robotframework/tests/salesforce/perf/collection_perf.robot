@@ -10,9 +10,9 @@ Force Tags      api200
 *** Keywords ***
 Insert 200 Contacts
     [Documentation]  Create 200 Contacts in CONTACTS suite variable
-    @{objects}=  Salesforce Init Objects  Contact  200  
-        ...  FirstName="User {number}"
-        ...  LastName="{random_str}"
+    @{objects}=  Salesforce Collection Generate  Contact  200  
+        ...  FirstName="User {{number}}"
+        ...  LastName="{{random_str}}"
     Salesforce Collection Insert  ${objects}
     Set Suite Variable      @{CONTACTS}      @{objects}
     [return]    ${objects}
@@ -25,18 +25,12 @@ Create Accounts If Necessary
     ${query_results} =   SOQL Query    ${query}
     ${contacts_without_accounts} =    Set Variable    ${query_results}[records]
     ${numobjects} =    Get Length     ${contacts_without_accounts}
-    ${newobjects} =     Create List
-    FOR     ${index}  IN RANGE    ${numobjects}
-        ${account_name} =     Generate Random String
-        ${new_account}=   Salesforce Init Object     Account   
-        ...                                          Name=${account_name}
-        Append to list      ${newobjects}       ${new_account}
-    END
+    ${newobjects} =     Salesforce Collection Generate     Account    ${numobjects} 
+        ...                                          Name={{random_str}}
 
     ${created_records}=     Salesforce Collection Insert  ${newobjects}
 
     FOR     ${index}  IN RANGE    ${numobjects}
-
         ${contact} =   Set Variable    ${contacts_without_accounts}[${index}]
         ${account_id} =    Set Variable    ${created_records}[${index}][id]
         Set To Dictionary   ${contact}    'AccountId'     ${account_id}
@@ -54,10 +48,10 @@ Insert 200 Pledged Opportunities
     @{accounts}=    Salesforce Query    Account
 
     ${date}=    Get Current Date     result_format=%Y-%m-%d
-    @{objects}=  Salesforce Init Objects  Opportunity  200  
-        ...  Name= Opp {number}
+    @{objects}=  Salesforce Collection Generate  Opportunity  200  
+        ...  Name= Opp {{number}}
         ...  StageName= Pledged
-        ...  Amount= {int}
+        ...  Amount= {{number}}
         ...  CloseDate=${date}
     ${numobjects}=  Get Length     ${objects}
     FOR     ${index}   IN RANGE   ${numobjects}
@@ -76,10 +70,10 @@ Perftest - Insert 200 Contacts
     Insert 200 Contacts
 
 Perftest - Insert 200 Contacts With Addresses
-    @{objects}=  Salesforce Init Objects  Contact  200  
-        ...  FirstName="User {number}"
-        ...  LastName="{random_str}"
-        ...  MailingStreet="{number} Main Street"
+    @{objects}=  Salesforce Collection Generate  Contact  200  
+        ...  FirstName="User {{number}}"
+        ...  LastName="{{random_str}}"
+        ...  MailingStreet="{{number}} Main Street"
         ...  MailingCity='New York'
         ...  MailingState='NY',
         ...  MailingPostalCode='12345'

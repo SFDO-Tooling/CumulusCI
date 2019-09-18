@@ -88,9 +88,9 @@ Salesforce Delete Session Records
     length should be  ${query}  0  Expected the query to return 0 records, but it returned ${query}
 
 Collection API Test
-    @{objects} =  Salesforce Init Objects  Contact  20  
-        ...  FirstName=User {number}
-        ...  LastName={random_str}
+    @{objects} =  Salesforce Collection Generate  Contact  20  
+        ...  FirstName=User {{number}}
+        ...  LastName={{random_str}}
     @{records} =    Salesforce Collection Insert  ${objects}
     FOR     ${record}   IN  @{records}
         ${new_last_name} =  Generate Random String
