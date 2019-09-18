@@ -54,61 +54,70 @@ class TestChangeNotesLinesParser(unittest.TestCase):
     def test_parse_no_start_line(self):
         change_note = "foo\r\nbar\r\n"
         parser = ChangeNotesLinesParser(None, self.title)
-        parser.parse(change_note)
+        line_added = parser.parse(change_note)
         self.assertEqual(parser.content, [])
+        self.assertFalse(line_added)
 
     def test_parse_start_line_no_content(self):
         change_note = "# {}\r\n\r\n".format(self.title)
         parser = ChangeNotesLinesParser(None, self.title)
-        parser.parse(change_note)
+        line_added = parser.parse(change_note)
         self.assertEqual(parser.content, [])
+        self.assertFalse(line_added)
 
     def test_parse_start_line_no_end_line(self):
         change_note = "# {}\r\nfoo\r\nbar".format(self.title)
         parser = ChangeNotesLinesParser(None, self.title)
-        parser.parse(change_note)
+        line_added = parser.parse(change_note)
         self.assertEqual(parser.content, ["foo", "bar"])
+        self.assertEqual(True, line_added)
 
     def test_parse_start_line_end_at_header(self):
         change_note = "# {}\r\nfoo\r\n# Another Header\r\nbar".format(self.title)
         parser = ChangeNotesLinesParser(None, self.title)
-        parser.parse(change_note)
+        line_added = parser.parse(change_note)
         self.assertEqual(parser.content, ["foo"])
+        self.assertTrue(line_added)
 
     def test_parse_start_line_no_content_no_end_line(self):
         change_note = "# {}".format(self.title)
         parser = ChangeNotesLinesParser(None, self.title)
-        parser.parse(change_note)
+        line_added = parser.parse(change_note)
         self.assertEqual(parser.content, [])
+        self.assertFalse(line_added)
 
     def test_parse_multiple_start_lines_without_end_lines(self):
         change_note = "# {0}\r\nfoo\r\n# {0}\r\nbar\r\n".format(self.title)
         parser = ChangeNotesLinesParser(None, self.title)
-        parser.parse(change_note)
+        line_added = parser.parse(change_note)
         self.assertEqual(parser.content, ["foo", "bar"])
+        self.assertTrue(line_added)
 
     def test_parse_multiple_start_lines_with_end_lines(self):
         change_note = "# {0}\r\nfoo\r\n\r\n# {0}\r\nbar\r\n\r\nincluded\r\n\r\n# not included".format(
             self.title
         )
         parser = ChangeNotesLinesParser(None, self.title)
-        parser.parse(change_note)
+        line_added = parser.parse(change_note)
         self.assertEqual(parser.content, ["foo", "bar", "included"])
+        self.assertTrue(line_added)
 
     def test_parse_multi_level_indent(self):
         change_note = "# {0}\r\nfoo \r\n    bar  \r\n        baz \r\n".format(
             self.title
         )
         parser = ChangeNotesLinesParser(None, self.title)
-        parser.parse(change_note)
+        line_added = parser.parse(change_note)
         self.assertEqual(parser.content, ["foo", "    bar", "        baz"])
+        self.assertTrue(line_added)
 
     def test_parse_subheading(self):
         change_note = "# {0}\r\n## Subheading\r\nfoo".format(self.title)
         parser = ChangeNotesLinesParser(None, self.title)
-        parser.parse(change_note)
+        line_added = parser.parse(change_note)
         self.assertEqual([], parser.content)
         self.assertEqual({"Subheading": ["foo"]}, parser.h2)
+        self.assertTrue(line_added)
 
     def test_render_no_content(self):
         parser = ChangeNotesLinesParser(None, self.title)

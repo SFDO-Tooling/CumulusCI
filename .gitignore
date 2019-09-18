@@ -12,6 +12,7 @@ cumulusci.egg-info
 build/
 dist/
 docs/api/
+docs/_build/
 .eggs/
 .idea/
 .tox/
@@ -30,3 +31,6 @@ geckodriver.log
 htmlcov/
 .pytest_cache/
 pip-wheel-metadata
+.mypy_cache/
+/docs/_build
+*~

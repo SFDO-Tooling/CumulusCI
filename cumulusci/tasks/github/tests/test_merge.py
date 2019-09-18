@@ -23,22 +23,22 @@ from cumulusci.core.config import TaskConfig
 
 from cumulusci.tasks.github import MergeBranch
 from cumulusci.core.exceptions import GithubApiNotFoundError
-from cumulusci.tasks.github.tests.util_github_api import GithubApiTestMixin
+from cumulusci.tasks.release_notes.tests.utils import MockUtil
 
 
-class TestMergeBranch(unittest.TestCase, GithubApiTestMixin):
+class TestMergeBranch(unittest.TestCase, MockUtil):
     def setUp(self):
 
         # Set up the mock values
-        self.repo_name = "TestRepo"
-        self.repo_owner = "TestOwner"
+        self.repo = "TestRepo"
+        self.owner = "TestOwner"
         self.repo_api_url = "https://api.github.com/repos/{}/{}".format(
-            self.repo_owner, self.repo_name
+            self.owner, self.repo
         )
         self.branch = "master"
 
         # Create the project config
-        self.project_config = create_project_config(self.repo_name, self.repo_owner)
+        self.project_config = create_project_config(self.repo, self.owner)
         self.project_config.keychain.set_service(
             "github",
             ServiceConfig(
@@ -71,9 +71,7 @@ class TestMergeBranch(unittest.TestCase, GithubApiTestMixin):
     def _mock_repo(self):
         api_url = self.repo_api_url
 
-        expected_response = self._get_expected_repo(
-            owner=self.repo_owner, name=self.repo_name
-        )
+        expected_response = self._get_expected_repo(owner=self.owner, name=self.repo)
         responses.add(method=responses.GET, url=api_url, json=expected_response)
         return expected_response
 
@@ -126,12 +124,6 @@ class TestMergeBranch(unittest.TestCase, GithubApiTestMixin):
             status=http.client.CREATED,  # 201
         )
 
-    def _mock_pulls(self, pulls=None):
-        api_url = "{}/pulls".format(self.repo_api_url)
-        expected_response = self._get_expected_pulls(pulls=pulls)
-
-        responses.add(method=responses.GET, url=api_url, json=expected_response)
-
     def _mock_compare(self, base, head, files=None):
         api_url = "{}/compare/{}...{}".format(self.repo_api_url, base, head)
         expected_response = self._get_expected_compare(base, head, files)
@@ -161,7 +153,7 @@ class TestMergeBranch(unittest.TestCase, GithubApiTestMixin):
         self._mock_repo()
         self._mock_branch(self.branch)
         other_branch = self._get_expected_branch("not-a-feature-branch")
-        self._mock_pulls()
+        self.mock_pulls()
         branches = [other_branch]
         branches = self._mock_branches(branches)
         with LogCapture() as l:
@@ -185,7 +177,7 @@ class TestMergeBranch(unittest.TestCase, GithubApiTestMixin):
     def test_feature_branch_no_diff(self):
         self._mock_repo()
         self._mock_branch(self.branch)
-        self._mock_pulls()
+        self.mock_pulls()
         branch_name = "feature/a-test"
         branches = []
         branches.append(self._get_expected_branch(branch_name))
@@ -211,7 +203,7 @@ class TestMergeBranch(unittest.TestCase, GithubApiTestMixin):
     def test_feature_branch_merge(self):
         self._mock_repo()
         self._mock_branch(self.branch)
-        self._mock_pulls()
+        self.mock_pulls()
         branch_name = "feature/a-test"
         branches = []
         branches.append(self._get_expected_branch(branch_name))
@@ -240,7 +232,7 @@ class TestMergeBranch(unittest.TestCase, GithubApiTestMixin):
     def test_feature_branch_merge_github_error(self):
         self._mock_repo()
         self._mock_branch(self.branch)
-        self._mock_pulls()
+        self.mock_pulls()
         branch_name = "feature/a-test"
         branches = []
         branches.append(self._get_expected_branch(branch_name))
@@ -260,7 +252,7 @@ class TestMergeBranch(unittest.TestCase, GithubApiTestMixin):
     def test_feature_branch_merge_conflict(self):
         self._mock_repo()
         self._mock_branch(self.branch)
-        self._mock_pulls()
+        self.mock_pulls()
         branch_name = "feature/a-test"
         branches = []
         branches.append(self._get_expected_branch(branch_name))
@@ -303,7 +295,7 @@ class TestMergeBranch(unittest.TestCase, GithubApiTestMixin):
         pull["base"]["ref"] = branch_name
         pull["base"]["sha"] = branches[1]["commit"]["sha"]
         pull["head"]["ref"] = self.branch
-        self._mock_pulls([pull])
+        self.mock_pulls(pulls=[pull])
 
         self._mock_compare(
             base=branches[1]["name"],
@@ -345,7 +337,7 @@ class TestMergeBranch(unittest.TestCase, GithubApiTestMixin):
         pull["base"]["ref"] = parent_branch_name
         pull["base"]["sha"] = branches[1]["commit"]["sha"]
         pull["head"]["ref"] = child_branch_name
-        self._mock_pulls([pull])
+        self.mock_pulls(pulls=[pull])
         # compare
         self._mock_compare(
             base=parent_branch_name,
@@ -388,7 +380,7 @@ class TestMergeBranch(unittest.TestCase, GithubApiTestMixin):
         branches.append(self._get_expected_branch(child2_branch_name))
         branches = self._mock_branches(branches)
 
-        self._mock_pulls()
+        self.mock_pulls()
 
         self._mock_compare(
             base=branches[1]["name"],
@@ -434,7 +426,7 @@ class TestMergeBranch(unittest.TestCase, GithubApiTestMixin):
         branches.append(self._get_expected_branch(child2_branch_name))
         branches = self._mock_branches(branches)
 
-        self._mock_pulls()
+        self.mock_pulls()
 
         merges = []
         merges.append(self._mock_merge())
@@ -497,7 +489,7 @@ class TestMergeBranch(unittest.TestCase, GithubApiTestMixin):
         branches.append(self._get_expected_branch(child1_branch_name))
         branches = self._mock_branches(branches)
 
-        self._mock_pulls()
+        self.mock_pulls()
 
         with LogCapture() as l:
             task = self._create_task(

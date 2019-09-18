@@ -175,10 +175,11 @@ class BaseMetadataApiCall(object):
         return response
 
     def _handle_soap_error(self, headers, envelope, refresh, response):
-        faultcode = parseString(response.content).getElementsByTagName("faultcode")
+        resp_xml = parseString(response.content)
+        faultcode = resp_xml.getElementsByTagName("faultcode")
         if faultcode:
             faultcode = faultcode[0].firstChild.nodeValue
-        faultstring = parseString(response.content).getElementsByTagName("faultstring")
+        faultstring = resp_xml.getElementsByTagName("faultstring")
         if faultstring:
             faultstring = faultstring[0].firstChild.nodeValue
         else:
@@ -396,7 +397,8 @@ class ApiDeploy(BaseMetadataApiCall):
             )
 
     def _process_response(self, response):
-        status = parseString(response.content).getElementsByTagName("status")
+        resp_xml = parseString(response.content)
+        status = resp_xml.getElementsByTagName("status")
         if status:
             status = status[0].firstChild.nodeValue
         else:
@@ -411,7 +413,6 @@ class ApiDeploy(BaseMetadataApiCall):
         else:
             # If failed, parse out the problem text and raise appropriate exception
             messages = []
-            resp_xml = parseString(response.content)
 
             component_failures = resp_xml.getElementsByTagName("componentFailures")
             for component_failure in component_failures:
@@ -482,16 +483,19 @@ class ApiDeploy(BaseMetadataApiCall):
                 raise MetadataComponentFailure(log, response)
 
             else:
-                problems = parseString(response.content).getElementsByTagName("problem")
+                problems = resp_xml.getElementsByTagName("problem")
                 for problem in problems:
                     messages.append(problem.firstChild.nodeValue)
+                errorMessages = resp_xml.getElementsByTagName("errorMessage")
+                for errorMessage in errorMessages:
+                    messages.append(errorMessage.firstChild.nodeValue)
                 if messages:
                     log = "\n\n".join(messages)
                     raise MetadataApiError(log, response)
 
             # Parse out any failure text (from test failures in production
             # deployments) and add to log
-            failures = parseString(response.content).getElementsByTagName("failures")
+            failures = resp_xml.getElementsByTagName("failures")
             for failure in failures:
                 # Get needed values from subelements
                 namespace = self._get_element_value(failure, "namespace")

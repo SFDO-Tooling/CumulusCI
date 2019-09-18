@@ -289,6 +289,47 @@ class FlowCoordinator(object):
         if new_line:
             self.logger.info("")
 
+    def get_summary(self):
+        """ Returns an output string that contains the description of the flow,
+            the sequence of tasks and subflows, and any "when" conditions associated
+            with tasks. """
+        lines = []
+        if "description" in self.flow_config.config:
+            lines.append(
+                "Description: {}".format(self.flow_config.config["description"])
+            )
+        previous_parts = []
+        for step in self.steps:
+            parts = step.path.split(".")
+            steps = str(step.step_num).split("/")
+            if len(parts) > len(steps):
+                # Sub-step generated during freeze process; skip it
+                continue
+            task_name = parts.pop()
+
+            i = -1
+            for i, flow_name in enumerate(parts):
+                if len(previous_parts) < i + 1 or previous_parts[i] != flow_name:
+                    lines.append(
+                        "{}{}) flow: {}".format("    " * i, steps[i], flow_name)
+                    )
+
+            when = step.when or None
+            lines.append(
+                "{}{}) task: {}{}".format(
+                    "    " * (i + 1),
+                    steps[i + 1],
+                    task_name,
+                    "\n{}  when: {}".format(
+                        "    " * (i + 1) + " " * len(str(steps[i + 1])), when
+                    )
+                    if when is not None
+                    else "",
+                )
+            )
+            previous_parts = parts
+        return "\n".join(lines)
+
     def run(self, org_config):
         self.org_config = org_config
         line = "Initializing flow: {}".format(self.__class__.__name__)
@@ -312,8 +353,8 @@ class FlowCoordinator(object):
 
         self._rule(fill="-")
         self.logger.info("Steps:")
-        for step in self.steps:
-            self.logger.info(step.for_display)
+        for line in self.get_summary().splitlines():
+            self.logger.info(line)
         self._rule(fill="-", new_line=True)
 
         self.logger.info("Starting execution")
@@ -369,7 +410,7 @@ class FlowCoordinator(object):
         """
         return logging.getLogger("cumulusci.flows").getChild(self.__class__.__name__)
 
-    def _init_steps(self,):
+    def _init_steps(self):
         """
         Given the flow config and everything else, create a list of steps to run, sorted by step number.
 
@@ -513,7 +554,7 @@ class FlowCoordinator(object):
                 # e.g. if we're in step 2.3 which references a flow with steps 1-5, it
                 #   simply ends up as five steps: 2.3.1, 2.3.2, 2.3.3, 2.3.4, 2.3.5
                 # TODO: how does this work with nested flowveride? what does defining step 2.3.2 later do?
-                num = "{}.{}".format(number, sub_number)
+                num = "{}/{}".format(number, sub_number)
                 self._visit_step(
                     num,
                     sub_stepconf,
@@ -522,7 +563,6 @@ class FlowCoordinator(object):
                     parent_ui_options=step_ui_options,
                     from_flow=path,
                 )
-
         return visited_steps
 
     def _check_old_yaml_format(self):
@@ -662,9 +702,9 @@ class CachedTaskRunner(object):
         self.task_name = task_name
 
     def __call__(self, **options):
-        cache_key = (self.task_name, tuple(options.items()))
+        cache_key = (self.task_name, tuple(sorted(options.items())))
         if cache_key in self.cache.results:
-            return self.cache.results[cache_key]
+            return self.cache.results[cache_key].return_values
 
         task_config = self.cache.flow.project_config.tasks[self.task_name]
         task_class = import_global(task_config["class_path"])

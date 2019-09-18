@@ -248,7 +248,7 @@ class RobotTestFailure(CumulusCIFailure):
     pass
 
 
-class BulkDataException(CumulusCIException):
+class BulkDataException(CumulusCIFailure):
     """ Raise for errors from bulkdata tasks """
 
     pass

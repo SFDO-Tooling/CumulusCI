@@ -91,7 +91,7 @@ class ScratchOrgConfig(OrgConfig):
 
     @property
     def instance_url(self):
-        return self.scratch_info["instance_url"]
+        return self.config.get("instance_url") or self.scratch_info["instance_url"]
 
     @property
     def org_id(self):
@@ -142,8 +142,14 @@ class ScratchOrgConfig(OrgConfig):
         return self.config.setdefault("days", 1)
 
     @property
+    def active(self):
+        """Check if an org is alive"""
+        return self.date_created and not self.expired
+
+    @property
     def expired(self):
-        return self.expires and self.expires < datetime.datetime.now()
+        """Check if an org has already expired"""
+        return bool(self.expires) and self.expires < datetime.datetime.now()
 
     @property
     def expires(self):
@@ -152,7 +158,7 @@ class ScratchOrgConfig(OrgConfig):
 
     @property
     def days_alive(self):
-        if self.expires:
+        if self.date_created and not self.expired:
             delta = datetime.datetime.now() - self.date_created
             return delta.days + 1
 
@@ -250,6 +256,13 @@ class ScratchOrgConfig(OrgConfig):
                     "\n".join(stdout), "\n".join(stderr)
                 )
             )
+
+    def format_org_days(self):
+        if self.days_alive:
+            org_days = "{}/{}".format(self.days_alive, self.days)
+        else:
+            org_days = str(self.days)
+        return org_days
 
     def can_delete(self):
         return bool(self.date_created)

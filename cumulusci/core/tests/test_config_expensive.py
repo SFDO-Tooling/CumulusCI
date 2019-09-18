@@ -434,6 +434,15 @@ class TestScratchOrgConfig(unittest.TestCase):
         config = ScratchOrgConfig({}, "test")
         self.assertEqual(config.days, 1)
 
+    def test_format_days(self, Command):
+        config = ScratchOrgConfig({"days": 2}, "test")
+        self.assertEqual(config.format_org_days(), "2")
+        now = datetime.now()
+        config.date_created = now
+        self.assertEqual(config.format_org_days(), "1/2")
+        config.date_created = now - timedelta(days=3)
+        self.assertEqual(config.format_org_days(), "2")
+
     def test_expired(self, Command):
         config = ScratchOrgConfig({"days": 1}, "test")
         now = datetime.now()
@@ -448,10 +457,27 @@ class TestScratchOrgConfig(unittest.TestCase):
         config.date_created = now
         self.assertEqual(config.expires, now + timedelta(days=1))
 
+        config = ScratchOrgConfig({"days": 1}, "test")
+        config.date_created = None
+        self.assertIsNone(config.expires)
+
     def test_days_alive(self, Command):
         config = ScratchOrgConfig({}, "test")
         config.date_created = datetime.now()
         self.assertEqual(config.days_alive, 1)
+
+    def test_active(self, Command):
+        config = ScratchOrgConfig({}, "test")
+        config.date_created = None
+        self.assertFalse(config.active)
+
+        config = ScratchOrgConfig({}, "test")
+        config.date_created = datetime.now()
+        self.assertTrue(config.active)
+
+        config = ScratchOrgConfig({}, "test")
+        config.date_created = datetime.now() - timedelta(days=10)
+        self.assertFalse(config.active)
 
     def test_create_org(self, Command):
         out = b"Successfully created scratch org: ORG_ID, username: USERNAME"
