@@ -26,7 +26,7 @@ class DebugListener(object):
         self.stack = []
         self.rdb = DebuggerCli(listener=self)
         if breakpoints:
-            self.breakpoints = breakpoints
+            self.breakpoints = list(breakpoints)
         else:
             self.breakpoints = [
                 Breakpoint(Keyword, "*::cumulusci.robotframework.Salesforce.Breakpoint")

@@ -25,11 +25,11 @@ class TestDebugListener(unittest.TestCase):
 
     def test_listener_custom_breakpoints(self):
         """Verify we can create a cli with custom breakpoints"""
-        breakpoints = (
+        breakpoints = [
             debugger.Breakpoint(debugger.Keyword, "*::keyword breakpoint"),
             debugger.Breakpoint(debugger.Testcase, "*::test breakpoint"),
             debugger.Breakpoint(debugger.Suite, "*::suite breakpoint"),
-        )
+        ]
         listener = debugger.DebugListener(*breakpoints)
         self.assertEqual(listener.breakpoints, breakpoints)
 
@@ -89,6 +89,27 @@ class TestDebugListener(unittest.TestCase):
             self.listener.breakpoints[-1].pattern, "Root.example.Test 1::*"
         )
         self.assertTrue(self.listener.breakpoints[-1].temporary)
+
+    def test_temporary_breakpoint(self):
+        """Verify that a temporary breakpoint is removed when encountered"""
+        bp1 = debugger.Breakpoint(debugger.Keyword, "*::breakpoint", temporary=False)
+        bp2 = debugger.Breakpoint(
+            debugger.Keyword, "*::temporary breakpoint", temporary=True
+        )
+        listener = debugger.DebugListener(bp1, bp2)
+        listener.rdb = mock.Mock()
+        self.assertEqual(len(listener.breakpoints), 2)
+
+        listener.start_suite("Suite", attrs={})
+        listener.start_test("Test Case", attrs={})
+        listener.start_keyword("temporary breakpoint", attrs={"args": ["one", "two"]})
+        self.assertEqual(len(listener.breakpoints), 1)
+        self.assertEqual(
+            listener.breakpoints[0].pattern,
+            "*::breakpoint",
+            "the wrong breakpoint was removed",
+        )
+        listener.rdb.cmdloop.assert_called_once()
 
 
 class TestRobotDebugger(unittest.TestCase):
