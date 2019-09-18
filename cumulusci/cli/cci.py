@@ -968,7 +968,9 @@ def org_list(config, plain):
                 domain = urlparse(instance_url).hostname or ""
                 if domain:
                     domain = domain.replace(".my.salesforce.com", "")
-            row.extend([org_days, org_config.expired, org_config.config_name, domain])
+            row.extend(
+                [org_days, not org_config.active, org_config.config_name, domain]
+            )
             scratch_data.append(row)
         else:
             username = org_config.config.get(
@@ -977,11 +979,7 @@ def org_list(config, plain):
             row.append(username)
             persistent_data.append(row)
 
-    rows_to_dim = [
-        row_index
-        for row_index, row in enumerate(scratch_data)
-        if row[3] or not org_configs[row[0]].date_created
-    ]
+    rows_to_dim = [row_index for row_index, row in enumerate(scratch_data) if row[3]]
     scratch_table = CliTable(
         scratch_data, title="Scratch Orgs", bool_cols=["Default"], dim_rows=rows_to_dim
     )
