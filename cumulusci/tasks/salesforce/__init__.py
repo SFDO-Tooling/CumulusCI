@@ -14,6 +14,7 @@ from cumulusci.tasks.salesforce.PackageUpload import PackageUpload
 from cumulusci.tasks.salesforce.SOQLQuery import SOQLQuery
 from cumulusci.tasks.salesforce.CreateCommunity import CreateCommunity
 from cumulusci.tasks.salesforce.ListCommunities import ListCommunities
+from cumulusci.tasks.salesforce.PublishCommunity import PublishCommunity
 
 # inherit from BaseSalesforceMetadataApiTask
 from cumulusci.tasks.salesforce.BaseRetrieveMetadata import BaseRetrieveMetadata
@@ -56,7 +57,6 @@ from cumulusci.tasks.salesforce.UninstallPackagedIncremental import (
     UninstallPackagedIncremental,
 )
 
-
 # flake 8 hacks to prevent pre commit rejection
 flake8Hack = (
     BaseSalesforceTask,
@@ -66,6 +66,7 @@ flake8Hack = (
     SOQLQuery,
     CreateCommunity,
     ListCommunities,
+    PublishCommunity,
     BaseRetrieveMetadata,
     Deploy,
     GetInstalledPackages,
