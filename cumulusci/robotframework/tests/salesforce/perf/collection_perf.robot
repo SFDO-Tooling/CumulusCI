@@ -11,8 +11,8 @@ Force Tags      api200
 Insert 200 Contacts
     [Documentation]  Create 200 Contacts in CONTACTS suite variable
     @{objects}=  Salesforce Collection Generate  Contact  200  
-        ...  FirstName="User {{number}}"
-        ...  LastName="{{random_str}}"
+        ...  FirstName=User {{number}}
+        ...  LastName={{random_str}}
     Salesforce Collection Insert  ${objects}
     Set Suite Variable      @{CONTACTS}      @{objects}
     [return]    ${objects}
@@ -49,9 +49,9 @@ Insert 200 Pledged Opportunities
 
     ${date}=    Get Current Date     result_format=%Y-%m-%d
     @{objects}=  Salesforce Collection Generate  Opportunity  200  
-        ...  Name= Opp {{number}}
-        ...  StageName= Pledged
-        ...  Amount= {{number}}
+        ...  Name=Opp {{number}}
+        ...  StageName=Pledged
+        ...  Amount={{1000 + number}}
         ...  CloseDate=${date}
     ${numobjects}=  Get Length     ${objects}
     FOR     ${index}   IN RANGE   ${numobjects}
@@ -71,12 +71,13 @@ Perftest - Insert 200 Contacts
 
 Perftest - Insert 200 Contacts With Addresses
     @{objects}=  Salesforce Collection Generate  Contact  200  
-        ...  FirstName="User {{number}}"
-        ...  LastName="{{random_str}}"
-        ...  MailingStreet="{{number}} Main Street"
-        ...  MailingCity='New York'
-        ...  MailingState='NY',
-        ...  MailingPostalCode='12345'
+        ...  FirstName={{fake.first_name}}
+        ...  LastName={{fake.last_name}}
+        ...  MailingStreet={{fake.street_address}}
+        ...  MailingCity=New York
+        ...  MailingState=NY
+        ...  MailingPostalCode=12345
+        ...  Email={{fake.email(domain="salesforce.com")}}
     Salesforce Collection Insert  ${objects}
 
 Perftest - Insert 200 Pledged Opportunities

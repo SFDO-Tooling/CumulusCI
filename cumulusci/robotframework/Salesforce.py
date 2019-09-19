@@ -4,6 +4,7 @@ import logging
 import os.path
 import re
 import time
+import faker
 
 from jinja2 import Template
 from pprint import pformat
@@ -24,9 +25,25 @@ STATUS_KEY = ("status",)
 lex_locators = {}  # will be initialized when Salesforce is instantiated
 
 
-class RandomStringGenerator:
+class StringGenerator:
+    def __init__(self, func):
+        self.func = func
+
     def __str__(self):
-        return String().generate_random_string()
+        return self.func()
+
+    def __call__(self, *args, **kwargs):
+        return self.func(*args, **kwargs)
+
+
+class FakerTemplateLibrary:
+    faker = faker.Faker()
+
+    def __getattr__(self, name):
+        # defer loading heavy faker library until actually needed
+        return StringGenerator(
+            lambda *args, **kwargs: self.faker.format(name, *args, **kwargs)
+        )
 
 
 @selenium_retry
@@ -513,10 +530,11 @@ class Salesforce(object):
         obj.update(fields)
         return obj
 
-    random_string_generator = RandomStringGenerator()
+    random_string_generator = StringGenerator(String().generate_random_string)
+    faker_template_library = FakerTemplateLibrary()
 
     def salesforce_collection_generate(self, obj_name, number_to_create, **fields):
-        """Create an array of dictionaries with template-formatted arguments appropriate for a Collection Insert.
+        """Returns an array of dictionaries with template-formatted arguments appropriate for a Collection Insert.
             Use ``{{number}}`` to represent the unique index of the row in the list of rows, ``{{random_str}}`` to represent a random string
             and a string that consists of just ``{{number}}`` to generate an actual integer (as opposed to a string-encoded number)
 
@@ -529,16 +547,36 @@ class Salesforce(object):
 
             Which would generate:
 
-                | [{'FirstName': '"User 0"', 'LastName': '"u4PNlGUD"', 'type': 'Contact', 'Age': 0},
-                |  {'FirstName': '"User 1"', 'LastName': '"Kyd4PC5x"', 'type': 'Contact', 'Age': 1},
-                |  {'FirstName': '"User 2"', 'LastName': '"n4EGs4Vp"', 'type': 'Contact', 'Age': 2}]
+                | [{'FirstName': 'User 0', 'LastName': 'u4PNlGUD', 'type': 'Contact', 'Age': '0'},
+                |  {'FirstName': 'User 1', 'LastName': 'Kyd4PC5x', 'type': 'Contact', 'Age': '1'},
+                |  {'FirstName': 'User 2', 'LastName': 'n4EGs4Vp', 'type': 'Contact', 'Age': '2'}]
+
+            Jinja2 Expression Syntax is allowed so computed templates like this are also allowed: {{1000 + number}}
+
+            Templates can also be based on faker patterns like those described here:
+
+            https://faker.readthedocs.io/en/master/providers.html
+
+            Most examples can be pasted into templates verbatim:
+
+        @{objects}=  Salesforce Collection Generate  Contact  200
+        ...  FirstName={{fake.first_name}}
+        ...  LastName={{fake.last_name}}
+        ...  MailingStreet={{fake.street_address}}
+        ...  MailingCity=New York
+        ...  MailingState=NY
+        ...  MailingPostalCode=12345
+        ...  Email={{fake.email(domain="salesforce.com")}}
+
            """
         objs = []
 
         def format_str(value, i):
             if isinstance(value, str):
                 value = Template(value).render(
-                    number=i, random_str=self.random_string_generator
+                    number=i,
+                    random_str=self.random_string_generator,
+                    fake=self.faker_template_library,
                 )
 
             return value
@@ -558,6 +596,9 @@ class Salesforce(object):
         assert (
             not obj.get("id", None) for obj in objects
         ), "Insertable objects should not have IDs"
+        assert (
+            len(objects) <= 200
+        ), "Cannot insert more than 200 objects with this keyword"
 
         records = self.cumulusci.sf.restful(
             "composite/sobjects",
@@ -579,6 +620,10 @@ class Salesforce(object):
         for obj in objects:
             assert obj["id"], "Should be a list of objects with Ids"
             del obj[STATUS_KEY]
+
+        assert (
+            len(objects) <= 200
+        ), "Cannot update more than 200 objects with this keyword"
 
         records = self.cumulusci.sf.restful(
             "composite/sobjects",
