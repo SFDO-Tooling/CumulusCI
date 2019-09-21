@@ -14,6 +14,6 @@ class ListCommunityTemplates(BaseSalesforceApiTask):
         ]
 
         self.logger.info(
-            "Community Templates available to the current org:%s",
+            "Community Templates available to the current org:\n%s",
             "\r\n".join(t["templateName"] for t in community_template_list),
         )
