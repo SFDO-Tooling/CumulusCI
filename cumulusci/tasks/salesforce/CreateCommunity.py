@@ -55,20 +55,6 @@ class CreateCommunity(BaseSalesforceApiTask):
         if r.status_code != 200:
             raise SalesforceException("Unable to prepare org for Communities")
 
-        if self.options.get("url_path_prefix") is None:
-            self.logger.info("Checking for community without a url path prefix.")
-            community_list = self.sf.restful("connect/communities")["communities"]
-            communities = {c["name"]: c for c in community_list}
-
-            for community_name in communities.keys():
-                if communities[community_name].get("urlPathPrefix") is None:
-                    raise SalesforceException(
-                        "A community without a url path prefix already exists, named {}. Try again with the url path prefix".format(
-                            community_name
-                        )
-                    )
-                self.logger.info("No community without a url path prefix found.")
-
         payload = {
             "name": self.options["name"],
             "description": self.options.get("description") or "",

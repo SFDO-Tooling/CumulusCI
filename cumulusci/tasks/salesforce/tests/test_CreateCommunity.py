@@ -5,6 +5,7 @@ import unittest
 from datetime import datetime
 from cumulusci.tasks.salesforce import CreateCommunity
 from cumulusci.core.exceptions import SalesforceException
+from simple_salesforce.exceptions import SalesforceMalformedRequest
 from .util import create_task
 
 
@@ -77,81 +78,92 @@ class test_CreateCommunity(unittest.TestCase):
             method=responses.GET, url=cc_task.org_config.start_url, status=200
         )
         responses.add(method=responses.GET, url=servlet_url, status=200)
-
-        other_community_id = "000000000000000001"
-        responses.add(
-            method=responses.GET,
-            url=community_url,
-            status=200,
-            json={
-                "communities": [
-                    {
-                        "allowChatterAccessWithoutLogin": "false",
-                        "allowMembersToFlag": "false",
-                        "description": "This is a test community",
-                        "id": "{}".format(other_community_id),
-                        "invitationsEnabled": "false",
-                        "knowledgeableEnabled": "false",
-                        "loginUrl": "https://mydomain.force.com/test/s/login",
-                        "memberVisibilityEnabled": "true",
-                        "name": "Not {}".format(task_options["name"]),
-                        "nicknameDisplayEnabled": "false",
-                        "privateMessagesEnabled": "false",
-                        "reputationEnabled": "false",
-                        "sendWelcomeEmail": "true",
-                        "siteAsContainerEnabled": "true",
-                        "siteUrl": "https://mydomain.force.com/test",
-                        "status": "Live",
-                        "templateName": "VF Template",
-                        "url": "/services/data/v46.0/connect/communities/{}".format(
-                            other_community_id
-                        ),
-                        "urlPathPrefix": "test",
-                    }
-                ],
-                "total": "1",
-            },
-        )
         responses.add(method=responses.POST, url=community_url, status=200, json={})
-
-        community_id = "000000000000000"
         responses.add(
             method=responses.GET,
             url=community_url,
             status=200,
-            json={
-                "communities": [
-                    {
-                        "name": "{}".format(task_options_no_url_path_prefix["name"]),
-                        "id": "{}".format(community_id),
-                    }
-                ]
-            },
+            json={"communities": [{"name": "Test Community", "id": "000000000000000"}]},
         )
 
         cc_task()
 
-        self.assertEqual(5, len(responses.calls))
+        self.assertEqual(4, len(responses.calls))
         self.assertEqual(cc_task.org_config.start_url, responses.calls[0].request.url)
         self.assertEqual(servlet_url, responses.calls[1].request.url)
         self.assertEqual(community_url, responses.calls[2].request.url)
         self.assertEqual(community_url, responses.calls[3].request.url)
-        self.assertEqual(community_url, responses.calls[4].request.url)
         self.assertEqual(
             json.dumps(
                 {
-                    "name": "{}".format(task_options_no_url_path_prefix["name"]),
-                    "description": "{}".format(
-                        task_options_no_url_path_prefix["description"]
-                    ),
-                    "templateName": "{}".format(
-                        task_options_no_url_path_prefix["template"]
-                    ),
+                    "name": "Test Community",
+                    "description": "Community Details",
+                    "templateName": "VF Template",
                     "urlPathPrefix": "",
                 }
             ),
-            responses.calls[3].request.body,
+            responses.calls[2].request.body,
         )
+
+    @responses.activate
+    def test_throws_exception_for_existing_name(self):
+        cc_task = create_task(CreateCommunity, task_options)
+        servlet_url = "{}/sites/servlet.SitePrerequisiteServlet".format(
+            cc_task.org_config.instance_url
+        )
+        community_url = "{}/services/data/v46.0/connect/communities".format(
+            cc_task.org_config.instance_url
+        )
+
+        responses.add(
+            method=responses.GET, url=cc_task.org_config.start_url, status=200
+        )
+        responses.add(method=responses.GET, url=servlet_url, status=200)
+        responses.add(
+            method=responses.POST,
+            url=community_url,
+            status=400,
+            json=[
+                {
+                    "errorCode": "INVALID_INPUT",
+                    "message": "Error: A Community with this name already exists.",
+                }
+            ],
+        )
+
+        cc_task._init_task()
+        with self.assertRaises(SalesforceMalformedRequest):
+            cc_task._run_task()()
+
+    @responses.activate
+    def test_throws_exception_for_existing_url_path_prefix(self):
+        cc_task = create_task(CreateCommunity, task_options)
+        servlet_url = "{}/sites/servlet.SitePrerequisiteServlet".format(
+            cc_task.org_config.instance_url
+        )
+        community_url = "{}/services/data/v46.0/connect/communities".format(
+            cc_task.org_config.instance_url
+        )
+
+        responses.add(
+            method=responses.GET, url=cc_task.org_config.start_url, status=200
+        )
+        responses.add(method=responses.GET, url=servlet_url, status=200)
+        responses.add(
+            method=responses.POST,
+            url=community_url,
+            status=400,
+            json=[
+                {
+                    "errorCode": "INVALID_INPUT",
+                    "message": "That URL is already in use. Please enter a unique one.",
+                }
+            ],
+        )
+
+        cc_task._init_task()
+        with self.assertRaises(SalesforceMalformedRequest):
+            cc_task._run_task()()
 
     @responses.activate
     def test_throws_exception_for_existing_no_url_path_prefix(self):
@@ -167,44 +179,20 @@ class test_CreateCommunity(unittest.TestCase):
             method=responses.GET, url=cc_task.org_config.start_url, status=200
         )
         responses.add(method=responses.GET, url=servlet_url, status=200)
-
-        other_community_id = "000000000000000001"
         responses.add(
-            method=responses.GET,
+            method=responses.POST,
             url=community_url,
-            status=200,
-            json={
-                "communities": [
-                    {
-                        "allowChatterAccessWithoutLogin": "false",
-                        "allowMembersToFlag": "false",
-                        "description": "This is a test community",
-                        "id": "{}".format(other_community_id),
-                        "invitationsEnabled": "false",
-                        "knowledgeableEnabled": "false",
-                        "loginUrl": "https://mydomain.force.com/test/s/login",
-                        "memberVisibilityEnabled": "true",
-                        "name": "Not {}".format(task_options["name"]),
-                        "nicknameDisplayEnabled": "false",
-                        "privateMessagesEnabled": "false",
-                        "reputationEnabled": "false",
-                        "sendWelcomeEmail": "true",
-                        "siteAsContainerEnabled": "true",
-                        "siteUrl": "https://mydomain.force.com/",
-                        "status": "Live",
-                        "templateName": "VF Template",
-                        "url": "/services/data/v46.0/connect/communities/{}".format(
-                            other_community_id
-                        ),
-                        "urlPathPrefix": None,
-                    }
-                ],
-                "total": "1",
-            },
+            status=400,
+            json=[
+                {
+                    "errorCode": "INVALID_INPUT",
+                    "message": "Enter a URL for your community.",
+                }
+            ],
         )
 
         cc_task._init_task()
-        with self.assertRaises(SalesforceException):
+        with self.assertRaises(SalesforceMalformedRequest):
             cc_task._run_task()()
 
     @responses.activate
