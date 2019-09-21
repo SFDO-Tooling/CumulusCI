@@ -9,7 +9,7 @@ task_options = {}
 
 class test_ListCommunities(unittest.TestCase):
     @responses.activate
-    def test_publishes_community(self):
+    def test_lists_community(self):
         cc_task = create_task(ListCommunities, task_options)
         communities_url = "{}/services/data/v46.0/connect/communities".format(
             cc_task.org_config.instance_url
@@ -19,7 +19,7 @@ class test_ListCommunities(unittest.TestCase):
         community_name = "Test Community"
         community_url_prefix = "test"
         community2_id = "000000000000000001"
-        community2_name = "Test Community Two"
+        community2_name = "Test Community Д Two"
 
         responses.add(
             method=responses.GET,
