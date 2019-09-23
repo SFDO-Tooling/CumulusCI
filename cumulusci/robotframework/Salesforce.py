@@ -5,10 +5,8 @@ import os.path
 import re
 import time
 
-from jinja2 import Template
 from pprint import pformat
 from robot.libraries.BuiltIn import BuiltIn, RobotNotRunningError
-from robot.libraries.String import String
 from robot.utils import timestr_to_secs
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.action_chains import ActionChains
@@ -18,10 +16,7 @@ from cumulusci.robotframework.utils import selenium_retry
 from SeleniumLibrary.errors import ElementNotFound, NoOpenBrowser
 from urllib3.exceptions import ProtocolError
 
-from cumulusci.robotframework.template_utils import (
-    StringGenerator,
-    FakerTemplateLibrary,
-)
+from cumulusci.robotframework.template_utils import format_str
 
 OID_REGEX = r"^(%2F)?([a-zA-Z0-9]{15,18})$"
 STATUS_KEY = ("status",)
@@ -513,9 +508,6 @@ class Salesforce(object):
         obj.update(fields)
         return obj
 
-    random_string_generator = StringGenerator(String().generate_random_string)
-    faker_template_library = FakerTemplateLibrary()
-
     def salesforce_collection_generate(self, obj_name, number_to_create, **fields):
         """Returns an array of dictionaries with template-formatted arguments appropriate for a Collection Insert.
             Use ``{{number}}`` to represent the unique index of the row in the list of rows, ``{{random_str}}`` to represent a random string
@@ -553,16 +545,6 @@ class Salesforce(object):
 
            """
         objs = []
-
-        def format_str(value, i):
-            if isinstance(value, str):
-                value = Template(value).render(
-                    number=i,
-                    random_str=self.random_string_generator,
-                    fake=self.faker_template_library,
-                )
-
-            return value
 
         for i in range(int(number_to_create)):
             formatted_fields = {

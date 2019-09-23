@@ -1,3 +1,7 @@
+from jinja2 import Template
+from robot.libraries.String import String
+
+
 class StringGenerator:
     """ Sometimes in templates you want a reference to a variable to
         call a function.
@@ -40,3 +44,16 @@ class FakerTemplateLibrary:
         return StringGenerator(
             lambda *args, **kwargs: self.faker.format(name, *args, **kwargs)
         )
+
+
+random_string_generator = StringGenerator(String().generate_random_string)
+faker_template_library = FakerTemplateLibrary()
+
+
+def format_str(value, i):
+    if isinstance(value, str):
+        value = Template(value).render(
+            number=i, random_str=random_string_generator, fake=faker_template_library
+        )
+
+    return value
