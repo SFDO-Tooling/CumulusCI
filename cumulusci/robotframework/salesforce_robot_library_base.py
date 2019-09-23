@@ -34,7 +34,7 @@ class SalesforceRobotLibraryBase(object):
         return self.cumulusci._run_task(taskclass, subtask_config)
 
     def _batch_apex_wait(self, class_name):
-        """Helper method for waiting for Salesforce jobs to end"""
+        """Helper method for waiting for Salesforce jobs to finish"""
         return self._run_subtask(BatchApexWait, class_name=class_name)
 
     def _run_apex(self, code):
