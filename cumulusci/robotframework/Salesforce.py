@@ -528,13 +528,15 @@ class Salesforce(object):
                 |  {'Name': 'User 1', 'Age': '1'},
                 |  {'Name': 'User 2', 'Age': '2'}]
 
-            Python Expression Syntax is allowed so computed templates like this are also allowed: `{{1000 + number}}`
+            Python Expression Syntax is allowed so computed templates like this are also allowed: ``{{1000 + number}}``
 
             Python operators can be used, but no functions or variables are provided, so mostly you just
-            have access to mathematical and logical operators. Contact the CCI team if you have a use-case that
-            could benefit from more expression language power. The Python operators are described here:
+            have access to mathematical and logical operators. The Python operators are described here:
 
             https://www.digitalocean.com/community/tutorials/how-to-do-math-in-python-3-with-operators
+
+            Contact the CCI team if you have a use-case that
+            could benefit from more expression language power.
 
             Templates can also be based on faker patterns like those described here:
 
