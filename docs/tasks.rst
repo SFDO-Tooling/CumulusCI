@@ -431,6 +431,13 @@ Options:
 * **retry_interval**: Number of seconds to wait before the next retry (default=5),
 * **retry_interval_add**: Number of seconds to add before each retry (default=30),
 
+list_communities
+==========================================
+
+**Description:** Prints the Communities for the current org
+
+**Class::** cumulusci.tasks.salesforce.ListCommunities
+
 list_metadata_types
 ==========================================
 
