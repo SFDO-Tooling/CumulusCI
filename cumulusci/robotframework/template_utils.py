@@ -26,10 +26,11 @@ class StringGenerator:
 
 
 class FakerTemplateLibrary:
-    """A Jinja template library to add the .faker method to templates"""
+    """A Jinja template library to add the faker.xyz objects to templates"""
 
     _faker = None
 
+    @property
     def faker(self):
         """Defer loading heavy faker library until actually needed"""
         self._faker = self._faker or __import__("faker").Faker()
