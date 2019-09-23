@@ -1,3 +1,4 @@
+Checking the version!
 ==========================================
 Tasks Reference
 ==========================================
@@ -297,10 +298,42 @@ get_installed_packages
 **Class::** cumulusci.tasks.salesforce.GetInstalledPackages
 
 
+github_parent_pr_notes
+==========================================
+
+**Description:** Merges the description of a child pull request to the respective parent's pull request (if one exists).
+
+**Class::** cumulusci.tasks.release_notes.task.ParentPullRequestNotes
+
+Aggregate change notes from child pull request(s) to its corresponding
+parent's pull request.
+
+When given the branch_name option, this task will: (1) check if the base branch
+of the corresponding pull request starts with the feature branch prefix and if so (2) attempt
+to query for a pull request corresponding to this parent feature branch. (3) if a pull request
+isn't found, one is created and the build_notes_label is applied to it.
+
+If the build_notes_label is present on the pull request, then all notes from the 
+child pull request are aggregated into the parent pull request. if the build_notes_label
+is not detected on the parent pull request then a link to the child pull request
+is placed under the "Unaggregated Pull Requests" header.
+
+When given the parent_branch_name option, this task will query for a corresponding pull request.
+If a pull request is not found, the task exits. If a pull request is found, then all notes
+from child pull requests are re-aggregated and the body of the parent is replaced entirely.
+
+
+Options:
+------------------------------------------
+
+* **branch_name**: Name of branch with a pull request
+* **parent_branch_name**: name of the parent branch to rebuild change notes for
+* **build_notes_label** *(required)*: Name of the label that indicates that change notes on parent pull requests should be reaggregated when a child branch pull request is created.
+
 github_clone_tag
 ==========================================
 
-**Description:** Lists open pull requests in project Github repository
+**Description:** Clones a github tag under a new name.
 
 **Class::** cumulusci.tasks.github.CloneTag
 
@@ -377,6 +410,7 @@ Options:
 * **last_tag**: Override the last release tag. This is useful to generate release notes if you skipped one or more releases.
 * **link_pr**: If True, insert link to source pull request at end of each line.
 * **publish**: Publish to GitHub release if True (default=False)
+* **include_empty**: If True, include links to PRs that have no release notes (default=False)
 
 github_release_report
 ==========================================
@@ -434,9 +468,24 @@ Options:
 list_communities
 ==========================================
 
-**Description:** Prints the Communities for the current org
+**Description:** Lists Communities for the current org using the Connect API.
 
 **Class::** cumulusci.tasks.salesforce.ListCommunities
+
+Lists Communities for the current org via the Connect API.
+
+
+
+list_community_templates
+==========================================
+
+**Description:** Prints the Community Templates available to the current org
+
+**Class::** cumulusci.tasks.salesforce.ListCommunityTemplates
+
+Lists Salesforce Community templates available for the current org via the Connect API.
+
+
 
 list_metadata_types
 ==========================================
@@ -508,13 +557,14 @@ publish_community
 
 **Class::** cumulusci.tasks.salesforce.PublishCommunity
 
-Publish a Salesforce Community via the Connect API. Warning: This does not work with the Community Template "VF Template" due to an existing bug in the API.
+Publish a Salesforce Community via the Connect API. Warning: This does not work with the Community Template 'VF Template' due to an existing bug in the API.
+
 
 Options:
 ------------------------------------------
 
-* **name**: The name of the community.
-* **community_id**: Id of the community.
+* **name**: The name of the Community to publish.
+* **community_id**: The id of the Community to publish.
 
 push_all
 ==========================================
@@ -834,7 +884,7 @@ LineTooLong:80'. If a rule is configurable, it will show the
 configuration options in the documentation for that rule
 
 The filename will be printed once before any errors or warnings
-for that file. The filename is preceeded by `+ `
+for that file. The filename is preceeded by `+`
 
 Example Output::
 
@@ -852,7 +902,7 @@ Options:
 ------------------------------------------
 
 * **configure**: List of rule configuration values, in the form of rule:args.
-* **ignore**: List of rules to ignore. Use 'all' to ignore all rules
+* **ignore**: List of rules to ignore. Use 'all' to ignore all rules **Default: ['RequireTestDocumentation']**
 * **error**: List of rules to treat as errors. Use 'all' to affect all rules.
 * **warning**: List of rules to treat as warnings. Use 'all' to affect all rules.
 * **list**: If option is True, print a list of known rules instead of processing files.
@@ -885,12 +935,11 @@ Options:
 * **test_name_exclude**: Query to find Apex test classes to exclude ("%" is wildcard).  Defaults to project__test__name_exclude
 * **namespace**: Salesforce project namespace.  Defaults to project__package__namespace
 * **managed**: If True, search for tests in the namespace only.  Defaults to False
-* **poll_interval**: Seconds to wait between polling for Apex test results.  Defaults to 3
-* **retries**: Number of retries (default=10)
-* **retry_interval**: Number of seconds to wait before the next retry (default=5),
-* **retry_interval_add**: Number of seconds to add before each retry (default=5),
+* **poll_interval**: Seconds to wait between polling for Apex test results.
 * **junit_output**: File name for JUnit output.  Defaults to test_results.xml
 * **json_output**: File name for json output.  Defaults to test_results.json
+* **retry_failures**: A list of regular expression patterns to match against test failures. If failures match, the failing tests are retried in serial mode.
+* **retry_always**: By default, all failures must match retry_failures to perform a retry. Set retry_always to True to retry all failed tests if any failure matches.
 
 uninstall_managed
 ==========================================
@@ -1131,15 +1180,16 @@ This task will examine the schema in the specified org and attempt to infer a
 mapping suitable for extracting data in packaged and custom objects as well as
 customized standard objects.
 
-Mappings cannot include reference cycles - situations where Object A refers to B,
-and B also refers to A. Mapping generation will fail for such data models; to
-resolve the issue, specify the `ignore` option with the name of one of the
-involved lookup fields to suppress it. `ignore` can be specified as a list in
+Mappings must be serializable, and hence must resolve reference cycles - situations
+where Object A refers to B, and B also refers to A. Mapping generation will stop
+and request user input to resolve such cycles by identifying the correct load order.
+Alternately, specify the `ignore` option with the name of one of the
+lookup fields to suppress it and break the cycle. `ignore` can be specified as a list in
 `cumulusci.yml` or as a comma-separated string at the command line.
 
 In most cases, the mapping generated will need minor tweaking by the user. Note
 that the mapping omits features that are not currently well supported by the
-`extract_dataset` and `load_dataset` tasks, including self-lookups and references to
+`extract_dataset` and `load_dataset` tasks, such as references to
 the `User` object.
 
 
