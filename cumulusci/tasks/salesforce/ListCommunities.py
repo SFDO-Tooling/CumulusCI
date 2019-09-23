@@ -1,3 +1,4 @@
+from __future__ import unicode_literals
 from rst2ansi import rst2ansi
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 
@@ -34,5 +35,5 @@ class ListCommunities(BaseSalesforceApiTask):
                 "* **Description:** {}\n".format(community["description"])
             )
 
-        communities_output2 = "\n".join(communities_output).encode()
+        communities_output2 = "\n".join(communities_output).encode("utf-8")
         self.logger.info(rst2ansi(communities_output2))
