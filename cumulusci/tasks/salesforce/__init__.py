@@ -13,6 +13,8 @@ from cumulusci.tasks.salesforce.BaseSalesforceMetadataApiTask import (
 from cumulusci.tasks.salesforce.PackageUpload import PackageUpload
 from cumulusci.tasks.salesforce.SOQLQuery import SOQLQuery
 from cumulusci.tasks.salesforce.CreateCommunity import CreateCommunity
+from cumulusci.tasks.salesforce.ListCommunities import ListCommunities
+from cumulusci.tasks.salesforce.ListCommunityTemplates import ListCommunityTemplates
 from cumulusci.tasks.salesforce.PublishCommunity import PublishCommunity
 
 # inherit from BaseSalesforceMetadataApiTask
@@ -64,6 +66,8 @@ flake8Hack = (
     PackageUpload,
     SOQLQuery,
     CreateCommunity,
+    ListCommunities,
+    ListCommunityTemplates,
     PublishCommunity,
     BaseRetrieveMetadata,
     Deploy,
