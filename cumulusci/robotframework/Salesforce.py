@@ -5,7 +5,7 @@ import os.path
 import re
 import time
 from pprint import pformat
-from robot.libraries.BuiltIn import BuiltIn, RobotNotRunningError
+from robot.libraries.BuiltIn import RobotNotRunningError
 from robot.utils import timestr_to_secs
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.action_chains import ActionChains
@@ -15,13 +15,15 @@ from cumulusci.robotframework.utils import selenium_retry
 from SeleniumLibrary.errors import ElementNotFound, NoOpenBrowser
 from urllib3.exceptions import ProtocolError
 
+from .salesforce_robot_library_base import SalesforceRobotLibraryBase
+
 OID_REGEX = r"^(%2F)?([a-zA-Z0-9]{15,18})$"
 
 lex_locators = {}  # will be initialized when Salesforce is instantiated
 
 
 @selenium_retry
-class Salesforce(object):
+class Salesforce(SalesforceRobotLibraryBase):
     ROBOT_LIBRARY_SCOPE = "GLOBAL"
 
     def __init__(self, debug=False, locators=None):
@@ -62,14 +64,6 @@ class Salesforce(object):
             "cumulusci.robotframework." + locator_module_name
         )
         lex_locators.update(self.locators_module.lex_locators)
-
-    @property
-    def builtin(self):
-        return BuiltIn()
-
-    @property
-    def cumulusci(self):
-        return self.builtin.get_library_instance("cumulusci.robotframework.CumulusCI")
 
     def create_webdriver_with_retry(self, *args, **kwargs):
         """Call the Create Webdriver keyword.

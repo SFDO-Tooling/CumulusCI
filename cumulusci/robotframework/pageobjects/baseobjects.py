@@ -1,8 +1,9 @@
-from robot.libraries.BuiltIn import BuiltIn
 import re
 
+from ..salesforce_robot_library_base import SalesforceRobotLibraryBase
 
-class BasePage(object):
+
+class BasePage(SalesforceRobotLibraryBase):
     _object_name = None
 
     def __init__(self, object_name=None):
@@ -24,21 +25,6 @@ class BasePage(object):
                     self.cumulusci.get_namespace_prefix(), object_name
                 )
         return object_name
-
-    @property
-    def builtin(self):
-        """Returns an instance of robot framework's BuiltIn library"""
-        return BuiltIn()
-
-    @property
-    def cumulusci(self):
-        """Returns the instance of the imported CumulusCI library"""
-        return self.builtin.get_library_instance("cumulusci.robotframework.CumulusCI")
-
-    @property
-    def salesforce(self):
-        """Returns the instance of the imported Salesforce library"""
-        return self.builtin.get_library_instance("cumulusci.robotframework.Salesforce")
 
     @property
     def selenium(self):
