@@ -23,6 +23,9 @@ STATUS_KEY = ("status",)
 
 lex_locators = {}  # will be initialized when Salesforce is instantiated
 
+# https://developer.salesforce.com/docs/atlas.en-us.api_rest.meta/api_rest/resources_composite_sobjects_collections_create.htm
+SF_COLLECTION_INSERTION_LIMIT = 200
+
 
 @selenium_retry
 class Salesforce(object):
@@ -508,25 +511,30 @@ class Salesforce(object):
         obj.update(fields)
         return obj
 
-    def salesforce_collection_generate(self, obj_name, number_to_create, **fields):
+    def generate_test_data(self, obj_name, number_to_create, **fields):
         """Returns an array of dictionaries with template-formatted arguments appropriate for a Collection Insert.
-            Use ``{{number}}`` to represent the unique index of the row in the list of rows, ``{{random_str}}`` to represent a random string
-            and a string that consists of just ``{{number}}`` to generate an actual integer (as opposed to a string-encoded number)
+            Use ``{{number}}`` to represent the unique index of the row in the list of rows.
+            IF the entire string consists of a number, Salesforce API will treat the value as a number.
 
             For example:
 
-                | @{objects} =  Salesforce Collection Generate  Contact  3
-                | ...  FirstName=User {{number}}
-                | ...  LastName={{random_str}}
+                | @{objects} =  Generate Test Data  Contact  3
+                | ...  Name=User {{number}}
                 | ...  Age={{number}}
 
-            Which would generate:
+            Which would generate Contact objects with these fields:
 
-                | [{'FirstName': 'User 0', 'LastName': 'u4PNlGUD', 'type': 'Contact', 'Age': '0'},
-                |  {'FirstName': 'User 1', 'LastName': 'Kyd4PC5x', 'type': 'Contact', 'Age': '1'},
-                |  {'FirstName': 'User 2', 'LastName': 'n4EGs4Vp', 'type': 'Contact', 'Age': '2'}]
+                | [{'Name': 'User 0', 'Age': '0'},
+                |  {'Name': 'User 1', 'Age': '1'},
+                |  {'Name': 'User 2', 'Age': '2'}]
 
-            Jinja2 Expression Syntax is allowed so computed templates like this are also allowed: {{1000 + number}}
+            Python Expression Syntax is allowed so computed templates like this are also allowed: `{{1000 + number}}`
+
+            Python operators can be used, but no functions or variables are provided, so mostly you just
+            have access to mathematical and logical operators. Contact the CCI team if you have a use-case that
+            could benefit from more expression language power. The Python operators are described here:
+
+            https://www.digitalocean.com/community/tutorials/how-to-do-math-in-python-3-with-operators
 
             Templates can also be based on faker patterns like those described here:
 
@@ -534,15 +542,13 @@ class Salesforce(object):
 
             Most examples can be pasted into templates verbatim:
 
-        @{objects}=  Salesforce Collection Generate  Contact  200
-        ...  FirstName={{fake.first_name}}
-        ...  LastName={{fake.last_name}}
-        ...  MailingStreet={{fake.street_address}}
-        ...  MailingCity=New York
-        ...  MailingState=NY
-        ...  MailingPostalCode=12345
-        ...  Email={{fake.email(domain="salesforce.com")}}
-
+                | @{objects}=  Generate Test Data  Contact  200
+                | ...  Name={{fake.first_name}} {{fake.last_name}}
+                | ...  MailingStreet={{fake.street_address}}
+                | ...  MailingCity=New York
+                | ...  MailingState=NY
+                | ...  MailingPostalCode=12345
+                | ...  Email={{fake.email(domain="salesforce.com")}}
            """
         objs = []
 
@@ -556,14 +562,15 @@ class Salesforce(object):
         return objs
 
     def salesforce_collection_insert(self, objects):
-        """Inserts up to 200 records that were created with Salesforce Collection Generate.
+        """Inserts up to 200 records that were created with Generate Test Data.
            The 200 record limit is enforced by the Salesforce APIs"""
         assert (
             not obj.get("id", None) for obj in objects
         ), "Insertable objects should not have IDs"
-        assert (
-            len(objects) <= 200
-        ), "Cannot insert more than 200 objects with this keyword"
+        assert len(objects) <= SF_COLLECTION_INSERTION_LIMIT, (
+            "Cannot insert more than %s objects with this keyword"
+            % SF_COLLECTION_INSERTION_LIMIT
+        )
 
         records = self.cumulusci.sf.restful(
             "composite/sobjects",
@@ -583,12 +590,15 @@ class Salesforce(object):
     def salesforce_collection_update(self, objects):
         """Updates up to 200 records described as Robot/Python dictionaries"""
         for obj in objects:
-            assert obj["id"], "Should be a list of objects with Ids"
+            assert obj[
+                "id"
+            ], "Should be a list of objects with Ids returned by Salesforce Collection Insert"
             del obj[STATUS_KEY]
 
-        assert (
-            len(objects) <= 200
-        ), "Cannot update more than 200 objects with this keyword"
+        assert len(objects) <= SF_COLLECTION_INSERTION_LIMIT, (
+            "Cannot update more than %s objects with this keyword"
+            % SF_COLLECTION_INSERTION_LIMIT
+        )
 
         records = self.cumulusci.sf.restful(
             "composite/sobjects",

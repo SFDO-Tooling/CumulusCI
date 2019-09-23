@@ -1,7 +1,6 @@
 *** Settings ***
-Documentation   Tests of collections of records based on Jess Lopez's work here: 
-...             https://salesforce.quip.com/dsUXAOxiKz28  (Salesforce Internal)
-...             Note that keywords referenced in Setup are NOT performance measure.
+Documentation   Tests of collections of records based on Jess Lopez's recommendations
+...             Note that keywords referenced in Setup are NOT performance measured.
 Library         DateTime
 Resource        cumulusci/robotframework/Salesforce.robot
 # Suite Teardown  Delete Session Records
@@ -10,9 +9,9 @@ Force Tags      api200
 *** Keywords ***
 Insert 200 Contacts
     [Documentation]  Create 200 Contacts in CONTACTS suite variable
-    @{objects}=  Salesforce Collection Generate  Contact  200  
+    @{objects}=  Generate Test Data  Contact  200  
         ...  FirstName=User {{number}}
-        ...  LastName={{random_str}}
+        ...  LastName={{fake.last_name}}
     Salesforce Collection Insert  ${objects}
     Set Suite Variable      @{CONTACTS}      @{objects}
     [return]    ${objects}
@@ -25,8 +24,8 @@ Create Accounts If Necessary
     ${query_results} =   SOQL Query    ${query}
     ${contacts_without_accounts} =    Set Variable    ${query_results}[records]
     ${numobjects} =    Get Length     ${contacts_without_accounts}
-    ${newobjects} =     Salesforce Collection Generate     Account    ${numobjects} 
-        ...                                          Name={{random_str}}
+    ${newobjects} =     Generate Test Data     Account    ${numobjects} 
+        ...                                          Name={{fake.name}}
 
     ${created_records}=     Salesforce Collection Insert  ${newobjects}
 
@@ -48,7 +47,7 @@ Insert 200 Pledged Opportunities
     @{accounts}=    Salesforce Query    Account
 
     ${date}=    Get Current Date     result_format=%Y-%m-%d
-    @{objects}=  Salesforce Collection Generate  Opportunity  200  
+    @{objects}=  Generate Test Data  Opportunity  200  
         ...  Name=Opp {{number}}
         ...  StageName=Pledged
         ...  Amount={{1000 + number}}
@@ -70,7 +69,7 @@ Perftest - Insert 200 Contacts
     Insert 200 Contacts
 
 Perftest - Insert 200 Contacts With Addresses
-    @{objects}=  Salesforce Collection Generate  Contact  200  
+    @{objects}=  Generate Test Data  Contact  200  
         ...  FirstName={{fake.first_name}}
         ...  LastName={{fake.last_name}}
         ...  MailingStreet={{fake.street_address}}

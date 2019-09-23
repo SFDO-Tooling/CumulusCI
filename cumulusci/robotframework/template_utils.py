@@ -1,5 +1,4 @@
 from jinja2 import Template
-from robot.libraries.String import String
 
 
 class StringGenerator:
@@ -46,14 +45,11 @@ class FakerTemplateLibrary:
         )
 
 
-random_string_generator = StringGenerator(String().generate_random_string)
 faker_template_library = FakerTemplateLibrary()
 
 
 def format_str(value, i):
     if isinstance(value, str):
-        value = Template(value).render(
-            number=i, random_str=random_string_generator, fake=faker_template_library
-        )
+        value = Template(value).render(number=i, fake=faker_template_library)
 
     return value
