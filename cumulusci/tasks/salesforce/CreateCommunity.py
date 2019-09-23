@@ -39,8 +39,6 @@ class CreateCommunity(BaseSalesforceApiTask):
     def _run_task(self):
         self.logger.info('Creating community "{}"'.format(self.options["name"]))
 
-        payload = {}
-
         # Before we can create a Community, we have to click through the "New Community"
         # button in the All Communities setup page. (This does some unknown behind-the-scenes setup).
         # Let's simulate that without actually using a browser.
