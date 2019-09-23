@@ -4,7 +4,6 @@ import logging
 import os.path
 import re
 import time
-import faker
 
 from jinja2 import Template
 from pprint import pformat
@@ -19,31 +18,15 @@ from cumulusci.robotframework.utils import selenium_retry
 from SeleniumLibrary.errors import ElementNotFound, NoOpenBrowser
 from urllib3.exceptions import ProtocolError
 
+from cumulusci.robotframework.template_utils import (
+    StringGenerator,
+    FakerTemplateLibrary,
+)
+
 OID_REGEX = r"^(%2F)?([a-zA-Z0-9]{15,18})$"
 STATUS_KEY = ("status",)
 
 lex_locators = {}  # will be initialized when Salesforce is instantiated
-
-
-class StringGenerator:
-    def __init__(self, func):
-        self.func = func
-
-    def __str__(self):
-        return self.func()
-
-    def __call__(self, *args, **kwargs):
-        return self.func(*args, **kwargs)
-
-
-class FakerTemplateLibrary:
-    faker = faker.Faker()
-
-    def __getattr__(self, name):
-        # defer loading heavy faker library until actually needed
-        return StringGenerator(
-            lambda *args, **kwargs: self.faker.format(name, *args, **kwargs)
-        )
 
 
 @selenium_retry
