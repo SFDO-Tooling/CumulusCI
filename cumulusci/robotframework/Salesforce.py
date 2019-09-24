@@ -582,9 +582,11 @@ class Salesforce(object):
             json={"allOrNone": True, "records": objects},
         )
 
-        for record, obj in zip(records, objects):
+        for idx, (record, obj) in enumerate(zip(records, objects)):
             if record["errors"]:
-                raise AssertionError(*record["errors"])
+                raise AssertionError(
+                    "Error on Object {idx}: {record} : {obj}".format(**vars())
+                )
             self.store_session_record(obj["attributes"]["type"], record["id"])
             obj["id"] = record["id"]
             obj[STATUS_KEY] = record
