@@ -2,7 +2,6 @@ import io
 import os
 import mock
 import pytest
-import unittest
 import responses
 from datetime import datetime
 from http.client import HTTPMessage
@@ -13,7 +12,6 @@ from github3.exceptions import ConnectionError
 from github3.session import AppInstallationTokenAuth
 
 from cumulusci.core import github
-from cumulusci.tests.conftest import gh_api
 from cumulusci.core.exceptions import GithubException
 from cumulusci.tasks.release_notes.tests.utils import MockUtil
 from cumulusci.tasks.github.tests.util_github_api import GithubApiTestMixin
@@ -37,12 +35,13 @@ class MockHttpResponse(mock.Mock):
         self.version = 0
         self.reason = None
         self.msg = HTTPMessage(io.BytesIO())
+        self.closed = True
 
     def read(self):
         return b""
 
     def isclosed(self):
-        return True
+        return self.closed
 
 
 class TestGithub(GithubApiTestMixin):
