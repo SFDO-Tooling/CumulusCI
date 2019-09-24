@@ -512,46 +512,48 @@ class Salesforce(object):
         return obj
 
     def generate_test_data(self, obj_name, number_to_create, **fields):
-        """Returns an array of dictionaries with template-formatted arguments appropriate for a Collection Insert.
-            Use ``{{number}}`` to represent the unique index of the row in the list of rows.
-            IF the entire string consists of a number, Salesforce API will treat the value as a number.
+        """Generate test data dictionaries. Usually used for later insertion into SF.
 
-            For example:
+        Returns an array of dictionaries with template-formatted arguments appropriate for a Collection Insert.
+        Use ``{{number}}`` to represent the unique index of the row in the list of rows.
+        IF the entire string consists of a number, Salesforce API will treat the value as a number.
 
-                | @{objects} =  Generate Test Data  Contact  3
-                | ...  Name=User {{number}}
-                | ...  Age={{number}}
+        For example:
 
-            Which would generate Contact objects with these fields:
+            | @{objects} =  Generate Test Data  Contact  3
+            | ...  Name=User {{number}}
+            | ...  Age={{number}}
 
-                | [{'Name': 'User 0', 'Age': '0'},
-                |  {'Name': 'User 1', 'Age': '1'},
-                |  {'Name': 'User 2', 'Age': '2'}]
+        Which would generate Contact objects with these fields:
 
-            Python Expression Syntax is allowed so computed templates like this are also allowed: ``{{1000 + number}}``
+            | [{'Name': 'User 0', 'Age': '0'},
+            |  {'Name': 'User 1', 'Age': '1'},
+            |  {'Name': 'User 2', 'Age': '2'}]
 
-            Python operators can be used, but no functions or variables are provided, so mostly you just
-            have access to mathematical and logical operators. The Python operators are described here:
+        Python Expression Syntax is allowed so computed templates like this are also allowed: ``{{1000 + number}}``
 
-            https://www.digitalocean.com/community/tutorials/how-to-do-math-in-python-3-with-operators
+        Python operators can be used, but no functions or variables are provided, so mostly you just
+        have access to mathematical and logical operators. The Python operators are described here:
 
-            Contact the CCI team if you have a use-case that
-            could benefit from more expression language power.
+        https://www.digitalocean.com/community/tutorials/how-to-do-math-in-python-3-with-operators
 
-            Templates can also be based on faker patterns like those described here:
+        Contact the CCI team if you have a use-case that
+        could benefit from more expression language power.
 
-            https://faker.readthedocs.io/en/master/providers.html
+        Templates can also be based on faker patterns like those described here:
 
-            Most examples can be pasted into templates verbatim:
+        https://faker.readthedocs.io/en/master/providers.html
 
-                | @{objects}=  Generate Test Data  Contact  200
-                | ...  Name={{fake.first_name}} {{fake.last_name}}
-                | ...  MailingStreet={{fake.street_address}}
-                | ...  MailingCity=New York
-                | ...  MailingState=NY
-                | ...  MailingPostalCode=12345
-                | ...  Email={{fake.email(domain="salesforce.com")}}
-           """
+        Most examples can be pasted into templates verbatim:
+
+            | @{objects}=  Generate Test Data  Contact  200
+            | ...  Name={{fake.first_name}} {{fake.last_name}}
+            | ...  MailingStreet={{fake.street_address}}
+            | ...  MailingCity=New York
+            | ...  MailingState=NY
+            | ...  MailingPostalCode=12345
+            | ...  Email={{fake.email(domain="salesforce.com")}}
+        """
         objs = []
 
         for i in range(int(number_to_create)):
