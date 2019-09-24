@@ -79,7 +79,7 @@ def get_pull_requests_with_base_branch(repo, base_branch_name, head=None):
     """Returns a list of pull requests with the given base branch"""
     if head:
         head = repo.owner.login + ":" + head
-    return list(repo.pull_requests(base=base_branch_name, head=head))
+    return list(repo.pull_requests(base=base_branch_name, head=head, state="all"))
 
 
 def get_pull_requests_by_head(repo, branch_name):
