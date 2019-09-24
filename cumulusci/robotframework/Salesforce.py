@@ -595,7 +595,8 @@ class Salesforce(object):
             assert obj[
                 "id"
             ], "Should be a list of objects with Ids returned by Salesforce Collection Insert"
-            del obj[STATUS_KEY]
+            if STATUS_KEY in obj:
+                del obj[STATUS_KEY]
 
         assert len(objects) <= SF_COLLECTION_INSERTION_LIMIT, (
             "Cannot update more than %s objects with this keyword"
