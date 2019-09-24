@@ -7,20 +7,17 @@ import pytest
 import unittest
 import responses
 
-from github3 import GitHub
 from github3.repos.repo import Repository
 from github3.pulls import ShortPullRequest
 
-from cumulusci.tests.conftest import gh_api
 from cumulusci.core.github import get_github_api
 from cumulusci.tests.util import create_project_config
 from cumulusci.core.exceptions import CumulusCIException
-from cumulusci.tasks.release_notes.tests.utils import MockUtil
 from cumulusci.tasks.github.tests.util_github_api import GithubApiTestMixin
+from cumulusci.tasks.release_notes.tests.utils import MockUtil
 from cumulusci.tasks.release_notes.parser import BaseChangeNotesParser
 from cumulusci.tasks.release_notes.generator import markdown_link_to_pr
 from cumulusci.tasks.release_notes.generator import render_empty_pr_section
-from cumulusci.tasks.github.tests.util_github_api import GithubApiTestMixin
 from cumulusci.tasks.release_notes.generator import (
     BaseReleaseNotesGenerator,
     StaticReleaseNotesGenerator,

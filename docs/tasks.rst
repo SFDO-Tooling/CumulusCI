@@ -82,7 +82,7 @@ Options:
 * **template** *(required)*: Name of the template for the community.
 * **name** *(required)*: Name of the community.
 * **description**: Description of the community.
-* **url_path_prefix** *(required)*: URL prefix for the community.
+* **url_path_prefix**: URL prefix for the community.
 * **timeout**: Time to wait, in seconds, for the community to be created
 
 create_package
