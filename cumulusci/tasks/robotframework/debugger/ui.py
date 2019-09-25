@@ -19,10 +19,10 @@ class DebuggerCli(cmd.Cmd, object):
     )
     prompt = "rdb> "
 
-    def __init__(self, listener):
-
-        # robot redirects sys.stdout, use the original handle
-        cmd.Cmd.__init__(self, stdout=sys.__stdout__)
+    # Robot redirects sys.stdout, so use the original handle
+    # or whatever is passed in.
+    def __init__(self, listener, stdout=sys.__stdout__):
+        cmd.Cmd.__init__(self, stdout=stdout)
 
         self.listener = listener
         self.builtin = BuiltIn()
@@ -70,10 +70,10 @@ class DebuggerCli(cmd.Cmd, object):
                 self._highlight_element(element)
 
         except InvalidSelectorException:
-            print("invalid locator '{}'".format(arg))
+            print("invalid locator '{}'".format(arg), file=self.stdout)
 
         except Exception as e:
-            print(str(e))
+            print(str(e), file=self.stdout)
 
     def do_pdb(self, arg):
         """Start pdb
