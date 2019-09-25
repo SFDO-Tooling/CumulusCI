@@ -427,7 +427,7 @@ flows:
                 task: github_parent_pr_notes
                 options:
                     branch_name: $project_config.repo_branch
-                    build_notes_label: "Build Notes"
+                    build_notes_label: "Build Change Notes"
             1:
                 flow: dependencies
             2:
