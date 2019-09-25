@@ -36,9 +36,9 @@ class PageObjects(object):
 
     ROBOT_LIBRARY_SCOPE = "TEST SUITE"
     registry = {}
-    cache = {}
 
     def __init__(self, *args):
+        self.builtin = BuiltIn()
         logger.debug("initializing PageObjects...")
         importer = robot.utils.Importer()
 
@@ -53,7 +53,7 @@ class PageObjects(object):
         # Start with this library at the front of the library search order;
         # that may change as page objects are loaded.
         try:
-            BuiltIn().set_library_search_order("PageObjects")
+            self.builtin.set_library_search_order("PageObjects")
         except RobotNotRunningError:
             # this should only happen when trying to load this library
             # via the robot_libdoc task, in which case we don't care
@@ -70,11 +70,10 @@ class PageObjects(object):
             if pobj.__module__ in sys.modules:
                 del sys.modules[pobj.__module__]
         cls.registry = {}
-        cls.cache = {}
 
     @property
     def selenium(self):
-        return BuiltIn().get_library_instance("SeleniumLibrary")
+        return self.builtin.get_library_instance("SeleniumLibrary")
 
     def __getattr__(self, name):
         """Return the keyword from the current page object
@@ -103,32 +102,49 @@ class PageObjects(object):
 
     def _get_page_object(self, page_type, object_name):
 
-        if (page_type, object_name) in self.cache:
-            # have we already loaded this once? If so, our work here is done.
-            pobj = self.cache[(page_type, object_name)]
-
-        elif (page_type, object_name) in self.registry:
-            # not in cache, but it's registered so create an instance
+        if (page_type, object_name) in self.registry:
             cls = self.registry[(page_type, object_name)]
-            pobj = cls()
+            instance = cls()
+            libname = instance.__class__.__name__
 
         else:
-            # not in cache, and not registered. Use a generic class
+            # Page object has not been registered. Try to find
+            # an appropriate generic class. For example, if
+            # the requested page is "Listing", "Contact", look
+            # for a "ListingPage" class. If we find it, we'll
+            # create a library named "ContactListingPage"
+            instance = None
             target = "{}Page".format(page_type)
-            pobj = None
             for subclass in BasePage.__subclasses__():
                 if subclass.__name__ == target:
-                    pobj = subclass(object_name)
+                    instance = subclass(object_name)
+                    libname = "{}{}Page".format(
+                        object_name, page_type
+                    )  # eg: ContactListingPage
                     break
 
-        if pobj:
-            self.cache[(page_type, object_name)] = pobj
-        else:
-            raise Exception(
-                "Unable to find a page object for '{} {}'".format(
-                    page_type, object_name
+            if instance is None:
+                raise Exception(
+                    "Unable to find a page object for '{} {}'".format(
+                        page_type, object_name
+                    )
                 )
+
+        try:
+            pobj = self.builtin.get_library_instance(libname)
+        except Exception:
+            # Hasn't been imported. Attempt to import it with the given name
+            # for the given object; If this fails, just let it bubble up
+            # because there's nothing else we can do.
+            self.builtin.import_library(
+                "cumulusci.robotframework.pageobjects._PageObjectLibrary",
+                instance,
+                libname,
+                "WITH NAME",
+                libname,
             )
+            # sure would be nice if import_library returned the instance. Just sayin'.
+            pobj = self.builtin.get_library_instance(libname)
 
         return pobj
 
@@ -141,7 +157,6 @@ class PageObjects(object):
         If this keyword is able to navigate to a page, the keywords for
         this page object will be loaded.
         """
-
         pobj = self._get_page_object(page_type, object_name)
         try:
             pobj._go_to_page(**kwargs)
@@ -174,17 +189,20 @@ class PageObjects(object):
         return pobj
 
     def _set_current_page_object(self, pobj):
-        """This does the work of importing the keywords for the given page object"""
+        """This does the work of importing the keywords for the given page object
 
-        # Note: at the moment only one object is loaded at a time. We might want
-        # to consider pushing and popping page objects on a stack so that more than
-        # one can be active at a time.
+        Multiple page objects may be loaded. Each page object will be added
+        to the front of robot's library search order. Note: this search order
+        gets reset at the start of every suite.
+        """
+
         self.current_page_object = pobj
-        libname = self.current_page_object.__class__.__name__
+        libname = pobj._libname
 
-        # rename this library to be the name of our page object,
-        # and make sure it is at the front of the library search order
-        BuiltIn()._namespace._kw_store.get_library(self).name = libname
-        BuiltIn().reload_library(self)
-        BuiltIn().set_library_search_order(libname)
+        old_order = list(self.builtin.set_library_search_order())
+        if libname in old_order:
+            old_order.remove(libname)
+        new_order = [libname] + old_order
+        self.builtin.log("new search order: {}".format(new_order), "DEBUG")
+        self.builtin.set_library_search_order(*new_order)
         return pobj
