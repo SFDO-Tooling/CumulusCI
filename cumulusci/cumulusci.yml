@@ -159,6 +159,14 @@ tasks:
             version: latest_beta
             activateRSS: True
         group: Salesforce Packages
+    list_communities:
+        description: Lists Communities for the current org using the Connect API.
+        class_path: cumulusci.tasks.salesforce.ListCommunities
+        group: Salesforce Communities
+    list_community_templates:
+        description: Prints the Community Templates available to the current org
+        class_path: cumulusci.tasks.salesforce.ListCommunityTemplates
+        group: Salesforce Communities
     list_metadata_types:
         description: Prints the metadata types in a project
         class_path: cumulusci.tasks.util.ListMetadataTypes
@@ -179,6 +187,10 @@ tasks:
         description: Publish a release to the MetaDeploy web installer
         class_path: cumulusci.tasks.metadeploy.Publish
         group: Release Management
+    publish_community:
+        description: Publishes a Community in the target org using the Connect API
+        class_path: cumulusci.tasks.salesforce.PublishCommunity
+        group: Salesforce Communities
     push_all:
         description: Schedules a push upgrade of a package version to all subscribers
         class_path: cumulusci.tasks.push.tasks.SchedulePushOrgQuery
@@ -411,6 +423,11 @@ flows:
     ci_feature:
         description: Prepare an unmanaged metadata test org and run apex tests.  Intended for use against feature branch commits.
         steps:
+            0.5:
+                task: github_parent_pr_notes
+                options:
+                    branch_name: $project_config.repo_branch
+                    build_notes_label: "Build Change Notes"
             1:
                 flow: dependencies
             2:
@@ -421,11 +438,6 @@ flows:
                 task: run_tests
             5:
                 task: github_parent_to_children
-            6:
-                task: github_parent_pr_notes
-                options:
-                    branch_name: $project_config.repo_branch
-                    build_notes_label: "Build Notes"
 
     ci_feature_beta_deps:
         description: Install the latest beta version of dependencies and run apex tests.
