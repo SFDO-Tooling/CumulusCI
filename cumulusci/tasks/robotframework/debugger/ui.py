@@ -170,24 +170,12 @@ class DebuggerCli(cmd.Cmd, object):
             print("{}: {}-> {}".format(i, indent, x.longname), file=self.stdout)
         print("", file=self.stdout)
 
-    def _highlight_element(self, element, style=None):
-        """Highlight a Selenium Webdriver element
+    def _highlight_element(self, element):
+        """Highlight a Selenium Webdriver element"""
 
-        style can be None, a string with css styles, or a dict of css styles
-        element needs to be an instance of WebElement
-        """
-
-        if style is None:
-            element_style = """
+        element_style = """
             box-shadow: 0px 1px 4px 2px inset #FFFF00;
-            """
-        elif isinstance(style, dict):
-            element_style = "\n".join(
-                "{}: {};".format(key, value) for key, value in style.items()
-            )
-        else:
-            element_style = style
-
+        """
         original_style = element.get_attribute("style")
         new_style = original_style + element_style
         self.selenium.driver.execute_script(
