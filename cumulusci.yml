@@ -46,6 +46,13 @@ flows:
                     suites: cumulusci/robotframework/tests/salesforce/perf
                     include: perf
 
+    test_performance_LDV:
+        description: Test performance in a scratch org
+        steps:
+            1: 
+                flow: test_performance_scratch
+
+
 orgs:
     scratch:
         prerelease:
