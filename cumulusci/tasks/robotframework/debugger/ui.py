@@ -155,7 +155,7 @@ class DebuggerCli(cmd.Cmd, object):
     def do_vars(self, arg):
         """Print the value of all known variables"""
         vars = self.builtin.get_variables()
-        vars = [["Variable", "Value"]] + [x for x in map(list, sorted(vars.items()))]
+        vars = [["Variable", "Value"]] + [list(x) for x in sorted(vars.items())]
         CliTable(vars).echo()
 
     def do_where(self, arg):
