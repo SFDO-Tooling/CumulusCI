@@ -188,6 +188,9 @@ class ParentPullRequestNotesGenerator(BaseReleaseNotesGenerator):
             return
 
 
+def is_merged(pull_request):
+    return pull_request.merged_at is not None
+
 class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator):
     def __init__(
         self,
