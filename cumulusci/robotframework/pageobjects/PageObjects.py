@@ -32,6 +32,25 @@ class PageObjects(object):
     | Library  cumulusci.robotframework.PageObjects
     | ...  robot/HEDA/resources/PageObjects.py
 
+    Page object classes need to use the @pageobject decorator from
+    cumulusci.robotframework.pageobjects. The decorator takes two
+    parameters: page_type and object_name. Both are arbitrary strings,
+    but together should uniquely identify a collection of keywords for
+    a page or objects on a page.
+
+    Examples of page_type are Listing, Home, Detail, etc. Object types
+    can be actual object types (Contact), custom object
+    (Custom_object__c) or a logical name for a type of page (eg:
+    AppointmentManager).
+
+    Example:
+
+    | from cumulusci.robotframework.pageobjects import BasePage
+    | from cumulusci.robotframework.pageobjects import pageobject
+    | ...
+    | @pageobject(page_type="Detail", object_name="Custom__c")
+    | class CustomDetailPage(BasePage):
+    |     ...
     """
 
     ROBOT_LIBRARY_SCOPE = "TEST SUITE"
@@ -94,13 +113,27 @@ class PageObjects(object):
         return names
 
     def log_page_object_keywords(self):
-        """Logs page objects and their keywords for all page objects which have been imported"""
+        """Logs page objects and their keywords for all page objects
+           which have been imported into the current suite.
+        """
         for key in sorted(self.registry.keys()):
             pobj = self.registry[key]
             keywords = get_keyword_names(pobj)
             logger.info("{}: {}".format(key, ", ".join(keywords)))
 
     def get_page_object(self, page_type, object_name):
+        """Return an instance of a page object
+
+        This is useful if you want to call a single page object method
+        from some other keyword without having to go to another page
+        or load the page object into a page.
+
+        This works a lot like robot's built-in "get library instance"
+        keyword, but you can specify the page object by page type
+        and object name rather than the library name, and it will
+        autoload the appropriate library (assuming its module has
+        been imported).
+        """
 
         if (page_type, object_name) in self.registry:
             cls = self.registry[(page_type, object_name)]
@@ -151,11 +184,27 @@ class PageObjects(object):
     def go_to_page(self, page_type, object_name, **kwargs):
         """Go to the page of the given page object.
 
+        The URL will be computed from the page_type and object_name
+        associated with the object, if possible.
+
         Different pages support different additional arguments. For
         example, a Listing page supports the keyword argument `filter_name`.
 
-        If this keyword is able to navigate to a page, the keywords for
-        this page object will be loaded.
+        If this keyword is able to navigate to a page, the keyword
+        `load page object` will automatically be called to load the keywords
+        for the page.
+
+        Custom page objects may define the function `_go_to_page`,
+        which will be passed in all of the keyword arguments from this
+        keyword. This allows each page object to define its own URL
+        mapping using whatever algorithm it chooses.  The only
+        requirement of the function is that it should compute an
+        appropriate url and then call `self.selenium.go_to` with the
+        URL.
+
+        It is also recommended that the keyword wait until it knows
+        that the page has finished rendering before returning (eg: by
+        calling `self.salesforce.wait_until_loading_is_complete()`)
         """
         pobj = self.get_page_object(page_type, object_name)
         try:
@@ -168,8 +217,24 @@ class PageObjects(object):
     def current_page_should_be(self, page_type, object_name, **kwargs):
         """Verifies that the page appears to be the requested page
 
-        If this is the expected page, the keywords for this page
-        object will be loaded.
+        If the page matches the given page object or contains the
+        given page object, the keyword will pass.a
+
+        When this keyword is called, it will try to get the page
+        object for the given page_tyope and object_name, and call the
+        method `_is_current_page`.
+
+        Custom page objects may define this function in whatever
+        manner is necessary to determine that the current page is or
+        contains the given page object. The only requirement is that
+        this function raise an exception if it determines the current
+        page either doesn't represent the page object or doesn't
+        contain the page object.
+
+        The default implementation of the function uses the page URL
+        and compares it to a pattern based off of the page_type and
+        object_name.
+
         """
         pobj = self.get_page_object(page_type, object_name)
         try:

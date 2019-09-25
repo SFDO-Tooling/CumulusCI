@@ -22,6 +22,13 @@ lex_locators = {}  # will be initialized when Salesforce is instantiated
 
 @selenium_retry
 class Salesforce(object):
+    """A keyword library for working with Salesforce Lightning pages
+
+    While you can import this directly into any suite, the recommended way
+    to include this in a test suite is to import the ``Salesforce.robot``
+    resource file.
+    """
+
     ROBOT_LIBRARY_SCOPE = "GLOBAL"
 
     def __init__(self, debug=False, locators=None):
