@@ -5,6 +5,7 @@ applications:
 appMenus:
     - type: AppMenu
       class: MetadataFilenameParser
+      extension: appMenu
 aura:
     - type: AuraDefinitionBundle
       class: BundleParser
