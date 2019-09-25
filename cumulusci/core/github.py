@@ -117,3 +117,20 @@ def is_label_on_pull_request(repo, pull_request, label_name):
     pull request number. False otherwise."""
     labels = list(repo.issue(pull_request.number).labels())
     return any(label_name == issue_label.name for issue_label in labels)
+
+
+def get_pull_requests_by_commit(github, repo, commit_sha):
+    endpoint = github.session.base_url + "/repos/{}/{}/commits/{}/pulls".format(
+        repo.owner.login, repo.name, commit_sha
+    )
+    response = github.session.get(
+        endpoint, headers={"Accept": "application/vnd.github.groot-preview+json"}
+    )
+    pr_jsons = response.json()
+
+    # raises github3.exceptions.IncompleteResposne
+    # when these are not present
+    for json in pr_jsons:
+        json["body_html"] = ""
+        json["body_text"] = ""
+    return [ShortPullRequest(json, github) for json in pr_jsons]
