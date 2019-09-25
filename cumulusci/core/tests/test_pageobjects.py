@@ -61,9 +61,15 @@ class TestPageObjects(unittest.TestCase):
         self.assertEqual(po.registry, {})
 
         po = PageObjects(FOO_PATH, BAR_PATH)
-        self.assertCountEqual(
-            po.registry.keys(), (("Test", "Foo__c"), ("Test", "Bar__c"))
-        )
+        if hasattr(self, "assertCountEqual"):
+            self.assertCountEqual(
+                po.registry.keys(), (("Test", "Foo__c"), ("Test", "Bar__c"))
+            )
+        else:
+            # gah! python3 renamed this assert
+            self.assertItemsEqual(
+                po.registry.keys(), (("Test", "Foo__c"), ("Test", "Bar__c"))
+            )
 
         # This is done here rather than at the top of this file
         # since doing it at the module level would register
