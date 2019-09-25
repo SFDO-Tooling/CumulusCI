@@ -134,8 +134,9 @@ class ParentPullRequestNotesGenerator(BaseReleaseNotesGenerator):
         Child pull requests are pull requests that have a base branch
         equal to the the given pull request's head."""
         self.change_notes = get_pull_requests_with_base_branch(
-            self.repo, pull_request.head.label.split(":")[1]
+            self.repo, pull_request.head.ref
         )
+        self.change_notes = list(filter(is_merged, self.change_notes))
         if len(self.change_notes) == 0:
             return
 
@@ -190,6 +191,7 @@ class ParentPullRequestNotesGenerator(BaseReleaseNotesGenerator):
 
 def is_merged(pull_request):
     return pull_request.merged_at is not None
+
 
 class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator):
     def __init__(
