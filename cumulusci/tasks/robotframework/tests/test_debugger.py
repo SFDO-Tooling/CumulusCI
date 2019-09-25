@@ -2,6 +2,7 @@ import mock
 import unittest
 from cumulusci.tasks.robotframework import debugger
 from selenium.common.exceptions import InvalidSelectorException
+from cumulusci.core.tests.test_utils import StringIO
 import fnmatch
 
 
@@ -129,8 +130,11 @@ class TestRobotDebugger(unittest.TestCase):
         super(TestRobotDebugger, cls).setUpClass()
         cls.mock_listener = mock.Mock()
         cls.mock_builtin = mock.Mock()
-        cls.cli = debugger.DebuggerCli(cls.mock_listener)
-        cls.cli.builtin = cls.mock_builtin
+
+    def setUp(self):
+        self.stdout = StringIO()
+        self.cli = debugger.DebuggerCli(self.mock_listener, stdout=self.stdout)
+        self.cli.builtin = self.mock_builtin
 
     def test_comment(self):
         """The comment command does nothing; we just need to verify
@@ -161,6 +165,20 @@ class TestRobotDebugger(unittest.TestCase):
         self.assertIsNone(return_value)
         self.mock_builtin.get_variable.value.assert_not_called()
 
+        # valid variable syntax, but unknown variable
+        self.cli.stdout = StringIO()
+        self.mock_builtin.get_variable_value.side_effect = Exception("not a variable")
+        return_value = self.cli.default("${bogus}")
+        self.assertEquals(self.cli.stdout.getvalue(), "unknown variable '${bogus}'\n")
+
+    @mock.patch("pdb.Pdb")
+    def test_pdb(self, mock_pdb):
+        """Verify that the 'pdb' command starts pdb"""
+        self.cli.do_pdb("")
+        mock_pdb.assert_has_calls(
+            [mock.call(stdout=self.cli.stdout), mock.call().set_trace()]
+        )
+
     def test_continue(self):
         """Verify that the 'continue' debugger command returns a truthy value
 
@@ -170,96 +188,131 @@ class TestRobotDebugger(unittest.TestCase):
         return_value = self.cli.do_continue("")
         self.assertTrue(return_value)
 
+    @mock.patch.object(debugger.DebuggerCli, "selenium", mock.Mock())
     def test_locate_elements(self):
         """Test that the 'locate_elements' debugger command works
 
         This test sets up a mock that acts like selenium found several
         elements, and verifies that it calls the functions to highlight them
         """
-        with mock.patch.object(
-            debugger.DebuggerCli, "selenium", mock.Mock()
-        ) as mock_selenium:
-            self.cli._highlight_element = mock.Mock()
-            mock_selenium.get_webelements.return_value = ["Element1", "Element2"]
-            return_value = self.cli.do_locate_elements("//whatever")
-            self.assertIsNone(return_value)
-            self.cli._highlight_element.assert_has_calls(
-                [mock.call("Element1"), mock.call("Element2")]
-            )
+        self.cli._highlight_element = mock.Mock()
+        self.cli.selenium.get_webelements.return_value = ["Element1", "Element2"]
+        return_value = self.cli.do_locate_elements("//whatever")
+        self.assertIsNone(return_value)
+        self.cli._highlight_element.assert_has_calls(
+            [mock.call("Element1"), mock.call("Element2")]
+        )
 
+    @mock.patch.object(debugger.DebuggerCli, "selenium", mock.Mock())
     def test_locate_elements_exception_handling(self):
         """Verify that the 'locate_elements' debugger command handles exceptions"""
 
-        with mock.patch.object(
-            debugger.DebuggerCli, "selenium", mock.Mock()
-        ) as mock_selenium:
-            self.cli._highlight_element = mock.Mock()
+        self.cli._highlight_element = mock.Mock()
+        self.cli.selenium.get_webelements.side_effect = InvalidSelectorException(
+            "invalid xpath"
+        )
+        self.cli.stdout = StringIO()
+        return_value = self.cli.do_locate_elements("//whatever")
+        self.assertIsNone(return_value)
+        self.cli._highlight_element.assert_not_called()
+        self.assertEquals(self.cli.stdout.getvalue(), "invalid locator '//whatever'\n")
 
-            mock_selenium.get_webelements.side_effect = InvalidSelectorException(
-                "invalid xpath"
-            )
-            return_value = self.cli.do_locate_elements("//whatever")
-            self.assertIsNone(return_value)
-            self.cli._highlight_element.assert_not_called()
+        # Even if get_webelement throws an exception, the keyword
+        # should handle it gracefully
+        self.cli.selenium.get_webelements.side_effect = Exception(
+            "something unexpected"
+        )
+        self.cli.stdout = StringIO()
+        return_value = self.cli.do_locate_elements("//whatever")
+        self.assertIsNone(return_value)
+        self.cli._highlight_element.assert_not_called()
+        self.assertEquals(self.cli.stdout.getvalue(), "something unexpected\n")
 
-            mock_selenium.get_webelements.side_effect = Exception(
-                "something unexpected"
-            )
-            return_value = self.cli.do_locate_elements("//whatever")
-            self.assertIsNone(return_value)
-            self.cli._highlight_element.assert_not_called()
-
+    @mock.patch.object(debugger.DebuggerCli, "selenium", mock.Mock())
     def test_reset_elements(self):
         """Verify that the 'reset_elements' debugger command works"""
-        with mock.patch.object(
-            debugger.DebuggerCli, "selenium", mock.Mock()
-        ) as mock_selenium:
-            self.cli._restore_element_style = mock.Mock()
-            mock_selenium.get_webelements.return_value = ["Element1", "Element2"]
-            return_value = self.cli.do_reset_elements("")
-            self.assertIsNone(return_value)
-            self.cli._restore_element_style.assert_has_calls(
-                [mock.call("Element1"), mock.call("Element2")]
-            )
+        self.cli._restore_element_style = mock.Mock()
+        self.cli.selenium.get_webelements.return_value = ["Element1", "Element2"]
+        return_value = self.cli.do_reset_elements("")
+        self.assertIsNone(return_value)
+        self.cli._restore_element_style.assert_has_calls(
+            [mock.call("Element1"), mock.call("Element2")]
+        )
+
+    @mock.patch.object(debugger.DebuggerCli, "selenium", mock.Mock())
+    def test_reset_elements_logging(self):
+        self.cli.selenium.driver.execute_script.return_value = False
+        self.cli._restore_element_style("dummy")
+        self.cli.builtin.log.assert_called_with(
+            "unable to restore style; original style not found", "DEBUG"
+        )
 
     def test_shell_no_variables(self):
         """Verify that the shell command works"""
-        self.mock_builtin.run_keyword_and_ignore_error.return_value = ("PASS", 42)
-
-        return_value = self.cli.do_shell("some keyword")
-        self.assertIsNone(return_value)
-        assert not self.mock_builtin.set_test_variable.called
+        with mock.patch.object(
+            self.mock_builtin, "run_keyword_and_ignore_error", return_value=("PASS", 42)
+        ):
+            return_value = self.cli.do_shell("some keyword")
+            self.assertIsNone(return_value)
+            assert not self.mock_builtin.set_test_variable.called
 
     def test_shell_one_variable(self):
         """Verify that the shell command can set a single variable"""
-        self.mock_builtin.run_keyword_and_ignore_error.return_value = ("PASS", 42)
+        with mock.patch.object(
+            self.mock_builtin, "run_keyword_and_ignore_error", return_value=("PASS", 42)
+        ):
 
-        return_value = self.cli.do_shell("${value}  get variable value  ${whatever}")
-        self.assertIsNone(return_value)
+            return_value = self.cli.do_shell(
+                "${value}  get variable value  ${whatever}"
+            )
+            self.assertIsNone(return_value)
 
-        self.mock_builtin.run_keyword_and_ignore_error.assert_called_with(
-            "get variable value", "${whatever}"
-        )
-        self.mock_builtin.set_test_variable.assert_called_with("${value}", 42)
+            self.mock_builtin.run_keyword_and_ignore_error.assert_called_with(
+                "get variable value", "${whatever}"
+            )
+            self.mock_builtin.set_test_variable.assert_called_with("${value}", 42)
+
+    def test_shell_fail(self):
+        """Verify that if a shell command fails, variables aren't set"""
+        with mock.patch.object(
+            self.mock_builtin,
+            "run_keyword_and_ignore_error",
+            return_value=("FAIL", (None,)),
+        ):
+            return_value = self.cli.do_shell(
+                "${value1}  ${value2}   some keyword  ${whatever}"
+            )
+            self.assertIsNone(return_value)
+
+            self.mock_builtin.set_test_variable.assert_not_called()
 
     def test_shell_two_variables(self):
         """Verify that the shell command can set more than one variable"""
-        self.mock_builtin.run_keyword_and_ignore_error.return_value = (
-            "PASS",
-            ("Inigo", "Montoya"),
-        )
+        with mock.patch.object(
+            self.mock_builtin,
+            "run_keyword_and_ignore_error",
+            return_value=("PASS", ("Inigo", "Montoya")),
+        ):
+            return_value = self.cli.do_shell(
+                "${value1}  ${value2}   some keyword  ${whatever}"
+            )
+            self.assertIsNone(return_value)
 
-        return_value = self.cli.do_shell(
-            "${value1}  ${value2}   some keyword  ${whatever}"
-        )
-        self.assertIsNone(return_value)
+            self.mock_builtin.set_test_variable.assert_has_calls(
+                [mock.call("${value1}", "Inigo"), mock.call("${value2}", "Montoya")]
+            )
 
-        self.mock_builtin.set_test_variable.assert_has_calls(
-            [mock.call("${value1}", "Inigo"), mock.call("${value2}", "Montoya")]
-        )
-
-        # FIXME: need to add a test case for shell where a keyword that throws an error
-        # that requires examining stdout, which I haven't got working just yet...
+    def test_shell_exception(self):
+        with mock.patch.object(
+            self.mock_builtin,
+            "run_keyword_and_ignore_error",
+            side_effect=Exception("Danger, Will Robinson!"),
+        ):
+            self.cli.do_shell("${value1}  ${value2}   some keyword  ${whatever}")
+            self.assertEquals(
+                self.cli.stdout.getvalue(),
+                "error running keyword: Danger, Will Robinson!\n",
+            )
 
     def test_step(self):
         """Test the 'step' debugger command"""

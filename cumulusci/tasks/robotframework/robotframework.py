@@ -34,7 +34,7 @@ class Robot(BaseSalesforceTask):
         "pdb": {"description": "If true, run the Python debugger when tests fail."},
         "verbose": {"description": "If true, log each keyword as it runs."},
         "debug": {
-            "description": "If true, enable the `breakpoint` keyword to enable the robot deugger"
+            "description": "If true, enable the `breakpoint` keyword to enable the robot debugger"
         },
     }
 

@@ -22,6 +22,7 @@ class DebuggerCli(cmd.Cmd, object):
     # Robot redirects sys.stdout, so use the original handle
     # or whatever is passed in.
     def __init__(self, listener, stdout=sys.__stdout__):
+
         cmd.Cmd.__init__(self, stdout=stdout)
 
         self.listener = listener
@@ -52,11 +53,11 @@ class DebuggerCli(cmd.Cmd, object):
         else:
             super(DebuggerCli, self).default(line)
 
-    def do_continue(self, arg):
+    def do_continue(self, arg=None):
         """Let the test continue"""
         return True
 
-    def do_locate_elements(self, arg):
+    def do_locate_elements(self, locator):
         """Find and highlight all elements that match the given selenium locator
 
         Example:
@@ -64,18 +65,18 @@ class DebuggerCli(cmd.Cmd, object):
             rdb> locate_elements //button[@title='Learn More']
         """
         try:
-            elements = self.selenium.get_webelements(arg)
+            elements = self.selenium.get_webelements(locator)
             print("Found {} matches".format(len(elements)), file=self.stdout)
             for element in elements:
                 self._highlight_element(element)
 
         except InvalidSelectorException:
-            print("invalid locator '{}'".format(arg), file=self.stdout)
+            print("invalid locator '{}'".format(locator), file=self.stdout)
 
         except Exception as e:
             print(str(e), file=self.stdout)
 
-    def do_pdb(self, arg):
+    def do_pdb(self, arg=None):
         """Start pdb
 
         The context will be this function, which won't be particularly
@@ -84,7 +85,7 @@ class DebuggerCli(cmd.Cmd, object):
 
         pdb.Pdb(stdout=self.stdout).set_trace()
 
-    def do_reset_elements(self, arg):
+    def do_reset_elements(self, arg=None):
         """Remove all highlighting added by `locate_elements`"""
         elements = self.selenium.get_webelements("//*[@data-original-style]")
         for element in elements:
@@ -123,7 +124,7 @@ class DebuggerCli(cmd.Cmd, object):
         try:
             status, result = self.builtin.run_keyword_and_ignore_error(*statement)
             print("status: {}".format(status), file=self.stdout)
-            if not vars:
+            if not vars or status == "FAIL":
                 print("result: {}".format(result), file=self.stdout)
 
             else:
@@ -143,7 +144,7 @@ class DebuggerCli(cmd.Cmd, object):
         except Exception as e:
             print("error running keyword: {}".format(e), file=self.stdout)
 
-    def do_step(self, arg):
+    def do_step(self, arg=None):
         """Run the next step in the test
 
         This will run the line where the test is currently paused, and then
@@ -152,13 +153,13 @@ class DebuggerCli(cmd.Cmd, object):
         self.listener.do_step()
         return True
 
-    def do_vars(self, arg):
+    def do_vars(self, arg=None):
         """Print the value of all known variables"""
         vars = self.builtin.get_variables()
         vars = [["Variable", "Value"]] + [x for x in map(list, sorted(vars.items()))]
         CliTable(vars).echo()
 
-    def do_where(self, arg):
+    def do_where(self, arg=None):
         """
         Print the current robot stack (hierarchy of suites and tests,
         ending with the current keyword
