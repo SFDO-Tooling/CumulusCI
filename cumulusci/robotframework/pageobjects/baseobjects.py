@@ -64,6 +64,27 @@ class BasePage(object):
         else:
             return results[0]
 
+    def log_current_page_object(self):
+        """Logs the name of the current page object
+
+        The current page object is also returned as an object
+        """
+        polib = self.builtin.get_library_instance(
+            "cumulusci.robotframework.PageObjects"
+        )
+        if polib.current_page_object is None:
+            # this should not be possible, since this keyword is only available
+            # if you've loaded a page object. Still, better safe then sorry.
+            self.builtin.log("no page object has been loaded")
+            return None
+        else:
+            pobj = polib.current_page_object
+
+            self.builtin.log(
+                "current page object: {}".format(polib.current_page_object)
+            )
+            return pobj
+
 
 class ListingPage(BasePage):
     def _go_to_page(self, filter_name=None):
