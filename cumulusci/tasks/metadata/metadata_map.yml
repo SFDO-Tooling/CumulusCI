@@ -200,6 +200,14 @@ profiles:
     - type: Profile
       class: MetadataFilenameParser
       extension: profile
+profilePasswordPolicies:
+    - type: ProfilePasswordPolicy
+      class: MetadataFilenameParser
+      extension: profilePasswordPolicy
+profileSessionSettings:
+    - type: ProfileSessionSetting
+      class: MetadataFilenameParser
+      extension: profileSessionSetting
 permissionsets:
     - type: PermissionSet
       class: MetadataFilenameParser
