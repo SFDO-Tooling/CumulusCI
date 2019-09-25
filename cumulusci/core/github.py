@@ -3,15 +3,19 @@
 from future import standard_library
 
 standard_library.install_aliases()
-from builtins import str
 from future.utils import native_str_to_bytes
-from cumulusci.core.exceptions import GithubException
-from github3 import GitHub
-from github3 import login
+
+import os
+import requests
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
+from builtins import str
+
 import github3
-import os
+from github3 import GitHub
+from github3 import login
+from github3.pulls import ShortPullRequest
+from cumulusci.core.exceptions import GithubException
 
 # Prepare request retry policy to be attached to github sessions.
 # 401 is a weird status code to retry, but sometimes it happens spuriously
