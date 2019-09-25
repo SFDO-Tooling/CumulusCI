@@ -66,11 +66,9 @@ Insert 200 Pledged Opportunities
 *** Test Cases ***
 
 Perftest - Insert 200 Contacts
-    [Tags]  perf
     Insert 200 Contacts
 
 Perftest - Insert 200 Contacts With Addresses
-    [Tags]  perf
     @{objects}=  Generate Test Data  Contact  200  
         ...  FirstName={{fake.first_name}}
         ...  LastName={{fake.last_name}}
@@ -82,14 +80,12 @@ Perftest - Insert 200 Contacts With Addresses
     Salesforce Collection Insert  ${objects}
 
 Perftest - Insert 200 Pledged Opportunities
-    [Tags]  perf
     [Setup]   Run Keywords
     ...             Insert 200 Contacts
     ...     AND     Create Accounts If Necessary
     Insert 200 Pledged Opportunities
 
 Perftest - Change 200 Opportunity States to Closed-Won
-    [Tags]  perf
     [Setup]   Run Keywords
     ...             Insert 200 Contacts
     ...     AND     Create Accounts If Necessary
