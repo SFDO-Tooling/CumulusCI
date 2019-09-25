@@ -29,7 +29,7 @@ class DebuggerCli(cmd.Cmd, object):
 
         # some simple aliases.
         self.do_c = self.do_continue
-        self.do_l = self.do_locate_elements
+        self.do_le = self.do_locate_elements
         self.do_s = self.do_step
 
     @property
