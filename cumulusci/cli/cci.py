@@ -1068,6 +1068,8 @@ def org_scratch(config, config_name, org_name, default, devhub, days, no_passwor
     if default:
         config.keychain.set_default_org(org_name)
         click.echo("{} is now the default org".format(org_name))
+    else:
+        click.echo("{} is configured for use".format(org_name))
 
 
 @org.command(
