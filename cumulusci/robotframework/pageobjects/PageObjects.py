@@ -100,7 +100,7 @@ class PageObjects(object):
             keywords = get_keyword_names(pobj)
             logger.info("{}: {}".format(key, ", ".join(keywords)))
 
-    def _get_page_object(self, page_type, object_name):
+    def get_page_object(self, page_type, object_name):
 
         if (page_type, object_name) in self.registry:
             cls = self.registry[(page_type, object_name)]
@@ -157,9 +157,10 @@ class PageObjects(object):
         If this keyword is able to navigate to a page, the keywords for
         this page object will be loaded.
         """
-        pobj = self._get_page_object(page_type, object_name)
+        pobj = self.get_page_object(page_type, object_name)
         try:
             pobj._go_to_page(**kwargs)
+            self._set_current_page_object(pobj)
         except Exception:
             self.selenium.capture_page_screenshot()
             raise
@@ -170,7 +171,7 @@ class PageObjects(object):
         If this is the expected page, the keywords for this page
         object will be loaded.
         """
-        pobj = self._get_page_object(page_type, object_name)
+        pobj = self.get_page_object(page_type, object_name)
         try:
             pobj._is_current_page(**kwargs)
             self.load_page_object(page_type, object_name)
@@ -184,7 +185,7 @@ class PageObjects(object):
         The page type / object name pair must have been registered
         using the cumulusci.robotframework.pageobject decorator.
         """
-        pobj = self._get_page_object(page_type, object_name)
+        pobj = self.get_page_object(page_type, object_name)
         self._set_current_page_object(pobj)
         return pobj
 

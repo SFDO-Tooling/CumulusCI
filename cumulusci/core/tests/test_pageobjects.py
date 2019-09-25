@@ -26,6 +26,7 @@ FOO_PATH = os.path.join(HERE, "FooTestPage.py")
 BAR_PATH = os.path.join(HERE, "BarTestPage.py")
 CORE_KEYWORDS = [
     "current_page_should_be",
+    "get_page_object",
     "go_to_page",
     "load_page_object",
     "log_page_object_keywords",
@@ -112,7 +113,7 @@ class TestPageObjects(unittest.TestCase):
 
         MockGetLibraryInstance.libs["FooTestPage"] = _PageObjectLibrary(FooTestPage())
 
-        pobj = po._get_page_object("Test", "Foo__c")
+        pobj = po.get_page_object("Test", "Foo__c")
         self.assertIsInstance(pobj, _PageObjectLibrary)
         self.assertEquals(pobj._libname, "FooTestPage")
 
@@ -148,7 +149,7 @@ class TestPageObjects(unittest.TestCase):
                 FooTestPage()
             )
 
-            pobj = po._get_page_object("Test", "Foo__c")
+            pobj = po.get_page_object("Test", "Foo__c")
             self.assertEqual(pobj.object_name, "foobar__Foo__c")
 
     def test_non_namespaced_object_name(
@@ -165,5 +166,5 @@ class TestPageObjects(unittest.TestCase):
                 FooTestPage()
             )
 
-            pobj = po._get_page_object("Test", "Foo__c")
+            pobj = po.get_page_object("Test", "Foo__c")
             self.assertEqual(pobj.object_name, "Foo__c")
