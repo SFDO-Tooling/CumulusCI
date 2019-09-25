@@ -62,6 +62,22 @@ Go to page, using multiple generic pages
     Go to page  Detail  Contact
     Current page should be  Detail   Contact
 
+Get page object
+    [Documentation]
+    ...  Verify that we can call the `get page object` keyword and that
+    ...  it returns a page object
+    [Setup]  Load page object     About  Blank
+
+    ${pobj}=  Get page object  About  Blank
+    Should not be equal  ${pobj}  ${NONE}
+
+    @{keywords}=  Call method  ${pobj}  get_keyword_names
+
+    # The page object should have three keywords we defined, plus
+    # one from the base class BasePage
+    ${expected}=  Create list  hello  keyword_one  keyword_two  log_current_page_object
+    Lists should be equal  ${keywords}  ${expected}
+
 Call keyword of defined page object
     [Documentation]
     ...  Verify we can call a keyword in a defined page object
