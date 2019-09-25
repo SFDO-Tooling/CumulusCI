@@ -3,10 +3,8 @@ import pytest
 
 from github3.pulls import ShortPullRequest
 
-from cumulusci.tests.conftest import gh_api
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.config import ServiceConfig
-from cumulusci.core.github import get_github_api
 from cumulusci.tests.util import create_project_config
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.tasks.release_notes.task import GithubReleaseNotes
@@ -81,11 +79,11 @@ class TestParentPullRequestNotes(GithubApiTestMixin):
 
     def test_run_task_without_options(self, task_factory):
         with pytest.raises(TaskOptionsError):
-            task = task_factory({"options": {}})
+            task_factory({"options": {}})
 
     def test_run_task_with_both_options(self, task_factory):
         with pytest.raises(TaskOptionsError):
-            task = task_factory(
+            task_factory(
                 {
                     "options": {
                         "branch_name": "test_branch",
