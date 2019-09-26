@@ -1021,5 +1021,5 @@ class TestOrgConfig(unittest.TestCase):
         """Verify an exception is thrown when the community doesn't exist"""
         config = OrgConfig({}, "test")
         expected_exception = "Unable to find community information for 'bogus'"
-        with self.assertRaisesRegexp(Exception, expected_exception):
+        with self.assertRaisesRegex(Exception, expected_exception):
             config.get_community_info("bogus")

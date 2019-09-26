@@ -792,6 +792,7 @@ class TestApiListMetadata(BaseTestMetadataApi):
 
 
 class TestApiRetrieveUnpackaged(BaseTestMetadataApi):
+    maxDiff = None
     api_class = ApiRetrieveUnpackaged
     envelope_start = retrieve_unpackaged_start_envelope
 
