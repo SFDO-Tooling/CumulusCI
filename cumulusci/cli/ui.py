@@ -13,6 +13,16 @@ from terminaltables import AsciiTable, SingleTable
 CHECKMARK = click.style("✔" if os.name == "posix" else "+", fg="green")
 CROSSMARK = click.style("✘" if os.name == "posix" else "-", fg="red")
 
+unicode = type(u"")
+PY2 = unicode is not str
+
+
+def encode(value):
+    # if unicode is not str
+    if PY2 and isinstance(value, unicode):
+        value = value.encode("utf8")
+    return value
+
 
 class CliTable:
     """Format and print data to the command line in tabular form.
@@ -39,6 +49,7 @@ class CliTable:
             bool_cols: List[str] of columns containing booleans to stringify.
             dim_rows: List[int] of row indices to dim.
         """
+        data = [[encode(col) for col in row] for row in data]
         self._data = data
         self._header = data[0]
         self._title = title
