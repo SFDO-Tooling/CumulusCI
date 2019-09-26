@@ -208,6 +208,7 @@ class TestRobotDebugger(unittest.TestCase):
         self.cli._highlight_element.assert_has_calls(
             [mock.call("Element1"), mock.call("Element2")]
         )
+        self.assertEquals(self.cli.stdout.getvalue(), "Found 2 matches\n")
 
     @mock.patch.object(debugger.DebuggerCli, "selenium", mock.Mock())
     def test_locate_elements_exception_handling(self):
@@ -233,6 +234,13 @@ class TestRobotDebugger(unittest.TestCase):
         self.assertIsNone(return_value)
         self.cli._highlight_element.assert_not_called()
         self.assertEquals(self.cli.stdout.getvalue(), "something unexpected\n")
+
+    @mock.patch.object(debugger.DebuggerCli, "selenium", mock.Mock())
+    def test_highlight_element_executes_javascript(self):
+        mock_element = mock.Mock()
+        mock_element.get_attribute.return_value = ""
+        self.cli._highlight_element(mock_element)
+        self.cli.selenium.driver.execute_script.assert_called()
 
     @mock.patch.object(debugger.DebuggerCli, "selenium", mock.Mock())
     def test_reset_elements(self):

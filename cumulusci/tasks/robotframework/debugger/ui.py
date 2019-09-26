@@ -181,7 +181,15 @@ class DebuggerCli(cmd.Cmd, object):
         print("", file=self.stdout)
 
     def _highlight_element(self, element):
-        """Highlight a Selenium Webdriver element"""
+        """Highlight a Selenium Webdriver element
+
+        This works by replacing the `style` attribute of the element with
+        a custom style. The original style is saved in a custom attribute
+        named `data-original-style`, which is used by _restore_element_style.
+
+        If the element already has a data-original-style attribute it will
+        not be overwritten.
+        """
 
         element_style = """
             box-shadow: 0px 1px 4px 2px inset #FFFF00;
