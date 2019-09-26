@@ -37,6 +37,21 @@ flows:
                 task: robot_libdoc
             2:
                 task: robot_testdoc
+    test_performance_scratch:
+        description: Test performance of a scratch org
+        steps:
+            1: 
+                task: robot
+                options:
+                    suites: cumulusci/robotframework/perftests/short
+    test_performance_LDV:
+        description: Test performance in an LDV org
+        steps:
+            1: 
+                task: robot
+                options:
+                    suites: cumulusci/robotframework/perftests
+
 
 orgs:
     scratch:
