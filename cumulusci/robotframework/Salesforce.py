@@ -743,3 +743,12 @@ class Salesforce(object):
             self.selenium.capture_page_screenshot()
             time.sleep(interval)
             self.selenium.go_to(login_url)
+
+    def breakpoint(self):
+        """Serves as a breakpoint for the robot debugger
+
+        Note: this keyword is a no-op unless the debug option for
+        the task has been set to True. Unless the option has been
+        set, this keyword will have no effect on a running test.
+        """
+        return None
