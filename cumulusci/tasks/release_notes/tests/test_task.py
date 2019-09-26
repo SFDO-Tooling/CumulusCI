@@ -45,8 +45,21 @@ class TestGithubReleaseNotes:
 
 class TestParentPullRequestNotes(GithubApiTestMixin):
 
-    BRANCH_NAME = "feature/long__test-branch"
-    BUILD_NOTES_LABEL = "Build Notes"
+    BUILD_NOTES_LABEL = "Build Change Notes"
+    PARENT_BRANCH_NAME = "feature/long-feature"
+    CHILD_BRANCH_NAME = "feature/long-feature__child-branch"
+    PARENT_BRANCH_OPTIONS = {
+        "options": {
+            "branch_name": PARENT_BRANCH_NAME,
+            "build_notes_label": BUILD_NOTES_LABEL,
+        }
+    }
+    CHILD_BRANCH_OPTIONS = {
+        "options": {
+            "branch_name": CHILD_BRANCH_NAME,
+            "build_notes_label": BUILD_NOTES_LABEL,
+        }
+    }
 
     @pytest.fixture
     def project_config(self):
@@ -77,57 +90,30 @@ class TestParentPullRequestNotes(GithubApiTestMixin):
 
         return _task_factory
 
-    def test_run_task_without_options(self, task_factory):
-        with pytest.raises(TaskOptionsError):
-            task_factory({"options": {}})
+    def test_setup_self(self, task_factory):
+        task = task_factory(self.PARENT_BRANCH_OPTIONS)
+        task._setup_self()
 
-    def test_run_task_with_both_options(self, task_factory):
-        with pytest.raises(TaskOptionsError):
-            task_factory(
-                {
-                    "options": {
-                        "branch_name": "test_branch",
-                        "parent_branch_name": "parent_branch",
-                        "build_notes_label": self.BUILD_NOTES_LABEL,
-                    }
-                }
-            )
+        assert task.repo is not None
+        assert task.commit is not None
+        assert task.generator is not None
+        assert task.branch_name is not None
 
-    def test_run_task__branch_option(self, task_factory):
-        task = task_factory(
-            {
-                "options": {
-                    "branch_name": self.BRANCH_NAME,
-                    "build_notes_label": self.BUILD_NOTES_LABEL,
-                }
-            }
-        )
-        task._handle_branch_name_option = mock.Mock()
-        task._handle_parent_branch_name_option = mock.Mock()
-        task._run_task()
+    def test_has_parent_branch(self, task_factory):
+        task = task_factory(self.PARENT_BRANCH_OPTIONS)
+        task.branch_name = "feature/parent_branch_naming_convention"
+        assert task._has_parent_branch()
+        task.branch_name = "feature/child__branch_naming_convention"
+        assert not task._has_parent_branch()
 
-        task._handle_branch_name_option.assert_called_once()
-        assert (
-            not task._handle_parent_branch_name_option.called
-        ), "method should not have been called"
+    def test_commit_is_merge(self, task_factory):
+        task = task_factory(self.PARENT_BRANCH_OPTIONS)
+        task.commit = mock.Mock()
+        task.commit.parents = [1, 2]
+        assert task._commit_is_merge()
 
-    def test_run_task__parent_branch_option(self, task_factory):
-        task = task_factory(
-            {
-                "options": {
-                    "parent_branch_name": self.BRANCH_NAME,
-                    "build_notes_label": self.BUILD_NOTES_LABEL,
-                }
-            }
-        )
-        task._handle_branch_name_option = mock.Mock()
-        task._handle_parent_branch_name_option = mock.Mock()
-        task._run_task()
-
-        task._handle_parent_branch_name_option.assert_called_once()
-        assert (
-            not task._handle_branch_name_option.called
-        ), "method should not have been called"
+        task.commit.parents = [1]
+        assert not task._commit_is_merge()
 
     @mock.patch("cumulusci.tasks.release_notes.task.get_pull_requests_with_base_branch")
     def test_get_parent_pull_request__parent_pull_request_exists(
@@ -139,18 +125,14 @@ class TestParentPullRequestNotes(GithubApiTestMixin):
             ShortPullRequest(self._get_expected_pull_request(1, 1, "Body"), gh_api)
         ]
 
-        task = task_factory(
-            {
-                "options": {
-                    "branch_name": self.BRANCH_NAME,
-                    "build_notes_label": self.BUILD_NOTES_LABEL,
-                }
-            }
-        )
+        task = task_factory(self.PARENT_BRANCH_OPTIONS)
+        task._setup_self()
         task.repo.default_branch = "master"
 
-        actual_pull_request = task._get_parent_pull_request(self.BRANCH_NAME)
-        get_pull_request.assert_called_once_with(task.repo, "master", self.BRANCH_NAME)
+        actual_pull_request = task._get_parent_pull_request()
+        get_pull_request.assert_called_once_with(
+            task.repo, "master", self.PARENT_BRANCH_NAME
+        )
         assert 1 == actual_pull_request.number
         assert "Body" == actual_pull_request.body
 
@@ -174,185 +156,45 @@ class TestParentPullRequestNotes(GithubApiTestMixin):
             self._get_expected_pull_request(62, 62, "parent body"), gh_api
         )
 
-        label_name = "Build Change Notes"
-        task = task_factory(
-            {
-                "options": {
-                    "branch_name": self.BRANCH_NAME,
-                    "build_notes_label": label_name,
-                }
-            }
-        )
-        task.build_notes_label = label_name
+        task = task_factory(self.PARENT_BRANCH_OPTIONS)
+        task._setup_self()
 
-        actual_pull_request = task._get_parent_pull_request(self.BRANCH_NAME)
+        actual_pull_request = task._get_parent_pull_request()
         get_pull_request.assert_called_once_with(
-            task.repo, task.repo.default_branch, self.BRANCH_NAME
+            task.repo, task.repo.default_branch, self.PARENT_BRANCH_NAME
         )
         assert 62 == actual_pull_request.number
         assert "parent body" == actual_pull_request.body
 
-    @mock.patch("cumulusci.tasks.release_notes.task.get_pull_requests_with_base_branch")
-    def test_handle_parent_branch_name_option__no_branch_found(
-        self, get_pull_request, task_factory, project_config
-    ):
-        self.init_github()
-        self.project_config = project_config  # GithubApiMixin wants this
-
-        get_pull_request.return_value = []
-
-        task = task_factory(
-            {
-                "options": {
-                    "parent_branch_name": self.BRANCH_NAME,
-                    "build_notes_label": self.BUILD_NOTES_LABEL,
-                }
-            }
-        )
-
-        task._handle_parent_branch_name_option(mock.Mock(), self.BRANCH_NAME)
-        task.logger.info.assert_called_once_with(
-            "No pull request found for branch: {}. Exiting...".format(self.BRANCH_NAME)
-        )
-
-    @mock.patch("cumulusci.tasks.release_notes.task.get_pull_requests_with_base_branch")
-    def test_handle_parent_branch_name_option__multiple_branches_found(
-        self, get_pull_request, task_factory, project_config
-    ):
-        self.init_github()
-        self.project_config = project_config  # GithubApiMixin wants this
-
-        get_pull_request.return_value = ["Pull Request 1", "Pull Request 2"]
-
-        task = task_factory(
-            {
-                "options": {
-                    "parent_branch_name": self.BRANCH_NAME,
-                    "build_notes_label": self.BUILD_NOTES_LABEL,
-                }
-            }
-        )
-
-        task._handle_parent_branch_name_option(mock.Mock(), self.BRANCH_NAME)
-        task.logger.info.assert_called_once_with(
-            "More than one pull request returned with base='master' for branch {}".format(
-                self.BRANCH_NAME
-            )
-        )
-
     @mock.patch("cumulusci.tasks.release_notes.task.is_label_on_pull_request")
-    @mock.patch("cumulusci.tasks.release_notes.task.get_pull_requests_with_base_branch")
-    def test_handle_parent_branch_name_option__branch_found(
-        self, get_pr, is_label_on_pr, task_factory, project_config, gh_api
+    @mock.patch("cumulusci.tasks.release_notes.task.ParentPullRequestNotesGenerator")
+    def test_run_task__label_not_found(
+        self, notes_generator, label_found, task_factory, project_config, gh_api
     ):
         self.init_github()
         self.project_config = project_config  # GithubApiMixin wants this
-
-        pull_request = ShortPullRequest(
-            self._get_expected_pull_request(1, 1, "Body"), gh_api
-        )
-        pull_request.base.ref = "master"
-        get_pr.return_value = [pull_request]
-        is_label_on_pr.return_value = True
-
-        generator = mock.Mock()
-        task = task_factory(
-            {
-                "options": {
-                    "branch_name": self.BRANCH_NAME,
-                    "build_notes_label": self.BUILD_NOTES_LABEL,
-                }
-            }
-        )
-        task._handle_parent_branch_name_option(generator, self.BRANCH_NAME)
-
-        generator.aggregate_child_change_notes.assert_called_once_with(pull_request)
-
-    @mock.patch("cumulusci.tasks.release_notes.task.get_pull_requests_by_head")
-    def test_handle_branch_name_option__branch_not_child(self, get_pr, task_factory):
-        get_pr.return_values = None
-        task = task_factory(
-            {
-                "options": {
-                    "branch_name": self.BRANCH_NAME,
-                    "build_notes_label": self.BUILD_NOTES_LABEL,
-                }
-            }
-        )
-        task.logger = mock.Mock()
-
-        generator = mock.Mock()
-        get_pr.return_value = None
-
-        not_child_branch = "not-child-branch-format"
-        task._handle_branch_name_option(generator, not_child_branch)
-
-        task.logger.info.assert_called_once_with(
-            "Branch {} is not a child branch. Exiting...".format(not_child_branch)
-        )
-
-    @mock.patch("cumulusci.tasks.release_notes.task.is_label_on_pull_request")
-    @mock.patch("cumulusci.tasks.release_notes.task.get_pull_requests_by_head")
-    def test_handle_branch_name_option__review_label_found(
-        self, get_pr, label_found, task_factory, project_config, gh_api
-    ):
-        self.init_github()
-        self.project_config = project_config  # GithubApiMixin wants this
-        get_pr.return_values = None
-        task = task_factory(
-            {
-                "options": {
-                    "branch_name": self.BRANCH_NAME,
-                    "build_notes_label": self.BUILD_NOTES_LABEL,
-                }
-            }
-        )
-        task.logger = mock.Mock()
-        task.build_notes_label = self.BUILD_NOTES_LABEL
-
-        generator = mock.Mock()
-        label_found.return_value = True
-
-        pull_request = ShortPullRequest(
-            self._get_expected_pull_request(1, 1, "Body"), gh_api
-        )
-        pull_request.base.ref = "feature/cool-new-thing"
-        get_pr.return_value = pull_request
-        task._get_parent_pull_request = mock.Mock(return_value=pull_request)
-
-        task._handle_branch_name_option(generator, self.BRANCH_NAME)
-        assert not generator.update_unaggregated_pr_header.called
-        generator.aggregate_child_change_notes.assert_called_once()
-
-    @mock.patch("cumulusci.tasks.release_notes.task.is_label_on_pull_request")
-    @mock.patch("cumulusci.tasks.release_notes.task.get_pull_requests_by_head")
-    def test_handle_branch_name_option__review_label_not_found(
-        self, get_pr, label_found, task_factory, project_config, gh_api
-    ):
-        self.init_github()
-        self.project_config = project_config  # GithubApiMixin wants this
-        get_pr.return_values = None
-        task = task_factory(
-            {
-                "options": {
-                    "branch_name": self.BRANCH_NAME,
-                    "build_notes_label": self.BUILD_NOTES_LABEL,
-                }
-            }
-        )
-        task.logger = mock.Mock()
-        task.build_notes_label = self.BUILD_NOTES_LABEL
-
-        generator = mock.Mock()
         label_found.return_value = False
+        notes_generator.retun_value = mock.Mock()
+        child_branch_name = "feature/child__branch1"
+
+        task = task_factory(self.PARENT_BRANCH_OPTIONS)
+        task.logger = mock.Mock()
+        task._commit_is_merge = mock.Mock(return_value=True)
+        task._get_child_branch_name_from_merge_commit = mock.Mock(
+            return_value=child_branch_name
+        )
+        task.repo = mock.Mock()
+        task.repo.owner.login = "SFDO-Tooling"
 
         pull_request = ShortPullRequest(
             self._get_expected_pull_request(1, 1, "Body"), gh_api
         )
         pull_request.base.ref = "feature/cool-new-thing"
-        get_pr.return_value = pull_request
         task._get_parent_pull_request = mock.Mock(return_value=pull_request)
 
-        task._handle_branch_name_option(generator, self.BRANCH_NAME)
-        assert not generator.aggregate_child_change_notes.called
-        generator.update_unaggregated_pr_header.assert_called_once()
+        task._run_task()
+        task.generator.update_unaggregated_pr_header.assert_called_once_with(
+            pull_request, child_branch_name
+        )
+        assert not task.generator.aggregate_child_change_notes.called
+
