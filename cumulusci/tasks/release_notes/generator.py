@@ -2,6 +2,7 @@ import github3.exceptions
 
 from cumulusci.core.utils import import_global
 from cumulusci.core.github import (
+    is_pull_request_merged,
     is_label_on_pull_request,
     get_pull_requests_by_head,
     get_pull_requests_with_base_branch,
@@ -134,9 +135,11 @@ class ParentPullRequestNotesGenerator(BaseReleaseNotesGenerator):
         Child pull requests are pull requests that have a base branch
         equal to the the given pull request's head."""
         self.change_notes = get_pull_requests_with_base_branch(
-            self.repo, pull_request.head.ref
+            self.repo, pull_request.head.ref, state="all"
         )
-        self.change_notes = list(filter(is_merged, self.change_notes))
+        self.change_notes = [
+            note for note in self.change_notes if is_pull_request_merged(note)
+        ]
         if len(self.change_notes) == 0:
             return
 
@@ -168,7 +171,10 @@ class ParentPullRequestNotesGenerator(BaseReleaseNotesGenerator):
             body += self.UNAGGREGATED_SECTION_HEADER
 
         pull_requests = get_pull_requests_with_base_branch(
-            self.repo, branch_name_to_add.split("__")[0], branch_name_to_add
+            self.repo,
+            branch_name_to_add.split("__")[0],
+            branch_name_to_add,
+            state="all",
         )
 
         if len(pull_requests) == 0:
@@ -187,10 +193,6 @@ class ParentPullRequestNotesGenerator(BaseReleaseNotesGenerator):
             body += "\r\n* " + pull_request_link
             pull_request_to_update.update(body=body)
             return
-
-
-def is_merged(pull_request):
-    return pull_request.merged_at is not None
 
 
 class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator):
