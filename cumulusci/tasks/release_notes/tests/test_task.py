@@ -173,7 +173,6 @@ class TestParentPullRequestNotes(GithubApiTestMixin):
     ):
         self.init_github()
         self.project_config = project_config  # GithubApiMixin wants this
-        label_found.return_value = False
         notes_generator.retun_value = mock.Mock()
         child_branch_name = "feature/child__branch1"
 
@@ -192,9 +191,76 @@ class TestParentPullRequestNotes(GithubApiTestMixin):
         pull_request.base.ref = "feature/cool-new-thing"
         task._get_parent_pull_request = mock.Mock(return_value=pull_request)
 
+        label_found.return_value = False
         task._run_task()
         task.generator.update_unaggregated_pr_header.assert_called_once_with(
             pull_request, child_branch_name
         )
         assert not task.generator.aggregate_child_change_notes.called
+
+    @mock.patch("cumulusci.tasks.release_notes.task.is_label_on_pull_request")
+    @mock.patch("cumulusci.tasks.release_notes.task.ParentPullRequestNotesGenerator")
+    def test_run_task__label_found(
+        self, notes_generator, label_found, task_factory, project_config, gh_api
+    ):
+        self.init_github()
+        self.project_config = project_config  # GithubApiMixin wants this
+        notes_generator.retun_value = mock.Mock()
+        child_branch_name = "feature/child__branch1"
+
+        task = task_factory(self.PARENT_BRANCH_OPTIONS)
+        task.logger = mock.Mock()
+        task._commit_is_merge = mock.Mock(return_value=True)
+        task._get_child_branch_name_from_merge_commit = mock.Mock(
+            return_value=child_branch_name
+        )
+        task.repo = mock.Mock()
+        task.repo.owner.login = "SFDO-Tooling"
+
+        pull_request = ShortPullRequest(
+            self._get_expected_pull_request(1, 1, "Body"), gh_api
+        )
+        pull_request.base.ref = "feature/cool-new-thing"
+        task._get_parent_pull_request = mock.Mock(return_value=pull_request)
+
+        label_found.return_value = True
+        task._run_task()
+        task.generator.aggregate_child_change_notes.assert_called_once_with(
+            pull_request
+        )
+        assert not task.generator.update_unaggregated_pr_header.called
+
+    @mock.patch("cumulusci.tasks.release_notes.task.get_pull_requests_by_commit")
+    @mock.patch("cumulusci.tasks.release_notes.task.is_pull_request_merged")
+    def test_get_child_branch_name_from_merge_commit(
+        self, is_merged, get_pr, task_factory, gh_api, project_config
+    ):
+        self.init_github()
+        self.project_config = project_config
+        task = task_factory(self.PARENT_BRANCH_OPTIONS)
+        task._setup_self()
+        task.branch_name = self.PARENT_BRANCH_NAME
+        task.commit = mock.Mock()
+        task.commit.sha = "asdf1234asdf1234"
+
+        is_merged.return_value = True
+
+        to_return = ShortPullRequest(self._get_expected_pull_request(1, 1), gh_api)
+        to_return.merged_at = "DateTimeStr"
+        get_pr.return_value = [to_return]
+
+        child_branch_name = task._get_child_branch_name_from_merge_commit()
+        assert to_return.head.ref == child_branch_name
+
+        additional_pull_request = ShortPullRequest(
+            self._get_expected_pull_request(2, 2), gh_api
+        )
+        get_pr.return_value = [to_return, additional_pull_request]
+        child_branch_name = task._get_child_branch_name_from_merge_commit()
+        assert child_branch_name is None
+        assert task.logger.error.called_once_with(
+            "Received multiple pull request,s expected one, for commit sha: {}".format(
+                task.commit.sha
+            )
+        )
 

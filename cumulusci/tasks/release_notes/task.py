@@ -10,11 +10,12 @@ from cumulusci.tasks.release_notes.generator import (
 )
 from cumulusci.core.github import (
     create_pull_request,
+    is_pull_request_merged,
     is_label_on_pull_request,
     add_labels_to_pull_request,
     get_pull_requests_by_head,
-    get_pull_requests_with_base_branch,
     get_pull_requests_by_commit,
+    get_pull_requests_with_base_branch,
 )
 
 
@@ -169,8 +170,9 @@ class ParentPullRequestNotes(BaseGithubTask):
         merged_prs = list(filter(is_pull_request_merged, pull_requests))
 
         child_branch_name = None
-        if len(merged_prs) == 1 and merged_prs[0].base.ref == self.branch_name:
+        if len(merged_prs) == 1:
             return merged_prs[0].head.ref
+
         else:
             self.logger.error(
                 "Received multiple pull requests, expected one, for commit sha: {}".format(
@@ -180,11 +182,3 @@ class ParentPullRequestNotes(BaseGithubTask):
 
         return child_branch_name
 
-    def _is_parent_branch_base_branch(self, pull_request):
-        """Returns True if self.branch_name is the base branch of target pull_request"""
-        True if pull_request.base.ref == self.branch_name else False
-
-
-def is_pull_request_merged(pull_request):
-    """Takes a github3.pulls.ShortPullRequest"""
-    return pull_request.merged_at is not None
