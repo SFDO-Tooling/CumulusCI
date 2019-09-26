@@ -135,3 +135,9 @@ def get_pull_requests_by_commit(github, repo, commit_sha):
         json["body_text"] = ""
 
     return [ShortPullRequest(json, github) for json in json_list]
+
+
+def is_pull_request_merged(pull_request):
+    """Takes a github3.pulls.ShortPullRequest object"""
+    return pull_request.merged_at is not None
+
