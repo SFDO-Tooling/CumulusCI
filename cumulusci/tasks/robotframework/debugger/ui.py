@@ -1,5 +1,7 @@
 from __future__ import print_function
 import cmd
+import os
+import signal
 import textwrap
 import sys
 import re
@@ -84,6 +86,11 @@ class DebuggerCli(cmd.Cmd, object):
         """
 
         pdb.Pdb(stdout=self.stdout).set_trace()
+
+    def do_quit(self, arg=None):
+        """Cause robot to quit gracefully (all remaining tests will be skipped)"""
+        os.kill(os.getpid(), signal.SIGTERM)
+        return True
 
     def do_reset_elements(self, arg=None):
         """Remove all highlighting added by `locate_elements`"""

@@ -1,3 +1,5 @@
+import os
+import signal
 import mock
 import unittest
 from cumulusci.tasks.robotframework import debugger
@@ -345,6 +347,11 @@ class TestRobotDebugger(unittest.TestCase):
         self.cli.do_vars("")
         mock_clitbl.assert_called_with([["Variable", "Value"], ["one", 1], ["two", 2]])
         mock_clitbl.return_value.echo.assert_called()
+
+    def test_quit(self):
+        with mock.patch("os.kill") as mock_kill:
+            self.cli.do_quit("")
+            mock_kill.assert_called_with(os.getpid(), signal.SIGTERM)
 
 
 class TestInternalModels(unittest.TestCase):
