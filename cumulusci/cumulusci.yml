@@ -423,11 +423,6 @@ flows:
     ci_feature:
         description: Prepare an unmanaged metadata test org and run apex tests.  Intended for use against feature branch commits.
         steps:
-            0.5:
-                task: github_parent_pr_notes
-                options:
-                    branch_name: $project_config.repo_branch
-                    build_notes_label: "Build Change Notes"
             1:
                 flow: dependencies
             2:
