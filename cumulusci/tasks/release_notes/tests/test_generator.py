@@ -3,6 +3,7 @@ import re
 import mock
 import os
 import json
+import time
 import pytest
 import unittest
 import responses
@@ -501,20 +502,25 @@ class TestParentPullRequestNotesGenerator(GithubApiTestMixin):
         )
         generator.aggregate_child_change_notes(parent_pr)
 
-    @responses.activate
+    @mock.patch(
+        "cumulusci.tasks.release_notes.generator.get_pull_requests_with_base_branch"
+    )
     def test_aggregate_child_change_notes__update_fails(
-        self, generator, mock_util, gh_api
+        self, get_pull, generator, mock_util, gh_api
     ):
         self.init_github()
-        pr_json = self._get_expected_pull_request(1, 1, "Small dev note")
-        mock_util.mock_pulls(pulls=[pr_json])
+        # pr_json = self._get_expected_pull_request(1, 1, "Small dev note")
+        # pr_json["merged_at"] = time.clock()
+        # mock_util.mock_pulls(pulls=[pr_json])
 
         parent_body = "Body of Parent PR"
         pr_json = self._get_expected_pull_request(3, 3, parent_body)
         parent_pr = ShortPullRequest(pr_json, gh_api)
+        parent_pr.merged_at = "Yesterday"
         parent_pr.head.label = "repo:some-other-branch"
-
         parent_pr.update = mock.Mock(return_value=False)
+
+        get_pull.return_value = [parent_pr]
         with pytest.raises(CumulusCIException):
             generator.aggregate_child_change_notes(parent_pr)
         parent_pr.update.assert_called_once()
