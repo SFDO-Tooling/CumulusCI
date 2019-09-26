@@ -1,4 +1,3 @@
-from builtins import str
 from cumulusci.core.exceptions import ApexTestException
 from cumulusci.core.exceptions import SalesforceException
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
@@ -36,7 +35,7 @@ class PackageUpload(BaseSalesforceApiTask):
         self.upload_id = None
 
         # Set the namespace option to the value from cumulusci.yml if not already set
-        if not "namespace" in self.options:
+        if "namespace" not in self.options:
             self.options["namespace"] = self.project_config.project__package__namespace
 
     def _run_task(self):

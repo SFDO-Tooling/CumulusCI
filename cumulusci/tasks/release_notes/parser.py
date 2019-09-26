@@ -1,4 +1,3 @@
-from builtins import str
 import re
 
 import github3.exceptions

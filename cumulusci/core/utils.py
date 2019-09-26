@@ -3,13 +3,6 @@
 import_global: task class defn import helper
 process_bool_arg: determine true/false for a commandline arg
 decode_to_unicode: get unicode string from sf api """
-from __future__ import unicode_literals
-
-from builtins import bytes, int, str
-
-
-from past.builtins import basestring
-from future.utils import native_str
 
 from datetime import datetime
 import copy
@@ -26,8 +19,8 @@ def import_global(path):
     components = path.split(".")
     module = components[:-1]
     module = ".".join(module)
-    mod = __import__(module, fromlist=[native_str(components[-1])])
-    return getattr(mod, native_str(components[-1]))
+    mod = __import__(module, fromlist=[str(components[-1])])
+    return getattr(mod, str(components[-1]))
 
 
 # For backwards-compatibility
@@ -44,7 +37,7 @@ def process_bool_arg(arg):
     """ Determine True/False from argument """
     if isinstance(arg, bool):
         return arg
-    elif isinstance(arg, basestring):
+    elif isinstance(arg, str):
         if arg.lower() in ["true", "1"]:
             return True
         elif arg.lower() in ["false", "0"]:
@@ -55,7 +48,7 @@ def process_list_arg(arg):
     """ Parse a string into a list separated by commas with whitespace stripped """
     if isinstance(arg, list):
         return arg
-    elif isinstance(arg, basestring):
+    elif isinstance(arg, str):
         args = []
         for part in arg.split(","):
             args.append(part.strip())
