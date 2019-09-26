@@ -38,7 +38,7 @@ Create Accounts If Necessary
     Salesforce Collection Update  ${CONTACTS}
 
 
-Insert 200 Pledged Opportunities
+Insert 200 Prospecting Opportunities
     [Documentation]  Create 200 Opportunities in OPPORTUNITIES suite variable
     ...             Associate with accounts queried from Salesforce
     ...             These may have been created by ``Create Accounts If Necessary``
@@ -49,7 +49,7 @@ Insert 200 Pledged Opportunities
     ${date}=    Get Current Date     result_format=%Y-%m-%d
     @{objects}=  Generate Test Data  Opportunity  200  
         ...  Name=Opp {{number}}
-        ...  StageName=Pledged
+        ...  StageName=Prospecting
         ...  Amount={{1000 + number}}
         ...  CloseDate=${date}
     ${numobjects}=  Get Length     ${objects}
@@ -79,17 +79,17 @@ Perftest - Insert 200 Contacts With Addresses
         ...  Email={{fake.email(domain="salesforce.com")}}
     Salesforce Collection Insert  ${objects}
 
-Perftest - Insert 200 Pledged Opportunities
+Perftest - Insert 200 Prospecting Opportunities
     [Setup]   Run Keywords
     ...             Insert 200 Contacts
     ...     AND     Create Accounts If Necessary
-    Insert 200 Pledged Opportunities
+    Insert 200 Prospecting Opportunities
 
 Perftest - Change 200 Opportunity States to Closed-Won
     [Setup]   Run Keywords
     ...             Insert 200 Contacts
     ...     AND     Create Accounts If Necessary
-    ...     AND     Insert 200 Pledged Opportunities
+    ...     AND     Insert 200 Prospecting Opportunities
 
     FOR     ${record}   IN  @{OPPORTUNITIES}
         Set To Dictionary   ${record}   StageName   Closed Won

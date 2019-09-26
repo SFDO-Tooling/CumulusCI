@@ -68,3 +68,15 @@ class TestKeyword_wait_until_salesforce_is_ready(unittest.TestCase):
 
             self.sflib.selenium.capture_page_screenshot.assert_called()
             self.assertEqual(self.sflib.wait_for_aura.call_count, 2)
+
+
+@mock.patch("robot.libraries.BuiltIn.BuiltIn._get_context")
+class TestKeyword_breakpoint(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        super(TestKeyword_breakpoint, cls).setUpClass()
+        cls.sflib = Salesforce(locators={"body": "//whatever"})
+
+    def test_breakpoint(self, mock_robot_context):
+        """Verify that the keyword doesn't raise an exception"""
+        self.assertIsNone(self.sflib.breakpoint())
