@@ -22,6 +22,7 @@ class DebugListener(object):
     ROBOT_LISTENER_API_VERSION = 2
 
     def __init__(self, *breakpoints):
+        self.show_initial_help = True
         self.current_file = None
         self.stack = []
         self.rdb = DebuggerCli(listener=self)
@@ -80,9 +81,15 @@ class DebugListener(object):
                 if breakpoint.temporary:
                     self.breakpoints.remove(breakpoint)
 
+                intro = "\n"
+                if self.show_initial_help:
+                    self.show_initial_help = False
+                    intro += self.rdb.intro
+                intro += "\n> {}\n-> {}".format(
+                    self.stack[-2].longname, str(self.stack[-1])
+                )
+
                 # Note: this call won't return until a debugger command
                 # has been issued which returns True (eg: 'continue' or 'step')
-                self.rdb.cmdloop(
-                    "\n> {}\n-> {}".format(self.stack[-2].longname, str(self.stack[-1]))
-                )
+                self.rdb.cmdloop(intro)
                 return

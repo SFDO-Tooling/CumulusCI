@@ -101,6 +101,10 @@ class TestDebugListener(unittest.TestCase):
         )
         listener = debugger.DebugListener(bp1, bp2)
         listener.rdb = mock.Mock()
+        # The listener uses the .intro attribute as a string, so
+        # we need to set it to something so that the listener
+        # doesnt' crash.
+        listener.rdb.intro = "... intro ..."
         self.assertEqual(len(listener.breakpoints), 2)
 
         listener.start_suite("Suite", attrs={})

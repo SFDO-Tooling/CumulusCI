@@ -13,8 +13,10 @@ from selenium.common.exceptions import InvalidSelectorException
 
 class DebuggerCli(cmd.Cmd, object):
     intro = textwrap.dedent(
-        """\
-        Welcome to rdb, the Robot Framework debugger
+        """
+        :::
+        ::: Welcome to rdb, the Robot Framework debugger
+        :::
 
         Type help or ? to list commands.
     """
