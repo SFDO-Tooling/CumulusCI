@@ -46,13 +46,13 @@ class TestDebugListener(unittest.TestCase):
 
         # The listener stack should now include four elements, one for
         # each call to a listener method
-        self.assertEquals(len(self.listener.stack), 5)
+        self.assertEqual(len(self.listener.stack), 5)
 
-        self.assertEquals(self.listener.stack[0].name, "Root")
-        self.assertEquals(self.listener.stack[1].name, "folder")
-        self.assertEquals(self.listener.stack[2].name, "example")
-        self.assertEquals(self.listener.stack[3].name, "Test 1")
-        self.assertEquals(self.listener.stack[4].name, "BuiltIn.Log")
+        self.assertEqual(self.listener.stack[0].name, "Root")
+        self.assertEqual(self.listener.stack[1].name, "folder")
+        self.assertEqual(self.listener.stack[2].name, "example")
+        self.assertEqual(self.listener.stack[3].name, "Test 1")
+        self.assertEqual(self.listener.stack[4].name, "BuiltIn.Log")
 
         # now, unwind the stack and make sure it's empty
         self.listener.end_keyword("BuiltIn.Log", {})
@@ -60,7 +60,7 @@ class TestDebugListener(unittest.TestCase):
         self.listener.end_suite("example", {})
         self.listener.end_suite("folder", {})
         self.listener.end_suite("Root", {})
-        self.assertEquals(len(self.listener.stack), 0)
+        self.assertEqual(len(self.listener.stack), 0)
 
     def test_listener_step(self):
         """Verify that the 'step' debugger command creates a breakpoint for the next step"""
@@ -146,7 +146,7 @@ class TestRobotDebugger(unittest.TestCase):
         """The comment command does nothing; we just need to verify
         that it returns None, which keeps the cmd REPL alive"""
         return_value = self.cli.default("# this is a comment")
-        self.assertEquals(return_value, None)
+        self.assertEqual(return_value, None)
 
     def test_variable_shortcuts(self):
         """Verify that just passing a variable name to the debugger fetches the value of that variable"""
@@ -175,7 +175,7 @@ class TestRobotDebugger(unittest.TestCase):
         self.cli.stdout = StringIO()
         self.mock_builtin.get_variable_value.side_effect = Exception("not a variable")
         return_value = self.cli.default("${bogus}")
-        self.assertEquals(self.cli.stdout.getvalue(), "unknown variable '${bogus}'\n")
+        self.assertEqual(self.cli.stdout.getvalue(), "unknown variable '${bogus}'\n")
 
     @mock.patch("pdb.Pdb")
     def test_pdb(self, mock_pdb):
@@ -194,6 +194,10 @@ class TestRobotDebugger(unittest.TestCase):
         return_value = self.cli.do_continue("")
         self.assertTrue(return_value)
 
+    def test_selenium(self):
+        self.cli.selenium
+        self.cli.builtin.get_library_instance.assert_called_with("SeleniumLibrary")
+
     @mock.patch.object(debugger.DebuggerCli, "selenium", mock.Mock())
     def test_locate_elements(self):
         """Test that the 'locate_elements' debugger command works
@@ -208,7 +212,7 @@ class TestRobotDebugger(unittest.TestCase):
         self.cli._highlight_element.assert_has_calls(
             [mock.call("Element1"), mock.call("Element2")]
         )
-        self.assertEquals(self.cli.stdout.getvalue(), "Found 2 matches\n")
+        self.assertEqual(self.cli.stdout.getvalue(), "Found 2 matches\n")
 
     @mock.patch.object(debugger.DebuggerCli, "selenium", mock.Mock())
     def test_locate_elements_exception_handling(self):
@@ -222,7 +226,7 @@ class TestRobotDebugger(unittest.TestCase):
         return_value = self.cli.do_locate_elements("//whatever")
         self.assertIsNone(return_value)
         self.cli._highlight_element.assert_not_called()
-        self.assertEquals(self.cli.stdout.getvalue(), "invalid locator '//whatever'\n")
+        self.assertEqual(self.cli.stdout.getvalue(), "invalid locator '//whatever'\n")
 
         # Even if get_webelement throws an exception, the keyword
         # should handle it gracefully
@@ -233,7 +237,7 @@ class TestRobotDebugger(unittest.TestCase):
         return_value = self.cli.do_locate_elements("//whatever")
         self.assertIsNone(return_value)
         self.cli._highlight_element.assert_not_called()
-        self.assertEquals(self.cli.stdout.getvalue(), "something unexpected\n")
+        self.assertEqual(self.cli.stdout.getvalue(), "something unexpected\n")
 
     @mock.patch.object(debugger.DebuggerCli, "selenium", mock.Mock())
     def test_highlight_element_executes_javascript(self):
@@ -323,7 +327,7 @@ class TestRobotDebugger(unittest.TestCase):
             side_effect=Exception("Danger, Will Robinson!"),
         ):
             self.cli.do_shell("${value1}  ${value2}   some keyword  ${whatever}")
-            self.assertEquals(
+            self.assertEqual(
                 self.cli.stdout.getvalue(),
                 "error running keyword: Danger, Will Robinson!\n",
             )
