@@ -80,8 +80,8 @@ class TestPageObjects(unittest.TestCase):
         # so we need to use that here to validate which class got imported.
         FooTestPage = importer.import_class_or_module_by_path(FOO_PATH)
         BarTestPage = importer.import_class_or_module_by_path(BAR_PATH)
-        self.assertEquals(po.registry[("Test", "Foo__c")], FooTestPage)
-        self.assertEquals(po.registry[("Test", "Bar__c")], BarTestPage)
+        self.assertEqual(po.registry[("Test", "Foo__c")], FooTestPage)
+        self.assertEqual(po.registry[("Test", "Bar__c")], BarTestPage)
 
     def test_namespaced_object_name(self, get_context_mock, get_library_instance_mock):
         """Verify that the object name is prefixed by the namespace when there's a namespace"""

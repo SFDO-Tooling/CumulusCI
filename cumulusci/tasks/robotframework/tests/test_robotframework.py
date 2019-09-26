@@ -13,6 +13,8 @@ from cumulusci.tasks.robotframework import Robot
 from cumulusci.tasks.robotframework import RobotLibDoc
 from cumulusci.tasks.robotframework import RobotTestDoc
 from cumulusci.tasks.salesforce.tests.util import create_task
+from cumulusci.tasks.robotframework.debugger import DebugListener
+from cumulusci.tasks.robotframework.robotframework import KeywordLogger
 
 
 class TestRobot(unittest.TestCase):
@@ -22,6 +24,111 @@ class TestRobot(unittest.TestCase):
         task = create_task(Robot, {"suites": "tests", "pdb": True})
         with self.assertRaises(RobotTestFailure):
             task()
+
+    @mock.patch("cumulusci.tasks.robotframework.robotframework.patch_statusreporter")
+    def test_pdb_arg(self, patch_statusreporter):
+        create_task(
+            Robot,
+            {
+                "suites": "test",  # required, or the task will raise an exception
+                "pdb": "False",
+            },
+        )
+        patch_statusreporter.assert_not_called()
+
+        create_task(
+            Robot,
+            {
+                "suites": "test",  # required, or the task will raise an exception
+                "pdb": "True",
+            },
+        )
+        patch_statusreporter.assert_called_once()
+
+    def test_list_args(self):
+        """Verify that certain arguments are converted to lists"""
+        task = create_task(
+            Robot,
+            {
+                "suites": "test",  # required, or the task will raise an exception
+                "test": "one, two",
+                "include": "foo, bar",
+                "exclude": "a,  b",
+                "vars": "uno, dos, tres",
+            },
+        )
+        for option in ("test", "include", "exclude", "vars"):
+            assert isinstance(task.options[option], list)
+
+    def test_default_listeners(self):
+        # first, verify that not specifying any listener options
+        # results in no listeners...
+        task = create_task(
+            Robot, {"suites": "test"}  # required, or the task will raise an exception
+        )
+        assert len(task.options["options"]["listener"]) == 0
+
+        # next, make sure that if we specify the options with a Falsy
+        # string, the option is properly treated like a boolean
+        task = create_task(
+            Robot,
+            {
+                "suites": "test",  # required, or the task will raise an exception
+                "verbose": "False",
+                "debug": "False",
+            },
+        )
+        assert len(task.options["options"]["listener"]) == 0
+
+    def test_debug_option(self):
+        """Verify that setting debug to True attaches the appropriate listener"""
+        task = create_task(
+            Robot,
+            {
+                "suites": "test",  # required, or the task will raise an exception
+                "debug": "True",
+            },
+        )
+        listener_classes = [
+            listener.__class__ for listener in task.options["options"]["listener"]
+        ]
+        self.assertIn(
+            DebugListener, listener_classes, "DebugListener was not in task options"
+        )
+
+    def test_verbose_option(self):
+        """Verify that setting verbose to True attaches the appropriate listener"""
+        task = create_task(
+            Robot,
+            {
+                "suites": "test",  # required, or the task will raise an exception
+                "verbose": "True",
+            },
+        )
+        listener_classes = [
+            listener.__class__ for listener in task.options["options"]["listener"]
+        ]
+        self.assertIn(
+            KeywordLogger, listener_classes, "KeywordLogger was not in task options"
+        )
+
+    def test_user_defined_listeners_option(self):
+        """Verify that our listeners don't replace user-defined listeners"""
+        task = create_task(
+            Robot,
+            {
+                "suites": "test",  # required, or the task will raise an exception
+                "debug": "True",
+                "verbose": "True",
+                "options": {"listener": ["FakeListener.py"]},
+            },
+        )
+        listener_classes = [
+            listener.__class__ for listener in task.options["options"]["listener"]
+        ]
+        self.assertIn("FakeListener.py", task.options["options"]["listener"])
+        self.assertIn(DebugListener, listener_classes)
+        self.assertIn(KeywordLogger, listener_classes)
 
 
 class TestRobotTestDoc(unittest.TestCase):
