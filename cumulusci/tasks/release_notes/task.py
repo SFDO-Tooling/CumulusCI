@@ -121,7 +121,6 @@ class ParentPullRequestNotes(BaseGithubTask):
 
     def _run_task(self):
         self._setup_self()
-
         if self._has_parent_branch() and self._commit_is_merge():
             parent_pull_request = self._get_parent_pull_request()
 
@@ -165,14 +164,20 @@ class ParentPullRequestNotes(BaseGithubTask):
 
     def _get_child_branch_name_from_merge_commit(self):
         pull_requests = get_pull_requests_by_commit(
-            self.github, self.repo, self.project_config.repo_commit
+            self.github, self.repo, self.commit.sha
         )
         merged_prs = list(filter(is_pull_request_merged, pull_requests))
 
         child_branch_name = None
-        # TODO is there a case where more than one would be expected?
         if len(merged_prs) == 1 and merged_prs[0].base.ref == self.branch_name:
             return merged_prs[0].head.ref
+        else:
+            self.logger.error(
+                "Received multiple pull requests, expected one, for commit sha: {}".format(
+                    self.commit.sha
+                )
+            )
+
         return child_branch_name
 
     def _is_parent_branch_base_branch(self, pull_request):
