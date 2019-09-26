@@ -4,6 +4,7 @@ import logging
 import os.path
 import re
 import time
+
 from pprint import pformat
 from robot.libraries.BuiltIn import RobotNotRunningError
 from robot.utils import timestr_to_secs
@@ -16,14 +17,25 @@ from SeleniumLibrary.errors import ElementNotFound, NoOpenBrowser
 from urllib3.exceptions import ProtocolError
 
 from .salesforce_robot_library_base import SalesforceRobotLibraryBase
-
+from cumulusci.robotframework.template_utils import format_str
+=
 OID_REGEX = r"^(%2F)?([a-zA-Z0-9]{15,18})$"
+STATUS_KEY = ("status",)
 
 lex_locators = {}  # will be initialized when Salesforce is instantiated
+
+# https://developer.salesforce.com/docs/atlas.en-us.api_rest.meta/api_rest/resources_composite_sobjects_collections_create.htm
+SF_COLLECTION_INSERTION_LIMIT = 200
 
 
 @selenium_retry
 class Salesforce(SalesforceRobotLibraryBase):
+    """A keyword library for working with Salesforce Lightning pages
+
+    While you can import this directly into any suite, the recommended way
+    to include this in a test suite is to import the ``Salesforce.robot``
+    resource file.
+    """
     ROBOT_LIBRARY_SCOPE = "GLOBAL"
 
     def __init__(self, debug=False, locators=None):
@@ -493,6 +505,116 @@ class Salesforce(SalesforceRobotLibraryBase):
         self.store_session_record(obj_name, res["id"])
         return res["id"]
 
+    def _salesforce_generate_object(self, obj_name, **fields):
+        obj = {"attributes": {"type": obj_name}}  # Object type to create
+        obj.update(fields)
+        return obj
+
+    def generate_test_data(self, obj_name, number_to_create, **fields):
+        """Generate test data dictionaries. Usually used for later insertion into SF.
+
+        Returns an array of dictionaries with template-formatted arguments appropriate for a Collection Insert.
+        Use ``{{number}}`` to represent the unique index of the row in the list of rows.
+        IF the entire string consists of a number, Salesforce API will treat the value as a number.
+
+        For example:
+
+            | @{objects} =  Generate Test Data  Contact  3
+            | ...  Name=User {{number}}
+            | ...  Age={{number}}
+
+        Which would generate Contact objects with these fields:
+
+            | [{'Name': 'User 0', 'Age': '0'},
+            |  {'Name': 'User 1', 'Age': '1'},
+            |  {'Name': 'User 2', 'Age': '2'}]
+
+        Python Expression Syntax is allowed so computed templates like this are also allowed: ``{{1000 + number}}``
+
+        Python operators can be used, but no functions or variables are provided, so mostly you just
+        have access to mathematical and logical operators. The Python operators are described here:
+
+        https://www.digitalocean.com/community/tutorials/how-to-do-math-in-python-3-with-operators
+
+        Contact the CCI team if you have a use-case that
+        could benefit from more expression language power.
+
+        Templates can also be based on faker patterns like those described here:
+
+        https://faker.readthedocs.io/en/master/providers.html
+
+        Most examples can be pasted into templates verbatim:
+
+            | @{objects}=  Generate Test Data  Contact  200
+            | ...  Name={{fake.first_name}} {{fake.last_name}}
+            | ...  MailingStreet={{fake.street_address}}
+            | ...  MailingCity=New York
+            | ...  MailingState=NY
+            | ...  MailingPostalCode=12345
+            | ...  Email={{fake.email(domain="salesforce.com")}}
+        """
+        objs = []
+
+        for i in range(int(number_to_create)):
+            formatted_fields = {
+                name: format_str(value, i) for name, value in fields.items()
+            }
+            newobj = self._salesforce_generate_object(obj_name, **formatted_fields)
+            objs.append(newobj)
+
+        return objs
+
+    def salesforce_collection_insert(self, objects):
+        """Inserts up to 200 records that were created with Generate Test Data.
+           The 200 record limit is enforced by the Salesforce APIs"""
+        assert (
+            not obj.get("id", None) for obj in objects
+        ), "Insertable objects should not have IDs"
+        assert len(objects) <= SF_COLLECTION_INSERTION_LIMIT, (
+            "Cannot insert more than %s objects with this keyword"
+            % SF_COLLECTION_INSERTION_LIMIT
+        )
+
+        records = self.cumulusci.sf.restful(
+            "composite/sobjects",
+            method="POST",
+            json={"allOrNone": True, "records": objects},
+        )
+
+        for idx, (record, obj) in enumerate(zip(records, objects)):
+            if record["errors"]:
+                raise AssertionError(
+                    "Error on Object {idx}: {record} : {obj}".format(**vars())
+                )
+            self.store_session_record(obj["attributes"]["type"], record["id"])
+            obj["id"] = record["id"]
+            obj[STATUS_KEY] = record
+
+        return objects
+
+    def salesforce_collection_update(self, objects):
+        """Updates up to 200 records described as Robot/Python dictionaries"""
+        for obj in objects:
+            assert obj[
+                "id"
+            ], "Should be a list of objects with Ids returned by Salesforce Collection Insert"
+            if STATUS_KEY in obj:
+                del obj[STATUS_KEY]
+
+        assert len(objects) <= SF_COLLECTION_INSERTION_LIMIT, (
+            "Cannot update more than %s objects with this keyword"
+            % SF_COLLECTION_INSERTION_LIMIT
+        )
+
+        records = self.cumulusci.sf.restful(
+            "composite/sobjects",
+            method="PATCH",
+            json={"allOrNone": True, "records": objects},
+        )
+
+        for record, obj in zip(records, objects):
+            obj[STATUS_KEY] = record
+
     def salesforce_query(self, obj_name, **kwargs):
         """ Constructs and runs a simple SOQL query and returns the dict results """
         query = "SELECT "
@@ -613,3 +735,12 @@ class Salesforce(SalesforceRobotLibraryBase):
             self.selenium.capture_page_screenshot()
             time.sleep(interval)
             self.selenium.go_to(login_url)
+
+    def breakpoint(self):
+        """Serves as a breakpoint for the robot debugger
+
+        Note: this keyword is a no-op unless the debug option for
+        the task has been set to True. Unless the option has been
+        set, this keyword will have no effect on a running test.
+        """
+        return None
