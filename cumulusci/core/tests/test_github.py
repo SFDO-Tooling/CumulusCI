@@ -23,6 +23,7 @@ from cumulusci.core.github import (
     is_label_on_pull_request,
     get_pull_requests_by_head,
     add_labels_to_pull_request,
+    get_pull_requests_by_commit,
     get_pull_requests_with_base_branch,
 )
 
@@ -217,3 +218,11 @@ class TestGithub(GithubApiTestMixin):
         assert "first" in body
         assert "second" in body
         assert "third" in body
+
+    @responses.activate
+    def test_get_pull_request_by_commit(self, mock_util, repo, gh_api):
+        self.init_github()
+        commit_sha = "asdf1234asdf1234"
+        mock_util.mock_pull_request_by_commit_sha(commit_sha)
+        pull_requests = get_pull_requests_by_commit(gh_api, repo, commit_sha)
+        assert len(pull_requests) == 1

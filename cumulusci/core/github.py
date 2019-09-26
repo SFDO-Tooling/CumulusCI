@@ -79,11 +79,11 @@ def validate_service(options):
         )
 
 
-def get_pull_requests_with_base_branch(repo, base_branch_name, head=None):
+def get_pull_requests_with_base_branch(repo, base_branch_name, head=None, state=None):
     """Returns a list of pull requests with the given base branch"""
     if head:
         head = repo.owner.login + ":" + head
-    return list(repo.pull_requests(base=base_branch_name, head=head, state="all"))
+    return list(repo.pull_requests(base=base_branch_name, head=head, state=state))
 
 
 def get_pull_requests_by_head(repo, branch_name):
@@ -126,11 +126,12 @@ def get_pull_requests_by_commit(github, repo, commit_sha):
     response = github.session.get(
         endpoint, headers={"Accept": "application/vnd.github.groot-preview+json"}
     )
-    pr_jsons = response.json()
+    json_list = response.json()
 
     # raises github3.exceptions.IncompleteResposne
     # when these are not present
-    for json in pr_jsons:
+    for json in json_list:
         json["body_html"] = ""
         json["body_text"] = ""
-    return [ShortPullRequest(json, github) for json in pr_jsons]
+
+    return [ShortPullRequest(json, github) for json in json_list]
