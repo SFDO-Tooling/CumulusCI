@@ -3,6 +3,39 @@ import pytest
 
 from cumulusci.tasks.push.push_api import BasePushApiObject
 from cumulusci.tasks.push.push_api import SalesforcePushApi
+from cumulusci.tasks.push.push_api import memoize, batch_list
+
+
+def test_memoize():
+    pass
+
+
+def test_batch_list():
+    data = ["zero", "one", "two", "three"]
+
+    actual_batch_list = batch_list(data, 1)
+    expected_batch_list = [["zero"], ["one"], ["two"], ["three"]]
+    assert expected_batch_list == actual_batch_list
+
+    actual_batch_list = batch_list(data, 2)
+    expected_batch_list = [["zero", "one"], ["two", "three"]]
+    assert expected_batch_list == actual_batch_list
+
+    actual_batch_list = batch_list(data, 3)
+    expected_batch_list = [["zero", "one", "two"], ["three"]]
+    assert expected_batch_list == actual_batch_list
+
+    actual_batch_list = batch_list(data, 4)
+    expected_batch_list = [["zero", "one", "two", "three"]]
+    assert expected_batch_list == actual_batch_list
+
+    actual_batch_list = batch_list(data, 5)
+    expected_batch_list = [["zero", "one", "two", "three"]]
+    assert expected_batch_list == actual_batch_list
+
+    actual_batch_list = batch_list([], 2)
+    expected_batch_list = []
+    assert expected_batch_list == actual_batch_list
 
 
 class TestBasePushApiObject:
