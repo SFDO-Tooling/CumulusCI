@@ -105,24 +105,35 @@ class ParentPullRequestNotes(BaseGithubTask):
             ),
             "required": True,
         },
+        "force": {
+            "description": "force rebuilding of change notes from child branches in the given branch.",
+            "required": False,
+        },
     }
 
     def _init_options(self, kwargs):
         super(ParentPullRequestNotes, self)._init_options(kwargs)
         self.options["branch_name"] = self.options.get("branch_name")
         self.options["build_notes_label"] = self.options.get("build_notes_label")
+        self.options["force"] = self.options.get("force")
 
     def _setup_self(self):
         self.repo = self.get_repo()
         self.commit = self.repo.commit(self.project_config.repo_commit)
         self.branch_name = self.options.get("branch_name")
+        self.force_rebuild_change_notes = process_bool_arg(self.options["force"])
         self.generator = ParentPullRequestNotesGenerator(
             self.github, self.repo, self.project_config
         )
 
     def _run_task(self):
         self._setup_self()
-        if self._has_parent_branch() and self._commit_is_merge():
+
+        if self.force_rebuild_change_notes:
+            pull_request = self._get_parent_pull_request()
+            self.generator.aggregate_child_change_notes(pull_request)
+
+        elif self._has_parent_branch() and self._commit_is_merge():
             parent_pull_request = self._get_parent_pull_request()
 
             if is_label_on_pull_request(

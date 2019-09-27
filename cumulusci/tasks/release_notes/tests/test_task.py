@@ -60,6 +60,13 @@ class TestParentPullRequestNotes(GithubApiTestMixin):
             "build_notes_label": BUILD_NOTES_LABEL,
         }
     }
+    FORCE_OPTIONS = {
+        "options": {
+            "branch_name": CHILD_BRANCH_NAME,
+            "build_notes_label": BUILD_NOTES_LABEL,
+            "force": True,
+        }
+    }
 
     @pytest.fixture
     def project_config(self):
@@ -98,6 +105,7 @@ class TestParentPullRequestNotes(GithubApiTestMixin):
         assert task.commit is not None
         assert task.generator is not None
         assert task.branch_name is not None
+        assert not task.force_rebuild_change_notes
 
     def test_has_parent_branch(self, task_factory):
         task = task_factory(self.PARENT_BRANCH_OPTIONS)
@@ -264,3 +272,18 @@ class TestParentPullRequestNotes(GithubApiTestMixin):
             )
         )
 
+    @mock.patch("cumulusci.tasks.release_notes.task.ParentPullRequestNotesGenerator")
+    def test_force_option(self, generator, task_factory, gh_api, project_config):
+        self.init_github()
+        self.project_config = project_config
+        task = task_factory(self.FORCE_OPTIONS)
+
+        pull_request = ShortPullRequest(self._get_expected_pull_request(1, 1), gh_api)
+        task._get_parent_pull_request = mock.Mock(return_value=pull_request)
+
+        generator.return_value = mock.Mock()
+        task._run_task()
+        assert task.generator.aggregate_child_change_notes.called_once_with(
+            pull_request
+        )
+        assert not task.generator.update_unaggregated_pr_header.called
