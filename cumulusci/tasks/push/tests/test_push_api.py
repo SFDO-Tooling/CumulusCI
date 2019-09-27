@@ -7,7 +7,20 @@ from cumulusci.tasks.push.push_api import memoize, batch_list
 
 
 def test_memoize():
-    pass
+    def test_func(number):
+        return number
+
+    memoized_func = memoize(test_func)
+    memoized_func(10)
+    memoized_func(20)
+
+    expected_cache = {"(10,){}": 10, "(20,){}": 20}
+    assert expected_cache == memoized_func.cache
+
+    memoized_func(10)
+    memoized_func(20)
+    # No new items introduced, cache should be same
+    assert expected_cache == memoized_func.cache
 
 
 def test_batch_list():
