@@ -5,13 +5,16 @@ import factory
 
 from cumulusci.utils import temporary_dir
 from cumulusci.tasks.bulkdata.tests.test_bulkdata import _make_task
-from cumulusci.tasks.bulkdata.tests.dummy_data_factory import GenerateDummyData, Contact
+from cumulusci.tasks.bulkdata.tests.dummy_data_factory import (
+    GenerateDummyData,
+    ContactFactory,
+)
 from cumulusci.tasks.bulkdata import factory_utils
 
 
 class TestFactoryUtils(unittest.TestCase):
     def test_factory(self):
-        mapping_file = os.path.join(os.path.dirname(__file__), "mapping_v2.yml")
+        mapping_file = os.path.join(os.path.dirname(__file__), "mapping_vanilla_sf.yml")
 
         with temporary_dir() as d:
             tmp_db_path = os.path.join(d, "temp.db")
@@ -49,4 +52,4 @@ class TestFactories(unittest.TestCase):
                 model = "xyzzy"
 
         with self.assertRaises(KeyError):
-            factory_utils.Factories(None, {}, {"A": Contact, "B": Broken})
+            factory_utils.Factories(None, {}, {"A": ContactFactory, "B": Broken})
