@@ -17,6 +17,7 @@ class AccountFactory(factory.alchemy.SQLAlchemyModelFactory):
 
     id = factory.Sequence(lambda i: i)
     Name = factory.Sequence(lambda i: "Account %d" % i)
+    Street = "Baker St."
 
 
 class ContactFactory(factory.alchemy.SQLAlchemyModelFactory):
@@ -30,3 +31,4 @@ class ContactFactory(factory.alchemy.SQLAlchemyModelFactory):
     firstname = factory.Faker("first_name")
     lastname = factory.Faker("last_name")
     email = factory.Faker("email", domain="salesforce.org")
+    mailingstreet = "Baker St."
