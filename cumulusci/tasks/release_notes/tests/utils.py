@@ -1,6 +1,3 @@
-from future import standard_library
-
-standard_library.install_aliases()
 import http.client
 import responses
 
@@ -25,7 +22,7 @@ class MockUtil(GithubApiTestMixin):
         return "{}/repos/{}/{}".format(self.BASE_API_URL, self.owner, self.repo)
 
     def mock_edit_release(self, body=None, draft=True, prerelease=False):
-        if body == None:
+        if body is None:
             body = "Test release body"
         responses.add(
             method=responses.PATCH,
@@ -62,7 +59,7 @@ class MockUtil(GithubApiTestMixin):
         )
 
     def mock_pull_request(self, pr_number, body, title=None):
-        if title == None:
+        if title is None:
             title = "Test Pull Request Title"
         responses.add(
             method=responses.GET,

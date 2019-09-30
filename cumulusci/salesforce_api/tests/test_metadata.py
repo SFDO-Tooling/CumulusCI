@@ -1,7 +1,3 @@
-from future import standard_library
-
-standard_library.install_aliases()
-from builtins import str
 import http.client
 import io
 import unittest
@@ -796,6 +792,7 @@ class TestApiListMetadata(BaseTestMetadataApi):
 
 
 class TestApiRetrieveUnpackaged(BaseTestMetadataApi):
+    maxDiff = None
     api_class = ApiRetrieveUnpackaged
     envelope_start = retrieve_unpackaged_start_envelope
 

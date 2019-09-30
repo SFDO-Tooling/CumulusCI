@@ -68,9 +68,9 @@ class Breakpoint:
     breakpoint could use any one of these patterns depending on how
     precise you want to be:
 
-        - *::cumulusci.robotframework.Salesforce.Breakpoint
-        - *::*.Breakpoint
-        - *.Breakpoint
+        - ``*::cumulusci.robotframework.Salesforce.Breakpoint``
+        - ``*::*.Breakpoint``
+        - ``*.Breakpoint``
 
     """
 
