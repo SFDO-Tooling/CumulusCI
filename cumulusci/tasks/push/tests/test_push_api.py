@@ -3,7 +3,7 @@ import pytest
 
 from cumulusci.tasks.push.push_api import BasePushApiObject
 from cumulusci.tasks.push.push_api import SalesforcePushApi
-from cumulusci.tasks.push.push_api import memoize, batch_list
+from cumulusci.tasks.push.push_api import memoize, batch_list, MetadataPackage
 
 
 def test_memoize():
@@ -43,7 +43,6 @@ def test_batch_list():
     assert expected_batch_list == actual_batch_list
 
     actual_batch_list = batch_list(data, 5)
-    expected_batch_list = [["zero", "one", "two", "three"]]
     assert expected_batch_list == actual_batch_list
 
     actual_batch_list = batch_list([], 2)
@@ -67,6 +66,32 @@ class TestBasePushApiObject:
 
         returned = base_obj.format_where(field_name, None)
         assert "{} = '{}'".format(field_name, sf_id) == returned
+
+
+class TestMetadataPacakage:
+    """Provides coverage for MetadataPackage"""
+
+    NAME = "Chewbacca"
+    SF_ID = "sf_id"
+    PUSH_API = "push_api"
+    NAMESPACE = "namespace"
+
+    @pytest.fixture
+    def package(self):
+        return MetadataPackage(self.PUSH_API, self.NAME, self.SF_ID, self.NAMESPACE)
+
+    def test_init(self):
+        package = MetadataPackage(self.PUSH_API, self.NAME)
+        assert package.push_api == self.PUSH_API
+        assert package.sf_id == None
+        assert package.name == self.NAME
+        assert package.namespace == None
+
+        package = MetadataPackage(self.PUSH_API, self.NAME, self.SF_ID, self.NAMESPACE)
+        assert package.push_api == self.PUSH_API
+        assert package.sf_id == self.SF_ID
+        assert package.name == self.NAME
+        assert package.namespace == self.NAMESPACE
 
 
 class TestSalesforcePushApi:
