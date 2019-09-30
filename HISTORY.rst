@@ -2,6 +2,56 @@
 History
 =======
 
+3.0.0 (2019-09-30)
+------------------
+
+Breaking change:
+
+* CumulusCI 3.0.0 removes support for Python 2 (which will reach end of life at the end of 2019).
+  If you're still running Python 2 you can use an older version of CumulusCI,
+  but we recommend upgrading to Python 3. See our
+  `installation instructions <https://cumulusci.readthedocs.io/en/latest/install.html>`_
+  for your platform.
+
+2.5.9 (2019-09-26)
+------------------
+
+New features:
+
+* Added a Domain column to the list of scratch orgs in ``cci org list``. (thanks @bethbrains)
+
+* Tasks related to Salesforce Communities (thanks @MatthewBlanski)
+    * New ``list_community_templates`` task
+    * New ``list_communities`` task
+    * New ``publish_community`` task
+    * The ``create_community`` task can now be used to create a community with no URL prefix,
+      as long as one does not already exist.
+
+* Robot Framework:
+    * Added keywords for generating a collection of sObjects according to a template:
+        * ``Generate Test Data``
+        * ``Salesforce Collection Insert``
+        * ``Salesforce Collection Update``
+    * Changes to Page Objects:
+        * More than one page object can be loaded at once.
+          Once loaded, the keywords of a page object remain visible in the suite.
+          Robot will give priority to keywords in the reverse order in which they were imported.
+        * There is a new keyword, ``Log Current Page Object``,
+          which can be useful to see information about the most recently loaded page object.
+        * There is a new keyword, ``Get Page Object``,
+          which will return the robot library for a given page object.
+          This can be used in other keywords to access keywords from another page object if necessary.
+        * The ``Go To Page`` keyword will now automatically load the page object for the given page.
+    * Added a basic debugger for Robot tests. It can be enabled
+      using the ``-o debug True`` option to the robot task.
+
+* Added support for deploying new metadata types ``ProfilePasswordPolicy`` and ``ProfileSessionSetting``.
+
+Issues closed:
+
+* Fixed a bug where the ``batch_apex_wait`` task would sometimes fail to conclude that the batch was complete.
+* Fixed a bug in rendering tables in Python 2.
+
 2.5.8 (2019-09-13)
 ------------------
 
