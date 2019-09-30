@@ -119,6 +119,7 @@ class CumulusCI(object):
         """This keyword uses the Salesforce API to get information about a community.
 
         This keyword requires the exact community name as its first argumment.
+
         - If no key is given, all of the information returned by the API will be
           returned by this keyword in the form of a dictionary
         - If a key is given, only the value for that key will be returned.

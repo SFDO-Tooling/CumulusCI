@@ -1,10 +1,5 @@
 """Wraps the github3 library to configure request retries."""
 
-from future import standard_library
-
-standard_library.install_aliases()
-from builtins import str
-from future.utils import native_str_to_bytes
 from cumulusci.core.exceptions import GithubException
 from github3 import GitHub
 from github3 import login
@@ -40,7 +35,7 @@ def get_github_api_for_repo(keychain, owner, repo):
     gh.session.mount("http://", adapter)
     gh.session.mount("https://", adapter)
 
-    APP_KEY = native_str_to_bytes(os.environ.get("GITHUB_APP_KEY", ""))
+    APP_KEY = os.environ.get("GITHUB_APP_KEY", "").encode("utf-8")
     APP_ID = os.environ.get("GITHUB_APP_ID")
     if APP_ID and APP_KEY:
         installation = INSTALLATIONS.get((owner, repo))
@@ -100,10 +95,10 @@ def create_pull_request(repo, branch_name, base=None, title=None):
 
 def add_labels_to_pull_request(repo, pull_request, *labels):
     """Adds a label to a pull request via the issue object
-        Args:
-            repo: Repository object
-            pull_request: ShortPullRequest object that exists in repo
-            labels: list(str) of labels to add to the pull request"""
+    Args:
+    * repo: Repository object
+    * pull_request: ShortPullRequest object that exists in repo
+    * labels: list(str) of labels to add to the pull request"""
     issue = repo.issue(pull_request.number)
     issue.add_labels(*labels)
 

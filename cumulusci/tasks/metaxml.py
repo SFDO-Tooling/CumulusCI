@@ -1,4 +1,3 @@
-from builtins import str
 import fileinput
 import os
 import re

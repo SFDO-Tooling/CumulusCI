@@ -142,7 +142,7 @@ class TestGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTestMixin):
         pr = generator.get_repo().pull_request(1)
         actual_link = markdown_link_to_pr(pr)
         expected_link = "{} [[PR{}]({})]".format(pr.title, pr.number, pr.html_url)
-        self.assertEquals(expected_link, actual_link)
+        self.assertEqual(expected_link, actual_link)
 
     @responses.activate
     def test_render_empty_pr_section(self):
@@ -155,13 +155,13 @@ class TestGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTestMixin):
         pr2 = repo.pull_request(2)
         generator.empty_change_notes.extend([pr1, pr2])
         content = render_empty_pr_section(generator.empty_change_notes)
-        self.assertEquals(3, len(content))
-        self.assertEquals("\n# Pull requests with no release notes", content[0])
-        self.assertEquals(
+        self.assertEqual(3, len(content))
+        self.assertEqual("\n# Pull requests with no release notes", content[0])
+        self.assertEqual(
             "\n* {} [[PR{}]({})]".format(pr1.title, pr1.number, pr1.html_url),
             content[1],
         )
-        self.assertEquals(
+        self.assertEqual(
             "\n* {} [[PR{}]({})]".format(pr2.title, pr2.number, pr2.html_url),
             content[2],
         )
@@ -181,14 +181,14 @@ class TestGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTestMixin):
         content = generator._update_release_content(release, "new content")
 
         split_content = content.split("\r\n")
-        self.assertEquals(4, len(split_content))
-        self.assertEquals("new content", split_content[0])
-        self.assertEquals("\n# Pull requests with no release notes", split_content[1])
-        self.assertEquals(
+        self.assertEqual(4, len(split_content))
+        self.assertEqual("new content", split_content[0])
+        self.assertEqual("\n# Pull requests with no release notes", split_content[1])
+        self.assertEqual(
             "\n* Pull Request #{0} [[PR{0}]({1})]".format(pr1.number, pr1.html_url),
             split_content[2],
         )
-        self.assertEquals(
+        self.assertEqual(
             "\n* Pull Request #{0} [[PR{0}]({1})]".format(pr2.number, pr2.html_url),
             split_content[3],
         )
@@ -210,9 +210,9 @@ class TestGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTestMixin):
         generator._parse_change_note(pr3)
 
         # PR1 is "non-empty" second two are "empty"
-        self.assertEquals(2, len(generator.empty_change_notes))
-        self.assertEquals(2, generator.empty_change_notes[0].number)
-        self.assertEquals(3, generator.empty_change_notes[1].number)
+        self.assertEqual(2, len(generator.empty_change_notes))
+        self.assertEqual(2, generator.empty_change_notes[0].number)
+        self.assertEqual(3, generator.empty_change_notes[1].number)
 
     def _create_generator(self):
         generator = GithubReleaseNotesGenerator(
