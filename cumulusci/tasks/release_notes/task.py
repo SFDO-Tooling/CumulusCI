@@ -147,8 +147,10 @@ class ParentPullRequestNotes(BaseGithubTask):
                 )
 
     def _has_parent_branch(self):
-        # TODO: feature_prefix = self.project_config...
-        return self.branch_name.startswith("feature/") and "__" not in self.branch_name
+        feature_prefix = self.project_config.project__git__prefix_feature
+        return (
+            self.branch_name.startswith(feature_prefix) and "__" not in self.branch_name
+        )
 
     def _commit_is_merge(self):
         return len(self.commit.parents) > 1
