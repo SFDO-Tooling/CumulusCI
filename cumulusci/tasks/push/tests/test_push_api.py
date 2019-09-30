@@ -142,4 +142,3 @@ class TestSalesforcePushApi:
         limit = 100
         returned = sf_push_api.add_query_limit(query, limit)
         assert "{} LIMIT {}".format(query, limit) == returned
-
