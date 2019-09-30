@@ -178,6 +178,15 @@ class TestRobotLibDoc(MockLoggerMixin, unittest.TestCase):
         assert os.path.exists(output)
         assert len(task.result["files"]) == 2
 
+    def test_glob_patterns(self):
+        output = os.path.join(self.tmpdir, "index.html")
+        path = os.path.join(self.datadir, "*Library.py")
+        task = create_task(RobotLibDoc, {"path": path, "output": output})
+        task()
+        assert os.path.exists(output)
+        assert len(task.result["files"]) == 1
+        assert task.result["files"][0] == os.path.join(self.datadir, "TestLibrary.py")
+
     def test_creates_output(self):
         path = os.path.join(self.datadir, "TestLibrary.py")
         output = os.path.join(self.tmpdir, "index.html")
