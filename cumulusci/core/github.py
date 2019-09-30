@@ -1,12 +1,16 @@
 """Wraps the github3 library to configure request retries."""
 
-from cumulusci.core.exceptions import GithubException
-from github3 import GitHub
-from github3 import login
+import os
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
+
 import github3
-import os
+from github3 import GitHub
+from github3 import login
+from github3.pulls import ShortPullRequest
+
+from cumulusci.core.exceptions import GithubException
+
 
 # Prepare request retry policy to be attached to github sessions.
 # 401 is a weird status code to retry, but sometimes it happens spuriously
@@ -70,11 +74,11 @@ def validate_service(options):
         )
 
 
-def get_pull_requests_with_base_branch(repo, base_branch_name, head=None):
+def get_pull_requests_with_base_branch(repo, base_branch_name, head=None, state=None):
     """Returns a list of pull requests with the given base branch"""
     if head:
         head = repo.owner.login + ":" + head
-    return list(repo.pull_requests(base=base_branch_name, head=head))
+    return list(repo.pull_requests(base=base_branch_name, head=head, state=state))
 
 
 def get_pull_requests_by_head(repo, branch_name):
@@ -108,3 +112,26 @@ def is_label_on_pull_request(repo, pull_request, label_name):
     pull request number. False otherwise."""
     labels = list(repo.issue(pull_request.number).labels())
     return any(label_name == issue_label.name for issue_label in labels)
+
+
+def get_pull_requests_by_commit(github, repo, commit_sha):
+    endpoint = github.session.base_url + "/repos/{}/{}/commits/{}/pulls".format(
+        repo.owner.login, repo.name, commit_sha
+    )
+    response = github.session.get(
+        endpoint, headers={"Accept": "application/vnd.github.groot-preview+json"}
+    )
+    json_list = response.json()
+
+    # raises github3.exceptions.IncompleteResposne
+    # when these are not present
+    for json in json_list:
+        json["body_html"] = ""
+        json["body_text"] = ""
+
+    return [ShortPullRequest(json, github) for json in json_list]
+
+
+def is_pull_request_merged(pull_request):
+    """Takes a github3.pulls.ShortPullRequest object"""
+    return pull_request.merged_at is not None

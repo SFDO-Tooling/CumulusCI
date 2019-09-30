@@ -68,7 +68,9 @@ class MockUtil(GithubApiTestMixin):
             status=http.client.OK,
         )
 
-    def mock_pulls(self, method=responses.GET, pulls=None, head=None, base=None):
+    def mock_pulls(
+        self, method=responses.GET, pulls=None, head=None, base=None, state=None
+    ):
         # Default url params added by github3
         # see github3.repos.repo.py _Repository.pull_requests()
         params = ["sort=created", "direction=desc", "per_page=100"]
@@ -79,6 +81,8 @@ class MockUtil(GithubApiTestMixin):
             params.append("head={}".format(head))
         if base:
             params.append("base={}".format(base))
+        if state:
+            params.append("state={}".format(state))
 
         if len(params) > default_num_params:
             params_added = True
@@ -126,5 +130,13 @@ class MockUtil(GithubApiTestMixin):
             method=responses.POST,
             url="{}/issues/{}/labels".format(self.repo_url, issue_num),
             json=self._get_expected_labels(labels),
+            status=http.client.OK,
+        )
+
+    def mock_pull_request_by_commit_sha(self, commit_sha):
+        responses.add(
+            method=responses.GET,
+            url="{}/commits/{}/pulls".format(self.repo_url, commit_sha),
+            json=[self._get_expected_pull_request(1, 1)],
             status=http.client.OK,
         )
