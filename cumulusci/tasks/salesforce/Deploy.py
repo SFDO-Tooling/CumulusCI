@@ -1,4 +1,3 @@
-from future.utils import bytes_to_native_str
 import base64
 import io
 import os
@@ -95,7 +94,7 @@ class Deploy(BaseSalesforceMetadataApiTask):
         zipf_processed = self._process_zip_file(zipfile.ZipFile(zip_bytes))
         fp = zipf_processed.fp
         zipf_processed.close()
-        return bytes_to_native_str(base64.b64encode(fp.getvalue()))
+        return base64.b64encode(fp.getvalue()).decode("utf-8")
 
     def _process_zip_file(self, zipf):
         zipf = self._process_namespace(zipf)

@@ -2,7 +2,7 @@
 
 defaults: &defaults
   docker:
-    - image: circleci/python:3.6-browsers
+    - image: circleci/python:3.7-browsers
   environment:
     - BROWSER: headlesschrome
   working_directory: ~/repo
@@ -14,7 +14,7 @@ jobs:
   lint:
     <<: *defaults
     docker:
-      - image: circleci/python:3.6
+      - image: circleci/python:3.7
     steps:
       - checkout
       - run:
@@ -26,30 +26,6 @@ jobs:
           name: Run black
           command: |
             venv/bin/black --check --diff .
-
-  test_py2:
-    <<: *defaults
-    docker:
-      - image: circleci/python:2.7-browsers
-    steps:
-      - checkout
-      - run:
-          name: Install Python dependencies
-          command: |
-            virtualenv venv
-            venv/bin/pip install tox
-      - run:
-          name: Run Python tests
-          command: |
-            mkdir -p testresults/py2
-            venv/bin/tox -e py27 -- --junitxml=testresults/py2/junit.xml
-            mv .coverage .coverage.py2
-      - store_test_results:
-          path: testresults
-      - persist_to_workspace:
-          root: .
-          paths:
-            - .coverage.py2
 
   test_py3:
     <<: *defaults
@@ -64,7 +40,7 @@ jobs:
           name: Run Python tests
           command: |
             mkdir -p testresults/py3
-            venv/bin/tox -e py36 -- --junitxml=testresults/py3/junit.xml
+            venv/bin/tox -e py37 -- --junitxml=testresults/py3/junit.xml
             mv .coverage .coverage.py3
       - store_test_results:
           path: testresults
@@ -81,7 +57,7 @@ jobs:
           name: Install Python dependencies
           command: |
             virtualenv venv
-            venv/bin/pip install --no-use-pep517 -r requirements_dev.txt
+            venv/bin/pip install -r requirements_dev.txt
       - run:
           name: Install sfdx
           command: |
@@ -152,7 +128,7 @@ jobs:
           name: Install Python dependencies
           command: |
             virtualenv venv
-            venv/bin/pip install --no-use-pep517 -r requirements_dev.txt
+            venv/bin/pip install -r requirements_dev.txt
       - run:
           name: Check out CumulusCI-Test
           command: |
@@ -217,13 +193,11 @@ workflows:
   build_test_report:
     jobs:
       - lint
-      - test_py2
       - test_py3
       - test_robot
       - test_release
       - report:
           requires:
-            - test_py2
             - test_py3
             - test_robot
             - test_release

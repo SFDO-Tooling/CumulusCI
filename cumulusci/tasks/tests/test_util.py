@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import mock
 import os
 import unittest
@@ -69,7 +67,7 @@ class TestUtilTasks(unittest.TestCase):
 
     def test_Delete__single_file(self):
         file_path = os.path.join(self.tempdir, "file")
-        with open(file_path, "w") as f:
+        with open(file_path, "w"):
             pass
 
         task_config = TaskConfig({"options": {"path": "file"}})
@@ -82,7 +80,7 @@ class TestUtilTasks(unittest.TestCase):
         target = os.path.join(self.tempdir, "dir1")
         os.mkdir(target)
         file_path = os.path.join(target, "file")
-        with open(file_path, "w") as f:
+        with open(file_path, "w"):
             pass
 
         task_config = TaskConfig({"options": {"path": ["*"], "chdir": target}})

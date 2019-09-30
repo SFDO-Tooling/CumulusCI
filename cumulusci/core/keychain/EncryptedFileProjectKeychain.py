@@ -1,4 +1,3 @@
-from __future__ import print_function
 import os
 
 from cumulusci.core.exceptions import OrgNotFound
@@ -30,7 +29,7 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
                 with open(os.path.join(dirname, item), "r") as f_item:
                     config = f_item.read()
                 name = item.replace(extension, "")
-                if not key in self.config:
+                if key not in self.config:
                     self.config[key] = {}
                 self.config[key][name] = config
 
