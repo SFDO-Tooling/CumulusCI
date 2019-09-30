@@ -197,7 +197,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                         info["ci"], key
                     )
                     if env_var:
-                        message += ". You can manually pass in the {} with".format(key)
+                        message += ". You can manually pass in the {} ".format(key)
                         message += " with the {} environment variable.".format(env_var)
                     raise ConfigError(message)
 
