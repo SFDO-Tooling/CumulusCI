@@ -145,29 +145,24 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
         # Other CI environment implementations can be implemented here...
 
-        # Apply CUMULUSCI_REPO_* environment variables last so they can
-        # override and fill in missing values from the CI environment
-        repo_branch = os.environ.get("CUMULUSCI_REPO_BRANCH")
-        if repo_branch:
-            if repo_branch != info.get("branch"):
-                self.logger.info(
-                    "CUMULUSCI_REPO_BRANCH found, using its value as the branch"
-                )
-            info["branch"] = repo_branch
-        repo_commit = os.environ.get("CUMULUSCI_REPO_COMMIT")
-        if repo_commit:
-            if repo_commit != info.get("commit"):
-                self.logger.info(
-                    "CUMULUSCI_REPO_COMMIT found, using its value as the commit"
-                )
-            info["commit"] = repo_commit
-        repo_root = os.environ.get("CUMULUSCI_REPO_ROOT")
-        if repo_root:
-            if repo_root != info.get("root"):
-                self.logger.info(
-                    "CUMULUSCI_REPO_ROOT found, using its value as the repo root"
-                )
-            info["root"] = repo_root
+        self._apply_repo_env_var_overrides(info)
+
+        if info["ci"]:
+            self._validate_required_git_info(info)
+
+        if len(info) > 1:
+            self._log_detected_overrides_as_warning(info)
+
+        self._repo_info = info
+        return self._repo_info
+
+    def _apply_repo_env_var_overrides(self, info):
+        """ Apply CUMULUSCI_REPO_* environment variables last so they can 
+        override and fill in missing values from the CI environment"""
+        self._override_repo_env_var("CUMULUSCI_REPO_BRANCH", "branch", info)
+        self._override_repo_env_var("CUMULUSCI_REPO_COMMIT", "commit", info)
+        self._override_repo_env_var("CUMULUSCI_REPO_ROOT", "root", info)
+
         repo_url = os.environ.get("CUMULUSCI_REPO_URL")
         if repo_url:
             if repo_url != info.get("url"):
@@ -177,42 +172,44 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             url_info = self._split_repo_url(repo_url)
             info.update(url_info)
 
-        # If running in a CI environment, make sure we have all the needed
-        # git info or throw a ConfigError
-        if info["ci"]:
-            validate = OrderedDict(
-                (
-                    # <key>, <env var to manually override>
-                    ("branch", "CUMULUSCI_REPO_BRANCH"),
-                    ("commit", "CUMULUSCI_REPO_COMMIT"),
-                    ("name", "CUMULUSCI_REPO_URL"),
-                    ("owner", "CUMULUSCI_REPO_URL"),
-                    ("root", "CUMULUSCI_REPO_ROOT"),
-                    ("url", "CUMULUSCI_REPO_URL"),
-                )
+    def _override_repo_env_var(self, repo_env_var, local_var, info):
+        repo_env_var = os.environ.get(repo_env_var)
+        if repo_env_var:
+            if repo_env_var != info.get(local_var):
+                self.logger.info("{} found, using its value for configuration.")
+            info[local_var] = repo_env_var
+
+    def _validate_required_git_info(self, info):
+        """Ensures that we have the required git info or throw a ConfigError"""
+        validate = OrderedDict(
+            (
+                # <key>, <env var to manually override>
+                ("branch", "CUMULUSCI_REPO_BRANCH"),
+                ("commit", "CUMULUSCI_REPO_COMMIT"),
+                ("name", "CUMULUSCI_REPO_URL"),
+                ("owner", "CUMULUSCI_REPO_URL"),
+                ("root", "CUMULUSCI_REPO_ROOT"),
+                ("url", "CUMULUSCI_REPO_URL"),
             )
-            for key, env_var in list(validate.items()):
-                if key not in info or not info[key]:
-                    message = "Detected CI on {} but could not determine the repo {}".format(
-                        info["ci"], key
-                    )
-                    if env_var:
-                        message += ". You can manually pass in the {} ".format(key)
-                        message += " with the {} environment variable.".format(env_var)
-                    raise ConfigError(message)
+        )
+        for key, env_var in list(validate.items()):
+            if key not in info or not info[key]:
+                message = "Detected CI on {} but could not determine the repo {}".format(
+                    info["ci"], key
+                )
+                if env_var:
+                    message += ". You can manually pass in the {} ".format(key)
+                    message += " with the {} environment variable.".format(env_var)
+                raise ConfigError(message)
 
-        # Log any overrides detected through the environment as a warning
-        if len(info) > 1:
-            self.logger.info("")
-            self.logger.warning("Using environment variables to override repo info:")
-            keys = list(info.keys())
-            keys.sort()
-            for key in keys:
-                self.logger.warning("  {}: {}".format(key, info[key]))
-            self.logger.info("")
-
-        self._repo_info = info
-        return self._repo_info
+    def _log_detected_overrides_as_warning(self, info):
+        self.logger.info("")
+        self.logger.warning("Using environment variables to override repo info:")
+        keys = list(info.keys())
+        keys.sort()
+        for key in keys:
+            self.logger.warning("  {}: {}".format(key, info[key]))
+        self.logger.info("")
 
     def _split_repo_url(self, url):
         url_parts = url.split("/")
