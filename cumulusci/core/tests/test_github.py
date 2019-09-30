@@ -243,4 +243,3 @@ class TestGithub(GithubApiTestMixin):
 
         assert is_pull_request_merged(merged_pull_request)
         assert not is_pull_request_merged(unmerged_pull_request)
-

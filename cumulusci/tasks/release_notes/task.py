@@ -192,4 +192,3 @@ class ParentPullRequestNotes(BaseGithubTask):
             )
 
         return child_branch_name
-

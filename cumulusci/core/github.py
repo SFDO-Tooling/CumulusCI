@@ -140,4 +140,3 @@ def get_pull_requests_by_commit(github, repo, commit_sha):
 def is_pull_request_merged(pull_request):
     """Takes a github3.pulls.ShortPullRequest object"""
     return pull_request.merged_at is not None
-
