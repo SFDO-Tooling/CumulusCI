@@ -68,10 +68,9 @@ class TestUtils(unittest.TestCase):
 
             # Recursive
             os.mkdir("subdir")
-            touch("subdir/baz.resource")
-            self.assertEqual(
-                ["subdir/baz.resource"], utils.process_glob_list_arg("**/*.resource")
-            )
+            filename = os.path.join("subdir", "baz.resource")
+            touch(filename)
+            self.assertEqual([filename], utils.process_glob_list_arg("**/*.resource"))
 
     def test_decode_to_unicode(self):
         self.assertEqual(u"\xfc", utils.decode_to_unicode(b"\xfc"))
