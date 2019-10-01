@@ -3,7 +3,6 @@ import re
 import mock
 import os
 import json
-import time
 import pytest
 import unittest
 import responses
@@ -473,6 +472,7 @@ class TestParentPullRequestNotesGenerator(GithubApiTestMixin):
                 "# Pull requests with no release notes\r\n\n* Pull Request #4 [[PR4](https://github.com/TestOwner/TestRepo/pulls/4)]"
                 in body
             )
+            assert "Should not be in body" not in body
             return (200, {}, json.dumps(self._get_expected_pull_request(3, 3, body)))
 
         self.init_github()
@@ -488,7 +488,11 @@ class TestParentPullRequestNotesGenerator(GithubApiTestMixin):
         pr3_json = self._get_expected_pull_request(4, 4, None)
         pr3_json["body"] = ""
 
-        mock_util.mock_pulls(pulls=[pr1_json, pr2_json, pr3_json])
+        pr4_json = self._get_expected_pull_request(5, 5, "Should not be in body")
+        # simulate merge from master back into parent
+        pr4_json["head"]["ref"] = "master"
+
+        mock_util.mock_pulls(pulls=[pr1_json, pr2_json, pr3_json, pr4_json])
 
         pr_json = self._get_expected_pull_request(3, 3, "Body of Parent PR")
         parent_pr = ShortPullRequest(pr_json, gh_api)
@@ -509,10 +513,6 @@ class TestParentPullRequestNotesGenerator(GithubApiTestMixin):
         self, get_pull, generator, mock_util, gh_api
     ):
         self.init_github()
-        # pr_json = self._get_expected_pull_request(1, 1, "Small dev note")
-        # pr_json["merged_at"] = time.clock()
-        # mock_util.mock_pulls(pulls=[pr_json])
-
         parent_body = "Body of Parent PR"
         pr_json = self._get_expected_pull_request(3, 3, parent_body)
         parent_pr = ShortPullRequest(pr_json, gh_api)
