@@ -150,6 +150,15 @@ class TestRobotLibDoc(MockLoggerMixin, unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.tmpdir)
 
+    def test_output_directory_not_exist(self):
+        """Verify we catch an error if the output directory doesn't exist"""
+        path = os.path.join(self.datadir, "TestLibrary.py")
+        output = os.path.join(self.tmpdir, "bogus", "index.html")
+        task = create_task(RobotLibDoc, {"path": path, "output": output})
+        expected = r"Unable to create output file '{}' (.*)".format(output)
+        with pytest.raises(TaskOptionsError, match=expected):
+            task()
+
     def test_validate_filenames(self):
         """Verify that we catch bad filenames early"""
         expected = "Unable to find the following input files: 'bogus.py', 'bogus.robot'"

@@ -109,10 +109,17 @@ class RobotLibDoc(BaseTask):
                 # only print out the first line to hide most of the noise
                 self.logger.warn("unexpected error: {}".format(str(e).split("\n")[0]))
 
-        with open(self.options["output"], "w") as f:
-            html = self._render_html(kwfiles)
-            f.write(html)
-            self.logger.info("created {}".format(f.name))
+        try:
+            with open(self.options["output"], "w") as f:
+                html = self._render_html(kwfiles)
+                f.write(html)
+                self.logger.info("created {}".format(f.name))
+        except Exception as e:
+            raise TaskOptionsError(
+                "Unable to create output file '{}' ({})".format(
+                    self.options["output"], e.strerror
+                )
+            )
 
         return {"files": processed_files, "html": html}
 
