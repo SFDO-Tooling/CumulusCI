@@ -139,9 +139,10 @@ class ParentPullRequestNotes(BaseGithubTask):
                     self.generator.aggregate_child_change_notes(parent_pull_request)
                 else:
                     child_branch_name = self._get_child_branch_name_from_merge_commit()
-                    self.generator.update_unaggregated_pr_header(
-                        parent_pull_request, child_branch_name
-                    )
+                    if child_branch_name:
+                        self.generator.update_unaggregated_pr_header(
+                            parent_pull_request, child_branch_name
+                        )
 
     def _has_parent_branch(self):
         feature_prefix = self.project_config.project__git__prefix_feature
