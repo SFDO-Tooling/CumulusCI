@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from rst2ansi import rst2ansi
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 

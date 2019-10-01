@@ -4,6 +4,7 @@ import shutil
 import tempfile
 import pytest
 import os.path
+import re
 from xml.etree import ElementTree as ET
 
 from cumulusci.core.config import TaskConfig
@@ -15,6 +16,9 @@ from cumulusci.tasks.robotframework import RobotTestDoc
 from cumulusci.tasks.salesforce.tests.util import create_task
 from cumulusci.tasks.robotframework.debugger import DebugListener
 from cumulusci.tasks.robotframework.robotframework import KeywordLogger
+from cumulusci.utils import touch
+
+from cumulusci.tasks.robotframework.libdoc import KeywordFile
 
 
 class TestRobot(unittest.TestCase):
@@ -150,12 +154,28 @@ class TestRobotLibDoc(MockLoggerMixin, unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.tmpdir)
 
+    def test_output_directory_not_exist(self):
+        """Verify we catch an error if the output directory doesn't exist"""
+        path = os.path.join(self.datadir, "TestLibrary.py")
+        output = os.path.join(self.tmpdir, "bogus", "index.html")
+        task = create_task(RobotLibDoc, {"path": path, "output": output})
+        # on windows, the output path may have backslashes which needs
+        # to be protected in the expected regex
+        expected = r"Unable to create output file '{}' (.*)".format(re.escape(output))
+        with pytest.raises(TaskOptionsError, match=expected):
+            task()
+
     def test_validate_filenames(self):
         """Verify that we catch bad filenames early"""
         expected = "Unable to find the following input files: 'bogus.py', 'bogus.robot'"
         output = os.path.join(self.tmpdir, "index.html")
         with pytest.raises(TaskOptionsError, match=expected):
             create_task(RobotLibDoc, {"path": "bogus.py,bogus.robot", "output": output})
+
+        # there's a special path through the code if only one filename is bad...
+        expected = "Unable to find the input file 'bogus.py'"
+        with pytest.raises(TaskOptionsError, match=expected):
+            create_task(RobotLibDoc, {"path": "bogus.py", "output": output})
 
     def test_task_log(self):
         """Verify that the task prints out the name of the output file"""
@@ -178,6 +198,23 @@ class TestRobotLibDoc(MockLoggerMixin, unittest.TestCase):
         assert os.path.exists(output)
         assert len(task.result["files"]) == 2
 
+    def test_glob_patterns(self):
+        output = os.path.join(self.tmpdir, "index.html")
+        path = os.path.join(self.datadir, "*Library.py")
+        task = create_task(RobotLibDoc, {"path": path, "output": output})
+        task()
+        assert os.path.exists(output)
+        assert len(task.result["files"]) == 1
+        assert task.result["files"][0] == os.path.join(self.datadir, "TestLibrary.py")
+
+    def test_remove_duplicates(self):
+        output = os.path.join(self.tmpdir, "index.html")
+        path = os.path.join(self.datadir, "*Library.py")
+        task = create_task(RobotLibDoc, {"path": [path, path], "output": output})
+        task()
+        assert len(task.result["files"]) == 1
+        assert task.result["files"][0] == os.path.join(self.datadir, "TestLibrary.py")
+
     def test_creates_output(self):
         path = os.path.join(self.datadir, "TestLibrary.py")
         output = os.path.join(self.tmpdir, "index.html")
@@ -194,6 +231,34 @@ class TestRobotLibDoc(MockLoggerMixin, unittest.TestCase):
         task()
         assert "created {}".format(output) in self.task_log["info"]
         assert os.path.exists(output)
+
+
+class TestRobotLibDocKeywordFile(unittest.TestCase):
+    def setUp(self):
+        self.tmpdir = tempfile.mkdtemp(dir=".")
+
+    def tearDown(self):
+        shutil.rmtree(self.tmpdir)
+
+    def test_existing_file(self):
+        path = os.path.join(self.tmpdir, "keywords.py")
+        touch(path)
+        kwfile = KeywordFile(path)
+        assert kwfile.filename == "keywords.py"
+        assert kwfile.path == path
+        assert kwfile.keywords == {}
+
+    def test_file_as_module(self):
+        kwfile = KeywordFile("cumulusci.robotframework.Salesforce")
+        assert kwfile.filename == "Salesforce"
+        assert kwfile.path == "cumulusci.robotframework.Salesforce"
+        assert kwfile.keywords == {}
+
+    def test_add_keyword(self):
+        kwfile = KeywordFile("test.TestLibrary")
+        kwfile.add_keywords("the documentation...", ("Detail", "Contact"))
+        assert len(kwfile.keywords) == 1
+        assert kwfile.keywords[("Detail", "Contact")] == "the documentation..."
 
 
 class TestRobotLibDocOutput(unittest.TestCase):

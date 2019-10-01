@@ -1,6 +1,3 @@
-from future import standard_library
-
-standard_library.install_aliases()
 import http.client
 import os
 import shutil
@@ -153,7 +150,7 @@ class TestRunApexTests(unittest.TestCase):
     def _get_mock_test_query_url(self, job_id):
         return (
             self.base_tooling_url
-            + "query/?q=%0ASELECT+Id%2CApexClassId%2CTestTimestamp%2C%0A+++++++Message%2CMethodName%2COutcome%2C%0A+++++++RunTime%2CStackTrace%2C%0A+++++++%28SELECT+%0A++++++++++Id%2CCallouts%2CAsyncCalls%2CDmlRows%2CEmail%2C%0A++++++++++LimitContext%2CLimitExceptions%2CMobilePush%2C%0A++++++++++QueryRows%2CSosl%2CCpu%2CDml%2CSoql+%0A++++++++FROM+ApexTestResults%29+%0AFROM+ApexTestResult+%0AWHERE+AsyncApexJobId%3D%27{}%27%0A".format(
+            + "query/?q=%0ASELECT+Id%2CApexClassId%2CTestTimestamp%2C%0A+++++++Message%2CMethodName%2COutcome%2C%0A+++++++RunTime%2CStackTrace%2C%0A+++++++%28SELECT%0A++++++++++Id%2CCallouts%2CAsyncCalls%2CDmlRows%2CEmail%2C%0A++++++++++LimitContext%2CLimitExceptions%2CMobilePush%2C%0A++++++++++QueryRows%2CSosl%2CCpu%2CDml%2CSoql%0A++++++++FROM+ApexTestResults%29%0AFROM+ApexTestResult%0AWHERE+AsyncApexJobId%3D%27{}%27%0A".format(
                 job_id
             )
         )

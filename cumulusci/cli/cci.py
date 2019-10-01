@@ -1,9 +1,3 @@
-from __future__ import absolute_import
-from future import standard_library
-
-standard_library.install_aliases()
-from past.builtins import basestring
-from builtins import str
 from collections import defaultdict
 from collections import OrderedDict
 from urllib.parse import urlparse
@@ -150,7 +144,7 @@ def render_recursive(data, indent=None):
         render_recursive(data.config)
     elif isinstance(data, list):
         for item in data:
-            if isinstance(item, basestring):
+            if isinstance(item, (bytes, str)):
                 click.echo("{}- {}".format(indent_str, item))
             else:
                 click.echo("{}-".format(indent_str))
@@ -273,13 +267,6 @@ def version():
         )
     else:
         click.echo("You have the latest version of CumulusCI.")
-
-    if sys.version_info.major == 2:
-        click.echo()
-        click.echo("WARNING: You are running CumulusCI using Python 2.")
-        click.echo("Soon CumulusCI will only support Python 3.")
-        click.echo("To reinstall CumulusCI on Python 3, follow these instructions:")
-        click.echo("https://cumulusci.readthedocs.io/en/latest/install.html")
 
     click.echo()
 

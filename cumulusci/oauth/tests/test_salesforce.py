@@ -1,20 +1,16 @@
-from __future__ import print_function
-from future import standard_library
-
-standard_library.install_aliases()
 import http.client
-import json
 import threading
 import time
 import unittest
-import urllib.request, urllib.error, urllib.parse
+import urllib.error
+import urllib.parse
+import urllib.request
 
 import mock
 import responses
 
 from cumulusci.oauth.salesforce import SalesforceOAuth2
 from cumulusci.oauth.salesforce import CaptureSalesforceOAuth
-from cumulusci.oauth.exceptions import SalesforceOAuthError
 
 
 class TestSalesforceOAuth(unittest.TestCase):
