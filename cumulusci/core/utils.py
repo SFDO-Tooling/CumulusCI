@@ -47,13 +47,16 @@ def process_bool_arg(arg):
 
 def process_glob_list_arg(arg):
     """Convert a list of glob patterns or filenames into a list of files
-    The initial list can take the form of a comma-separated list, or
-    a proper list.
+    The initial list can take the form of a comma-separated string or
+    a proper list. Order is preserved, but duplicates will be removed.
 
     Note: this function processes glob patterns, but doesn't validate
     that the files actually exist. For example, if the pattern is
     'foo.bar' and there is no file named 'foo.bar', the literal string
     'foo.bar' will be included in the returned files.
+
+    Similarly, if the pattern is '*.baz' and it doesn't match any files,
+    the literal string '*.baz' will be returned.
     """
     initial_list = process_list_arg(arg)
 
@@ -67,7 +70,9 @@ def process_glob_list_arg(arg):
             files += sorted(more_files)
         else:
             files.append(path)
-    return files
+    # In python 3.6+ dict is ordered, so we'll use it to weed
+    # out duplicates. We can't use a set because sets aren't ordered.
+    return list(dict.fromkeys(files))
 
 
 def process_list_arg(arg):
