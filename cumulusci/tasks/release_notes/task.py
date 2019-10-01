@@ -75,7 +75,7 @@ class ParentPullRequestNotes(BaseGithubTask):
     When given the branch_name option, this task will: (1) check if the base branch
     of the corresponding pull request starts with the feature branch prefix and if so (2) attempt
     to query for a pull request corresponding to this parent feature branch. (3) if a pull request
-    isn't found, one is created and the build_notes_label is applied to it.
+    isn't found, the task exits and no actions are taken.
 
     If the build_notes_label is present on the pull request, then all notes from the
     child pull request are aggregated into the parent pull request. if the build_notes_label
@@ -154,9 +154,7 @@ class ParentPullRequestNotes(BaseGithubTask):
         return len(self.commit.parents) > 1
 
     def _get_parent_pull_request(self):
-        """Attempts to retrieve a pull request for the given branch.
-        If one is not found, then it is created and the 'Build Change Notes'
-        label is applied to it."""
+        """Attempts to retrieve a pull request for the given branch."""
         requests = get_pull_requests_with_base_branch(
             self.repo, self.repo.default_branch, self.branch_name
         )
