@@ -1,19 +1,13 @@
 # -*- coding: utf-8 -*-
-from github3.pulls import ShortPullRequest
-
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.tasks.github.base import BaseGithubTask
-from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.tasks.release_notes.generator import (
     GithubReleaseNotesGenerator,
     ParentPullRequestNotesGenerator,
 )
 from cumulusci.core.github import (
-    create_pull_request,
     is_pull_request_merged,
     is_label_on_pull_request,
-    add_labels_to_pull_request,
-    get_pull_requests_by_head,
     get_pull_requests_by_commit,
     get_pull_requests_with_base_branch,
 )
@@ -77,13 +71,13 @@ class ParentPullRequestNotes(BaseGithubTask):
     task_docs = """
     Aggregate change notes from child pull request(s) to its corresponding
     parent's pull request.
-    
+
     When given the branch_name option, this task will: (1) check if the base branch
     of the corresponding pull request starts with the feature branch prefix and if so (2) attempt
     to query for a pull request corresponding to this parent feature branch. (3) if a pull request
     isn't found, one is created and the build_notes_label is applied to it.
 
-    If the build_notes_label is present on the pull request, then all notes from the 
+    If the build_notes_label is present on the pull request, then all notes from the
     child pull request are aggregated into the parent pull request. if the build_notes_label
     is not detected on the parent pull request then a link to the child pull request
     is placed under the "Unaggregated Pull Requests" header.
@@ -131,20 +125,23 @@ class ParentPullRequestNotes(BaseGithubTask):
 
         if self.force_rebuild_change_notes:
             pull_request = self._get_parent_pull_request()
-            self.generator.aggregate_child_change_notes(pull_request)
+            if pull_request:
+                self.generator.aggregate_child_change_notes(pull_request)
 
         elif self._has_parent_branch() and self._commit_is_merge():
             parent_pull_request = self._get_parent_pull_request()
-
-            if is_label_on_pull_request(
-                self.repo, parent_pull_request, self.options.get("build_notes_label")
-            ):
-                self.generator.aggregate_child_change_notes(parent_pull_request)
-            else:
-                child_branch_name = self._get_child_branch_name_from_merge_commit()
-                self.generator.update_unaggregated_pr_header(
-                    parent_pull_request, child_branch_name
-                )
+            if parent_pull_request:
+                if is_label_on_pull_request(
+                    self.repo,
+                    parent_pull_request,
+                    self.options.get("build_notes_label"),
+                ):
+                    self.generator.aggregate_child_change_notes(parent_pull_request)
+                else:
+                    child_branch_name = self._get_child_branch_name_from_merge_commit()
+                    self.generator.update_unaggregated_pr_header(
+                        parent_pull_request, child_branch_name
+                    )
 
     def _has_parent_branch(self):
         feature_prefix = self.project_config.project__git__prefix_feature
@@ -157,24 +154,15 @@ class ParentPullRequestNotes(BaseGithubTask):
 
     def _get_parent_pull_request(self):
         """Attempts to retrieve a pull request for the given branch.
-        If one is not found, then it is created and the 'Build Change Notes' 
+        If one is not found, then it is created and the 'Build Change Notes'
         label is applied to it."""
         requests = get_pull_requests_with_base_branch(
             self.repo, self.repo.default_branch, self.branch_name
         )
-        if len(requests) == 0:
-            self.logger.info(
-                "Pull request not found. Creating pull request for branch: {} with base of 'master'.".format(
-                    self.branch_name
-                )
-            )
-            parent_pull_request = create_pull_request(self.repo, self.branch_name)
-            add_labels_to_pull_request(
-                self.repo, parent_pull_request, self.options.get("build_notes_label")
-            )
+        if len(requests) > 0:
+            return requests[0]
         else:
-            parent_pull_request = requests[0]
-        return parent_pull_request
+            self.logger.info(f"Pull request not found for branch {self.branch_name}.")
 
     def _get_child_branch_name_from_merge_commit(self):
         pull_requests = get_pull_requests_by_commit(
