@@ -449,23 +449,58 @@ CumulusCI includes two tasks for working with Robot Framework tests and keyword 
 * **robot_testdoc**: Generates html documentation of your whole robot test suite and writes to **robot/<project name>/doc/<project_name>.html**.
 * **robot_lint**: Performs static analysis of robot files (files with
   .robot and .resource), flagging issues that may reduce the quality of the code.
+* **robot_libdoc**:  This task can be wired up to generate library
+  documentation if you choose to create a library of robot keywords
+  for your project.
 
-Additionally, the **robot_libdoc** task can be wired up to generate library documentation if you choose to create a library of robot keywords for your project. For example, if you have defined a robot resource file named MyProject.resource and placed it in the **resources** folder, you would add the following to the cumulusci.yml file:
+Configuring the libdoc task
+---------------------------
+
+If you have defined a robot resource file named MyProject.resource and
+placed it in the **resources** folder, you can add the following
+configuration to your cumulusci.yml file in order to enable the
+**robot_libdoc** task to generate documentation:
 
 .. code-block:: yaml
 
    tasks:
       robot_libdoc:
-          description: Generates HTML documentation for the MyProject Robot Framework library
+          description: Generates HTML documentation for the MyProject Robot Framework Keywords
           options:
-              path: robot/MyProject/resources/MyProject.robot
+              path: robot/MyProject/resources/MyProject.resource
               output: robot/MyProject/doc/MyProject_Library.html
 
-.. note::
 
-   You can generate documentation for more than one keyword file or
-   library by giving a comma-separated list of files for the **path**
-   option.
+You can generate documentation for more than one keyword file or
+library by giving a comma-separated list of files for the **path**
+option, or by defining path as a list in cumulusci.yml.  In the
+following example, documentation will be generated for MyLibrary.py
+and MyLibrary.resource:
+
+.. code-block:: yaml
+
+   tasks:
+      robot_libdoc:
+          description: Generates HTML documentation for the MyProject Robot Framework Keywords
+          options:
+              path:
+                - robot/MyProject/resources/MyProject.resource
+                - robot/MyProject/resources/MyProject.py
+              output: robot/MyProject/doc/MyProject_Library.html
+
+You can also use basic filesystem wildcards. For example,
+to document all robot files in robot/MyProject/resources you could
+configure your yaml file like this:
+
+.. code-block:: yaml
+
+   tasks:
+      robot_libdoc:
+          description: Generates HTML documentation for the MyProject Robot Framework Keywords
+          options:
+              path: robot/MyProject/resources/*.resource
+              output: robot/MyProject/doc/MyProject_Library.html
+
 
 
 Robot Directory Structure

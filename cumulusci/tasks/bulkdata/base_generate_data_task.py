@@ -12,10 +12,8 @@ from cumulusci.core.utils import ordered_yaml_load
 from .utils import create_table
 
 
-class BaseGenerateDataTask(BaseTask):
+class BaseGenerateDataTask(BaseTask, metaclass=ABCMeta):
     """Abstract base class for any class that generates data in a SQL DB."""
-
-    __metaclass__ = ABCMeta  # Python 2 syntax
 
     task_docs = """
     Use the `num_records` option to specify how many records to generate.

@@ -1,4 +1,5 @@
 import datetime
+import os
 import unittest
 
 import pytz
@@ -7,6 +8,7 @@ from .. import utils
 
 from collections import OrderedDict
 from cumulusci.core.exceptions import ConfigMergeError
+from cumulusci.utils import temporary_dir, touch
 
 try:
     from StringIO import StringIO
@@ -33,6 +35,42 @@ class TestUtils(unittest.TestCase):
         self.assertEqual([1, 2], utils.process_list_arg([1, 2]))
         self.assertEqual(["a", "b"], utils.process_list_arg("a, b"))
         self.assertEqual(None, utils.process_list_arg(None))
+
+    def test_process_glob_list_arg(self):
+        with temporary_dir():
+            touch("foo.py")
+            touch("bar.robot")
+
+            # Expect passing arg as list works.
+            self.assertEqual(
+                ["foo.py", "bar.robot"],
+                utils.process_glob_list_arg(["foo.py", "bar.robot"]),
+            )
+
+            # Falsy arg should return an empty list
+            self.assertEqual([], utils.process_glob_list_arg(None))
+            self.assertEqual([], utils.process_glob_list_arg(""))
+            self.assertEqual([], utils.process_glob_list_arg([]))
+
+            # Expect output to be in order given
+            self.assertEqual(
+                ["foo.py", "bar.robot"],
+                utils.process_glob_list_arg("foo.py, bar.robot"),
+            )
+
+            # Expect sorted output of glob results
+            self.assertEqual(["bar.robot", "foo.py"], utils.process_glob_list_arg("*"))
+
+            # Patterns that don't match any files
+            self.assertEqual(
+                ["*.bar", "x.y.z"], utils.process_glob_list_arg("*.bar, x.y.z")
+            )
+
+            # Recursive
+            os.mkdir("subdir")
+            filename = os.path.join("subdir", "baz.resource")
+            touch(filename)
+            self.assertEqual([filename], utils.process_glob_list_arg("**/*.resource"))
 
     def test_decode_to_unicode(self):
         self.assertEqual(u"\xfc", utils.decode_to_unicode(b"\xfc"))

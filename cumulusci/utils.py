@@ -1,8 +1,3 @@
-from __future__ import unicode_literals
-from future import standard_library
-from future.utils import text_to_native_str
-
-standard_library.install_aliases()
 import fnmatch
 import io
 import math
@@ -13,7 +8,6 @@ import sys
 import tempfile
 import textwrap
 import zipfile
-from builtins import str
 from contextlib import contextmanager
 from datetime import datetime
 
@@ -27,7 +21,7 @@ CUMULUSCI_PATH = os.path.realpath(
 META_XML_CLEAN_DIRS = ("classes/", "triggers/", "pages/", "aura/", "components/")
 API_DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%f"
 DATETIME_LEN = len("2018-08-07T16:00:56.000")
-UTF8 = text_to_native_str("UTF-8")
+UTF8 = "UTF-8"
 
 BREW_UPDATE_CMD = "brew upgrade cumulusci"
 PIP_UPDATE_CMD = "pip install --upgrade cumulusci"

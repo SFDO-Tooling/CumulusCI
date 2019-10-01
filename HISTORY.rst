@@ -2,6 +2,17 @@
 History
 =======
 
+3.0.0 (2019-09-30)
+------------------
+
+Breaking change:
+
+* CumulusCI 3.0.0 removes support for Python 2 (which will reach end of life at the end of 2019).
+  If you're still running Python 2 you can use an older version of CumulusCI,
+  but we recommend upgrading to Python 3. See our
+  `installation instructions <https://cumulusci.readthedocs.io/en/latest/install.html>`_
+  for your platform.
+
 2.5.9 (2019-09-26)
 ------------------
 

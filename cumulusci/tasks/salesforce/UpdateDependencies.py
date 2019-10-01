@@ -1,4 +1,3 @@
-from builtins import str
 from distutils.version import LooseVersion
 
 from cumulusci.core.utils import process_bool_arg

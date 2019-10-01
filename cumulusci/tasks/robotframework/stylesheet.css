@@ -97,6 +97,7 @@ body {
 .pageobject-header {
     font-size: 1.2em;
     font-weight: bold;
+    margin-top: 1em;
 }
 .object_name, .page_type {
     padding: 2px 10px ;

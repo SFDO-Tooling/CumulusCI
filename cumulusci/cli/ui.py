@@ -13,27 +13,19 @@ from terminaltables import AsciiTable, SingleTable
 CHECKMARK = click.style("✔" if os.name == "posix" else "+", fg="green")
 CROSSMARK = click.style("✘" if os.name == "posix" else "-", fg="red")
 
-unicode = type(u"")
-PY2 = unicode is not str
-
-
-def encode(value):
-    # if unicode is not str
-    if PY2 and isinstance(value, unicode):
-        value = value.encode("utf8")
-    return value
-
 
 class CliTable:
     """Format and print data to the command line in tabular form.
     Attributes:
-        INNER_BORDER: Boolean passed to terminaltables.inner_row_border. Defaults to True.
-        PICTOGRAM_TRUE: True boolean values are replaced with this string.
-        PICTOGRAM_FALSE = False boolean values are replaced with this string.
+
+    * INNER_BORDER: Boolean passed to terminaltables.inner_row_border. Defaults to True.
+    * PICTOGRAM_TRUE: True boolean values are replaced with this string.
+    * PICTOGRAM_FALSE = False boolean values are replaced with this string.
+
     Methods:
-        echo: Print the table data to stdout using click.echo()
-        pretty_table: Table drawn using Unicode drawing characters.
-        ascii_table: Table drawn using Ascii characters.
+    * echo: Print the table data to stdout using click.echo()
+    * pretty_table: Table drawn using Unicode drawing characters.
+    * ascii_table: Table drawn using Ascii characters.
     """
 
     INNER_BORDER = True
@@ -49,7 +41,6 @@ class CliTable:
             bool_cols: List[str] of columns containing booleans to stringify.
             dim_rows: List[int] of row indices to dim.
         """
-        data = [[encode(col) for col in row] for row in data]
         self._data = data
         self._header = data[0]
         self._title = title
@@ -76,9 +67,10 @@ class CliTable:
     def stringify_boolean_col(self, col_name=None, true_str=None, false_str=None):
         """Replace booleans in the given column name with a string.
         Args:
-            col_name: str indicating which columns should be stringifed.
-            true_str: True values will be replaced with this string on posix systems.
-            false_str: False values will be replaced with this string on posix systems.
+
+        * col_name: str indicating which columns should be stringifed.
+        * true_str: True values will be replaced with this string on posix systems.
+        * false_str: False values will be replaced with this string on posix systems.
         """
         col_index = self._get_index_for_col_name(col_name)
 
