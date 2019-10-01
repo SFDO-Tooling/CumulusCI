@@ -6,7 +6,6 @@ from github3.pulls import ShortPullRequest
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.config import ServiceConfig
 from cumulusci.tests.util import create_project_config
-from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.tasks.release_notes.task import GithubReleaseNotes
 from cumulusci.tasks.release_notes.task import ParentPullRequestNotes
 from cumulusci.tasks.github.tests.util_github_api import GithubApiTestMixin
@@ -145,24 +144,12 @@ class TestParentPullRequestNotes(GithubApiTestMixin):
         assert "Body" == actual_pull_request.body
 
     @mock.patch("cumulusci.tasks.release_notes.task.get_pull_requests_with_base_branch")
-    @mock.patch("cumulusci.tasks.release_notes.task.create_pull_request")
-    @mock.patch("cumulusci.tasks.release_notes.task.add_labels_to_pull_request")
-    def test_get_parent_pull_request__create_parent_pull_request(
-        self,
-        add_labels,
-        create_pull_request,
-        get_pull_request,
-        task_factory,
-        project_config,
-        gh_api,
+    def test_get_parent_pull_request__pull_request_not_found(
+        self, get_pull_request, task_factory, project_config, gh_api
     ):
         self.init_github()
         self.project_config = project_config  # GithubApiMixin wants this
-
         get_pull_request.return_value = []
-        create_pull_request.return_value = ShortPullRequest(
-            self._get_expected_pull_request(62, 62, "parent body"), gh_api
-        )
 
         task = task_factory(self.PARENT_BRANCH_OPTIONS)
         task._setup_self()
@@ -171,8 +158,7 @@ class TestParentPullRequestNotes(GithubApiTestMixin):
         get_pull_request.assert_called_once_with(
             task.repo, task.repo.default_branch, self.PARENT_BRANCH_NAME
         )
-        assert 62 == actual_pull_request.number
-        assert "parent body" == actual_pull_request.body
+        assert actual_pull_request is None
 
     @mock.patch("cumulusci.tasks.release_notes.task.is_label_on_pull_request")
     @mock.patch("cumulusci.tasks.release_notes.task.ParentPullRequestNotesGenerator")

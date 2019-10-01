@@ -3,8 +3,6 @@ import github3.exceptions
 from cumulusci.core.utils import import_global
 from cumulusci.core.github import (
     is_pull_request_merged,
-    is_label_on_pull_request,
-    get_pull_requests_by_head,
     get_pull_requests_with_base_branch,
 )
 from cumulusci.tasks.release_notes.exceptions import CumulusCIException
@@ -138,7 +136,10 @@ class ParentPullRequestNotesGenerator(BaseReleaseNotesGenerator):
             self.repo, pull_request.head.ref, state="all"
         )
         self.change_notes = [
-            note for note in self.change_notes if is_pull_request_merged(note)
+            note
+            for note in self.change_notes
+            if is_pull_request_merged(note)
+            and note.head.ref != self.repo.default_branch
         ]
         if len(self.change_notes) == 0:
             return
@@ -148,7 +149,7 @@ class ParentPullRequestNotesGenerator(BaseReleaseNotesGenerator):
 
         body = []
         for parser in self.parsers:
-            if parser.title == None:
+            if parser.title is None:
                 parser.title = "Notes From Child PRs"
             parser_content = parser.render()
             if parser_content:
