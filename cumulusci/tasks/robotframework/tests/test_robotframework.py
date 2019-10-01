@@ -4,6 +4,7 @@ import shutil
 import tempfile
 import pytest
 import os.path
+import re
 from xml.etree import ElementTree as ET
 
 from cumulusci.core.config import TaskConfig
@@ -158,7 +159,9 @@ class TestRobotLibDoc(MockLoggerMixin, unittest.TestCase):
         path = os.path.join(self.datadir, "TestLibrary.py")
         output = os.path.join(self.tmpdir, "bogus", "index.html")
         task = create_task(RobotLibDoc, {"path": path, "output": output})
-        expected = r"Unable to create output file '{}' (.*)".format(output)
+        # on windows, the output path may have backslashes which needs
+        # to be protected in the expected regex
+        expected = r"Unable to create output file '{}' (.*)".format(re.escape(output))
         with pytest.raises(TaskOptionsError, match=expected):
             task()
 
