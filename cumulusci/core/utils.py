@@ -6,6 +6,7 @@ decode_to_unicode: get unicode string from sf api """
 
 from datetime import datetime
 import copy
+import glob
 import pytz
 import time
 import yaml
@@ -42,6 +43,36 @@ def process_bool_arg(arg):
             return True
         elif arg.lower() in ["false", "0"]:
             return False
+
+
+def process_glob_list_arg(arg):
+    """Convert a list of glob patterns or filenames into a list of files
+    The initial list can take the form of a comma-separated string or
+    a proper list. Order is preserved, but duplicates will be removed.
+
+    Note: this function processes glob patterns, but doesn't validate
+    that the files actually exist. For example, if the pattern is
+    'foo.bar' and there is no file named 'foo.bar', the literal string
+    'foo.bar' will be included in the returned files.
+
+    Similarly, if the pattern is '*.baz' and it doesn't match any files,
+    the literal string '*.baz' will be returned.
+    """
+    initial_list = process_list_arg(arg)
+
+    if not arg:
+        return []
+
+    files = []
+    for path in initial_list:
+        more_files = glob.glob(path, recursive=True)
+        if len(more_files):
+            files += sorted(more_files)
+        else:
+            files.append(path)
+    # In python 3.6+ dict is ordered, so we'll use it to weed
+    # out duplicates. We can't use a set because sets aren't ordered.
+    return list(dict.fromkeys(files))
 
 
 def process_list_arg(arg):
