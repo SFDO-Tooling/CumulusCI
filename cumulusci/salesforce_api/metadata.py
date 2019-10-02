@@ -197,7 +197,7 @@ class BaseMetadataApiCall(object):
     def _process_response_start(self, response):
         if response.status_code == http.client.INTERNAL_SERVER_ERROR:
             raise MetadataApiError(
-                f"HTTP ERROR {response.status_code}: {response.text}"
+                f"HTTP ERROR {response.status_code}: {response.text}", response
             )
         ids = parseString(response.content).getElementsByTagName("id")
         if ids:
