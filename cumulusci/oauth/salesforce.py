@@ -95,9 +95,7 @@ class OAuthCallbackHandler(BaseHTTPRequestHandler):
         args = parse_qs(urlparse(self.path).query, keep_blank_values=True)
         if "error" in args:
             http_status = http.client.BAD_REQUEST
-            http_body = "error: {}\nerror description: {}".format(
-                args["error"][0], args["error_description"][0]
-            )
+            http_body = f"error: {args['error'][0]}\nerror description: {args['error_description'][0]}"
         else:
             http_status = http.client.OK
             http_body = "OK"
@@ -133,8 +131,7 @@ class CaptureSalesforceOAuth(object):
         self._launch_browser(url)
         self._create_httpd()
         print(
-            "Spawning HTTP server at {} ".format(self.callback_url)
-            + "with timeout of {} seconds.\n".format(self.httpd.timeout)
+            f"Spawning HTTP server at {self.callback_url} with timeout of {self.httpd.timeout} seconds.\n"
             + "If you are unable to log in to Salesforce you can "
             + "press ctrl+c to kill the server and return to the command line."
         )
@@ -146,7 +143,7 @@ class CaptureSalesforceOAuth(object):
         if response.status_code == http.client.OK:
             return
         raise SalesforceOAuthError(
-            "status_code: {} content: {}".format(response.status_code, response.content)
+            f"status_code: {response.status_code} content: {response.content}"
         )
 
     def _create_httpd(self):
@@ -168,5 +165,5 @@ class CaptureSalesforceOAuth(object):
         return url
 
     def _launch_browser(self, url):
-        print("Launching web browser for URL {}".format(url))
+        print(f"Launching web browser for URL {url}")
         webbrowser.open(url, new=1)
