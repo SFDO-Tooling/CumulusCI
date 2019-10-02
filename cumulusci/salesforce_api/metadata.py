@@ -60,8 +60,7 @@ class BaseMetadataApiCall(object):
                 return self._process_response(response)
             except Exception as e:
                 raise MetadataParseError(
-                    "Could not process MDAPI response: {}".format(str(e)),
-                    response=response,
+                    f"Could not process MDAPI response: {str(e)}", response=response
                 )
 
     def _build_endpoint_url(self):
@@ -81,9 +80,7 @@ class BaseMetadataApiCall(object):
                 instance_url,
             )
         # Build the endpoint url from the instance_url
-        endpoint = "{}/services/Soap/m/{}/{}".format(
-            instance_url, self.api_version, org_id
-        )
+        endpoint = f"{instance_url}/services/Soap/m/{self.api_version}/{org_id}"
         return endpoint
 
     def _build_envelope_result(self):
@@ -190,7 +187,7 @@ class BaseMetadataApiCall(object):
                 )
                 return self._call_mdapi(headers, envelope, refresh=False)
         # Log the error
-        message = "{}: {}".format(faultcode, faultstring)
+        message = f"{faultcode}: {faultstring}"
         self._set_status("Failed", message)
         raise MetadataApiError(message, response)
 
@@ -200,8 +197,7 @@ class BaseMetadataApiCall(object):
     def _process_response_start(self, response):
         if response.status_code == http.client.INTERNAL_SERVER_ERROR:
             raise MetadataApiError(
-                "HTTP ERROR {}: {}".format(response.status_code, response.text),
-                response,
+                f"HTTP ERROR {response.status_code}: {response.text}"
             )
         ids = parseString(response.content).getElementsByTagName("id")
         if ids:
@@ -229,12 +225,11 @@ class BaseMetadataApiCall(object):
                     self.check_num = 1
                     self._set_status(
                         "InProgress",
-                        "next check in {} seconds".format(self._get_check_interval()),
+                        f"next check in {self._get_check_interval()} seconds",
                     )
                 else:
                     self._set_status(
-                        "Pending",
-                        "next check in {} seconds".format(self._get_check_interval()),
+                        "Pending", f"next check in {self._get_check_interval()} seconds"
                     )
         else:
             # If no done element was in the xml, fail logging the entire SOAP
@@ -250,9 +245,9 @@ class BaseMetadataApiCall(object):
         logger = getattr(self.task.logger, level)
         self.status = status
         if log:
-            logger("[{}]: {}".format(status, log))
+            logger(f"[{status}]: {log}")
         else:
-            logger("[{}]".format(status))
+            logger(f"[{status}]")
 
 
 class ApiRetrieveUnpackaged(BaseMetadataApiCall):
@@ -496,7 +491,7 @@ class ApiDeploy(BaseMetadataApiCall):
                 stacktrace = self._get_element_value(failure, "stackTrace")
                 message = ["Apex Test Failure: "]
                 if namespace:
-                    message.append("from namespace {}: ".format(namespace))
+                    message.append(f"from namespace {namespace}: ")
                 if stacktrace:
                     message.append(stacktrace)
                 messages.append("".join(message))
@@ -543,9 +538,7 @@ class ApiListMetadata(BaseMetadataApiCall):
 
     def _build_envelope_start(self):
         folder = self.folder
-        folder = (
-            "\n      <folder>{}</folder>".format(folder) if folder is not None else ""
-        )
+        folder = f"\n      <folder>{folder}</folder>" if folder is not None else ""
         return self.soap_envelope_start.format(
             metadata_type=self.metadata_type,
             folder=folder,
@@ -582,9 +575,7 @@ class ApiListMetadata(BaseMetadataApiCall):
                         result_data[key] = parse_api_datetime(result_data[key])
                     except Exception as e:
                         raise MetadataParseError(
-                            "Could not parse a datetime in the MDAPI response: {}, {}".format(
-                                str(e), str(result)
-                            ),
+                            f"Could not parse a datetime in the MDAPI response: {str(e)}, {str(result)}",
                             response=response,
                         )
             metadata.append(result_data)
