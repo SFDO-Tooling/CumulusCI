@@ -61,11 +61,11 @@ class SalesforceOAuth2(object):
     def get_authorize_url(self, scope, prompt=None):
         url = self.auth_site + "/services/oauth2/authorize"
         url += "?response_type=code"
-        url += "&client_id={}".format(self.client_id)
-        url += "&redirect_uri={}".format(self.callback_url)
-        url += "&scope={}".format(quote(scope))
+        url += f"&client_id={self.client_id}"
+        url += f"&redirect_uri={self.callback_url}"
+        url += f"&scope={quote(scope)}"
         if prompt:
-            url += "&prompt={}".format(quote(prompt))
+            url += f"&prompt={quote(prompt)}"
         return url
 
     def get_token(self, code):
