@@ -442,11 +442,20 @@ class RunApexTests(BaseSalesforceApiTask):
             "Processing": 0,
             "Queued": 0,
         }
+        processing_class_id = None
         for test_queue_item in self.result["records"]:
             counts[test_queue_item["Status"]] += 1
+            if test_queue_item["Status"] == "Processing":
+                processing_class_id = test_queue_item["ApexClassId"]
+        processing_class = ""
+        if counts["Processing"] == 1:
+            processing_class = f" ({self.classes_by_id[processing_class_id]})"
         self.logger.info(
-            "Completed: {}  Processing: {}  Queued: {}".format(
-                counts["Completed"], counts["Processing"], counts["Queued"]
+            "Completed: {}  Processing: {}{}  Queued: {}".format(
+                counts["Completed"],
+                counts["Processing"],
+                processing_class,
+                counts["Queued"],
             )
         )
         if counts["Queued"] == 0 and counts["Processing"] == 0:
@@ -456,7 +465,7 @@ class RunApexTests(BaseSalesforceApiTask):
     def _write_output(self, test_results):
         junit_output = self.options["junit_output"]
         with io.open(junit_output, mode="w", encoding="utf-8") as f:
-            f.write(u'<testsuite tests="{}">\n'.format(len(test_results)))
+            f.write('<testsuite tests="{}">\n'.format(len(test_results)))
             for result in test_results:
                 s = '  <testcase classname="{}" name="{}"'.format(
                     result["ClassName"], result["Method"]
@@ -481,7 +490,7 @@ class RunApexTests(BaseSalesforceApiTask):
                 else:
                     s += " />\n"
                 f.write(str(s))
-            f.write(u"</testsuite>")
+            f.write("</testsuite>")
 
         json_output = self.options["json_output"]
         with io.open(json_output, mode="w", encoding="utf-8") as f:
