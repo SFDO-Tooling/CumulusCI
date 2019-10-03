@@ -1,4 +1,4 @@
-import mock
+from unittest import mock
 import pytest
 
 from cumulusci.tasks.push.push_api import BasePushApiObject
@@ -83,9 +83,9 @@ class TestMetadataPacakage:
     def test_init(self):
         package = MetadataPackage(self.PUSH_API, self.NAME)
         assert package.push_api == self.PUSH_API
-        assert package.sf_id == None
+        assert package.sf_id is None
         assert package.name == self.NAME
-        assert package.namespace == None
+        assert package.namespace is None
 
         package = MetadataPackage(self.PUSH_API, self.NAME, self.SF_ID, self.NAMESPACE)
         assert package.push_api == self.PUSH_API

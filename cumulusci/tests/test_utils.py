@@ -8,7 +8,7 @@ import zipfile
 from datetime import datetime, timedelta
 
 from xml.etree import ElementTree as ET
-import mock
+from unittest import mock
 import responses
 
 from cumulusci import utils

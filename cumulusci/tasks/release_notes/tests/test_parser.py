@@ -1,5 +1,5 @@
 import http.client
-import mock
+from unittest import mock
 import unittest
 
 import responses
