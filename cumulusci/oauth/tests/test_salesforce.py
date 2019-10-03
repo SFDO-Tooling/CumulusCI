@@ -6,7 +6,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
-import mock
+from unittest import mock
 import responses
 
 from cumulusci.oauth.salesforce import SalesforceOAuth2

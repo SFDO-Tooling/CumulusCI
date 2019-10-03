@@ -1,7 +1,7 @@
 import unittest
 
-from mock import MagicMock
-from mock import patch
+from unittest.mock import MagicMock
+from unittest.mock import patch
 
 from cumulusci.core.config import BaseGlobalConfig
 from cumulusci.core.config import BaseProjectConfig

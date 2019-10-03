@@ -1,6 +1,6 @@
 import os
 import signal
-import mock
+from unittest import mock
 import unittest
 from cumulusci.tasks.robotframework import debugger
 from selenium.common.exceptions import InvalidSelectorException

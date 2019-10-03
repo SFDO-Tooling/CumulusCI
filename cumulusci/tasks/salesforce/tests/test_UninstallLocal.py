@@ -1,4 +1,4 @@
-import mock
+from unittest import mock
 import unittest
 
 from cumulusci.tasks.salesforce import UninstallLocal

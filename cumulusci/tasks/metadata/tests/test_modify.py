@@ -1,11 +1,9 @@
-import mock
 import os
 import unittest
 
 from cumulusci.core.config import BaseGlobalConfig
 from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.config import TaskConfig
-from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.tasks.metadata.modify import RemoveElementsXPath
 from cumulusci.utils import temporary_dir
 

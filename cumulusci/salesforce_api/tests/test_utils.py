@@ -1,5 +1,5 @@
 import unittest
-from mock import Mock, patch
+from unittest.mock import Mock, patch
 from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
 from cumulusci.core.exceptions import ServiceNotConfigured
 from cumulusci import __version__

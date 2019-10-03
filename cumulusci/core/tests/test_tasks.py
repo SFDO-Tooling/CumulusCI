@@ -1,20 +1,17 @@
 """ Tests for the CumulusCI task module """
 
 import unittest
-import logging
 import collections
-import mock
+from unittest import mock
 
 from cumulusci.core.tasks import BaseTask
 from cumulusci.core.config import BaseGlobalConfig
 from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.config import OrgConfig
-from cumulusci.core.config import FlowConfig
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.exceptions import TaskRequiresSalesforceOrg
 from cumulusci.core.tests.utils import MockLoggerMixin
-import cumulusci.core
 
 ORG_ID = "00D000000000001"
 USERNAME = "sample@example"
@@ -114,7 +111,7 @@ class TestBaseTaskCallable(MockLoggerMixin, unittest.TestCase):
             task_options = {"test_option": {"required": True}}
 
         with self.assertRaises(TaskOptionsError):
-            task = Task(self.project_config, self.task_config, self.org_config)
+            Task(self.project_config, self.task_config, self.org_config)
 
     def test_get_return_values(self):
         """ Callable interface returns retvals """

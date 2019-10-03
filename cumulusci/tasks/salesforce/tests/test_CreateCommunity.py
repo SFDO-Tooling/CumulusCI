@@ -1,5 +1,5 @@
 import json
-import mock
+from unittest import mock
 import responses
 import unittest
 from datetime import datetime
