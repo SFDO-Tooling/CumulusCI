@@ -6,7 +6,6 @@ import pytz
 
 from .. import utils
 
-from collections import OrderedDict
 from cumulusci.core.exceptions import ConfigMergeError
 from cumulusci.utils import temporary_dir, touch
 
@@ -81,24 +80,17 @@ class TestUtils(unittest.TestCase):
 class TestMergedConfig(unittest.TestCase):
     def test_init(self):
         config = utils.merge_config(
-            OrderedDict(
-                [
-                    ("global_config", {"hello": "world"}),
-                    ("user_config", {"hello": "christian"}),
-                ]
-            )
+            {"global_config": {"hello": "world"}, "user_config": {"hello": "christian"}}
         )
         self.assertEqual(config["hello"], "christian")
 
     def test_merge_failure(self):
         with self.assertRaises(ConfigMergeError) as cm:
             utils.merge_config(
-                OrderedDict(
-                    [
-                        ("global_config", {"hello": "world", "test": {"sample": 1}}),
-                        ("user_config", {"hello": "christian", "test": [1, 2]}),
-                    ]
-                )
+                {
+                    "global_config": {"hello": "world", "test": {"sample": 1}},
+                    "user_config": {"hello": "christian", "test": [1, 2]},
+                }
             )
         exception = cm.exception
         self.assertEqual(exception.config_name, "user_config")
@@ -129,10 +121,10 @@ third:
 """
 
     def test_ordered_yaml_dump(self):
-        ordered_data = OrderedDict()
+        ordered_data = {}
         ordered_data["first"] = 1
         ordered_data["second"] = 2
-        ordered_data["third"] = OrderedDict()
+        ordered_data["third"] = {}
         ordered_data["third"]["first"] = 1
         ordered_data["third"]["second"] = 2
 
@@ -142,5 +134,5 @@ third:
 
     def test_ordered_yaml_load(self):
         result = utils.ordered_yaml_load(self.yaml)
-        self.assertIsInstance(result, OrderedDict)
-        self.assertIsInstance(result["third"], OrderedDict)
+        self.assertIsInstance(result, dict)
+        self.assertIsInstance(result["third"], dict)
