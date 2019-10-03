@@ -3,7 +3,7 @@ import os
 import io
 import unicodecsv
 
-from collections import defaultdict, OrderedDict
+from collections import defaultdict
 from salesforce_bulk.util import IteratorBytesIO
 from sqlalchemy import Column, MetaData, Table, Unicode, create_engine, text
 from sqlalchemy.orm import aliased, Session
@@ -397,7 +397,7 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
 
     def _expand_mapping(self):
         # Expand the mapping to handle dependent lookups
-        self.after_steps = defaultdict(lambda: OrderedDict())
+        self.after_steps = defaultdict(lambda: {})
 
         for step in self.mapping.values():
             step["action"] = step.get("action", "insert")
@@ -423,7 +423,7 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
                         "sf_object": sobject,
                         "action": "update",
                         "table": step["table"],
-                        "lookups": OrderedDict(),
+                        "lookups": {},
                         "fields": {},
                     }
                     mapping["lookups"]["Id"] = {
