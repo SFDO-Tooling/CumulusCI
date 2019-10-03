@@ -1,3 +1,6 @@
+import time
+from datetime import datetime, timedelta
+
 from cumulusci.core.exceptions import ApexTestException
 from cumulusci.core.exceptions import SalesforceException
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
@@ -64,6 +67,8 @@ class PackageUpload(BaseSalesforceApiTask):
             package_info["ReleaseNotesUrl"] = self.options["release_notes_url"]
 
         PackageUploadRequest = self._get_tooling_object("PackageUploadRequest")
+
+        start_time = time.time()
         self.upload = PackageUploadRequest.create(package_info)
         self.upload_id = self.upload["id"]
 
@@ -73,20 +78,10 @@ class PackageUpload(BaseSalesforceApiTask):
             )
         )
         self._poll()
+        self.upload_time_seconds = time.time() - start_time
 
         if self.upload["Status"] == "ERROR":
-            self.logger.error("Package upload failed with the following errors")
-            error = {"message": ""}
-            for error in self.upload["Errors"]["errors"]:
-                self.logger.error("  {}".format(error["message"]))
-
-            # use the last error in the batch, but log them all.
-            error_class = (
-                ApexTestException
-                if error["message"] == "ApexTestFailure"
-                else SalesforceException
-            )
-            raise error_class("Package upload failed")
+            self._handle_package_upload_error()
         else:
             version_id = self.upload["MetadataPackageVersionId"]
             version = self._get_one(
@@ -115,6 +110,35 @@ class PackageUpload(BaseSalesforceApiTask):
                     self.version_number, version_id
                 )
             )
+
+    def _handle_package_upload_error(self):
+        self.logger.error("Package upload failed with the following errors")
+        error = {"message": ""}
+        apex_test_failures = False
+        for error in self.upload["Errors"]["errors"]:
+            self.logger.error("  {}".format(error["message"]))
+            if error["message"] == "ApexTestFailure":
+                apex_test_failures = True
+
+        if apex_test_failures:
+            self.logger.error("Failed Apex Tests:")
+            test_start_datetime = datetime.utcnow() - timedelta(
+                seconds=self.upload_time_seconds
+            )
+            failed_tests_query = f"SELECT ApexClass.Name, MethodName, Message FROM ApexTestResult WHERE Outcome='Fail' AND TestTimestamp > {test_start_datetime.isoformat()+'Z'}"
+            results = self.tooling.query(failed_tests_query)
+            for test in results["records"]:
+                self.logger.error(
+                    f"    {test['ApexClass']['Name']}.{test['MethodName']}"
+                )
+
+        # use the last error in the batch, but log them all.
+        error_class = (
+            ApexTestException
+            if error["message"] == "ApexTestFailure"
+            else SalesforceException
+        )
+        raise error_class("Package upload failed")
 
     def _get_one(self, query, message):
         result = self.tooling.query(query)
