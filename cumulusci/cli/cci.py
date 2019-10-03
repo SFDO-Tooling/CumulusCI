@@ -1,5 +1,4 @@
 from collections import defaultdict
-from collections import OrderedDict
 from urllib.parse import urlparse
 
 import code
@@ -938,10 +937,10 @@ def org_list(config, plain):
     persistent_data = [header]
     scratch_data = [header[:2] + ["Days", "Expired", "Config", "Domain"]]
 
-    org_configs = OrderedDict(
-        (org, config.project_config.keychain.get_org(org))
+    org_configs = {
+        org: config.project_config.keychain.get_org(org)
         for org in config.project_config.keychain.list_orgs()
-    )
+    }
 
     rows_to_dim = []
     for org, org_config in org_configs.items():
@@ -1112,7 +1111,7 @@ def org_shell(config, org_name):
 @click.option("--json", "print_json", is_flag=True, help="Print a json string")
 @pass_config(load_keychain=False)
 def task_list(config, plain, print_json):
-    task_groups = OrderedDict()
+    task_groups = {}
     tasks = config.project_config.list_tasks()
     plain = plain or config.global_config.cli__plain_output
 
