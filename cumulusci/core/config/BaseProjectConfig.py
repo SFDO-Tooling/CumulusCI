@@ -1,4 +1,3 @@
-from collections import OrderedDict
 from distutils.version import LooseVersion
 import os
 
@@ -98,15 +97,13 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                 self.config_additional_yaml.update(additional_yaml_config)
 
         self.config = merge_config(
-            OrderedDict(
-                [
-                    ("global_config", self.config_global),
-                    ("global_local", self.config_global_local),
-                    ("project_config", self.config_project),
-                    ("project_local_config", self.config_project_local),
-                    ("additional_yaml", self.config_additional_yaml),
-                ]
-            )
+            {
+                "global_config": self.config_global,
+                "global_local": self.config_global_local,
+                "project_config": self.config_project,
+                "project_local_config": self.config_project_local,
+                "additional_yaml": self.config_additional_yaml,
+            }
         )
 
     @property
@@ -179,17 +176,15 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         # If running in a CI environment, make sure we have all the needed
         # git info or throw a ConfigError
         if info["ci"]:
-            validate = OrderedDict(
-                (
-                    # <key>, <env var to manually override>
-                    ("branch", "CUMULUSCI_REPO_BRANCH"),
-                    ("commit", "CUMULUSCI_REPO_COMMIT"),
-                    ("name", "CUMULUSCI_REPO_URL"),
-                    ("owner", "CUMULUSCI_REPO_URL"),
-                    ("root", "CUMULUSCI_REPO_ROOT"),
-                    ("url", "CUMULUSCI_REPO_URL"),
-                )
-            )
+            validate = {
+                # <key>, <env var to manually override>
+                "branch": "CUMULUSCI_REPO_BRANCH",
+                "commit": "CUMULUSCI_REPO_COMMIT",
+                "name": "CUMULUSCI_REPO_URL",
+                "owner": "CUMULUSCI_REPO_URL",
+                "root": "CUMULUSCI_REPO_ROOT",
+                "url": "CUMULUSCI_REPO_URL",
+            }
             for key, env_var in list(validate.items()):
                 if key not in info or not info[key]:
                     message = "Detected CI on {} but could not determine the repo {}".format(
