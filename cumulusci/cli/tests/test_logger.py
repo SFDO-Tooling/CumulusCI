@@ -1,4 +1,4 @@
-import mock
+from unittest import mock
 import unittest
 
 from ..logger import init_logger

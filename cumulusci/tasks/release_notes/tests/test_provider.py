@@ -1,7 +1,7 @@
 from datetime import datetime
 from datetime import timedelta
 import http.client
-import mock
+from unittest import mock
 import os
 import shutil
 import tempfile

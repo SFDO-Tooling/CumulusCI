@@ -5,7 +5,7 @@ import tempfile
 import unittest
 
 import responses
-from mock import MagicMock, patch
+from unittest.mock import MagicMock, patch
 from simple_salesforce import SalesforceGeneralError
 
 from cumulusci.core.config import (

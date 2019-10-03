@@ -1,16 +1,9 @@
 import csv
-import mock
+from unittest import mock
 import os.path
 import unittest
 
-from cumulusci.core.config import (
-    BaseGlobalConfig,
-    BaseProjectConfig,
-    TaskConfig,
-    OrgConfig,
-)
 from cumulusci.utils import temporary_dir
-from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.tasks.salesforce.tests.util import create_task
 from cumulusci.tasks.push.pushfails import ReportPushFailures
 

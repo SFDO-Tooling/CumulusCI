@@ -1,7 +1,7 @@
 import unittest
 from robot.libraries.BuiltIn import RobotNotRunningError
 from cumulusci.robotframework.Salesforce import Salesforce
-import mock
+from unittest import mock
 
 
 class TestLocators(unittest.TestCase):

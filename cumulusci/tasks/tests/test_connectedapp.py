@@ -1,6 +1,6 @@
 """ Tests for the connectedapp tasks """
 
-import mock
+from unittest import mock
 import os
 import pytest
 import re
@@ -10,7 +10,7 @@ try:
     from json.decoder import JSONDecodeError
 except ImportError:
     JSONDecodeError = ValueError
-from mock import MagicMock
+from unittest.mock import MagicMock
 
 from cumulusci.core.config import (
     BaseGlobalConfig,
@@ -18,7 +18,7 @@ from cumulusci.core.config import (
     TaskConfig,
     ServiceConfig,
 )
-from cumulusci.core.exceptions import ServiceNotConfigured, TaskOptionsError
+from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.core.keychain import DEFAULT_CONNECTED_APP
 from cumulusci.core.tests.utils import MockLoggerMixin
