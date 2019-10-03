@@ -11,7 +11,7 @@ from sqlalchemy import Column
 from sqlalchemy import Table
 from sqlalchemy import types
 from sqlalchemy import Unicode
-import mock
+from unittest import mock
 import responses
 
 from cumulusci.core.config import BaseGlobalConfig

@@ -1,6 +1,6 @@
 import io
 import os
-import mock
+from unittest import mock
 import pytest
 import responses
 from datetime import datetime

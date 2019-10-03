@@ -15,7 +15,7 @@ BarTestPage has two.
 
 import unittest
 import os.path
-import mock
+from unittest import mock
 from cumulusci.robotframework import PageObjects
 from cumulusci.robotframework.CumulusCI import CumulusCI
 from cumulusci.robotframework.pageobjects.PageObjectLibrary import _PageObjectLibrary
