@@ -32,7 +32,7 @@ from cumulusci.core.tests.utils import MockLoggerMixin
     "cumulusci.tasks.salesforce.BaseSalesforceTask._update_credentials",
     MagicMock(return_value=None),
 )
-class TestRunApexTests(unittest.TestCase):
+class TestRunApexTests(MockLoggerMixin, unittest.TestCase):
     def setUp(self):
         self.api_version = 38.0
         self.global_config = BaseGlobalConfig(
@@ -177,6 +177,21 @@ class TestRunApexTests(unittest.TestCase):
             responses.GET, url, match_querystring=True, json=expected_response
         )
 
+    def _mock_tests_processing(self, job_id="JOB_ID1234567"):
+        url = (
+            self.base_tooling_url
+            + "query/?q=SELECT+Id%2C+Status%2C+"
+            + "ApexClassId+FROM+ApexTestQueueItem+WHERE+ParentJobId+%3D+%27"
+            + "{}%27".format(job_id)
+        )
+        expected_response = {
+            "done": True,
+            "records": [{"Status": "Processing", "ApexClassId": 1}],
+        }
+        responses.add(
+            responses.GET, url, match_querystring=True, json=expected_response
+        )
+
     def _mock_run_tests(self, success=True, body="JOB_ID1234567"):
         url = self.base_tooling_url + "runTestsAsynchronous"
         if success:
@@ -253,6 +268,18 @@ class TestRunApexTests(unittest.TestCase):
         task = RunApexTests(self.project_config, task_config, self.org_config)
         with self.assertRaises(ApexTestException):
             task()
+
+    @responses.activate
+    def test_run_task__processing(self):
+        self._mock_apex_class_query()
+        self._mock_run_tests()
+        self._mock_tests_processing()
+        self._mock_tests_complete()
+        self._mock_get_test_results()
+        task = RunApexTests(self.project_config, self.task_config, self.org_config)
+        task()
+        log = self._task_log_handler.messages
+        assert "Completed: 0  Processing: 1 (TestClass_TEST)  Queued: 0" in log["info"]
 
     def test_is_retriable_failure(self):
         task_config = TaskConfig()
