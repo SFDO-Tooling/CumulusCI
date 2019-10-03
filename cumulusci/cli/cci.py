@@ -114,9 +114,7 @@ def check_latest_version():
         click.echo("Checking the version!")
         if result:
             click.echo(
-                """An update to CumulusCI is available. Use {} to update.""".format(
-                    get_cci_upgrade_command()
-                )
+                f"""An update to CumulusCI is available. To install the update, run this command: {get_cci_upgrade_command()}"""
             )
 
 
@@ -144,21 +142,21 @@ def render_recursive(data, indent=None):
     elif isinstance(data, list):
         for item in data:
             if isinstance(item, (bytes, str)):
-                click.echo("{}- {}".format(indent_str, item))
+                click.echo(f"{indent_str}- {item}")
             else:
-                click.echo("{}-".format(indent_str))
+                click.echo(f"{indent_str}-")
                 render_recursive(item, indent=indent + 4)
     elif isinstance(data, dict):
         for key, value in data.items():
             key_str = click.style(str(key) + ":", bold=True)
             if isinstance(value, list):
-                click.echo("{}{}".format(indent_str, key_str))
+                click.echo(f"{indent_str}{key_str}")
                 render_recursive(value, indent=indent + 4)
             elif isinstance(value, dict):
-                click.echo("{}{}".format(indent_str, key_str))
+                click.echo(f"{indent_str}{key_str}")
                 render_recursive(value, indent=indent + 4)
             else:
-                click.echo("{}{} {}".format(indent_str, key_str, value))
+                click.echo(f"{indent_str}{key_str} {value}")
 
 
 def handle_sentry_event(config, no_prompt):
@@ -167,16 +165,9 @@ def handle_sentry_event(config, no_prompt):
         return
 
     sentry_config = config.project_config.keychain.get_service("sentry")
-    event_url = "{}/{}/{}/?query={}".format(
-        config.project_config.sentry.remote.base_url,
-        sentry_config.org_slug,
-        sentry_config.project_slug,
-        event,
-    )
+    event_url = f"{config.project_config.sentry.remote.base_url}/{sentry_config.org_slug}/{sentry_config.project_slug}/?query={event}"
     click.echo(
-        "An error event was recorded in sentry.io and can be viewed at the url:\n{}".format(
-            event_url
-        )
+        f"An error event was recorded in sentry.io and can be viewed at the url:\n{event_url}"
     )
 
     if not no_prompt and click.confirm(
@@ -245,24 +236,20 @@ def main():
 def version():
     click.echo("CumulusCI version: ", nl=False)
     click.echo(click.style(cumulusci.__version__, bold=True), nl=False)
-    click.echo(" ({})".format(sys.argv[0]))
-    click.echo("Python version: {}".format(sys.version.split()[0]), nl=False)
-    click.echo(" ({})".format(sys.executable))
+    click.echo(f" ({sys.argv[0]})")
+    click.echo(f"Python version: {sys.version.split()[0]}", nl=False)
+    click.echo(f" ({sys.executable})")
 
     click.echo()
     current_version = get_installed_version()
     latest_version = get_latest_final_version()
     if latest_version > current_version:
         click.echo(
-            "There is a newer version of CumulusCI available ({}).".format(
-                str(latest_version)
-            )
+            f"There is a newer version of CumulusCI available ({str(latest_version)})."
         )
-        click.echo("To upgrade, run `{}`".format(get_cci_upgrade_command()))
+        click.echo(f"To upgrade, run `{get_cci_upgrade_command()}`")
         click.echo(
-            "Release notes: https://github.com/SFDO-Tooling/CumulusCI/releases/tag/v{}".format(
-                str(latest_version)
-            )
+            f"Release notes: https://github.com/SFDO-Tooling/CumulusCI/releases/tag/v{str(latest_version)}"
         )
     else:
         click.echo("You have the latest version of CumulusCI.")
@@ -688,7 +675,7 @@ class ConnectServiceCommand(click.MultiCommand):
 
     def _build_param(self, attribute, details):
         req = details["required"]
-        return click.Option(("--{0}".format(attribute),), prompt=req, required=req)
+        return click.Option((f"--{attribute}",), prompt=req, required=req)
 
     def get_command(self, ctx, name):
         config = load_config(**self.load_config_kwargs)
@@ -696,9 +683,7 @@ class ConnectServiceCommand(click.MultiCommand):
         try:
             service_config = services[name]
         except KeyError:
-            raise click.UsageError(
-                "Sorry, I don't know about the '{0}' service.".format(name)
-            )
+            raise click.UsageError(f"Sorry, I don't know about the '{name}' service.")
         attributes = service_config["attributes"].items()
 
         params = [self._build_param(attr, cnfg) for attr, cnfg in attributes]
@@ -725,11 +710,9 @@ class ConnectServiceCommand(click.MultiCommand):
 
             config.keychain.set_service(name, ServiceConfig(serv_conf), project)
             if project:
-                click.echo("{0} is now configured for this project.".format(name))
+                click.echo(f"{name} is now configured for this project.")
             else:
-                click.echo(
-                    "{0} is now configured for all CumulusCI projects.".format(name)
-                )
+                click.echo(f"{name} is now configured for all CumulusCI projects.")
 
         ret = click.Command(name, params=params, callback=callback)
         return ret
@@ -831,7 +814,7 @@ def org_connect(config, org_name, sandbox, login_url, default, global_org):
 
     if default:
         config.keychain.set_default_org(org_name)
-        click.echo("{} is now the default org".format(org_name))
+        click.echo(f"{org_name} is now the default org")
 
 
 @org.command(name="default", help="Sets an org as the default org for tasks and flows")
@@ -846,12 +829,10 @@ def org_default(config, org_name, unset):
 
     if unset:
         config.keychain.unset_default_org()
-        click.echo(
-            "{} is no longer the default org.  No default org set.".format(org_name)
-        )
+        click.echo(f"{org_name} is no longer the default org.  No default org set.")
     else:
         config.keychain.set_default_org(org_name)
-        click.echo("{} is now the default org".format(org_name))
+        click.echo(f"{org_name} is now the default org")
 
 
 @org.command(name="import", help="Import a scratch org from Salesforce DX")
@@ -994,9 +975,7 @@ def org_remove(config, org_name, global_org):
     try:
         org_config = config.keychain.get_org(org_name)
     except OrgNotFound:
-        raise click.ClickException(
-            "Org {} does not exist in the keychain".format(org_name)
-        )
+        raise click.ClickException(f"Org {org_name} does not exist in the keychain")
 
     if org_config.can_delete():
         click.echo("A scratch org was already created, attempting to delete...")
@@ -1039,9 +1018,7 @@ def org_scratch(config, config_name, org_name, default, devhub, days, no_passwor
     scratch_config = scratch_configs.get(config_name)
     if not scratch_config:
         raise click.UsageError(
-            "No scratch org config named {} found in the cumulusci.yml file".format(
-                config_name
-            )
+            f"No scratch org config named {config_name} found in the cumulusci.yml file"
         )
 
     if devhub:
@@ -1053,9 +1030,9 @@ def org_scratch(config, config_name, org_name, default, devhub, days, no_passwor
 
     if default:
         config.keychain.set_default_org(org_name)
-        click.echo("{} is now the default org".format(org_name))
+        click.echo(f"{org_name} is now the default org")
     else:
-        click.echo("{} is configured for use".format(org_name))
+        click.echo(f"{org_name} is configured for use")
 
 
 @org.command(
@@ -1067,7 +1044,7 @@ def org_scratch(config, config_name, org_name, default, devhub, days, no_passwor
 def org_scratch_delete(config, org_name):
     org_config = config.keychain.get_org(org_name)
     if not org_config.scratch:
-        raise click.UsageError("Org {} is not a scratch org".format(org_name))
+        raise click.UsageError(f"Org {org_name} is not a scratch org")
 
     try:
         org_config.delete_org()
@@ -1091,7 +1068,7 @@ def org_shell(config, org_name):
     sf = get_simple_salesforce_connection(config.project_config, org_config)
 
     code.interact(
-        banner="Use `sf` to access org `{}` via simple_salesforce".format(org_name),
+        banner=f"Use `sf` to access org `{org_name}` via simple_salesforce",
         local={
             "sf": sf,
             "org_config": org_config,
@@ -1220,7 +1197,7 @@ def task_run(config, task_name, org, o, debug, debug_before, debug_after, no_pro
             # Validate the option
             if name not in task_class.task_options:
                 raise click.UsageError(
-                    'Option "{}" is not available for task {}'.format(name, task_name)
+                    f'Option "{name}" is not available for task {task_name}'
                 )
 
             # Override the option in the task config
@@ -1254,7 +1231,7 @@ def task_run(config, task_name, org, o, debug, debug_before, debug_after, no_pro
         # Unexpected exception; log to sentry and raise
         handle_exception_debug(config, debug, no_prompt=no_prompt)
     finally:
-        config.alert("Task complete: {}".format(task_name))
+        config.alert(f"Task complete: {task_name}")
 
 
 # Commands for group: flow
@@ -1355,7 +1332,7 @@ def flow_run(config, flow_name, org, delete_org, debug, o, skip, no_prompt):
     except Exception:
         handle_exception_debug(config, debug, no_prompt=no_prompt)
     finally:
-        config.alert("Flow Complete: {}".format(flow_name))
+        config.alert(f"Flow Complete: {flow_name}")
 
     # Delete the scratch org if --delete-org was set
     if delete_org:
