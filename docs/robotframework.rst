@@ -232,30 +232,31 @@ When you create a page object class, you start by inheriting from one
 of the provided base classes. No matter which class your inherit from,
 your class gets the following predefined properties:
 
-- **self.object_name** - the name of the object related to the
+- **self.object_name** is the name of the object related to the
   class. This is defined via the `object_name` parameter to the
   ``pageobject`` decorator. You should not add the namespace
   prefix in the decorator. This attribute will automatically add the
   prefix from cumulusci.yml when necessary.
 
-- **self.builtin** - this is a reference to the robot framework
+- **self.builtin** is a reference to the robot framework
   ``BuiltIn`` library, and can be used to directly call built-in
   keywords. Any built-in keyword can be called by converting the name
-  to all lowercase, and replace spaces with underscores (eg:
+  to all lowercase, and replacing all spaces with underscores (eg:
   ``self.builtin.log``, ``self.builtin.get_variable_value``, etc).
 
-- **self.cumulusci** - this is a reference to the CumulusCI keyword
+- **self.cumulusci** is a reference to the CumulusCI keyword
   library. You can call any keyword in this library by converting the
-  name to all lowercase, and replace spaces with understcores (eg:
+  name to all lowercase, and replacing all spaces with underscores (eg:
   ``self.cumulusci.get_org_info``, etc).
 
-- **salesforce** - this is a reference to the Salesforce keyword
+- **self.salesforce** is a reference to the Salesforce keyword
   library. You can call any keyword in this library by converting the
-  name to all lowercase, and replace spaces with understcores (eg:
+  name to all lowercase, and replacing all spaces with underscores (eg:
   ``self.salesforce.wait_until_loading_is_complete``, etc).
 
-- **selenium** - this is a reference to SeleniumLibrary. You can call any keyword in this library by converting the
-  name to all lowercase, and replace spaces with understcores (eg:
+- **self.selenium** is a reference to SeleniumLibrary. You can call
+  any keyword in this library by converting the name to all lowercase,
+  and replacing all spaces with underscores (eg:
   ``self.selenim.wait_until_page_contains_element``, etc)
 
 
@@ -275,6 +276,12 @@ which should be used for all classes that use the ``pageobject`` decorator:
   page object which represents a home page
 - ``cumulusci.robotframework.pageobjects.ListingPage`` - a class for a
   page object which represents a listing page
+
+This base class adds the following keyword to every page object:
+
+- ``Log current page object`` - this keyword is mostly useful
+  while debugging tests. It will add to the log information about the
+  currently loaded page object.
 
 Example Page Object
 -------------------
@@ -350,6 +357,7 @@ Page Object Keywords
 The **PageObjects** library provides the following keywords:
 
 * Current Page Should Be
+* Get Page Object
 * Go To Page Object
 * Load Page Object
 * Log Page Object Keywords
@@ -363,7 +371,7 @@ This keyword will attempt to validate that the given page object
 represents the current page. Each page object may use its own method
 for making the determination, but the built-in page objects all
 compare the page location to an expected pattern
-(eg: _.../lightning/o/..._). If the assertion passes, the keywords for
+(eg: ``.../lightning/o/...``). If the assertion passes, the keywords for
 that page object will autoamtically be loaded.
 
 This keyword is useful if you get to a page via a button or some other
@@ -371,10 +379,22 @@ form of navigation, in that it allows you to both assert that you are
 on the page you think you should be on, and load the keywords for that
 page, all with a single statement.
 
-Go To Page Object
-^^^^^^^^^^^^^^^^^
+Get Page Object
+^^^^^^^^^^^^^^^
 
-Example: :code:`Go to page object  Listing  Contact`
+Example: :code:`Get page object  Listing  Contact`
+
+This keyword is rarely used in a test. It is mostly useful
+to get the reference to a other keyword from another keyword. It is
+similar in function to robot's built-in `Get library instance
+<http://robotframework.org/robotframework/latest/libraries/BuiltIn.html#Get%20Library%20Instance>`_
+keyword.
+
+
+Go To Page
+^^^^^^^^^^
+
+Example: :code:`Go to page  Listing  Contact`
 
 This will attempt to go to the listing page for the Contact object,
 and then load the keywords for that page.
@@ -410,7 +430,7 @@ For example, if you use :code:`Current page should be  Home  Event` and
 there is no page object by that name, a generic :code:`Home` page object
 will be loaded, and its object name will be set to :code:`Event`.
 
-For example, let's say your project has created a custom object named
+Let's say your project has created a custom object named
 **Island**. You don't have a home page, but the object does have a
 standard listing page. Without creating any page objects, this test
 should work by using generic implementations of the Home and Listing
@@ -426,6 +446,18 @@ page objects:
 
        # Verify that the redirect happened
        Current Page Should Be  Listing  Islands
+
+CumulusCI provides the following generic page objects:
+
+- **Listing** (eg: :code:`Go to  page  Listing  Contact`)
+  Listing pages refer to pages with a URL that matches the pattern
+  "<host>b/lightning/o/<object name>/list"
+- **Home** (eg: :code:`Go to page  Home  Contact`)
+  Home pages refer to pages with a URL that matches the pattern
+  "<host>/lightning/o/<object name>/home"
+- **Detail** (eg: :code:`Go to page  Detail  Contact  ${contact id}`)
+  Detail pages refer to pages with a URL that matches the
+  pattern "<host>/lightning/r/<object name>/<object id>/view"
 
 Of course, the real power comes when you create your own page object
 class which implements keywords which can be used with your custom
@@ -443,7 +475,7 @@ the CumulusCI and Salesforce keywords
 CumulusCI Robot Tasks
 =====================
 
-CumulusCI includes two tasks for working with Robot Framework tests and keyword libraries:
+CumulusCI includes several tasks for working with Robot Framework tests and keyword libraries:
 
 * **robot**: Runs robot test suites.  By default, recursively runs all tests located under the folder **robot/<project name>/tests/**.  Test suites can be overridden via the **suites** keyword and variables inside robot files can be overridden using the **vars** option with the syntax VAR:value (ex: BROWSER:firefox).
 * **robot_testdoc**: Generates html documentation of your whole robot test suite and writes to **robot/<project name>/doc/<project_name>.html**.
