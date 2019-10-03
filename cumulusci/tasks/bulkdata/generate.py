@@ -1,4 +1,4 @@
-from collections import defaultdict, OrderedDict
+from collections import defaultdict
 
 import click
 
@@ -133,7 +133,7 @@ class GenerateMapping(BaseSalesforceApiTask):
                                     self.refs[obj][target].add(field["name"])
 
     def _build_mapping(self):
-        """Output self.schema in mapping file format by constructing an OrderedDict and serializing to YAML"""
+        """Output self.schema in mapping file format by constructing a dict and serializing to YAML"""
         objs = set(self.schema.keys())
         stack = self._split_dependencies(objs, self.refs)
 
@@ -143,10 +143,10 @@ class GenerateMapping(BaseSalesforceApiTask):
             else (" " + f if f in self.core_fields else f)
         )
 
-        self.mapping = OrderedDict()
+        self.mapping = {}
         for obj in stack:
             key = "Insert {}".format(obj)
-            self.mapping[key] = OrderedDict()
+            self.mapping[key] = {}
             self.mapping[key]["sf_object"] = "{}".format(obj)
             self.mapping[key]["table"] = "{}".format(obj.lower())
             fields = []
@@ -156,7 +156,7 @@ class GenerateMapping(BaseSalesforceApiTask):
                     lookups.append(field["name"])
                 else:
                     fields.append(field["name"])
-            self.mapping[key]["fields"] = OrderedDict()
+            self.mapping[key]["fields"] = {}
             if fields:
                 if "Id" not in fields:
                     fields.append("Id")
@@ -167,7 +167,7 @@ class GenerateMapping(BaseSalesforceApiTask):
                     )
             if lookups:
                 lookups.sort(key=field_sort)
-                self.mapping[key]["lookups"] = OrderedDict()
+                self.mapping[key]["lookups"] = {}
                 for field in lookups:
                     # First, determine what manner of lookup we have here.
                     referenceTo = self.schema[obj][field]["referenceTo"]
