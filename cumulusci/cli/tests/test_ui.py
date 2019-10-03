@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import sys
 
-import mock
+from unittest import mock
 import pytest
 from cumulusci.cli.ui import CHECKMARK, CliTable
 

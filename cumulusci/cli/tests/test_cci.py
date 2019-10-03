@@ -12,7 +12,7 @@ import time
 import unittest
 
 import click
-import mock
+from unittest import mock
 import pkg_resources
 import requests
 import responses

@@ -1,5 +1,5 @@
 import io
-import mock
+from unittest import mock
 import unittest
 import zipfile
 

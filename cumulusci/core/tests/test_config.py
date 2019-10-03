@@ -2,7 +2,7 @@
 import os
 import unittest
 
-import mock
+from unittest import mock
 import responses
 
 from github3.exceptions import NotFoundError
