@@ -249,12 +249,12 @@ your class gets the following predefined properties:
   name to all lowercase, and replacing all spaces with underscores (eg:
   ``self.cumulusci.get_org_info``, etc).
 
-- **salesforce** is a reference to the Salesforce keyword
+- **self.salesforce** is a reference to the Salesforce keyword
   library. You can call any keyword in this library by converting the
   name to all lowercase, and replacing all spaces with underscores (eg:
   ``self.salesforce.wait_until_loading_is_complete``, etc).
 
-- **selenium** is a reference to SeleniumLibrary. You can call
+- **self.selenium** is a reference to SeleniumLibrary. You can call
   any keyword in this library by converting the name to all lowercase,
   and replacing all spaces with underscores (eg:
   ``self.selenim.wait_until_page_contains_element``, etc)
@@ -371,7 +371,7 @@ This keyword will attempt to validate that the given page object
 represents the current page. Each page object may use its own method
 for making the determination, but the built-in page objects all
 compare the page location to an expected pattern
-(eg: `.../lightning/o/...`). If the assertion passes, the keywords for
+(eg: ``.../lightning/o/...``). If the assertion passes, the keywords for
 that page object will autoamtically be loaded.
 
 This keyword is useful if you get to a page via a button or some other
@@ -384,7 +384,7 @@ Get Page Object
 
 Example: :code:`Get page object  Listing  Contact`
 
-This keyword is rarely used in a test. It is mostly useful when
+This keyword is rarely used in a test. It is mostly useful
 to get the reference to a other keyword from another keyword. It is
 similar in function to robot's built-in `Get library instance
 <http://robotframework.org/robotframework/latest/libraries/BuiltIn.html#Get%20Library%20Instance>`_
