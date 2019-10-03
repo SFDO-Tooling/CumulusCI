@@ -102,7 +102,7 @@ is installed correctly by running ``cci version``:
 .. code:: console
 
    $ cci version
-   CumulusCI version: 2.5.8
+   CumulusCI version: 3.0.0
 
 You can also use this command in the future to check whether your CumulusCI installation is up to date.
 

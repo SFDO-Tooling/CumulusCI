@@ -2,11 +2,6 @@
 
 Subclass BaseTask or a descendant to define custom task logic
 """
-from __future__ import division
-from __future__ import unicode_literals
-
-from builtins import object
-from past.utils import old_div
 import contextlib
 import logging
 import time
@@ -221,7 +216,7 @@ class BaseTask(object):
     def _poll_update_interval(self):
         """ update the polling interval to be used next iteration """
         # Increase by 1 second every 3 polls
-        if old_div(self.poll_count, 3) > self.poll_interval_level:
+        if self.poll_count // 3 > self.poll_interval_level:
             self.poll_interval_level += 1
             self.poll_interval_s += 1
             self.logger.info(
