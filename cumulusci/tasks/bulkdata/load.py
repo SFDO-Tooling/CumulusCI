@@ -397,7 +397,7 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
 
     def _expand_mapping(self):
         # Expand the mapping to handle dependent lookups
-        self.after_steps = defaultdict(lambda: {})
+        self.after_steps = defaultdict(dict)
 
         for step in self.mapping.values():
             step["action"] = step.get("action", "insert")
