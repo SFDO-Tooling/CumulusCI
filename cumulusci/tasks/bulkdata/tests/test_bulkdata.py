@@ -5,8 +5,6 @@ import os
 import shutil
 import unicodecsv
 import unittest
-from collections import OrderedDict
-
 from sqlalchemy import Column
 from sqlalchemy import Table
 from sqlalchemy import types
@@ -160,7 +158,7 @@ class TestLoadDataWithSFIds(unittest.TestCase):
         )
         task._init_db = mock.Mock()
         task._init_mapping = mock.Mock()
-        task.mapping = OrderedDict()
+        task.mapping = {}
         task.mapping["Insert Households"] = {"one": 1}
         task.mapping["Insert Contacts"] = {"two": 2}
         task.after_steps = {}
@@ -178,14 +176,14 @@ class TestLoadDataWithSFIds(unittest.TestCase):
         task._init_db = mock.Mock()
         task._init_mapping = mock.Mock()
         task._expand_mapping = mock.Mock()
-        task.mapping = OrderedDict()
+        task.mapping = {}
         task.mapping["Insert Households"] = 1
         task.mapping["Insert Contacts"] = 2
-        households_steps = OrderedDict()
+        households_steps = {}
         households_steps["four"] = 4
         households_steps["five"] = 5
         task.after_steps = {
-            "Insert Contacts": OrderedDict(three=3),
+            "Insert Contacts": {"three": 3},
             "Insert Households": households_steps,
         }
         task._load_mapping = mock.Mock(return_value="Completed")
@@ -203,7 +201,7 @@ class TestLoadDataWithSFIds(unittest.TestCase):
         )
         task.bulk = mock.Mock()
         task._get_batches = mock.Mock(return_value=[])
-        mapping = OrderedDict(action="update", sf_object="Account")
+        mapping = {"action": "update", "sf_object": "Account"}
 
         task._create_job(mapping)
 
@@ -221,14 +219,14 @@ class TestLoadDataWithSFIds(unittest.TestCase):
         task._init_db = mock.Mock()
         task._init_mapping = mock.Mock()
         task._expand_mapping = mock.Mock()
-        task.mapping = OrderedDict()
+        task.mapping = {}
         task.mapping["Insert Households"] = 1
         task.mapping["Insert Contacts"] = 2
-        households_steps = OrderedDict()
+        households_steps = {}
         households_steps["four"] = 4
         households_steps["five"] = 5
         task.after_steps = {
-            "Insert Contacts": OrderedDict(three=3),
+            "Insert Contacts": {"three": 3},
             "Insert Households": households_steps,
         }
         task._load_mapping = mock.Mock(side_effect=["Completed", "Failed"])
@@ -260,9 +258,9 @@ class TestLoadDataWithSFIds(unittest.TestCase):
             ],
             list(task.after_steps["Insert Contacts"].keys()),
         )
-        lookups = OrderedDict()
+        lookups = {}
         lookups["Id"] = {"table": "accounts", "key_field": "sf_id"}
-        lookups["Primary_Contact__c"] = OrderedDict({"table": "contacts"})
+        lookups["Primary_Contact__c"] = {"table": "contacts"}
         self.assertEqual(
             {
                 "sf_object": "Account",
@@ -275,9 +273,9 @@ class TestLoadDataWithSFIds(unittest.TestCase):
                 "Update Account Dependencies After Insert Contacts"
             ],
         )
-        lookups = OrderedDict()
+        lookups = {}
         lookups["Id"] = {"table": "contacts", "key_field": "sf_id"}
-        lookups["ReportsToId"] = OrderedDict({"table": "contacts"})
+        lookups["ReportsToId"] = {"table": "contacts"}
         self.assertEqual(
             {
                 "sf_object": "Contact",
@@ -294,9 +292,9 @@ class TestLoadDataWithSFIds(unittest.TestCase):
             ["Update Account Dependencies After Insert Accounts"],
             list(task.after_steps["Insert Accounts"].keys()),
         )
-        lookups = OrderedDict()
+        lookups = {}
         lookups["Id"] = {"table": "accounts", "key_field": "sf_id"}
-        lookups["ParentId"] = OrderedDict({"table": "accounts"})
+        lookups["ParentId"] = {"table": "accounts"}
         self.assertEqual(
             {
                 "sf_object": "Account",
@@ -332,13 +330,13 @@ class TestLoadDataWithSFIds(unittest.TestCase):
         task.sf = mock.Mock()
         task.sf.query.return_value = {"records": [{"Id": "012000000000000"}]}
 
-        mapping = OrderedDict(
-            sf_object="Account",
-            action="insert",
-            fields=OrderedDict(Id="sf_id", Name="Name"),
-            static=OrderedDict(Industry="Technology"),
-            record_type="Organization",
-        )
+        mapping = {
+            "sf_object": "Account",
+            "action": "insert",
+            "fields": {"Id": "sf_id", "Name": "Name"},
+            "static": {"Industry": "Technology"},
+            "record_type": "Organization",
+        }
 
         writer = mock.Mock()
         batch_ids = mock.Mock()
@@ -366,14 +364,12 @@ class TestLoadDataWithSFIds(unittest.TestCase):
         )
         task.sf = mock.Mock()
 
-        mapping = OrderedDict(
-            sf_object="Account",
-            action="update",
-            fields=OrderedDict(),
-            lookups=OrderedDict(
-                ParentId=OrderedDict(table="accounts", key_field="sf_id")
-            ),
-        )
+        mapping = {
+            "sf_object": "Account",
+            "action": "update",
+            "fields": {},
+            "lookups": {"ParentId": {"table": "accounts", "key_field": "sf_id"}},
+        }
 
         writer = mock.Mock()
         batch_ids = []
@@ -393,32 +389,32 @@ class TestLoadDataWithSFIds(unittest.TestCase):
             {"options": {"database_url": "sqlite://", "mapping": "test.yml"}},
         )
 
-        fields = OrderedDict()
+        fields = {}
         fields["Id"] = "sf_id"
         fields["Name"] = "Name"
 
         self.assertEqual(
             ["Name", "Industry", "RecordTypeId"],
             task._get_columns(
-                OrderedDict(
-                    sf_object="Account",
-                    action="insert",
-                    fields=fields,
-                    static=OrderedDict(Industry="Technology"),
-                    record_type="Organization",
-                )
+                {
+                    "sf_object": "Account",
+                    "action": "insert",
+                    "fields": fields,
+                    "static": {"Industry": "Technology"},
+                    "record_type": "Organization",
+                }
             ),
         )
         self.assertEqual(
             ["Id", "Name", "Industry", "RecordTypeId"],
             task._get_columns(
-                OrderedDict(
-                    sf_object="Account",
-                    action="update",
-                    fields=fields,
-                    static=OrderedDict(Industry="Technology"),
-                    record_type="Organization",
-                )
+                {
+                    "sf_object": "Account",
+                    "action": "update",
+                    "fields": fields,
+                    "static": {"Industry": "Technology"},
+                    "record_type": "Organization",
+                }
             ),
         )
 
@@ -433,13 +429,13 @@ class TestLoadDataWithSFIds(unittest.TestCase):
         self.assertEqual(
             ["Technology", "012000000000000"],
             task._get_statics(
-                OrderedDict(
-                    sf_object="Account",
-                    action="insert",
-                    fields=OrderedDict(Id="sf_id", Name="Name"),
-                    static=OrderedDict(Industry="Technology"),
-                    record_type="Organization",
-                )
+                {
+                    "sf_object": "Account",
+                    "action": "insert",
+                    "fields": {"Id": "sf_id", "Name": "Name"},
+                    "static": {"Industry": "Technology"},
+                    "record_type": "Organization",
+                }
             ),
         )
 
@@ -469,16 +465,14 @@ class TestLoadDataWithSFIds(unittest.TestCase):
         columns = {"sf_id": mock.Mock(), "name": mock.Mock()}
         model.__table__.columns = columns
 
-        mapping = OrderedDict(
-            sf_object="Account",
-            table="accounts",
-            action="update",
-            oid_as_pk=True,
-            fields=OrderedDict(Id="sf_id", Name="name"),
-            lookups=OrderedDict(
-                ParentId=OrderedDict(table="accounts", key_field="sf_id")
-            ),
-        )
+        mapping = {
+            "sf_object": "Account",
+            "table": "accounts",
+            "action": "update",
+            "oid_as_pk": True,
+            "fields": {"Id": "sf_id", "Name": "name"},
+            "lookups": {"ParentId": {"table": "accounts", "key_field": "sf_id"}},
+        }
 
         task._query_db(mapping)
 
