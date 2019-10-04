@@ -121,7 +121,7 @@ class TestPackageUpload:
         time.time = mock.Mock(return_value=10)
         task._make_package_upload_request(package_info, package_id)
 
-        assert task._upload_time_seconds == 5  # (10 - 10) + 5
+        assert task._upload_start_time == 10
         assert task.logger.info.called_once_with(
             f"Created PackageUploadRequest {upload_id} for Package {package_id}"
         )
