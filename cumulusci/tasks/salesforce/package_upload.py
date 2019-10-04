@@ -86,9 +86,8 @@ class PackageUpload(BaseSalesforceApiTask):
         """Creates a PackageUploadRequest in self.upload"""
         PackageUploadRequest = self._get_tooling_object("PackageUploadRequest")
 
-        start_time = time.time()
+        self._upload_start_time = time.time()
         self.upload = PackageUploadRequest.create(package_info)
-        self._upload_time_seconds = (time.time() - start_time) + 5  # five second buffer
 
         self.upload_id = self.upload["id"]
         self.logger.info(
@@ -144,7 +143,7 @@ class PackageUpload(BaseSalesforceApiTask):
         This assumes a short time between the call to
         _make_package_upload_request() and this function"""
         test_start_datetime = datetime.utcnow() - timedelta(
-            seconds=self._upload_time_seconds
+            seconds=(time.time() - self._upload_start_time)
         )
         return test_start_datetime.isoformat()
 
