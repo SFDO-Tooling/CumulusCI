@@ -42,21 +42,34 @@ class PackageUpload(BaseSalesforceApiTask):
             self.options["namespace"] = self.project_config.project__package__namespace
 
     def _run_task(self):
-        package = self._get_one(
-            "select Id from MetadataPackage where NamespacePrefix='{}'".format(
-                self.options["namespace"]
-            ),
-            "No package found with namespace {}".format(self.options["namespace"]),
+        package_id, package_info = self._get_package_id_and_info()
+
+        self._make_package_upload_request(package_info, package_id)
+
+        if self.upload["Status"] == "ERROR":
+            self._handle_package_upload_error()
+        else:
+            self._handle_package_upload_success(package_id)
+
+    def _get_package_id_and_info(self):
+        namespace = self.options["namespace"]
+        package = self._get_one_record(
+            f"SELECT Id FROM MetadataPackage WHERE NamespacePrefix='{namespace}'",
+            f"No package found with namespace {namespace}",
         )
         package_id = package["Id"]
-
         production = self.options.get("production", False) in [True, "True", "true"]
+
         package_info = {
             "VersionName": self.options["name"],
             "IsReleaseVersion": production,
             "MetadataPackageId": package_id,
         }
+        self._set_package_info_values_from_options(package_info)
 
+        return package_id, package_info
+
+    def _set_package_info_values_from_options(self, package_info):
         if "description" in self.options:
             package_info["Description"] = self.options["description"]
         if "password" in self.options:
@@ -66,50 +79,21 @@ class PackageUpload(BaseSalesforceApiTask):
         if "release_notes_url" in self.options:
             package_info["ReleaseNotesUrl"] = self.options["release_notes_url"]
 
+    def _make_package_upload_request(self, package_info, package_id):
+        """Creates a PackageUploadRequest in self.upload"""
         PackageUploadRequest = self._get_tooling_object("PackageUploadRequest")
 
         start_time = time.time()
         self.upload = PackageUploadRequest.create(package_info)
-        self.upload_id = self.upload["id"]
+        self._upload_time_seconds = time.time() - start_time
 
+        self.upload_id = self.upload["id"]
         self.logger.info(
             "Created PackageUploadRequest {} for Package {}".format(
                 self.upload_id, package_id
             )
         )
         self._poll()
-        self.upload_time_seconds = time.time() - start_time
-
-        if self.upload["Status"] == "ERROR":
-            self._handle_package_upload_error()
-        else:
-            version_id = self.upload["MetadataPackageVersionId"]
-            version = self._get_one(
-                "select MajorVersion, MinorVersion, PatchVersion, BuildNumber, ReleaseState from MetadataPackageVersion where Id = '{}'".format(
-                    version_id
-                ),
-                "Version {} not found".format(version_id),
-            )
-            version_parts = [str(version["MajorVersion"]), str(version["MinorVersion"])]
-            if version["PatchVersion"]:
-                version_parts.append(str(version["PatchVersion"]))
-
-            self.version_number = ".".join(version_parts)
-
-            if version["ReleaseState"] == "Beta":
-                self.version_number += " (Beta {})".format(version["BuildNumber"])
-
-            self.return_values = {
-                "version_number": str(self.version_number),
-                "version_id": version_id,
-                "package_id": package_id,
-            }
-
-            self.logger.info(
-                "Uploaded package version {} with Id {}".format(
-                    self.version_number, version_id
-                )
-            )
 
     def _handle_package_upload_error(self):
         self.logger.error("Package upload failed with the following errors")
@@ -121,26 +105,86 @@ class PackageUpload(BaseSalesforceApiTask):
                 apex_test_failures = True
 
         if apex_test_failures:
-            self.logger.error("Failed Apex Tests:")
-            test_start_datetime = datetime.utcnow() - timedelta(
-                seconds=self.upload_time_seconds
-            )
-            failed_tests_query = f"SELECT ApexClass.Name, MethodName, Message FROM ApexTestResult WHERE Outcome='Fail' AND TestTimestamp > {test_start_datetime.isoformat()+'Z'}"
-            results = self.tooling.query(failed_tests_query)
-            for test in results["records"]:
-                self.logger.error(
-                    f"    {test['ApexClass']['Name']}.{test['MethodName']}"
-                )
+            self._display_apex_test_failures()
 
-        # use the last error in the batch, but log them all.
-        error_class = (
+        exception = self._get_exception_type(error)
+        raise exception("Package upload failed")
+
+    def _display_apex_test_failures(self):
+        self.logger.error("Failed Apex Tests:")
+        soql_query = self._get_failed_tests_soql_query()
+        results = self.tooling.query(soql_query)
+        for test in results["records"]:
+            self.logger.error(f"    {test['ApexClass']['Name']}.{test['MethodName']}")
+
+    def _get_failed_tests_soql_query(self):
+        package_upload_datetime = self._get_package_upload_iso_timestamp()
+        return (
+            "SELECT ApexClass.Name, "
+            "MethodName, "
+            "Message "
+            "FROM ApexTestResult "
+            "WHERE Outcome='Fail' "
+            f"AND TestTimestamp > {package_upload_datetime}"
+        )
+
+    def _get_package_upload_iso_timestamp(self):
+        """Returns a datetime of approximately when package upload began
+        This assumes a short time between the call to
+        _make_package_upload_request() and this function"""
+        test_start_datetime = datetime.utcnow() - timedelta(
+            seconds=self._upload_time_seconds
+        )
+        return test_start_datetime.isoformat()
+
+    def _get_exception_type(self, error):
+        return (
             ApexTestException
             if error["message"] == "ApexTestFailure"
             else SalesforceException
         )
-        raise error_class("Package upload failed")
 
-    def _get_one(self, query, message):
+    def _handle_package_upload_success(self, package_id):
+        self._set_package_version_values()
+
+        self.return_values = {
+            "version_number": str(self.version_number),
+            "version_id": self.version_id,
+            "package_id": package_id,
+        }
+
+        self.logger.info(
+            "Uploaded package version {} with Id {}".format(
+                self.version_number, self.version_id
+            )
+        )
+
+    def _set_package_version_values(self):
+        """Sets version_id and version_number on self.
+        Assumes that self.upload['Status'] was a success"""
+        self.version_id = self.upload["MetadataPackageVersionId"]
+        version = self._get_one_record(
+            (
+                "SELECT MajorVersion, "
+                "MinorVersion, "
+                "PatchVersion, "
+                "BuildNumber, "
+                "ReleaseState "
+                "FROM MetadataPackageVersion "
+                f"WHERE Id='{self.version_id}'"
+            ),
+            f"Version {self.version_id} not found",
+        )
+        version_parts = [str(version["MajorVersion"]), str(version["MinorVersion"])]
+        if version["PatchVersion"]:
+            version_parts.append(str(version["PatchVersion"]))
+
+        self.version_number = ".".join(version_parts)
+
+        if version["ReleaseState"] == "Beta":
+            self.version_number += f" (Beta {version['BuildNumber']})"
+
+    def _get_one_record(self, query, message):
         result = self.tooling.query(query)
         if result["totalSize"] != 1:
             self.logger.error(message)
@@ -148,12 +192,16 @@ class PackageUpload(BaseSalesforceApiTask):
         return result["records"][0]
 
     def _poll_action(self):
-        soql_check_upload = "select Id, Status, Errors, MetadataPackageVersionId from PackageUploadRequest where Id = '{}'".format(
-            self.upload_id
+        soql_check_upload = (
+            "SELECT Id, "
+            "Status, "
+            "Errors, "
+            "MetadataPackageVersionId "
+            "FROM PackageUploadRequest "
+            f"WHERE Id = '{self.upload_id}'"
         )
-        self.upload = self._get_one(
-            soql_check_upload,
-            "Failed to get info for upload with id {}".format(self.upload_id),
+        self.upload = self._get_one_record(
+            soql_check_upload, f"Failed to get info for upload with id {self.upload_id}"
         )
         self.logger.info(
             "PackageUploadRequest {} is {}".format(

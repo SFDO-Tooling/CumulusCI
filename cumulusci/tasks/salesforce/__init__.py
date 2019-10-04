@@ -10,7 +10,7 @@ from cumulusci.tasks.salesforce.BaseSalesforceMetadataApiTask import (
 )
 
 # inherit from BaseSalesforceApiTask
-from cumulusci.tasks.salesforce.PackageUpload import PackageUpload
+from cumulusci.tasks.salesforce.package_upload import PackageUpload
 from cumulusci.tasks.salesforce.SOQLQuery import SOQLQuery
 from cumulusci.tasks.salesforce.CreateCommunity import CreateCommunity
 from cumulusci.tasks.salesforce.ListCommunities import ListCommunities
