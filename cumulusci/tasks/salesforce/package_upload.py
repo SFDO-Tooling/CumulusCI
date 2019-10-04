@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from cumulusci.core.exceptions import ApexTestException
 from cumulusci.core.exceptions import SalesforceException
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
+from cumulusci.cli.ui import CliTable
 
 
 class PackageUpload(BaseSalesforceApiTask):
@@ -87,7 +88,7 @@ class PackageUpload(BaseSalesforceApiTask):
 
         start_time = time.time()
         self.upload = PackageUploadRequest.create(package_info)
-        self._upload_time_seconds = time.time() - start_time
+        self._upload_time_seconds = (time.time() - start_time) + 5  # five second buffer
 
         self.upload_id = self.upload["id"]
         self.logger.info(
@@ -114,10 +115,17 @@ class PackageUpload(BaseSalesforceApiTask):
         self.logger.error("Failed Apex Tests:")
         soql_query = self._get_failed_tests_soql_query()
         results = self.tooling.query(soql_query)
+
+        table_header_row = ["Class", "Method", "Stacktrace"]
+        table_data = [table_header_row]
         for test in results["records"]:
-            self.logger.error(
-                f"    {test['ApexClass']['Name']}.{test['MethodName']} Stacktrace: {test['StackTrace']}"
+            table_data.append(
+                [test["ApexClass"]["Name"], test["MethodName"], test["StackTrace"]]
             )
+
+        table_title = "Failed Apex Tests"
+        table = CliTable(table_data, table_title, wrap_cols=["Stacktrace"])
+        table.echo()
 
     def _get_failed_tests_soql_query(self):
         package_upload_datetime = self._get_package_upload_iso_timestamp()
@@ -125,7 +133,7 @@ class PackageUpload(BaseSalesforceApiTask):
             "SELECT ApexClass.Name, "
             "MethodName, "
             "Message, "
-            "StackTrace"
+            "StackTrace "
             "FROM ApexTestResult "
             "WHERE Outcome='Fail' "
             f"AND TestTimestamp > {package_upload_datetime}Z"
