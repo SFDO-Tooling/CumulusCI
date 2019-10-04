@@ -121,7 +121,7 @@ class TestPackageUpload:
         time.time = mock.Mock(return_value=10)
         task._make_package_upload_request(package_info, package_id)
 
-        assert task._upload_time_seconds == 0  # 10 - 10
+        assert task._upload_time_seconds == 5  # (10 - 10) + 5
         assert task.logger.info.called_once_with(
             f"Created PackageUploadRequest {upload_id} for Package {package_id}"
         )
@@ -178,7 +178,8 @@ class TestPackageUpload:
 
         task._log_apex_test_failures()
 
-        assert task.logger.error.call_count == 3
+        # CliTable.echo() doesn't utilize logger
+        task.logger.error.assert_called_once()
 
     def test_get_failed_tests_soql_qeury(self):
         task = create_task(PackageUpload, {"name": "Test Release"})
