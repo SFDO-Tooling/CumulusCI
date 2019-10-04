@@ -1,5 +1,5 @@
+import pytest
 from unittest import mock
-import unittest
 
 from cumulusci.tasks.salesforce import PackageUpload
 from cumulusci.core.exceptions import ApexTestException
@@ -7,7 +7,7 @@ from cumulusci.core.exceptions import SalesforceException
 from .util import create_task
 
 
-class TestPackageUpload(unittest.TestCase):
+class TestPackageUpload:
     def test_run_task(self):
         task = create_task(
             PackageUpload,
@@ -58,12 +58,13 @@ class TestPackageUpload(unittest.TestCase):
             return_value=mock.Mock(create=mock.Mock(return_value={"id": "UPLOAD_ID"}))
         )
         task()
-        self.assertEqual("SUCCESS", task.upload["Status"])
+        assert "SUCCESS" == task.upload["Status"]
 
     def test_run_task__upload_error(self):
         task = create_task(PackageUpload, {"name": "Test Release"})
 
         def _init_class():
+            task._display_apex_test_failures = mock.Mock()
             task.tooling = mock.Mock(
                 query=mock.Mock(
                     side_effect=[
@@ -89,12 +90,12 @@ class TestPackageUpload(unittest.TestCase):
         task._get_tooling_object = mock.Mock(
             return_value=mock.Mock(create=mock.Mock(return_value={"id": "UPLOAD_ID"}))
         )
-        with self.assertRaises(ApexTestException):
+        with pytest.raises(ApexTestException):
             task()
-        self.assertEqual("ERROR", task.upload["Status"])
+        assert "ERROR" == task.upload["Status"]
 
     def test_get_one__no_result(self):
         task = create_task(PackageUpload, {"name": "Test Release"})
         task.tooling = mock.Mock(query=mock.Mock(return_value={"totalSize": 0}))
-        with self.assertRaises(SalesforceException):
-            task._get_one(None, None)
+        with pytest.raises(SalesforceException):
+            task._get_one_record(None, None)
