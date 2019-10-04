@@ -47,9 +47,11 @@ class PackageUpload(BaseSalesforceApiTask):
         self._make_package_upload_request(package_info, package_id)
 
         if self.upload["Status"] == "ERROR":
-            self._handle_package_upload_error()
+            self._log_package_upload_errors()
         else:
-            self._handle_package_upload_success(package_id)
+            self._set_package_version_values_on_self()
+            self._set_return_values(package_id)
+            self._log_package_upload_success()
 
     def _get_package_id_and_info(self):
         namespace = self.options["namespace"]
@@ -89,13 +91,11 @@ class PackageUpload(BaseSalesforceApiTask):
 
         self.upload_id = self.upload["id"]
         self.logger.info(
-            "Created PackageUploadRequest {} for Package {}".format(
-                self.upload_id, package_id
-            )
+            f"Created PackageUploadRequest {self.upload_id} for Package {package_id}"
         )
         self._poll()
 
-    def _handle_package_upload_error(self):
+    def _log_package_upload_errors(self):
         self.logger.error("Package upload failed with the following errors")
         error = {"message": ""}
         apex_test_failures = False
@@ -105,27 +105,30 @@ class PackageUpload(BaseSalesforceApiTask):
                 apex_test_failures = True
 
         if apex_test_failures:
-            self._display_apex_test_failures()
+            self._log_apex_test_failures()
 
         exception = self._get_exception_type(error)
         raise exception("Package upload failed")
 
-    def _display_apex_test_failures(self):
+    def _log_apex_test_failures(self):
         self.logger.error("Failed Apex Tests:")
         soql_query = self._get_failed_tests_soql_query()
         results = self.tooling.query(soql_query)
         for test in results["records"]:
-            self.logger.error(f"    {test['ApexClass']['Name']}.{test['MethodName']}")
+            self.logger.error(
+                f"    {test['ApexClass']['Name']}.{test['MethodName']} Stacktrace: {test['StackTrace']}"
+            )
 
     def _get_failed_tests_soql_query(self):
         package_upload_datetime = self._get_package_upload_iso_timestamp()
         return (
             "SELECT ApexClass.Name, "
             "MethodName, "
-            "Message "
+            "Message, "
+            "StackTrace"
             "FROM ApexTestResult "
             "WHERE Outcome='Fail' "
-            f"AND TestTimestamp > {package_upload_datetime}"
+            f"AND TestTimestamp > {package_upload_datetime}Z"
         )
 
     def _get_package_upload_iso_timestamp(self):
@@ -144,22 +147,19 @@ class PackageUpload(BaseSalesforceApiTask):
             else SalesforceException
         )
 
-    def _handle_package_upload_success(self, package_id):
-        self._set_package_version_values()
-
+    def _set_return_values(self, package_id):
         self.return_values = {
             "version_number": str(self.version_number),
             "version_id": self.version_id,
             "package_id": package_id,
         }
 
+    def _log_package_upload_success(self):
         self.logger.info(
-            "Uploaded package version {} with Id {}".format(
-                self.version_number, self.version_id
-            )
+            f"Uploaded package version {self.version_number} with Id {self.version_id}"
         )
 
-    def _set_package_version_values(self):
+    def _set_package_version_values_on_self(self):
         """Sets version_id and version_number on self.
         Assumes that self.upload['Status'] was a success"""
         self.version_id = self.upload["MetadataPackageVersionId"]
