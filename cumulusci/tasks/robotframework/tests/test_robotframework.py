@@ -1,9 +1,10 @@
-import mock
+from unittest import mock
 import unittest
 import shutil
 import tempfile
 import pytest
 import os.path
+import re
 from xml.etree import ElementTree as ET
 
 from cumulusci.core.config import TaskConfig
@@ -13,6 +14,11 @@ from cumulusci.tasks.robotframework import Robot
 from cumulusci.tasks.robotframework import RobotLibDoc
 from cumulusci.tasks.robotframework import RobotTestDoc
 from cumulusci.tasks.salesforce.tests.util import create_task
+from cumulusci.tasks.robotframework.debugger import DebugListener
+from cumulusci.tasks.robotframework.robotframework import KeywordLogger
+from cumulusci.utils import touch
+
+from cumulusci.tasks.robotframework.libdoc import KeywordFile
 
 
 class TestRobot(unittest.TestCase):
@@ -22,6 +28,111 @@ class TestRobot(unittest.TestCase):
         task = create_task(Robot, {"suites": "tests", "pdb": True})
         with self.assertRaises(RobotTestFailure):
             task()
+
+    @mock.patch("cumulusci.tasks.robotframework.robotframework.patch_statusreporter")
+    def test_pdb_arg(self, patch_statusreporter):
+        create_task(
+            Robot,
+            {
+                "suites": "test",  # required, or the task will raise an exception
+                "pdb": "False",
+            },
+        )
+        patch_statusreporter.assert_not_called()
+
+        create_task(
+            Robot,
+            {
+                "suites": "test",  # required, or the task will raise an exception
+                "pdb": "True",
+            },
+        )
+        patch_statusreporter.assert_called_once()
+
+    def test_list_args(self):
+        """Verify that certain arguments are converted to lists"""
+        task = create_task(
+            Robot,
+            {
+                "suites": "test",  # required, or the task will raise an exception
+                "test": "one, two",
+                "include": "foo, bar",
+                "exclude": "a,  b",
+                "vars": "uno, dos, tres",
+            },
+        )
+        for option in ("test", "include", "exclude", "vars"):
+            assert isinstance(task.options[option], list)
+
+    def test_default_listeners(self):
+        # first, verify that not specifying any listener options
+        # results in no listeners...
+        task = create_task(
+            Robot, {"suites": "test"}  # required, or the task will raise an exception
+        )
+        assert len(task.options["options"]["listener"]) == 0
+
+        # next, make sure that if we specify the options with a Falsy
+        # string, the option is properly treated like a boolean
+        task = create_task(
+            Robot,
+            {
+                "suites": "test",  # required, or the task will raise an exception
+                "verbose": "False",
+                "debug": "False",
+            },
+        )
+        assert len(task.options["options"]["listener"]) == 0
+
+    def test_debug_option(self):
+        """Verify that setting debug to True attaches the appropriate listener"""
+        task = create_task(
+            Robot,
+            {
+                "suites": "test",  # required, or the task will raise an exception
+                "debug": "True",
+            },
+        )
+        listener_classes = [
+            listener.__class__ for listener in task.options["options"]["listener"]
+        ]
+        self.assertIn(
+            DebugListener, listener_classes, "DebugListener was not in task options"
+        )
+
+    def test_verbose_option(self):
+        """Verify that setting verbose to True attaches the appropriate listener"""
+        task = create_task(
+            Robot,
+            {
+                "suites": "test",  # required, or the task will raise an exception
+                "verbose": "True",
+            },
+        )
+        listener_classes = [
+            listener.__class__ for listener in task.options["options"]["listener"]
+        ]
+        self.assertIn(
+            KeywordLogger, listener_classes, "KeywordLogger was not in task options"
+        )
+
+    def test_user_defined_listeners_option(self):
+        """Verify that our listeners don't replace user-defined listeners"""
+        task = create_task(
+            Robot,
+            {
+                "suites": "test",  # required, or the task will raise an exception
+                "debug": "True",
+                "verbose": "True",
+                "options": {"listener": ["FakeListener.py"]},
+            },
+        )
+        listener_classes = [
+            listener.__class__ for listener in task.options["options"]["listener"]
+        ]
+        self.assertIn("FakeListener.py", task.options["options"]["listener"])
+        self.assertIn(DebugListener, listener_classes)
+        self.assertIn(KeywordLogger, listener_classes)
 
 
 class TestRobotTestDoc(unittest.TestCase):
@@ -43,12 +154,28 @@ class TestRobotLibDoc(MockLoggerMixin, unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.tmpdir)
 
+    def test_output_directory_not_exist(self):
+        """Verify we catch an error if the output directory doesn't exist"""
+        path = os.path.join(self.datadir, "TestLibrary.py")
+        output = os.path.join(self.tmpdir, "bogus", "index.html")
+        task = create_task(RobotLibDoc, {"path": path, "output": output})
+        # on windows, the output path may have backslashes which needs
+        # to be protected in the expected regex
+        expected = r"Unable to create output file '{}' (.*)".format(re.escape(output))
+        with pytest.raises(TaskOptionsError, match=expected):
+            task()
+
     def test_validate_filenames(self):
         """Verify that we catch bad filenames early"""
         expected = "Unable to find the following input files: 'bogus.py', 'bogus.robot'"
         output = os.path.join(self.tmpdir, "index.html")
         with pytest.raises(TaskOptionsError, match=expected):
             create_task(RobotLibDoc, {"path": "bogus.py,bogus.robot", "output": output})
+
+        # there's a special path through the code if only one filename is bad...
+        expected = "Unable to find the input file 'bogus.py'"
+        with pytest.raises(TaskOptionsError, match=expected):
+            create_task(RobotLibDoc, {"path": "bogus.py", "output": output})
 
     def test_task_log(self):
         """Verify that the task prints out the name of the output file"""
@@ -71,6 +198,23 @@ class TestRobotLibDoc(MockLoggerMixin, unittest.TestCase):
         assert os.path.exists(output)
         assert len(task.result["files"]) == 2
 
+    def test_glob_patterns(self):
+        output = os.path.join(self.tmpdir, "index.html")
+        path = os.path.join(self.datadir, "*Library.py")
+        task = create_task(RobotLibDoc, {"path": path, "output": output})
+        task()
+        assert os.path.exists(output)
+        assert len(task.result["files"]) == 1
+        assert task.result["files"][0] == os.path.join(self.datadir, "TestLibrary.py")
+
+    def test_remove_duplicates(self):
+        output = os.path.join(self.tmpdir, "index.html")
+        path = os.path.join(self.datadir, "*Library.py")
+        task = create_task(RobotLibDoc, {"path": [path, path], "output": output})
+        task()
+        assert len(task.result["files"]) == 1
+        assert task.result["files"][0] == os.path.join(self.datadir, "TestLibrary.py")
+
     def test_creates_output(self):
         path = os.path.join(self.datadir, "TestLibrary.py")
         output = os.path.join(self.tmpdir, "index.html")
@@ -87,6 +231,34 @@ class TestRobotLibDoc(MockLoggerMixin, unittest.TestCase):
         task()
         assert "created {}".format(output) in self.task_log["info"]
         assert os.path.exists(output)
+
+
+class TestRobotLibDocKeywordFile(unittest.TestCase):
+    def setUp(self):
+        self.tmpdir = tempfile.mkdtemp(dir=".")
+
+    def tearDown(self):
+        shutil.rmtree(self.tmpdir)
+
+    def test_existing_file(self):
+        path = os.path.join(self.tmpdir, "keywords.py")
+        touch(path)
+        kwfile = KeywordFile(path)
+        assert kwfile.filename == "keywords.py"
+        assert kwfile.path == path
+        assert kwfile.keywords == {}
+
+    def test_file_as_module(self):
+        kwfile = KeywordFile("cumulusci.robotframework.Salesforce")
+        assert kwfile.filename == "Salesforce"
+        assert kwfile.path == "cumulusci.robotframework.Salesforce"
+        assert kwfile.keywords == {}
+
+    def test_add_keyword(self):
+        kwfile = KeywordFile("test.TestLibrary")
+        kwfile.add_keywords("the documentation...", ("Detail", "Contact"))
+        assert len(kwfile.keywords) == 1
+        assert kwfile.keywords[("Detail", "Contact")] == "the documentation..."
 
 
 class TestRobotLibDocOutput(unittest.TestCase):

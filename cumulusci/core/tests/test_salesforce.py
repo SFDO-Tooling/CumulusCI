@@ -1,5 +1,5 @@
 import unittest
-import mock
+from unittest import mock
 from cumulusci.robotframework.Salesforce import Salesforce
 from SeleniumLibrary.errors import ElementNotFound
 
@@ -53,10 +53,6 @@ class TestKeyword_wait_until_salesforce_is_ready(unittest.TestCase):
         with mock.patch.object(Salesforce, "wait_for_aura", return_value=True):
             self.sflib.selenium.get_webelement.side_effect = ElementNotFound()
 
-            if not hasattr(self, "assertRaisesRegex"):
-                # py2 compatibility
-                self.assertRaisesRegex = self.assertRaisesRegexp
-
             with self.assertRaisesRegex(
                 Exception, "Timed out waiting for a lightning page"
             ):
@@ -68,3 +64,15 @@ class TestKeyword_wait_until_salesforce_is_ready(unittest.TestCase):
 
             self.sflib.selenium.capture_page_screenshot.assert_called()
             self.assertEqual(self.sflib.wait_for_aura.call_count, 2)
+
+
+@mock.patch("robot.libraries.BuiltIn.BuiltIn._get_context")
+class TestKeyword_breakpoint(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        super(TestKeyword_breakpoint, cls).setUpClass()
+        cls.sflib = Salesforce(locators={"body": "//whatever"})
+
+    def test_breakpoint(self, mock_robot_context):
+        """Verify that the keyword doesn't raise an exception"""
+        self.assertIsNone(self.sflib.breakpoint())

@@ -9,6 +9,7 @@ from cumulusci.core.utils import process_bool_arg
 from cumulusci.core.utils import process_list_arg
 from cumulusci.robotframework.utils import set_pdb_trace
 from cumulusci.tasks.salesforce import BaseSalesforceTask
+from cumulusci.tasks.robotframework.debugger import DebugListener
 
 
 class Robot(BaseSalesforceTask):
@@ -32,6 +33,9 @@ class Robot(BaseSalesforceTask):
         "name": {"description": "Sets the name of the top level test suite"},
         "pdb": {"description": "If true, run the Python debugger when tests fail."},
         "verbose": {"description": "If true, log each keyword as it runs."},
+        "debug": {
+            "description": "If true, enable the `breakpoint` keyword to enable the robot debugger"
+        },
     }
 
     def _init_options(self, kwargs):
@@ -47,8 +51,22 @@ class Robot(BaseSalesforceTask):
         if "options" not in self.options:
             self.options["options"] = {}
 
+        # There are potentially many robot options that are or could
+        # be lists, but the only one we currently care about is the
+        # listener option since we may need to append additional values
+        # onto it.
+        for option in ("listener",):
+            if option in self.options["options"]:
+                self.options["options"][option] = process_list_arg(
+                    self.options["options"][option]
+                )
+
+        listeners = self.options["options"].setdefault("listener", [])
         if process_bool_arg(self.options.get("verbose")):
-            self.options["options"]["listener"] = KeywordLogger
+            listeners.append(KeywordLogger())
+
+        if process_bool_arg(self.options.get("debug")):
+            listeners.append(DebugListener())
 
         if process_bool_arg(self.options.get("pdb")):
             patch_statusreporter()

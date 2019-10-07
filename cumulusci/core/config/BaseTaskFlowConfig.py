@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from difflib import get_close_matches
 
 from cumulusci.core.config import BaseConfig

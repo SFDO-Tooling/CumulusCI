@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 from datetime import datetime
 from datetime import timedelta
 
@@ -7,7 +6,7 @@ import os
 import tempfile
 import unittest
 
-import mock
+from unittest import mock
 
 from cumulusci.utils import temporary_dir
 from cumulusci.core.utils import ordered_yaml_load

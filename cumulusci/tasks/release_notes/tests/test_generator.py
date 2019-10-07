@@ -1,26 +1,23 @@
 # coding=utf-8
 import re
-import mock
+from unittest import mock
 import os
 import json
 import pytest
 import unittest
 import responses
 
-from github3 import GitHub
 from github3.repos.repo import Repository
 from github3.pulls import ShortPullRequest
 
-from cumulusci.tests.conftest import gh_api
 from cumulusci.core.github import get_github_api
 from cumulusci.tests.util import create_project_config
 from cumulusci.core.exceptions import CumulusCIException
-from cumulusci.tasks.release_notes.tests.utils import MockUtil
 from cumulusci.tasks.github.tests.util_github_api import GithubApiTestMixin
+from cumulusci.tasks.release_notes.tests.utils import MockUtil
 from cumulusci.tasks.release_notes.parser import BaseChangeNotesParser
 from cumulusci.tasks.release_notes.generator import markdown_link_to_pr
 from cumulusci.tasks.release_notes.generator import render_empty_pr_section
-from cumulusci.tasks.github.tests.util_github_api import GithubApiTestMixin
 from cumulusci.tasks.release_notes.generator import (
     BaseReleaseNotesGenerator,
     StaticReleaseNotesGenerator,
@@ -145,7 +142,7 @@ class TestGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTestMixin):
         pr = generator.get_repo().pull_request(1)
         actual_link = markdown_link_to_pr(pr)
         expected_link = "{} [[PR{}]({})]".format(pr.title, pr.number, pr.html_url)
-        self.assertEquals(expected_link, actual_link)
+        self.assertEqual(expected_link, actual_link)
 
     @responses.activate
     def test_render_empty_pr_section(self):
@@ -158,13 +155,13 @@ class TestGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTestMixin):
         pr2 = repo.pull_request(2)
         generator.empty_change_notes.extend([pr1, pr2])
         content = render_empty_pr_section(generator.empty_change_notes)
-        self.assertEquals(3, len(content))
-        self.assertEquals("\n# Pull requests with no release notes", content[0])
-        self.assertEquals(
+        self.assertEqual(3, len(content))
+        self.assertEqual("\n# Pull requests with no release notes", content[0])
+        self.assertEqual(
             "\n* {} [[PR{}]({})]".format(pr1.title, pr1.number, pr1.html_url),
             content[1],
         )
-        self.assertEquals(
+        self.assertEqual(
             "\n* {} [[PR{}]({})]".format(pr2.title, pr2.number, pr2.html_url),
             content[2],
         )
@@ -184,14 +181,14 @@ class TestGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTestMixin):
         content = generator._update_release_content(release, "new content")
 
         split_content = content.split("\r\n")
-        self.assertEquals(4, len(split_content))
-        self.assertEquals("new content", split_content[0])
-        self.assertEquals("\n# Pull requests with no release notes", split_content[1])
-        self.assertEquals(
+        self.assertEqual(4, len(split_content))
+        self.assertEqual("new content", split_content[0])
+        self.assertEqual("\n# Pull requests with no release notes", split_content[1])
+        self.assertEqual(
             "\n* Pull Request #{0} [[PR{0}]({1})]".format(pr1.number, pr1.html_url),
             split_content[2],
         )
-        self.assertEquals(
+        self.assertEqual(
             "\n* Pull Request #{0} [[PR{0}]({1})]".format(pr2.number, pr2.html_url),
             split_content[3],
         )
@@ -213,9 +210,9 @@ class TestGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTestMixin):
         generator._parse_change_note(pr3)
 
         # PR1 is "non-empty" second two are "empty"
-        self.assertEquals(2, len(generator.empty_change_notes))
-        self.assertEquals(2, generator.empty_change_notes[0].number)
-        self.assertEquals(3, generator.empty_change_notes[1].number)
+        self.assertEqual(2, len(generator.empty_change_notes))
+        self.assertEqual(2, generator.empty_change_notes[0].number)
+        self.assertEqual(3, generator.empty_change_notes[1].number)
 
     def _create_generator(self):
         generator = GithubReleaseNotesGenerator(
@@ -475,6 +472,7 @@ class TestParentPullRequestNotesGenerator(GithubApiTestMixin):
                 "# Pull requests with no release notes\r\n\n* Pull Request #4 [[PR4](https://github.com/TestOwner/TestRepo/pulls/4)]"
                 in body
             )
+            assert "Should not be in body" not in body
             return (200, {}, json.dumps(self._get_expected_pull_request(3, 3, body)))
 
         self.init_github()
@@ -490,7 +488,11 @@ class TestParentPullRequestNotesGenerator(GithubApiTestMixin):
         pr3_json = self._get_expected_pull_request(4, 4, None)
         pr3_json["body"] = ""
 
-        mock_util.mock_pulls(pulls=[pr1_json, pr2_json, pr3_json])
+        pr4_json = self._get_expected_pull_request(5, 5, "Should not be in body")
+        # simulate merge from master back into parent
+        pr4_json["head"]["ref"] = "master"
+
+        mock_util.mock_pulls(pulls=[pr1_json, pr2_json, pr3_json, pr4_json])
 
         pr_json = self._get_expected_pull_request(3, 3, "Body of Parent PR")
         parent_pr = ShortPullRequest(pr_json, gh_api)
@@ -504,20 +506,21 @@ class TestParentPullRequestNotesGenerator(GithubApiTestMixin):
         )
         generator.aggregate_child_change_notes(parent_pr)
 
-    @responses.activate
+    @mock.patch(
+        "cumulusci.tasks.release_notes.generator.get_pull_requests_with_base_branch"
+    )
     def test_aggregate_child_change_notes__update_fails(
-        self, generator, mock_util, gh_api
+        self, get_pull, generator, mock_util, gh_api
     ):
         self.init_github()
-        pr_json = self._get_expected_pull_request(1, 1, "Small dev note")
-        mock_util.mock_pulls(pulls=[pr_json])
-
         parent_body = "Body of Parent PR"
         pr_json = self._get_expected_pull_request(3, 3, parent_body)
         parent_pr = ShortPullRequest(pr_json, gh_api)
+        parent_pr.merged_at = "Yesterday"
         parent_pr.head.label = "repo:some-other-branch"
-
         parent_pr.update = mock.Mock(return_value=False)
+
+        get_pull.return_value = [parent_pr]
         with pytest.raises(CumulusCIException):
             generator.aggregate_child_change_notes(parent_pr)
         parent_pr.update.assert_called_once()

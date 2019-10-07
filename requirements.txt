@@ -5,13 +5,12 @@ chardet==3.0.4
 click==7.0
 coloredlogs==10.0
 cryptography==2.7
-docutils==0.14  # pyup: <0.15
-future==0.17.1
+docutils==0.15.2
 github3.py==1.3.0
 humanfriendly==4.18
 jinja2==2.10.1
 jwcrypto==0.6.0
-keyring==18.0.1  # pyup: <19
+keyring==19.2.0
 lxml==4.4.1
 MarkupSafe==1.1.1
 pycparser==2.19
@@ -22,7 +21,7 @@ PyYAML==5.1.2
 raven==6.10.0
 requests[security]==2.22.0
 robotframework==3.1.2
-robotframework-seleniumlibrary==3.3.1
+robotframework-seleniumlibrary==3.3.1  # pyup: <4
 rst2ansi==0.1.5
 salesforce-bulk==2.1.0
 sarge==0.1.5.post0
@@ -33,7 +32,7 @@ SQLAlchemy==1.3.8
 terminaltables==3.1.0
 unicodecsv==0.14.1
 uritemplate==3.0.0
-urllib3==1.25.3
+urllib3==1.25.6
 xmltodict==0.12.0
 robotframework-lint==1.0
 factory-boy==2.12.0

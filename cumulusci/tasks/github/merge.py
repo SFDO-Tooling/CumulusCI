@@ -1,6 +1,3 @@
-from future import standard_library
-
-standard_library.install_aliases()
 import http.client
 
 from github3 import GitHubError
@@ -190,7 +187,7 @@ class MergeBranch(BaseGithubTask):
             return
 
         try:
-            result = self.repo.merge(branch, commit)
+            self.repo.merge(branch, commit)
             self.logger.info(
                 "Merged {} commits into {} {}".format(
                     compare.behind_by, branch_type, branch

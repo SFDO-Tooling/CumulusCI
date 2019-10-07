@@ -17,13 +17,15 @@ CROSSMARK = click.style("✘" if os.name == "posix" else "-", fg="red")
 class CliTable:
     """Format and print data to the command line in tabular form.
     Attributes:
-        INNER_BORDER: Boolean passed to terminaltables.inner_row_border. Defaults to True.
-        PICTOGRAM_TRUE: True boolean values are replaced with this string.
-        PICTOGRAM_FALSE = False boolean values are replaced with this string.
+
+    * INNER_BORDER: Boolean passed to terminaltables.inner_row_border. Defaults to True.
+    * PICTOGRAM_TRUE: True boolean values are replaced with this string.
+    * PICTOGRAM_FALSE = False boolean values are replaced with this string.
+
     Methods:
-        echo: Print the table data to stdout using click.echo()
-        pretty_table: Table drawn using Unicode drawing characters.
-        ascii_table: Table drawn using Ascii characters.
+    * echo: Print the table data to stdout using click.echo()
+    * pretty_table: Table drawn using Unicode drawing characters.
+    * ascii_table: Table drawn using Ascii characters.
     """
 
     INNER_BORDER = True
@@ -65,9 +67,10 @@ class CliTable:
     def stringify_boolean_col(self, col_name=None, true_str=None, false_str=None):
         """Replace booleans in the given column name with a string.
         Args:
-            col_name: str indicating which columns should be stringifed.
-            true_str: True values will be replaced with this string on posix systems.
-            false_str: False values will be replaced with this string on posix systems.
+
+        * col_name: str indicating which columns should be stringifed.
+        * true_str: True values will be replaced with this string on posix systems.
+        * false_str: False values will be replaced with this string on posix systems.
         """
         col_index = self._get_index_for_col_name(col_name)
 

@@ -34,7 +34,7 @@ with open("requirements_dev.txt") as dev_requirements_file:
 
 setup(
     name="cumulusci",
-    version="2.5.8",
+    version="3.0.1.dev2",
     description="Build and release tools for Salesforce developers",
     long_description=readme + u"\n\n" + history,
     long_description_content_type="text/x-rst",
@@ -54,12 +54,11 @@ setup(
         "Intended Audience :: Developers",
         "License :: OSI Approved :: BSD License",
         "Natural Language :: English",
-        "Programming Language :: Python :: 2",
-        "Programming Language :: Python :: 2.7",
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
     ],
     test_suite="cumulusci.core.tests",
     tests_require=test_requirements,
+    python_requires=">=3.6",
 )
