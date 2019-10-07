@@ -1,5 +1,4 @@
-import time
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from cumulusci.core.exceptions import ApexTestException
 from cumulusci.core.exceptions import SalesforceException
@@ -88,7 +87,7 @@ class PackageUpload(BaseSalesforceApiTask):
         """Creates a PackageUploadRequest in self.upload"""
         PackageUploadRequest = self._get_tooling_object("PackageUploadRequest")
 
-        self._upload_start_time = time.time()
+        self._upload_start_time = datetime.utcnow()
         self.upload = PackageUploadRequest.create(self.package_info)
 
         self.upload_id = self.upload["id"]
@@ -139,7 +138,6 @@ class PackageUpload(BaseSalesforceApiTask):
         return table_data
 
     def _get_failed_tests_soql_query(self):
-        package_upload_datetime = self._get_package_upload_iso_timestamp()
         return (
             "SELECT ApexClass.Name, "
             "MethodName, "
@@ -147,17 +145,8 @@ class PackageUpload(BaseSalesforceApiTask):
             "StackTrace "
             "FROM ApexTestResult "
             "WHERE Outcome='Fail' "
-            f"AND TestTimestamp > {package_upload_datetime}Z"
+            f"AND TestTimestamp > {self._upload_start_time.isoformat()}Z"
         )
-
-    def _get_package_upload_iso_timestamp(self):
-        """Returns a datetime of approximately when package upload began
-        This assumes a short time between the call to
-        _make_package_upload_request() and this function"""
-        test_start_datetime = datetime.utcnow() - timedelta(
-            seconds=(time.time() - self._upload_start_time)
-        )
-        return test_start_datetime.isoformat()
 
     def _get_exception_type(self, error):
         return (
