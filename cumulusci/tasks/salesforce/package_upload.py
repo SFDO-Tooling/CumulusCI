@@ -36,6 +36,7 @@ class PackageUpload(BaseSalesforceApiTask):
 
         self.upload = None
         self.upload_id = None
+        self.package_id = None
 
         # Set the namespace option to the value from cumulusci.yml if not already set
         if "namespace" not in self.options:
