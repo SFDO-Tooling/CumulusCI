@@ -25,16 +25,40 @@ Assert Row Count
 
 *** Test Cases ***
 
-Test Run Task Class
+Test Run Bulk Data Generation
     Run Task Class   cumulusci.tasks.bulkdata.delete.DeleteData
     ...         objects=Account
     ...         where=BillingStreet='Baker St.'
     Run Task Class   cumulusci.tasks.bulkdata.delete.DeleteData
     ...         objects=Contact
     ...         where=MailingStreet='Baker St.'
-    Run Task Class   tasks.generate_and_load_data.GenerateAndLoadData
+    Run Task Class   cumulusci.tasks.bulkdata.generate_and_load_data.GenerateAndLoadData
     ...     num_records=20
     ...     mapping=cumulusci/tasks/bulkdata/tests/mapping_vanilla_sf.yml
     ...     data_generation_task=cumulusci.tasks.bulkdata.tests.dummy_data_factory.GenerateDummyData
     Assert Row Count  20  Account   BillingStreet=Baker St.
     Assert Row Count  15  Contact  MailingStreet=Baker St.
+
+Test Batching
+    Run Task Class   cumulusci.tasks.bulkdata.delete.DeleteData
+    ...         objects=Account
+    ...         where=BillingStreet='Baker St.'
+    Run Task Class   cumulusci.tasks.bulkdata.delete.DeleteData
+    ...         objects=Contact
+    ...         where=MailingStreet='Baker St.'
+    Run Task Class   cumulusci.tasks.bulkdata.generate_and_load_data.GenerateAndLoadData
+    ...     num_records=20
+    ...     mapping=cumulusci/tasks/bulkdata/tests/mapping_vanilla_sf.yml
+    ...     batch_size=5
+    ...     data_generation_task=cumulusci.tasks.bulkdata.tests.dummy_data_factory.GenerateDummyData
+    Assert Row Count  20  Account   BillingStreet=Baker St.
+    Assert Row Count  15  Contact  MailingStreet=Baker St.
+
+Test Error Handling
+    Run Keyword and Expect Error    STARTS:TaskOptionsError:
+    ...  Run Task Class   cumulusci.tasks.bulkdata.generate_and_load_data.GenerateAndLoadData
+    ...     num_records=20
+    ...     mapping=cumulusci/tasks/bulkdata/tests/mapping_vanilla_sf.yml
+    ...     batch_size=5
+    ...     database_url=sqlite:////tmp/foo.db
+    ...     data_generation_task=cumulusci.tasks.bulkdata.tests.dummy_data_factory.GenerateDummyData
