@@ -43,55 +43,57 @@ class PackageUpload(BaseSalesforceApiTask):
             self.options["namespace"] = self.project_config.project__package__namespace
 
     def _run_task(self):
-        package_id, package_info = self._get_package_id_and_info()
+        self._set_package_id()
+        self._set_package_info()
 
-        self._make_package_upload_request(package_info, package_id)
+        self._make_package_upload_request()
 
         if self.upload["Status"] == "ERROR":
             self._log_package_upload_errors()
         else:
             self._set_package_version_values_on_self()
-            self._set_return_values(package_id)
+            self._set_return_values()
             self._log_package_upload_success()
 
-    def _get_package_id_and_info(self):
+    def _set_package_info(self):
+        if not self.package_id:
+            self._set_package_id()
+
+        production = self.options.get("production", False) in [True, "True", "true"]
+
+        self.package_info = {
+            "VersionName": self.options["name"],
+            "IsReleaseVersion": production,
+            "MetadataPackageId": self.package_id,
+        }
+
+        if "description" in self.options:
+            self.package_info["Description"] = self.options["description"]
+        if "password" in self.options:
+            self.package_info["Password"] = self.options["password"]
+        if "post_install_url" in self.options:
+            self.package_info["PostInstallUrl"] = self.options["post_install_url"]
+        if "release_notes_url" in self.options:
+            self.package_info["ReleaseNotesUrl"] = self.options["release_notes_url"]
+
+    def _set_package_id(self):
         namespace = self.options["namespace"]
         package = self._get_one_record(
             f"SELECT Id FROM MetadataPackage WHERE NamespacePrefix='{namespace}'",
             f"No package found with namespace {namespace}",
         )
-        package_id = package["Id"]
-        production = self.options.get("production", False) in [True, "True", "true"]
+        self.package_id = package["Id"]
 
-        package_info = {
-            "VersionName": self.options["name"],
-            "IsReleaseVersion": production,
-            "MetadataPackageId": package_id,
-        }
-        self._set_package_info_values_from_options(package_info)
-
-        return package_id, package_info
-
-    def _set_package_info_values_from_options(self, package_info):
-        if "description" in self.options:
-            package_info["Description"] = self.options["description"]
-        if "password" in self.options:
-            package_info["Password"] = self.options["password"]
-        if "post_install_url" in self.options:
-            package_info["PostInstallUrl"] = self.options["post_install_url"]
-        if "release_notes_url" in self.options:
-            package_info["ReleaseNotesUrl"] = self.options["release_notes_url"]
-
-    def _make_package_upload_request(self, package_info, package_id):
+    def _make_package_upload_request(self):
         """Creates a PackageUploadRequest in self.upload"""
         PackageUploadRequest = self._get_tooling_object("PackageUploadRequest")
 
         self._upload_start_time = time.time()
-        self.upload = PackageUploadRequest.create(package_info)
+        self.upload = PackageUploadRequest.create(self.package_info)
 
         self.upload_id = self.upload["id"]
         self.logger.info(
-            f"Created PackageUploadRequest {self.upload_id} for Package {package_id}"
+            f"Created PackageUploadRequest {self.upload_id} for Package {self.package_id}"
         )
         self._poll()
 
@@ -100,31 +102,41 @@ class PackageUpload(BaseSalesforceApiTask):
         error = {"message": ""}
         apex_test_failures = False
         for error in self.upload["Errors"]["errors"]:
-            self.logger.error("  {}".format(error["message"]))
+            self.logger.error(f"  {error['message']}")
             if error["message"] == "ApexTestFailure":
                 apex_test_failures = True
 
         if apex_test_failures:
-            self._log_apex_test_failures()
+            self._handle_apex_test_failures()
 
         exception = self._get_exception_type(error)
         raise exception("Package upload failed")
 
-    def _log_apex_test_failures(self):
+    def _handle_apex_test_failures(self):
         self.logger.error("Failed Apex Tests:")
-        soql_query = self._get_failed_tests_soql_query()
-        results = self.tooling.query(soql_query)
+        test_results = self._get_apex_test_results_from_upload()
+        self._log_failures(test_results)
 
+    def _get_apex_test_results_from_upload(self):
+        soql_query = self._get_failed_tests_soql_query()
+        return self.tooling.query(soql_query)
+
+    def _log_failures(self, results):
+        """Logs failures using CliTable"""
+        table_title = "Failed Apex Tests"
+        table_data = self._get_table_data(results)
+        table = CliTable(table_data, table_title, wrap_cols=["Stacktrace"])
+        table.echo()
+
+    def _get_table_data(self, results):
+        """Returns table data compatible with CliTable class"""
         table_header_row = ["Class", "Method", "Stacktrace"]
         table_data = [table_header_row]
         for test in results["records"]:
             table_data.append(
                 [test["ApexClass"]["Name"], test["MethodName"], test["StackTrace"]]
             )
-
-        table_title = "Failed Apex Tests"
-        table = CliTable(table_data, table_title, wrap_cols=["Stacktrace"])
-        table.echo()
+        return table_data
 
     def _get_failed_tests_soql_query(self):
         package_upload_datetime = self._get_package_upload_iso_timestamp()
@@ -154,11 +166,11 @@ class PackageUpload(BaseSalesforceApiTask):
             else SalesforceException
         )
 
-    def _set_return_values(self, package_id):
+    def _set_return_values(self):
         self.return_values = {
             "version_number": str(self.version_number),
             "version_id": self.version_id,
-            "package_id": package_id,
+            "package_id": self.package_id,
         }
 
     def _log_package_upload_success(self):
@@ -211,9 +223,7 @@ class PackageUpload(BaseSalesforceApiTask):
             soql_check_upload, f"Failed to get info for upload with id {self.upload_id}"
         )
         self.logger.info(
-            "PackageUploadRequest {} is {}".format(
-                self.upload_id, self.upload["Status"]
-            )
+            f"PackageUploadRequest {self.upload_id} is {self.upload['Status']}"
         )
 
         self.poll_complete = not self._poll_again(self.upload["Status"])
