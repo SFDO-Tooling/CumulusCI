@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import
 import os
 import unittest
 
-import mock
+from unittest import mock
 import responses
 
 from github3.exceptions import NotFoundError
@@ -912,6 +911,27 @@ class TestOrgConfig(unittest.TestCase):
         with self.assertRaises(SalesforceCredentialsException):
             config.refresh_oauth_token(keychain)
 
+    @mock.patch("jwt.encode", mock.Mock(return_value="JWT"))
+    @responses.activate
+    def test_refresh_oauth_token_jwt(self):
+        responses.add(
+            "POST",
+            "https://login.salesforce.com/services/oauth2/token",
+            json={
+                "access_token": "TOKEN",
+                "instance_url": "https://na00.salesforce.com",
+            },
+        )
+        with mock.patch.dict(
+            os.environ,
+            {"SFDX_CLIENT_ID": "some client id", "SFDX_HUB_KEY": "some private key"},
+        ):
+            config = OrgConfig({}, "test")
+            config._load_userinfo = mock.Mock()
+            config._load_orginfo = mock.Mock()
+            config.refresh_oauth_token(None)
+            assert config.access_token == "TOKEN"
+
     def test_lightning_base_url(self):
         config = OrgConfig({"instance_url": "https://na01.salesforce.com"}, "test")
         self.assertEqual("https://na01.lightning.force.com", config.lightning_base_url)
@@ -1001,5 +1021,5 @@ class TestOrgConfig(unittest.TestCase):
         """Verify an exception is thrown when the community doesn't exist"""
         config = OrgConfig({}, "test")
         expected_exception = "Unable to find community information for 'bogus'"
-        with self.assertRaisesRegexp(Exception, expected_exception):
+        with self.assertRaisesRegex(Exception, expected_exception):
             config.get_community_info("bogus")

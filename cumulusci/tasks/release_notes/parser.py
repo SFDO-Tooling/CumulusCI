@@ -1,4 +1,3 @@
-from builtins import str
 import re
 
 import github3.exceptions
@@ -33,6 +32,9 @@ class ChangeNotesLinesParser(BaseChangeNotesParser):
 
     def parse(self, change_note):
         """Returns True if a line was added to self._add_line was called, False otherwise"""
+        if not self.title:
+            self._in_section = True
+
         line_added = False
         change_note = self._process_change_note(change_note)
         for line in change_note.splitlines():
@@ -62,7 +64,8 @@ class ChangeNotesLinesParser(BaseChangeNotesParser):
                     continue
 
                 self._add_line(line)
-                line_added = True
+                if self.title:
+                    line_added = True
 
         self._in_section = False
         return line_added

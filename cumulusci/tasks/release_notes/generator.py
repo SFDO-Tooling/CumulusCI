@@ -1,8 +1,13 @@
 import github3.exceptions
 
 from cumulusci.core.utils import import_global
+from cumulusci.core.github import (
+    is_pull_request_merged,
+    get_pull_requests_with_base_branch,
+)
 from cumulusci.tasks.release_notes.exceptions import CumulusCIException
 from cumulusci.tasks.release_notes.parser import ChangeNotesLinesParser
+from cumulusci.tasks.release_notes.parser import GithubLinesParser
 from cumulusci.tasks.release_notes.parser import IssuesParser
 from cumulusci.tasks.release_notes.provider import StaticChangeNotesProvider
 from cumulusci.tasks.release_notes.provider import DirectoryChangeNotesProvider
@@ -95,6 +100,102 @@ class DirectoryReleaseNotesGenerator(BaseReleaseNotesGenerator):
         return DirectoryChangeNotesProvider(self, self.directory)
 
 
+class ParentPullRequestNotesGenerator(BaseReleaseNotesGenerator):
+    """Aggregates notes from child pull requests in to a parent pull request"""
+
+    # Header where unaggregated child pull requests are linked to
+    UNAGGREGATED_SECTION_HEADER = "\r\n\r\n# Unaggregated Pull Requests"
+
+    def __init__(self, github, repo, project_config):
+
+        self.repo = repo
+        self.github = github
+        self.link_pr = True  # create links to pr on parsed change notes
+        self.has_issues = True  # need for parsers
+        self.do_publish = True  # need for parsers
+        self.parser_config = (
+            project_config.project__git__release_notes__parsers.values()
+        )
+        super(ParentPullRequestNotesGenerator, self).__init__()
+
+    def _init_parsers(self):
+        """Invoked from Super Class"""
+        for cfg in self.parser_config:
+            parser_class = import_global(cfg["class_path"])
+            self.parsers.append(parser_class(self, cfg["title"]))
+
+        # Additional parser to collect developer notes above tracked headers
+        self.parsers.append(GithubLinesParser(self, title=None))
+        self.parsers[-1]._in_section = True
+
+    def aggregate_child_change_notes(self, pull_request):
+        """Given a pull request, aggregate all change notes from child pull requests.
+        Child pull requests are pull requests that have a base branch
+        equal to the the given pull request's head."""
+        self.change_notes = get_pull_requests_with_base_branch(
+            self.repo, pull_request.head.ref, state="all"
+        )
+        self.change_notes = [
+            note
+            for note in self.change_notes
+            if is_pull_request_merged(note)
+            and note.head.ref != self.repo.default_branch
+        ]
+        if len(self.change_notes) == 0:
+            return
+
+        for change_note in self.change_notes:
+            self._parse_change_note(change_note)
+
+        body = []
+        for parser in self.parsers:
+            if parser.title is None:
+                parser.title = "Notes From Child PRs"
+            parser_content = parser.render()
+            if parser_content:
+                body.append(parser_content)
+
+        if self.empty_change_notes:
+            body.extend(render_empty_pr_section(self.empty_change_notes))
+        new_body = "\r\n".join(body)
+
+        if not pull_request.update(body=new_body):
+            raise CumulusCIException(
+                "Update of pull request #{} failed.".format(pull_request.number)
+            )
+
+    def update_unaggregated_pr_header(self, pull_request_to_update, branch_name_to_add):
+        """Updates the 'Unaggregated Pull Requests' section header with a link
+        to the new child branch pull request"""
+        body = pull_request_to_update.body
+        if self.UNAGGREGATED_SECTION_HEADER not in body:
+            body += self.UNAGGREGATED_SECTION_HEADER
+
+        pull_requests = get_pull_requests_with_base_branch(
+            self.repo,
+            branch_name_to_add.split("__")[0],
+            branch_name_to_add,
+            state="all",
+        )
+
+        if len(pull_requests) == 0:
+            raise CumulusCIException(
+                "No pull request for branch {} found.".format(branch_name_to_add)
+            )
+        elif len(pull_requests) > 1:
+            raise CumulusCIException(
+                "Expected one pull request, found {} for branch {}".format(
+                    len(pull_requests), branch_name_to_add
+                )
+            )
+
+        pull_request_link = markdown_link_to_pr(pull_requests[0])
+        if pull_request_link not in body:
+            body += "\r\n* " + pull_request_link
+            pull_request_to_update.update(body=body)
+            return
+
+
 class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator):
     def __init__(
         self,
@@ -145,22 +246,6 @@ class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator):
             raise CumulusCIException(
                 "Release not found for tag: {}".format(self.current_tag)
             )
-
-    def _render_empty_pr_section(self):
-        section_lines = []
-        if self.empty_change_notes:
-            section_lines.append("\n# Pull requests with no release notes")
-            for change_note in self.empty_change_notes:
-                section_lines.append(
-                    "\n* {}".format(self._mark_down_link_to_pr(change_note))
-                )
-
-        return section_lines
-
-    def _mark_down_link_to_pr(self, change_note):
-        return "{} [[PR{}]({})]".format(
-            change_note.title, change_note.number, change_note.html_url
-        )
 
     def _update_release_content(self, release, content):
         """Merge existing and new release content."""
@@ -217,7 +302,7 @@ class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator):
 
         # add empty PR section
         if self.include_empty_pull_requests:
-            new_body.extend(self._render_empty_pr_section())
+            new_body.extend(render_empty_pr_section(self.empty_change_notes))
         content = u"\r\n".join(new_body)
         return content
 
@@ -225,3 +310,18 @@ class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator):
         return self.github.repository(
             self.github_info["github_owner"], self.github_info["github_repo"]
         )
+
+
+def render_empty_pr_section(empty_change_notes):
+    section_lines = []
+    if empty_change_notes:
+        section_lines.append("\n# Pull requests with no release notes")
+        for change_note in empty_change_notes:
+            section_lines.append("\n* {}".format(markdown_link_to_pr(change_note)))
+    return section_lines
+
+
+def markdown_link_to_pr(change_note):
+    return "{} [[PR{}]({})]".format(
+        change_note.title, change_note.number, change_note.html_url
+    )

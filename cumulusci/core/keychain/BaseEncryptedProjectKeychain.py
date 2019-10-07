@@ -1,5 +1,3 @@
-from __future__ import print_function
-from builtins import chr
 import base64
 import os
 import pickle
@@ -17,9 +15,15 @@ from cumulusci.core.exceptions import ConfigError, KeychainKeyNotFound
 from cumulusci.core.keychain import BaseProjectKeychain
 
 BS = 16
-pad = lambda s: s + (BS - len(s) % BS) * chr(BS - len(s) % BS).encode("ascii")
-unpad = lambda s: s[0 : -ord(s[-1])]
 backend = default_backend()
+
+
+def pad(s):
+    return s + (BS - len(s) % BS) * chr(BS - len(s) % BS).encode("ascii")
+
+
+def unpad(s):
+    return s[0 : -ord(s[-1])]
 
 
 class BaseEncryptedProjectKeychain(BaseProjectKeychain):
@@ -76,27 +80,15 @@ class BaseEncryptedProjectKeychain(BaseProjectKeychain):
         iv = encrypted_config[:16]
         cipher, iv = self._get_cipher(iv)
         pickled = cipher.decryptor().update(encrypted_config[16:])
-        try:
-            unpickled = pickle.loads(pickled, encoding="bytes")
-        except TypeError:  # Python 2
-            unpickled = pickle.loads(pickled)
-            # Convert text created in Python 3
-            config_dict = {}
-            for k, v in unpickled.items():
-                if isinstance(k, unicode):
-                    k = k.encode("utf-8")
-                if isinstance(v, unicode):
-                    v = v.encode("utf-8")
-                config_dict[k] = v
-        else:  # Python 3
-            # Convert bytes created in Python 2
-            config_dict = {}
-            for k, v in unpickled.items():
-                if isinstance(k, bytes):
-                    k = k.decode("utf-8")
-                if isinstance(v, bytes):
-                    v = v.decode("utf-8")
-                config_dict[k] = v
+        unpickled = pickle.loads(pickled, encoding="bytes")
+        # Convert bytes created in Python 2
+        config_dict = {}
+        for k, v in unpickled.items():
+            if isinstance(k, bytes):
+                k = k.decode("utf-8")
+            if isinstance(v, bytes):
+                v = v.decode("utf-8")
+            config_dict[k] = v
         args = [config_dict]
         if extra:
             args += extra

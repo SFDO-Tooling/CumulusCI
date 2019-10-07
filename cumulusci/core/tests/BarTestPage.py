@@ -5,7 +5,7 @@ from cumulusci.robotframework.pageobjects import BasePage
 from cumulusci.robotframework.pageobjects import pageobject
 
 
-@pageobject(page_type="Test", object_name="Bar")
+@pageobject(page_type="Test", object_name="Bar__c")
 class BarTestPage(BasePage):
     def bar_keyword_1(self, message):
         self.builtin.log(message)

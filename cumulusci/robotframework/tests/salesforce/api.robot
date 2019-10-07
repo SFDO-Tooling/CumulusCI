@@ -86,3 +86,35 @@ Salesforce Delete Session Records
     @{query}=  Salesforce Query  Contact
     ...  LastName=${random string}
     length should be  ${query}  0  Expected the query to return 0 records, but it returned ${query}
+
+Collection API Test
+    @{objects} =  Generate Test Data  Contact  20  
+        ...  FirstName=User {{number}}
+        ...  LastName={{fake.last_name}}
+    @{records} =    Salesforce Collection Insert  ${objects}
+    FOR     ${record}   IN  @{records}
+        ${new_last_name} =  Generate Random String
+        set to dictionary   ${record}   LastName    ${new_last_name}
+    END
+    Salesforce Collection Update    ${records}
+
+Collection API Errors Test
+    @{objects} =  Generate Test Data  Contact  20  
+        ...  FirstName=User {{number}}
+        ...  LastName={{fake.last_name}}
+        ...  Xyzzy=qwertz
+    Run Keyword And Expect Error   SalesforceMalformedRequest*   Salesforce Collection Insert  ${objects}
+
+    @{objects} =  Generate Test Data  Contact  20  
+        ...  FirstName=User {{number}}
+        ...  LastName=
+    Run Keyword And Expect Error   Error*  Salesforce Collection Insert  ${objects}
+
+    @{objects} =  Generate Test Data  Contact  20  
+        ...  FirstName=User {{number}}
+        ...  LastName={{fake.last_name}}
+    ${records} =     Salesforce Collection Insert  ${objects}
+    FOR     ${record}   IN  @{records}
+        set to dictionary   ${record}   Age    Iron
+    END
+    Run Keyword And Expect Error   SalesforceMalformedRequest*     Salesforce Collection Update  ${objects}

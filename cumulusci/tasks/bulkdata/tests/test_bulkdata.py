@@ -11,7 +11,7 @@ from sqlalchemy import Column
 from sqlalchemy import Table
 from sqlalchemy import types
 from sqlalchemy import Unicode
-import mock
+from unittest import mock
 import responses
 
 from cumulusci.core.config import BaseGlobalConfig
@@ -49,8 +49,6 @@ class TestEpochType(unittest.TestCase):
         self.assertIsInstance(column_info["type"], bulkdata.utils.EpochType)
 
 
-BULK_DELETE_QUERY_RESULT = b"Id\n003000000000001".splitlines()
-BULK_DELETE_RESPONSE = b'<root xmlns="http://ns"><id>4</id></root>'
 BULK_BATCH_RESPONSE = '<root xmlns="http://ns"><batch><state>{}</state></batch></root>'
 
 
@@ -64,127 +62,6 @@ def _make_task(task_class, task_config):
         {"instance_url": "https://example.com", "access_token": "abc123"}, "test"
     )
     return task_class(project_config, task_config, org_config)
-
-
-@mock.patch("cumulusci.tasks.bulkdata.delete.time.sleep", mock.Mock())
-class TestDeleteData(unittest.TestCase):
-    @responses.activate
-    def test_run(self):
-        api = mock.Mock()
-        api.endpoint = "http://api"
-        api.jobNS = "http://ns"
-        api.create_query_job.return_value = query_job = "1"
-        api.query.return_value = query_batch = "2"
-        api.is_batch_done.side_effect = [False, True, False, True]
-        api.get_all_results_for_query_batch.return_value = [BULK_DELETE_QUERY_RESULT]
-        api.create_job.return_value = delete_job = "3"
-        api.headers.return_value = {}
-        responses.add(
-            method="POST",
-            url="http://api/job/3/batch",
-            body=BULK_DELETE_RESPONSE,
-            status=200,
-        )
-        api.job_status.return_value = {
-            "numberBatchesCompleted": 1,
-            "numberBatchesTotal": 1,
-        }
-        responses.add(
-            method="GET",
-            url="http://api/job/3/batch",
-            body=BULK_BATCH_RESPONSE.format("InProgress"),
-            status=200,
-        )
-        responses.add(
-            method="GET",
-            url="http://api/job/3/batch",
-            body=BULK_BATCH_RESPONSE.format("Completed"),
-            status=200,
-        )
-
-        task = _make_task(bulkdata.DeleteData, {"options": {"objects": "Contact"}})
-
-        def _init_class():
-            task.bulk = api
-
-        task._init_class = _init_class
-        task()
-
-        api.create_query_job.assert_called_once_with("Contact", contentType="CSV")
-        api.query.assert_called_once_with(query_job, "select Id from Contact")
-        api.is_batch_done.assert_has_calls(
-            [mock.call(query_batch, query_job), mock.call(query_batch, query_job)]
-        )
-        api.create_job.assert_called_once_with("Contact", "delete")
-        api.close_job.assert_has_calls([mock.call(query_job), mock.call(delete_job)])
-
-    def test_create_job__no_records(self):
-        task = _make_task(bulkdata.DeleteData, {"options": {"objects": "Contact"}})
-        task._query_salesforce_for_records_to_delete = mock.Mock(return_value=[])
-        task.logger = mock.Mock()
-        task._create_job("Contact")
-        task.logger.info.assert_called_with(
-            "  No Contact objects found, skipping delete"
-        )
-
-    def test_parse_job_state(self):
-        task = _make_task(bulkdata.DeleteData, {"options": {"objects": "Contact"}})
-        api = mock.Mock()
-        api.jobNS = "http://ns"
-        task.bulk = api
-        self.assertEqual(
-            ("InProgress", None),
-            task._parse_job_state(
-                '<root xmlns="http://ns">'
-                "  <batch><state>InProgress</state></batch>"
-                "  <batch><state>Failed</state><stateMessage>test</stateMessage></batch>"
-                "  <batch><state>Completed</state></batch>"
-                "</root>"
-            ),
-        )
-        self.assertEqual(
-            ("Failed", ["test"]),
-            task._parse_job_state(
-                '<root xmlns="http://ns">'
-                "  <batch><state>Failed</state><stateMessage>test</stateMessage></batch>"
-                "  <batch><state>Completed</state></batch>"
-                "</root>"
-            ),
-        )
-        self.assertEqual(
-            ("Completed", None),
-            task._parse_job_state(
-                '<root xmlns="http://ns">'
-                "  <batch><state>Completed</state></batch>"
-                "  <batch><state>Completed</state></batch>"
-                "</root>"
-            ),
-        )
-        self.assertEqual(
-            ("Aborted", None),
-            task._parse_job_state(
-                '<root xmlns="http://ns">'
-                "  <batch><state>Not Processed</state></batch>"
-                "  <batch><state>Completed</state></batch>"
-                "</root>"
-            ),
-        )
-
-    @responses.activate
-    def test_upload_batches__error(self):
-        task = _make_task(bulkdata.DeleteData, {"options": {"objects": "Contact"}})
-        api = mock.Mock()
-        api.endpoint = "http://api"
-        api.headers.return_value = {}
-        api.raise_error.side_effect = Exception
-
-        def _init_class():
-            task.bulk = api
-
-        task._init_class = _init_class
-        responses.add(responses.POST, "http://api/job/1/batch", body=b"", status=500)
-        with self.assertRaises(Exception):
-            list(task._upload_batches("1", [{"Id": "1"}]))
 
 
 class TestLoadDataWithSFIds(unittest.TestCase):
@@ -316,6 +193,47 @@ class TestLoadDataWithSFIds(unittest.TestCase):
         task._load_mapping.assert_has_calls(
             [mock.call(1), mock.call(4), mock.call(5), mock.call(2), mock.call(3)]
         )
+
+    def test_create_job__update(self):
+        base_path = os.path.dirname(__file__)
+        mapping_path = os.path.join(base_path, self.mapping_file)
+        task = _make_task(
+            bulkdata.LoadData,
+            {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
+        )
+        task.bulk = mock.Mock()
+        task._get_batches = mock.Mock(return_value=[])
+        mapping = OrderedDict(action="update", sf_object="Account")
+
+        task._create_job(mapping)
+
+        task.bulk.create_update_job.assert_called_once_with(
+            "Account", contentType="CSV"
+        )
+
+    def test_run_task__after_steps_failure(self):
+        base_path = os.path.dirname(__file__)
+        mapping_path = os.path.join(base_path, self.mapping_file)
+        task = _make_task(
+            bulkdata.LoadData,
+            {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
+        )
+        task._init_db = mock.Mock()
+        task._init_mapping = mock.Mock()
+        task._expand_mapping = mock.Mock()
+        task.mapping = OrderedDict()
+        task.mapping["Insert Households"] = 1
+        task.mapping["Insert Contacts"] = 2
+        households_steps = OrderedDict()
+        households_steps["four"] = 4
+        households_steps["five"] = 5
+        task.after_steps = {
+            "Insert Contacts": OrderedDict(three=3),
+            "Insert Households": households_steps,
+        }
+        task._load_mapping = mock.Mock(side_effect=["Completed", "Failed"])
+        with self.assertRaises(BulkDataException):
+            task()
 
     def test_expand_mapping_creates_after_steps(self):
         base_path = os.path.dirname(__file__)
@@ -1553,19 +1471,34 @@ class TestMappingGenerator(unittest.TestCase):
         t._build_schema()
         self.assertEqual({"Opportunity": {"Account": set(["AccountId"])}}, t.refs)
 
-    def test_build_mapping(self):
+    @mock.patch("click.prompt")
+    def test_build_mapping(self, prompt):
         t = _make_task(bulkdata.GenerateMapping, {"options": {"path": "t"}})
+        prompt.return_value = "Account"
+
         t.schema = {
-            "Account": {"Id": self._mock_field("Id"), "Name": self._mock_field("Name")},
+            "Account": {
+                "Id": self._mock_field("Id"),
+                "Name": self._mock_field("Name"),
+                "Dependent__c": self._mock_field(
+                    "Dependent__c", field_type="reference", referenceTo=["Child__c"]
+                ),
+            },
             "Child__c": {
                 "Id": self._mock_field("Id"),
                 "Name": self._mock_field("Name"),
                 "Account__c": self._mock_field(
                     "Account__c", field_type="reference", referenceTo=["Account"]
                 ),
+                "Self__c": self._mock_field(
+                    "Self__c", field_type="reference", referenceTo=["Child__c"]
+                ),
             },
         }
-        t.refs = {"Child__c": {"Account": set(["Account__c"])}}
+        t.refs = {
+            "Child__c": {"Account": set(["Account__c"])},
+            "Account": {"Child__c": set(["Dependent__c"])},
+        }
 
         t._build_mapping()
         self.assertEqual(["Insert Account", "Insert Child__c"], list(t.mapping.keys()))
@@ -1576,6 +1509,12 @@ class TestMappingGenerator(unittest.TestCase):
         )
         self.assertEqual("sf_id", t.mapping["Insert Account"]["fields"]["Id"])
         self.assertEqual("name", t.mapping["Insert Account"]["fields"]["Name"])
+        self.assertEqual(
+            ["Dependent__c"], list(t.mapping["Insert Account"]["lookups"].keys())
+        )
+        self.assertEqual(
+            "child__c", t.mapping["Insert Account"]["lookups"]["Dependent__c"]["table"]
+        )
 
         self.assertEqual("Child__c", t.mapping["Insert Child__c"]["sf_object"])
         self.assertEqual("child__c", t.mapping["Insert Child__c"]["table"])
@@ -1583,12 +1522,16 @@ class TestMappingGenerator(unittest.TestCase):
             ["Id", "Name"], list(t.mapping["Insert Child__c"]["fields"].keys())
         )
         self.assertEqual(
-            ["Account__c"], list(t.mapping["Insert Child__c"]["lookups"].keys())
+            ["Account__c", "Self__c"],
+            list(t.mapping["Insert Child__c"]["lookups"].keys()),
         )
         self.assertEqual("sf_id", t.mapping["Insert Child__c"]["fields"]["Id"])
         self.assertEqual("name", t.mapping["Insert Child__c"]["fields"]["Name"])
         self.assertEqual(
             "account", t.mapping["Insert Child__c"]["lookups"]["Account__c"]["table"]
+        )
+        self.assertEqual(
+            "child__c", t.mapping["Insert Child__c"]["lookups"]["Self__c"]["table"]
         )
 
     def test_build_mapping__warns_polymorphic_lookups(self):

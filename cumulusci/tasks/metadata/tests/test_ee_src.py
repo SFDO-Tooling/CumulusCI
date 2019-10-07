@@ -1,4 +1,4 @@
-import mock
+from unittest import mock
 import os
 import unittest
 
@@ -53,7 +53,7 @@ class TestCreateUnmanagedEESrc(unittest.TestCase):
 class TestRevertUnmanagedEESrc(unittest.TestCase):
     def test_run_task(self):
         with temporary_dir() as revert_path:
-            with open(os.path.join(revert_path, "file"), "w") as f:
+            with open(os.path.join(revert_path, "file"), "w"):
                 pass
             path = os.path.join(
                 os.path.dirname(revert_path), os.path.basename(revert_path) + "_orig"

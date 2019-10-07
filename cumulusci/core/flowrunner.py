@@ -302,6 +302,9 @@ class FlowCoordinator(object):
         for step in self.steps:
             parts = step.path.split(".")
             steps = str(step.step_num).split("/")
+            if len(parts) > len(steps):
+                # Sub-step generated during freeze process; skip it
+                continue
             task_name = parts.pop()
 
             i = -1
@@ -699,9 +702,9 @@ class CachedTaskRunner(object):
         self.task_name = task_name
 
     def __call__(self, **options):
-        cache_key = (self.task_name, tuple(options.items()))
+        cache_key = (self.task_name, tuple(sorted(options.items())))
         if cache_key in self.cache.results:
-            return self.cache.results[cache_key]
+            return self.cache.results[cache_key].return_values
 
         task_config = self.cache.flow.project_config.tasks[self.task_name]
         task_class = import_global(task_config["class_path"])

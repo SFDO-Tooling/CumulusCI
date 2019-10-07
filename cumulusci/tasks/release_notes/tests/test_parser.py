@@ -1,8 +1,5 @@
-from future import standard_library
-
-standard_library.install_aliases()
 import http.client
-import mock
+from unittest import mock
 import unittest
 
 import responses

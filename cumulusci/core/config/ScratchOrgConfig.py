@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 import datetime
 import json
 import os
@@ -91,7 +90,7 @@ class ScratchOrgConfig(OrgConfig):
 
     @property
     def instance_url(self):
-        return self.scratch_info["instance_url"]
+        return self.config.get("instance_url") or self.scratch_info["instance_url"]
 
     @property
     def org_id(self):
@@ -142,8 +141,14 @@ class ScratchOrgConfig(OrgConfig):
         return self.config.setdefault("days", 1)
 
     @property
+    def active(self):
+        """Check if an org is alive"""
+        return self.date_created and not self.expired
+
+    @property
     def expired(self):
-        return self.expires and self.expires < datetime.datetime.now()
+        """Check if an org has already expired"""
+        return bool(self.expires) and self.expires < datetime.datetime.now()
 
     @property
     def expires(self):
