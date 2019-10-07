@@ -99,8 +99,6 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
         if "RecordTypeId" in mapping["fields"]:
             conn = self.session.connection()
             self._load_record_types([mapping["sf_object"]], conn)
-            conn.commit()
-
         mapping["oid_as_pk"] = bool(mapping.get("fields", {}).get("Id"))
         job_id, local_ids_for_batch = self._create_job(mapping)
         result = self._wait_for_job(job_id)
@@ -255,6 +253,12 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
             )
             columns.append(lookup["aliased_table"].columns.sf_id)
 
+        if "RecordTypeId" in mapping["fields"]:
+            rt_dest_table = self.metadata.tables[
+                mapping["sf_object"] + "_rt_target_mapping"
+            ]
+            columns.append(rt_dest_table.columns.record_type_id)
+
         query = self.session.query(*columns)
         if "record_type" in mapping and hasattr(model, "record_type"):
             query = query.filter(model.record_type == mapping["record_type"])
@@ -271,14 +275,14 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
             ]
             query = query.outerjoin(
                 rt_source_table,
-                rt_source_table.columns.Id == getattr(model, "RecordTypeId"),
+                rt_source_table.columns.record_type_id
+                == getattr(model, "RecordTypeId"),
             )
             query = query.outerjoin(
                 rt_dest_table,
-                rt_dest_table.columns.DeveloperName
-                == rt_source_table.columns.DeveloperName,
+                rt_dest_table.columns.developer_name
+                == rt_source_table.columns.developer_name,
             )
-            columns.append(rt_dest_table.columns.Id)
 
         for sf_field, lookup in lookups.items():
             # Outer join with lookup ids table:
@@ -421,10 +425,10 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
 
             # create any Record Type tables we need
             if "fields" in mapping and "RecordTypeId" in mapping["fields"]:
-                print("Creating record type table for {}".format(mapping["sf_object"]))
                 self._create_record_type_table(
                     mapping["sf_object"] + "_rt_target_mapping"
                 )
+        self.metadata.create_all()
 
     def _init_mapping(self):
         with open(self.options["mapping"], "r") as f:
