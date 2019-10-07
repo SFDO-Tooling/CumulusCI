@@ -1,6 +1,6 @@
 from datetime import date
 from datetime import timedelta
-import mock
+from unittest import mock
 import os
 import sys
 import unittest
@@ -11,7 +11,6 @@ import cumulusci
 from cumulusci.cli.config import CliRuntime
 from cumulusci.core.config import OrgConfig
 from cumulusci.core.exceptions import ConfigError
-from cumulusci.core.exceptions import KeychainKeyNotFound
 from cumulusci.core.exceptions import NotInProject
 from cumulusci.core.exceptions import OrgNotFound
 from cumulusci.core.exceptions import ProjectConfigNotFound

@@ -3,16 +3,10 @@
 import_global: task class defn import helper
 process_bool_arg: determine true/false for a commandline arg
 decode_to_unicode: get unicode string from sf api """
-from __future__ import unicode_literals
-
-from builtins import bytes, int, str
-
-
-from past.builtins import basestring
-from future.utils import native_str
 
 from datetime import datetime
 import copy
+import glob
 import pytz
 import time
 import yaml
@@ -26,8 +20,8 @@ def import_global(path):
     components = path.split(".")
     module = components[:-1]
     module = ".".join(module)
-    mod = __import__(module, fromlist=[native_str(components[-1])])
-    return getattr(mod, native_str(components[-1]))
+    mod = __import__(module, fromlist=[str(components[-1])])
+    return getattr(mod, str(components[-1]))
 
 
 # For backwards-compatibility
@@ -44,18 +38,48 @@ def process_bool_arg(arg):
     """ Determine True/False from argument """
     if isinstance(arg, bool):
         return arg
-    elif isinstance(arg, basestring):
+    elif isinstance(arg, str):
         if arg.lower() in ["true", "1"]:
             return True
         elif arg.lower() in ["false", "0"]:
             return False
 
 
+def process_glob_list_arg(arg):
+    """Convert a list of glob patterns or filenames into a list of files
+    The initial list can take the form of a comma-separated string or
+    a proper list. Order is preserved, but duplicates will be removed.
+
+    Note: this function processes glob patterns, but doesn't validate
+    that the files actually exist. For example, if the pattern is
+    'foo.bar' and there is no file named 'foo.bar', the literal string
+    'foo.bar' will be included in the returned files.
+
+    Similarly, if the pattern is '*.baz' and it doesn't match any files,
+    the literal string '*.baz' will be returned.
+    """
+    initial_list = process_list_arg(arg)
+
+    if not arg:
+        return []
+
+    files = []
+    for path in initial_list:
+        more_files = glob.glob(path, recursive=True)
+        if len(more_files):
+            files += sorted(more_files)
+        else:
+            files.append(path)
+    # In python 3.6+ dict is ordered, so we'll use it to weed
+    # out duplicates. We can't use a set because sets aren't ordered.
+    return list(dict.fromkeys(files))
+
+
 def process_list_arg(arg):
     """ Parse a string into a list separated by commas with whitespace stripped """
     if isinstance(arg, list):
         return arg
-    elif isinstance(arg, basestring):
+    elif isinstance(arg, str):
         args = []
         for part in arg.split(","):
             args.append(part.strip())

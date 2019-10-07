@@ -1,4 +1,4 @@
-import mock
+from unittest import mock
 import unittest
 
 from cumulusci.core.config import BaseGlobalConfig

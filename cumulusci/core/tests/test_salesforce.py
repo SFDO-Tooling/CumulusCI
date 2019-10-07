@@ -1,5 +1,5 @@
 import unittest
-import mock
+from unittest import mock
 from cumulusci.robotframework.Salesforce import Salesforce
 from SeleniumLibrary.errors import ElementNotFound
 
@@ -52,10 +52,6 @@ class TestKeyword_wait_until_salesforce_is_ready(unittest.TestCase):
         """Verify that we through an appropriate exception after the timeout"""
         with mock.patch.object(Salesforce, "wait_for_aura", return_value=True):
             self.sflib.selenium.get_webelement.side_effect = ElementNotFound()
-
-            if not hasattr(self, "assertRaisesRegex"):
-                # py2 compatibility
-                self.assertRaisesRegex = self.assertRaisesRegexp
 
             with self.assertRaisesRegex(
                 Exception, "Timed out waiting for a lightning page"

@@ -1,11 +1,7 @@
-import mock
+from unittest import mock
 import os
 import unittest
 
-from cumulusci.core.config import BaseGlobalConfig
-from cumulusci.core.config import BaseProjectConfig
-from cumulusci.core.config import OrgConfig
-from cumulusci.core.config import TaskConfig
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.tasks.salesforce import UpdateAdminProfile
 from .util import create_task

@@ -1,6 +1,6 @@
 import io
 import os
-import mock
+from unittest import mock
 import pytest
 import responses
 from datetime import datetime
@@ -19,10 +19,12 @@ from cumulusci.core.github import (
     get_github_api,
     validate_service,
     create_pull_request,
+    is_pull_request_merged,
     get_github_api_for_repo,
     is_label_on_pull_request,
     get_pull_requests_by_head,
     add_labels_to_pull_request,
+    get_pull_requests_by_commit,
     get_pull_requests_with_base_branch,
 )
 
@@ -217,3 +219,27 @@ class TestGithub(GithubApiTestMixin):
         assert "first" in body
         assert "second" in body
         assert "third" in body
+
+    @responses.activate
+    def test_get_pull_request_by_commit(self, mock_util, repo, gh_api):
+        self.init_github()
+        commit_sha = "asdf1234asdf1234"
+        mock_util.mock_pull_request_by_commit_sha(commit_sha)
+        pull_requests = get_pull_requests_by_commit(gh_api, repo, commit_sha)
+        assert len(pull_requests) == 1
+
+    def test_is_pull_request_merged(self, gh_api):
+        self.init_github()
+
+        merged_pull_request = ShortPullRequest(
+            self._get_expected_pull_request(1, 1), gh_api
+        )
+        merged_pull_request.merged_at = "DateTimeStr"
+
+        unmerged_pull_request = ShortPullRequest(
+            self._get_expected_pull_request(1, 1), gh_api
+        )
+        unmerged_pull_request.merged_at = None
+
+        assert is_pull_request_merged(merged_pull_request)
+        assert not is_pull_request_merged(unmerged_pull_request)

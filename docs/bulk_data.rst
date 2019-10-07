@@ -6,7 +6,7 @@ The cumulusci.tasks.bulkdata module contains three tasks for dealing with
 test and sample data.
 
 ExtractData
-^^^^^^^^^
+^^^^^^^^^^^
 Runs the mapping YAML in order, from top to bottom, selecting data from the specified
 sf_object and inserting it into the local table.
 

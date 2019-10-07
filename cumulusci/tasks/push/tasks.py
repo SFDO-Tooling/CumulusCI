@@ -1,4 +1,3 @@
-from builtins import str
 from datetime import datetime
 from datetime import timedelta
 import time
@@ -232,9 +231,9 @@ class SchedulePushOrgList(BaseSalesforcePushTask):
 
         # Set the namespace option to the value from cumulusci.yml if not
         # already set
-        if not "namespace" in self.options:
+        if "namespace" not in self.options:
             self.options["namespace"] = self.project_config.project__package__namespace
-        if not "batch_size" in self.options:
+        if "batch_size" not in self.options:
             self.options["batch_size"] = 200
 
     def _get_orgs(self):

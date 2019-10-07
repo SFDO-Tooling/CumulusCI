@@ -1,4 +1,4 @@
-import mock
+from unittest import mock
 import unittest
 
 from cumulusci.salesforce_api.package_zip import BasePackageZipBuilder

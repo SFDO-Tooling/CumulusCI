@@ -25,9 +25,9 @@ class CliRuntime(BaseCumulusCI):
         except (ProjectConfigNotFound, NotInProject) as e:
             raise click.UsageError(str(e))
         except ConfigError as e:
-            raise click.UsageError("Config Error: {}".format(str(e)))
+            raise click.UsageError(f"Config Error: {str(e)}")
         except (KeychainKeyNotFound) as e:
-            raise click.UsageError("Keychain Error: {}".format(str(e)))
+            raise click.UsageError(f"Keychain Error: {str(e)}")
 
     def get_keychain_class(self):
         default_keychain_class = (
@@ -76,12 +76,11 @@ class CliRuntime(BaseCumulusCI):
 
     def _get_platform_alert_cmd(self, message):
         if sys.platform == "darwin":
+            notification = message.replace('"', r"\"").replace("'", r"\'")
             return [
                 "osascript",
                 "-e",
-                'display notification "{}" with title "{}"'.format(
-                    message.replace('"', r"\"").replace("'", r"\'"), "CumulusCI"
-                ),
+                f'display notification "{notification}" with title "CumulusCI"',
             ]
         elif sys.platform.startswith("linux"):
             return ["notify-send", "--icon=utilities-terminal", "CumulusCI", message]
@@ -114,10 +113,8 @@ class CliRuntime(BaseCumulusCI):
                 org_config.create_org()
             else:
                 raise click.ClickException(
-                    "The target scratch org is expired.  You can use cci org remove {} "
-                    "to remove the org and then recreate the config manually".format(
-                        org_name
-                    )
+                    f"The target scratch org is expired.  You can use cci org remove {org_name} "
+                    "to remove the org and then recreate the config manually"
                 )
 
         return org_config
@@ -128,14 +125,11 @@ class CliRuntime(BaseCumulusCI):
             if org.scratch:
                 if org.created:
                     raise click.ClickException(
-                        "Scratch org has already been created. "
-                        "Use `cci org scratch_delete {}`".format(org_name)
+                        f"Scratch org has already been created. Use `cci org scratch_delete {org_name}"
                     )
             else:
                 raise click.ClickException(
-                    "Org {} already exists.  Use `cci org remove` to delete it.".format(
-                        org_name
-                    )
+                    f"Org {org_name} already exists.  Use `cci org remove` to delete it."
                 )
         except OrgNotFound:
             pass
@@ -148,10 +142,8 @@ class CliRuntime(BaseCumulusCI):
                 parsed_version = pkg_resources.parse_version(min_cci_version)
                 if get_installed_version() < parsed_version:
                     raise click.UsageError(
-                        "This project requires CumulusCI version {} or later. "
-                        "Please upgrade using {}".format(
-                            min_cci_version, get_cci_upgrade_command()
-                        )
+                        f"This project requires CumulusCI version {min_cci_version} or later. "
+                        f"To upgrade, please run this command: {get_cci_upgrade_command()}"
                     )
 
 

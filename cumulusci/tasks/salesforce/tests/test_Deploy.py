@@ -9,7 +9,6 @@ from cumulusci.utils import cd
 from cumulusci.utils import temporary_dir
 from cumulusci.utils import touch
 from .util import create_task
-from future.utils import bytes_to_native_str
 
 
 class TestDeploy(unittest.TestCase):
@@ -429,7 +428,7 @@ class TestDeploy(unittest.TestCase):
             zipf_processed = task._process_zip_file(zipfile.ZipFile(zip_bytes))
             fp = zipf_processed.fp
             zipf_processed.close()
-            expected = bytes_to_native_str(base64.b64encode(fp.getvalue()))
+            expected = base64.b64encode(fp.getvalue()).decode("utf-8")
 
             actual = task._get_package_zip(path)
 
