@@ -185,16 +185,19 @@ class TestPackageUpload:
                 {
                     "ApexClass": {"Name": "Class1"},
                     "MethodName": "Method1",
+                    "Message": "Message1",
                     "StackTrace": "StackTrace1",
                 },
                 {
                     "ApexClass": {"Name": "Class2"},
                     "MethodName": "Method2",
+                    "Message": "Message2",
                     "StackTrace": "StackTrace2",
                 },
                 {
                     "ApexClass": {"Name": "Class3"},
                     "MethodName": "Method3",
+                    "Message": "Message3",
                     "StackTrace": "StackTrace3",
                 },
             ]
@@ -203,10 +206,10 @@ class TestPackageUpload:
         table_data = task._get_table_data(results)
 
         expected_table_data = [
-            ["Class", "Method", "Stacktrace"],
-            ["Class1", "Method1", "StackTrace1"],
-            ["Class2", "Method2", "StackTrace2"],
-            ["Class3", "Method3", "StackTrace3"],
+            ["Class", "Method", "Message", "Stacktrace"],
+            ["Class1", "Method1", "Message1", "StackTrace1"],
+            ["Class2", "Method2", "Message2", "StackTrace2"],
+            ["Class3", "Method3", "Message3", "StackTrace3"],
         ]
         assert expected_table_data == table_data
 

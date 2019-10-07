@@ -125,16 +125,21 @@ class PackageUpload(BaseSalesforceApiTask):
         """Logs failures using CliTable"""
         table_title = "Failed Apex Tests"
         table_data = self._get_table_data(results)
-        table = CliTable(table_data, table_title, wrap_cols=["Stacktrace"])
+        table = CliTable(table_data, table_title, wrap_cols=["Message", "Stacktrace"])
         table.echo()
 
     def _get_table_data(self, results):
         """Returns table data compatible with CliTable class"""
-        table_header_row = ["Class", "Method", "Stacktrace"]
+        table_header_row = ["Class", "Method", "Message", "Stacktrace"]
         table_data = [table_header_row]
         for test in results["records"]:
             table_data.append(
-                [test["ApexClass"]["Name"], test["MethodName"], test["StackTrace"]]
+                [
+                    test["ApexClass"]["Name"],
+                    test["MethodName"],
+                    test["Message"],
+                    test["StackTrace"],
+                ]
             )
         return table_data
 
