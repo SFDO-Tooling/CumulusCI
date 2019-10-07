@@ -60,68 +60,64 @@ class TestPackageUpload:
         task()
         assert "SUCCESS" == task.upload["Status"]
 
-    def test_get_package_id_and_info(self):
-        production = False
+    def test_set_package_id(self):
         name = "Test Release"
-        expected_package_id = "12345"
-
-        expected_package_info = {
-            "VersionName": "Test Release",
-            "IsReleaseVersion": production,
-            "MetadataPackageId": expected_package_id,
-        }
+        expected_package_id = "1234567890"
 
         task = create_task(PackageUpload, {"name": name})
-        task._get_one_record = mock.Mock(return_value={"Id": "12345"})
+        task._get_one_record = mock.Mock(return_value={"Id": expected_package_id})
 
-        package_id, package_info = task._get_package_id_and_info()
+        task._set_package_id()
+        assert expected_package_id == task.package_id
 
-        assert expected_package_id == package_id
-        assert expected_package_info == package_info
-
-    def test_set_package_info_values_from_option(self):
-        password = "testPassword123"
-        description = "Test Description"
-        post_install_url = "https://www.post_install.com/install_now"
-        release_notes_url = "https://www.release_notes.com/latest"
-
+    def test_set_package_info(self):
+        expected_package_id = "12345"
         options = {
-            "name": "test_name",
-            "description": description,
-            "password": password,
-            "post_install_url": post_install_url,
-            "release_notes_url": release_notes_url,
+            "name": "Test Release",
+            "production": False,
+            "description": "Test Description",
+            "password": "secret",
+            "post_install_url": "post.install.url",
+            "release_notes_url": "release.notes.url",
         }
+
         task = create_task(PackageUpload, options)
+        task._get_one_record = mock.Mock(return_value={"Id": expected_package_id})
 
-        package_info = {}
-        task._set_package_info_values_from_options(package_info)
+        with pytest.raises(AttributeError):
+            task.package_info
 
-        assert len(package_info.keys()) == 4
-        assert package_info["Description"] == description
-        assert package_info["Password"] == password
-        assert package_info["PostInstallUrl"] == post_install_url
-        assert package_info["ReleaseNotesUrl"] == release_notes_url
+        task._set_package_info()
 
-    @mock.patch("cumulusci.tasks.salesforce.package_upload.time")
-    def test_make_package_upload_request(self, time):
-        task = create_task(PackageUpload, {"name": "Test Release"})
+        assert options["name"] == task.package_info["VersionName"]
+        assert options["production"] == task.package_info["IsReleaseVersion"]
+        assert expected_package_id == task.package_info["MetadataPackageId"]
+        assert options["description"] == task.package_info["Description"]
+        assert options["password"] == task.package_info["Password"]
+        assert options["post_install_url"] == task.package_info["PostInstallUrl"]
+        assert options["release_notes_url"] == task.package_info["ReleaseNotesUrl"]
+
+    @mock.patch("cumulusci.tasks.salesforce.package_upload.datetime")
+    def test_make_package_upload_request(self, datetime):
+        upload_start_time = "1970-01-01T00:00:00.0000Z"
+        datetime.utcnow = mock.Mock(return_value=upload_start_time)
 
         upload_id = "asdf12345"
         package_upload_request = mock.Mock(
             create=mock.Mock(return_value={"id": upload_id})
         )
 
+        package_id = "1234567890"
+        task = create_task(PackageUpload, {"name": "Test Release"})
         task._poll = mock.Mock()
+        task.package_info = {}
+        task.package_id = package_id
         task.logger = mock.Mock(info=mock.Mock())
         task._get_tooling_object = mock.Mock(return_value=package_upload_request)
 
-        package_info = {}
-        package_id = "12345asdf"
-        time.time = mock.Mock(return_value=10)
-        task._make_package_upload_request(package_info, package_id)
+        task._make_package_upload_request()
 
-        assert task._upload_start_time == 10
+        assert task._upload_start_time == upload_start_time
         assert task.logger.info.called_once_with(
             f"Created PackageUploadRequest {upload_id} for Package {package_id}"
         )
@@ -152,40 +148,74 @@ class TestPackageUpload:
         other_salesforce_error = {"message": "DmlException"}
         assert task._get_exception_type(other_salesforce_error) == SalesforceException
 
-    def test_log_apex_test_failures(self):
+    def test_handle_apex_test_failures(self):
+        task = create_task(PackageUpload, {"name": "Test Release"})
+        task.logger = mock.Mock(error=mock.Mock())
+        task._get_apex_test_results_from_upload = mock.Mock()
+        task._log_failures = mock.Mock()
+
+        task._handle_apex_test_failures()
+
+        assert task.logger.error.called_once_with("Failed Apex Test")
+        assert task._get_apex_test_results_from_upload.call_count == 1
+        assert task._log_failures.call_count == 1
+
+    @mock.patch("cumulusci.tasks.salesforce.package_upload.CliTable")
+    def test_log_failures(self, table):
+        table.echo = mock.Mock()
+
         task = create_task(PackageUpload, {"name": "Test Release"})
 
-        task.logger = mock.Mock(error=mock.Mock())
-        task._get_failed_tests_soql_query = mock.Mock(return_value="")
-        task.tooling = mock.Mock(
-            query=mock.Mock(
-                return_value={
-                    "records": [
-                        {
-                            "ApexClass": {"Name": "Class1"},
-                            "MethodName": "method1",
-                            "StackTrace": "stacktrace1",
-                        },
-                        {
-                            "ApexClass": {"Name": "Class2"},
-                            "MethodName": "method2",
-                            "StackTrace": "stacktrace2",
-                        },
-                    ]
-                }
-            )
+        table_data = [1, 2, 3, 4]
+        task._get_table_data = mock.Mock(return_value="[1,2,3,4]")
+
+        results = "Test Results"
+        task._log_failures(results)
+
+        assert table.called_once_with(
+            table_data, "Failed Apex Tests", wrap_cols=["Stacktrace"]
         )
+        assert table.echo.called_once()
 
-        task._log_apex_test_failures()
+    def test_get_table_data(self):
+        task = create_task(PackageUpload, {"name": "Test Release"})
 
-        # CliTable.echo() doesn't utilize logger
-        task.logger.error.assert_called_once()
+        results = {
+            "records": [
+                {
+                    "ApexClass": {"Name": "Class1"},
+                    "MethodName": "Method1",
+                    "StackTrace": "StackTrace1",
+                },
+                {
+                    "ApexClass": {"Name": "Class2"},
+                    "MethodName": "Method2",
+                    "StackTrace": "StackTrace2",
+                },
+                {
+                    "ApexClass": {"Name": "Class3"},
+                    "MethodName": "Method3",
+                    "StackTrace": "StackTrace3",
+                },
+            ]
+        }
+
+        table_data = task._get_table_data(results)
+
+        expected_table_data = [
+            ["Class", "Method", "Stacktrace"],
+            ["Class1", "Method1", "StackTrace1"],
+            ["Class2", "Method2", "StackTrace2"],
+            ["Class3", "Method3", "StackTrace3"],
+        ]
+        assert expected_table_data == table_data
 
     def test_get_failed_tests_soql_qeury(self):
         task = create_task(PackageUpload, {"name": "Test Release"})
-
         iso_datetime = "1970-01-01T00:00:00.000"
-        task._get_package_upload_iso_timestamp = mock.Mock(return_value=iso_datetime)
+        task._upload_start_time = mock.Mock(
+            isoformat=mock.Mock(return_value=iso_datetime)
+        )
 
         returned_query = task._get_failed_tests_soql_query()
 
@@ -195,7 +225,7 @@ class TestPackageUpload:
         task = create_task(PackageUpload, {"name": "Test Release"})
 
         def _init_class():
-            task._log_apex_test_failures = mock.Mock()
+            task._handle_apex_test_failures = mock.Mock()
             task.tooling = mock.Mock(
                 query=mock.Mock(
                     side_effect=[
@@ -234,19 +264,16 @@ class TestPackageUpload:
     def test_set_return_values(self):
         task = create_task(PackageUpload, {"name": "Test Release"})
 
-        version_number = "1.2.3"
-        version_id = "version_id"
+        task.package_id = "package_id"
+        task.version_id = "003000000000000"
+        task.version_number = "1.2.3"
 
-        task.version_id = version_id
-        task.version_number = version_number
-
-        package_id = "package_id"
-        task._set_return_values(package_id)
+        task._set_return_values()
 
         assert task.return_values is not None
-        assert task.return_values["package_id"] == package_id
-        assert task.return_values["version_id"] == version_id
-        assert task.return_values["version_number"] == version_number
+        assert task.return_values["package_id"] == task.package_id
+        assert task.return_values["version_id"] == task.version_id
+        assert task.return_values["version_number"] == task.version_number
 
     def test_log_package_upload_success(self):
         task = create_task(PackageUpload, {"name": "Test Release"})
