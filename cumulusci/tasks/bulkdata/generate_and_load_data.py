@@ -12,7 +12,7 @@ class GenerateAndLoadData(BaseSalesforceApiTask):
 
     task_docs = """
     Use the `num_records` option to specify how many records to generate.
-    Use the `mappings` option to specify a mapping file.
+    Use the `mapping` option to specify a mapping file.
     Use 'data_generation_task' to specify what Python class to use to generate the data.'
     Use 'batch_size' to specify how many records to generate and upload in every batch.
 
