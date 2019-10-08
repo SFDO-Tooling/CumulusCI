@@ -6,6 +6,7 @@ class GenerateDummyData(ModuleDataFactory):
     """Generate data based on test mapping.yml"""
 
     def make_records(self, num_records, factories):
+        assert num_records % 4 == 0, "Use a batch size divisible by 4"
         factories.create_batch("ContactFactory", num_records // 2)
         factories["ContactFactory"].create_batch(num_records // 4)
         factories.create_batch("AccountFactory", num_records // 4)
@@ -30,5 +31,5 @@ class ContactFactory(factory.alchemy.SQLAlchemyModelFactory):
     account_id = factory.LazyAttribute(lambda o: o.account.id)
     firstname = factory.Faker("first_name")
     lastname = factory.Faker("last_name")
-    email = factory.Faker("email", domain="salesforce.org")
+    email = factory.Faker("email", domain="example.com")
     mailingstreet = "Baker St."
