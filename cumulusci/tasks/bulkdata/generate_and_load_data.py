@@ -8,7 +8,7 @@ from cumulusci.core.exceptions import TaskOptionsError
 
 
 class GenerateAndLoadData(BaseSalesforceApiTask):
-    """ Orchestrate creating tempfiles, generating data, loading data, cleaning up tempfiles."""
+    """ Orchestrate creating tempfiles, generating data, loading data, cleaning up tempfiles and batching."""
 
     task_docs = """
     Use the `num_records` option to specify how many records to generate.
@@ -56,14 +56,19 @@ class GenerateAndLoadData(BaseSalesforceApiTask):
             )
 
         with temporary_dir() as tempdir:
-            num_batches = (num_records // batch_size) + 1
-            for i in range(0, num_batches):
-                if i == num_batches - 1:  # last batch
-                    batch_size = num_records - (batch_size * i)  # leftovers
-                if batch_size > 0:
-                    self._generate_batch(
-                        database_url, tempdir, mapping_file, batch_size, i
-                    )
+            for current_batch_size, index in self._batches(num_records, batch_size):
+                self._generate_batch(
+                    database_url, tempdir, mapping_file, current_batch_size, index
+                )
+
+    @staticmethod
+    def _batches(num_records, batch_size):
+        num_batches = (num_records // batch_size) + 1
+        for i in range(0, num_batches):
+            if i == num_batches - 1:  # last batch
+                batch_size = num_records - (batch_size * i)  # leftovers
+            if batch_size > 0:
+                yield batch_size, i
 
     def _datagen(self, subtask_options):
         class_path = self.options.get("data_generation_task", None)
