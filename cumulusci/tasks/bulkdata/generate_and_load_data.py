@@ -1,6 +1,7 @@
 import os
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.tasks.bulkdata import LoadData
+from cumulusci.tasks.bulkdata.utils import generate_batches
 from cumulusci.utils import temporary_dir
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.utils import import_global
@@ -32,7 +33,7 @@ class GenerateAndLoadData(BaseSalesforceApiTask):
         "mapping": {"description": "A mapping YAML file to use", "required": True},
         "data_generation_task": {
             "description": "Fully qualified class path of a task to generate the data. Look at cumulusci.tasks.bulkdata.tests.dummy_data_factory to learn how to write them.",
-            "required": False,
+            "required": True,
         },
         "data_generation_options": {
             "description": "Options to pass to the data generator.",
@@ -50,31 +51,23 @@ class GenerateAndLoadData(BaseSalesforceApiTask):
         database_url = self.options.get("database_url")
         num_records = int(self.options["num_records"])
         batch_size = int(self.options.get("batch_size", num_records))
+        class_path = self.options.get("data_generation_task", None)
+        self.data_generation_task = import_global(class_path)
+
         if database_url and batch_size != num_records:
             raise TaskOptionsError(
                 "You may not specify both `database_url` and `batch_size` options."
             )
 
         with temporary_dir() as tempdir:
-            for current_batch_size, index in self._batches(num_records, batch_size):
+            for current_batch_size, index in generate_batches(num_records, batch_size):
                 self._generate_batch(
                     database_url, tempdir, mapping_file, current_batch_size, index
                 )
 
-    @staticmethod
-    def _batches(num_records, batch_size):
-        num_batches = (num_records // batch_size) + 1
-        for i in range(0, num_batches):
-            if i == num_batches - 1:  # last batch
-                batch_size = num_records - (batch_size * i)  # leftovers
-            if batch_size > 0:
-                yield batch_size, i
-
     def _datagen(self, subtask_options):
-        class_path = self.options.get("data_generation_task", None)
-        task_class = import_global(class_path)
         task_config = TaskConfig({"options": subtask_options})
-        data_gen_task = task_class(
+        data_gen_task = self.data_generation_task(
             self.project_config, task_config, org_config=self.org_config
         )
         data_gen_task()
@@ -100,6 +93,7 @@ class GenerateAndLoadData(BaseSalesforceApiTask):
             "mapping": mapping_file,
             "database_url": database_url,
             "num_records": batch_size,
+            "current_batch_number": index,
         }
         self._datagen(subtask_options)
         self._dataload(subtask_options)
