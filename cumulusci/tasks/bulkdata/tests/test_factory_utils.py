@@ -23,7 +23,7 @@ class TestFactoryUtils(unittest.TestCase):
                 GenerateDummyData,
                 {
                     "options": {
-                        "num_records": 10,
+                        "num_records": 12,
                         "mapping": mapping_file,
                         "database_url": dburl,
                     }
