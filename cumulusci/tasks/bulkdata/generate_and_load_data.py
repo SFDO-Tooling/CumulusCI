@@ -51,7 +51,7 @@ class GenerateAndLoadData(BaseSalesforceApiTask):
         database_url = self.options.get("database_url")
         num_records = int(self.options["num_records"])
         batch_size = int(self.options.get("batch_size", num_records))
-        class_path = self.options.get("data_generation_task", None)
+        class_path = self.options.get("data_generation_task")
         self.data_generation_task = import_global(class_path)
 
         if database_url and batch_size != num_records:
