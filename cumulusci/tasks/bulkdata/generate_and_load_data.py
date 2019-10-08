@@ -31,7 +31,7 @@ class GenerateAndLoadData(BaseSalesforceApiTask):
         },
         "mapping": {"description": "A mapping YAML file to use", "required": True},
         "data_generation_task": {
-            "description": "Fully qualified class path of a task to generate the data. Use cumulusci.tasks.bulkdata.factory_generator if you would like to use a Factory Module.",
+            "description": "Fully qualified class path of a task to generate the data. Look at cumulusci.tasks.bulkdata.tests.dummy_data_factory to learn how to write them.",
             "required": False,
         },
         "data_generation_options": {
