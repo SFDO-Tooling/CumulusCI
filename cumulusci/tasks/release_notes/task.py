@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.tasks.github.base import BaseGithubTask
 from cumulusci.tasks.release_notes.generator import (
@@ -6,6 +5,7 @@ from cumulusci.tasks.release_notes.generator import (
     ParentPullRequestNotesGenerator,
 )
 from cumulusci.core.github import (
+    markdown_link_to_pr,
     is_pull_request_merged,
     is_label_on_pull_request,
     get_pull_requests_by_commit,
@@ -86,6 +86,7 @@ class ParentPullRequestNotes(BaseGithubTask):
     If a pull request is not found, the task exits. If a pull request is found, then all notes
     from child pull requests are re-aggregated and the body of the parent is replaced entirely.
     """
+    UNAGGREGATED_PR_HEADER = "\r\n\r\n# Unaggregated Pull Requests"
 
     task_options = {
         "branch_name": {
@@ -140,7 +141,7 @@ class ParentPullRequestNotes(BaseGithubTask):
                 else:
                     child_branch_name = self._get_child_branch_name_from_merge_commit()
                     if child_branch_name:
-                        self.generator.update_unaggregated_pr_header(
+                        self._update_unaggregated_pr_header(
                             parent_pull_request, child_branch_name
                         )
 
@@ -181,3 +182,41 @@ class ParentPullRequestNotes(BaseGithubTask):
             )
 
         return child_branch_name
+
+    def _update_unaggregated_pr_header(
+        self, pull_request_to_update, branch_name_to_add
+    ):
+        """Updates the 'Unaggregated Pull Requests' section header with a link
+        to the new child branch pull request"""
+
+        self._add_header(pull_request_to_update)
+
+        pull_requests = get_pull_requests_with_base_branch(
+            self.repo,
+            branch_name_to_add.split("__")[0],
+            branch_name_to_add,
+            state="all",
+        )
+
+        if len(pull_requests) == 0:
+            self.logger.error(f"No pull request for branch {branch_name_to_add} found.")
+        elif len(pull_requests) > 1:
+            self.logger.error(
+                f"Expected one pull request, found {len(pull_requests)} for branch {branch_name_to_add}"
+            )
+        else:
+            self._add_link_to_pr(pull_request_to_update, pull_requests[0])
+
+    def _add_header(self, pull_request):
+        """Appends the header to the pull_request.body if not already present"""
+        if self.UNAGGREGATED_PR_HEADER not in pull_request.body:
+            pull_request.body += self.UNAGGREGATED_PR_HEADER
+
+    def _add_link_to_pr(self, to_update, to_link):
+        """Updates pull request to_update with a link to pull
+        request to_link if one does not already exist."""
+        body = to_update.body
+        pull_request_link = markdown_link_to_pr(to_link)
+        if pull_request_link not in body:
+            body += "\r\n* " + pull_request_link
+            to_update.update(body=body)
