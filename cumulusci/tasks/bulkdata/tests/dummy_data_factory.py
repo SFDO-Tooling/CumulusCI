@@ -5,7 +5,7 @@ from cumulusci.tasks.bulkdata.factory_utils import ModuleDataFactory, Models
 class GenerateDummyData(ModuleDataFactory):
     """Generate data based on test mapping.yml"""
 
-    def make_records(self, num_records, factories):
+    def make_records(self, num_records, factories, current_batch_num):
         assert num_records % 4 == 0, "Use a batch size divisible by 4"
         factories.create_batch("ContactFactory", num_records // 2)
         factories["ContactFactory"].create_batch(num_records // 4)

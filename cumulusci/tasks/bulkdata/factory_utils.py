@@ -87,17 +87,17 @@ class BaseDataFactory(BaseGenerateDataTask):
 
     __metaclass__ = ABCMeta
 
-    def generate_data(self, session, engine, base, num_records):
+    def generate_data(self, session, engine, base, num_records, current_batch_num):
         raw_factories = self.make_factories(base.classes)
         factories = Factories(session, base.classes, raw_factories)
-        self.make_records(num_records, factories)
+        self.make_records(num_records, factories, current_batch_num)
 
     @abstractmethod
     def make_factories(self, classes):
         """Subclass to generate factory classes based on ORM classes."""
 
     @abstractmethod
-    def make_records(self, num_records, factories):
+    def make_records(self, num_records, factories, current_batch_num):
         """Subclass to make db records using factories."""
 
 
