@@ -3,6 +3,8 @@
 Resource       cumulusci/robotframework/Salesforce.robot
 Resource  cumulusci/robotframework/CumulusCI.robot
 
+Force Tags    bulkdata
+
 *** Keywords ***
 Assert Row Count
     [Arguments]     ${count}        ${object_name}      &{kwargs}
@@ -49,7 +51,7 @@ Test Batching
     Run Task Class   cumulusci.tasks.bulkdata.generate_and_load_data.GenerateAndLoadData
     ...     num_records=20
     ...     mapping=cumulusci/tasks/bulkdata/tests/mapping_vanilla_sf.yml
-    ...     batch_size=5
+    ...     batch_size=4
     ...     data_generation_task=cumulusci.tasks.bulkdata.tests.dummy_data_factory.GenerateDummyData
     Assert Row Count  20  Account   BillingStreet=Baker St.
     Assert Row Count  15  Contact  MailingStreet=Baker St.
