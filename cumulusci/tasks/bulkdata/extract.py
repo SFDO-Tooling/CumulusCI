@@ -10,6 +10,7 @@ from sqlalchemy import Table
 from sqlalchemy import Unicode
 from sqlalchemy.orm import create_session, mapper
 from sqlalchemy.ext.automap import automap_base
+import yaml
 
 from cumulusci.tasks.bulkdata.utils import (
     BulkJobTaskMixin,
@@ -21,7 +22,6 @@ from cumulusci.tasks.bulkdata.utils import (
 )
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
-from cumulusci.core.utils import ordered_yaml_load
 from cumulusci.utils import log_progress, os_friendly_path
 from salesforce_bulk.util import IteratorBytesIO
 
@@ -88,7 +88,7 @@ class ExtractData(BulkJobTaskMixin, BaseSalesforceApiTask):
 
     def _init_mapping(self):
         with open(self.options["mapping"], "r") as f:
-            self.mappings = ordered_yaml_load(f)
+            self.mappings = yaml.safe_load(f)
 
     def _soql_for_mapping(self, mapping):
         sf_object = mapping["sf_object"]

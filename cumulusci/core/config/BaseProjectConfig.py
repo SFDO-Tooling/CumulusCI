@@ -1,12 +1,12 @@
 from collections import OrderedDict
 from distutils.version import LooseVersion
 import os
-import tempfile
 
 import raven
+import yaml
 
 import cumulusci
-from cumulusci.core.utils import ordered_yaml_load, merge_config
+from cumulusci.core.utils import merge_config
 from cumulusci.core.config import BaseTaskFlowConfig
 from cumulusci.core.exceptions import (
     ConfigError,
@@ -85,7 +85,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
         # Load the project's yaml config file
         with open(self.config_project_path, "r") as f_config:
-            project_config = ordered_yaml_load(f_config)
+            project_config = yaml.safe_load(f_config)
 
         if project_config:
             self.config_project.update(project_config)
@@ -93,26 +93,24 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         # Load the local project yaml config file if it exists
         if self.config_project_local_path:
             with open(self.config_project_local_path, "r") as f_local_config:
-                local_config = ordered_yaml_load(f_local_config)
+                local_config = yaml.safe_load(f_local_config)
             if local_config:
                 self.config_project_local.update(local_config)
 
         # merge in any additional yaml that was passed along
         if self.additional_yaml:
-            additional_yaml_config = ordered_yaml_load(self.additional_yaml)
+            additional_yaml_config = yaml.safe_load(self.additional_yaml)
             if additional_yaml_config:
                 self.config_additional_yaml.update(additional_yaml_config)
 
         self.config = merge_config(
-            OrderedDict(
-                [
-                    ("global_config", self.config_global),
-                    ("global_local", self.config_global_local),
-                    ("project_config", self.config_project),
-                    ("project_local_config", self.config_project_local),
-                    ("additional_yaml", self.config_additional_yaml),
-                ]
-            )
+            {
+                "global_config": self.config_global,
+                "global_local": self.config_global_local,
+                "project_config": self.config_project,
+                "project_local_config": self.config_project_local,
+                "additional_yaml": self.config_additional_yaml,
+            }
         )
 
     @property
@@ -162,7 +160,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         return self._repo_info
 
     def _apply_repo_env_var_overrides(self, info):
-        """ Apply CUMULUSCI_REPO_* environment variables last so they can 
+        """ Apply CUMULUSCI_REPO_* environment variables last so they can
         override and fill in missing values from the CI environment"""
         self._override_repo_env_var("CUMULUSCI_REPO_BRANCH", "branch", info)
         self._override_repo_env_var("CUMULUSCI_REPO_COMMIT", "commit", info)
@@ -597,7 +595,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
         # Get the cumulusci.yml file
         contents = repo.file_contents("cumulusci.yml", ref=ref)
-        cumulusci_yml = ordered_yaml_load(contents.decoded)
+        cumulusci_yml = yaml.safe_load(contents.decoded)
 
         # Get the namespace from the cumulusci.yml if set
         package_config = cumulusci_yml.get("project", {}).get("package", {})
@@ -747,24 +745,48 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         except Exception as e:
             self.logger.warning("{}: {}".format(e.__class__.__name__, str(e)))
 
+    def get_task(self, name):
+        if ":" in name:
+            ns, name = name.split(":")
+            other_config = self.get_namespace(ns)
+            task_config = other_config.get_task(name)
+            task_config.project_config = other_config
+        else:
+            task_config = super().get_task(name)
+            task_config.project_config = self
+        return task_config
+
+    def get_flow(self, name):
+        if ":" in name:
+            ns, name = name.split(":")
+            other_config = self.get_namespace(ns)
+            flow_config = other_config.get_flow(name)
+            flow_config.name = name
+            flow_config.project_config = other_config
+        else:
+            flow_config = super().get_flow(name)
+            flow_config.name = name
+            flow_config.project_config = self
+        return flow_config
+
     def get_namespace(self, ns):
-        spec = getattr(self, "include__{}".format(ns))
+        spec = getattr(self, "sources__{}".format(ns))
         if spec is None:
             raise NamespaceNotFoundError("Namespace not found: {}".format(ns))
-        if spec not in self.included_projects:
-            self.include_project(spec)
-        project_config = self.included_projects[spec]
-        return project_config
+        frozenspec = tuple(spec.items())
+        if frozenspec not in self.included_projects:
+            project_config = self.include_project(spec)
+            self.included_projects[frozenspec] = project_config
+        return self.included_projects[frozenspec]
 
     def include_project(self, spec):
-        # Refactor to separate Loader classes
+        # XXX Refactor to separate Loader classes
         if "github" in spec:
             project_config = self.fetch_github_project(spec)
         else:
             raise Exception("Not sure how to load project: {}".format(spec))
         project_config.set_keychain(self.keychain)
-        self.included_projects[spec] = project_config
-        # XXX when are we going to clean up the temp dirs?
+        return project_config
 
     def fetch_github_project(self, spec):
         # Initialize github3.py API against repo
@@ -793,31 +815,35 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                 ref = repo.tag(
                     repo.ref("tags/" + release.tag_name).object.sha
                 ).object.sha
+                description = "{} ({})".format(release.name, ref)
             else:
-                self.logger.info(
-                    "No release found; using the latest commit from the {} branch.".format(
-                        repo.default_branch
-                    )
-                )
                 ref = repo.branch(repo.default_branch).commit.sha
+                description = "latest {} ({})".format(repo.default_branch, ref)
 
         # Fetch the project
-        self.logger.info(
-            "Downloading commit {} of {} from GitHub".format(ref, repo.full_name)
-        )
-        zf = download_extract_github(gh, repo_owner, repo_name, ref=ref)
-        project_path = tempfile.mkdtemp()
-        zf.extractall(project_path)
+        # XXX this should probably go in homedir for cross-project sharing
+        project_path = os.path.join(".cci", "projects", repo_name, ref)
+        if not os.path.exists(project_path):
+            self.logger.info(
+                "Fetching {} {} from GitHub".format(repo.full_name, description)
+            )
+            os.makedirs(project_path)
+            zf = download_extract_github(gh, repo_owner, repo_name, ref=ref)
+            zf.extractall(project_path)
 
         project_config = BaseProjectConfig(
-            self.project_config.global_config_obj,
+            self.global_config_obj,
             repo_info={
                 "root": project_path,
                 "owner": repo_owner,
                 "name": repo_name,
-                "url": self.project_config.repo_url,
+                "url": repo.url,
                 "commit": ref,
             },
             included_projects=self.included_projects,
         )
+        project_config.source_spec = tuple({"github": repo.url, "ref": ref}.items())
         return project_config
+
+    def relpath(self, path):
+        return os.path.relpath(os.path.join(self.repo_root, path))

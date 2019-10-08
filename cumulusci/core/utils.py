@@ -10,7 +10,6 @@ import glob
 import pytz
 import time
 import yaml
-from collections import OrderedDict
 
 from cumulusci.core.exceptions import ConfigMergeError
 
@@ -98,18 +97,6 @@ def decode_to_unicode(content):
     return content
 
 
-class OrderedLoader(yaml.SafeLoader):
-    def _construct_dict_mapping(self, node):
-        self.flatten_mapping(node)
-        return OrderedDict(self.construct_pairs(node))
-
-
-OrderedLoader.add_constructor(
-    yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
-    OrderedLoader._construct_dict_mapping,
-)
-
-
 def represent_ordereddict(dumper, data):
     value = []
 
@@ -126,15 +113,7 @@ class OrderedDumper(yaml.SafeDumper):
     pass
 
 
-OrderedDumper.add_representer(OrderedDict, represent_ordereddict)
-
-
-def ordered_yaml_load(stream,):
-    """ Load YAML file with OrderedDict, needed for Py2
-
-    code adapted from: https://stackoverflow.com/a/21912744/5042831"""
-
-    return yaml.load(stream, OrderedLoader)
+OrderedDumper.add_representer(dict, represent_ordereddict)
 
 
 def ordered_yaml_dump(content, stream):
@@ -182,7 +161,7 @@ def dictmerge(a, b, name=None):
                     if key in a:
                         a[key] = dictmerge(a[key], b[key], name)
                     else:
-                        a[key] = copy.copy(b[key])
+                        a[key] = copy.deepcopy(b[key])
             else:
                 raise TypeError(
                     'Cannot merge non-dict of type "{}" into dict "{}"'.format(

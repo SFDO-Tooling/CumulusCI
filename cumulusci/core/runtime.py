@@ -93,12 +93,12 @@ class BaseCumulusCI(object):
 
     def get_flow(self, name, options=None):
         """ Get a primed and readytogo flow coordinator. """
-        config = self.project_config.get_flow(name)
+        flow_config = self.project_config.get_flow(name)
         callbacks = self.callback_class()
         coordinator = FlowCoordinator(
-            self.project_config,
-            config,
-            name=name,
+            flow_config.project_config,
+            flow_config,
+            name=flow_config.name,
             options=options,
             skip=None,
             callbacks=callbacks,

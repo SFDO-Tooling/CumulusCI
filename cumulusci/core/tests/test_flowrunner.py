@@ -239,7 +239,7 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
             )
 
     def test_from_steps(self):
-        steps = [StepSpec("1", "test", {}, _TaskReturnsStuff)]
+        steps = [StepSpec("1", "test", {}, _TaskReturnsStuff, None)]
         flow = FlowCoordinator.from_steps(self.project_config, steps)
         self.assertEqual(1, len(flow.steps))
 
@@ -417,11 +417,11 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
 
 class StepSpecTest(unittest.TestCase):
     def test_repr(self):
-        spec = StepSpec(1, "test_task", {}, None, skip=True)
+        spec = StepSpec(1, "test_task", {}, None, None, skip=True)
         assert "<!SKIP! StepSpec 1:test_task {}>" == repr(spec)
 
     def test_for_display(self):
-        spec = StepSpec(1, "test_task", {}, None, skip=True)
+        spec = StepSpec(1, "test_task", {}, None, None, skip=True)
         assert "1: test_task [SKIP]" == spec.for_display
 
 

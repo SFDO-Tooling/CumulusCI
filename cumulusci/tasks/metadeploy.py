@@ -104,6 +104,7 @@ class Publish(BaseMetaDeployTask):
             for plan_name, plan_config in self.plan_configs.items():
                 steps = self._freeze_steps(project_config, plan_config)
                 self.logger.debug("Prepared steps:\n" + json.dumps(steps, indent=4))
+                # XXX include other project sources
                 if not self.dry_run:
                     self._publish_plan(product, version, plan_name, plan_config, steps)
 
@@ -151,7 +152,7 @@ class Publish(BaseMetaDeployTask):
         steps = []
         for step in flow.steps:
             task = step.task_class(
-                project_config, TaskConfig(step.task_config), name=step.task_name
+                step.project_config, TaskConfig(step.task_config), name=step.task_name
             )
             steps.extend(task.freeze(step))
         return steps

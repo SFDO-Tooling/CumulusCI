@@ -5,7 +5,6 @@ from cumulusci.core.config import FlowConfig
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.exceptions import TaskNotFoundError
 from cumulusci.core.exceptions import FlowNotFoundError
-from cumulusci.core.exceptions import NamespaceNotFoundError
 
 
 def list_infos(infos):
@@ -33,10 +32,6 @@ class BaseTaskFlowConfig(BaseConfig):
 
     def get_task(self, name):
         """ Returns a TaskConfig """
-        if ":" in name:
-            ns, name = name.split(":")
-            other_config = self.get_namespace(ns)
-            return other_config.get_task(name)
         config = getattr(self, "tasks__{}".format(name))
         if not config:
             error_msg = "Task not found: {}".format(name)
@@ -50,10 +45,6 @@ class BaseTaskFlowConfig(BaseConfig):
 
     def get_flow(self, name):
         """ Returns a FlowConfig """
-        if ":" in name:
-            ns, name = name.split(":")
-            other_config = self.get_namespace(ns)
-            return other_config.get_flow(name)
         config = getattr(self, "flows__{}".format(name))
         if not config:
             error_msg = "Flow not found: {}".format(name)
@@ -70,6 +61,3 @@ class BaseTaskFlowConfig(BaseConfig):
             return '. Did you mean "{}"?'.format(match_list[0])
         else:
             return ""
-
-    def get_namespace(self, ns):
-        raise NamespaceNotFoundError("Namespace not found: {}".format(ns))

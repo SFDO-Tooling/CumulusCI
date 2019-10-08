@@ -263,7 +263,7 @@ class TestUpdateDependencies(unittest.TestCase):
                 ]
             },
         )
-        step = StepSpec(1, "test_task", task.task_config, None)
+        step = StepSpec(1, "test_task", task.task_config, None, None)
         steps = task.freeze(step)
         self.assertEqual(
             [

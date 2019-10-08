@@ -1,3 +1,4 @@
+import os
 import sys
 
 from robot import run as robot_run
@@ -78,6 +79,9 @@ class Robot(BaseSalesforceTask):
             if option in self.options:
                 options[option] = self.options[option]
         options["variable"] = self.options.get("vars") or []
+        options["outputdir"] = os.path.relpath(
+            os.path.join(self.working_path, options.get("outputdir", ".")), os.getcwd()
+        )
 
         num_failed = robot_run(self.options["suites"], **options)
         if num_failed:

@@ -1,8 +1,9 @@
 import os
 import warnings
-from collections import OrderedDict
 
-from cumulusci.core.utils import ordered_yaml_load, merge_config
+import yaml
+
+from cumulusci.core.utils import merge_config
 from cumulusci.core.config.BaseProjectConfig import BaseProjectConfig
 from cumulusci.core.config import BaseTaskFlowConfig
 
@@ -51,19 +52,18 @@ class BaseGlobalConfig(BaseTaskFlowConfig):
         """ Loads the local configuration """
         # load the global config
         with open(self.config_global_path, "r") as f_config:
-            config = ordered_yaml_load(f_config)
+            config = yaml.safe_load(f_config)
         self.config_global = config
 
         # Load the local config
         if self.config_global_local_path:
-            config = ordered_yaml_load(open(self.config_global_local_path, "r"))
+            with open(self.config_global_local_path, "r") as f:
+                config = yaml.safe_load(f)
             self.config_global_local = config
 
         self.config = merge_config(
-            OrderedDict(
-                [
-                    ("global_config", self.config_global),
-                    ("global_local", self.config_global_local),
-                ]
-            )
+            {
+                "global_config": self.config_global,
+                "global_local": self.config_global_local,
+            }
         )
