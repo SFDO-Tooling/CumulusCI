@@ -14,10 +14,10 @@ class GenerateAndLoadData(BaseSalesforceApiTask):
     task_docs = """
     Orchestrate creating tempfiles, generating data, loading data, cleaning up tempfiles and batching.
 
-    CCI has features for generating data and for loading them into orgs. This class pulls them
+    CCI has features for generating data and for loading them into orgs. This task pulls them
     together to give some useful additional features, such as storing the intermediate data in
-    a tempfile (the default behaviour) and generating the data in batches instead of all at
-    once (controlled by the batch_size option).
+    a tempfile (the default behavior) and generating the data in batches instead of all at
+    once (controlled by the `batch_size` option).
 
     The simplest possible usage is to specify the number of records you'd like generated, a
     mapping file that defines the schema and a data generation task written in Python to actually
