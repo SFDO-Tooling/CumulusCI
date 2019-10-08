@@ -26,7 +26,7 @@ class GenerateAndLoadData(BaseSalesforceApiTask):
             "required": True,
         },
         "batch_size": {
-            "description": "How many records to create and load at a time..",
+            "description": "How many records to create and load at a time.",
             "required": False,
         },
         "mapping": {"description": "A mapping YAML file to use", "required": True},
