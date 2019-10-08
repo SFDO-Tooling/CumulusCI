@@ -19,6 +19,7 @@ from cumulusci.core.github import (
     get_github_api,
     validate_service,
     create_pull_request,
+    markdown_link_to_pr,
     is_pull_request_merged,
     get_github_api_for_repo,
     is_label_on_pull_request,
@@ -243,3 +244,11 @@ class TestGithub(GithubApiTestMixin):
 
         assert is_pull_request_merged(merged_pull_request)
         assert not is_pull_request_merged(unmerged_pull_request)
+
+    def test_markdown_link_to_pr(self, gh_api):
+        self.init_github()
+        pr = ShortPullRequest(self._get_expected_pull_request(1, 1), gh_api)
+        actual_link = markdown_link_to_pr(pr)
+        expected_link = "{} [[PR{}]({})]".format(pr.title, pr.number, pr.html_url)
+
+        assert expected_link == actual_link
