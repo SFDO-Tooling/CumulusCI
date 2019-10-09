@@ -49,8 +49,8 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         if "additional_yaml" in kwargs:
             self.additional_yaml = kwargs.pop("additional_yaml")
 
-        # initialize map of included project configs
-        self.included_projects = kwargs.pop("included_projects", {})
+        # initialize map of project configs referenced from an external source
+        self.included_sources = kwargs.pop("included_sources", {})
 
         super(BaseProjectConfig, self).__init__(config=config)
 
@@ -580,7 +580,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                         )
                     )
             else:
-                release = self._find_latest_release(repo, include_beta)
+                release = _find_latest_release(repo, include_beta)
             if release:
                 ref = repo.tag(
                     repo.ref("tags/" + release.tag_name).object.sha
@@ -736,15 +736,6 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
         return repo_dependencies
 
-    def _find_latest_release(self, repo, include_beta=None):
-        try:
-            if include_beta:
-                return next(repo.releases())
-            else:
-                return repo.latest_release()
-        except Exception as e:
-            self.logger.warning("{}: {}".format(e.__class__.__name__, str(e)))
-
     def get_task(self, name):
         if ":" in name:
             ns, name = name.split(":")
@@ -774,76 +765,120 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         if spec is None:
             raise NamespaceNotFoundError("Namespace not found: {}".format(ns))
         frozenspec = tuple(spec.items())
-        if frozenspec not in self.included_projects:
-            project_config = self.include_project(spec)
-            self.included_projects[frozenspec] = project_config
-        return self.included_projects[frozenspec]
+        if frozenspec not in self.included_sources:
+            project_config = self.include_source(spec)
+            self.included_sources[frozenspec] = project_config
+        return self.included_sources[frozenspec]
 
-    def include_project(self, spec):
-        # XXX Refactor to separate Loader classes
+    def include_source(self, spec):
         if "github" in spec:
-            project_config = self.fetch_github_project(spec)
+            source = GitHubSource(self, spec)
         else:
             raise Exception("Not sure how to load project: {}".format(spec))
+        self.logger.info(f"Fetching from {source}")
+        project_config = source.fetch()
         project_config.set_keychain(self.keychain)
-        return project_config
-
-    def fetch_github_project(self, spec):
-        # Initialize github3.py API against repo
-        repo_owner, repo_name = spec["github"].split("/")[3:5]
-        if repo_name.endswith(".git"):
-            repo_name = repo_name[:-4]
-        gh = self.get_github_api(repo_owner, repo_name)
-        repo = gh.repository(repo_owner, repo_name)
-
-        # Determine the commit
-        release = None
-        if "ref" in spec:
-            ref = spec["ref"]
-        else:
-            if "tag" in spec:
-                try:
-                    # Find the github release corresponding to this tag.
-                    release = repo.release_from_tag(spec["tag"])
-                except NotFoundError:
-                    raise DependencyResolutionError(
-                        "No release found for tag {}".format(spec["tag"])
-                    )
-            else:
-                release = self._find_latest_release(repo, include_beta=False)
-            if release:
-                ref = repo.tag(
-                    repo.ref("tags/" + release.tag_name).object.sha
-                ).object.sha
-                description = "{} ({})".format(release.name, ref)
-            else:
-                ref = repo.branch(repo.default_branch).commit.sha
-                description = "latest {} ({})".format(repo.default_branch, ref)
-
-        # Fetch the project
-        # XXX this should probably go in homedir for cross-project sharing
-        project_path = os.path.join(".cci", "projects", repo_name, ref)
-        if not os.path.exists(project_path):
-            self.logger.info(
-                "Fetching {} {} from GitHub".format(repo.full_name, description)
-            )
-            os.makedirs(project_path)
-            zf = download_extract_github(gh, repo_owner, repo_name, ref=ref)
-            zf.extractall(project_path)
-
-        project_config = BaseProjectConfig(
-            self.global_config_obj,
-            repo_info={
-                "root": project_path,
-                "owner": repo_owner,
-                "name": repo_name,
-                "url": repo.url,
-                "commit": ref,
-            },
-            included_projects=self.included_projects,
-        )
-        project_config.source_spec = tuple({"github": repo.url, "ref": ref}.items())
+        project_config.source = source
         return project_config
 
     def relpath(self, path):
         return os.path.relpath(os.path.join(self.repo_root, path))
+
+
+class GitHubSource:
+    def __init__(self, project_config: BaseProjectConfig, spec):
+        self.project_config = project_config
+        self.spec = spec
+        self.url = spec["github"]
+
+        repo_owner, repo_name = self.url.split("/")[-2:]
+        if repo_name.endswith(".git"):
+            repo_name = repo_name[:-4]
+        self.repo_owner = repo_owner
+        self.repo_name = repo_name
+
+        self.gh = get_github_api_for_repo(
+            project_config.keychain, repo_owner, repo_name
+        )
+        self.repo = self.gh.repository(self.repo_owner, self.repo_name)
+        self.resolve()
+
+    def __repr__(self):
+        return f"<GitHubSource {str(self)}>"
+
+    def __str__(self):
+        s = f"GitHub: {self.repo_owner}/{self.repo_name}"
+        if self.description:
+            s += f" @ {self.description}"
+        if self.commit != self.description:
+            s += f" ({self.commit})"
+        return s
+
+    def __hash__(self):
+        return (self.url, self.commit)
+
+    def resolve(self):
+        """Resolve a github source into a specific commit.
+
+        The spec must include:
+        - github: the URL of the github repository
+
+        The spec may include one of:
+        - commit: a commit hash
+        - ref: a git ref
+        - branch: a git branch
+        - tag: a git tag
+
+        If none of these are specified, CumulusCI will look for the latest release.
+        If there is no release, it will use the default branch.
+        """
+        ref = None
+        if "commit" in self.spec:
+            self.commit = self.description = self.spec["commit"]
+            return
+        elif "ref" in self.spec:
+            ref = self.spec["ref"]
+        elif "tag" in self.spec:
+            ref = "tags/" + self.spec["tag"]
+        elif "branch" in self.spec:
+            ref = "heads/" + self.spec["branch"]
+        if ref is None:
+            release = _find_latest_release(self.repo, include_beta=False)
+            if release:
+                ref = "tags/" + release.tag_name
+            else:
+                ref = "heads/" + self.repo.default_branch
+        self.description = ref[6:] if ref.startswith("heads/") else ref
+        self.commit = self.repo.ref(ref).object.sha
+
+    def fetch(self, path=None):
+        """Fetch the archive of the specified commit and construct its project config."""
+        # XXX Should this go in homedir for sharing between project dirs?
+        if path is None:
+            path = os.path.join(".cci", "projects", self.repo_name, self.commit)
+        if not os.path.exists(path):
+            os.makedirs(path)
+            zf = download_extract_github(
+                self.gh, self.repo_owner, self.repo_name, ref=self.commit
+            )
+            zf.extractall(path)
+
+        project_config = BaseProjectConfig(
+            self.project_config.global_config_obj,
+            repo_info={
+                "root": path,
+                "owner": self.repo_owner,
+                "name": self.repo_name,
+                "url": self.url,
+                "commit": self.commit,
+            },
+            included_sources=self.project_config.included_sources,
+        )
+        return project_config
+
+
+def _find_latest_release(repo, include_beta=None):
+    if include_beta:
+        return next(repo.releases())
+    else:
+        return repo.latest_release()

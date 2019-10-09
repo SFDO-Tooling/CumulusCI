@@ -598,7 +598,7 @@ class FlowCoordinator(object):
                     continue
                 next_flow_config = project_config.get_flow(flow_name)
                 signature = (
-                    next_flow_config.project_config.source_spec,
+                    hash(next_flow_config.project_config.source),
                     next_flow_config.name,
                 )
                 if signature in visited_flows:

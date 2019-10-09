@@ -1135,7 +1135,7 @@ def task_doc(config):
 
 @task.command(name="info", help="Displays information for a task")
 @click.argument("task_name")
-@pass_config(load_keychain=False)
+@pass_config()
 def task_info(config, task_name):
     try:
         task_config = config.project_config.get_task(task_name)
