@@ -176,9 +176,7 @@ class ParentPullRequestNotes(BaseGithubTask):
 
         else:
             self.logger.error(
-                "Received multiple pull requests, expected one, for commit sha: {}".format(
-                    self.commit.sha
-                )
+                f"Received multiple pull requests, expected one, for commit sha: {self.commit.sha}"
             )
 
         return child_branch_name
@@ -199,10 +197,10 @@ class ParentPullRequestNotes(BaseGithubTask):
         )
 
         if len(pull_requests) == 0:
-            self.logger.error(f"No pull request for branch {branch_name_to_add} found.")
+            self.logger.info(f"No pull request for branch {branch_name_to_add} found.")
         elif len(pull_requests) > 1:
             self.logger.error(
-                f"Expected one pull request, found {len(pull_requests)} for branch {branch_name_to_add}"
+                f"Expected info pull request, found {len(pull_requests)} for branch {branch_name_to_add}"
             )
         else:
             self._add_link_to_pr(pull_request_to_update, pull_requests[0])
