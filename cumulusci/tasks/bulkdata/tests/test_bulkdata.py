@@ -21,7 +21,6 @@ from cumulusci.core.exceptions import BulkDataException
 from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.core.utils import ordered_yaml_load
 from cumulusci.tasks import bulkdata
-from cumulusci.tasks.bulkdata.utils import generate_batches
 from cumulusci.tests.util import DummyOrgConfig
 from cumulusci.utils import temporary_dir
 
@@ -1605,22 +1604,3 @@ class TestMappingGenerator(unittest.TestCase):
                 },
             ),
         )
-
-
-class TestGenerateAndLoadData(unittest.TestCase):
-    def test_batching_no_remainder(self):
-        batches = list(generate_batches(num_records=20, batch_size=10))
-        assert batches == [(10, 0), (10, 1)]
-
-        batches = list(generate_batches(num_records=20, batch_size=5))
-        assert batches == [(5, 0), (5, 1), (5, 2), (5, 3)]
-
-        batches = list(generate_batches(num_records=3, batch_size=1))
-        assert batches == [(1, 0), (1, 1), (1, 2)]
-
-        batches = list(generate_batches(num_records=3, batch_size=3))
-        assert batches == [(3, 0)]
-
-    def test_batching_with_remainder(self):
-        batches = list(generate_batches(num_records=20, batch_size=7))
-        assert batches == [(7, 0), (7, 1), (6, 2)]
