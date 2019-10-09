@@ -1,6 +1,5 @@
 import os
 import warnings
-from collections import OrderedDict
 
 from cumulusci.core.utils import ordered_yaml_load, merge_config
 from cumulusci.core.config.BaseProjectConfig import BaseProjectConfig
@@ -60,10 +59,8 @@ class BaseGlobalConfig(BaseTaskFlowConfig):
             self.config_global_local = config
 
         self.config = merge_config(
-            OrderedDict(
-                [
-                    ("global_config", self.config_global),
-                    ("global_local", self.config_global_local),
-                ]
-            )
+            {
+                "global_config": self.config_global,
+                "global_local": self.config_global_local,
+            }
         )
