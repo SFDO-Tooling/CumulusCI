@@ -200,7 +200,7 @@ class ParentPullRequestNotes(BaseGithubTask):
             self.logger.info(f"No pull request for branch {branch_name_to_add} found.")
         elif len(pull_requests) > 1:
             self.logger.error(
-                f"Expected info pull request, found {len(pull_requests)} for branch {branch_name_to_add}"
+                f"Expected one pull request, found {len(pull_requests)} for branch {branch_name_to_add}"
             )
         else:
             self._add_link_to_pr(pull_request_to_update, pull_requests[0])
