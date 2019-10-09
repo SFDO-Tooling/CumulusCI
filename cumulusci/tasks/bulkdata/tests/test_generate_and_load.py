@@ -59,20 +59,17 @@ class TestGenerateAndLoadData(unittest.TestCase):
     def test_batchsize_zero(self, _dataload):
         mapping_file = os.path.join(os.path.dirname(__file__), "mapping_vanilla_sf.yml")
 
-        def init_task():
-            return _make_task(
-                GenerateAndLoadData,
-                {
-                    "options": {
-                        "num_records": 20,
-                        "mapping": mapping_file,
-                        "data_generation_task": "cumulusci.tasks.bulkdata.tests.dummy_data_factory.GenerateDummyData",
-                        "batch_size": 0,
-                    }
-                },
-            )
+        options = {
+            "options": {
+                "num_records": 20,
+                "mapping": mapping_file,
+                "data_generation_task": "cumulusci.tasks.bulkdata.tests.dummy_data_factory.GenerateDummyData",
+                "batch_size": 0,
+            }
+        }
 
-        self.assertRaises(TaskOptionsError, init_task)
+        with self.assertRaises(TaskOptionsError):
+            _make_task(GenerateAndLoadData, options)
 
     @mock.patch("cumulusci.tasks.bulkdata.GenerateAndLoadData._dataload")
     def test_batchsize_matches_numrecords(self, _dataload):
