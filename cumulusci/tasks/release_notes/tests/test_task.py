@@ -303,12 +303,12 @@ class TestParentPullRequestNotes(GithubApiTestMixin):
 
         task = task_factory(self.PARENT_BRANCH_OPTIONS)
         task._add_link_to_pr = mock.Mock()
-        task.logger = mock.Mock(error=mock.Mock())
+        task.logger = mock.Mock(info=mock.Mock())
         to_update = ShortPullRequest(self._get_expected_pull_request(1, 1), gh_api)
 
         branch_name = "feature/test-branch"
         task._update_unaggregated_pr_header(to_update, branch_name)
-        task.logger.error.assert_called_once_with(
+        task.logger.info.assert_called_once_with(
             f"No pull request for branch {branch_name} found."
         )
 
