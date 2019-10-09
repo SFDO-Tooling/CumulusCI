@@ -56,24 +56,35 @@ class GenerateAndLoadData(BaseSalesforceApiTask):
         },
     }
 
-    def _run_task(self):
-        mapping_file = os.path.abspath(self.options["mapping"])
-        assert os.path.exists(mapping_file), f"{mapping_file} cannot be found."
-        database_url = self.options.get("database_url")
-        num_records = int(self.options["num_records"])
-        batch_size = int(self.options.get("batch_size", num_records))
-        class_path = self.options.get("data_generation_task")
-        self.data_generation_task = import_global(class_path)
+    def _init_options(self, kwargs):
+        super()._init_options(kwargs)
+        self.mapping_file = os.path.abspath(self.options["mapping"])
+        if not os.path.exists(self.mapping_file):
+            raise TaskOptionsError(f"{self.mapping_file} cannot be found.")
+        self.database_url = self.options.get("database_url")
+        self.num_records = int(self.options["num_records"])
+        self.batch_size = int(self.options.get("batch_size", self.num_records))
+        if self.batch_size <= 0:
+            raise TaskOptionsError("Batch size should be greater than zero")
+        self.class_path = self.options.get("data_generation_task")
+        self.data_generation_task = import_global(self.class_path)
 
-        if database_url and batch_size != num_records:
+        if self.database_url and self.batch_size != self.num_records:
             raise TaskOptionsError(
                 "You may not specify both `database_url` and `batch_size` options."
             )
 
+    def _run_task(self):
         with temporary_dir() as tempdir:
-            for current_batch_size, index in generate_batches(num_records, batch_size):
+            for current_batch_size, index in generate_batches(
+                self.num_records, self.batch_size
+            ):
                 self._generate_batch(
-                    database_url, tempdir, mapping_file, current_batch_size, index
+                    self.database_url,
+                    tempdir,
+                    self.mapping_file,
+                    current_batch_size,
+                    index,
                 )
 
     def _datagen(self, subtask_options):
