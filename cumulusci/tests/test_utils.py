@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from collections import OrderedDict
 import io
 import os
 import sarge
@@ -460,10 +459,8 @@ Options:
 class FunTestTask(BaseTask):
     """For testing doc_task"""
 
-    task_options = OrderedDict(
-        (
-            ("flavor", {"description": "What flavor", "required": True}),
-            ("color", {"description": "What color"}),
-        )
-    )
+    task_options = {
+        "flavor": {"description": "What flavor", "required": True},
+        "color": {"description": "What color"},
+    }
     task_docs = "extra docs"
