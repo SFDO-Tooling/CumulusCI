@@ -30,6 +30,12 @@ class GenerateAndLoadData(BaseSalesforceApiTask):
 
     By default it creates the data in a temporary file and then cleans it up later. Specify database_url if you
     need more control than that. The use of both database_url and batch_size together is not currently supported.
+
+    If your generator class makes heavy use of Faker, you might be interested in this patch
+    which frequently speeds Faker up. Adding that code to the bottom of your generator file may
+    help accelerate it.
+
+    https://sfdc.co/bwKxDD
     """
 
     task_options = {
