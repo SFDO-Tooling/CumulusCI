@@ -15,7 +15,7 @@ NUM_RECORDS = 20
 class DummyBaseBatchDataTask(BaseGenerateDataTask):
     """Doesn't actually generate data but validates that we could if we wanted to."""
 
-    def generate_data(self, session, engine, base, num_records):
+    def generate_data(self, session, engine, base, num_records, current_batch_num):
         assert os.path.exists(self.options["database_url"].split("///")[1])
         assert session
         assert engine
@@ -59,5 +59,5 @@ class TestBaseBatchDataTask(unittest.TestCase):
             )
             task()
             gen_data.assert_called_once_with(
-                "sqlite:///generated_data.db", mock.ANY, 20
+                "sqlite:///generated_data.db", mock.ANY, 20, 0
             )
