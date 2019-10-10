@@ -135,3 +135,9 @@ def get_pull_requests_by_commit(github, repo, commit_sha):
 def is_pull_request_merged(pull_request):
     """Takes a github3.pulls.ShortPullRequest object"""
     return pull_request.merged_at is not None
+
+
+def markdown_link_to_pr(change_note):
+    return "{} [[PR{}]({})]".format(
+        change_note.title, change_note.number, change_note.html_url
+    )
