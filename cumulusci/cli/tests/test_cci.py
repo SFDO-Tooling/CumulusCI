@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-from collections import OrderedDict
 from datetime import date
 from datetime import datetime
 from datetime import timedelta
@@ -143,17 +142,7 @@ class TestCCI(unittest.TestCase):
         out = []
         with mock.patch("click.echo", out.append):
             cci.render_recursive(
-                {
-                    "test": [
-                        OrderedDict(
-                            (
-                                ("list", ["list"]),
-                                ("dict", {"key": "value"}),
-                                ("str", "str"),
-                            )
-                        )
-                    ]
-                }
+                {"test": [{"list": ["list"], "dict": {"key": "value"}, "str": "str"}]}
             )
         self.assertEqual(
             """\x1b[1mtest:\x1b[0m
@@ -362,12 +351,10 @@ class TestCCI(unittest.TestCase):
     def test_service_list(self, cli_tbl):
         config = mock.Mock()
         config.is_global_keychain = False
-        config.project_config.services = OrderedDict(
-            (
-                ("bad", {"description": "Unconfigured Service"}),
-                ("test", {"description": "Test Service"}),
-            )
-        )
+        config.project_config.services = {
+            "bad": {"description": "Unconfigured Service"},
+            "test": {"description": "Test Service"},
+        }
         config.keychain.list_services.return_value = ["test"]
         config.global_config.cli__plain_output = None
 
@@ -389,12 +376,10 @@ class TestCCI(unittest.TestCase):
 
     @mock.patch("json.dumps")
     def test_service_list_json(self, json_):
-        services = OrderedDict(
-            (
-                ("bad", {"description": "Unconfigured Service"}),
-                ("test", {"description": "Test Service"}),
-            )
-        )
+        services = {
+            "bad": {"description": "Unconfigured Service"},
+            "test": {"description": "Test Service"},
+        }
         config = mock.Mock()
         config.is_global_keychain = False
         config.project_config.services = services

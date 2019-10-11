@@ -202,7 +202,7 @@ class TestLoadDataWithSFIds(unittest.TestCase):
         )
         task.bulk = mock.Mock()
         task._get_batches = mock.Mock(return_value=[])
-        mapping = dict(action="update", sf_object="Account")
+        mapping = {"action": "update", "sf_object": "Account"}
 
         task._create_job(mapping)
 
@@ -331,13 +331,13 @@ class TestLoadDataWithSFIds(unittest.TestCase):
         task.sf = mock.Mock()
         task.sf.query.return_value = {"records": [{"Id": "012000000000000"}]}
 
-        mapping = dict(
-            sf_object="Account",
-            action="insert",
-            fields=dict(Id="sf_id", Name="Name"),
-            static=dict(Industry="Technology"),
-            record_type="Organization",
-        )
+        mapping = {
+            "sf_object": "Account",
+            "action": "insert",
+            "fields": {"Id": "sf_id", "Name": "Name"},
+            "static": {"Industry": "Technology"},
+            "record_type": "Organization",
+        }
 
         writer = mock.Mock()
         batch_ids = mock.Mock()
@@ -365,12 +365,12 @@ class TestLoadDataWithSFIds(unittest.TestCase):
         )
         task.sf = mock.Mock()
 
-        mapping = dict(
-            sf_object="Account",
-            action="update",
-            fields={},
-            lookups=dict(ParentId=dict(table="accounts", key_field="sf_id")),
-        )
+        mapping = {
+            "sf_object": "Account",
+            "action": "update",
+            "fields": {},
+            "lookups": {"ParentId": {"table": "accounts", "key_field": "sf_id"}},
+        }
 
         writer = mock.Mock()
         batch_ids = []
@@ -397,25 +397,25 @@ class TestLoadDataWithSFIds(unittest.TestCase):
         self.assertEqual(
             ["Name", "Industry", "RecordTypeId"],
             task._get_columns(
-                dict(
-                    sf_object="Account",
-                    action="insert",
-                    fields=fields,
-                    static=dict(Industry="Technology"),
-                    record_type="Organization",
-                )
+                {
+                    "sf_object": "Account",
+                    "action": "insert",
+                    "fields": fields,
+                    "static": {"Industry": "Technology"},
+                    "record_type": "Organization",
+                }
             ),
         )
         self.assertEqual(
             ["Id", "Name", "Industry", "RecordTypeId"],
             task._get_columns(
-                dict(
-                    sf_object="Account",
-                    action="update",
-                    fields=fields,
-                    static=dict(Industry="Technology"),
-                    record_type="Organization",
-                )
+                {
+                    "sf_object": "Account",
+                    "action": "update",
+                    "fields": fields,
+                    "static": {"Industry": "Technology"},
+                    "record_type": "Organization",
+                }
             ),
         )
 
@@ -430,13 +430,13 @@ class TestLoadDataWithSFIds(unittest.TestCase):
         self.assertEqual(
             ["Technology", "012000000000000"],
             task._get_statics(
-                dict(
-                    sf_object="Account",
-                    action="insert",
-                    fields=dict(Id="sf_id", Name="Name"),
-                    static=dict(Industry="Technology"),
-                    record_type="Organization",
-                )
+                {
+                    "sf_object": "Account",
+                    "action": "insert",
+                    "fields": {"Id": "sf_id", "Name": "Name"},
+                    "static": {"Industry": "Technology"},
+                    "record_type": "Organization",
+                }
             ),
         )
 
@@ -466,14 +466,14 @@ class TestLoadDataWithSFIds(unittest.TestCase):
         columns = {"sf_id": mock.Mock(), "name": mock.Mock()}
         model.__table__.columns = columns
 
-        mapping = dict(
-            sf_object="Account",
-            table="accounts",
-            action="update",
-            oid_as_pk=True,
-            fields=dict(Id="sf_id", Name="name"),
-            lookups=dict(ParentId=dict(table="accounts", key_field="sf_id")),
-        )
+        mapping = {
+            "sf_object": "Account",
+            "table": "accounts",
+            "action": "update",
+            "oid_as_pk": True,
+            "fields": {"Id": "sf_id", "Name": "name"},
+            "lookups": {"ParentId": {"table": "accounts", "key_field": "sf_id"}},
+        }
 
         task._query_db(mapping)
 

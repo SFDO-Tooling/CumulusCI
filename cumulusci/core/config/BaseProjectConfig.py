@@ -1,4 +1,3 @@
-from collections import OrderedDict
 from distutils.version import LooseVersion
 import os
 
@@ -184,17 +183,15 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
     def _validate_required_git_info(self, info):
         """Ensures that we have the required git info or throw a ConfigError"""
-        validate = OrderedDict(
-            (
-                # <key>, <env var to manually override>
-                ("branch", "CUMULUSCI_REPO_BRANCH"),
-                ("commit", "CUMULUSCI_REPO_COMMIT"),
-                ("name", "CUMULUSCI_REPO_URL"),
-                ("owner", "CUMULUSCI_REPO_URL"),
-                ("root", "CUMULUSCI_REPO_ROOT"),
-                ("url", "CUMULUSCI_REPO_URL"),
-            )
-        )
+        validate = {
+            # <key>: <env var to manually override>
+            "branch": "CUMULUSCI_REPO_BRANCH",
+            "commit": "CUMULUSCI_REPO_COMMIT",
+            "name": "CUMULUSCI_REPO_URL",
+            "owner": "CUMULUSCI_REPO_URL",
+            "root": "CUMULUSCI_REPO_ROOT",
+            "url": "CUMULUSCI_REPO_URL",
+        }
         for key, env_var in list(validate.items()):
             if key not in info or not info[key]:
                 message = "Detected CI on {} but could not determine the repo {}".format(
