@@ -1,6 +1,7 @@
 from distutils.version import LooseVersion
 import os
 
+import github3
 import raven
 import yaml
 
@@ -875,7 +876,10 @@ class GitHubSource:
 
 
 def _find_latest_release(repo, include_beta=None):
-    if include_beta:
-        return next(repo.releases())
-    else:
-        return repo.latest_release()
+    try:
+        if include_beta:
+            return next(repo.releases())
+        else:
+            return repo.latest_release()
+    except github3.exceptions.NotFoundError:
+        pass
