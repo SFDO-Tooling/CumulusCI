@@ -187,6 +187,10 @@ tasks:
         description: Publish a release to the MetaDeploy web installer
         class_path: cumulusci.tasks.metadeploy.Publish
         group: Release Management
+    org_settings:
+        description: Apply org settings from a scratch org definition file
+        class_path: cumulusci.tasks.salesforce.org_settings.DeployOrgSettings
+        group: Salesforce DX
     publish_community:
         description: Publishes a Community in the target org using the Connect API
         class_path: cumulusci.tasks.salesforce.PublishCommunity
