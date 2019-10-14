@@ -55,7 +55,7 @@ class Factories:
     def add_session(fact, session, orm_classes):
         "Attach the session to the factory"
         fact._meta.sqlalchemy_session = session
-        fact._meta.sqlalchemy_session_persistence = "commit"
+        fact._meta.sqlalchemy_session_persistence = "flush"
 
         # if the model is just a string name, find a real class that matches
         # that name
