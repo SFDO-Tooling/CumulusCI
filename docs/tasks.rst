@@ -1,4 +1,3 @@
-Checking the version!
 ==========================================
 Tasks Reference
 ==========================================
@@ -311,9 +310,9 @@ parent's pull request.
 When given the branch_name option, this task will: (1) check if the base branch
 of the corresponding pull request starts with the feature branch prefix and if so (2) attempt
 to query for a pull request corresponding to this parent feature branch. (3) if a pull request
-isn't found, one is created and the build_notes_label is applied to it.
+isn't found, the task exits and no actions are taken.
 
-If the build_notes_label is present on the pull request, then all notes from the 
+If the build_notes_label is present on the pull request, then all notes from the
 child pull request are aggregated into the parent pull request. if the build_notes_label
 is not detected on the parent pull request then a link to the child pull request
 is placed under the "Unaggregated Pull Requests" header.
@@ -326,9 +325,9 @@ from child pull requests are re-aggregated and the body of the parent is replace
 Options:
 ------------------------------------------
 
-* **branch_name**: Name of branch with a pull request
-* **parent_branch_name**: name of the parent branch to rebuild change notes for
+* **branch_name** *(required)*: Name of branch to check for parent status, and if so, reaggregate change notes from child branches.
 * **build_notes_label** *(required)*: Name of the label that indicates that change notes on parent pull requests should be reaggregated when a child branch pull request is created.
+* **force**: force rebuilding of change notes from child branches in the given branch.
 
 github_clone_tag
 ==========================================
@@ -549,6 +548,18 @@ Options:
 * **tag** *(required)*: Name of the git tag to publish
 * **plan**: Name of the plan(s) to publish. This refers to the `plans` section of cumulusci.yml. By default, all plans will be published.
 * **dry_run**: If True, print steps without publishing.
+
+org_settings
+==========================================
+
+**Description:** Apply org settings from a scratch org definition file
+
+**Class::** cumulusci.tasks.salesforce.org_settings.DeployOrgSettings
+
+Options:
+------------------------------------------
+
+* **definition_file**: sfdx scratch org definition file
 
 publish_community
 ==========================================
@@ -833,6 +844,7 @@ Options:
 * **name**: Sets the name of the top level test suite
 * **pdb**: If true, run the Python debugger when tests fail.
 * **verbose**: If true, log each keyword as it runs.
+* **debug**: If true, enable the `breakpoint` keyword to enable the robot debugger
 
 robot_libdoc
 ==========================================
@@ -844,7 +856,7 @@ robot_libdoc
 Options:
 ------------------------------------------
 
-* **path** *(required)*: The path to the robot library to be documented.  Can be single a python file or a .robot file, or a comma separated list of those files. The order of the files will be preserved in the generated documentation. **Default: ['cumulusci.robotframework.CumulusCI', 'cumulusci.robotframework.PageObjects', 'cumulusci.robotframework.Salesforce', 'cumulusci/robotframework/Salesforce.robot']**
+* **path** *(required)*: The path to one or more keyword libraries to be documented. The path can be single a python file, a .robot file, a python module (eg: cumulusci.robotframework.Salesforce) or a comma separated list of any of those. Glob patterns are supported for filenames (eg: robot/SAL/doc/*PageObject.py). The order of the files will be preserved in the generated documentation. The result of pattern expansion will be sorted **Default: ['cumulusci.robotframework.CumulusCI', 'cumulusci.robotframework.PageObjects', 'cumulusci.robotframework.Salesforce', 'cumulusci/robotframework/Salesforce.robot']**
 * **output** *(required)*: The output file where the documentation will be written **Default: docs/robot/Keywords.html**
 * **title**: A string to use as the title of the generated output **Default: CumulusCI Robot Framework Keywords**
 
