@@ -32,8 +32,8 @@ class TestDeployOrgSettings:
         package_zip = task.api_class.call_args[0][1]
         zf = zipfile.ZipFile(io.BytesIO(base64.b64decode(package_zip)), "r")
         assert (
-            zf.read("package.xml")
-            == b"""<?xml version="1.0" encoding="UTF-8"?>
+            readtext(zf, "package.xml")
+            == """<?xml version="1.0" encoding="UTF-8"?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
     <types>
         <members>*</members>
@@ -43,8 +43,8 @@ class TestDeployOrgSettings:
 </Package>"""
         )
         assert (
-            zf.read("settings/OrgPreference.settings")
-            == b"""<?xml version="1.0" encoding="UTF-8"?>
+            readtext(zf, "settings/OrgPreference.settings")
+            == """<?xml version="1.0" encoding="UTF-8"?>
 <OrgPreferenceSettings xmlns="http://soap.sforce.com/2006/04/metadata">
     <preferences>
         <settingName>S1DesktopEnabled</settingName>
@@ -53,8 +53,8 @@ class TestDeployOrgSettings:
 </OrgPreferenceSettings>"""
         )
         assert (
-            zf.read("settings/Communities.settings")
-            == b"""<?xml version="1.0" encoding="UTF-8"?>
+            readtext(zf, "settings/Communities.settings")
+            == """<?xml version="1.0" encoding="UTF-8"?>
 <CommunitiesSettings xmlns="http://soap.sforce.com/2006/04/metadata">
     <enableNetworksEnabled>True</enableNetworksEnabled>
 </CommunitiesSettings>"""
@@ -70,3 +70,8 @@ class TestDeployOrgSettings:
             task.api_class = Mock()
             task()
             assert not task.api_class.called
+
+
+def readtext(zf, name):
+    with zf.open(name, "r") as f:
+        return io.TextIOWrapper(f).read()
