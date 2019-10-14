@@ -49,8 +49,11 @@ class DeployOrgSettings(Deploy):
             settings_name = capitalize(section)
             if section == "orgPreferenceSettings":
                 values = "\n    ".join(
-                    ORGPREF.format(name=capitalize(k), value=v)
-                    for k, v in section_settings.items()
+                    line
+                    for line in "\n".join(
+                        ORGPREF.format(name=capitalize(k), value=v)
+                        for k, v in section_settings.items()
+                    ).splitlines()
                 )
             else:
                 values = "\n    ".join(
