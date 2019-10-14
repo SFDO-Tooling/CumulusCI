@@ -442,6 +442,11 @@ flows:
     ci_feature_beta_deps:
         description: Install the latest beta version of dependencies and run apex tests.
         steps:
+            0.5:
+                task: github_parent_pr_notes
+                options:
+                    branch_name: $project_config.repo_branch
+                    build_notes_label: "Build Change Notes"
             1:
                 flow: beta_dependencies
             2:
