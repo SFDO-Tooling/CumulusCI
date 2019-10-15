@@ -21,6 +21,22 @@ def get_keyword_names(obj):
     return names
 
 
+def pageobject(page_type, object_name=None):
+    """A decorator to designate a class as a page object"""
+    BuiltIn().log("importing page object {} {}".format(page_type, object_name), "DEBUG")
+
+    def wrapper(cls):
+        key = (page_type, object_name if object_name else "")
+        PageObjects.registry[key] = cls
+        cls._page_type = page_type
+        cls._object_name = object_name
+        if getattr(cls, "_object_name", None) is None:
+            cls._object_name = object_name
+        return cls
+
+    return wrapper
+
+
 class PageObjects(object):
     """Keyword library for importing and using page objects
 
@@ -138,7 +154,7 @@ class PageObjects(object):
         if (page_type, object_name) in self.registry:
             cls = self.registry[(page_type, object_name)]
             instance = cls()
-            libname = instance.__class__.__name__
+            instance._libname = instance.__class__.__name__
 
         else:
             # Page object has not been registered. Try to find
@@ -147,13 +163,12 @@ class PageObjects(object):
             # for a "ListingPage" class. If we find it, we'll
             # create a library named "ContactListingPage"
             instance = None
-            target = "{}Page".format(page_type)
             for subclass in BasePage.__subclasses__():
-                if subclass.__name__ == target:
+                if getattr(subclass, "_page_type", None) == page_type:
                     instance = subclass(object_name)
-                    libname = "{}{}Page".format(
+                    instance._libname = "{}{}PageObject".format(
                         object_name, page_type
-                    )  # eg: ContactListingPage
+                    )  # eg: ContactListingPageObject
                     break
 
             if instance is None:
@@ -164,7 +179,8 @@ class PageObjects(object):
                 )
 
         try:
-            pobj = self.builtin.get_library_instance(libname)
+            pobj = self.builtin.get_library_instance(instance._libname)
+
         except Exception:
             # Hasn't been imported. Attempt to import it with the given name
             # for the given object; If this fails, just let it bubble up
@@ -172,12 +188,12 @@ class PageObjects(object):
             self.builtin.import_library(
                 "cumulusci.robotframework.pageobjects._PageObjectLibrary",
                 instance,
-                libname,
+                instance._libname,
                 "WITH NAME",
-                libname,
+                instance._libname,
             )
             # sure would be nice if import_library returned the instance. Just sayin'.
-            pobj = self.builtin.get_library_instance(libname)
+            pobj = self.builtin.get_library_instance(instance._libname)
 
         return pobj
 
