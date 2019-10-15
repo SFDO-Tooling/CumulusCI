@@ -2,4 +2,4 @@ from .PageObjects import PageObjects  # noqa: F401
 from .baseobjects import BasePage  # noqa: F401
 from .PageObjectLibrary import _PageObjectLibrary  # noqa: F401
 from .PageObjects import pageobject  # noqa: F401
-from .BasePageObjects import ListingPage, HomePage, DetailPage  # noqa: F401
+from .BasePageObjects import ListingPage, HomePage, DetailPage, NewDialog  # noqa: F401

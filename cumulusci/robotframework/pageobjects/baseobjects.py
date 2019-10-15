@@ -8,6 +8,25 @@ class BasePage:
         if object_name:
             self._object_name = object_name
 
+    def _wait_to_appear(self, timeout=None):
+        """This function is called by the keyword 'wait for page object to appear'.
+        Custom page objects can override this to verify that the object is visible.
+        """
+        raise Exception("Unable to wait for this page object")
+
+    def _remove_from_library_search_order(self):
+        """Remove the current page object from robot's library search order
+
+        Note: robot doesn't provide a way to completely unload a
+        library during execution. However, this at least makes sure that
+        all other libraries will have priority over this one.
+        """
+        order = list(self.builtin.set_library_search_order())
+        if self._libname in order:
+            order.remove(self._libname)
+            self.builtin.set_library_search_order(*order)
+            self.builtin.log("new search order: {}".format(order), "DEBUG")
+
     @property
     def object_name(self):
         object_name = self._object_name

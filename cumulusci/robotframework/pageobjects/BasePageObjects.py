@@ -38,6 +38,99 @@ class ListingPage(BasePage):
         )
 
 
+@pageobject("New")
+class NewDialog(BasePage):
+    """Default page object for the New Object dialog
+
+    Note: You should not use this page object with 'Go to page'. Instead,
+    you can use 'Wait for dialog to appear' after performing an action
+    that causes the new object dialog to appear (eg: clicking the
+    "New" button). Once the dialog appears, the keywords for that
+    dialog will be available for use in the test.
+
+    Example:
+
+    | Go to page                 Home  Contact
+    | Click object button        New
+    | Wait for dialog to appear  New  Contact
+
+
+    """
+
+    def _wait_to_appear(self, expected_heading=None):
+        """Waits until the dialog is visible"""
+        locator = "//div[contains(@class, 'uiModal')]"
+        if expected_heading:
+            locator += f"//h2[text()='{expected_heading}']"
+            error = f"A dialog with the heading {expected_heading} did not appear before the timeout"
+        else:
+            error = "The dialog did not appear before the timeout"
+
+        try:
+            self.salesforce.wait_for_aura()
+            self.selenium.wait_until_element_is_visible(locator)
+        except Exception:
+            self.selenium.capture_page_screenshot()
+            raise Exception(error)
+
+    def close_the_dialog(self):
+        """ Closes the open modal """
+
+        locator = "css: button.slds-modal__close"
+        self.selenium.wait_until_element_is_enabled(locator)
+        self.selenium.click_element(locator)
+        self.wait_until_dialog_is_closed()
+        self._remove_from_library_search_order()
+
+    def click_dialog_button(self, button_label):
+        """Click the named dialog button (Save, Save & New, Cancel, etc)"""
+        # stolen from Salesforce.py:click_modal_button
+        locator = (
+            "//div[contains(@class,'uiModal')]"
+            "//div[contains(@class,'modal-footer') or contains(@class, 'actionsContainer')]"
+            "//button[.//span[text()='{}']]"
+        ).format(button_label)
+
+        self.selenium.wait_until_page_contains_element(locator)
+        self.selenium.wait_until_element_is_enabled(locator)
+        self.selenium.click_element(locator)
+
+    def dialog_should_contain_errors(self, *messages):
+        """Verify that the dialog contains the following errors
+
+        This will look for the given message in the standard SLDS
+        component (<ul class='errorsList'>)
+        """
+        try:
+            for message in messages:
+                locator = "//ul[@class='errorsList']//li[contains(., \"{}\")]".format(
+                    message
+                )
+                self.selenium.page_should_contain_element(
+                    locator,
+                    'The page did not contain an error with the text "{}"'.format(
+                        message
+                    ),
+                )
+        except Exception:
+            self.selenium.capture_page_screenshot()
+            raise
+
+    def wait_until_dialog_is_closed(self, timeout=None):
+        """Waits until the dialog is no longer visible
+
+        If the dialog isn't open, this will not throw an error.
+        """
+        locator = "//div[contains(@class, 'uiModal')]"
+
+        try:
+            self.selenium.wait_until_page_does_not_contain_element(locator)
+        except Exception as e:
+            self.builtin.log("caught exception {} ({})".format(e, type(e)), "WARN")
+            # I should be checking specifically for an element doesn't exist error here!
+            raise
+
+
 @pageobject("Home")
 class HomePage(BasePage):
     def _go_to_page(self, filter_name=None):

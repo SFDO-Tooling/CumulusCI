@@ -166,7 +166,7 @@ class PageObjects(object):
             for subclass in BasePage.__subclasses__():
                 if getattr(subclass, "_page_type", None) == page_type:
                     instance = subclass(object_name)
-                    instance._libname = "{}{}PageObject".format(
+                    instance._libname = "{}{}Page".format(
                         object_name, page_type
                     )  # eg: ContactListingPageObject
                     break
@@ -269,6 +269,52 @@ class PageObjects(object):
         pobj = self.get_page_object(page_type, object_name)
         self._set_current_page_object(pobj)
         return pobj
+
+    def wait_for_dialog(self, page_type, object_name, expected_heading=None, **kwargs):
+        """Wait for the given page object dialog to appear.
+
+        This will both wait for the dialog, and verify that the
+        dialog has an expected heading. The expected heading will be
+        the page type (eg "New") and object name (eg: "Contact")
+        separated by a space (eg: "New Contact").
+
+        You can override the expected heading with the expected_heading
+        parameter.
+
+        Example:
+
+        | Wait for dialog to appear    New    Contact
+
+        """
+        try:
+            if not expected_heading:
+                expected_heading = f"New {self._object_name}"
+            pobj = self.get_page_object(page_type, object_name)
+            pobj._wait_to_appear(expected_heading=expected_heading)
+            self._set_current_page_object(pobj)
+            return pobj
+        except Exception:
+            self.selenium.capture_page_screenshot()
+            raise
+
+    def wait_for_page_object(self, page_type, object_name, **kwargs):
+        """Wait for an element represented by a page object to appear on the page.
+
+        The associated page object will be loaded after the element appears.
+
+        page_type represents the page type (Home, Details, etc)) and
+        object_name represents the name of an object (Contact,
+        Organization, etc)
+
+        """
+        try:
+            pobj = self.get_page_object(page_type, object_name)
+            pobj._wait_to_appear()
+            self._set_current_page_object(pobj)
+            return pobj
+        except Exception:
+            self.selenium.capture_page_screenshot()
+            raise
 
     def _set_current_page_object(self, pobj):
         """This does the work of importing the keywords for the given page object
