@@ -932,6 +932,27 @@ class TestOrgConfig(unittest.TestCase):
             config.refresh_oauth_token(None)
             assert config.access_token == "TOKEN"
 
+    @mock.patch("jwt.encode", mock.Mock(return_value="JWT"))
+    @responses.activate
+    def test_refresh_oauth_token_jwt_sandbox(self):
+        responses.add(
+            "POST",
+            "https://cs00.salesforce.com/services/oauth2/token",
+            json={
+                "access_token": "TOKEN",
+                "instance_url": "https://cs00.salesforce.com",
+            },
+        )
+        with mock.patch.dict(
+            os.environ,
+            {"SFDX_CLIENT_ID": "some client id", "SFDX_HUB_KEY": "some private key"},
+        ):
+            config = OrgConfig({"instance_url": "https://cs00.salesforce.com"}, "test")
+            config._load_userinfo = mock.Mock()
+            config._load_orginfo = mock.Mock()
+            config.refresh_oauth_token(None)
+            assert config.access_token == "TOKEN"
+
     def test_lightning_base_url(self):
         config = OrgConfig({"instance_url": "https://na01.salesforce.com"}, "test")
         self.assertEqual("https://na01.lightning.force.com", config.lightning_base_url)

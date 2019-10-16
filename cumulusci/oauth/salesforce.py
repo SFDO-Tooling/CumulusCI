@@ -4,6 +4,7 @@ from http.server import BaseHTTPRequestHandler
 from http.server import HTTPServer
 import http.client
 import jwt
+import re
 import requests
 from urllib.parse import quote
 from urllib.parse import parse_qs
@@ -14,17 +15,37 @@ import webbrowser
 from cumulusci.oauth.exceptions import SalesforceOAuthError
 
 HTTP_HEADERS = {"Content-Type": "application/x-www-form-urlencoded"}
+SANDBOX_DOMAIN_RE = re.compile(
+    r"^https://([\w\d-]+\.)?(test|cs\d+)(\.my)?\.salesforce\.com/?$"
+)
 
 
 def jwt_session(client_id, private_key, username, url=None):
+    """Complete the JWT Token Oauth flow to obtain an access token for an org.
+
+    :param client_id: Client Id for the connected app
+    :param private_key: Private key used to sign the connected app's certificate
+    :param username: Username to authenticate as
+    :param url: Org's instance_url
+    """
+    aud = "https://login.salesforce.com"
     if url is None:
         url = "https://login.salesforce.com"
+    else:
+        m = SANDBOX_DOMAIN_RE.match(url)
+        if m is not None:
+            # sandbox
+            aud = "https://test.salesforce.com"
+            # There can be a delay in syncing scratch org credentials
+            # between instances, so let's use the specific one for this org.
+            instance = m.group(2)
+            url = f"https://{instance}.salesforce.com"
 
     payload = {
         "alg": "RS256",
         "iss": client_id,
         "sub": username,
-        "aud": url,  # jwt aud is NOT mydomain
+        "aud": aud,  # jwt aud is NOT mydomain
         "exp": timegm(datetime.utcnow().utctimetuple()),
     }
     encoded_jwt = jwt.encode(payload, private_key, algorithm="RS256")

@@ -2,6 +2,35 @@
 History
 =======
 
+3.0.1 (2019-10-16)
+------------------
+
+New features:
+
+* Added support for new metadata types when generating ``package.xml``
+  from a directory of metadata using the ``update_package_xml`` task.
+
+* The ``ci_feature`` flow now supports generating change notes for a
+  parent feature branch's pull request from the notes on child pull requests.
+  The parent pull request description will be overwritten with the new notes
+  after a child branch is merged to the parent if the parent pull request has
+  a special label, ``Build Change Notes``.
+
+* When running Apex tests with the ``run_tasks`` task, if there is a single
+  remaining class being run, its name will be logged.
+
+* Apex test failures that happen while uploading a package are now logged.
+
+* In the ``robot_libdoc`` task, wildcards can now be used in the ``path`` option.
+
+* Added an ``org_settings`` task which can deploy scratch org settings
+  from a scratch org definition file.
+
+Issues closed:
+
+* Added a workaround for an issue where refreshing the access token for a sandbox
+  or scratch org could fail if the user's credentials were new and not fully propagated.
+
 3.0.0 (2019-09-30)
 ------------------
 
