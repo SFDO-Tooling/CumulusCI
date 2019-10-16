@@ -166,6 +166,6 @@ Wait for dialog exception
     Go to page    Listing  Contact
     Click object button  New
 
-    run keyword and expect error
-    ...  bogus
+    Run keyword and expect error
+    ...  Unable to find a page object for 'BogusType BogusObject'
     ...  Wait for dialog  BogusType  BogusObject
