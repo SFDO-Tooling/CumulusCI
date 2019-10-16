@@ -65,7 +65,7 @@ class Publish(BaseMetaDeployTask):
         super(Publish, self)._init_task()
         self.dry_run = self.options.get("dry_run")
         self.publish = not self.dry_run and process_bool_arg(
-            self.options.get("publish", True)
+            self.options.get("publish", False)
         )
         self.tag = self.options.get("tag")
         self.commit = self.options.get("commit")
