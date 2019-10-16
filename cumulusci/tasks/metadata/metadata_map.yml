@@ -418,7 +418,6 @@ reportTypes:
 reports:
     - type: Report
       class: MetadataFolderParser
-      extension: report
 roles:
     - type: Role 
       class: MetadataFilenameParser
