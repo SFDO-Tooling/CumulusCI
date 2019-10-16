@@ -12,6 +12,7 @@ file.
 import re
 from cumulusci.robotframework.pageobjects import pageobject
 from cumulusci.robotframework.pageobjects import BasePage
+from cumulusci.robotframework.utils import capture_screenshot_on_error
 
 # This will appear in the generated documentation in place of
 # the filename.
@@ -66,13 +67,10 @@ class NewDialog(BasePage):
         else:
             error = "The dialog did not appear before the timeout"
 
-        try:
-            self.salesforce.wait_for_aura()
-            self.selenium.wait_until_element_is_visible(locator)
-        except Exception:
-            self.selenium.capture_page_screenshot()
-            raise Exception(error)
+        self.salesforce.wait_for_aura()
+        self.selenium.wait_until_element_is_visible(locator, error=error)
 
+    @capture_screenshot_on_error
     def close_the_dialog(self):
         """ Closes the open modal """
 
@@ -82,6 +80,7 @@ class NewDialog(BasePage):
         self.wait_until_dialog_is_closed()
         self._remove_from_library_search_order()
 
+    @capture_screenshot_on_error
     def click_dialog_button(self, button_label):
         """Click the named dialog button (Save, Save & New, Cancel, etc)"""
         # stolen from Salesforce.py:click_modal_button
@@ -95,27 +94,58 @@ class NewDialog(BasePage):
         self.selenium.wait_until_element_is_enabled(locator)
         self.selenium.click_element(locator)
 
+    @capture_screenshot_on_error
     def dialog_should_contain_errors(self, *messages):
         """Verify that the dialog contains the following errors
 
         This will look for the given message in the standard SLDS
         component (<ul class='errorsList'>)
         """
-        try:
-            for message in messages:
-                locator = "//ul[@class='errorsList']//li[contains(., \"{}\")]".format(
-                    message
-                )
-                self.selenium.page_should_contain_element(
-                    locator,
-                    'The page did not contain an error with the text "{}"'.format(
-                        message
-                    ),
-                )
-        except Exception:
-            self.selenium.capture_page_screenshot()
-            raise
+        for message in messages:
+            locator = "//ul[@class='errorsList']//li[contains(., \"{}\")]".format(
+                message
+            )
+            self.selenium.page_should_contain_element(
+                locator,
+                'The page did not contain an error with the text "{}"'.format(message),
+            )
 
+    @capture_screenshot_on_error
+    def populate_field(self, name, value):
+        """Populate a field on the dialog form
+
+        Name must the the label of a field as it appears on the dialog form.
+
+        Example
+
+        | Populate field  First Name  Connor
+        | Populate field  Last Name   MacLeod
+        """
+        # For now, call the same keyword in Salesforce.py. Eventually
+        # that keyword may get moved here and deprecated from that
+        # library.
+        self.salesforce.populate_field(name, value)
+
+    @capture_screenshot_on_error
+    def populate_form(self, *args, **kwargs):
+        """Populate the dialog form
+
+        Arguments are of the form key=value, where 'key' represents
+        a field name as it appears on the form (specifically, the text
+        of a label with the class 'uiLabel').
+
+        Example:
+
+        | Populate form
+        | ...  First Name=Connor
+        | ...  Last Name=MacLeod
+        """
+        # For now, call the same keyword in Salesforce.py. Eventually
+        # that keyword may get moved here and deprecated from that
+        # library.
+        self.salesforce.populate_form(*args, **kwargs)
+
+    @capture_screenshot_on_error
     def wait_until_dialog_is_closed(self, timeout=None):
         """Waits until the dialog is no longer visible
 
@@ -123,12 +153,7 @@ class NewDialog(BasePage):
         """
         locator = "//div[contains(@class, 'uiModal')]"
 
-        try:
-            self.selenium.wait_until_page_does_not_contain_element(locator)
-        except Exception as e:
-            self.builtin.log("caught exception {} ({})".format(e, type(e)), "WARN")
-            # I should be checking specifically for an element doesn't exist error here!
-            raise
+        self.selenium.wait_until_page_does_not_contain_element(locator)
 
 
 @pageobject("Home")
