@@ -358,16 +358,12 @@ class TestLibdocPageObjects(unittest.TestCase):
     def test_pageobject_docstring(self):
         section = self.html_body.find(".//div[@pageobject='Detail-Something__c']")
         description = section.find("div[@class='description']")
-        expected = (
-            '<div class="description"><p>Description of SomethingDetailPage</p></div>'
-        )
+        expected = '<div class="description" title="Description"><p>Description of SomethingDetailPage</p></div>'
         actual = ET.tostring(description).decode("utf-8").strip()
         assert actual == expected
 
         section = self.html_body.find(".//div[@pageobject='Listing-Something__c']")
         description = section.find("div[@class='description']")
-        expected = (
-            '<div class="description"><p>Description of SomethingListingPage</p></div>'
-        )
+        expected = '<div class="description" title="Description"><p>Description of SomethingListingPage</p></div>'
         actual = ET.tostring(description).decode("utf-8").strip()
         assert actual == expected
