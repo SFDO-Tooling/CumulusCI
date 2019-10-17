@@ -813,7 +813,7 @@ class GitHubSource:
         return s
 
     def __hash__(self):
-        return (self.url, self.commit)
+        return hash((self.url, self.commit))
 
     def resolve(self):
         """Resolve a github source into a specific commit.
