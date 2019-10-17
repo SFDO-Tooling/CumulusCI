@@ -63,7 +63,10 @@ DetailPage with more than one match
     ...  Salesforce Insert  Contact  FirstName=John  LastName=Smith
     ...  AND  Salesforce Insert  Contact  FirstName=John  LastName=Jones
 
-    run keyword and expect error  Query returned 2 objects
+    ${records}=   Salesforce query  Contact  firstName=John
+    ${expected}=  get length  ${records}
+
+    run keyword and expect error  Query returned ${expected} objects
     ...  Go to page  Detail  Contact  firstName=John
 
 NewDialog
