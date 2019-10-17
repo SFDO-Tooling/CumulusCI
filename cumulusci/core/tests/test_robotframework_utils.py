@@ -1,5 +1,5 @@
 import unittest
-import mock
+from unittest import mock
 
 import cumulusci.robotframework.utils as robot_utils
 
