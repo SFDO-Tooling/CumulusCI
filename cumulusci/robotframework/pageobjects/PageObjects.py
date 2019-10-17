@@ -1,6 +1,7 @@
 from robot.api import logger
 from robot.libraries.BuiltIn import BuiltIn, RobotNotRunningError
 from cumulusci.robotframework.pageobjects.baseobjects import BasePage
+from cumulusci.robotframework.utils import capture_screenshot_on_error
 import inspect
 import robot.utils
 import os
@@ -197,6 +198,7 @@ class PageObjects(object):
 
         return pobj
 
+    @capture_screenshot_on_error
     def go_to_page(self, page_type, object_name, **kwargs):
         """Go to the page of the given page object.
 
@@ -223,13 +225,10 @@ class PageObjects(object):
         calling `self.salesforce.wait_until_loading_is_complete()`)
         """
         pobj = self.get_page_object(page_type, object_name)
-        try:
-            pobj._go_to_page(**kwargs)
-            self._set_current_page_object(pobj)
-        except Exception:
-            self.selenium.capture_page_screenshot()
-            raise
+        pobj._go_to_page(**kwargs)
+        self._set_current_page_object(pobj)
 
+    @capture_screenshot_on_error
     def current_page_should_be(self, page_type, object_name, **kwargs):
         """Verifies that the page appears to be the requested page
 
@@ -253,12 +252,8 @@ class PageObjects(object):
 
         """
         pobj = self.get_page_object(page_type, object_name)
-        try:
-            pobj._is_current_page(**kwargs)
-            self.load_page_object(page_type, object_name)
-        except Exception:
-            self.selenium.capture_page_screenshot()
-            raise
+        pobj._is_current_page(**kwargs)
+        self.load_page_object(page_type, object_name)
 
     def load_page_object(self, page_type, object_name=None):
         """Load the keywords for the page object identified by the type and object name
@@ -270,6 +265,7 @@ class PageObjects(object):
         self._set_current_page_object(pobj)
         return pobj
 
+    @capture_screenshot_on_error
     def wait_for_dialog(self, page_type, object_name, expected_heading=None, **kwargs):
         """Wait for the given page object dialog to appear.
 
@@ -286,17 +282,14 @@ class PageObjects(object):
         | Wait for dialog to appear    New    Contact
 
         """
-        try:
-            if not expected_heading:
-                expected_heading = f"New {self._object_name}"
-            pobj = self.get_page_object(page_type, object_name)
-            pobj._wait_to_appear(expected_heading=expected_heading)
-            self._set_current_page_object(pobj)
-            return pobj
-        except Exception:
-            self.selenium.capture_page_screenshot()
-            raise
+        if not expected_heading:
+            expected_heading = f"New {self._object_name}"
+        pobj = self.get_page_object(page_type, object_name)
+        pobj._wait_to_appear(expected_heading=expected_heading)
+        self._set_current_page_object(pobj)
+        return pobj
 
+    @capture_screenshot_on_error
     def wait_for_page_object(self, page_type, object_name, **kwargs):
         """Wait for an element represented by a page object to appear on the page.
 
@@ -307,14 +300,10 @@ class PageObjects(object):
         Organization, etc)
 
         """
-        try:
-            pobj = self.get_page_object(page_type, object_name)
-            pobj._wait_to_appear()
-            self._set_current_page_object(pobj)
-            return pobj
-        except Exception:
-            self.selenium.capture_page_screenshot()
-            raise
+        pobj = self.get_page_object(page_type, object_name)
+        pobj._wait_to_appear()
+        self._set_current_page_object(pobj)
+        return pobj
 
     def _set_current_page_object(self, pobj):
         """This does the work of importing the keywords for the given page object
