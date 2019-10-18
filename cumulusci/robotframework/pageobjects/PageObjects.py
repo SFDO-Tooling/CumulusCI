@@ -199,7 +199,7 @@ class PageObjects(object):
         return pobj
 
     @capture_screenshot_on_error
-    def go_to_page(self, page_type, object_name, **kwargs):
+    def go_to_page(self, page_type, object_name, *args, **kwargs):
         """Go to the page of the given page object.
 
         The URL will be computed from the page_type and object_name
@@ -225,7 +225,7 @@ class PageObjects(object):
         calling `self.salesforce.wait_until_loading_is_complete()`)
         """
         pobj = self.get_page_object(page_type, object_name)
-        pobj._go_to_page(**kwargs)
+        pobj._go_to_page(*args, **kwargs)
         self._set_current_page_object(pobj)
 
     @capture_screenshot_on_error
