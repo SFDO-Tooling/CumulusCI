@@ -2,7 +2,7 @@ from robot.libraries.BuiltIn import BuiltIn
 import re
 
 
-class BasePage(object):
+class BasePage:
     _object_name = None
 
     def __init__(self, object_name=None):

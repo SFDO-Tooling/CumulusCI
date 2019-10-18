@@ -1,8 +1,10 @@
 from cumulusci.tasks.salesforce import BaseSalesforceTask
+from cumulusci.salesforce_api.metadata import BaseMetadataApiCall
+from typing import Type
 
 
 class BaseSalesforceMetadataApiTask(BaseSalesforceTask):
-    api_class = None
+    api_class: Type[BaseMetadataApiCall] = BaseMetadataApiCall
     name = "BaseSalesforceMetadataApiTask"
 
     def _get_api(self):

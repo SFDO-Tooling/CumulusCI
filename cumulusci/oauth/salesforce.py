@@ -60,7 +60,7 @@ def jwt_session(client_id, private_key, username, url=None):
     return response.json()
 
 
-class SalesforceOAuth2(object):
+class SalesforceOAuth2:
     def __init__(
         self,
         client_id,
@@ -135,7 +135,7 @@ class OAuthCallbackHandler(BaseHTTPRequestHandler):
             self.parent.response = response
 
 
-class CaptureSalesforceOAuth(object):
+class CaptureSalesforceOAuth:
     def __init__(self, client_id, client_secret, callback_url, auth_site, scope):
         self.client_id = client_id
         self.client_secret = client_secret

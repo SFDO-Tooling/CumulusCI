@@ -7,7 +7,6 @@ class ListCommunities(BaseSalesforceApiTask):
     task_docs = """
     Lists Communities for the current org via the Connect API.
     """
-    task_options = {}
 
     def _run_task(self):
         communities = self.sf.restful("connect/communities")["communities"]

@@ -1,4 +1,4 @@
-lex_locators = {
+lex_locators: dict = {
     "app_launcher": {
         "app_link": "//div[@class='slds-section slds-is-open salesforceIdentityAppLauncherDesktopInternal']//section[@id='cards']//a[@class='appTileTitle' and text()='{}']",
         "button": "//nav[contains(@class,'appLauncher')]//button[//div[contains(@class,'slds-icon-waffle')]]",

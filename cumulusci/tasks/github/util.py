@@ -7,7 +7,7 @@ import os
 from cumulusci.core.exceptions import GithubException
 
 
-class CommitDir(object):
+class CommitDir:
     """Commit all changes in local_dir to branch/repo_dir"""
 
     def __init__(self, repo, logger=None, author=None):

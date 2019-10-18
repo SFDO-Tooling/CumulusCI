@@ -10,7 +10,7 @@ from robot.libraries.BuiltIn import BuiltIn
 import re
 
 
-class TestListener(object):
+class TestListener:
     ROBOT_LIBRARY_SCOPE = "TEST SUITE"
     ROBOT_LISTENER_API_VERSION = 2
 

@@ -32,7 +32,7 @@ INSTALLED_PACKAGE = u"""<?xml version="1.0" encoding="UTF-8"?>
 </InstalledPackage>"""
 
 
-class BasePackageZipBuilder(object):
+class BasePackageZipBuilder:
     def __call__(self):
         self._open_zip()
         self._populate_zip()

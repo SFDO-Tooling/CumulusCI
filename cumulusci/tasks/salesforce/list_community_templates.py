@@ -6,7 +6,6 @@ class ListCommunityTemplates(BaseSalesforceApiTask):
     task_docs = """
     Lists Salesforce Community templates available for the current org via the Connect API.
     """
-    task_options = {}
 
     def _run_task(self):
         community_template_list = self.sf.restful("connect/communities/templates")[

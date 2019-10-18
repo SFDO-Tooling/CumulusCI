@@ -21,14 +21,14 @@ from cumulusci.robotframework.template_utils import format_str
 OID_REGEX = r"^(%2F)?([a-zA-Z0-9]{15,18})$"
 STATUS_KEY = ("status",)
 
-lex_locators = {}  # will be initialized when Salesforce is instantiated
+lex_locators: dict = {}  # will be initialized when Salesforce is instantiated
 
 # https://developer.salesforce.com/docs/atlas.en-us.api_rest.meta/api_rest/resources_composite_sobjects_collections_create.htm
 SF_COLLECTION_INSERTION_LIMIT = 200
 
 
 @selenium_retry
-class Salesforce(object):
+class Salesforce:
     """A keyword library for working with Salesforce Lightning pages
 
     While you can import this directly into any suite, the recommended way

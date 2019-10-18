@@ -30,7 +30,7 @@ def batch_list(data, batch_size):
     return batch_list
 
 
-class BasePushApiObject(object):
+class BasePushApiObject:
     def format_where(self, id_field, where=None):
         base_where = "%s = '%s'" % (id_field, self.sf_id)
         if where:
@@ -248,7 +248,7 @@ class PackagePushRequest(BasePushApiObject):
         return self.push_api.get_push_jobs_by_id(where, limit)
 
 
-class PackageSubscriber(object):
+class PackageSubscriber:
     def __init__(
         self,
         push_api,
@@ -290,7 +290,7 @@ class PackageSubscriber(object):
         return self.push_api.get_push_jobs_by_id(where, limit)
 
 
-class SalesforcePushApi(object):
+class SalesforcePushApi:
     """ API Wrapper for the Salesforce Push API """
 
     def __init__(self, sf, logger, lazy=None, default_where=None, batch_size=None):

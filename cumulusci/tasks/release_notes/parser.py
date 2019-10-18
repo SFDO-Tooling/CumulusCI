@@ -6,7 +6,7 @@ from cumulusci.core.exceptions import GithubApiNotFoundError
 from .exceptions import GithubIssuesError
 
 
-class BaseChangeNotesParser(object):
+class BaseChangeNotesParser:
     def __init__(self, title):
         self.title = title
         self.content = []

@@ -1,10 +1,10 @@
 import logging
 
 
-class BaseConfig(object):
+class BaseConfig:
     """ BaseConfig provides a common interface for nested access for all Config objects in CCI. """
 
-    defaults = {}
+    defaults: dict = {}
 
     def __init__(self, config=None):
         if config is None:

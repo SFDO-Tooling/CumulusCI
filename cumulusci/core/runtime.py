@@ -7,7 +7,7 @@ from cumulusci.core.flowrunner import FlowCallback, FlowCoordinator
 
 
 # pylint: disable=assignment-from-none
-class BaseCumulusCI(object):
+class BaseCumulusCI:
     global_config_class = BaseGlobalConfig
     project_config_class = BaseProjectConfig
     keychain_class = BaseProjectKeychain

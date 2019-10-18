@@ -1,7 +1,7 @@
 import inspect
 
 
-class _PageObjectLibrary(object):
+class _PageObjectLibrary:
     """
     This uses robot's hybrid library API to create a keyword library
     from any object. All of the methods in the object will be exposed

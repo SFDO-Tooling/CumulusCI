@@ -3,7 +3,7 @@
 # constants used by MetaCI
 FAILED_TO_CREATE_SCRATCH_ORG = "Failed to create scratch org"
 
-from cumulusci.core.config.BaseConfig import BaseConfig
+from cumulusci.core.config.base_config import BaseConfig
 
 # inherit from BaseConfig
 
@@ -20,7 +20,7 @@ class FlowConfig(BaseConfig):
     pass
 
 
-from cumulusci.core.config.OrgConfig import OrgConfig
+from cumulusci.core.config.org_config import OrgConfig
 
 
 class ServiceConfig(BaseConfig):
@@ -33,14 +33,28 @@ class TaskConfig(BaseConfig):
     pass
 
 
-from cumulusci.core.config.BaseTaskFlowConfig import BaseTaskFlowConfig
+from cumulusci.core.config.base_task_flow_config import BaseTaskFlowConfig
 
 
 # inherit from BaseTaskFlowConfig
-from cumulusci.core.config.BaseProjectConfig import BaseProjectConfig
+from cumulusci.core.config.project_config import BaseProjectConfig
 
 # inherit from OrgConfig
-from cumulusci.core.config.ScratchOrgConfig import ScratchOrgConfig
+from cumulusci.core.config.scratch_org_config import ScratchOrgConfig
 
 # inherit from BaseProjectConfig
-from cumulusci.core.config.BaseGlobalConfig import BaseGlobalConfig
+from cumulusci.core.config.global_config import BaseGlobalConfig
+
+
+__all__ = [
+    "BaseConfig",
+    "ConnectedAppOAuthConfig",
+    "FlowConfig",
+    "OrgConfig",
+    "ServiceConfig",
+    "TaskConfig",
+    "BaseTaskFlowConfig",
+    "BaseProjectConfig",
+    "ScratchOrgConfig",
+    "BaseGlobalConfig",
+]

@@ -6,10 +6,7 @@ import pytest
 import re
 import unittest
 
-try:
-    from json.decoder import JSONDecodeError
-except ImportError:
-    JSONDecodeError = ValueError
+from json.decoder import JSONDecodeError
 from unittest.mock import MagicMock
 
 from cumulusci.core.config import (

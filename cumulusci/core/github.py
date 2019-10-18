@@ -30,7 +30,7 @@ def get_github_api(username=None, password=None):
     return gh
 
 
-INSTALLATIONS = {}
+INSTALLATIONS: dict = {}
 
 
 def get_github_api_for_repo(keychain, owner, repo):

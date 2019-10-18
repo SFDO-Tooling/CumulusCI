@@ -83,18 +83,18 @@ class TestBaseConfig(unittest.TestCase):
         self.assertEqual(config.foo__bar, "default")
 
 
-class DummyContents(object):
+class DummyContents:
     def __init__(self, content):
         self.decoded = content
 
 
-class DummyResponse(object):
+class DummyResponse:
     def __init__(self, content, status_code):
         self.content = content
         self.status_code = status_code
 
 
-class DummyRepository(object):
+class DummyRepository:
     default_branch = "master"
     _api = "http://"
 
@@ -152,13 +152,13 @@ class DummyRepository(object):
         return ref
 
 
-class DummyRelease(object):
+class DummyRelease:
     def __init__(self, tag_name, name=None):
         self.tag_name = tag_name
         self.name = name
 
 
-class DummyGithub(object):
+class DummyGithub:
     def __init__(self, repositories):
         self.repositories = repositories
 
@@ -169,14 +169,14 @@ class DummyGithub(object):
             raise AssertionError("Unexpected repository: {}".format(name))
 
 
-class DummyService(object):
+class DummyService:
     password = "password"
 
     def __init__(self, name):
         self.name = name
 
 
-class DummyKeychain(object):
+class DummyKeychain:
     def get_service(self, name):
         return DummyService(name)
 

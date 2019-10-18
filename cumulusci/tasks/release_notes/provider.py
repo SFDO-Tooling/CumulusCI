@@ -10,7 +10,7 @@ from cumulusci.core.exceptions import GithubApiError
 from cumulusci.core.exceptions import GithubApiNotFoundError
 
 
-class BaseChangeNotesProvider(object):
+class BaseChangeNotesProvider:
     def __init__(self, release_notes_generator):
         self.release_notes_generator = release_notes_generator
 

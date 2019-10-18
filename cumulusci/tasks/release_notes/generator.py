@@ -15,7 +15,7 @@ from cumulusci.tasks.release_notes.provider import DirectoryChangeNotesProvider
 from cumulusci.tasks.release_notes.provider import GithubChangeNotesProvider
 
 
-class BaseReleaseNotesGenerator(object):
+class BaseReleaseNotesGenerator:
     def __init__(self):
         self.change_notes = []
         self.empty_change_notes = []

@@ -15,7 +15,7 @@ from cumulusci.tasks.metadata.package import PackageXmlGenerator
 
 class ListChanges(BaseSalesforceApiTask):
 
-    task_options = {
+    task_options: dict = {
         "include": {"description": "Include changed components matching this string."},
         "exclude": {"description": "Exclude changed components matching this string."},
         "snapshot": {
@@ -202,7 +202,7 @@ class RetrieveChanges(BaseRetrieveMetadata, ListChanges, BaseSalesforceApiTask):
 
 class SnapshotChanges(ListChanges):
 
-    task_options = {}
+    task_options: dict = {}
     api_version = "45.0"
 
     def _init_options(self, options):
@@ -252,7 +252,7 @@ class SnapshotChanges(ListChanges):
         return []
 
 
-class MetadataType(object):
+class MetadataType:
     def __init__(self, name, members):
         self.metadata_type = name
         self.members = members

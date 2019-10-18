@@ -1,6 +1,7 @@
 from robot.api import logger
 from robot.libraries.BuiltIn import BuiltIn, RobotNotRunningError
 from cumulusci.robotframework.pageobjects.baseobjects import BasePage
+from typing import ClassVar
 import inspect
 import robot.utils
 import os
@@ -21,7 +22,7 @@ def get_keyword_names(obj):
     return names
 
 
-class PageObjects(object):
+class PageObjects:
     """Keyword library for importing and using page objects
 
     When importing, you can include one or more paths to python
@@ -54,7 +55,7 @@ class PageObjects(object):
     """
 
     ROBOT_LIBRARY_SCOPE = "TEST SUITE"
-    registry = {}
+    registry: ClassVar[dict] = {}
 
     def __init__(self, *args):
         self.builtin = BuiltIn()

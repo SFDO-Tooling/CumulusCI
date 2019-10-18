@@ -7,7 +7,7 @@ from cumulusci.tasks.robotframework.debugger import DebuggerCli
 from cumulusci.tasks.robotframework.debugger import Breakpoint, Suite, Testcase, Keyword
 
 
-class DebugListener(object):
+class DebugListener:
     """A robot framework listener for debugging test cases
 
     This acts as the controller for the debugger. It is responsible

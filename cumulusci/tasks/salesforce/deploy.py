@@ -18,7 +18,7 @@ from cumulusci.utils import zip_tokenize_namespace
 
 class Deploy(BaseSalesforceMetadataApiTask):
     api_class = ApiDeploy
-    task_options = {
+    task_options: dict = {
         "path": {
             "description": "The path to the metadata source to be deployed",
             "required": True,

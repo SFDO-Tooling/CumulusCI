@@ -6,7 +6,7 @@ from cumulusci.utils import zip_tokenize_namespace
 
 
 class BaseRetrieveMetadata(BaseSalesforceMetadataApiTask):
-    task_options = {
+    task_options: dict = {
         "path": {
             "description": "The path to write the retrieved metadata",
             "required": True,

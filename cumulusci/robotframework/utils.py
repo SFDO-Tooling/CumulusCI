@@ -62,7 +62,7 @@ ALWAYS_RETRY_EXCEPTIONS = (
 )
 
 
-class RetryingSeleniumLibraryMixin(object):
+class RetryingSeleniumLibraryMixin:
 
     debug = False
 
@@ -141,7 +141,7 @@ def selenium_retry(target=None, retry=True):
     selenium calls from that library::
 
         @selenium_retry
-        class MyLibrary(object):
+        class MyLibrary:
 
             # Decorate a method to turn it back off for that method
             @selenium_retry(False)
@@ -152,7 +152,7 @@ def selenium_retry(target=None, retry=True):
     (the class-level decorator is still required)::
 
         @selenium_retry(False)
-        class MyLibrary(object):
+        class MyLibrary:
 
             @selenium_retry(True)
             def some_keyword(self):

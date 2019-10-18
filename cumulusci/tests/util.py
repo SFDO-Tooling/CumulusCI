@@ -70,7 +70,7 @@ class DummyOrgConfig(OrgConfig):
         pass
 
 
-class DummyLogger(object):
+class DummyLogger:
     def __init__(self):
         self.out = []
 

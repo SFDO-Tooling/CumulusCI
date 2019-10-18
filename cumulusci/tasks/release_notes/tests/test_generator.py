@@ -47,7 +47,7 @@ class DummyParser(BaseChangeNotesParser):
         pass
 
     def _render(self):
-        return "dummy parser output".format(self.title)
+        return "dummy parser output"
 
 
 class TestBaseReleaseNotesGenerator(unittest.TestCase):

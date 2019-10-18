@@ -47,7 +47,7 @@ class _SfdcTask(BaseTask):
         return -1
 
 
-class AbstractFlowCoordinatorTest(object):
+class AbstractFlowCoordinatorTest:
     @classmethod
     def setUpClass(cls):
         super(AbstractFlowCoordinatorTest, cls).setUpClass()

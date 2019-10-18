@@ -96,7 +96,7 @@ class EnvironmentVarGuard(collections.MutableMapping):
         os.environ = self._environ
 
 
-class MockLoggerMixin(object):
+class MockLoggerMixin:
     @classmethod
     def setUpClass(cls):
         super(MockLoggerMixin, cls).setUpClass()

@@ -100,7 +100,7 @@ class RobotTestDoc(BaseTask):
         return testdoc(self.options["path"], self.options["output"])
 
 
-class KeywordLogger(object):
+class KeywordLogger:
     ROBOT_LISTENER_API_VERSION = 2
 
     def start_keyword(name, attrs):

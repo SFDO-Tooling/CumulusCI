@@ -13,7 +13,7 @@ from cumulusci.robotframework.utils import set_pdb_trace
 from cumulusci.tasks.robotframework.robotframework import Robot
 
 
-class CumulusCI(object):
+class CumulusCI:
     """ Library for accessing CumulusCI for the local git project
 
         This library allows Robot Framework tests to access credentials to a

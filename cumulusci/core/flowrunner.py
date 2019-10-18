@@ -51,12 +51,8 @@ Option values/overrides can be passed in at a number of levels, in increasing or
 
 """
 
-# we don't actually use this set of imports, they're just in type
-# comments, which require explicit runtime import when checking...
-try:
-    from typing import List
-except ImportError:  # pragma: no cover
-    pass
+from typing import List
+from typing import Optional
 
 import copy
 import logging
@@ -72,37 +68,24 @@ from cumulusci.core.config import FlowConfig
 from cumulusci.core.exceptions import FlowConfigError, FlowInfiniteLoopError
 from cumulusci.core.utils import import_global
 
-# TODO: define exception types: flowfailure, taskimporterror, etc?
-
 RETURN_VALUE_OPTION_PREFIX = "^^"
 
 jinja2_env = ImmutableSandboxedEnvironment()
 
 
-class StepSpec(object):
+class StepSpec:
     """ simple namespace to describe what the flowrunner should do each step """
-
-    __slots__ = (
-        "step_num",  # type: str
-        "task_name",  # type: str
-        "task_config",  # type: dict
-        "task_class",  # type: str
-        "allow_failure",  # type: bool
-        "path",  # type: str
-        "skip",  # type: bool
-        "when",  # type: str
-    )
 
     def __init__(
         self,
-        step_num,
-        task_name,
-        task_config,
-        task_class,
-        allow_failure=False,
-        from_flow=None,
-        skip=None,
-        when=None,
+        step_num: str,
+        task_name: str,
+        task_config: dict,
+        task_class: str,
+        allow_failure: bool = False,
+        from_flow: Optional[str] = None,
+        skip: bool = False,
+        when: Optional[str] = None,
     ):
         self.step_num = step_num
         self.task_name = task_name
@@ -151,7 +134,7 @@ StepResult = namedtuple(
 )
 
 
-class FlowCallback(object):
+class FlowCallback:
     """A place for code running a flow to inject callbacks to run during the flow.
 
     A subclass of FlowCallback can use its own constructor to track context, e.g. to refer to a Django model:
@@ -179,7 +162,7 @@ class FlowCallback(object):
         pass
 
 
-class TaskRunner(object):
+class TaskRunner:
     """ TaskRunner encapsulates the job of instantiating and running a task.
     """
 
@@ -243,7 +226,7 @@ class TaskRunner(object):
                 task.logger.info("  {}: {}".format(key, value))
 
 
-class FlowCoordinator(object):
+class FlowCoordinator:
     def __init__(
         self,
         project_config,
@@ -678,7 +661,7 @@ class PreflightFlowCoordinator(FlowCoordinator):
             return {"status": check["action"], "message": check.get("message")}
 
 
-class TaskCache(object):
+class TaskCache:
     """Provides access to named tasks and caches their results.
 
     This is intended for use in a jinja2 expression context
@@ -694,7 +677,7 @@ class TaskCache(object):
         return CachedTaskRunner(self, task_name)
 
 
-class CachedTaskRunner(object):
+class CachedTaskRunner:
     """Runs a task and caches the result in a TaskCache"""
 
     def __init__(self, cache, task_name):

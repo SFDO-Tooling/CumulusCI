@@ -63,7 +63,7 @@ def setup_epoch(inspector, table, column_info):
         column_info["type"] = EpochType()
 
 
-class BulkJobTaskMixin(object):
+class BulkJobTaskMixin:
     def _job_state_from_batches(self, job_id):
         uri = "{}/job/{}/batch".format(self.bulk.endpoint, job_id)
         response = requests.get(uri, headers=self.bulk.headers())

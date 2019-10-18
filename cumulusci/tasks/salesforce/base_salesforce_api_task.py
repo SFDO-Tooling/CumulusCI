@@ -1,3 +1,5 @@
+from typing import Optional
+
 from salesforce_bulk import SalesforceBulk
 
 from cumulusci.tasks.salesforce import BaseSalesforceTask
@@ -6,7 +8,7 @@ from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
 
 class BaseSalesforceApiTask(BaseSalesforceTask):
     name = "BaseSalesforceApiTask"
-    api_version = None
+    api_version: Optional[str] = None
 
     def _init_task(self):
         self.sf = self._init_api()

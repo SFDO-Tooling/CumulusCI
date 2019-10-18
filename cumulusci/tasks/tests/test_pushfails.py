@@ -8,7 +8,7 @@ from cumulusci.tasks.salesforce.tests.util import create_task
 from cumulusci.tasks.push.pushfails import ReportPushFailures
 
 
-def error_record(gack=False, ErrorTitle="Unexpected Error"):  # type: (bool) -> dict
+def error_record(gack=False, ErrorTitle="Unexpected Error") -> dict:
     """ a record that looks like the object returned from the sobject api query we use """
     return {
         "attributes": {"type": "job"},

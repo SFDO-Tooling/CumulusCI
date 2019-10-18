@@ -39,7 +39,7 @@ class MetadataParserMissingError(Exception):
     pass
 
 
-class PackageXmlGenerator(object):
+class PackageXmlGenerator:
     def __init__(
         self,
         directory,
@@ -128,7 +128,7 @@ class PackageXmlGenerator(object):
         return "\n".join(lines)
 
 
-class BaseMetadataParser(object):
+class BaseMetadataParser:
     def __init__(self, metadata_type, directory, extension, delete):
         self.metadata_type = metadata_type
         self.directory = directory

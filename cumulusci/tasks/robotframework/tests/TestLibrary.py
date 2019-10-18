@@ -7,7 +7,7 @@
 
 
 # @selenium_retry
-class TestLibrary(object):
+class TestLibrary:
     """Documentation for the TestLibrary library."""
 
     def library_keyword_one(self):

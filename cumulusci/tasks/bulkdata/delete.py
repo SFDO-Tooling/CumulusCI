@@ -1,7 +1,8 @@
-import requests
 import time
 import unicodecsv
 import xml.etree.ElementTree as ET
+
+import requests
 
 from cumulusci.core.utils import process_bool_arg, process_list_arg
 from cumulusci.tasks.bulkdata.utils import BulkJobTaskMixin
@@ -41,7 +42,7 @@ class DeleteData(BaseSalesforceApiTask, BulkJobTaskMixin):
 
     def _run_task(self):
         for obj in self.options["objects"]:
-            self.logger.info("Deleting ".format(self._object_description(obj)))
+            self.logger.info(f"Deleting {self._object_description(obj)}")
             delete_job = self._create_job(obj, self.options["where"])
             if delete_job is not None:
                 self._wait_for_job(delete_job)

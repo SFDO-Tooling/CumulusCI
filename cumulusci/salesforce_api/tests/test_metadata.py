@@ -1,3 +1,4 @@
+from typing import Type
 import http.client
 import io
 import unittest
@@ -51,8 +52,8 @@ class DummyPackageZipBuilder(BasePackageZipBuilder):
 
 
 class BaseTestMetadataApi(unittest.TestCase):
-    api_class = BaseMetadataApiCall
-    envelope_start = None
+    api_class: Type[BaseMetadataApiCall] = BaseMetadataApiCall
+    envelope_start = ""
     envelope_status = status_envelope
     envelope_result = result_envelope
 
@@ -793,7 +794,7 @@ class TestApiListMetadata(BaseTestMetadataApi):
 
 class TestApiRetrieveUnpackaged(BaseTestMetadataApi):
     maxDiff = None
-    api_class = ApiRetrieveUnpackaged
+    api_class: Type[BaseMetadataApiCall] = ApiRetrieveUnpackaged
     envelope_start = retrieve_unpackaged_start_envelope
 
     def setUp(self):

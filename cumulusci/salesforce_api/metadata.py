@@ -32,14 +32,14 @@ retry_policy = Retry(backoff_factor=0.3)
 http_adapter = HTTPAdapter(max_retries=retry_policy)
 
 
-class BaseMetadataApiCall(object):
+class BaseMetadataApiCall:
     check_interval = 1
-    soap_envelope_start = None
-    soap_envelope_status = None
-    soap_envelope_result = None
-    soap_action_start = None
-    soap_action_status = None
-    soap_action_result = None
+    soap_envelope_start = ""
+    soap_envelope_status = ""
+    soap_envelope_result = ""
+    soap_action_start = ""
+    soap_action_status = ""
+    soap_action_result = ""
 
     def __init__(self, task, api_version=None):
         # the cumulusci context object contains logger, oauth, ID, secret, etc

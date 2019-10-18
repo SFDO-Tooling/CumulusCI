@@ -23,7 +23,7 @@ def stacked_task(self):
         CURRENT_TASK.stack.pop()
 
 
-class BaseTask(object):
+class BaseTask:
     """ BaseTask provides the core execution logic for a Task
 
     Subclass BaseTask and provide a `_run_task()` method with your
@@ -31,7 +31,7 @@ class BaseTask(object):
     """
 
     task_docs = ""
-    task_options = {}
+    task_options: dict = {}
     salesforce_task = False  # Does this task require a salesforce org?
 
     def __init__(

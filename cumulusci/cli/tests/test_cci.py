@@ -629,7 +629,7 @@ class TestCCI(unittest.TestCase):
         config.keychain.set_org.assert_called_once_with(org_config)
 
     def test_org_info_json(self):
-        class Unserializable(object):
+        class Unserializable:
             def __str__(self):
                 return "<unserializable>"
 
@@ -1311,7 +1311,7 @@ class SetTrace(Exception):
 
 
 class DummyTask(BaseTask):
-    task_options = {"color": {}}
+    task_options: dict = {"color": {}}
 
 
 def validate_service(options):

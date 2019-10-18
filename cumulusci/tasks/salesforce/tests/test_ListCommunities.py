@@ -5,13 +5,10 @@ from cumulusci.tasks.salesforce import ListCommunities
 from .util import create_task
 
 
-task_options = {}
-
-
 class test_ListCommunities(unittest.TestCase):
     @responses.activate
     def test_lists_community(self):
-        cc_task = create_task(ListCommunities, task_options)
+        cc_task = create_task(ListCommunities, {})
         communities_url = "{}/services/data/v46.0/connect/communities".format(
             cc_task.org_config.instance_url
         )
