@@ -203,10 +203,12 @@ class PageObjects(object):
         """Go to the page of the given page object.
 
         The URL will be computed from the page_type and object_name
-        associated with the object, if possible.
+        associated with the object, plus possibly additional arguments.
 
         Different pages support different additional arguments. For
-        example, a Listing page supports the keyword argument `filter_name`.
+        example, a Listing page supports the keyword argument `filter_name`,
+        and a Detail page can be given an object id, or paramemters for
+        looking up the object id.
 
         If this keyword is able to navigate to a page, the keyword
         `load page object` will automatically be called to load the keywords

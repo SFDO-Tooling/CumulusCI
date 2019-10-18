@@ -21,7 +21,16 @@ TITLE = "Base Page Objects"
 
 @pageobject(page_type="Listing")
 class ListingPage(BasePage):
-    """Keywords for listing pages"""
+    """Page object representing a Listing page
+
+    When going to the Listing page, you need to specify the object name. You
+    may also specify the name of a filter.
+
+    Example
+
+    | Go to page  Listing  Contact  filterName=Recent
+
+    """
 
     def _go_to_page(self, filter_name=None):
         url_template = "{root}/lightning/o/{object_name}/list"
@@ -41,7 +50,7 @@ class ListingPage(BasePage):
 
 @pageobject("New")
 class NewDialog(BasePage):
-    """Default page object for the New Object dialog
+    """A page object representing the New Object dialog
 
     Note: You should not use this page object with 'Go to page'. Instead,
     you can use 'Wait for dialog to appear' after performing an action
@@ -158,7 +167,22 @@ class NewDialog(BasePage):
 
 @pageobject("Home")
 class HomePage(BasePage):
-    def _go_to_page(self, filter_name=None):
+    """A page object representing the home page of an object.
+
+    When going to the Home page, you need to specify the object name.
+
+    Note: The home page of an object may automatically redirect you to
+    some other page, such as a Listing page. If you are working with
+    such a page, you might need to use `page should be` to load the
+    keywords for the page you expect to be redirected to.
+
+    Example
+
+    | Go to page  Home  Contact
+
+    """
+
+    def _go_to_page(self):
         url_template = "{root}/lightning/o/{object_name}/home"
         url = url_template.format(
             root=self.cumulusci.org.lightning_base_url, object_name=self.object_name
@@ -174,13 +198,36 @@ class HomePage(BasePage):
 
 @pageobject("Detail")
 class DetailPage(BasePage):
-    _page_type = "Detail"
+    """A page object representing the standard Detail page.
+
+    When going to this page via the standard `Go to page` keyword, you
+    can specify either an object id, or a set of keyword arguments which
+    will be used to look up the object id. When using keyword arguments,
+    they need to represent a unique user.
+
+    Example
+
+    | ${contact_id} =       Salesforce Insert  Contact
+    | ...                   FirstName=${first_name}
+    | ...                   LastName=${last_name}
+    |
+    | # Using the id:
+    | Go to page  Detail  Contact  ${contact_id}
+    |
+    | # Using lookup parameters
+    | Go to page  Detail  Contact  FirstName=${first_name}  LastName=${last_name}
+
+    """
 
     def _go_to_page(self, object_id=None, **kwargs):
         """Go to the detail page for the given object.
 
         You may pass in an object id, or you may pass in keyword arguments
         which can be used to look up the object.
+
+        Example
+
+        | Go to page  Detail  Contact  firstName=John  lastName=Smith
         """
 
         if kwargs and object_id:

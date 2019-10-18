@@ -78,17 +78,28 @@
     margin-bottom: 2em;
     margin-left: 2em;
 }
+
+pre {
+    max-width: 60em;
+    border: 1px solid lightgrey;
+    padding: 10px 0px 10px 10px;
+}
+
+.pageobject-file-description {
+    margin-left: 2em;
+}
+
 .description {
-    margin-top: .5em;
-    margin-bottom: 1em;
-    background: #f4f6f9;
-    padding-left: 1em;
-    padding-top: .5em;
-    padding-bottom: 1em;
+    margin-top: 0em;
+    margin-bottom: .5em;
+    padding-left: 0em;
+    padding-top: 0em;
+    padding-bottom: 0em;
+    max-width: 60em;
 }
 
 .kwtable {
-    box-shadow: 7px 7px 9px #d4d4d4;
+    box-shadow: 3px 3px 5px #d4d4d4;
     border-collapse: collapse;
     border: 1px solid gray;
     text-align: left;
@@ -101,13 +112,13 @@
     padding: 4px;
     border: 1px solid gray;
 }
-.kwtable tr,td {
+.kwrow td {
     padding: 4px;
     border: 1px solid gray;
     vertical-align: top;
 }
 .kwtable tr:hover {
-    background-color: #dcdcdc;
+    background-color: #f9f9f9;
 }
 .kwtable .kwargs {
     width: 20%;
@@ -122,18 +133,34 @@
     margin-bottom: 2em;
     margin-left: 2em;
 }
+
 .pageobject-header {
-    font-size: 1.2em;
+    margin-top: 2em;
+    margin-left: 0px;
+    padding: 0px;
+    border-spacing: 0px;
+}
+
+.pageobject-header td {
+    border: 0px;
+    padding-right: 1.5em;
+}
+.pageobject-header .data {
+    padding-right: 10px;
+    font-size: 1.5em;
     font-weight: bold;
 }
-.object_name, .page_type {
-    padding: 2px 10px ;
+.pageobject-header .labels {
+    font-size: .75em;
+    font-weight: normal;
+    color: gray;
 }
 
     </style>
   </head>
   <body>
     <div class="container">
+      <!-- this is the header for the documentation as a whole -->
       <div class="header">
         <h1 class="title">CumulusCI Robot Framework Keywords</h1>
         <div class="filter right">filter: <input id="filter" type="filter"></input></div>
@@ -145,10 +172,15 @@
           <h2 title='cumulusci.robotframework.CumulusCI'>CumulusCI</h2>
           <div class='file-path'>cumulusci.robotframework.CumulusCI</div>
         </div>
+
+        
+
         
         <div class="section" pageobject="">
+
           
-          <div class='description'><p>Library for accessing CumulusCI for the local git project</p>
+
+          <div class='description' title='Description'><p>Library for accessing CumulusCI for the local git project</p>
 <p>This library allows Robot Framework tests to access credentials to a Salesforce org created by CumulusCI, including Scratch Orgs.  It also exposes the core logic of CumulusCI including interactions with the Salesforce API's and project specific configuration including custom and customized tasks and flows.</p>
 <p>Initialization requires a single argument, the org name for the target CumulusCI org.  If running your tests via cci's robot task (recommended), you can initialize the library in your tests taking advantage of the variable set by the robot task:</p>
 <pre>
@@ -156,7 +188,7 @@
 
 Library  cumulusci.robotframework.CumulusCI  ${ORG}
 </pre></div>
-          <table class="kwtable">
+          <table class="kwtable" title='Table of keywords'>
             <tbody>
               <tr><th>Keyword</th><th>Arguments</th><th>Documentation</th></tr>
               
@@ -325,10 +357,15 @@ Library  cumulusci.robotframework.CumulusCI  ${ORG}
           <h2 title='cumulusci.robotframework.PageObjects'>PageObjects</h2>
           <div class='file-path'>cumulusci.robotframework.PageObjects</div>
         </div>
+
+        
+
         
         <div class="section" pageobject="">
+
           
-          <div class='description'><p>Keyword library for importing and using page objects</p>
+
+          <div class='description' title='Description'><p>Keyword library for importing and using page objects</p>
 <p>When importing, you can include one or more paths to python files that define page objects. For example, if you have a set of classes in robot/HEDA/resources/PageObjects.py, you can import this library into a test case like this:</p>
 <pre>
 Library  cumulusci.robotframework.PageObjects
@@ -345,7 +382,7 @@ from cumulusci.robotframework.pageobjects import pageobject
 class CustomDetailPage(BasePage):
     ...
 </pre></div>
-          <table class="kwtable">
+          <table class="kwtable" title='Table of keywords'>
             <tbody>
               <tr><th>Keyword</th><th>Arguments</th><th>Documentation</th></tr>
               
@@ -355,9 +392,7 @@ class CustomDetailPage(BasePage):
                 </td>
                 <td class="kwargs">
                   
-                  <i>page_type</i>, 
-                  
-                  <i>object_name</i>, 
+                  <i>*args</i>, 
                   
                   <i>**kwargs</i>
                   
@@ -391,16 +426,14 @@ class CustomDetailPage(BasePage):
                 </td>
                 <td class="kwargs">
                   
-                  <i>page_type</i>, 
-                  
-                  <i>object_name</i>, 
+                  <i>*args</i>, 
                   
                   <i>**kwargs</i>
                   
                 </td>
                 <td class="kwdoc"><p>Go to the page of the given page object.</p>
-<p>The URL will be computed from the page_type and object_name associated with the object, if possible.</p>
-<p>Different pages support different additional arguments. For example, a Listing page supports the keyword argument `filter_name`.</p>
+<p>The URL will be computed from the page_type and object_name associated with the object, plus possibly additional arguments.</p>
+<p>Different pages support different additional arguments. For example, a Listing page supports the keyword argument `filter_name`, and a Detail page can be given an object id, or paramemters for looking up the object id.</p>
 <p>If this keyword is able to navigate to a page, the keyword `load page object` will automatically be called to load the keywords for the page.</p>
 <p>Custom page objects may define the function `_go_to_page`, which will be passed in all of the keyword arguments from this keyword. This allows each page object to define its own URL mapping using whatever algorithm it chooses.  The only requirement of the function is that it should compute an appropriate url and then call `self.selenium.go_to` with the URL.</p>
 <p>It is also recommended that the keyword wait until it knows that the page has finished rendering before returning (eg: by calling `self.salesforce.wait_until_loading_is_complete()`)</p></td>
@@ -431,6 +464,42 @@ class CustomDetailPage(BasePage):
                 <td class="kwdoc"><p>Logs page objects and their keywords for all page objects which have been imported into the current suite.</p></td>
               </tr>
               
+              <tr class="kwrow" id="PageObjects.Wait For Dialog">
+                <td class="kwname">
+                  Wait For Dialog
+                </td>
+                <td class="kwargs">
+                  
+                  <i>*args</i>, 
+                  
+                  <i>**kwargs</i>
+                  
+                </td>
+                <td class="kwdoc"><p>Wait for the given page object dialog to appear.</p>
+<p>This will both wait for the dialog, and verify that the dialog has an expected heading. The expected heading will be the page type (eg "New") and object name (eg: "Contact") separated by a space (eg: "New Contact").</p>
+<p>You can override the expected heading with the expected_heading parameter.</p>
+<p>Example:</p>
+<pre>
+Wait for dialog to appear    New    Contact
+</pre></td>
+              </tr>
+              
+              <tr class="kwrow" id="PageObjects.Wait For Page Object">
+                <td class="kwname">
+                  Wait For Page Object
+                </td>
+                <td class="kwargs">
+                  
+                  <i>*args</i>, 
+                  
+                  <i>**kwargs</i>
+                  
+                </td>
+                <td class="kwdoc"><p>Wait for an element represented by a page object to appear on the page.</p>
+<p>The associated page object will be loaded after the element appears.</p>
+<p>page_type represents the page type (Home, Details, etc)) and object_name represents the name of an object (Contact, Organization, etc)</p></td>
+              </tr>
+              
             </tbody>
           </table>
         </div> 
@@ -442,14 +511,30 @@ class CustomDetailPage(BasePage):
           <h2 title='cumulusci.robotframework.Salesforce'>Salesforce</h2>
           <div class='file-path'>cumulusci.robotframework.Salesforce</div>
         </div>
+
+        
+
         
         <div class="section" pageobject="">
+
           
-          <div class='description'><p>A keyword library for working with Salesforce Lightning pages</p>
+
+          <div class='description' title='Description'><p>A keyword library for working with Salesforce Lightning pages</p>
 <p>While you can import this directly into any suite, the recommended way to include this in a test suite is to import the <code>Salesforce.robot</code> resource file.</p></div>
-          <table class="kwtable">
+          <table class="kwtable" title='Table of keywords'>
             <tbody>
               <tr><th>Keyword</th><th>Arguments</th><th>Documentation</th></tr>
+              
+              <tr class="kwrow" id="Salesforce.Breakpoint">
+                <td class="kwname">
+                  Breakpoint
+                </td>
+                <td class="kwargs">
+                  
+                </td>
+                <td class="kwdoc"><p>Serves as a breakpoint for the robot debugger</p>
+<p>Note: this keyword is a no-op unless the debug option for the task has been set to True. Unless the option has been set, this keyword will have no effect on a running test.</p></td>
+              </tr>
               
               <tr class="kwrow" id="Salesforce.Click Header Field Link">
                 <td class="kwname">
@@ -1167,17 +1252,22 @@ class CustomDetailPage(BasePage):
           <h2 title='cumulusci/robotframework/Salesforce.robot'>Salesforce.robot</h2>
           <div class='file-path'>cumulusci/robotframework/Salesforce.robot</div>
         </div>
+
+        
+
         
         <div class="section" pageobject="">
+
           
-          <div class='description'><p>This resource file imports the Salesforce and CumulusCI keyword libraries, along with several other commonly used libraries (Collections, OperatingSystem, String, XML). In addition, it defines several other keywords.</p>
+
+          <div class='description' title='Description'><p>This resource file imports the Salesforce and CumulusCI keyword libraries, along with several other commonly used libraries (Collections, OperatingSystem, String, XML). In addition, it defines several other keywords.</p>
 <p>This resource file also defines several global variables, including <code>${BROWSER}</code>, <code>${ORG}</code>, and <code>${DEFAULT_BROWSER_SIZE}</code></p>
 <p>This resource file should be included in every test suite, like in the following example (note: there should be two or more spaces after <code>Resource</code>):</p>
 <pre>
 <code>*** Settings ***</code>
 <code>Resource cumulusci/robotframework/Salesforce.robot</code>
 </pre></div>
-          <table class="kwtable">
+          <table class="kwtable" title='Table of keywords'>
             <tbody>
               <tr><th>Keyword</th><th>Arguments</th><th>Documentation</th></tr>
               
@@ -1336,9 +1426,312 @@ class CustomDetailPage(BasePage):
         
       </div>
       
+      <div class="file" id="file-cumulusci/robotframework/pageobjects/BasePageObjects.py">
+        <div class='file-header'>
+          <h2 title='cumulusci/robotframework/pageobjects/BasePageObjects.py'>Base Page Objects</h2>
+          <div class='file-path'>cumulusci/robotframework/pageobjects/BasePageObjects.py</div>
+        </div>
+
+        
+        <div class='pageobject-file-description'><p>The following page objects are automatically included when importing the PageObject library. You should not directly import this file.</p></div>
+        
+
+        
+        <div class="section" pageobject="Detail-">
+
+          
+          <div class='pageobject-header'>
+
+            <table class='pageobject-header'>
+              <tbody>
+	        <tr class='data'>
+	          <td title='Page Type'>Detail</td>
+	          
+	        </tr>
+	        <tr class='labels'>
+	          <td>Page Type</td>
+	          
+	        </tr>
+              </tbody>
+            </table>
+          </div>
+          
+
+          <div class='description' title='Description'><p>A page object representing the standard Detail page.</p>
+<p>When going to this page via the standard `Go to page` keyword, you can specify either an object id, or a set of keyword arguments which will be used to look up the object id. When using keyword arguments, they need to represent a unique user.</p>
+<p>Example</p>
+<pre>
+${contact_id} =       Salesforce Insert  Contact
+...                   FirstName=${first_name}
+...                   LastName=${last_name}
+
+# Using the id:
+Go to page  Detail  Contact  ${contact_id}
+
+# Using lookup parameters
+Go to page  Detail  Contact  FirstName=${first_name}  LastName=${last_name}
+</pre></div>
+          <table class="kwtable" title='Table of keywords'>
+            <tbody>
+              <tr><th>Keyword</th><th>Arguments</th><th>Documentation</th></tr>
+              
+              <tr class="kwrow" id="BasePageObjects.py.Log Current Page Object">
+                <td class="kwname">
+                  Log Current Page Object
+                </td>
+                <td class="kwargs">
+                  
+                </td>
+                <td class="kwdoc"><p>Logs the name of the current page object</p>
+<p>The current page object is also returned as an object</p></td>
+              </tr>
+              
+            </tbody>
+          </table>
+        </div> 
+        
+        <div class="section" pageobject="Home-">
+
+          
+          <div class='pageobject-header'>
+
+            <table class='pageobject-header'>
+              <tbody>
+	        <tr class='data'>
+	          <td title='Page Type'>Home</td>
+	          
+	        </tr>
+	        <tr class='labels'>
+	          <td>Page Type</td>
+	          
+	        </tr>
+              </tbody>
+            </table>
+          </div>
+          
+
+          <div class='description' title='Description'><p>A page object representing the home page of an object.</p>
+<p>When going to the Home page, you need to specify the object name.</p>
+<p>Note: The home page of an object may automatically redirect you to some other page, such as a Listing page. If you are working with such a page, you might need to use `page should be` to load the keywords for the page you expect to be redirected to.</p>
+<p>Example</p>
+<pre>
+Go to page  Home  Contact
+</pre></div>
+          <table class="kwtable" title='Table of keywords'>
+            <tbody>
+              <tr><th>Keyword</th><th>Arguments</th><th>Documentation</th></tr>
+              
+              <tr class="kwrow" id="BasePageObjects.py.Log Current Page Object">
+                <td class="kwname">
+                  Log Current Page Object
+                </td>
+                <td class="kwargs">
+                  
+                </td>
+                <td class="kwdoc"><p>Logs the name of the current page object</p>
+<p>The current page object is also returned as an object</p></td>
+              </tr>
+              
+            </tbody>
+          </table>
+        </div> 
+        
+        <div class="section" pageobject="Listing-">
+
+          
+          <div class='pageobject-header'>
+
+            <table class='pageobject-header'>
+              <tbody>
+	        <tr class='data'>
+	          <td title='Page Type'>Listing</td>
+	          
+	        </tr>
+	        <tr class='labels'>
+	          <td>Page Type</td>
+	          
+	        </tr>
+              </tbody>
+            </table>
+          </div>
+          
+
+          <div class='description' title='Description'><p>Page object representing a Listing page</p>
+<p>When going to the Listing page, you need to specify the object name. You may also specify the name of a filter.</p>
+<p>Example</p>
+<pre>
+Go to page  Listing  Contact  filterName=Recent
+</pre></div>
+          <table class="kwtable" title='Table of keywords'>
+            <tbody>
+              <tr><th>Keyword</th><th>Arguments</th><th>Documentation</th></tr>
+              
+              <tr class="kwrow" id="BasePageObjects.py.Log Current Page Object">
+                <td class="kwname">
+                  Log Current Page Object
+                </td>
+                <td class="kwargs">
+                  
+                </td>
+                <td class="kwdoc"><p>Logs the name of the current page object</p>
+<p>The current page object is also returned as an object</p></td>
+              </tr>
+              
+            </tbody>
+          </table>
+        </div> 
+        
+        <div class="section" pageobject="New-">
+
+          
+          <div class='pageobject-header'>
+
+            <table class='pageobject-header'>
+              <tbody>
+	        <tr class='data'>
+	          <td title='Page Type'>New</td>
+	          
+	        </tr>
+	        <tr class='labels'>
+	          <td>Page Type</td>
+	          
+	        </tr>
+              </tbody>
+            </table>
+          </div>
+          
+
+          <div class='description' title='Description'><p>A page object representing the New Object dialog</p>
+<p>Note: You should not use this page object with 'Go to page'. Instead, you can use 'Wait for dialog to appear' after performing an action that causes the new object dialog to appear (eg: clicking the "New" button). Once the dialog appears, the keywords for that dialog will be available for use in the test.</p>
+<p>Example:</p>
+<pre>
+Go to page                 Home  Contact
+Click object button        New
+Wait for dialog to appear  New  Contact
+</pre></div>
+          <table class="kwtable" title='Table of keywords'>
+            <tbody>
+              <tr><th>Keyword</th><th>Arguments</th><th>Documentation</th></tr>
+              
+              <tr class="kwrow" id="BasePageObjects.py.Click Dialog Button">
+                <td class="kwname">
+                  Click Dialog Button
+                </td>
+                <td class="kwargs">
+                  
+                  <i>*args</i>, 
+                  
+                  <i>**kwargs</i>
+                  
+                </td>
+                <td class="kwdoc"><p>Click the named dialog button (Save, Save &amp; New, Cancel, etc)</p></td>
+              </tr>
+              
+              <tr class="kwrow" id="BasePageObjects.py.Close The Dialog">
+                <td class="kwname">
+                  Close The Dialog
+                </td>
+                <td class="kwargs">
+                  
+                  <i>*args</i>, 
+                  
+                  <i>**kwargs</i>
+                  
+                </td>
+                <td class="kwdoc"><p>Closes the open modal</p></td>
+              </tr>
+              
+              <tr class="kwrow" id="BasePageObjects.py.Dialog Should Contain Errors">
+                <td class="kwname">
+                  Dialog Should Contain Errors
+                </td>
+                <td class="kwargs">
+                  
+                  <i>*args</i>, 
+                  
+                  <i>**kwargs</i>
+                  
+                </td>
+                <td class="kwdoc"><p>Verify that the dialog contains the following errors</p>
+<p>This will look for the given message in the standard SLDS component (&lt;ul class='errorsList'&gt;)</p></td>
+              </tr>
+              
+              <tr class="kwrow" id="BasePageObjects.py.Log Current Page Object">
+                <td class="kwname">
+                  Log Current Page Object
+                </td>
+                <td class="kwargs">
+                  
+                </td>
+                <td class="kwdoc"><p>Logs the name of the current page object</p>
+<p>The current page object is also returned as an object</p></td>
+              </tr>
+              
+              <tr class="kwrow" id="BasePageObjects.py.Populate Field">
+                <td class="kwname">
+                  Populate Field
+                </td>
+                <td class="kwargs">
+                  
+                  <i>*args</i>, 
+                  
+                  <i>**kwargs</i>
+                  
+                </td>
+                <td class="kwdoc"><p>Populate a field on the dialog form</p>
+<p>Name must the the label of a field as it appears on the dialog form.</p>
+<p>Example</p>
+<pre>
+Populate field  First Name  Connor
+Populate field  Last Name   MacLeod
+</pre></td>
+              </tr>
+              
+              <tr class="kwrow" id="BasePageObjects.py.Populate Form">
+                <td class="kwname">
+                  Populate Form
+                </td>
+                <td class="kwargs">
+                  
+                  <i>*args</i>, 
+                  
+                  <i>**kwargs</i>
+                  
+                </td>
+                <td class="kwdoc"><p>Populate the dialog form</p>
+<p>Arguments are of the form key=value, where 'key' represents a field name as it appears on the form (specifically, the text of a label with the class 'uiLabel').</p>
+<p>Example:</p>
+<pre>
+Populate form
+...  First Name=Connor
+...  Last Name=MacLeod
+</pre></td>
+              </tr>
+              
+              <tr class="kwrow" id="BasePageObjects.py.Wait Until Dialog Is Closed">
+                <td class="kwname">
+                  Wait Until Dialog Is Closed
+                </td>
+                <td class="kwargs">
+                  
+                  <i>*args</i>, 
+                  
+                  <i>**kwargs</i>
+                  
+                </td>
+                <td class="kwdoc"><p>Waits until the dialog is no longer visible</p>
+<p>If the dialog isn't open, this will not throw an error.</p></td>
+              </tr>
+              
+            </tbody>
+          </table>
+        </div> 
+        
+      </div>
+      
     </div>
     <div class="footer">
-      Generated on Wednesday September 25, 12:35 PM - cumulusci v2.5.9.dev0
+      Generated on Friday October 18, 11:11 AM - cumulusci v3.0.2
     </div>
   </body>
 </html>
