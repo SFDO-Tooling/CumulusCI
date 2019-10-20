@@ -953,7 +953,46 @@ class TestExtractDataWithSFIds(unittest.TestCase):
         task._import_results({"fields": {}, "lookups": {}}, result_file, None)
         task._sql_bulk_insert_from_csv.assert_not_called()
 
+    def test_import_results__record_type_mapping(self):
+        base_path = os.path.dirname(__file__)
+        mapping_path = os.path.join(base_path, "recordtypes.yml")
+        task = _make_task(
+            bulkdata.ExtractData,
+            {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
+        )
+        task._extract_record_types = mock.Mock()
+        result_file = io.BytesIO(
+            b"Id,Name,RecordTypeId\n000000000000001,Test,012000000000000"
+        )
+        task._import_results(
+            {
+                "sf_object": "Account",
+                "record_type_table": "test_rt",
+                "fields": {"Name": "Name", "RecordTypeId": "RecordTypeId"},
+                "lookups": {},
+            },
+            result_file,
+            None,
+        )
+        task._extract_record_types.assert_called_once_with("Account", "test_rt", None)
+
     def test_create_table__already_exists(self):
+        base_path = os.path.dirname(__file__)
+        mapping_path = os.path.join(base_path, self.mapping_file)
+        db_path = os.path.join(base_path, "testdata.db")
+        task = _make_task(
+            bulkdata.ExtractData,
+            {
+                "options": {
+                    "database_url": "sqlite:///{}".format(db_path),
+                    "mapping": mapping_path,
+                }
+            },
+        )
+        with self.assertRaises(BulkDataException):
+            task()
+
+    def test_create_table__record_type_mapping(self):
         base_path = os.path.dirname(__file__)
         mapping_path = os.path.join(base_path, self.mapping_file)
         db_path = os.path.join(base_path, "testdata.db")
