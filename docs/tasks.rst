@@ -22,6 +22,15 @@ command
 
 **Class::** cumulusci.tasks.command.Command
 
+**Example Command-line Usage::** cci task run command -o command "echo 'Hello command task!'"
+
+**Example Task to Run Command::**
+  hello_world:
+    description: Says hello world
+    class_path: cumulusci.tasks.command.Command
+    options:
+      command: echo 'Hello World!'
+
 Options:
 ------------------------------------------
 
