@@ -2,6 +2,15 @@
 History
 =======
 
+3.0.2 (2019-10-17)
+------------------
+
+Issues closed:
+
+* Fixed a bug in deploying email templates and dashboards that was introduced
+  in 3.0.1.
+* Removed broken ``config_qa`` flow from the ``cci project init`` template.
+
 3.0.1 (2019-10-16)
 ------------------
 
