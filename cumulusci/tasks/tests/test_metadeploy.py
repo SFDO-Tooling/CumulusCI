@@ -9,6 +9,7 @@ import yaml
 
 from cumulusci.core.config import ServiceConfig
 from cumulusci.core.config import TaskConfig
+from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.tasks.github.tests.util_github_api import GithubApiTestMixin
 from cumulusci.tasks.metadeploy import BaseMetaDeployTask
 from cumulusci.tasks.metadeploy import Publish
@@ -67,7 +68,7 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
                 "slug": "install",
                 "tier": "primary",
                 "steps": {1: {"flow": "install_prod"}},
-                "checks": [],
+                "checks": [{"when": "False", "action": "error"}],
             }
         }
         project_config.keychain.set_service(
@@ -148,7 +149,7 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
         )
         responses.add("PATCH", "https://metadeploy/versions/1", json={})
 
-        task_config = TaskConfig({"options": {"tag": "release/1.0"}})
+        task_config = TaskConfig({"options": {"tag": "release/1.0", "publish": True}})
         task = Publish(project_config, task_config)
         task()
 
@@ -220,6 +221,35 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
         self.assertEqual("http://EXISTING_VERSION", version["url"])
 
     @responses.activate
+    def test_find_or_create_version__commit(self):
+        responses.add(
+            "GET",
+            "https://metadeploy/versions?product=abcdef&label=abcdef",
+            json={"data": [{"url": "http://EXISTING_VERSION"}]},
+        )
+
+        project_config = create_project_config()
+        project_config.config["project"]["git"]["repo_url"] = "EXISTING_REPO"
+        project_config.config["plans"] = {
+            "install": {
+                "title": "Test Install",
+                "slug": "install",
+                "tier": "primary",
+                "steps": {1: {"flow": "install_prod"}},
+            }
+        }
+        project_config.keychain.set_service(
+            "metadeploy", ServiceConfig({"url": "https://metadeploy", "token": "TOKEN"})
+        )
+        task_config = TaskConfig({"options": {"commit": "abcdef"}})
+        task = Publish(project_config, task_config)
+        task._init_task()
+        version = task._find_or_create_version(
+            {"url": "http://EXISTING_PRODUCT", "id": "abcdef"}
+        )
+        self.assertEqual("http://EXISTING_VERSION", version["url"])
+
+    @responses.activate
     def test_find_product__not_found(self):
         responses.add(
             "GET",
@@ -236,6 +266,16 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
         task._init_task()
         with self.assertRaises(Exception):
             task._find_product()
+
+    def test_init_task__no_tag_or_commit(self):
+        project_config = create_project_config()
+        project_config.keychain.set_service(
+            "metadeploy", ServiceConfig({"url": "https://metadeploy", "token": "TOKEN"})
+        )
+        task_config = TaskConfig({"options": {}})
+        task = Publish(project_config, task_config)
+        with self.assertRaises(TaskOptionsError):
+            task._init_task()
 
     @responses.activate
     def test_init_task__named_plan(self):

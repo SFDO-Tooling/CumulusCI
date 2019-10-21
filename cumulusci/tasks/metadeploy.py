@@ -6,6 +6,8 @@ from cumulusci.core.config import FlowConfig
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.tasks import BaseTask
 from cumulusci.core.flowrunner import FlowCoordinator
+from cumulusci.core.utils import process_bool_arg
+from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.utils import download_extract_github
 from cumulusci.utils import temporary_dir
 
@@ -41,7 +43,8 @@ class Publish(BaseMetaDeployTask):
     """
 
     task_options = {
-        "tag": {"description": "Name of the git tag to publish", "required": True},
+        "tag": {"description": "Name of the git tag to publish"},
+        "commit": {"description": "Commit hash to publish"},
         "plan": {
             "description": "Name of the plan(s) to publish. "
             "This refers to the `plans` section of cumulusci.yml. "
@@ -52,11 +55,22 @@ class Publish(BaseMetaDeployTask):
             "description": "If True, print steps without publishing.",
             "required": False,
         },
+        "publish": {
+            "description": "If True, set is_listed to True on the version. Default: False",
+            "required": False,
+        },
     }
 
     def _init_task(self):
         super(Publish, self)._init_task()
         self.dry_run = self.options.get("dry_run")
+        self.publish = not self.dry_run and process_bool_arg(
+            self.options.get("publish", False)
+        )
+        self.tag = self.options.get("tag")
+        self.commit = self.options.get("commit")
+        if not self.tag and not self.commit:
+            raise TaskOptionsError("You must specify either the tag or commit option.")
 
         plan_name = self.options.get("plan")
         if plan_name:
@@ -79,12 +93,15 @@ class Publish(BaseMetaDeployTask):
         repo_name = self.project_config.repo_name
         gh = self.project_config.get_github_api()
         repo = gh.repository(repo_owner, repo_name)
-        tag = self.options["tag"]
-        commit_sha = repo.tag(repo.ref("tags/" + tag).object.sha).object.sha
+        if self.tag:
+            tag = self.options["tag"]
+            self.commit = repo.tag(repo.ref("tags/" + tag).object.sha).object.sha
         self.logger.info(
-            "Downloading commit {} of {} from GitHub".format(commit_sha, repo.full_name)
+            "Downloading commit {} of {} from GitHub".format(
+                self.commit, repo.full_name
+            )
         )
-        zf = download_extract_github(gh, repo_owner, repo_name, ref=commit_sha)
+        zf = download_extract_github(gh, repo_owner, repo_name, ref=self.commit)
         with temporary_dir() as project_dir:
             zf.extractall(project_dir)
             project_config = BaseProjectConfig(
@@ -94,8 +111,8 @@ class Publish(BaseMetaDeployTask):
                     "owner": repo_owner,
                     "name": repo_name,
                     "url": self.project_config.repo_url,
-                    "branch": tag,
-                    "commit": commit_sha,
+                    "branch": self.tag or self.commit,
+                    "commit": self.commit,
                 },
             )
             project_config.set_keychain(self.project_config.keychain)
@@ -108,7 +125,7 @@ class Publish(BaseMetaDeployTask):
                     self._publish_plan(product, version, plan_name, plan_config, steps)
 
             # Update version to set is_listed=True
-            if not self.dry_run:
+            if self.publish:
                 self._call_api(
                     "PATCH",
                     "/versions/{}".format(version["id"]),
@@ -168,9 +185,10 @@ class Publish(BaseMetaDeployTask):
     def _find_or_create_version(self, product):
         """Create a Version in MetaDeploy if it doesn't already exist
         """
-        tag = self.options["tag"]
-
-        label = self.project_config.get_version_for_tag(tag)
+        if self.tag:
+            label = self.project_config.get_version_for_tag(self.tag)
+        else:
+            label = self.commit
         result = self._call_api(
             "GET", "/versions", params={"product": product["id"], "label": label}
         )
@@ -183,7 +201,7 @@ class Publish(BaseMetaDeployTask):
                     "label": label,
                     "description": self.options.get("description", ""),
                     "is_production": True,
-                    "commit_ish": tag,
+                    "commit_ish": self.tag or self.commit,
                     "is_listed": False,
                 },
             )
