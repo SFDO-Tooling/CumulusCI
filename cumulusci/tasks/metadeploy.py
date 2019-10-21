@@ -56,7 +56,7 @@ class Publish(BaseMetaDeployTask):
             "required": False,
         },
         "publish": {
-            "description": "If True, set is_listed to True on the version. Default: True",
+            "description": "If True, set is_listed to True on the version. Default: False",
             "required": False,
         },
     }
