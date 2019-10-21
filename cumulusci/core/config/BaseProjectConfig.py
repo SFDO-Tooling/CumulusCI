@@ -50,6 +50,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             self.additional_yaml = kwargs.pop("additional_yaml")
 
         # initialize map of project configs referenced from an external source
+        self.source = NullSource()
         self.included_sources = kwargs.pop("included_sources", {})
 
         super(BaseProjectConfig, self).__init__(config=config)
@@ -762,25 +763,30 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         spec = getattr(self, "sources__{}".format(ns))
         if spec is None:
             raise NamespaceNotFoundError("Namespace not found: {}".format(ns))
-        frozenspec = tuple(spec.items())
-        if frozenspec not in self.included_sources:
-            project_config = self.include_source(spec)
-            self.included_sources[frozenspec] = project_config
-        return self.included_sources[frozenspec]
+        return self.include_source(spec)
 
     def include_source(self, spec):
-        if "github" in spec:
-            source = GitHubSource(self, spec)
+        frozenspec = tuple(spec.items())
+        if frozenspec in self.included_sources:
+            project_config = self.included_sources[frozenspec]
         else:
-            raise Exception("Not sure how to load project: {}".format(spec))
-        self.logger.info(f"Fetching from {source}")
-        project_config = source.fetch()
-        project_config.set_keychain(self.keychain)
-        project_config.source = source
+            if "github" in spec:
+                source = GitHubSource(self, spec)
+            else:
+                raise Exception("Not sure how to load project: {}".format(spec))
+            self.logger.info(f"Fetching from {source}")
+            project_config = source.fetch()
+            project_config.set_keychain(self.keychain)
+            project_config.source = source
+            self.included_sources[frozenspec] = project_config
         return project_config
 
     def relpath(self, path):
         return os.path.relpath(os.path.join(self.repo_root, path))
+
+
+class NullSource:
+    frozenspec = None
 
 
 class GitHubSource:
@@ -873,6 +879,15 @@ class GitHubSource:
             included_sources=self.project_config.included_sources,
         )
         return project_config
+
+    @property
+    def frozenspec(self):
+        """Return a spec to reconstruct this source at the current commit"""
+        return {
+            "github": self.url,
+            "commit": self.commit,
+            "description": self.description,
+        }
 
 
 def _find_latest_release(repo, include_beta=None):

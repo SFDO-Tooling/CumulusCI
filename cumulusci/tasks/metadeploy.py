@@ -7,6 +7,7 @@ from cumulusci.core.config import TaskConfig
 from cumulusci.core.tasks import BaseTask
 from cumulusci.core.flowrunner import FlowCoordinator
 from cumulusci.utils import download_extract_github
+from cumulusci.utils import cd
 from cumulusci.utils import temporary_dir
 
 
@@ -102,7 +103,7 @@ class Publish(BaseMetaDeployTask):
 
             # Create each plan
             for plan_name, plan_config in self.plan_configs.items():
-                steps = self._freeze_steps(project_config, plan_config)
+                steps = self._freeze_steps(self.project_config, plan_config)
                 self.logger.debug("Prepared steps:\n" + json.dumps(steps, indent=4))
                 # XXX include other project sources
                 if not self.dry_run:
@@ -148,12 +149,18 @@ class Publish(BaseMetaDeployTask):
     def _freeze_steps(self, project_config, plan_config):
         steps = plan_config["steps"]
         flow_config = FlowConfig(plan_config)
+        flow_config.project_config = project_config
         flow = FlowCoordinator(project_config, flow_config)
         steps = []
         for step in flow.steps:
-            task = step.task_class(
-                step.project_config, TaskConfig(step.task_config), name=step.task_name
-            )
+            if step.skip:
+                continue
+            with cd(step.project_config.repo_root):
+                task = step.task_class(
+                    step.project_config,
+                    TaskConfig(step.task_config),
+                    name=step.task_name,
+                )
             steps.extend(task.freeze(step))
         return steps
 

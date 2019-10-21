@@ -241,6 +241,7 @@ class BaseTask(object):
                 "step_num": str(step.step_num),
                 "task_class": self.task_config.class_path,
                 "task_config": task_config,
+                "source": step.project_config.source.frozenspec,
             }
         )
         return [ui_step]

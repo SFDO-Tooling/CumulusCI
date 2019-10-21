@@ -79,6 +79,7 @@ class DeployBundles(Deploy):
                     "step_num": "{}.{}".format(step.step_num, i),
                     "task_class": "cumulusci.tasks.salesforce.UpdateDependencies",
                     "task_config": task_config,
+                    "source": step.project_config.source.frozenspec,
                 }
             )
             steps.append(ui_step)
