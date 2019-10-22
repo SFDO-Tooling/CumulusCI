@@ -284,9 +284,9 @@ class PageObjects(object):
         | Wait for modal to appear    New    Contact
 
         """
-        if not expected_heading:
-            expected_heading = f"{self._page_type} {self._object_name}"
         pobj = self.get_page_object(page_type, object_name)
+        if not expected_heading:
+            expected_heading = f"{pobj._page_type} {pobj._object_name}"
         pobj._wait_to_appear(expected_heading=expected_heading)
         self._set_current_page_object(pobj)
         return pobj
