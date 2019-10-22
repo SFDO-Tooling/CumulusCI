@@ -69,37 +69,36 @@ DetailPage with more than one match
     run keyword and expect error  Query returned ${expected} objects
     ...  Go to page  Detail  Contact  firstName=John
 
-NewDialog
+NewModal
     [Documentation]
-    ...  Verify that we can use the NewDialog page object keywords
+    ...  Verify that we can use the NewModal page object keywords
 
     [Setup]  Go to page  Home  Contact
     Click object button  New
-    Wait for dialog      New  Contact
-    Close the dialog
-    Wait until dialog is closed
+    Wait for modal      New  Contact
+    Close the modal
 
-NewDialog - click dialog button
+NewModal - click modal button
     [Documentation]
-    ...  Verify that we can use the NewDialog 'click dialog button' keyword
+    ...  Verify that we can use the NewModal 'click modal button' keyword
 
     [Setup]  Run keywords
     ...  Go to page  Home  Contact
     ...  AND  Click object button  New
-    ...  AND  Wait for dialog      New  Contact
+    ...  AND  Wait for modal      New  Contact
 
-    Click dialog button  Cancel
-    Wait until dialog is closed
+    Click modal button  Cancel
+    Wait until modal is closed
 
-NewDialog - Dialog should contain errors
+NewModal - Modal should contain errors
     [Documentation]
-    ...  Verify that we can use the NewDialog 'dialog should contain errors' keyword
+    ...  Verify that we can use the NewModal 'modal should contain errors' keyword
 
     [Setup]  Run keywords
     ...  Go to page  Home  Contact
     ...  AND  Click object button  New
-    ...  AND  Wait for dialog      New  Contact
+    ...  AND  Wait for modal      New  Contact
 
-    Click dialog button  Save
-    Dialog should contain errors
+    Click modal button  Save
+    Modal should contain errors
     ...  These required fields must be completed: Last Name

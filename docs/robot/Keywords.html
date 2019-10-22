@@ -464,9 +464,9 @@ class CustomDetailPage(BasePage):
                 <td class="kwdoc"><p>Logs page objects and their keywords for all page objects which have been imported into the current suite.</p></td>
               </tr>
               
-              <tr class="kwrow" id="PageObjects.Wait For Dialog">
+              <tr class="kwrow" id="PageObjects.Wait For Modal">
                 <td class="kwname">
-                  Wait For Dialog
+                  Wait For Modal
                 </td>
                 <td class="kwargs">
                   
@@ -475,12 +475,12 @@ class CustomDetailPage(BasePage):
                   <i>**kwargs</i>
                   
                 </td>
-                <td class="kwdoc"><p>Wait for the given page object dialog to appear.</p>
-<p>This will both wait for the dialog, and verify that the dialog has an expected heading. The expected heading will be the page type (eg "New") and object name (eg: "Contact") separated by a space (eg: "New Contact").</p>
+                <td class="kwdoc"><p>Wait for the given page object modal to appear.</p>
+<p>This will both wait for the modal, and verify that the modal has an expected heading. By default the expected heading will be the page object type (eg "New") and object name (eg: "Contact") separated by a space (eg: "New Contact").</p>
 <p>You can override the expected heading with the expected_heading parameter.</p>
 <p>Example:</p>
 <pre>
-Wait for dialog to appear    New    Contact
+Wait for modal to appear    New    Contact
 </pre></td>
               </tr>
               
@@ -1601,21 +1601,21 @@ Go to page  Listing  Contact  filterName=Recent
           </div>
           
 
-          <div class='description' title='Description'><p>A page object representing the New Object dialog</p>
-<p>Note: You should not use this page object with 'Go to page'. Instead, you can use 'Wait for dialog to appear' after performing an action that causes the new object dialog to appear (eg: clicking the "New" button). Once the dialog appears, the keywords for that dialog will be available for use in the test.</p>
+          <div class='description' title='Description'><p>A page object representing the New Object modal</p>
+<p>Note: You should not use this page object with 'Go to page'. Instead, you can use 'Wait for modal to appear' after performing an action that causes the new object modal to appear (eg: clicking the "New" button). Once the modal appears, the keywords for that modal will be available for use in the test.</p>
 <p>Example:</p>
 <pre>
 Go to page                 Home  Contact
 Click object button        New
-Wait for dialog to appear  New  Contact
+Wait for modal to appear  New  Contact
 </pre></div>
           <table class="kwtable" title='Table of keywords'>
             <tbody>
               <tr><th>Keyword</th><th>Arguments</th><th>Documentation</th></tr>
               
-              <tr class="kwrow" id="BasePageObjects.py.Click Dialog Button">
+              <tr class="kwrow" id="BasePageObjects.py.Click Modal Button">
                 <td class="kwname">
-                  Click Dialog Button
+                  Click Modal Button
                 </td>
                 <td class="kwargs">
                   
@@ -1624,12 +1624,12 @@ Wait for dialog to appear  New  Contact
                   <i>**kwargs</i>
                   
                 </td>
-                <td class="kwdoc"><p>Click the named dialog button (Save, Save &amp; New, Cancel, etc)</p></td>
+                <td class="kwdoc"><p>Click the named modal button (Save, Save &amp; New, Cancel, etc)</p></td>
               </tr>
               
-              <tr class="kwrow" id="BasePageObjects.py.Close The Dialog">
+              <tr class="kwrow" id="BasePageObjects.py.Close The Modal">
                 <td class="kwname">
-                  Close The Dialog
+                  Close The Modal
                 </td>
                 <td class="kwargs">
                   
@@ -1639,21 +1639,6 @@ Wait for dialog to appear  New  Contact
                   
                 </td>
                 <td class="kwdoc"><p>Closes the open modal</p></td>
-              </tr>
-              
-              <tr class="kwrow" id="BasePageObjects.py.Dialog Should Contain Errors">
-                <td class="kwname">
-                  Dialog Should Contain Errors
-                </td>
-                <td class="kwargs">
-                  
-                  <i>*args</i>, 
-                  
-                  <i>**kwargs</i>
-                  
-                </td>
-                <td class="kwdoc"><p>Verify that the dialog contains the following errors</p>
-<p>This will look for the given message in the standard SLDS component (&lt;ul class='errorsList'&gt;)</p></td>
               </tr>
               
               <tr class="kwrow" id="BasePageObjects.py.Log Current Page Object">
@@ -1667,6 +1652,21 @@ Wait for dialog to appear  New  Contact
 <p>The current page object is also returned as an object</p></td>
               </tr>
               
+              <tr class="kwrow" id="BasePageObjects.py.Modal Should Contain Errors">
+                <td class="kwname">
+                  Modal Should Contain Errors
+                </td>
+                <td class="kwargs">
+                  
+                  <i>*args</i>, 
+                  
+                  <i>**kwargs</i>
+                  
+                </td>
+                <td class="kwdoc"><p>Verify that the modal contains the following errors</p>
+<p>This will look for the given message in the standard SLDS component (&lt;ul class='errorsList'&gt;)</p></td>
+              </tr>
+              
               <tr class="kwrow" id="BasePageObjects.py.Populate Field">
                 <td class="kwname">
                   Populate Field
@@ -1678,8 +1678,8 @@ Wait for dialog to appear  New  Contact
                   <i>**kwargs</i>
                   
                 </td>
-                <td class="kwdoc"><p>Populate a field on the dialog form</p>
-<p>Name must the the label of a field as it appears on the dialog form.</p>
+                <td class="kwdoc"><p>Populate a field on the modal form</p>
+<p>Name must the the label of a field as it appears on the modal form.</p>
 <p>Example</p>
 <pre>
 Populate field  First Name  Connor
@@ -1698,7 +1698,7 @@ Populate field  Last Name   MacLeod
                   <i>**kwargs</i>
                   
                 </td>
-                <td class="kwdoc"><p>Populate the dialog form</p>
+                <td class="kwdoc"><p>Populate the modal form</p>
 <p>Arguments are of the form key=value, where 'key' represents a field name as it appears on the form (specifically, the text of a label with the class 'uiLabel').</p>
 <p>Example:</p>
 <pre>
@@ -1708,9 +1708,9 @@ Populate form
 </pre></td>
               </tr>
               
-              <tr class="kwrow" id="BasePageObjects.py.Wait Until Dialog Is Closed">
+              <tr class="kwrow" id="BasePageObjects.py.Wait Until Modal Is Closed">
                 <td class="kwname">
-                  Wait Until Dialog Is Closed
+                  Wait Until Modal Is Closed
                 </td>
                 <td class="kwargs">
                   
@@ -1719,8 +1719,8 @@ Populate form
                   <i>**kwargs</i>
                   
                 </td>
-                <td class="kwdoc"><p>Waits until the dialog is no longer visible</p>
-<p>If the dialog isn't open, this will not throw an error.</p></td>
+                <td class="kwdoc"><p>Waits until the modal is no longer visible</p>
+<p>If the modal isn't open, this will not throw an error.</p></td>
               </tr>
               
             </tbody>
@@ -1731,7 +1731,7 @@ Populate form
       
     </div>
     <div class="footer">
-      Generated on Friday October 18, 11:11 AM - cumulusci v3.0.2
+      Generated on Tuesday October 22, 03:52 PM - cumulusci v3.0.2
     </div>
   </body>
 </html>

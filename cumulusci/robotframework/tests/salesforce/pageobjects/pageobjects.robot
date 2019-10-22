@@ -154,18 +154,18 @@ Wait for page object exception
     ...  Unable to find a page object for 'BogusType BogusObject'
     ...  Wait for page object  BogusType  BogusObject
 
-Wait for dialog
-    [Documentation]  Verify that the 'wait for dialog' keyword works
+Wait for modal
+    [Documentation]  Verify that the 'wait for modal' keyword works
     Go to page    Listing  Contact
     Click object button  New
 
-    Wait for dialog  New  Contact
+    Wait for modal  New  Contact
 
-Wait for dialog exception
+Wait for modal exception
     [Documentation]  Verify we throw an error if page object isn't found
     Go to page    Listing  Contact
     Click object button  New
 
     Run keyword and expect error
     ...  Unable to find a page object for 'BogusType BogusObject'
-    ...  Wait for dialog  BogusType  BogusObject
+    ...  Wait for modal  BogusType  BogusObject

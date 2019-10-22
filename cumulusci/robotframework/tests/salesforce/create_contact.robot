@@ -14,6 +14,7 @@ Via API
     ${contact_id} =       Salesforce Insert  Contact
     ...                     FirstName=${first_name}
     ...                     LastName=${last_name}
+
     &{contact} =          Salesforce Get  Contact  ${contact_id}
     Validate Contact      ${contact_id}  ${first_name}  ${last_name}
 
@@ -23,14 +24,14 @@ Via UI
 
     Go to page            Home  Contact
     Click Object Button   New
-    Wait for dialog       New  Contact
+    Wait for modal        New  Contact
 
     Populate Form
     ...                   First Name=${first_name}
     ...                   Last Name=${last_name}
-    Click Dialog Button   Save
+    Click Modal Button    Save
 
-    Wait Until Dialog Is Closed
+    Wait Until Modal Is Closed
 
     ${contact_id} =       Get Current Record Id
     Store Session Record  Contact  ${contact_id}

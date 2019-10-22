@@ -21,7 +21,7 @@ from cumulusci.robotframework.CumulusCI import CumulusCI
 from cumulusci.robotframework.pageobjects.PageObjectLibrary import _PageObjectLibrary
 from cumulusci.robotframework.pageobjects import (
     ListingPage,
-    NewDialog,
+    NewModal,
     HomePage,
     DetailPage,
 )
@@ -37,7 +37,7 @@ CORE_KEYWORDS = [
     "go_to_page",
     "load_page_object",
     "log_page_object_keywords",
-    "wait_for_dialog",
+    "wait_for_modal",
     "wait_for_page_object",
 ]
 
@@ -45,7 +45,7 @@ BASE_REGISTRY = {
     ("Detail", ""): DetailPage,
     ("Home", ""): HomePage,
     ("Listing", ""): ListingPage,
-    ("New", ""): NewDialog,
+    ("New", ""): NewModal,
 }
 
 

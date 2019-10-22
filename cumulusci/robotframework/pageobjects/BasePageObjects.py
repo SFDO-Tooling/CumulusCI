@@ -49,49 +49,49 @@ class ListingPage(BasePage):
 
 
 @pageobject("New")
-class NewDialog(BasePage):
-    """A page object representing the New Object dialog
+class NewModal(BasePage):
+    """A page object representing the New Object modal
 
     Note: You should not use this page object with 'Go to page'. Instead,
-    you can use 'Wait for dialog to appear' after performing an action
-    that causes the new object dialog to appear (eg: clicking the
-    "New" button). Once the dialog appears, the keywords for that
-    dialog will be available for use in the test.
+    you can use 'Wait for modal to appear' after performing an action
+    that causes the new object modal to appear (eg: clicking the
+    "New" button). Once the modal appears, the keywords for that
+    modal will be available for use in the test.
 
     Example:
 
     | Go to page                 Home  Contact
     | Click object button        New
-    | Wait for dialog to appear  New  Contact
+    | Wait for modal to appear  New  Contact
 
 
     """
 
     def _wait_to_appear(self, expected_heading=None):
-        """Waits until the dialog is visible"""
+        """Waits until the modal is visible"""
         locator = "//div[contains(@class, 'uiModal')]"
         if expected_heading:
             locator += f"//h2[text()='{expected_heading}']"
-            error = f"A dialog with the heading {expected_heading} did not appear before the timeout"
+            error = f"A modal with the heading {expected_heading} did not appear before the timeout"
         else:
-            error = "The dialog did not appear before the timeout"
+            error = "The modal did not appear before the timeout"
 
         self.salesforce.wait_for_aura()
         self.selenium.wait_until_element_is_visible(locator, error=error)
 
     @capture_screenshot_on_error
-    def close_the_dialog(self):
+    def close_the_modal(self):
         """ Closes the open modal """
 
         locator = "css: button.slds-modal__close"
         self.selenium.wait_until_element_is_enabled(locator)
         self.selenium.click_element(locator)
-        self.wait_until_dialog_is_closed()
+        self.wait_until_modal_is_closed()
         self._remove_from_library_search_order()
 
     @capture_screenshot_on_error
-    def click_dialog_button(self, button_label):
-        """Click the named dialog button (Save, Save & New, Cancel, etc)"""
+    def click_modal_button(self, button_label):
+        """Click the named modal button (Save, Save & New, Cancel, etc)"""
         # stolen from Salesforce.py:click_modal_button
         locator = (
             "//div[contains(@class,'uiModal')]"
@@ -104,8 +104,8 @@ class NewDialog(BasePage):
         self.selenium.click_element(locator)
 
     @capture_screenshot_on_error
-    def dialog_should_contain_errors(self, *messages):
-        """Verify that the dialog contains the following errors
+    def modal_should_contain_errors(self, *messages):
+        """Verify that the modal contains the following errors
 
         This will look for the given message in the standard SLDS
         component (<ul class='errorsList'>)
@@ -121,9 +121,9 @@ class NewDialog(BasePage):
 
     @capture_screenshot_on_error
     def populate_field(self, name, value):
-        """Populate a field on the dialog form
+        """Populate a field on the modal form
 
-        Name must the the label of a field as it appears on the dialog form.
+        Name must the the label of a field as it appears on the modal form.
 
         Example
 
@@ -137,7 +137,7 @@ class NewDialog(BasePage):
 
     @capture_screenshot_on_error
     def populate_form(self, *args, **kwargs):
-        """Populate the dialog form
+        """Populate the modal form
 
         Arguments are of the form key=value, where 'key' represents
         a field name as it appears on the form (specifically, the text
@@ -155,10 +155,10 @@ class NewDialog(BasePage):
         self.salesforce.populate_form(*args, **kwargs)
 
     @capture_screenshot_on_error
-    def wait_until_dialog_is_closed(self, timeout=None):
-        """Waits until the dialog is no longer visible
+    def wait_until_modal_is_closed(self, timeout=None):
+        """Waits until the modal is no longer visible
 
-        If the dialog isn't open, this will not throw an error.
+        If the modal isn't open, this will not throw an error.
         """
         locator = "//div[contains(@class, 'uiModal')]"
 
