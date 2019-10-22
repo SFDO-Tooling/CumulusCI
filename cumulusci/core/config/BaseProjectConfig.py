@@ -870,7 +870,7 @@ class GitHubSource:
         project_config = BaseProjectConfig(
             self.project_config.global_config_obj,
             repo_info={
-                "root": path,
+                "root": os.path.realpath(path),
                 "owner": self.repo_owner,
                 "name": self.repo_name,
                 "url": self.url,

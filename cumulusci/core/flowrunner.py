@@ -728,12 +728,9 @@ class CachedTaskRunner(object):
             project_config=None,
         )
         self.cache.flow.callbacks.pre_task(step)
-        result = TaskRunner(
-            self.cache.flow.project_config,
-            step,
-            self.cache.flow.org_config,
-            self.cache.flow,
-        ).run_step(**options)
+        result = TaskRunner(step, self.cache.flow.org_config, self.cache.flow).run_step(
+            **options
+        )
         self.cache.flow.callbacks.post_task(step, result)
 
         self.cache.results[cache_key] = result

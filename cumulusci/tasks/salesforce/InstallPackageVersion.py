@@ -52,19 +52,10 @@ class InstallPackageVersion(Deploy):
         version = self.options.get("version")
         if version == "latest":
             self.options["version"] = self.project_config.get_latest_version()
-            self.logger.info(
-                "Installing latest release: {}".format(self.options["version"])
-            )
         elif version == "latest_beta":
             self.options["version"] = self.project_config.get_latest_version(beta=True)
-            self.logger.info(
-                "Installing latest beta release: {}".format(self.options["version"])
-            )
         elif version == "previous":
             self.options["version"] = self.project_config.get_previous_version()
-            self.logger.info(
-                "Installing previous release: {}".format(self.options["version"])
-            )
         self.options["activateRSS"] = process_bool_arg(self.options.get("activateRSS"))
 
     def _get_api(self, path=None):
@@ -77,6 +68,9 @@ class InstallPackageVersion(Deploy):
         return self.api_class(self, package_zip(), purge_on_delete=False)
 
     def _run_task(self):
+        self.logger.info(
+            f"Installing {self.options['name']} release: {self.options['version']}"
+        )
         self._retry()
 
     def _try(self):

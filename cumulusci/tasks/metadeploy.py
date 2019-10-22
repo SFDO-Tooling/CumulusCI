@@ -120,9 +120,8 @@ class Publish(BaseMetaDeployTask):
 
             # Create each plan
             for plan_name, plan_config in self.plan_configs.items():
-                steps = self._freeze_steps(self.project_config, plan_config)
+                steps = self._freeze_steps(project_config, plan_config)
                 self.logger.debug("Prepared steps:\n" + json.dumps(steps, indent=4))
-                # XXX include other project sources
                 if not self.dry_run:
                     self._publish_plan(product, version, plan_name, plan_config, steps)
 
@@ -178,7 +177,7 @@ class Publish(BaseMetaDeployTask):
                     TaskConfig(step.task_config),
                     name=step.task_name,
                 )
-            steps.extend(task.freeze(step))
+                steps.extend(task.freeze(step))
         return steps
 
     def _find_product(self):
