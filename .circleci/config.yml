@@ -40,7 +40,7 @@ jobs:
           name: Run Python tests
           command: |
             mkdir -p testresults/py3
-            venv/bin/tox -e py37 -- --junitxml=testresults/py3/junit.xml
+            venv/bin/tox -e py38 -- --junitxml=testresults/py3/junit.xml
             mv .coverage .coverage.py3
       - store_test_results:
           path: testresults
