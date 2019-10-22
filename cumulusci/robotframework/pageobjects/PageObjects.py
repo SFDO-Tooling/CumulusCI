@@ -207,7 +207,7 @@ class PageObjects(object):
 
         Different pages support different additional arguments. For
         example, a Listing page supports the keyword argument `filter_name`,
-        and a Detail page can be given an object id, or paramemters for
+        and a Detail page can be given an object id, or parameters for
         looking up the object id.
 
         If this keyword is able to navigate to a page, the keyword

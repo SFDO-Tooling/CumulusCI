@@ -220,7 +220,7 @@ class DetailPage(BasePage):
     """
 
     def _go_to_page(self, object_id=None, **kwargs):
-        """Go to the detail page for the given object.
+        """Go to the detail page for the given record.
 
         You may pass in an object id, or you may pass in keyword arguments
         which can be used to look up the object.

@@ -356,7 +356,7 @@ class TestLibdocPageObjects(unittest.TestCase):
         title_element = self.html_body.find(".//div[@class='file-header']/h2")
         assert title_element.text == "This is the title"
 
-    def test_file_descrption(self):
+    def test_file_description(self):
         """Verify that the docstring in the file is added to the generated html"""
         file_doc_element = self.html_body.find(
             ".//div[@class='pageobject-file-description']"
