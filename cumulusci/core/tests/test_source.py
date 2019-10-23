@@ -4,15 +4,18 @@ import unittest
 import yaml
 import zipfile
 
+import pytest
 import responses
 
 from ..source import GitHubSource
+from ..source import LocalFolderSource
 from cumulusci.core.config import BaseGlobalConfig
 from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.config import ServiceConfig
 from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.tasks.release_notes.tests.utils import MockUtil
 from cumulusci.utils import temporary_dir
+from cumulusci.utils import touch
 
 
 class TestGitHubSource(unittest.TestCase, MockUtil):
@@ -267,3 +270,32 @@ class TestGitHubSource(unittest.TestCase, MockUtil):
             "commit": "tag_sha",
             "description": "tags/release/1.0",
         }
+
+
+class TestLocalFolderSource:
+    def test_fetch(self):
+        project_config = BaseProjectConfig(BaseGlobalConfig())
+        with temporary_dir() as d:
+            touch("cumulusci.yml")
+            source = LocalFolderSource(project_config, {"path": d})
+            project_config = source.fetch()
+            assert project_config.repo_root == os.path.realpath(d)
+
+    def test_hash(self):
+        project_config = BaseProjectConfig(BaseGlobalConfig())
+        with temporary_dir() as d:
+            source = LocalFolderSource(project_config, {"path": d})
+            assert hash(source) == hash((source.path,))
+
+    def test_repr(self):
+        project_config = BaseProjectConfig(BaseGlobalConfig())
+        with temporary_dir() as d:
+            source = LocalFolderSource(project_config, {"path": d})
+            assert repr(source) == f"<LocalFolderSource Local folder: {d}>"
+
+    def test_frozenspec(self):
+        project_config = BaseProjectConfig(BaseGlobalConfig())
+        with temporary_dir() as d:
+            source = LocalFolderSource(project_config, {"path": d})
+            with pytest.raises(NotImplementedError):
+                source.frozenspec
