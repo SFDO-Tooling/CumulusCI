@@ -215,7 +215,8 @@ workflows:
   build_test_report:
     jobs:
       - lint
-      - test_py3
+      - test_py36
+      - test_py37
       - test_robot
       - test_release
       - report:
