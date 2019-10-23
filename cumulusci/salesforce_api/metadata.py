@@ -28,6 +28,10 @@ from cumulusci.salesforce_api.exceptions import MetadataComponentFailure
 from cumulusci.salesforce_api.exceptions import MetadataParseError
 from cumulusci.salesforce_api.exceptions import MetadataApiError
 
+from urllib3.contrib import pyopenssl
+
+pyopenssl.extract_from_urllib3()
+
 retry_policy = Retry(backoff_factor=0.3)
 http_adapter = HTTPAdapter(max_retries=retry_policy)
 
