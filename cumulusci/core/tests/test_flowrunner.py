@@ -132,12 +132,11 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
         self.assertEqual(hasattr(flow, "logger"), True)
 
     def test_get_summary(self):
-        flow_config = FlowConfig(
-            {
-                "description": "test description",
-                "steps": {"1": {"flow": "nested_flow_2"}},
-            }
-        )
+        self.project_config.config["flows"]["test"] = {
+            "description": "test description",
+            "steps": {"1": {"flow": "nested_flow_2"}},
+        }
+        flow_config = self.project_config.get_flow("test")
         flow = FlowCoordinator(self.project_config, flow_config, name="test_flow")
         actual_output = flow.get_summary()
         expected_output = (
@@ -170,14 +169,13 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
         self.assertEqual("bar", flow.steps[0].task_config["options"]["response"])
 
     def test_init__nested_options(self):
-        flow_config = FlowConfig(
-            {
-                "description": "Run a flow with task options",
-                "steps": {
-                    1: {"flow": "nested_flow", "options": {"pass_name": {"foo": "bar"}}}
-                },
-            }
-        )
+        self.project_config.config["flows"]["test"] = {
+            "description": "Run a flow with task options",
+            "steps": {
+                1: {"flow": "nested_flow", "options": {"pass_name": {"foo": "bar"}}}
+            },
+        }
+        flow_config = self.project_config.get_flow("test")
         flow = FlowCoordinator(self.project_config, flow_config)
         self.assertEqual("bar", flow.steps[0].task_config["options"]["foo"])
 
@@ -260,12 +258,11 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
 
     def test_run__nested_flow(self):
         """ Flows can run inside other flows """
-        flow_config = FlowConfig(
-            {
-                "description": "Run a task and a flow",
-                "steps": {1: {"task": "pass_name"}, 2: {"flow": "nested_flow"}},
-            }
-        )
+        self.project_config.config["flows"]["test"] = {
+            "description": "Run a task and a flow",
+            "steps": {1: {"task": "pass_name"}, 2: {"flow": "nested_flow"}},
+        }
+        flow_config = self.project_config.get_flow("test")
         flow = FlowCoordinator(self.project_config, flow_config)
         flow.run(self.org_config)
         self.assertEqual(2, len(flow.steps))
@@ -273,12 +270,11 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
 
     def test_run__nested_flow_2(self):
         """ Flows can run inside other flows and call other flows """
-        flow_config = FlowConfig(
-            {
-                "description": "Run a task and a flow",
-                "steps": {1: {"task": "pass_name"}, 2: {"flow": "nested_flow_2"}},
-            }
-        )
+        self.project_config.config["flows"]["test"] = {
+            "description": "Run a task and a flow",
+            "steps": {1: {"task": "pass_name"}, 2: {"flow": "nested_flow_2"}},
+        }
+        flow_config = self.project_config.get_flow("test")
         flow = FlowCoordinator(self.project_config, flow_config)
         flow.run(self.org_config)
         self.assertEqual(3, len(flow.steps))
@@ -308,19 +304,17 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
         self.assertEqual("supername", flow.results[1].result)
 
     def test_run__nested_option_backrefs(self):
-        flow_config = FlowConfig(
-            {
-                "description": "Run two tasks",
-                "steps": {
-                    1: {"flow": "nested_flow"},
-                    2: {
-                        "task": "name_response",
-                        "options": {"response": "^^nested_flow.pass_name.name"},
-                    },
+        self.project_config.config["flows"]["test"] = {
+            "description": "Run two tasks",
+            "steps": {
+                1: {"flow": "nested_flow"},
+                2: {
+                    "task": "name_response",
+                    "options": {"response": "^^nested_flow.pass_name.name"},
                 },
-            }
-        )
-
+            },
+        }
+        flow_config = self.project_config.get_flow("test")
         flow = FlowCoordinator(self.project_config, flow_config)
         flow.run(self.org_config)
 

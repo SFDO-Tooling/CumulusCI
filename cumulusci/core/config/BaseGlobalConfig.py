@@ -4,7 +4,7 @@ import warnings
 import yaml
 
 from cumulusci.core.utils import merge_config
-from cumulusci.core.config.BaseProjectConfig import BaseProjectConfig
+from cumulusci.core.config.project_config import BaseProjectConfig
 from cumulusci.core.config import BaseTaskFlowConfig
 
 __location__ = os.path.dirname(os.path.realpath(__file__))

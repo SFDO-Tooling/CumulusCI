@@ -161,6 +161,7 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
                     "kind": "managed",
                     "name": "Install Test Product 1.0",
                     "path": "install_prod.install_managed",
+                    "source": None,
                     "step_num": "1/2",
                     "task_class": "cumulusci.tasks.salesforce.InstallPackageVersion",
                     "task_config": {
@@ -180,6 +181,7 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
                     "kind": "metadata",
                     "name": "Update Admin Profile",
                     "path": "install_prod.config_managed.update_admin_profile",
+                    "source": None,
                     "step_num": "1/3/2",
                     "task_class": "cumulusci.tasks.salesforce.UpdateAdminProfile",
                     "task_config": {

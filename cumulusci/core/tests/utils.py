@@ -43,7 +43,7 @@ class MockLoggingHandler(logging.Handler):
             self.release()
 
 
-class EnvironmentVarGuard(collections.MutableMapping):
+class EnvironmentVarGuard(collections.abc.MutableMapping):
 
     """Class to help protect the environment variable properly.  Can be used as
     a context manager."""
