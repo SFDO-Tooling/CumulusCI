@@ -29,6 +29,8 @@ jobs:
 
   test_py36:
     <<: *defaults
+    docker:
+      - image: circleci/python:3.6
     steps:
       - checkout
       - run:
