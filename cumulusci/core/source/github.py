@@ -73,7 +73,7 @@ class GitHubSource:
 
     def fetch(self, path=None):
         """Fetch the archive of the specified commit and construct its project config."""
-        # XXX Should this go in homedir for sharing between project dirs?
+        # To do: copy this from a shared cache
         if path is None:
             path = os.path.join(".cci", "projects", self.repo_name, self.commit)
         if not os.path.exists(path):

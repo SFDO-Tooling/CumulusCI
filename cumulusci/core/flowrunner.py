@@ -302,6 +302,7 @@ class FlowCoordinator(object):
                 "Description: {}".format(self.flow_config.config["description"])
             )
         previous_parts = []
+        previous_source = None
         for step in self.steps:
             parts = step.path.split(".")
             steps = str(step.step_num).split("/")
@@ -311,26 +312,33 @@ class FlowCoordinator(object):
             task_name = parts.pop()
 
             i = -1
+            new_source = (
+                f" [from {step.project_config.source}]"
+                if step.project_config.source is not previous_source
+                else ""
+            )
             for i, flow_name in enumerate(parts):
+                if not any(":" in part for part in step.path.split(".")[i + 1 :]):
+                    source = new_source
+                else:
+                    source = ""
                 if len(previous_parts) < i + 1 or previous_parts[i] != flow_name:
-                    lines.append(
-                        "{}{}) flow: {}".format("    " * i, steps[i], flow_name)
-                    )
+                    lines.append(f"{'    ' * i}{steps[i]}) flow: {flow_name}{source}")
+                    if source:
+                        new_source = ""
 
-            when = step.when or None
-            lines.append(
-                "{}{}) task: {}{}".format(
-                    "    " * (i + 1),
-                    steps[i + 1],
-                    task_name,
-                    "\n{}  when: {}".format(
-                        "    " * (i + 1) + " " * len(str(steps[i + 1])), when
-                    )
-                    if when is not None
-                    else "",
+            when = (
+                "\n{}  when: {}".format(
+                    "    " * (i + 1) + " " * len(str(steps[i + 1])), step.when
                 )
+                if step.when is not None
+                else ""
+            )
+            lines.append(
+                f"{'    ' * (i + 1)}{steps[i + 1]}) task: {task_name}{new_source}{when}"
             )
             previous_parts = parts
+            previous_source = step.project_config.source
         return "\n".join(lines)
 
     def run(self, org_config):
@@ -486,7 +494,7 @@ class FlowCoordinator(object):
                     task_name=step_config.get("task", step_config.get("flow")),
                     task_config=step_config.get("options", {}),
                     task_class=None,
-                    project_config=None,
+                    project_config=project_config,
                     from_flow=from_flow,
                     skip=True,  # someday we could use different vals for why skipped
                 )

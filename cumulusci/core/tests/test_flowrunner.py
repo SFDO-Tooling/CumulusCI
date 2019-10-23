@@ -141,7 +141,7 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
         actual_output = flow.get_summary()
         expected_output = (
             "Description: test description"
-            + "\n1) flow: nested_flow_2"
+            + "\n1) flow: nested_flow_2 [from current folder]"
             + "\n    1) task: pass_name"
             + "\n    2) flow: nested_flow"
             + "\n        1) task: pass_name"
