@@ -665,34 +665,34 @@ class PreflightFlowCoordinator(FlowCoordinator):
         self.logger.info("Running preflight checks...")
         self._rule(new_line=True)
 
-        # XXX make this work cross project
-        self.jinja2_context = {
-            "tasks": TaskCache(self),
-            "project_config": self.project_config,
-            "org_config": self.org_config,
-        }
-
         self.preflight_results = defaultdict(list)
+        self._task_cache = TaskCache(self)
         try:
             # flow-level checks
+            jinja2_context = {
+                "tasks": self._task_cache,
+                "project_config": self.project_config,
+                "org_config": self.org_config,
+            }
             for check in self.flow_config.checks or []:
-                result = self.evaluate_check(check)
+                result = self.evaluate_check(check, jinja2_context)
                 if result:
                     self.preflight_results[None].append(result)
 
             # Step-level checks
             for step in self.steps:
+                jinja2_context["project_config"] = step.project_config
                 for check in step.task_config.get("checks", []):
-                    result = self.evaluate_check(check)
+                    result = self.evaluate_check(check, jinja2_context)
                     if result:
                         self.preflight_results[step.path].append(result)
         finally:
             self.callbacks.post_flow(self)
 
-    def evaluate_check(self, check):
+    def evaluate_check(self, check, jinja2_context):
         self.logger.info("Evaluating check: {}".format(check["when"]))
         expr = jinja2_env.compile_expression(check["when"])
-        value = bool(expr(**self.jinja2_context))
+        value = bool(expr(**jinja2_context))
         self.logger.info("Check result: {}".format(value))
         if value:
             return {"status": check["action"], "message": check.get("message")}

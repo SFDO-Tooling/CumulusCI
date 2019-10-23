@@ -458,4 +458,4 @@ class PreflightFlowCoordinatorTest(AbstractFlowCoordinatorTest, unittest.TestCas
         )
         # Make sure task result got cached
         key = ("log", (("level", "info"), ("line", "plan")))
-        assert key in flow.jinja2_context["tasks"].results
+        assert key in flow._task_cache.results
