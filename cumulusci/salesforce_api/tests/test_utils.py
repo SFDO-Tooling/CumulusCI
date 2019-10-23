@@ -79,7 +79,7 @@ def test_sf_api_retries(mock_http_response):
         "urllib3.connectionpool.HTTPConnectionPool._make_request"
     ) as _make_request:
         _make_request.side_effect = [
-            mock_http_response(status=503),
+            ConnectionResetError,
             mock_http_response(status=200),
         ]
 

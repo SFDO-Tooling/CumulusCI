@@ -1,10 +1,8 @@
-import io
 import os
 from unittest import mock
 import pytest
 import responses
 from datetime import datetime
-from http.client import HTTPMessage
 
 from github3.repos.repo import Repository
 from github3.pulls import ShortPullRequest
@@ -28,23 +26,6 @@ from cumulusci.core.github import (
     get_pull_requests_by_commit,
     get_pull_requests_with_base_branch,
 )
-
-
-class MockHttpResponse(mock.Mock):
-    def __init__(self, status):
-        super(MockHttpResponse, self).__init__()
-        self.status = status
-        self.strict = 0
-        self.version = 0
-        self.reason = None
-        self.msg = HTTPMessage(io.BytesIO())
-        self.closed = True
-
-    def read(self):
-        return b""
-
-    def isclosed(self):
-        return self.closed
 
 
 class TestGithub(GithubApiTestMixin):
