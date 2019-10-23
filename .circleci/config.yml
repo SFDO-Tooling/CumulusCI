@@ -27,7 +27,7 @@ jobs:
           command: |
             venv/bin/black --check --diff .
 
-  test_py3:
+  test_py36:
     <<: *defaults
     steps:
       - checkout
@@ -40,7 +40,29 @@ jobs:
           name: Run Python tests
           command: |
             mkdir -p testresults/py3
-            venv/bin/tox -e py38 -- --junitxml=testresults/py3/junit.xml
+            venv/bin/tox -e py36 -- --junitxml=testresults/py3/junit.xml
+            mv .coverage .coverage.py3
+      - store_test_results:
+          path: testresults
+      - persist_to_workspace:
+          root: .
+          paths:
+            - .coverage.py3
+  
+  test_py37:
+    <<: *defaults
+    steps:
+      - checkout
+      - run:
+          name: Install Python dependencies
+          command: |
+            virtualenv venv
+            venv/bin/pip install tox
+      - run:
+          name: Run Python tests
+          command: |
+            mkdir -p testresults/py3
+            venv/bin/tox -e py37 -- --junitxml=testresults/py3/junit.xml
             mv .coverage .coverage.py3
       - store_test_results:
           path: testresults
