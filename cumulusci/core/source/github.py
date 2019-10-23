@@ -10,10 +10,10 @@ class GitHubSource:
         self.project_config = project_config
         self.spec = spec
         self.url = spec["github"]
+        if self.url.endswith(".git"):
+            self.url = self.url[:-4]
 
         repo_owner, repo_name = self.url.split("/")[-2:]
-        if repo_name.endswith(".git"):
-            repo_name = repo_name[:-4]
         self.repo_owner = repo_owner
         self.repo_name = repo_name
 

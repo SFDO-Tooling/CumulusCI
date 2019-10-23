@@ -339,3 +339,20 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
             {"slug": "install"},
         )
         self.assertEqual("https://NEW_PLANTEMPLATE", plantemplate["url"])
+
+    def test_freeze_steps__skip(self):
+        project_config = create_project_config()
+        project_config.keychain.set_service(
+            "metadeploy", ServiceConfig({"url": "https://metadeploy", "token": "TOKEN"})
+        )
+        plan_config = {
+            "title": "Test Install",
+            "slug": "install",
+            "tier": "primary",
+            "steps": {1: {"task": "None"}},
+        }
+        task_config = TaskConfig({"options": {"tag": "release/1.0"}})
+        task = Publish(project_config, task_config)
+        task._init_task()
+        steps = task._freeze_steps(project_config, plan_config)
+        assert steps == []
