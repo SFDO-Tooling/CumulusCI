@@ -39,15 +39,15 @@ jobs:
       - run:
           name: Run Python tests
           command: |
-            mkdir -p testresults/py3
-            venv/bin/tox -e py36 -- --junitxml=testresults/py3/junit.xml
-            mv .coverage .coverage.py3
+            mkdir -p testresults/py36
+            venv/bin/tox -e py36 -- --junitxml=testresults/py36/junit.xml
+            mv .coverage .coverage.py36
       - store_test_results:
           path: testresults
       - persist_to_workspace:
           root: .
           paths:
-            - .coverage.py3
+            - .coverage.py36
   
   test_py37:
     <<: *defaults
@@ -61,15 +61,15 @@ jobs:
       - run:
           name: Run Python tests
           command: |
-            mkdir -p testresults/py3
-            venv/bin/tox -e py37 -- --junitxml=testresults/py3/junit.xml
-            mv .coverage .coverage.py3
+            mkdir -p testresults/py37
+            venv/bin/tox -e py37 -- --junitxml=testresults/py37/junit.xml
+            mv .coverage .coverage.py37
       - store_test_results:
           path: testresults
       - persist_to_workspace:
           root: .
           paths:
-            - .coverage.py3
+            - .coverage.py37
 
   test_robot:
     <<: *defaults
@@ -221,6 +221,7 @@ workflows:
       - test_release
       - report:
           requires:
-            - test_py3
+            - test_py36
+            - test_py37
             - test_robot
             - test_release
