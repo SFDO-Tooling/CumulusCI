@@ -62,21 +62,23 @@ class TestGithub(GithubApiTestMixin):
         repo_json = self._get_expected_repo("TestOwner", "TestRepo")
         return Repository(repo_json, gh_api)
 
-    @mock.patch("urllib3.connectionpool.HTTPConnectionPool._make_request")
-    def test_github_api_retries(self, _make_request):
+    def test_github_api_retries(self, mock_http_response):
         gh = get_github_api("TestUser", "TestPass")
         adapter = gh.session.get_adapter("http://")
 
         assert 0.3 == adapter.max_retries.backoff_factor
         assert 502 in adapter.max_retries.status_forcelist
 
-        _make_request.side_effect = [
-            MockHttpResponse(status=503),
-            MockHttpResponse(status=200),
-        ]
+        with mock.patch(
+            "urllib3.connectionpool.HTTPConnectionPool._make_request"
+        ) as _make_request:
+            _make_request.side_effect = [
+                mock_http_response(status=503),
+                mock_http_response(status=200),
+            ]
 
-        gh.octocat("meow")
-        assert 2 == _make_request.call_count
+            gh.octocat("meow")
+            assert 2 == _make_request.call_count
 
     @responses.activate
     @mock.patch("github3.apps.create_token")
