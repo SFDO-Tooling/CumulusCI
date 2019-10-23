@@ -361,7 +361,7 @@ The **PageObjects** library provides the following keywords:
 * Go To Page Object
 * Load Page Object
 * Log Page Object Keywords
-* Wait For Dialog
+* Wait For Modal
 * Wait For Page Object
 
 Current Page Should Be
@@ -419,14 +419,14 @@ This will load the page object for the given **page_type** and
 page object without first navigating to that page (i.e. when you are
 already on the page and don't want to navigate away).
 
-Wait For Dialog
+Wait For Modal
 ^^^^^^^^^^^^^^^
 
-Example: :code:`Wait for dialog  New  Contact`
+Example: :code:`Wait for modal  New  Contact`
 
-This keyword can be used to wait for a modal dialog, such as the one
+This keyword can be used to wait for a modal, such as the one
 that pops up when creating a new object. The keyword will return once
-a modal dialog appears, and has a title of "New _object_" (eg: "New
+a modal appears, and has a title of "New _object_" (eg: "New
 Contact").
 
 Wait For Page Object
@@ -480,8 +480,8 @@ CumulusCI provides the following generic page objects:
 - **Listing** (eg: :code:`Go to  page  Listing  Contact`)
   Listing pages refer to pages with a URL that matches the pattern
   "<host>b/lightning/o/<object name>/list"
-- **New** (eg: :code:`Wait for dialog  New  Contact`)
-  The New page object refers to the modal dialog that pops up
+- **New** (eg: :code:`Wait for modal  New  Contact`)
+  The New page object refers to the modal that pops up
   when creating a new object.
 
 Of course, the real power comes when you create your own page object
