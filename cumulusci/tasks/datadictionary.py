@@ -170,6 +170,25 @@ class GenerateDataDictionary(BaseGithubTask):
             "{http://soap.sforce.com/2006/04/metadata}description"
         )
         if "__" in field_name:
+            if (
+                field.find("{http://soap.sforce.com/2006/04/metadata}type").text
+                == "picklist"
+            ):
+                picklist_values = "; ".join(
+                    [
+                        x.find("{http://soap.sforce.com/2006/04/metadata}label").text
+                        for x in field.find(
+                            "{http://soap.sforce.com/2006/04/metadata}valueSet"
+                        )
+                        .find(
+                            "{http://soap.sforce.com/2006/04/metadata}valueSetDefinition"
+                        )
+                        .findall("{http://soap.sforce.com/2006/04/metadata}value")
+                    ]
+                )
+            else:
+                picklist_values = ""
+
             self._set_version_with_props(
                 self.schema[sobject_name]["fields"][field_name],
                 {
@@ -178,6 +197,7 @@ class GenerateDataDictionary(BaseGithubTask):
                     "label": field.find(
                         "{http://soap.sforce.com/2006/04/metadata}label"
                     ).text,
+                    "picklist_values": picklist_values,
                 },
             )
 
@@ -214,6 +234,7 @@ class GenerateDataDictionary(BaseGithubTask):
                     "Field Name",
                     "Field Label",
                     "Field Help Text",
+                    "Picklist Values",
                     "Version Introduced",
                 ]
             )
@@ -226,6 +247,7 @@ class GenerateDataDictionary(BaseGithubTask):
                             field_name,
                             field_data["label"],
                             field_data["help_text"],
+                            field_data["picklist_values"],
                             field_data["version"],
                         ]
                     )
