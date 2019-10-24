@@ -178,6 +178,7 @@ class TestParentPullRequestNotes(GithubApiTestMixin):
         )
         task.repo = mock.Mock()
         task.repo.owner.login = "SFDO-Tooling"
+        task._update_unaggregated_pr_header = mock.Mock()
 
         pull_request = ShortPullRequest(
             self._get_expected_pull_request(1, 1, "Body"), gh_api
@@ -187,7 +188,7 @@ class TestParentPullRequestNotes(GithubApiTestMixin):
 
         label_found.return_value = False
         task._run_task()
-        task.generator.update_unaggregated_pr_header.assert_called_once_with(
+        task._update_unaggregated_pr_header.assert_called_once_with(
             pull_request, child_branch_name
         )
         assert not task.generator.aggregate_child_change_notes.called
@@ -273,3 +274,108 @@ class TestParentPullRequestNotes(GithubApiTestMixin):
             pull_request
         )
         assert not task.generator.update_unaggregated_pr_header.called
+
+    @mock.patch("cumulusci.tasks.release_notes.task.get_pull_requests_with_base_branch")
+    def test_update_unaggregated_pr_header__one_pr_returned(
+        self, get_pr, task_factory, gh_api, project_config
+    ):
+        self.init_github()
+        self.project_config = project_config
+
+        to_link = ShortPullRequest(self._get_expected_pull_request(2, 2), gh_api)
+        get_pr.return_value = [to_link]
+
+        task = task_factory(self.PARENT_BRANCH_OPTIONS)
+        task._add_link_to_pr = mock.Mock()
+        to_update = ShortPullRequest(self._get_expected_pull_request(1, 1), gh_api)
+
+        task._update_unaggregated_pr_header(to_update, "feature/test-branch")
+        task._add_link_to_pr.assert_called_once_with(to_update, to_link)
+
+    @mock.patch("cumulusci.tasks.release_notes.task.get_pull_requests_with_base_branch")
+    def test_update_unaggregated_pr_header__no_prs_returned(
+        self, get_pr, task_factory, gh_api, project_config
+    ):
+        self.init_github()
+        self.project_config = project_config
+
+        get_pr.return_value = []
+
+        task = task_factory(self.PARENT_BRANCH_OPTIONS)
+        task._add_link_to_pr = mock.Mock()
+        task.logger = mock.Mock(info=mock.Mock())
+        to_update = ShortPullRequest(self._get_expected_pull_request(1, 1), gh_api)
+
+        branch_name = "feature/test-branch"
+        task._update_unaggregated_pr_header(to_update, branch_name)
+        task.logger.info.assert_called_once_with(
+            f"No pull request for branch {branch_name} found."
+        )
+
+    @mock.patch("cumulusci.tasks.release_notes.task.get_pull_requests_with_base_branch")
+    def test_update_unaggregated_pr_header__multiple_prs_returned(
+        self, get_pr, task_factory, gh_api, project_config
+    ):
+        self.init_github()
+        self.project_config = project_config
+
+        get_pr.return_value = [
+            ShortPullRequest(self._get_expected_pull_request(1, 1), gh_api),
+            ShortPullRequest(self._get_expected_pull_request(2, 2), gh_api),
+        ]
+
+        task = task_factory(self.PARENT_BRANCH_OPTIONS)
+        task._add_link_to_pr = mock.Mock()
+        task.logger = mock.Mock(error=mock.Mock())
+        to_update = ShortPullRequest(self._get_expected_pull_request(3, 3), gh_api)
+
+        branch_name = "feature/test-branch"
+        task._update_unaggregated_pr_header(to_update, branch_name)
+        task.logger.error.assert_called_once_with(
+            f"Expected one pull request, found 2 for branch {branch_name}"
+        )
+
+    def test_add_header(self, task_factory, gh_api, project_config):
+        self.init_github()
+        self.project_config = project_config
+        task = task_factory(self.PARENT_BRANCH_OPTIONS)
+        pull_request = ShortPullRequest(self._get_expected_pull_request(1, 1), gh_api)
+
+        task._add_header(pull_request)
+        assert task.UNAGGREGATED_PR_HEADER in pull_request.body
+
+        task._add_header(pull_request)  # header shouldn't be added again
+        assert pull_request.body.count(task.UNAGGREGATED_PR_HEADER) == 1
+
+    @mock.patch("cumulusci.tasks.release_notes.task.markdown_link_to_pr")
+    def test_add_link_to_pr(self, link_to_pr, task_factory, gh_api, project_config):
+        self.init_github()
+        self.project_config = project_config
+        task = task_factory(self.PARENT_BRANCH_OPTIONS)
+        to_update = mock.Mock(update=mock.Mock(), body="Pull request body.")
+        to_link = mock.Mock()
+
+        link = "This is a link to a pull request."
+        link_to_pr.return_value = link
+
+        task._add_link_to_pr(to_update, to_link)
+        expected_body = to_update.body + f"\r\n* {link}"
+        to_update.update.assert_called_once_with(body=expected_body)
+
+    @mock.patch("cumulusci.tasks.release_notes.task.markdown_link_to_pr")
+    def test_add_link_to_pr_should_not_add_duplicate_link(
+        self, link_to_pr, task_factory, gh_api, project_config
+    ):
+        self.init_github()
+        self.project_config = project_config
+        task = task_factory(self.PARENT_BRANCH_OPTIONS)
+        to_update = mock.Mock(update=mock.Mock(), body="Pull request body.")
+        to_link = mock.Mock()
+
+        link = "This is a link to a pull request."
+        link_to_pr.return_value = link
+        expected_body = to_update.body + f"\r\n* {link}"
+        to_update.body = expected_body
+
+        task._add_link_to_pr(to_update, to_link)
+        assert to_update.update.call_count == 0

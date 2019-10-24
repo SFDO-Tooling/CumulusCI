@@ -1,5 +1,4 @@
 # coding=utf-8
-import re
 from unittest import mock
 import os
 import json
@@ -16,7 +15,6 @@ from cumulusci.core.exceptions import CumulusCIException
 from cumulusci.tasks.github.tests.util_github_api import GithubApiTestMixin
 from cumulusci.tasks.release_notes.tests.utils import MockUtil
 from cumulusci.tasks.release_notes.parser import BaseChangeNotesParser
-from cumulusci.tasks.release_notes.generator import markdown_link_to_pr
 from cumulusci.tasks.release_notes.generator import render_empty_pr_section
 from cumulusci.tasks.release_notes.generator import (
     BaseReleaseNotesGenerator,
@@ -131,18 +129,6 @@ class TestGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTestMixin):
         self.assertEqual(generator.last_tag, self.last_tag)
         self.assertEqual(generator.change_notes.current_tag, self.current_tag)
         self.assertEqual(generator.change_notes._last_tag, self.last_tag)
-
-    @responses.activate
-    def test_mark_down_link_to_pr(self):
-        self.mock_util.mock_get_repo()
-        self.mock_util.mock_pull_request(
-            1, body="# Changes\r\n\r\nfoo", title="Title 1"
-        )
-        generator = self._create_generator()
-        pr = generator.get_repo().pull_request(1)
-        actual_link = markdown_link_to_pr(pr)
-        expected_link = "{} [[PR{}]({})]".format(pr.title, pr.number, pr.html_url)
-        self.assertEqual(expected_link, actual_link)
 
     @responses.activate
     def test_render_empty_pr_section(self):
@@ -539,75 +525,3 @@ class TestParentPullRequestNotesGenerator(GithubApiTestMixin):
 
         generator.aggregate_child_change_notes(parent_pr)
         assert 0 == len(generator.change_notes)
-
-    @responses.activate
-    def test_update_unaggregated_pr_header__no_pull_request_found(
-        self, generator, mock_util, repo, gh_api
-    ):
-        self.init_github()
-        mock_util.mock_pulls(pulls=[])
-        mock_util.mock_pulls(pulls=self._get_expected_pull_requests(3))
-        pr_to_update = ShortPullRequest(
-            self._get_expected_pull_request(20, 20, "Body here"), gh_api
-        )
-
-        # No pull requests are returned
-        with pytest.raises(CumulusCIException):
-            generator.update_unaggregated_pr_header(pr_to_update, "branch_name")
-
-        # More than one pull request returned
-        with pytest.raises(CumulusCIException):
-            generator.update_unaggregated_pr_header(pr_to_update, "branch_name")
-
-    @responses.activate
-    def test_update_unaggregated_pr_header(self, generator, mock_util, repo, gh_api):
-        def pr_update_callback(request):
-            """Method to intercept the call to
-            github3.pull.ShortPullRequest.update()"""
-            payload = json.loads(request.body)
-            resp_body = self._get_expected_pull_request(1, 1, payload["body"])
-            return (200, {}, json.dumps(resp_body))
-
-        pr_num = 1
-        pr_update_api_url = "https://github.com/TestOwner/TestRepo/pulls/{}".format(
-            pr_num
-        )
-        # Mock endpoint that updates the pull request
-        responses.add_callback(
-            responses.PATCH,
-            pr_update_api_url,
-            callback=pr_update_callback,
-            content_type="application/json",
-        )
-
-        BODY = "Sample Body"
-        TEST_BRANCH_NAME = "feature/long__child-branch"
-        self.init_github()
-        pr_to_update = ShortPullRequest(
-            self._get_expected_pull_request(pr_num, pr_num, BODY), gh_api
-        )
-
-        NEW_PR_BODY = "* Random Dev Note\r\n\r\n# Changes\r\n\r\n* Now more code!"
-        unaggregated_pr_json = self._get_expected_pull_request(2, 2, NEW_PR_BODY)
-        unaggregated_pr_json["base"]["ref"] = "feature/long"
-        # Mock pull request for retrieval by branch name
-        mock_util.mock_pulls(pulls=[unaggregated_pr_json])
-
-        generator.update_unaggregated_pr_header(pr_to_update, TEST_BRANCH_NAME)
-        pr_link = markdown_link_to_pr(ShortPullRequest(unaggregated_pr_json, gh_api))
-        assert generator.UNAGGREGATED_SECTION_HEADER in pr_to_update.body
-        assert pr_link in pr_to_update.body
-
-        # Ensure we don't duplicate things
-        generator.update_unaggregated_pr_header(pr_to_update, TEST_BRANCH_NAME)
-        num_headers = len(
-            re.findall(generator.UNAGGREGATED_SECTION_HEADER, pr_to_update.body)
-        )
-        assert 1 == num_headers
-        num_pr_links = len(
-            re.findall(
-                r"Pull Request #2 \[\[PR2\]\(https://github.com/TestOwner/TestRepo/pulls/2\)\]",
-                pr_to_update.body,
-            )
-        )
-        assert 1 == num_pr_links

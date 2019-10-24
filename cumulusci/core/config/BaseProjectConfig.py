@@ -1,4 +1,3 @@
-from collections import OrderedDict
 from distutils.version import LooseVersion
 import os
 
@@ -98,15 +97,13 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                 self.config_additional_yaml.update(additional_yaml_config)
 
         self.config = merge_config(
-            OrderedDict(
-                [
-                    ("global_config", self.config_global),
-                    ("global_local", self.config_global_local),
-                    ("project_config", self.config_project),
-                    ("project_local_config", self.config_project_local),
-                    ("additional_yaml", self.config_additional_yaml),
-                ]
-            )
+            {
+                "global_config": self.config_global,
+                "global_local": self.config_global_local,
+                "project_config": self.config_project,
+                "project_local_config": self.config_project_local,
+                "additional_yaml": self.config_additional_yaml,
+            }
         )
 
     @property
@@ -156,7 +153,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         return self._repo_info
 
     def _apply_repo_env_var_overrides(self, info):
-        """ Apply CUMULUSCI_REPO_* environment variables last so they can 
+        """ Apply CUMULUSCI_REPO_* environment variables last so they can
         override and fill in missing values from the CI environment"""
         self._override_repo_env_var("CUMULUSCI_REPO_BRANCH", "branch", info)
         self._override_repo_env_var("CUMULUSCI_REPO_COMMIT", "commit", info)
@@ -180,17 +177,15 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
     def _validate_required_git_info(self, info):
         """Ensures that we have the required git info or throw a ConfigError"""
-        validate = OrderedDict(
-            (
-                # <key>, <env var to manually override>
-                ("branch", "CUMULUSCI_REPO_BRANCH"),
-                ("commit", "CUMULUSCI_REPO_COMMIT"),
-                ("name", "CUMULUSCI_REPO_URL"),
-                ("owner", "CUMULUSCI_REPO_URL"),
-                ("root", "CUMULUSCI_REPO_ROOT"),
-                ("url", "CUMULUSCI_REPO_URL"),
-            )
-        )
+        validate = {
+            # <key>: <env var to manually override>
+            "branch": "CUMULUSCI_REPO_BRANCH",
+            "commit": "CUMULUSCI_REPO_COMMIT",
+            "name": "CUMULUSCI_REPO_URL",
+            "owner": "CUMULUSCI_REPO_URL",
+            "root": "CUMULUSCI_REPO_ROOT",
+            "url": "CUMULUSCI_REPO_URL",
+        }
         for key, env_var in list(validate.items()):
             if key not in info or not info[key]:
                 message = "Detected CI on {} but could not determine the repo {}".format(
