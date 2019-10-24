@@ -19,6 +19,17 @@ from cumulusci.core.utils import process_bool_arg
 class Command(BaseTask):
     """ Execute a shell command in a subprocess """
 
+    task_docs = """
+        **Example Command-line Usage::** cci task run command -o command "echo 'Hello command task!'"
+
+        **Example Task to Run Command::**
+        hello_world:
+            description: Says hello world
+            class_path: cumulusci.tasks.command.Command
+            options:
+            command: echo 'Hello World!'
+    """
+
     task_options = {
         "command": {"description": "The command to execute", "required": True},
         "dir": {
