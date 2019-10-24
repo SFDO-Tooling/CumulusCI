@@ -464,3 +464,12 @@ class FunTestTask(BaseTask):
         "color": {"description": "What color"},
     }
     task_docs = "extra docs"
+
+
+class FunTestTaskChild(FunTestTask):
+    """For testing doc_task"""
+
+    task_options = {
+        "flavor": {"description": "What flavor", "required": True},
+        "color": {"description": "What color"},
+    }
