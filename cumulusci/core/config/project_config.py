@@ -734,6 +734,10 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         return repo_dependencies
 
     def get_task(self, name):
+        """Get a TaskConfig by task name
+
+        If the name has a colon, look for it in a different project config.
+        """
         if ":" in name:
             ns, name = name.split(":")
             other_config = self.get_namespace(ns)
@@ -745,6 +749,10 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         return task_config
 
     def get_flow(self, name):
+        """Get a FlowConfig by flow name
+
+        If the name has a colon, look for it in a different project config.
+        """
         if ":" in name:
             ns, name = name.split(":")
             other_config = self.get_namespace(ns)
@@ -758,12 +766,26 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         return flow_config
 
     def get_namespace(self, ns):
+        """Look up another project config by its name in the `sources` config.
+
+        Also makes sure the project has been fetched, if it's from an external source.
+        """
         spec = getattr(self, f"sources__{ns}")
         if spec is None:
             raise NamespaceNotFoundError(f"Namespace not found: {ns}")
         return self.include_source(spec)
 
     def include_source(self, spec):
+        """Make sure a project has been fetched from its source.
+
+        `spec` is a dict which contains different keys depending on the type of source:
+
+        - `github` indicates a GitHubSource
+        - `path` indicates a LocalFolderSource
+
+        This either fetches the project code and constructs its project config,
+        or returns a project config that was previously loaded with the same spec.
+        """
         frozenspec = tuple(spec.items())
         if frozenspec in self.included_sources:
             project_config = self.included_sources[frozenspec]
@@ -782,4 +804,5 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         return project_config
 
     def relpath(self, path):
+        """Convert path to be relative to the project repo root."""
         return os.path.relpath(os.path.join(self.repo_root, path))
