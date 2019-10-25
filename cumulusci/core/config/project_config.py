@@ -758,9 +758,9 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         return flow_config
 
     def get_namespace(self, ns):
-        spec = getattr(self, "sources__{}".format(ns))
+        spec = getattr(self, f"sources__{ns}")
         if spec is None:
-            raise NamespaceNotFoundError("Namespace not found: {}".format(ns))
+            raise NamespaceNotFoundError(f"Namespace not found: {ns}")
         return self.include_source(spec)
 
     def include_source(self, spec):
@@ -773,7 +773,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             elif "path" in spec:
                 source = LocalFolderSource(self, spec)
             else:
-                raise Exception("Not sure how to load project: {}".format(spec))
+                raise Exception(f"Not sure how to load project: {spec}")
             self.logger.info(f"Fetching from {source}")
             project_config = source.fetch()
             project_config.set_keychain(self.keychain)
