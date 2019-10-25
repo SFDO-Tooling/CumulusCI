@@ -1,16 +1,17 @@
 from collections import defaultdict
+import contextlib
 import json
 import os
 import re
 import time
-import xmltodict
 
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.core.utils import process_list_arg
-from cumulusci.salesforce_api.metadata import ApiRetrieveUnpackaged
 from cumulusci.tasks.salesforce import BaseRetrieveMetadata
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.tasks.metadata.package import PackageXmlGenerator
+from cumulusci.utils import temporary_dir
+from cumulusci.core.sfdx import sfdx
 
 
 class ListChanges(BaseSalesforceApiTask):
@@ -123,9 +124,7 @@ retrieve_changes_task_options["namespace_tokenize"] = BaseRetrieveMetadata.task_
 ]
 
 
-class RetrieveChanges(BaseRetrieveMetadata, ListChanges, BaseSalesforceApiTask):
-    api_class = ApiRetrieveUnpackaged
-
+class RetrieveChanges(ListChanges, BaseSalesforceApiTask):
     task_options = retrieve_changes_task_options
 
     def _init_options(self, kwargs):
@@ -136,68 +135,95 @@ class RetrieveChanges(BaseRetrieveMetadata, ListChanges, BaseSalesforceApiTask):
                 "api_version"
             ] = self.project_config.project__package__api_version
 
-    def _get_api(self):
-        type_members = defaultdict(list)
-        for change in self._filtered:
-            type_members[change["MemberType"]].append(change["MemberName"])
-            self.logger.info("{MemberType}: {MemberName}".format(**change))
-
-        package_xml_path = os.path.join(self.options["path"], "package.xml")
-        if os.path.isfile(package_xml_path):
-            with open(package_xml_path, "rb") as f:
-                current_package_xml = xmltodict.parse(f)
-        else:
-            current_package_xml = {"Package": {}}
-        merged_type_members = {}
-        mdtypes = current_package_xml["Package"].get("types", [])
-        mdtypes = mdtypes if isinstance(mdtypes, list) else [mdtypes]
-        for mdtype in mdtypes:
-            members = mdtype.get("members", [])
-            members = members if isinstance(members, list) else [members]
-            if members:
-                type_name = mdtype["name"]
-                merged_type_members[type_name] = members
-
-        for name, members in type_members.items():
-            if name in merged_type_members:
-                merged_type_members[name].extend(members)
-            else:
-                merged_type_members[name] = members
-
-        types = []
-        for name, members in merged_type_members.items():
-            types.append(MetadataType(name, members))
-        package_xml = PackageXmlGenerator(
-            ".", self.options["api_version"], types=types
-        )()
-
-        return self.api_class(self, package_xml, self.options.get("api_version"))
-
     def _run_task(self):
         self.logger.info("Querying Salesforce for changed source members")
-        changes = self._get_changes()
-
-        self._filtered = self._filter_changes(changes)
-        if not self._filtered:
+        changes = self._filter_changes(self._get_changes())
+        if not changes:
             self.logger.info("No changes to retrieve")
             return
 
-        super(RetrieveChanges, self)._run_task()
+        target = os.path.realpath(self.options["path"])
+        # If there's a package.xml, it must be metadata format
+        md_format = os.path.exists(os.path.join(target, "package.xml"))
 
-        # update package.xml
-        package_xml_opts = {
-            "directory": self.options["path"],
-            "api_version": self.options["api_version"],
-        }
-        if self.options["path"] == "src":
-            package_xml_opts[
-                "package_name"
-            ] = self.project_config.project__package__name
-        package_xml = PackageXmlGenerator(**package_xml_opts)()
-        with open(os.path.join(self.options["path"], "package.xml"), "w") as f:
+        with contextlib.ExitStack() as stack:
+            # Temporarily convert metadata format to DX format
+            if md_format:
+                stack.enter_context(temporary_dir())
+                os.mkdir("target")
+                with open("sfdx-project.json", "w") as f:
+                    json.dump(
+                        {"packageDirectories": [{"path": "target", "default": True}]}, f
+                    )
+                # sfdx(
+                #     "force:mdapi:convert",
+                #     log_note="Converting to DX format",
+                #     args=["-r", target, "-d", retrieve_path],
+                #     capture_output=False,
+                #     check_return=True,
+                # )
+
+            # Construct package.xml with components to retrieve, in its own tempdir
+            self._write_manifest(changes)
+
+            # Retrieve specified components in DX format
+            sfdx(
+                "force:source:retrieve",
+                # Using access token instead of username so it works with persistent orgs too
+                access_token=self.org_config.access_token,
+                log_note="Retrieving components",
+                args=[
+                    "-a",
+                    str(self.options["api_version"]),
+                    "-x",
+                    "package.xml",
+                    "-w",
+                    "5",
+                ],
+                capture_output=False,
+                check_return=True,
+                env={"SFDX_INSTANCE_URL": self.org_config.instance_url},
+            )
+
+            # Convert back to metadata format
+            import pdb
+
+            pdb.set_trace()
+            if md_format:
+                args = ["-r", "target", "-d", target]
+                if (
+                    self.options["path"] == "src"
+                    and self.project_config.project__package__name
+                ):
+                    args += ["-n", self.project_config.project__package__name]
+                sfdx(
+                    "force:source:convert",
+                    log_note="Converting back to metadata format",
+                    args=args,
+                    capture_output=False,
+                    check_return=True,
+                )
+
+            # XXX namespace tokenization?
+
+        # self._store_snapshot()
+
+    def _write_manifest(self, changes):
+        type_members = defaultdict(list)
+        for change in changes:
+            type_members[change["MemberType"]].append(change["MemberName"])
+            self.logger.info("{MemberType}: {MemberName}".format(**change))
+
+        generator = PackageXmlGenerator(
+            ".",
+            self.options["api_version"],
+            types=[
+                MetadataType(name, members) for name, members in type_members.items()
+            ],
+        )
+        package_xml = generator()
+        with open("package.xml", "w") as f:
             f.write(package_xml)
-
-        self._store_snapshot()
 
 
 class SnapshotChanges(ListChanges):
