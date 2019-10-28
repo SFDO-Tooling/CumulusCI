@@ -1,6 +1,7 @@
 from robot.api import logger
 from robot.libraries.BuiltIn import BuiltIn, RobotNotRunningError
 from cumulusci.robotframework.pageobjects.baseobjects import BasePage
+from cumulusci.robotframework.utils import capture_screenshot_on_error
 import inspect
 import robot.utils
 import os
@@ -19,6 +20,22 @@ def get_keyword_names(obj):
         if (not member[0].startswith("_")) and member[0] != "get_keyword_names"
     ]
     return names
+
+
+def pageobject(page_type, object_name=None):
+    """A decorator to designate a class as a page object"""
+    BuiltIn().log("importing page object {} {}".format(page_type, object_name), "DEBUG")
+
+    def wrapper(cls):
+        key = (page_type, object_name if object_name else "")
+        PageObjects.registry[key] = cls
+        cls._page_type = page_type
+        cls._object_name = object_name
+        if getattr(cls, "_object_name", None) is None:
+            cls._object_name = object_name
+        return cls
+
+    return wrapper
 
 
 class PageObjects(object):
@@ -138,7 +155,7 @@ class PageObjects(object):
         if (page_type, object_name) in self.registry:
             cls = self.registry[(page_type, object_name)]
             instance = cls()
-            libname = instance.__class__.__name__
+            instance._libname = instance.__class__.__name__
 
         else:
             # Page object has not been registered. Try to find
@@ -147,13 +164,12 @@ class PageObjects(object):
             # for a "ListingPage" class. If we find it, we'll
             # create a library named "ContactListingPage"
             instance = None
-            target = "{}Page".format(page_type)
             for subclass in BasePage.__subclasses__():
-                if subclass.__name__ == target:
+                if getattr(subclass, "_page_type", None) == page_type:
                     instance = subclass(object_name)
-                    libname = "{}{}Page".format(
+                    instance._libname = "{}{}Page".format(
                         object_name, page_type
-                    )  # eg: ContactListingPage
+                    )  # eg: ContactListingPageObject
                     break
 
             if instance is None:
@@ -164,7 +180,8 @@ class PageObjects(object):
                 )
 
         try:
-            pobj = self.builtin.get_library_instance(libname)
+            pobj = self.builtin.get_library_instance(instance._libname)
+
         except Exception:
             # Hasn't been imported. Attempt to import it with the given name
             # for the given object; If this fails, just let it bubble up
@@ -172,23 +189,26 @@ class PageObjects(object):
             self.builtin.import_library(
                 "cumulusci.robotframework.pageobjects._PageObjectLibrary",
                 instance,
-                libname,
+                instance._libname,
                 "WITH NAME",
-                libname,
+                instance._libname,
             )
             # sure would be nice if import_library returned the instance. Just sayin'.
-            pobj = self.builtin.get_library_instance(libname)
+            pobj = self.builtin.get_library_instance(instance._libname)
 
         return pobj
 
-    def go_to_page(self, page_type, object_name, **kwargs):
+    @capture_screenshot_on_error
+    def go_to_page(self, page_type, object_name, *args, **kwargs):
         """Go to the page of the given page object.
 
         The URL will be computed from the page_type and object_name
-        associated with the object, if possible.
+        associated with the object, plus possibly additional arguments.
 
         Different pages support different additional arguments. For
-        example, a Listing page supports the keyword argument `filter_name`.
+        example, a Listing page supports the keyword argument `filter_name`,
+        and a Detail page can be given an object id, or parameters for
+        looking up the object id.
 
         If this keyword is able to navigate to a page, the keyword
         `load page object` will automatically be called to load the keywords
@@ -207,13 +227,10 @@ class PageObjects(object):
         calling `self.salesforce.wait_until_loading_is_complete()`)
         """
         pobj = self.get_page_object(page_type, object_name)
-        try:
-            pobj._go_to_page(**kwargs)
-            self._set_current_page_object(pobj)
-        except Exception:
-            self.selenium.capture_page_screenshot()
-            raise
+        pobj._go_to_page(*args, **kwargs)
+        self._set_current_page_object(pobj)
 
+    @capture_screenshot_on_error
     def current_page_should_be(self, page_type, object_name, **kwargs):
         """Verifies that the page appears to be the requested page
 
@@ -237,12 +254,8 @@ class PageObjects(object):
 
         """
         pobj = self.get_page_object(page_type, object_name)
-        try:
-            pobj._is_current_page(**kwargs)
-            self.load_page_object(page_type, object_name)
-        except Exception:
-            self.selenium.capture_page_screenshot()
-            raise
+        pobj._is_current_page(**kwargs)
+        self.load_page_object(page_type, object_name)
 
     def load_page_object(self, page_type, object_name=None):
         """Load the keywords for the page object identified by the type and object name
@@ -251,6 +264,46 @@ class PageObjects(object):
         using the cumulusci.robotframework.pageobject decorator.
         """
         pobj = self.get_page_object(page_type, object_name)
+        self._set_current_page_object(pobj)
+        return pobj
+
+    @capture_screenshot_on_error
+    def wait_for_modal(self, page_type, object_name, expected_heading=None, **kwargs):
+        """Wait for the given page object modal to appear.
+
+        This will both wait for the modal, and verify that the modal
+        has an expected heading. By default the expected heading will
+        be the page object type (eg "New") and object name (eg:
+        "Contact") separated by a space (eg: "New Contact").
+
+        You can override the expected heading with the expected_heading
+        parameter.
+
+        Example:
+
+        | Wait for modal to appear    New    Contact
+
+        """
+        pobj = self.get_page_object(page_type, object_name)
+        if not expected_heading:
+            expected_heading = f"{pobj._page_type} {pobj._object_name}"
+        pobj._wait_to_appear(expected_heading=expected_heading)
+        self._set_current_page_object(pobj)
+        return pobj
+
+    @capture_screenshot_on_error
+    def wait_for_page_object(self, page_type, object_name, **kwargs):
+        """Wait for an element represented by a page object to appear on the page.
+
+        The associated page object will be loaded after the element appears.
+
+        page_type represents the page type (Home, Details, etc)) and
+        object_name represents the name of an object (Contact,
+        Organization, etc)
+
+        """
+        pobj = self.get_page_object(page_type, object_name)
+        pobj._wait_to_appear()
         self._set_current_page_object(pobj)
         return pobj
 
