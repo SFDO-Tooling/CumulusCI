@@ -1,0 +1,16 @@
+version: 1
+update_configs:
+  - package_manager: "python"
+    directory: "/"
+    update_schedule: "weekly"
+    ignored_updates:
+      - match:
+          dependency_name: "pytest"
+          version_requirement: "4.x"
+      - match:
+          dependency_name: "robotframework-seleniumlibrary"
+          version_requirement: "3.x"
+      - match:
+          dependency_name: "simple-salesforce"
+          version_requirement: "0.74.2"
+    
