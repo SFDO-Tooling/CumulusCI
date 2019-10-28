@@ -20,7 +20,7 @@ class TestRobotframeworkUtils(unittest.TestCase):
             example_function()
         except Exception:
             pass
-        self.mock_selib.capture_page_screenshot.assert_called_once()
+        self.mock_selib.failure_occurred.assert_called_once()
 
     def test_screenshot_decorator_pass(self):
         """Verify that decorator does NOT capture screenshot on keyword success"""
@@ -30,4 +30,4 @@ class TestRobotframeworkUtils(unittest.TestCase):
             return True
 
         example_function()
-        self.mock_selib.capture_page_screenshot.assert_not_called()
+        self.mock_selib.failure_occurred.assert_not_called()
