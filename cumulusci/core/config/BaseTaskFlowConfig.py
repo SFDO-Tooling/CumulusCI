@@ -3,7 +3,8 @@ from difflib import get_close_matches
 from cumulusci.core.config import BaseConfig
 from cumulusci.core.config import FlowConfig
 from cumulusci.core.config import TaskConfig
-from cumulusci.core.exceptions import TaskNotFoundError, FlowNotFoundError
+from cumulusci.core.exceptions import TaskNotFoundError
+from cumulusci.core.exceptions import FlowNotFoundError
 
 
 def list_infos(infos):

@@ -32,7 +32,7 @@ class UninstallPackagedIncremental(UninstallPackaged):
     def _init_options(self, kwargs):
         super(UninstallPackagedIncremental, self)._init_options(kwargs)
         if "path" not in self.options:
-            self.options["path"] = os.path.abspath("src")
+            self.options["path"] = "src"
         self.options["purge_on_delete"] = process_bool_arg(
             self.options.get("purge_on_delete", True)
         )
@@ -46,11 +46,11 @@ class UninstallPackagedIncremental(UninstallPackaged):
         )
         packaged = self._retrieve_packaged()
 
+        path = os.path.abspath(self.options["path"])
         with temporary_dir() as tempdir:
             packaged.extractall(tempdir)
             destructive_changes = self._package_xml_diff(
-                os.path.join(self.options["path"], "package.xml"),
-                os.path.join(tempdir, "package.xml"),
+                os.path.join(path, "package.xml"), os.path.join(tempdir, "package.xml")
             )
 
         self.logger.info(

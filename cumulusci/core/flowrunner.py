@@ -87,6 +87,7 @@ class StepSpec(object):
         "task_name",  # type: str
         "task_config",  # type: dict
         "task_class",  # type: str
+        "project_config",
         "allow_failure",  # type: bool
         "path",  # type: str
         "skip",  # type: bool
@@ -99,6 +100,7 @@ class StepSpec(object):
         task_name,
         task_config,
         task_class,
+        project_config,
         allow_failure=False,
         from_flow=None,
         skip=None,
@@ -108,6 +110,7 @@ class StepSpec(object):
         self.task_name = task_name
         self.task_config = task_config
         self.task_class = task_class
+        self.project_config = project_config
         self.allow_failure = allow_failure
         self.skip = skip
         self.when = when
@@ -126,6 +129,7 @@ class StepSpec(object):
         skipstr = ""
         if self.skip:
             skipstr = "!SKIP! "
+        # XXX include project source name
         return "<{skip}StepSpec {num}:{name} {cfg}>".format(
             num=self.step_num, name=self.task_name, cfg=self.task_config, skip=skipstr
         )
@@ -183,15 +187,14 @@ class TaskRunner(object):
     """ TaskRunner encapsulates the job of instantiating and running a task.
     """
 
-    def __init__(self, project_config, step, org_config, flow=None):
-        self.project_config = project_config
+    def __init__(self, step, org_config, flow=None):
         self.step = step
         self.org_config = org_config
         self.flow = flow
 
     @classmethod
     def from_flow(cls, flow, step):
-        return cls(flow.project_config, step, flow.org_config, flow=flow)
+        return cls(step, flow.org_config, flow=flow)
 
     def run_step(self, **options):
         """
@@ -208,7 +211,7 @@ class TaskRunner(object):
         task_config["options"].update(options)
 
         task = self.step.task_class(
-            self.project_config,
+            self.step.project_config,
             TaskConfig(task_config),
             org_config=self.org_config,
             name=self.step.task_name,
@@ -299,6 +302,7 @@ class FlowCoordinator(object):
                 "Description: {}".format(self.flow_config.config["description"])
             )
         previous_parts = []
+        previous_source = None
         for step in self.steps:
             parts = step.path.split(".")
             steps = str(step.step_num).split("/")
@@ -308,26 +312,33 @@ class FlowCoordinator(object):
             task_name = parts.pop()
 
             i = -1
+            new_source = (
+                f" [from {step.project_config.source}]"
+                if step.project_config.source is not previous_source
+                else ""
+            )
             for i, flow_name in enumerate(parts):
+                if not any(":" in part for part in step.path.split(".")[i + 1 :]):
+                    source = new_source
+                else:
+                    source = ""
                 if len(previous_parts) < i + 1 or previous_parts[i] != flow_name:
-                    lines.append(
-                        "{}{}) flow: {}".format("    " * i, steps[i], flow_name)
-                    )
+                    lines.append(f"{'    ' * i}{steps[i]}) flow: {flow_name}{source}")
+                    if source:
+                        new_source = ""
 
-            when = step.when or None
-            lines.append(
-                "{}{}) task: {}{}".format(
-                    "    " * (i + 1),
-                    steps[i + 1],
-                    task_name,
-                    "\n{}  when: {}".format(
-                        "    " * (i + 1) + " " * len(str(steps[i + 1])), when
-                    )
-                    if when is not None
-                    else "",
+            when = (
+                "\n{}  when: {}".format(
+                    "    " * (i + 1) + " " * len(str(steps[i + 1])), step.when
                 )
+                if step.when is not None
+                else ""
+            )
+            lines.append(
+                f"{'    ' * (i + 1)}{steps[i + 1]}) task: {task_name}{new_source}{when}"
             )
             previous_parts = parts
+            previous_source = step.project_config.source
         return "\n".join(lines)
 
     def run(self, org_config):
@@ -360,11 +371,6 @@ class FlowCoordinator(object):
         self.logger.info("Starting execution")
         self._rule(new_line=True)
 
-        jinja2_context = {
-            "project_config": self.project_config,
-            "org_config": self.org_config,
-        }
-
         try:
             for step in self.steps:
                 if step.skip:
@@ -374,6 +380,10 @@ class FlowCoordinator(object):
                     continue
 
                 if step.when:
+                    jinja2_context = {
+                        "project_config": step.project_config,
+                        "org_config": self.org_config,
+                    }
                     expr = jinja2_env.compile_expression(step.when)
                     value = expr(**jinja2_context)
                     if not value:
@@ -417,13 +427,12 @@ class FlowCoordinator(object):
         :return: List[StepSpec]
         """
         self._check_old_yaml_format()
-        config_steps = self.flow_config.steps
-        self._check_infinite_flows(config_steps)
+        self._check_infinite_flows(self.flow_config)
 
         steps = []
 
-        for number, step_config in config_steps.items():
-            specs = self._visit_step(number, step_config)
+        for number, step_config in self.flow_config.steps.items():
+            specs = self._visit_step(number, step_config, self.project_config)
             steps.extend(specs)
 
         return sorted(steps, key=attrgetter("step_num"))
@@ -432,6 +441,7 @@ class FlowCoordinator(object):
         self,
         number,
         step_config,
+        project_config,
         visited_steps=None,
         parent_options=None,
         parent_ui_options=None,
@@ -480,10 +490,11 @@ class FlowCoordinator(object):
         ):
             visited_steps.append(
                 StepSpec(
-                    number,
-                    step_config.get("task", step_config.get("flow")),
-                    step_config.get("options", {}),
-                    None,
+                    step_num=number,
+                    task_name=step_config.get("task", step_config.get("flow")),
+                    task_config=step_config.get("options", {}),
+                    task_class=None,
+                    project_config=project_config,
                     from_flow=from_flow,
                     skip=True,  # someday we could use different vals for why skipped
                 )
@@ -495,45 +506,47 @@ class FlowCoordinator(object):
 
             # get the base task_config from the project config, as a dict for easier manipulation.
             # will raise if the task doesn't exist / is invalid
-            task_config = copy.deepcopy(self.project_config.get_task(name).config)
-            if "options" not in task_config:
-                task_config["options"] = {}
+            task_config = project_config.get_task(name)
+            task_config_dict = copy.deepcopy(task_config.config)
+            if "options" not in task_config_dict:
+                task_config_dict["options"] = {}
 
             # merge the options together, from task_config all the way down through parent_options
             step_overrides = copy.deepcopy(parent_options.get(name, {}))
             step_overrides.update(step_config.get("options", {}))
-            task_config["options"].update(step_overrides)
+            task_config_dict["options"].update(step_overrides)
 
             # merge UI options from task config and parent flow
-            if "ui_options" not in task_config:
-                task_config["ui_options"] = {}
+            if "ui_options" not in task_config_dict:
+                task_config_dict["ui_options"] = {}
             step_ui_overrides = copy.deepcopy(parent_ui_options.get(name, {}))
             step_ui_overrides.update(step_config.get("ui_options", {}))
-            task_config["ui_options"].update(step_ui_overrides)
+            task_config_dict["ui_options"].update(step_ui_overrides)
 
             # merge checks from task config and flow step
-            if "checks" not in task_config:
-                task_config["checks"] = []
-            task_config["checks"].extend(step_config.get("checks", []))
+            if "checks" not in task_config_dict:
+                task_config_dict["checks"] = []
+            task_config_dict["checks"].extend(step_config.get("checks", []))
 
             # merge runtime options
             if name in self.runtime_options:
-                task_config["options"].update(self.runtime_options[name])
+                task_config_dict["options"].update(self.runtime_options[name])
 
             # get implementation class. raise/fail if it doesn't exist, because why continue
             try:
-                task_class = import_global(task_config["class_path"])
+                task_class = import_global(task_config_dict["class_path"])
             except (ImportError, AttributeError):
                 # TODO: clean this up and raise a taskimporterror or something else correcter.
                 raise FlowConfigError("Task named {} has bad classpath")
 
             visited_steps.append(
                 StepSpec(
-                    number,
-                    name,
-                    task_config,
-                    task_class,
-                    step_config.get("ignore_failure", False),
+                    step_num=number,
+                    task_name=name,
+                    task_config=task_config_dict,
+                    task_class=task_class,
+                    project_config=task_config.project_config,
+                    allow_failure=step_config.get("ignore_failure", False),
                     from_flow=from_flow,
                     when=step_config.get("when"),
                 )
@@ -548,7 +561,7 @@ class FlowCoordinator(object):
                 path = name
             step_options = step_config.get("options", {})
             step_ui_options = step_config.get("ui_options", {})
-            flow_config = self.project_config.get_flow(name)
+            flow_config = project_config.get_flow(name)
             for sub_number, sub_stepconf in flow_config.steps.items():
                 # append the flow number to the child number, since its a LooseVersion.
                 # e.g. if we're in step 2.3 which references a flow with steps 1-5, it
@@ -556,9 +569,10 @@ class FlowCoordinator(object):
                 # TODO: how does this work with nested flowveride? what does defining step 2.3.2 later do?
                 num = "{}/{}".format(number, sub_number)
                 self._visit_step(
-                    num,
-                    sub_stepconf,
-                    visited_steps,
+                    number=num,
+                    step_config=sub_stepconf,
+                    project_config=flow_config.project_config,
+                    visited_steps=visited_steps,
                     parent_options=step_options,
                     parent_ui_options=step_ui_options,
                     from_flow=path,
@@ -574,7 +588,7 @@ class FlowCoordinator(object):
             else:
                 raise FlowConfigError("No steps found in the flow definition")
 
-    def _check_infinite_flows(self, steps, flows=None):
+    def _check_infinite_flows(self, flow_config, visited_flows=None):
         """
         Recursively loop through the flow_config and check if there are any cycles.
 
@@ -582,20 +596,25 @@ class FlowCoordinator(object):
         :param flows: Flows already visited.
         :return: None
         """
-        if flows is None:
-            flows = []
-        for step in steps.values():
+        if visited_flows is None:
+            visited_flows = set()
+        project_config = flow_config.project_config
+        for step in flow_config.steps.values():
             if "flow" in step:
-                flow = step["flow"]
-                if flow == "None":
+                flow_name = step["flow"]
+                if flow_name == "None":
                     continue
-                if flow in flows:
+                next_flow_config = project_config.get_flow(flow_name)
+                signature = (
+                    hash(next_flow_config.project_config.source),
+                    next_flow_config.name,
+                )
+                if signature in visited_flows:
                     raise FlowInfiniteLoopError(
-                        "Infinite flows detected with flow {}".format(flow)
+                        "Infinite flows detected with flow {}".format(flow_name)
                     )
-                flows.append(flow)
-                flow_config = self.project_config.get_flow(flow)
-                self._check_infinite_flows(flow_config.steps, flows)
+                visited_flows.add(signature)
+                self._check_infinite_flows(next_flow_config, visited_flows)
 
     def _init_org(self):
         """ Test and refresh credentials to the org specified. """
@@ -646,33 +665,34 @@ class PreflightFlowCoordinator(FlowCoordinator):
         self.logger.info("Running preflight checks...")
         self._rule(new_line=True)
 
-        self.jinja2_context = {
-            "tasks": TaskCache(self),
-            "project_config": self.project_config,
-            "org_config": self.org_config,
-        }
-
         self.preflight_results = defaultdict(list)
+        self._task_cache = TaskCache(self)
         try:
             # flow-level checks
+            jinja2_context = {
+                "tasks": self._task_cache,
+                "project_config": self.project_config,
+                "org_config": self.org_config,
+            }
             for check in self.flow_config.checks or []:
-                result = self.evaluate_check(check)
+                result = self.evaluate_check(check, jinja2_context)
                 if result:
                     self.preflight_results[None].append(result)
 
             # Step-level checks
             for step in self.steps:
+                jinja2_context["project_config"] = step.project_config
                 for check in step.task_config.get("checks", []):
-                    result = self.evaluate_check(check)
+                    result = self.evaluate_check(check, jinja2_context)
                     if result:
                         self.preflight_results[step.path].append(result)
         finally:
             self.callbacks.post_flow(self)
 
-    def evaluate_check(self, check):
+    def evaluate_check(self, check, jinja2_context):
         self.logger.info("Evaluating check: {}".format(check["when"]))
         expr = jinja2_env.compile_expression(check["when"])
-        value = bool(expr(**self.jinja2_context))
+        value = bool(expr(**jinja2_context))
         self.logger.info("Check result: {}".format(value))
         if value:
             return {"status": check["action"], "message": check.get("message")}
@@ -708,14 +728,17 @@ class CachedTaskRunner(object):
 
         task_config = self.cache.flow.project_config.tasks[self.task_name]
         task_class = import_global(task_config["class_path"])
-        step = StepSpec(1, self.task_name, task_config, task_class)
+        step = StepSpec(
+            step_num=1,
+            task_name=self.task_name,
+            task_config=task_config,
+            task_class=task_class,
+            project_config=None,
+        )
         self.cache.flow.callbacks.pre_task(step)
-        result = TaskRunner(
-            self.cache.flow.project_config,
-            step,
-            self.cache.flow.org_config,
-            self.cache.flow,
-        ).run_step(**options)
+        result = TaskRunner(step, self.cache.flow.org_config, self.cache.flow).run_step(
+            **options
+        )
         self.cache.flow.callbacks.post_task(step, result)
 
         self.cache.results[cache_key] = result

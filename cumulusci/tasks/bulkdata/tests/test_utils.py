@@ -5,8 +5,8 @@ from sqlalchemy import create_engine
 from sqlalchemy import MetaData
 from sqlalchemy import Integer
 from sqlalchemy import Unicode
+import yaml
 
-from cumulusci.core.utils import ordered_yaml_load
 from cumulusci.utils import temporary_dir
 
 from cumulusci.tasks.bulkdata.utils import create_table, generate_batches
@@ -25,7 +25,7 @@ class TestCreateTable(unittest.TestCase):
     def test_create_table_legacy_oid_mapping(self):
         mapping_file = os.path.join(os.path.dirname(__file__), "mapping_v1.yml")
         with open(mapping_file, "r") as fh:
-            content = ordered_yaml_load(fh)
+            content = yaml.safe_load(fh)
             account_mapping = content["Insert Contacts"]
 
         with temporary_dir() as d:
@@ -42,7 +42,7 @@ class TestCreateTable(unittest.TestCase):
     def test_create_table_modern_id_mapping(self):
         mapping_file = os.path.join(os.path.dirname(__file__), "mapping_v2.yml")
         with open(mapping_file, "r") as fh:
-            content = ordered_yaml_load(fh)
+            content = yaml.safe_load(fh)
             account_mapping = content["Insert Contacts"]
 
         with temporary_dir() as d:
