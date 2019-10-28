@@ -4,7 +4,7 @@ black==19.3b0
 bump2version==0.5.11
 coverage==4.5.4
 coveralls==1.8.2
-flake8==3.7.8
+flake8==3.7.9
 pre-commit==1.18.3
 pytest==4.6.6  # pyup: <5
 pytest-cov==2.8.1
