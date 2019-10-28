@@ -8,8 +8,18 @@ defaults: &defaults
   working_directory: ~/repo
 
 
-version: 2
+version: 2.1
+
+orbs:
+  win: circleci/windows@1.0.0
+
 jobs:
+  test_windows:
+    executor: win/vs2019
+    steps:
+      - checkout
+      - run: Write-Host 'Hello, Windows'
+        
 
   lint:
     <<: *defaults
