@@ -349,6 +349,24 @@ class TestLibdocPageObjects(unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.tmpdir)
 
+    def test_file_title(self):
+        """Verify that the TITLE in the file is added to the generated html"""
+        # The page object file has a TITLE attribute and a docstring;
+        # make sure they are picked up.
+        title_element = self.html_body.find(".//div[@class='file-header']/h2")
+        assert title_element.text == "This is the title"
+
+    def test_file_description(self):
+        """Verify that the docstring in the file is added to the generated html"""
+        file_doc_element = self.html_body.find(
+            ".//div[@class='pageobject-file-description']"
+        )
+        description = ET.tostring(file_doc_element).decode("utf-8").strip()
+        assert (
+            description
+            == '<div class="pageobject-file-description"><p>this is the docstring</p></div>'
+        )
+
     def test_pageobject_sections(self):
         # the TestPageObjects.py file has two page objects,
         # one with two keywords and one with three
@@ -358,16 +376,12 @@ class TestLibdocPageObjects(unittest.TestCase):
     def test_pageobject_docstring(self):
         section = self.html_body.find(".//div[@pageobject='Detail-Something__c']")
         description = section.find("div[@class='description']")
-        expected = (
-            '<div class="description"><p>Description of SomethingDetailPage</p></div>'
-        )
+        expected = '<div class="description" title="Description"><p>Description of SomethingDetailPage</p></div>'
         actual = ET.tostring(description).decode("utf-8").strip()
         assert actual == expected
 
         section = self.html_body.find(".//div[@pageobject='Listing-Something__c']")
         description = section.find("div[@class='description']")
-        expected = (
-            '<div class="description"><p>Description of SomethingListingPage</p></div>'
-        )
+        expected = '<div class="description" title="Description"><p>Description of SomethingListingPage</p></div>'
         actual = ET.tostring(description).decode("utf-8").strip()
         assert actual == expected

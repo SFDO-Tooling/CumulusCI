@@ -19,6 +19,12 @@ from unittest import mock
 from cumulusci.robotframework import PageObjects
 from cumulusci.robotframework.CumulusCI import CumulusCI
 from cumulusci.robotframework.pageobjects.PageObjectLibrary import _PageObjectLibrary
+from cumulusci.robotframework.pageobjects import (
+    ListingPage,
+    NewModal,
+    HomePage,
+    DetailPage,
+)
 import robot.utils
 
 
@@ -31,7 +37,17 @@ CORE_KEYWORDS = [
     "go_to_page",
     "load_page_object",
     "log_page_object_keywords",
+    "wait_for_modal",
+    "wait_for_page_object",
 ]
+
+BASE_REGISTRY = {
+    ("Detail", ""): DetailPage,
+    ("Home", ""): HomePage,
+    ("Listing", ""): ListingPage,
+    ("New", ""): NewModal,
+}
+
 
 # this is the importer used by the page objects, which makes it easy
 # peasy to import by file path
@@ -61,27 +77,28 @@ class MockGetLibraryInstance:
 @mock.patch("robot.libraries.BuiltIn.BuiltIn._get_context")
 class TestPageObjects(unittest.TestCase):
     def test_PageObject(self, get_context_mock, get_library_instance_mock):
+        """Smoke test to make sure the default registry is set up and keywords exist"""
         po = PageObjects()
         self.assertEqual(po.get_keyword_names(), CORE_KEYWORDS)
-        self.assertEqual(po.registry, {})
+        self.assertEqual(po.registry, BASE_REGISTRY)
 
+    def test_PageObject_registry_with_custom_pageobjects(
+        self, get_context_mock, get_library_instance_mock
+    ):
+        """Verify that custom page objects get added to the registry"""
         po = PageObjects(FOO_PATH, BAR_PATH)
-        if hasattr(self, "assertCountEqual"):
-            self.assertCountEqual(
-                po.registry.keys(), (("Test", "Foo__c"), ("Test", "Bar__c"))
-            )
-        else:
-            # gah! python3 renamed this assert
-            self.assertItemsEqual(
-                po.registry.keys(), (("Test", "Foo__c"), ("Test", "Bar__c"))
-            )
 
         # The page object class will have been imported by robot.utils.Importer,
         # so we need to use that here to validate which class got imported.
         FooTestPage = importer.import_class_or_module_by_path(FOO_PATH)
         BarTestPage = importer.import_class_or_module_by_path(BAR_PATH)
-        self.assertEqual(po.registry[("Test", "Foo__c")], FooTestPage)
-        self.assertEqual(po.registry[("Test", "Bar__c")], BarTestPage)
+
+        expected_registry = BASE_REGISTRY
+        expected_registry.update(
+            {("Test", "Foo__c"): FooTestPage, ("Test", "Bar__c"): BarTestPage}
+        )
+
+        self.assertEqual(po.registry, expected_registry)
 
     def test_namespaced_object_name(self, get_context_mock, get_library_instance_mock):
         """Verify that the object name is prefixed by the namespace when there's a namespace"""

@@ -4,22 +4,8 @@ Library         Collections
 Library         cumulusci.robotframework.PageObjects
 ...  ${CURDIR}/example_page_object.py
 
-Suite Setup     Run keywords
-...  Create test data
-...  AND  Open Test Browser
+Suite Setup     Open Test Browser
 Suite Teardown  Delete Records and Close Browser
-
-*** Keywords ***
-Create Test Data
-    [Documentation]
-    ...  Create a Contact for Connor MacLeod if there isn't one. If there's
-    ...  already more than one, it's a fatal error since some tests depend
-    ...  on their being only one.
-    ${result}=  Salesforce Query  Contact  Firstname=Connor  LastName=MacLeod
-    run keyword if  len($result) > 1
-    ...  Fatal Error  Expected to find only one contact named Connor MacLeod, found several
-    run keyword if  len($result) == 0
-    ...  Salesforce Insert  Contact  FirstName=Connor  LastName=MacLeod
 
 *** Test Cases ***
 Load page object, using defined page object
@@ -74,7 +60,7 @@ Get page object
     @{keywords}=  Call method  ${pobj}  get_keyword_names
 
     # The page object should have three keywords we defined, plus
-    # one from the base class BasePage
+    # one from the base class
     ${expected}=  Create list  hello  keyword_one  keyword_two  log_current_page_object
     Lists should be equal  ${keywords}  ${expected}
 
@@ -132,7 +118,6 @@ Log page object keywords
     log page object keywords
 
 Load multiple page objects in library search order
-    [Tags]  bryan
     [Documentation]
     ...  Loading a page object inserts it at the start of the
     ...  library search order. Verify that that happens properly.
@@ -156,39 +141,31 @@ Load multiple page objects in library search order
     log  actual order: ${actual_order}
     Lists should be equal  ${actual_order}  ${expected_order}
 
-Base class: HomePage
-    [Documentation]
-    ...  Verify we can go to the generic Home page
-    ...  (assuming we don't have an explicit TaskHomePage)
-    go to page  Home  Task
-    Current page should be  Home  Task
+Wait for page object
+    Go to page    Listing  Contact
+    Click object button  New
 
-Base class: ListingPage
-    [Documentation]
-    ...  Verify we can go to the generic Listing page
-    ...  (assuming we don't have an explicit TaskListingPage)
-    Go to page              Listing  Task
-    Current page should be  Listing  Task
+    Wait for page object  New  Contact
 
-Base class: DetailPage
-    [Documentation]
-    ...  Verify we can go to the generic Detail page
-    ...  (assuming we don't have an explicit TaskDetailPage)
+Wait for page object exception
+    [Documentation]  Verify we throw an error if page object isn't found
+    Go to page    Listing  Contact
+    Run keyword and expect error
+    ...  Unable to find a page object for 'BogusType BogusObject'
+    ...  Wait for page object  BogusType  BogusObject
 
-    Go to page  Detail  Contact  firstName=Connor  lastName=MacLeod
-    # It is assumed only one contact will match. If there are several,
-    # you might need to recreate your scratch org to clear out the duplicates
-    Current page should be  Detail  Contact  firstName=Connor  lastName=MacLeod
+Wait for modal
+    [Documentation]  Verify that the 'wait for modal' keyword works
+    Go to page    Listing  Contact
+    Click object button  New
 
-Base class: DetailPage with no matches
+    Wait for modal  New  Contact
 
-    run keyword and expect error  no Contact matches firstName=Nobody, lastName=Nobody
-    ...  Go to page  Detail  Contact  firstName=Nobody  lastName=Nobody
+Wait for modal exception
+    [Documentation]  Verify we throw an error if page object isn't found
+    Go to page    Listing  Contact
+    Click object button  New
 
-Base class: DetailPage with more than one match
-    [Setup]  run keywords
-    ...  Salesforce Insert  Contact  FirstName=John  LastName=Smith
-    ...  AND  Salesforce Insert  Contact  FirstName=John  LastName=Jones
-
-    run keyword and expect error  Query returned 2 objects
-    ...  Go to page  Detail  Contact  firstName=John
+    Run keyword and expect error
+    ...  Unable to find a page object for 'BogusType BogusObject'
+    ...  Wait for modal  BogusType  BogusObject
