@@ -22,6 +22,16 @@ command
 
 **Class::** cumulusci.tasks.command.Command
 
+**Example Command-line Usage::** cci task run command -o command "echo 'Hello command task!'"
+
+**Example Task to Run Command::**
+  hello_world:
+    description: Says hello world
+    class_path: cumulusci.tasks.command.Command
+    options:
+      command: echo 'Hello World!'
+
+
 Options:
 ------------------------------------------
 
@@ -545,9 +555,11 @@ metadeploy_publish
 Options:
 ------------------------------------------
 
-* **tag** *(required)*: Name of the git tag to publish
+* **tag**: Name of the git tag to publish
+* **commit**: Commit hash to publish
 * **plan**: Name of the plan(s) to publish. This refers to the `plans` section of cumulusci.yml. By default, all plans will be published.
 * **dry_run**: If True, print steps without publishing.
+* **publish**: If True, set is_listed to True on the version. Default: False
 
 org_settings
 ==========================================

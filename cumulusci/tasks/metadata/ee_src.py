@@ -18,7 +18,7 @@ class CreateUnmanagedEESrc(BaseTask):
         },
     }
 
-    elements = ["*.object:availableFields"]
+    elements = ["*.object:availableFields", "*.object:visibility[.='Protected']"]
 
     def _run_task(self):
         # Check that path exists
