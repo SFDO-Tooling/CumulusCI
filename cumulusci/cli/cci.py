@@ -1134,7 +1134,7 @@ def task_doc(config):
 
 @task.command(name="info", help="Displays information for a task")
 @click.argument("task_name")
-@pass_config(load_keychain=False)
+@pass_config()
 def task_info(config, task_name):
     try:
         task_config = config.project_config.get_task(task_name)
@@ -1205,7 +1205,9 @@ def task_run(config, task_name, org, o, debug, debug_before, debug_after, no_pro
 
     # Create and run the task
     try:
-        task = task_class(config.project_config, task_config, org_config=org_config)
+        task = task_class(
+            task_config.project_config, task_config, org_config=org_config
+        )
 
         if debug_before:
             import pdb
@@ -1264,7 +1266,7 @@ def flow_list(config, plain, print_json):
 
 @flow.command(name="info", help="Displays information for a flow")
 @click.argument("flow_name")
-@pass_config(load_keychain=False)
+@pass_config
 def flow_info(config, flow_name):
     try:
         coordinator = config.get_flow(flow_name)

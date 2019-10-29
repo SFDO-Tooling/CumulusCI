@@ -131,8 +131,3 @@ third:
         result = StringIO()
         utils.ordered_yaml_dump(ordered_data, result)
         self.assertEqual(self.yaml, result.getvalue())
-
-    def test_ordered_yaml_load(self):
-        result = utils.ordered_yaml_load(self.yaml)
-        self.assertIsInstance(result, dict)
-        self.assertIsInstance(result["third"], dict)

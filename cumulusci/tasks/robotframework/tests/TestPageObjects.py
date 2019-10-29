@@ -1,4 +1,9 @@
+"""
+this is the docstring
+"""
 from cumulusci.robotframework.pageobjects import pageobject, ListingPage, DetailPage
+
+TITLE = "This is the title"
 
 
 @pageobject(page_type="Listing", object_name="Something__c")
