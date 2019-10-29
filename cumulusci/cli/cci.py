@@ -895,9 +895,12 @@ def org_info(config, org_name, print_json):
         ]
         keys = [key for key in org_config.config.keys() if key in UI_KEYS]
         keys.sort()
+        pairs = [[key, str(org_config.config[key])] for key in keys]
+        pairs.append(["release", str(org_config.latest_api_version)])
+        pairs.sort()
         table_data = [["Key", "Value"]]
         table_data.extend(
-            [[click.style(key, bold=True), str(org_config.config[key])] for key in keys]
+            [[click.style(key, bold=True), value] for key, value in pairs]
         )
         table = CliTable(table_data, wrap_cols=["Value"])
         table.echo()
