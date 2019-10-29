@@ -1,13 +1,16 @@
 version: 2.1
 
+
+orbs:
+  win: circleci/windows@1.0.0
+
+
 defaults: &defaults
   docker:
     - image: circleci/python:3.7-browsers
   environment:
     - BROWSER: headlesschrome
   working_directory: ~/repo
-
-
 
 
 jobs:
