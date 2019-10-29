@@ -161,6 +161,7 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
                     "kind": "managed",
                     "name": "Install Test Product 1.0",
                     "path": "install_prod.install_managed",
+                    "source": None,
                     "step_num": "1/2",
                     "task_class": "cumulusci.tasks.salesforce.InstallPackageVersion",
                     "task_config": {
@@ -180,6 +181,7 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
                     "kind": "metadata",
                     "name": "Update Admin Profile",
                     "path": "install_prod.config_managed.update_admin_profile",
+                    "source": None,
                     "step_num": "1/3/2",
                     "task_class": "cumulusci.tasks.salesforce.UpdateAdminProfile",
                     "task_config": {
@@ -337,3 +339,20 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
             {"slug": "install"},
         )
         self.assertEqual("https://NEW_PLANTEMPLATE", plantemplate["url"])
+
+    def test_freeze_steps__skip(self):
+        project_config = create_project_config()
+        project_config.keychain.set_service(
+            "metadeploy", ServiceConfig({"url": "https://metadeploy", "token": "TOKEN"})
+        )
+        plan_config = {
+            "title": "Test Install",
+            "slug": "install",
+            "tier": "primary",
+            "steps": {1: {"task": "None"}},
+        }
+        task_config = TaskConfig({"options": {"tag": "release/1.0"}})
+        task = Publish(project_config, task_config)
+        task._init_task()
+        steps = task._freeze_steps(project_config, plan_config)
+        assert steps == []

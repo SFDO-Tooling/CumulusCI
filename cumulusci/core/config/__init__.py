@@ -37,10 +37,25 @@ from cumulusci.core.config.BaseTaskFlowConfig import BaseTaskFlowConfig
 
 
 # inherit from BaseTaskFlowConfig
-from cumulusci.core.config.BaseProjectConfig import BaseProjectConfig
+from cumulusci.core.config.project_config import BaseProjectConfig
 
 # inherit from OrgConfig
 from cumulusci.core.config.ScratchOrgConfig import ScratchOrgConfig
 
 # inherit from BaseProjectConfig
 from cumulusci.core.config.BaseGlobalConfig import BaseGlobalConfig
+
+
+__all__ = (
+    "FAILED_TO_CREATE_SCRATCH_ORG",
+    "BaseConfig",
+    "ConnectedAppOAuthConfig",
+    "FlowConfig",
+    "OrgConfig",
+    "ServiceConfig",
+    "TaskConfig",
+    "BaseTaskFlowConfig",
+    "BaseProjectConfig",
+    "ScratchOrgConfig",
+    "BaseGlobalConfig",
+)
