@@ -12,7 +12,7 @@ defaults: &defaults
 
 jobs:
   test_windows:
-    executor: win/default
+    executor: win/vs2019
     steps:
       - checkout
       - run:
