@@ -108,6 +108,7 @@ class GenerateMapping(BaseSalesforceApiTask):
         # that our package doesn't own.
         # For standard objects, we include all custom fields, all required standard fields,
         # and master-detail relationships. Required means createable and not nillable.
+        # In all cases, ensure that RecordTypeId is included if and only if there are Record Types
         self.schema = {}
         self.refs = defaultdict(lambda: defaultdict(set))
         for obj in self.mapping_objects:
@@ -131,6 +132,12 @@ class GenerateMapping(BaseSalesforceApiTask):
                                 # included objects, via `_is_field_mappable()`
                                 if target != obj:
                                     self.refs[obj][target].add(field["name"])
+                if (
+                    field["name"] == "RecordTypeId"
+                    and len(self.describes[obj]["recordTypeInfos"]) > 1
+                ):
+                    # "Master" is included even if no RTs.
+                    self.schema[obj][field["name"]] = field
 
     def _build_mapping(self):
         """Output self.schema in mapping file format by constructing an OrderedDict and serializing to YAML"""
