@@ -73,7 +73,7 @@ class OrgConfig(BaseConfig):
             self._client = Salesforce(
                 instance=self.instance_url.replace("https://", ""),
                 session_id=self.access_token,
-                version=38,
+                version=45,
             )
         return self._client
 
