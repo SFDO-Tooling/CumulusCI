@@ -959,14 +959,12 @@ class TestOrgConfig(unittest.TestCase):
 
     @responses.activate
     def test_get_salesforce_version(self):
-        # sf = mock.Mock()
-        # with mock.patch("cumulusci.core.config.OrgConfig.salesforce_client") as sf:
         responses.add(
-            "GET", f"https://na01.salesforce.com/services/data", json=[{"version": 64}]
+            "GET", f"https://na01.salesforce.com/services/data", json=[{"version": 42}]
         )
         config = OrgConfig({"instance_url": "https://na01.salesforce.com"}, "test")
         config.access_token = "TOKEN"
-        assert config.latest_api_version == 64
+        assert config.latest_api_version == 42
 
     def test_start_url(self):
         config = OrgConfig(
