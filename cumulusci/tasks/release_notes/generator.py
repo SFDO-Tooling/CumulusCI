@@ -2,6 +2,7 @@ import github3.exceptions
 
 from cumulusci.core.utils import import_global
 from cumulusci.core.github import (
+    markdown_link_to_pr,
     is_pull_request_merged,
     get_pull_requests_with_base_branch,
 )
@@ -164,37 +165,6 @@ class ParentPullRequestNotesGenerator(BaseReleaseNotesGenerator):
                 "Update of pull request #{} failed.".format(pull_request.number)
             )
 
-    def update_unaggregated_pr_header(self, pull_request_to_update, branch_name_to_add):
-        """Updates the 'Unaggregated Pull Requests' section header with a link
-        to the new child branch pull request"""
-        body = pull_request_to_update.body
-        if self.UNAGGREGATED_SECTION_HEADER not in body:
-            body += self.UNAGGREGATED_SECTION_HEADER
-
-        pull_requests = get_pull_requests_with_base_branch(
-            self.repo,
-            branch_name_to_add.split("__")[0],
-            branch_name_to_add,
-            state="all",
-        )
-
-        if len(pull_requests) == 0:
-            raise CumulusCIException(
-                "No pull request for branch {} found.".format(branch_name_to_add)
-            )
-        elif len(pull_requests) > 1:
-            raise CumulusCIException(
-                "Expected one pull request, found {} for branch {}".format(
-                    len(pull_requests), branch_name_to_add
-                )
-            )
-
-        pull_request_link = markdown_link_to_pr(pull_requests[0])
-        if pull_request_link not in body:
-            body += "\r\n* " + pull_request_link
-            pull_request_to_update.update(body=body)
-            return
-
 
 class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator):
     def __init__(
@@ -319,9 +289,3 @@ def render_empty_pr_section(empty_change_notes):
         for change_note in empty_change_notes:
             section_lines.append("\n* {}".format(markdown_link_to_pr(change_note)))
     return section_lines
-
-
-def markdown_link_to_pr(change_note):
-    return "{} [[PR{}]({})]".format(
-        change_note.title, change_note.number, change_note.html_url
-    )

@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from collections import OrderedDict
 import io
 import os
 import sarge
@@ -348,6 +347,17 @@ Options:
             result,
         )
 
+    def test_doc_task_not_inherited(self):
+        task_config = TaskConfig(
+            {
+                "class_path": "cumulusci.tests.test_utils.FunTestTaskChild",
+                "options": {"color": "black"},
+            }
+        )
+        result = utils.doc_task("command", task_config)
+
+        assert "extra docs" not in result
+
     def test_package_xml_from_dict(self):
         items = {"ApexClass": ["TestClass"]}
         result = utils.package_xml_from_dict(
@@ -460,10 +470,17 @@ Options:
 class FunTestTask(BaseTask):
     """For testing doc_task"""
 
-    task_options = OrderedDict(
-        (
-            ("flavor", {"description": "What flavor", "required": True}),
-            ("color", {"description": "What color"}),
-        )
-    )
+    task_options = {
+        "flavor": {"description": "What flavor", "required": True},
+        "color": {"description": "What color"},
+    }
     task_docs = "extra docs"
+
+
+class FunTestTaskChild(FunTestTask):
+    """For testing doc_task"""
+
+    task_options = {
+        "flavor": {"description": "What flavor", "required": True},
+        "color": {"description": "What color"},
+    }

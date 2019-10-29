@@ -23,12 +23,9 @@ class OrgConfig(BaseConfig):
         SFDX_CLIENT_ID = os.environ.get("SFDX_CLIENT_ID")
         SFDX_HUB_KEY = os.environ.get("SFDX_HUB_KEY")
         if SFDX_CLIENT_ID and SFDX_HUB_KEY:
-            login_url = (
-                "https://test.salesforce.com"
-                if self.is_sandbox
-                else "https://login.salesforce.com"
+            info = jwt_session(
+                SFDX_CLIENT_ID, SFDX_HUB_KEY, self.username, self.instance_url
             )
-            info = jwt_session(SFDX_CLIENT_ID, SFDX_HUB_KEY, self.username, login_url)
         else:
             info = self._refresh_token(keychain, connected_app)
         if info != self.config:
