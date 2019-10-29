@@ -33,6 +33,7 @@ from cumulusci.core.exceptions import ScratchOrgException
 from cumulusci.core.exceptions import ServiceNotConfigured
 from cumulusci.core.exceptions import FlowNotFoundError
 
+from cumulusci.core.sfdx import sfdx
 from cumulusci.core.utils import import_global
 from cumulusci.cli.config import CliRuntime
 from cumulusci.cli.config import get_installed_version
@@ -794,8 +795,9 @@ def org_browser(config, org_name):
 @pass_config
 def org_connect(config, org_name, sandbox, login_url, default, global_org):
     config.check_org_overwrite(org_name)
-
+    print(config.project_config)
     connected_app = config.keychain.get_service("connected_app")
+    print(vars(connected_app))
     if sandbox:
         login_url = "https://test.salesforce.com"
 
@@ -807,14 +809,61 @@ def org_connect(config, org_name, sandbox, login_url, default, global_org):
         scope="web full refresh_token",
     )
     oauth_dict = oauth_capture()
-    org_config = OrgConfig(oauth_dict, org_name)
-    org_config.load_userinfo()
+    if sandbox:
+        org_config = ScratchOrgConfig(oauth_dict, org_name)
+    else:
+        org_config = OrgConfig(oauth_dict, org_name)
+        org_config.load_userinfo()
+    #   unsure whether this logic is sound due to the fact that trialforce orgs are sandboxes
+    #   Need to validate this with someone. <-------------------***********NOTE***************
+    
+    # org_config = OrgConfig(oauth_dict, org_name)
+    # org_config.load_userinfo()
 
-    config.keychain.set_org(org_config, global_org)
+    # org_config._load_orginfo()
+    # # print(vars(org_config))
+    # # print(vars(org_config))
+    # # print()
+    # # org_name, org_config = config.get_org(org_name)
+    # # org_config.refresh_oauth_token(config.keychain)
+    # # print(vars(vars(config)["global_config"]))
+    # # print(vars(org_config)["config"]["userinfo"]["preferred_username"])
+    # username = str(vars(org_config)["config"]["userinfo"]["preferred_username"])
+    # print(username)
+    # sfdx("force:config:set defaultusername=" + username)
+    # res = sfdx("force:org:display -u " + username)
+    # # print(vars(vars(res)['stdout_text']))
+ 
 
     if default:
         config.keychain.set_default_org(org_name)
         click.echo(f"{org_name} is now the default org")
+    # if True:
+    # click.echo(
+    #     json.dumps(
+    #         org_config.config,
+    #         sort_keys=True,
+    #         indent=4,
+    #         default=str,
+    #         separators=(",", ": "),
+    #     )
+    # )
+    # else:
+    config.keychain.set_org(org_config,global_org)
+    click.echo(f"Added {org_name} to your keychain")
+    
+
+    keys = [key for key in org_config.config.keys() ]
+    keys.sort()
+    table_data = [["Key", "Value"]]
+    table_data.extend(
+        [[click.style(key, bold=True), str(org_config.config[key])] for key in keys]
+    )
+    table = CliTable(table_data, wrap_cols=["Value"])
+    table.echo()
+
+    if org_config.scratch and org_config.expires:
+        click.echo("Org expires on {:%c}".format(org_config.expires))
 
 
 @org.command(name="default", help="Sets an org as the default org for tasks and flows")
