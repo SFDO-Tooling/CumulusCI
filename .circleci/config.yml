@@ -23,6 +23,10 @@ jobs:
           command: choco install python 
           shell: powershell.exe
       - run:
+          name: what's in here?
+          command: ls
+          shell: powershell.exe
+      - run:
           name: pip install dependencies
           command: pip install -r requirements/local.txt
           shell: powershell.exe
