@@ -609,6 +609,7 @@ class TestCCI(unittest.TestCase):
         org_config = mock.Mock()
         org_config.config = {"days": 1, "default": True, "password": None}
         org_config.expires = date.today()
+        org_config.latest_api_version = 42.0
         config = mock.Mock()
         config.get_org.return_value = ("test", org_config)
 
@@ -622,6 +623,7 @@ class TestCCI(unittest.TestCase):
                     ["\x1b[1mdays\x1b[0m", "1"],
                     ["\x1b[1mdefault\x1b[0m", "True"],
                     ["\x1b[1mpassword\x1b[0m", "None"],
+                    ["\x1b[1mrelease\x1b[0m", "42.0"],
                 ],
                 wrap_cols=["Value"],
             )
