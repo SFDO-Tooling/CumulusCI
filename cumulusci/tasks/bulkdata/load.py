@@ -187,10 +187,13 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
         # Don't include lookups with an `after:` spec (dependent lookups)
         columns.extend([f for f in lookups if "after" not in lookups[f]])
         columns.extend(mapping.get("static", {}).keys())
+        # If we're using Record Type mapping, `RecordTypeId` goes at the end.
+        if "RecordTypeId" in columns:
+            columns.remove("RecordTypeId")
 
         if mapping["action"] == "insert" and "Id" in columns:
             columns.remove("Id")
-        if mapping.get("record_type"):
+        if mapping.get("record_type") or "RecordTypeId" in mapping["fields"]:
             columns.append("RecordTypeId")
 
         return columns
@@ -238,8 +241,8 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
         id_column = model.__table__.primary_key.columns.keys()[0]
         columns = [getattr(model, id_column)]
 
-        for f in fields.values():
-            if f != "RecordTypeId":
+        for name, f in fields.items():
+            if name != "RecordTypeId":
                 columns.append(model.__table__.columns[f])
 
         lookups = {
@@ -276,7 +279,7 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
             query = query.outerjoin(
                 rt_source_table,
                 rt_source_table.columns.record_type_id
-                == getattr(model, "RecordTypeId"),
+                == getattr(model, mapping["fields"]["RecordTypeId"]),
             )
             query = query.outerjoin(
                 rt_dest_table,

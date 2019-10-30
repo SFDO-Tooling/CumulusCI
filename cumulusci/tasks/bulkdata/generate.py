@@ -159,7 +159,7 @@ class GenerateMapping(BaseSalesforceApiTask):
             fields = []
             lookups = []
             for field in self.schema[obj].values():
-                if field["type"] == "reference":
+                if field["type"] == "reference" and field["name"] != "RecordTypeId":
                     lookups.append(field["name"])
                 else:
                     fields.append(field["name"])
