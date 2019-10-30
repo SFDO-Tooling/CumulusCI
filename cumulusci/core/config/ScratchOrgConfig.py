@@ -24,7 +24,7 @@ class ScratchOrgConfig(OrgConfig):
         # Create the org if it hasn't already been created
         if not self.created:
             self.create_org()
-
+        # self.logger.info(self.created)
         self.logger.info("Getting scratch org info from Salesforce DX")
 
         username = self.config.get("username")
