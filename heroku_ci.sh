@@ -25,8 +25,6 @@ echo "------------------------------------------"
 # Start TAP output
 #echo "1...3"
 
-export CUMULUSCI_KEYCHAIN_CLASS=cumulusci.core.keychain.EnvironmentProjectKeychain
-
 # Create dev org
 coverage run --append `which cci` org info dev > cci.log
 coverage run --append `which cci` org default dev | tee cci.log
@@ -64,6 +62,7 @@ fi
 # Delete the scratch org
 coverage run --append `which cci` org scratch_delete dev | tee cci.log
 
+export CUMULUSCI_KEYCHAIN_CLASS=cumulusci.core.keychain.EnvironmentProjectKeychain
 
 # Clone the CumulusCI-Test repo to run test builds against it with cci
 echo "------------------------------------------"
