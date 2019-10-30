@@ -84,7 +84,7 @@ class OrgConfig(BaseConfig):
                 "GET",
                 "https://{}/services/data".format(self.salesforce_client.sf_instance),
             )
-            self._latest_api_version = float(response.json()[-1]["version"])
+            self._latest_api_version = str(response.json()[-1]["version"])
         return self._latest_api_version
 
     @property

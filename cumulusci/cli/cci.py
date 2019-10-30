@@ -894,9 +894,8 @@ def org_info(config, org_name, print_json):
             "username",
         ]
         keys = [key for key in org_config.config.keys() if key in UI_KEYS]
-        keys.sort()
         pairs = [[key, str(org_config.config[key])] for key in keys]
-        pairs.append(["release", str(org_config.latest_api_version)])
+        pairs.append(["release", org_config.latest_api_version])
         pairs.sort()
         table_data = [["Key", "Value"]]
         table_data.extend(

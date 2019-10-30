@@ -57,7 +57,7 @@ class Salesforce(object):
         locator file name.
         """
         try:
-            version = int(self.get_latest_api_version())
+            version = int(float(self.get_latest_api_version()))
             locator_module_name = "locators_{}".format(version)
 
         except RobotNotRunningError:

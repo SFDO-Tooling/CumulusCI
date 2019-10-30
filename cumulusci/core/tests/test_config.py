@@ -1019,11 +1019,13 @@ class TestOrgConfig(unittest.TestCase):
     @responses.activate
     def test_get_salesforce_version(self):
         responses.add(
-            "GET", f"https://na01.salesforce.com/services/data", json=[{"version": 42}]
+            "GET",
+            f"https://na01.salesforce.com/services/data",
+            json=[{"version": 42.0}],
         )
         config = OrgConfig({"instance_url": "https://na01.salesforce.com"}, "test")
         config.access_token = "TOKEN"
-        assert config.latest_api_version == 42
+        assert config.latest_api_version == "42.0"
 
     def test_start_url(self):
         config = OrgConfig(
