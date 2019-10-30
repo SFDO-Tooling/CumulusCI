@@ -25,8 +25,10 @@ echo "------------------------------------------"
 # Start TAP output
 #echo "1...3"
 
+export CUMULUSCI_KEYCHAIN_CLASS=cumulusci.core.keychain.EnvironmentProjectKeychain
+
 # Create dev org
-coverage run --append `which cci` org info dev | tee cci.log
+coverage run --append `which cci` org info dev > cci.log
 coverage run --append `which cci` org default dev | tee cci.log
 
 # Run CumulusCI Library Tests
@@ -56,32 +58,12 @@ if [ "$exit_status" == "0" ]; then
     echo "ok 3 - Successfully ran Salesforce Robot Library UI"
 else
     echo "not ok 3 - Failed Salesforce Robot Library UI: `tail -1 cci.log`"
-    # FIXME: Not making the UI tests required at this point until they are fully stable
-    #failed=1
+    failed=1
 fi
 
 # Delete the scratch org
 coverage run --append `which cci` org scratch_delete dev | tee cci.log
 
-
-# For feature branches, skip running the CumulusCI-Test flows if there is not an open PR unless the last commit message contains [run CumulusCI-Test]
-if [ "$HEROKU_TEST_RUN_BRANCH" != "master" ] &&\
-   [[ "$HEROKU_TEST_RUN_BRANCH" == feature/* ]]; then
-    echo "Checking for open pull request to determine next testing steps"
-    pr=`python scripts/has_open_pr.py "$HEROKU_TEST_RUN_BRANCH"`
-    git log -n 1 | grep '\[run CumulusCI-Test\]' > /dev/null
-    exit_status=$?
-    if [ "$pr" == "" ] && [ "$exit_status" != "0" ]; then
-        # If there is not an open PR, don't run the CumulusCI-Test flows
-        coveralls
-        exit $failed
-    fi
-fi
-if [ "$failed" == "1" ]; then
-    exit $failed
-fi
-
-export CUMULUSCI_KEYCHAIN_CLASS=cumulusci.core.keychain.EnvironmentProjectKeychain
 
 # Clone the CumulusCI-Test repo to run test builds against it with cci
 echo "------------------------------------------"
