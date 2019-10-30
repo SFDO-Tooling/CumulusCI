@@ -455,6 +455,21 @@ class TestLoadDataWithSFIds(unittest.TestCase):
             ),
         )
 
+        fields["RecordTypeId"] = "recordtypeid"
+        fields["AccountSite"] = "accountsite"
+
+        self.assertEqual(
+            ["Id", "Name", "AccountSite", "Industry", "RecordTypeId"],
+            task._get_columns(
+                {
+                    "sf_object": "Account",
+                    "action": "update",
+                    "fields": fields,
+                    "static": {"Industry": "Technology"},
+                }
+            ),
+        )
+
     def test_get_statics(self):
         task = _make_task(
             bulkdata.LoadData,
@@ -1439,7 +1454,7 @@ class TestMappingGenerator(unittest.TestCase):
         t = _make_task(bulkdata.GenerateMapping, {"options": {"path": "mapping.yaml"}})
         t.project_config.project__package__api_version = "45.0"
         describe_data = {
-            "Account": {
+            "Parent": {
                 "fields": [self._mock_field("Id"), self._mock_field("Custom__c")]
             },
             "Child__c": {
@@ -1448,7 +1463,7 @@ class TestMappingGenerator(unittest.TestCase):
                     self._mock_field(
                         "Account__c",
                         field_type="reference",
-                        referenceTo=["Account"],
+                        referenceTo=["Parent"],
                         relationshipOrder=None,
                     ),
                 ]
@@ -1462,17 +1477,15 @@ class TestMappingGenerator(unittest.TestCase):
             with open("mapping.yaml", "r") as fh:
                 content = ordered_yaml_load(fh)
 
+            self.assertEqual(["Insert Parent", "Insert Child__c"], list(content.keys()))
+            self.assertEqual("Parent", t.mapping["Insert Parent"]["sf_object"])
+            self.assertEqual("parent", t.mapping["Insert Parent"]["table"])
             self.assertEqual(
-                ["Insert Account", "Insert Child__c"], list(content.keys())
+                ["Id", "Custom__c"], list(t.mapping["Insert Parent"]["fields"].keys())
             )
-            self.assertEqual("Account", t.mapping["Insert Account"]["sf_object"])
-            self.assertEqual("account", t.mapping["Insert Account"]["table"])
+            self.assertEqual("sf_id", t.mapping["Insert Parent"]["fields"]["Id"])
             self.assertEqual(
-                ["Id", "Custom__c"], list(t.mapping["Insert Account"]["fields"].keys())
-            )
-            self.assertEqual("sf_id", t.mapping["Insert Account"]["fields"]["Id"])
-            self.assertEqual(
-                "custom__c", t.mapping["Insert Account"]["fields"]["Custom__c"]
+                "custom__c", t.mapping["Insert Parent"]["fields"]["Custom__c"]
             )
 
             self.assertEqual("Child__c", t.mapping["Insert Child__c"]["sf_object"])
@@ -1485,8 +1498,7 @@ class TestMappingGenerator(unittest.TestCase):
             )
             self.assertEqual("sf_id", t.mapping["Insert Child__c"]["fields"]["Id"])
             self.assertEqual(
-                "account",
-                t.mapping["Insert Child__c"]["lookups"]["Account__c"]["table"],
+                "parent", t.mapping["Insert Child__c"]["lookups"]["Account__c"]["table"]
             )
 
     @responses.activate

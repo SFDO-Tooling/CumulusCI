@@ -193,7 +193,7 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
 
         if mapping["action"] == "insert" and "Id" in columns:
             columns.remove("Id")
-        if mapping.get("record_type") or "RecordTypeId" in mapping["fields"]:
+        if mapping.get("record_type") or "RecordTypeId" in mapping.get("fields", {}):
             columns.append("RecordTypeId")
 
         return columns
