@@ -25,14 +25,14 @@ def sfdx(
     command = "sfdx {}".format(command)
     if args is not None:
         for arg in args:
-            command += " " + sarge.shell_format(arg)
+            command += " " + sarge.shell_quote(arg)
     if username:
         command += sarge.shell_format(" -u {0}", username)
     if log_note:
         logger.info("{} with command: {}".format(log_note, command))
     # Avoid logging access token
     if access_token:
-        command += " -u " + sarge.shell_format(access_token)
+        command += sarge.shell_format(" -u {0}", access_token)
     p = sarge.Command(
         command,
         stdout=sarge.Capture(buffer_size=-1) if capture_output else None,

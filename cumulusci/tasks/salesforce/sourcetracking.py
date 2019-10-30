@@ -129,6 +129,10 @@ class RetrieveChanges(ListChanges, BaseSalesforceApiTask):
 
     def _init_options(self, kwargs):
         super(RetrieveChanges, self)._init_options(kwargs)
+        self.options["snapshot"] = process_bool_arg(kwargs.get("snapshot", True))
+
+        # XXX set default path to src for mdapi format,
+        # or the default package directory from sfdx-project.json for dx format
 
         if "api_version" not in self.options:
             self.options[
@@ -142,41 +146,57 @@ class RetrieveChanges(ListChanges, BaseSalesforceApiTask):
             self.logger.info("No changes to retrieve")
             return
 
+        # Determine whether we're retrieving sfdx format based on
+        # whether the directory is in packageDirectories in sfdx-project.json
+        md_format = True
+        if os.path.exists("sfdx-project.json"):
+            with open("sfdx-project.json", "r") as f:
+                sfdx_project = json.load(f)
+                if "packageDirectories" in sfdx_project and any(
+                    d["path"] == self.options["path"]
+                    for d in sfdx_project["packageDirectories"]
+                ):
+                    md_format = False
         target = os.path.realpath(self.options["path"])
-        # If there's a package.xml, it must be metadata format
-        md_format = os.path.exists(os.path.join(target, "package.xml"))
 
         with contextlib.ExitStack() as stack:
             # Temporarily convert metadata format to DX format
             if md_format:
                 stack.enter_context(temporary_dir())
                 os.mkdir("target")
+                # We need to create sfdx-project.json
+                # so that sfdx will recognize force-app as a package directory.
                 with open("sfdx-project.json", "w") as f:
                     json.dump(
-                        {"packageDirectories": [{"path": "target", "default": True}]}, f
+                        {
+                            "packageDirectories": [
+                                {"path": "force-app", "default": True}
+                            ]
+                        },
+                        f,
                     )
-                # sfdx(
-                #     "force:mdapi:convert",
-                #     log_note="Converting to DX format",
-                #     args=["-r", target, "-d", retrieve_path],
-                #     capture_output=False,
-                #     check_return=True,
-                # )
+                sfdx(
+                    "force:mdapi:convert",
+                    log_note="Converting to DX format",
+                    args=["-r", target, "-d", "force-app"],
+                    capture_output=False,
+                    check_return=True,
+                )
 
             # Construct package.xml with components to retrieve, in its own tempdir
-            self._write_manifest(changes)
+            package_xml_path = stack.enter_context(temporary_dir(chdir=False))
+            self._write_manifest(changes, path=package_xml_path)
 
             # Retrieve specified components in DX format
             sfdx(
                 "force:source:retrieve",
-                # Using access token instead of username so it works with persistent orgs too
                 access_token=self.org_config.access_token,
                 log_note="Retrieving components",
                 args=[
                     "-a",
                     str(self.options["api_version"]),
                     "-x",
-                    "package.xml",
+                    os.path.join(package_xml_path, "package.xml"),
                     "-w",
                     "5",
                 ],
@@ -186,11 +206,8 @@ class RetrieveChanges(ListChanges, BaseSalesforceApiTask):
             )
 
             # Convert back to metadata format
-            import pdb
-
-            pdb.set_trace()
             if md_format:
-                args = ["-r", "target", "-d", target]
+                args = ["-r", "force-app", "-d", target]
                 if (
                     self.options["path"] == "src"
                     and self.project_config.project__package__name
@@ -203,12 +220,15 @@ class RetrieveChanges(ListChanges, BaseSalesforceApiTask):
                     capture_output=False,
                     check_return=True,
                 )
+                # XXX regenerate package.xml, just to avoid reformatting?
 
             # XXX namespace tokenization?
 
-        # self._store_snapshot()
+        if self.options["snapshot"]:
+            self.logger.info("Storing snapshot of changes")
+            self._store_snapshot()
 
-    def _write_manifest(self, changes):
+    def _write_manifest(self, changes, path):
         type_members = defaultdict(list)
         for change in changes:
             type_members[change["MemberType"]].append(change["MemberName"])
@@ -222,7 +242,7 @@ class RetrieveChanges(ListChanges, BaseSalesforceApiTask):
             ],
         )
         package_xml = generator()
-        with open("package.xml", "w") as f:
+        with open(os.path.join(path, "package.xml"), "w") as f:
             f.write(package_xml)
 
 
