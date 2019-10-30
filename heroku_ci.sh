@@ -1,5 +1,6 @@
 #!/bin/bash
 # This script runs the tests on Heroku CI
+set -x
 
 # Clone the Github repo to the right branch/commit to generate a .git folder for use in /app
 git clone -b "$HEROKU_TEST_RUN_BRANCH" --single-branch https://github.com/SFDO-Tooling/CumulusCI 
@@ -11,7 +12,7 @@ mv CumulusCI/.git .
 failed=0
 
 # Run the CumulusCI Unit Tests
-coverage run `which pytest`
+SFDX_CLIENT_ID="" coverage run `which pytest`
 exit_status=$?
 if [ "$exit_status" != "0" ]; then
     failed=1
