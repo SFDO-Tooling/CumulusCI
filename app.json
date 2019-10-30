@@ -2,15 +2,23 @@
   "environments": {
     "test": {
       "buildpacks": [
-        {"url": "heroku/python"},
-        {"url": "https://github.com/SalesforceFoundation/simple-salesforce-dx-buildpack.git"},
-        {"url": "https://github.com/heroku/heroku-buildpack-google-chrome"},
-        {"url": "https://github.com/heroku/heroku-buildpack-chromedriver"}
+        {
+          "url": "heroku/python"
+        },
+        {
+          "url": "https://github.com/SalesforceFoundation/simple-salesforce-dx-buildpack.git"
+        },
+        {
+          "url": "https://github.com/heroku/heroku-buildpack-google-chrome"
+        },
+        {
+          "url": "https://github.com/heroku/heroku-buildpack-chromedriver"
+        }
       ],
       "formation": {
         "test": {
           "quantity": 1,
-          "size": "standard-1x"
+          "size": "performance-m"
         }
       },
       "scripts": {
