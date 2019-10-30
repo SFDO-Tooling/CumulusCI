@@ -1,6 +1,5 @@
 #!/bin/bash
 # This script runs the tests on Heroku CI
-set -x
 
 # Clone the Github repo to the right branch/commit to generate a .git folder for use in /app
 git clone -b "$HEROKU_TEST_RUN_BRANCH" --single-branch https://github.com/SFDO-Tooling/CumulusCI 
