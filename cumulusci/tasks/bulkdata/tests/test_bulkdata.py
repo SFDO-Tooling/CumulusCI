@@ -6,19 +6,20 @@ import os
 import shutil
 import unicodecsv
 import unittest
+
 from sqlalchemy import Column
 from sqlalchemy import Table
 from sqlalchemy import types
 from sqlalchemy import Unicode
 from unittest import mock
 import responses
+import yaml
 
 from cumulusci.core.config import BaseGlobalConfig
 from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.exceptions import BulkDataException
 from cumulusci.core.keychain import BaseProjectKeychain
-from cumulusci.core.utils import ordered_yaml_load
 from cumulusci.tasks import bulkdata
 from cumulusci.tests.util import DummyOrgConfig
 from cumulusci.utils import temporary_dir
@@ -1475,7 +1476,7 @@ class TestMappingGenerator(unittest.TestCase):
             t()
 
             with open("mapping.yaml", "r") as fh:
-                content = ordered_yaml_load(fh)
+                content = yaml.safe_load(fh)
 
             self.assertEqual(["Insert Parent", "Insert Child__c"], list(content.keys()))
             self.assertEqual("Parent", t.mapping["Insert Parent"]["sf_object"])

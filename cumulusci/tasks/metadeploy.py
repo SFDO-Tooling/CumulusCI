@@ -9,6 +9,7 @@ from cumulusci.core.flowrunner import FlowCoordinator
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.utils import download_extract_github
+from cumulusci.utils import cd
 from cumulusci.utils import temporary_dir
 
 
@@ -164,13 +165,19 @@ class Publish(BaseMetaDeployTask):
     def _freeze_steps(self, project_config, plan_config):
         steps = plan_config["steps"]
         flow_config = FlowConfig(plan_config)
+        flow_config.project_config = project_config
         flow = FlowCoordinator(project_config, flow_config)
         steps = []
         for step in flow.steps:
-            task = step.task_class(
-                project_config, TaskConfig(step.task_config), name=step.task_name
-            )
-            steps.extend(task.freeze(step))
+            if step.skip:
+                continue
+            with cd(step.project_config.repo_root):
+                task = step.task_class(
+                    step.project_config,
+                    TaskConfig(step.task_config),
+                    name=step.task_name,
+                )
+                steps.extend(task.freeze(step))
         return steps
 
     def _find_product(self):

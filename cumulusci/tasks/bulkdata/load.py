@@ -1,13 +1,14 @@
 import datetime
 import os
 import io
-import unicodecsv
 
 from collections import defaultdict
 from salesforce_bulk.util import IteratorBytesIO
 from sqlalchemy import Column, MetaData, Table, Unicode, create_engine, text
 from sqlalchemy.orm import aliased, Session
 from sqlalchemy.ext.automap import automap_base
+import unicodecsv
+import yaml
 
 from cumulusci.core.exceptions import BulkDataException
 from cumulusci.core.exceptions import TaskOptionsError
@@ -17,7 +18,7 @@ from cumulusci.tasks.bulkdata.utils import (
     download_file,
 )
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
-from cumulusci.core.utils import ordered_yaml_load, process_bool_arg
+from cumulusci.core.utils import process_bool_arg
 
 from cumulusci.utils import os_friendly_path
 
@@ -435,7 +436,7 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
 
     def _init_mapping(self):
         with open(self.options["mapping"], "r") as f:
-            self.mapping = ordered_yaml_load(f)
+            self.mapping = yaml.safe_load(f)
 
     def _expand_mapping(self):
         # Expand the mapping to handle dependent lookups
