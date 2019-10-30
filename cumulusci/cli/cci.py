@@ -133,8 +133,7 @@ def handle_exception_debug(config, debug, throw_exception=None, no_prompt=None):
         else:
             handle_sentry_event(config, no_prompt)
             raise
-
-
+        
 def render_recursive(data, indent=None):
     if indent is None:
         indent = 0
@@ -834,7 +833,7 @@ def org_connect(config, org_name, sandbox, login_url, default, global_org):
     if default:
         config.keychain.set_default_org(org_name)
         click.echo(f"{org_name} is now the default org")
-        
+
     org_config.refresh_oauth_token(config.keychain)
     config.keychain.set_org(org_config,global_org)
     click.echo(f"Added {org_name} to your keychain")
