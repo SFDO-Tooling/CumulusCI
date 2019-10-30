@@ -15,9 +15,12 @@ from cumulusci.core.exceptions import ConfigError
 from cumulusci.core.exceptions import DependencyResolutionError
 from cumulusci.core.exceptions import KeychainNotFound
 from cumulusci.core.exceptions import FlowNotFoundError
+from cumulusci.core.exceptions import NamespaceNotFoundError
 from cumulusci.core.exceptions import SalesforceCredentialsException
 from cumulusci.core.exceptions import TaskNotFoundError
+from cumulusci.core.source import LocalFolderSource
 from cumulusci.utils import temporary_dir
+from cumulusci.utils import touch
 
 
 class TestBaseConfig(unittest.TestCase):
@@ -826,6 +829,62 @@ class TestBaseProjectConfig(unittest.TestCase):
                     "tag": "bogus",
                 }
             )
+
+    def test_get_task__included_source(self):
+        global_config = BaseGlobalConfig()
+        with temporary_dir() as d:
+            touch("cumulusci.yml")
+            project_config = BaseProjectConfig(
+                global_config, {"sources": {"test": {"path": d}}}
+            )
+            task_config = project_config.get_task("test:log")
+        assert task_config.project_config is not project_config
+        assert isinstance(task_config.project_config.source, LocalFolderSource)
+
+    def test_get_flow__included_source(self):
+        global_config = BaseGlobalConfig()
+        with temporary_dir() as d:
+            touch("cumulusci.yml")
+            project_config = BaseProjectConfig(
+                global_config, {"sources": {"test": {"path": d}}}
+            )
+            flow_config = project_config.get_flow("test:dev_org")
+        assert flow_config.project_config is not project_config
+        assert isinstance(flow_config.project_config.source, LocalFolderSource)
+
+    def test_get_namespace__not_found(self):
+        global_config = BaseGlobalConfig()
+        project_config = BaseProjectConfig(global_config)
+        with self.assertRaises(NamespaceNotFoundError):
+            project_config.get_namespace("test")
+
+    def test_include_source__cached(self):
+        global_config = BaseGlobalConfig()
+        project_config = BaseProjectConfig(global_config)
+        with temporary_dir() as d:
+            touch("cumulusci.yml")
+            other1 = project_config.include_source({"path": d})
+            other2 = project_config.include_source({"path": d})
+        assert other1 is other2
+
+    @mock.patch("cumulusci.core.config.project_config.GitHubSource")
+    def test_include_source__github(self, source):
+        source.return_value = expected_result = mock.Mock()
+        global_config = BaseGlobalConfig()
+        project_config = BaseProjectConfig(global_config)
+        other_config = project_config.include_source({"github": "foo/bar"})
+        assert other_config.source is expected_result
+
+    def test_include_source__unknown(self):
+        global_config = BaseGlobalConfig()
+        project_config = BaseProjectConfig(global_config)
+        with self.assertRaises(Exception):
+            project_config.include_source({"foo": "bar"})
+
+    def test_relpath(self):
+        global_config = BaseGlobalConfig()
+        project_config = BaseProjectConfig(global_config)
+        assert project_config.relpath(os.path.abspath(".")) == "."
 
 
 class TestBaseTaskFlowConfig(unittest.TestCase):

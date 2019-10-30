@@ -263,7 +263,7 @@ class TestUpdateDependencies(unittest.TestCase):
                 ]
             },
         )
-        step = StepSpec(1, "test_task", task.task_config, None)
+        step = StepSpec(1, "test_task", task.task_config, None, task.project_config)
         steps = task.freeze(step)
         self.assertEqual(
             [
@@ -273,6 +273,7 @@ class TestUpdateDependencies(unittest.TestCase):
                     "name": "Install Test Product",
                     "path": "test_task.1",
                     "step_num": "1.1",
+                    "source": None,
                     "task_class": None,
                     "task_config": {
                         "options": {
@@ -292,6 +293,7 @@ class TestUpdateDependencies(unittest.TestCase):
                     "name": "Deploy src",
                     "path": "test_task.2",
                     "step_num": "1.2",
+                    "source": None,
                     "task_class": None,
                     "task_config": {
                         "options": {

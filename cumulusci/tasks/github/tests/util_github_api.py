@@ -190,6 +190,14 @@ class GithubApiTestMixin(object):
             "url": "",
         }
 
+    def _get_expected_ref(self, ref, sha, type="commit"):
+        return {
+            "ref": f"refs/{ref}",
+            "object": {"type": "commit", "sha": sha, "url": ""},
+            "name": ref,
+            "url": "",
+        }
+
     def _get_expected_repo_tag(self, tag, sha):
         return {
             "name": tag,
