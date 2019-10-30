@@ -33,3 +33,6 @@ pip-wheel-metadata
 .mypy_cache/
 /docs/_build
 *~
+.cci
+results_junit.xml
+test_results.json
