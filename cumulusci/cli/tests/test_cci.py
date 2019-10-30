@@ -622,10 +622,10 @@ class TestCCI(unittest.TestCase):
             cli_tbl.assert_called_with(
                 [
                     ["Key", "Value"],
+                    ["\x1b[1mapi_version\x1b[0m", "42.0"],
                     ["\x1b[1mdays\x1b[0m", "1"],
                     ["\x1b[1mdefault\x1b[0m", "True"],
                     ["\x1b[1mpassword\x1b[0m", "None"],
-                    ["\x1b[1mapi_version\x1b[0m", "42.0"],
                 ],
                 wrap_cols=["Value"],
             )
