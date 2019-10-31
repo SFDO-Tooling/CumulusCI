@@ -9,7 +9,6 @@ import shutil
 import sys
 import time
 import webbrowser
-import io
 
 from contextlib import contextmanager
 
@@ -34,7 +33,7 @@ from cumulusci.core.exceptions import ScratchOrgException
 from cumulusci.core.exceptions import ServiceNotConfigured
 from cumulusci.core.exceptions import FlowNotFoundError
 
-from cumulusci.core.sfdx import sfdx
+# from cumulusci.core.sfdx import sfdx
 from cumulusci.core.utils import import_global
 from cumulusci.cli.config import CliRuntime
 from cumulusci.cli.config import get_installed_version
@@ -133,7 +132,8 @@ def handle_exception_debug(config, debug, throw_exception=None, no_prompt=None):
         else:
             handle_sentry_event(config, no_prompt)
             raise
-        
+
+
 def render_recursive(data, indent=None):
     if indent is None:
         indent = 0
@@ -798,7 +798,7 @@ def org_connect(config, org_name, sandbox, login_url, default, global_org):
     connected_app = config.keychain.get_service("connected_app")
     if sandbox:
         login_url = "https://test.salesforce.com"
-    
+
     oauth_capture = CaptureSalesforceOAuth(
         client_id=connected_app.client_id,
         client_secret=connected_app.client_secret,
@@ -807,37 +807,39 @@ def org_connect(config, org_name, sandbox, login_url, default, global_org):
         scope="web full refresh_token",
     )
     oauth_dict = oauth_capture()
-    # if sandbox:
-    #     org_config = ScratchOrgConfig(oauth_dict, org_name)
-    # else:
-    #     org_config = OrgConfig(oauth_dict, org_name)
-    #     org_config.load_userinfo()
-    #   unsure whether this logic is sound due to the fact that trialforce orgs are sandboxes
-    #   Need to validate this with someone. <-------------------***********NOTE***************
-    
     org_config = OrgConfig(oauth_dict, org_name)
     org_config.load_userinfo()
-    if sandbox:
-        username = str(vars(org_config)["config"]["userinfo"]["preferred_username"])
-        result = sfdx(f"force:org:display -u {username}" )
-        config_value = (
-            io.TextIOWrapper(result.stdout, encoding=sys.stdout.encoding).read()
-        )
-        parsed = config_value.split("\n")
-        # skipping first two header rows
-        for i in range(3,len(parsed)-1):
-            value = parsed[i].split(' ')
-            if value[0].lower() == "expiration" and value[len(value)-1] != '':
-                org_config = ScratchOrgConfig(oauth_dict,org_name)
-                org_config.config.update({"username": username}) 
+    org_config._load_orginfo()
+    # for i in org_config.organization_sobject:
+    #     print(i, org_config.organization_sobject[i])
+    if org_config.organization_sobject["IsSandbox"]:
+        # confirmed org is scratch org
+        if org_config.organization_sobject["TrialExpirationDate"]:
+            # print(
+            #     org_config.organization_sobject["IsSandbox"],
+            #     org_config.organization_sobject["TrialExpirationDate"],
+            # )
+            org_config = ScratchOrgConfig(oauth_dict, org_name)
+            org_config.config["scratch"] = True
+            # inserting username was. Failing with gack if i didn't - JK
+            org_config.config.update(
+                {"username": org_config.config["userinfo"]["preferred_username"]}
+            )
+            # print(vars(org_config))
+            print(f"force://{org_config.refresh_token}@{org_config.instance_url}")
+        else:
+            # Unsure of this case below. I believe a sandbox that is
+            # not a scratch org is a trialforce org.
+            click.echo("Connecting as a trialforce org")
+    else:
+        click.echo("Not a sandbox or scratch org, connecting as a persistent org.")
+
     if default:
         config.keychain.set_default_org(org_name)
         click.echo(f"{org_name} is now the default org")
 
-    org_config.refresh_oauth_token(config.keychain)
-    config.keychain.set_org(org_config,global_org)
+    config.keychain.set_org(org_config, global_org)
     click.echo(f"Added {org_name} to your keychain")
-    
 
     # keys = [key for key in org_config.config.keys() ]
     # keys.sort()
