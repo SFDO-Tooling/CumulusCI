@@ -1,7 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<!-- Read this before creating packages: https://chocolatey.org/docs/create-packages -->
-<!-- It is especially important to read the above link to understand additional requirements when publishing packages to the community feed aka dot org (https://chocolatey.org/packages). -->
-
+﻿<?xml version="1.0" encoding="utf-8" ?>
 <!-- Test your packages in a test environment: https://github.com/chocolatey/chocolatey-test-environment -->
 
 <!--
@@ -19,29 +16,20 @@ This is a nuspec. It mostly adheres to https://docs.nuget.org/create/Nuspec-Refe
 <package xmlns="http://schemas.microsoft.com/packaging/2015/06/nuspec.xsd">
   <metadata>
     <!-- == PACKAGE SPECIFIC SECTION == -->
-    <!-- This section is about this package, although id and version have ties back to the software -->
-    <!-- id is lowercase and if you want a good separator for words, use '-', not '.'. Dots are only acceptable as suffixes for certain types of packages, e.g. .install, .portable, .extension, .template -->
-    <!-- If the software is cross-platform, attempt to use the same id as the debian/rpm package(s) if possible. -->
     <id>cumulusci</id>
-    <!-- version should MATCH as closely as possible with the underlying software -->
-    <!-- Is the version a prerelease of a version? https://docs.nuget.org/create/versioning#creating-prerelease-packages -->
-    <!-- Note that unstable versions like 0.0.1 can be considered a released version, but it's possible that one can release a 0.0.1-beta before you release a 0.0.1 version. If the version number is final, that is considered a released version and not a prerelease. -->
     <version>3.0.2</version>
-    <!-- <packageSourceUrl>Where is this Chocolatey package located (think GitHub)? packageSourceUrl is highly recommended for the community feed</packageSourceUrl>-->
-    <!-- owners is a poor name for maintainers of the package. It sticks around by this name for compatibility reasons. It basically means you. -->
+    <packageSourceUrl>https://github.com/SFDO-Tooling/CumulusCI</packageSourceUrl>
     <owners>SFDO-Tooling</owners>
     <!-- ============================== -->
 
     <!-- == SOFTWARE SPECIFIC SECTION == -->
-    <!-- This section is about the software itself -->
     <title>cumulusci (Install)</title>
     <authors>Jason Lantz,Christian Carter,David Glick,James Estevez,David Reed,Bryan Oakley,Brandon Parker,Joshua Kofsky</authors>
-    <!-- projectUrl is required for the community feed -->
     <projectUrl>https://github.com/SFDO-Tooling/CumulusCI</projectUrl>
     <!--<iconUrl>http://cdn.rawgit.com/SFDO-Tooling/CumulusCI/master/icons/cumulusci.png</iconUrl>-->
-    <!-- If there is a license Url available, it is required for the community feed -->
     <licenseUrl>https://github.com/SFDO-Tooling/CumulusCI/blob/master/LICENSE</licenseUrl>
-    <requireLicenseAcceptance>true</requireLicenseAcceptance>-->
+    <requireLicenseAcceptance>true</requireLicenseAcceptance>
+    -->
     <docsUrl>cumulusci.readthedocs.io</docsUrl>
     <tags>cumulusci salesforce</tags>
     <summary>CumulusCI is a command line toold belt and set of reusable Python classes useful in the development and release process of building a Salesforce Managed Package application.</summary>
@@ -49,7 +37,7 @@ This is a nuspec. It mostly adheres to https://docs.nuget.org/create/Nuspec-Refe
 * Flexible and pluggable system for running tasks (single actions) and flows (sequences of tasks)
 * OAuth based org keychain allowing easy connection to Salesforce orgs and stored in local files using AES encryption</description>
     <releaseNotes>Please check https://pypi.org/project/cumulusci/ for chang notes.</releaseNotes>
-    <!-- =============================== -->      
+    <!-- =============================== -->
 
     <!-- Specifying dependencies and version ranges? https://docs.nuget.org/create/versioning#specifying-version-ranges-in-.nuspec-files -->
     <!--<dependencies>
@@ -71,8 +59,6 @@ This is a nuspec. It mostly adheres to https://docs.nuget.org/create/Nuspec-Refe
     <!--<replaces>NOT YET IMPLEMENTED</replaces>-->
   </metadata>
   <files>
-    <!-- this section controls what actually gets packaged into the Chocolatey package -->
     <file src="tools\**" target="tools" />
-    <!--Building from Linux? You may need this instead: <file src="tools/**" target="tools" />-->
   </files>
 </package>
