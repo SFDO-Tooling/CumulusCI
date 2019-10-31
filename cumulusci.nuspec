@@ -17,14 +17,14 @@ This is a nuspec. It mostly adheres to https://docs.nuget.org/create/Nuspec-Refe
   <metadata>
     <id>cumulusci</id>
     <version>3.0.2</version>
-    <packageSourceUrl>https://github.com/SFDO-Tooling/CumulusCI</packageSourceUrl>
+    <packageSourceUrl>https://www.github.com/SFDO-Tooling/CumulusCI</packageSourceUrl>
     <owners>SFDO-Tooling</owners>
     <title>cumulusci (Install)</title>
     <authors>Jason Lantz,Christian Carter,David Glick,James Estevez,David Reed,Bryan Oakley,Brandon Parker,Joshua Kofsky</authors>
-    <projectUrl>https://github.com/SFDO-Tooling/CumulusCI</projectUrl>
-    <licenseUrl>https://github.com/SFDO-Tooling/CumulusCI/blob/master/LICENSE</licenseUrl>
+    <projectUrl>https://www.github.com/SFDO-Tooling/CumulusCI</projectUrl>
+    <licenseUrl>https://www.github.com/SFDO-Tooling/CumulusCI/blob/master/LICENSE</licenseUrl>
     <requireLicenseAcceptance>true</requireLicenseAcceptance>
-    <docsUrl>cumulusci.readthedocs.io</docsUrl>
+    <docsUrl>https://cumulusci.readthedocs.io</docsUrl>
     <tags>cumulusci salesforce</tags>
     <summary>CumulusCI is a command line tool belt and set of reusable Python classes useful in the development and release process of building a Salesforce Managed Package application.</summary>
     <description>CumulusCI is a command line tool belt and set of reusable Python classes useful in the development and release process of building a Salesforce Managed Package application.</description>
