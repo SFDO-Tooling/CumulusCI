@@ -1,4 +1,5 @@
 import datetime
+import io
 import requests
 import tempfile
 import time
@@ -12,6 +13,7 @@ from sqlalchemy import Column
 from sqlalchemy import Integer
 from sqlalchemy import Table
 from sqlalchemy import Unicode
+from sqlalchemy.orm import mapper
 
 from cumulusci.utils import convert_to_snake_case
 from cumulusci.core.exceptions import BulkDataException
@@ -65,7 +67,7 @@ def setup_epoch(inspector, table, column_info):
 
 class BulkJobTaskMixin(object):
     def _job_state_from_batches(self, job_id):
-        uri = "{}/job/{}/batch".format(self.bulk.endpoint, job_id)
+        uri = f"{self.bulk.endpoint}/job/{job_id}/batch"
         response = requests.get(uri, headers=self.bulk.headers())
         return self._parse_job_state(response.content)
 
@@ -89,20 +91,16 @@ class BulkJobTaskMixin(object):
         while True:
             job_status = self.bulk.job_status(job_id)
             self.logger.info(
-                "    Waiting for job {} ({}/{})".format(
-                    job_id,
-                    job_status["numberBatchesCompleted"],
-                    job_status["numberBatchesTotal"],
-                )
+                f"    Waiting for job {job_id} ({job_status['numberBatchesCompleted']}/{job_status['numberBatchesTotal']})"
             )
             result, messages = self._job_state_from_batches(job_id)
             if result != "InProgress":
                 break
             time.sleep(10)
-        self.logger.info("Job {} finished with result: {}".format(job_id, result))
+        self.logger.info(f"Job {job_id} finished with result: {result}")
         if result == "Failed":
             for state_message in messages:
-                self.logger.error("Batch failure message: {}".format(state_message))
+                self.logger.error(f"Batch failure message: {state_message}")
 
         return result
 
@@ -112,9 +110,7 @@ class BulkJobTaskMixin(object):
             # to efficiently bulk insert rows in CSV format
             with conn.connection.cursor() as cursor:
                 cursor.copy_expert(
-                    "COPY {} ({}) FROM STDIN WITH (FORMAT CSV)".format(
-                        table, ",".join(columns)
-                    ),
+                    f"COPY {table} ({','.join(columns)}) FROM STDIN WITH (FORMAT CSV)",
                     data_file,
                 )
         else:
@@ -127,6 +123,31 @@ class BulkJobTaskMixin(object):
             if rows:
                 conn.execute(table.insert().values(rows))
         self.session.flush()
+
+    def _create_record_type_table(self, table_name):
+        rt_map_model_name = f"{table_name}Model"
+        self.models[table_name] = type(rt_map_model_name, (object,), {})
+        rt_map_fields = [
+            Column("record_type_id", Unicode(18), primary_key=True),
+            Column("developer_name", Unicode(255)),
+        ]
+        rt_map_table = Table(table_name, self.metadata, *rt_map_fields)
+        mapper(self.models[table_name], rt_map_table)
+
+    def _extract_record_types(self, sobject, table, conn):
+        self.logger.info(f"Extracting Record Types for {sobject}")
+        query = (
+            f"SELECT Id, DeveloperName FROM RecordType WHERE SObjectType='{sobject}'"
+        )
+        data_file = io.BytesIO()
+        writer = unicodecsv.writer(data_file)
+        for rt in self.sf.query(query)["records"]:
+            writer.writerow([rt["Id"], rt["DeveloperName"]])
+        data_file.seek(0)
+
+        self._sql_bulk_insert_from_csv(
+            conn, table, ["record_type_id", "developer_name"], data_file
+        )
 
 
 def _handle_primary_key(mapping, fields):
@@ -160,7 +181,7 @@ def create_table(mapping, metadata):
         fields.append(Column("record_type", Unicode(255)))
     t = Table(mapping["table"], metadata, *fields)
     if t.exists():
-        raise BulkDataException("Table already exists: {}".format(mapping["table"]))
+        raise BulkDataException(f"Table already exists: {mapping['table']}")
     return t
 
 

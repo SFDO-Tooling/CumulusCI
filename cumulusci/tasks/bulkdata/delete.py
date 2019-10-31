@@ -41,7 +41,7 @@ class DeleteData(BaseSalesforceApiTask, BulkJobTaskMixin):
 
     def _run_task(self):
         for obj in self.options["objects"]:
-            self.logger.info("Deleting ".format(self._object_description(obj)))
+            self.logger.info(f"Deleting {self._object_description(obj)} ")
             delete_job = self._create_job(obj, self.options["where"])
             if delete_job is not None:
                 self._wait_for_job(delete_job)
@@ -50,36 +50,36 @@ class DeleteData(BaseSalesforceApiTask, BulkJobTaskMixin):
         # Query for rows to delete
         delete_rows = self._query_salesforce_for_records_to_delete(obj, where)
         if not delete_rows:
-            self.logger.info("  No {} objects found, skipping delete".format(obj))
+            self.logger.info(f"  No {obj} objects found, skipping delete")
             return
 
         # Upload all the batches
         operation = "hardDelete" if self.options["hardDelete"] else "delete"
         delete_job = self.bulk.create_job(obj, operation)
-        self.logger.info("  Deleting {} {} records".format(len(delete_rows), obj))
+        self.logger.info(f"  Deleting {len(delete_rows)} {obj} records")
         batch_num = 1
         for batch in self._upload_batches(delete_job, delete_rows):
-            self.logger.info("    Uploaded batch {}".format(batch))
+            self.logger.info(f"    Uploaded batch {batch}")
             batch_num += 1
         self.bulk.close_job(delete_job)
         return delete_job
 
     def compose_query(self, obj, where):
-        query = "SELECT Id FROM {}".format(obj)
+        query = f"SELECT Id FROM {obj}"
         if where:
-            query += " WHERE {}".format(where)
+            query += f" WHERE {where}"
 
         return query
 
     def _object_description(self, obj):
         if self.options["where"]:
-            return '{} objects matching "{}"'.format(obj, self.options["where"])
+            return f'{obj} objects matching "{self.options["where"]}"'
         else:
-            return "all {} objects".format(obj)
+            return f"all {obj} objects"
 
     def _query_salesforce_for_records_to_delete(self, obj, where):
         # Query for all record ids
-        self.logger.info("  Querying for {}".format(self._object_description(obj)))
+        self.logger.info(f"  Querying for {self._object_description(obj)}")
         query_job = self.bulk.create_query_job(obj, contentType="CSV")
         batch = self.bulk.query(query_job, self.compose_query(obj, where))
         while not self.bulk.is_batch_done(batch, query_job):
@@ -98,11 +98,11 @@ class DeleteData(BaseSalesforceApiTask, BulkJobTaskMixin):
             yield data[i : i + batch_size]
 
     def _upload_batches(self, job, data):
-        uri = "{}/job/{}/batch".format(self.bulk.endpoint, job)
+        uri = f"{self.bulk.endpoint}/job/{job}/batch"
         headers = self.bulk.headers({"Content-Type": "text/csv"})
         for batch in self._split_batches(data, 10000):
             rows = ['"Id"']
-            rows += ['"{}"'.format(record["Id"]) for record in batch]
+            rows += [f'"{record["Id"]}"' for record in batch]
             resp = requests.post(uri, data="\n".join(rows), headers=headers)
             content = resp.content
             if resp.status_code >= 400:

@@ -109,6 +109,7 @@ class GenerateMapping(BaseSalesforceApiTask):
         # that our package doesn't own.
         # For standard objects, we include all custom fields, all required standard fields,
         # and master-detail relationships. Required means createable and not nillable.
+        # In all cases, ensure that RecordTypeId is included if and only if there are Record Types
         self.schema = {}
         self.refs = defaultdict(lambda: defaultdict(set))
         for obj in self.mapping_objects:
@@ -132,6 +133,12 @@ class GenerateMapping(BaseSalesforceApiTask):
                                 # included objects, via `_is_field_mappable()`
                                 if target != obj:
                                     self.refs[obj][target].add(field["name"])
+                if (
+                    field["name"] == "RecordTypeId"
+                    and len(self.describes[obj]["recordTypeInfos"]) > 1
+                ):
+                    # "Master" is included even if no RTs.
+                    self.schema[obj][field["name"]] = field
 
     def _build_mapping(self):
         """Output self.schema in mapping file format by constructing a dict and serializing to YAML"""
@@ -146,14 +153,14 @@ class GenerateMapping(BaseSalesforceApiTask):
 
         self.mapping = {}
         for obj in stack:
-            key = "Insert {}".format(obj)
+            key = f"Insert {obj}"
             self.mapping[key] = {}
-            self.mapping[key]["sf_object"] = "{}".format(obj)
-            self.mapping[key]["table"] = "{}".format(obj.lower())
+            self.mapping[key]["sf_object"] = f"{obj}"
+            self.mapping[key]["table"] = f"{obj}"
             fields = []
             lookups = []
             for field in self.schema[obj].values():
-                if field["type"] == "reference":
+                if field["type"] == "reference" and field["name"] != "RecordTypeId":
                     lookups.append(field["name"])
                 else:
                     fields.append(field["name"])
@@ -164,7 +171,7 @@ class GenerateMapping(BaseSalesforceApiTask):
                 fields.sort(key=field_sort)
                 for field in fields:
                     self.mapping[key]["fields"][field] = (
-                        field.lower() if field != "Id" else "sf_id"
+                        field if field != "Id" else "sf_id"
                     )
             if lookups:
                 lookups.sort(key=field_sort)
@@ -175,26 +182,22 @@ class GenerateMapping(BaseSalesforceApiTask):
 
                     if len(referenceTo) > 1:  # Polymorphic lookup
                         self.logger.warning(
-                            "Field {}.{} is a polymorphic lookup, which is not supported".format(
-                                obj, field
-                            )
+                            f"Field {obj}.{field} is a polymorphic lookup, which is not supported"
                         )
                     elif referenceTo[0] == obj:  # Self-lookup
                         self.mapping[key]["lookups"][field] = {
-                            "table": referenceTo[0].lower(),
+                            "table": referenceTo[0],
                             "after": key,
                         }
                     elif stack.index(referenceTo[0]) > stack.index(
                         obj
                     ):  # Dependent lookup
                         self.mapping[key]["lookups"][field] = {
-                            "table": referenceTo[0].lower(),
-                            "after": "Insert {}".format(referenceTo[0]),
+                            "table": referenceTo[0],
+                            "after": f"Insert {referenceTo[0]}",
                         }
                     else:  # Regular lookup
-                        self.mapping[key]["lookups"][field] = {
-                            "table": referenceTo[0].lower()
-                        }
+                        self.mapping[key]["lookups"][field] = {"table": referenceTo[0]}
 
     def _split_dependencies(self, objs, dependencies):
         """Attempt to flatten the object network into a sequence of load operations."""
@@ -218,15 +221,13 @@ class GenerateMapping(BaseSalesforceApiTask):
                 self.logger.info(
                     "CumulusCI needs help to complete the mapping; the schema contains reference cycles and unresolved dependencies."
                 )
-                self.logger.info("Mapped objects: {}".format(", ".join(stack)))
+                self.logger.info(f"Mapped objects: {', '.join(stack)}")
                 self.logger.info("Remaining objects:")
                 for obj in objs_remaining:
                     self.logger.info(obj)
                     for other_obj in dependencies[obj]:
                         self.logger.info(
-                            "   references {} via: {}".format(
-                                other_obj, ", ".join(dependencies[obj][other_obj])
-                            )
+                            f"   references {other_obj} via: {', '.join(dependencies[obj][other_obj])}"
                         )
                 choice = click.prompt(
                     "Which object should we load first?",
@@ -305,8 +306,7 @@ class GenerateMapping(BaseSalesforceApiTask):
         in this operation)."""
         return not any(
             [
-                "{}.{}".format(obj, field["name"])  # User-ignored list
-                in self.options["ignore"],
+                f"{obj}.{field['name']}" in self.options["ignore"],  # User-ignored list
                 "(Deprecated)" in field["label"],  # Deprecated managed fields
                 field["type"] == "base64",  # No Bulk API support for base64 blob fields
                 not field["createable"],  # Non-writeable fields
