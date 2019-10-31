@@ -1,4 +1,9 @@
-# Python CircleCI 2.0 configuration file
+version: 2.1
+
+
+orbs:
+  win: circleci/windows@1.0.0
+
 
 defaults: &defaults
   docker:
@@ -8,8 +13,21 @@ defaults: &defaults
   working_directory: ~/repo
 
 
-version: 2
 jobs:
+  test_windows:
+    executor: win/vs2019
+    steps:
+      - checkout
+      - run:
+          name: Install python3
+          command: choco install python 
+      - run:
+          name: pip install dependencies
+          command: pip install -r requirements_dev.txt
+      - run:
+          name: Run Tests
+          command: pytest
+        
 
   lint:
     <<: *defaults
@@ -244,6 +262,7 @@ workflows:
       - test_py36
       - test_py37
       - test_py38
+      - test_windows
       - test_robot
       - test_release
       - report:
@@ -251,5 +270,6 @@ workflows:
             - test_py36
             - test_py37
             - test_py38
+            - test_windows
             - test_robot
             - test_release

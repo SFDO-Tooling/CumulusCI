@@ -118,3 +118,7 @@ Collection API Errors Test
         set to dictionary   ${record}   Age    Iron
     END
     Run Keyword And Expect Error   SalesforceMalformedRequest*     Salesforce Collection Update  ${objects}
+
+Get Version
+    ${version} =   Get Latest Api Version
+    Should Be True     ${version} > 46

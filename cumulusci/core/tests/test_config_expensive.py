@@ -56,6 +56,9 @@ class TestBaseGlobalConfig(unittest.TestCase):
         self._create_global_config_local(local_yaml)
         mock_class.return_value = self.tempdir_home
 
+        # clear cache
+        BaseGlobalConfig.config = None
+
         config = BaseGlobalConfig()
         with open(__location__ + "/../../cumulusci.yml", "r") as f_expected_config:
             expected_config = yaml.safe_load(f_expected_config)
@@ -373,14 +376,7 @@ class TestScratchOrgConfig(unittest.TestCase):
             "instance_url": "test_instance",
             "access_token": "token",
         }
-        # This is ugly...since ScratchOrgConfig is in a module
-        # with the same name that is imported in cumulusci.core.config's
-        # __init__.py, we have no way to externally grab the
-        # module without going through the function's globals.
-        with mock.patch.dict(
-            ScratchOrgConfig.user_id.fget.__globals__,
-            Salesforce=mock.Mock(return_value=sf),
-        ):
+        with mock.patch("cumulusci.core.config.OrgConfig.salesforce_client", sf):
             self.assertEqual(config.user_id, "test")
 
     def test_username_from_scratch_info(self, Command):

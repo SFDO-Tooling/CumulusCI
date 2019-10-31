@@ -2,6 +2,8 @@ import os
 
 import requests
 
+from simple_salesforce import Salesforce
+
 from cumulusci.core.config import BaseConfig
 from cumulusci.core.exceptions import SalesforceCredentialsException
 from cumulusci.oauth.salesforce import SalesforceOAuth2
@@ -17,6 +19,8 @@ class OrgConfig(BaseConfig):
     def __init__(self, config, name):
         self.name = name
         self._community_info_cache = {}
+        self._client = None
+        self._latest_api_version = None
         super(OrgConfig, self).__init__(config)
 
     def refresh_oauth_token(self, keychain, connected_app=None):
@@ -62,6 +66,26 @@ class OrgConfig(BaseConfig):
     @property
     def lightning_base_url(self):
         return self.instance_url.split(".")[0] + ".lightning.force.com"
+
+    @property
+    def salesforce_client(self):
+        if not self._client:
+            self._client = Salesforce(
+                instance=self.instance_url.replace("https://", ""),
+                session_id=self.access_token,
+                version="45.0",
+            )
+        return self._client
+
+    @property
+    def latest_api_version(self):
+        if not self._latest_api_version:
+            response = self.salesforce_client._call_salesforce(
+                "GET",
+                "https://{}/services/data".format(self.salesforce_client.sf_instance),
+            )
+            self._latest_api_version = str(response.json()[-1]["version"])
+        return self._latest_api_version
 
     @property
     def start_url(self):
