@@ -114,6 +114,18 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             }
         )
 
+        self._validate_config()
+
+    def _validate_config(self):
+        """Performs validation checks on the configuration"""
+        self._validate_package_api_format()
+
+    def _validate_package_api_format(self):
+        api_version = self.config["project"]["package"]["api_version"]
+        if isinstance(api_version, int):
+            message = "Package API Version must be specified as a string ('45.0') not an int (45)."
+            raise ConfigError(message)
+
     @property
     def config_global_local(self):
         return self.global_config_obj.config_global_local
