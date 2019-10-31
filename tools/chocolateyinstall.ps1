@@ -26,7 +26,7 @@ $packageArgs = @{
   url64bit      = $url64
   #file         = $fileLocation
 
-  softwareName  = 'cumulusci-pkg*' #part or all of the Display Name as you see it in Programs and Features. It should be enough to be unique
+  softwareName  = 'cumulusci*' #part or all of the Display Name as you see it in Programs and Features. It should be enough to be unique
 
   # Checksums are now required as of 0.10.0.
   # To determine checksums, you can get that from the original site if provided. 
@@ -149,3 +149,16 @@ Install-ChocolateyPackage @packageArgs # https://chocolatey.org/docs/helpers-ins
 # despite the name "Install-ChocolateyZipPackage" this also works with 7z archives
 #Install-ChocolateyZipPackage "$packageName" "$url" "$installDir" "$url64"
 ## END PORTABLE EXAMPLE
+
+#
+# Install pipx
+#
+#python -m pip install --user pipx
+
+#
+# Append PATH Environment Variable 
+#
+$env:Path += '%USERPROFILE%\AppData\Roaming\Python\Python37\Scripts'
+$env:Path += '%USERPROFILE%\.local\bin'
+
+

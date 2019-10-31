@@ -17,39 +17,24 @@ This is a nuspec. It mostly adheres to https://docs.nuget.org/create/Nuspec-Refe
   <metadata>
     <id>cumulusci</id>
     <version>3.0.2</version>
-    <packageSourceUrl>https://www.github.com/SFDO-Tooling/CumulusCI</packageSourceUrl>
+    <packageSourceUrl>https://www.github.com/SFDO-Tooling/CumulusCI/</packageSourceUrl>
+
     <owners>SFDO-Tooling</owners>
     <title>cumulusci (Install)</title>
     <authors>Jason Lantz,Christian Carter,David Glick,James Estevez,David Reed,Bryan Oakley,Brandon Parker,Joshua Kofsky</authors>
-    <projectUrl>https://www.github.com/SFDO-Tooling/CumulusCI</projectUrl>
+    <projectUrl>https://www.github.com/SFDO-Tooling/CumulusCI/</projectUrl>
     <licenseUrl>https://www.github.com/SFDO-Tooling/CumulusCI/blob/master/LICENSE</licenseUrl>
     <requireLicenseAcceptance>true</requireLicenseAcceptance>
     <docsUrl>https://cumulusci.readthedocs.io</docsUrl>
     <tags>cumulusci salesforce</tags>
     <summary>CumulusCI is a command line tool belt and set of reusable Python classes useful in the development and release process of building a Salesforce Managed Package application.</summary>
-    <description>CumulusCI is a command line tool belt and set of reusable Python classes useful in the development and release process of building a Salesforce Managed Package application.</description>
-
+    <description>Installation path: C</description>
     <releaseNotes>Please check https://pypi.org/project/cumulusci/ for change notes.</releaseNotes>
-    <!-- =============================== -->
 
-    <!-- Specifying dependencies and version ranges? https://docs.nuget.org/create/versioning#specifying-version-ranges-in-.nuspec-files -->
-    <!--<dependencies>
-      <dependency id="" version="__MINIMUM_VERSION__" />
-      <dependency id="" version="[__EXACT_VERSION__]" />
-      <dependency id="" version="[_MIN_VERSION_INCLUSIVE, MAX_VERSION_INCLUSIVE]" />
-      <dependency id="" version="[_MIN_VERSION_INCLUSIVE, MAX_VERSION_EXCLUSIVE)" />
-      <dependency id="" />
-      <dependency id="chocolatey-core.extension" version="1.1.0" />
-    </dependencies>-->
-    <!-- chocolatey-core.extension - https://chocolatey.org/packages/chocolatey-core.extension
-         - You want to use Get-UninstallRegistryKey on less than 0.9.10 (in chocolateyUninstall.ps1)
-         - You want to use Get-PackageParameters and on less than 0.11.0
-         - You want to take advantage of other functions in the core community maintainer's team extension package
-    -->
+    <dependencies>
+      <dependency id="python" version="3.6.0" />
+    </dependencies>
 
-    <!--<provides>NOT YET IMPLEMENTED</provides>-->
-    <!--<conflicts>NOT YET IMPLEMENTED</conflicts>-->
-    <!--<replaces>NOT YET IMPLEMENTED</replaces>-->
   </metadata>
   <files>
     <file src="tools\**" target="tools" />
