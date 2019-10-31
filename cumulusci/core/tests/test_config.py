@@ -2,6 +2,7 @@
 import os
 import unittest
 
+import pytest
 from unittest import mock
 import responses
 
@@ -885,6 +886,12 @@ class TestBaseProjectConfig(unittest.TestCase):
         global_config = BaseGlobalConfig()
         project_config = BaseProjectConfig(global_config)
         assert project_config.relpath(os.path.abspath(".")) == "."
+
+    def test_validate_package_api_version(self):
+        project_config = BaseProjectConfig(BaseGlobalConfig())
+        project_config.config["project"]["package"]["api_version"] = 46
+        with pytest.raises(ConfigError):
+            project_config._validate_package_api_format()
 
 
 class TestBaseTaskFlowConfig(unittest.TestCase):
