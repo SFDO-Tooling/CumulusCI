@@ -1,8 +1,9 @@
 from collections import defaultdict, OrderedDict
 
 import click
+import yaml
 
-from cumulusci.core.utils import ordered_yaml_dump, process_list_arg
+from cumulusci.core.utils import process_list_arg
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 
 
@@ -55,7 +56,7 @@ class GenerateMapping(BaseSalesforceApiTask):
         self.logger.info("Creating mapping schema")
         self._build_mapping()
         with open(self.options["path"], "w") as f:
-            ordered_yaml_dump(self.mapping, f)
+            yaml.dump(self.mapping, f, sort_keys=False)
 
     def _collect_objects(self):
         """Walk the global describe and identify the sObjects we need to include in a minimal operation."""
