@@ -156,7 +156,7 @@ class GenerateMapping(BaseSalesforceApiTask):
             key = f"Insert {obj}"
             self.mapping[key] = {}
             self.mapping[key]["sf_object"] = f"{obj}"
-            self.mapping[key]["table"] = f"{obj.lower()}"
+            self.mapping[key]["table"] = f"{obj}"
             fields = []
             lookups = []
             for field in self.schema[obj].values():
@@ -171,7 +171,7 @@ class GenerateMapping(BaseSalesforceApiTask):
                 fields.sort(key=field_sort)
                 for field in fields:
                     self.mapping[key]["fields"][field] = (
-                        field.lower() if field != "Id" else "sf_id"
+                        field if field != "Id" else "sf_id"
                     )
             if lookups:
                 lookups.sort(key=field_sort)
@@ -186,20 +186,18 @@ class GenerateMapping(BaseSalesforceApiTask):
                         )
                     elif referenceTo[0] == obj:  # Self-lookup
                         self.mapping[key]["lookups"][field] = {
-                            "table": referenceTo[0].lower(),
+                            "table": referenceTo[0],
                             "after": key,
                         }
                     elif stack.index(referenceTo[0]) > stack.index(
                         obj
                     ):  # Dependent lookup
                         self.mapping[key]["lookups"][field] = {
-                            "table": referenceTo[0].lower(),
+                            "table": referenceTo[0],
                             "after": f"Insert {referenceTo[0]}",
                         }
                     else:  # Regular lookup
-                        self.mapping[key]["lookups"][field] = {
-                            "table": referenceTo[0].lower()
-                        }
+                        self.mapping[key]["lookups"][field] = {"table": referenceTo[0]}
 
     def _split_dependencies(self, objs, dependencies):
         """Attempt to flatten the object network into a sequence of load operations."""

@@ -1478,17 +1478,17 @@ class TestMappingGenerator(unittest.TestCase):
 
             self.assertEqual(["Insert Parent", "Insert Child__c"], list(content.keys()))
             self.assertEqual("Parent", t.mapping["Insert Parent"]["sf_object"])
-            self.assertEqual("parent", t.mapping["Insert Parent"]["table"])
+            self.assertEqual("Parent", t.mapping["Insert Parent"]["table"])
             self.assertEqual(
                 ["Id", "Custom__c"], list(t.mapping["Insert Parent"]["fields"].keys())
             )
             self.assertEqual("sf_id", t.mapping["Insert Parent"]["fields"]["Id"])
             self.assertEqual(
-                "custom__c", t.mapping["Insert Parent"]["fields"]["Custom__c"]
+                "Custom__c", t.mapping["Insert Parent"]["fields"]["Custom__c"]
             )
 
             self.assertEqual("Child__c", t.mapping["Insert Child__c"]["sf_object"])
-            self.assertEqual("child__c", t.mapping["Insert Child__c"]["table"])
+            self.assertEqual("Child__c", t.mapping["Insert Child__c"]["table"])
             self.assertEqual(
                 ["Id"], list(t.mapping["Insert Child__c"]["fields"].keys())
             )
@@ -1497,7 +1497,7 @@ class TestMappingGenerator(unittest.TestCase):
             )
             self.assertEqual("sf_id", t.mapping["Insert Child__c"]["fields"]["Id"])
             self.assertEqual(
-                "parent", t.mapping["Insert Child__c"]["lookups"]["Account__c"]["table"]
+                "Parent", t.mapping["Insert Child__c"]["lookups"]["Account__c"]["table"]
             )
 
     @responses.activate
@@ -1740,21 +1740,21 @@ class TestMappingGenerator(unittest.TestCase):
         t._build_mapping()
         self.assertEqual(["Insert Account", "Insert Child__c"], list(t.mapping.keys()))
         self.assertEqual("Account", t.mapping["Insert Account"]["sf_object"])
-        self.assertEqual("account", t.mapping["Insert Account"]["table"])
+        self.assertEqual("Account", t.mapping["Insert Account"]["table"])
         self.assertEqual(
             ["Id", "Name"], list(t.mapping["Insert Account"]["fields"].keys())
         )
         self.assertEqual("sf_id", t.mapping["Insert Account"]["fields"]["Id"])
-        self.assertEqual("name", t.mapping["Insert Account"]["fields"]["Name"])
+        self.assertEqual("Name", t.mapping["Insert Account"]["fields"]["Name"])
         self.assertEqual(
             ["Dependent__c"], list(t.mapping["Insert Account"]["lookups"].keys())
         )
         self.assertEqual(
-            "child__c", t.mapping["Insert Account"]["lookups"]["Dependent__c"]["table"]
+            "Child__c", t.mapping["Insert Account"]["lookups"]["Dependent__c"]["table"]
         )
 
         self.assertEqual("Child__c", t.mapping["Insert Child__c"]["sf_object"])
-        self.assertEqual("child__c", t.mapping["Insert Child__c"]["table"])
+        self.assertEqual("Child__c", t.mapping["Insert Child__c"]["table"])
         self.assertEqual(
             ["Id", "Name"], list(t.mapping["Insert Child__c"]["fields"].keys())
         )
@@ -1763,12 +1763,12 @@ class TestMappingGenerator(unittest.TestCase):
             list(t.mapping["Insert Child__c"]["lookups"].keys()),
         )
         self.assertEqual("sf_id", t.mapping["Insert Child__c"]["fields"]["Id"])
-        self.assertEqual("name", t.mapping["Insert Child__c"]["fields"]["Name"])
+        self.assertEqual("Name", t.mapping["Insert Child__c"]["fields"]["Name"])
         self.assertEqual(
-            "account", t.mapping["Insert Child__c"]["lookups"]["Account__c"]["table"]
+            "Account", t.mapping["Insert Child__c"]["lookups"]["Account__c"]["table"]
         )
         self.assertEqual(
-            "child__c", t.mapping["Insert Child__c"]["lookups"]["Self__c"]["table"]
+            "Child__c", t.mapping["Insert Child__c"]["lookups"]["Self__c"]["table"]
         )
 
     def test_build_mapping__warns_polymorphic_lookups(self):
