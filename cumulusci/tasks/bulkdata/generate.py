@@ -1,4 +1,4 @@
-from collections import defaultdict, OrderedDict
+from collections import defaultdict
 
 import click
 import yaml
@@ -151,7 +151,7 @@ class GenerateMapping(BaseSalesforceApiTask):
             else (" " + f if f in self.core_fields else f)
         )
 
-        self.mapping = OrderedDict()
+        self.mapping = {}
         for obj in stack:
             key = f"Insert {obj}"
             self.mapping[key] = {}
