@@ -5,14 +5,12 @@ from unittest import mock
 
 
 class TestLocators(unittest.TestCase):
-    @mock.patch("cumulusci.robotframework.Salesforce.Salesforce.cumulusci")
-    def test_locators_in_robot_context(self, cumulusci_mock):
+    @mock.patch("cumulusci.robotframework.Salesforce.Salesforce.get_latest_api_version")
+    def test_locators_in_robot_context(self, get_latest_api_version):
         """Verify we can get locators for the current org api version"""
-        cumulusci_mock.tooling._call_salesforce.return_value.json.return_value = [
-            {"version": "45.0"}
-        ]
+        get_latest_api_version.return_value = 45.0
 
-        # This instantiates the robot library, mimicing a robot library import.
+        # This instantiates the robot library, mimicking a robot library import.
         # We've mocked out the code that would otherwise throw an error since
         # we're not running in the context of a robot test. The library should
         # return the latest version of the locators.

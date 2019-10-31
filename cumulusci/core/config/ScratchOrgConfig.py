@@ -4,7 +4,6 @@ import os
 import re
 
 import sarge
-from simple_salesforce import Salesforce
 
 from cumulusci.utils import get_git_config
 from cumulusci.core.sfdx import sfdx
@@ -102,12 +101,7 @@ class ScratchOrgConfig(OrgConfig):
     @property
     def user_id(self):
         if not self.config.get("user_id"):
-            sf = Salesforce(
-                instance=self.instance_url.replace("https://", ""),
-                session_id=self.access_token,
-                version="38.0",
-            )
-            result = sf.query_all(
+            result = self.salesforce_client.query_all(
                 "SELECT Id FROM User WHERE UserName='{}'".format(self.username)
             )
             self.config["user_id"] = result["records"][0]["Id"]

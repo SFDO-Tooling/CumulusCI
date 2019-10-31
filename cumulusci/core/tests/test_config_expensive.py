@@ -373,14 +373,7 @@ class TestScratchOrgConfig(unittest.TestCase):
             "instance_url": "test_instance",
             "access_token": "token",
         }
-        # This is ugly...since ScratchOrgConfig is in a module
-        # with the same name that is imported in cumulusci.core.config's
-        # __init__.py, we have no way to externally grab the
-        # module without going through the function's globals.
-        with mock.patch.dict(
-            ScratchOrgConfig.user_id.fget.__globals__,
-            Salesforce=mock.Mock(return_value=sf),
-        ):
+        with mock.patch("cumulusci.core.config.OrgConfig.salesforce_client", sf):
             self.assertEqual(config.user_id, "test")
 
     def test_username_from_scratch_info(self, Command):
