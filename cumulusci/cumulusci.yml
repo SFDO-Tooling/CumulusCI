@@ -255,8 +255,6 @@ tasks:
     retrieve_changes:
         description: Retrieve changed components from a scratch org
         class_path: cumulusci.tasks.salesforce.sourcetracking.RetrieveChanges
-        options:
-            path: src
         group: Salesforce Metadata
     retrieve_qa_config:
         description: Retrieves the current changes in the scratch org into unpackaged/config/qa
@@ -656,6 +654,8 @@ flows:
                         namespaced_org: True
                     update_admin_profile:
                         namespaced_org: True
+            4:
+                task: snapshot_changes
 
     qa_org:
         description: Set up an org as a QA environment for unmanaged metadata

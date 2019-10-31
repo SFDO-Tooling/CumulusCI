@@ -111,7 +111,7 @@ class ListChanges(BaseSalesforceApiTask):
 retrieve_changes_task_options = ListChanges.task_options.copy()
 retrieve_changes_task_options["path"] = {
     "description": "The path to write the retrieved metadata",
-    "required": True,
+    "required": False,
 }
 retrieve_changes_task_options["api_version"] = {
     "description": (
@@ -133,6 +133,31 @@ class RetrieveChanges(ListChanges, BaseSalesforceApiTask):
 
         # XXX set default path to src for mdapi format,
         # or the default package directory from sfdx-project.json for dx format
+        package_directories = []
+        default_package_directory = None
+        if os.path.exists("sfdx-project.json"):
+            with open("sfdx-project.json", "r") as f:
+                sfdx_project = json.load(f)
+                for package_directory in sfdx_project.get("packageDirectories", []):
+                    package_directories.append(package_directory["path"])
+                    if package_directory.get("default"):
+                        default_package_directory = package_directory["path"]
+
+        path = self.options.get("path")
+        if path is None:
+            if (
+                default_package_directory
+                and self.project_config.project__source_format == "sfdx"
+            ):
+                path = default_package_directory
+                md_format = False
+            else:
+                path = "src"
+                md_format = True
+        else:
+            md_format = path not in package_directories
+        self.md_format = md_format
+        self.options["path"] = path
 
         if "api_version" not in self.options:
             self.options[
@@ -146,22 +171,10 @@ class RetrieveChanges(ListChanges, BaseSalesforceApiTask):
             self.logger.info("No changes to retrieve")
             return
 
-        # Determine whether we're retrieving sfdx format based on
-        # whether the directory is in packageDirectories in sfdx-project.json
-        md_format = True
-        if os.path.exists("sfdx-project.json"):
-            with open("sfdx-project.json", "r") as f:
-                sfdx_project = json.load(f)
-                if "packageDirectories" in sfdx_project and any(
-                    d["path"] == self.options["path"]
-                    for d in sfdx_project["packageDirectories"]
-                ):
-                    md_format = False
         target = os.path.realpath(self.options["path"])
-
         with contextlib.ExitStack() as stack:
             # Temporarily convert metadata format to DX format
-            if md_format:
+            if self.md_format:
                 stack.enter_context(temporary_dir())
                 os.mkdir("target")
                 # We need to create sfdx-project.json
@@ -206,7 +219,7 @@ class RetrieveChanges(ListChanges, BaseSalesforceApiTask):
             )
 
             # Convert back to metadata format
-            if md_format:
+            if self.md_format:
                 args = ["-r", "force-app", "-d", target]
                 if (
                     self.options["path"] == "src"
