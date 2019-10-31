@@ -163,6 +163,56 @@ data and replace it with an autoincrementing integer primary key.
 Use of integer primary keys may help yield more readable text diffs when storing data in SQL
 script format. However, it comes at some performance penalty when extracting data.
 
+Handling Namespaces
++++++++++++++++++++
+
+In many cases, the same dataset can be cleanly deployed to both namespaced (or managed)
+and non-namespaced orgs. Data will be stored in the form corresponding to the org from
+which it was captured - that is, data captured from a namespaced scratch org, or a managed
+installation, will be stored with a namespace, and data captured from an unmanaged and 
+non-namespaced scratch org without.
+
+An additional definition file can be customized to permit loading the same data into the
+opposite type of org. This example shows two versions of the same step, adapting an originally
+non-namespaced definition to deploy non-namespaced data into a namespaced org with the 
+namespace prefix **MyNS**. 
+
+Original version: ::
+
+    Destinations:
+        sf_object: Destination__c
+        table: Destination__c
+        fields:
+            Name: Name
+            Target__c: Target__c
+        lookups:
+            Supplier__c:
+                table: Supplier__c
+
+Namespaced version: ::
+
+    Destinations:
+        sf_object: MyNS__Destination__c
+        table: Destination__c
+        fields:
+            MyNS__Name: Name
+            MyNS__Target__c: Target__c
+        lookups:
+            MyNS__Supplier__c:
+                key_field: Supplier__c
+                table: Supplier__c
+
+Note that each of the definition elements that refer to *local* storage remains un-namespaced,
+while those elements referring to the Salesforce schema acquire the namespace prefix.
+
+For each lookup, an additional **key_field** declaration is required, whose value is the 
+original storage location in local storage for that field's data. In most cases, this is
+simply the version of the field name in the original definition file.
+
+Adapting an originally-namespaced definition to load into a non-namespaced org follows the same
+pattern, but in reverse.
+
+
 Dataset Tasks
 =============
 
@@ -266,7 +316,7 @@ Options
 
 * **path**: Location to write the mapping file. Default: datasets/generated_mapping.yml
 * **ignore**: Object API names, or fields in Object.Field format, to ignore
-
+* **namespace_prefix**: The namespace prefix to treat as belonging to the project, if any
 Example: ::
 
-    cci task run generate_dataset_mapping --org qa
+    cci task run generate_dataset_mapping --org qa -o namespace_prefix my_ns
