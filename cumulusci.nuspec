@@ -26,7 +26,9 @@ This is a nuspec. It mostly adheres to https://docs.nuget.org/create/Nuspec-Refe
     <requireLicenseAcceptance>true</requireLicenseAcceptance>
     <docsUrl>cumulusci.readthedocs.io</docsUrl>
     <tags>cumulusci salesforce</tags>
-    <summary>CumulusCI is a command line toold belt and set of reusable Python classes useful in the development and release process of building a Salesforce Managed Package application.</summary>
+    <summary>CumulusCI is a command line tool belt and set of reusable Python classes useful in the development and release process of building a Salesforce Managed Package application.</summary>
+    <description>CumulusCI is a command line tool belt and set of reusable Python classes useful in the development and release process of building a Salesforce Managed Package application.</description>
+
     <releaseNotes>Please check https://pypi.org/project/cumulusci/ for change notes.</releaseNotes>
     <!-- =============================== -->
 
