@@ -11,12 +11,14 @@ from cumulusci.core.config import TaskConfig
 from cumulusci.core.exceptions import MrbelvedereError
 from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.tasks.mrbelvedere import MrbelvederePublish
-from cumulusci.tests.util import get_base_config
 
 
 class TestMrbelvederePublish(unittest.TestCase):
     def setUp(self):
-        self.project_config = BaseProjectConfig(BaseGlobalConfig(), get_base_config())
+        global_config = BaseGlobalConfig()
+        self.project_config = BaseProjectConfig(
+            global_config, config=global_config.config
+        )
         self.project_config.config["project"]["package"]["namespace"] = "npsp"
         self.project_config.config["project"]["dependencies"] = [
             {"namespace": "nochangedep", "version": "1.0"},
