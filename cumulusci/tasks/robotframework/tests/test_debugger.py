@@ -1,11 +1,13 @@
+from unittest import mock
+import fnmatch
+import io
 import os
 import signal
-from unittest import mock
 import unittest
-from cumulusci.tasks.robotframework import debugger
+
 from selenium.common.exceptions import InvalidSelectorException
-from cumulusci.core.tests.test_utils import StringIO
-import fnmatch
+
+from cumulusci.tasks.robotframework import debugger
 
 
 class TestDebugListener(unittest.TestCase):
@@ -138,7 +140,7 @@ class TestRobotDebugger(unittest.TestCase):
         cls.mock_builtin = mock.Mock()
 
     def setUp(self):
-        self.stdout = StringIO()
+        self.stdout = io.StringIO()
         self.cli = debugger.DebuggerCli(self.mock_listener, stdout=self.stdout)
         self.cli.builtin = self.mock_builtin
 
@@ -172,7 +174,7 @@ class TestRobotDebugger(unittest.TestCase):
         self.mock_builtin.get_variable.value.assert_not_called()
 
         # valid variable syntax, but unknown variable
-        self.cli.stdout = StringIO()
+        self.cli.stdout = io.StringIO()
         self.mock_builtin.get_variable_value.side_effect = Exception("not a variable")
         return_value = self.cli.default("${bogus}")
         self.assertEqual(self.cli.stdout.getvalue(), "unknown variable '${bogus}'\n")
@@ -222,7 +224,7 @@ class TestRobotDebugger(unittest.TestCase):
         self.cli.selenium.get_webelements.side_effect = InvalidSelectorException(
             "invalid xpath"
         )
-        self.cli.stdout = StringIO()
+        self.cli.stdout = io.StringIO()
         return_value = self.cli.do_locate_elements("//whatever")
         self.assertIsNone(return_value)
         self.cli._highlight_element.assert_not_called()
@@ -233,7 +235,7 @@ class TestRobotDebugger(unittest.TestCase):
         self.cli.selenium.get_webelements.side_effect = Exception(
             "something unexpected"
         )
-        self.cli.stdout = StringIO()
+        self.cli.stdout = io.StringIO()
         return_value = self.cli.do_locate_elements("//whatever")
         self.assertIsNone(return_value)
         self.cli._highlight_element.assert_not_called()
