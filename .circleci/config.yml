@@ -262,7 +262,6 @@ workflows:
       - test_py36
       - test_py37
       - test_py38
-      - test_windows
       - test_robot
       - test_release
       - report:
@@ -270,6 +269,5 @@ workflows:
             - test_py36
             - test_py37
             - test_py38
-            - test_windows
             - test_robot
             - test_release
