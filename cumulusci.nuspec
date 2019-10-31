@@ -15,28 +15,19 @@ This is a nuspec. It mostly adheres to https://docs.nuget.org/create/Nuspec-Refe
 <!-- Do not remove this test for UTF-8: if “Ω” doesn’t appear as greek uppercase omega letter enclosed in quotation marks, you should use an editor that supports UTF-8, not this one. -->
 <package xmlns="http://schemas.microsoft.com/packaging/2015/06/nuspec.xsd">
   <metadata>
-    <!-- == PACKAGE SPECIFIC SECTION == -->
     <id>cumulusci</id>
     <version>3.0.2</version>
     <packageSourceUrl>https://github.com/SFDO-Tooling/CumulusCI</packageSourceUrl>
     <owners>SFDO-Tooling</owners>
-    <!-- ============================== -->
-
-    <!-- == SOFTWARE SPECIFIC SECTION == -->
     <title>cumulusci (Install)</title>
     <authors>Jason Lantz,Christian Carter,David Glick,James Estevez,David Reed,Bryan Oakley,Brandon Parker,Joshua Kofsky</authors>
     <projectUrl>https://github.com/SFDO-Tooling/CumulusCI</projectUrl>
-    <!--<iconUrl>http://cdn.rawgit.com/SFDO-Tooling/CumulusCI/master/icons/cumulusci.png</iconUrl>-->
     <licenseUrl>https://github.com/SFDO-Tooling/CumulusCI/blob/master/LICENSE</licenseUrl>
     <requireLicenseAcceptance>true</requireLicenseAcceptance>
-    -->
     <docsUrl>cumulusci.readthedocs.io</docsUrl>
     <tags>cumulusci salesforce</tags>
     <summary>CumulusCI is a command line toold belt and set of reusable Python classes useful in the development and release process of building a Salesforce Managed Package application.</summary>
-    <description>* Out of the box, CumulusCI provides a complete best practice development and release process based on the processes used by Salesforce.org to build and release managed packages to thousands of users
-* Flexible and pluggable system for running tasks (single actions) and flows (sequences of tasks)
-* OAuth based org keychain allowing easy connection to Salesforce orgs and stored in local files using AES encryption</description>
-    <releaseNotes>Please check https://pypi.org/project/cumulusci/ for chang notes.</releaseNotes>
+    <releaseNotes>Please check https://pypi.org/project/cumulusci/ for change notes.</releaseNotes>
     <!-- =============================== -->
 
     <!-- Specifying dependencies and version ranges? https://docs.nuget.org/create/versioning#specifying-version-ranges-in-.nuspec-files -->
