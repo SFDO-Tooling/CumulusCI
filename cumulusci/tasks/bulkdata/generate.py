@@ -152,10 +152,10 @@ class GenerateMapping(BaseSalesforceApiTask):
 
         self.mapping = OrderedDict()
         for obj in stack:
-            key = "Insert {}".format(obj)
+            key = f"Insert {obj}"
             self.mapping[key] = {}
-            self.mapping[key]["sf_object"] = "{}".format(obj)
-            self.mapping[key]["table"] = "{}".format(obj.lower())
+            self.mapping[key]["sf_object"] = f"{obj}"
+            self.mapping[key]["table"] = f"{obj.lower()}"
             fields = []
             lookups = []
             for field in self.schema[obj].values():
@@ -181,9 +181,7 @@ class GenerateMapping(BaseSalesforceApiTask):
 
                     if len(referenceTo) > 1:  # Polymorphic lookup
                         self.logger.warning(
-                            "Field {}.{} is a polymorphic lookup, which is not supported".format(
-                                obj, field
-                            )
+                            f"Field {obj}.{field} is a polymorphic lookup, which is not supported"
                         )
                     elif referenceTo[0] == obj:  # Self-lookup
                         self.mapping[key]["lookups"][field] = {
@@ -195,7 +193,7 @@ class GenerateMapping(BaseSalesforceApiTask):
                     ):  # Dependent lookup
                         self.mapping[key]["lookups"][field] = {
                             "table": referenceTo[0].lower(),
-                            "after": "Insert {}".format(referenceTo[0]),
+                            "after": f"Insert {referenceTo[0]}",
                         }
                     else:  # Regular lookup
                         self.mapping[key]["lookups"][field] = {
@@ -224,15 +222,13 @@ class GenerateMapping(BaseSalesforceApiTask):
                 self.logger.info(
                     "CumulusCI needs help to complete the mapping; the schema contains reference cycles and unresolved dependencies."
                 )
-                self.logger.info("Mapped objects: {}".format(", ".join(stack)))
+                self.logger.info(f"Mapped objects: {', '.join(stack)}")
                 self.logger.info("Remaining objects:")
                 for obj in objs_remaining:
                     self.logger.info(obj)
                     for other_obj in dependencies[obj]:
                         self.logger.info(
-                            "   references {} via: {}".format(
-                                other_obj, ", ".join(dependencies[obj][other_obj])
-                            )
+                            f"   references {other_obj} via: {', '.join(dependencies[obj][other_obj])}"
                         )
                 choice = click.prompt(
                     "Which object should we load first?",
@@ -311,8 +307,7 @@ class GenerateMapping(BaseSalesforceApiTask):
         in this operation)."""
         return not any(
             [
-                "{}.{}".format(obj, field["name"])  # User-ignored list
-                in self.options["ignore"],
+                f"{obj}.{field['name']}" in self.options["ignore"],  # User-ignored list
                 "(Deprecated)" in field["label"],  # Deprecated managed fields
                 field["type"] == "base64",  # No Bulk API support for base64 blob fields
                 not field["createable"],  # Non-writeable fields

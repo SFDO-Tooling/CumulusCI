@@ -156,7 +156,7 @@ class TestLoadDataWithSFIds(unittest.TestCase):
                 bulkdata.LoadData,
                 {
                     "options": {
-                        "database_url": "sqlite:///{}".format(tmp_db_path),
+                        "database_url": f"sqlite:///{tmp_db_path}",
                         "mapping": mapping_path,
                     }
                 },
@@ -702,7 +702,7 @@ class TestLoadDataWithSFIds(unittest.TestCase):
         api.headers.return_value = {}
         task.bulk = api
 
-        results_url = "{}/job/1/batch/2/result".format(task.bulk.endpoint)
+        results_url = f"{task.bulk.endpoint}/job/1/batch/2/result"
         responses.add(method="GET", url=results_url, body=result_data, status=200)
 
         task.metadata = mock.Mock()
@@ -982,7 +982,7 @@ class TestLoadDataWithoutSFIds(unittest.TestCase):
                 bulkdata.LoadData,
                 {
                     "options": {
-                        "database_url": "sqlite:///{}".format(tmp_db_path),
+                        "database_url": f"sqlite:///{tmp_db_path}",
                         "mapping": mapping_path,
                     }
                 },
@@ -1147,7 +1147,7 @@ class TestExtractDataWithSFIds(unittest.TestCase):
             bulkdata.ExtractData,
             {
                 "options": {
-                    "database_url": "sqlite:///{}".format(db_path),
+                    "database_url": f"sqlite:///{db_path}",
                     "mapping": mapping_path,
                 }
             },
@@ -1417,7 +1417,7 @@ class TestMappingGenerator(unittest.TestCase):
     def _prepare_describe_mock(self, task, describe_data):
         responses.add(
             method="GET",
-            url="{}/services/data/v45.0/sobjects".format(task.org_config.instance_url),
+            url=f"{task.org_config.instance_url}/services/data/v45.0/sobjects",
             body=json.dumps(
                 {
                     "sobjects": [
@@ -1432,9 +1432,7 @@ class TestMappingGenerator(unittest.TestCase):
             body.update(describe_data[s])
             responses.add(
                 method="GET",
-                url="{}/services/data/v45.0/sobjects/{}/describe".format(
-                    task.org_config.instance_url, s
-                ),
+                url=f"{task.org_config.instance_url}/services/data/v45.0/sobjects/{s}/describe",
                 body=json.dumps(body),
                 status=200,
             )
