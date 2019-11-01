@@ -122,8 +122,8 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
     def _validate_package_api_format(self):
         api_version = self.config["project"]["package"]["api_version"]
-        if isinstance(api_version, int):
-            message = "Package API Version must be specified as a string ('45.0') not an int (45)."
+        if not isinstance(api_version, str):
+            message = f"Package API Version must be specified as a string (i.e. '45.0'). Found: {type(api_version)}"
             raise ConfigError(message)
 
     @property
