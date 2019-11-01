@@ -893,6 +893,14 @@ class TestBaseProjectConfig(unittest.TestCase):
         with pytest.raises(ConfigError):
             project_config._validate_package_api_format()
 
+        project_config.config["project"]["package"]["api_version"] = [1, 2, 3]
+        with pytest.raises(ConfigError):
+            project_config._validate_package_api_format()
+
+        project_config.config["project"]["package"]["api_version"] = 28.0
+        with pytest.raises(ConfigError):
+            project_config._validate_package_api_format()
+
 
 class TestBaseTaskFlowConfig(unittest.TestCase):
     def setUp(self):
