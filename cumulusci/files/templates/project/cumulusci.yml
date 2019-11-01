@@ -32,7 +32,8 @@ project:
       {% if git.prefix_beta %} 
         prefix_beta: '{{ git.prefix_beta }}'{% endif %}
       {% if git.prefix_release %} 
-        prefix_release: '{{ git.prefix_release }}'{% endif %}
+        prefix_release: '{{ git.prefix_release }}'
+      {% endif %}
     {% if test_name_match %}
     test:
         name_match: '{{ test_name_match }}'
@@ -52,9 +53,3 @@ tasks:
         options:
             path: robot/{{project_name}}/tests
             output: robot/{{project_name}}/doc/{{project_name}}_tests.html
-
-flows:
-    config_qa:
-        1.1:
-            task: deploy_qa_config
-

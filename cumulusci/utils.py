@@ -369,8 +369,8 @@ def doc_task(task_name, task_config, project_config=None, org_config=None):
     doc.append("**Class::** {}\n".format(task_config.class_path))
 
     task_class = import_global(task_config.class_path)
-    task_docs = textwrap.dedent(task_class.task_docs.strip("\n"))
-    if task_docs:
+    if "task_docs" in task_class.__dict__:
+        task_docs = textwrap.dedent(task_class.task_docs.strip("\n"))
         doc.append(task_docs + "\n")
     if task_class.task_options:
         doc.append("Options:\n------------------------------------------\n")

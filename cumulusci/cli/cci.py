@@ -894,10 +894,12 @@ def org_info(config, org_name, print_json):
             "username",
         ]
         keys = [key for key in org_config.config.keys() if key in UI_KEYS]
-        keys.sort()
+        pairs = [[key, str(org_config.config[key])] for key in keys]
+        pairs.append(["api_version", org_config.latest_api_version])
+        pairs.sort()
         table_data = [["Key", "Value"]]
         table_data.extend(
-            [[click.style(key, bold=True), str(org_config.config[key])] for key in keys]
+            [[click.style(key, bold=True), value] for key, value in pairs]
         )
         table = CliTable(table_data, wrap_cols=["Value"])
         table.echo()
@@ -1134,7 +1136,7 @@ def task_doc(config):
 
 @task.command(name="info", help="Displays information for a task")
 @click.argument("task_name")
-@pass_config(load_keychain=False)
+@pass_config()
 def task_info(config, task_name):
     try:
         task_config = config.project_config.get_task(task_name)
@@ -1205,7 +1207,9 @@ def task_run(config, task_name, org, o, debug, debug_before, debug_after, no_pro
 
     # Create and run the task
     try:
-        task = task_class(config.project_config, task_config, org_config=org_config)
+        task = task_class(
+            task_config.project_config, task_config, org_config=org_config
+        )
 
         if debug_before:
             import pdb
@@ -1264,7 +1268,7 @@ def flow_list(config, plain, print_json):
 
 @flow.command(name="info", help="Displays information for a flow")
 @click.argument("flow_name")
-@pass_config(load_keychain=False)
+@pass_config
 def flow_info(config, flow_name):
     try:
         coordinator = config.get_flow(flow_name)

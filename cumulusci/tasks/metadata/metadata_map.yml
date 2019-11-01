@@ -124,7 +124,6 @@ customPermissions:
 dashboards:
     - type: Dashboard
       class: MetadataFolderParser
-      extension: dashboard
 datacategorygroups:
     - type: DataCategoryGroup
       class: MetadataFilenameParser
@@ -151,7 +150,6 @@ eclair:
 email:
     - type: EmailTemplate
       class: MetadataFolderParser
-      extension: email
 emailservices:
     - type: EmailServicesFunction
       class: MetadataFilenameParser

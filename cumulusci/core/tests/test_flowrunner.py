@@ -132,17 +132,16 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
         self.assertEqual(hasattr(flow, "logger"), True)
 
     def test_get_summary(self):
-        flow_config = FlowConfig(
-            {
-                "description": "test description",
-                "steps": {"1": {"flow": "nested_flow_2"}},
-            }
-        )
+        self.project_config.config["flows"]["test"] = {
+            "description": "test description",
+            "steps": {"1": {"flow": "nested_flow_2"}},
+        }
+        flow_config = self.project_config.get_flow("test")
         flow = FlowCoordinator(self.project_config, flow_config, name="test_flow")
         actual_output = flow.get_summary()
         expected_output = (
             "Description: test description"
-            + "\n1) flow: nested_flow_2"
+            + "\n1) flow: nested_flow_2 [from current folder]"
             + "\n    1) task: pass_name"
             + "\n    2) flow: nested_flow"
             + "\n        1) task: pass_name"
@@ -170,14 +169,13 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
         self.assertEqual("bar", flow.steps[0].task_config["options"]["response"])
 
     def test_init__nested_options(self):
-        flow_config = FlowConfig(
-            {
-                "description": "Run a flow with task options",
-                "steps": {
-                    1: {"flow": "nested_flow", "options": {"pass_name": {"foo": "bar"}}}
-                },
-            }
-        )
+        self.project_config.config["flows"]["test"] = {
+            "description": "Run a flow with task options",
+            "steps": {
+                1: {"flow": "nested_flow", "options": {"pass_name": {"foo": "bar"}}}
+            },
+        }
+        flow_config = self.project_config.get_flow("test")
         flow = FlowCoordinator(self.project_config, flow_config)
         self.assertEqual("bar", flow.steps[0].task_config["options"]["foo"])
 
@@ -239,7 +237,7 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
             )
 
     def test_from_steps(self):
-        steps = [StepSpec("1", "test", {}, _TaskReturnsStuff)]
+        steps = [StepSpec("1", "test", {}, _TaskReturnsStuff, None)]
         flow = FlowCoordinator.from_steps(self.project_config, steps)
         self.assertEqual(1, len(flow.steps))
 
@@ -260,12 +258,11 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
 
     def test_run__nested_flow(self):
         """ Flows can run inside other flows """
-        flow_config = FlowConfig(
-            {
-                "description": "Run a task and a flow",
-                "steps": {1: {"task": "pass_name"}, 2: {"flow": "nested_flow"}},
-            }
-        )
+        self.project_config.config["flows"]["test"] = {
+            "description": "Run a task and a flow",
+            "steps": {1: {"task": "pass_name"}, 2: {"flow": "nested_flow"}},
+        }
+        flow_config = self.project_config.get_flow("test")
         flow = FlowCoordinator(self.project_config, flow_config)
         flow.run(self.org_config)
         self.assertEqual(2, len(flow.steps))
@@ -273,12 +270,11 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
 
     def test_run__nested_flow_2(self):
         """ Flows can run inside other flows and call other flows """
-        flow_config = FlowConfig(
-            {
-                "description": "Run a task and a flow",
-                "steps": {1: {"task": "pass_name"}, 2: {"flow": "nested_flow_2"}},
-            }
-        )
+        self.project_config.config["flows"]["test"] = {
+            "description": "Run a task and a flow",
+            "steps": {1: {"task": "pass_name"}, 2: {"flow": "nested_flow_2"}},
+        }
+        flow_config = self.project_config.get_flow("test")
         flow = FlowCoordinator(self.project_config, flow_config)
         flow.run(self.org_config)
         self.assertEqual(3, len(flow.steps))
@@ -308,19 +304,17 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
         self.assertEqual("supername", flow.results[1].result)
 
     def test_run__nested_option_backrefs(self):
-        flow_config = FlowConfig(
-            {
-                "description": "Run two tasks",
-                "steps": {
-                    1: {"flow": "nested_flow"},
-                    2: {
-                        "task": "name_response",
-                        "options": {"response": "^^nested_flow.pass_name.name"},
-                    },
+        self.project_config.config["flows"]["test"] = {
+            "description": "Run two tasks",
+            "steps": {
+                1: {"flow": "nested_flow"},
+                2: {
+                    "task": "name_response",
+                    "options": {"response": "^^nested_flow.pass_name.name"},
                 },
-            }
-        )
-
+            },
+        }
+        flow_config = self.project_config.get_flow("test")
         flow = FlowCoordinator(self.project_config, flow_config)
         flow.run(self.org_config)
 
@@ -417,11 +411,11 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
 
 class StepSpecTest(unittest.TestCase):
     def test_repr(self):
-        spec = StepSpec(1, "test_task", {}, None, skip=True)
+        spec = StepSpec(1, "test_task", {}, None, None, skip=True)
         assert "<!SKIP! StepSpec 1:test_task {}>" == repr(spec)
 
     def test_for_display(self):
-        spec = StepSpec(1, "test_task", {}, None, skip=True)
+        spec = StepSpec(1, "test_task", {}, None, None, skip=True)
         assert "1: test_task [SKIP]" == spec.for_display
 
 
@@ -464,4 +458,4 @@ class PreflightFlowCoordinatorTest(AbstractFlowCoordinatorTest, unittest.TestCas
         )
         # Make sure task result got cached
         key = ("log", (("level", "info"), ("line", "plan")))
-        assert key in flow.jinja2_context["tasks"].results
+        assert key in flow._task_cache.results

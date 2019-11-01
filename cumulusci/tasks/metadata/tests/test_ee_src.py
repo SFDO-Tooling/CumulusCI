@@ -26,8 +26,11 @@ class TestCreateUnmanagedEESrc(unittest.TestCase):
             )
             task = CreateUnmanagedEESrc(project_config, task_config)
             task()
-            removeXmlElement.assert_called_once_with(
-                "availableFields", path, "*.object"
+            removeXmlElement.assert_has_calls(
+                [
+                    mock.call("availableFields", path, "*.object"),
+                    mock.call("visibility[.='Protected']", path, "*.object"),
+                ]
             )
 
     def test_run_task__path_not_found(self):

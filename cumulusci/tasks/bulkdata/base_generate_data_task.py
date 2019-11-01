@@ -5,9 +5,9 @@ from sqlalchemy import create_engine
 from sqlalchemy import MetaData
 from sqlalchemy.orm import create_session
 from sqlalchemy.ext.automap import automap_base
+import yaml
 
 from cumulusci.core.tasks import BaseTask
-from cumulusci.core.utils import ordered_yaml_load
 
 from .utils import create_table
 
@@ -47,7 +47,7 @@ class BaseGenerateDataTask(BaseTask, metaclass=ABCMeta):
     def _generate_data(self, db_url, mapping_file_path, num_records, current_batch_num):
         """Generate all of the data"""
         with open(mapping_file_path, "r") as f:
-            mappings = ordered_yaml_load(f)
+            mappings = yaml.safe_load(f)
 
         session, engine, base = self.init_db(db_url, mappings)
         self.generate_data(session, engine, base, num_records, current_batch_num)

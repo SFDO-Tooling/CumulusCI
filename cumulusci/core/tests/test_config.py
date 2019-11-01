@@ -15,9 +15,12 @@ from cumulusci.core.exceptions import ConfigError
 from cumulusci.core.exceptions import DependencyResolutionError
 from cumulusci.core.exceptions import KeychainNotFound
 from cumulusci.core.exceptions import FlowNotFoundError
+from cumulusci.core.exceptions import NamespaceNotFoundError
 from cumulusci.core.exceptions import SalesforceCredentialsException
 from cumulusci.core.exceptions import TaskNotFoundError
+from cumulusci.core.source import LocalFolderSource
 from cumulusci.utils import temporary_dir
+from cumulusci.utils import touch
 
 
 class TestBaseConfig(unittest.TestCase):
@@ -569,42 +572,42 @@ class TestBaseProjectConfig(unittest.TestCase):
             result,
             [
                 {
-                    u"name": "Deploy unpackaged/pre/pre",
-                    u"repo_owner": "SFDO-Tooling",
-                    u"repo_name": "CumulusCI-Test",
-                    u"ref": "commit_sha",
-                    u"subfolder": u"unpackaged/pre/pre",
-                    u"unmanaged": True,
-                    u"namespace_inject": None,
-                    u"namespace_strip": None,
-                    u"namespace_tokenize": None,
+                    "name": "Deploy unpackaged/pre/pre",
+                    "repo_owner": "SFDO-Tooling",
+                    "repo_name": "CumulusCI-Test",
+                    "ref": "commit_sha",
+                    "subfolder": "unpackaged/pre/pre",
+                    "unmanaged": True,
+                    "namespace_inject": None,
+                    "namespace_strip": None,
+                    "namespace_tokenize": None,
                 },
                 {
-                    u"name": "Install CumulusCI-Test-Dep 2.0",
-                    u"version": "2.0",
-                    u"namespace": "ccitestdep",
+                    "name": "Install CumulusCI-Test-Dep 2.0",
+                    "version": "2.0",
+                    "namespace": "ccitestdep",
                 },
                 {
-                    u"name": "Deploy CumulusCI-Test",
-                    u"repo_owner": "SFDO-Tooling",
-                    u"repo_name": "CumulusCI-Test",
-                    u"ref": "commit_sha",
-                    u"subfolder": u"src",
-                    u"unmanaged": True,
-                    u"namespace_inject": None,
-                    u"namespace_strip": None,
-                    u"namespace_tokenize": None,
+                    "name": "Deploy CumulusCI-Test",
+                    "repo_owner": "SFDO-Tooling",
+                    "repo_name": "CumulusCI-Test",
+                    "ref": "commit_sha",
+                    "subfolder": "src",
+                    "unmanaged": True,
+                    "namespace_inject": None,
+                    "namespace_strip": None,
+                    "namespace_tokenize": None,
                 },
                 {
-                    u"name": "Deploy unpackaged/post/post",
-                    u"repo_owner": "SFDO-Tooling",
-                    u"repo_name": "CumulusCI-Test",
-                    u"ref": "commit_sha",
-                    u"subfolder": u"unpackaged/post/post",
-                    u"unmanaged": True,
-                    u"namespace_inject": "ccitest",
-                    u"namespace_strip": None,
-                    u"namespace_tokenize": None,
+                    "name": "Deploy unpackaged/post/post",
+                    "repo_owner": "SFDO-Tooling",
+                    "repo_name": "CumulusCI-Test",
+                    "ref": "commit_sha",
+                    "subfolder": "unpackaged/post/post",
+                    "unmanaged": True,
+                    "namespace_inject": "ccitest",
+                    "namespace_strip": None,
+                    "namespace_tokenize": None,
                 },
             ],
         )
@@ -627,20 +630,20 @@ class TestBaseProjectConfig(unittest.TestCase):
             result,
             [
                 {
-                    u"name": "Install CumulusCI-Test-Dep 2.0",
-                    u"version": "2.0",
-                    u"namespace": "ccitestdep",
+                    "name": "Install CumulusCI-Test-Dep 2.0",
+                    "version": "2.0",
+                    "namespace": "ccitestdep",
                 },
                 {
-                    u"name": "Deploy CumulusCI-Test",
-                    u"repo_owner": "SFDO-Tooling",
-                    u"repo_name": "CumulusCI-Test",
-                    u"ref": "commit_sha",
-                    u"subfolder": u"src",
-                    u"unmanaged": True,
-                    u"namespace_inject": None,
-                    u"namespace_strip": None,
-                    u"namespace_tokenize": None,
+                    "name": "Deploy CumulusCI-Test",
+                    "repo_owner": "SFDO-Tooling",
+                    "repo_name": "CumulusCI-Test",
+                    "ref": "commit_sha",
+                    "subfolder": "src",
+                    "unmanaged": True,
+                    "namespace_inject": None,
+                    "namespace_strip": None,
+                    "namespace_tokenize": None,
                 },
             ],
         )
@@ -701,42 +704,42 @@ class TestBaseProjectConfig(unittest.TestCase):
             result,
             [
                 {
-                    u"name": "Deploy unpackaged/pre/pre",
-                    u"repo_owner": "SFDO-Tooling",
-                    u"repo_name": "CumulusCI-Test",
-                    u"ref": "commit_sha",
-                    u"subfolder": u"unpackaged/pre/pre",
-                    u"unmanaged": True,
-                    u"namespace_inject": None,
-                    u"namespace_strip": None,
-                    u"namespace_tokenize": None,
+                    "name": "Deploy unpackaged/pre/pre",
+                    "repo_owner": "SFDO-Tooling",
+                    "repo_name": "CumulusCI-Test",
+                    "ref": "commit_sha",
+                    "subfolder": "unpackaged/pre/pre",
+                    "unmanaged": True,
+                    "namespace_inject": None,
+                    "namespace_strip": None,
+                    "namespace_tokenize": None,
                 },
                 {
-                    u"name": "Install CumulusCI-Test-Dep 1.1 (Beta 1)",
-                    u"version": "1.1 (Beta 1)",
-                    u"namespace": "ccitestdep",
+                    "name": "Install CumulusCI-Test-Dep 1.1 (Beta 1)",
+                    "version": "1.1 (Beta 1)",
+                    "namespace": "ccitestdep",
                 },
                 {
-                    u"name": "Deploy CumulusCI-Test",
-                    u"repo_owner": "SFDO-Tooling",
-                    u"repo_name": "CumulusCI-Test",
-                    u"ref": "commit_sha",
-                    u"subfolder": u"src",
-                    u"unmanaged": True,
-                    u"namespace_inject": None,
-                    u"namespace_strip": None,
-                    u"namespace_tokenize": None,
+                    "name": "Deploy CumulusCI-Test",
+                    "repo_owner": "SFDO-Tooling",
+                    "repo_name": "CumulusCI-Test",
+                    "ref": "commit_sha",
+                    "subfolder": "src",
+                    "unmanaged": True,
+                    "namespace_inject": None,
+                    "namespace_strip": None,
+                    "namespace_tokenize": None,
                 },
                 {
-                    u"name": "Deploy unpackaged/post/post",
-                    u"repo_owner": "SFDO-Tooling",
-                    u"repo_name": "CumulusCI-Test",
-                    u"ref": "commit_sha",
-                    u"subfolder": u"unpackaged/post/post",
-                    u"unmanaged": True,
-                    u"namespace_inject": "ccitest",
-                    u"namespace_strip": None,
-                    u"namespace_tokenize": None,
+                    "name": "Deploy unpackaged/post/post",
+                    "repo_owner": "SFDO-Tooling",
+                    "repo_name": "CumulusCI-Test",
+                    "ref": "commit_sha",
+                    "subfolder": "unpackaged/post/post",
+                    "unmanaged": True,
+                    "namespace_inject": "ccitest",
+                    "namespace_strip": None,
+                    "namespace_tokenize": None,
                 },
             ],
         )
@@ -760,42 +763,42 @@ class TestBaseProjectConfig(unittest.TestCase):
             result,
             [
                 {
-                    u"name": "Deploy unpackaged/pre/pre",
-                    u"repo_owner": "SFDO-Tooling",
-                    u"repo_name": "CumulusCI-Test",
-                    u"ref": "other_commit_sha",
-                    u"subfolder": u"unpackaged/pre/pre",
-                    u"unmanaged": True,
-                    u"namespace_inject": None,
-                    u"namespace_strip": None,
-                    u"namespace_tokenize": None,
+                    "name": "Deploy unpackaged/pre/pre",
+                    "repo_owner": "SFDO-Tooling",
+                    "repo_name": "CumulusCI-Test",
+                    "ref": "other_commit_sha",
+                    "subfolder": "unpackaged/pre/pre",
+                    "unmanaged": True,
+                    "namespace_inject": None,
+                    "namespace_strip": None,
+                    "namespace_tokenize": None,
                 },
                 {
-                    u"name": "Install CumulusCI-Test-Dep 2.0",
-                    u"version": "2.0",
-                    u"namespace": "ccitestdep",
+                    "name": "Install CumulusCI-Test-Dep 2.0",
+                    "version": "2.0",
+                    "namespace": "ccitestdep",
                 },
                 {
-                    u"name": "Deploy CumulusCI-Test",
-                    u"repo_owner": "SFDO-Tooling",
-                    u"repo_name": "CumulusCI-Test",
-                    u"ref": "other_commit_sha",
-                    u"subfolder": u"src",
-                    u"unmanaged": True,
-                    u"namespace_inject": None,
-                    u"namespace_strip": None,
-                    u"namespace_tokenize": None,
+                    "name": "Deploy CumulusCI-Test",
+                    "repo_owner": "SFDO-Tooling",
+                    "repo_name": "CumulusCI-Test",
+                    "ref": "other_commit_sha",
+                    "subfolder": "src",
+                    "unmanaged": True,
+                    "namespace_inject": None,
+                    "namespace_strip": None,
+                    "namespace_tokenize": None,
                 },
                 {
-                    u"name": "Deploy unpackaged/post/post",
-                    u"repo_owner": "SFDO-Tooling",
-                    u"repo_name": "CumulusCI-Test",
-                    u"ref": "other_commit_sha",
-                    u"subfolder": u"unpackaged/post/post",
-                    u"unmanaged": True,
-                    u"namespace_inject": "ccitest",
-                    u"namespace_strip": None,
-                    u"namespace_tokenize": None,
+                    "name": "Deploy unpackaged/post/post",
+                    "repo_owner": "SFDO-Tooling",
+                    "repo_name": "CumulusCI-Test",
+                    "ref": "other_commit_sha",
+                    "subfolder": "unpackaged/post/post",
+                    "unmanaged": True,
+                    "namespace_inject": "ccitest",
+                    "namespace_strip": None,
+                    "namespace_tokenize": None,
                 },
             ],
         )
@@ -826,6 +829,62 @@ class TestBaseProjectConfig(unittest.TestCase):
                     "tag": "bogus",
                 }
             )
+
+    def test_get_task__included_source(self):
+        global_config = BaseGlobalConfig()
+        with temporary_dir() as d:
+            touch("cumulusci.yml")
+            project_config = BaseProjectConfig(
+                global_config, {"sources": {"test": {"path": d}}}
+            )
+            task_config = project_config.get_task("test:log")
+        assert task_config.project_config is not project_config
+        assert isinstance(task_config.project_config.source, LocalFolderSource)
+
+    def test_get_flow__included_source(self):
+        global_config = BaseGlobalConfig()
+        with temporary_dir() as d:
+            touch("cumulusci.yml")
+            project_config = BaseProjectConfig(
+                global_config, {"sources": {"test": {"path": d}}}
+            )
+            flow_config = project_config.get_flow("test:dev_org")
+        assert flow_config.project_config is not project_config
+        assert isinstance(flow_config.project_config.source, LocalFolderSource)
+
+    def test_get_namespace__not_found(self):
+        global_config = BaseGlobalConfig()
+        project_config = BaseProjectConfig(global_config)
+        with self.assertRaises(NamespaceNotFoundError):
+            project_config.get_namespace("test")
+
+    def test_include_source__cached(self):
+        global_config = BaseGlobalConfig()
+        project_config = BaseProjectConfig(global_config)
+        with temporary_dir() as d:
+            touch("cumulusci.yml")
+            other1 = project_config.include_source({"path": d})
+            other2 = project_config.include_source({"path": d})
+        assert other1 is other2
+
+    @mock.patch("cumulusci.core.config.project_config.GitHubSource")
+    def test_include_source__github(self, source):
+        source.return_value = expected_result = mock.Mock()
+        global_config = BaseGlobalConfig()
+        project_config = BaseProjectConfig(global_config)
+        other_config = project_config.include_source({"github": "foo/bar"})
+        assert other_config.source is expected_result
+
+    def test_include_source__unknown(self):
+        global_config = BaseGlobalConfig()
+        project_config = BaseProjectConfig(global_config)
+        with self.assertRaises(Exception):
+            project_config.include_source({"foo": "bar"})
+
+    def test_relpath(self):
+        global_config = BaseGlobalConfig()
+        project_config = BaseProjectConfig(global_config)
+        assert project_config.relpath(os.path.abspath(".")) == "."
 
 
 class TestBaseTaskFlowConfig(unittest.TestCase):
@@ -956,6 +1015,17 @@ class TestOrgConfig(unittest.TestCase):
     def test_lightning_base_url(self):
         config = OrgConfig({"instance_url": "https://na01.salesforce.com"}, "test")
         self.assertEqual("https://na01.lightning.force.com", config.lightning_base_url)
+
+    @responses.activate
+    def test_get_salesforce_version(self):
+        responses.add(
+            "GET",
+            f"https://na01.salesforce.com/services/data",
+            json=[{"version": 42.0}],
+        )
+        config = OrgConfig({"instance_url": "https://na01.salesforce.com"}, "test")
+        config.access_token = "TOKEN"
+        assert config.latest_api_version == "42.0"
 
     def test_start_url(self):
         config = OrgConfig(

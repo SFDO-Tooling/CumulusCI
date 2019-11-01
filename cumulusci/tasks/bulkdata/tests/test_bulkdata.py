@@ -1,3 +1,4 @@
+from collections import OrderedDict
 from datetime import datetime
 import io
 import json
@@ -5,19 +6,20 @@ import os
 import shutil
 import unicodecsv
 import unittest
+
 from sqlalchemy import Column
 from sqlalchemy import Table
 from sqlalchemy import types
 from sqlalchemy import Unicode
 from unittest import mock
 import responses
+import yaml
 
 from cumulusci.core.config import BaseGlobalConfig
 from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.exceptions import BulkDataException
 from cumulusci.core.keychain import BaseProjectKeychain
-from cumulusci.core.utils import ordered_yaml_load
 from cumulusci.tasks import bulkdata
 from cumulusci.tests.util import DummyOrgConfig
 from cumulusci.utils import temporary_dir
@@ -45,6 +47,42 @@ class TestEpochType(unittest.TestCase):
         column_info = {"type": types.DateTime()}
         bulkdata.utils.setup_epoch(mock.Mock(), mock.Mock(), column_info)
         self.assertIsInstance(column_info["type"], bulkdata.utils.EpochType)
+
+
+class TestRecordTypeUtils(unittest.TestCase):
+    @mock.patch("cumulusci.tasks.bulkdata.utils.Table")
+    @mock.patch("cumulusci.tasks.bulkdata.utils.mapper")
+    def test_create_record_type_table(self, mapper, table):
+        util = bulkdata.utils.BulkJobTaskMixin()
+        util.models = {}
+        util.metadata = mock.Mock()
+
+        util._create_record_type_table("Account_rt_mapping")
+
+        self.assertIn("Account_rt_mapping", util.models)
+
+    @responses.activate
+    def test_extract_record_types(self):
+        util = bulkdata.utils.BulkJobTaskMixin()
+        util._sql_bulk_insert_from_csv = mock.Mock()
+        util.sf = mock.Mock()
+        util.sf.query.return_value = {
+            "records": [{"Id": "012000000000000", "DeveloperName": "Organization"}]
+        }
+        util.logger = mock.Mock()
+
+        conn = mock.Mock()
+        util._extract_record_types("Account", "test_table", conn)
+
+        util.sf.query.assert_called_once_with(
+            "SELECT Id, DeveloperName FROM RecordType WHERE SObjectType='Account'"
+        )
+        util._sql_bulk_insert_from_csv.assert_called_once()
+        call = util._sql_bulk_insert_from_csv.call_args_list[0][0]
+        assert call[0] == conn
+        assert call[1] == "test_table"
+        assert call[2] == ["record_type_id", "developer_name"]
+        assert call[3].read().strip() == b"012000000000000,Organization"
 
 
 BULK_BATCH_RESPONSE = '<root xmlns="http://ns"><batch><state>{}</state></batch></root>'
@@ -118,7 +156,7 @@ class TestLoadDataWithSFIds(unittest.TestCase):
                 bulkdata.LoadData,
                 {
                     "options": {
-                        "database_url": "sqlite:///{}".format(tmp_db_path),
+                        "database_url": f"sqlite:///{tmp_db_path}",
                         "mapping": mapping_path,
                     }
                 },
@@ -418,6 +456,21 @@ class TestLoadDataWithSFIds(unittest.TestCase):
             ),
         )
 
+        fields["RecordTypeId"] = "recordtypeid"
+        fields["AccountSite"] = "accountsite"
+
+        self.assertEqual(
+            ["Id", "Name", "AccountSite", "Industry", "RecordTypeId"],
+            task._get_columns(
+                {
+                    "sf_object": "Account",
+                    "action": "update",
+                    "fields": fields,
+                    "static": {"Industry": "Technology"},
+                }
+            ),
+        )
+
     def test_get_statics(self):
         task = _make_task(
             bulkdata.LoadData,
@@ -649,7 +702,7 @@ class TestLoadDataWithSFIds(unittest.TestCase):
         api.headers.return_value = {}
         task.bulk = api
 
-        results_url = "{}/job/1/batch/2/result".format(task.bulk.endpoint)
+        results_url = f"{task.bulk.endpoint}/job/1/batch/2/result"
         responses.add(method="GET", url=results_url, body=result_data, status=200)
 
         task.metadata = mock.Mock()
@@ -762,6 +815,116 @@ class TestLoadDataWithSFIds(unittest.TestCase):
         task.logger.error.assert_any_call("Batch failure message: Test1")
         task.logger.error.assert_any_call("Batch failure message: Test2")
 
+    def test_load_mapping__record_type_mapping(self):
+        base_path = os.path.dirname(__file__)
+        mapping_path = os.path.join(base_path, self.mapping_file)
+        task = _make_task(
+            bulkdata.LoadData,
+            {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
+        )
+
+        task.session = mock.Mock()
+        task._create_job = mock.Mock(return_value=("test", 1))
+        task._wait_for_job = mock.Mock()
+        task._process_job_results = mock.Mock()
+        task._load_record_types = mock.Mock()
+
+        task._load_mapping({"sf_object": "Account", "fields": {"Name": "Name"}})
+
+        task._load_record_types.assert_not_called()
+
+        task._load_mapping(
+            {
+                "sf_object": "Account",
+                "fields": {"Name": "Name", "RecordTypeId": "RecordTypeId"},
+            }
+        )
+        task._load_record_types.assert_called_once_with(
+            ["Account"], task.session.connection.return_value
+        )
+
+    def test_query_db__record_type_mapping(self):
+        task = _make_task(
+            bulkdata.LoadData,
+            {"options": {"database_url": "sqlite://", "mapping": "test.yml"}},
+        )
+        model = mock.Mock()
+        task.models = {"accounts": model}
+        task.metadata = mock.Mock()
+        task.metadata.tables = {
+            "Account_rt_target_mapping": mock.Mock(),
+            "Account_rt_mapping": mock.Mock(),
+        }
+        task.session = mock.Mock()
+
+        model.__table__ = mock.Mock()
+        model.__table__.primary_key.columns.keys.return_value = ["sf_id"]
+        columns = {"sf_id": mock.Mock(), "name": mock.Mock()}
+        model.__table__.columns = columns
+
+        mapping = OrderedDict(
+            sf_object="Account",
+            table="accounts",
+            action="insert",
+            oid_as_pk=True,
+            fields=OrderedDict(Id="sf_id", Name="name", RecordTypeId="RecordTypeId"),
+        )
+
+        task._query_db(mapping)
+
+        # Validate that the column set is accurate
+        task.session.query.assert_called_once_with(
+            model.sf_id,
+            model.__table__.columns["name"],
+            task.metadata.tables["Account_rt_target_mapping"].columns.record_type_id,
+        )
+
+        # Validate that we asked for the right joins on the record type tables
+        task.session.query.return_value.outerjoin.assert_called_once_with(
+            task.metadata.tables["Account_rt_mapping"], False
+        )
+        task.session.query.return_value.outerjoin.return_value.outerjoin.assert_called_once_with(
+            task.metadata.tables["Account_rt_target_mapping"], False
+        )
+
+    @mock.patch("cumulusci.tasks.bulkdata.load.automap_base")
+    def test_init_db__record_type_mapping(self, base):
+        base_path = os.path.dirname(__file__)
+        mapping_path = os.path.join(base_path, self.mapping_file)
+        task = _make_task(
+            bulkdata.LoadData,
+            {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
+        )
+
+        def create_table_mock(table_name):
+            task.models[table_name] = mock.Mock()
+
+        task._create_record_type_table = mock.Mock(side_effect=create_table_mock)
+        task.models = mock.Mock()
+        task.metadata = mock.Mock()
+
+        task._init_mapping()
+        task.mapping["Insert Households"]["fields"]["RecordTypeId"] = "RecordTypeId"
+        task._init_db()
+        task._create_record_type_table.assert_called_once_with(
+            "Account_rt_target_mapping"
+        )
+
+    def test_load_record_types(self):
+        task = _make_task(
+            bulkdata.LoadData, {"options": {"database_url": "sqlite://", "mapping": ""}}
+        )
+
+        conn = mock.Mock()
+        task._extract_record_types = mock.Mock()
+        task._load_record_types(["Account", "Contact"], conn)
+        task._extract_record_types.assert_has_calls(
+            [
+                unittest.mock.call("Account", "Account_rt_target_mapping", conn),
+                unittest.mock.call("Contact", "Contact_rt_target_mapping", conn),
+            ]
+        )
+
 
 class TestLoadDataWithoutSFIds(unittest.TestCase):
     mapping_file = "mapping_v2.yml"
@@ -819,7 +982,7 @@ class TestLoadDataWithoutSFIds(unittest.TestCase):
                 bulkdata.LoadData,
                 {
                     "options": {
-                        "database_url": "sqlite:///{}".format(tmp_db_path),
+                        "database_url": f"sqlite:///{tmp_db_path}",
                         "mapping": mapping_path,
                     }
                 },
@@ -947,6 +1110,35 @@ class TestExtractDataWithSFIds(unittest.TestCase):
         task._import_results({"fields": {}, "lookups": {}}, result_file, None)
         task._sql_bulk_insert_from_csv.assert_not_called()
 
+    def test_import_results__record_type_mapping(self):
+        base_path = os.path.dirname(__file__)
+        mapping_path = os.path.join(base_path, "recordtypes.yml")
+        task = _make_task(
+            bulkdata.ExtractData,
+            {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
+        )
+        task._extract_record_types = mock.Mock()
+        task._sql_bulk_insert_from_csv = mock.Mock()
+        task.session = mock.Mock()
+        result_file = io.BytesIO(
+            b"Id,Name,RecordTypeId\n000000000000001,Test,012000000000000"
+        )
+        conn = mock.Mock()
+        task._import_results(
+            {
+                "sf_object": "Account",
+                "record_type_table": "test_rt",
+                "fields": {"Name": "Name", "RecordTypeId": "RecordTypeId"},
+                "lookups": {},
+                "table": "accounts",
+                "sf_id_table": "test_ids",
+                "oid_as_pk": False,
+            },
+            result_file,
+            conn,
+        )
+        task._extract_record_types.assert_called_once_with("Account", "test_rt", conn)
+
     def test_create_table__already_exists(self):
         base_path = os.path.dirname(__file__)
         mapping_path = os.path.join(base_path, self.mapping_file)
@@ -955,13 +1147,44 @@ class TestExtractDataWithSFIds(unittest.TestCase):
             bulkdata.ExtractData,
             {
                 "options": {
-                    "database_url": "sqlite:///{}".format(db_path),
+                    "database_url": f"sqlite:///{db_path}",
                     "mapping": mapping_path,
                 }
             },
         )
         with self.assertRaises(BulkDataException):
             task()
+
+    def test_create_table__record_type_mapping(self):
+        task = _make_task(
+            bulkdata.ExtractData,
+            {"options": {"database_url": "sqlite:///", "mapping": ""}},
+        )
+        task.mappings = {
+            "Insert Accounts": {
+                "sf_object": "Account",
+                "fields": {"Name": "Name", "RecordTypeId": "RecordTypeId"},
+                "lookups": {},
+                "table": "accounts",
+                "sf_id_table": "test_ids",
+                "oid_as_pk": False,
+            },
+            "Insert Other Accounts": {
+                "sf_object": "Account",
+                "fields": {"Name": "Name", "RecordTypeId": "RecordTypeId"},
+                "lookups": {},
+                "table": "accounts_2",
+                "sf_id_table": "test_ids_2",
+                "oid_as_pk": False,
+            },
+        }
+
+        def create_table_mock(table_name):
+            task.models[table_name] = mock.Mock()
+
+        task._create_record_type_table = mock.Mock(side_effect=create_table_mock)
+        task._init_db()
+        task._create_record_type_table.assert_called_once_with("Account_rt_mapping")
 
 
 class TestExtractDataWithoutSFIds(unittest.TestCase):
@@ -1194,7 +1417,7 @@ class TestMappingGenerator(unittest.TestCase):
     def _prepare_describe_mock(self, task, describe_data):
         responses.add(
             method="GET",
-            url="{}/services/data/v45.0/sobjects".format(task.org_config.instance_url),
+            url=f"{task.org_config.instance_url}/services/data/v45.0/sobjects",
             body=json.dumps(
                 {
                     "sobjects": [
@@ -1209,9 +1432,7 @@ class TestMappingGenerator(unittest.TestCase):
             body.update(describe_data[s])
             responses.add(
                 method="GET",
-                url="{}/services/data/v45.0/sobjects/{}/describe".format(
-                    task.org_config.instance_url, s
-                ),
+                url=f"{task.org_config.instance_url}/services/data/v45.0/sobjects/{s}/describe",
                 body=json.dumps(body),
                 status=200,
             )
@@ -1232,7 +1453,7 @@ class TestMappingGenerator(unittest.TestCase):
         t = _make_task(bulkdata.GenerateMapping, {"options": {"path": "mapping.yaml"}})
         t.project_config.project__package__api_version = "45.0"
         describe_data = {
-            "Account": {
+            "Parent": {
                 "fields": [self._mock_field("Id"), self._mock_field("Custom__c")]
             },
             "Child__c": {
@@ -1241,7 +1462,7 @@ class TestMappingGenerator(unittest.TestCase):
                     self._mock_field(
                         "Account__c",
                         field_type="reference",
-                        referenceTo=["Account"],
+                        referenceTo=["Parent"],
                         relationshipOrder=None,
                     ),
                 ]
@@ -1253,23 +1474,21 @@ class TestMappingGenerator(unittest.TestCase):
             t()
 
             with open("mapping.yaml", "r") as fh:
-                content = ordered_yaml_load(fh)
+                content = yaml.safe_load(fh)
 
+            self.assertEqual(["Insert Parent", "Insert Child__c"], list(content.keys()))
+            self.assertEqual("Parent", t.mapping["Insert Parent"]["sf_object"])
+            self.assertEqual("Parent", t.mapping["Insert Parent"]["table"])
             self.assertEqual(
-                ["Insert Account", "Insert Child__c"], list(content.keys())
+                ["Id", "Custom__c"], list(t.mapping["Insert Parent"]["fields"].keys())
             )
-            self.assertEqual("Account", t.mapping["Insert Account"]["sf_object"])
-            self.assertEqual("account", t.mapping["Insert Account"]["table"])
+            self.assertEqual("sf_id", t.mapping["Insert Parent"]["fields"]["Id"])
             self.assertEqual(
-                ["Id", "Custom__c"], list(t.mapping["Insert Account"]["fields"].keys())
-            )
-            self.assertEqual("sf_id", t.mapping["Insert Account"]["fields"]["Id"])
-            self.assertEqual(
-                "custom__c", t.mapping["Insert Account"]["fields"]["Custom__c"]
+                "Custom__c", t.mapping["Insert Parent"]["fields"]["Custom__c"]
             )
 
             self.assertEqual("Child__c", t.mapping["Insert Child__c"]["sf_object"])
-            self.assertEqual("child__c", t.mapping["Insert Child__c"]["table"])
+            self.assertEqual("Child__c", t.mapping["Insert Child__c"]["table"])
             self.assertEqual(
                 ["Id"], list(t.mapping["Insert Child__c"]["fields"].keys())
             )
@@ -1278,8 +1497,7 @@ class TestMappingGenerator(unittest.TestCase):
             )
             self.assertEqual("sf_id", t.mapping["Insert Child__c"]["fields"]["Id"])
             self.assertEqual(
-                "account",
-                t.mapping["Insert Child__c"]["lookups"]["Account__c"]["table"],
+                "Parent", t.mapping["Insert Child__c"]["lookups"]["Account__c"]["table"]
             )
 
     @responses.activate
@@ -1465,6 +1683,31 @@ class TestMappingGenerator(unittest.TestCase):
         t._build_schema()
         self.assertEqual({"Opportunity": {"Account": set(["AccountId"])}}, t.refs)
 
+    def test_build_schema__includes_recordtypeid(self):
+        t = _make_task(bulkdata.GenerateMapping, {"options": {"path": "t"}})
+
+        t.mapping_objects = ["Account", "Opportunity"]
+        t.describes = {
+            "Account": {"fields": [self._mock_field("Name")]},
+            "Opportunity": {
+                "fields": [
+                    self._mock_field("Name"),
+                    self._mock_field(
+                        "AccountId",
+                        field_type="reference",
+                        referenceTo=["Account"],
+                        relationshipOrder=1,
+                    ),
+                    self._mock_field("RecordTypeId"),
+                ],
+                "recordTypeInfos": [{"Name": "Master"}, {"Name": "Donation"}],
+            },
+        }
+
+        t._build_schema()
+        self.assertIn("RecordTypeId", t.schema["Opportunity"])
+        self.assertNotIn("RecordTypeId", t.schema["Account"])
+
     @mock.patch("click.prompt")
     def test_build_mapping(self, prompt):
         t = _make_task(bulkdata.GenerateMapping, {"options": {"path": "t"}})
@@ -1497,21 +1740,21 @@ class TestMappingGenerator(unittest.TestCase):
         t._build_mapping()
         self.assertEqual(["Insert Account", "Insert Child__c"], list(t.mapping.keys()))
         self.assertEqual("Account", t.mapping["Insert Account"]["sf_object"])
-        self.assertEqual("account", t.mapping["Insert Account"]["table"])
+        self.assertEqual("Account", t.mapping["Insert Account"]["table"])
         self.assertEqual(
             ["Id", "Name"], list(t.mapping["Insert Account"]["fields"].keys())
         )
         self.assertEqual("sf_id", t.mapping["Insert Account"]["fields"]["Id"])
-        self.assertEqual("name", t.mapping["Insert Account"]["fields"]["Name"])
+        self.assertEqual("Name", t.mapping["Insert Account"]["fields"]["Name"])
         self.assertEqual(
             ["Dependent__c"], list(t.mapping["Insert Account"]["lookups"].keys())
         )
         self.assertEqual(
-            "child__c", t.mapping["Insert Account"]["lookups"]["Dependent__c"]["table"]
+            "Child__c", t.mapping["Insert Account"]["lookups"]["Dependent__c"]["table"]
         )
 
         self.assertEqual("Child__c", t.mapping["Insert Child__c"]["sf_object"])
-        self.assertEqual("child__c", t.mapping["Insert Child__c"]["table"])
+        self.assertEqual("Child__c", t.mapping["Insert Child__c"]["table"])
         self.assertEqual(
             ["Id", "Name"], list(t.mapping["Insert Child__c"]["fields"].keys())
         )
@@ -1520,12 +1763,12 @@ class TestMappingGenerator(unittest.TestCase):
             list(t.mapping["Insert Child__c"]["lookups"].keys()),
         )
         self.assertEqual("sf_id", t.mapping["Insert Child__c"]["fields"]["Id"])
-        self.assertEqual("name", t.mapping["Insert Child__c"]["fields"]["Name"])
+        self.assertEqual("Name", t.mapping["Insert Child__c"]["fields"]["Name"])
         self.assertEqual(
-            "account", t.mapping["Insert Child__c"]["lookups"]["Account__c"]["table"]
+            "Account", t.mapping["Insert Child__c"]["lookups"]["Account__c"]["table"]
         )
         self.assertEqual(
-            "child__c", t.mapping["Insert Child__c"]["lookups"]["Self__c"]["table"]
+            "Child__c", t.mapping["Insert Child__c"]["lookups"]["Self__c"]["table"]
         )
 
     def test_build_mapping__warns_polymorphic_lookups(self):

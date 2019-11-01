@@ -84,9 +84,12 @@ class RobotLibDoc(BaseTask):
             try:
                 if self.is_pageobject_library(library_name):
                     PageObjects._reset()
-                    Importer().import_class_or_module_by_path(
+                    module = Importer().import_class_or_module_by_path(
                         os.path.abspath(library_name)
                     )
+                    kwfile.doc = module.__doc__
+                    if hasattr(module, "TITLE"):
+                        kwfile.title = module.TITLE
 
                     for pobj_name, pobj in sorted(PageObjects.registry.items()):
                         pobj = PageObjects.registry[pobj_name]
@@ -165,6 +168,7 @@ class KeywordFile:
         else:
             # if it's not a file, it must be a module
             self.filename = path.split(".")[-1]
+        self.title = self.filename
         self.path = path
         self.keywords = {}
 

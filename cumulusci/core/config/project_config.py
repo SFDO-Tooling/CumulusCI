@@ -2,9 +2,10 @@ from distutils.version import LooseVersion
 import os
 
 import raven
+import yaml
 
 import cumulusci
-from cumulusci.core.utils import ordered_yaml_load, merge_config
+from cumulusci.core.utils import merge_config
 from cumulusci.core.config import BaseTaskFlowConfig
 from cumulusci.core.exceptions import (
     ConfigError,
@@ -12,10 +13,15 @@ from cumulusci.core.exceptions import (
     KeychainNotFound,
     ServiceNotConfigured,
     ServiceNotValid,
+    NamespaceNotFoundError,
     NotInProject,
     ProjectConfigNotFound,
 )
 from cumulusci.core.github import get_github_api_for_repo
+from cumulusci.core.github import find_latest_release
+from cumulusci.core.source import GitHubSource
+from cumulusci.core.source import LocalFolderSource
+from cumulusci.core.source import NullSource
 from github3.exceptions import NotFoundError
 
 
@@ -44,6 +50,10 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         self.additional_yaml = None
         if "additional_yaml" in kwargs:
             self.additional_yaml = kwargs.pop("additional_yaml")
+
+        # initialize map of project configs referenced from an external source
+        self.source = NullSource()
+        self.included_sources = kwargs.pop("included_sources", {})
 
         super(BaseProjectConfig, self).__init__(config=config)
 
@@ -78,7 +88,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
         # Load the project's yaml config file
         with open(self.config_project_path, "r") as f_config:
-            project_config = ordered_yaml_load(f_config)
+            project_config = yaml.safe_load(f_config)
 
         if project_config:
             self.config_project.update(project_config)
@@ -86,13 +96,13 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         # Load the local project yaml config file if it exists
         if self.config_project_local_path:
             with open(self.config_project_local_path, "r") as f_local_config:
-                local_config = ordered_yaml_load(f_local_config)
+                local_config = yaml.safe_load(f_local_config)
             if local_config:
                 self.config_project_local.update(local_config)
 
         # merge in any additional yaml that was passed along
         if self.additional_yaml:
-            additional_yaml_config = ordered_yaml_load(self.additional_yaml)
+            additional_yaml_config = yaml.safe_load(self.additional_yaml)
             if additional_yaml_config:
                 self.config_additional_yaml.update(additional_yaml_config)
 
@@ -436,10 +446,6 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             name = self.project__name
         else:
             name = self.config_project.get("project", {}).get("name", "")
-        if name is None:
-            name = (
-                ""
-            )  # not entirely sure why this was happening in tests but this is the goal...
 
         path = os.path.join(
             os.path.expanduser("~"), self.global_config_obj.config_local_dir, name
@@ -571,7 +577,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                         )
                     )
             else:
-                release = self._find_latest_release(repo, include_beta)
+                release = find_latest_release(repo, include_beta)
             if release:
                 ref = repo.tag(
                     repo.ref("tags/" + release.tag_name).object.sha
@@ -586,7 +592,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
         # Get the cumulusci.yml file
         contents = repo.file_contents("cumulusci.yml", ref=ref)
-        cumulusci_yml = ordered_yaml_load(contents.decoded)
+        cumulusci_yml = yaml.safe_load(contents.decoded)
 
         # Get the namespace from the cumulusci.yml if set
         package_config = cumulusci_yml.get("project", {}).get("package", {})
@@ -727,11 +733,76 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
         return repo_dependencies
 
-    def _find_latest_release(self, repo, include_beta=None):
-        try:
-            if include_beta:
-                return next(repo.releases())
+    def get_task(self, name):
+        """Get a TaskConfig by task name
+
+        If the name has a colon, look for it in a different project config.
+        """
+        if ":" in name:
+            ns, name = name.split(":")
+            other_config = self.get_namespace(ns)
+            task_config = other_config.get_task(name)
+            task_config.project_config = other_config
+        else:
+            task_config = super().get_task(name)
+            task_config.project_config = self
+        return task_config
+
+    def get_flow(self, name):
+        """Get a FlowConfig by flow name
+
+        If the name has a colon, look for it in a different project config.
+        """
+        if ":" in name:
+            ns, name = name.split(":")
+            other_config = self.get_namespace(ns)
+            flow_config = other_config.get_flow(name)
+            flow_config.name = name
+            flow_config.project_config = other_config
+        else:
+            flow_config = super().get_flow(name)
+            flow_config.name = name
+            flow_config.project_config = self
+        return flow_config
+
+    def get_namespace(self, ns):
+        """Look up another project config by its name in the `sources` config.
+
+        Also makes sure the project has been fetched, if it's from an external source.
+        """
+        spec = getattr(self, f"sources__{ns}")
+        if spec is None:
+            raise NamespaceNotFoundError(f"Namespace not found: {ns}")
+        return self.include_source(spec)
+
+    def include_source(self, spec):
+        """Make sure a project has been fetched from its source.
+
+        `spec` is a dict which contains different keys depending on the type of source:
+
+        - `github` indicates a GitHubSource
+        - `path` indicates a LocalFolderSource
+
+        This either fetches the project code and constructs its project config,
+        or returns a project config that was previously loaded with the same spec.
+        """
+        frozenspec = tuple(spec.items())
+        if frozenspec in self.included_sources:
+            project_config = self.included_sources[frozenspec]
+        else:
+            if "github" in spec:
+                source = GitHubSource(self, spec)
+            elif "path" in spec:
+                source = LocalFolderSource(self, spec)
             else:
-                return repo.latest_release()
-        except Exception as e:
-            self.logger.warning("{}: {}".format(e.__class__.__name__, str(e)))
+                raise Exception(f"Not sure how to load project: {spec}")
+            self.logger.info(f"Fetching from {source}")
+            project_config = source.fetch()
+            project_config.set_keychain(self.keychain)
+            project_config.source = source
+            self.included_sources[frozenspec] = project_config
+        return project_config
+
+    def relpath(self, path):
+        """Convert path to be relative to the project repo root."""
+        return os.path.relpath(os.path.join(self.repo_root, path))

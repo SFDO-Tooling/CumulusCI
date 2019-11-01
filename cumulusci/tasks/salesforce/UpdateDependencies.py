@@ -340,6 +340,7 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
                     "step_num": "{}.{}".format(step.step_num, i),
                     "task_class": self.task_config.class_path,
                     "task_config": task_config,
+                    "source": step.project_config.source.frozenspec,
                 }
             )
             steps.append(ui_step)
