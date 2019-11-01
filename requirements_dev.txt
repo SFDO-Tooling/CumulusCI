@@ -1,6 +1,6 @@
 -r requirements.txt
 -e .
-black==19.3b0
+black==19.10b0
 bump2version==0.5.11
 coverage==4.5.4
 coveralls==1.8.2
