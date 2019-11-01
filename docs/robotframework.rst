@@ -30,8 +30,11 @@ The following test file placed under **robot/ExampleProject/tests/create_contact
    *** Settings ***
 
    Resource        cumulusci/robotframework/Salesforce.robot
+   Library         cumulusci.robotframework.PageObjects
+
    Suite Setup     Open Test Browser
    Suite Teardown  Delete Records and Close Browser
+
 
    *** Test Cases ***
 
@@ -41,19 +44,25 @@ The following test file placed under **robot/ExampleProject/tests/create_contact
        ${contact_id} =       Salesforce Insert  Contact
        ...                     FirstName=${first_name}
        ...                     LastName=${last_name}
+
        &{contact} =          Salesforce Get  Contact  ${contact_id}
        Validate Contact      ${contact_id}  ${first_name}  ${last_name}
 
    Via UI
        ${first_name} =       Generate Random String
        ${last_name} =        Generate Random String
-       Go To Object Home     Contact
+
+       Go to page            Home  Contact
        Click Object Button   New
+       Wait for modal        New  Contact
+
        Populate Form
        ...                   First Name=${first_name}
        ...                   Last Name=${last_name}
        Click Modal Button    Save
+
        Wait Until Modal Is Closed
+
        ${contact_id} =       Get Current Record Id
        Store Session Record  Contact  ${contact_id}
        Validate Contact      ${contact_id}  ${first_name}  ${last_name}
@@ -63,9 +72,15 @@ The following test file placed under **robot/ExampleProject/tests/create_contact
 
    Validate Contact
        [Arguments]          ${contact_id}  ${first_name}  ${last_name}
+       [Documentation]
+       ...  Given a contact id, validate that the contact has the
+       ...  expected first and last name both through the detail page in
+       ...  the UI and via the API.
+
        # Validate via UI
-       Go To Record Home    Contact  ${contact_id}
-       Page Should Contain  ${first_name} ${last_name}
+       Go to page             Detail   Contact  ${contact_id}
+       Page Should Contain    ${first_name} ${last_name}
+
        # Validate via API
        &{contact} =     Salesforce Get  Contact  ${contact_id}
        Should Be Equal  ${first_name}  &{contact}[FirstName]
@@ -269,15 +284,18 @@ Presently, cumulusci provides the following base classes,
 which should be used for all classes that use the ``pageobject`` decorator:
 
 - ``cumulusci.robotframework.pageobjects.BasePage`` - a generic base
-  class, which should be used if none of the following classes are used.
+  class used by the other base classes. It can be used when creating
+  custom page objects when none of the other base classes make sense.
 - ``cumulusci.robotframework.pageobjects.DetailPage`` - a class
   for a page object which represents a detail page
 - ``cumulusci.robotframework.pageobjects.HomePage`` - a class for a
   page object which represents a home page
 - ``cumulusci.robotframework.pageobjects.ListingPage`` - a class for a
   page object which represents a listing page
+- ``cumulusci.robotframework.pageobject.NewModal`` - a class for a
+  page object which represents the "new object" modal
 
-This base class adds the following keyword to every page object:
+The ``BasePage`` class adds the following keyword to every page object:
 
 - ``Log current page object`` - this keyword is mostly useful
   while debugging tests. It will add to the log information about the
@@ -305,7 +323,7 @@ The :code:`pageobject` decorator takes two arguments: :code:`page_type` and
 :code:`object_name`. These two arguments are used to identify the page
 object (eg: :code:`Go To Page  Listing  Contact`). The values can be
 any arbitrary string, but ordinarily should represent standard page
-types ("Listing", "Detail", "Home"), and standard object names.
+types ("Detail", "Home", "Listing", "New"), and standard object names.
 
 
 Importing the library into a test
