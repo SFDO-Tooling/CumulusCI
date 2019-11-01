@@ -1,3 +1,5 @@
+from functools import lru_cache
+
 from jinja2 import Template
 
 
@@ -47,9 +49,11 @@ class FakerTemplateLibrary:
 
 faker_template_library = FakerTemplateLibrary()
 
+Template = lru_cache(512)(Template)
+
 
 def format_str(value, **kwargs):
-    if isinstance(value, str):
+    if isinstance(value, str) and "{" in value:
         value = Template(value).render(fake=faker_template_library, **kwargs)
 
     return value

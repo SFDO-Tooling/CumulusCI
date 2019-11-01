@@ -16,7 +16,7 @@ from cumulusci.robotframework.utils import selenium_retry
 from SeleniumLibrary.errors import ElementNotFound, NoOpenBrowser
 from urllib3.exceptions import ProtocolError
 
-from cumulusci.robotframework.template_utils import format_str
+from cumulusci.core.template_utils import format_str
 
 OID_REGEX = r"^(%2F)?([a-zA-Z0-9]{15,18})$"
 STATUS_KEY = ("status",)

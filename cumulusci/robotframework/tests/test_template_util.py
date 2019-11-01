@@ -1,5 +1,5 @@
 import unittest
-from cumulusci.robotframework import template_utils
+from cumulusci.core import template_utils
 
 
 class TemplateUtils(unittest.TestCase):
@@ -14,3 +14,15 @@ class TemplateUtils(unittest.TestCase):
         fake = template_utils.FakerTemplateLibrary()
         assert fake.first_name
         assert fake.email(domain="salesforce.com")
+
+    def test_format_str(self):
+        assert template_utils.format_str("abc") == "abc"
+        assert template_utils.format_str("{{abc}}", abc=5) == "5"
+        assert len(template_utils.format_str("{{fake.first_name}}"))
+        assert "15" in template_utils.format_str(
+            "{{fake.first_name}} {{count}}", count=15
+        )
+        assert "15" in template_utils.format_str(
+            "{{fake.first_name}} {{count}}", count="15"
+        )
+        assert template_utils.format_str("{% raw %}{}{% endraw %}", count="15") == "{}"
