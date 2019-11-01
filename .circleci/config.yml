@@ -262,14 +262,13 @@ workflows:
       - test_py36
       - test_py37
       - test_py38
-      - test_windows
       - test_robot
       - test_release
+      - test_windows
       - report:
           requires:
             - test_py36
             - test_py37
             - test_py38
-            - test_windows
             - test_robot
             - test_release
