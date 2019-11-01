@@ -18,6 +18,7 @@ import requests
 from rst2ansi import rst2ansi
 from jinja2 import Environment
 from jinja2 import PackageLoader
+from datetime import datetime
 
 import cumulusci
 from cumulusci.core.config import BaseConfig
@@ -33,7 +34,6 @@ from cumulusci.core.exceptions import ScratchOrgException
 from cumulusci.core.exceptions import ServiceNotConfigured
 from cumulusci.core.exceptions import FlowNotFoundError
 
-# from cumulusci.core.sfdx import sfdx
 from cumulusci.core.utils import import_global
 from cumulusci.cli.config import CliRuntime
 from cumulusci.cli.config import get_installed_version
@@ -815,18 +815,53 @@ def org_connect(config, org_name, sandbox, login_url, default, global_org):
     if org_config.organization_sobject["IsSandbox"]:
         # confirmed org is scratch org
         if org_config.organization_sobject["TrialExpirationDate"]:
-            # print(
-            #     org_config.organization_sobject["IsSandbox"],
-            #     org_config.organization_sobject["TrialExpirationDate"],
-            # )
-            org_config = ScratchOrgConfig(oauth_dict, org_name)
-            org_config.config["scratch"] = True
-            # inserting username was. Failing with gack if i didn't - JK
+            # org_config = ScratchOrgConfig(oauth_dict, org_name)
             org_config.config.update(
-                {"username": org_config.config["userinfo"]["preferred_username"]}
+                {"username": org_config.userinfo__preferred_username}
             )
-            # print(vars(org_config))
-            print(f"force://{org_config.refresh_token}@{org_config.instance_url}")
+            org_config.config["scratch"] = True
+            org_config.config["config_name"] = None
+            org_config.config["config_file"] = ""
+            org_config.config["created"] = True
+
+            # print(
+            #     datetime.strptime(
+            #         org_config.organization_sobject["SystemModstamp"],
+            #         "%y-%m-%dT%H:%M:%S+0000",
+            #     )
+            # )
+            # formatting to expected format
+            org_config.config["date_created"] = datetime.strptime(
+                org_config.organization_sobject["SystemModstamp"][:-5].replace(
+                    "T", " "
+                ),
+                "%Y-%m-%d %H:%M:%S.%f",
+            )
+            # print(type(org_config.organization_sobject["SystemModstamp"]))
+            org_config.config["scratch_org_type"] = "workspace"
+            org_config.config["set_password"] = True
+            org_config.config["sfdx_alias"] = ""
+            org_config.config["org_id"] = org_config.userinfo__organization_id
+            if not org_config.organization_sobject["NamespacePrefix"]:
+                org_config.config["namespaced"] = org_config.organization_sobject[
+                    "NamespacePrefix"
+                ]
+            for i in org_config.config.keys():
+                print(i, org_config.config[i])
+
+            # "config_file": "orgs/dev.json",
+            # "config_name": "dev",
+            # "days": 7,
+            # "email_address": "josh.kofsky@gmail.com",
+            # "namespaced": false,
+            # "sfdx_alias": "CumulusCI__1",
+
+            # if cutting off https:
+            # print(connected_app.client_id)
+            # with open('sfdxurlfile.txt', 'w') as file:
+            #     file.write(f"force://{org_config.refresh_token}@{org_config.instance_url[8:]}\n")
+            #     scratch_keychain = sfdx("force:auth:sfdxurl:store -f {file} --json")
+
         else:
             # Unsure of this case below. I believe a sandbox that is
             # not a scratch org is a trialforce org.
