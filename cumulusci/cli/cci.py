@@ -815,64 +815,46 @@ def org_connect(config, org_name, sandbox, login_url, default, global_org):
     if org_config.organization_sobject["IsSandbox"]:
         # confirmed org is scratch org
         if org_config.organization_sobject["TrialExpirationDate"]:
-            # org_config = ScratchOrgConfig(oauth_dict, org_name)
-            org_config.config.update(
-                {"username": org_config.userinfo__preferred_username}
-            )
-            org_config.config["scratch"] = True
-            org_config.config["config_name"] = None
-            org_config.config["config_file"] = ""
-            org_config.config["created"] = True
-            # print(org_config.organization_sobject["TrialExpirationDate"])
-            org_config.config["expires"] = ""
-            expiration = datetime.strptime(
+            org_expiration = datetime.strptime(
                 org_config.organization_sobject["TrialExpirationDate"],
                 "%Y-%m-%dT%H:%M:%S.%f+0000",
             )
-            days_left = expiration - datetime.now()
-            print(days_left)
-            org_config.config["days"] = days_left.days
-            # print(
-            # datetime.strptime(
-            #     org_config.organization_sobject["SystemModstamp"],
-            #     "%y-%m-%dT%H:%M:%S+0000",
+            days_left = org_expiration - datetime.now()
+            # life_span = (
+            #     datetime.strptime(
+            #         org_config.organization_sobject["TrialExpirationDate"],
+            #         "%Y-%m-%dT%H:%M:%S.%f+0000",
+            #     )
+            #     - org_config.config["date_created"]
             # )
-            # )
-            # formatting to expected format
-            org_config.config["date_created"] = datetime.strptime(
-                org_config.organization_sobject["CreatedDate"][:-5].replace("T", " "),
-                "%Y-%m-%d %H:%M:%S.%f",
-            )
-            ttl = expiration - org_config.config["date_created"]
-            print("TTL: ", ttl, expiration, org_config.config["date_created"])
-            # print(type(org_config.organization_sobject["SystemModstamp"]))
-            org_config.config["scratch_org_type"] = "workspace"
-            org_config.config["set_password"] = True
-            org_config.config["sfdx_alias"] = ""
-            org_config.config["org_id"] = org_config.userinfo__organization_id
-            org_config.config["email_address"] = org_config.userinfo__email
 
             # need to handle this case!
             if org_config.organization_sobject["NamespacePrefix"]:
-                org_config.config["namespaced"] = org_config.organization_sobject[
-                    "NamespacePrefix"
-                ]
-            # for i in org_config.config.keys():
-            #     print(i, org_config.config[i])
-            # print()
-
-            # "config_file": "orgs/dev.json",
-            # "config_name": "dev",
-            # "days": 7,
-            # "email_address": "josh.kofsky@gmail.com",
-            # "namespaced": false,
-            # "sfdx_alias": "CumulusCI__1",
-
-            # if cutting off https:
-            # print(connected_app.client_id)
-            # with open('sfdxurlfile.txt', 'w') as file:
-            #     file.write(f"force://{org_config.refresh_token}@{org_config.instance_url[8:]}\n")
-            #     scratch_keychain = sfdx("force:auth:sfdxurl:store -f {file} --json")
+                org_config.config.update(
+                    {"namespaced": org_config.organization_sobject["NamespacePrefix"]}
+                )
+            org_config.config.update(
+                {
+                    "created": True,
+                    "config_file": "",
+                    "config_name": None,
+                    "date_created": datetime.strptime(
+                        org_config.organization_sobject["CreatedDate"][:-5].replace(
+                            "T", " "
+                        ),
+                        "%Y-%m-%d %H:%M:%S.%f",
+                    ),
+                    "days": days_left.days,
+                    "email_address": org_config.userinfo__email,
+                    "expires": org_expiration,
+                    "org_id": org_config.userinfo__organization_id,
+                    "scratch": True,
+                    "scratch_org_type": "workspace",
+                    "set_password": True,
+                    "sfdx_alias": "",
+                    "username": org_config.userinfo__preferred_username,
+                }
+            )
 
         else:
             # Unsure of this case below. I believe a sandbox that is
