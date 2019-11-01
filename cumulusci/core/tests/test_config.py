@@ -887,17 +887,41 @@ class TestBaseProjectConfig(unittest.TestCase):
         project_config = BaseProjectConfig(global_config)
         assert project_config.relpath(os.path.abspath(".")) == "."
 
-    def test_validate_package_api_version(self):
+    def test_validate_package_api_version_valid(self):
+        """We stringify the float 46.0 as this is what will occur when
+        it is formatted into API URLS. This also negates the need to
+        test an explicit string (i.e. if this passes we know that '46.0'
+        will also pass)."""
         project_config = BaseProjectConfig(BaseGlobalConfig())
-        project_config.config["project"]["package"]["api_version"] = 46
+        project_config.config["project"]["package"]["api_version"] = str(46.0)
+        try:
+            project_config._validate_package_api_format()
+        except ConfigError:
+            pytest.fail("Unexpected error raised")
+
+    def test_validate_package_api_version_invalid(self):
+        project_config = BaseProjectConfig(BaseGlobalConfig())
+        project_config.config["project"]["package"]["api_version"] = str([1, 2, 3])
         with pytest.raises(ConfigError):
             project_config._validate_package_api_format()
 
-        project_config.config["project"]["package"]["api_version"] = [1, 2, 3]
+        project_config.config["project"]["package"]["api_version"] = "9"
         with pytest.raises(ConfigError):
             project_config._validate_package_api_format()
 
-        project_config.config["project"]["package"]["api_version"] = 28.0
+        project_config.config["project"]["package"]["api_version"] = "9.0"
+        with pytest.raises(ConfigError):
+            project_config._validate_package_api_format()
+
+        project_config.config["project"]["package"]["api_version"] = "45"
+        with pytest.raises(ConfigError):
+            project_config._validate_package_api_format()
+
+        project_config.config["project"]["package"]["api_version"] = "45."
+        with pytest.raises(ConfigError):
+            project_config._validate_package_api_format()
+
+        project_config.config["project"]["package"]["api_version"] = "45.00"
         with pytest.raises(ConfigError):
             project_config._validate_package_api_format()
 
