@@ -48,8 +48,8 @@ class FakerTemplateLibrary:
 faker_template_library = FakerTemplateLibrary()
 
 
-def format_str(value, i):
+def format_str(value, **kwargs):
     if isinstance(value, str):
-        value = Template(value).render(number=i, fake=faker_template_library)
+        value = Template(value).render(fake=faker_template_library, **kwargs)
 
     return value

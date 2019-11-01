@@ -564,7 +564,7 @@ class Salesforce(object):
 
         for i in range(int(number_to_create)):
             formatted_fields = {
-                name: format_str(value, i) for name, value in fields.items()
+                name: format_str(value, number=i) for name, value in fields.items()
             }
             newobj = self._salesforce_generate_object(obj_name, **formatted_fields)
             objs.append(newobj)
