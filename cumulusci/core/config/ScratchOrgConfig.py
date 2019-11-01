@@ -11,6 +11,8 @@ from cumulusci.core.config import FAILED_TO_CREATE_SCRATCH_ORG
 from cumulusci.core.config import OrgConfig
 from cumulusci.core.exceptions import ScratchOrgException
 
+nl = "\n"  # fstrings can't contain backslashes
+
 
 class ScratchOrgConfig(OrgConfig):
     """ Salesforce DX Scratch org configuration """
@@ -42,13 +44,13 @@ class ScratchOrgConfig(OrgConfig):
         stdout_list = [line.strip() for line in p.stdout_text]
 
         if p.returncode:
-            self.logger.error("Return code: {}".format(p.returncode))
+            self.logger.error(f"Return code: {p.returncode}")
             for line in stderr_list:
                 self.logger.error(line)
             for line in stdout_list:
                 self.logger.error(line)
-            message = "\nstderr:\n{}".format("\n".join(stderr_list))
-            message += "\nstdout:\n{}".format("\n".join(stdout_list))
+            message = f"\nstderr:\n{nl.join(stderr_list)}"
+            message += f"\nstdout:\n{nl.join(stdout_list)}"
             raise ScratchOrgException(message)
 
         else:
@@ -58,9 +60,7 @@ class ScratchOrgConfig(OrgConfig):
                 raise ScratchOrgException(
                     "Failed to parse json from output. This can happen if "
                     "your scratch org gets deleted.\n  "
-                    "Exception: {}\n  Output: {}".format(
-                        e.__class__.__name__, "".join(stdout_list)
-                    )
+                    f"Exception: {e.__class__.__name__}\n  Output: {''.join(stdout_list)}"
                 )
             org_id = org_info["result"]["accessToken"].split("!")[0]
 
@@ -102,7 +102,7 @@ class ScratchOrgConfig(OrgConfig):
     def user_id(self):
         if not self.config.get("user_id"):
             result = self.salesforce_client.query_all(
-                "SELECT Id FROM User WHERE UserName='{}'".format(self.username)
+                f"SELECT Id FROM User WHERE UserName='{self.username}'"
             )
             self.config["user_id"] = result["records"][0]["Id"]
         return self.config["user_id"]
@@ -133,6 +133,9 @@ class ScratchOrgConfig(OrgConfig):
     @property
     def days(self):
         return self.config.setdefault("days", 1)
+
+    def _get_days(self):
+        return
 
     @property
     def active(self):
@@ -173,11 +176,9 @@ class ScratchOrgConfig(OrgConfig):
 
         options = {
             "config_file": self.config_file,
-            "devhub": " --targetdevhubusername {}".format(self.devhub)
-            if self.devhub
-            else "",
+            "devhub": f" --targetdevhubsername {self.devhub}" if self.devhub else "",
             "namespaced": " -n" if not self.namespaced else "",
-            "days": " --durationdays {}".format(self.days) if self.days else "",
+            "days": f" --durationdays {self.days}" if self.days else "",
             "alias": sarge.shell_format(' -a "{0!s}"', self.sfdx_alias)
             if self.sfdx_alias
             else "",
@@ -199,9 +200,7 @@ class ScratchOrgConfig(OrgConfig):
         stdout = [line.strip() for line in p.stdout_text]
 
         if p.returncode:
-            message = "{}: \n{}\n{}".format(
-                FAILED_TO_CREATE_SCRATCH_ORG, "\n".join(stdout), "\n".join(stderr)
-            )
+            message = f"{FAILED_TO_CREATE_SCRATCH_ORG}: \n{nl.join(stdout)}\n{nl.join(stderr)}"
             raise ScratchOrgException(message)
 
         re_obj = re.compile("Successfully created scratch org: (.+), username: (.+)")
@@ -245,14 +244,12 @@ class ScratchOrgConfig(OrgConfig):
             # Don't throw an exception because of failure creating the
             # password, just notify in a log message
             self.logger.warning(
-                "Failed to set password: \n{}\n{}".format(
-                    "\n".join(stdout), "\n".join(stderr)
-                )
+                f"Failed to set password: \n{nl.join(stdout)}\n{nl.join(stderr)}"
             )
 
     def format_org_days(self):
         if self.days_alive:
-            org_days = "{}/{}".format(self.days_alive, self.days)
+            org_days = f"{self.days_alive}/{self.days}"
         else:
             org_days = str(self.days)
         return org_days
@@ -279,7 +276,7 @@ class ScratchOrgConfig(OrgConfig):
                 self.logger.info(line)
 
         if p.returncode:
-            message = "Failed to delete scratch org: \n{}".format("".join(stdout))
+            message = f"Failed to delete scratch org: \n{''.join(stdout)}"
             raise ScratchOrgException(message)
 
         # Flag that this org has been deleted
@@ -295,10 +292,10 @@ class ScratchOrgConfig(OrgConfig):
         stdout_list = [line.strip() for line in p.stdout_text]
 
         if p.returncode:
-            self.logger.error("Return code: {}".format(p.returncode))
+            self.logger.error(f"Return code: {p.returncode}")
             for line in stdout_list:
                 self.logger.error(line)
-            message = "Message: {}".format("\n".join(stdout_list))
+            message = f"Message: {nl.join(stdout_list)}"
             raise ScratchOrgException(message)
 
     def refresh_oauth_token(self, keychain):
