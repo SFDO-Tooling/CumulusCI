@@ -134,9 +134,6 @@ class ScratchOrgConfig(OrgConfig):
     def days(self):
         return self.config.setdefault("days", 1)
 
-    def _get_days(self):
-        return
-
     @property
     def active(self):
         """Check if an org is alive"""
