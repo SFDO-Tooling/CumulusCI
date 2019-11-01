@@ -264,6 +264,7 @@ workflows:
       - test_py38
       - test_robot
       - test_release
+      - test_windows
       - report:
           requires:
             - test_py36
