@@ -1,5 +1,5 @@
 import os
-
+import datetime
 import requests
 
 from cumulusci.core.config import BaseConfig
@@ -70,6 +70,30 @@ class OrgConfig(BaseConfig):
             self.access_token,
         )
         return start_url
+
+    @property
+    def expired(self):
+        """Check if an org has already expired"""
+        return bool(self.expires) and self.expires < datetime.datetime.now()
+
+    @property
+    def expires(self):
+        if self.date_created:
+            return self.date_created + datetime.timedelta(days=int(self.days))
+
+    @property
+    def days_alive(self):
+        if self.date_created and not self.expired:
+            delta = datetime.datetime.now() - self.date_created
+            # cant be alive for negative days
+            return abs(delta).days + 1
+
+    def format_org_days(self):
+        if self.days_alive:
+            org_days = "{}/{}".format(self.days_alive, self.days)
+        else:
+            org_days = str(self.days)
+        return org_days
 
     @property
     def user_id(self):
