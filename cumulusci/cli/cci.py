@@ -837,7 +837,7 @@ def org_connect(config, org_name, sandbox, login_url, default, global_org):
                     "org_id": org_config.userinfo__organization_id,
                     "scratch_org_type": "workspace",
                     # I think you need scratch value:
-                    "scratch": True,
+                    # "scratch": True,
                     "set_password": True,
                     "connected_scratch": True,
                     "sfdx_alias": "",
@@ -863,7 +863,6 @@ def org_connect(config, org_name, sandbox, login_url, default, global_org):
 
     config.keychain.set_org(org_config, global_org)
     click.echo(f"Added {org_name} to your keychain")
-    print("SCRATCH: ", org_config.scratch)
     if org_config.scratch and org_config.expires:
         click.echo("Org expires on {:%c}".format(org_config.expires))
 
@@ -977,7 +976,7 @@ def org_list(config, plain):
     rows_to_dim = []
     for org, org_config in org_configs.items():
         row = [org, org_config.default]
-        if isinstance(org_config, ScratchOrgConfig):  # or org_config.connected_scratch:
+        if isinstance(org_config, ScratchOrgConfig) or org_config.connected_scratch:
             org_days = org_config.format_org_days()
             if org_config.expired:
                 domain = ""
