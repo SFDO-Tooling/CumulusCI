@@ -810,24 +810,19 @@ def org_connect(config, org_name, sandbox, login_url, default, global_org):
     org_config = OrgConfig(oauth_dict, org_name)
     org_config.load_userinfo()
     org_config._load_orginfo()
-
+    datetime_format = "%Y-%m-%dT%H:%M:%S.%f+0000"
     if org_config.organization_sobject["IsSandbox"]:
         # confirmed org is scratch org
         if org_config.organization_sobject["TrialExpirationDate"]:
-            org_expiration = datetime.strptime(
-                org_config.organization_sobject["TrialExpirationDate"],
-                "%Y-%m-%dT%H:%M:%S.%f+0000",
-            )
-            days_left = org_expiration - datetime.now()
-            org_config.config.update(
-                {
-                    "date_created": datetime.strptime(
-                        org_config.organization_sobject["CreatedDate"],
-                        "%Y-%m-%dT%H:%M:%S.%f+0000",
-                    ),
-                    "days": days_left.days,
-                }
-            )
+            days = (
+                datetime.strptime(
+                    org_config.organization_sobject["TrialExpirationDate"],
+                    datetime_format,
+                )
+                - datetime.strptime(
+                    org_config.organization_sobject["CreatedDate"], datetime_format
+                )
+            ).days
             # need to handle this case!
             if org_config.organization_sobject["NamespacePrefix"]:
                 org_config.config.update(
@@ -841,21 +836,26 @@ def org_connect(config, org_name, sandbox, login_url, default, global_org):
                     "email_address": org_config.userinfo__email,
                     "org_id": org_config.userinfo__organization_id,
                     "scratch_org_type": "workspace",
+                    # I think you need scratch value:
+                    "scratch": True,
                     "set_password": True,
                     "connected_scratch": True,
                     "sfdx_alias": "",
                     "username": org_config.userinfo__preferred_username,
+                    "date_created": datetime.strptime(
+                        org_config.organization_sobject["CreatedDate"], datetime_format
+                    ),
+                    "days": days,
                 }
             )
-
+            if not org_config.expired:
+                org_config.config.update({"active": True})
         else:
             # Unsure of this case below. I believe a sandbox that is
             # not a scratch org is a trialforce org.
             click.echo("Connecting as a trialforce org")
     else:
         click.echo("Not a sandbox or scratch org, connecting as a persistent org.")
-    if not org_config.expired:
-        org_config.config.update({"active": True})
 
     if default:
         config.keychain.set_default_org(org_name)
@@ -863,7 +863,7 @@ def org_connect(config, org_name, sandbox, login_url, default, global_org):
 
     config.keychain.set_org(org_config, global_org)
     click.echo(f"Added {org_name} to your keychain")
-
+    print("SCRATCH: ", org_config.scratch)
     if org_config.scratch and org_config.expires:
         click.echo("Org expires on {:%c}".format(org_config.expires))
 
@@ -977,9 +977,8 @@ def org_list(config, plain):
     rows_to_dim = []
     for org, org_config in org_configs.items():
         row = [org, org_config.default]
-        if isinstance(org_config, ScratchOrgConfig) or org_config.connected_scratch:
+        if isinstance(org_config, ScratchOrgConfig):  # or org_config.connected_scratch:
             org_days = org_config.format_org_days()
-            print(org_days)
             if org_config.expired:
                 domain = ""
             else:
