@@ -39,12 +39,15 @@ class GenerateDataDictionary(BaseGithubTask):
 
     def _run_task(self):
         self.logger.info("Starting data dictionary generation")
+
+        self._init_schema()
+        self._walk_releases()
+        self._write_results()
+
+    def _init_schema(self):
         self.schema = defaultdict(
             lambda: {"version": None, "fields": defaultdict(lambda: {"version": None})}
         )
-
-        self._walk_releases()
-        self._write_results()
 
     def _walk_releases(self):
         repo = self.get_repo()
@@ -60,8 +63,8 @@ class GenerateDataDictionary(BaseGithubTask):
 
             self.logger.info(f"Analyzing version {version}")
 
-            # The zip file's manifest starts with a single package component representing
-            # the repo's name, owner, and commit SHA.
+            # The zip file's manifest entries start with a single path component
+            # representing the repo's name, owner, and commit SHA.
             # Strip that off so we can inspect paths directly.
             zip_name_list = zip_file.namelist()
             self.zip_prefix = os.path.normpath(zip_name_list[-1]).split(os.sep)[0]
@@ -72,18 +75,19 @@ class GenerateDataDictionary(BaseGithubTask):
                 for p in zip_name_list
             ]
 
-            if "src/objects" in self.name_list:
+            # FIXME: does the zip library use POSIX separators for filenames pervasively?
+            if "/src/objects" in self.name_list:
                 # MDAPI format
                 self._process_mdapi_release(zip_file, version)
 
-            if "force-app/main/default/objects" in self.name_list:
+            if "/force-app/main/default/objects" in self.name_list:
                 # FIXME: check sfdx-project.json for directories to process.
                 # SFDX format
                 self._process_sfdx_release(zip_file, version)
 
     def _process_mdapi_release(self, zip_file, version):
         for f in self.name_list:
-            if f.startswith("src/objects") and f.endswith(".object"):
+            if f.startswith("/src/objects") and f.endswith(".object"):
                 sobject_name = os.path.splitext(os.path.split(f)[1])[0]
                 self.logger.debug(f"Processing {sobject_name}")
 
@@ -100,10 +104,12 @@ class GenerateDataDictionary(BaseGithubTask):
                 )
 
     def _process_sfdx_release(self, zip_file, version):
-        for obj_file in zip_file.namelist():
+        for obj_file in self.name_list:
             if obj_file.startswith("/force-app/main/default/objects"):
                 if obj_file.endswith(".object-meta.xml"):
-                    sobject_name = os.path.basename(os.path.split(obj_file)[0])
+                    sobject_name = os.path.basename(os.path.split(obj_file)[1])[
+                        : -len(".object-meta.xml")
+                    ]
                     self.logger.debug(f"Processing {sobject_name}")
 
                     self._process_object_element(
@@ -118,10 +124,12 @@ class GenerateDataDictionary(BaseGithubTask):
                         version,
                     )
                 elif obj_file.endswith(".field-meta.xml"):
+                    # To get the sObject name, we need to remove the `/fields/SomeField.field-meta.xml`
+                    # and take the last path component
                     sobject_name = os.path.basename(
-                        os.path.split(os.path.split(obj_file)[0])[0]
+                        os.path.split(obj_file)[0][: -len("fields")].strip(os.path.sep)
                     )
-                    field_name = os.path.basename(os.path.split(obj_file)[0])
+                    field_name = os.path.basename(os.path.split(obj_file)[1])
                     self.logger.debug(f"Processing {sobject_name}.{field_name}")
 
                     self._process_field_element(
@@ -150,7 +158,9 @@ class GenerateDataDictionary(BaseGithubTask):
                     "label": element.find(
                         "{http://soap.sforce.com/2006/04/metadata}label"
                     ).text,
-                    "help_text": help_text_elem.text if help_text_elem else "",
+                    "help_text": help_text_elem.text
+                    if help_text_elem is not None
+                    else "",
                 },
             )
 
@@ -167,12 +177,13 @@ class GenerateDataDictionary(BaseGithubTask):
             "{http://soap.sforce.com/2006/04/metadata}fullName"
         ).text
         help_text_elem = field.find(
-            "{http://soap.sforce.com/2006/04/metadata}description"
+            "{http://soap.sforce.com/2006/04/metadata}inlineHelpText"
         )
+
         if "__" in field_name:
             if (
                 field.find("{http://soap.sforce.com/2006/04/metadata}type").text
-                == "picklist"
+                == "Picklist"
             ):
                 picklist_values = "; ".join(
                     [
@@ -193,7 +204,9 @@ class GenerateDataDictionary(BaseGithubTask):
                 self.schema[sobject_name]["fields"][field_name],
                 {
                     "version": version,
-                    "help_text": help_text_elem.text if help_text_elem else "",
+                    "help_text": help_text_elem.text
+                    if help_text_elem is not None
+                    else "",
                     "label": field.find(
                         "{http://soap.sforce.com/2006/04/metadata}label"
                     ).text,
@@ -264,6 +277,8 @@ class GenerateDataDictionary(BaseGithubTask):
 
         if in_dict["version"] is None:
             pass
+        elif props["version"] is None:
+            return
         elif in_dict["version"] < props["version"]:
             # Update the metadata but not the version.
             del update_props["version"]
