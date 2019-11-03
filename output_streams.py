@@ -27,14 +27,27 @@ class DebugOutputEngine(OutputStream):
 
 
 class SqlOutputEngine(OutputStream):
+    def __init__(self, db_url, mappings):
+        self.init_db(db_url, mappings)
+
     def init_db(self, db_url, mappings):
-        engine = create_engine(db_url)
-        metadata = MetaData()
+        self.engine = engine = create_engine(db_url)
+        self.metadata = metadata = MetaData()
         metadata.bind = engine
         for mapping in mappings.values():
+            print(mapping)
             create_table(mapping, metadata)
+
         metadata.create_all()
-        base = automap_base(bind=engine, metadata=metadata)
-        base.prepare(engine, reflect=True)
-        session = create_session(bind=engine, autocommit=False)
-        return session, engine, base
+        self.base = automap_base(bind=engine, metadata=metadata)
+        self.base.prepare(engine, reflect=True)
+        self.session = create_session(bind=engine, autocommit=False)
+        return self.session, self.engine, self.base
+
+    def write_row(self, tablename, row):
+        #  TODO: use sessions properly
+        model = self.metadata.tables[tablename]
+        ins = model.insert().values(**row)
+        self.session.execute(ins)
+        self.session.commit()
+        print("Inserted", tablename, row)

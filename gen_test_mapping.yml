@@ -1,0 +1,61 @@
+Households:
+    sf_object: Account
+    table: Account
+    fields:
+        Name: name
+        BillingStreet: BillingStreet
+        BillingCountry: BillingCountry
+        description: description
+    record_type: HH_Account
+Contacts:
+    sf_object: Contact
+    table: Contact
+    fields:
+        LastName: name
+        title: title
+        description: description
+GAU:
+    sf_object: General_Accounting_Unit__c
+    table: General_Accounting_Unit__c
+    fields:
+        Name: Name
+DataImport:
+    sf_object: DataImport__c
+    table: DataImport__c
+    fields:
+        Account1_Name__c: Account1_Name__c
+        Account1_City__c: Account1_City__c
+        Account1_Country__c: Account1_Country__c
+        Account1_Street__c: Account1_Street__c
+        Contact1_Lastname__c: Contact1_Lastname__c
+        Contact1_Title__c: Contact1_Title__c
+        Donation_Amount__c: Donation_Amount__c
+        Donation_Date__c: Donation_Date__c
+        Donation_Donor__c: Donation_Donor__c
+        GAU_Allocation_1_Percent__c: GAU_Allocation_1_Percent__c
+        Opportunity_Contact_Role_1_Role__c: Opportunity_Contact_Role_1_Role__c
+        CO1_Text__c: CO1_Text__c
+        CO1_Date__c: CO1_Date__c
+        CO1_currency__c: CO1_currency__c
+        CO1_Number__c: CO1_Number__c
+        CO1_Picklist__c: CO1_Picklist__c
+        CO1_Phone__c: CO1_Phone__c
+        CO1_textarea__c: CO1_textarea__c
+        CO1_url__c: CO1_url__c
+        CO1_text2__c: CO1_text2__c
+        CO1_Currency2__c: CO1_Currency2__c
+        CO2_currency__c: CO2_currency__c
+        CO2_currency_2__c: CO2_currency_2__c
+        CO3_Text__c: CO3_Text__c
+        CO3_Date__c: CO3_Date__c
+        CO3_Currency__c: CO3_Currency__c
+        CO3_Number__c: CO3_Number__c
+        CO3_Picklist__c: CO3_Picklist__c
+        CO3_Phone__c: CO3_Phone__c
+        Opp_Do_Not_Automatically_Create_Payment__c: Opp_Do_Not_Automatically_Create_Payment__c
+        ASC_Amount__c: ASC_Amount__c
+        ASC_Role__c: ASC_Role__c
+    lookups:
+        GAU_Allocation_1_GAU__c:
+            table: General_Accounting_Unit__c
+            key_field: GAU_Allocation_1_GAU__c

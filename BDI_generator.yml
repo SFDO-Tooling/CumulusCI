@@ -1,5 +1,5 @@
 - object:
-    type: GAU
+    type: General_Accounting_Unit__c
     name: Scholarship
     nickname: the_gau
 
@@ -42,14 +42,11 @@
       Opportunity_Contact_Role_1_Role__c: "Influencer"
       CO1_Text__c: "BDI text{{number}}} - JOB_ID"
       GAU_Allocation_1_GAU__c: gau.id,
-      matching_contact: True
 
     friends:
       - object:
           type: Account
           fields:
-            Donation_Amount__c: 1
-            Donation_Date__c: "{{now()}}"
             name: "{{ancestorField('DataImport__c', 'Account1_Name__c')}}"
             BillingStreet: "{{ancestorField('DataImport__c', 'Account1_Street__c')}}"
             BillingCountry: "{{ancestorField('DataImport__c', 'Account1_Country__c')}}"
@@ -94,14 +91,11 @@
       Opportunity_Contact_Role_1_Role__c: "Influencer"
       CO1_Text__c: "BDI text{{number}}} - JOB_ID"
       GAU_Allocation_1_GAU__c: gau.id,
-      matching_contact: True
 
     friends:
       - object:
           type: Account
           fields:
-            Donation_Amount__c: 1
-            Donation_Date__c: "{{now()}}"
             name: "{{ancestorField('DataImport__c', 'Account1_Name__c')}}"
             BillingStreet: "{{ancestorField('DataImport__c', 'Account1_Street__c')}}"
             BillingCountry: "{{ancestorField('DataImport__c', 'Account1_Country__c')}}"
