@@ -1,11 +1,12 @@
 from collections import defaultdict
-from copy import copy
 from dataclasses import dataclass
-from datetime import datetime
+from functools import partial
 
 import jinja2
 
 from cumulusci.core.template_utils import format_str
+
+from template_funcs import template_funcs
 
 
 class IdManager:
@@ -41,84 +42,57 @@ class CounterGenerator:
         self.root_counter.counters[sobject_name] += 1
 
 
+class Globals:
+    def __init__(self, variables):
+        self.named_objects = {}
+        self.id_manager = IdManager()
+        self.variables = variables
+
+    def register_object(self, nickname, obj):
+        self.named_objects[nickname] = obj
+
+    def find_object_by_name(self, nickname):
+        return self.named_objects[nickname]
+
+    def get_object_id_by_name(self, nickname):
+        return self.named_objects[nickname].fields["id"]
+
+
 class Context:
     current_id = None
+    obj = None
 
-    def __init__(self, parent, sobject_name, storage_engine=None):
+    def __init__(self, parent, sobject_name, storage_engine=None, variables=None):
         self.parent = parent
         self.sobject_name = sobject_name
         self.counter_generator = CounterGenerator(
             parent.counter_generator if parent else None
         )
-        self.id_manager = parent.id_manager if parent else IdManager()
-        self.references = {}
+        self.globals = parent.globals if parent else Globals(variables)
         self.storage_engine = storage_engine or self.parent.storage_engine
-
-    def register_row(self, refname, row):
-        self.references[refname] = row
 
     def incr(self):
         self.counter_generator.incr(self.sobject_name)
 
-    def field_vars(self):
-        return {
-            "id": self.current_id,
-            "number": self.counter_generator.get_value(self.sobject_name),
-            "Counter": self.counter_generator.get_value,
-            "AncestorField": self.ancestor_field,
-            "OtherField": self.other_field,
-            "Ancestor": self.ancestor_id,
-            "now": self.now,
-        }
-
-    def parent_field(self, name):
-        return self.parent.obj.fields[name]
-
-    def other_field(self, name):
-        return self.objs.fields[name]
-
-    def ancestor_id(self, sobject_name):
-        return self.ancestor_field(sobject_name, "id")
-
-    def ancestor_field(self, sobject_name, field_name):
-        current_context = self
-        while current_context:
-            if current_context.obj.sftype == sobject_name:
-                return current_context.obj.fields[field_name]
-            else:
-                current_context = current_context.parent
-
-    def now(self):
-        return datetime.now()
-
     def get_id(self):
-        self.current_id = self.id_manager.get_id(self.sobject_name)
+        self.current_id = self.globals.id_manager.get_id(self.sobject_name)
         return self.current_id
+
+    def register_object(self, name, obj):
+        self.globals.register_object(name, obj)
 
     def output_child_row(self, sobj):
         return self.storage_engine.output(sobj, self)[0]
 
-
-class StorageEngine:
-    def __init__(self):
-        self.cg = CounterGenerator(None)
-
-    def output_batches(self, factory, number):
-        context = Context(None, None, self)
-        duplicated_factory = copy(factory)
-        duplicated_factory.count = number * factory.count
-        return self.output(duplicated_factory, context)
-
-    def output(self, factory, context):
-        return factory.generate_rows(self, context)
-
-    def write_row(self, tablename, row):
-        assert 0, "Not implemented"
-
-
-class DebugOutputEngine(StorageEngine):
-    def write_row(self, tablename, row):
-        print(tablename, row)
+    def field_vars(self):
+        funcs = {name: partial(func, self) for name, func in template_funcs.items()}
+        return {
+            "id": self.current_id,
+            "number": self.counter_generator.get_value(self.sobject_name),
+            "counter": self.counter_generator.get_value,
+            "reference": self.globals.get_object_id_by_name,
+            **funcs,
+        }
 
 
 @dataclass
@@ -133,6 +107,7 @@ class SObjectFactory:
     count: int = 1
     fields: list = ()
     friends: list = ()
+    nickname: str = None
 
     def generate_rows(self, storage, parent_context):
         context = Context(parent_context, self.sftype)
@@ -143,6 +118,9 @@ class SObjectFactory:
         context.incr()
         row = {"id": context.get_id()}
         sobj = SObject(self.sftype, row)
+        if self.nickname:
+            context.register_object(self.nickname, sobj)
+
         context.obj = sobj
 
         for field in self.fields:
