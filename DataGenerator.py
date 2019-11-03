@@ -4,7 +4,7 @@ from functools import partial
 
 import jinja2
 
-from cumulusci.core.template_utils import format_str
+from cumulusci.core.template_utils import faker_template_library
 
 from template_funcs import template_funcs
 
@@ -84,10 +84,36 @@ class Context:
     def output_child_row(self, sobj):
         return self.storage_engine.output(sobj, self)[0]
 
+    def evaluate_jinja(self, definition):
+        # todo cache templates at compile time and reuse evaluator
+        if isinstance(definition, str) and "<<" in definition:
+            environment = JinjaTemplateEvaluator()
+            evaluator = environment.get_evaluator(definition)
+
+            return environment.evaluate(
+                evaluator, variables=self.field_vars(), funcs=self.field_funcs()
+            )
+        else:
+            return definition
+
+    # def evaluate_simple_eval(self, definition):
+    #     if definition[0] == "=":
+    #         definition = definition[1:]
+    #         # todo: should reuse parsed code objcts
+    #         return simpleeval.simple_eval(
+    #             definition, names=self.globals.variables, functions=self.field_vars
+    #         )
+    #     else:
+    #         return definition
+
+    evaluate = evaluate_jinja
+
     def field_vars(self):
+        return {"id": self.current_id, **self.globals.variables}
+
+    def field_funcs(self):
         funcs = {name: partial(func, self) for name, func in template_funcs.items()}
         return {
-            "id": self.current_id,
             "number": self.counter_generator.get_value(self.sobject_name),
             "counter": self.counter_generator.get_value,
             "reference": self.globals.get_object_id_by_name,
@@ -105,12 +131,15 @@ class SObject:
 class SObjectFactory:
     sftype: str
     count: int = 1
+    count_expr: str = None
     fields: list = ()
     friends: list = ()
     nickname: str = None
 
     def generate_rows(self, storage, parent_context):
         context = Context(parent_context, self.sftype)
+        if self.count_expr and self.count is None:
+            self.count = int(float(self.count_expr.render(context)))
         assert isinstance(self.count, int), self.count
         return [self._generate_row(storage, context) for i in range(self.count)]
 
@@ -141,13 +170,29 @@ class FieldValue:
     pass
 
 
+class JinjaTemplateEvaluator:
+    def __init__(self):
+        self.environment = jinja2.Environment(
+            block_start_string="<%",
+            block_end_string="%>",
+            variable_start_string="<<",
+            variable_end_string=">>",
+        )
+
+    def get_evaluator(self, template_str):
+        return self.environment.from_string(template_str)
+
+    def evaluate(self, evaluator, funcs, variables):
+        return evaluator.render(fake=faker_template_library, **funcs, **variables)
+
+
 @dataclass
 class SimpleValue(FieldDefinition):
     definition: str
 
     def render(self, context):
         try:
-            return format_str(self.definition, **context.field_vars())
+            return context.evaluate(self.definition)
         except jinja2.exceptions.TemplateSyntaxError as e:
             raise Exception(f"Error in parsing {self.definition}: {e}")
 
@@ -169,3 +214,10 @@ class FieldFactory:
 
     def generate_value(self, context):
         return self.definition.render(context)
+
+
+def output_batches(output_stream, factories, number, variables):
+    context = Context(None, None, output_stream, variables)
+    for i in range(0, number):
+        for factory in factories:
+            factory.generate_rows(output_stream, context)

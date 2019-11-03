@@ -1,5 +1,3 @@
-from DataGenerator import Context
-
 from sqlalchemy import MetaData, create_engine
 from sqlalchemy.ext.automap import automap_base
 from sqlalchemy.orm import create_session
@@ -8,15 +6,6 @@ from cumulusci.tasks.bulkdata.utils import create_table
 
 
 class OutputStream:
-    def output_batches(self, factories, number, variables):
-        context = Context(None, None, self, variables)
-        for i in range(0, number):
-            for factory in factories:
-                self.output(factory, context)
-
-    def output(self, factory, context):
-        return factory.generate_rows(self, context)
-
     def write_row(self, tablename, row):
         assert 0, "Not implemented"
 
@@ -35,7 +24,6 @@ class SqlOutputEngine(OutputStream):
         self.metadata = metadata = MetaData()
         metadata.bind = engine
         for mapping in mappings.values():
-            print(mapping)
             create_table(mapping, metadata)
 
         metadata.create_all()
@@ -50,4 +38,3 @@ class SqlOutputEngine(OutputStream):
         ins = model.insert().values(**row)
         self.session.execute(ins)
         self.session.commit()
-        print("Inserted", tablename, row)

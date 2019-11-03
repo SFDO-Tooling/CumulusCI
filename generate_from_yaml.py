@@ -3,6 +3,7 @@ import yaml
 
 # TODO: choose a module naming style
 from parse_factory_yaml import parse_generator
+from DataGenerator import output_batches
 from output_streams import DebugOutputEngine, SqlOutputEngine
 
 
@@ -21,7 +22,8 @@ def generate(yaml_file, count, var, dburl, mapping_file):
     else:
         db = DebugOutputEngine()
     definitions = parse_generator(yaml_file, int(count))
-    db.output_batches(definitions, count, var)
+    variables = dict(var)
+    output_batches(db, definitions, count, variables)
 
 
 if __name__ == "__main__":

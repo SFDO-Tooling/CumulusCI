@@ -5,98 +5,97 @@
 
 - object:
     type: DataImport__c
-    count: 9
+    count: <<data_imports_per_batch>>
+    # count: 5
     fields:
-      Donation_Donor__c: Account1
+      Donation_Donor__c: Account1<2
       Opp_Do_Not_Automatically_Create_Payment__c: False
-      Account1_Name__c: "Alan Alda BDITEST {{batchnum}} {o.counter(0)} - {JOB_ID}"
+      Account1_Name__c: Alan Alda BDITEST <<batchnum>> {o.counter(0)} - {JOB_ID}
       CO1_Text__c: "BDI Text {o.counter(0)} - BDI {JOB_ID}"
       ASC_Role__c: match
       ASC_Amount__c: 100
       CO2_currency__c: 300
       CO2_currency_2__c: 400
-      Donation_Amount__c: "{{number * 100}}"
-      Donation_Date__c: "{{now()}}"
-      GAU_Allocation_1_GAU__c: "{{reference('the_gau')}}"
+      Donation_Amount__c: "<<number * 100>>"
+      Donation_Date__c: "<<now()>>"
+      GAU_Allocation_1_GAU__c: "<<reference('the_gau')>>"
       GAU_Allocation_1_Percent__c: 10
-      CO1_Date__c: "{{now()}}"
+      CO1_Date__c: "<<now()>>"
       CO1_currency__c: 100
       CO1_Number__c: 1
-      CO1_Picklist__c: "Option{{number % 4}}"
+      CO1_Picklist__c: "Option<<number % 4>>"
       CO1_Phone__c: 123
       CO1_textarea__c: "Long text"
       CO1_url__c: "http://www.url.com/"
-      CO1_text2__c: "BDI text {{number}}"
+      CO1_text2__c: "BDI text <<number>>"
       CO1_Currency2__c: 200
-      CO3_Text__c: "BDI text {{number}}"
-      CO3_Date__c: "{{now()}}"
+      CO3_Text__c: "BDI text <<number>>"
+      CO3_Date__c: "<<now()>>"
       CO3_Currency__c: 100
       CO3_Number__c: 1
-      CO3_Picklist__c: "Option{{number % 4}}"
+      CO3_Picklist__c: "Option<<number % 4>>"
       CO3_Phone__c: 123
       Account1_Country__c: Tuvalu
       Account1_Street__c: Cordova Street
-      Donation_Donor__c: Contact1
       Opp_Do_Not_Automatically_Create_Payment__c: False,
-      Contact1_Lastname__c: "Charisma Carpenter BDITEST {{batchnum}} {{number}} - JOB_ID"
       Opportunity_Contact_Role_1_Role__c: "Influencer"
-      CO1_Text__c: "BDI text{{number}}} - JOB_ID"
+      CO1_Text__c: "BDI text<<number>>} - JOB_ID"
       GAU_Allocation_1_GAU__c: gau.id,
 
     friends:
       - object:
           type: Account
           fields:
-            name: "{{ancestorField('DataImport__c', 'Account1_Name__c')}}"
-            BillingStreet: "{{ancestorField('DataImport__c', 'Account1_Street__c')}}"
-            BillingCountry: "{{ancestorField('DataImport__c', 'Account1_Country__c')}}"
+            name: "<<ancestorField('DataImport__c', 'Account1_Name__c')>>"
+            BillingStreet: "<<ancestorField('DataImport__c', 'Account1_Street__c')>>"
+            BillingCountry: "<<ancestorField('DataImport__c', 'Account1_Country__c')>>"
             description: "Pre-existing"
 
 - object:
     type: DataImport__c
-    count: 9
+    count: 0
     fields:
       Donation_Donor__c: Account1
       Opp_Do_Not_Automatically_Create_Payment__c: False
-      Account1_Name__c: "Boris Becker BDITEST {{batchnum}} {o.counter(0)} - {JOB_ID}"
+      Account1_Name__c: "Boris Becker BDITEST <<batchnum>> {o.counter(0)} - {JOB_ID}"
       CO1_Text__c: "BDI Text {o.counter(0)} - BDI {JOB_ID}"
       ASC_Role__c: match
       ASC_Amount__c: 100
       CO2_currency__c: 300
       CO2_currency_2__c: 400
-      Donation_Amount__c: "{{number * 100}}"
-      Donation_Date__c: "{{now()}}"
-      GAU_Allocation_1_GAU__c: "{{reference('the_gau')}}"
+      Donation_Amount__c: "<<number * 100>>"
+      Donation_Date__c: "<<now()>>"
+      GAU_Allocation_1_GAU__c: "<<reference('the_gau')>>"
       GAU_Allocation_1_Percent__c: 10
-      CO1_Date__c: "{{now()}}"
+      CO1_Date__c: "<<now()>>"
       CO1_currency__c: 100
       CO1_Number__c: 1
-      CO1_Picklist__c: "Option{{number % 4}}"
+      CO1_Picklist__c: "Option<<number % 4>>"
       CO1_Phone__c: 123
       CO1_textarea__c: "Long text"
       CO1_url__c: "http://www.url.com/"
-      CO1_text2__c: "BDI text {{number}}"
+      CO1_text2__c: "BDI text <<number>>"
       CO1_Currency2__c: 200
-      CO3_Text__c: "BDI text {{number}}"
-      CO3_Date__c: "{{now()}}"
+      CO3_Text__c: "BDI text <<number>>"
+      CO3_Date__c: "<<now()>>"
       CO3_Currency__c: 100
       CO3_Number__c: 1
-      CO3_Picklist__c: "Option{{number % 4}}"
+      CO3_Picklist__c: "Option<<number % 4>>"
       CO3_Phone__c: 123
       Account1_Country__c: Tuvalu
       Account1_Street__c: Cordova Street
       Donation_Donor__c: Contact1
       Opp_Do_Not_Automatically_Create_Payment__c: False,
-      Contact1_Lastname__c: "Charisma Carpenter BDITEST {{batchnum}} {{number}} - JOB_ID"
+      Contact1_Lastname__c: "Charisma Carpenter BDITEST <<batchnum>> <<number>> - JOB_ID"
       Opportunity_Contact_Role_1_Role__c: "Influencer"
-      CO1_Text__c: "BDI text{{number}}} - JOB_ID"
+      CO1_Text__c: "BDI text<<number>>} - JOB_ID"
       GAU_Allocation_1_GAU__c: gau.id,
 
     friends:
       - object:
           type: Account
           fields:
-            name: "{{ancestorField('DataImport__c', 'Account1_Name__c')}}"
-            BillingStreet: "{{ancestorField('DataImport__c', 'Account1_Street__c')}}"
-            BillingCountry: "{{ancestorField('DataImport__c', 'Account1_Country__c')}}"
+            name: "<<ancestorField('DataImport__c', 'Account1_Name__c')>>"
+            BillingStreet: "<<ancestorField('DataImport__c', 'Account1_Street__c')>>"
+            BillingCountry: "<<ancestorField('DataImport__c', 'Account1_Country__c')>>"
             description: "Pre-existing"

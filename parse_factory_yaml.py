@@ -42,15 +42,21 @@ def evaluate(value):
         return value
 
 
-def parse_sobject_definition(sobject):
-    assert sobject
-    sobj = {}
-    sobj["sftype"] = sobject["type"]
-    sobj["fields"] = parse_fields(sobject.get("fields", {}))
-    sobj["friends"] = parse_friends(sobject.get("friends", []))
-    sobj["nickname"] = sobject.get("nickname")
-    sobj["count"] = int(float(evaluate(sobject.get("count", 1))))
-    return SObjectFactory(**sobj)
+def parse_sobject_definition(yaml_sobj):
+    assert yaml_sobj
+    sobj_def = {}
+    sobj_def["sftype"] = yaml_sobj["type"]
+    sobj_def["fields"] = parse_fields(yaml_sobj.get("fields", {}))
+    sobj_def["friends"] = parse_friends(yaml_sobj.get("friends", []))
+    sobj_def["nickname"] = yaml_sobj.get("nickname")
+    count_expr = yaml_sobj.get("count")
+    if count_expr:
+        if "<<" in count_expr or "=" in count_expr:
+            sobj_def["count_expr"] = SimpleValue(count_expr)
+            sobj_def["count"] = None
+        else:
+            sobj_def["count"] = int(count_expr)
+    return SObjectFactory(**sobj_def)
 
 
 def parse_sobject_list(sobjects):
