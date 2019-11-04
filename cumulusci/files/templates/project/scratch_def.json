@@ -7,11 +7,10 @@
     },
     "chatterSettings": {
       "enableChatter": true
-    },
-    {% if not managed %}
+    }{% if not managed %},
     "languageSettings": {
       "enableTranslationWorkbench": true
-    },
+    }
     {% endif %}
   }
 }
