@@ -1,6 +1,7 @@
 from collections import defaultdict
 from dataclasses import dataclass
 from functools import partial
+from datetime import date
 
 import jinja2
 
@@ -10,6 +11,8 @@ from template_funcs import template_funcs
 
 
 class IdManager:
+    """What is the most recent ID per Object type"""
+
     def __init__(self):
         self.last_used_ids = defaultdict(lambda: 0)
 
@@ -43,13 +46,15 @@ class CounterGenerator:
 
 
 class Globals:
-    def __init__(self, variables):
+    def __init__(self):
         self.named_objects = {}
         self.id_manager = IdManager()
-        self.variables = variables
+        self.last_seen_obj_of_type = {}
 
-    def register_object(self, nickname, obj):
-        self.named_objects[nickname] = obj
+    def register_object(self, obj, nickname=None):
+        if nickname:
+            self.named_objects[nickname] = obj
+        self.last_seen_obj_of_type[obj._sftype] = obj
 
     def find_object_by_name(self, nickname):
         return self.named_objects[nickname]
@@ -57,10 +62,15 @@ class Globals:
     def get_object_id_by_name(self, nickname):
         return self.named_objects[nickname].fields["id"]
 
+    @property
+    def object_names(self):
+        return {**self.named_objects, **self.last_seen_obj_of_type}
+
 
 class Context:
     current_id = None
     obj = None
+    today = date.today()
 
     def __init__(self, parent, sobject_name, storage_engine=None, variables=None):
         self.parent = parent
@@ -72,7 +82,7 @@ class Context:
             self.variables = {**self.parent.variables}
         else:  # root Context
             self.counter_generator = CounterGenerator()
-            self.globals = Globals(variables)
+            self.globals = Globals()
             self.storage_engine = storage_engine
             self.variables = {**variables}
 
@@ -83,8 +93,9 @@ class Context:
         self.current_id = self.globals.id_manager.get_id(self.sobject_name)
         return self.current_id
 
-    def register_object(self, name, obj):
-        self.globals.register_object(name, obj)
+    def register_object(self, obj, name=None):
+        self.obj = obj
+        self.globals.register_object(obj, name)
 
     def output_child_row(self, sobj):
         return self.storage_engine.output(sobj, self)[0]
@@ -104,22 +115,31 @@ class Context:
     evaluate = evaluate_jinja
 
     def field_vars(self):
-        return {"id": self.current_id, **self.globals.variables}
+        return {
+            "id": self.current_id,
+            "this": self.obj,
+            "today": self.today,
+            **self.variables,
+            **self.globals.object_names,
+        }
 
     def field_funcs(self):
         funcs = {name: partial(func, self) for name, func in template_funcs.items()}
         return {
             "number": self.counter_generator.get_value(self.sobject_name),
             "counter": self.counter_generator.get_value,
-            "reference": self.globals.get_object_id_by_name,
+            "reference": lambda x: x._values["id"],
             **funcs,
         }
 
 
-@dataclass
 class SObject:
-    sftype: str
-    fields: list
+    def __init__(self, sftype, values=()):
+        self._sftype = sftype
+        self._values = values
+
+    def __getattr__(self, name):
+        return self._values[name]
 
 
 @dataclass
@@ -147,8 +167,8 @@ class SObjectFactory:
         context.incr()
         row = {"id": context.get_id()}
         sobj = SObject(self.sftype, row)
-        if self.nickname:
-            context.register_object(self.nickname, sobj)
+
+        context.register_object(sobj, self.nickname)
 
         context.obj = sobj
 

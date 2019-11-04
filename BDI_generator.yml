@@ -1,156 +1,100 @@
-- object:
-    type: General_Accounting_Unit__c
-    nickname: the_gau
-    fields:
-      Name: Scholarship
-
-- object:
-    type: DataImport__c
-    count: <<total_data_imports / 4>>
-    fields:
-      Donation_Donor__c: Account1
-      Account1_Name__c: Alan Alda BDITEST <<batchnum>> <<number>>
-      CO1_Text__c: BDI Text <<number>> - BDI
-      ASC_Role__c: match
-      ASC_Amount__c: 100
-      CO2_currency__c: 300
-      CO2_currency_2__c: 400
-      Donation_Amount__c: <<number * 100>>
-      Donation_Date__c: <<today()>>
-      GAU_Allocation_1_GAU__c: <<reference('the_gau')>>
-      GAU_Allocation_1_Percent__c: 10
-      CO1_Date__c: <<today()>>
+- macro: ReusableCustomObject1_DIFields
+  fields:
       CO1_currency__c: 100
       CO1_Number__c: 1
-      CO1_Picklist__c: Option<<choose(number, 1, 2, 3, 4)>>
+      CO1_Date__c: <<today>>
+      CO1_Picklist__c: Option<<choose(1, 2, 3, 4)>>
       CO1_Phone__c: 123
       CO1_textarea__c: Long text
       CO1_url__c: http://www.url.com/
-      CO1_text2__c: BDI Text<<number>>
       CO1_Currency2__c: 200
-      CO3_Text__c: BDI Text<<number>>
+      CO1_Text__c: BDI Text<<number>>
       CO1_text2__c: BDI Text<<number>>
+
+- macro: ReusableCustomObject3_DIFields
+  fields:
+      CO3_Text__c: BDI Text<<number>>
       CO3_Currency__c: 100
       CO3_Number__c: 1
-      CO3_Picklist__c: Option<<choose(number, 1, 2, 3)>>
       CO3_Phone__c: 123
-      CO3_Date__c: <<today()>>
+      CO3_Date__c: <<today>>
+      CO3_Picklist__c: Option<<choose(1, 2, 3, on=number)>>
+
+- macro: ReusableDIFields
+  fields: 
       Account1_Country__c: Tuvalu
       Account1_Street__c: Cordova Street
+      Donation_Date__c: <<today>>
+      GAU_Allocation_1_Percent__c: 10
+
+
+- object: General_Accounting_Unit__c
+  nickname: the_gau
+  fields:
+      Name: Scholarship
+
+- object: DataImport__c
+  count: <<total_data_imports / 4>>
+  include: ReusableDIFields, ReusableCustomObject1_DIFields, ReusableCustomObject3_DIFields
+  fields:
+      Donation_Donor__c: Account1
+      Account1_Name__c: Alan Alda BDITEST <<batchnum>> <<number>>
+      ASC_Role__c: match
+      ASC_Amount__c: 100
+      CO1_Text__c: BDI Text <<number>>  # override with extra space
+      CO2_currency__c: 300
+      CO2_currency_2__c: 400
+      Donation_Amount__c: <<number * 100>>
+      GAU_Allocation_1_GAU__c: <<reference(the_gau)>>
       Opp_Do_Not_Automatically_Create_Payment__c: 0
-      CO1_Text__c: BDI Text <<number>>
-    friends:
-      - object:
-          type: Account
-          fields:
-            name: <<ancestorField('DataImport__c', 'Account1_Name__c')>>
-            BillingStreet: <<ancestorField('DataImport__c', 'Account1_Street__c')>>
-            BillingCountry: <<ancestorField('DataImport__c', 'Account1_Country__c')>>
+  friends:
+      - object: Account
+        fields:
+            name: <<DataImport__c.Account1_Name__c>>
+            BillingStreet: <<DataImport__c.Account1_Street__c>>
+            BillingCountry: <<DataImport__c.Account1_Country__c>>
             description: Pre-existing
             record_type: HH_Account
 
-- object:        # no friends from matching
-    type: DataImport__c
-    count: <<total_data_imports / 4>>
-    fields:
+- object: DataImport__c       # no friends from matching
+  count: <<total_data_imports / 4>>
+  include: ReusableDIFields, ReusableCustomObject1_DIFields, ReusableCustomObject3_DIFields
+  fields:
       Donation_Donor__c: Account1
       Account1_Name__c: Boris Becker BDITEST <<batchnum>> <<number>>
-      CO1_Text__c: BDI Text <<number>> - BDI
       ASC_Role__c: match
       ASC_Amount__c: 100
       CO2_currency__c: 300
       CO2_currency_2__c: 400
       Donation_Amount__c: <<number * 100>>
-      Donation_Date__c: <<today()>>
-      GAU_Allocation_1_GAU__c: <<reference('the_gau')>>
-      GAU_Allocation_1_Percent__c: 10
-      CO1_Date__c: <<today()>>
-      CO1_currency__c: 100
-      CO1_Number__c: 1
-      CO1_Picklist__c: Option<<choose(number, 1, 2, 3, 4)>>
-      CO1_Phone__c: 123
-      CO1_textarea__c: Long text
-      CO1_url__c: http://www.url.com/
-      CO1_text2__c: BDI Text<<number>>
-      CO1_Currency2__c: 200
-      CO3_Text__c: BDI Text<<number>>
-      CO3_Date__c: <<today()>>
-      CO3_Currency__c: 100
-      CO3_Number__c: 1
-      CO3_Picklist__c: Option<<choose(number, 1, 2, 3)>>
-      CO3_Phone__c: 123
-      Account1_Country__c: Tuvalu
-      Account1_Street__c: Cordova Street
+      GAU_Allocation_1_GAU__c: <<reference(the_gau)>>
       Opp_Do_Not_Automatically_Create_Payment__c: 0
-      CO1_Text__c: BDI Text<<number>>
 
-- object:        # Matches contacts
-    type: DataImport__c
-    count: <<total_data_imports / 4>>
-    fields:
+- object:  DataImport__c      # Matches contacts
+  count: <<total_data_imports / 4>>
+  include: ReusableDIFields, ReusableCustomObject1_DIFields, ReusableCustomObject3_DIFields
+  fields:
       Donation_Donor__c: Contact1
       Contact1_Lastname__c: Charisma Carpenter BDITEST <<batchnum>> <<number>>
-      CO1_Text__c: BDI Text <<number>> - BDI
       Donation_Amount__c: <<number * 100>>
-      Donation_Date__c: <<today()>>
-      GAU_Allocation_1_GAU__c: <<reference('the_gau')>>
-      GAU_Allocation_1_Percent__c: 10
-      CO1_Date__c: <<today()>>
-      CO1_currency__c: 100
-      CO1_Number__c: 1
-      CO1_Picklist__c: Option<<choose(number, 1, 2, 3, 4)>>
-      CO1_Phone__c: 123
-      CO1_textarea__c: Long text
-      CO1_url__c: http://www.url.com/
-      CO1_text2__c: BDI Text<<number>>
-      CO1_Currency2__c: 200
-      CO3_Text__c: BDI Text<<number>>
-      CO3_Date__c: <<today()>>
-      CO3_Currency__c: 100
-      CO3_Number__c: 1
-      CO3_Picklist__c: Option<<choose(number, 1, 2, 3)>>
-      CO3_Phone__c: 123
-      Account1_Country__c: Tuvalu
-      Account1_Street__c: Cordova Street
+      GAU_Allocation_1_GAU__c: <<reference(the_gau)>>
       Donation_Donor__c: Contact1
       Opp_Do_Not_Automatically_Create_Payment__c: 0
       Opportunity_Contact_Role_1_Role__c: Influencer
-      CO1_Text__c: BDI Text<<number>>
-    friends:
-      - object:
-          type: Contact
-          fields:
-            name: <<ancestorField('DataImport__c', 'Contact1_Lastname__c')>>
+  friends:
+      - object: Contact  # Contact for matching
+        fields:
+            name: <<DataImport__c.Contact1_Lastname__c>>
             description: Pre-existing
-- object:        # Matches contacts
-    type: DataImport__c
-    count: <<total_data_imports / 4>>
-    fields:
+
+- object: DataImport__c       # does not match contacts
+  count: <<total_data_imports / 4>>
+  include: ReusableDIFields, ReusableCustomObject1_DIFields, ReusableCustomObject3_DIFields
+  fields:
       Donation_Donor__c: Contact1
       Contact1_Lastname__c: Danny Devito BDITEST <<batchnum>> <<number>>
-      CO1_Text__c: BDI Text <<number>> - BDI
       Donation_Amount__c: <<number * 100>>
-      Donation_Date__c: <<today()>>
-      GAU_Allocation_1_GAU__c: <<reference('the_gau')>>
-      GAU_Allocation_1_Percent__c: 10
-      CO1_Date__c: <<today()>>
-      CO1_currency__c: 100
-      CO1_Number__c: 1
-      CO1_Picklist__c: Option<<choose(number, 1, 2, 3, 4)>>
-      CO1_Phone__c: 123
-      CO1_textarea__c: Long text
-      CO1_url__c: http://www.url.com/
-      CO1_text2__c: BDI Text<<number>>
-      CO1_Currency2__c: 200
-      CO3_Text__c: BDI Text<<number>>
-      CO3_Date__c: <<today()>>
-      CO3_Currency__c: 100
-      CO3_Number__c: 1
-      CO3_Picklist__c: Option<<choose(number, 1, 2, 3)>>
-      CO3_Phone__c: 123
-      Account1_Country__c: Tuvalu
-      Account1_Street__c: Cordova Street
+      GAU_Allocation_1_GAU__c: <<reference(the_gau)>>
       Donation_Donor__c: Contact1
       Opp_Do_Not_Automatically_Create_Payment__c: 0
       Opportunity_Contact_Role_1_Role__c: Influencer
-      CO1_Text__c: BDI Text<<number>>
