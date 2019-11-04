@@ -125,7 +125,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
     def _validate_package_api_format(self):
         api_version_regex = r"^\d\d+\.0$"
-        api_version = self.config["project"]["package"]["api_version"]
+        api_version = str(self.config["project"]["package"]["api_version"])
 
         if not re.match(api_version_regex, api_version):
             message = (
