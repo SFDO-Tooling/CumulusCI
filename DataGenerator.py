@@ -19,7 +19,7 @@ class IdManager:
 
 
 class CounterGenerator:
-    def __init__(self, parent):
+    def __init__(self, parent=None):
         self.counters = defaultdict(lambda: 0)
         self.root_counter = parent.root_counter if parent else self
 
@@ -65,11 +65,16 @@ class Context:
     def __init__(self, parent, sobject_name, storage_engine=None, variables=None):
         self.parent = parent
         self.sobject_name = sobject_name
-        self.counter_generator = CounterGenerator(
-            parent.counter_generator if parent else None
-        )
-        self.globals = parent.globals if parent else Globals(variables)
-        self.storage_engine = storage_engine or self.parent.storage_engine
+        if parent:
+            self.counter_generator = CounterGenerator(parent.counter_generator)
+            self.globals = parent.globals
+            self.storage_engine = parent.storage_engine
+            self.variables = {**self.parent.variables}
+        else:  # root Context
+            self.counter_generator = CounterGenerator()
+            self.globals = Globals(variables)
+            self.storage_engine = storage_engine
+            self.variables = {**variables}
 
     def incr(self):
         self.counter_generator.incr(self.sobject_name)
@@ -95,16 +100,6 @@ class Context:
             )
         else:
             return definition
-
-    # def evaluate_simple_eval(self, definition):
-    #     if definition[0] == "=":
-    #         definition = definition[1:]
-    #         # todo: should reuse parsed code objcts
-    #         return simpleeval.simple_eval(
-    #             definition, names=self.globals.variables, functions=self.field_vars
-    #         )
-    #     else:
-    #         return definition
 
     evaluate = evaluate_jinja
 
