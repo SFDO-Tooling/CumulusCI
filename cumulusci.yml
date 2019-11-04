@@ -2,6 +2,7 @@ project:
     name: CumulusCI
     package:
         name: CumulusCI
+        api_version: 45.0
 
 tasks:
     robot:
