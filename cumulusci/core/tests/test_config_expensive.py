@@ -219,14 +219,14 @@ class TestBaseProjectConfig(unittest.TestCase):
         self._create_project_config()
 
         # create local project config file
-        content = "project:\n" + "    package:\n" + "        api_version: 10\n"
+        content = "project:\n" + "    package:\n" + "        api_version: 45.0\n"
         self._create_project_config_local(content)
 
         os.chdir(self.tempdir_project)
         global_config = BaseGlobalConfig()
         config = BaseProjectConfig(global_config)
         self.assertNotEqual(config.config_project_local, {})
-        self.assertEqual(config.project__package__api_version, 10)
+        self.assertEqual(config.project__package__api_version, 45.0)
 
     def test_load_additional_yaml(self, mock_class):
         mock_class.return_value = self.tempdir_home
@@ -237,13 +237,13 @@ class TestBaseProjectConfig(unittest.TestCase):
         self._create_project_config()
 
         # create local project config file
-        content = "project:\n" + "    package:\n" + "        api_version: 10\n"
+        content = "project:\n" + "    package:\n" + "        api_version: 45.0\n"
 
         os.chdir(self.tempdir_project)
         global_config = BaseGlobalConfig()
         config = BaseProjectConfig(global_config, additional_yaml=content)
         self.assertNotEqual(config.config_additional_yaml, {})
-        self.assertEqual(config.project__package__api_version, 10)
+        self.assertEqual(config.project__package__api_version, 45.0)
 
 
 @mock.patch("sarge.Command")
