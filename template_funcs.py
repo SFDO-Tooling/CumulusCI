@@ -30,16 +30,21 @@ def var(context, varname):
     return os.environ[varname]
 
 
-def now(context):
-    return datetime.now()
+def today(context):
+    return datetime.now().date()
+
+
+def choose(context, index, *values):
+    return values[(index - 1) % len(values)]
 
 
 template_funcs = {
     "ancestorId": ancestorId,
     "ancestorField": ancestorField,
-    "now": now,
+    "today": today,
     "otherField": otherField,
     "parentField": parentField,
     "var": var,
     "int": lambda context, number: int(number),
+    "choose": choose,
 }

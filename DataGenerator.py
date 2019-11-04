@@ -134,7 +134,12 @@ class SObjectFactory:
     def generate_rows(self, storage, parent_context):
         context = Context(parent_context, self.sftype)
         if self.count_expr and self.count is None:
-            self.count = int(float(self.count_expr.render(context)))
+            try:
+                self.count = int(float(self.count_expr.render(context)))
+            except ValueError:
+                raise ValueError(
+                    f"Cannot evaluate {self.count_expr.definition} as number"
+                )
         assert isinstance(self.count, int), self.count
         return [self._generate_row(storage, context) for i in range(self.count)]
 

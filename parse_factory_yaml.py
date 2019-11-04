@@ -8,10 +8,8 @@ from template_funcs import template_funcs
 
 
 def parse_field_value(field):
-    assert field
-    if isinstance(field, str):
-        return SimpleValue(field)
-    elif isinstance(field, Number):
+    assert field is not None
+    if isinstance(field, str) or isinstance(field, Number):
         return SimpleValue(field)
     elif isinstance(field, dict):
         return ChildRecordValue(parse_sobject_definition(field))
@@ -21,7 +19,7 @@ def parse_field_value(field):
 
 def parse_field(name, definition):
     assert name, name
-    assert definition, f"Field should have a definition: {name}"
+    assert definition is not None, f"Field should have a definition: {name}"
     return FieldFactory(name, parse_field_value(definition))
 
 
@@ -42,6 +40,22 @@ def evaluate(value):
         return value
 
 
+def parse_count_expression(yaml_sobj, sobj_def):
+    numeric_expr = yaml_sobj["count"]
+    if isinstance(numeric_expr, Number):
+        sobj_def["count"] = int(numeric_expr)
+    elif isinstance(numeric_expr, str):
+        if "<<" in numeric_expr or "=" in numeric_expr:
+            sobj_def["count_expr"] = SimpleValue(numeric_expr)
+            sobj_def["count"] = None
+        else:
+            sobj_def["count"] = int(numeric_expr)
+    else:
+        raise ValueError(
+            f"Expected count of {yaml_sobj['type']} to be a number, not {numeric_expr}"
+        )
+
+
 def parse_sobject_definition(yaml_sobj):
     assert yaml_sobj
     sobj_def = {}
@@ -50,12 +64,9 @@ def parse_sobject_definition(yaml_sobj):
     sobj_def["friends"] = parse_friends(yaml_sobj.get("friends", []))
     sobj_def["nickname"] = yaml_sobj.get("nickname")
     count_expr = yaml_sobj.get("count")
-    if count_expr:
-        if "<<" in count_expr or "=" in count_expr:
-            sobj_def["count_expr"] = SimpleValue(count_expr)
-            sobj_def["count"] = None
-        else:
-            sobj_def["count"] = int(count_expr)
+    if count_expr is not None:
+        parse_count_expression(yaml_sobj, sobj_def)
+
     return SObjectFactory(**sobj_def)
 
 
