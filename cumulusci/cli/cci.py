@@ -8,6 +8,7 @@ import os
 import shutil
 import sys
 import time
+from datetime import datetime
 import webbrowser
 
 from contextlib import contextmanager
@@ -843,12 +844,25 @@ def org_import(config, username_or_alias, org_name):
     org_config = {"username": username_or_alias}
     scratch_org_config = ScratchOrgConfig(org_config, org_name)
     scratch_org_config.config["created"] = True
+
+    info = scratch_org_config.scratch_info
+    scratch_org_config.config["days"] = calculate_org_days(info)
+
     config.keychain.set_org(scratch_org_config)
     click.echo(
         "Imported scratch org: {org_id}, username: {username}".format(
             **scratch_org_config.scratch_info
         )
     )
+
+
+def calculate_org_days(info):
+    """Returns the difference in days between created_date (ISO 8601),
+    and expiration_date (%Y-%m-%d)"""
+    created_date_str = info["created_date"].split("T")[0]
+    created_date = datetime.strptime(created_date_str, "%Y-%m-%d")
+    expires_date = datetime.strptime(info["expiration_date"], "%Y-%m-%d")
+    return abs((expires_date - created_date).days)
 
 
 @org.command(name="info", help="Display information for a connected org")
