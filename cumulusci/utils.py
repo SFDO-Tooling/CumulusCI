@@ -189,10 +189,13 @@ def zip_inject_namespace(
     namespace_token=None,
     namespaced_org=None,
     logger=None,
+    namespace_dot_token=None,
+    namespaced_org_dot_token=None,
 ):
-    """ Replaces %%%NAMESPACE%%% for all files and ___NAMESPACE___ in all
+    """ Replaces `%%%NAMESPACE%%%` for all files and `___NAMESPACE___` in all
         filenames in the zip with the either '' if no namespace is provided
-        or 'namespace__' if provided.
+        or `namespace__` if provided. Likewise, replace %%%NAMESPACE_DOT%%%
+        with `namespace.`
     """
 
     # Handle namespace and filename tokens
@@ -200,15 +203,23 @@ def zip_inject_namespace(
         filename_token = "___NAMESPACE___"
     if not namespace_token:
         namespace_token = "%%%NAMESPACE%%%"
+    if not namespace_dot_token:
+        namespace_dot_token = "%%%NAMESPACE_DOT%%%"
+
     if managed is True and namespace:
         namespace_prefix = namespace + "__"
+        namespace_dot_prefix = namespace + "."
     else:
         namespace_prefix = ""
+        namespace_dot_prefix = ""
 
     # Handle tokens %%%NAMESPACED_ORG%%% and ___NAMESPACED_ORG___
     namespaced_org_token = "%%%NAMESPACED_ORG%%%"
+    if not namespaced_org_dot_token:
+        namespaced_org_dot_token = "%%%NAMESPACED_ORG_DOT%%%"
     namespaced_org_file_token = "___NAMESPACED_ORG___"
     namespaced_org = namespace_prefix if namespaced_org else ""
+    namespaced_org_dot = namespace_dot_prefix if namespaced_org else ""
 
     # Handle token %%%NAMESPACE_OR_C%%% for lightning components
     namespace_or_c_token = "%%%NAMESPACE_OR_C%%%"
@@ -237,6 +248,15 @@ def zip_inject_namespace(
                 )
 
             prev_content = content
+            content = content.replace(namespace_dot_token, namespace_dot_prefix)
+            if logger and content != prev_content:
+                logger.info(
+                    '  {}: Replaced %%%NAMESPACE_DOT%%% with "{}"'.format(
+                        name, namespace
+                    )
+                )
+
+            prev_content = content
             content = content.replace(namespace_or_c_token, namespace_or_c)
             if logger and content != prev_content:
                 logger.info(
@@ -250,6 +270,15 @@ def zip_inject_namespace(
             if logger and content != prev_content:
                 logger.info(
                     '  {}: Replaced %%%NAMESPACED_ORG%%% with "{}"'.format(
+                        name, namespaced_org
+                    )
+                )
+
+            prev_content = content
+            content = content.replace(namespaced_org_dot_token, namespaced_org_dot)
+            if logger and content != prev_content:
+                logger.info(
+                    '  {}: Replaced %%%NAMESPACED_ORG_DOT%%% with "{}"'.format(
                         name, namespaced_org
                     )
                 )

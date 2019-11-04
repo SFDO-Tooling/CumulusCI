@@ -197,36 +197,36 @@ class TestUtils(unittest.TestCase):
         zf = zipfile.ZipFile(io.BytesIO(), "w")
         zf.writestr(
             "___NAMESPACE___test",
-            "%%%NAMESPACE%%%|%%%NAMESPACED_ORG%%%|%%%NAMESPACE_OR_C%%%|%%%NAMESPACED_ORG_OR_C%%%",
+            "%%%NAMESPACE%%%|%%%NAMESPACE_DOT%%%|%%%NAMESPACED_ORG%%%|%%%NAMESPACED_ORG_DOT%%%|%%%NAMESPACE_OR_C%%%|%%%NAMESPACED_ORG_OR_C%%%",
         )
 
         zf = utils.zip_inject_namespace(zf, namespace="ns", managed=True, logger=logger)
         result = zf.read("ns__test")
-        self.assertEqual(b"ns__||ns|c", result)
+        self.assertEqual(b"ns__|ns.|||ns|c", result)
 
     def test_zip_inject_namespace_unmanaged(self):
         zf = zipfile.ZipFile(io.BytesIO(), "w")
         zf.writestr(
             "___NAMESPACE___test",
-            "%%%NAMESPACE%%%|%%%NAMESPACED_ORG%%%|%%%NAMESPACE_OR_C%%%|%%%NAMESPACED_ORG_OR_C%%%",
+            "%%%NAMESPACE%%%|%%%NAMESPACE_DOT%%%|%%%NAMESPACED_ORG%%%|%%%NAMESPACED_ORG_DOT%%%|%%%NAMESPACE_OR_C%%%|%%%NAMESPACED_ORG_OR_C%%%",
         )
 
         zf = utils.zip_inject_namespace(zf, namespace="ns")
         result = zf.read("test")
-        self.assertEqual(b"||c|c", result)
+        self.assertEqual(b"||||c|c", result)
 
     def test_zip_inject_namespace_namespaced_org(self):
         zf = zipfile.ZipFile(io.BytesIO(), "w")
         zf.writestr(
             "___NAMESPACE___test",
-            "%%%NAMESPACE%%%|%%%NAMESPACED_ORG%%%|%%%NAMESPACE_OR_C%%%|%%%NAMESPACED_ORG_OR_C%%%",
+            "%%%NAMESPACE%%%|%%%NAMESPACE_DOT%%%|%%%NAMESPACED_ORG%%%|%%%NAMESPACED_ORG_DOT%%%|%%%NAMESPACE_OR_C%%%|%%%NAMESPACED_ORG_OR_C%%%",
         )
 
         zf = utils.zip_inject_namespace(
             zf, namespace="ns", managed=True, namespaced_org=True
         )
         result = zf.read("ns__test")
-        self.assertEqual(b"ns__|ns__|ns|ns", result)
+        self.assertEqual(b"ns__|ns.|ns__|ns.|ns|ns", result)
 
     def test_zip_inject_namespace__skips_binary(self):
         contents = b"\x9c%%%NAMESPACE%%%"
