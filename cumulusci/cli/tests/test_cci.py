@@ -584,6 +584,8 @@ class TestCCI(unittest.TestCase):
         config = mock.Mock()
         result = b"""{
             "result": {
+                "createdDate": "1970-01-01T00:00:00Z",
+                "expirationDate": "1970-01-01",
                 "instanceUrl": "url",
                 "accessToken": "access!token",
                 "username": "test@test.org",
@@ -606,6 +608,28 @@ class TestCCI(unittest.TestCase):
         self.assertTrue(
             "Imported scratch org: access, username: test@test.org" in "".join(out)
         )
+
+    def test_calculate_org_days(self):
+        info_1 = {
+            "created_date": "1970-01-01T12:34:56Z",
+            "expiration_date": "1970-01-02",
+        }
+        actual_days = cci.calculate_org_days(info_1)
+        assert 1 == actual_days
+
+        info_7 = {
+            "created_date": "1970-01-01T12:34:56Z",
+            "expiration_date": "1970-01-08",
+        }
+        actual_days = cci.calculate_org_days(info_7)
+        assert 7 == actual_days
+
+        info_14 = {
+            "created_date": "1970-01-01T12:34:56Z",
+            "expiration_date": "1970-01-15",
+        }
+        actual_days = cci.calculate_org_days(info_14)
+        assert 14 == actual_days
 
     def test_org_info(self):
         org_config = mock.Mock()
