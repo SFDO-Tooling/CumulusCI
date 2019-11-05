@@ -584,7 +584,7 @@ class TestCCI(unittest.TestCase):
         config = mock.Mock()
         result = b"""{
             "result": {
-                "createdDate": "1970-01-01T00:00:00Z",
+                "createdDate": "1970-01-01T00:00:00.000Z",
                 "expirationDate": "1970-01-01",
                 "instanceUrl": "url",
                 "accessToken": "access!token",
@@ -611,21 +611,21 @@ class TestCCI(unittest.TestCase):
 
     def test_calculate_org_days(self):
         info_1 = {
-            "created_date": "1970-01-01T12:34:56Z",
+            "created_date": "1970-01-01T12:34:56.789Z",
             "expiration_date": "1970-01-02",
         }
         actual_days = cci.calculate_org_days(info_1)
         assert 1 == actual_days
 
         info_7 = {
-            "created_date": "1970-01-01T12:34:56Z",
+            "created_date": "1970-01-01T12:34:56.789+0000",
             "expiration_date": "1970-01-08",
         }
         actual_days = cci.calculate_org_days(info_7)
         assert 7 == actual_days
 
         info_14 = {
-            "created_date": "1970-01-01T12:34:56Z",
+            "created_date": "1970-01-01T12:34:56.000+0000",
             "expiration_date": "1970-01-15",
         }
         actual_days = cci.calculate_org_days(info_14)
