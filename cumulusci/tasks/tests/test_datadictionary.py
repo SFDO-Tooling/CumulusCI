@@ -53,6 +53,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
                         "label": "Test",
                         "help_text": "Text field",
                         "picklist_values": "",
+                        "type": "Text",
                     }
                 }
             },
@@ -63,6 +64,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
                         "label": "Parent",
                         "help_text": "Lookup",
                         "picklist_values": "",
+                        "type": "Lookup",
                     }
                 },
                 "version": LooseVersion("1.0"),
@@ -95,6 +97,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
             "version": LooseVersion("1.1"),
             "help_text": "",
             "label": "Account",
+            "type": "Lookup",
             "picklist_values": "",
         }
 
@@ -139,6 +142,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
             "version": LooseVersion("1.1"),
             "help_text": "Initial",
             "label": "Account",
+            "type": "Lookup",
             "picklist_values": "",
         }
 
@@ -149,6 +153,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
             "version": LooseVersion("1.1"),
             "help_text": "New",
             "label": "Account",
+            "type": "Lookup",
             "picklist_values": "",
         }
 
@@ -184,6 +189,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
             "version": LooseVersion("1.1"),
             "help_text": "",
             "label": "Type",
+            "type": "Picklist",
             "picklist_values": "Test 1; Test 2",
         }
 
@@ -221,6 +227,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
                         "label": "Type",
                         "help_text": "Type of field.",
                         "picklist_values": "",
+                        "type": "Text",
                     }
                 },
             }

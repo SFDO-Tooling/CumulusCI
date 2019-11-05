@@ -170,7 +170,8 @@ class GenerateDataDictionary(BaseGithubTask):
         help_text_elem = field.find("ns:inlineHelpText", namespaces=namespaces)
 
         if "__" in field_name:
-            if field.find("ns:type", namespaces=namespaces).text == "Picklist":
+            field_type = field.find("ns:type", namespaces=namespaces).text
+            if field_type == "Picklist":
                 # There's two different ways of storing picklist values
                 # (exclusive of Global Value Sets).
                 # <picklist> is used prior to API 38.0: https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/meta_picklist.htm
@@ -219,6 +220,7 @@ class GenerateDataDictionary(BaseGithubTask):
                     else "",
                     "label": field.find("ns:label", namespaces=namespaces).text,
                     "picklist_values": picklist_values,
+                    "type": field_type,
                 },
             )
 
@@ -254,6 +256,7 @@ class GenerateDataDictionary(BaseGithubTask):
                     "Object Name",
                     "Field Name",
                     "Field Label",
+                    "Type",
                     "Field Help Text",
                     "Picklist Values",
                     "Version Introduced",
@@ -267,6 +270,7 @@ class GenerateDataDictionary(BaseGithubTask):
                             sobject_name,
                             field_name,
                             field_data["label"],
+                            field_data["type"],
                             field_data["help_text"],
                             field_data["picklist_values"],
                             field_data["version"],
