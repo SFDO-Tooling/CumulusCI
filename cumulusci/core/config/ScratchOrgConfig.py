@@ -5,7 +5,7 @@ import re
 
 import sarge
 
-from cumulusci.utils import get_git_config, parse_api_datetime
+from cumulusci.utils import get_git_config
 from cumulusci.core.sfdx import sfdx
 from cumulusci.core.config import FAILED_TO_CREATE_SCRATCH_ORG
 from cumulusci.core.config import OrgConfig
@@ -70,7 +70,7 @@ class ScratchOrgConfig(OrgConfig):
             password = self.config.get("password")
 
         self._scratch_info = {
-            "created_date": parse_api_datetime(org_info["result"]["createdDate"]),
+            "created_date": org_info["result"]["createdDate"],
             "expiration_date": org_info["result"]["expirationDate"],
             "instance_url": org_info["result"]["instanceUrl"],
             "access_token": org_info["result"]["accessToken"],
