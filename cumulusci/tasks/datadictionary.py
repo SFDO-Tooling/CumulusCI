@@ -189,19 +189,21 @@ class GenerateDataDictionary(BaseGithubTask):
                     else:
                         picklist_values = "; ".join(
                             [
-                                x.find("ns:label", namespaces=namespaces).text
-                                for x in value_set.find(
-                                    "ns:valueSetDefinition", namespaces=namespaces
-                                ).findall("ns:value", namespaces=namespaces)
+                                x.text
+                                for x in value_set.findall(
+                                    "ns:valueSetDefinition/ns:value/ns:label",
+                                    namespaces=namespaces,
+                                )
                             ]
                         )
                 elif field.find("ns:picklist", namespaces=namespaces) is not None:
                     picklist_values = "; ".join(
                         [
-                            x.find("ns:fullName", namespaces=namespaces).text
-                            for x in field.find(
-                                "ns:picklist", namespaces=namespaces
-                            ).findall("ns:picklistValues", namespaces=namespaces)
+                            x.text
+                            for x in field.findall(
+                                "ns:picklist/ns:picklistValues/ns:fullName",
+                                namespaces=namespaces,
+                            )
                         ]
                     )
 
