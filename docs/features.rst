@@ -40,7 +40,7 @@ The CumulusCI keychain can capture and store OAuth credentials to persistent org
 
     $ cci org connect <org_name>
 
-This command will open a browser window where you log into the org you want to connect as the org_name you specified.  Once you log in successfully, you'll get a blank browser window saying "OK".  You can close the window.  At this point, your org is specified.
+This command will open a browser window where you log into the org you want to connect as the org_name you specified.  Once you log in successfully, you'll get a blank browser window saying "Congratulations".  You can close the window.  At this point, your org is specified.
 
 Specifying a Different Login URL
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
