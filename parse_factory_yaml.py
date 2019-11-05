@@ -2,7 +2,13 @@ import yaml
 from numbers import Number
 from functools import partial
 
-from DataGenerator import SObjectFactory, FieldFactory, SimpleValue, ChildRecordValue
+from DataGenerator import (
+    SObjectFactory,
+    FieldFactory,
+    SimpleValue,
+    ChildRecordValue,
+    StructuredValue,
+)
 from cumulusci.core.template_utils import format_str
 from template_funcs import template_funcs
 
@@ -11,8 +17,10 @@ def parse_field_value(field, macros):
     assert field is not None
     if isinstance(field, str) or isinstance(field, Number):
         return SimpleValue(field)
-    elif isinstance(field, dict):
+    elif isinstance(field, dict) and field.get("object"):
         return ChildRecordValue(parse_sobject_definition(field, macros))
+    elif isinstance(field, dict):
+        return StructuredValue(field)
     else:
         assert False, "Unknown field type"
 
@@ -76,7 +84,8 @@ def parse_inclusions(yaml_sobj, fields, macros):
 def parse_sobject_definition(yaml_sobj, macros):
     assert yaml_sobj
     sobj_def = {}
-    sobj_def["sftype"] = yaml_sobj["object"]
+    sobj_def["sftype"] = yaml_sobj.get("object")
+    assert sobj_def["sftype"], f"Object should have 'object' name {yaml_sobj}"
     assert isinstance(sobj_def["sftype"], str), sobj_def["sftype"]
     sobj_def["fields"] = []
     parse_inclusions(yaml_sobj, sobj_def["fields"], macros)

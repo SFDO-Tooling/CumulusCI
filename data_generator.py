@@ -112,6 +112,15 @@ class Context:
         else:
             return definition
 
+    def reference(self, x):
+        if hasattr(x, "_values"):
+            return x.id
+        elif isinstance(x, str):
+            obj = self.field_vars()[x]
+            return obj.id
+        else:
+            assert 0, f"Can't get reference to {x}"
+
     evaluate = evaluate_jinja
 
     def field_vars(self):
@@ -119,6 +128,7 @@ class Context:
             "id": self.current_id,
             "this": self.obj,
             "today": self.today,
+            "fake": faker_template_library,
             **self.variables,
             **self.globals.object_names,
         }
@@ -128,7 +138,7 @@ class Context:
         return {
             "number": self.counter_generator.get_value(self.sobject_name),
             "counter": self.counter_generator.get_value,
-            "reference": lambda x: x._values["id"],
+            "reference": self.reference,
             **funcs,
         }
 
@@ -174,6 +184,9 @@ class SObjectFactory:
 
         for field in self.fields:
             row[field.name] = field.generate_value(context)
+            assert isinstance(
+                row[field.name], (int, str, bool, date)
+            ), f"Field '{field.name}' generated unexpected object: {row[field.name]} {type(row[field.name])}"
 
         storage.write_row(self.sftype, row)
         for i, childobj in enumerate(self.friends):
@@ -203,7 +216,7 @@ class JinjaTemplateEvaluator:
         return self.environment.from_string(template_str)
 
     def evaluate(self, evaluator, funcs, variables):
-        return evaluator.render(fake=faker_template_library, **funcs, **variables)
+        return evaluator.render(**funcs, **variables)
 
 
 @dataclass
@@ -215,6 +228,30 @@ class SimpleValue(FieldDefinition):
             return context.evaluate(self.definition)
         except jinja2.exceptions.TemplateSyntaxError as e:
             raise Exception(f"Error in parsing {self.definition}: {e}")
+
+
+class StructuredValue(FieldDefinition):
+    def __init__(self, d):
+        assert len(d) == 1
+        [self.function_name, args], *_ = d.items()
+        if isinstance(args, list):
+            self.args = args
+            self.kwargs = {}
+        elif isinstance(args, dict):
+            self.args = []
+            self.kwargs = args
+        else:
+            self.args = [args]
+            self.kwargs = {}
+
+    def render(self, context):
+        if "." in self.function_name:
+            objname, method = self.function_name.split(".")
+            obj = context.field_vars()[objname]
+            value = getattr(obj, method)(*self.args, **self.kwargs)
+        else:
+            value = context.field_funcs()[self.function_name](*self.args, **self.kwargs)
+        return value
 
 
 @dataclass
