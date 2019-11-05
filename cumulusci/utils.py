@@ -19,7 +19,7 @@ CUMULUSCI_PATH = os.path.realpath(
     os.path.join(os.path.dirname(os.path.realpath(__file__)), "..")
 )
 META_XML_CLEAN_DIRS = ("classes/", "triggers/", "pages/", "aura/", "components/")
-API_DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%f"
+API_DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%f%z"
 DATETIME_LEN = len("2018-08-07T16:00:56.000")
 UTF8 = "UTF-8"
 
@@ -29,15 +29,8 @@ PIPX_UPDATE_CMD = "pipx upgrade cumulusci"
 
 
 def parse_api_datetime(value):
-    """ parse a datetime returned from the salesforce API.
-
-    in python 3 we should just use a strptime %z, but until then we're just going
-    to assert that its a fixed offset of +0000 since thats the observed behavior. getting
-    python 2 to support fixed offset parsing is too complicated for what we need imo."""
-    dt = datetime.strptime(value[0:DATETIME_LEN], API_DATE_FORMAT)
-    offset_str = value[DATETIME_LEN:]
-    assert offset_str in ["+0000", "Z"], "The Salesforce API returned a weird timezone."
-    return dt
+    """ parse a datetime returned from the salesforce API."""
+    return datetime.strptime(value, API_DATE_FORMAT)
 
 
 def findReplace(find, replace, directory, filePattern, logger=None, max=None):
