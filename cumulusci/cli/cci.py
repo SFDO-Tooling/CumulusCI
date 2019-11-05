@@ -848,6 +848,7 @@ def org_import(config, username_or_alias, org_name):
 
     info = scratch_org_config.scratch_info
     scratch_org_config.config["days"] = calculate_org_days(info)
+    scratch_org_config.config["created_date"] = info["created_date"]
 
     config.keychain.set_org(scratch_org_config)
     click.echo(
