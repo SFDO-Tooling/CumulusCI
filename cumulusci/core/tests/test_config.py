@@ -894,10 +894,7 @@ class TestBaseProjectConfig(unittest.TestCase):
         will also pass)."""
         project_config = BaseProjectConfig(BaseGlobalConfig())
         project_config.config["project"]["package"]["api_version"] = str(46.0)
-        try:
-            project_config._validate_package_api_format()
-        except ConfigError:
-            pytest.fail("Unexpected error raised")
+        project_config._validate_package_api_format()
 
     def test_validate_package_api_version_invalid(self):
         project_config = BaseProjectConfig(BaseGlobalConfig())
