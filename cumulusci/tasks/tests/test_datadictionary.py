@@ -253,9 +253,9 @@ class test_GenerateDataDictionary(unittest.TestCase):
         )
 
         task.name_list = [
-            "/force-app/main/default/objects/Child__c.object-meta.xml",
-            "/force-app/main/default/objects/Child__c/fields/Lookup__c.field-meta.xml",
-            "/force-app/main/default/objects/Parent__c.object-meta.xml",
+            "force-app/main/default/objects/Child__c.object-meta.xml",
+            "force-app/main/default/objects/Child__c/fields/Lookup__c.field-meta.xml",
+            "force-app/main/default/objects/Parent__c.object-meta.xml",
             ".gitignore",
             "test__c.object-meta.xml",
         ]
@@ -273,21 +273,21 @@ class test_GenerateDataDictionary(unittest.TestCase):
                     os.path.join(
                         os.path.sep,
                         task.zip_prefix,
-                        "/force-app/main/default/objects/Child__c.object-meta.xml",
+                        "force-app/main/default/objects/Child__c.object-meta.xml",
                     ).strip(os.path.sep)
                 ),
                 call(
                     os.path.join(
                         os.path.sep,
                         task.zip_prefix,
-                        "/force-app/main/default/objects/Child__c/fields/Lookup__c.field-meta.xml",
+                        "force-app/main/default/objects/Child__c/fields/Lookup__c.field-meta.xml",
                     ).strip(os.path.sep)
                 ),
                 call(
                     os.path.join(
                         os.path.sep,
                         task.zip_prefix,
-                        "/force-app/main/default/objects/Parent__c.object-meta.xml",
+                        "force-app/main/default/objects/Parent__c.object-meta.xml",
                     ).strip(os.path.sep)
                 ),
             ]
@@ -311,8 +311,8 @@ class test_GenerateDataDictionary(unittest.TestCase):
         )
 
         task.name_list = [
-            "/src/objects/Child__c.object",
-            "/src/objects/Parent__c.object",
+            "src/objects/Child__c.object",
+            "src/objects/Parent__c.object",
             ".gitignore",
             "test__c.object",
         ]
@@ -327,12 +327,12 @@ class test_GenerateDataDictionary(unittest.TestCase):
             [
                 call(
                     os.path.join(
-                        os.path.sep, task.zip_prefix, "/src/objects/Child__c.object"
+                        os.path.sep, task.zip_prefix, "src/objects/Child__c.object"
                     ).strip(os.path.sep)
                 ),
                 call(
                     os.path.join(
-                        os.path.sep, task.zip_prefix, "/src/objects/Parent__c.object"
+                        os.path.sep, task.zip_prefix, "src/objects/Parent__c.object"
                     ).strip(os.path.sep)
                 ),
             ]
@@ -346,18 +346,50 @@ class test_GenerateDataDictionary(unittest.TestCase):
         )
 
     @patch("zipfile.ZipFile")
-    def test_walk_releases(self, zip_file):
+    def test_walk_releases__mdapi(self, zip_file):
         task = create_task(
             GenerateDataDictionary,
             {"object_path": "object.csv", "field_path": "fields.csv"},
         )
+        task.project_config.project__git__prefix_release = "rel/"
 
         task.get_repo = Mock()
         release = Mock()
         release.draft = False
         release.prerelease = False
         release.tag_name = "rel/1.1"
-        task.get_repo.releases.return_value = []
+        task.get_repo.return_value.releases.return_value = [release]
+        task._process_mdapi_release = Mock()
+        zip_file.return_value.namelist.return_value = ["PREFIX/src/objects"]
+
+        task._walk_releases()
+
+        task._process_mdapi_release.assert_called_once_with(
+            zip_file.return_value, "1.1"
+        )
+
+    @patch("zipfile.ZipFile")
+    def test_walk_releases__sfdx(self, zip_file):
+        task = create_task(
+            GenerateDataDictionary,
+            {"object_path": "object.csv", "field_path": "fields.csv"},
+        )
+        task.project_config.project__git__prefix_release = "rel/"
+
+        task.get_repo = Mock()
+        release = Mock()
+        release.draft = False
+        release.prerelease = False
+        release.tag_name = "rel/1.1"
+        task.get_repo.return_value.releases.return_value = [release]
+        task._process_sfdx_release = Mock()
+        zip_file.return_value.namelist.return_value = [
+            "PREFIX/force-app/main/default/objects"
+        ]
+
+        task._walk_releases()
+
+        task._process_sfdx_release.assert_called_once_with(zip_file.return_value, "1.1")
 
     def test_init_schema(self):
         task = create_task(GenerateDataDictionary, {})
@@ -366,7 +398,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
         assert task.schema is not None
 
     def test_run_task(self):
-        pass
+        pass  # FIXME
 
     def test_init_options__defaults(self):
         task = create_task(GenerateDataDictionary, {})

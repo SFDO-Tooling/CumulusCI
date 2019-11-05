@@ -74,22 +74,19 @@ class GenerateDataDictionary(BaseGithubTask):
                 )
                 for p in zip_name_list
             ]
-
-            # FIXME: does the zip library use POSIX separators for filenames pervasively?
-            if "/src/objects" in self.name_list:
+            if "src/objects" in self.name_list:
                 # MDAPI format
                 self._process_mdapi_release(zip_file, version)
 
-            if "/force-app/main/default/objects" in self.name_list:
+            if "force-app/main/default/objects" in self.name_list:
                 # FIXME: check sfdx-project.json for directories to process.
                 # SFDX format
                 self._process_sfdx_release(zip_file, version)
 
     def _process_mdapi_release(self, zip_file, version):
         for f in self.name_list:
-            if f.startswith("/src/objects") and f.endswith(".object"):
+            if f.startswith("src/objects") and f.endswith(".object"):
                 sobject_name = os.path.splitext(os.path.split(f)[1])[0]
-                self.logger.debug(f"Processing {sobject_name}")
 
                 self._process_object_element(
                     sobject_name,
@@ -105,12 +102,11 @@ class GenerateDataDictionary(BaseGithubTask):
 
     def _process_sfdx_release(self, zip_file, version):
         for obj_file in self.name_list:
-            if obj_file.startswith("/force-app/main/default/objects"):
+            if obj_file.startswith("force-app/main/default/objects"):
                 if obj_file.endswith(".object-meta.xml"):
                     sobject_name = os.path.basename(os.path.split(obj_file)[1])[
                         : -len(".object-meta.xml")
                     ]
-                    self.logger.debug(f"Processing {sobject_name}")
 
                     self._process_object_element(
                         sobject_name,
@@ -129,8 +125,6 @@ class GenerateDataDictionary(BaseGithubTask):
                     sobject_name = os.path.basename(
                         os.path.split(obj_file)[0][: -len("fields")].strip(os.path.sep)
                     )
-                    field_name = os.path.basename(os.path.split(obj_file)[1])
-                    self.logger.debug(f"Processing {sobject_name}.{field_name}")
 
                     self._process_field_element(
                         sobject_name,
@@ -146,18 +140,16 @@ class GenerateDataDictionary(BaseGithubTask):
 
     def _process_object_element(self, sobject_name, element, version):
         # If this is a custom object, register its presence in this version
+        namespaces = {"ns": "http://soap.sforce.com/2006/04/metadata"}
+
         if sobject_name.count("__") == 1:
-            help_text_elem = element.find(
-                "{http://soap.sforce.com/2006/04/metadata}description"
-            )
+            help_text_elem = element.find("ns:description", namespaces=namespaces)
 
             self._set_version_with_props(
                 self.schema[sobject_name],
                 {
                     "version": version,
-                    "label": element.find(
-                        "{http://soap.sforce.com/2006/04/metadata}label"
-                    ).text,
+                    "label": element.find("ns:label", namespaces=namespaces).text,
                     "help_text": help_text_elem.text
                     if help_text_elem is not None
                     else "",
@@ -165,38 +157,54 @@ class GenerateDataDictionary(BaseGithubTask):
             )
 
         # For MDAPI-format elements. No-op on SFDX.
-        for field in element.findall("{http://soap.sforce.com/2006/04/metadata}fields"):
+        for field in element.findall("ns:fields", namespaces=namespaces):
             self._process_field_element(sobject_name, field, version)
 
     def _process_field_element(self, sobject_name, field, version):
         # `element` may be either a `fields` element (in MDAPI)
         # or a `CustomField` (SFDX)
+        namespaces = {"ns": "http://soap.sforce.com/2006/04/metadata"}
 
         # If this is a custom field, register its presence in this version
-        field_name = field.find(
-            "{http://soap.sforce.com/2006/04/metadata}fullName"
-        ).text
-        help_text_elem = field.find(
-            "{http://soap.sforce.com/2006/04/metadata}inlineHelpText"
-        )
+        field_name = field.find("ns:fullName", namespaces=namespaces).text
+        help_text_elem = field.find("ns:inlineHelpText", namespaces=namespaces)
 
         if "__" in field_name:
-            if (
-                field.find("{http://soap.sforce.com/2006/04/metadata}type").text
-                == "Picklist"
-            ):
-                picklist_values = "; ".join(
-                    [
-                        x.find("{http://soap.sforce.com/2006/04/metadata}label").text
-                        for x in field.find(
-                            "{http://soap.sforce.com/2006/04/metadata}valueSet"
+            if field.find("ns:type", namespaces=namespaces).text == "Picklist":
+                # There's two different ways of storing picklist values
+                # (exclusive of Global Value Sets).
+                # <picklist> is used prior to API 38.0: https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/meta_picklist.htm
+                # <valueSet> is used thereafter: https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/meta_field_types.htm#meta_type_valueset
+                if field.find("ns:valueSet", namespaces=namespaces) is not None:
+                    # Determine if this field uses a Global Value Set.
+                    value_set = field.find("ns:valueSet", namespaces=namespaces)
+                    if (
+                        value_set.find("valueSetName", namespaces=namespaces)
+                        is not None
+                    ):
+                        value_set_name = value_set.find(
+                            "ns:valueSetName", namespaces=namespaces
+                        ).text
+                        picklist_values = f"Global Value Set {value_set_name}"
+                    else:
+                        picklist_values = "; ".join(
+                            [
+                                x.find("ns:label", namespaces=namespaces).text
+                                for x in value_set.find(
+                                    "ns:valueSetDefinition", namespaces=namespaces
+                                ).findall("ns:value", namespaces=namespaces)
+                            ]
                         )
-                        .find(
-                            "{http://soap.sforce.com/2006/04/metadata}valueSetDefinition"
-                        )
-                        .findall("{http://soap.sforce.com/2006/04/metadata}value")
-                    ]
-                )
+                elif field.find("ns:picklist", namespaces=namespaces) is not None:
+                    picklist_values = "; ".join(
+                        [
+                            x.find("ns:fullName", namespaces=namespaces).text
+                            for x in field.find(
+                                "ns:picklist", namespaces=namespaces
+                            ).findall("ns:picklistValues", namespaces=namespaces)
+                        ]
+                    )
+
             else:
                 picklist_values = ""
 
@@ -207,9 +215,7 @@ class GenerateDataDictionary(BaseGithubTask):
                     "help_text": help_text_elem.text
                     if help_text_elem is not None
                     else "",
-                    "label": field.find(
-                        "{http://soap.sforce.com/2006/04/metadata}label"
-                    ).text,
+                    "label": field.find("ns:label", namespaces=namespaces).text,
                     "picklist_values": picklist_values,
                 },
             )
