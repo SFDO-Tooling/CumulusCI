@@ -335,7 +335,7 @@ Once you have the org, connect it to `cci`'s project keychain with `cci org conn
     Spawning HTTP server at http://localhost:8080/callback with timeout of 300 seconds.
     If you are unable to log in to Salesforce you can press ctrl+c to kill the server and return to the command line.
 
-This should open a browser on your computer pointed to the Salesforce login page. Log in and then grant access to the app. Note that since the login to capture credentials occurs in your normal browser, you can use browser password managers such as LastPass to log in. Once access is granted and you see a browser page that says `OK` you can close the browser tab and return to the terminal. Your org is now connected via OAuth and CumulusCI never needs to know your actual user password. As an added benefit, OAuth authentication remains valid even after password changes.
+This should open a browser on your computer pointed to the Salesforce login page. Log in and then grant access to the app. Note that since the login to capture credentials occurs in your normal browser, you can use browser password managers such as LastPass to log in. Once access is granted and you see a browser page that says `Congratulations` you can close the browser tab and return to the terminal. Your org is now connected via OAuth and CumulusCI never needs to know your actual user password. As an added benefit, OAuth authentication remains valid even after password changes.
 
 You should now see the packaging org available in `cci org list`:
 
