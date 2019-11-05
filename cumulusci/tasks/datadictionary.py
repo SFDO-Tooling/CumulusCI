@@ -11,7 +11,8 @@ from distutils.version import LooseVersion
 
 class GenerateDataDictionary(BaseGithubTask):
     task_docs = """
-    Generate a data dictionary for the project. The data dictionary is output as two CSV files.
+    Generate a data dictionary for the project by walking all GitHub releases.
+    The data dictionary is output as two CSV files.
     One, in `object_path`, includes the Object Name, Object Label, and Version Introduced,
     with one row per packaged object.
     The other, in `field_path`, includes Object Name, Field Name, Field Label, Field Type,
