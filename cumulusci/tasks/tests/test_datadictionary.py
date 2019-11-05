@@ -2,7 +2,7 @@ import os
 import unittest
 import xml.etree.ElementTree as ET
 
-from unittest.mock import Mock, call, patch
+from unittest.mock import Mock, call, patch, mock_open
 
 from cumulusci.tasks.datadictionary import GenerateDataDictionary
 from cumulusci.tasks.salesforce.tests.util import create_task
@@ -72,8 +72,28 @@ class test_GenerateDataDictionary(unittest.TestCase):
                 "help_text": "Child object",
             },
         }
-        task._write_results()
-        # FIXME: mock and assert
+
+        m = mock_open()
+        with patch("builtins.open", m):
+            task._write_results()
+
+        m.assert_has_calls(
+            [call("object.csv", "w"), call("fields.csv", "w")], any_order=True
+        )
+        m.return_value.write.assert_has_calls(
+            [
+                call(
+                    "Object Name,Object Label,Object Description,Version Introduced\r\n"
+                ),
+                call("Child__c,Child,Child object,1.0\r\n"),
+                call(
+                    "Object Name,Field Name,Field Label,Type,Field Help Text,Picklist Values,Version Introduced\r\n"
+                ),
+                call("Account,Test__c,Test,Text,Text field,,1.1\r\n"),
+                call("Child__c,Parent__c,Parent,Lookup,Lookup,,1.2\r\n"),
+            ],
+            any_order=True,
+        )
 
     def test_process_field_element__new(self):
         xml_source = """<?xml version="1.0" encoding="UTF-8"?>
@@ -191,6 +211,67 @@ class test_GenerateDataDictionary(unittest.TestCase):
             "label": "Type",
             "type": "Picklist",
             "picklist_values": "Test 1; Test 2",
+        }
+
+    def test_process_field_element__picklist_values_old_format(self):
+        xml_source = """<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Type__c</fullName>
+    <label>Type</label>
+    <type>Picklist</type>
+    <picklist>
+        <picklistValues>
+            <fullName>Test 1</fullName>
+            <default>false</default>
+        </picklistValues>
+        <picklistValues>
+            <fullName>Test 2</fullName>
+            <default>false</default>
+        </picklistValues>
+    </picklist>
+</CustomField>
+"""
+        task = create_task(
+            GenerateDataDictionary,
+            {"object_path": "object.csv", "field_path": "fields.csv"},
+        )
+
+        task._init_schema()
+        task._process_field_element("Test__c", ET.fromstring(xml_source), "1.1")
+
+        assert task.schema["Test__c"]["fields"]["Type__c"] == {
+            "version": LooseVersion("1.1"),
+            "help_text": "",
+            "label": "Type",
+            "type": "Picklist",
+            "picklist_values": "Test 1; Test 2",
+        }
+
+    def test_process_field_element__picklist_values_global_value_set(self):
+        xml_source = """<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Type__c</fullName>
+    <label>Type</label>
+    <type>Picklist</type>
+    <valueSet>
+        <valueSetName>Test Value Set</valueSetName>
+    </valueSet>
+</CustomField>
+"""
+        task = create_task(
+            GenerateDataDictionary,
+            {"object_path": "object.csv", "field_path": "fields.csv"},
+        )
+
+        task._init_schema()
+        task._process_field_element("Test__c", ET.fromstring(xml_source), "1.1")
+
+        assert task.schema["Test__c"]["fields"]["Type__c"] == {
+            "version": LooseVersion("1.1"),
+            "help_text": "",
+            "label": "Type",
+            "type": "Picklist",
+            "picklist_values": "Global Value Set Test Value Set",
         }
 
     def test_process_object_element(self):
@@ -404,8 +485,62 @@ class test_GenerateDataDictionary(unittest.TestCase):
 
         assert task.schema is not None
 
-    def test_run_task(self):
-        pass  # FIXME
+    @patch("zipfile.ZipFile")
+    def test_run_task(self, zip_file):
+        # This is an integration test. We mock out `get_repo()` and the filesystem.
+        xml_source = """<?xml version="1.0" encoding="UTF-8"?>
+<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>Description</description>
+    <label>Test</label>
+    <fields>
+        <fullName>Type__c</fullName>
+        <inlineHelpText>Type of field.</inlineHelpText>
+        <label>Type</label>
+        <type>Text</type>
+    </fields>
+</CustomObject>"""
+        task = create_task(GenerateDataDictionary, {})
+        task.project_config.keychain.get_service = Mock()
+        task.project_config.init_sentry = Mock()
+        task.project_config.sentry = Mock()
+        task.project_config.project__git__prefix_release = "rel/"
+        task.get_repo = Mock()
+        release = Mock()
+        release.draft = False
+        release.prerelease = False
+        release.tag_name = "rel/1.1"
+        task.get_repo.return_value.releases.return_value = [release]
+
+        zip_file.return_value.namelist.return_value = [
+            "PREFIX/src/objects",
+            "PREFIX/src/objects/Test__c.object",
+        ]
+        zip_file.return_value.read.return_value = xml_source
+        m = mock_open()
+
+        with patch("builtins.open", m):
+            task()
+
+        m.assert_has_calls(
+            [
+                call("sObject Data Dictionary.csv", "w"),
+                call("Field Data Dictionary.csv", "w"),
+            ],
+            any_order=True,
+        )
+        m.return_value.write.assert_has_calls(
+            [
+                call(
+                    "Object Name,Object Label,Object Description,Version Introduced\r\n"
+                ),
+                call("Test__c,Test,Description,1.1\r\n"),
+                call(
+                    "Object Name,Field Name,Field Label,Type,Field Help Text,Picklist Values,Version Introduced\r\n"
+                ),
+                call("Test__c,Type__c,Type,Text,Type of field.,,1.1\r\n"),
+            ],
+            any_order=True,
+        )
 
     def test_init_options__defaults(self):
         task = create_task(GenerateDataDictionary, {})

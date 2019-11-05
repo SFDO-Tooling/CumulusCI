@@ -14,8 +14,10 @@ class GenerateDataDictionary(BaseGithubTask):
     Generate a data dictionary for the project. The data dictionary is output as two CSV files.
     One, in `object_path`, includes the Object Name, Object Label, and Version Introduced,
     with one row per packaged object.
-    The other, in `field_path`, includes Object Name, Field Name, Field Label, and Version Introduced.
+    The other, in `field_path`, includes Object Name, Field Name, Field Label, Field Type,
+    Picklist Values (if any), Version Introduced.
     """
+
     task_options = {
         "object_path": {
             "description": "Path to a CSV file to contain an sObject-level data dictionary.",
@@ -180,7 +182,7 @@ class GenerateDataDictionary(BaseGithubTask):
                     # Determine if this field uses a Global Value Set.
                     value_set = field.find("ns:valueSet", namespaces=namespaces)
                     if (
-                        value_set.find("valueSetName", namespaces=namespaces)
+                        value_set.find("ns:valueSetName", namespaces=namespaces)
                         is not None
                     ):
                         value_set_name = value_set.find(
