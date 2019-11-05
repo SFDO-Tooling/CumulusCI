@@ -2,6 +2,8 @@ from distutils.version import LooseVersion
 import os
 import re
 
+API_VERSION_RE = re.compile(r"^\d\d+\.0$")
+
 import raven
 import yaml
 
@@ -122,14 +124,12 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         self._validate_package_api_format()
 
     def _validate_package_api_format(self):
-        api_version_regex = r"^\d\d+\.0$"
-        api_version = str(self.config["project"]["package"]["api_version"])
+        if "api_version" in self.config["project"]["package"]:
+            api_version = str(self.config["project"]["package"]["api_version"])
 
-        if not re.match(api_version_regex, api_version):
-            message = (
-                f"Package API Version must be in the form 'XX.0', found: {api_version}"
-            )
-            raise ConfigError(message)
+            if not API_VERSION_RE.match(api_version):
+                message = f"Package API Version must be in the form 'XX.0', found: {api_version}"
+                raise ConfigError(message)
 
     @property
     def config_global_local(self):
