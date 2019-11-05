@@ -17,12 +17,15 @@ class TemplateUtils(unittest.TestCase):
 
     def test_format_str(self):
         assert template_utils.format_str("abc") == "abc"
-        assert template_utils.format_str("{{abc}}", abc=5) == "5"
+        assert template_utils.format_str("{{abc}}", {"abc": 5}) == "5"
         assert len(template_utils.format_str("{{fake.first_name}}"))
         assert "15" in template_utils.format_str(
-            "{{fake.first_name}} {{count}}", count=15
+            "{{fake.first_name}} {{count}}", {"count": 15}
         )
         assert "15" in template_utils.format_str(
-            "{{fake.first_name}} {{count}}", count="15"
+            "{{fake.first_name}} {{count}}", {"count": "15"}
         )
-        assert template_utils.format_str("{% raw %}{}{% endraw %}", count="15") == "{}"
+        assert (
+            template_utils.format_str("{% raw %}{}{% endraw %}", {"count": "15"})
+            == "{}"
+        )

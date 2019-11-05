@@ -52,8 +52,8 @@ faker_template_library = FakerTemplateLibrary()
 Template = lru_cache(512)(Template)
 
 
-def format_str(value, **kwargs):
+def format_str(value, variables={}):
     if isinstance(value, str) and "{" in value:
-        value = Template(value).render(fake=faker_template_library, **kwargs)
+        value = Template(value).render(fake=faker_template_library, **variables)
 
     return value
