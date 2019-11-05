@@ -27,6 +27,7 @@ from cumulusci.core.config import ScratchOrgConfig
 from cumulusci.core.config import ServiceConfig
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.config import BaseGlobalConfig
+from cumulusci.utils import parse_api_datetime
 from cumulusci.core.exceptions import CumulusCIFailure
 from cumulusci.core.exceptions import CumulusCIUsageError
 from cumulusci.core.exceptions import OrgNotFound
@@ -859,9 +860,8 @@ def org_import(config, username_or_alias, org_name):
 def calculate_org_days(info):
     """Returns the difference in days between created_date (ISO 8601),
     and expiration_date (%Y-%m-%d)"""
-    created_date_str = info["created_date"].split("T")[0]
-    created_date = datetime.strptime(created_date_str, "%Y-%m-%d")
-    expires_date = datetime.strptime(info["expiration_date"], "%Y-%m-%d")
+    created_date = parse_api_datetime(info["created_date"]).date()
+    expires_date = datetime.strptime(info["expiration_date"], "%Y-%m-%d").date()
     return abs((expires_date - created_date).days)
 
 
