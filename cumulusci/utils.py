@@ -30,7 +30,8 @@ PIPX_UPDATE_CMD = "pipx upgrade cumulusci"
 
 def parse_api_datetime(value):
     """ parse a datetime returned from the salesforce API."""
-    return datetime.strptime(value, API_DATE_FORMAT)
+    dt = datetime.strptime(value, API_DATE_FORMAT)
+    return dt.replace(tzinfo=None)
 
 
 def findReplace(find, replace, directory, filePattern, logger=None, max=None):
