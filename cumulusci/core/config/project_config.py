@@ -124,12 +124,13 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         self._validate_package_api_format()
 
     def _validate_package_api_format(self):
-        if "api_version" in self.config["project"]["package"]:
-            api_version = str(self.config["project"]["package"]["api_version"])
+        api_version = str(self.project__package__api_version)
 
-            if not API_VERSION_RE.match(api_version):
-                message = f"Package API Version must be in the form 'XX.0', found: {api_version}"
-                raise ConfigError(message)
+        if api_version != "None" and not API_VERSION_RE.match(api_version):
+            message = (
+                f"Package API Version must be in the form 'XX.0', found: {api_version}"
+            )
+            raise ConfigError(message)
 
     @property
     def config_global_local(self):
