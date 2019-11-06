@@ -70,6 +70,8 @@ class ScratchOrgConfig(OrgConfig):
             password = self.config.get("password")
 
         self._scratch_info = {
+            "created_date": org_info["result"]["createdDate"],
+            "expiration_date": org_info["result"]["expirationDate"],
             "instance_url": org_info["result"]["instanceUrl"],
             "access_token": org_info["result"]["accessToken"],
             "org_id": org_id,
