@@ -32,9 +32,9 @@ class BaseTaskFlowConfig(BaseConfig):
 
     def get_task(self, name):
         """ Returns a TaskConfig """
-        config = getattr(self, "tasks__{}".format(name))
+        config = getattr(self, f"tasks__{name}")
         if not config:
-            error_msg = "Task not found: {}".format(name)
+            error_msg = f"Task not found: {name}"
             suggestion = self.get_suggested_name(name, self.tasks)
             raise TaskNotFoundError(error_msg + suggestion)
         return TaskConfig(config)
@@ -45,9 +45,9 @@ class BaseTaskFlowConfig(BaseConfig):
 
     def get_flow(self, name):
         """ Returns a FlowConfig """
-        config = getattr(self, "flows__{}".format(name))
+        config = getattr(self, f"flows__{name}")
         if not config:
-            error_msg = "Flow not found: {}".format(name)
+            error_msg = f"Flow not found: {name}"
             suggestion = self.get_suggested_name(name, self.flows)
             raise FlowNotFoundError(error_msg + suggestion)
         return FlowConfig(config)
@@ -58,6 +58,6 @@ class BaseTaskFlowConfig(BaseConfig):
         """
         match_list = get_close_matches(name, steps.keys(), n=1)
         if match_list:
-            return '. Did you mean "{}"?'.format(match_list[0])
+            return f'. Did you mean "{match_list[0]}"?'
         else:
             return ""
