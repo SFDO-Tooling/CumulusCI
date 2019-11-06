@@ -5,7 +5,7 @@ import os
 import sarge
 import unittest
 import zipfile
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from xml.etree import ElementTree as ET
 from unittest import mock
@@ -389,11 +389,13 @@ Options:
     def test_parse_api_datetime__good(self):
         good_str = "2018-08-07T16:00:56.000+0000"
         dt = utils.parse_api_datetime(good_str)
-        self.assertEqual(dt, datetime(2018, 8, 7, 16, 0, 56, tzinfo=None))
+        self.assertAlmostEqual(
+            dt, datetime(2018, 8, 7, 16, 0, 56), delta=timedelta(seconds=1)
+        )
 
     def test_parse_api_datetime__bad(self):
         bad_str = "2018-08-07T16:00:56.000-20000"
-        with self.assertRaises(ValueError):
+        with self.assertRaises(AssertionError):
             utils.parse_api_datetime(bad_str)
 
     def test_log_progress(self):
