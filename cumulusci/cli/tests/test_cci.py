@@ -547,7 +547,7 @@ class TestCCI(unittest.TestCase):
 
         config.check_org_overwrite.assert_called_once()
         config.keychain.set_org.assert_called_once()
-        # config.keychain.set_default_org.assert_called_once_with("test")
+        config.keychain.set_default_org.assert_called_once_with("test")
 
     def test_org_connect_connected_app_not_configured(self):
         config = mock.Mock()
