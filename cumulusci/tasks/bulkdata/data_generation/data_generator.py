@@ -5,7 +5,7 @@ from datetime import date
 
 import jinja2
 
-from cumulusci.core.template_utils import faker_template_library
+from cumulusci.core.template_utils import FakerTemplateLibrary, faker_template_library
 
 from template_funcs import template_funcs
 
@@ -72,18 +72,18 @@ class Context:
     obj = None
     today = date.today()
 
-    def __init__(self, parent, sobject_name, storage_engine=None, variables=None):
+    def __init__(self, parent, sobject_name, output_stream=None, variables=None):
         self.parent = parent
         self.sobject_name = sobject_name
         if parent:
             self.counter_generator = CounterGenerator(parent.counter_generator)
             self.globals = parent.globals
-            self.storage_engine = parent.storage_engine
+            self.output_stream = parent.output_stream
             self.variables = {**self.parent.variables}
         else:  # root Context
             self.counter_generator = CounterGenerator()
             self.globals = Globals()
-            self.storage_engine = storage_engine
+            self.output_stream = output_stream
             self.variables = {**variables}
 
     def incr(self):
@@ -96,9 +96,6 @@ class Context:
     def register_object(self, obj, name=None):
         self.obj = obj
         self.globals.register_object(obj, name)
-
-    def output_child_row(self, sobj):
-        return self.storage_engine.output(sobj, self)[0]
 
     def evaluate_jinja(self, definition):
         # todo cache templates at compile time and reuse evaluator
@@ -129,6 +126,7 @@ class Context:
             "this": self.obj,
             "today": self.today,
             "fake": faker_template_library,
+            "fake_i18n": lambda locale: FakerTemplateLibrary(locale),
             **self.variables,
             **self.globals.object_names,
         }
@@ -259,7 +257,7 @@ class ChildRecordValue(FieldDefinition):
     sobj: object
 
     def render(self, context):
-        child_row = context.output_child_row(self.sobj)
+        child_row = self.sobj.generate_rows(context.output_stream, context)[0]
 
         return child_row["id"]
 

@@ -2,7 +2,7 @@ import yaml
 from numbers import Number
 from functools import partial
 
-from DataGenerator import (
+from .data_generator import (
     SObjectFactory,
     FieldFactory,
     SimpleValue,
@@ -22,7 +22,7 @@ def parse_field_value(field, macros):
     elif isinstance(field, dict):
         return StructuredValue(field)
     else:
-        assert False, "Unknown field type"
+        assert False, f"Unknown field type {field}"
 
 
 def parse_field(name, definition, macros):
@@ -112,6 +112,7 @@ def parse_sobject_list(sobjects, macros):
 def parse_generator(filename, copies):
     data = yaml.safe_load(open(filename, "r"))
     assert isinstance(data, list)
+    variables = [obj for obj in data if obj.get("variable")]
     macros = {obj["macro"]: obj for obj in data if obj.get("macro")}
     objects = [obj for obj in data if obj.get("object")]
-    return parse_sobject_list(objects, macros)
+    return variables, parse_sobject_list(objects, macros)
