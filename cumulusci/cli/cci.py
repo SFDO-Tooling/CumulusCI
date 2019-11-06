@@ -36,7 +36,7 @@ from cumulusci.core.exceptions import FlowNotFoundError
 from cumulusci.core.utils import import_global
 from cumulusci.cli.config import CliRuntime
 from cumulusci.cli.config import get_installed_version
-from cumulusci.cli.ui import CliTable, CROSSMARK
+from cumulusci.cli.ui import CliTable, CROSSMARK, CHECKMARK
 from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
 from cumulusci.utils import doc_task
 from cumulusci.utils import get_cci_upgrade_command
@@ -809,6 +809,13 @@ def org_connect(config, org_name, sandbox, login_url, default, global_org):
     oauth_dict = oauth_capture()
     org_config = OrgConfig(oauth_dict, org_name)
     org_config.load_userinfo()
+    org_config._load_orginfo()
+    if not org_config.organization_sobject["TrialExpirationDate"]:
+        org_config.config["expiration"] = None
+    else:
+        org_config.config["expiration"] = org_config.organization_sobject[
+            "TrialExpirationDate"
+        ]
 
     config.keychain.set_org(org_config, global_org)
 
@@ -916,15 +923,13 @@ def org_info(config, org_name, print_json):
 @pass_config
 def org_list(config, plain):
     plain = plain or config.global_config.cli__plain_output
-    header = ["Name", "Default", "Username"]
+    header = ["Name", "Default", "Username", "Expiration"]
     persistent_data = [header]
     scratch_data = [header[:2] + ["Days", "Expired", "Config", "Domain"]]
-
     org_configs = {
         org: config.project_config.keychain.get_org(org)
         for org in config.project_config.keychain.list_orgs()
     }
-
     rows_to_dim = []
     for org, org_config in org_configs.items():
         row = [org, org_config.default]
@@ -946,6 +951,10 @@ def org_list(config, plain):
                 "username", org_config.userinfo__preferred_username
             )
             row.append(username)
+            if "expiration" in org_config.config.keys():
+                row.append(org_config.config["expiration"])
+            else:
+                row.append("None")
             persistent_data.append(row)
 
     rows_to_dim = [row_index for row_index, row in enumerate(scratch_data) if row[3]]
@@ -958,10 +967,11 @@ def org_list(config, plain):
     wrap_cols = ["Username"] if not plain else None
     persistent_table = CliTable(
         persistent_data,
-        title="Persistent Orgs",
+        title="Connected Orgs",
         wrap_cols=wrap_cols,
         bool_cols=["Default"],
     )
+    persistent_table.stringify_boolean_col(col_name="Default", true_str=CHECKMARK)
     persistent_table.echo(plain)
 
 
