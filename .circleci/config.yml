@@ -272,6 +272,6 @@ workflows:
             - test_py38
             - test_robot
             - test_release
-    branches:
-      ignore:
-        - /dependabot\/.*/
+  branches:
+    ignore:
+      - /dependabot\/.*/
