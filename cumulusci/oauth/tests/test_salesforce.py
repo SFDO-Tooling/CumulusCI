@@ -111,7 +111,7 @@ class TestCaptureSalesforceOAuth(unittest.TestCase):
 
         # verify
         self.assertEqual(o.response.json(), expected_response)
-        self.assertEqual(response.read(), b"OK")
+        self.assertIn(b"Congratulations", response.read())
 
     @responses.activate
     def test_oauth_flow_error_from_auth(self):
