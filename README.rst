@@ -3,6 +3,7 @@ CumulusCI
 ===============================
 
 .. image:: https://img.shields.io/pypi/v/cumulusci
+           :target: https://pypi.org/project/cumulusci/
            :alt: PyPI
 .. image:: https://img.shields.io/pypi/pyversions/cumulusci
            :alt: PyPI - Python Version
