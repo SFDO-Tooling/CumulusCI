@@ -36,7 +36,7 @@ from cumulusci.core.exceptions import FlowNotFoundError
 from cumulusci.core.utils import import_global
 from cumulusci.cli.config import CliRuntime
 from cumulusci.cli.config import get_installed_version
-from cumulusci.cli.ui import CliTable, CROSSMARK, CHECKMARK
+from cumulusci.cli.ui import CliTable, CROSSMARK
 from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
 from cumulusci.utils import doc_task
 from cumulusci.utils import get_cci_upgrade_command
@@ -971,7 +971,6 @@ def org_list(config, plain):
         wrap_cols=wrap_cols,
         bool_cols=["Default"],
     )
-    persistent_table.stringify_boolean_col(col_name="Default", true_str=CHECKMARK)
     persistent_table.echo(plain)
 
 
