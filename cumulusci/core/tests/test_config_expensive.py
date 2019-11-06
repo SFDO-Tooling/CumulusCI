@@ -254,7 +254,9 @@ class TestScratchOrgConfig(unittest.TestCase):
         "instanceUrl": "url",
         "accessToken": "access!token",
         "username": "username",
-        "password": "password"
+        "password": "password",
+        "createdDate": "1970-01-01T00:00:00Z",
+        "expirationDate": "1970-01-08"
     }
 }"""
         Command.return_value = mock.Mock(
@@ -272,6 +274,8 @@ class TestScratchOrgConfig(unittest.TestCase):
                 "org_id": "access",
                 "password": "password",
                 "username": "username",
+                "created_date": "1970-01-01T00:00:00Z",
+                "expiration_date": "1970-01-08",
             },
         )
         self.assertIs(info, config._scratch_info)
@@ -329,7 +333,9 @@ class TestScratchOrgConfig(unittest.TestCase):
     "result": {
         "instanceUrl": "url",
         "accessToken": "access!token",
-        "username": "username"
+        "username": "username",
+        "createdDate": "1970-01-01T00:00:00Z",
+        "expirationDate": "1970-01-08"
     }
 }"""
         Command.return_value = mock.Mock(
@@ -643,7 +649,9 @@ class TestScratchOrgConfig(unittest.TestCase):
         "instanceUrl": "url",
         "accessToken": "access!token",
         "username": "username",
-        "password": "password"
+        "password": "password",
+        "createdDate": "1970-01-01T:00:00:00Z",
+        "expirationDate": "1970-01-08"
     }
 }"""
         Command.return_value = mock.Mock(

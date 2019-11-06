@@ -2,6 +2,7 @@ import http.client
 import io
 import unittest
 
+from collections import defaultdict
 from requests import Response
 from xml.dom.minidom import parseString
 import responses
@@ -247,8 +248,9 @@ class BaseTestMetadataApi(unittest.TestCase):
         self._mock_call_mdapi(api, response_result)
 
         resp = api()
+        expected_resp = self._expected_call_success_result(response_result)
 
-        self.assertEqual(resp, self._expected_call_success_result(response_result))
+        self.assertEqual(resp, expected_resp)
 
     def _expected_call_success_result(self, response_result):
         return response_result
@@ -746,24 +748,24 @@ class TestApiListMetadata(BaseTestMetadataApi):
         return list_metadata_result
 
     def _expected_call_success_result(self, response_result):
-        return {
-            "CustomObject": [
-                {
-                    u"createdById": None,
-                    u"createdByName": None,
-                    u"createdDate": datetime.datetime(2018, 8, 7, 16, 31, 57),
-                    u"fileName": None,
-                    u"fullName": u"Test__c",
-                    u"id": None,
-                    u"lastModifiedById": None,
-                    u"lastModifiedByName": None,
-                    u"lastModifiedDate": None,
-                    u"manageableState": None,
-                    u"namespacePrefix": None,
-                    u"type": "CustomObject",
-                }
-            ]
-        }
+        metadata = defaultdict(list)
+        metadata["CustomObject"] = [
+            {
+                u"createdById": None,
+                u"createdByName": None,
+                u"createdDate": datetime.datetime(2018, 8, 7, 16, 31, 57),
+                u"fileName": None,
+                u"fullName": u"Test__c",
+                u"id": None,
+                u"lastModifiedById": None,
+                u"lastModifiedByName": None,
+                u"lastModifiedDate": None,
+                u"manageableState": None,
+                u"namespacePrefix": None,
+                u"type": "CustomObject",
+            }
+        ]
+        return metadata
 
     def _create_instance(self, task, api_version=None):
         if api_version is None:
