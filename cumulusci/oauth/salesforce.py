@@ -119,7 +119,7 @@ class OAuthCallbackHandler(BaseHTTPRequestHandler):
             http_body = f"error: {args['error'][0]}\nerror description: {args['error_description'][0]}"
         else:
             http_status = http.client.OK
-            http_body = "OK"
+            http_body = "Congratulations! Your authentication succeeded."
             code = args["code"]
             self.parent.response = self.parent.oauth_api.get_token(code)
             if self.parent.response.status_code >= http.client.BAD_REQUEST:
