@@ -2,8 +2,12 @@
 CumulusCI
 ===============================
 
-.. image:: https://img.shields.io/pypi/v/cumulusci.svg
-           :target: https://pypi.org/project/cumulusci/
+.. image:: https://img.shields.io/pypi/v/cumulusci
+           :alt: PyPI
+.. image:: https://img.shields.io/pypi/pyversions/cumulusci
+           :alt: PyPI - Python Version
+.. image:: https://img.shields.io/pypi/l/cumulusci
+           :alt: PyPI - License
 .. image:: https://readthedocs.org/projects/cumulusci/badge/?version=latest
            :target: https://cumulusci.readthedocs.io/en/latest/?badge=latest
            :alt: Documentation Status
@@ -24,9 +28,6 @@ For more information, read the `full documentation`_.
 
 If you just want a quick intro, watch this screencast demo of using CumulusCI to configure a Salesforce project from a GitHub repository:
 https://asciinema.org/a/91555
-
-Supported Python Versions: 3.6, 3.7, 3.8
-
 
 CumulusCI 1.0 (Ant based) Users, **PLEASE READ**
 ================================================
