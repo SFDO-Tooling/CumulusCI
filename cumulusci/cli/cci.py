@@ -9,6 +9,7 @@ import shutil
 import sys
 import time
 import webbrowser
+import datetime
 
 from contextlib import contextmanager
 
@@ -753,8 +754,6 @@ def service_info(config, service_name, plain):
 
 
 # Commands for group: org
-
-
 @org.command(
     name="browser",
     help="Opens a browser window and logs into the org using the stored OAuth credentials",
@@ -766,7 +765,6 @@ def org_browser(config, org_name):
     org_config.refresh_oauth_token(config.keychain)
 
     webbrowser.open(org_config.start_url)
-
     # Save the org config in case it was modified
     config.keychain.set_org(org_config)
 
@@ -811,11 +809,12 @@ def org_connect(config, org_name, sandbox, login_url, default, global_org):
     org_config.load_userinfo()
     org_config._load_orginfo()
     if not org_config.organization_sobject["TrialExpirationDate"]:
-        org_config.config["expiration"] = None
+        org_config.config["expires"] = "Persistent"
     else:
-        org_config.config["expiration"] = org_config.organization_sobject[
-            "TrialExpirationDate"
-        ]
+        datetime_format = "%Y-%m-%dT%H:%M:%S.%f+0000"
+        org_config.config["expires"] = datetime.datetime.strptime(
+            org_config.organization_sobject["TrialExpirationDate"], datetime_format
+        )
 
     config.keychain.set_org(org_config, global_org)
 
@@ -833,7 +832,6 @@ def org_connect(config, org_name, sandbox, login_url, default, global_org):
 )
 @pass_config
 def org_default(config, org_name, unset):
-
     if unset:
         config.keychain.unset_default_org()
         click.echo(f"{org_name} is no longer the default org.  No default org set.")
@@ -923,7 +921,7 @@ def org_info(config, org_name, print_json):
 @pass_config
 def org_list(config, plain):
     plain = plain or config.global_config.cli__plain_output
-    header = ["Name", "Default", "Username", "Expiration"]
+    header = ["Name", "Default", "Username", "Expires"]
     persistent_data = [header]
     scratch_data = [header[:2] + ["Days", "Expired", "Config", "Domain"]]
     org_configs = {
@@ -951,10 +949,7 @@ def org_list(config, plain):
                 "username", org_config.userinfo__preferred_username
             )
             row.append(username)
-            if "expiration" in org_config.config.keys():
-                row.append(org_config.config["expiration"])
-            else:
-                row.append("None")
+            row.append(org_config.expires or "Unknown")
             persistent_data.append(row)
 
     rows_to_dim = [row_index for row_index, row in enumerate(scratch_data) if row[3]]

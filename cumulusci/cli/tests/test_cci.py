@@ -715,8 +715,8 @@ class TestCCI(unittest.TestCase):
         )
         persistent_table_call = mock.call(
             [
-                ["Name", "Default", "Username", "Expiration"],
-                ["test2", False, "test2@example.com", "None"],
+                ["Name", "Default", "Username", "Expires"],
+                ["test2", False, "test2@example.com", "Unknown"],
             ],
             bool_cols=["Default"],
             title="Connected Orgs",
