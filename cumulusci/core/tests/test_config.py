@@ -263,7 +263,6 @@ class TestBaseProjectConfig(unittest.TestCase):
 
     def test_config_global(self):
         global_config = BaseGlobalConfig()
-        global_config.config_global = {}
         config = BaseProjectConfig(global_config)
         self.assertIs(global_config.config_global, config.config_global)
 
