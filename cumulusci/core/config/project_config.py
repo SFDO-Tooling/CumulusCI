@@ -1,5 +1,8 @@
 from distutils.version import LooseVersion
 import os
+import re
+
+API_VERSION_RE = re.compile(r"^\d\d+\.0$")
 
 import raven
 import yaml
@@ -81,9 +84,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         # Verify that the project's root has a config file
         if not self.config_project_path:
             raise ProjectConfigNotFound(
-                "The file {} was not found in the repo root: {}. Are you in a CumulusCI Project directory?".format(
-                    self.config_filename, repo_root
-                )
+                f"The file {self.config_filename} was not found in the repo root: {repo_root}. Are you in a CumulusCI Project directory?"
             )
 
         # Load the project's yaml config file
@@ -115,6 +116,21 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                 "additional_yaml": self.config_additional_yaml,
             }
         )
+
+        self._validate_config()
+
+    def _validate_config(self):
+        """Performs validation checks on the configuration"""
+        self._validate_package_api_format()
+
+    def _validate_package_api_format(self):
+        api_version = str(self.project__package__api_version)
+
+        if not API_VERSION_RE.match(api_version):
+            message = (
+                f"Package API Version must be in the form 'XX.0', found: {api_version}"
+            )
+            raise ConfigError(message)
 
     @property
     def config_global_local(self):
@@ -198,12 +214,10 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         }
         for key, env_var in list(validate.items()):
             if key not in info or not info[key]:
-                message = "Detected CI on {} but could not determine the repo {}".format(
-                    info["ci"], key
-                )
+                message = f"Detected CI on {info['ci']} but could not determine the repo {key}"
                 if env_var:
-                    message += ". You can manually pass in the {} ".format(key)
-                    message += " with the {} environment variable.".format(env_var)
+                    message += f". You can manually pass in the {key} "
+                    message += f" with the {env_var} environment variable."
                 raise ConfigError(message)
 
     def _log_detected_overrides_as_warning(self, info):
@@ -519,7 +533,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             indent = 0
         pretty = []
         for dependency in dependencies:
-            prefix = "{}  - ".format(" " * indent)
+            prefix = f"{' ' * indent}  - "
             for key, value in sorted(dependency.items()):
                 extra = []
                 if value is None or value is False:
@@ -530,12 +544,12 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                     )
                     if not extra:
                         continue
-                    value = "\n{}".format(" " * (indent + 4))
+                    value = f"\n{' ' * (indent + 4)}"
 
-                pretty.append("{}{}: {}".format(prefix, key, value))
+                pretty.append(f"{prefix}{key}: {value}")
                 if extra:
                     pretty.extend(extra)
-                prefix = "{}    ".format(" " * indent)
+                prefix = f"{' ' * indent}    "
         return pretty
 
     def process_github_dependency(  # noqa: C901
@@ -545,9 +559,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             indent = ""
 
         self.logger.info(
-            "{}Processing dependencies from Github repo {}".format(
-                indent, dependency["github"]
-            )
+            f"{indent}Processing dependencies from Github repo {dependency['github']}"
         )
 
         skip = dependency.get("skip")
@@ -572,9 +584,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                     release = repo.release_from_tag(dependency["tag"])
                 except NotFoundError:
                     raise DependencyResolutionError(
-                        "{}No release found for tag {}".format(
-                            indent, dependency["tag"]
-                        )
+                        f"{indent}No release found for tag {dependency['tag']}"
                     )
             else:
                 release = find_latest_release(repo, include_beta)
@@ -584,9 +594,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                 ).object.sha
             else:
                 self.logger.info(
-                    "{}No release found; using the latest commit from the {} branch.".format(
-                        indent, repo.default_branch
-                    )
+                    f"{indent}No release found; using the latest commit from the {repo.default_branch} branch."
                 )
                 ref = repo.branch(repo.default_branch).commit.sha
 
@@ -616,10 +624,10 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             contents = None
         if contents:
             for dirname in list(contents.keys()):
-                subfolder = "unpackaged/pre/{}".format(dirname)
+                subfolder = f"unpackaged/pre/{dirname}"
                 if subfolder in skip:
                     continue
-                name = "Deploy {}".format(subfolder)
+                name = f"Deploy {subfolder}"
 
                 unpackaged_pre.append(
                     {
@@ -643,7 +651,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                 subfolder = "src"
 
                 unmanaged_src = {
-                    "name": "Deploy {}".format(package_name or repo_name),
+                    "name": f"Deploy {package_name or repo_name}",
                     "repo_owner": repo_owner,
                     "repo_name": repo_name,
                     "ref": ref,
@@ -664,10 +672,10 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             contents = None
         if contents:
             for dirname in list(contents.keys()):
-                subfolder = "unpackaged/post/{}".format(dirname)
+                subfolder = f"unpackaged/post/{dirname}"
                 if subfolder in skip:
                     continue
-                name = "Deploy {}".format(subfolder)
+                name = f"Deploy {subfolder}"
 
                 dependency = {
                     "name": name,
@@ -705,13 +713,13 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         if namespace and not unmanaged:
             if release is None:
                 raise DependencyResolutionError(
-                    "{}Could not find latest release for {}".format(indent, namespace)
+                    f"{indent}Could not find latest release for {namespace}"
                 )
             version = release.name
             # If a latest prod version was found, make the dependencies a
             # child of that install
             dependency = {
-                "name": "Install {} {}".format(package_name or namespace, version),
+                "name": f"Install {package_name or namespace} {version}",
                 "namespace": namespace,
                 "version": version,
             }
