@@ -1,3 +1,6 @@
+- variable: total_data_imports
+  default: 16
+
 - macro: ReusableCustomObject1_DIFields
   fields:
       CO1_currency__c: 100
