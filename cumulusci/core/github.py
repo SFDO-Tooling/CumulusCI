@@ -151,3 +151,17 @@ def find_latest_release(repo, include_beta=None):
             return repo.latest_release()
     except (github3.exceptions.NotFoundError, StopIteration):
         pass
+
+
+def find_previous_release(repo, prefix=None):
+    most_recent = None
+    for release in repo.releases():
+        if prefix and not release.tag_name.startswith(prefix):
+            continue
+        if not prefix and release.prerelease:
+            continue
+        # Return the second release
+        if most_recent is None:
+            most_recent = release
+        else:
+            return release

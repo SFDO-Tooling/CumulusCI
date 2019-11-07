@@ -12,6 +12,7 @@ from ..source import LocalFolderSource
 from cumulusci.core.config import BaseGlobalConfig
 from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.config import ServiceConfig
+from cumulusci.core.exceptions import DependencyResolutionError
 from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.tasks.release_notes.tests.utils import MockUtil
 from cumulusci.utils import temporary_dir
@@ -36,7 +37,7 @@ class TestGitHubSource(unittest.TestCase, MockUtil):
         )
 
     @responses.activate
-    def test_resolve__latest(self):
+    def test_resolve__default(self):
         responses.add(
             method=responses.GET,
             url=self.repo_api_url,
@@ -62,7 +63,7 @@ class TestGitHubSource(unittest.TestCase, MockUtil):
         )
 
     @responses.activate
-    def test_resolve__no_release(self):
+    def test_resolve__default_no_release(self):
         responses.add(
             method=responses.GET,
             url=self.repo_api_url,
@@ -146,6 +147,164 @@ class TestGitHubSource(unittest.TestCase, MockUtil):
         )
 
     @responses.activate
+    def test_resolve__tag(self):
+        responses.add(
+            method=responses.GET,
+            url=self.repo_api_url,
+            json=self._get_expected_repo(owner="TestOwner", name="TestRepo"),
+        )
+        responses.add(
+            "GET",
+            f"https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/release/1.0",
+            json=self._get_expected_tag_ref("release/1.0", "abcdef"),
+        )
+
+        source = GitHubSource(
+            self.project_config,
+            {
+                "github": "https://github.com/TestOwner/TestRepo.git",
+                "tag": "release/1.0",
+            },
+        )
+        assert (
+            repr(source)
+            == "<GitHubSource GitHub: TestOwner/TestRepo @ tags/release/1.0 (abcdef)>"
+        )
+
+    @responses.activate
+    def test_resolve__latest_release(self):
+        responses.add(
+            method=responses.GET,
+            url=self.repo_api_url,
+            json=self._get_expected_repo(owner="TestOwner", name="TestRepo"),
+        )
+        responses.add(
+            "GET",
+            "https://api.github.com/repos/TestOwner/TestRepo/releases/latest",
+            json=self._get_expected_release("release/1.0"),
+        )
+        responses.add(
+            "GET",
+            f"https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/release/1.0",
+            json=self._get_expected_tag_ref("release/1.0", "tag_sha"),
+        )
+
+        source = GitHubSource(
+            self.project_config,
+            {
+                "github": "https://github.com/TestOwner/TestRepo.git",
+                "release": "latest",
+            },
+        )
+        assert (
+            repr(source)
+            == "<GitHubSource GitHub: TestOwner/TestRepo @ tags/release/1.0 (tag_sha)>"
+        )
+
+    @responses.activate
+    def test_resolve__latest_beta(self):
+        responses.add(
+            method=responses.GET,
+            url=self.repo_api_url,
+            json=self._get_expected_repo(owner="TestOwner", name="TestRepo"),
+        )
+        responses.add(
+            "GET",
+            "https://api.github.com/repos/TestOwner/TestRepo/releases",
+            json=[self._get_expected_release("beta/1.0-Beta_1")],
+        )
+        responses.add(
+            "GET",
+            f"https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/beta/1.0-Beta_1",
+            json=self._get_expected_tag_ref("beta/1.0-Beta_1", "tag_sha"),
+        )
+
+        source = GitHubSource(
+            self.project_config,
+            {
+                "github": "https://github.com/TestOwner/TestRepo.git",
+                "release": "latest_beta",
+            },
+        )
+        assert (
+            repr(source)
+            == "<GitHubSource GitHub: TestOwner/TestRepo @ tags/beta/1.0-Beta_1 (tag_sha)>"
+        )
+
+    @responses.activate
+    def test_resolve__previous_release(self):
+        responses.add(
+            method=responses.GET,
+            url=self.repo_api_url,
+            json=self._get_expected_repo(owner="TestOwner", name="TestRepo"),
+        )
+        responses.add(
+            "GET",
+            "https://api.github.com/repos/TestOwner/TestRepo/releases",
+            json=[
+                self._get_expected_release("release/2.0"),
+                self._get_expected_release("beta/1.0-Beta_1", prerelease=True),
+                self._get_expected_release("release/1.0"),
+            ],
+        )
+        responses.add(
+            "GET",
+            f"https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/release/1.0",
+            json=self._get_expected_tag_ref("release/1.0", "tag_sha"),
+        )
+
+        source = GitHubSource(
+            self.project_config,
+            {
+                "github": "https://github.com/TestOwner/TestRepo.git",
+                "release": "previous",
+            },
+        )
+        assert (
+            repr(source)
+            == "<GitHubSource GitHub: TestOwner/TestRepo @ tags/release/1.0 (tag_sha)>"
+        )
+
+    @responses.activate
+    def test_resolve__release_not_found(self):
+        responses.add(
+            method=responses.GET,
+            url=self.repo_api_url,
+            json=self._get_expected_repo(owner="TestOwner", name="TestRepo"),
+        )
+        responses.add(
+            "GET",
+            "https://api.github.com/repos/TestOwner/TestRepo/releases/latest",
+            status=404,
+        )
+
+        with pytest.raises(DependencyResolutionError):
+            GitHubSource(
+                self.project_config,
+                {
+                    "github": "https://github.com/TestOwner/TestRepo.git",
+                    "release": "latest",
+                },
+            )
+
+    @responses.activate
+    def test_resolve__bogus_release(self):
+        responses.add(
+            method=responses.GET,
+            url=self.repo_api_url,
+            json=self._get_expected_repo(owner="TestOwner", name="TestRepo"),
+        )
+
+        with pytest.raises(DependencyResolutionError):
+            GitHubSource(
+                self.project_config,
+                {
+                    "github": "https://github.com/TestOwner/TestRepo.git",
+                    "release": "bogus",
+                },
+            )
+
+    @responses.activate
     def test_fetch(self):
         responses.add(
             method=responses.GET,
@@ -193,31 +352,6 @@ class TestGitHubSource(unittest.TestCase, MockUtil):
             assert project_config.repo_root == os.path.join(
                 os.path.realpath(d), ".cci", "projects", "TestRepo", "tag_sha"
             )
-
-    @responses.activate
-    def test_resolve__tag(self):
-        responses.add(
-            method=responses.GET,
-            url=self.repo_api_url,
-            json=self._get_expected_repo(owner="TestOwner", name="TestRepo"),
-        )
-        responses.add(
-            "GET",
-            f"https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/release/1.0",
-            json=self._get_expected_tag_ref("release/1.0", "abcdef"),
-        )
-
-        source = GitHubSource(
-            self.project_config,
-            {
-                "github": "https://github.com/TestOwner/TestRepo.git",
-                "tag": "release/1.0",
-            },
-        )
-        assert (
-            repr(source)
-            == "<GitHubSource GitHub: TestOwner/TestRepo @ tags/release/1.0 (abcdef)>"
-        )
 
     @responses.activate
     def test_hash(self):

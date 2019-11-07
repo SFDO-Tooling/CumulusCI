@@ -240,8 +240,8 @@ class TestBaseProjectConfig(unittest.TestCase):
             {},
             [
                 DummyRelease("release/1.1", "1.1"),
-                DummyRelease("release/1.0", "1.0"),
                 DummyRelease("beta-wrongprefix", "wrong"),
+                DummyRelease("release/1.0", "1.0"),
                 DummyRelease("beta/1.0-Beta_2", "1.0 (Beta 2)"),
                 DummyRelease("beta/1.0-Beta_1", "1.0 (Beta 1)"),
             ],
