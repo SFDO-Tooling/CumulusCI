@@ -13,7 +13,12 @@ class TemplateUtils(unittest.TestCase):
     def test_faker_library(self):
         fake = template_utils.FakerTemplateLibrary()
         assert fake.first_name
-        assert fake.email(domain="salesforce.com")
+        assert "example.com" in fake.email(domain="example.com")
+
+    def test_faker_languages(self):
+        fake = template_utils.FakerTemplateLibrary("no_NO")
+        assert fake.first_name
+        assert "example.com" in fake.email(domain="example.com")
 
     def test_format_str(self):
         assert template_utils.format_str("abc") == "abc"
@@ -29,3 +34,21 @@ class TemplateUtils(unittest.TestCase):
             template_utils.format_str("{% raw %}{}{% endraw %}", {"count": "15"})
             == "{}"
         )
+
+    def test_format_str_languages(self):
+        norwegian_faker = template_utils.FakerTemplateLibrary("no_NO")
+
+        val = template_utils.format_str(
+            "{{vikingfake.first_name}} {{abc}}",
+            {"abc": 5, "vikingfake": norwegian_faker},
+        )
+        assert "5" in val
+
+        def cosmopolitan_faker(language):
+            return template_utils.FakerTemplateLibrary(language)
+
+        val = template_utils.format_str(
+            "{{fakei18n('ne_NP').first_name}} {{abc}}",
+            {"abc": 5, "fakei18n": cosmopolitan_faker, "type": type},
+        )
+        assert "5" in val
