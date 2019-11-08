@@ -32,28 +32,38 @@ class BaseGenerateDataTask(BaseTask, metaclass=ABCMeta):
         },
     }
 
-    def _run_task(self):
-        mapping_file = os.path.abspath(self.options["mapping"])
-        database_url = self.options.get("database_url")
-        current_batch_num = self.options.get("current_batch_number", 0)
-        if not database_url:
+    def _init_options(self, kwargs):
+        super()._init_options(kwargs)
+        self.mapping_file = os.path.abspath(self.options["mapping"])
+        self.database_url = self.options.get("database_url")
+        self.current_batch_num = self.options.get("current_batch_number", 0)
+        if not self.database_url:
             sqlite_path = "generated_data.db"
             self.logger.info("No database URL: creating sqlite file %s" % sqlite_path)
-            database_url = "sqlite:///" + sqlite_path
+            self.database_url = "sqlite:///" + sqlite_path
 
-        num_records = int(self.options["num_records"])
-        self._generate_data(database_url, mapping_file, num_records, current_batch_num)
+        self.num_records = int(self.options["num_records"])
+
+    def _run_task(self):
+        self._generate_data(
+            self.database_url,
+            self.mapping_file,
+            self.num_records,
+            self.current_batch_num,
+        )
 
     def _generate_data(self, db_url, mapping_file_path, num_records, current_batch_num):
         """Generate all of the data"""
         with open(mapping_file_path, "r") as f:
             mappings = yaml.safe_load(f)
+        print("MAPPINGS", mappings)
 
         session, engine, base = self.init_db(db_url, mappings)
         self.generate_data(session, engine, base, num_records, current_batch_num)
         session.commit()
 
-    def init_db(self, db_url, mappings):
+    @staticmethod
+    def init_db(db_url, mappings):
         engine = create_engine(db_url)
         metadata = MetaData()
         metadata.bind = engine

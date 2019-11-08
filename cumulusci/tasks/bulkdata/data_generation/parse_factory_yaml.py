@@ -11,6 +11,7 @@ from .data_generator import (
     SimpleValue,
     ChildRecordValue,
     StructuredValue,
+    DataGenSyntaxError,
 )
 from cumulusci.core.template_utils import format_str
 from .template_funcs import template_funcs
@@ -69,7 +70,11 @@ def parse_field_value(field, context):
     elif isinstance(field, dict):
         return StructuredValue(field)
     else:
-        assert False, f"Unknown field type {field}"
+        raise DataGenSyntaxError(
+            f"Unknown field type. Should be a string or 'object': \n {field} ",
+            context.filename,
+            context.line_num(field) or context.line_num(),
+        )
 
 
 def parse_field(name, definition, context):

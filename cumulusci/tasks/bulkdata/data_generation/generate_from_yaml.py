@@ -1,16 +1,88 @@
-import click
-import yaml
+import warnings
+import os
 
-# TODO: choose a module naming style
+import yaml
+import click
+
 from cumulusci.tasks.bulkdata.data_generation.parse_factory_yaml import parse_generator
 from cumulusci.tasks.bulkdata.data_generation.data_generator import (
     output_batches,
     DataGenError,
 )
 from cumulusci.tasks.bulkdata.data_generation.output_streams import (
-    DebugOutputEngine,
-    SqlOutputEngine,
+    DebugOutputStream,
+    SqlOutputStream,
 )
+
+from cumulusci.core.exceptions import TaskOptionsError
+from cumulusci.tasks.bulkdata.base_generate_data_task import BaseGenerateDataTask
+
+
+class DataGenerator(BaseGenerateDataTask):
+    """Generate sample data from a YAML template file."""
+
+    task_docs = """
+    """
+
+    task_options = {
+        **BaseGenerateDataTask.task_options,
+        "generator_yaml": {
+            "description": "A generator YAML file to use",
+            "required": True,
+        },
+    }
+
+    def _init_options(self, kwargs):
+        super()._init_options(kwargs)
+        self.yaml_file = self.options["generator_yaml"]
+        if not os.path.exists(self.yaml_file):
+            raise TaskOptionsError(f"Cannot find {self.yaml_file}")
+        self.cli_options = {}  # TODO
+
+    def generate_data(self, session, engine, base, num_records, current_batch_num):
+        output_stream = SqlOutputStream(session, engine, base)
+        with open(self.yaml_file) as open_yaml_file:
+            _generate(
+                open_yaml_file,
+                self.num_records,
+                self.cli_options,
+                output_stream,
+                self.mapping_file,
+            )
+
+
+def merge_options(option_definitions, user_options):
+    options = {}
+    for option in option_definitions:
+        name = option["option"]
+        if user_options.get(name):
+            options[name] = user_options.get(name)
+        elif option["default"]:
+            options[name] = option["default"]
+        else:
+            raise TaskOptionsError(f"No definition supplied for option {name}")
+
+    extra_options = set(user_options.keys()) - set(options.keys())
+    return options, extra_options
+
+
+def _generate(open_yaml_file, count, cli_options, output_stream, mapping_file):
+    output_stream = output_stream or DebugOutputStream()
+    option_definitions, definitions = parse_generator(open_yaml_file)
+
+    options, extra_options = merge_options(option_definitions, cli_options)
+
+    if extra_options:
+        warnings.warn(f"Warning: unknown options: {extra_options}")
+
+    output_batches(output_stream, definitions, count, options)
+
+
+#########################
+#
+# The rest of this file allows the tool to be used as a command line.
+#
+#########################
 
 
 def eval_arg(arg):
@@ -27,47 +99,20 @@ def eval_arg(arg):
 @click.option("--mapping_file", type=click.Path(exists=True))
 @click.option("--option", nargs=2, type=(str, eval_arg), multiple=True)
 def generate(yaml_file, count, option, dburl, mapping_file):
-    try:
-        _generate(click.open_file(yaml_file), count, dict(option), dburl, mapping_file)
-    except DataGenError as e:
-        click.echo("")
-        raise click.ClickException(e)
-
-
-def _generate(open_yaml_file, count, cli_options, dburl, mapping_file):
     if dburl:
         assert mapping_file, "Mapping file must be supplied."
         with click.open_file(mapping_file, "r") as f:
             mappings = yaml.safe_load(f)
-        db = SqlOutputEngine(dburl, mappings)
+        output_stream = SqlOutputStream(dburl, mappings)
     else:
-        db = DebugOutputEngine()
-    option_definitions, definitions = parse_generator(open_yaml_file)
-
-    options, extra_options = merge_options(option_definitions, cli_options)
-
-    if extra_options:
+        output_stream = DebugOutputStream()
+    try:
+        _generate(
+            click.open_file(yaml_file), count, dict(option), output_stream, mapping_file
+        )
+    except DataGenError as e:
         click.echo("")
-        click.echo(f"Warning: unknown options: {extra_options}", color="yellow")
-        click.echo("")
-
-    output_batches(db, definitions, count, options)
-
-
-def merge_options(option_definitions, user_options):
-    options = {}
-    for option in option_definitions:
-        name = option["option"]
-        if user_options.get(name):
-            options[name] = user_options.get(name)
-        elif option["default"]:
-            options[name] = option["default"]
-        else:
-            click.echo(f"No definition supplied for option {name}", err=True)
-            click.exit()
-
-    extra_options = set(user_options.keys()) - set(options.keys())
-    return options, extra_options
+        raise click.ClickException(e)
 
 
 if __name__ == "__main__":

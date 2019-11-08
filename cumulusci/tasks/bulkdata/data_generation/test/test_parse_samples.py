@@ -20,7 +20,7 @@ def find_row(row_type, compare, calls):
 
 class TestParseAndOutput(unittest.TestCase):
     @mock.patch(
-        "cumulusci.tasks.bulkdata.data_generation.output_streams.DebugOutputEngine.write_row"
+        "cumulusci.tasks.bulkdata.data_generation.output_streams.DebugOutputStream.write_row"
     )
     def test_d_and_d(self, write_row):
         with open(dnd_test) as open_yaml_file:
@@ -36,7 +36,7 @@ class TestParseAndOutput(unittest.TestCase):
         assert find_row("Paladin", {"id": 1, "Name": mock.ANY}, calls)
 
     @mock.patch(
-        "cumulusci.tasks.bulkdata.data_generation.output_streams.DebugOutputEngine.write_row"
+        "cumulusci.tasks.bulkdata.data_generation.output_streams.DebugOutputStream.write_row"
     )
     def test_data_imports(self, write_row):
         with open(data_imports) as open_yaml_file:
