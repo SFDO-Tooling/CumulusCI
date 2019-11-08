@@ -1,4 +1,4 @@
-- variable: total_data_imports
+- option: total_data_imports
   default: 16
 
 - macro: ReusableCustomObject1_DIFields

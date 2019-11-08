@@ -7,11 +7,28 @@ import jinja2
 
 from cumulusci.core.template_utils import FakerTemplateLibrary, faker_template_library
 
-from template_funcs import template_funcs
+from .template_funcs import template_funcs
+
+
+class DataGenError(Exception):
+    def __init__(self, message, filename, lineno):
+        super().__init__(f"{message}\n near {filename}:{lineno}")
+
+
+class DataGenSyntaxError(DataGenError):
+    pass
+
+
+class DataGenNameError(DataGenError):
+    pass
+
+
+class DataGenValueError(DataGenError):
+    pass
 
 
 class IdManager:
-    """What is the most recent ID per Object type"""
+    """Keep track ofthe most recent ID per Object type"""
 
     def __init__(self):
         self.last_used_ids = defaultdict(lambda: 0)
@@ -22,27 +39,19 @@ class IdManager:
 
 
 class CounterGenerator:
+    """Generate counters to allow users to make unique text and number fields."""
+
     def __init__(self, parent=None):
         self.counters = defaultdict(lambda: 0)
-        self.root_counter = parent.root_counter if parent else self
 
     def set_value(self, name, value):
-        if name.startswith("/"):
-            self.root_counter.set_value(name[1:], value)
-        else:
-            self.counters[name] = value
+        self.counters[name] = value
 
     def get_value(self, name):
-        if name.startswith("/") and self.root_counter != self:
-            value = self.root_counter.get_value(name[1:])
-        else:
-            value = self.counters[name]
-
-        return value
+        return self.counters[name]
 
     def incr(self, sobject_name):
         self.counters[sobject_name] += 1
-        self.root_counter.counters[sobject_name] += 1
 
 
 class Globals:
@@ -72,19 +81,19 @@ class Context:
     obj = None
     today = date.today()
 
-    def __init__(self, parent, sobject_name, output_stream=None, variables=None):
+    def __init__(self, parent, sobject_name, output_stream=None, options=None):
         self.parent = parent
         self.sobject_name = sobject_name
         if parent:
             self.counter_generator = CounterGenerator(parent.counter_generator)
             self.globals = parent.globals
             self.output_stream = parent.output_stream
-            self.variables = {**self.parent.variables}
+            self.options = {**self.parent.options}
         else:  # root Context
             self.counter_generator = CounterGenerator()
             self.globals = Globals()
             self.output_stream = output_stream
-            self.variables = {**variables}
+            self.options = {**options}
 
     def incr(self):
         self.counter_generator.incr(self.sobject_name)
@@ -104,7 +113,7 @@ class Context:
             evaluator = environment.get_evaluator(definition)
 
             return environment.evaluate(
-                evaluator, variables=self.field_vars(), funcs=self.field_funcs()
+                evaluator, options=self.field_vars(), funcs=self.field_funcs()
             )
         else:
             return definition
@@ -127,7 +136,7 @@ class Context:
             "today": self.today,
             "fake": faker_template_library,
             "fake_i18n": lambda locale: FakerTemplateLibrary(locale),
-            **self.variables,
+            **self.options,
             **self.globals.object_names,
         }
 
@@ -153,6 +162,8 @@ class SObject:
 @dataclass
 class SObjectFactory:
     sftype: str
+    line_num: int
+    filename: str
     count: int = 1
     count_expr: str = None
     fields: list = ()
@@ -165,8 +176,10 @@ class SObjectFactory:
             try:
                 self.count = int(float(self.count_expr.render(context)))
             except ValueError:
-                raise ValueError(
-                    f"Cannot evaluate {self.count_expr.definition} as number"
+                raise DataGenValueError(
+                    f"Cannot evaluate {self.count_expr.definition} as number",
+                    self.filename,
+                    self.line_num,
                 )
         assert isinstance(self.count, int), self.count
         return [self._generate_row(storage, context) for i in range(self.count)]
@@ -183,7 +196,7 @@ class SObjectFactory:
         for field in self.fields:
             row[field.name] = field.generate_value(context)
             assert isinstance(
-                row[field.name], (int, str, bool, date)
+                row[field.name], (int, str, bool, date, float)
             ), f"Field '{field.name}' generated unexpected object: {row[field.name]} {type(row[field.name])}"
 
         storage.write_row(self.sftype, row)
@@ -213,31 +226,45 @@ class JinjaTemplateEvaluator:
     def get_evaluator(self, template_str):
         return self.environment.from_string(template_str)
 
-    def evaluate(self, evaluator, funcs, variables):
-        return evaluator.render(**funcs, **variables)
+    def evaluate(self, evaluator, funcs, options):
+        return evaluator.render(**funcs, **options)
 
 
 @dataclass
 class SimpleValue(FieldDefinition):
     definition: str
+    line_num: int
+    filename: str
 
     def render(self, context):
         try:
-            return context.evaluate(self.definition)
+            val = context.evaluate(self.definition)
+            try:
+                return float(val)
+            except ValueError:
+                try:
+                    return int(val)
+                except ValueError:
+                    return val
         except jinja2.exceptions.TemplateSyntaxError as e:
-            raise Exception(f"Error in parsing {self.definition}: {e}")
+            raise DataGenSyntaxError(
+                f"Error in parsing {self.definition}: {e}", self.filename, self.line_num
+            )
+        except jinja2.exceptions.UndefinedError as e:
+            raise DataGenNameError(e.message, self.filename, self.line_num)
 
 
 class StructuredValue(FieldDefinition):
     def __init__(self, d):
-        assert len(d) == 1
+        assert len(d.keys()) == 2
+        assert "__line__" in d.keys(), d.keys()
         [self.function_name, args], *_ = d.items()
         if isinstance(args, list):
             self.args = args
             self.kwargs = {}
         elif isinstance(args, dict):
             self.args = []
-            self.kwargs = args
+            self.kwargs = {i: args[i] for i in args if i != "__line__"}
         else:
             self.args = [args]
             self.kwargs = {}
@@ -271,8 +298,8 @@ class FieldFactory:
         return self.definition.render(context)
 
 
-def output_batches(output_stream, factories, number, variables):
-    context = Context(None, None, output_stream, variables)
+def output_batches(output_stream, factories, number, options):
+    context = Context(None, None, output_stream, options)
     for i in range(0, number):
         for factory in factories:
             factory.generate_rows(output_stream, context)

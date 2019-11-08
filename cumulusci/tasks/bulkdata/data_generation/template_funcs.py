@@ -40,10 +40,6 @@ def parse_date(d):
             pass
 
 
-def other_field(self, name):
-    return getattr(self.obj, name)
-
-
 def date_between(context, start_date, end_date):
     start_date = parse_date(start_date) or start_date
     end_date = parse_date(end_date) or end_date
@@ -56,5 +52,4 @@ template_funcs = {
     "random_number": random_number,
     "random_choice": random_choice,
     "date_between": date_between,
-    "other_field": other_field,
 }

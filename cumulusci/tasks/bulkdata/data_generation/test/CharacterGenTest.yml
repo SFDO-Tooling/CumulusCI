@@ -1,162 +1,217 @@
-- variable: num_fighters
+- option: num_fighters
   default: 2
-- variable: num_druids
+- option: num_druids
   default: 2
 
 - object: Druid
   count: <<num_druids>>
   fields:
-    name: <<fake_i18n('en_CA').first_name()>>
+    Name: <<fake_i18n('de_DE').first_name()>>
+    Level: <<random_number(1,10)>>
     Strength:
-        random_number:
-            min: 10
-            max: 20
+      random_number:
+        min: 5
+        max: 15
 
     Constitution:
-        random_number:
-            min: 8
-            max: 20
+      random_number:
+        min: 5
+        max: 15
 
     Dexterity:
-        random_number:
-            min: 8
-            max: 20
+      random_number:
+        min: 5
+        max: 15
 
     Intelligence:
-        random_number:
-            min: 3
-            max: 15
+      random_number:
+        min: 10
+        max: 20
 
     Wisdom:
-        random_number:
-            min: 3
-            max: 15
+      random_number:
+        min: 10
+        max: 20
 
-    Dexterity:
-        random_number:
-            min: 8
-            max: 20
+    Charisma:
+      random_number:
+        min: 8
+        max: 16
 
-    Hit Points: <<8 + other_field("Constitution")>>
-
+    Hit Points: <<8 + this.Constitution + (random_number(1,8) + this.Constitution) * (int(this.Level) - 1)>>
 
     Defense:
-        object: Equipment
-        fields:
-            type:
-                random_choice:
-                    Wooden Shield: 50%
-                    Simple Weapon: 50%
-            
+      object: Equipment
+      fields:
+        type:
+          random_choice:
+            Wooden Shield: 50%
+            Simple Weapon: 50%
 
     Weapon:
-        object: Equipment
-        fields:
-            type:
-                random_choice:
-                    Scimitar: 50%
-                    Melee Weapon: 50%
+      object: Equipment
+      fields:
+        type:
+          random_choice:
+            Scimitar: 50%
+            Melee Weapon: 50%
 
     Armour:
-        object: Equipment
-        fields:
-            type: Leather Armor
+      object: Equipment
+      fields:
+        type: Leather Armor
 
     Pack:
-        object: Equipment
-        fields:
-            type: Explorers
+      object: Equipment
+      fields:
+        type: Explorers
 
     Focus:
-        object: Equipment
-        fields:
-            type:
-                random_choice:
-                    Sprig of mistletoe: 50%
-                    Totem: 50%
+      object: Equipment
+      fields:
+        type:
+          random_choice:
+            Sprig of mistletoe: 50%
+            Totem: 50%
 
 - object: Fighter
   count: <<num_fighters>>
   fields:
-    name: <<fake_i18n('nl_NL').first_name()>>
+    Name: <<fake_i18n('no_NO').first_name()>>
+    Level: <<random_number(1,10)>>
     Strength:
-        random_number:
-            min: 10
-            max: 20
+      random_number:
+        min: 10
+        max: 20
 
     Constitution:
-        random_number:
-            min: 8
-            max: 20
+      random_number:
+        min: 8
+        max: 20
 
     Dexterity:
-        random_number:
-            min: 8
-            max: 20
+      random_number:
+        min: 8
+        max: 20
 
     Intelligence:
-        random_number:
-            min: 3
-            max: 15
+      random_number:
+        min: 3
+        max: 15
 
     Wisdom:
-        random_number:
-            min: 3
-            max: 15
+      random_number:
+        min: 3
+        max: 15
 
-    Dexterity:
-        random_number:
-            min: 8
-            max: 20
+    Charisma:
+      random_number:
+        min: 8
+        max: 17
 
-    Hit Points: <<10 + other_field("Constitution")>>
+    Hit Points: <<10 + this.Constitution + (random_number(1,10) + this.Constitution) * (this.Level - 1)>>
 
     Armor:
-        object: Equipment
-        fields:
-            type:
-                random_choice:
-                    Chain Mail: 50%
-                    Leather Armor: 50%
-            
+      object: Equipment
+      fields:
+        type:
+          random_choice:
+            Chain Mail: 50%
+            Leather Armor: 50%
 
     MartialWeapon:
-        object: Equipment
-        fields:
-            type:
-                random_choice:
-                    Weapon and Shield: 50%
-                    Two Weapons: 50%
+      object: Equipment
+      fields:
+        type:
+          random_choice:
+            Weapon and Shield: 50%
+            Two Weapons: 50%
 
     LightWeapon:
-        object: Equipment
-        fields:
-            type:
-                random_choice:
-                    Crossbow: 50%
-                    Two Handaxes: 50%
+      object: Equipment
+      fields:
+        type:
+          random_choice:
+            Crossbow: 50%
+            Two Handaxes: 50%
 
     Pack:
-        object: Equipment
-        fields:
-            type:
-                random_choice:
-                    Dungoneers: 50%
-                    Explorers: 50%
+      object: Equipment
+      fields:
+        type:
+          random_choice:
+            Dungoneers: 50%
+            Explorers: 50%
 
-#     FightStyle: (TBD)
+- object: Paladin
+  fields:
+    name: <<fake_i18n('nl_NL').first_name()>>
+    Level: 10 # fixme
+    Strength:
+      random_number:
+        min: 10
+        max: 20
 
+    Constitution:
+      random_number:
+        min: 8
+        max: 20
 
-# - object: Monk
+    Dexterity:
+      random_number:
+        min: 8
+        max: 20
 
+    Intelligence:
+      random_number:
+        min: 3
+        max: 15
 
-# - object: Paladin
+    Wisdom:
+      random_number:
+        min: 3
+        max: 15
 
+    Charisma:
+      random_number:
+        min: 8
+        max: 17
 
+    Hit Points: <<10 + this.Constitution + (random_number(1,10) + this.Constitution) * (this.Level - 1)>>
+
+    Armor:
+      object: Equipment
+      fields:
+        type:
+          random_choice:
+            Chain Mail: 50%
+            Leather Armor: 50%
+
+    MartialWeapon:
+      object: Equipment
+      fields:
+        type:
+          random_choice:
+            Weapon and Shield: 50%
+            Two Weapons: 50%
+
+    LightWeapon:
+      object: Equipment
+      fields:
+        type:
+          random_choice:
+            Crossbow: 50%
+            Two Handaxes: 50%
+
+    Pack:
+      object: Equipment
+      fields:
+        type:
+          random_choice:
+            Dungoneers: 50%
+            Explorers: 50%
 # - object: Ranger
 
-
 # - object: Bard
-
 
 # - object: Cleric
