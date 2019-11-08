@@ -181,8 +181,43 @@ def zip_subfolder(zip_src, path):
     return zip_dest
 
 
-def zip_inject_namespace(
-    zip_src,
+def process_text_in_directory(path, process_file):
+    for path, dirs, files in os.walk(path):
+        for orig_name in files:
+            orig_path = os.path.join(path, orig_name)
+            try:
+                with open(orig_path, "r", encoding="utf-8") as f:
+                    orig_content = f.read()
+            except UnicodeDecodeError:
+                # Probably a binary file; skip it
+                continue
+            new_name, new_content = process_file(orig_name, orig_content)
+            new_path = os.path.join(path, new_name)
+            if new_name != orig_name:
+                os.rename(orig_path, new_path)
+            with open(new_path, "w", encoding="utf-8") as f:
+                f.write(new_content)
+
+
+def process_text_in_zipfile(zf, process_file):
+    new_zf = zipfile.ZipFile(io.BytesIO(), "w", zipfile.ZIP_DEFLATED)
+    for orig_name in zf.namelist():
+        content = zf.read(orig_name)
+        try:
+            content = content.decode("utf-8")
+        except UnicodeDecodeError:
+            # Probably a binary file; don't change it
+            pass
+        else:
+            new_name, content = process_file(orig_name, content)
+            content = content.encode("utf-8")
+        new_zf.write(new_name, content)
+    return new_zf
+
+
+def inject_namespace(
+    name,
+    content,
     namespace=None,
     managed=None,
     filename_token=None,
@@ -190,9 +225,8 @@ def zip_inject_namespace(
     namespaced_org=None,
     logger=None,
 ):
-    """ Replaces %%%NAMESPACE%%% for all files and ___NAMESPACE___ in all
-        filenames in the zip with the either '' if no namespace is provided
-        or 'namespace__' if provided.
+    """ Replaces %%%NAMESPACE%%% in file content and ___NAMESPACE___ in filename
+        with either '' if no namespace is provided or 'namespace__' if provided.
     """
 
     # Handle namespace and filename tokens
@@ -218,61 +252,42 @@ def zip_inject_namespace(
     namespaced_org_or_c_token = "%%%NAMESPACED_ORG_OR_C%%%"
     namespaced_org_or_c = namespace if namespaced_org else "c"
 
-    zip_dest = zipfile.ZipFile(io.BytesIO(), "w", zipfile.ZIP_DEFLATED)
+    orig_name = name
+    prev_content = content
+    content = content.replace(namespace_token, namespace_prefix)
+    if logger and content != prev_content:
+        logger.info('  {}: Replaced %%%NAMESPACE%%% with "{}"'.format(name, namespace))
 
-    for name in zip_src.namelist():
-        orig_name = str(name)
-        content = zip_src.read(name)
-        try:
-            content = content.decode("utf-8")
-        except UnicodeDecodeError:
-            # if we cannot decode the content, don't try and replace it.
-            pass
-        else:
-            prev_content = content
-            content = content.replace(namespace_token, namespace_prefix)
-            if logger and content != prev_content:
-                logger.info(
-                    '  {}: Replaced %%%NAMESPACE%%% with "{}"'.format(name, namespace)
-                )
+    prev_content = content
+    content = content.replace(namespace_or_c_token, namespace_or_c)
+    if logger and content != prev_content:
+        logger.info(
+            '  {}: Replaced %%%NAMESPACE_OR_C%%% with "{}"'.format(name, namespace_or_c)
+        )
 
-            prev_content = content
-            content = content.replace(namespace_or_c_token, namespace_or_c)
-            if logger and content != prev_content:
-                logger.info(
-                    '  {}: Replaced %%%NAMESPACE_OR_C%%% with "{}"'.format(
-                        name, namespace_or_c
-                    )
-                )
+    prev_content = content
+    content = content.replace(namespaced_org_token, namespaced_org)
+    if logger and content != prev_content:
+        logger.info(
+            '  {}: Replaced %%%NAMESPACED_ORG%%% with "{}"'.format(name, namespaced_org)
+        )
 
-            prev_content = content
-            content = content.replace(namespaced_org_token, namespaced_org)
-            if logger and content != prev_content:
-                logger.info(
-                    '  {}: Replaced %%%NAMESPACED_ORG%%% with "{}"'.format(
-                        name, namespaced_org
-                    )
-                )
+    prev_content = content
+    content = content.replace(namespaced_org_or_c_token, namespaced_org_or_c)
+    if logger and content != prev_content:
+        logger.info(
+            '  {}: Replaced %%%NAMESPACED_ORG_OR_C%%% with "{}"'.format(
+                name, namespaced_org_or_c
+            )
+        )
 
-            prev_content = content
-            content = content.replace(namespaced_org_or_c_token, namespaced_org_or_c)
-            if logger and content != prev_content:
-                logger.info(
-                    '  {}: Replaced %%%NAMESPACED_ORG_OR_C%%% with "{}"'.format(
-                        name, namespaced_org_or_c
-                    )
-                )
+    # Replace namespace token in file name
+    name = name.replace(filename_token, namespace_prefix)
+    name = name.replace(namespaced_org_file_token, namespaced_org)
+    if logger and name != orig_name:
+        logger.info("  {}: renamed to {}".format(orig_name, name))
 
-            content = content.encode("utf-8")
-
-        # Replace namespace token in file name
-        name = name.replace(filename_token, namespace_prefix)
-        name = name.replace(namespaced_org_file_token, namespaced_org)
-        if logger and name != orig_name:
-            logger.info("  {}: renamed to {}".format(orig_name, name))
-        zip_dest.writestr(name, content)
-
-    return zip_dest
+    return name, content
 
 
 def zip_strip_namespace(zip_src, namespace, logger=None):
@@ -305,30 +320,22 @@ def zip_strip_namespace(zip_src, namespace, logger=None):
     return zip_dest
 
 
-def zip_tokenize_namespace(zip_src, namespace, logger=None):
-    """ Given a namespace, replaces 'namespace__' with %%%NAMESPACE%%% for all
-        files and ___NAMESPACE___ in all filenames in the zip
+def tokenize_namespace(name, content, namespace, logger=None):
+    """ Given a namespace, replaces 'namespace__' with %%%NAMESPACE%%%
+    in file content and ___NAMESPACE___ in filename
     """
     if not namespace:
-        return zip_src
+        return name, content
 
     namespace_prefix = "{}__".format(namespace)
     lightning_namespace = "{}:".format(namespace)
-    zip_dest = zipfile.ZipFile(io.BytesIO(), "w", zipfile.ZIP_DEFLATED)
-    for name in zip_src.namelist():
-        content = zip_src.read(name)
-        try:
-            content = content.decode("utf-8")
-        except UnicodeDecodeError:
-            # Probably a binary file; leave it untouched
-            pass
-        else:
-            content = content.replace(namespace_prefix, "%%%NAMESPACE%%%")
-            content = content.replace(lightning_namespace, "%%%NAMESPACE_OR_C%%%")
-            content = content.encode("utf-8")
-            name = name.replace(namespace_prefix, "___NAMESPACE___")
-        zip_dest.writestr(name, content)
-    return zip_dest
+
+    content = content.replace(namespace_prefix, "%%%NAMESPACE%%%")
+    content = content.replace(lightning_namespace, "%%%NAMESPACE_OR_C%%%")
+    content = content.encode("utf-8")
+    name = name.replace(namespace_prefix, "___NAMESPACE___")
+
+    return name, content
 
 
 def zip_clean_metaxml(zip_src, logger=None):

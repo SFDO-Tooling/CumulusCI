@@ -1,8 +1,11 @@
+import functools
+
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.tasks.salesforce import BaseSalesforceMetadataApiTask
-from cumulusci.utils import zip_inject_namespace
+from cumulusci.utils import inject_namespace
 from cumulusci.utils import zip_strip_namespace
-from cumulusci.utils import zip_tokenize_namespace
+from cumulusci.utils import process_text_in_zipfile
+from cumulusci.utils import tokenize_namespace
 
 
 class BaseRetrieveMetadata(BaseSalesforceMetadataApiTask):
@@ -38,20 +41,26 @@ class BaseRetrieveMetadata(BaseSalesforceMetadataApiTask):
 
     def _process_namespace(self, src_zip):
         if self.options.get("namespace_tokenize"):
-            src_zip = zip_tokenize_namespace(
-                src_zip, self.options["namespace_tokenize"], logger=self.logger
+            src_zip = process_text_in_zipfile(
+                src_zip,
+                functools.partial(
+                    tokenize_namespace,
+                    namespace=self.options["namespace_tokenize"],
+                    logger=self.logger,
+                ),
             )
         if self.options.get("namespace_inject"):
-            kwargs = {}
-            kwargs["managed"] = not process_bool_arg(
-                self.options.get("unmanaged", True)
-            )
-            kwargs["namespaced_org"] = process_bool_arg(
-                self.options.get("namespaced_org", False)
-            )
-            kwargs["logger"] = self.logger
-            src_zip = zip_inject_namespace(
-                src_zip, self.options["namespace_inject"], **kwargs
+            src_zip = process_text_in_zipfile(
+                src_zip,
+                functools.partial(
+                    inject_namespace,
+                    namespace=self.options["namespace_inject"],
+                    managed=not process_bool_arg(self.options.get("unmanaged", True)),
+                    namespaced_org=process_bool_arg(
+                        self.options.get("namespaced_org", False)
+                    ),
+                    logger=self.logger,
+                ),
             )
         if self.options.get("namespace_strip"):
             src_zip = zip_strip_namespace(

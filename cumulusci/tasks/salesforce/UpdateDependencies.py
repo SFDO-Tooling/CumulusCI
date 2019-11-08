@@ -1,3 +1,4 @@
+import functools
 from distutils.version import LooseVersion
 
 from cumulusci.core.utils import process_bool_arg
@@ -11,9 +12,10 @@ from cumulusci.salesforce_api.package_zip import ZipfilePackageZipBuilder
 from cumulusci.tasks.salesforce import BaseSalesforceMetadataApiTask
 from cumulusci.utils import download_extract_zip
 from cumulusci.utils import download_extract_github
-from cumulusci.utils import zip_inject_namespace
+from cumulusci.utils import inject_namespace
 from cumulusci.utils import zip_strip_namespace
-from cumulusci.utils import zip_tokenize_namespace
+from cumulusci.utils import process_text_in_zipfile
+from cumulusci.utils import tokenize_namespace
 
 
 class UpdateDependencies(BaseSalesforceMetadataApiTask):
@@ -252,10 +254,13 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
                             "{}__".format(dependency["namespace_tokenize"])
                         )
                     )
-                    package_zip = zip_tokenize_namespace(
+                    package_zip = process_text_in_zipfile(
                         package_zip,
-                        namespace=dependency["namespace_tokenize"],
-                        logger=self.logger,
+                        functools.partial(
+                            tokenize_namespace,
+                            namespace=dependency["namespace_tokenize"],
+                            logger=self.logger,
+                        ),
                     )
 
                 if dependency.get("namespace_inject"):
@@ -264,12 +269,15 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
                             "{}__".format(dependency["namespace_inject"])
                         )
                     )
-                    package_zip = zip_inject_namespace(
+                    package_zip = process_text_in_zipfile(
                         package_zip,
-                        namespace=dependency["namespace_inject"],
-                        managed=not dependency.get("unmanaged"),
-                        namespaced_org=self.options["namespaced_org"],
-                        logger=self.logger,
+                        functools.partial(
+                            inject_namespace,
+                            namespace=dependency["namespace_inject"],
+                            managed=not dependency.get("unmanaged"),
+                            namespaced_org=self.options["namespaced_org"],
+                            logger=self.logger,
+                        ),
                     )
 
                 if dependency.get("namespace_strip"):
