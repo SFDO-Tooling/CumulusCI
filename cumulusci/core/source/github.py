@@ -1,7 +1,9 @@
 import os
 
+from cumulusci.core.exceptions import DependencyResolutionError
 from cumulusci.core.github import get_github_api_for_repo
 from cumulusci.core.github import find_latest_release
+from cumulusci.core.github import find_previous_release
 from cumulusci.utils import download_extract_github
 
 
@@ -48,6 +50,7 @@ class GitHubSource:
         - ref: a git ref
         - branch: a git branch
         - tag: a git tag
+        - release: "latest" | "previous" | "latest_beta"
 
         If none of these are specified, CumulusCI will look for the latest release.
         If there is no release, it will use the default branch.
@@ -62,6 +65,21 @@ class GitHubSource:
             ref = "tags/" + self.spec["tag"]
         elif "branch" in self.spec:
             ref = "heads/" + self.spec["branch"]
+        elif "release" in self.spec:
+            release_spec = self.spec["release"]
+            if release_spec == "latest":
+                release = find_latest_release(self.repo, include_beta=False)
+            elif release_spec == "latest_beta":
+                release = find_latest_release(self.repo, include_beta=True)
+            elif release_spec == "previous":
+                release = find_previous_release(self.repo)
+            else:
+                raise DependencyResolutionError(f"Unknown release: {release_spec}")
+            if release is None:
+                raise DependencyResolutionError(
+                    f"Could not find release: {release_spec}"
+                )
+            ref = "tags/" + release.tag_name
         if ref is None:
             release = find_latest_release(self.repo, include_beta=False)
             if release:
