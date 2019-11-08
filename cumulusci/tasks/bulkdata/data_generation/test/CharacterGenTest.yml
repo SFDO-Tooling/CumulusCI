@@ -145,7 +145,7 @@
 
 - object: Paladin
   fields:
-    name: <<fake_i18n('nl_NL').first_name()>>
+    Name: <<fake_i18n('nl_NL').first_name()>>
     Level: 10 # fixme
     Strength:
       random_number:
