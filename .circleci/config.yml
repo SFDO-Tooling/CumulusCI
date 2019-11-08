@@ -1,4 +1,9 @@
-# Python CircleCI 2.0 configuration file
+version: 2.1
+
+
+orbs:
+  win: circleci/windows@1.0.0
+
 
 defaults: &defaults
   docker:
@@ -8,8 +13,21 @@ defaults: &defaults
   working_directory: ~/repo
 
 
-version: 2
 jobs:
+  test_windows:
+    executor: win/vs2019
+    steps:
+      - checkout
+      - run:
+          name: Install python3
+          command: choco install python 
+      - run:
+          name: pip install dependencies
+          command: pip install -r requirements_dev.txt
+      - run:
+          name: Run Tests
+          command: pytest
+        
 
   lint:
     <<: *defaults
@@ -27,7 +45,31 @@ jobs:
           command: |
             venv/bin/black --check --diff .
 
-  test_py3:
+  test_py36:
+    <<: *defaults
+    docker:
+      - image: circleci/python:3.6
+    steps:
+      - checkout
+      - run:
+          name: Install Python dependencies
+          command: |
+            virtualenv venv
+            venv/bin/pip install tox
+      - run:
+          name: Run Python tests
+          command: |
+            mkdir -p testresults/py36
+            venv/bin/tox -e py36 -- --junitxml=testresults/py36/junit.xml
+            mv .coverage .coverage.py36
+      - store_test_results:
+          path: testresults
+      - persist_to_workspace:
+          root: .
+          paths:
+            - .coverage.py36
+  
+  test_py37:
     <<: *defaults
     steps:
       - checkout
@@ -39,15 +81,39 @@ jobs:
       - run:
           name: Run Python tests
           command: |
-            mkdir -p testresults/py3
-            venv/bin/tox -e py37 -- --junitxml=testresults/py3/junit.xml
-            mv .coverage .coverage.py3
+            mkdir -p testresults/py37
+            venv/bin/tox -e py37 -- --junitxml=testresults/py37/junit.xml
+            mv .coverage .coverage.py37
       - store_test_results:
           path: testresults
       - persist_to_workspace:
           root: .
           paths:
-            - .coverage.py3
+            - .coverage.py37
+  
+  test_py38:
+    <<: *defaults
+    docker:
+      - image: circleci/python:3.8
+    steps:
+      - checkout
+      - run:
+          name: Install Python dependencies
+          command: |
+            virtualenv venv
+            venv/bin/pip install tox
+      - run:
+          name: Run Python tests
+          command: |
+            mkdir -p testresults/py38
+            venv/bin/tox -e py38 -- --junitxml=testresults/py38/junit.xml
+            mv .coverage .coverage.py38
+      - store_test_results:
+          path: testresults
+      - persist_to_workspace:
+          root: .
+          paths:
+            - .coverage.py38
 
   test_robot:
     <<: *defaults
@@ -192,12 +258,45 @@ workflows:
   version: 2
   build_test_report:
     jobs:
-      - lint
-      - test_py3
-      - test_robot
-      - test_release
+      - lint:
+          filters:
+            branches:
+              ignore:
+                - /dependabot\/.*/
+      - test_py36:
+          filters:
+            branches:
+              ignore:
+                - /dependabot\/.*/
+      - test_py37:
+          filters:
+            branches:
+              ignore:
+                - /dependabot\/.*/
+      - test_py38:
+          filters:
+            branches:
+              ignore:
+                - /dependabot\/.*/
+      - test_robot:
+          filters:
+            branches:
+              ignore:
+                - /dependabot\/.*/
+      - test_release:
+          filters:
+            branches:
+              ignore:
+                - /dependabot\/.*/
+      - test_windows:
+          filters:
+            branches:
+              only:
+                - master
       - report:
           requires:
-            - test_py3
+            - test_py36
+            - test_py37
+            - test_py38
             - test_robot
             - test_release

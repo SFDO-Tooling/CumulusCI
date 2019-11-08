@@ -1,15 +1,14 @@
 from datetime import datetime
 from datetime import timedelta
-
+from unittest import mock
 import io
 import os
 import tempfile
 import unittest
 
-from unittest import mock
+import yaml
 
 from cumulusci.utils import temporary_dir
-from cumulusci.core.utils import ordered_yaml_load
 from cumulusci.core.config import ScratchOrgConfig
 from cumulusci.core.config import BaseGlobalConfig
 from cumulusci.core.config import BaseProjectConfig
@@ -40,7 +39,7 @@ class TestBaseGlobalConfig(unittest.TestCase):
         mock_class.return_value = self.tempdir_home
         config = BaseGlobalConfig()
         with open(__location__ + "/../../cumulusci.yml", "r") as f_expected_config:
-            expected_config = ordered_yaml_load(f_expected_config)
+            expected_config = yaml.safe_load(f_expected_config)
         self.assertEqual(config.config, expected_config)
 
     def test_load_global_config_empty_local(self, mock_class):
@@ -49,7 +48,7 @@ class TestBaseGlobalConfig(unittest.TestCase):
 
         config = BaseGlobalConfig()
         with open(__location__ + "/../../cumulusci.yml", "r") as f_expected_config:
-            expected_config = ordered_yaml_load(f_expected_config)
+            expected_config = yaml.safe_load(f_expected_config)
         self.assertEqual(config.config, expected_config)
 
     def test_load_global_config_with_local(self, mock_class):
@@ -57,9 +56,12 @@ class TestBaseGlobalConfig(unittest.TestCase):
         self._create_global_config_local(local_yaml)
         mock_class.return_value = self.tempdir_home
 
+        # clear cache
+        BaseGlobalConfig.config = None
+
         config = BaseGlobalConfig()
         with open(__location__ + "/../../cumulusci.yml", "r") as f_expected_config:
-            expected_config = ordered_yaml_load(f_expected_config)
+            expected_config = yaml.safe_load(f_expected_config)
         expected_config["tasks"]["newtesttask"] = {}
         expected_config["tasks"]["newtesttask"]["description"] = "test description"
         self.assertEqual(config.config, expected_config)
@@ -217,14 +219,14 @@ class TestBaseProjectConfig(unittest.TestCase):
         self._create_project_config()
 
         # create local project config file
-        content = "project:\n" + "    package:\n" + "        api_version: 10\n"
+        content = "project:\n" + "    package:\n" + "        api_version: 45.0\n"
         self._create_project_config_local(content)
 
         os.chdir(self.tempdir_project)
         global_config = BaseGlobalConfig()
         config = BaseProjectConfig(global_config)
         self.assertNotEqual(config.config_project_local, {})
-        self.assertEqual(config.project__package__api_version, 10)
+        self.assertEqual(config.project__package__api_version, 45.0)
 
     def test_load_additional_yaml(self, mock_class):
         mock_class.return_value = self.tempdir_home
@@ -235,13 +237,13 @@ class TestBaseProjectConfig(unittest.TestCase):
         self._create_project_config()
 
         # create local project config file
-        content = "project:\n" + "    package:\n" + "        api_version: 10\n"
+        content = "project:\n" + "    package:\n" + "        api_version: 45.0\n"
 
         os.chdir(self.tempdir_project)
         global_config = BaseGlobalConfig()
         config = BaseProjectConfig(global_config, additional_yaml=content)
         self.assertNotEqual(config.config_additional_yaml, {})
-        self.assertEqual(config.project__package__api_version, 10)
+        self.assertEqual(config.project__package__api_version, 45.0)
 
 
 @mock.patch("sarge.Command")
@@ -252,7 +254,9 @@ class TestScratchOrgConfig(unittest.TestCase):
         "instanceUrl": "url",
         "accessToken": "access!token",
         "username": "username",
-        "password": "password"
+        "password": "password",
+        "createdDate": "1970-01-01T00:00:00Z",
+        "expirationDate": "1970-01-08"
     }
 }"""
         Command.return_value = mock.Mock(
@@ -270,6 +274,8 @@ class TestScratchOrgConfig(unittest.TestCase):
                 "org_id": "access",
                 "password": "password",
                 "username": "username",
+                "created_date": "1970-01-01T00:00:00Z",
+                "expiration_date": "1970-01-08",
             },
         )
         self.assertIs(info, config._scratch_info)
@@ -327,7 +333,9 @@ class TestScratchOrgConfig(unittest.TestCase):
     "result": {
         "instanceUrl": "url",
         "accessToken": "access!token",
-        "username": "username"
+        "username": "username",
+        "createdDate": "1970-01-01T00:00:00Z",
+        "expirationDate": "1970-01-08"
     }
 }"""
         Command.return_value = mock.Mock(
@@ -374,14 +382,7 @@ class TestScratchOrgConfig(unittest.TestCase):
             "instance_url": "test_instance",
             "access_token": "token",
         }
-        # This is ugly...since ScratchOrgConfig is in a module
-        # with the same name that is imported in cumulusci.core.config's
-        # __init__.py, we have no way to externally grab the
-        # module without going through the function's globals.
-        with mock.patch.dict(
-            ScratchOrgConfig.user_id.fget.__globals__,
-            Salesforce=mock.Mock(return_value=sf),
-        ):
+        with mock.patch("cumulusci.core.config.OrgConfig.salesforce_client", sf):
             self.assertEqual(config.user_id, "test")
 
     def test_username_from_scratch_info(self, Command):
@@ -648,7 +649,9 @@ class TestScratchOrgConfig(unittest.TestCase):
         "instanceUrl": "url",
         "accessToken": "access!token",
         "username": "username",
-        "password": "password"
+        "password": "password",
+        "createdDate": "1970-01-01T:00:00:00Z",
+        "expirationDate": "1970-01-08"
     }
 }"""
         Command.return_value = mock.Mock(

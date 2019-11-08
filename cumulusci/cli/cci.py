@@ -8,6 +8,7 @@ import os
 import shutil
 import sys
 import time
+from datetime import datetime
 import webbrowser
 
 from contextlib import contextmanager
@@ -26,6 +27,7 @@ from cumulusci.core.config import ScratchOrgConfig
 from cumulusci.core.config import ServiceConfig
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.config import BaseGlobalConfig
+from cumulusci.utils import parse_api_datetime
 from cumulusci.core.exceptions import CumulusCIFailure
 from cumulusci.core.exceptions import CumulusCIUsageError
 from cumulusci.core.exceptions import OrgNotFound
@@ -843,12 +845,25 @@ def org_import(config, username_or_alias, org_name):
     org_config = {"username": username_or_alias}
     scratch_org_config = ScratchOrgConfig(org_config, org_name)
     scratch_org_config.config["created"] = True
+
+    info = scratch_org_config.scratch_info
+    scratch_org_config.config["days"] = calculate_org_days(info)
+    scratch_org_config.config["date_created"] = parse_api_datetime(info["created_date"])
+
     config.keychain.set_org(scratch_org_config)
     click.echo(
         "Imported scratch org: {org_id}, username: {username}".format(
             **scratch_org_config.scratch_info
         )
     )
+
+
+def calculate_org_days(info):
+    """Returns the difference in days between created_date (ISO 8601),
+    and expiration_date (%Y-%m-%d)"""
+    created_date = parse_api_datetime(info["created_date"]).date()
+    expires_date = datetime.strptime(info["expiration_date"], "%Y-%m-%d").date()
+    return abs((expires_date - created_date).days)
 
 
 @org.command(name="info", help="Display information for a connected org")
@@ -894,10 +909,12 @@ def org_info(config, org_name, print_json):
             "username",
         ]
         keys = [key for key in org_config.config.keys() if key in UI_KEYS]
-        keys.sort()
+        pairs = [[key, str(org_config.config[key])] for key in keys]
+        pairs.append(["api_version", org_config.latest_api_version])
+        pairs.sort()
         table_data = [["Key", "Value"]]
         table_data.extend(
-            [[click.style(key, bold=True), str(org_config.config[key])] for key in keys]
+            [[click.style(key, bold=True), value] for key, value in pairs]
         )
         table = CliTable(table_data, wrap_cols=["Value"])
         table.echo()
@@ -1134,7 +1151,7 @@ def task_doc(config):
 
 @task.command(name="info", help="Displays information for a task")
 @click.argument("task_name")
-@pass_config(load_keychain=False)
+@pass_config()
 def task_info(config, task_name):
     try:
         task_config = config.project_config.get_task(task_name)
@@ -1205,7 +1222,9 @@ def task_run(config, task_name, org, o, debug, debug_before, debug_after, no_pro
 
     # Create and run the task
     try:
-        task = task_class(config.project_config, task_config, org_config=org_config)
+        task = task_class(
+            task_config.project_config, task_config, org_config=org_config
+        )
 
         if debug_before:
             import pdb
@@ -1264,7 +1283,7 @@ def flow_list(config, plain, print_json):
 
 @flow.command(name="info", help="Displays information for a flow")
 @click.argument("flow_name")
-@pass_config(load_keychain=False)
+@pass_config
 def flow_info(config, flow_name):
     try:
         coordinator = config.get_flow(flow_name)

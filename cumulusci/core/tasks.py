@@ -4,9 +4,11 @@ Subclass BaseTask or a descendant to define custom task logic
 """
 import contextlib
 import logging
+import os
 import time
 import threading
 
+from cumulusci.utils import cd
 from cumulusci.core.exceptions import TaskRequiresSalesforceOrg
 from cumulusci.core.exceptions import TaskOptionsError
 
@@ -15,8 +17,8 @@ CURRENT_TASK.stack = []
 
 
 @contextlib.contextmanager
-def stacked_task(self):
-    CURRENT_TASK.stack.append(self)
+def stacked_task(task):
+    CURRENT_TASK.stack.append(task)
     try:
         yield
     finally:
@@ -131,13 +133,15 @@ class BaseTask(object):
         self._init_task()
 
         with stacked_task(self):
-            try:
-                self._log_begin()
-                self.result = self._run_task()
-                return self.return_values
-            except Exception as e:
-                self._process_exception(e)
-                raise
+            self.working_path = os.getcwd()
+            with cd(self.project_config.repo_root):
+                try:
+                    self._log_begin()
+                    self.result = self._run_task()
+                    return self.return_values
+                except Exception as e:
+                    self._process_exception(e)
+                    raise
 
     def _process_exception(self, e):
         if self.project_config.use_sentry:
@@ -237,6 +241,7 @@ class BaseTask(object):
                 "step_num": str(step.step_num),
                 "task_class": self.task_config.class_path,
                 "task_config": task_config,
+                "source": step.project_config.source.frozenspec,
             }
         )
         return [ui_step]

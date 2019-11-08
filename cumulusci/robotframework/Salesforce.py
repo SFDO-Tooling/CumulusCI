@@ -57,11 +57,7 @@ class Salesforce(object):
         locator file name.
         """
         try:
-            client = self.cumulusci.tooling
-            response = client._call_salesforce(
-                "GET", "https://{}/services/data".format(client.sf_instance)
-            )
-            version = int(float(response.json()[-1]["version"]))
+            version = int(float(self.get_latest_api_version()))
             locator_module_name = "locators_{}".format(version)
 
         except RobotNotRunningError:
@@ -84,6 +80,9 @@ class Salesforce(object):
     @property
     def cumulusci(self):
         return self.builtin.get_library_instance("cumulusci.robotframework.CumulusCI")
+
+    def get_latest_api_version(self):
+        return self.cumulusci.org.latest_api_version
 
     def create_webdriver_with_retry(self, *args, **kwargs):
         """Call the Create Webdriver keyword.

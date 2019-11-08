@@ -1,16 +1,16 @@
 -r requirements.txt
 -e .
-black==19.3b0
+black==19.10b0
 bump2version==0.5.11
 coverage==4.5.4
 coveralls==1.8.2
-flake8==3.7.8
-pre-commit==1.18.3
+flake8==3.7.9
+pre-commit==1.20.0
 pytest==4.6.6  # pyup: <5
 pytest-cov==2.8.1
 responses==0.10.6
-Sphinx==2.2.0
-testfixtures==6.10.0
+Sphinx==2.2.1
+testfixtures==6.10.1
 tox==3.14.0
 twine==2.0.0
 watchdog==0.9.0

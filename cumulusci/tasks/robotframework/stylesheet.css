@@ -50,17 +50,28 @@ body {
     margin-bottom: 2em;
     margin-left: 2em;
 }
+
+pre {
+    max-width: 60em;
+    border: 1px solid lightgrey;
+    padding: 10px 0px 10px 10px;
+}
+
+.pageobject-file-description {
+    margin-left: 2em;
+}
+
 .description {
-    margin-top: .5em;
-    margin-bottom: 1em;
-    background: #f4f6f9;
-    padding-left: 1em;
-    padding-top: .5em;
-    padding-bottom: 1em;
+    margin-top: 0em;
+    margin-bottom: .5em;
+    padding-left: 0em;
+    padding-top: 0em;
+    padding-bottom: 0em;
+    max-width: 60em;
 }
 
 .kwtable {
-    box-shadow: 7px 7px 9px #d4d4d4;
+    box-shadow: 3px 3px 5px #d4d4d4;
     border-collapse: collapse;
     border: 1px solid gray;
     text-align: left;
@@ -73,13 +84,13 @@ body {
     padding: 4px;
     border: 1px solid gray;
 }
-.kwtable tr,td {
+.kwrow td {
     padding: 4px;
     border: 1px solid gray;
     vertical-align: top;
 }
 .kwtable tr:hover {
-    background-color: #dcdcdc;
+    background-color: #f9f9f9;
 }
 .kwtable .kwargs {
     width: 20%;
@@ -94,11 +105,25 @@ body {
     margin-bottom: 2em;
     margin-left: 2em;
 }
+
 .pageobject-header {
-    font-size: 1.2em;
-    font-weight: bold;
-    margin-top: 1em;
+    margin-top: 2em;
+    margin-left: 0px;
+    padding: 0px;
+    border-spacing: 0px;
 }
-.object_name, .page_type {
-    padding: 2px 10px ;
+
+.pageobject-header td {
+    border: 0px;
+    padding-right: 1.5em;
+}
+.pageobject-header .data {
+    padding-right: 10px;
+    font-size: 1.5em;
+    font-weight: bold;
+}
+.pageobject-header .labels {
+    font-size: .75em;
+    font-weight: normal;
+    color: gray;
 }

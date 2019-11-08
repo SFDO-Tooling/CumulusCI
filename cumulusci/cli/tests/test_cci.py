@@ -17,6 +17,8 @@ import requests
 import responses
 
 import cumulusci
+from cumulusci.core.config import BaseGlobalConfig
+from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.config import OrgConfig
 from cumulusci.core.config import FlowConfig
 from cumulusci.core.config import ScratchOrgConfig
@@ -582,6 +584,8 @@ class TestCCI(unittest.TestCase):
         config = mock.Mock()
         result = b"""{
             "result": {
+                "createdDate": "1970-01-01T00:00:00.000Z",
+                "expirationDate": "1970-01-01",
                 "instanceUrl": "url",
                 "accessToken": "access!token",
                 "username": "test@test.org",
@@ -605,10 +609,33 @@ class TestCCI(unittest.TestCase):
             "Imported scratch org: access, username: test@test.org" in "".join(out)
         )
 
+    def test_calculate_org_days(self):
+        info_1 = {
+            "created_date": "1970-01-01T12:34:56.789Z",
+            "expiration_date": "1970-01-02",
+        }
+        actual_days = cci.calculate_org_days(info_1)
+        assert 1 == actual_days
+
+        info_7 = {
+            "created_date": "1970-01-01T12:34:56.789+0000",
+            "expiration_date": "1970-01-08",
+        }
+        actual_days = cci.calculate_org_days(info_7)
+        assert 7 == actual_days
+
+        info_14 = {
+            "created_date": "1970-01-01T12:34:56.000+0000",
+            "expiration_date": "1970-01-15",
+        }
+        actual_days = cci.calculate_org_days(info_14)
+        assert 14 == actual_days
+
     def test_org_info(self):
         org_config = mock.Mock()
         org_config.config = {"days": 1, "default": True, "password": None}
         org_config.expires = date.today()
+        org_config.latest_api_version = "42.0"
         config = mock.Mock()
         config.get_org.return_value = ("test", org_config)
 
@@ -619,6 +646,7 @@ class TestCCI(unittest.TestCase):
             cli_tbl.assert_called_with(
                 [
                     ["Key", "Value"],
+                    ["\x1b[1mapi_version\x1b[0m", "42.0"],
                     ["\x1b[1mdays\x1b[0m", "1"],
                     ["\x1b[1mdefault\x1b[0m", "True"],
                     ["\x1b[1mpassword\x1b[0m", "None"],
@@ -915,8 +943,13 @@ class TestCCI(unittest.TestCase):
     def test_task_run(self):
         config = mock.Mock()
         config.get_org.return_value = (None, None)
-        config.project_config.get_task.return_value = TaskConfig(
-            {"class_path": "cumulusci.cli.tests.test_cci.DummyTask"}
+        config.project_config = BaseProjectConfig(
+            None,
+            config={
+                "tasks": {
+                    "test": {"class_path": "cumulusci.cli.tests.test_cci.DummyTask"}
+                }
+            },
         )
         DummyTask._run_task = mock.Mock()
 
@@ -937,7 +970,7 @@ class TestCCI(unittest.TestCase):
     def test_task_run_not_found(self):
         config = mock.Mock()
         config.get_org.return_value = (None, None)
-        config.project_config.get_task.side_effect = TaskNotFoundError
+        config.project_config = BaseProjectConfig(BaseGlobalConfig(), config={})
 
         with self.assertRaises(click.UsageError):
             run_click_command(
@@ -976,8 +1009,13 @@ class TestCCI(unittest.TestCase):
     def test_task_run_debug_before(self, set_trace):
         config = mock.Mock()
         config.get_org.return_value = (None, None)
-        config.project_config.get_task.return_value = TaskConfig(
-            {"class_path": "cumulusci.cli.tests.test_cci.DummyTask"}
+        config.project_config = BaseProjectConfig(
+            None,
+            config={
+                "tasks": {
+                    "test": {"class_path": "cumulusci.cli.tests.test_cci.DummyTask"}
+                }
+            },
         )
         set_trace.side_effect = SetTrace
 
@@ -998,8 +1036,13 @@ class TestCCI(unittest.TestCase):
     def test_task_run_debug_after(self, set_trace):
         config = mock.Mock()
         config.get_org.return_value = (None, None)
-        config.project_config.get_task.return_value = TaskConfig(
-            {"class_path": "cumulusci.cli.tests.test_cci.DummyTask"}
+        config.project_config = BaseProjectConfig(
+            None,
+            config={
+                "tasks": {
+                    "test": {"class_path": "cumulusci.cli.tests.test_cci.DummyTask"}
+                }
+            },
         )
         set_trace.side_effect = SetTrace
 
@@ -1019,8 +1062,13 @@ class TestCCI(unittest.TestCase):
     def test_task_run_usage_error(self):
         config = mock.Mock()
         config.get_org.return_value = (None, None)
-        config.project_config.get_task.return_value = TaskConfig(
-            {"class_path": "cumulusci.cli.tests.test_cci.DummyTask"}
+        config.project_config = BaseProjectConfig(
+            None,
+            config={
+                "tasks": {
+                    "test": {"class_path": "cumulusci.cli.tests.test_cci.DummyTask"}
+                }
+            },
         )
         DummyTask._run_task.side_effect = TaskOptionsError
 
@@ -1040,8 +1088,13 @@ class TestCCI(unittest.TestCase):
     def test_task_run_expected_failure(self):
         config = mock.Mock()
         config.get_org.return_value = (None, None)
-        config.project_config.get_task.return_value = TaskConfig(
-            {"class_path": "cumulusci.cli.tests.test_cci.DummyTask"}
+        config.project_config = BaseProjectConfig(
+            None,
+            config={
+                "tasks": {
+                    "test": {"class_path": "cumulusci.cli.tests.test_cci.DummyTask"}
+                }
+            },
         )
         DummyTask._run_task.side_effect = ScratchOrgException
 
