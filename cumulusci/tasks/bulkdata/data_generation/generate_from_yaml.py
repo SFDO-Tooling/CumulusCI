@@ -34,7 +34,8 @@ class DataGenerator(BaseGenerateDataTask):
 
     def _init_options(self, kwargs):
         super()._init_options(kwargs)
-        self.yaml_file = self.options["generator_yaml"]
+        self.yaml_file = os.path.abspath(self.options["generator_yaml"])
+        print(self.yaml_file)
         if not os.path.exists(self.yaml_file):
             raise TaskOptionsError(f"Cannot find {self.yaml_file}")
         self.cli_options = {}  # TODO
