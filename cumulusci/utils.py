@@ -201,17 +201,16 @@ def process_text_in_directory(path, process_file):
 
 def process_text_in_zipfile(zf, process_file):
     new_zf = zipfile.ZipFile(io.BytesIO(), "w", zipfile.ZIP_DEFLATED)
-    for orig_name in zf.namelist():
-        content = zf.read(orig_name)
+    for name in zf.namelist():
+        content = zf.read(name)
         try:
             content = content.decode("utf-8")
         except UnicodeDecodeError:
             # Probably a binary file; don't change it
             pass
         else:
-            new_name, content = process_file(orig_name, content)
-            content = content.encode("utf-8")
-        new_zf.write(new_name, content)
+            name, content = process_file(name, content)
+        new_zf.writestr(name, content)
     return new_zf
 
 
@@ -256,36 +255,34 @@ def inject_namespace(
     prev_content = content
     content = content.replace(namespace_token, namespace_prefix)
     if logger and content != prev_content:
-        logger.info('  {}: Replaced %%%NAMESPACE%%% with "{}"'.format(name, namespace))
+        logger.info(f'  {name}: Replaced {namespace_token} with "{namespace_prefix}"')
 
     prev_content = content
     content = content.replace(namespace_or_c_token, namespace_or_c)
     if logger and content != prev_content:
         logger.info(
-            '  {}: Replaced %%%NAMESPACE_OR_C%%% with "{}"'.format(name, namespace_or_c)
+            f'  {name}: Replaced {namespace_or_c_token} with "{namespace_or_c}"'
         )
 
     prev_content = content
     content = content.replace(namespaced_org_token, namespaced_org)
     if logger and content != prev_content:
         logger.info(
-            '  {}: Replaced %%%NAMESPACED_ORG%%% with "{}"'.format(name, namespaced_org)
+            f'  {name}: Replaced {namespaced_org_token} with "{namespaced_org}"'
         )
 
     prev_content = content
     content = content.replace(namespaced_org_or_c_token, namespaced_org_or_c)
     if logger and content != prev_content:
         logger.info(
-            '  {}: Replaced %%%NAMESPACED_ORG_OR_C%%% with "{}"'.format(
-                name, namespaced_org_or_c
-            )
+            f'  {name}: Replaced {namespaced_org_or_c_token} with "{namespaced_org_or_c}"'
         )
 
     # Replace namespace token in file name
     name = name.replace(filename_token, namespace_prefix)
     name = name.replace(namespaced_org_file_token, namespaced_org)
     if logger and name != orig_name:
-        logger.info("  {}: renamed to {}".format(orig_name, name))
+        logger.info(f"  {orig_name}: renamed to {name}")
 
     return name, content
 
@@ -332,7 +329,6 @@ def tokenize_namespace(name, content, namespace, logger=None):
 
     content = content.replace(namespace_prefix, "%%%NAMESPACE%%%")
     content = content.replace(lightning_namespace, "%%%NAMESPACE_OR_C%%%")
-    content = content.encode("utf-8")
     name = name.replace(namespace_prefix, "___NAMESPACE___")
 
     return name, content

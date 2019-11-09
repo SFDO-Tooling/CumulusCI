@@ -243,7 +243,6 @@ class RetrieveChanges(ListChanges, BaseSalesforceApiTask):
                     "force:mdapi:convert",
                     log_note="Converting to DX format",
                     args=["-r", target, "-d", "force-app"],
-                    capture_output=False,
                     check_return=True,
                 )
 
