@@ -1,5 +1,6 @@
 from cumulusci.core.exceptions import ApexCompilationException
 from cumulusci.core.exceptions import ApexException
+from cumulusci.core.exceptions import SalesforceException
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.utils import in_directory
@@ -99,6 +100,14 @@ class AnonymousApexTask(BaseSalesforceApiTask):
         # anon_results is an ExecuteAnonymous Result
         # https://developer.salesforce.com/docs/atlas.en-us.apexcode.meta/apexcode/sforce_api_calls_executeanonymous_result.htm
         anon_results = result.json()
+
+        # A result of `None` (body == "null") with a 200 status code
+        # means that a gack occurred.
+        if anon_results is None:
+            raise SalesforceException(
+                "Anonymous Apex returned the result `null`. "
+                "This often indicates a gack occurred."
+            )
         if not anon_results["compiled"]:
             raise ApexCompilationException(
                 anon_results["line"], anon_results["compileProblem"]
