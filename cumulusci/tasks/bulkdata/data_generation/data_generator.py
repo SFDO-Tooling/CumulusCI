@@ -11,8 +11,16 @@ from .template_funcs import template_funcs
 
 
 class DataGenError(Exception):
-    def __init__(self, message, filename, lineno):
-        super().__init__(f"{message}\n near {filename}:{lineno}")
+    def __init__(self, message, filename, line_num):
+        self.message = message
+        self.filename = filename
+        self.line_num = line_num
+        assert isinstance(filename, str)
+        assert isinstance(line_num, int)
+        super().__init__(self.message)
+
+    def __str__(self):
+        return f"{self.message}\n near {self.filename}:{self.line_num}"
 
 
 class DataGenSyntaxError(DataGenError):
@@ -162,8 +170,8 @@ class SObject:
 @dataclass
 class SObjectFactory:
     sftype: str
-    line_num: int
     filename: str
+    line_num: int
     count: int = 1
     count_expr: str = None
     fields: list = ()
@@ -175,7 +183,7 @@ class SObjectFactory:
         if self.count_expr and self.count is None:
             try:
                 self.count = int(float(self.count_expr.render(context)))
-            except ValueError:
+            except (ValueError, TypeError):
                 raise DataGenValueError(
                     f"Cannot evaluate {self.count_expr.definition} as number",
                     self.filename,
@@ -194,10 +202,22 @@ class SObjectFactory:
         context.obj = sobj
 
         for field in self.fields:
-            row[field.name] = field.generate_value(context)
-            assert isinstance(
-                row[field.name], (int, str, bool, date, float)
-            ), f"Field '{field.name}' generated unexpected object: {row[field.name]} {type(row[field.name])}"
+            try:
+                row[field.name] = field.generate_value(context)
+                assert isinstance(
+                    row[field.name], (int, str, bool, date, float)
+                ), f"Field '{field.name}' generated unexpected object: {row[field.name]} {type(row[field.name])}"
+            except DataGenError as e:
+                if not e.filename:
+                    e.filename = self.filename
+                if not e.line_num:
+                    e.line_num = self.line_num
+
+                raise e  # TODO -- add lineno
+            except Exception as e:
+                raise DataGenError(
+                    f"Problem rendering value", self.filename, self.line_num
+                ) from e
 
         storage.write_row(self.sftype, row)
         for i, childobj in enumerate(self.friends):
@@ -230,11 +250,13 @@ class JinjaTemplateEvaluator:
         return evaluator.render(**funcs, **options)
 
 
-@dataclass
 class SimpleValue(FieldDefinition):
-    definition: str
-    line_num: int
-    filename: str
+    def __init__(self, definition: dict, filename: str, line_num: int):
+        self.definition = definition
+        self.filename = filename
+        self.line_num = line_num
+        assert isinstance(filename, str)
+        assert isinstance(line_num, int), line_num
 
     def render(self, context):
         try:
@@ -255,16 +277,17 @@ class SimpleValue(FieldDefinition):
 
 
 class StructuredValue(FieldDefinition):
-    def __init__(self, d):
-        assert len(d.keys()) == 2
-        assert "__line__" in d.keys(), d.keys()
-        [self.function_name, args], *_ = d.items()
+    def __init__(self, function_name, args, filename, line_num):
+        self.function_name = function_name
+        self.args = args
+        self.filename = filename
+        self.line_num = line_num
         if isinstance(args, list):
             self.args = args
             self.kwargs = {}
         elif isinstance(args, dict):
             self.args = []
-            self.kwargs = {i: args[i] for i in args if i != "__line__"}
+            self.kwargs = args
         else:
             self.args = [args]
             self.kwargs = {}
@@ -275,13 +298,22 @@ class StructuredValue(FieldDefinition):
             obj = context.field_vars()[objname]
             value = getattr(obj, method)(*self.args, **self.kwargs)
         else:
-            value = context.field_funcs()[self.function_name](*self.args, **self.kwargs)
+            try:
+                func = context.field_funcs()[self.function_name]
+            except KeyError:
+                raise DataGenNameError(
+                    f"Cannot find func named {self.function_name}", None, None
+                )
+            value = func(*self.args, **self.kwargs)
+
         return value
 
 
 @dataclass
 class ChildRecordValue(FieldDefinition):
     sobj: object
+    filename: str
+    line_num: int
 
     def render(self, context):
         child_row = self.sobj.generate_rows(context.output_stream, context)[0]
@@ -291,6 +323,8 @@ class ChildRecordValue(FieldDefinition):
 
 @dataclass
 class FieldFactory:
+    """Represents a single data field (key, value) to be rendered"""
+
     name: str
     definition: object
 

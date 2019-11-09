@@ -1,6 +1,7 @@
 - object: Account
   fields:
-    Name: Name
+    Name:
+      fake: company
     Description: Description
     BillingStreet: Street
     BillingCity: City
@@ -15,8 +16,14 @@
     Phone: Phone
     Fax: Fax
     Website: Website
-    NumberOfEmployees: NumberOfEmployees
-    AccountNumber: AccountNumber
+    NumberOfEmployees:
+      random_number:
+        min: 0
+        max: 200000
+    AccountNumber:
+      random_number:
+        min: 0
+        max: 10000000
     Site: Site
     Type: Type
   friends:

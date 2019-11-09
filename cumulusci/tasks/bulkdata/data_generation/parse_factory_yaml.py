@@ -61,14 +61,53 @@ class ParseContext:
             self.current_sobject = _old_sobject
 
 
+def remove_line_numbers(dct):
+    return {i: dct[i] for i in dct if i != "__line__"}
+
+
+def parse_structured_value(field, context):
+    """Parse something that might look like:
+
+    {'choose': ['Option1', 'Option2', 'Option3', 'Option4'], '__line__': 9}
+
+    or
+
+    {'random_number': {'min': 10, 'max': 20, '__line__': 10} , '__line__': 9}
+    """
+    top_level = remove_line_numbers(field).items()
+    if not top_level:
+        raise DataGenSyntaxError(
+            f"Strange datastructure ({field})",
+            context.filename,
+            context.line_num(field),
+        )
+    elif len(top_level) > 1:
+        raise DataGenSyntaxError(
+            f"Extra keys for {field}", context.filename, context.line_num(field)
+        )
+    [[function_name, args]] = top_level
+    if isinstance(args, dict):
+        args = remove_line_numbers(args)
+
+    return StructuredValue(
+        function_name, args, context.filename, context.line_num(field)
+    )
+
+
 def parse_field_value(field, context):
     assert field is not None
     if isinstance(field, str) or isinstance(field, Number):
-        return SimpleValue(field, context.line_num(field), context.filename)
+        return SimpleValue(
+            field, context.filename, context.line_num(field) or context.line_num()
+        )
     elif isinstance(field, dict) and field.get("object"):
-        return ChildRecordValue(parse_sobject_definition(field, context))
+        return ChildRecordValue(
+            parse_sobject_definition(field, context),
+            context.filename,
+            context.line_num(field),
+        )
     elif isinstance(field, dict):
-        return StructuredValue(field)
+        return parse_structured_value(field, context)
     else:
         raise DataGenSyntaxError(
             f"Unknown field type. Should be a string or 'object': \n {field} ",
@@ -111,7 +150,7 @@ def parse_count_expression(yaml_sobj, sobj_def, context):
     elif isinstance(numeric_expr, str):
         if "<<" in numeric_expr or "=" in numeric_expr:
             sobj_def["count_expr"] = SimpleValue(
-                numeric_expr, context.line_num(numeric_expr), context.filename
+                numeric_expr, context.filename, context.line_num(numeric_expr)
             )
             sobj_def["count"] = None
         else:

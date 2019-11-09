@@ -27,6 +27,7 @@ class TestLineNumbers(unittest.TestCase):
     def test_name_error(self):
         with self.assertRaises(DataGenNameError) as e:
             _generate(StringIO(yaml1), 1, {}, None, None)
+        print(e.exception)
         assert str(e.exception)[-2:] == ":3"
 
     def test_syntax_error(self):
