@@ -56,7 +56,6 @@ class BaseGenerateDataTask(BaseTask, metaclass=ABCMeta):
         """Generate all of the data"""
         with open(mapping_file_path, "r") as f:
             mappings = yaml.safe_load(f)
-        print("MAPPINGS", mappings)
 
         session, engine, base = self.init_db(db_url, mappings)
         self.generate_data(session, engine, base, num_records, current_batch_num)
