@@ -37,7 +37,6 @@ class SqlOutputStream(OutputStream):
         return cls.from_open_connection(*BaseGenerateDataTask.init_db(db_url, mappings))
 
     def write_single_row(self, tablename, row):
-        #  TODO: use sessions properly
         model = self.metadata.tables[tablename]
         ins = model.insert().values(**row)
         self.session.execute(ins)
