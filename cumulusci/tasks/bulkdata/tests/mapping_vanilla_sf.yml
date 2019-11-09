@@ -10,7 +10,6 @@ Insert Accounts:
     BillingPostalCode: BillingPostalCode
     BillingCountry: BillingCountry
     ParentId: ParentId
-    PrimaryContact: PrimaryContact
     ShippingStreet: ShippingStreet
     ShippingCity: ShippingCity
     ShippingState: ShippingState
@@ -23,9 +22,9 @@ Insert Accounts:
     AccountNumber: AccountNumber
     Site: Site
     Type: Type
-  lookups:
-    ParentId:
-      table: Account
+  # lookups:     # crashes loader
+  #   ParentId:
+  #     table: Account
 
 Insert Contacts:
   sf_object: Contact
