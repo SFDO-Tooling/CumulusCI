@@ -4,6 +4,8 @@ import os
 import yaml
 import click
 
+from cumulusci.core.utils import process_list_of_pairs_dict_arg
+
 from cumulusci.tasks.bulkdata.data_generation.parse_factory_yaml import parse_generator
 from cumulusci.tasks.bulkdata.data_generation.data_generator import (
     output_batches,
@@ -30,15 +32,20 @@ class DataGenerator(BaseGenerateDataTask):
             "description": "A generator YAML file to use",
             "required": True,
         },
+        "vars": {
+            "description": "Pass values to override options in the format VAR1:foo,VAR2:bar"
+        },
     }
 
     def _init_options(self, kwargs):
         super()._init_options(kwargs)
         self.yaml_file = os.path.abspath(self.options["generator_yaml"])
-        print(self.yaml_file)
         if not os.path.exists(self.yaml_file):
             raise TaskOptionsError(f"Cannot find {self.yaml_file}")
-        self.cli_options = {}  # TODO
+        if "vars" in self.options:
+            self.vars = process_list_of_pairs_dict_arg(self.options["vars"])
+        else:
+            self.vars = {}
 
     def generate_data(self, session, engine, base, num_records, current_batch_num):
         output_stream = SqlOutputStream(session, engine, base)
@@ -46,7 +53,7 @@ class DataGenerator(BaseGenerateDataTask):
             _generate(
                 open_yaml_file,
                 self.num_records,
-                self.cli_options,
+                self.vars,
                 output_stream,
                 self.mapping_file,
             )

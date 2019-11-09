@@ -58,7 +58,10 @@ class GenerateAndLoadData(BaseSalesforceApiTask):
         },
         "database_url": {
             "description": "A URL to store the database (defaults to a transient SQLite file)",
-            "required": "",
+            "required": False,
+        },
+        "vars": {
+            "description": "Variables that the generate or load tasks might need."
         },
     }
 
