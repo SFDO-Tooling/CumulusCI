@@ -5,6 +5,7 @@ from cumulusci.tasks.bulkdata.data_generation.generate_from_yaml import _generat
 from cumulusci.tasks.bulkdata.data_generation.data_generator import (
     DataGenSyntaxError,
     DataGenNameError,
+    DataGenError,
 )
 
 yaml1 = """                             #1
@@ -22,6 +23,14 @@ yaml2 = """- object: B                  #1
     X: Y                                #5
 """
 
+yaml3 = """- object: B                  #1
+  count: 5                              #2
+  fields:                               #3
+    A: What a wonderful life            #4
+    X:                                  #5
+        xyzzy: abcde                    #6
+"""
+
 
 class TestLineNumbers(unittest.TestCase):
     def test_name_error(self):
@@ -34,3 +43,9 @@ class TestLineNumbers(unittest.TestCase):
         with self.assertRaises(DataGenSyntaxError) as e:
             _generate(StringIO(yaml2), 1, {}, None, None)
         assert str(e.exception)[-2:] == ":2"
+
+    def test_funcname_error(self):
+        with self.assertRaises(DataGenError) as e:
+            _generate(StringIO(yaml3), 1, {}, None, None)
+        assert "xyzzy" in str(e.exception)
+        assert e.exception.line_num >= 5

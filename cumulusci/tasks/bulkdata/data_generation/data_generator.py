@@ -15,8 +15,8 @@ class DataGenError(Exception):
         self.message = message
         self.filename = filename
         self.line_num = line_num
-        assert isinstance(filename, str)
-        assert isinstance(line_num, int)
+        assert isinstance(filename, (str, type(None)))
+        assert isinstance(line_num, (int, type(None)))
         super().__init__(self.message)
 
     def __str__(self):
@@ -157,6 +157,12 @@ class Context:
             **funcs,
         }
 
+    def executable_blocks(self):
+        return {**self.field_funcs(), "fake": self.fake}
+
+    def fake(self, name):
+        return str(getattr(faker_template_library, name))
+
 
 class SObject:
     def __init__(self, sftype, values=()):
@@ -207,17 +213,8 @@ class SObjectFactory:
                 assert isinstance(
                     row[field.name], (int, str, bool, date, float)
                 ), f"Field '{field.name}' generated unexpected object: {row[field.name]} {type(row[field.name])}"
-            except DataGenError as e:
-                if not e.filename:
-                    e.filename = self.filename
-                if not e.line_num:
-                    e.line_num = self.line_num
-
-                raise e  # TODO -- add lineno
             except Exception as e:
-                raise DataGenError(
-                    f"Problem rendering value", self.filename, self.line_num
-                ) from e
+                raise fix_exception(f"Problem rendering value", self, e) from e
 
         storage.write_row(self.sftype, row)
         for i, childobj in enumerate(self.friends):
@@ -299,7 +296,7 @@ class StructuredValue(FieldDefinition):
             value = getattr(obj, method)(*self.args, **self.kwargs)
         else:
             try:
-                func = context.field_funcs()[self.function_name]
+                func = context.executable_blocks()[self.function_name]
             except KeyError:
                 raise DataGenNameError(
                     f"Cannot find func named {self.function_name}", None, None
@@ -321,15 +318,35 @@ class ChildRecordValue(FieldDefinition):
         return child_row["id"]
 
 
+def fix_exception(message, parentobj, e):
+    filename, line_num = parentobj.filename, parentobj.line_num
+    if isinstance(e, DataGenError):
+        if not e.filename:
+            e.filename = filename
+        if not e.line_num:
+            e.line_num = line_num
+        return e
+    else:
+        return DataGenError(message, filename, line_num)
+
+
 @dataclass
 class FieldFactory:
     """Represents a single data field (key, value) to be rendered"""
 
     name: str
     definition: object
+    filename: str
+    line_num: int
 
     def generate_value(self, context):
-        return self.definition.render(context)
+        try:
+            print("SELF", self)
+            return self.definition.render(context)
+        except Exception as e:
+            raise fix_exception(
+                f"Problem rendering field {self.name}:\n {str(e)}", self, e
+            ) from e
 
 
 def output_batches(output_stream, factories, number, options):

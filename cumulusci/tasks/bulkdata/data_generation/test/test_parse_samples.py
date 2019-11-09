@@ -6,6 +6,7 @@ from cumulusci.tasks.bulkdata.data_generation.generate_from_yaml import _generat
 
 dnd_test = pathlib.Path(__file__).parent / "CharacterGenTest.yml"
 data_imports = pathlib.Path(__file__).parent / "BDI_Generator.yml"
+standard_objects = pathlib.Path(__file__).parent / "gen_sf_standard_objects.yml"
 
 
 def find_row(row_type, compare, calls):
@@ -17,10 +18,11 @@ def find_row(row_type, compare, calls):
             return call
 
 
+write_row_path = "cumulusci.tasks.bulkdata.data_generation.output_streams.DebugOutputStream.write_row"
+
+
 class TestParseAndOutput(unittest.TestCase):
-    @mock.patch(
-        "cumulusci.tasks.bulkdata.data_generation.output_streams.DebugOutputStream.write_row"
-    )
+    @mock.patch(write_row_path)
     def test_d_and_d(self, write_row):
         with open(dnd_test) as open_yaml_file:
             _generate(
@@ -34,9 +36,7 @@ class TestParseAndOutput(unittest.TestCase):
         assert not find_row("Fighter", {"id": 2, "Name": mock.ANY}, calls)
         assert find_row("Paladin", {"id": 1, "Name": mock.ANY}, calls)
 
-    @mock.patch(
-        "cumulusci.tasks.bulkdata.data_generation.output_streams.DebugOutputStream.write_row"
-    )
+    @mock.patch(write_row_path)
     def test_data_imports(self, write_row):
         with open(data_imports) as open_yaml_file:
             _generate(open_yaml_file, 1, {"total_data_imports": 4}, None, None)
@@ -60,3 +60,14 @@ class TestParseAndOutput(unittest.TestCase):
             },
             calls,
         )
+
+    @mock.patch(write_row_path)
+    def test_gen_standard_objects(self, write_row):
+        with open(standard_objects) as open_yaml_file:
+            _generate(open_yaml_file, 1, {}, None, None)
+
+        calls = write_row.mock_calls
+
+        assert find_row("Account", {}, calls)
+        assert find_row("Contact", {}, calls)
+        assert find_row("Opportunity", {}, calls)

@@ -119,7 +119,12 @@ def parse_field_value(field, context):
 def parse_field(name, definition, context):
     assert name, name
     assert definition is not None, f"Field should have a definition: {name}"
-    return FieldFactory(name, parse_field_value(definition, context))
+    return FieldFactory(
+        name,
+        parse_field_value(definition, context),
+        context.filename,
+        context.line_num(definition),
+    )
 
 
 def parse_fields(fields, context):
