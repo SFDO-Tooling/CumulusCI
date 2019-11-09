@@ -14,7 +14,6 @@ def find_row(row_type, compare, calls):
         if call_row_type == row_type and all(
             compare[key] == call_dict[key] for key in compare.keys()
         ):
-            assert call_dict["__line__"]
             return call
 
 
