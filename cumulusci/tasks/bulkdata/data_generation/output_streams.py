@@ -1,13 +1,26 @@
 from cumulusci.tasks.bulkdata.base_generate_data_task import BaseGenerateDataTask
+from abc import abstractmethod, ABC
 
 
-class OutputStream:
+class OutputStream(ABC):
+    count = 0
+
+    def __init__(self):
+        self.count += 1
+
     def write_row(self, tablename, row):
-        assert 0, "Not implemented"
+        self.write_single_row(tablename, row)
+        if self.count > 1000:
+            self.flush()
+            self.count = 0
+
+    @abstractmethod
+    def write_single_row(self, tablename, row):
+        pass
 
 
 class DebugOutputStream(OutputStream):
-    def write_row(self, tablename, row):
+    def write_single_row(self, tablename, row):
         print(tablename, row)
 
 
@@ -23,10 +36,11 @@ class SqlOutputStream(OutputStream):
     def from_url(cls, db_url, mappings):
         return cls.from_open_connection(*BaseGenerateDataTask.init_db(db_url, mappings))
 
-    def write_row(self, tablename, row):
+    def write_single_row(self, tablename, row):
         #  TODO: use sessions properly
-        print(self.metadata.tables)
         model = self.metadata.tables[tablename]
         ins = model.insert().values(**row)
         self.session.execute(ins)
-        self.session.commit()
+
+    def flush(self):
+        self.session.flush()
