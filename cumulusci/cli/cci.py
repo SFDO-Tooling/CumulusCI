@@ -808,13 +808,16 @@ def org_connect(config, org_name, sandbox, login_url, default, global_org):
     org_config = OrgConfig(oauth_dict, org_name)
     org_config.load_userinfo()
     org_config._load_orginfo()
-    if not org_config.organization_sobject["TrialExpirationDate"]:
-        org_config.config["expires"] = "Persistent"
-    else:
+    if (
+        org_config.organization_sobject
+        and "TrialExpirationDate" in org_config.organization_sobject.keys()
+    ):
         datetime_format = "%Y-%m-%dT%H:%M:%S.%f+0000"
         org_config.config["expires"] = datetime.datetime.strptime(
             org_config.organization_sobject["TrialExpirationDate"], datetime_format
         )
+    else:
+        org_config.config["expires"] = "Persistent"
 
     config.keychain.set_org(org_config, global_org)
 
