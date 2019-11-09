@@ -85,7 +85,9 @@ def parse_field(name, definition, context):
 
 def parse_fields(fields, context):
     return [
-        parse_field(name, definition, context) for name, definition in fields.items()
+        parse_field(name, definition, context)
+        for name, definition in fields.items()
+        if name != "__line__"
     ]
 
 
