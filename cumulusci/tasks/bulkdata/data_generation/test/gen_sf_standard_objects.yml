@@ -28,8 +28,8 @@
         Email: email
     - object: Opportunity
       fields:
-          Name: Opportunity relating to <<{{Account.Name}}>>
-          Amount: <<{{number * 100}}>>
+          Name: Opportunity relating to <<Account.Name>>
+          Amount: <<number * 100>>
           CloseDate:
             date_between: 
               start_date: -30d
@@ -46,7 +46,7 @@
               In Progress: 20%
               New: 20%
           AccountId:
-            refrence: Account
+            reference: Account
 - object: Contact
   fields:
     Salutation: salutation
@@ -67,5 +67,8 @@
     AccountId:
       object: Account
       fields:
-          PrimaryContact: <<{Contact}>>
-          Name: <<{Contact.LastName} incorporated>>
+          Name: <<Contact.LastName>> incorporated
+          ParentId:
+            object: Account
+            fields:
+              Name: <<Contact.LastName>> incorporated's parent account
