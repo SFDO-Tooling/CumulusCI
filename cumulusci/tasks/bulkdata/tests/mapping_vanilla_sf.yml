@@ -6,10 +6,11 @@ Insert Accounts:
     Description: Description
     BillingStreet: BillingStreet
     BillingCity: BillingCity
-    BillingState: State
+    BillingState: BillingState
     BillingPostalCode: BillingPostalCode
     BillingCountry: BillingCountry
-    ShippingStreet: Street
+    ParentId: ParentId
+    ShippingStreet: ShippingStreet
     ShippingCity: ShippingCity
     ShippingState: ShippingState
     ShippingPostalCode: ShippingPostalCode
@@ -21,6 +22,10 @@ Insert Accounts:
     AccountNumber: AccountNumber
     Site: Site
     Type: Type
+  # lookups:     # crashes loader
+  #   ParentId:
+  #     table: Account
+
 Insert Contacts:
   sf_object: Contact
   table: Contact
@@ -49,7 +54,14 @@ Insert Opportunities:
   action: insert
   table: Opportunity
   fields:
-    Id: sf_id
+    Name: Name
+    StageName: StageName
+    CloseDate: CloseDate
+    ContactId: ContactId
+    AccountId: AccountId
+    Amount: Amount
   lookups:
     AccountId:
       table: Account
+    ContactId:
+      table: Contact

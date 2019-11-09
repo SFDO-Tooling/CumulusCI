@@ -18,7 +18,7 @@ class AccountFactory(factory.alchemy.SQLAlchemyModelFactory):
 
     id = factory.Sequence(lambda i: i)
     Name = factory.Sequence(lambda i: "Account %d" % i)
-    Street = "Baker St."
+    BillingStreet = "Baker St."
 
 
 class ContactFactory(factory.alchemy.SQLAlchemyModelFactory):
