@@ -1,8 +1,8 @@
 import os
+from tempfile import TemporaryDirectory
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.tasks.bulkdata import LoadData
 from cumulusci.tasks.bulkdata.utils import generate_batches
-from cumulusci.utils import temporary_dir
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.utils import import_global
 from cumulusci.core.exceptions import TaskOptionsError
@@ -81,7 +81,7 @@ class GenerateAndLoadData(BaseSalesforceApiTask):
             )
 
     def _run_task(self):
-        with temporary_dir() as tempdir:
+        with TemporaryDirectory() as tempdir:
             for current_batch_size, index in generate_batches(
                 self.num_records, self.batch_size
             ):
