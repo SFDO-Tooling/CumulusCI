@@ -33,7 +33,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
 
     def test_version_from_tag_name(self):
         project_config = create_project_config()
-        project_config.project__package__git__prefix_release = "release/"
+        project_config.project__git__prefix_release = "release/"
 
         task = create_task(GenerateDataDictionary, project_config=project_config)
 
@@ -352,7 +352,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
         task._process_object_element = Mock()
         task._process_field_element = Mock()
         task._process_sfdx_release(zip_file, LooseVersion("1.1"))
-        print(zip_file.mock_calls)
+
         zip_file.read.assert_has_calls(
             [
                 call("force-app/main/default/objects/Child__c.object-meta.xml"),
@@ -405,7 +405,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
     @patch("cumulusci.tasks.datadictionary.download_extract_github_from_repo")
     def test_walk_releases__mdapi(self, extract_github):
         project_config = create_project_config()
-        project_config.project__package__git__prefix_release = "rel/"
+        project_config.project__git__prefix_release = "rel/"
         project_config.project__name = "Project"
         task = create_task(
             GenerateDataDictionary,
@@ -431,7 +431,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
     @patch("cumulusci.tasks.datadictionary.download_extract_github_from_repo")
     def test_walk_releases__sfdx(self, extract_github):
         project_config = create_project_config()
-        project_config.project__package__git__prefix_release = "rel/"
+        project_config.project__git__prefix_release = "rel/"
         project_config.project__name = "Project"
 
         task = create_task(
@@ -450,7 +450,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
         extract_github.return_value.namelist.return_value = [
             "force-app/main/default/objects/"
         ]
-        print(extract_github.mock_calls)
+
         task._walk_releases()
 
         task._process_sfdx_release.assert_called_once_with(
@@ -502,8 +502,6 @@ class test_GenerateDataDictionary(unittest.TestCase):
 
         with patch("builtins.open", m):
             task()
-
-        print(extract_github.mock_calls)
 
         m.assert_has_calls(
             [
