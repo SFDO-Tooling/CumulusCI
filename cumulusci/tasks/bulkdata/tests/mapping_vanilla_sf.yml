@@ -6,10 +6,10 @@ Insert Accounts:
     Description: Description
     BillingStreet: BillingStreet
     BillingCity: BillingCity
-    BillingState: State
+    BillingState: BillingState
     BillingPostalCode: BillingPostalCode
     BillingCountry: BillingCountry
-    ShippingStreet: Street
+    ShippingStreet: ShippingStreet
     ShippingCity: ShippingCity
     ShippingState: ShippingState
     ShippingPostalCode: ShippingPostalCode
