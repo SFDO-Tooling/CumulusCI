@@ -1,4 +1,3 @@
-import os
 import unittest
 import xml.etree.ElementTree as ET
 
@@ -33,9 +32,10 @@ class test_GenerateDataDictionary(unittest.TestCase):
         assert this_dict["test"] == "test"
 
     def test_version_from_tag_name(self):
-        task = create_task(GenerateDataDictionary)
-        project_config = create_project_config("TestRepo", "TestOwner")
+        project_config = create_project_config()
         project_config.project__package__git__prefix_release = "release/"
+
+        task = create_task(GenerateDataDictionary, project_config=project_config)
 
         assert task._version_from_tag_name("release/1.1") == LooseVersion("1.1")
 
@@ -340,44 +340,26 @@ class test_GenerateDataDictionary(unittest.TestCase):
             {"object_path": "object.csv", "field_path": "fields.csv"},
         )
 
-        task.name_list = [
+        zip_file = Mock()
+        zip_file.read.return_value = "<test></test>"
+        zip_file.namelist.return_value = [
             "force-app/main/default/objects/Child__c.object-meta.xml",
             "force-app/main/default/objects/Child__c/fields/Lookup__c.field-meta.xml",
             "force-app/main/default/objects/Parent__c.object-meta.xml",
             ".gitignore",
             "test__c.object-meta.xml",
         ]
-        task.zip_prefix = "ZIPPREFIX"
-
-        zip_file = Mock()
-        zip_file.read.return_value = "<test></test>"
         task._process_object_element = Mock()
         task._process_field_element = Mock()
         task._process_sfdx_release(zip_file, LooseVersion("1.1"))
-
+        print(zip_file.mock_calls)
         zip_file.read.assert_has_calls(
             [
+                call("force-app/main/default/objects/Child__c.object-meta.xml"),
                 call(
-                    os.path.join(
-                        os.path.sep,
-                        task.zip_prefix,
-                        "force-app/main/default/objects/Child__c.object-meta.xml",
-                    ).strip(os.path.sep)
+                    "force-app/main/default/objects/Child__c/fields/Lookup__c.field-meta.xml"
                 ),
-                call(
-                    os.path.join(
-                        os.path.sep,
-                        task.zip_prefix,
-                        "force-app/main/default/objects/Child__c/fields/Lookup__c.field-meta.xml",
-                    ).strip(os.path.sep)
-                ),
-                call(
-                    os.path.join(
-                        os.path.sep,
-                        task.zip_prefix,
-                        "force-app/main/default/objects/Parent__c.object-meta.xml",
-                    ).strip(os.path.sep)
-                ),
+                call("force-app/main/default/objects/Parent__c.object-meta.xml"),
             ]
         )
 
@@ -398,32 +380,19 @@ class test_GenerateDataDictionary(unittest.TestCase):
             {"object_path": "object.csv", "field_path": "fields.csv"},
         )
 
-        task.name_list = [
+        zip_file = Mock()
+        zip_file.namelist.return_value = [
             "src/objects/Child__c.object",
             "src/objects/Parent__c.object",
             ".gitignore",
             "test__c.object",
         ]
-        task.zip_prefix = "ZIPPREFIX"
-
-        zip_file = Mock()
         zip_file.read.return_value = "<test></test>"
         task._process_object_element = Mock()
         task._process_mdapi_release(zip_file, LooseVersion("1.1"))
 
         zip_file.read.assert_has_calls(
-            [
-                call(
-                    os.path.join(
-                        os.path.sep, task.zip_prefix, "src/objects/Child__c.object"
-                    ).strip(os.path.sep)
-                ),
-                call(
-                    os.path.join(
-                        os.path.sep, task.zip_prefix, "src/objects/Parent__c.object"
-                    ).strip(os.path.sep)
-                ),
-            ]
+            [call("src/objects/Child__c.object"), call("src/objects/Parent__c.object")]
         )
 
         task._process_object_element.assert_has_calls(
@@ -433,13 +402,16 @@ class test_GenerateDataDictionary(unittest.TestCase):
             ]
         )
 
-    @patch("zipfile.ZipFile")
-    def test_walk_releases__mdapi(self, zip_file):
+    @patch("cumulusci.tasks.datadictionary.download_extract_github_from_repo")
+    def test_walk_releases__mdapi(self, extract_github):
+        project_config = create_project_config()
+        project_config.project__package__git__prefix_release = "rel/"
+        project_config.project__name = "Project"
         task = create_task(
             GenerateDataDictionary,
             {"object_path": "object.csv", "field_path": "fields.csv"},
+            project_config=project_config,
         )
-        task.project_config.project__git__prefix_release = "rel/"
 
         task.get_repo = Mock()
         release = Mock()
@@ -448,21 +420,25 @@ class test_GenerateDataDictionary(unittest.TestCase):
         release.tag_name = "rel/1.1"
         task.get_repo.return_value.releases.return_value = [release]
         task._process_mdapi_release = Mock()
-        zip_file.return_value.namelist.return_value = ["PREFIX/src/objects"]
+        extract_github.return_value.namelist.return_value = ["src/objects/"]
 
         task._walk_releases()
 
         task._process_mdapi_release.assert_called_once_with(
-            zip_file.return_value, "1.1"
+            extract_github.return_value, "1.1"
         )
 
-    @patch("zipfile.ZipFile")
-    def test_walk_releases__sfdx(self, zip_file):
+    @patch("cumulusci.tasks.datadictionary.download_extract_github_from_repo")
+    def test_walk_releases__sfdx(self, extract_github):
+        project_config = create_project_config()
+        project_config.project__package__git__prefix_release = "rel/"
+        project_config.project__name = "Project"
+
         task = create_task(
             GenerateDataDictionary,
             {"object_path": "object.csv", "field_path": "fields.csv"},
+            project_config=project_config,
         )
-        task.project_config.project__git__prefix_release = "rel/"
 
         task.get_repo = Mock()
         release = Mock()
@@ -471,13 +447,15 @@ class test_GenerateDataDictionary(unittest.TestCase):
         release.tag_name = "rel/1.1"
         task.get_repo.return_value.releases.return_value = [release]
         task._process_sfdx_release = Mock()
-        zip_file.return_value.namelist.return_value = [
-            "PREFIX/force-app/main/default/objects"
+        extract_github.return_value.namelist.return_value = [
+            "force-app/main/default/objects/"
         ]
-
+        print(extract_github.mock_calls)
         task._walk_releases()
 
-        task._process_sfdx_release.assert_called_once_with(zip_file.return_value, "1.1")
+        task._process_sfdx_release.assert_called_once_with(
+            extract_github.return_value, "1.1"
+        )
 
     def test_init_schema(self):
         task = create_task(GenerateDataDictionary, {})
@@ -485,8 +463,8 @@ class test_GenerateDataDictionary(unittest.TestCase):
 
         assert task.schema is not None
 
-    @patch("zipfile.ZipFile")
-    def test_run_task(self, zip_file):
+    @patch("cumulusci.tasks.datadictionary.download_extract_github_from_repo")
+    def test_run_task(self, extract_github):
         # This is an integration test. We mock out `get_repo()` and the filesystem.
         xml_source = """<?xml version="1.0" encoding="UTF-8"?>
 <CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
@@ -499,11 +477,15 @@ class test_GenerateDataDictionary(unittest.TestCase):
         <type>Text</type>
     </fields>
 </CustomObject>"""
-        task = create_task(GenerateDataDictionary, {})
-        task.project_config.keychain.get_service = Mock()
-        task.project_config.init_sentry = Mock()
-        task.project_config.sentry = Mock()
-        task.project_config.project__git__prefix_release = "rel/"
+        project_config = create_project_config()
+        project_config.keychain.get_service = Mock()
+        project_config.init_sentry = Mock()
+        project_config.sentry = Mock()
+        project_config.project__git__prefix_release = "rel/"
+        project_config.project__name = "Project"
+
+        task = create_task(GenerateDataDictionary, {}, project_config=project_config)
+
         task.get_repo = Mock()
         release = Mock()
         release.draft = False
@@ -511,20 +493,22 @@ class test_GenerateDataDictionary(unittest.TestCase):
         release.tag_name = "rel/1.1"
         task.get_repo.return_value.releases.return_value = [release]
 
-        zip_file.return_value.namelist.return_value = [
-            "PREFIX/src/objects",
-            "PREFIX/src/objects/Test__c.object",
+        extract_github.return_value.namelist.return_value = [
+            "src/objects/",
+            "src/objects/Test__c.object",
         ]
-        zip_file.return_value.read.return_value = xml_source
+        extract_github.return_value.read.return_value = xml_source
         m = mock_open()
 
         with patch("builtins.open", m):
             task()
 
+        print(extract_github.mock_calls)
+
         m.assert_has_calls(
             [
-                call("sObject Data Dictionary.csv", "w"),
-                call("Field Data Dictionary.csv", "w"),
+                call("Project sObject Data Dictionary.csv", "w"),
+                call("Project Field Data Dictionary.csv", "w"),
             ],
             any_order=True,
         )
@@ -543,17 +527,19 @@ class test_GenerateDataDictionary(unittest.TestCase):
         )
 
     def test_init_options__defaults(self):
-        task = create_task(GenerateDataDictionary, {})
+        project_config = create_project_config()
+        project_config.project__name = "Project"
 
-        task._init_options({})
+        task = create_task(GenerateDataDictionary, {}, project_config)
 
-        assert task.options["object_path"] == "sObject Data Dictionary.csv"
-        assert task.options["field_path"] == "Field Data Dictionary.csv"
+        assert task.options["object_path"] == "Project sObject Data Dictionary.csv"
+        assert task.options["field_path"] == "Project Field Data Dictionary.csv"
 
     def test_init_options(self):
-        task = create_task(GenerateDataDictionary, {})
-
-        task._init_options({"object_path": "objects.csv", "field_path": "fields.csv"})
+        task = create_task(
+            GenerateDataDictionary,
+            {"object_path": "objects.csv", "field_path": "fields.csv"},
+        )
 
         assert task.options["object_path"] == "objects.csv"
         assert task.options["field_path"] == "fields.csv"

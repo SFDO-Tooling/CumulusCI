@@ -1,12 +1,12 @@
 import csv
-import io
-import os
 import xml.etree.ElementTree as ET
-import zipfile
 
 from collections import defaultdict
+from cumulusci.core.exceptions import CumulusCIException
 from cumulusci.tasks.github.base import BaseGithubTask
+from cumulusci.utils import download_extract_github_from_repo
 from distutils.version import LooseVersion
+from pathlib import PurePosixPath
 
 
 class GenerateDataDictionary(BaseGithubTask):
@@ -21,24 +21,30 @@ class GenerateDataDictionary(BaseGithubTask):
 
     task_options = {
         "object_path": {
-            "description": "Path to a CSV file to contain an sObject-level data dictionary.",
-            "default": "sObject Data Dictionary.csv",
+            "description": "Path to a CSV file to contain an sObject-level data dictionary."
         },
         "field_path": {
-            "description": "Path to a CSV file to contain an field-level data dictionary.",
-            "default": "Field Data Dictionary.csv",
+            "description": "Path to a CSV file to contain an field-level data dictionary."
         },
     }
 
     def _init_options(self, kwargs):
         super()._init_options(kwargs)
 
-        self.options["object_path"] = (
-            self.options.get("object_path") or "sObject Data Dictionary.csv"
-        )
-        self.options["field_path"] = (
-            self.options.get("field_path") or "Field Data Dictionary.csv"
-        )
+        if self.options.get("object_path") is None:
+            self.options[
+                "object_path"
+            ] = f"{self.project_config.project__name} sObject Data Dictionary.csv"
+
+        if self.options.get("field_path") is None:
+            self.options[
+                "field_path"
+            ] = f"{self.project_config.project__name} Field Data Dictionary.csv"
+
+        if not self.project_config.project__git__prefix_release:
+            raise CumulusCIException(
+                "Set the `project__git__prefix_release` property in `cumulusci.yml` to use this task"
+            )
 
     def _run_task(self):
         self.logger.info("Starting data dictionary generation")
@@ -56,89 +62,60 @@ class GenerateDataDictionary(BaseGithubTask):
         repo = self.get_repo()
 
         for release in repo.releases():
-            if release.draft or release.prerelease:
+            # Skip this release if any are true:
+            # It is a draft release
+            # It is prerelease (managed beta)
+            # This release's tag does not have the expected prefix,
+            # meaning we don't know its version number
+            if (
+                release.draft
+                or release.prerelease
+                or not release.tag_name.startswith(
+                    self.project_config.project__git__prefix_release
+                )
+            ):
                 continue
 
-            zip_content = io.BytesIO()
-            repo.archive("zipball", zip_content, ref=release.tag_name)
-            zip_file = zipfile.ZipFile(zip_content)
+            zip_file = download_extract_github_from_repo(repo, ref=release.tag_name)
             version = self._version_from_tag_name(release.tag_name)
-
             self.logger.info(f"Analyzing version {version}")
 
-            # The zip file's manifest entries start with a single path component
-            # representing the repo's name, owner, and commit SHA.
-            # Strip that off so we can inspect paths directly.
-            zip_name_list = zip_file.namelist()
-            self.zip_prefix = os.path.normpath(zip_name_list[-1]).split(os.sep)[0]
-            self.name_list = [
-                os.path.join(os.path.sep, *os.path.normpath(p).split(os.sep)[1:]).strip(
-                    os.path.sep
-                )
-                for p in zip_name_list
-            ]
-            if "src/objects" in self.name_list:
+            if "src/objects/" in zip_file.namelist():
                 # MDAPI format
                 self._process_mdapi_release(zip_file, version)
 
-            if "force-app/main/default/objects" in self.name_list:
+            if "force-app/main/default/objects/" in zip_file.namelist():
                 # FIXME: check sfdx-project.json for directories to process.
                 # SFDX format
                 self._process_sfdx_release(zip_file, version)
 
     def _process_mdapi_release(self, zip_file, version):
-        for f in self.name_list:
-            if f.startswith("src/objects") and f.endswith(".object"):
-                sobject_name = os.path.splitext(os.path.split(f)[1])[0]
+        for f in zip_file.namelist():
+            path = PurePosixPath(f)
+            if path.parent == PurePosixPath("src/objects") and path.suffix == ".object":
+                sobject_name = path.stem
 
                 self._process_object_element(
-                    sobject_name,
-                    ET.fromstring(
-                        zip_file.read(
-                            os.path.join(os.path.sep, self.zip_prefix, f).strip(
-                                os.path.sep
-                            )
-                        )
-                    ),
-                    version,
+                    sobject_name, ET.fromstring(zip_file.read(f)), version
                 )
 
     def _process_sfdx_release(self, zip_file, version):
-        for obj_file in self.name_list:
-            if obj_file.startswith("force-app/main/default/objects"):
-                if obj_file.endswith(".object-meta.xml"):
-                    sobject_name = os.path.basename(os.path.split(obj_file)[1])[
-                        : -len(".object-meta.xml")
-                    ]
+        for f in zip_file.namelist():
+            path = PurePosixPath(f)
+            if f.startswith("force-app/main/default/objects"):
+                if path.suffixes == [".object-meta", ".xml"]:
+                    sobject_name = path.name[: -len(".object-meta.xml")]
 
                     self._process_object_element(
-                        sobject_name,
-                        ET.fromstring(
-                            zip_file.read(
-                                os.path.join(
-                                    os.path.sep, self.zip_prefix, obj_file
-                                ).strip(os.path.sep)
-                            )
-                        ),
-                        version,
+                        sobject_name, ET.fromstring(zip_file.read(f)), version
                     )
-                elif obj_file.endswith(".field-meta.xml"):
+                elif path.suffixes == [".field-meta", ".xml"]:
                     # To get the sObject name, we need to remove the `/fields/SomeField.field-meta.xml`
                     # and take the last path component
-                    sobject_name = os.path.basename(
-                        os.path.split(obj_file)[0][: -len("fields")].strip(os.path.sep)
-                    )
+                    sobject_name = path.parent.parent.stem
 
                     self._process_field_element(
-                        sobject_name,
-                        ET.fromstring(
-                            zip_file.read(
-                                os.path.join(
-                                    os.path.sep, self.zip_prefix, obj_file
-                                ).strip(os.path.sep)
-                            )
-                        ),
-                        version,
+                        sobject_name, ET.fromstring(zip_file.read(f)), version
                     )
 
     def _process_object_element(self, sobject_name, element, version):
