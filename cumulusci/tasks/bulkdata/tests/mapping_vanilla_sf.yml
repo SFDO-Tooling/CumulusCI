@@ -4,16 +4,16 @@ Insert Accounts:
   fields:
     Name: Name
     Description: Description
-    BillingStreet: Street
-    BillingCity: City
+    BillingStreet: BillingStreet
+    BillingCity: BillingCity
     BillingState: State
-    BillingPostalCode: PostalCode
-    BillingCountry: Country
+    BillingPostalCode: BillingPostalCode
+    BillingCountry: BillingCountry
     ShippingStreet: Street
-    ShippingCity: City
-    ShippingState: State
-    ShippingPostalCode: PostalCode
-    ShippingCountry: Country
+    ShippingCity: ShippingCity
+    ShippingState: ShippingState
+    ShippingPostalCode: ShippingPostalCode
+    ShippingCountry: ShippingCountry
     Phone: Phone
     Fax: Fax
     Website: Website
