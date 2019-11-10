@@ -2,20 +2,33 @@
   fields:
     Name:
       fake: company
-    Description: Description
-    BillingStreet: Street
-    BillingCity: City
-    BillingState: State
-    BillingPostalCode: PostalCode
-    BillingCountry: Country
-    ShippingStreet: Street
-    ShippingCity: City
-    ShippingState: State
-    ShippingPostalCode: PostalCode
-    ShippingCountry: Country
-    Phone: Phone
-    Fax: Fax
-    Website: Website
+    Description:
+      fake: catch_phrase
+    BillingStreet:
+      fake: street_address
+    BillingCity:
+      fake: city
+    BillingState:
+      fake: state
+    BillingPostalCode:
+      fake: postalcode
+    BillingCountry: Canada
+    ShippingStreet:
+      fake: street_address
+    ShippingCity:
+      fake: city
+    ShippingState:
+      fake: state
+    ShippingPostalCode:
+      fake: postalcode
+    ShippingCountry:
+      fake: country
+    Phone:
+      fake: phone_number
+    Fax:
+      fake: phone_number
+    Website:
+      fake: uri
     NumberOfEmployees:
       random_number:
         min: 0
@@ -24,58 +37,62 @@
       random_number:
         min: 0
         max: 10000000
-    Site: Site
-    Type: Type
   friends:
     - object: Contact
       fields:
-        Salutation: salutation
-        FirstName: firstname
-        LastName: lastname
-        Email: email
+        Salutation:
+          fake: prefix
+        FirstName:
+          fake: first_name
+        LastName:
+          fake: last_name
+        Email:
+          fake: email
+        Account:
+          reference: Account
     - object: Opportunity
       fields:
-          Name: Opportunity relating to <<Account.Name>>
-          Amount: <<number * 100>>
-          CloseDate:
-            date_between: 
-              start_date: -30d
-              end_date: +180d
-          Amount:
-            random_number: 
-              min: 10
-              max: 200
-          ContactId:
-            reference: Contact
-          StageName:
-            random_choice:
-              Closed Won: 60%
-              In Progress: 20%
-              New: 20%
-          AccountId:
-            reference: Account
+        Name: Opportunity relating to <<Account.Name>>
+        CloseDate:
+          date_between:
+            start_date: -30d
+            end_date: +180d
+        Amount:
+          random_number:
+            min: 10
+            max: 200
+        ContactId:
+          reference: Contact
+        StageName:
+          random_choice:
+            Closed Won: 60%
+            In Progress: 20%
+            New: 20%
+        AccountId:
+          reference: Account
 - object: Contact
   fields:
-    Salutation: salutation
-    FirstName: firstname
-    LastName: lastname
-    Email: email
-    Phone: phone
-    MobilePhone: mobile
-    OtherPhone: OtherPhone
-    HomePhone: HomePhone
-    Title: title
-    Birthdate: birthdate
-    MailingStreet: mailingstreet
-    MailingCity: mailingcity
-    MailingState: mailingstate
-    MailingPostalCode: mailingpostalcode
-    MailingCountry: mailingcountry
+    Salutation:
+      fake: prefix
+    FirstName:
+      fake: first_name
+    LastName:
+      fake: last_name
+    Email:
+      fake: email
+    Phone:
+      fake: phone_number
+    MobilePhone:
+      fake: phone_number
+    Title:
+      fake: job
+    Birthdate:
+      fake.date_between:
+        start_date: -50y
+        end_date: -20y
     AccountId:
       object: Account
       fields:
-          Name: <<Contact.LastName>> incorporated
-          ParentId:
-            object: Account
-            fields:
-              Name: <<Contact.LastName>> incorporated's parent account
+        Name: <<Contact.LastName>> incorporated
+        Description:
+          fake: catch_phrase
