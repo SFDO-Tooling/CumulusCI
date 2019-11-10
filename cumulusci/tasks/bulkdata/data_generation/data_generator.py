@@ -341,7 +341,6 @@ class FieldFactory:
 
     def generate_value(self, context):
         try:
-            print("SELF", self)
             return self.definition.render(context)
         except Exception as e:
             raise fix_exception(
