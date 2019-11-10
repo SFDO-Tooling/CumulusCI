@@ -19,7 +19,7 @@ PACKAGE_XML = """<?xml version="1.0" encoding="UTF-8"?>
         <members>*</members>
         <name>Settings</name>
     </types>
-    <version>46.0</version>
+    <version>{api_version}</version>
 </Package>"""
 
 
@@ -27,7 +27,8 @@ class DeployOrgSettings(Deploy):
     task_doc = """Deploys org settings from an sfdx scratch org definition file."""
 
     task_options = {
-        "definition_file": {"description": "sfdx scratch org definition file"}
+        "definition_file": {"description": "sfdx scratch org definition file"},
+        "api_version": {"description": "API version used to deploy the settings"},
     }
 
     def _run_task(self):
@@ -65,8 +66,12 @@ class DeployOrgSettings(Deploy):
             )
             with open(settings_file, "w") as f:
                 f.write(SETTINGS_XML.format(settingsName=settings_name, values=values))
+        api_version = (
+            self.options.get("api_version")
+            or self.project_config.project__package__api_version
+        )
         with open("package.xml", "w") as f:
-            f.write(PACKAGE_XML)
+            f.write(PACKAGE_XML.format(api_version=api_version))
 
 
 def capitalize(s):
