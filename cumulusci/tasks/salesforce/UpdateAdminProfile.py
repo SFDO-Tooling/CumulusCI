@@ -8,8 +8,6 @@ from cumulusci.core.utils import process_bool_arg
 from cumulusci.tasks.salesforce import Deploy
 from cumulusci.utils import CUMULUSCI_PATH
 from cumulusci.utils import elementtree_parse_file
-from cumulusci.utils import findReplace
-from cumulusci.utils import findReplaceRegex
 
 
 class UpdateAdminProfile(Deploy):
@@ -56,6 +54,7 @@ class UpdateAdminProfile(Deploy):
             else "",
         }
 
+    def _run_task(self):
         path = self.options.get("package_xml") or os.path.join(
             CUMULUSCI_PATH, "cumulusci", "files", "admin_profile.xml"
         )
@@ -66,7 +65,6 @@ class UpdateAdminProfile(Deploy):
             **self.namespace_prefixes
         )
 
-    def _run_task(self):
         self.tempdir = tempfile.mkdtemp()
         self._retrieve_unpackaged()
         self._process_metadata()
