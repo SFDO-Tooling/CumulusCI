@@ -12,7 +12,7 @@ from .data_generator import (
     ChildRecordValue,
     StructuredValue,
 )
-from .data_gen_exceptions import DataGenSyntaxError
+from .data_gen_exceptions import DataGenSyntaxError, DataGenNameError
 from cumulusci.core.template_utils import format_str
 from .template_funcs import template_funcs
 
@@ -181,9 +181,11 @@ def parse_count_expression(yaml_sobj, sobj_def, context):
 
 def include_macro(context, name):
     macro = context.macros.get(name)
-    assert macro, f"Cannot find macro named {name}"
+    if not macro:
+        raise DataGenNameError(f"Cannot find macro named {name}")
     fields = macro.get("fields")
-    assert fields, f"Macro {name} does not have fields "
+    if not fields:
+        raise DataGenNameError(f"Macro {name} does not have 'fields'")
     return parse_fields(fields, context)
 
 
@@ -259,7 +261,10 @@ def yaml_safe_load_with_line_numbers(filestream):
 
 def parse_generator(stream):
     data, line_numbers = yaml_safe_load_with_line_numbers(stream)
-    assert isinstance(data, list)
+    if not isinstance(data, list):
+        raise DataGenSyntaxError(
+            "Generator file should be a list (use - on top-level lines)"
+        )
     options = [obj for obj in data if obj.get("option")]
     macros = {obj["macro"]: obj for obj in data if obj.get("macro")}
     objects = [obj for obj in data if obj.get("object")]

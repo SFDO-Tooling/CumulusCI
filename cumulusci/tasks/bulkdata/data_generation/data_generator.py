@@ -114,7 +114,9 @@ class Context:
             obj = self.field_vars()[x]
             return obj.id
         else:
-            assert 0, f"Can't get reference to {x}"
+            raise DataGenSyntaxError(
+                f"Can't get reference to object of type {type(x)}: {x}", None, None
+            )
 
     def field_vars(self):
         return {
@@ -174,7 +176,13 @@ class SObjectFactory:
                     self.filename,
                     self.line_num,
                 )
-        assert isinstance(self.count, int), self.count
+        if not isinstance(self.count, int):
+            raise DataGenValueError(
+                f"Count should be an integer not a {type(self.count)} : {self.count}",
+                self.filename,
+                self.line_num,
+            )
+
         return [self._generate_row(storage, context) for i in range(self.count)]
 
     def _generate_row(self, storage, context):

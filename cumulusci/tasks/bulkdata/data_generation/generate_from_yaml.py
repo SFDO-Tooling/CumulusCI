@@ -106,7 +106,7 @@ def eval_arg(arg):
 @click.option("--option", nargs=2, type=(str, eval_arg), multiple=True)
 def generate(yaml_file, count, option, dburl, mapping_file):
     if dburl:
-        assert mapping_file, "Mapping file must be supplied."
+        raise click.ClickException("Mapping file must be supplied.")
         with click.open_file(mapping_file, "r") as f:
             mappings = yaml.safe_load(f)
         output_stream = SqlOutputStream(dburl, mappings)
