@@ -6,7 +6,7 @@ import pytz
 
 from .. import utils
 
-from cumulusci.core.exceptions import ConfigMergeError
+from cumulusci.core.exceptions import ConfigMergeError, TaskOptionsError
 from cumulusci.utils import temporary_dir, touch
 
 
@@ -105,3 +105,23 @@ class TestDictMerger(unittest.TestCase):
     def test_cant_merge_nonsense(self):
         with self.assertRaises(ConfigMergeError):
             utils.dictmerge(pytz, 2)
+
+
+class TestProcessListOfPairsDictArg(unittest.TestCase):
+    def test_process_list_of_pairs_dict_arg(self):
+        assert utils.process_list_of_pairs_dict_arg({"a": 5}) == {"a": 5}
+        assert utils.process_list_of_pairs_dict_arg("abc:def") == {"abc": "def"}
+        assert utils.process_list_of_pairs_dict_arg("abc:def,hij:klm") == {
+            "abc": "def",
+            "hij": "klm",
+        }
+
+    def test_process_list_of_pairs_dict_arg_errors(self):
+        with self.assertRaises(TaskOptionsError):
+            utils.process_list_of_pairs_dict_arg([])
+
+        with self.assertRaises(TaskOptionsError):
+            utils.process_list_of_pairs_dict_arg("abcdef")
+
+        with self.assertRaises(TaskOptionsError):
+            utils.process_list_of_pairs_dict_arg("abcdef::ghi")

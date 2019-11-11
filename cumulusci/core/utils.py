@@ -85,6 +85,7 @@ def process_list_arg(arg):
 
 
 def process_list_of_pairs_dict_arg(arg):
+    """Process an arg in the format "aa:bb,cc:dd" """
     if isinstance(arg, dict):
         return arg
     elif isinstance(arg, str):
@@ -100,7 +101,7 @@ def process_list_of_pairs_dict_arg(arg):
                 raise TaskOptionsError(f"Var is not a name/value pair: {key_value}")
         return rc
     else:
-        raise TaskOptionsError(f"Arg is unhandled type ({type(arg)}): {arg}")
+        raise TaskOptionsError(f"Arg is not a dict or string ({type(arg)}): {arg}")
 
 
 def decode_to_unicode(content):
