@@ -55,6 +55,13 @@ class UpdateAdminProfile(Deploy):
         }
 
     def _run_task(self):
+        self.tempdir = tempfile.mkdtemp()
+        self._retrieve_unpackaged()
+        self._process_metadata()
+        self._deploy_metadata()
+        shutil.rmtree(self.tempdir)
+
+    def _retrieve_unpackaged(self):
         path = self.options.get("package_xml") or os.path.join(
             CUMULUSCI_PATH, "cumulusci", "files", "admin_profile.xml"
         )
@@ -64,14 +71,6 @@ class UpdateAdminProfile(Deploy):
         self._package_xml_content = self._package_xml_content.format(
             **self.namespace_prefixes
         )
-
-        self.tempdir = tempfile.mkdtemp()
-        self._retrieve_unpackaged()
-        self._process_metadata()
-        self._deploy_metadata()
-        shutil.rmtree(self.tempdir)
-
-    def _retrieve_unpackaged(self):
         self.logger.info(
             "Retrieving metadata using {}".format(
                 self.options.get("package_xml", "default package.xml")
