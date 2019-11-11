@@ -44,6 +44,8 @@ class CounterGenerator:
 
 
 class Globals:
+    """Globally named objects and other aspects of global scope"""
+
     def __init__(self):
         self.named_objects = {}
         self.id_manager = IdManager()
@@ -66,6 +68,8 @@ class Globals:
 
 
 class Context:
+    """Current context object. Context objects form a linked list-based stack"""
+
     current_id = None
     obj = None
     today = date.today()
@@ -146,6 +150,8 @@ class Context:
 
 
 class SObject:
+    """Represents a single row"""
+
     def __init__(self, sftype, values=()):
         self._sftype = sftype
         self._values = values
@@ -156,6 +162,8 @@ class SObject:
 
 @dataclass
 class SObjectFactory:
+    """A factory that generates rows"""
+
     sftype: str
     filename: str
     line_num: int
@@ -166,6 +174,7 @@ class SObjectFactory:
     nickname: str = None
 
     def generate_rows(self, storage, parent_context):
+        """Generate several rows"""
         context = Context(parent_context, self.sftype)
         if self.count_expr and self.count is None:
             try:
@@ -186,6 +195,7 @@ class SObjectFactory:
         return [self._generate_row(storage, context) for i in range(self.count)]
 
     def _generate_row(self, storage, context):
+        """Generate an individual row"""
         context.incr()
         row = {"id": context.get_id()}
         sobj = SObject(self.sftype, row)
@@ -210,12 +220,10 @@ class SObjectFactory:
 
 
 class FieldDefinition:
+    """Base class for things that render fields"""
+
     def render(self, context):
         pass
-
-
-class FieldValue:
-    pass
 
 
 class JinjaTemplateEvaluator:
@@ -235,6 +243,8 @@ class JinjaTemplateEvaluator:
 
 
 class SimpleValue(FieldDefinition):
+    """A value with no sub-structure (although it could hold a template)"""
+
     def __init__(self, definition: dict, filename: str, line_num: int):
         self.definition = definition
         self.filename = filename
@@ -261,6 +271,8 @@ class SimpleValue(FieldDefinition):
 
 
 class StructuredValue(FieldDefinition):
+    """A value with substructure which will call a handler function."""
+
     def __init__(self, function_name, args, filename, line_num):
         self.function_name = function_name
         self.args = args
@@ -278,9 +290,22 @@ class StructuredValue(FieldDefinition):
 
     def render(self, context):
         if "." in self.function_name:
-            objname, method = self.function_name.split(".")
-            obj = context.field_vars()[objname]
-            value = getattr(obj, method)(*self.args, **self.kwargs)
+            objname, method, *rest = self.function_name.split(".")
+            if rest:
+                raise DataGenSyntaxError(
+                    f"Function names should have only one '.' in them: {self.function_name}"
+                )
+            obj = context.field_vars().get(objname)
+            if not obj:
+                raise DataGenNameError(f"Cannot find definition for: {objname}")
+
+            func = getattr(obj, method)
+            if not func:
+                raise DataGenNameError(
+                    f"Cannot find definition for: {method} on {objname}"
+                )
+
+            value = func(*self.args, **self.kwargs)
         else:
             try:
                 func = context.executable_blocks()[self.function_name]
@@ -295,6 +320,8 @@ class StructuredValue(FieldDefinition):
 
 @dataclass
 class ChildRecordValue(FieldDefinition):
+    """Represents an SObject embedded in another SObject"""
+
     sobj: object
     filename: str
     line_num: int
@@ -306,6 +333,7 @@ class ChildRecordValue(FieldDefinition):
 
 
 def fix_exception(message, parentobj, e):
+    """Add filename and linenumber to an exception if needed"""
     filename, line_num = parentobj.filename, parentobj.line_num
     if isinstance(e, DataGenError):
         if not e.filename:
@@ -336,6 +364,7 @@ class FieldFactory:
 
 
 def output_batches(output_stream, factories, number, options):
+    """Generate 'number' batches to 'output_stream' """
     context = Context(None, None, output_stream, options)
     for i in range(0, number):
         for factory in factories:
