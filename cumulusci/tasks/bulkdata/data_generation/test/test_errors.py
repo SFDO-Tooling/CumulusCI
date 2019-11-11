@@ -2,7 +2,7 @@ from io import StringIO
 import unittest
 
 from cumulusci.tasks.bulkdata.data_generation.generate_from_yaml import _generate
-from cumulusci.tasks.bulkdata.data_generation.data_generator import (
+from cumulusci.tasks.bulkdata.data_generation.data_gen_exceptions import (
     DataGenSyntaxError,
     DataGenNameError,
     DataGenError,

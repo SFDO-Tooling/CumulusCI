@@ -8,31 +8,12 @@ import jinja2
 from cumulusci.core.template_utils import FakerTemplateLibrary, faker_template_library
 
 from .template_funcs import template_funcs
-
-
-class DataGenError(Exception):
-    def __init__(self, message, filename, line_num):
-        self.message = message
-        self.filename = filename
-        self.line_num = line_num
-        assert isinstance(filename, (str, type(None)))
-        assert isinstance(line_num, (int, type(None)))
-        super().__init__(self.message)
-
-    def __str__(self):
-        return f"{self.message}\n near {self.filename}:{self.line_num}"
-
-
-class DataGenSyntaxError(DataGenError):
-    pass
-
-
-class DataGenNameError(DataGenError):
-    pass
-
-
-class DataGenValueError(DataGenError):
-    pass
+from .data_gen_exceptions import (
+    DataGenError,
+    DataGenNameError,
+    DataGenSyntaxError,
+    DataGenValueError,
+)
 
 
 class IdManager:
@@ -114,7 +95,7 @@ class Context:
         self.obj = obj
         self.globals.register_object(obj, name)
 
-    def evaluate_jinja(self, definition):
+    def evaluate(self, definition):
         # todo cache templates at compile time and reuse evaluator
         if isinstance(definition, str) and "<<" in definition:
             environment = JinjaTemplateEvaluator()
@@ -134,8 +115,6 @@ class Context:
             return obj.id
         else:
             assert 0, f"Can't get reference to {x}"
-
-    evaluate = evaluate_jinja
 
     def field_vars(self):
         return {

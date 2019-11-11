@@ -3,7 +3,9 @@ import unittest
 
 from cumulusci.tasks.bulkdata.data_generation.parse_factory_yaml import parse_generator
 from cumulusci.tasks.bulkdata.data_generation.generate_from_yaml import _generate
-from cumulusci.tasks.bulkdata.data_generation.data_generator import DataGenSyntaxError
+from cumulusci.tasks.bulkdata.data_generation.data_gen_exceptions import (
+    DataGenSyntaxError,
+)
 
 yaml = """                              #1
 - object: A                             #2

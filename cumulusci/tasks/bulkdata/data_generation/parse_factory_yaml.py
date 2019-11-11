@@ -11,8 +11,8 @@ from .data_generator import (
     SimpleValue,
     ChildRecordValue,
     StructuredValue,
-    DataGenSyntaxError,
 )
+from .data_gen_exceptions import DataGenSyntaxError
 from cumulusci.core.template_utils import format_str
 from .template_funcs import template_funcs
 
@@ -65,7 +65,7 @@ def remove_line_numbers(dct):
     return {i: dct[i] for i in dct if i != "__line__"}
 
 
-def parse_structured_value(field, context):
+def parse_structured_value(name, field, context):
     """Parse something that might look like:
 
     {'choose': ['Option1', 'Option2', 'Option3', 'Option4'], '__line__': 9}
@@ -83,7 +83,9 @@ def parse_structured_value(field, context):
         )
     elif len(top_level) > 1:
         raise DataGenSyntaxError(
-            f"Extra keys for {field}", context.filename, context.line_num(field)
+            f"Extra keys for field {name} : {top_level}",
+            context.filename,
+            context.line_num(field),
         )
     [[function_name, args]] = top_level
     if isinstance(args, dict):
@@ -94,7 +96,7 @@ def parse_structured_value(field, context):
     )
 
 
-def parse_field_value(field, context):
+def parse_field_value(name, field, context):
     assert field is not None
     if isinstance(field, str) or isinstance(field, Number):
         return SimpleValue(
@@ -107,10 +109,15 @@ def parse_field_value(field, context):
             context.line_num(field),
         )
     elif isinstance(field, dict):
-        return parse_structured_value(field, context)
+        return parse_structured_value(name, field, context)
+
+    elif isinstance(field, list) and len(field) == 1 and isinstance(field[0], dict):
+        # unwrap a list of a single item in this context because it is probably
+        # a mistake
+        return parse_field_value(name, field[0], context)
     else:
         raise DataGenSyntaxError(
-            f"Unknown field type. Should be a string or 'object': \n {field} ",
+            f"Unknown field type for {name}. Should be a string or 'object': \n {field} ",
             context.filename,
             context.line_num(field) or context.line_num(),
         )
@@ -121,13 +128,19 @@ def parse_field(name, definition, context):
     assert definition is not None, f"Field should have a definition: {name}"
     return FieldFactory(
         name,
-        parse_field_value(definition, context),
+        parse_field_value(name, definition, context),
         context.filename,
         context.line_num(definition),
     )
 
 
 def parse_fields(fields, context):
+    if not isinstance(fields, dict):
+        raise DataGenSyntaxError(
+            "Fields should be a dictionary (should not start with -) ",
+            context.filename,
+            context.line_num(),
+        )
     return [
         parse_field(name, definition, context)
         for name, definition in fields.items()
