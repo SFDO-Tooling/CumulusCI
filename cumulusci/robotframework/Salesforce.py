@@ -16,7 +16,7 @@ from cumulusci.robotframework.utils import selenium_retry
 from SeleniumLibrary.errors import ElementNotFound, NoOpenBrowser
 from urllib3.exceptions import ProtocolError
 
-from cumulusci.robotframework.template_utils import format_str
+from cumulusci.core.template_utils import format_str
 
 OID_REGEX = r"^(%2F)?([a-zA-Z0-9]{15,18})$"
 STATUS_KEY = ("status",)
@@ -564,7 +564,7 @@ class Salesforce(object):
 
         for i in range(int(number_to_create)):
             formatted_fields = {
-                name: format_str(value, i) for name, value in fields.items()
+                name: format_str(value, {"number": i}) for name, value in fields.items()
             }
             newobj = self._salesforce_generate_object(obj_name, **formatted_fields)
             objs.append(newobj)
