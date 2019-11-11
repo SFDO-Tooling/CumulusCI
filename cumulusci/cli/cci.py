@@ -9,7 +9,6 @@ import shutil
 import sys
 import time
 import webbrowser
-import datetime
 
 from contextlib import contextmanager
 
@@ -40,6 +39,7 @@ from cumulusci.cli.config import get_installed_version
 from cumulusci.cli.ui import CliTable, CROSSMARK
 from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
 from cumulusci.utils import doc_task
+from cumulusci.utils import parse_api_datetime
 from cumulusci.utils import get_cci_upgrade_command
 from cumulusci.oauth.salesforce import CaptureSalesforceOAuth
 
@@ -812,10 +812,12 @@ def org_connect(config, org_name, sandbox, login_url, default, global_org):
         org_config.organization_sobject
         and "TrialExpirationDate" in org_config.organization_sobject.keys()
     ):
-        datetime_format = "%Y-%m-%dT%H:%M:%S.%f+0000"
-        org_config.config["expires"] = datetime.datetime.strptime(
-            org_config.organization_sobject["TrialExpirationDate"], datetime_format
-        )
+        if org_config.organization_sobject["TrialExpirationDate"] is None:
+            org_config.config["expires"] = None
+        else:
+            org_config.config["expires"] = parse_api_datetime(
+                org_config.organization_sobject["TrialExpirationDate"]
+            )
     else:
         org_config.config["expires"] = "Persistent"
 
