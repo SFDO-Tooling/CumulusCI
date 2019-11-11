@@ -17,6 +17,11 @@ from cumulusci.core.utils import import_global
 from cumulusci.utils import get_cci_upgrade_command
 from cumulusci.utils import random_alphanumeric_underscore
 
+# Environment Variables
+NO_PROMPT_ENV = "CUMULUSCI_NO_PROMPT"
+KEYCHAIN_CLASS_ENV = "CUMULUSCI_KEYCHAIN_CLASS"
+CUMULUSCI_KEY_ENV = "CUMULUSCI_KEY"
+
 
 class CliRuntime(BaseCumulusCI):
     def __init__(self, *args, **kwargs):
@@ -35,15 +40,13 @@ class CliRuntime(BaseCumulusCI):
             if not self.is_global_keychain
             else self.global_config.cumulusci__keychain
         )
-        keychain_class = os.environ.get(
-            "CUMULUSCI_KEYCHAIN_CLASS", default_keychain_class
-        )
+        keychain_class = os.environ.get(KEYCHAIN_CLASS_ENV, default_keychain_class)
         return import_global(keychain_class)
 
     def get_keychain_key(self):
-        key_from_env = os.environ.get("CUMULUSCI_KEY")
+        key_from_env = os.environ.get(CUMULUSCI_KEY_ENV)
         try:
-            key_from_keyring = keyring.get_password("cumulusci", "CUMULUSCI_KEY")
+            key_from_keyring = keyring.get_password("cumulusci", CUMULUSCI_KEY_ENV)
             has_functioning_keychain = True
         except Exception:
             key_from_keyring = None
@@ -56,11 +59,11 @@ class CliRuntime(BaseCumulusCI):
             else:
                 raise KeychainKeyNotFound(
                     "Unable to store CumulusCI encryption key. "
-                    "You can configure it manually by setting the CUMULUSCI_KEY "
+                    f"You can configure it manually by setting the {CUMULUSCI_KEY_ENV} "
                     "environment variable to a random 16-character string."
                 )
         if has_functioning_keychain and not key_from_keyring:
-            keyring.set_password("cumulusci", "CUMULUSCI_KEY", key)
+            keyring.set_password("cumulusci", CUMULUSCI_KEY_ENV, key)
         return key
 
     def alert(self, message="We need your attention!"):
@@ -85,21 +88,23 @@ class CliRuntime(BaseCumulusCI):
         elif sys.platform.startswith("linux"):
             return ["notify-send", "--icon=utilities-terminal", "CumulusCI", message]
 
-    def get_org(self, org_name=None, fail_if_missing=True):
+    def get_org(self, org_name=None, fail_if_missing=True, no_prompt=False):
         if org_name:
             org_config = self.keychain.get_org(org_name)
         else:
             org_name, org_config = self.keychain.get_default_org()
         if org_config:
-            org_config = self.check_org_expired(org_name, org_config)
+            org_config = self.check_org_expired(
+                org_name, org_config, no_prompt=no_prompt
+            )
         elif fail_if_missing:
             raise click.UsageError("No org specified and no default org set.")
         return org_name, org_config
 
-    def check_org_expired(self, org_name, org_config):
+    def check_org_expired(self, org_name, org_config, no_prompt):
         if org_config.scratch and org_config.date_created and org_config.expired:
             click.echo(click.style("The scratch org is expired", fg="yellow"))
-            if click.confirm("Attempt to recreate the scratch org?", default=True):
+            if self._should_recreate_expired_org(no_prompt):
                 self.keychain.create_scratch_org(
                     org_name,
                     org_config.config_name,
@@ -118,6 +123,12 @@ class CliRuntime(BaseCumulusCI):
                 )
 
         return org_config
+
+    def _should_recreate_expired_org(self, no_prompt):
+        if no_prompt or os.environ.get(NO_PROMPT_ENV, False):
+            return True
+        else:
+            return click.confirm("Attempt to recreate the scratch org?", default=True)
 
     def check_org_overwrite(self, org_name):
         try:

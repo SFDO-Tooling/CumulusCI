@@ -516,7 +516,9 @@ class TestCCI(unittest.TestCase):
         config = mock.Mock()
         config.get_org.return_value = ("test", org_config)
 
-        run_click_command(cci.org_browser, config=config, org_name="test")
+        run_click_command(
+            cci.org_browser, config=config, org_name="test", no_prompt=False
+        )
 
         org_config.refresh_oauth_token.assert_called_once()
         browser_open.assert_called_once()
@@ -691,7 +693,11 @@ class TestCCI(unittest.TestCase):
 
         with mock.patch("cumulusci.cli.cci.CliTable") as cli_tbl:
             run_click_command(
-                cci.org_info, config=config, org_name="test", print_json=False
+                cci.org_info,
+                config=config,
+                org_name="test",
+                print_json=False,
+                no_prompt=False,
             )
             cli_tbl.assert_called_with(
                 [
@@ -720,7 +726,11 @@ class TestCCI(unittest.TestCase):
         out = []
         with mock.patch("click.echo", out.append):
             run_click_command(
-                cci.org_info, config=config, org_name="test", print_json=True
+                cci.org_info,
+                config=config,
+                org_name="test",
+                print_json=True,
+                no_prompt=False,
             )
 
         org_config.refresh_oauth_token.assert_called_once()

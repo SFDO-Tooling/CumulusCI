@@ -762,9 +762,14 @@ def service_info(config, service_name, plain):
     help="Opens a browser window and logs into the org using the stored OAuth credentials",
 )
 @click.argument("org_name", required=False)
+@click.option(
+    "--no-prompt",
+    is_flag=True,
+    help="Disables all prompts.  Set for non-interactive mode use such as calling from scripts or CI systems",
+)
 @pass_config
-def org_browser(config, org_name):
-    org_name, org_config = config.get_org(org_name)
+def org_browser(config, org_name, no_prompt):
+    org_name, org_config = config.get_org(org_name, no_prompt=no_prompt)
     org_config.refresh_oauth_token(config.keychain)
 
     webbrowser.open(org_config.start_url)
@@ -874,10 +879,15 @@ def calculate_org_days(info):
 @org.command(name="info", help="Display information for a connected org")
 @click.argument("org_name", required=False)
 @click.option("print_json", "--json", is_flag=True, help="Print as JSON")
+@click.option(
+    "--no-prompt",
+    is_flag=True,
+    help="Disables all prompts.  Set for non-interactive mode use such as calling from scripts or CI systems",
+)
 @pass_config
-def org_info(config, org_name, print_json):
+def org_info(config, org_name, print_json, no_prompt):
     try:
-        org_name, org_config = config.get_org(org_name)
+        org_name, org_config = config.get_org(org_name, no_prompt=no_prompt)
         org_config.refresh_oauth_token(config.keychain)
     except OrgNotFound as e:
         raise click.ClickException(e)
@@ -1200,7 +1210,7 @@ def task_info(config, task_name):
 def task_run(config, task_name, org, o, debug, debug_before, debug_after, no_prompt):
 
     # Get necessary configs
-    org, org_config = config.get_org(org, fail_if_missing=False)
+    org, org_config = config.get_org(org, fail_if_missing=False, no_prompt=no_prompt)
     try:
         task_config = config.project_config.get_task(task_name)
     except CumulusCIUsageError as e:
@@ -1331,7 +1341,7 @@ def flow_info(config, flow_name):
 def flow_run(config, flow_name, org, delete_org, debug, o, skip, no_prompt):
 
     # Get necessary configs
-    org, org_config = config.get_org(org)
+    org, org_config = config.get_org(org, no_prompt=no_prompt)
     if delete_org and not org_config.scratch:
         raise click.UsageError("--delete-org can only be used with a scratch org")
 

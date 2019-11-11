@@ -1,21 +1,24 @@
-from datetime import date
-from datetime import timedelta
-from unittest import mock
 import os
 import sys
 import unittest
+from datetime import date, timedelta
+from unittest import mock
 
 import click
+import pytest
 
 import cumulusci
-from cumulusci.cli.config import CliRuntime
+from cumulusci.cli.config import CUMULUSCI_KEY_ENV, NO_PROMPT_ENV, CliRuntime
 from cumulusci.core.config import OrgConfig
-from cumulusci.core.exceptions import ConfigError
-from cumulusci.core.exceptions import NotInProject
-from cumulusci.core.exceptions import OrgNotFound
-from cumulusci.core.exceptions import ProjectConfigNotFound
+from cumulusci.core.exceptions import (
+    ConfigError,
+    NotInProject,
+    OrgNotFound,
+    ProjectConfigNotFound,
+)
 
 
+@pytest.mark.usefixtures("monkeypatch")
 class TestCliRuntime(unittest.TestCase):
     key = "1234567890abcdef"
 
@@ -24,7 +27,7 @@ class TestCliRuntime(unittest.TestCase):
         os.chdir(os.path.dirname(cumulusci.__file__))
 
     def setUp(self):
-        os.environ["CUMULUSCI_KEY"] = self.key
+        os.environ[CUMULUSCI_KEY_ENV] = self.key
 
     def test_init(self):
         config = CliRuntime()
@@ -63,7 +66,7 @@ class TestCliRuntime(unittest.TestCase):
         config = CliRuntime()
         self.assertEqual(self.key, config.keychain.key)
         keyring.set_password.assert_called_once_with(
-            "cumulusci", "CUMULUSCI_KEY", self.key
+            "cumulusci", CUMULUSCI_KEY_ENV, self.key
         )
 
     @mock.patch("cumulusci.cli.config.keyring")
@@ -75,7 +78,7 @@ class TestCliRuntime(unittest.TestCase):
 
     @mock.patch("cumulusci.cli.config.keyring")
     def test_get_keychain_key__generates_key(self, keyring):
-        del os.environ["CUMULUSCI_KEY"]
+        del os.environ[CUMULUSCI_KEY_ENV]
         keyring.get_password.return_value = None
 
         config = CliRuntime()
@@ -84,7 +87,7 @@ class TestCliRuntime(unittest.TestCase):
 
     @mock.patch("cumulusci.cli.config.keyring")
     def test_get_keychain_key__warns_if_generated_key_cannot_be_stored(self, keyring):
-        del os.environ["CUMULUSCI_KEY"]
+        del os.environ[CUMULUSCI_KEY_ENV]
         keyring.get_password.side_effect = Exception
 
         with self.assertRaises(click.UsageError):
@@ -131,7 +134,25 @@ class TestCliRuntime(unittest.TestCase):
         )
         confirm.return_value = True
 
-        config.check_org_expired("test", org_config)
+        config.check_org_expired("test", org_config, no_prompt=False)
+        config.keychain.create_scratch_org.assert_called_once()
+
+    @mock.patch("click.confirm")
+    @mock.patch.dict(os.environ, {NO_PROMPT_ENV: "true"})
+    def test_check_org_expired_envvar(self, confirm):
+        config = CliRuntime()
+        config.keychain = mock.Mock()
+        org_config = OrgConfig(
+            {
+                "scratch": True,
+                "date_created": date.today() - timedelta(days=2),
+                "expired": True,
+            },
+            "test",
+        )
+        confirm.return_value = False
+
+        config.check_org_expired("test", org_config, no_prompt=False)
         config.keychain.create_scratch_org.assert_called_once()
 
     @mock.patch("click.confirm")
@@ -149,7 +170,7 @@ class TestCliRuntime(unittest.TestCase):
         confirm.return_value = False
 
         with self.assertRaises(click.ClickException):
-            config.check_org_expired("test", org_config)
+            config.check_org_expired("test", org_config, no_prompt=False)
 
     def test_check_org_overwrite_not_found(self):
         config = CliRuntime()
