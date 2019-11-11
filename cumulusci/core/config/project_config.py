@@ -807,6 +807,12 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             self.included_sources[frozenspec] = project_config
         return project_config
 
+    def construct_subproject_config(self, **kwargs):
+        """Construct another project config for an external source"""
+        return self.__class__(
+            self.global_config_obj, included_sources=self.included_sources, **kwargs
+        )
+
     def relpath(self, path):
         """Convert path to be relative to the project repo root."""
         return os.path.relpath(os.path.join(self.repo_root, path))
