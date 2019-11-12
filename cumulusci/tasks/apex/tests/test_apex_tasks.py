@@ -535,6 +535,15 @@ class TestAnonymousApexTask(unittest.TestCase):
         self.assertEqual(err.args[0], problem)
         self.assertEqual(err.args[1], trace)
 
+    @responses.activate
+    def test_run_anonymous_apex__gack(self):
+        task, url = self._get_url_and_task()
+        responses.add(responses.GET, url, status=200, body="null")
+        with self.assertRaises(SalesforceException) as cm:
+            task()
+        err = str(cm.exception)
+        assert "gack" in err
+
 
 @patch(
     "cumulusci.tasks.salesforce.BaseSalesforceTask._update_credentials",

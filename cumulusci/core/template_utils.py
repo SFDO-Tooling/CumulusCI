@@ -1,3 +1,6 @@
+from functools import lru_cache
+from faker import Faker
+
 from jinja2 import Template
 
 
@@ -33,11 +36,9 @@ class FakerTemplateLibrary:
 
     _faker = None
 
-    @property
-    def faker(self):
-        """Defer loading heavy faker library until actually needed"""
-        self._faker = self._faker or __import__("faker").Faker()
-        return self._faker
+    def __init__(self, locale=None):
+        self.locale = locale
+        self.faker = Faker(self.locale)
 
     def __getattr__(self, name):
         return StringGenerator(
@@ -47,9 +48,12 @@ class FakerTemplateLibrary:
 
 faker_template_library = FakerTemplateLibrary()
 
+Template = lru_cache(512)(Template)
 
-def format_str(value, i):
-    if isinstance(value, str):
-        value = Template(value).render(number=i, fake=faker_template_library)
+
+def format_str(value, variables=None, fake=faker_template_library):
+    variables = variables or {}
+    if isinstance(value, str) and "{" in value:
+        value = Template(value).render(fake=fake, **variables)
 
     return value

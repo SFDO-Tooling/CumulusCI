@@ -18,10 +18,8 @@ class LocalFolderSource:
 
     def fetch(self):
         """Construct a project config referencing the specified path."""
-        project_config = self.project_config.__class__(
-            self.project_config.global_config_obj,
-            repo_info={"root": os.path.realpath(self.path)},
-            included_sources=self.project_config.included_sources,
+        project_config = self.project_config.construct_subproject_config(
+            repo_info={"root": os.path.realpath(self.path)}
         )
         return project_config
 
