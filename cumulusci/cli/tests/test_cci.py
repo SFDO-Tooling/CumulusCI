@@ -738,7 +738,7 @@ class TestCCI(unittest.TestCase):
             title="Scratch Orgs",
             dim_rows=[0, 1],
         )
-        persistent_table_call = mock.call(
+        unknown_table_call = mock.call(
             [
                 ["Name", "Default", "Username", "Expires"],
                 ["test2", False, "test2@example.com", "Unknown"],
@@ -747,8 +747,29 @@ class TestCCI(unittest.TestCase):
             title="Connected Orgs",
             wrap_cols=["Username"],
         )
+        # testing org that expires
+        expires_table_call = mock.call(
+            [
+                ["Name", "Default", "Username", "Expires"],
+                ["test3", False, "test3@example.com", "11/19/2019"],
+            ],
+            bool_cols=["Default"],
+            title="Connected Orgs",
+            wrap_cols=["Username"],
+        )
+        persistent_table_call = mock.call(
+            [
+                ["Name", "Default", "Username", "Expires"],
+                ["test4", False, "test3@example.com", "Persistent"],
+            ],
+            bool_cols=["Default"],
+            title="Connected Orgs",
+            wrap_cols=["Username"],
+        )
 
         self.assertIn(scratch_table_call, cli_tbl.call_args_list)
+        self.assertIn(unknown_table_call, cli_tbl.call_args_list)
+        self.assertIn(expires_table_call, cli_tbl.call_args_list)
         self.assertIn(persistent_table_call, cli_tbl.call_args_list)
 
     def test_org_remove(self):
