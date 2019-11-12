@@ -7,7 +7,7 @@ import yaml
 from yaml.composer import Composer
 from yaml.constructor import SafeConstructor
 
-from .data_generator import (
+from .data_generator_runtime import (
     SObjectFactory,
     FieldFactory,
     SimpleValue,

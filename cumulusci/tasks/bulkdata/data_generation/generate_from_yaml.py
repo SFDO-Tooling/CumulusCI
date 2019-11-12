@@ -7,7 +7,9 @@ import click
 from cumulusci.core.utils import process_list_of_pairs_dict_arg
 
 from cumulusci.tasks.bulkdata.data_generation.parse_factory_yaml import parse_generator
-from cumulusci.tasks.bulkdata.data_generation.data_generator import output_batches
+from cumulusci.tasks.bulkdata.data_generation.data_generator_runtime import (
+    output_batches,
+)
 from cumulusci.tasks.bulkdata.data_generation.data_gen_exceptions import DataGenError
 from cumulusci.tasks.bulkdata.data_generation.output_streams import (
     DebugOutputStream,
