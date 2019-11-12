@@ -2,7 +2,7 @@ from io import StringIO
 import unittest
 import mock
 
-from cumulusci.tasks.bulkdata.data_generation.generate_from_yaml import _generate
+from cumulusci.tasks.bulkdata.data_generation.data_generator import generate
 from cumulusci.tasks.bulkdata.data_generation.test.test_parse_samples import find_row
 
 simple_parent = """                     #1
@@ -54,7 +54,7 @@ write_row_path = "cumulusci.tasks.bulkdata.data_generation.output_streams.DebugO
 class TestReferences(unittest.TestCase):
     @mock.patch(write_row_path)
     def test_simple_parent(self, write_row):
-        _generate(StringIO(simple_parent), 1, {}, None, None)
+        generate(StringIO(simple_parent), 1, {}, None, None)
 
         _, a_values = find_row("A", {}, write_row.mock_calls).args
         _, b_values = find_row("B", {}, write_row.mock_calls).args
@@ -67,7 +67,7 @@ class TestReferences(unittest.TestCase):
 
     @mock.patch(write_row_path)
     def test_simple_parent_list_child(self, write_row):
-        _generate(StringIO(simple_parent_list), 1, {}, None, None)
+        generate(StringIO(simple_parent_list), 1, {}, None, None)
 
         _, a_values = find_row("A", {}, write_row.mock_calls).args
         _, b_values = find_row("B", {}, write_row.mock_calls).args
@@ -80,7 +80,7 @@ class TestReferences(unittest.TestCase):
 
     @mock.patch(write_row_path)
     def test_ancestor_reference(self, write_row):
-        _generate(StringIO(ancestor_reference), 1, {}, None, None)
+        generate(StringIO(ancestor_reference), 1, {}, None, None)
 
         _, a_values = find_row("A", {}, write_row.mock_calls).args
         _, c_values = find_row("C", {}, write_row.mock_calls).args
@@ -90,7 +90,7 @@ class TestReferences(unittest.TestCase):
 
     @mock.patch(write_row_path)
     def test_reference_from_friend(self, write_row):
-        _generate(StringIO(reference_from_friend), 1, {}, None, None)
+        generate(StringIO(reference_from_friend), 1, {}, None, None)
 
         _, a_values = find_row("A", {}, write_row.mock_calls).args
         _, b_values = find_row("B", {}, write_row.mock_calls).args

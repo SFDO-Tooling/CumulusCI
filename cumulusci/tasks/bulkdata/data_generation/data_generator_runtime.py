@@ -15,6 +15,9 @@ from .data_gen_exceptions import (
     DataGenValueError,
 )
 
+# Look in generate_from_yaml for entry points from CCI and command line.
+# Look in parse_factory_yaml for the "generate" entry point to the data generation subsystem
+
 
 class IdManager:
     """Keep track ofthe most recent ID per Object type"""
@@ -213,7 +216,10 @@ class SObjectFactory:
             except Exception as e:
                 raise fix_exception(f"Problem rendering value", self, e) from e
 
-        storage.write_row(self.sftype, row)
+        try:
+            storage.write_row(self.sftype, row)
+        except Exception as e:
+            raise DataGenError(str(e), self.filename, self.line_num) from e
         for i, childobj in enumerate(self.friends):
             childobj.generate_rows(storage, context)
         return row

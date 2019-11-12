@@ -2,7 +2,7 @@ import unittest
 import pathlib
 import mock
 
-from cumulusci.tasks.bulkdata.data_generation.generate_from_yaml import _generate
+from cumulusci.tasks.bulkdata.data_generation.data_generator import generate
 
 dnd_test = pathlib.Path(__file__).parent / "CharacterGenTest.yml"
 data_imports = pathlib.Path(__file__).parent / "BDI_Generator.yml"
@@ -25,7 +25,7 @@ class TestParseAndOutput(unittest.TestCase):
     @mock.patch(write_row_path)
     def test_d_and_d(self, write_row):
         with open(dnd_test) as open_yaml_file:
-            _generate(
+            generate(
                 open_yaml_file, 1, {"num_fighters": 1, "num_druids": 2}, None, None
             )
         calls = write_row.mock_calls
@@ -39,7 +39,7 @@ class TestParseAndOutput(unittest.TestCase):
     @mock.patch(write_row_path)
     def test_data_imports(self, write_row):
         with open(data_imports) as open_yaml_file:
-            _generate(open_yaml_file, 1, {"total_data_imports": 4}, None, None)
+            generate(open_yaml_file, 1, {"total_data_imports": 4}, None, None)
         calls = write_row.mock_calls
         assert find_row(
             "General_Accounting_Unit__c", {"id": 1, "Name": "Scholarship"}, calls
@@ -64,7 +64,7 @@ class TestParseAndOutput(unittest.TestCase):
     @mock.patch(write_row_path)
     def test_gen_standard_objects(self, write_row):
         with open(standard_objects) as open_yaml_file:
-            _generate(open_yaml_file, 1, {}, None, None)
+            generate(open_yaml_file, 1, {}, None, None)
 
         calls = write_row.mock_calls
 

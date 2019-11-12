@@ -2,7 +2,7 @@ from io import StringIO
 import unittest
 
 from cumulusci.tasks.bulkdata.data_generation.parse_factory_yaml import parse_generator
-from cumulusci.tasks.bulkdata.data_generation.generate_from_yaml import _generate
+from cumulusci.tasks.bulkdata.data_generation.generate_from_yaml import generate
 from cumulusci.tasks.bulkdata.data_generation.data_gen_exceptions import (
     DataGenSyntaxError,
 )
@@ -32,5 +32,5 @@ class TestLineNumbers(unittest.TestCase):
 
     def test_line_number_reporting(self):
         with self.assertRaises(DataGenSyntaxError) as e:
-            _generate(StringIO(yaml), 1, {}, None, None)
+            generate(StringIO(yaml), 1, {}, None, None)
         assert str(e.exception)[-2:] == ":8"

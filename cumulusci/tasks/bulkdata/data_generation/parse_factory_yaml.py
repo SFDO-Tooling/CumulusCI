@@ -18,7 +18,6 @@ from .data_gen_exceptions import DataGenSyntaxError, DataGenNameError
 from cumulusci.core.template_utils import format_str
 from .template_funcs import template_funcs
 
-
 SHARED_OBJECT = "#SHARED_OBJECT"
 
 

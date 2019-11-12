@@ -1,4 +1,3 @@
-import warnings
 import os
 
 import yaml
@@ -6,10 +5,7 @@ import click
 
 from cumulusci.core.utils import process_list_of_pairs_dict_arg
 
-from cumulusci.tasks.bulkdata.data_generation.parse_factory_yaml import parse_generator
-from cumulusci.tasks.bulkdata.data_generation.data_generator_runtime import (
-    output_batches,
-)
+from cumulusci.tasks.bulkdata.data_generation.data_generator import generate
 from cumulusci.tasks.bulkdata.data_generation.data_gen_exceptions import DataGenError
 from cumulusci.tasks.bulkdata.data_generation.output_streams import (
     DebugOutputStream,
@@ -20,7 +16,7 @@ from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.tasks.bulkdata.base_generate_data_task import BaseGenerateDataTask
 
 
-class DataGenerator(BaseGenerateDataTask):
+class GenerateFromYaml(BaseGenerateDataTask):
     """Generate sample data from a YAML template file."""
 
     task_docs = """
@@ -50,40 +46,13 @@ class DataGenerator(BaseGenerateDataTask):
     def generate_data(self, session, engine, base, num_records, current_batch_num):
         output_stream = SqlOutputStream(session, engine, base)
         with open(self.yaml_file) as open_yaml_file:
-            _generate(
+            generate(
                 open_yaml_file,
                 self.num_records,
                 self.vars,
                 output_stream,
                 self.mapping_file,
             )
-
-
-def merge_options(option_definitions, user_options):
-    options = {}
-    for option in option_definitions:
-        name = option["option"]
-        if user_options.get(name):
-            options[name] = user_options.get(name)
-        elif option["default"]:
-            options[name] = option["default"]
-        else:
-            raise TaskOptionsError(f"No definition supplied for option {name}")
-
-    extra_options = set(user_options.keys()) - set(options.keys())
-    return options, extra_options
-
-
-def _generate(open_yaml_file, count, cli_options, output_stream, mapping_file):
-    output_stream = output_stream or DebugOutputStream()
-    option_definitions, definitions = parse_generator(open_yaml_file)
-
-    options, extra_options = merge_options(option_definitions, cli_options)
-
-    if extra_options:
-        warnings.warn(f"Warning: unknown options: {extra_options}")
-
-    output_batches(output_stream, definitions, count, options)
 
 
 #########################
@@ -106,7 +75,7 @@ def eval_arg(arg):
 @click.option("--dburl", type=str)
 @click.option("--mapping_file", type=click.Path(exists=True))
 @click.option("--option", nargs=2, type=(str, eval_arg), multiple=True)
-def generate(yaml_file, count, option, dburl, mapping_file):
+def generate_from_yaml(yaml_file, count, option, dburl, mapping_file):
     if dburl:
         raise click.ClickException("Mapping file must be supplied.")
         with click.open_file(mapping_file, "r") as f:
@@ -115,7 +84,7 @@ def generate(yaml_file, count, option, dburl, mapping_file):
     else:
         output_stream = DebugOutputStream()
     try:
-        _generate(
+        generate(
             click.open_file(yaml_file), count, dict(option), output_stream, mapping_file
         )
     except DataGenError as e:
@@ -124,4 +93,4 @@ def generate(yaml_file, count, option, dburl, mapping_file):
 
 
 if __name__ == "__main__":
-    generate()
+    generate_from_yaml()

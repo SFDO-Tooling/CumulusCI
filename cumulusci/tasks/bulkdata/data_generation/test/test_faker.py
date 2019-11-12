@@ -2,7 +2,7 @@ from io import StringIO
 import unittest
 import mock
 
-from cumulusci.tasks.bulkdata.data_generation.generate_from_yaml import _generate
+from cumulusci.tasks.bulkdata.data_generation.data_generator import generate
 
 write_row_path = "cumulusci.tasks.bulkdata.data_generation.output_streams.DebugOutputStream.write_row"
 faker_path = ""
@@ -18,7 +18,7 @@ class TestFaker(unittest.TestCase):
                 fake:
                     first_name
         """
-        _generate(StringIO(yaml), 1, {}, None, None)
+        generate(StringIO(yaml), 1, {}, None, None)
         assert write_row_mock.mock_calls[0].args[1]["first_name"]
 
     @mock.patch(write_row_path)
@@ -29,7 +29,7 @@ class TestFaker(unittest.TestCase):
             first_name:
                 fake: first_name
         """
-        _generate(StringIO(yaml), 1, {}, None, None)
+        generate(StringIO(yaml), 1, {}, None, None)
         assert write_row_mock.mock_calls[0].args[1]["first_name"]
 
     @mock.patch(write_row_path)
@@ -41,7 +41,7 @@ class TestFaker(unittest.TestCase):
                 fake.country_code:
                     representation: alpha-2
         """
-        _generate(StringIO(yaml), 1, {}, None, None)
+        generate(StringIO(yaml), 1, {}, None, None)
         assert len(write_row_mock.mock_calls[0].args[1]["country"]) == 2
 
     @mock.patch(write_row_path)
@@ -51,7 +51,7 @@ class TestFaker(unittest.TestCase):
           fields:
             country: <<fake.country_code(representation='alpha-2')>>
         """
-        _generate(StringIO(yaml), 1, {}, None, None)
+        generate(StringIO(yaml), 1, {}, None, None)
         assert len(write_row_mock.mock_calls[0].args[1]["country"]) == 2
 
     @mock.patch(write_row_path)
@@ -61,7 +61,7 @@ class TestFaker(unittest.TestCase):
           fields:
             date: <<fake.date(pattern="%Y-%m-%d", end_datetime=None)>>
         """
-        _generate(StringIO(yaml), 1, {}, None, None)
+        generate(StringIO(yaml), 1, {}, None, None)
         assert len(write_row_mock.mock_calls[0].args[1]["date"].split("-")) == 3
 
     @mock.patch(write_row_path)
@@ -74,5 +74,5 @@ class TestFaker(unittest.TestCase):
                     start_date: -10y
                     end_date: today
         """
-        _generate(StringIO(yaml), 1, {}, None, None)
+        generate(StringIO(yaml), 1, {}, None, None)
         assert write_row_mock.mock_calls[0].args[1]["date"].year
