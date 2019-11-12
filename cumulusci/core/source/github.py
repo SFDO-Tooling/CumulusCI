@@ -101,16 +101,14 @@ class GitHubSource:
             )
             zf.extractall(path)
 
-        project_config = self.project_config.__class__(
-            self.project_config.global_config_obj,
+        project_config = self.project_config.construct_subproject_config(
             repo_info={
                 "root": os.path.realpath(path),
                 "owner": self.repo_owner,
                 "name": self.repo_name,
                 "url": self.url,
                 "commit": self.commit,
-            },
-            included_sources=self.project_config.included_sources,
+            }
         )
         return project_config
 
