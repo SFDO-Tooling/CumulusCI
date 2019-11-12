@@ -1,5 +1,4 @@
 from numbers import Number
-from functools import partial
 from contextlib import contextmanager
 from collections import namedtuple
 
@@ -15,8 +14,6 @@ from .data_generator_runtime import (
     StructuredValue,
 )
 from .data_gen_exceptions import DataGenSyntaxError, DataGenNameError
-from cumulusci.core.template_utils import format_str
-from .template_funcs import template_funcs
 
 SHARED_OBJECT = "#SHARED_OBJECT"
 
@@ -140,15 +137,6 @@ def parse_fields(fields, context):
 
 def parse_friends(friends, context):
     return parse_sobject_list(friends, context)
-
-
-def evaluate(value):
-    funcs = {name: partial(func, None) for name, func in template_funcs.items()}
-
-    if isinstance(value, str) and "{" in value:
-        return format_str(value, **funcs)
-    else:
-        return value
 
 
 def parse_count_expression(yaml_sobj, sobj_def, context):

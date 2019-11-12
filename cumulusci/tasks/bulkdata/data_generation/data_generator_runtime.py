@@ -25,7 +25,7 @@ class IdManager:
     def __init__(self):
         self.last_used_ids = defaultdict(lambda: 0)
 
-    def get_id(self, sobject_name):
+    def generate_id(self, sobject_name):
         self.last_used_ids[sobject_name] += 1
         return self.last_used_ids[sobject_name]
 
@@ -53,20 +53,23 @@ class Globals:
         self.named_objects = {}
         self.id_manager = IdManager()
         self.last_seen_obj_of_type = {}
+        self.template_evaluator_factory = JinjaTemplateEvaluatorFactory()
 
     def register_object(self, obj, nickname=None):
+        """Register an object for lookup by object type and (optionally) Nickname"""
         if nickname:
             self.named_objects[nickname] = obj
         self.last_seen_obj_of_type[obj._sftype] = obj
 
-    def find_object_by_name(self, nickname):
+    def find_object_by_nickname(self, nickname):
         return self.named_objects[nickname]
 
-    def get_object_id_by_name(self, nickname):
-        return self.named_objects[nickname].fields["id"]
+    def get_evaluator(self, definition: str):
+        return self.template_evaluator_factory.get_evaluator(definition)
 
     @property
     def object_names(self):
+        """The globally named objects"""
         return {**self.named_objects, **self.last_seen_obj_of_type}
 
 
@@ -80,6 +83,7 @@ class Context:
     def __init__(self, parent, sobject_name, output_stream=None, options=None):
         self.parent = parent
         self.sobject_name = sobject_name
+
         if parent:
             self.counter_generator = CounterGenerator(parent.counter_generator)
             self.globals = parent.globals
@@ -92,27 +96,19 @@ class Context:
             self.options = {**options}
 
     def incr(self):
+        """Increments the local counter for an object type"""
         self.counter_generator.incr(self.sobject_name)
 
-    def get_id(self):
-        self.current_id = self.globals.id_manager.get_id(self.sobject_name)
+    def generate_id(self):
+        self.current_id = self.globals.id_manager.generate_id(self.sobject_name)
         return self.current_id
 
     def register_object(self, obj, name=None):
         self.obj = obj
         self.globals.register_object(obj, name)
 
-    def evaluate(self, definition):
-        # todo cache templates at compile time and reuse evaluator
-        if isinstance(definition, str) and "<<" in definition:
-            environment = JinjaTemplateEvaluator()
-            evaluator = environment.get_evaluator(definition)
-
-            return environment.evaluate(
-                evaluator, options=self.field_vars(), funcs=self.field_funcs()
-            )
-        else:
-            return definition
+    def evaluator_for_definition(self, definition):
+        return self.globals.get_evaluator(definition)
 
     def reference(self, x):
         if hasattr(x, "_values"):
@@ -200,7 +196,7 @@ class SObjectFactory:
     def _generate_row(self, storage, context):
         """Generate an individual row"""
         context.incr()
-        row = {"id": context.get_id()}
+        row = {"id": context.generate_id()}
         sobj = SObject(self.sftype, row)
 
         context.register_object(sobj, self.nickname)
@@ -232,7 +228,7 @@ class FieldDefinition:
         pass
 
 
-class JinjaTemplateEvaluator:
+class JinjaTemplateEvaluatorFactory:
     def __init__(self):
         self.environment = jinja2.Environment(
             block_start_string="<%",
@@ -241,11 +237,25 @@ class JinjaTemplateEvaluator:
             variable_end_string=">>",
         )
 
-    def get_evaluator(self, template_str):
-        return self.environment.from_string(template_str)
+    def get_evaluator(self, definition: str):
+        assert isinstance(definition, str), definition
+        if "<<" in definition:
+            template = self.environment.from_string(definition)
+            return lambda context: template.render(
+                **context.field_vars(), **context.field_funcs()
+            )
+        else:
+            return lambda context: definition
 
-    def evaluate(self, evaluator, funcs, options):
-        return evaluator.render(**funcs, **options)
+
+def try_to_infer_type(val):
+    try:
+        return float(val)
+    except ValueError:
+        try:
+            return int(val)
+        except ValueError:
+            return val
 
 
 class SimpleValue(FieldDefinition):
@@ -257,17 +267,22 @@ class SimpleValue(FieldDefinition):
         self.line_num = line_num
         assert isinstance(filename, str)
         assert isinstance(line_num, int), line_num
+        self._evaluator = None
+
+    def evaluator(self, context, definition):
+        """Cache a compiled/instantiated evaluator"""
+        if not self._evaluator:
+            self._evaluator = context.evaluator_for_definition(definition)
+        return self._evaluator
 
     def render(self, context):
         try:
-            val = context.evaluate(self.definition)
-            try:
-                return float(val)
-            except ValueError:
-                try:
-                    return int(val)
-                except ValueError:
-                    return val
+            if isinstance(self.definition, str):
+                evaluator = self.evaluator(context, self.definition)
+                val = evaluator(context)
+            else:
+                val = self.definition
+            return try_to_infer_type(val)
         except jinja2.exceptions.TemplateSyntaxError as e:
             raise DataGenSyntaxError(
                 f"Error in parsing {self.definition}: {e}", self.filename, self.line_num
@@ -346,9 +361,9 @@ def fix_exception(message, parentobj, e):
             e.filename = filename
         if not e.line_num:
             e.line_num = line_num
-        return e
+        raise e
     else:
-        return DataGenError(message, filename, line_num)
+        raise DataGenError(message, filename, line_num) from e
 
 
 @dataclass
@@ -366,7 +381,7 @@ class FieldFactory:
         except Exception as e:
             raise fix_exception(
                 f"Problem rendering field {self.name}:\n {str(e)}", self, e
-            ) from e
+            )
 
 
 def output_batches(output_stream, factories, number, options):

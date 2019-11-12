@@ -75,7 +75,8 @@ def eval_arg(arg):
 @click.option("--dburl", type=str)
 @click.option("--mapping_file", type=click.Path(exists=True))
 @click.option("--option", nargs=2, type=(str, eval_arg), multiple=True)
-def generate_from_yaml(yaml_file, count, option, dburl, mapping_file):
+@click.option("--verbose/--no-verbose", default=False)
+def generate_from_yaml(yaml_file, count, option, dburl, mapping_file, verbose):
     if dburl:
         raise click.ClickException("Mapping file must be supplied.")
         with click.open_file(mapping_file, "r") as f:
@@ -88,8 +89,11 @@ def generate_from_yaml(yaml_file, count, option, dburl, mapping_file):
             click.open_file(yaml_file), count, dict(option), output_stream, mapping_file
         )
     except DataGenError as e:
-        click.echo("")
-        raise click.ClickException(e)
+        if verbose:
+            raise e
+        else:
+            click.echo("")
+            raise click.ClickException(e)
 
 
 if __name__ == "__main__":
