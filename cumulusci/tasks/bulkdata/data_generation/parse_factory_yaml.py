@@ -53,8 +53,8 @@ class ParseContext:
 
     @contextmanager
     def change_current_sobject(self, obj):
-        self.current_sobject = obj
         _old_sobject = self.current_sobject
+        self.current_sobject = obj
         try:
             yield
         finally:
