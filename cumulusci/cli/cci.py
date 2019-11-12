@@ -756,6 +756,8 @@ def service_info(config, service_name, plain):
 
 
 # Commands for group: org
+
+
 @org.command(
     name="browser",
     help="Opens a browser window and logs into the org using the stored OAuth credentials",
@@ -815,13 +817,13 @@ def org_connect(config, org_name, sandbox, login_url, default, global_org):
         and "TrialExpirationDate" in org_config.organization_sobject.keys()
     ):
         if org_config.organization_sobject["TrialExpirationDate"] is None:
-            org_config.config["expires"] = None
+            org_config.config["expires"] = "Persistent"
         else:
             org_config.config["expires"] = parse_api_datetime(
                 org_config.organization_sobject["TrialExpirationDate"]
-            )
+            ).strftime("%m/%d/%Y")
     else:
-        org_config.config["expires"] = "Persistent"
+        org_config.config["expires"] = None
 
     config.keychain.set_org(org_config, global_org)
 
