@@ -219,14 +219,14 @@ class TestBaseProjectConfig(unittest.TestCase):
         self._create_project_config()
 
         # create local project config file
-        content = "project:\n" + "    package:\n" + "        api_version: 10\n"
+        content = "project:\n" + "    package:\n" + "        api_version: 45.0\n"
         self._create_project_config_local(content)
 
         os.chdir(self.tempdir_project)
         global_config = BaseGlobalConfig()
         config = BaseProjectConfig(global_config)
         self.assertNotEqual(config.config_project_local, {})
-        self.assertEqual(config.project__package__api_version, 10)
+        self.assertEqual(config.project__package__api_version, 45.0)
 
     def test_load_additional_yaml(self, mock_class):
         mock_class.return_value = self.tempdir_home
@@ -237,13 +237,13 @@ class TestBaseProjectConfig(unittest.TestCase):
         self._create_project_config()
 
         # create local project config file
-        content = "project:\n" + "    package:\n" + "        api_version: 10\n"
+        content = "project:\n" + "    package:\n" + "        api_version: 45.0\n"
 
         os.chdir(self.tempdir_project)
         global_config = BaseGlobalConfig()
         config = BaseProjectConfig(global_config, additional_yaml=content)
         self.assertNotEqual(config.config_additional_yaml, {})
-        self.assertEqual(config.project__package__api_version, 10)
+        self.assertEqual(config.project__package__api_version, 45.0)
 
 
 @mock.patch("sarge.Command")
@@ -254,7 +254,9 @@ class TestScratchOrgConfig(unittest.TestCase):
         "instanceUrl": "url",
         "accessToken": "access!token",
         "username": "username",
-        "password": "password"
+        "password": "password",
+        "createdDate": "1970-01-01T00:00:00Z",
+        "expirationDate": "1970-01-08"
     }
 }"""
         Command.return_value = mock.Mock(
@@ -272,6 +274,8 @@ class TestScratchOrgConfig(unittest.TestCase):
                 "org_id": "access",
                 "password": "password",
                 "username": "username",
+                "created_date": "1970-01-01T00:00:00Z",
+                "expiration_date": "1970-01-08",
             },
         )
         self.assertIs(info, config._scratch_info)
@@ -329,7 +333,9 @@ class TestScratchOrgConfig(unittest.TestCase):
     "result": {
         "instanceUrl": "url",
         "accessToken": "access!token",
-        "username": "username"
+        "username": "username",
+        "createdDate": "1970-01-01T00:00:00Z",
+        "expirationDate": "1970-01-08"
     }
 }"""
         Command.return_value = mock.Mock(
@@ -643,7 +649,9 @@ class TestScratchOrgConfig(unittest.TestCase):
         "instanceUrl": "url",
         "accessToken": "access!token",
         "username": "username",
-        "password": "password"
+        "password": "password",
+        "createdDate": "1970-01-01T:00:00:00Z",
+        "expirationDate": "1970-01-08"
     }
 }"""
         Command.return_value = mock.Mock(

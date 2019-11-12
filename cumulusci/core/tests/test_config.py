@@ -2,6 +2,7 @@
 import os
 import unittest
 
+import pytest
 from unittest import mock
 import responses
 
@@ -239,8 +240,8 @@ class TestBaseProjectConfig(unittest.TestCase):
             {},
             [
                 DummyRelease("release/1.1", "1.1"),
-                DummyRelease("release/1.0", "1.0"),
                 DummyRelease("beta-wrongprefix", "wrong"),
+                DummyRelease("release/1.0", "1.0"),
                 DummyRelease("beta/1.0-Beta_2", "1.0 (Beta 2)"),
                 DummyRelease("beta/1.0-Beta_1", "1.0 (Beta 1)"),
             ],
@@ -262,7 +263,6 @@ class TestBaseProjectConfig(unittest.TestCase):
 
     def test_config_global(self):
         global_config = BaseGlobalConfig()
-        global_config.config_global = {}
         config = BaseProjectConfig(global_config)
         self.assertIs(global_config.config_global, config.config_global)
 
@@ -885,6 +885,41 @@ class TestBaseProjectConfig(unittest.TestCase):
         global_config = BaseGlobalConfig()
         project_config = BaseProjectConfig(global_config)
         assert project_config.relpath(os.path.abspath(".")) == "."
+
+    def test_validate_package_api_version_valid(self):
+        """We stringify the float 46.0 as this is what will occur when
+        it is formatted into API URLS. This also negates the need to
+        test an explicit string (i.e. if this passes we know that '46.0'
+        will also pass)."""
+        project_config = BaseProjectConfig(BaseGlobalConfig())
+        project_config.config["project"]["package"]["api_version"] = str(46.0)
+        project_config._validate_package_api_format()
+
+    def test_validate_package_api_version_invalid(self):
+        project_config = BaseProjectConfig(BaseGlobalConfig())
+        project_config.config["project"]["package"]["api_version"] = str([1, 2, 3])
+        with pytest.raises(ConfigError):
+            project_config._validate_package_api_format()
+
+        project_config.config["project"]["package"]["api_version"] = "9"
+        with pytest.raises(ConfigError):
+            project_config._validate_package_api_format()
+
+        project_config.config["project"]["package"]["api_version"] = "9.0"
+        with pytest.raises(ConfigError):
+            project_config._validate_package_api_format()
+
+        project_config.config["project"]["package"]["api_version"] = "45"
+        with pytest.raises(ConfigError):
+            project_config._validate_package_api_format()
+
+        project_config.config["project"]["package"]["api_version"] = "45."
+        with pytest.raises(ConfigError):
+            project_config._validate_package_api_format()
+
+        project_config.config["project"]["package"]["api_version"] = "45.00"
+        with pytest.raises(ConfigError):
+            project_config._validate_package_api_format()
 
 
 class TestBaseTaskFlowConfig(unittest.TestCase):

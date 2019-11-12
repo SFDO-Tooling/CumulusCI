@@ -59,7 +59,7 @@ class OrgConfig(BaseConfig):
         resp = sf_oauth.refresh_token(self.refresh_token)
         if resp.status_code != 200:
             raise SalesforceCredentialsException(
-                "Error refreshing OAuth token: {}".format(resp.text)
+                f"Error refreshing OAuth token: {resp.text}"
             )
         return resp.json()
 
@@ -81,8 +81,7 @@ class OrgConfig(BaseConfig):
     def latest_api_version(self):
         if not self._latest_api_version:
             response = self.salesforce_client._call_salesforce(
-                "GET",
-                "https://{}/services/data".format(self.salesforce_client.sf_instance),
+                "GET", f"https://{self.salesforce_client.sf_instance}/services/data"
             )
             self._latest_api_version = str(response.json()[-1]["version"])
         return self._latest_api_version
@@ -129,7 +128,7 @@ class OrgConfig(BaseConfig):
         headers = {"Authorization": "Bearer " + self.access_token}
         self._org_sobject = requests.get(
             self.instance_url
-            + "/services/data/v45.0/sobjects/Organization/{}".format(self.org_id),
+            + f"/services/data/v45.0/sobjects/Organization/{self.org_id}",
             headers=headers,
         ).json()
         result = {
@@ -171,7 +170,7 @@ class OrgConfig(BaseConfig):
 
         if community_name not in self._community_info_cache:
             raise Exception(
-                "Unable to find community information for '{}'".format(community_name)
+                f"Unable to find community information for '{community_name}'"
             )
 
         return self._community_info_cache[community_name]
