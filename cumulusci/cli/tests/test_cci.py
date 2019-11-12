@@ -688,6 +688,10 @@ class TestCCI(unittest.TestCase):
             "test0",
             "test1",
             "test2",
+            "test3",
+            "test4",
+            "test5",
+            "test6",
         ]
         config.project_config.keychain.get_org.side_effect = [
             ScratchOrgConfig(
@@ -717,12 +721,59 @@ class TestCCI(unittest.TestCase):
                 {
                     "default": False,
                     "scratch": False,
+                    "expires": "Persistent",
                     "expired": False,
                     "config_name": "dev",
                     "username": "test2@example.com",
                     "instance_url": "https://dude-chillin-2330-dev-ed.cs22.my.salesforce.com",
                 },
                 "test2",
+            ),
+            OrgConfig(
+                {
+                    "default": False,
+                    "scratch": False,
+                    "expires": "11/19/2019",
+                    "expired": False,
+                    "config_name": "dev",
+                    "username": "test3@example.com",
+                    "instance_url": "https://dude-chillin-2330-dev-ed.cs22.my.salesforce.com",
+                },
+                "test3",
+            ),
+            OrgConfig(
+                {
+                    "default": False,
+                    "scratch": False,
+                    "expired": False,
+                    "config_name": "dev",
+                    "username": "test4@example.com",
+                    "instance_url": "https://dude-chillin-2330-dev-ed.cs22.my.salesforce.com",
+                },
+                "test4",
+            ),
+            OrgConfig(
+                {
+                    "default": False,
+                    "scratch": True,
+                    "expires": "11/19/2019",
+                    "expired": False,
+                    "config_name": "dev",
+                    "username": "test5@example.com",
+                    "instance_url": "https://dude-chillin-2330-dev-ed.cs22.my.salesforce.com",
+                },
+                "test5",
+            ),
+            OrgConfig(
+                {
+                    "default": False,
+                    "scratch": True,
+                    "expired": False,
+                    "config_name": "dev",
+                    "username": "test6@example.com",
+                    "instance_url": "https://dude-chillin-2330-dev-ed.cs22.my.salesforce.com",
+                },
+                "test6",
             ),
         ]
 
@@ -738,29 +789,14 @@ class TestCCI(unittest.TestCase):
             title="Scratch Orgs",
             dim_rows=[0, 1],
         )
-        unknown_table_call = mock.call(
+        connected_table_call = mock.call(
             [
                 ["Name", "Default", "Username", "Expires"],
-                ["test2", False, "test2@example.com", "Unknown"],
-            ],
-            bool_cols=["Default"],
-            title="Connected Orgs",
-            wrap_cols=["Username"],
-        )
-        # testing org that expires
-        expires_table_call = mock.call(
-            [
-                ["Name", "Default", "Username", "Expires"],
+                ["test2", False, "test2@example.com", "Persistent"],
                 ["test3", False, "test3@example.com", "11/19/2019"],
-            ],
-            bool_cols=["Default"],
-            title="Connected Orgs",
-            wrap_cols=["Username"],
-        )
-        persistent_table_call = mock.call(
-            [
-                ["Name", "Default", "Username", "Expires"],
-                ["test4", False, "test3@example.com", "Persistent"],
+                ["test4", False, "test4@example.com", "Unknown"],
+                ["test5", False, "test5@example.com", "11/19/2019"],
+                ["test6", False, "test6@example.com", "Unknown"],
             ],
             bool_cols=["Default"],
             title="Connected Orgs",
@@ -768,9 +804,7 @@ class TestCCI(unittest.TestCase):
         )
 
         self.assertIn(scratch_table_call, cli_tbl.call_args_list)
-        self.assertIn(unknown_table_call, cli_tbl.call_args_list)
-        self.assertIn(expires_table_call, cli_tbl.call_args_list)
-        self.assertIn(persistent_table_call, cli_tbl.call_args_list)
+        self.assertIn(connected_table_call, cli_tbl.call_args_list)
 
     def test_org_remove(self):
         org_config = mock.Mock()
