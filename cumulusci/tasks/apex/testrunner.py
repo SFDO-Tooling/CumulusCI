@@ -228,7 +228,7 @@ class RunApexTests(BaseSalesforceApiTask):
         return result
 
     def _is_retriable_failure(self, test_result):
-        return test_result["Outcome"] == "Fail" and any(
+        return any(
             [
                 reg.search(test_result["Message"] or "")
                 or reg.search(test_result["StackTrace"] or "")
@@ -250,11 +250,18 @@ class RunApexTests(BaseSalesforceApiTask):
             self.counts[test_result["Outcome"]] += 1
 
             # Determine whether this failure is retriable.
-            if allow_retries and self._is_retriable_failure(test_result):
-                self.counts["Retriable"] += 1
-                self.retry_details.setdefault(test_result["ApexClassId"], []).append(
-                    test_result["MethodName"]
-                )
+            if test_result["Outcome"] == "Fail" and allow_retries:
+                can_retry_this_failure = self._is_retriable_failure(test_result)
+                if can_retry_this_failure:
+                    self.counts["Retriable"] += 1
+
+                # Even if this failure is not retriable per se,
+                # persist its details if we might end up retrying
+                # all failures.
+                if self.options["retry_always"] or can_retry_this_failure:
+                    self.retry_details.setdefault(
+                        test_result["ApexClassId"], []
+                    ).append(test_result["MethodName"])
 
     def _process_test_results(self):
         test_results = []
@@ -383,10 +390,6 @@ class RunApexTests(BaseSalesforceApiTask):
         else:
             self._attempt_retries()
 
-        if self.counts["Retriable"]:
-            # All our retries succeeded. Clear the failure counter.
-            self.counts["Fail"] = 0
-
         test_results = self._process_test_results()
         self._write_output(test_results)
 
@@ -403,8 +406,9 @@ class RunApexTests(BaseSalesforceApiTask):
                 len(self.retry_details)
             )
         )
-        # Save the pre-retry status counts. If the retries fail, we'll report the originals.
+        # Save the pre-retry status counts.
         original_counts = self.counts.copy()
+
         for class_id, test_list in self.retry_details.items():
             for each_test in test_list:
                 self.logger.warning(
@@ -421,6 +425,12 @@ class RunApexTests(BaseSalesforceApiTask):
                     self.counts = original_counts
                     self.counts["Retriable"] = 0
                     return
+
+        # All our retries succeeded. Reset the counts,
+        # and report all succeeded retries as passes
+        self.counts = original_counts
+        self.counts["Fail"] = 0
+        self.counts["Pass"] += self.counts["Retriable"]
 
     def _wait_for_tests(self):
         self.poll_complete = False
@@ -443,6 +453,7 @@ class RunApexTests(BaseSalesforceApiTask):
             "Queued": 0,
         }
         processing_class_id = None
+        total_test_count = self.result["totalSize"]
         for test_queue_item in self.result["records"]:
             counts[test_queue_item["Status"]] += 1
             if test_queue_item["Status"] == "Processing":
@@ -458,7 +469,10 @@ class RunApexTests(BaseSalesforceApiTask):
                 counts["Queued"],
             )
         )
-        if counts["Queued"] == 0 and counts["Processing"] == 0:
+        if (
+            total_test_count
+            == counts["Completed"] + counts["Failed"] + counts["Aborted"]
+        ):
             self.logger.info("Apex tests completed")
             self.poll_complete = True
 
