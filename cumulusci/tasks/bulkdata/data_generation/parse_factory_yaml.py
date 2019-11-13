@@ -1,6 +1,7 @@
 from numbers import Number
 from contextlib import contextmanager
 from collections import namedtuple
+import pathlib
 
 import yaml
 from yaml.composer import Composer
@@ -13,7 +14,7 @@ from .data_generator_runtime import (
     ChildRecordValue,
     StructuredValue,
 )
-from .data_gen_exceptions import DataGenSyntaxError, DataGenNameError
+from .data_gen_exceptions import DataGenSyntaxError, DataGenNameError, DataGenError
 
 SHARED_OBJECT = "#SHARED_OBJECT"
 
@@ -24,9 +25,10 @@ LineTracker = namedtuple("LineTracker", ["filename", "line_num"])
 class ParseContext:
     current_sobject = None
 
-    def __init__(self, macros, line_numbers):
-        self.macros = macros
-        self._line_numbers = line_numbers
+    def __init__(self):
+        self.macros = {}
+        self.line_numbers = {}
+        self.options = []
 
     def line_num(self, obj=None):
         if not obj:
@@ -40,9 +42,9 @@ class ParseContext:
             pass
 
         # strings (and perhaps some other non-dict objects) should be tracked in
-        # the _line_numbers system
+        # the line_numbers system
         try:
-            my_line_num = self._line_numbers.get(id(obj))
+            my_line_num = self.line_numbers.get(id(obj))
             if my_line_num and my_line_num != SHARED_OBJECT:
                 return my_line_num._asdict()
         except KeyError:
@@ -61,7 +63,7 @@ class ParseContext:
             self.current_sobject = _old_sobject
 
 
-def remove_line_numbers(dct):
+def removeline_numbers(dct):
     return {i: dct[i] for i in dct if i != "__line__"}
 
 
@@ -74,7 +76,7 @@ def parse_structured_value(name, field, context):
 
     {'random_number': {'min': 10, 'max': 20, '__line__': 10} , '__line__': 9}
     """
-    top_level = remove_line_numbers(field).items()
+    top_level = removeline_numbers(field).items()
     if not top_level:
         raise DataGenSyntaxError(
             f"Strange datastructure ({field})", **context.line_num(field)
@@ -85,7 +87,7 @@ def parse_structured_value(name, field, context):
         )
     [[function_name, args]] = top_level
     if isinstance(args, dict):
-        args = remove_line_numbers(args)
+        args = removeline_numbers(args)
 
     return StructuredValue(function_name, args, **context.line_num(field))
 
@@ -206,7 +208,7 @@ def parse_sobject_list(sobjects, context):
     return parsed_sobject_definitions
 
 
-def yaml_safe_load_with_line_numbers(filestream, filename):
+def yaml_safe_load_withline_numbers(filestream, filename):
     loader = yaml.SafeLoader(filestream)
     line_numbers = {}
 
@@ -237,15 +239,53 @@ def yaml_safe_load_with_line_numbers(filestream, filename):
     return loader.get_single_data(), line_numbers
 
 
-def parse_generator(stream):
-    stream_name = getattr(stream, "name", "<stream>")
-    data, line_numbers = yaml_safe_load_with_line_numbers(stream, stream_name)
+def do_inclusions(path, file_inclusions, context):
+    for inclusion in file_inclusions:
+        # should be a single-element dict: {'include_file': 'foo.yml'}
+        relpath = inclusion["include_file"]
+        linenum = inclusion.get("__line__") or LineTracker("unknown", -1)
+        extras = set(inclusion.keys()) - set(["include_file", "__line__"])
+        if extras:
+            raise DataGenSyntaxError(
+                "Extra items detected: {extras}", **linenum._asdict()
+            )
+        assert not relpath.startswith("/")  # only relative paths
+        inclusion_path = path.parent / relpath
+        # someday add a check that we don't go outside of the project dir
+        if not inclusion_path.exists():
+            raise DataGenError(
+                f"Cannot load include file {inclusion_path}", **linenum._asdict()
+            )
+        with inclusion_path.open() as f:
+            incl_objects = gather_data(f, context)
+            return incl_objects
+
+
+def gather_data(stream, context: ParseContext):
+    stream_name = getattr(stream, "name", None)
+    if stream_name:
+        path = pathlib.Path(stream.name).absolute()
+    else:
+        path = "<stream>"
+    data, line_numbers = yaml_safe_load_withline_numbers(stream, str(path))
     if not isinstance(data, list):
         raise DataGenSyntaxError(
-            "Generator file should be a list (use - on top-level lines)"
+            "Generator file should be a list (use '-' on top-level lines)",
+            stream_name,
+            1,
         )
-    options = [obj for obj in data if obj.get("option")]
-    macros = {obj["macro"]: obj for obj in data if obj.get("macro")}
-    objects = [obj for obj in data if obj.get("object")]
-    context = ParseContext(macros, line_numbers)
-    return options, parse_sobject_list(objects, context)
+    file_inclusions = [obj for obj in data if obj.get("include_file")]
+    do_inclusions(path, file_inclusions, context)
+
+    context.options.extend([obj for obj in data if obj.get("option")])
+    context.macros.update({obj["macro"]: obj for obj in data if obj.get("macro")})
+    context.line_numbers.update(line_numbers)
+    templates = [obj for obj in data if obj.get("object")]
+
+    return templates
+
+
+def parse_generator(stream):
+    context = ParseContext()
+    objects = gather_data(stream, context)
+    return context.options, parse_sobject_list(objects, context)

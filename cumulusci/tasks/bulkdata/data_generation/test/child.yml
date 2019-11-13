@@ -1,0 +1,3 @@
+- macro: Account_defaults
+  fields:
+    name: Default Company Name
