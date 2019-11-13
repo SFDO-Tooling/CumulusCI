@@ -48,7 +48,7 @@
           fake: last_name
         Email:
           fake: email
-        Account:
+        AccountId:
           reference: Account
     - object: Opportunity
       fields:
@@ -61,8 +61,6 @@
           random_number:
             min: 10
             max: 200
-        ContactId:
-          reference: Contact
         StageName:
           random_choice:
             Closed Won: 60%

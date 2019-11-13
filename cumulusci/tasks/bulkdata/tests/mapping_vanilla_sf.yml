@@ -57,11 +57,13 @@ Insert Opportunities:
     Name: Name
     StageName: StageName
     CloseDate: CloseDate
-    ContactId: ContactId
-    AccountId: AccountId
     Amount: Amount
   lookups:
     AccountId:
       table: Account
-    ContactId:
-      table: Contact
+      key_field: AccountId
+      sf_id_table: Account
+    # ContactId:
+    #   table: Contact
+    #   key_field: Contact
+    #   sf_id_table: Contact
