@@ -5,7 +5,7 @@ from unittest import mock
 from cumulusci.tasks.bulkdata.data_generation.data_generator import generate
 
 dnd_test = pathlib.Path(__file__).parent / "CharacterGenTest.yml"
-data_imports = pathlib.Path(__file__).parent / "BDI_Generator.yml"
+data_imports = pathlib.Path(__file__).parent / "BDI_generator.yml"
 standard_objects = pathlib.Path(__file__).parent / "gen_sf_standard_objects.yml"
 
 
