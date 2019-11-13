@@ -11,6 +11,7 @@ CumulusCI is developed by the Salesforce.org Release Engineering team:
 * Christian Carter <christian.carter@salesforce.com>
 * David Glick <dglick@salesforce.com>
 * James Estevez <jestevez@salesforce.com>
+* Josh Kofsky <jkofsky@salesforce.com>
 
 Developers Emeritus
 -------------------
