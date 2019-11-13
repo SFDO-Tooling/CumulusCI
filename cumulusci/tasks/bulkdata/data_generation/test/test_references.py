@@ -1,6 +1,6 @@
 from io import StringIO
 import unittest
-import mock
+from unittest import mock
 
 from cumulusci.tasks.bulkdata.data_generation.data_generator import generate
 from cumulusci.tasks.bulkdata.data_generation.test.test_parse_samples import find_row
