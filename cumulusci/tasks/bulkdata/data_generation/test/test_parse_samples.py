@@ -11,11 +11,12 @@ standard_objects = pathlib.Path(__file__).parent / "gen_sf_standard_objects.yml"
 
 def find_row(row_type, compare, calls):
     for call in calls:
-        call_row_type, call_dict = call.args
+        args = call[1]
+        call_row_type, row_values = args
         if call_row_type == row_type and all(
-            compare[key] == call_dict[key] for key in compare.keys()
+            compare[key] == row_values[key] for key in compare.keys()
         ):
-            return call
+            return row_values  # return the args
 
 
 write_row_path = "cumulusci.tasks.bulkdata.data_generation.output_streams.DebugOutputStream.write_row"

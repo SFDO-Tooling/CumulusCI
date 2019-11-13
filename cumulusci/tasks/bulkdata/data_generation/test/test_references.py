@@ -1,7 +1,6 @@
 from io import StringIO
 import unittest
 from unittest import mock
-
 from cumulusci.tasks.bulkdata.data_generation.data_generator import generate
 from cumulusci.tasks.bulkdata.data_generation.test.test_parse_samples import find_row
 
@@ -56,8 +55,8 @@ class TestReferences(unittest.TestCase):
     def test_simple_parent(self, write_row):
         generate(StringIO(simple_parent), 1, {}, None, None)
 
-        _, a_values = find_row("A", {}, write_row.mock_calls).args
-        _, b_values = find_row("B", {}, write_row.mock_calls).args
+        a_values = find_row("A", {}, write_row.mock_calls)
+        b_values = find_row("B", {}, write_row.mock_calls)
         id_a = a_values["id"]
         reference_b = a_values["B"]
         id_b = b_values["id"]
@@ -69,8 +68,8 @@ class TestReferences(unittest.TestCase):
     def test_simple_parent_list_child(self, write_row):
         generate(StringIO(simple_parent_list), 1, {}, None, None)
 
-        _, a_values = find_row("A", {}, write_row.mock_calls).args
-        _, b_values = find_row("B", {}, write_row.mock_calls).args
+        a_values = find_row("A", {}, write_row.mock_calls)
+        b_values = find_row("B", {}, write_row.mock_calls)
         id_a = a_values["id"]
         reference_b = a_values["B"]
         id_b = b_values["id"]
@@ -82,8 +81,8 @@ class TestReferences(unittest.TestCase):
     def test_ancestor_reference(self, write_row):
         generate(StringIO(ancestor_reference), 1, {}, None, None)
 
-        _, a_values = find_row("A", {}, write_row.mock_calls).args
-        _, c_values = find_row("C", {}, write_row.mock_calls).args
+        a_values = find_row("A", {}, write_row.mock_calls)
+        c_values = find_row("C", {}, write_row.mock_calls)
         id_a = a_values["id"]
         reference_a = c_values["A_ref"]
         assert id_a == reference_a
@@ -92,8 +91,8 @@ class TestReferences(unittest.TestCase):
     def test_reference_from_friend(self, write_row):
         generate(StringIO(reference_from_friend), 1, {}, None, None)
 
-        _, a_values = find_row("A", {}, write_row.mock_calls).args
-        _, b_values = find_row("B", {}, write_row.mock_calls).args
+        a_values = find_row("A", {}, write_row.mock_calls)
+        b_values = find_row("B", {}, write_row.mock_calls)
         id_a = a_values["id"]
         reference_a = b_values["A_ref"]
         assert id_a == reference_a
