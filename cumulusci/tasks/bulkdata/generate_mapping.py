@@ -53,9 +53,10 @@ class GenerateMapping(BaseSalesforceApiTask):
         self.logger.info("Collecting sObject information")
         self._collect_objects()
         self._build_schema()
-        self.logger.info("Creating mapping schema")
+        filename = self.options["path"]
+        self.logger.info(f"Creating mapping schema {filename}")
         self._build_mapping()
-        with open(self.options["path"], "w") as f:
+        with open(filename, "w") as f:
             yaml.dump(self.mapping, f, sort_keys=False)
 
     def _collect_objects(self):
