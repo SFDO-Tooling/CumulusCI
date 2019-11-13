@@ -185,7 +185,9 @@ class BaseProjectKeychain(BaseConfig):
         """ retrieve an org configuration by name key """
         if name not in self.orgs:
             self._raise_org_not_found(name)
-        return self._get_org(name)
+        org = self._get_org(name)
+        org.keychain = self
+        return org
 
     def _get_org(self, name):
         return self.orgs.get(name)
