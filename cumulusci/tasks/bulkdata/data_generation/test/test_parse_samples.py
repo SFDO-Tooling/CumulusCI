@@ -1,6 +1,6 @@
-import unittest
 import pathlib
-import mock
+import unittest
+from unittest import mock
 
 from cumulusci.tasks.bulkdata.data_generation.data_generator import generate
 
