@@ -1,5 +1,4 @@
 from collections import defaultdict
-from dataclasses import dataclass
 from functools import partial
 from datetime import date
 
@@ -159,18 +158,28 @@ class SObject:
         return self._values[name]
 
 
-@dataclass
 class SObjectFactory:
     """A factory that generates rows"""
 
-    sftype: str
-    filename: str
-    line_num: int
-    count: int = 1
-    count_expr: str = None
-    fields: list = ()
-    friends: list = ()
-    nickname: str = None
+    def __init__(
+        self,
+        sftype: str,
+        filename: str,
+        line_num: int,
+        count: int = 1,
+        count_expr: str = None,
+        fields: list = (),
+        friends: list = (),
+        nickname: str = None,
+    ):
+        self.sftype = sftype
+        self.filename = filename
+        self.line_num = line_num
+        self.count = count
+        self.count_expr = count_expr
+        self.fields = fields
+        self.friends = friends
+        self.nickname = nickname
 
     def generate_rows(self, storage, parent_context):
         """Generate several rows"""
@@ -339,13 +348,13 @@ class StructuredValue(FieldDefinition):
         return value
 
 
-@dataclass
 class ChildRecordValue(FieldDefinition):
     """Represents an SObject embedded in another SObject"""
 
-    sobj: object
-    filename: str
-    line_num: int
+    def __init__(self, sobj: object, filename: str, line_num: int):
+        self.sobj = sobj
+        self.filename = filename
+        self.line_num = line_num
 
     def render(self, context):
         child_row = self.sobj.generate_rows(context.output_stream, context)[0]
@@ -366,14 +375,14 @@ def fix_exception(message, parentobj, e):
         raise DataGenError(message, filename, line_num) from e
 
 
-@dataclass
 class FieldFactory:
     """Represents a single data field (key, value) to be rendered"""
 
-    name: str
-    definition: object
-    filename: str
-    line_num: int
+    def __init__(self, name: str, definition: object, filename: str, line_num: int):
+        self.name = name
+        self.definition = definition
+        self.filename = filename
+        self.line_num = line_num
 
     def generate_value(self, context):
         try:
