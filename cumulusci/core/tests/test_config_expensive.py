@@ -680,7 +680,6 @@ class TestScratchOrgConfig(unittest.TestCase):
         config.keychain = mock_keychain
 
         assert config._choose_devhub() == "fake@fake.devhub"
-        assert config.devhub == "fake@fake.devhub"
 
     def test_choose_devhub__service_not_configured(self, Command):
         mock_keychain = mock.Mock()
@@ -689,4 +688,3 @@ class TestScratchOrgConfig(unittest.TestCase):
         config.keychain = mock_keychain
 
         assert config._choose_devhub() is None
-        assert config.devhub is None

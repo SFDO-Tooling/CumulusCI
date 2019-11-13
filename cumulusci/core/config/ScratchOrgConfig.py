@@ -236,8 +236,6 @@ class ScratchOrgConfig(OrgConfig):
                 pass
             else:
                 devhub = devhub_service.username
-        if devhub:
-            self.config["devhub"] = devhub
         return devhub
 
     def generate_password(self):
