@@ -345,7 +345,7 @@ class FlowCoordinator(object):
         self._rule(fill="-")
         self.logger.info("Organization:")
         self.logger.info(f"  Username: {org_config.username}")
-        self.logger.info(f"    Org Id: {org_config.ord_id}")
+        self.logger.info(f"    Org Id: {org_config.org_id}")
         self._rule(fill="-", new_line=True)
 
         # Give pre_flow callback a chance to alter the steps
