@@ -391,19 +391,19 @@ tasks:
         class_path: cumulusci.tasks.bulkdata.GenerateMapping
         options:
             namespace_prefix: $project_config.project__package__namespace
-            path: 'datasets/generated_mapping.yml'
+            path: 'datasets/mapping.yml'
     extract_dataset:
         description: Extract a sample dataset using the bulk API.
         class_path: cumulusci.tasks.bulkdata.ExtractData
         options:
-            database_url: 'sqlite:///datasets/sample.db'
             mapping: 'datasets/mapping.yml'
+            sql_path: 'datasets/sample.sql'
     load_dataset:
         description: Load a sample dataset using the bulk API.
         class_path: cumulusci.tasks.bulkdata.LoadData
         options:
-            database_url: 'sqlite:///datasets/sample.db'
             mapping: 'datasets/mapping.yml'
+            sql_path: 'datasets/sample.sql'
 
 flows:
     apex_docs:
@@ -940,6 +940,9 @@ project:
 orgs:
     scratch:
         dev:
+            config_file: orgs/dev.json
+            days: 7
+        qa:
             config_file: orgs/dev.json
             days: 7
         feature:
