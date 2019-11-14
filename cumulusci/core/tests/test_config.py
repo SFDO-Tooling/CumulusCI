@@ -105,7 +105,7 @@ class DummyRepository(object):
     def __init__(self, owner, name, contents, releases=None):
         self.owner = owner
         self.name = name
-        self.html_url = "https://github.com/{}/{}".format(owner, name)
+        self.html_url = f"https://github.com/{owner}/{name}"
         self._contents = contents
         self._releases = releases or []
 
@@ -113,14 +113,14 @@ class DummyRepository(object):
         try:
             return self._contents[path]
         except KeyError:
-            raise AssertionError("Accessed unexpected file: {}".format(path))
+            raise AssertionError(f"Accessed unexpected file: {path}")
 
     def directory_contents(self, path, **kw):
         try:
             return self._contents[path]
         except KeyError:
             raise NotFoundError(
-                DummyResponse("Accessed unexpected directory: {}".format(path), 404)
+                DummyResponse(f"Accessed unexpected directory: {path}", 404)
             )
 
     def _build_url(self, *args, **kw):
@@ -170,7 +170,7 @@ class DummyGithub(object):
         try:
             return self.repositories[name]
         except KeyError:
-            raise AssertionError("Unexpected repository: {}".format(name))
+            raise AssertionError(f"Unexpected repository: {name}")
 
 
 class DummyService(object):

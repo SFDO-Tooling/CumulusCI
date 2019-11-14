@@ -49,10 +49,8 @@ def get_github_api_for_repo(keychain, owner, repo):
                 installation = gh.app_installation_for_repository(owner, repo)
             except github3.exceptions.NotFoundError:
                 raise GithubException(
-                    "Could not access {}/{} using GitHub app. "
-                    "Does the app need to be installed for this repository?".format(
-                        owner, repo
-                    )
+                    f"Could not access {owner}/{repo} using GitHub app. "
+                    "Does the app need to be installed for this repository?"
                 )
             INSTALLATIONS[(owner, repo)] = installation
         gh.login_as_app_installation(APP_KEY, APP_ID, installation.id)
@@ -69,9 +67,7 @@ def validate_service(options):
     try:
         gh.rate_limit()
     except Exception as e:
-        raise GithubException(
-            "Could not confirm access to the GitHub API: {}".format(str(e))
-        )
+        raise GithubException(f"Could not confirm access to the GitHub API: {str(e)}")
 
 
 def get_pull_requests_with_base_branch(repo, base_branch_name, head=None, state=None):
@@ -115,8 +111,9 @@ def is_label_on_pull_request(repo, pull_request, label_name):
 
 
 def get_pull_requests_by_commit(github, repo, commit_sha):
-    endpoint = github.session.base_url + "/repos/{}/{}/commits/{}/pulls".format(
-        repo.owner.login, repo.name, commit_sha
+    endpoint = (
+        github.session.base_url
+        + f"/repos/{repo.owner.login}/{repo.name}/commits/{commit_sha}/pulls"
     )
     response = github.session.get(
         endpoint, headers={"Accept": "application/vnd.github.groot-preview+json"}
@@ -138,9 +135,7 @@ def is_pull_request_merged(pull_request):
 
 
 def markdown_link_to_pr(change_note):
-    return "{} [[PR{}]({})]".format(
-        change_note.title, change_note.number, change_note.html_url
-    )
+    return f"{change_note.title} [[PR{change_note.number}]({change_note.html_url})]"
 
 
 def find_latest_release(repo, include_beta=None):
