@@ -27,7 +27,6 @@ from cumulusci.core.config import ScratchOrgConfig
 from cumulusci.core.config import ServiceConfig
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.config import BaseGlobalConfig
-from cumulusci.utils import parse_api_datetime
 from cumulusci.core.exceptions import CumulusCIFailure
 from cumulusci.core.exceptions import CumulusCIUsageError
 from cumulusci.core.exceptions import OrgNotFound
@@ -819,9 +818,9 @@ def org_connect(config, org_name, sandbox, login_url, default, global_org):
         if org_config.organization_sobject["TrialExpirationDate"] is None:
             org_config.config["expires"] = "Persistent"
         else:
-            org_config.config["expires"] = parse_api_datetime(
-                org_config.organization_sobject["TrialExpirationDate"]
-            ).strftime("%m/%d/%Y")
+            org_config.config["expires"] = org_config.organization_sobject[
+                "TrialExpirationDate"
+            ]
     else:
         org_config.config["expires"] = None
 
@@ -971,7 +970,19 @@ def org_list(config, plain):
                 "username", org_config.userinfo__preferred_username
             )
             row.append(username)
-            row.append(org_config.expires or "Unknown")
+            print(org_config.expires)
+            if org_config.expires:
+                if org_config.expires != "Persistent":
+                    row.append(
+                        parse_api_datetime(org_config.expires).strftime("%Y/%m/%d")
+                    )
+                else:
+                    row.append(org_config.expires)
+            else:
+                row.append("Unknown")
+            # row.append(
+            #     parse_api_datetime(org_config.expires).strftime("%m/%d/%Y") or "Unknown"
+            # )
             persistent_data.append(row)
 
     rows_to_dim = [row_index for row_index, row in enumerate(scratch_data) if row[3]]

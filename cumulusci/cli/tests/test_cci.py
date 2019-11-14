@@ -733,7 +733,7 @@ class TestCCI(unittest.TestCase):
                 {
                     "default": False,
                     "scratch": False,
-                    "expires": "11/19/2019",
+                    "expires": "2019-11-19T21:08:50.000+0000",
                     "expired": False,
                     "config_name": "dev",
                     "username": "test3@example.com",
@@ -756,7 +756,7 @@ class TestCCI(unittest.TestCase):
                 {
                     "default": False,
                     "scratch": True,
-                    "expires": "11/19/2019",
+                    "expires": "2019-11-19T21:08:50.000+0000",
                     "expired": False,
                     "config_name": "dev",
                     "username": "test5@example.com",
@@ -793,9 +793,9 @@ class TestCCI(unittest.TestCase):
             [
                 ["Name", "Default", "Username", "Expires"],
                 ["test2", False, "test2@example.com", "Persistent"],
-                ["test3", False, "test3@example.com", "11/19/2019"],
+                ["test3", False, "test3@example.com", "2019/11/19"],
                 ["test4", False, "test4@example.com", "Unknown"],
-                ["test5", False, "test5@example.com", "11/19/2019"],
+                ["test5", False, "test5@example.com", "2019/11/19"],
                 ["test6", False, "test6@example.com", "Unknown"],
             ],
             bool_cols=["Default"],
