@@ -522,6 +522,15 @@ class TestCCI(unittest.TestCase):
         browser_open.assert_called_once()
         config.keychain.set_org.assert_called_once_with(org_config)
 
+    def test_org_browser_not_found(self):
+        config = mock.Mock()
+        config.get_org.side_effect = OrgNotFound
+
+        with self.assertRaises(click.ClickException) as cm:
+            run_click_command(cci.org_browser, config=config, org_name="test")
+
+        self.assertEqual("Org test does not exist in the keychain", str(cm.exception))
+
     @mock.patch("cumulusci.cli.cci.CaptureSalesforceOAuth")
     @responses.activate
     def test_org_connect(self, oauth):
@@ -571,6 +580,17 @@ class TestCCI(unittest.TestCase):
         run_click_command(cci.org_default, config=config, org_name="test", unset=False)
 
         config.keychain.set_default_org.assert_called_once_with("test")
+
+    def test_org_default_not_found(self):
+        config = mock.Mock()
+        config.keychain.set_default_org.side_effect = OrgNotFound
+
+        with self.assertRaises(click.ClickException) as cm:
+            run_click_command(
+                cci.org_default, config=config, org_name="test", unset=False
+            )
+
+        self.assertEqual("Org test does not exist in the keychain", str(cm.exception))
 
     def test_org_default_unset(self):
         config = mock.Mock()
@@ -679,6 +699,17 @@ class TestCCI(unittest.TestCase):
             "".join(out),
         )
         config.keychain.set_org.assert_called_once_with(org_config)
+
+    def test_org_info_not_found(self):
+        config = mock.Mock()
+        config.get_org.side_effect = OrgNotFound
+
+        with self.assertRaises(click.ClickException) as cm:
+            run_click_command(
+                cci.org_info, config=config, org_name="test", print_json=False
+            )
+
+        self.assertEqual("Org test does not exist in the keychain", str(cm.exception))
 
     @mock.patch("cumulusci.cli.cci.CliTable")
     def test_org_list(self, cli_tbl):
@@ -866,6 +897,15 @@ class TestCCI(unittest.TestCase):
         with self.assertRaises(click.UsageError):
             run_click_command(cci.org_scratch_delete, config=config, org_name="test")
 
+    def test_org_scratch_delete_not_found(self):
+        config = mock.Mock()
+        config.keychain.get_org.side_effect = OrgNotFound
+
+        with self.assertRaises(click.ClickException) as cm:
+            run_click_command(cci.org_scratch_delete, config=config, org_name="test")
+
+        self.assertEqual("Org test does not exist in the keychain", str(cm.exception))
+
     @mock.patch("cumulusci.cli.cci.get_simple_salesforce_connection")
     @mock.patch("code.interact")
     def test_org_shell(self, mock_code, mock_sf):
@@ -883,6 +923,15 @@ class TestCCI(unittest.TestCase):
 
         mock_code.assert_called_once()
         self.assertIn("sf", mock_code.call_args[1]["local"])
+
+    def test_org_shell_not_found(self):
+        config = mock.Mock()
+        config.get_org.side_effect = OrgNotFound
+
+        with self.assertRaises(click.ClickException) as cm:
+            run_click_command(cci.org_shell, config=config, org_name="test")
+
+        self.assertEqual("Org test does not exist in the keychain", str(cm.exception))
 
     @mock.patch("cumulusci.cli.cci.CliTable")
     def test_task_list(self, cli_tbl):
@@ -966,6 +1015,25 @@ class TestCCI(unittest.TestCase):
         )
 
         DummyTask._run_task.assert_called_once()
+
+    def test_task_run_org_not_found(self):
+        config = mock.Mock()
+        config.get_org.side_effect = OrgNotFound
+
+        with self.assertRaises(click.ClickException) as cm:
+            run_click_command(
+                cci.task_run,
+                config=config,
+                task_name="test",
+                org="test",
+                o=[("color", "blue")],
+                debug=False,
+                debug_before=False,
+                debug_after=False,
+                no_prompt=True,
+            )
+
+        self.assertEqual("Org test does not exist in the keychain", str(cm.exception))
 
     def test_task_run_not_found(self):
         config = mock.Mock()
@@ -1211,7 +1279,26 @@ class TestCCI(unittest.TestCase):
         )
         org_config.delete_org.assert_called_once()
 
-    def test_flow_run_delete_non_scratch(self,):
+    def test_flow_run_org_not_found(self):
+        config = mock.Mock()
+        config.get_org.side_effect = OrgNotFound
+
+        with self.assertRaises(click.ClickException) as cm:
+            run_click_command(
+                cci.flow_run,
+                config=config,
+                flow_name="test",
+                org="test",
+                delete_org=False,
+                debug=False,
+                o=None,
+                skip=(),
+                no_prompt=True,
+            )
+
+        self.assertEqual("Org test does not exist in the keychain", str(cm.exception))
+
+    def test_flow_run_delete_non_scratch(self):
         org_config = mock.Mock(scratch=False)
         config = mock.Mock()
         config.get_org.return_value = ("test", org_config)

@@ -764,7 +764,10 @@ def service_info(config, service_name, plain):
 @click.argument("org_name", required=False)
 @pass_config
 def org_browser(config, org_name):
-    org_name, org_config = config.get_org(org_name)
+    try:
+        org_name, org_config = config.get_org(org_name)
+    except OrgNotFound:
+        raise click.ClickException(f"Org {org_name} does not exist in the keychain")
     org_config.refresh_oauth_token(config.keychain)
 
     webbrowser.open(org_config.start_url)
@@ -833,7 +836,10 @@ def org_default(config, org_name, unset):
         config.keychain.unset_default_org()
         click.echo(f"{org_name} is no longer the default org.  No default org set.")
     else:
-        config.keychain.set_default_org(org_name)
+        try:
+            config.keychain.set_default_org(org_name)
+        except OrgNotFound:
+            raise click.ClickException(f"Org {org_name} does not exist in the keychain")
         click.echo(f"{org_name} is now the default org")
 
 
@@ -874,8 +880,8 @@ def org_info(config, org_name, print_json):
     try:
         org_name, org_config = config.get_org(org_name)
         org_config.refresh_oauth_token(config.keychain)
-    except OrgNotFound as e:
-        raise click.ClickException(e)
+    except OrgNotFound:
+        raise click.ClickException(f"Org {org_name} does not exist in the keychain")
 
     if print_json:
         click.echo(
@@ -1059,7 +1065,11 @@ def org_scratch(config, config_name, org_name, default, devhub, days, no_passwor
 @click.argument("org_name")
 @pass_config
 def org_scratch_delete(config, org_name):
-    org_config = config.keychain.get_org(org_name)
+    try:
+        org_config = config.keychain.get_org(org_name)
+    except OrgNotFound:
+        raise click.ClickException(f"Org {org_name} does not exist in the keychain")
+
     if not org_config.scratch:
         raise click.UsageError(f"Org {org_name} is not a scratch org")
 
@@ -1079,7 +1089,11 @@ def org_scratch_delete(config, org_name):
 @click.argument("org_name", required=False)
 @pass_config
 def org_shell(config, org_name):
-    org_name, org_config = config.get_org(org_name)
+    try:
+        org_name, org_config = config.get_org(org_name)
+    except OrgNotFound:
+        raise click.ClickException(f"Org {org_name} does not exist in the keychain")
+
     org_config.refresh_oauth_token(config.keychain)
 
     sf = get_simple_salesforce_connection(config.project_config, org_config)
@@ -1196,7 +1210,11 @@ def task_info(config, task_name):
 def task_run(config, task_name, org, o, debug, debug_before, debug_after, no_prompt):
 
     # Get necessary configs
-    org, org_config = config.get_org(org, fail_if_missing=False)
+    try:
+        org, org_config = config.get_org(org, fail_if_missing=False)
+    except OrgNotFound:
+        raise click.ClickException(f"Org {org} does not exist in the keychain")
+
     try:
         task_config = config.project_config.get_task(task_name)
     except CumulusCIUsageError as e:
@@ -1327,7 +1345,11 @@ def flow_info(config, flow_name):
 def flow_run(config, flow_name, org, delete_org, debug, o, skip, no_prompt):
 
     # Get necessary configs
-    org, org_config = config.get_org(org)
+    try:
+        org, org_config = config.get_org(org)
+    except OrgNotFound:
+        raise click.ClickException(f"Org {org} does not exist in the keychain")
+
     if delete_org and not org_config.scratch:
         raise click.UsageError("--delete-org can only be used with a scratch org")
 
