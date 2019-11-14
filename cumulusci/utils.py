@@ -150,7 +150,12 @@ def download_extract_zip(url, target=None, subfolder=None, headers=None):
 def download_extract_github(
     github_api, repo_owner, repo_name, subfolder=None, ref=None
 ):
-    github_repo = github_api.repository(repo_owner, repo_name)
+    return download_extract_github_from_repo(
+        github_api.repository(repo_owner, repo_name), subfolder, ref
+    )
+
+
+def download_extract_github_from_repo(github_repo, subfolder=None, ref=None):
     if not ref:
         ref = github_repo.default_branch
     zip_content = io.BytesIO()

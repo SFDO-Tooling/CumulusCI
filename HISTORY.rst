@@ -2,6 +2,28 @@
 History
 =======
 
+3.1.1 (2019-11-13)
+------------------
+
+New features:
+
+* After connecting an org with ``cci org connect``, the browser now shows the message
+  "Congratulations! Your authentication succeeded." instead of "OK"
+* External GitHub sources can now specify ``release: latest``, ``release: latest_beta``,
+  or ``release: previous`` instead of a commit, branch, or tag.
+* The ``execute_anon`` task has been revised to detect when a gack occurred during execution.
+
+Issues closed:
+
+* When importing a scratch org from sfdx using ``cci org import``, the org's ``days``
+  is now set correctly from the org's actual expiration date. (#1101)
+* The package API version from ``cumulusci.yml`` is now validated to make sure
+  it's in the "XX.0" format expected by the API. (#1134)
+* Fixed an error deploying new setting objects using the ``org_settings`` task in Winter '20.
+* Fixed a bug in processing preflight check tasks for MetaDeploy.
+* Fixed path handling in the ``update_admin_profile`` task when run in a cross-project flow.
+
+
 3.1.0 (2019-11-01)
 ------------------
 
