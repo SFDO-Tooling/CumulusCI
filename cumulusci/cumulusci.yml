@@ -106,6 +106,11 @@ tasks:
         description: Generate documentation for local code. Configure settings in cumulusci.yml/project/apexdoc - homepage, banner, branch, repo_dir
         class_path: cumulusci.tasks.apexdoc.GenerateApexDocs
         group: Release Management
+    generate_data_dictionary:
+        description: Create a data dictionary for the project in CSV format.
+        class_path: cumulusci.tasks.datadictionary.GenerateDataDictionary
+        options:
+            release_prefix: $project_config.project__git__prefix_release
     get_installed_packages:
         description: Retrieves a list of the currently installed managed package namespaces and their versions
         class_path: cumulusci.tasks.salesforce.GetInstalledPackages

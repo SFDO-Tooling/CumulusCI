@@ -9,8 +9,8 @@ from cumulusci.robotframework.pageobjects import pageobject
 class BarTestPage(BasePage):
     def bar_keyword_1(self, message):
         self.builtin.log(message)
-        return "bar keyword 1: {}".format(message)
+        return f"bar keyword 1: {message}"
 
     def bar_keyword_2(self, message):
         self.builtin.log(message)
-        return "bar keyword 2: {}".format(message)
+        return f"bar keyword 2: {message}"
