@@ -246,19 +246,19 @@ class TestEnvironmentProjectKeychain(ProjectKeychainTestMixin):
         self.env = EnvironmentVarGuard().__enter__()
         self._clean_env(self.env)
         self.env.set(
-            "{}test".format(self.keychain_class.org_var_prefix),
+            f"{self.keychain_class.org_var_prefix}test",
             json.dumps(self.org_config.config),
         )
         self.env.set(
-            "{}connected_app".format(self.keychain_class.service_var_prefix),
+            f"{self.keychain_class.service_var_prefix}connected_app",
             json.dumps(self.services["connected_app"].config),
         )
         self.env.set(
-            "{}github".format(self.keychain_class.service_var_prefix),
+            f"{self.keychain_class.service_var_prefix}github",
             json.dumps(self.services["github"].config),
         )
         self.env.set(
-            "{}mrbelvedere".format(self.keychain_class.service_var_prefix),
+            f"{self.keychain_class.service_var_prefix}mrbelvedere",
             json.dumps(self.services["mrbelvedere"].config),
         )
 
@@ -294,7 +294,7 @@ class TestEnvironmentProjectKeychain(ProjectKeychainTestMixin):
     def test_list_orgs_empty(self):
         self._clean_env(self.env)
         self.env.set(
-            "{}connected_app".format(self.keychain_class.service_var_prefix),
+            f"{self.keychain_class.service_var_prefix}connected_app",
             json.dumps(self.services["connected_app"].config),
         )
         super(TestEnvironmentProjectKeychain, self).test_list_orgs_empty()
@@ -302,7 +302,7 @@ class TestEnvironmentProjectKeychain(ProjectKeychainTestMixin):
     def test_load_scratch_org_config(self):
         self._clean_env(self.env)
         self.env.set(
-            "{}test".format(self.keychain_class.org_var_prefix),
+            f"{self.keychain_class.org_var_prefix}test",
             json.dumps(self.scratch_org_config.config),
         )
         keychain = self.keychain_class(self.project_config, self.key)
@@ -321,7 +321,7 @@ class TestEnvironmentProjectKeychain(ProjectKeychainTestMixin):
         org_config = self.org_config.config.copy()
         org_config["default"] = True
         self.env.set(
-            "{}test".format(self.keychain_class.org_var_prefix), json.dumps(org_config)
+            f"{self.keychain_class.org_var_prefix}test", json.dumps(org_config)
         )
         super(TestEnvironmentProjectKeychain, self).test_get_default_org()
 
@@ -329,7 +329,7 @@ class TestEnvironmentProjectKeychain(ProjectKeychainTestMixin):
         """ The EnvironmentProjectKeychain does not persist default org settings """
         org_config = self.org_config.config.copy()
         self.env.set(
-            "{}test".format(self.keychain_class.org_var_prefix), json.dumps(org_config)
+            f"{self.keychain_class.org_var_prefix}test", json.dumps(org_config)
         )
         keychain = self.keychain_class(self.project_config, self.key)
         keychain.set_default_org("test")
@@ -424,8 +424,9 @@ class TestEncryptedFileProjectKeychain(ProjectKeychainTestMixin):
 
     def _create_git_config(self):
         filename = os.path.join(self.tempdir_project, ".git", "config")
-        content = '[remote "origin"]\n' + "  url = git@github.com:TestOwner/{}".format(
-            self.project_name
+        content = (
+            f'[remote "origin"]\n'
+            + "  url = git@github.com:TestOwner/{self.project_name}"
         )
         self._write_file(filename, content)
 
