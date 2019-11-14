@@ -74,7 +74,37 @@ WHERE AsyncApexJobId='{}'
 
 
 class RunApexTests(BaseSalesforceApiTask):
-    """ Task to run Apex tests with the Tooling API and report results """
+    """ Task to run Apex tests with the Tooling API and report results.
+
+    This task optionally supports retrying unit tests that fail due to
+    transitory issues or concurrency-related row locks. To enable retries,
+    add ones or more regular expressions to the list option `retry_failures`.
+
+    When a test run fails, if all of the failures' error messages or stack traces
+    match one of these regular expressions, each failed test will be retried by
+    itself. This is often useful when running Apex tests in parallel; row locks
+    may automatically be retried. Note that retries are supported whether or not
+    the org has parallel Apex testing enabled.
+
+    The `retry_always` option modifies this behavior: if a test run fails and
+    any (not all) of the failures match the specified regular expressions,
+    all of the failed tests will be retried in serial. This is helpful when
+    underlying row locking errors are masked by custom exceptions.
+
+    A useful base configuration for projects wishing to use retries is
+
+    ```yaml
+            retry_failures:
+                - "unable to obtain exclusive access to this record"
+                - "UNABLE_TO_LOCK_ROW"
+                - "connection was cancelled here"
+            retry_always: True
+    ```
+
+    Some projects' unit tests produce so many concurrency errors that
+    it's faster to execute the entire run in serial mode than to use retries.
+    Serial and parallel mode are configured in the scratch org definition file.
+"""
 
     api_version = "38.0"
     name = "RunApexTests"
@@ -499,8 +529,7 @@ class RunApexTests(BaseSalesforceApiTask):
         self.counts = original_counts
         self.counts["Fail"] = 0
         self.counts["Retriable"] = total_method_retries
-
-    #        self.counts["Pass"] += self.counts["Retriable"]
+        self.counts["Pass"] += self.counts["Retriable"]
 
     def _wait_for_tests(self):
         self.poll_complete = False
