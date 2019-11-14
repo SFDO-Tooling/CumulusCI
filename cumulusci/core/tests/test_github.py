@@ -232,6 +232,6 @@ class TestGithub(GithubApiTestMixin):
         self.init_github()
         pr = ShortPullRequest(self._get_expected_pull_request(1, 1), gh_api)
         actual_link = markdown_link_to_pr(pr)
-        expected_link = "{} [[PR{}]({})]".format(pr.title, pr.number, pr.html_url)
+        expected_link = f"{pr.title} [[PR{pr.number}]({pr.html_url})]"
 
         assert expected_link == actual_link
