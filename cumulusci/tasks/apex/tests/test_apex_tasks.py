@@ -162,6 +162,12 @@ class TestRunApexTests(MockLoggerMixin, unittest.TestCase):
             )
         )
 
+    def _get_mock_testqueueitem_status_query_url(self, job_id):
+        return (
+            self.base_tooling_url
+            + f"query/?q=SELECT+Id%2C+Status%2C+ExtendedStatus%2C+ApexClassId+FROM+ApexTestQueueItem+WHERE+ParentJobId+%3D+%27{job_id}%27+AND+Status+%3D+%27Failed%27"
+        )
+
     def _mock_get_test_results(
         self, outcome="Pass", message="Test Passed", job_id="JOB_ID1234567"
     ):
@@ -184,6 +190,59 @@ class TestRunApexTests(MockLoggerMixin, unittest.TestCase):
         )
         responses.add(
             responses.GET, url, match_querystring=True, json=expected_response
+        )
+
+    def _mock_get_failed_test_classes(self, job_id="JOB_ID1234567"):
+        url = self._get_mock_testqueueitem_status_query_url(job_id)
+
+        responses.add(
+            responses.GET,
+            url,
+            match_querystring=True,
+            json={"totalSize": 0, "records": [], "done": True},
+        )
+
+    def _mock_get_failed_test_classes_failure(self, job_id="JOB_ID1234567"):
+        url = self._get_mock_testqueueitem_status_query_url(job_id)
+
+        responses.add(
+            responses.GET,
+            url,
+            match_querystring=True,
+            json={
+                "totalSize": 1,
+                "records": [
+                    {
+                        "Id": "0000000000000000",
+                        "ApexClassId": 1,
+                        "Status": "Failed",
+                        "ExtendedStatus": "Double-plus ungood",
+                    }
+                ],
+                "done": True,
+            },
+        )
+
+    def _mock_get_symboltable(self):
+        url = (
+            self.base_tooling_url
+            + "query/?q=SELECT+SymbolTable+FROM+ApexClass+WHERE+Name%3D%27TestClass_TEST%27"
+        )
+
+        responses.add(
+            responses.GET,
+            url,
+            json={
+                "records": [
+                    {
+                        "SymbolTable": {
+                            "methods": [
+                                {"name": "test1", "annotations": [{"name": "isTest"}]}
+                            ]
+                        }
+                    }
+                ]
+            },
         )
 
     def _mock_tests_complete(self, job_id="JOB_ID1234567"):
@@ -229,11 +288,12 @@ class TestRunApexTests(MockLoggerMixin, unittest.TestCase):
     def test_run_task(self):
         self._mock_apex_class_query()
         self._mock_run_tests()
+        self._mock_get_failed_test_classes()
         self._mock_tests_complete()
         self._mock_get_test_results()
         task = RunApexTests(self.project_config, self.task_config, self.org_config)
         task()
-        self.assertEqual(len(responses.calls), 4)
+        self.assertEqual(len(responses.calls), 5)
 
     @responses.activate
     def test_run_task__server_error(self):
@@ -247,8 +307,21 @@ class TestRunApexTests(MockLoggerMixin, unittest.TestCase):
     def test_run_task__failed(self):
         self._mock_apex_class_query()
         self._mock_run_tests()
+        self._mock_get_failed_test_classes()
         self._mock_tests_complete()
         self._mock_get_test_results("Fail")
+        task = RunApexTests(self.project_config, self.task_config, self.org_config)
+        with self.assertRaises(ApexTestException):
+            task()
+
+    @responses.activate
+    def test_run_task__failed_class_level(self):
+        self._mock_apex_class_query()
+        self._mock_run_tests()
+        self._mock_get_failed_test_classes_failure()
+        self._mock_tests_complete()
+        self._mock_get_test_results()
+        self._mock_get_symboltable()
         task = RunApexTests(self.project_config, self.task_config, self.org_config)
         with self.assertRaises(ApexTestException):
             task()
@@ -258,6 +331,8 @@ class TestRunApexTests(MockLoggerMixin, unittest.TestCase):
         self._mock_apex_class_query()
         self._mock_run_tests()
         self._mock_run_tests(body="JOBID_9999")
+        self._mock_get_failed_test_classes()
+        self._mock_get_failed_test_classes(job_id="JOBID_9999")
         self._mock_tests_complete()
         self._mock_tests_complete(job_id="JOBID_9999")
         self._mock_get_test_results("Fail", "UNABLE_TO_LOCK_ROW")
@@ -272,7 +347,7 @@ class TestRunApexTests(MockLoggerMixin, unittest.TestCase):
         }
         task = RunApexTests(self.project_config, task_config, self.org_config)
         task()
-        self.assertEqual(len(responses.calls), 7)
+        self.assertEqual(len(responses.calls), 9)
 
     @responses.activate
     def test_run_task__retry_tests_with_retry_always(self):
@@ -280,6 +355,9 @@ class TestRunApexTests(MockLoggerMixin, unittest.TestCase):
         self._mock_run_tests()
         self._mock_run_tests(body="JOBID_9999")
         self._mock_run_tests(body="JOBID_9990")
+        self._mock_get_failed_test_classes()
+        self._mock_get_failed_test_classes(job_id="JOBID_9999")
+        self._mock_get_failed_test_classes(job_id="JOBID_9990")
         self._mock_tests_complete()
         self._mock_tests_complete(job_id="JOBID_9999")
         self._mock_tests_complete(job_id="JOBID_9990")
@@ -311,6 +389,8 @@ class TestRunApexTests(MockLoggerMixin, unittest.TestCase):
         self._mock_apex_class_query()
         self._mock_run_tests()
         self._mock_run_tests(body="JOBID_9999")
+        self._mock_get_failed_test_classes()
+        self._mock_get_failed_test_classes(job_id="JOBID_9999")
         self._mock_tests_complete()
         self._mock_tests_complete(job_id="JOBID_9999")
         self._mock_get_test_results("Fail", "UNABLE_TO_LOCK_ROW")
@@ -332,6 +412,7 @@ class TestRunApexTests(MockLoggerMixin, unittest.TestCase):
         self._mock_apex_class_query()
         self._mock_run_tests()
         self._mock_tests_processing()
+        self._mock_get_failed_test_classes()
         self._mock_tests_complete()
         self._mock_get_test_results()
         task = RunApexTests(self.project_config, self.task_config, self.org_config)
