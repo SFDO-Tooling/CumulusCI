@@ -2,7 +2,6 @@ import csv
 import xml.etree.ElementTree as ET
 
 from collections import defaultdict
-from cumulusci.core.exceptions import CumulusCIException
 from cumulusci.tasks.github.base import BaseGithubTask
 from cumulusci.utils import download_extract_github_from_repo
 from distutils.version import LooseVersion
@@ -17,6 +16,8 @@ class GenerateDataDictionary(BaseGithubTask):
     with one row per packaged object.
     The other, in `field_path`, includes Object Name, Field Name, Field Label, Field Type,
     Picklist Values (if any), Version Introduced.
+    Both MDAPI and SFDX format releases are supported. However, only force-app/main/default
+    is processed for SFDX projects.
     """
 
     task_options = {
@@ -25,6 +26,10 @@ class GenerateDataDictionary(BaseGithubTask):
         },
         "field_path": {
             "description": "Path to a CSV file to contain an field-level data dictionary."
+        },
+        "release_prefix": {
+            "description": "The tag prefix used for releases.",
+            "required": True,
         },
     }
 
@@ -41,11 +46,6 @@ class GenerateDataDictionary(BaseGithubTask):
                 "field_path"
             ] = f"{self.project_config.project__name} Field Data Dictionary.csv"
 
-        if not self.project_config.project__git__prefix_release:
-            raise CumulusCIException(
-                "Set the `project__git__prefix_release` property in `cumulusci.yml` to use this task"
-            )
-
     def _run_task(self):
         self.logger.info("Starting data dictionary generation")
 
@@ -54,11 +54,14 @@ class GenerateDataDictionary(BaseGithubTask):
         self._write_results()
 
     def _init_schema(self):
+        """Initialize the structure used for schema storage."""
         self.schema = defaultdict(
             lambda: {"version": None, "fields": defaultdict(lambda: {"version": None})}
         )
 
     def _walk_releases(self):
+        """Traverse all of the releases in this project's repository and process
+        each one matching our tag (not draft/prerelease) to generate the data dictionary."""
         repo = self.get_repo()
 
         for release in repo.releases():
@@ -70,9 +73,7 @@ class GenerateDataDictionary(BaseGithubTask):
             if (
                 release.draft
                 or release.prerelease
-                or not release.tag_name.startswith(
-                    self.project_config.project__git__prefix_release
-                )
+                or not release.tag_name.startswith(self.options["release_prefix"])
             ):
                 continue
 
@@ -90,6 +91,7 @@ class GenerateDataDictionary(BaseGithubTask):
                 self._process_sfdx_release(zip_file, version)
 
     def _process_mdapi_release(self, zip_file, version):
+        """Process an MDAPI ZIP file for objects and fields"""
         for f in zip_file.namelist():
             path = PurePosixPath(f)
             if path.parent == PurePosixPath("src/objects") and path.suffix == ".object":
@@ -100,6 +102,7 @@ class GenerateDataDictionary(BaseGithubTask):
                 )
 
     def _process_sfdx_release(self, zip_file, version):
+        """Process an SFDX ZIP file for objects and fields"""
         for f in zip_file.namelist():
             path = PurePosixPath(f)
             if f.startswith("force-app/main/default/objects"):
@@ -119,6 +122,7 @@ class GenerateDataDictionary(BaseGithubTask):
                     )
 
     def _process_object_element(self, sobject_name, element, version):
+        """Process a <CustomObject> metadata entity, whether SFDX or MDAPI"""
         # If this is a custom object, register its presence in this version
         namespaces = {"ns": "http://soap.sforce.com/2006/04/metadata"}
 
@@ -141,6 +145,8 @@ class GenerateDataDictionary(BaseGithubTask):
             self._process_field_element(sobject_name, field, version)
 
     def _process_field_element(self, sobject_name, field, version):
+        """Process a field entity, which can be either a <fields> element
+        in MDAPI format or a <CustomField> in SFDX"""
         # `element` may be either a `fields` element (in MDAPI)
         # or a `CustomField` (SFDX)
         namespaces = {"ns": "http://soap.sforce.com/2006/04/metadata"}
@@ -205,6 +211,7 @@ class GenerateDataDictionary(BaseGithubTask):
             )
 
     def _write_results(self):
+        """Write the stored schema details to our destination CSVs"""
         with open(self.options["object_path"], "w") as object_file:
             writer = csv.writer(object_file)
 
@@ -258,11 +265,12 @@ class GenerateDataDictionary(BaseGithubTask):
                     )
 
     def _version_from_tag_name(self, tag_name):
-        return LooseVersion(
-            tag_name[len(self.project_config.project__git__prefix_release) :]
-        )
+        """Parse a release's tag and return a LooseVersion"""
+        return LooseVersion(tag_name[len(self.options["release_prefix"]) :])
 
     def _set_version_with_props(self, in_dict, props):
+        """Update our schema storage with this release's details for an entity.
+        Preserve the oldest known version, but store the latest metadata for the entity."""
         # We want to persist the oldest known version, but show the most recent
         # label and help text in the data dictionary.
         update_props = props.copy()

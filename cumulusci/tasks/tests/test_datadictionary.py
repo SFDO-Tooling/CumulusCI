@@ -11,7 +11,7 @@ from distutils.version import LooseVersion
 
 class test_GenerateDataDictionary(unittest.TestCase):
     def test_set_version_with_props(self):
-        task = create_task(GenerateDataDictionary)
+        task = create_task(GenerateDataDictionary, {"release_prefix": "rel/"})
 
         this_dict = {"version": LooseVersion("1.1"), "test": "test"}
         task._set_version_with_props(this_dict, {"version": None, "test": "bad"})
@@ -32,17 +32,18 @@ class test_GenerateDataDictionary(unittest.TestCase):
         assert this_dict["test"] == "test"
 
     def test_version_from_tag_name(self):
-        project_config = create_project_config()
-        project_config.project__git__prefix_release = "release/"
-
-        task = create_task(GenerateDataDictionary, project_config=project_config)
+        task = create_task(GenerateDataDictionary, {"release_prefix": "release/"})
 
         assert task._version_from_tag_name("release/1.1") == LooseVersion("1.1")
 
     def test_write_results(self):
         task = create_task(
             GenerateDataDictionary,
-            {"object_path": "object.csv", "field_path": "fields.csv"},
+            {
+                "object_path": "object.csv",
+                "field_path": "fields.csv",
+                "release_prefix": "rel/",
+            },
         )
 
         task.schema = {
@@ -105,7 +106,11 @@ class test_GenerateDataDictionary(unittest.TestCase):
 """
         task = create_task(
             GenerateDataDictionary,
-            {"object_path": "object.csv", "field_path": "fields.csv"},
+            {
+                "object_path": "object.csv",
+                "field_path": "fields.csv",
+                "release_prefix": "rel/",
+            },
         )
 
         task._init_schema()
@@ -131,7 +136,11 @@ class test_GenerateDataDictionary(unittest.TestCase):
 """
         task = create_task(
             GenerateDataDictionary,
-            {"object_path": "object.csv", "field_path": "fields.csv"},
+            {
+                "object_path": "object.csv",
+                "field_path": "fields.csv",
+                "release_prefix": "rel/",
+            },
         )
 
         task._init_schema()
@@ -150,7 +159,11 @@ class test_GenerateDataDictionary(unittest.TestCase):
 """
         task = create_task(
             GenerateDataDictionary,
-            {"object_path": "object.csv", "field_path": "fields.csv"},
+            {
+                "object_path": "object.csv",
+                "field_path": "fields.csv",
+                "release_prefix": "rel/",
+            },
         )
 
         task._init_schema()
@@ -199,7 +212,11 @@ class test_GenerateDataDictionary(unittest.TestCase):
 """
         task = create_task(
             GenerateDataDictionary,
-            {"object_path": "object.csv", "field_path": "fields.csv"},
+            {
+                "object_path": "object.csv",
+                "field_path": "fields.csv",
+                "release_prefix": "rel/",
+            },
         )
 
         task._init_schema()
@@ -233,7 +250,11 @@ class test_GenerateDataDictionary(unittest.TestCase):
 """
         task = create_task(
             GenerateDataDictionary,
-            {"object_path": "object.csv", "field_path": "fields.csv"},
+            {
+                "object_path": "object.csv",
+                "field_path": "fields.csv",
+                "release_prefix": "rel/",
+            },
         )
 
         task._init_schema()
@@ -260,7 +281,11 @@ class test_GenerateDataDictionary(unittest.TestCase):
 """
         task = create_task(
             GenerateDataDictionary,
-            {"object_path": "object.csv", "field_path": "fields.csv"},
+            {
+                "object_path": "object.csv",
+                "field_path": "fields.csv",
+                "release_prefix": "rel/",
+            },
         )
 
         task._init_schema()
@@ -289,7 +314,11 @@ class test_GenerateDataDictionary(unittest.TestCase):
 
         task = create_task(
             GenerateDataDictionary,
-            {"object_path": "object.csv", "field_path": "fields.csv"},
+            {
+                "object_path": "object.csv",
+                "field_path": "fields.csv",
+                "release_prefix": "rel/",
+            },
         )
 
         task._init_schema()
@@ -323,7 +352,11 @@ class test_GenerateDataDictionary(unittest.TestCase):
 
             task = create_task(
                 GenerateDataDictionary,
-                {"object_path": "object.csv", "field_path": "fields.csv"},
+                {
+                    "object_path": "object.csv",
+                    "field_path": "fields.csv",
+                    "release_prefix": "rel/",
+                },
             )
 
             task._init_schema()
@@ -337,7 +370,11 @@ class test_GenerateDataDictionary(unittest.TestCase):
     def test_process_sfdx_release(self, fromstring):
         task = create_task(
             GenerateDataDictionary,
-            {"object_path": "object.csv", "field_path": "fields.csv"},
+            {
+                "object_path": "object.csv",
+                "field_path": "fields.csv",
+                "release_prefix": "rel/",
+            },
         )
 
         zip_file = Mock()
@@ -377,7 +414,11 @@ class test_GenerateDataDictionary(unittest.TestCase):
     def test_process_mdapi_release(self, fromstring):
         task = create_task(
             GenerateDataDictionary,
-            {"object_path": "object.csv", "field_path": "fields.csv"},
+            {
+                "object_path": "object.csv",
+                "field_path": "fields.csv",
+                "release_prefix": "rel/",
+            },
         )
 
         zip_file = Mock()
@@ -409,7 +450,11 @@ class test_GenerateDataDictionary(unittest.TestCase):
         project_config.project__name = "Project"
         task = create_task(
             GenerateDataDictionary,
-            {"object_path": "object.csv", "field_path": "fields.csv"},
+            {
+                "object_path": "object.csv",
+                "field_path": "fields.csv",
+                "release_prefix": "rel/",
+            },
             project_config=project_config,
         )
 
@@ -436,7 +481,11 @@ class test_GenerateDataDictionary(unittest.TestCase):
 
         task = create_task(
             GenerateDataDictionary,
-            {"object_path": "object.csv", "field_path": "fields.csv"},
+            {
+                "object_path": "object.csv",
+                "field_path": "fields.csv",
+                "release_prefix": "rel/",
+            },
             project_config=project_config,
         )
 
@@ -458,7 +507,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
         )
 
     def test_init_schema(self):
-        task = create_task(GenerateDataDictionary, {})
+        task = create_task(GenerateDataDictionary, {"release_prefix": "rel/"})
         task._init_schema()
 
         assert task.schema is not None
@@ -481,10 +530,13 @@ class test_GenerateDataDictionary(unittest.TestCase):
         project_config.keychain.get_service = Mock()
         project_config.init_sentry = Mock()
         project_config.sentry = Mock()
-        project_config.project__git__prefix_release = "rel/"
         project_config.project__name = "Project"
 
-        task = create_task(GenerateDataDictionary, {}, project_config=project_config)
+        task = create_task(
+            GenerateDataDictionary,
+            {"release_prefix": "rel/"},
+            project_config=project_config,
+        )
 
         task.get_repo = Mock()
         release = Mock()
@@ -528,7 +580,9 @@ class test_GenerateDataDictionary(unittest.TestCase):
         project_config = create_project_config()
         project_config.project__name = "Project"
 
-        task = create_task(GenerateDataDictionary, {}, project_config)
+        task = create_task(
+            GenerateDataDictionary, {"release_prefix": "rel/"}, project_config
+        )
 
         assert task.options["object_path"] == "Project sObject Data Dictionary.csv"
         assert task.options["field_path"] == "Project Field Data Dictionary.csv"
@@ -536,7 +590,11 @@ class test_GenerateDataDictionary(unittest.TestCase):
     def test_init_options(self):
         task = create_task(
             GenerateDataDictionary,
-            {"object_path": "objects.csv", "field_path": "fields.csv"},
+            {
+                "object_path": "objects.csv",
+                "field_path": "fields.csv",
+                "release_prefix": "rel/",
+            },
         )
 
         assert task.options["object_path"] == "objects.csv"
