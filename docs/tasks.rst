@@ -25,11 +25,11 @@ command
 **Example Command-line Usage::** cci task run command -o command "echo 'Hello command task!'"
 
 **Example Task to Run Command::**
-  hello_world:
+hello_world:
     description: Says hello world
     class_path: cumulusci.tasks.command.Command
     options:
-      command: echo 'Hello World!'
+    command: echo 'Hello World!'
 
 
 Options:
@@ -298,6 +298,27 @@ Options:
 * **banner_page**: The full path to an html file that contains the content for the banner section of each generated page. Defaults to project config value project/apexdoc/banner if present, otherwise is not used.
 * **scope**: A semicolon separated list of scopes to document. Defaults to project config value project/apexdoc/scope if present, otherwise allows ApexDoc to use its default (global;public;webService).
 * **version**: Version of ApexDoc to use. Defaults to project config value project/apexdoc/version.
+
+generate_data_dictionary
+==========================================
+
+**Description:** Create a data dictionary for the project in CSV format.
+
+**Class::** cumulusci.tasks.datadictionary.GenerateDataDictionary
+
+Generate a data dictionary for the project by walking all GitHub releases.
+The data dictionary is output as two CSV files.
+One, in `object_path`, includes the Object Name, Object Label, and Version Introduced,
+with one row per packaged object.
+The other, in `field_path`, includes Object Name, Field Name, Field Label, Field Type,
+Picklist Values (if any), Version Introduced.
+
+
+Options:
+------------------------------------------
+
+* **object_path**: Path to a CSV file to contain an sObject-level data dictionary.
+* **field_path**: Path to a CSV file to contain an field-level data dictionary.
 
 get_installed_packages
 ==========================================
@@ -846,7 +867,7 @@ robot
 Options:
 ------------------------------------------
 
-* **suites** *(required)*: Paths to test case files/directories to be executed similarly as when running the robot command on the command line.  Defaults to "tests" to run all tests in the tests directory **Default: cumulusci/robotframework/tests**
+* **suites** *(required)*: Paths to test case files/directories to be executed similarly as when running the robot command on the command line.  Defaults to "tests" to run all tests in the tests directory **Default: tests**
 * **test**: Run only tests matching name patterns.  Can be comma separated and use robot wildcards like *
 * **include**: Includes tests with a given tag
 * **exclude**: Excludes tests with a given tag
@@ -861,16 +882,16 @@ Options:
 robot_libdoc
 ==========================================
 
-**Description:** Generates html documentation for the Salesorce and CumulusCI libraries and resource files
+**Description:** Generates documentation for project keyword files
 
 **Class::** cumulusci.tasks.robotframework.RobotLibDoc
 
 Options:
 ------------------------------------------
 
-* **path** *(required)*: The path to one or more keyword libraries to be documented. The path can be single a python file, a .robot file, a python module (eg: cumulusci.robotframework.Salesforce) or a comma separated list of any of those. Glob patterns are supported for filenames (eg: robot/SAL/doc/*PageObject.py). The order of the files will be preserved in the generated documentation. The result of pattern expansion will be sorted **Default: ['cumulusci.robotframework.CumulusCI', 'cumulusci.robotframework.PageObjects', 'cumulusci.robotframework.Salesforce', 'cumulusci/robotframework/Salesforce.robot']**
-* **output** *(required)*: The output file where the documentation will be written **Default: docs/robot/Keywords.html**
-* **title**: A string to use as the title of the generated output **Default: CumulusCI Robot Framework Keywords**
+* **path** *(required)*: The path to one or more keyword libraries to be documented. The path can be single a python file, a .robot file, a python module (eg: cumulusci.robotframework.Salesforce) or a comma separated list of any of those. Glob patterns are supported for filenames (eg: robot/SAL/doc/*PageObject.py). The order of the files will be preserved in the generated documentation. The result of pattern expansion will be sorted
+* **output** *(required)*: The output file where the documentation will be written **Default: Keywords.html**
+* **title**: A string to use as the title of the generated output **Default: $project_config.project__package__name**
 
 robot_lint
 ==========================================
@@ -926,11 +947,11 @@ Options:
 ------------------------------------------
 
 * **configure**: List of rule configuration values, in the form of rule:args.
-* **ignore**: List of rules to ignore. Use 'all' to ignore all rules **Default: ['RequireTestDocumentation']**
+* **ignore**: List of rules to ignore. Use 'all' to ignore all rules
 * **error**: List of rules to treat as errors. Use 'all' to affect all rules.
 * **warning**: List of rules to treat as warnings. Use 'all' to affect all rules.
 * **list**: If option is True, print a list of known rules instead of processing files.
-* **path**: The path to one or more files or folders. If the path includes wildcard characters, they will be expanded. If not provided, the default will be to process all files under robot/<project name> **Default: ['cumulusci/robotframework']**
+* **path**: The path to one or more files or folders. If the path includes wildcard characters, they will be expanded. If not provided, the default will be to process all files under robot/<project name>
 
 robot_testdoc
 ==========================================
@@ -942,8 +963,8 @@ robot_testdoc
 Options:
 ------------------------------------------
 
-* **path** *(required)*: The path containing .robot test files **Default: cumulusci/robotframework/tests**
-* **output** *(required)*: The output html file where the documentation will be written **Default: docs/robot/Test_Suite.html**
+* **path** *(required)*: The path containing .robot test files **Default: tests**
+* **output** *(required)*: The output html file where the documentation will be written **Default: tests/test_suites.html**
 
 run_tests
 ==========================================
