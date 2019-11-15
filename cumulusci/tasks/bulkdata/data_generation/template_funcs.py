@@ -19,11 +19,14 @@ def random_number(context, min, max):
 
 def weighted_choice(choices):
     options = list(choices.keys())
-    weights = [int(weight.strip("%")) for weight in choices.values()]
+    if any(choices.values()):
+        weights = [int(weight.strip("%")) for weight in choices.values()]
+    else:
+        weights = None
     return randchoices(options, weights, k=1)[0]
 
 
-def random_choice(context, choices=None, **kwargs):
+def random_choice(context, *choices, **kwargs):
     if hasattr(choices, "keys"):
         return weighted_choice(choices)
     elif kwargs:
