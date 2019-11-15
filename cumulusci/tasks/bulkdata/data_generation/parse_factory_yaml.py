@@ -64,14 +64,6 @@ class ParseContext:
         finally:
             self.current_parent_object = _old_sobject
 
-    # def change_current_path(self, path):
-    #     _old_path = path
-    #     self.current_path = path
-    #     try:
-    #         yield
-    #     finally:
-    #         self.current_path = _old_path
-
 
 def removeline_numbers(dct):
     return {i: dct[i] for i in dct if i != "__line__"}
