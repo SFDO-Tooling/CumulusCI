@@ -332,37 +332,45 @@ def parse_included_files(path, data, context):
     return templates
 
 
-def sort_top_level_objects(data, context):
+def categorize_top_level_objects(data, context):
+    """Look at all of the top-level declarations and categorize them"""
     top_level_collections = {
         "option": [],
         "include_file": [],
         "macro": [],
         "object": [],
     }
+    assert isinstance(data, list)
     for obj in data:
         if not isinstance(obj, dict):
-            raise DataSyntaxError(
-                f"Top level entities in a data generation template should all be dictionaries, not {obj}",
+            raise DataGenSyntaxError(
+                f"Top level elements in a data generation template should all be dictionaries, not {obj}",
                 **context.line_num(data),
             )
-        was_sorted = False
+        parent_collection = None
         for collection in top_level_collections:
             if obj.get(collection):
-                top_level_collections[type_level_collection].append(obj)
-        if not was_sorted:
-            raise DataGenError(f"Unknown object type {obj}", **context.line_num(data))
+                if parent_collection:
+                    raise DataGenError(
+                        f"Top level element seems to match two name patterns: {collection, parent_collection}",
+                        **context.line_num(obj),
+                    )
+                parent_collection = collection
+        if parent_collection:
+            top_level_collections[parent_collection].append(obj)
+        else:
+            raise DataGenError(f"Unknown object type {obj}", **context.line_num(obj))
+    return top_level_collections
 
 
 def parse_top_level_elements(path, data, context):
+    top_level_objects = categorize_top_level_objects(data, context)
     templates = []
     templates.extend(parse_included_files(path, data, context))
-    context.options.extend([obj for obj in data if obj.get("option")])
-    context.macros.update({obj["macro"]: obj for obj in data if obj.get("macro")})
-    templates.extend([obj for obj in data if obj.get("object")])
+    context.options.extend(top_level_objects["option"])
+    context.macros.update({obj["macro"]: obj for obj in top_level_objects["macro"]})
+    templates.extend(top_level_objects["object"])
     return templates
-
-
-## TODO: Use sort_top_level_objects
 
 
 def parse_file(stream, context: ParseContext):
