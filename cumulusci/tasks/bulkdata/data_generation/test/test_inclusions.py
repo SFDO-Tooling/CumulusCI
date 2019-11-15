@@ -15,11 +15,10 @@ class TestReferences(unittest.TestCase):
         with open(include_parent) as f:
             generate(f, 1, {}, None, None)
 
-    #  FIXME
-    # write_row.assert_called_with(
-    #     "Account",
-    #     {"id": 1, "name": "Default Company Name", "ShippingCountry": "Canada"},
-    # )
+        write_row.assert_called_with(
+            "Account",
+            {"id": 1, "name": "Default Company Name", "ShippingCountry": "Canada"},
+        )
 
     @mock.patch(write_row_path)
     def test_failed_include_file(self, write_row):
