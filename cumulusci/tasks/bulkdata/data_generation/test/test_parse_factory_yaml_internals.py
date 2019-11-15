@@ -1,6 +1,7 @@
 import unittest
 from cumulusci.tasks.bulkdata.data_generation.parse_factory_yaml import (
     parse_element,
+    categorize_top_level_objects,
     ParseContext,
     LineTracker,
     DataGenError,
@@ -51,3 +52,15 @@ class TestParseElement(unittest.TestCase):
             {"object": "a", **linenum}, "object", {}, {"q": str}, ParseContext()
         )
         assert result.q is None
+
+
+class TestCategorizeTopLevelObjects(unittest.TestCase):
+    def test_categorize_top_level_objects(self):
+        objects = [{"object": "a", **linenum}]
+        tlos = categorize_top_level_objects(objects, ParseContext())
+        assert tlos["object"][0]["object"] == "a"
+
+    def test_unknown_top_level_objects(self):
+        with self.assertRaises(DataGenError):
+            objects = [{"unknown": "a", **linenum}]
+            categorize_top_level_objects(objects, ParseContext())
