@@ -25,7 +25,7 @@ LineTracker = namedtuple("LineTracker", ["filename", "line_num"])
 
 
 class ParseContext:
-    current_sobject = None
+    current_parent_object = None
 
     def __init__(self):
         self.macros = {}
@@ -34,7 +34,7 @@ class ParseContext:
 
     def line_num(self, obj=None):
         if not obj:
-            obj = self.current_sobject
+            obj = self.current_parent_object
             assert obj
 
         # dicts should have __line__ keys
@@ -52,17 +52,17 @@ class ParseContext:
         except KeyError:
             pass
 
-        assert obj != self.current_sobject  # check for no infinite loop
-        return self.line_num(self.current_sobject)
+        assert obj != self.current_parent_object  # check for no infinite loop
+        return self.line_num(self.current_parent_object)
 
     @contextmanager
-    def change_current_sobject(self, obj):
-        _old_sobject = self.current_sobject
-        self.current_sobject = obj
+    def change_current_parent_object(self, obj):
+        _old_sobject = self.current_parent_object
+        self.current_parent_object = obj
         try:
             yield
         finally:
-            self.current_sobject = _old_sobject
+            self.current_parent_object = _old_sobject
 
     # def change_current_path(self, path):
     #     _old_path = path
@@ -75,6 +75,19 @@ class ParseContext:
 
 def removeline_numbers(dct):
     return {i: dct[i] for i in dct if i != "__line__"}
+
+
+def parse_structured_value_args(args, context):
+    """Structured values can be dicts or lists containing simple values or further structure."""
+    if isinstance(args, dict):
+        with context.change_current_parent_object(args):
+            return {
+                name: parse_field_value(name, arg, context)
+                for name, arg in args.items()
+                if name != "__line__"
+            }
+    else:
+        return [parse_field_value(i, arg, context) for i, arg in enumerate(args)]
 
 
 def parse_structured_value(name, field, context):
@@ -200,7 +213,7 @@ def parse_sobject_definition(yaml_sobj, context):
         context,
     )
     assert yaml_sobj
-    with context.change_current_sobject(yaml_sobj):
+    with context.change_current_parent_object(yaml_sobj):
         sobj_def = {}
         sobj_def["sftype"] = parsed_sobject.object
         sobj_def["fields"] = fields = []
@@ -273,7 +286,7 @@ def parse_element(dct, element_type, mandatory_keys, optional_keys, context):
     }
     rc_obj = DictValuesAsAttrs()
     rc_obj.line_num = dct["__line__"]
-    with context.change_current_sobject(dct):
+    with context.change_current_parent_object(dct):
         for key in dct:
             key_definition = expected_keys.get(key)
             if not key_definition:
