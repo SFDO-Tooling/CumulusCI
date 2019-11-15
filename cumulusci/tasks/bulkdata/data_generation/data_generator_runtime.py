@@ -309,6 +309,9 @@ class SimpleValue(FieldDefinition):
             val = self.definition
         return try_to_infer_type(val)
 
+    def __repr__(self):
+        return f"<{self.__class__.__name__ , self.definition}>"
+
 
 class StructuredValue(FieldDefinition):
     """A value with substructure which will call a handler function."""
