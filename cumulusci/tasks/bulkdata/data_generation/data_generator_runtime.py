@@ -52,7 +52,6 @@ class Globals:
         self.named_objects = {}
         self.id_manager = IdManager()
         self.last_seen_obj_of_type = {}
-        self.template_evaluator_factory = JinjaTemplateEvaluatorFactory()
 
     def register_object(self, obj, nickname=None):
         """Register an object for lookup by object type and (optionally) Nickname"""
@@ -62,9 +61,6 @@ class Globals:
 
     def find_object_by_nickname(self, nickname):
         return self.named_objects[nickname]
-
-    def get_evaluator(self, definition: str):
-        return self.template_evaluator_factory.get_evaluator(definition)
 
     @property
     def object_names(self):
@@ -105,9 +101,6 @@ class Context:
     def register_object(self, obj, name=None):
         self.obj = obj
         self.globals.register_object(obj, name)
-
-    def evaluator_for_definition(self, definition):
-        return self.globals.get_evaluator(definition)
 
     def reference(self, x):
         if hasattr(x, "_values"):
@@ -187,12 +180,12 @@ class SObjectFactory:
         if self.count_expr and self.count is None:
             try:
                 self.count = int(float(self.count_expr.render(context)))
-            except (ValueError, TypeError):
+            except (ValueError, TypeError) as e:
                 raise DataGenValueError(
                     f"Cannot evaluate {self.count_expr.definition} as number",
-                    self.filename,
-                    self.line_num,
-                )
+                    self.count_expr.filename,
+                    self.count_expr.line_num,
+                ) from e
         if not isinstance(self.count, int):
             raise DataGenValueError(
                 f"Count should be an integer not a {type(self.count)} : {self.count}",
@@ -237,9 +230,25 @@ class FieldDefinition:
         pass
 
 
+class StaticEvaluator:
+    def __init__(self, definition):
+        self.definition = definition
+
+    def __call__(self, context):
+        return self.definition
+
+
+class DynamicEvaluator:
+    def __init__(self, template):
+        self.template = template
+
+    def __call__(self, context):
+        return self.template.render(**context.field_vars(), **context.field_funcs())
+
+
 class JinjaTemplateEvaluatorFactory:
     def __init__(self):
-        self.environment = jinja2.Environment(
+        self.template_compiler = jinja2.Environment(
             block_start_string="<%",
             block_end_string="%>",
             variable_start_string="<<",
@@ -249,12 +258,16 @@ class JinjaTemplateEvaluatorFactory:
     def get_evaluator(self, definition: str):
         assert isinstance(definition, str), definition
         if "<<" in definition:
-            template = self.environment.from_string(definition)
-            return lambda context: template.render(
-                **context.field_vars(), **context.field_funcs()
-            )
+            try:
+                template = self.template_compiler.from_string(definition)
+                return DynamicEvaluator(template)
+            except jinja2.exceptions.TemplateSyntaxError as e:
+                raise DataGenSyntaxError(str(e), None, None) from e
         else:
             return lambda context: definition
+
+
+template_evaluator_factory = JinjaTemplateEvaluatorFactory()
 
 
 def try_to_infer_type(val):
@@ -270,34 +283,31 @@ def try_to_infer_type(val):
 class SimpleValue(FieldDefinition):
     """A value with no sub-structure (although it could hold a template)"""
 
-    def __init__(self, definition: dict, filename: str, line_num: int):
+    def __init__(self, definition: str, filename: str, line_num: int):
         self.definition = definition
         self.filename = filename
         self.line_num = line_num
         assert isinstance(filename, str)
         assert isinstance(line_num, int), line_num
-        self._evaluator = None
-
-    def evaluator(self, context, definition):
-        """Cache a compiled/instantiated evaluator"""
-        if not self._evaluator:
-            self._evaluator = context.evaluator_for_definition(definition)
-        return self._evaluator
+        if isinstance(definition, str):
+            try:
+                self.evaluator = template_evaluator_factory.get_evaluator(definition)
+            except Exception as e:
+                fix_exception(f"Cannot parse value {self.definition}", self, e)
+        else:
+            self.evaluator = False
 
     def render(self, context):
-        try:
-            if isinstance(self.definition, str):
-                evaluator = self.evaluator(context, self.definition)
-                val = evaluator(context)
-            else:
-                val = self.definition
-            return try_to_infer_type(val)
-        except jinja2.exceptions.TemplateSyntaxError as e:
-            raise DataGenSyntaxError(
-                f"Error in parsing {self.definition}: {e}", self.filename, self.line_num
-            )
-        except jinja2.exceptions.UndefinedError as e:
-            raise DataGenNameError(e.message, self.filename, self.line_num)
+        if self.evaluator:
+            try:
+                val = self.evaluator(context)
+            except jinja2.exceptions.UndefinedError as e:
+                raise DataGenNameError(e.message, self.filename, self.line_num) from e
+            except Exception as e:
+                raise DataGenValueError(str(e), self.filename, self.line_num) from e
+        else:
+            val = self.definition
+        return try_to_infer_type(val)
 
 
 class StructuredValue(FieldDefinition):
@@ -334,7 +344,6 @@ class StructuredValue(FieldDefinition):
                 raise DataGenNameError(
                     f"Cannot find definition for: {method} on {objname}"
                 )
-
             value = func(*self.args, **self.kwargs)
         else:
             try:
