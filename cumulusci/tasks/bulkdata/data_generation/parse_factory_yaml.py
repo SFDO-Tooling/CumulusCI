@@ -1,7 +1,7 @@
 from numbers import Number
 from contextlib import contextmanager
 from collections import namedtuple
-import pathlib
+from pathlib import Path
 
 import yaml
 from yaml.composer import Composer
@@ -18,6 +18,8 @@ from .data_gen_exceptions import DataGenSyntaxError, DataGenNameError, DataGenEr
 
 SHARED_OBJECT = "#SHARED_OBJECT"
 
+###
+#   The entry point to this is parse_generator
 
 LineTracker = namedtuple("LineTracker", ["filename", "line_num"])
 
@@ -61,6 +63,14 @@ class ParseContext:
             yield
         finally:
             self.current_sobject = _old_sobject
+
+    # def change_current_path(self, path):
+    #     _old_path = path
+    #     self.current_path = path
+    #     try:
+    #         yield
+    #     finally:
+    #         self.current_path = _old_path
 
 
 def removeline_numbers(dct):
@@ -177,19 +187,30 @@ def parse_inclusions(yaml_sobj, fields, context):
 
 
 def parse_sobject_definition(yaml_sobj, context):
+    parsed_sobject = parse_element(
+        yaml_sobj,
+        "object",
+        {},
+        {
+            "fields": dict,
+            "friends": list,
+            "include": str,
+            "nickname": str,
+            "count": (str, int),
+        },
+        context,
+    )
     assert yaml_sobj
     with context.change_current_sobject(yaml_sobj):
         sobj_def = {}
-        sobj_def["sftype"] = yaml_sobj.get("object")
-        assert sobj_def["sftype"], f"Object should have 'object' name {yaml_sobj}"
-        assert isinstance(sobj_def["sftype"], str), sobj_def["sftype"]
-        sobj_def["fields"] = []
-        parse_inclusions(yaml_sobj, sobj_def["fields"], context)
-        sobj_def["fields"].extend(parse_fields(yaml_sobj.get("fields", {}), context))
-        sobj_def["friends"] = parse_friends(yaml_sobj.get("friends", []), context)
-        sobj_def["nickname"] = yaml_sobj.get("nickname")
-        sobj_def["line_num"] = context.line_num(yaml_sobj)["line_num"]
-        sobj_def["filename"] = context.line_num(yaml_sobj)["filename"]
+        sobj_def["sftype"] = parsed_sobject.object
+        sobj_def["fields"] = fields = []
+        parse_inclusions(yaml_sobj, fields, context)
+        fields.extend(parse_fields(parsed_sobject.fields or {}, context))
+        sobj_def["friends"] = parse_friends(parsed_sobject.friends or [], context)
+        sobj_def["nickname"] = parsed_sobject.nickname
+        sobj_def["line_num"] = parsed_sobject.line_num.line_num
+        sobj_def["filename"] = parsed_sobject.line_num.filename
 
         count_expr = yaml_sobj.get("count")
 
@@ -202,7 +223,8 @@ def parse_sobject_definition(yaml_sobj, context):
 def parse_sobject_list(sobjects, context):
     parsed_sobject_definitions = []
     for obj in sobjects:
-        assert obj["object"]
+        assert isinstance(obj, dict), obj
+        assert obj["object"], obj
         sobject_factory = parse_sobject_definition(obj, context)
         parsed_sobject_definitions.append(sobject_factory)
     return parsed_sobject_definitions
@@ -239,53 +261,132 @@ def yaml_safe_load_withline_numbers(filestream, filename):
     return loader.get_single_data(), line_numbers
 
 
-def do_inclusions(path, file_inclusions, context):
-    for inclusion in file_inclusions:
-        # should be a single-element dict: {'include_file': 'foo.yml'}
-        relpath = inclusion["include_file"]
-        linenum = inclusion.get("__line__") or LineTracker("unknown", -1)
-        extras = set(inclusion.keys()) - set(["include_file", "__line__"])
-        if extras:
-            raise DataGenSyntaxError(
-                "Extra items detected: {extras}", **linenum._asdict()
-            )
-        assert not relpath.startswith("/")  # only relative paths
-        inclusion_path = path.parent / relpath
-        # someday add a check that we don't go outside of the project dir
-        if not inclusion_path.exists():
-            raise DataGenError(
-                f"Cannot load include file {inclusion_path}", **linenum._asdict()
-            )
-        with inclusion_path.open() as f:
-            incl_objects = gather_data(f, context)
-            return incl_objects
+class DictValuesAsAttrs:
+    pass
 
 
-def gather_data(stream, context: ParseContext):
+def parse_element(dct, element_type, mandatory_keys, optional_keys, context):
+    expected_keys = {
+        **mandatory_keys,
+        **optional_keys,
+        "__line__": LineTracker,
+        element_type: str,
+    }
+    rc_obj = DictValuesAsAttrs()
+    rc_obj.line_num = dct["__line__"]
+    for key in dct:
+        key_definition = expected_keys.get(key)
+        if not key_definition:
+            raise DataGenError(f"Unexpected key: {key}", **context.line_num(dct))
+        else:
+            value = dct[key]
+            if not isinstance(value, key_definition):
+                raise DataGenError(
+                    f"Expected `{key}` to be of type {key_definition} instead of {type(value)}.",
+                    **context.line_num(dct),
+                )
+            else:
+                setattr(rc_obj, key, value)
+
+    missing_keys = set(mandatory_keys) - set(dct.keys())
+    if missing_keys:
+        raise DataGenError(
+            f"Expected to see `{missing_keys}` in `{element_type}``.",
+            **context.line_num(dct),
+        )
+    defaulted_keys = set(optional_keys) - set(dct.keys())
+    for key in defaulted_keys:
+        setattr(rc_obj, key, None)
+
+    return rc_obj
+
+
+def relpath_from_inclusion_element(inclusion, context):
+    # should be a two-element dict: {'include_file': 'foo.yml', "__line__": 5}
+    inclusion_parsed = parse_element(inclusion, "include_file", {}, {}, context)
+    relpath = inclusion_parsed.include_file
+    linenum = inclusion_parsed.line_num or LineTracker("unknown", -1)
+    assert not relpath.startswith("/")  # only relative paths
+    return Path(relpath), linenum
+
+
+def parse_included_file(parent_path: Path, inclusion, context):
+    relpath, linenum = relpath_from_inclusion_element(inclusion, context)
+    inclusion_path = parent_path.parent / relpath
+    # someday add a check that we don't go outside of the project dir
+    if not inclusion_path.exists():
+        raise DataGenError(
+            f"Cannot load include file {inclusion_path}", **linenum._asdict()
+        )
+    with inclusion_path.open() as f:
+        incl_objects = parse_file(f, context)
+        return incl_objects
+
+
+def parse_included_files(path, data, context):
+    file_inclusions = [obj for obj in data if obj.get("include_file")]
+
+    templates = []
+    for fi in file_inclusions:
+        templates.extend(parse_included_file(path, fi, context))
+    return templates
+
+
+def sort_top_level_objects(data, context):
+    top_level_collections = {
+        "option": [],
+        "include_file": [],
+        "macro": [],
+        "object": [],
+    }
+    for obj in data:
+        if not isinstance(obj, dict):
+            raise DataSyntaxError(
+                f"Top level entities in a data generation template should all be dictionaries, not {obj}",
+                **context.line_num(data),
+            )
+        was_sorted = False
+        for collection in top_level_collections:
+            if obj.get(collection):
+                top_level_collections[type_level_collection].append(obj)
+        if not was_sorted:
+            raise DataGenError(f"Unknown object type {obj}", **context.line_num(data))
+
+
+def parse_top_level_elements(path, data, context):
+    templates = []
+    templates.extend(parse_included_files(path, data, context))
+    context.options.extend([obj for obj in data if obj.get("option")])
+    context.macros.update({obj["macro"]: obj for obj in data if obj.get("macro")})
+    templates.extend([obj for obj in data if obj.get("object")])
+    return templates
+
+
+## TODO: Use sort_top_level_objects
+
+
+def parse_file(stream, context: ParseContext):
     stream_name = getattr(stream, "name", None)
     if stream_name:
-        path = pathlib.Path(stream.name).absolute()
+        path = Path(stream.name).absolute()
     else:
         path = "<stream>"
     data, line_numbers = yaml_safe_load_withline_numbers(stream, str(path))
+    context.line_numbers.update(line_numbers)
+
     if not isinstance(data, list):
         raise DataGenSyntaxError(
             "Generator file should be a list (use '-' on top-level lines)",
             stream_name,
             1,
         )
-    file_inclusions = [obj for obj in data if obj.get("include_file")]
-    do_inclusions(path, file_inclusions, context)
 
-    context.options.extend([obj for obj in data if obj.get("option")])
-    context.macros.update({obj["macro"]: obj for obj in data if obj.get("macro")})
-    context.line_numbers.update(line_numbers)
-    templates = [obj for obj in data if obj.get("object")]
+    templates = parse_top_level_elements(path, data, context)
 
     return templates
 
 
 def parse_generator(stream):
     context = ParseContext()
-    objects = gather_data(stream, context)
+    objects = parse_file(stream, context)
     return context.options, parse_sobject_list(objects, context)
