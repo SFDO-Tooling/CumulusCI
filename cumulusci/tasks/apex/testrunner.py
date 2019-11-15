@@ -504,8 +504,7 @@ class RunApexTests(BaseSalesforceApiTask):
                 total_method_retries, len(self.retry_details)
             )
         )
-        # Save the pre-retry status counts.
-        original_counts = self.counts.copy()
+        self.counts["Fail"] = 0
 
         for class_id, test_list in self.retry_details.items():
             for each_test in test_list:
@@ -515,21 +514,10 @@ class RunApexTests(BaseSalesforceApiTask):
                 self.job_id = self._enqueue_test_run({class_id: [each_test]})
                 self._wait_for_tests()
                 self._get_test_results(allow_retries=False)
-                # If the retry failed, stop and count all retried tests
-                # under their original failures.
-                if self.counts["Fail"] > original_counts["Fail"]:
-                    self.logger.error("Test retry failed.")
-                    # Reset counts to avoid double-counting retried failures
-                    self.counts = original_counts
-                    self.counts["Retriable"] = 0
-                    return
 
-        # All our retries succeeded. Reset the counts,
-        # and report all succeeded retries as passes
-        self.counts = original_counts
-        self.counts["Fail"] = 0
-        self.counts["Retriable"] = total_method_retries
-        self.counts["Pass"] += self.counts["Retriable"]
+        # If the retry failed, report the remaining failures.
+        if self.counts["Fail"]:
+            self.logger.error("Test retry failed.")
 
     def _wait_for_tests(self):
         self.poll_complete = False
