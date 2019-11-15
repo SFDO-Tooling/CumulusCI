@@ -114,8 +114,8 @@ def parse_field_value(name, field, context):
         return parse_structured_value(name, field, context)
 
     elif isinstance(field, list) and len(field) == 1 and isinstance(field[0], dict):
-        # unwrap a list of a single item in this context because it is probably
-        # a mistake
+        # unwrap a list of a single item in this context because it is
+        # a mistake and we can infer their real meaning
         return parse_field_value(name, field[0], context)
     else:
         raise DataGenSyntaxError(
@@ -172,7 +172,7 @@ def parse_count_expression(yaml_sobj, sobj_def, context):
 def include_macro(context, name):
     macro = context.macros.get(name)
     if not macro:
-        raise DataGenNameError(f"Cannot find macro named {name}")
+        raise DataGenNameError(f"Cannot find macro named {name}", **context.line_num())
     fields = macro.get("fields")
     if not fields:
         raise DataGenNameError(f"Macro {name} does not have 'fields'")
