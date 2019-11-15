@@ -392,6 +392,9 @@ class FieldFactory:
                 f"Problem rendering field {self.name}:\n {str(e)}", self, e
             )
 
+    def __repr__(self):
+        return f"<{self.__class__.__name__, self.name, self.definition.__class__.__name__}>"
+
 
 def output_batches(output_stream, factories, number, options):
     """Generate 'number' batches to 'output_stream' """

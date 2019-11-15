@@ -169,13 +169,12 @@ def parse_count_expression(yaml_sobj, sobj_def, context):
         )
 
 
-def include_macro(context, name):
+def include_macro(name, context):
     macro = context.macros.get(name)
     if not macro:
         raise DataGenNameError(f"Cannot find macro named {name}", **context.line_num())
-    fields = macro.get("fields")
-    if not fields:
-        raise DataGenNameError(f"Macro {name} does not have 'fields'")
+    parsed_macro = parse_element(macro, "macro", {"fields": dict}, {}, context)
+    fields = parsed_macro.fields
     return parse_fields(fields, context)
 
 
@@ -183,7 +182,7 @@ def parse_inclusions(yaml_sobj, fields, context):
     inclusions = [x.strip() for x in yaml_sobj.get("include", "").split(",")]
     inclusions = filter(None, inclusions)
     for inclusion in inclusions:
-        fields.extend(include_macro(context, inclusion))
+        fields.extend(include_macro(inclusion, context))
 
 
 def parse_sobject_definition(yaml_sobj, context):
@@ -274,31 +273,32 @@ def parse_element(dct, element_type, mandatory_keys, optional_keys, context):
     }
     rc_obj = DictValuesAsAttrs()
     rc_obj.line_num = dct["__line__"]
-    for key in dct:
-        key_definition = expected_keys.get(key)
-        if not key_definition:
-            raise DataGenError(f"Unexpected key: {key}", **context.line_num(dct))
-        else:
-            value = dct[key]
-            if not isinstance(value, key_definition):
-                raise DataGenError(
-                    f"Expected `{key}` to be of type {key_definition} instead of {type(value)}.",
-                    **context.line_num(dct),
-                )
+    with context.change_current_sobject(dct):
+        for key in dct:
+            key_definition = expected_keys.get(key)
+            if not key_definition:
+                raise DataGenError(f"Unexpected key: {key}", **context.line_num(key))
             else:
-                setattr(rc_obj, key, value)
+                value = dct[key]
+                if not isinstance(value, key_definition):
+                    raise DataGenError(
+                        f"Expected `{key}` to be of type {key_definition} instead of {type(value)}.",
+                        **context.line_num(dct),
+                    )
+                else:
+                    setattr(rc_obj, key, value)
 
-    missing_keys = set(mandatory_keys) - set(dct.keys())
-    if missing_keys:
-        raise DataGenError(
-            f"Expected to see `{missing_keys}` in `{element_type}``.",
-            **context.line_num(dct),
-        )
-    defaulted_keys = set(optional_keys) - set(dct.keys())
-    for key in defaulted_keys:
-        setattr(rc_obj, key, None)
+        missing_keys = set(mandatory_keys) - set(dct.keys())
+        if missing_keys:
+            raise DataGenError(
+                f"Expected to see `{missing_keys}` in `{element_type}``.",
+                **context.line_num(dct),
+            )
+        defaulted_keys = set(optional_keys) - set(dct.keys())
+        for key in defaulted_keys:
+            setattr(rc_obj, key, None)
 
-    return rc_obj
+        return rc_obj
 
 
 def relpath_from_inclusion_element(inclusion, context):

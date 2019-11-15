@@ -53,8 +53,21 @@ class TestErrors(unittest.TestCase):
     def test_conflicting_declarations_error(self):
         yaml = """
         - object: B                             #2
-          macro: C                                #3
-          fields:                                 #4
+          macro: C                              #3
+          fields:                               #4
+            A: What a wonderful life            #5
+            X:                                  #6
+                xyzzy: abcde                    #7
+        """
+        with self.assertRaises(DataGenError) as e:
+            generate(StringIO(yaml), 1, {}, None, None)
+        assert 4 > e.exception.line_num >= 2
+
+    def test_extra_keys(self):
+        yaml = """
+        - object: B                             #2
+          velcro: C                             #3
+          fields:                               #4
             A: What a wonderful life            #5
             X:                                  #6
                 xyzzy: abcde                    #7
