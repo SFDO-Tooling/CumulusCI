@@ -23,12 +23,13 @@ yaml2 = """- object: B                  #1
     X: Y                                #5
 """
 
-yaml3 = """- object: B                  #1
-  count: 5                              #2
-  fields:                               #3
-    A: What a wonderful life            #4
-    X:                                  #5
-        xyzzy: abcde                    #6
+yaml3 = """
+- object: B                             #2
+  count: 5                              #3
+  fields:                               #4
+    A: What a wonderful life            #5
+    X:                                  #6
+        xyzzy: abcde                    #7
 """
 
 
@@ -36,7 +37,6 @@ class TestLineNumbers(unittest.TestCase):
     def test_name_error(self):
         with self.assertRaises(DataGenNameError) as e:
             generate(StringIO(yaml1), 1, {}, None, None)
-        print(e.exception)
         assert str(e.exception)[-2:] == ":3"
 
     def test_syntax_error(self):

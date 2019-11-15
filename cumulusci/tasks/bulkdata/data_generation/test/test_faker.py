@@ -46,11 +46,6 @@ class TestFaker(unittest.TestCase):
                     representation: alpha-2
         """
         generate(StringIO(yaml), 1, {}, None, None)
-        print(
-            "XYZ",
-            write_row_mock.mock_calls[0][1][1]["country"],
-            dir(write_row_mock.mock_calls[0]),
-        )
         assert len(row_values(write_row_mock, 0, "country")) == 2
 
     @mock.patch(write_row_path)
