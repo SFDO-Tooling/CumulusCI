@@ -46,7 +46,12 @@ def parse_date(d):
 def date_between(context, start_date, end_date):
     start_date = parse_date(start_date) or start_date
     end_date = parse_date(end_date) or end_date
-    return fake.date_between(start_date, end_date)
+    try:
+        return fake.date_between(start_date, end_date)
+    except ValueError as e:
+        if "empty range" not in str(e):
+            raise
+    # swallow empty range errors per Python conventions
 
 
 template_funcs = {
