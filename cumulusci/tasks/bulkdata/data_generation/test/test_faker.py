@@ -80,3 +80,16 @@ class TestFaker(unittest.TestCase):
         """
         generate(StringIO(yaml), 1, {}, None, None)
         assert row_values(write_row_mock, 0, "date").year
+
+    @mock.patch(write_row_path)
+    def test_non_overlapping_dates(self, write_row_mock):
+        yaml = """
+        - object: OBJ
+          fields:
+            date:
+                date_between:
+                    start_date: today
+                    end_date: 2000-01-01
+        """
+        generate(StringIO(yaml), 1, {}, None, None)
+        assert row_values(write_row_mock, 0, "date") is None

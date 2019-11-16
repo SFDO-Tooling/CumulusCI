@@ -1,4 +1,5 @@
 from numbers import Number
+from datetime import date
 from contextlib import contextmanager
 from collections import namedtuple
 from pathlib import Path
@@ -109,7 +110,7 @@ def parse_structured_value(name, field, context):
 
 def parse_field_value(name, field, context, allow_structured_values=True):
     assert field is not None
-    if isinstance(field, str) or isinstance(field, Number):
+    if isinstance(field, (str, Number, date)):
         return SimpleValue(field, **(context.line_num(field) or context.line_num()))
     elif isinstance(field, dict) and field.get("object"):
         return ChildRecordValue(
@@ -124,7 +125,7 @@ def parse_field_value(name, field, context, allow_structured_values=True):
         return parse_field_value(name, field[0], context)
     else:
         raise DataGenSyntaxError(
-            f"Unknown field type for {name}. Should be a string or 'object': \n {field} ",
+            f"Unknown field {type(field)} type for {name}. Should be a string or 'object': \n {field} ",
             **(context.line_num(field) or context.line_num()),
         )
 
