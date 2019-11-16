@@ -19,5 +19,3 @@
       object: Account
       fields:
         Name: <<Contact.LastName>> incorporated
-        Description:
-          fake: catch_phrase
