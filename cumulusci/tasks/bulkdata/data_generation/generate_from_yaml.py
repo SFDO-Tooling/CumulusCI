@@ -44,7 +44,8 @@ class GenerateFromYaml(BaseGenerateDataTask):
             self.vars = {}
 
     def generate_data(self, session, engine, base, num_records, current_batch_num):
-        output_stream = SqlOutputStream(session, engine, base)
+        output_stream = SqlOutputStream()
+        output_stream.initialize(session, engine, base)
         with open(self.yaml_file) as open_yaml_file:
             generate(
                 open_yaml_file,
@@ -78,10 +79,11 @@ def eval_arg(arg):
 @click.option("--verbose/--no-verbose", default=False)
 def generate_from_yaml(yaml_file, count, option, dburl, mapping_file, verbose):
     if dburl:
-        if not mapping_file:
-            raise click.ClickException("Mapping file must be supplied.")
-        with click.open_file(mapping_file, "r") as f:
-            mappings = yaml.safe_load(f)
+        if mapping_file:
+            with click.open_file(mapping_file, "r") as f:
+                mappings = yaml.safe_load(f)
+        else:
+            mappings = None
         output_stream = SqlOutputStream.from_url(dburl, mappings)
     else:
         output_stream = DebugOutputStream()

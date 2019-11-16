@@ -48,5 +48,7 @@ def generate(open_yaml_file, count, cli_options, output_stream, mapping_file):
     if extra_options:
         warnings.warn(f"Warning: unknown options: {extra_options}")
 
+    output_stream.create_or_validate_tables(parse_result.tables)
+
     # now do the output
     output_batches(output_stream, parse_result.templates, count, options)
