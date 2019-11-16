@@ -37,12 +37,13 @@ yaml_with_syntax_error = """            #1
 
 class TestLineNumbers(unittest.TestCase):
     def test_line_numbers(self):
-        options, sobjects = parse_generator(StringIO(yaml))
-        assert sobjects[0].line_num == 2
-        assert sobjects[0].fields[0].definition.line_num == 5
-        line_num = sobjects[0].fields[1].definition.line_num
-        assert line_num == 2 or line_num == 6  # either is okay for small strings
-        assert sobjects[1].count_expr.line_num == 8
+        result = parse_generator(StringIO(yaml))
+        templates = result.templates
+        assert templates[0].line_num == 2
+        assert templates[0].fields[0].definition.line_num == 5
+        line_num = templates[0].fields[1].definition.line_num
+        assert 4 <= line_num <= 6  # anywhere in here is okay for small strings
+        assert templates[1].count_expr.line_num == 8
 
     def test_value_error_reporting(self):
         with self.assertRaises(DataGenValueError) as e:

@@ -40,13 +40,13 @@ def generate(open_yaml_file, count, cli_options, output_stream, mapping_file):
     output_stream = output_stream or DebugOutputStream()
 
     # parse the YAML and any it refers to
-    option_definitions, definitions = parse_generator(open_yaml_file)
+    parse_result = parse_generator(open_yaml_file)
 
     # figure out how it relates to CLI options
-    options, extra_options = merge_options(option_definitions, cli_options)
+    options, extra_options = merge_options(parse_result.options, cli_options)
 
     if extra_options:
         warnings.warn(f"Warning: unknown options: {extra_options}")
 
     # now do the output
-    output_batches(output_stream, definitions, count, options)
+    output_batches(output_stream, parse_result.templates, count, options)

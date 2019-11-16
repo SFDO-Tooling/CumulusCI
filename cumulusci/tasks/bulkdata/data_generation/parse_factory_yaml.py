@@ -25,6 +25,13 @@ SHARED_OBJECT = "#SHARED_OBJECT"
 LineTracker = namedtuple("LineTracker", ["filename", "line_num"])
 
 
+class ParseResult:
+    def __init__(self, options, tables, templates):
+        self.options = options
+        self.tables = tables
+        self.templates = templates
+
+
 class ParseContext:
     current_parent_object = None
 
@@ -32,6 +39,7 @@ class ParseContext:
         self.macros = {}
         self.line_numbers = {}
         self.options = []
+        self.object_infos = {}
 
     def line_num(self, obj=None):
         if not obj:
@@ -64,6 +72,16 @@ class ParseContext:
             yield
         finally:
             self.current_parent_object = _old_sobject
+
+    def register_object(self, obj):
+        """Register objects for later use.
+
+        We register objects so we can get a list of all fields that can
+           be generated. This can be used to create a dynamic schema.
+        """
+        obj_info = self.object_infos.setdefault(obj.sftype, set())
+        if obj.fields:
+            obj_info.update(set(field.name for field in obj.fields))
 
 
 def removeline_numbers(dct):
@@ -209,6 +227,7 @@ def parse_sobject_definition(yaml_sobj, context):
         },
         context,
     )
+
     assert yaml_sobj
     with context.change_current_parent_object(yaml_sobj):
         sobj_def = {}
@@ -225,8 +244,9 @@ def parse_sobject_definition(yaml_sobj, context):
 
         if count_expr is not None:
             parse_count_expression(yaml_sobj, sobj_def, context)
-
-        return SObjectFactory(**sobj_def)
+        new_template = SObjectFactory(**sobj_def)
+        context.register_object(new_template)
+        return new_template
 
 
 def parse_sobject_list(sobjects, context):
@@ -407,4 +427,7 @@ def parse_file(stream, context: ParseContext):
 def parse_generator(stream):
     context = ParseContext()
     objects = parse_file(stream, context)
-    return context.options, parse_sobject_list(objects, context)
+    templates = parse_sobject_list(objects, context)
+    tables = context.object_infos
+
+    return ParseResult(context.options, tables, templates)
