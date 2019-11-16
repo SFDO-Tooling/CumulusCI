@@ -40,7 +40,7 @@
 
 - macro: SFStandardOpportunity
   fields:
-    name: <<fake.word>> Opportunity
+    Name: <<fake.word>> Opportunity
     CloseDate:
       date_between:
         start_date: -30d
