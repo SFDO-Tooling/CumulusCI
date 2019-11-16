@@ -273,10 +273,10 @@ template_evaluator_factory = JinjaTemplateEvaluatorFactory()
 def try_to_infer_type(val):
     try:
         return float(val)
-    except ValueError:
+    except (ValueError, TypeError):
         try:
             return int(val)
-        except ValueError:
+        except (ValueError, TypeError):
             return val
 
 
