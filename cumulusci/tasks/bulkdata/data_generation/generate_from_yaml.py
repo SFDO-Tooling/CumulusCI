@@ -78,10 +78,11 @@ def eval_arg(arg):
 @click.option("--verbose/--no-verbose", default=False)
 def generate_from_yaml(yaml_file, count, option, dburl, mapping_file, verbose):
     if dburl:
-        raise click.ClickException("Mapping file must be supplied.")
+        if not mapping_file:
+            raise click.ClickException("Mapping file must be supplied.")
         with click.open_file(mapping_file, "r") as f:
             mappings = yaml.safe_load(f)
-        output_stream = SqlOutputStream(dburl, mappings)
+        output_stream = SqlOutputStream.from_url(dburl, mappings)
     else:
         output_stream = DebugOutputStream()
     try:

@@ -34,7 +34,7 @@ class SqlOutputStream(OutputStream):
 
     @classmethod
     def from_url(cls, db_url, mappings):
-        return cls.from_open_connection(*BaseGenerateDataTask.init_db(db_url, mappings))
+        return cls(*BaseGenerateDataTask.init_db(db_url, mappings))
 
     def write_single_row(self, tablename, row):
         model = self.metadata.tables[tablename]
