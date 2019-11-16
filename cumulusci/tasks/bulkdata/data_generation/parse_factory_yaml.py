@@ -74,12 +74,14 @@ def parse_structured_value_args(args, context):
     if isinstance(args, dict):
         with context.change_current_parent_object(args):
             return {
-                name: parse_field_value(name, arg, context)
+                name: parse_field_value(name, arg, context, False)
                 for name, arg in args.items()
                 if name != "__line__"
             }
+    elif isinstance(args, list):
+        return [parse_field_value(i, arg, context, False) for i, arg in enumerate(args)]
     else:
-        return [parse_field_value(i, arg, context) for i, arg in enumerate(args)]
+        return parse_field_value("", args, context, False)
 
 
 def parse_structured_value(name, field, context):
@@ -101,13 +103,11 @@ def parse_structured_value(name, field, context):
             f"Extra keys for field {name} : {top_level}", **context.line_num(field)
         )
     [[function_name, args]] = top_level
-    if isinstance(args, dict):
-        args = removeline_numbers(args)
-
+    args = parse_structured_value_args(args, context)
     return StructuredValue(function_name, args, **context.line_num(field))
 
 
-def parse_field_value(name, field, context):
+def parse_field_value(name, field, context, allow_structured_values=True):
     assert field is not None
     if isinstance(field, str) or isinstance(field, Number):
         return SimpleValue(field, **(context.line_num(field) or context.line_num()))
@@ -131,7 +131,10 @@ def parse_field_value(name, field, context):
 
 def parse_field(name, definition, context):
     assert name, name
-    assert definition is not None, f"Field should have a definition: {name}"
+    if definition is None:
+        raise DataGenSyntaxError(
+            f"Field should have a definition: {name}", **context.line_num(name)
+        )
     return FieldFactory(
         name,
         parse_field_value(name, definition, context),
@@ -140,16 +143,17 @@ def parse_field(name, definition, context):
 
 
 def parse_fields(fields, context):
-    if not isinstance(fields, dict):
-        raise DataGenSyntaxError(
-            "Fields should be a dictionary (should not start with -) ",
-            **context.line_num(),
-        )
-    return [
-        parse_field(name, definition, context)
-        for name, definition in fields.items()
-        if name != "__line__"
-    ]
+    with context.change_current_parent_object(fields):
+        if not isinstance(fields, dict):
+            raise DataGenSyntaxError(
+                "Fields should be a dictionary (should not start with -) ",
+                **context.line_num(),
+            )
+        return [
+            parse_field(name, definition, context)
+            for name, definition in fields.items()
+            if name != "__line__"
+        ]
 
 
 def parse_friends(friends, context):

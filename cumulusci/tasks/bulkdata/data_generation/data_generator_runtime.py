@@ -209,7 +209,7 @@ class SObjectFactory:
             try:
                 row[field.name] = field.generate_value(context)
                 assert isinstance(
-                    row[field.name], (int, str, bool, date, float)
+                    row[field.name], (int, str, bool, date, float, type(None))
                 ), f"Field '{field.name}' generated unexpected object: {row[field.name]} {type(row[field.name])}"
             except Exception as e:
                 raise fix_exception(f"Problem rendering value", self, e) from e
@@ -313,12 +313,21 @@ class SimpleValue(FieldDefinition):
         return f"<{self.__class__.__name__ , self.definition}>"
 
 
+def evaluate_function(func, args, kwargs, context):
+    args = [arg.render(context) if hasattr(arg, "render") else arg for arg in args]
+    kwargs = {
+        name: arg.render(context) if hasattr(arg, "render") else arg
+        for name, arg in kwargs.items()
+    }
+    value = func(*args, **kwargs)
+    return value
+
+
 class StructuredValue(FieldDefinition):
     """A value with substructure which will call a handler function."""
 
     def __init__(self, function_name, args, filename, line_num):
         self.function_name = function_name
-        self.args = args
         self.filename = filename
         self.line_num = line_num
         if isinstance(args, list):
@@ -347,7 +356,7 @@ class StructuredValue(FieldDefinition):
                 raise DataGenNameError(
                     f"Cannot find definition for: {method} on {objname}"
                 )
-            value = func(*self.args, **self.kwargs)
+            value = evaluate_function(func, self.args, self.kwargs, context)
         else:
             try:
                 func = context.executable_blocks()[self.function_name]
@@ -355,7 +364,7 @@ class StructuredValue(FieldDefinition):
                 raise DataGenNameError(
                     f"Cannot find func named {self.function_name}", None, None
                 )
-            value = func(*self.args, **self.kwargs)
+            value = evaluate_function(func, self.args, self.kwargs, context)
 
         return value
 
