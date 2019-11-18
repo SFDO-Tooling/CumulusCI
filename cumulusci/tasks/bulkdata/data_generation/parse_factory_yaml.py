@@ -14,6 +14,7 @@ from .data_generator_runtime import (
     SimpleValue,
     ChildRecordValue,
     StructuredValue,
+    ReferenceValue,
 )
 from .data_gen_exceptions import DataGenSyntaxError, DataGenNameError, DataGenError
 
@@ -141,7 +142,10 @@ def parse_structured_value(name, field, context):
         )
     [[function_name, args]] = top_level
     args = parse_structured_value_args(args, context)
-    return StructuredValue(function_name, args, **context.line_num(field))
+    if function_name == "reference":
+        return ReferenceValue(function_name, args, **context.line_num(field))
+    else:
+        return StructuredValue(function_name, args, **context.line_num(field))
 
 
 def parse_field_value(name, field, context, allow_structured_values=True):
