@@ -970,7 +970,6 @@ def org_list(config, plain):
                 "username", org_config.userinfo__preferred_username
             )
             row.append(username)
-            print(org_config.expires)
             if org_config.expires:
                 if org_config.expires != "Persistent":
                     row.append(
