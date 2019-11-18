@@ -980,9 +980,7 @@ def org_list(config, plain):
                     row.append(org_config.expires)
             else:
                 row.append("Unknown")
-            # row.append(
-            #     parse_api_datetime(org_config.expires).strftime("%m/%d/%Y") or "Unknown"
-            # )
+
             persistent_data.append(row)
 
     rows_to_dim = [row_index for row_index, row in enumerate(scratch_data) if row[3]]
