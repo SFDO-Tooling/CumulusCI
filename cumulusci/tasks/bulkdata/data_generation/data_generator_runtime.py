@@ -25,9 +25,9 @@ class IdManager:
     def __init__(self):
         self.last_used_ids = defaultdict(lambda: 0)
 
-    def generate_id(self, sobject_name):
-        self.last_used_ids[sobject_name] += 1
-        return self.last_used_ids[sobject_name]
+    def generate_id(self, table_name):
+        self.last_used_ids[table_name] += 1
+        return self.last_used_ids[table_name]
 
 
 class CounterGenerator:
@@ -42,8 +42,8 @@ class CounterGenerator:
     def get_value(self, name):
         return self.counters[name]
 
-    def incr(self, sobject_name):
-        self.counters[sobject_name] += 1
+    def incr(self, name):
+        self.counters[name] += 1
 
 
 class Globals:
@@ -76,9 +76,9 @@ class Context:
     obj = None
     today = date.today()
 
-    def __init__(self, parent, sobject_name, output_stream=None, options=None):
+    def __init__(self, parent, current_table_name, output_stream=None, options=None):
         self.parent = parent
-        self.sobject_name = sobject_name
+        self.current_table_name = current_table_name
 
         if parent:
             self.counter_generator = CounterGenerator(parent.counter_generator)
@@ -93,10 +93,10 @@ class Context:
 
     def incr(self):
         """Increments the local counter for an object type"""
-        self.counter_generator.incr(self.sobject_name)
+        self.counter_generator.incr(self.current_table_name)
 
     def generate_id(self):
-        self.current_id = self.globals.id_manager.generate_id(self.sobject_name)
+        self.current_id = self.globals.id_manager.generate_id(self.current_table_name)
         return self.current_id
 
     def register_object(self, obj, name=None):
@@ -110,6 +110,7 @@ class Context:
             "today": self.today,
             "fake": faker_template_library,
             "fake_i18n": lambda locale: FakerTemplateLibrary(locale),
+            "number": self.counter_generator.get_value(self.current_table_name),
             **self.options,
             **self.globals.object_names,
         }
