@@ -1,6 +1,6 @@
 from random import randint, choice, choices as randchoices
 from datetime import date
-
+from .data_gen_exceptions import DataGenError
 
 from faker import Faker
 
@@ -56,14 +56,18 @@ def date_between(context, start_date, end_date):
 
 def reference(context, x):
     if hasattr(x, "id"):  # reference to an object with an id
-        return x.id
+        target = x.id
     elif isinstance(x, str):  # name of an object
         obj = context.field_vars()[x]
-        return obj.id
+        if not getattr(obj, "id"):
+            raise DataGenError(f"Reference to incorrect object type {obj}", None, None)
+        target = obj.id
     else:
-        raise Exception(
+        raise DataGenError(
             f"Can't get reference to object of type {type(x)}: {x}", None, None
         )
+
+    return target
 
 
 def counter(context, name):
