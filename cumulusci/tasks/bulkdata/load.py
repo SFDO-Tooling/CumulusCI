@@ -1,5 +1,4 @@
 import datetime
-import os
 import io
 
 from collections import defaultdict
@@ -27,8 +26,7 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
 
     task_options = {
         "database_url": {
-            "description": "The database url to a database containing the test data to load",
-            "required": True,
+            "description": "The database url to a database containing the test data to load"
         },
         "mapping": {
             "description": "The path to a yaml file containing mappings of the database fields to Salesforce object fields",
@@ -52,18 +50,17 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
         self.options["ignore_row_errors"] = process_bool_arg(
             self.options.get("ignore_row_errors", False)
         )
-        if self.options.get("sql_path"):
-            if self.options.get("database_url"):
-                raise TaskOptionsError(
-                    "The database_url option is set dynamically with the sql_path option.  Please unset the database_url option."
-                )
+        if self.options.get("database_url"):
+            # prefer database_url if it's set
+            self.options["sql_path"] = None
+        elif self.options.get("sql_path"):
             self.options["sql_path"] = os_friendly_path(self.options["sql_path"])
-            if not os.path.isfile(self.options["sql_path"]):
-                raise TaskOptionsError(
-                    f"File {self.options['sql_path']} does not exist"
-                )
             self.logger.info("Using in-memory sqlite database")
             self.options["database_url"] = "sqlite://"
+        else:
+            raise TaskOptionsError(
+                "You must set either the database_url or sql_path option."
+            )
 
     def _run_task(self):
         self._init_mapping()
