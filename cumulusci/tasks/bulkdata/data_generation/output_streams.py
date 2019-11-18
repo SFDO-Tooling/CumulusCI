@@ -74,10 +74,10 @@ def _validate_fields(mappings, tables):
 
 def create_tables_from_inferred_fields(tables, engine, metadata):
     """Create tables based on dictionary of tables->field-list."""
-    for table_name, fields in tables.items():
-        columns = [Column(field_name, Unicode(255)) for field_name in fields]
+    for table_name, table in tables.items():
+        columns = [Column(field_name, Unicode(255)) for field_name in table.fields]
         id_column = Column("id", Integer(), primary_key=True, autoincrement=True)
 
         t = Table(table_name, metadata, id_column, *columns)
         if t.exists():
-            raise DataGenError(f"Table already exists: {table_name}")
+            raise DataGenError(f"Table already exists: {table_name}", None, None)
