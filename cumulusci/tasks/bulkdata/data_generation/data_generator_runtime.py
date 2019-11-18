@@ -1,4 +1,5 @@
 from collections import defaultdict
+from abc import abstractmethod, ABC
 from functools import partial
 from datetime import date
 
@@ -207,13 +208,6 @@ class SObjectFactory:
         return row
 
 
-class FieldDefinition:
-    """Base class for things that render fields"""
-
-    def render(self, context):
-        pass
-
-
 class StaticEvaluator:
     def __init__(self, definition):
         self.definition = definition
@@ -262,6 +256,18 @@ def try_to_infer_type(val):
             return int(val)
         except (ValueError, TypeError):
             return val
+
+
+class FieldDefinition(ABC):
+    """Base class for things that render fields"""
+
+    @abstractmethod
+    def render(self, context):
+        pass
+
+    @property
+    def target_table(self):
+        return None
 
 
 class SimpleValue(FieldDefinition):
@@ -366,6 +372,10 @@ class ChildRecordValue(FieldDefinition):
 
         return child_row["id"]
 
+    @property
+    def target_table(self):
+        return self.sobj
+
 
 def fix_exception(message, parentobj, e):
     """Add filename and linenumber to an exception if needed"""
@@ -396,6 +406,10 @@ class FieldFactory:
             raise fix_exception(
                 f"Problem rendering field {self.name}:\n {str(e)}", self, e
             )
+
+    @property
+    def target_table(self):
+        return self.definition.target_table
 
     def __repr__(self):
         return f"<{self.__class__.__name__, self.name, self.definition.__class__.__name__}>"
