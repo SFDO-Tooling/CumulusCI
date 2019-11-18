@@ -5,10 +5,6 @@ update_configs:
     update_schedule: "weekly"
     ignored_updates:
       - match:
-          # Some pytest plugins not working
-          dependency_name: "pytest"
-          version_requirement: "4.x"
-      - match:
           # Waiting for Bryan to review newest version
           dependency_name: "robotframework-seleniumlibrary"
           version_requirement: "3.x"
