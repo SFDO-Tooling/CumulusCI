@@ -10,7 +10,7 @@ pytest==4.6.6  # pyup: <5
 pytest-cov==2.8.1
 responses==0.10.6
 Sphinx==2.2.1
-testfixtures==6.10.1
+testfixtures==6.10.2
 tox==3.14.0
 twine==2.0.0
 watchdog==0.9.0
