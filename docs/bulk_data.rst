@@ -314,7 +314,7 @@ target records become available.
 Options
 +++++++
 
-* ``path``: Location to write the mapping file. Default: datasets/generated_mapping.yml
+* ``path``: Location to write the mapping file. Default: datasets/mapping.yml
 * ``ignore``: Object API names, or fields in Object.Field format, to ignore
 * ``namespace_prefix``: The namespace prefix to treat as belonging to the project, if any
 

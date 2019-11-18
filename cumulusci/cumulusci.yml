@@ -396,19 +396,19 @@ tasks:
         class_path: cumulusci.tasks.bulkdata.GenerateMapping
         options:
             namespace_prefix: $project_config.project__package__namespace
-            path: 'datasets/generated_mapping.yml'
+            path: 'datasets/mapping.yml'
     extract_dataset:
         description: Extract a sample dataset using the bulk API.
         class_path: cumulusci.tasks.bulkdata.ExtractData
         options:
-            database_url: 'sqlite:///datasets/sample.db'
             mapping: 'datasets/mapping.yml'
+            sql_path: 'datasets/sample.sql'
     load_dataset:
         description: Load a sample dataset using the bulk API.
         class_path: cumulusci.tasks.bulkdata.LoadData
         options:
-            database_url: 'sqlite:///datasets/sample.db'
             mapping: 'datasets/mapping.yml'
+            sql_path: 'datasets/sample.sql'
 
 flows:
     apex_docs:
@@ -822,6 +822,12 @@ services:
       client_secret:
         description: Client Secret/Consumer Secret from the Connected App
         required: True
+  devhub:
+    description: Configure which SFDX org to use as a Dev Hub for creating scratch orgs
+    attributes:
+      username:
+        description: Username or alias of the SFDX org to use as a Dev Hub
+        required: True
   github:
     description: Configure connection for github tasks, e.g. Create Release
     attributes:
@@ -945,6 +951,9 @@ project:
 orgs:
     scratch:
         dev:
+            config_file: orgs/dev.json
+            days: 7
+        qa:
             config_file: orgs/dev.json
             days: 7
         feature:

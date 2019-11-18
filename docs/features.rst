@@ -194,6 +194,18 @@ If for some reason recreating the org doesn't work, you can resolve the issue wi
     $ cci org remove <org_name>
     $ cci org scratch <config_name> <org_name>
 
+Using a Different Dev Hub Org
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+By default, CumulusCI will create scratch orgs using the Dev Hub org that is configured as the defaultdevhubusername in sfdx.
+You can switch to a different Dev Hub org within a particular project by configuring the ``devhub`` service:
+
+.. code-block: console
+
+    $ cci service connect devhub --project
+    Username: [type the Dev Hub username here]
+    devhub is now configured for this project.
+
 
 Managing Dependencies
 =====================

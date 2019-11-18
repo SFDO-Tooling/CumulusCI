@@ -12,9 +12,11 @@ from cumulusci.utils import temporary_dir
 from cumulusci.core.config import ScratchOrgConfig
 from cumulusci.core.config import BaseGlobalConfig
 from cumulusci.core.config import BaseProjectConfig
+from cumulusci.core.config import ServiceConfig
 from cumulusci.core.exceptions import NotInProject
 from cumulusci.core.exceptions import ProjectConfigNotFound
 from cumulusci.core.exceptions import ScratchOrgException
+from cumulusci.core.exceptions import ServiceNotConfigured
 
 __location__ = os.path.dirname(os.path.realpath(__file__))
 
@@ -668,3 +670,21 @@ class TestScratchOrgConfig(unittest.TestCase):
 
         config.force_refresh_oauth_token.assert_called_once()
         self.assertTrue(config._scratch_info)
+
+    def test_choose_devhub(self, Command):
+        mock_keychain = mock.Mock()
+        mock_keychain.get_service.return_value = ServiceConfig(
+            {"username": "fake@fake.devhub"}
+        )
+        config = ScratchOrgConfig({}, "test")
+        config.keychain = mock_keychain
+
+        assert config._choose_devhub() == "fake@fake.devhub"
+
+    def test_choose_devhub__service_not_configured(self, Command):
+        mock_keychain = mock.Mock()
+        mock_keychain.get_service.side_effect = ServiceNotConfigured
+        config = ScratchOrgConfig({}, "test")
+        config.keychain = mock_keychain
+
+        assert config._choose_devhub() is None
