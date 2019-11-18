@@ -32,6 +32,24 @@ class ParseResult:
         self.templates = templates
 
 
+class TableInfo:
+    """Information we can infer about the table schema based on the templates.
+
+    Note that a table can be referred to in more than one place, so this class
+    unifies what we know about it.
+    """
+
+    def __init__(self):
+        self.fields = {}
+        self.friends = {}
+        self._templates = []
+
+    def register(self, template):
+        self.fields.update({field.name: field for field in template.fields})
+        self.friends.update({friend.sftype: friend for friend in template.friends})
+        self._templates.append(template)
+
+
 class ParseContext:
     current_parent_object = None
 
@@ -73,15 +91,15 @@ class ParseContext:
         finally:
             self.current_parent_object = _old_sobject
 
-    def register_object(self, obj):
-        """Register objects for later use.
+    def register_object(self, template):
+        """Register templates for later use.
 
-        We register objects so we can get a list of all fields that can
-           be generated. This can be used to create a dynamic schema.
+        We register templates so we can get a list of all fields that can
+        be generated. This can be used to create a dynamic schema.
         """
-        obj_info = self.object_infos.setdefault(obj.sftype, set())
-        if obj.fields:
-            obj_info.update(set(field.name for field in obj.fields))
+        table_info = self.object_infos.get(template.sftype, None) or TableInfo()
+        self.object_infos[template.sftype] = table_info
+        table_info.register(template)
 
 
 def removeline_numbers(dct):
