@@ -52,3 +52,5 @@ def generate(open_yaml_file, count, cli_options, output_stream, mapping_file):
 
     # now do the output
     output_batches(output_stream, parse_result.templates, count, options)
+
+    return parse_result
