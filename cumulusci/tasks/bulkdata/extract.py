@@ -1,4 +1,3 @@
-import os
 import tempfile
 import unicodecsv
 
@@ -29,8 +28,7 @@ from salesforce_bulk.util import IteratorBytesIO
 class ExtractData(BulkJobTaskMixin, BaseSalesforceApiTask):
     task_options = {
         "database_url": {
-            "description": "A DATABASE_URL where the query output should be written",
-            "required": True,
+            "description": "A DATABASE_URL where the query output should be written"
         },
         "mapping": {
             "description": "The path to a yaml file containing mappings of the database fields to Salesforce object fields",
@@ -44,14 +42,17 @@ class ExtractData(BulkJobTaskMixin, BaseSalesforceApiTask):
 
     def _init_options(self, kwargs):
         super(ExtractData, self)._init_options(kwargs)
-        if self.options.get("sql_path"):
-            if self.options.get("database_url"):
-                raise TaskOptionsError(
-                    "The database_url option is set dynamically with the sql_path option.  Please unset the database_url option."
-                )
+        if self.options.get("database_url"):
+            # prefer database_url if it's set
+            self.options["sql_path"] = None
+        elif self.options.get("sql_path"):
             self.logger.info("Using in-memory sqlite database")
             self.options["database_url"] = "sqlite://"
             self.options["sql_path"] = os_friendly_path(self.options["sql_path"])
+        else:
+            raise TaskOptionsError(
+                "You must set either the database_url or sql_path option."
+            )
 
     def _run_task(self):
         self._init_mapping()
@@ -268,8 +269,6 @@ class ExtractData(BulkJobTaskMixin, BaseSalesforceApiTask):
 
     def _sqlite_dump(self):
         path = self.options["sql_path"]
-        if os.path.exists(path):
-            os.remove(path)
         with open(path, "w") as f:
             for line in self.session.connection().connection.iterdump():
                 f.write(line + "\n")
