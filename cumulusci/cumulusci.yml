@@ -822,6 +822,12 @@ services:
       client_secret:
         description: Client Secret/Consumer Secret from the Connected App
         required: True
+  devhub:
+    description: Configure which SFDX org to use as a Dev Hub for creating scratch orgs
+    attributes:
+      username:
+        description: Username or alias of the SFDX org to use as a Dev Hub
+        required: True
   github:
     description: Configure connection for github tasks, e.g. Create Release
     attributes:
