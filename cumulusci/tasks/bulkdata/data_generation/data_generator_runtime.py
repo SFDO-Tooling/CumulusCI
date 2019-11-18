@@ -360,6 +360,12 @@ class StructuredValue(FieldDefinition):
         return value
 
 
+class ReferenceValue(StructuredValue):
+    @property
+    def target_table(self):
+        return self.args[0].definition
+
+
 class ChildRecordValue(FieldDefinition):
     """Represents an SObject embedded in another SObject"""
 
@@ -370,12 +376,11 @@ class ChildRecordValue(FieldDefinition):
 
     def render(self, context):
         child_row = self.sobj.generate_rows(context.output_stream, context)[0]
-
         return child_row["id"]
 
     @property
     def target_table(self):
-        return self.sobj
+        return self.sobj.sftype
 
 
 def fix_exception(message, parentobj, e):
