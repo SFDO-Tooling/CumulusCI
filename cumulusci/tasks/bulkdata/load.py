@@ -50,11 +50,14 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
         self.options["ignore_row_errors"] = process_bool_arg(
             self.options.get("ignore_row_errors", False)
         )
-        if self.options.get("sql_path"):
+        if self.options.get("database_url"):
+            # prefer database_url if it's set
+            self.options["sql_path"] = None
+        elif self.options.get("sql_path"):
             self.options["sql_path"] = os_friendly_path(self.options["sql_path"])
             self.logger.info("Using in-memory sqlite database")
             self.options["database_url"] = "sqlite://"
-        elif not self.options.get("database_url"):
+        else:
             raise TaskOptionsError(
                 "You must set either the database_url or sql_path option."
             )

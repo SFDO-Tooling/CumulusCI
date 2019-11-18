@@ -42,11 +42,14 @@ class ExtractData(BulkJobTaskMixin, BaseSalesforceApiTask):
 
     def _init_options(self, kwargs):
         super(ExtractData, self)._init_options(kwargs)
-        if self.options.get("sql_path"):
+        if self.options.get("database_url"):
+            # prefer database_url if it's set
+            self.options["sql_path"] = None
+        elif self.options.get("sql_path"):
             self.logger.info("Using in-memory sqlite database")
             self.options["database_url"] = "sqlite://"
             self.options["sql_path"] = os_friendly_path(self.options["sql_path"])
-        elif not self.options.get("database_url"):
+        else:
             raise TaskOptionsError(
                 "You must set either the database_url or sql_path option."
             )
