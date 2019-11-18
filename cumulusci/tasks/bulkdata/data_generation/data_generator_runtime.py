@@ -102,17 +102,6 @@ class Context:
         self.obj = obj
         self.globals.register_object(obj, name)
 
-    def reference(self, x):
-        if hasattr(x, "_values"):
-            return x.id
-        elif isinstance(x, str):
-            obj = self.field_vars()[x]
-            return obj.id
-        else:
-            raise DataGenSyntaxError(
-                f"Can't get reference to object of type {type(x)}: {x}", None, None
-            )
-
     def field_vars(self):
         return {
             "id": self.current_id,
@@ -126,12 +115,7 @@ class Context:
 
     def field_funcs(self):
         funcs = {name: partial(func, self) for name, func in template_funcs.items()}
-        return {
-            "number": self.counter_generator.get_value(self.sobject_name),
-            "counter": self.counter_generator.get_value,
-            "reference": self.reference,
-            **funcs,
-        }
+        return {**funcs}
 
     def executable_blocks(self):
         return {**self.field_funcs(), "fake": self.fake}

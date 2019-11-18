@@ -9,7 +9,7 @@ fake = Faker()
 
 def choose(context, *values, on=None):
     if not on:
-        on = context.counter_generator.get_value(context.sobject_name)
+        on = context.counter_generator.get_value(context.current_table_name)
     return values[(on - 1) % len(values)]
 
 
@@ -54,10 +54,28 @@ def date_between(context, start_date, end_date):
     # swallow empty range errors per Python conventions
 
 
+def reference(context, x):
+    if hasattr(x, "id"):  # reference to an object with an id
+        return x.id
+    elif isinstance(x, str):  # name of an object
+        obj = context.field_vars()[x]
+        return obj.id
+    else:
+        raise Exception(
+            f"Can't get reference to object of type {type(x)}: {x}", None, None
+        )
+
+
+def counter(context, name):
+    return context.counter_generator.get_value(name)
+
+
 template_funcs = {
     "int": lambda context, number: int(number),
     "choose": choose,
     "random_number": random_number,
     "random_choice": random_choice,
     "date_between": date_between,
+    "reference": reference,
+    "counter": counter,
 }
