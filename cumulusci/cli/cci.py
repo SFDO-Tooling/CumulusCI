@@ -818,9 +818,16 @@ def org_connect(config, org_name, sandbox, login_url, default, global_org):
         if org_config.organization_sobject["TrialExpirationDate"] is None:
             org_config.config["expires"] = "Persistent"
         else:
-            org_config.config["expires"] = org_config.organization_sobject[
-                "TrialExpirationDate"
-            ]
+            print(
+                type(
+                    parse_api_datetime(
+                        org_config.organization_sobject["TrialExpirationDate"]
+                    )
+                )
+            )
+            org_config.config["expires"] = parse_api_datetime(
+                org_config.organization_sobject["TrialExpirationDate"]
+            ).date()
     else:
         org_config.config["expires"] = None
 
@@ -972,9 +979,7 @@ def org_list(config, plain):
             row.append(username)
             if org_config.expires:
                 if org_config.expires != "Persistent":
-                    row.append(
-                        parse_api_datetime(org_config.expires).strftime("%Y/%m/%d")
-                    )
+                    row.append(org_config.expires)
                 else:
                     row.append(org_config.expires)
             else:
