@@ -523,7 +523,7 @@ class TestCCI(unittest.TestCase):
         config.keychain.set_org.assert_called_once_with(org_config)
 
     @mock.patch("cumulusci.cli.cci.CaptureSalesforceOAuth")
-    @mock.patch("cumulusci.cli.cci.OrgConfig")
+    @mock.patch("cumulusci.cli.cci.OrgConfig._load_userinfo")
     @responses.activate
     def test_org_connect(self, load_org_info, oauth):
         oauth.return_value = mock.Mock(
