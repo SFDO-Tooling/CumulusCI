@@ -524,10 +524,8 @@ class TestCCI(unittest.TestCase):
 
     @mock.patch("cumulusci.cli.cci.CaptureSalesforceOAuth")
     @mock.patch("cumulusci.cli.cci.OrgConfig")
-    @mock.patch("cumulusci.cli.cci.OrgConfig._load_userinfo")
-    @mock.patch("cumulusci.cli.cci.OrgConfig._load_orginfo")
     @responses.activate
-    def test_org_connect(self, load_org_info, org_user_info, org_config, oauth):
+    def test_org_connect(self, org_config, oauth):
         oauth.return_value = mock.Mock(
             return_value={"instance_url": "https://instance", "access_token": "BOGUS"}
         )
@@ -560,10 +558,8 @@ class TestCCI(unittest.TestCase):
 
     @mock.patch("cumulusci.cli.cci.CaptureSalesforceOAuth")
     @mock.patch("cumulusci.cli.cci.OrgConfig")
-    @mock.patch("cumulusci.cli.cci.OrgConfig._load_userinfo")
-    @mock.patch("cumulusci.cli.cci.OrgConfig._load_orginfo")
     @responses.activate
-    def test_org_connect_expires(self, load_org_info, org_user_info, org_config, oauth):
+    def test_org_connect_expires(self, org_config, oauth):
         oauth.return_value = mock.Mock(
             return_value={"instance_url": "https://instance", "access_token": "BOGUS"}
         )
