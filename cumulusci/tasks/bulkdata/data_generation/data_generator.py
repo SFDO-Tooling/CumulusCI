@@ -13,7 +13,7 @@ from .data_generator_runtime import output_batches
 #    etc., and doing the file inclusions (parse_factory_yaml.parse_generator)
 # 2 a) merge options informtion from the parse with options from the
 #      environment
-# 3. Generating the objects top to button (including evaluating Jinja) in
+# 3. Generating the objects top to bottom (including evaluating Jinja) in
 #    generate_from_yaml.output_batches
 #
 # The function generate at the bottom of this file is the entry point to all
