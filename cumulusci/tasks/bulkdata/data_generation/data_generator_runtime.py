@@ -352,7 +352,9 @@ class StructuredValue(FieldDefinition):
                 func = context.executable_blocks()[self.function_name]
             except KeyError:
                 raise DataGenNameError(
-                    f"Cannot find func named {self.function_name}", None, None
+                    f"Cannot find func named {self.function_name}",
+                    self.filename,
+                    self.line_num,
                 )
             value = evaluate_function(func, self.args, self.kwargs, context)
 
