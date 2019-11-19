@@ -541,7 +541,7 @@ class TestCCI(unittest.TestCase):
             json={
                 "TrialExpirationDate": None,
                 "OrganizationType": "Developer Edition",
-                "IsSandbox": "False",
+                "IsSandbox": False,
             },
             status=200,
         )
@@ -578,7 +578,7 @@ class TestCCI(unittest.TestCase):
             json={
                 "TrialExpirationDate": "1970-01-01T12:34:56.000+0000",
                 "OrganizationType": "Developer Edition",
-                "IsSandbox": "False",
+                "IsSandbox": False,
             },
             status=200,
         )
