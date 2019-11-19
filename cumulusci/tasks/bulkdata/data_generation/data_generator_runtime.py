@@ -145,7 +145,6 @@ class SObjectFactory:
         sftype: str,
         filename: str,
         line_num: int,
-        count: int = 1,
         count_expr: str = None,
         fields: list = (),
         friends: list = (),
@@ -154,32 +153,32 @@ class SObjectFactory:
         self.sftype = sftype
         self.filename = filename
         self.line_num = line_num
-        self.count = count
         self.count_expr = count_expr
         self.fields = fields
         self.friends = friends
         self.nickname = nickname
+        self.count = None
 
     def generate_rows(self, storage, parent_context):
         """Generate several rows"""
         context = Context(parent_context, self.sftype)
-        if self.count_expr and self.count is None:
-            try:
-                self.count = int(float(self.count_expr.render(context)))
-            except (ValueError, TypeError) as e:
-                raise DataGenValueError(
-                    f"Cannot evaluate {self.count_expr.definition} as number",
-                    self.count_expr.filename,
-                    self.count_expr.line_num,
-                ) from e
-        if not isinstance(self.count, int):
-            raise DataGenValueError(
-                f"Count should be an integer not a {type(self.count)} : {self.count}",
-                self.filename,
-                self.line_num,
-            )
+        self._evaluate_count(context)
 
         return [self._generate_row(storage, context) for i in range(self.count)]
+
+    def _evaluate_count(self, context):
+        if self.count is None:
+            if not self.count_expr:
+                self.count = 1
+            else:
+                try:
+                    self.count = int(float(self.count_expr.render(context)))
+                except (ValueError, TypeError) as e:
+                    raise DataGenValueError(
+                        f"Cannot evaluate {self.count_expr.definition} as number",
+                        self.count_expr.filename,
+                        self.count_expr.line_num,
+                    ) from e
 
     def _generate_row(self, storage, context):
         """Generate an individual row"""

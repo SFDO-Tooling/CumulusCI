@@ -202,21 +202,7 @@ def parse_friends(friends, context):
 
 
 def parse_count_expression(yaml_sobj, sobj_def, context):
-    numeric_expr = yaml_sobj["count"]
-    if isinstance(numeric_expr, Number):
-        sobj_def["count"] = int(numeric_expr)
-    elif isinstance(numeric_expr, str):
-        if "<<" in numeric_expr or "=" in numeric_expr:
-            sobj_def["count_expr"] = SimpleValue(
-                numeric_expr, **context.line_num(numeric_expr)
-            )
-            sobj_def["count"] = None
-        else:
-            sobj_def["count"] = int(numeric_expr)
-    else:
-        raise ValueError(
-            f"Expected count of {yaml_sobj['type']} to be a number, not {numeric_expr}"
-        )
+    sobj_def["count_expr"] = parse_field_value("count", yaml_sobj["count"], context)
 
 
 def include_macro(name, context):
@@ -245,7 +231,7 @@ def parse_sobject_definition(yaml_sobj, context):
             "friends": list,
             "include": str,
             "nickname": str,
-            "count": (str, int),
+            "count": (str, int, dict),
         },
         context,
     )
