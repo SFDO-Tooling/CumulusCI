@@ -34,15 +34,26 @@ class DebugOutputStream(OutputStream):
 
 
 class SqlOutputStream(OutputStream):
+    mappings = None
+
     @classmethod
     def from_url(cls, db_url, mappings):
         self = cls()
         self.mappings = mappings
-        self._init_db(db_url)
+        self.engine = create_engine(db_url)
+        self._init_db()
         return self
 
-    def _init_db(self, db_url):
-        self.engine = create_engine(db_url)
+    @classmethod
+    def from_connection(cls, session, engine, base):
+        self = cls()
+        self.session = session
+        self.engine = engine
+        self.base = base
+        self._init_db()
+        return self
+
+    def _init_db(self):
         self.metadata = MetaData()
         self.metadata.bind = self.engine
 
@@ -50,9 +61,14 @@ class SqlOutputStream(OutputStream):
         model = self.metadata.tables[tablename]
         ins = model.insert().values(**row)
         self.session.execute(ins)
+        self.session.commit()
 
     def flush(self):
         self.session.flush()
+
+    def close(self):
+        self.session.commit()
+        self.session.close()
 
     def create_or_validate_tables(self, tables):
         if self.mappings:
