@@ -818,13 +818,6 @@ def org_connect(config, org_name, sandbox, login_url, default, global_org):
         if org_config.organization_sobject["TrialExpirationDate"] is None:
             org_config.config["expires"] = "Persistent"
         else:
-            print(
-                type(
-                    parse_api_datetime(
-                        org_config.organization_sobject["TrialExpirationDate"]
-                    )
-                )
-            )
             org_config.config["expires"] = parse_api_datetime(
                 org_config.organization_sobject["TrialExpirationDate"]
             ).date()
@@ -977,14 +970,7 @@ def org_list(config, plain):
                 "username", org_config.userinfo__preferred_username
             )
             row.append(username)
-            if org_config.expires:
-                if org_config.expires != "Persistent":
-                    row.append(org_config.expires)
-                else:
-                    row.append(org_config.expires)
-            else:
-                row.append("Unknown")
-
+            row.append(org_config.expires or "Unknown")
             persistent_data.append(row)
 
     rows_to_dim = [row_index for row_index, row in enumerate(scratch_data) if row[3]]
