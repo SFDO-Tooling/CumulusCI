@@ -20,7 +20,7 @@ from .data_gen_exceptions import (
 
 
 class IdManager:
-    """Keep track ofthe most recent ID per Object type"""
+    """Keep track of the most recent ID per Object type"""
 
     def __init__(self):
         self.last_used_ids = defaultdict(lambda: 0)
