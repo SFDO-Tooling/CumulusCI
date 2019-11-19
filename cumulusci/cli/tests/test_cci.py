@@ -523,9 +523,8 @@ class TestCCI(unittest.TestCase):
         config.keychain.set_org.assert_called_once_with(org_config)
 
     @mock.patch("cumulusci.cli.cci.CaptureSalesforceOAuth")
-    @mock.patch("cumulusci.cli.cci.OrgConfig")
     @responses.activate
-    def test_org_connect(self, org_config, oauth):
+    def test_org_connect(self, oauth):
         oauth.return_value = mock.Mock(
             return_value={"instance_url": "https://instance", "access_token": "BOGUS"}
         )
@@ -539,7 +538,11 @@ class TestCCI(unittest.TestCase):
         responses.add(
             method="GET",
             url="https://instance/services/data/v45.0/sobjects/Organization/None",
-            json={"TrialExpirationDate": None},
+            json={
+                "TrialExpirationDate": None,
+                "OrganizationType": "Developer Edition",
+                "IsSandbox": "False",
+            },
             status=200,
         )
         run_click_command(
@@ -557,9 +560,8 @@ class TestCCI(unittest.TestCase):
         config.keychain.set_default_org.assert_called_once_with("test")
 
     @mock.patch("cumulusci.cli.cci.CaptureSalesforceOAuth")
-    @mock.patch("cumulusci.cli.cci.OrgConfig")
     @responses.activate
-    def test_org_connect_expires(self, org_config, oauth):
+    def test_org_connect_expires(self, oauth):
         oauth.return_value = mock.Mock(
             return_value={"instance_url": "https://instance", "access_token": "BOGUS"}
         )
@@ -573,7 +575,11 @@ class TestCCI(unittest.TestCase):
         responses.add(
             method="GET",
             url="https://instance/services/data/v45.0/sobjects/Organization/None",
-            json={"TrialExpirationDate": "1970-01-01T12:34:56.000+0000"},
+            json={
+                "TrialExpirationDate": "1970-01-01T12:34:56.000+0000",
+                "OrganizationType": "Developer Edition",
+                "IsSandbox": "False",
+            },
             status=200,
         )
         run_click_command(
