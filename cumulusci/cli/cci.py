@@ -811,10 +811,9 @@ def org_connect(config, org_name, sandbox, login_url, default, global_org):
     org_config = OrgConfig(oauth_dict, org_name)
     org_config.load_userinfo()
     org_config._load_orginfo()
-    if (
-        org_config.organization_sobject
-        and "TrialExpirationDate" in org_config.organization_sobject.keys()
-    ):
+    # print(org_config.organization_sobject)
+    # org_config.organization_sobject and
+    if "TrialExpirationDate" in org_config.organization_sobject.keys():
         if org_config.organization_sobject["TrialExpirationDate"] is None:
             org_config.config["expires"] = "Persistent"
         else:

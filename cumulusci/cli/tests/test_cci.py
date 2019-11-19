@@ -523,9 +523,11 @@ class TestCCI(unittest.TestCase):
         config.keychain.set_org.assert_called_once_with(org_config)
 
     @mock.patch("cumulusci.cli.cci.CaptureSalesforceOAuth")
+    @mock.patch("cumulusci.cli.cci.OrgConfig")
     @mock.patch("cumulusci.cli.cci.OrgConfig._load_userinfo")
+    @mock.patch("cumulusci.cli.cci.OrgConfig._load_orginfo")
     @responses.activate
-    def test_org_connect(self, load_org_info, oauth):
+    def test_org_connect(self, load_org_info, org_user_info, org_config, oauth):
         oauth.return_value = mock.Mock(
             return_value={"instance_url": "https://instance", "access_token": "BOGUS"}
         )
@@ -534,6 +536,48 @@ class TestCCI(unittest.TestCase):
             method="GET",
             url="https://instance/services/oauth2/userinfo",
             body=b"{}",
+            status=200,
+        )
+        responses.add(
+            method="GET",
+            url="https://instance/services/data/v45.0/sobjects/Organization/None",
+            json={"TrialExpirationDate": None},
+            status=200,
+        )
+        run_click_command(
+            cci.org_connect,
+            config=config,
+            org_name="test",
+            sandbox=False,
+            login_url="https://login.salesforce.com",
+            default=True,
+            global_org=False,
+        )
+
+        config.check_org_overwrite.assert_called_once()
+        config.keychain.set_org.assert_called_once()
+        config.keychain.set_default_org.assert_called_once_with("test")
+
+    @mock.patch("cumulusci.cli.cci.CaptureSalesforceOAuth")
+    @mock.patch("cumulusci.cli.cci.OrgConfig")
+    @mock.patch("cumulusci.cli.cci.OrgConfig._load_userinfo")
+    @mock.patch("cumulusci.cli.cci.OrgConfig._load_orginfo")
+    @responses.activate
+    def test_org_connect_expires(self, load_org_info, org_user_info, org_config, oauth):
+        oauth.return_value = mock.Mock(
+            return_value={"instance_url": "https://instance", "access_token": "BOGUS"}
+        )
+        config = mock.Mock()
+        responses.add(
+            method="GET",
+            url="https://instance/services/oauth2/userinfo",
+            body=b"{}",
+            status=200,
+        )
+        responses.add(
+            method="GET",
+            url="https://instance/services/data/v45.0/sobjects/Organization/None",
+            json={"TrialExpirationDate": "1970-01-01T12:34:56.000+0000"},
             status=200,
         )
         run_click_command(
