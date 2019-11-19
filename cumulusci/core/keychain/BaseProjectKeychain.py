@@ -84,9 +84,7 @@ class BaseProjectKeychain(BaseConfig):
 
     def create_scratch_org(self, org_name, config_name, days=None, set_password=True):
         """ Adds/Updates a scratch org config to the keychain from a named config """
-        scratch_config = getattr(
-            self.project_config, "orgs__scratch__{}".format(config_name)
-        )
+        scratch_config = getattr(self.project_config, f"orgs__scratch__{config_name}")
         if days is not None:
             # Allow override of scratch config's default days
             scratch_config["days"] = days
@@ -97,9 +95,9 @@ class BaseProjectKeychain(BaseConfig):
         scratch_config["scratch"] = True
         scratch_config.setdefault("namespaced", False)
         scratch_config["config_name"] = config_name
-        scratch_config["sfdx_alias"] = "{}__{}".format(
-            self.project_config.project__name, org_name
-        )
+        scratch_config[
+            "sfdx_alias"
+        ] = f"{self.project_config.project__name}__{org_name}"
         org_config = ScratchOrgConfig(scratch_config, org_name)
         self.set_org(org_config)
 
@@ -185,13 +183,15 @@ class BaseProjectKeychain(BaseConfig):
         """ retrieve an org configuration by name key """
         if name not in self.orgs:
             self._raise_org_not_found(name)
-        return self._get_org(name)
+        org = self._get_org(name)
+        org.keychain = self
+        return org
 
     def _get_org(self, name):
         return self.orgs.get(name)
 
     def _raise_org_not_found(self, name):
-        raise OrgNotFound("Org named {} was not found in keychain".format(name))
+        raise OrgNotFound(f"Org named {name} was not found in keychain")
 
     def list_orgs(self):
         """ list the orgs configured in the keychain """
@@ -237,7 +237,7 @@ class BaseProjectKeychain(BaseConfig):
 
     def _validate_service(self, name, service_config):
         missing_required = []
-        attr_key = "services__{0}__attributes".format(name)
+        attr_key = f"services__{name}__attributes"
         for atr, config in list(getattr(self.project_config, attr_key).items()):
             if config.get("required") is True and not getattr(service_config, atr):
                 missing_required.append(atr)
@@ -246,16 +246,13 @@ class BaseProjectKeychain(BaseConfig):
             self._raise_service_not_valid(name)
 
     def _raise_service_not_configured(self, name):
+        services = ", ".join(list(self.services))
         raise ServiceNotConfigured(
-            "Service named {} is not configured for this project. Configured services are: {}".format(
-                name, ", ".join(list(self.services))
-            )
+            f"Service named {name} is not configured for this project. Configured services are: {services}"
         )
 
     def _raise_service_not_valid(self, name):
-        raise ServiceNotValid(
-            "Service named {} is not valid for this project".format(name)
-        )
+        raise ServiceNotValid(f"Service named {name} is not valid for this project")
 
     def list_services(self):
         """ list the services configured in the keychain """

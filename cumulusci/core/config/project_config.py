@@ -227,7 +227,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         keys = list(info.keys())
         keys.sort()
         for key in keys:
-            self.logger.warning("  {}: {}".format(key, info[key]))
+            self.logger.warning(f"  {key}: {info[key]}")
         self.logger.info("")
 
     def _split_repo_url(self, url):

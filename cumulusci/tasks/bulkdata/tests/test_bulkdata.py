@@ -19,6 +19,7 @@ from cumulusci.core.config import BaseGlobalConfig
 from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.exceptions import BulkDataException
+from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.tasks import bulkdata
 from cumulusci.tests.util import DummyOrgConfig
@@ -270,6 +271,80 @@ class TestLoadDataWithSFIds(unittest.TestCase):
         task._load_mapping = mock.Mock(side_effect=["Completed", "Failed"])
         with self.assertRaises(BulkDataException):
             task()
+
+    @responses.activate
+    def test_run__sql(self):
+        api = mock.Mock()
+        api.endpoint = "http://api"
+        api.headers.return_value = {}
+        api.create_insert_job.side_effect = ["1", "3"]
+        api.post_batch.side_effect = ["2", "4"]
+        api.job_status.return_value = {
+            "numberBatchesCompleted": 1,
+            "numberBatchesTotal": 1,
+        }
+        responses.add(
+            method="GET",
+            url="http://api/job/1/batch",
+            body=BULK_BATCH_RESPONSE.format("Completed"),
+            status=200,
+        )
+        responses.add(
+            method="GET",
+            url="http://api/job/3/batch",
+            body=BULK_BATCH_RESPONSE.format("Completed"),
+            status=200,
+        )
+        responses.add(
+            method="GET",
+            url="http://api/job/1/batch/2/result",
+            body=b"Id,Success,Created,Errors\n1,true,true,",
+            status=200,
+        )
+        responses.add(
+            method="GET",
+            url="https://example.com/services/data/vNone/query/?q=SELECT+Id+FROM+RecordType+WHERE+SObjectType%3D%27Account%27AND+DeveloperName+%3D+%27HH_Account%27+LIMIT+1",
+            body=json.dumps({"records": [{"Id": "1"}]}),
+            status=200,
+        )
+        responses.add(
+            method="GET",
+            url="http://api/job/3/batch/4/result",
+            body=b"Id,Success,Created,Errors\n1,true,true,\n2,true,true,Error",
+            status=200,
+        )
+
+        base_path = os.path.dirname(__file__)
+        sql_path = os.path.join(base_path, "testdata.sql")
+        mapping_path = os.path.join(base_path, self.mapping_file)
+
+        task = _make_task(
+            bulkdata.LoadData,
+            {"options": {"sql_path": sql_path, "mapping": mapping_path}},
+        )
+
+        def _init_class():
+            task.bulk = api
+
+        task._init_class = _init_class
+        task()
+        task.session.close()
+
+        households_batch_file = api.post_batch.call_args_list[0][0][1]
+        self.assertEqual(
+            b"Name,RecordTypeId\r\nTestHousehold,1\r\n", households_batch_file.read()
+        )
+        contacts_batch_file = api.post_batch.call_args_list[1][0][1]
+        self.assertEqual(
+            b"FirstName,LastName,Email,AccountId\r\n"
+            b"Test,User,test@example.com,1\r\n"
+            b"Error,User,error@example.com,1\r\n",
+            contacts_batch_file.read(),
+        )
+
+    def test_init_options__missing_input(self):
+        with self.assertRaises(TaskOptionsError):
+            _make_task(bulkdata.LoadData, {"options": {}})
 
     def test_expand_mapping_creates_after_steps(self):
         base_path = os.path.dirname(__file__)
@@ -1185,6 +1260,46 @@ class TestExtractDataWithSFIds(unittest.TestCase):
         task._create_record_type_table = mock.Mock(side_effect=create_table_mock)
         task._init_db()
         task._create_record_type_table.assert_called_once_with("Account_rt_mapping")
+
+    @responses.activate
+    def test_run__sql(self):
+        api = mock.Mock()
+        api.endpoint = "http://api"
+        api.headers.return_value = {}
+        api.create_query_job.side_effect = ["1", "2"]
+        api.query.side_effect = ["3", "4"]
+        api.get_query_batch_result_ids.side_effect = [["5"], ["6"]]
+        responses.add(
+            responses.GET,
+            "http://api/job/1/batch/3/result/5",
+            body=self.HOUSEHOLD_QUERY_RESULT,
+        )
+        responses.add(
+            responses.GET,
+            "http://api/job/2/batch/4/result/6",
+            body=self.CONTACT_QUERY_RESULT,
+        )
+
+        base_path = os.path.dirname(__file__)
+        mapping_path = os.path.join(base_path, self.mapping_file)
+
+        with temporary_dir():
+            task = _make_task(
+                bulkdata.ExtractData,
+                {"options": {"sql_path": "testdata.sql", "mapping": mapping_path}},
+            )
+
+            def _init_class():
+                task.bulk = api
+
+            task._init_class = _init_class
+            task()
+
+            assert os.path.exists("testdata.sql")
+
+    def test_init_options__missing_output(self):
+        with self.assertRaises(TaskOptionsError):
+            _make_task(bulkdata.ExtractData, {"options": {}})
 
 
 class TestExtractDataWithoutSFIds(unittest.TestCase):
