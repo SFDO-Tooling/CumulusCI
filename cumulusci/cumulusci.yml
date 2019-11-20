@@ -409,6 +409,9 @@ tasks:
         options:
             mapping: 'datasets/mapping.yml'
             sql_path: 'datasets/sample.sql'
+    upload_custom_settings:
+        description: Upload Custom Settings specified in a YAML file to the target org
+        class_path: cumulusci.tasks.salesforce.UploadCustomSettings
 
 flows:
     apex_docs:
