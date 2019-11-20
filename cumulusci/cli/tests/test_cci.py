@@ -557,6 +557,8 @@ class TestCCI(unittest.TestCase):
 
         config.check_org_overwrite.assert_called_once()
         config.keychain.set_org.assert_called_once()
+        org_config = config.keychain.set_org.call_args[0][0]
+        assert org_config.expires == "Persistent"
         config.keychain.set_default_org.assert_called_once_with("test")
 
     @mock.patch("cumulusci.cli.cci.CaptureSalesforceOAuth")
@@ -578,7 +580,7 @@ class TestCCI(unittest.TestCase):
             json={
                 "TrialExpirationDate": "1970-01-01T12:34:56.000+0000",
                 "OrganizationType": "Developer Edition",
-                "IsSandbox": False,
+                "IsSandbox": True,
             },
             status=200,
         )
@@ -587,13 +589,15 @@ class TestCCI(unittest.TestCase):
             config=config,
             org_name="test",
             sandbox=True,
-            login_url="https://login.salesforce.com",
+            login_url="https://test.salesforce.com",
             default=True,
             global_org=False,
         )
 
         config.check_org_overwrite.assert_called_once()
         config.keychain.set_org.assert_called_once()
+        org_config = config.keychain.set_org.call_args[0][0]
+        assert org_config.expires == date(1970, 1, 1)
         config.keychain.set_default_org.assert_called_once_with("test")
 
     def test_org_connect_connected_app_not_configured(self):
