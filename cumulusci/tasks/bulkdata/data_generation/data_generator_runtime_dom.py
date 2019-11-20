@@ -23,8 +23,8 @@ from .data_gen_exceptions import (
 class ObjectRow:
     """Represents a single row"""
 
-    def __init__(self, sftype, values=()):
-        self._sftype = sftype
+    def __init__(self, tablename, values=()):
+        self._tablename = tablename
         self._values = values
 
     def __getattr__(self, name):
@@ -36,7 +36,7 @@ class ObjectTemplate:
 
     def __init__(
         self,
-        sftype: str,
+        tablename: str,
         filename: str,
         line_num: int,
         count_expr: str = None,
@@ -44,7 +44,7 @@ class ObjectTemplate:
         friends: list = (),
         nickname: str = None,
     ):
-        self.sftype = sftype
+        self.tablename = tablename
         self.filename = filename
         self.line_num = line_num
         self.count_expr = count_expr
@@ -55,7 +55,7 @@ class ObjectTemplate:
 
     def generate_rows(self, storage, parent_context):
         """Generate several rows"""
-        context = Context(parent_context, self.sftype)
+        context = Context(parent_context, self.tablename)
         self._evaluate_count(context)
 
         return [self._generate_row(storage, context) for i in range(self.count)]
@@ -78,7 +78,7 @@ class ObjectTemplate:
         """Generate an individual row"""
         context.incr()
         row = {"id": context.generate_id()}
-        sobj = ObjectRow(self.sftype, row)
+        sobj = ObjectRow(self.tablename, row)
 
         context.register_object(sobj, self.nickname)
 
@@ -94,7 +94,7 @@ class ObjectTemplate:
                 raise fix_exception(f"Problem rendering value", self, e) from e
 
         try:
-            storage.write_row(self.sftype, row)
+            storage.write_row(self.tablename, row)
         except Exception as e:
             raise DataGenError(str(e), self.filename, self.line_num) from e
         for i, childobj in enumerate(self.friends):
@@ -233,7 +233,7 @@ class ChildRecordValue(FieldDefinition):
 
     @property
     def target_table(self):
-        return self.sobj.sftype
+        return self.sobj.tablename
 
 
 class FieldFactory:

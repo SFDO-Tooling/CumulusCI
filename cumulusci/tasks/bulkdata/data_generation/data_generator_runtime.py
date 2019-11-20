@@ -39,6 +39,9 @@ class CounterGenerator:
     def incr(self, name):
         self.counters[name] += 1
 
+    def register_reference(self, table_name_from, table_name_to):
+        self.references.setdefault(table_name_from).append[table_name_to]
+
 
 class Globals:
     """Globally named objects and other aspects of global scope"""
@@ -47,12 +50,13 @@ class Globals:
         self.named_objects = {}
         self.id_manager = IdManager()
         self.last_seen_obj_of_type = {}
+        self.references = {}
 
     def register_object(self, obj, nickname=None):
         """Register an object for lookup by object type and (optionally) Nickname"""
         if nickname:
             self.named_objects[nickname] = obj
-        self.last_seen_obj_of_type[obj._sftype] = obj
+        self.last_seen_obj_of_type[obj._tablename] = obj
 
     def find_object_by_nickname(self, nickname):
         return self.named_objects[nickname]
@@ -96,6 +100,9 @@ class Context:
     def register_object(self, obj, name=None):
         self.obj = obj
         self.globals.register_object(obj, name)
+
+    def register_reference(self, table_name_to):
+        self.globals.register_reference(self.current_table_name, table_name_to)
 
     def field_vars(self):
         return {

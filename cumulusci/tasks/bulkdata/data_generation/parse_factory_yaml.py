@@ -48,7 +48,7 @@ class TableInfo:
 
     def register(self, template):
         self.fields.update({field.name: field for field in template.fields})
-        self.friends.update({friend.sftype: friend for friend in template.friends})
+        self.friends.update({friend.tablename: friend for friend in template.friends})
         self._templates.append(template)
 
 
@@ -103,8 +103,8 @@ class ParseContext:
         We register templates so we can get a list of all fields that can
         be generated. This can be used to create a dynamic schema.
         """
-        table_info = self.object_infos.get(template.sftype, None) or TableInfo()
-        self.object_infos[template.sftype] = table_info
+        table_info = self.object_infos.get(template.tablename, None) or TableInfo()
+        self.object_infos[template.tablename] = table_info
         table_info.register(template)
 
 
@@ -250,7 +250,7 @@ def parse_object_template(yaml_sobj, context):
     assert yaml_sobj
     with context.change_current_parent_object(yaml_sobj):
         sobj_def = {}
-        sobj_def["sftype"] = parsed_template.object
+        sobj_def["tablename"] = parsed_template.object
         sobj_def["fields"] = fields = []
         parse_inclusions(yaml_sobj, fields, context)
         fields.extend(parse_fields(parsed_template.fields or {}, context))
