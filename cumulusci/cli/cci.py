@@ -811,17 +811,12 @@ def org_connect(config, org_name, sandbox, login_url, default, global_org):
     org_config = OrgConfig(oauth_dict, org_name)
     org_config.load_userinfo()
     org_config._load_orginfo()
-    # print(org_config.organization_sobject)
-    # org_config.organization_sobject and
-    if "TrialExpirationDate" in org_config.organization_sobject.keys():
-        if org_config.organization_sobject["TrialExpirationDate"] is None:
-            org_config.config["expires"] = "Persistent"
-        else:
-            org_config.config["expires"] = parse_api_datetime(
-                org_config.organization_sobject["TrialExpirationDate"]
-            ).date()
+    if org_config.organization_sobject["TrialExpirationDate"] is None:
+        org_config.config["expires"] = "Persistent"
     else:
-        org_config.config["expires"] = None
+        org_config.config["expires"] = parse_api_datetime(
+            org_config.organization_sobject["TrialExpirationDate"]
+        ).date()
 
     config.keychain.set_org(org_config, global_org)
 
