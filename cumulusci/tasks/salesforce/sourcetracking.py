@@ -38,7 +38,6 @@ class ListChanges(BaseSalesforceApiTask):
         self._include = self.options["include"]
         self._exclude = self.options["exclude"]
         self._exclude.extend(self.project_config.project__source__ignore or [])
-        self._load_snapshot()
 
     @property
     def _snapshot_path(self):
@@ -54,6 +53,7 @@ class ListChanges(BaseSalesforceApiTask):
                 self._snapshot = json.load(f)
 
     def _run_task(self):
+        self._load_snapshot()
         changes = self._get_changes()
         if changes:
             self.logger.info(
@@ -199,6 +199,7 @@ class RetrieveChanges(ListChanges, BaseSalesforceApiTask):
             ] = self.project_config.project__package__api_version
 
     def _run_task(self):
+        self._load_snapshot()
         self.logger.info("Querying Salesforce for changed source members")
         changes = self._get_changes()
         filtered, ignored = self._filter_changes(changes)
@@ -215,7 +216,7 @@ class RetrieveChanges(ListChanges, BaseSalesforceApiTask):
                     touch(os.path.join(target, "package.xml"))
 
                 # Inject namespace
-                if self.options["namespace_tokenize"]:
+                if self.options.get("namespace_tokenize"):
                     process_text_in_directory(
                         target,
                         functools.partial(
@@ -279,7 +280,7 @@ class RetrieveChanges(ListChanges, BaseSalesforceApiTask):
                 )
 
                 # Reinject namespace tokens
-                if self.options["namespace_tokenize"]:
+                if self.options("namespace_tokenize"):
                     process_text_in_directory(
                         target,
                         functools.partial(
