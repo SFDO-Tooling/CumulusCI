@@ -153,7 +153,7 @@ def parse_structured_value(name, field, context):
 
 
 def parse_field_value(name, field, context, allow_structured_values=True):
-    if not field:
+    if field is None:
         raise DataGenSyntaxError(
             f"Field should not be empty: {name}", **context.line_num(field)
         )
