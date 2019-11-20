@@ -20,7 +20,7 @@ from .data_gen_exceptions import (
 # roughly similar to the YAML structure but with domain-specific objects
 
 
-class SObject:
+class ObjectRow:
     """Represents a single row"""
 
     def __init__(self, sftype, values=()):
@@ -31,7 +31,7 @@ class SObject:
         return self._values[name]
 
 
-class SObjectFactory:
+class ObjectTemplate:
     """A factory that generates rows"""
 
     def __init__(
@@ -78,7 +78,7 @@ class SObjectFactory:
         """Generate an individual row"""
         context.incr()
         row = {"id": context.generate_id()}
-        sobj = SObject(self.sftype, row)
+        sobj = ObjectRow(self.sftype, row)
 
         context.register_object(sobj, self.nickname)
 
@@ -220,7 +220,7 @@ class ReferenceValue(StructuredValue):
 
 
 class ChildRecordValue(FieldDefinition):
-    """Represents an SObject embedded in another SObject"""
+    """Represents an ObjectRow embedded in another ObjectRow"""
 
     def __init__(self, sobj: object, filename: str, line_num: int):
         self.sobj = sobj

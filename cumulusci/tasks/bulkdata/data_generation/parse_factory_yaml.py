@@ -9,7 +9,7 @@ from yaml.composer import Composer
 from yaml.constructor import SafeConstructor
 
 from .data_generator_runtime_dom import (
-    SObjectFactory,
+    ObjectTemplate,
     FieldFactory,
     SimpleValue,
     ChildRecordValue,
@@ -263,7 +263,7 @@ def parse_sobject_definition(yaml_sobj, context):
 
         if count_expr is not None:
             parse_count_expression(yaml_sobj, sobj_def, context)
-        new_template = SObjectFactory(**sobj_def)
+        new_template = ObjectTemplate(**sobj_def)
         context.register_object(new_template)
         return new_template
 
