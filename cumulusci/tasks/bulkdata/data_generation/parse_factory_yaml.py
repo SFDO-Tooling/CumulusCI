@@ -86,7 +86,7 @@ class ParseContext:
 
     @contextmanager
     def change_current_parent_object(self, obj):
-        _old_sobject = self.current_parent_object
+        _old_parsed_template = self.current_parent_object
         self.current_parent_object = obj
         try:
             yield
@@ -95,7 +95,7 @@ class ParseContext:
         except Exception as e:
             raise DataGenSyntaxError(str(e), **self.line_num()) from e
         finally:
-            self.current_parent_object = _old_sobject
+            self.current_parent_object = _old_parsed_template
 
     def register_object(self, template):
         """Register templates for later use.
@@ -165,7 +165,7 @@ def parse_field_value(name, field, context, allow_structured_values=True):
     elif isinstance(field, dict) and field.get("object"):
         with context.change_current_parent_object(field):
             return ChildRecordValue(
-                parse_sobject_definition(field, context), **context.line_num()
+                parse_object_template(field, context), **context.line_num()
             )
     elif isinstance(field, dict):
         return parse_structured_value(name, field, context)
@@ -209,7 +209,7 @@ def parse_fields(fields, context):
 
 
 def parse_friends(friends, context):
-    return parse_sobject_list(friends, context)
+    return parse_object_template_list(friends, context)
 
 
 def parse_count_expression(yaml_sobj, sobj_def, context):
@@ -232,8 +232,8 @@ def parse_inclusions(yaml_sobj, fields, context):
         fields.extend(include_macro(inclusion, context))
 
 
-def parse_sobject_definition(yaml_sobj, context):
-    parsed_sobject = parse_element(
+def parse_object_template(yaml_sobj, context):
+    parsed_template = parse_element(
         yaml_sobj,
         "object",
         {},
@@ -250,14 +250,14 @@ def parse_sobject_definition(yaml_sobj, context):
     assert yaml_sobj
     with context.change_current_parent_object(yaml_sobj):
         sobj_def = {}
-        sobj_def["sftype"] = parsed_sobject.object
+        sobj_def["sftype"] = parsed_template.object
         sobj_def["fields"] = fields = []
         parse_inclusions(yaml_sobj, fields, context)
-        fields.extend(parse_fields(parsed_sobject.fields or {}, context))
-        sobj_def["friends"] = parse_friends(parsed_sobject.friends or [], context)
-        sobj_def["nickname"] = parsed_sobject.nickname
-        sobj_def["line_num"] = parsed_sobject.line_num.line_num
-        sobj_def["filename"] = parsed_sobject.line_num.filename
+        fields.extend(parse_fields(parsed_template.fields or {}, context))
+        sobj_def["friends"] = parse_friends(parsed_template.friends or [], context)
+        sobj_def["nickname"] = parsed_template.nickname
+        sobj_def["line_num"] = parsed_template.line_num.line_num
+        sobj_def["filename"] = parsed_template.line_num.filename
 
         count_expr = yaml_sobj.get("count")
 
@@ -268,14 +268,14 @@ def parse_sobject_definition(yaml_sobj, context):
         return new_template
 
 
-def parse_sobject_list(sobjects, context):
-    parsed_sobject_definitions = []
-    for obj in sobjects:
+def parse_object_template_list(object_templates, context):
+    parsed_object_templates = []
+    for obj in object_templates:
         assert isinstance(obj, dict), obj
         assert obj["object"], obj
-        sobject_factory = parse_sobject_definition(obj, context)
-        parsed_sobject_definitions.append(sobject_factory)
-    return parsed_sobject_definitions
+        object_template = parse_object_template(obj, context)
+        parsed_object_templates.append(object_template)
+    return parsed_object_templates
 
 
 def yaml_safe_load_withline_numbers(filestream, filename):
@@ -446,7 +446,7 @@ def parse_file(stream, context: ParseContext):
 def parse_generator(stream):
     context = ParseContext()
     objects = parse_file(stream, context)
-    templates = parse_sobject_list(objects, context)
+    templates = parse_object_template_list(objects, context)
     tables = context.object_infos
 
     return ParseResult(context.options, tables, templates)
