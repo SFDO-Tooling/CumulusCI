@@ -75,3 +75,29 @@ class TestErrors(unittest.TestCase):
         with self.assertRaises(DataGenError) as e:
             generate(StringIO(yaml), 1, {}, None, None)
         assert 4 > e.exception.line_num >= 2
+
+    def test_missing_field_value(self):
+        yaml = """
+            - object: Person
+              count: 5
+              fields:
+                gender: Male
+                name:
+        """
+        with self.assertRaises(DataGenError) as e:
+            generate(StringIO(yaml), 1, {}, None, None)
+        assert "name" in str(e.exception)
+        assert "Field" in str(e.exception)
+
+    def test_missing_param(self):
+        yaml = """
+            - object: Person
+              count: 5
+              fields:
+                gender: Male
+                name:
+                    fake:
+        """
+        with self.assertRaises(DataGenError) as e:
+            generate(StringIO(yaml), 1, {}, None, None)
+        assert "Field" in str(e.exception)
