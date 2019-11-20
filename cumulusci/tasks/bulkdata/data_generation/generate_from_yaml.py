@@ -135,6 +135,9 @@ def generate_from_yaml(
             raise e
         else:
             click.echo("")
+            click.echo(
+                "An error occurred. If you would like to see a Python traceback, use the --verbose option."
+            )
             raise click.ClickException(e)
 
 

@@ -89,6 +89,10 @@ class ParseContext:
         self.current_parent_object = obj
         try:
             yield
+        except DataGenError:
+            raise
+        except Exception as e:
+            raise DataGenSyntaxError(str(e), **self.line_num()) from e
         finally:
             self.current_parent_object = _old_sobject
 
@@ -149,13 +153,19 @@ def parse_structured_value(name, field, context):
 
 
 def parse_field_value(name, field, context, allow_structured_values=True):
-    assert field is not None
-    if isinstance(field, (str, Number, date)):
-        return SimpleValue(field, **(context.line_num(field) or context.line_num()))
-    elif isinstance(field, dict) and field.get("object"):
-        return ChildRecordValue(
-            parse_sobject_definition(field, context), **context.line_num(field)
+    if not field:
+        raise DataGenSyntaxError(
+            f"Field should not be empty: {name}", **context.line_num(field)
         )
+    if isinstance(field, (str, Number, date)):
+        return SimpleValue(
+            field, **(context.line_num(field) or context.line_num(field))
+        )
+    elif isinstance(field, dict) and field.get("object"):
+        with context.change_current_parent_object(field):
+            return ChildRecordValue(
+                parse_sobject_definition(field, context), **context.line_num()
+            )
     elif isinstance(field, dict):
         return parse_structured_value(name, field, context)
 
