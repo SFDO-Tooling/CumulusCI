@@ -30,7 +30,8 @@ class OutputStream(ABC):
 
 class DebugOutputStream(OutputStream):
     def write_single_row(self, tablename, row):
-        print(tablename, row)
+        values = ", ".join([f"{key}={value}" for key, value in row.items()])
+        print(f"{tablename}({values})")
 
 
 class SqlOutputStream(OutputStream):
