@@ -8,7 +8,7 @@ import yaml
 from yaml.composer import Composer
 from yaml.constructor import SafeConstructor
 
-from .data_generator_runtime import (
+from .data_generator_runtime_dom import (
     SObjectFactory,
     FieldFactory,
     SimpleValue,
@@ -16,6 +16,7 @@ from .data_generator_runtime import (
     StructuredValue,
     ReferenceValue,
 )
+
 from .data_gen_exceptions import DataGenSyntaxError, DataGenNameError, DataGenError
 
 SHARED_OBJECT = "#SHARED_OBJECT"
