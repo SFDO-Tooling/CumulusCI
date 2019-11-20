@@ -121,7 +121,11 @@ class BulkJobTaskMixin(object):
             table = self.metadata.tables[table]
             rows = list(reader)
             if rows:
-                conn.execute(table.insert().values(rows))
+                # SQLite has a 999 variable limit; make sure we stay under it.
+                chunk_size = 999 // len(columns)
+                for i in range(0, len(rows), chunk_size):
+                    conn.execute(table.insert().values(rows[i : i + chunk_size]))
+
         self.session.flush()
 
     def _create_record_type_table(self, table_name):
