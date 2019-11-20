@@ -1,4 +1,4 @@
-from random import randint, choice, choices as randchoices
+import random
 from datetime import date
 from .data_gen_exceptions import DataGenError
 
@@ -14,7 +14,7 @@ def choose(context, *values, on=None):
 
 
 def random_number(context, min, max):
-    return randint(min, max)
+    return random.randint(min, max)
 
 
 def weighted_choice(choices):
@@ -23,7 +23,7 @@ def weighted_choice(choices):
         weights = [int(weight.strip("%")) for weight in choices.values()]
     else:
         weights = None
-    return randchoices(options, weights, k=1)[0]
+    return random.choices(options, weights, k=1)[0]
 
 
 def random_choice(context, *choices, **kwargs):
@@ -32,7 +32,7 @@ def random_choice(context, *choices, **kwargs):
     elif kwargs:
         return weighted_choice(kwargs)
     else:
-        return choice(choices)
+        return random.choice(choices)
 
 
 def parse_date(d):
