@@ -56,6 +56,7 @@ def date_between(context, start_date, end_date):
 
 def reference(context, x):
     if hasattr(x, "id"):  # reference to an object with an id
+        context.register_intertable_reference(x._tablename)
         target = x.id
     elif isinstance(x, str):  # name of an object
         obj = context.field_vars()[x]

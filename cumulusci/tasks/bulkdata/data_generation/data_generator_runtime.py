@@ -39,9 +39,6 @@ class CounterGenerator:
     def incr(self, name):
         self.counters[name] += 1
 
-    def register_reference(self, table_name_from, table_name_to):
-        self.references.setdefault(table_name_from).append[table_name_to]
-
 
 class Globals:
     """Globally named objects and other aspects of global scope"""
@@ -65,6 +62,9 @@ class Globals:
     def object_names(self):
         """The globally named objects"""
         return {**self.named_objects, **self.last_seen_obj_of_type}
+
+    def register_intertable_reference(self, table_name_from, table_name_to):
+        self.references.setdefault(table_name_from, set()).add(table_name_to)
 
 
 class Context:
@@ -101,8 +101,10 @@ class Context:
         self.obj = obj
         self.globals.register_object(obj, name)
 
-    def register_reference(self, table_name_to):
-        self.globals.register_reference(self.current_table_name, table_name_to)
+    def register_intertable_reference(self, table_name_to):
+        self.globals.register_intertable_reference(
+            self.current_table_name, table_name_to
+        )
 
     def field_vars(self):
         return {
