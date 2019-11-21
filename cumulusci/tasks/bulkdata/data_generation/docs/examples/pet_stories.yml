@@ -1,0 +1,32 @@
+- object: Person
+  count: 3
+  fields:
+    name:
+      fake: name
+    age:
+      random_number:
+        min: 12
+        max: 95
+    dog:
+      - object: Animal
+        fields:
+          name:
+            fake: first_name
+          species: canine
+          food:
+            - object: PetFood
+              fields:
+                name: Pets Choice
+                cost: $10
+
+    cat:
+      - object: Animal
+        fields:
+          name:
+            fake: first_name
+          species: feline
+          food:
+            - object: PetFood
+              fields:
+                name: Pets Choice
+                cost: $10

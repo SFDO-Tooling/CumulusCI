@@ -1,96 +1,89 @@
-- object: Account
+- include_file: npsp_standard_objects_macros.yml
+- option: num_accounts
+  default: 10
+
+- object: General_Accounting_Unit__c
+  include: Standard General_Accounting_Unit__c
+  nickname: Sponsorship GAU
+  count: 100
   fields:
-    Name:
-      fake: company
-    Description:
-      fake: catch_phrase
-    BillingStreet:
-      fake: street_address
-    BillingCity:
-      fake: city
-    BillingState:
-      fake: state
-    BillingPostalCode:
-      fake: postalcode
-    BillingCountry: Canada
-    ShippingStreet:
-      fake: street_address
-    ShippingCity:
-      fake: city
-    ShippingState:
-      fake: state
-    ShippingPostalCode:
-      fake: postalcode
-    ShippingCountry:
-      fake: country
-    Phone:
-      fake: phone_number
-    Fax:
-      fake: phone_number
-    Website:
-      fake: uri
-    NumberOfEmployees:
-      random_number:
-        min: 0
-        max: 200000
-    AccountNumber:
-      random_number:
-        min: 0
-        max: 10000000
+    Name: Sponsorship
+
+- object: Account # one account with 90% of the contacts to test data skew
+  include: SFStandardAccount
+  count: 1
+  fields:
+    Name: Big Account <<this.id>>
   friends:
     - object: Contact
+      include: SFStandardContact
+      count: 90
       fields:
-        Salutation:
-          fake: prefix
-        FirstName:
-          fake: first_name
-        LastName:
-          fake: last_name
-        Email:
-          fake: email
-        AccountId:
-          reference: Account
-    - object: Opportunity
+        Title: None
+      friends:
+        - object: Opportunity
+          include: SFStandardOpportunity
+          count:
+            random_number:
+              min: 0
+              max: 2
+          fields:
+            Name: Opportunity relating to <<Account.Name>>
+            AccountId:
+              reference: Account
+          friends:
+            - object: npe01__OppPayment__c
+              include: Standard npe01__OppPayment__c
+              count:
+                random_number:
+                  min: 0
+                  max: 12
+              fields:
+                npe01__Opportunity__c:
+                  reference: Opportunity
+                npe01__Payment_Amount__c: <<Opportunity.Amount / 12>>
+
+- object: Account # 10% accounts with no contacts
+  count: <<num_accounts * 0.10>>
+  include: SFStandardAccount
+
+- object: Account
+  include: SFStandardAccount
+  count: <<num_accounts * 0.90 - 1>>
+  friends:
+    - object: Contact
+      include: SFStandardContact
+      count:
+        random_number:
+          min: 0
+          max: 20
       fields:
-        Name: Opportunity relating to <<Account.Name>>
-        CloseDate:
-          date_between:
-            start_date: -30d
-            end_date: +180d
-        Amount:
-          random_number:
-            min: 10
-            max: 200
-        StageName:
-          random_choice:
-            Closed Won: 60%
-            In Progress: 20%
-            New: 20%
-        AccountId:
-          reference: Account
+        Title: None
+      friends:
+        - object: Opportunity
+          include: SFStandardOpportunity
+          fields:
+            Name: Opportunity relating to <<Account.Name>>
+            AccountId:
+              reference: Account
+          friends:
+            - object: npe01__OppPayment__c
+              include: Standard npe01__OppPayment__c
+              fields:
+                npe01__Opportunity__c:
+                  reference: Opportunity
+                npe01__Payment_Amount__c: <<Opportunity.Amount / 2>>
+            - object: npe01__OppPayment__c
+              include: Standard npe01__OppPayment__c
+              fields:
+                npe01__Opportunity__c:
+                  reference: Opportunity
+                npe01__Payment_Amount__c: <<Opportunity.Amount / 2>>
+
 - object: Contact
+  include: SFStandardContact
   fields:
-    Salutation:
-      fake: prefix
-    FirstName:
-      fake: first_name
-    LastName:
-      fake: last_name
-    Email:
-      fake: email
-    Phone:
-      fake: phone_number
-    MobilePhone:
-      fake: phone_number
-    Title:
-      fake: job
-    Birthdate:
-      fake.date_between:
-        start_date: -50y
-        end_date: -20y
     AccountId:
       object: Account
       fields:
         Name: <<Contact.LastName>> incorporated
-        Description:
-          fake: catch_phrase

@@ -1,0 +1,17 @@
+- object: Person
+  count: 5
+  fields:
+    gender: Male
+    name:
+      fake:
+- object: Person
+  count: 5
+  fields:
+    gender: Female
+- object: Person
+  count: 5
+  fields:
+    gender:
+      choose:
+        - Rather Not Say
+        - Non-binary

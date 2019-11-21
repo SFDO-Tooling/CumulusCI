@@ -1,0 +1,4 @@
+- object: Person
+  fields:
+    name: Buster Bluth
+    age: 35

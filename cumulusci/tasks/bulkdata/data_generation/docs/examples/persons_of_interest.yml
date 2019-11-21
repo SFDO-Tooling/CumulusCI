@@ -1,0 +1,9 @@
+- object: Person
+  count: 10
+  fields:
+    name:
+      fake: name
+    age:
+      random_number:
+        min: 12
+        max: 95
