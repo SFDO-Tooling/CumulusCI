@@ -36,7 +36,7 @@ class LoadCustomSettings(BaseSalesforceApiTask):
 
     task_options = {
         "settings_path": {
-            "description": "The path to a YAML settings store",
+            "description": "The path to a YAML settings file",
             "required": True,
         }
     }
@@ -57,7 +57,9 @@ class LoadCustomSettings(BaseSalesforceApiTask):
         with open(self.options["settings_path"], "r") as f:
             self.settings = yaml.safe_load(f)
 
+        self.logger.info("Starting Custom Settings load")
         self._load_settings()
+        self.logger.info("Finished Custom Settings load")
 
     def _load_settings(self):
         # For each top-level heading in our YAML doc, create one or more
@@ -69,6 +71,9 @@ class LoadCustomSettings(BaseSalesforceApiTask):
             # If it's a list, we have a Hierarchy Custom Setting.
             if isinstance(settings_data, dict):
                 for setting_instance, instance_data in settings_data.items():
+                    self.logger.debug(
+                        f"Loading List Custom Setting {custom_setting}.{setting_instance}"
+                    )
                     proxy_obj.upsert("Name/{}".format(setting_instance), instance_data)
             elif isinstance(settings_data, list):
                 for setting_instance in settings_data:
@@ -98,7 +103,7 @@ class LoadCustomSettings(BaseSalesforceApiTask):
 
                     if query is None:
                         raise CumulusCIException(
-                            f"No valid Setup Owner assignment found for Custom Setting {custom_setting}"
+                            f"No valid Setup Owner assignment found for Custom Setting {custom_setting}. Add a `location:` key."
                         )
 
                     matches = self.sf.query(query)
@@ -116,8 +121,14 @@ class LoadCustomSettings(BaseSalesforceApiTask):
 
                     setting_instance["data"].update({"SetupOwnerId": setup_owner_id})
                     if existing_records["totalSize"] == 0:
+                        self.logger.debug(
+                            f"Loading Hierarchy Custom Setting {custom_setting} with owner id {setup_owner_id}"
+                        )
                         proxy_obj.create(setting_instance["data"])
                     else:
+                        self.logger.debug(
+                            f"Updating Hierarchy Custom Setting {custom_setting} with owner id {setup_owner_id}"
+                        )
                         proxy_obj.update(
                             existing_records["records"][0]["Id"],
                             setting_instance["data"],

@@ -216,7 +216,7 @@ Custom Settings
 ===============
 
 Datasets don't support Custom Settings. However, a separate task is supplied to deploy Custom 
-Settings (both list and hierarchy) into an org: ``upload_custom_settings``. The data for this
+Settings (both list and hierarchy) into an org: ``load_custom_settings``. The data for this
 task is defined in a YAML text file
 
 Each top-level YAML key should be the API name of a Custom Setting.
@@ -358,10 +358,10 @@ Example: ::
 
     cci task run generate_dataset_mapping --org qa -o namespace_prefix my_ns
 
-``upload_custom_settings``
+``load_custom_settings``
 --------------------------
 
-Upload custom settings stored in YAML into an org.
+Load custom settings stored in YAML into an org.
 
 Options
 +++++++

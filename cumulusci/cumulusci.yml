@@ -413,7 +413,7 @@ tasks:
             sql_path: 'datasets/sample.sql'
         group: 'Data Operations'
     load_custom_settings:
-        description: Upload Custom Settings specified in a YAML file to the target org
+        description: Load Custom Settings specified in a YAML file to the target org
         class_path: cumulusci.tasks.salesforce.LoadCustomSettings
         group: 'Data Operations'
 
