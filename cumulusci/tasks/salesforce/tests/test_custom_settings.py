@@ -54,6 +54,30 @@ class TestUploadCustomSettings(unittest.TestCase):
         )
 
     @patch("os.path.isfile")
+    def test_load_settings_hierarchy_setting_profile__error(self, isfile):
+        isfile.return_value = True
+        task = create_task(UploadCustomSettings, {"settings_path": "test.yml"})
+
+        task.sf = Mock()
+        task.sf.query.side_effect = [
+            {
+                "totalSize": 2,
+                "records": [{"Id": "001000000000000"}, {"Id": "001000000000001"}],
+            },
+            {"totalSize": 0},
+        ]
+        task.settings = {
+            "Test__c": [{"location": {"profile": "Test"}, "data": {"Field__c": "Test"}}]
+        }
+        with self.assertRaises(CumulusCIException):
+            task._load_settings()
+
+        task.sf.Test__c.create.assert_not_called()
+        task.sf.query.assert_has_calls(
+            [call("SELECT Id FROM Profile WHERE Name = 'Test'")]
+        )
+
+    @patch("os.path.isfile")
     def test_load_settings_hierarchy_setting_user(self, isfile):
         isfile.return_value = True
         task = create_task(UploadCustomSettings, {"settings_path": "test.yml"})
