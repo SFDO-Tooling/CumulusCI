@@ -136,6 +136,6 @@ class GenerateAndLoadData(BaseSalesforceApiTask):
         with NamedTemporaryFile(suffix="_mapping.yml") as generated_mapping_file:
             subtask_options["generate_mapping_file"] = generated_mapping_file.name
             self._datagen(subtask_options)
-            if not subtask_options.get("mapping_file"):
+            if not subtask_options.get("mapping"):
                 subtask_options["mapping"] = generated_mapping_file.name
             self._dataload(subtask_options)
