@@ -763,6 +763,7 @@ def service_info(config, service_name, plain):
         )
 
 
+# Commands for group: org
 @org.command(
     name="browser",
     help="Opens a browser window and logs into the org using the stored OAuth credentials",

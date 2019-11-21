@@ -44,7 +44,6 @@ def test_select_val_env(monkeypatch):
     assert selected_val == "expected"
 
 
-# @mock.patch("cumulusci.core.config.BaseGlobalConfig")
 def test_select_val_global(monkeypatch):
     monkeypatch.delenv("TEST", raising=False)
     selected_val = options._select_value("TEST", "expected", "fail")
