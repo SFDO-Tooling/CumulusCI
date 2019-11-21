@@ -18,7 +18,6 @@ from cumulusci.utils import get_cci_upgrade_command
 from cumulusci.utils import random_alphanumeric_underscore
 
 # Environment Variables
-NO_PROMPT_ENV = "CUMULUSCI_NO_PROMPT"
 KEYCHAIN_CLASS_ENV = "CUMULUSCI_KEYCHAIN_CLASS"
 CUMULUSCI_KEY_ENV = "CUMULUSCI_KEY"
 
@@ -125,10 +124,10 @@ class CliRuntime(BaseCumulusCI):
         return org_config
 
     def _should_recreate_expired_org(self, no_prompt):
-        if no_prompt or os.environ.get(NO_PROMPT_ENV, False):
-            return True
-        else:
+        if not no_prompt:
             return click.confirm("Attempt to recreate the scratch org?", default=True)
+        else:
+            return no_prompt
 
     def check_org_overwrite(self, org_name):
         try:

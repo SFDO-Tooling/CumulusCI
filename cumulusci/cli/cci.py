@@ -755,6 +755,13 @@ def service_info(config, service_name, plain):
 
 
 # Commands for group: org
+def get_prompt_global_config(ctx, param, value):
+    global_config = BaseGlobalConfig()
+    global_value = global_config.cli__no_prompt
+    if global_value:
+        return global_value
+    else:
+        return value
 
 
 @org.command(
@@ -766,6 +773,8 @@ def service_info(config, service_name, plain):
     "--no-prompt",
     is_flag=True,
     help="Disables all prompts.  Set for non-interactive mode use such as calling from scripts or CI systems",
+    callback=get_prompt_global_config,
+    envvar="CUMULUSCI_NO_PROMPT",
 )
 @pass_config
 def org_browser(config, org_name, no_prompt):
@@ -883,6 +892,8 @@ def calculate_org_days(info):
     "--no-prompt",
     is_flag=True,
     help="Disables all prompts.  Set for non-interactive mode use such as calling from scripts or CI systems",
+    callback=get_prompt_global_config,
+    envvar="CUMULUSCI_NO_PROMPT",
 )
 @pass_config
 def org_info(config, org_name, print_json, no_prompt):
@@ -1205,6 +1216,8 @@ def task_info(config, task_name):
     "--no-prompt",
     is_flag=True,
     help="Disables all prompts.  Set for non-interactive mode use such as calling from scripts or CI systems",
+    callback=get_prompt_global_config,
+    envvar="CUMULUSCI_NO_PROMPT",
 )
 @pass_config
 def task_run(config, task_name, org, o, debug, debug_before, debug_after, no_prompt):
@@ -1336,6 +1349,8 @@ def flow_info(config, flow_name):
     "--no-prompt",
     is_flag=True,
     help="Disables all prompts.  Set for non-interactive mode use such as calling from scripts or CI systems",
+    callback=get_prompt_global_config,
+    envvar="CUMULUSCI_NO_PROMPT",
 )
 @pass_config
 def flow_run(config, flow_name, org, delete_org, debug, o, skip, no_prompt):

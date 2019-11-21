@@ -8,7 +8,7 @@ import click
 import pytest
 
 import cumulusci
-from cumulusci.cli.config import CUMULUSCI_KEY_ENV, NO_PROMPT_ENV, CliRuntime
+from cumulusci.cli.config import CUMULUSCI_KEY_ENV, CliRuntime
 from cumulusci.core.config import OrgConfig
 from cumulusci.core.exceptions import (
     ConfigError,
@@ -133,24 +133,6 @@ class TestCliRuntime(unittest.TestCase):
             "test",
         )
         confirm.return_value = True
-
-        config.check_org_expired("test", org_config, no_prompt=False)
-        config.keychain.create_scratch_org.assert_called_once()
-
-    @mock.patch("click.confirm")
-    @mock.patch.dict(os.environ, {NO_PROMPT_ENV: "true"})
-    def test_check_org_expired_envvar(self, confirm):
-        config = CliRuntime()
-        config.keychain = mock.Mock()
-        org_config = OrgConfig(
-            {
-                "scratch": True,
-                "date_created": date.today() - timedelta(days=2),
-                "expired": True,
-            },
-            "test",
-        )
-        confirm.return_value = False
 
         config.check_org_expired("test", org_config, no_prompt=False)
         config.keychain.create_scratch_org.assert_called_once()
