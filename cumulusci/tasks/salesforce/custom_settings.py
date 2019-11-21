@@ -6,8 +6,8 @@ from cumulusci.utils import os_friendly_path
 from cumulusci.core.exceptions import TaskOptionsError, CumulusCIException
 
 
-class UploadCustomSettings(BaseSalesforceApiTask):
-    """Upload Custom Settings (both List and Hierarchy) into an org
+class LoadCustomSettings(BaseSalesforceApiTask):
+    """Load Custom Settings (both List and Hierarchy) into an org
     from a YAML-format settings file.
 
     Each top-level YAML key should be the API name of a Custom Setting.

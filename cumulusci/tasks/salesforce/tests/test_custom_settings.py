@@ -2,22 +2,22 @@ import unittest
 import yaml
 from unittest.mock import Mock, patch, call, mock_open
 
-from cumulusci.tasks.salesforce import UploadCustomSettings
+from cumulusci.tasks.salesforce import LoadCustomSettings
 from cumulusci.tasks.salesforce.tests.util import create_task
 from cumulusci.core.exceptions import TaskOptionsError, CumulusCIException
 
 
-class TestUploadCustomSettings(unittest.TestCase):
+class TestLoadCustomSettings(unittest.TestCase):
     @patch("os.path.isfile")
     def test_init_options__exception(self, isfile):
         isfile.return_value = False
         with self.assertRaises(TaskOptionsError):
-            create_task(UploadCustomSettings, {"settings_path": "test.yml"})
+            create_task(LoadCustomSettings, {"settings_path": "test.yml"})
 
     @patch("os.path.isfile")
     def test_load_settings_list_setting(self, isfile):
         isfile.return_value = True
-        task = create_task(UploadCustomSettings, {"settings_path": "test.yml"})
+        task = create_task(LoadCustomSettings, {"settings_path": "test.yml"})
 
         task.sf = Mock()
 
@@ -31,7 +31,7 @@ class TestUploadCustomSettings(unittest.TestCase):
     @patch("os.path.isfile")
     def test_load_settings_hierarchy_setting_profile(self, isfile):
         isfile.return_value = True
-        task = create_task(UploadCustomSettings, {"settings_path": "test.yml"})
+        task = create_task(LoadCustomSettings, {"settings_path": "test.yml"})
 
         task.sf = Mock()
         task.sf.query.side_effect = [
@@ -56,7 +56,7 @@ class TestUploadCustomSettings(unittest.TestCase):
     @patch("os.path.isfile")
     def test_load_settings_hierarchy_setting_profile__error(self, isfile):
         isfile.return_value = True
-        task = create_task(UploadCustomSettings, {"settings_path": "test.yml"})
+        task = create_task(LoadCustomSettings, {"settings_path": "test.yml"})
 
         task.sf = Mock()
         task.sf.query.side_effect = [
@@ -80,7 +80,7 @@ class TestUploadCustomSettings(unittest.TestCase):
     @patch("os.path.isfile")
     def test_load_settings_hierarchy_setting_user(self, isfile):
         isfile.return_value = True
-        task = create_task(UploadCustomSettings, {"settings_path": "test.yml"})
+        task = create_task(LoadCustomSettings, {"settings_path": "test.yml"})
 
         task.sf = Mock()
         task.sf.query.side_effect = [
@@ -111,7 +111,7 @@ class TestUploadCustomSettings(unittest.TestCase):
     @patch("os.path.isfile")
     def test_load_settings_hierarchy_setting_user_email(self, isfile):
         isfile.return_value = True
-        task = create_task(UploadCustomSettings, {"settings_path": "test.yml"})
+        task = create_task(LoadCustomSettings, {"settings_path": "test.yml"})
 
         task.sf = Mock()
         task.sf.query.side_effect = [
@@ -142,7 +142,7 @@ class TestUploadCustomSettings(unittest.TestCase):
     @patch("os.path.isfile")
     def test_load_settings_hierarchy_org(self, isfile):
         isfile.return_value = True
-        task = create_task(UploadCustomSettings, {"settings_path": "test.yml"})
+        task = create_task(LoadCustomSettings, {"settings_path": "test.yml"})
 
         task.sf = Mock()
         task.sf.query.side_effect = [
@@ -166,7 +166,7 @@ class TestUploadCustomSettings(unittest.TestCase):
     @patch("os.path.isfile")
     def test_load_settings_hierarchy_no_location(self, isfile):
         isfile.return_value = True
-        task = create_task(UploadCustomSettings, {"settings_path": "test.yml"})
+        task = create_task(LoadCustomSettings, {"settings_path": "test.yml"})
 
         task.sf = Mock()
         task.sf.query.side_effect = [
@@ -182,7 +182,7 @@ class TestUploadCustomSettings(unittest.TestCase):
     @patch("os.path.isfile")
     def test_load_settings_hierarchy_update(self, isfile):
         isfile.return_value = True
-        task = create_task(UploadCustomSettings, {"settings_path": "test.yml"})
+        task = create_task(LoadCustomSettings, {"settings_path": "test.yml"})
 
         task.sf = Mock()
         task.sf.query.side_effect = [
@@ -212,7 +212,7 @@ class TestUploadCustomSettings(unittest.TestCase):
                 {"Test__c": [{"location": "org", "data": {"Field__c": "Test"}}]}
             )
         )
-        task = create_task(UploadCustomSettings, {"settings_path": "test.yml"})
+        task = create_task(LoadCustomSettings, {"settings_path": "test.yml"})
 
         sf.return_value.query.side_effect = [
             {"totalSize": 1, "records": [{"Id": "001000000000000"}]},

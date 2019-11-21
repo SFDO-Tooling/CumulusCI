@@ -1279,15 +1279,15 @@ Options:
 * **sql_path**: If specified, a database will be created from an SQL script at the provided path **Default: datasets/sample.sql**
 * **ignore_row_errors**: If True, allow the load to continue even if individual rows fail to load.
 
-upload_custom_settings
+load_custom_settings
 ==========================================
 
-**Description:** Upload Custom Settings specified in a YAML file to the target org
+**Description:** Load Custom Settings specified in a YAML file to the target org
 
-**Class::** cumulusci.tasks.salesforce.UploadCustomSettings
+**Class::** cumulusci.tasks.salesforce.LoadCustomSettings
 
 Options:
 ------------------------------------------
 
-* **settings_path** *(required)*: The path to a YAML settings store
+* **settings_path** *(required)*: The path to a YAML settings file
 
