@@ -397,18 +397,25 @@ tasks:
         options:
             namespace_prefix: $project_config.project__package__namespace
             path: 'datasets/mapping.yml'
+        group: 'Data Operations'
     extract_dataset:
         description: Extract a sample dataset using the bulk API.
         class_path: cumulusci.tasks.bulkdata.ExtractData
         options:
             mapping: 'datasets/mapping.yml'
             sql_path: 'datasets/sample.sql'
+        group: 'Data Operations'
     load_dataset:
         description: Load a sample dataset using the bulk API.
         class_path: cumulusci.tasks.bulkdata.LoadData
         options:
             mapping: 'datasets/mapping.yml'
             sql_path: 'datasets/sample.sql'
+        group: 'Data Operations'
+    load_custom_settings:
+        description: Load Custom Settings specified in a YAML file to the target org
+        class_path: cumulusci.tasks.salesforce.LoadCustomSettings
+        group: 'Data Operations'
 
 flows:
     apex_docs:
