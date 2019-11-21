@@ -130,8 +130,8 @@ class StepSpec(object):
         if self.skip:
             skipstr = "!SKIP! "
         # XXX include project source name
-        return "<{skip}StepSpec {num}:{name} {cfg}>".format(
-            num=self.step_num, name=self.task_name, cfg=self.task_config, skip=skipstr
+        return (
+            f"<{skipstr}StepSpec {self.step_num}:{self.task_name} {self.task_config}>"
         )
 
     @property
@@ -140,12 +140,11 @@ class StepSpec(object):
         skip = ""
         if self.skip:
             skip = " [SKIP]"
-        result = "{step_num}: {path}{skip}".format(
-            step_num=self.step_num, path=self.path, skip=skip
-        )
+        result = f"{self.step_num}: {self.path}{skip}"
+
         description = self.task_config.get("description")
         if description:
-            result += ": {}".format(description)
+            result += f": {description}"
         return result
 
 
@@ -223,9 +222,7 @@ class TaskRunner(object):
         try:
             task()
         except Exception as e:
-            self.flow.logger.exception(
-                "Exception in task {}".format(self.step.task_name)
-            )
+            self.flow.logger.exception(f"Exception in task {self.step.task_name}")
             exc = e
         return StepResult(
             self.step.step_num,
@@ -243,7 +240,7 @@ class TaskRunner(object):
         for key, info in task.task_options.items():
             value = task.options.get(key)
             if value is not None:
-                task.logger.info("  {}: {}".format(key, value))
+                task.logger.info(f"  {key}: {value}")
 
 
 class FlowCoordinator(object):
@@ -288,7 +285,7 @@ class FlowCoordinator(object):
         return instance
 
     def _rule(self, fill="=", length=60, new_line=False):
-        self.logger.info("{:{fill}<{length}}".format("", fill=fill, length=length))
+        self.logger.info(f"{fill * length}")
         if new_line:
             self.logger.info("")
 
@@ -298,9 +295,7 @@ class FlowCoordinator(object):
             with tasks. """
         lines = []
         if "description" in self.flow_config.config:
-            lines.append(
-                "Description: {}".format(self.flow_config.config["description"])
-            )
+            lines.append(f"Description: {self.flow_config.config['description']}")
         previous_parts = []
         previous_source = None
         for step in self.steps:
@@ -327,13 +322,8 @@ class FlowCoordinator(object):
                     if source:
                         new_source = ""
 
-            when = (
-                "\n{}  when: {}".format(
-                    "    " * (i + 1) + " " * len(str(steps[i + 1])), step.when
-                )
-                if step.when is not None
-                else ""
-            )
+            padding = "    " * (i + 1) + " " * len(str(steps[i + 1]))
+            when = f"\n{padding}  when: {step.when}" if step.when is not None else ""
             lines.append(
                 f"{'    ' * (i + 1)}{steps[i + 1]}) task: {task_name}{new_source}{when}"
             )
@@ -343,9 +333,9 @@ class FlowCoordinator(object):
 
     def run(self, org_config):
         self.org_config = org_config
-        line = "Initializing flow: {}".format(self.__class__.__name__)
+        line = f"Initializing flow: {self.__class__.__name__}"
         if self.name:
-            line = "{} ({})".format(line, self.name)
+            line = f"{line} ({self.name})"
         self._rule()
         self.logger.info(line)
         self.logger.info(self.flow_config.description)
@@ -354,8 +344,8 @@ class FlowCoordinator(object):
         self._init_org()
         self._rule(fill="-")
         self.logger.info("Organization:")
-        self.logger.info("  {}: {}".format("Username", org_config.username))
-        self.logger.info("  {}: {}".format("  Org Id", org_config.org_id))
+        self.logger.info(f"  Username: {org_config.username}")
+        self.logger.info(f"    Org Id: {org_config.org_id}")
         self._rule(fill="-", new_line=True)
 
         # Give pre_flow callback a chance to alter the steps
@@ -375,7 +365,7 @@ class FlowCoordinator(object):
             for step in self.steps:
                 if step.skip:
                     self._rule(fill="*")
-                    self.logger.info("Skipping task: {}".format(step.task_name))
+                    self.logger.info(f"Skipping task: {step.task_name}")
                     self._rule(fill="*", new_line=True)
                     continue
 
@@ -388,14 +378,12 @@ class FlowCoordinator(object):
                     value = expr(**jinja2_context)
                     if not value:
                         self.logger.info(
-                            "Skipping task {} (skipped when {})".format(
-                                step.task_name, step.when
-                            )
+                            f"Skipping task {step.task_name} (skipped when {step.when})"
                         )
                         continue
 
                 self._rule(fill="-")
-                self.logger.info("Running task: {}".format(step.task_name))
+                self.logger.info(f"Running task: {step.task_name}")
                 self._rule(fill="-", new_line=True)
 
                 self.callbacks.pre_task(step)
@@ -475,9 +463,7 @@ class FlowCoordinator(object):
         # - A step is either a task OR a flow.
         if all(k in step_config for k in ("flow", "task")):
             raise FlowConfigError(
-                "Step {} is configured as both a flow AND a task. \n\t{}.".format(
-                    number, step_config
-                )
+                f"Step {number} is configured as both a flow AND a task. \n\t{step_config}."
             )
 
         # Skips
@@ -567,7 +553,7 @@ class FlowCoordinator(object):
                 # e.g. if we're in step 2.3 which references a flow with steps 1-5, it
                 #   simply ends up as five steps: 2.3.1, 2.3.2, 2.3.3, 2.3.4, 2.3.5
                 # TODO: how does this work with nested flowveride? what does defining step 2.3.2 later do?
-                num = "{}/{}".format(number, sub_number)
+                num = f"{number}/{sub_number}"
                 self._visit_step(
                     number=num,
                     step_config=sub_stepconf,
@@ -611,7 +597,7 @@ class FlowCoordinator(object):
                 )
                 if signature in visited_flows:
                     raise FlowInfiniteLoopError(
-                        "Infinite flows detected with flow {}".format(flow_name)
+                        f"Infinite flows detected with flow {flow_name}"
                     )
                 visited_flows.add(signature)
                 self._check_infinite_flows(next_flow_config, visited_flows)
@@ -619,9 +605,7 @@ class FlowCoordinator(object):
     def _init_org(self):
         """ Test and refresh credentials to the org specified. """
         self.logger.info(
-            "Verifying and refreshing credentials for the specified org: {}.".format(
-                self.org_config.name
-            )
+            f"Verifying and refreshing credentials for the specified org: {self.org_config.name}."
         )
         orig_config = self.org_config.config.copy()
 
@@ -644,7 +628,7 @@ class FlowCoordinator(object):
         for result in self.results:
             if result.path[-len(path) :] == path:
                 return result
-        raise NameError("Path not found: {}".format(path))
+        raise NameError(f"Path not found: {path}")
 
 
 class PreflightFlowCoordinator(FlowCoordinator):
@@ -658,8 +642,8 @@ class PreflightFlowCoordinator(FlowCoordinator):
         self._init_org()
         self._rule(fill="-")
         self.logger.info("Organization:")
-        self.logger.info("  {}: {}".format("Username", org_config.username))
-        self.logger.info("  {}: {}".format("  Org Id", org_config.org_id))
+        self.logger.info(f"  Username: {org_config.username}")
+        self.logger.info(f"    Org Id: {org_config.org_id}")
         self._rule(fill="-", new_line=True)
 
         self.logger.info("Running preflight checks...")
@@ -690,10 +674,10 @@ class PreflightFlowCoordinator(FlowCoordinator):
             self.callbacks.post_flow(self)
 
     def evaluate_check(self, check, jinja2_context):
-        self.logger.info("Evaluating check: {}".format(check["when"]))
+        self.logger.info(f"Evaluating check: {check['when']}")
         expr = jinja2_env.compile_expression(check["when"])
         value = bool(expr(**jinja2_context))
-        self.logger.info("Check result: {}".format(value))
+        self.logger.info(f"Check result: {value}")
         if value:
             return {"status": check["action"], "message": check.get("message")}
 

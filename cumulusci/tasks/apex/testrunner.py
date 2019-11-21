@@ -74,7 +74,37 @@ WHERE AsyncApexJobId='{}'
 
 
 class RunApexTests(BaseSalesforceApiTask):
-    """ Task to run Apex tests with the Tooling API and report results """
+    """ Task to run Apex tests with the Tooling API and report results.
+
+    This task optionally supports retrying unit tests that fail due to
+    transitory issues or concurrency-related row locks. To enable retries,
+    add ones or more regular expressions to the list option `retry_failures`.
+
+    When a test run fails, if all of the failures' error messages or stack traces
+    match one of these regular expressions, each failed test will be retried by
+    itself. This is often useful when running Apex tests in parallel; row locks
+    may automatically be retried. Note that retries are supported whether or not
+    the org has parallel Apex testing enabled.
+
+    The `retry_always` option modifies this behavior: if a test run fails and
+    any (not all) of the failures match the specified regular expressions,
+    all of the failed tests will be retried in serial. This is helpful when
+    underlying row locking errors are masked by custom exceptions.
+
+    A useful base configuration for projects wishing to use retries is
+
+    ```yaml
+            retry_failures:
+                - "unable to obtain exclusive access to this record"
+                - "UNABLE_TO_LOCK_ROW"
+                - "connection was cancelled here"
+            retry_always: True
+    ```
+
+    Some projects' unit tests produce so many concurrency errors that
+    it's faster to execute the entire run in serial mode than to use retries.
+    Serial and parallel mode are configured in the scratch org definition file.
+"""
 
     api_version = "38.0"
     name = "RunApexTests"
@@ -227,16 +257,48 @@ class RunApexTests(BaseSalesforceApiTask):
         self.logger.info("Found {} test classes".format(result["totalSize"]))
         return result
 
-    def _is_retriable_failure(self, test_result):
-        return test_result["Outcome"] == "Fail" and any(
-            [
-                reg.search(test_result["Message"] or "")
-                or reg.search(test_result["StackTrace"] or "")
-                for reg in self.options["retry_failures"]
-            ]
+    def _get_test_methods_for_class(self, class_name):
+        result = self.tooling.query(
+            f"SELECT SymbolTable FROM ApexClass WHERE Name='{class_name}'"
+        )
+        test_methods = []
+
+        if result["records"]:
+            methods = result["records"][0]["SymbolTable"]["methods"]
+            for m in methods:
+                for a in m["annotations"]:
+                    if a["name"].lower() in ["istest", "testmethod"]:
+                        test_methods.append(m["name"])
+                        break
+
+        return test_methods
+
+    def _is_retriable_error_message(self, error_message):
+        return any(
+            [reg.search(error_message) for reg in self.options["retry_failures"]]
         )
 
+    def _is_retriable_failure(self, test_result):
+        return self._is_retriable_error_message(
+            test_result["Message"] or ""
+        ) or self._is_retriable_error_message(test_result["StackTrace"] or "")
+
     def _get_test_results(self, allow_retries=True):
+        # We need to query at both the test result and test queue item level.
+        # Some concurrency problems manifest as all or part of the class failing,
+        # without leaving behind any visible ApexTestResult records.
+        # See https://salesforce.stackexchange.com/questions/262893/any-way-to-get-consistent-test-counts-when-parallel-testing-is-used
+
+        # First, gather the Ids of failed test classes.
+        test_classes = self.tooling.query_all(
+            "SELECT Id, Status, ExtendedStatus, ApexClassId FROM ApexTestQueueItem "
+            + "WHERE ParentJobId = '{}' AND Status = 'Failed'".format(self.job_id)
+        )
+        class_level_errors = {
+            each_class["ApexClassId"]: each_class["ExtendedStatus"]
+            for each_class in test_classes["records"]
+        }
+
         result = self.tooling.query_all(TEST_RESULT_QUERY.format(self.job_id))
 
         if allow_retries:
@@ -249,12 +311,52 @@ class RunApexTests(BaseSalesforceApiTask):
             ] = test_result
             self.counts[test_result["Outcome"]] += 1
 
-            # Determine whether this failure is retriable.
-            if allow_retries and self._is_retriable_failure(test_result):
-                self.counts["Retriable"] += 1
-                self.retry_details.setdefault(test_result["ApexClassId"], []).append(
-                    test_result["MethodName"]
-                )
+        # If we have class-level failures that did not come with line-level
+        # failure details, report those as well.
+        for class_id, error in class_level_errors.items():
+            class_name = self.classes_by_id[class_id]
+
+            self.logger.error(
+                f"Class {class_name} failed to run some tests with the message {error}. Applying error to unit test results."
+            )
+
+            # Get all the method names for this class
+            test_methods = self._get_test_methods_for_class(class_name)
+            for test_method in test_methods:
+                # If this method was not run due to a class-level failure,
+                # synthesize a failed result.
+                # If we're retrying and fail again, do the same.
+                if (
+                    test_method not in self.results_by_class_name[class_name]
+                    or self.results_by_class_name[class_name][test_method]["Outcome"]
+                    == "Fail"
+                ):
+                    self.results_by_class_name[class_name][test_method] = {
+                        "ApexClassId": class_id,
+                        "MethodName": test_method,
+                        "Outcome": "Fail",
+                        "Message": f"Containing class {class_name} failed with message {error}",
+                        "StackTrace": "",
+                        "RunTime": 0,
+                    }
+                    self.counts["Fail"] += 1
+
+        if allow_retries:
+            for class_name, results in self.results_by_class_name.items():
+                for test_result in results.values():
+                    # Determine whether this failure is retriable.
+                    if test_result["Outcome"] == "Fail" and allow_retries:
+                        can_retry_this_failure = self._is_retriable_failure(test_result)
+                        if can_retry_this_failure:
+                            self.counts["Retriable"] += 1
+
+                        # Even if this failure is not retriable per se,
+                        # persist its details if we might end up retrying
+                        # all failures.
+                        if self.options["retry_always"] or can_retry_this_failure:
+                            self.retry_details.setdefault(
+                                test_result["ApexClassId"], []
+                            ).append(test_result["MethodName"])
 
     def _process_test_results(self):
         test_results = []
@@ -323,7 +425,7 @@ class RunApexTests(BaseSalesforceApiTask):
     def _get_stats_from_result(self, result):
         stats = {"duration": result["RunTime"]}
 
-        if result["ApexTestResults"]:
+        if result.get("ApexTestResults", None):
             for limit_name, details in APEX_LIMITS.items():
                 limit_use = result["ApexTestResults"]["records"][0][limit_name]
                 limit_allowed = details[
@@ -383,10 +485,6 @@ class RunApexTests(BaseSalesforceApiTask):
         else:
             self._attempt_retries()
 
-        if self.counts["Retriable"]:
-            # All our retries succeeded. Clear the failure counter.
-            self.counts["Fail"] = 0
-
         test_results = self._process_test_results()
         self._write_output(test_results)
 
@@ -398,13 +496,16 @@ class RunApexTests(BaseSalesforceApiTask):
             )
 
     def _attempt_retries(self):
+        total_method_retries = sum(
+            [len(test_list) for test_list in self.retry_details.values()]
+        )
         self.logger.warning(
-            "Retrying failed methods from {} test classes".format(
-                len(self.retry_details)
+            "Retrying {} failed methods from {} test classes".format(
+                total_method_retries, len(self.retry_details)
             )
         )
-        # Save the pre-retry status counts. If the retries fail, we'll report the originals.
-        original_counts = self.counts.copy()
+        self.counts["Fail"] = 0
+
         for class_id, test_list in self.retry_details.items():
             for each_test in test_list:
                 self.logger.warning(
@@ -413,14 +514,10 @@ class RunApexTests(BaseSalesforceApiTask):
                 self.job_id = self._enqueue_test_run({class_id: [each_test]})
                 self._wait_for_tests()
                 self._get_test_results(allow_retries=False)
-                # If the retry failed, stop and count all retried tests
-                # under their original failures.
-                if self.counts["Fail"] > original_counts["Fail"]:
-                    self.logger.error("Test retry failed.")
-                    # Reset counts to avoid double-counting retried failures
-                    self.counts = original_counts
-                    self.counts["Retriable"] = 0
-                    return
+
+        # If the retry failed, report the remaining failures.
+        if self.counts["Fail"]:
+            self.logger.error("Test retry failed.")
 
     def _wait_for_tests(self):
         self.poll_complete = False
@@ -443,6 +540,7 @@ class RunApexTests(BaseSalesforceApiTask):
             "Queued": 0,
         }
         processing_class_id = None
+        total_test_count = self.result["totalSize"]
         for test_queue_item in self.result["records"]:
             counts[test_queue_item["Status"]] += 1
             if test_queue_item["Status"] == "Processing":
@@ -458,7 +556,10 @@ class RunApexTests(BaseSalesforceApiTask):
                 counts["Queued"],
             )
         )
-        if counts["Queued"] == 0 and counts["Processing"] == 0:
+        if (
+            total_test_count
+            == counts["Completed"] + counts["Failed"] + counts["Aborted"]
+        ):
             self.logger.info("Apex tests completed")
             self.poll_complete = True
 
