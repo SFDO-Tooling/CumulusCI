@@ -15,6 +15,17 @@ class TestLoadCustomSettings(unittest.TestCase):
             create_task(LoadCustomSettings, {"settings_path": "test.yml"})
 
     @patch("os.path.isfile")
+    def test_load_settings_bad_yaml(self, isfile):
+        isfile.return_value = True
+        task = create_task(LoadCustomSettings, {"settings_path": "test.yml"})
+
+        task.sf = Mock()
+
+        task.settings = {"Test__c": "Test"}
+        with self.assertRaises(CumulusCIException):
+            task._load_settings()
+
+    @patch("os.path.isfile")
     def test_load_settings_list_setting(self, isfile):
         isfile.return_value = True
         task = create_task(LoadCustomSettings, {"settings_path": "test.yml"})

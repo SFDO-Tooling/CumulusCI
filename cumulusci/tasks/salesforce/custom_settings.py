@@ -133,3 +133,7 @@ class LoadCustomSettings(BaseSalesforceApiTask):
                             existing_records["records"][0]["Id"],
                             setting_instance["data"],
                         )
+            else:
+                raise CumulusCIException(
+                    "Each Custom Settings entry must be a list or a map structure."
+                )
