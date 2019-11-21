@@ -163,30 +163,12 @@ class Context:
         return str(getattr(faker_template_library, name))
 
 
-class StaticEvaluator:
-    def __init__(self, definition):
-        self.definition = definition
-
-    def __call__(self, context):
-        return self.definition
-
-
 class DynamicEvaluator:
     def __init__(self, template):
         self.template = template
 
     def __call__(self, context):
         return self.template.render(**context.field_vars(), **context.field_funcs())
-
-
-def try_to_infer_type(val):
-    try:
-        return float(val)
-    except (ValueError, TypeError):
-        try:
-            return int(val)
-        except (ValueError, TypeError):
-            return val
 
 
 def evaluate_function(func, args, kwargs, context):

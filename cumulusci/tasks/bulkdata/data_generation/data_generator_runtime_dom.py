@@ -123,14 +123,6 @@ class ObjectTemplate:
         return writeable_row
 
 
-class StaticEvaluator:
-    def __init__(self, definition):
-        self.definition = definition
-
-    def __call__(self, context):
-        return self.definition
-
-
 def try_to_infer_type(val):
     try:
         return float(val)
