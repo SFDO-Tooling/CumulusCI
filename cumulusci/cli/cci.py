@@ -37,6 +37,7 @@ from cumulusci.core.exceptions import FlowNotFoundError
 from cumulusci.core.utils import import_global
 from cumulusci.cli.config import CliRuntime
 from cumulusci.cli.config import get_installed_version
+from cumulusci.cli.options import no_prompt_callback, plain_output_callback
 from cumulusci.cli.ui import CliTable, CROSSMARK
 from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
 from cumulusci.utils import doc_task
@@ -627,7 +628,12 @@ def project_dependencies(config):
 
 
 @service.command(name="list", help="List services available for configuration and use")
-@click.option("--plain", is_flag=True, help="Print the table using plain ascii.")
+@click.option(
+    "--plain",
+    is_flag=True,
+    help="Print the table using plain ascii.",
+    callback=plain_output_callback,
+)
 @click.option("--json", "print_json", is_flag=True, help="Print a json string")
 @pass_config(allow_global_keychain=True)
 def service_list(config, plain, print_json):
@@ -637,7 +643,6 @@ def service_list(config, plain, print_json):
         else config.global_config.services
     )
     configured_services = config.keychain.list_services()
-    plain = plain or config.global_config.cli__plain_output
 
     data = [["Name", "Description", "Configured"]]
     for serv, schema in services.items():
@@ -729,11 +734,15 @@ def service_connect():
 
 @service.command(name="info", help="Show the details of a connected service")
 @click.argument("service_name")
-@click.option("--plain", is_flag=True, help="Print the table using plain ascii.")
+@click.option(
+    "--plain",
+    is_flag=True,
+    help="Print the table using plain ascii.",
+    callback=plain_output_callback,
+)
 @pass_config(allow_global_keychain=True)
 def service_info(config, service_name, plain):
     try:
-        plain = plain or config.global_config.cli__plain_output
         service_config = config.keychain.get_service(service_name)
         service_data = [["Key", "Value"]]
         service_data.extend(
@@ -754,16 +763,6 @@ def service_info(config, service_name, plain):
         )
 
 
-# Commands for group: org
-def get_prompt_global_config(ctx, param, value):
-    global_config = BaseGlobalConfig()
-    global_value = global_config.cli__no_prompt
-    if global_value:
-        return global_value
-    else:
-        return value
-
-
 @org.command(
     name="browser",
     help="Opens a browser window and logs into the org using the stored OAuth credentials",
@@ -773,8 +772,7 @@ def get_prompt_global_config(ctx, param, value):
     "--no-prompt",
     is_flag=True,
     help="Disables all prompts.  Set for non-interactive mode use such as calling from scripts or CI systems",
-    callback=get_prompt_global_config,
-    envvar="CUMULUSCI_NO_PROMPT",
+    callback=no_prompt_callback,
 )
 @pass_config
 def org_browser(config, org_name, no_prompt):
@@ -892,8 +890,7 @@ def calculate_org_days(info):
     "--no-prompt",
     is_flag=True,
     help="Disables all prompts.  Set for non-interactive mode use such as calling from scripts or CI systems",
-    callback=get_prompt_global_config,
-    envvar="CUMULUSCI_NO_PROMPT",
+    callback=no_prompt_callback,
 )
 @pass_config
 def org_info(config, org_name, print_json, no_prompt):
@@ -953,10 +950,14 @@ def org_info(config, org_name, print_json, no_prompt):
 
 
 @org.command(name="list", help="Lists the connected orgs for the current project")
-@click.option("--plain", is_flag=True, help="Print the table using plain ascii.")
+@click.option(
+    "--plain",
+    is_flag=True,
+    help="Print the table using plain ascii.",
+    callback=plain_output_callback,
+)
 @pass_config
 def org_list(config, plain):
-    plain = plain or config.global_config.cli__plain_output
     header = ["Name", "Default", "Username", "Expires"]
     persistent_data = [header]
     scratch_data = [header[:2] + ["Days", "Expired", "Config", "Domain"]]
@@ -1126,13 +1127,17 @@ def org_shell(config, org_name):
 
 
 @task.command(name="list", help="List available tasks for the current context")
-@click.option("--plain", is_flag=True, help="Print the table using plain ascii.")
+@click.option(
+    "--plain",
+    is_flag=True,
+    help="Print the table using plain ascii.",
+    callback=plain_output_callback,
+)
 @click.option("--json", "print_json", is_flag=True, help="Print a json string")
 @pass_config(load_keychain=False)
 def task_list(config, plain, print_json):
     task_groups = {}
     tasks = config.project_config.list_tasks()
-    plain = plain or config.global_config.cli__plain_output
 
     if print_json:
         click.echo(json.dumps(tasks))
@@ -1216,8 +1221,7 @@ def task_info(config, task_name):
     "--no-prompt",
     is_flag=True,
     help="Disables all prompts.  Set for non-interactive mode use such as calling from scripts or CI systems",
-    callback=get_prompt_global_config,
-    envvar="CUMULUSCI_NO_PROMPT",
+    callback=no_prompt_callback,
 )
 @pass_config
 def task_run(config, task_name, org, o, debug, debug_before, debug_after, no_prompt):
@@ -1284,11 +1288,15 @@ def task_run(config, task_name, org, o, debug, debug_before, debug_after, no_pro
 
 
 @flow.command(name="list", help="List available flows for the current context")
-@click.option("--plain", is_flag=True, help="Print the table using plain ascii.")
+@click.option(
+    "--plain",
+    is_flag=True,
+    help="Print the table using plain ascii.",
+    callback=plain_output_callback,
+)
 @click.option("--json", "print_json", is_flag=True, help="Print a json string")
 @pass_config(load_keychain=False)
 def flow_list(config, plain, print_json):
-    plain = plain or config.global_config.cli__plain_output
     flows = config.project_config.list_flows()
 
     if print_json:
@@ -1349,8 +1357,7 @@ def flow_info(config, flow_name):
     "--no-prompt",
     is_flag=True,
     help="Disables all prompts.  Set for non-interactive mode use such as calling from scripts or CI systems",
-    callback=get_prompt_global_config,
-    envvar="CUMULUSCI_NO_PROMPT",
+    callback=no_prompt_callback,
 )
 @pass_config
 def flow_run(config, flow_name, org, delete_org, debug, o, skip, no_prompt):
