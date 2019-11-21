@@ -71,7 +71,7 @@ class LoadCustomSettings(BaseSalesforceApiTask):
             # If it's a list, we have a Hierarchy Custom Setting.
             if isinstance(settings_data, dict):
                 for setting_instance, instance_data in settings_data.items():
-                    self.logger.debug(
+                    self.logger.info(
                         f"Loading List Custom Setting {custom_setting}.{setting_instance}"
                     )
                     proxy_obj.upsert("Name/{}".format(setting_instance), instance_data)
@@ -121,12 +121,12 @@ class LoadCustomSettings(BaseSalesforceApiTask):
 
                     setting_instance["data"].update({"SetupOwnerId": setup_owner_id})
                     if existing_records["totalSize"] == 0:
-                        self.logger.debug(
+                        self.logger.info(
                             f"Loading Hierarchy Custom Setting {custom_setting} with owner id {setup_owner_id}"
                         )
                         proxy_obj.create(setting_instance["data"])
                     else:
-                        self.logger.debug(
+                        self.logger.info(
                             f"Updating Hierarchy Custom Setting {custom_setting} with owner id {setup_owner_id}"
                         )
                         proxy_obj.update(
