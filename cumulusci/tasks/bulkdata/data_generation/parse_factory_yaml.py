@@ -51,6 +51,9 @@ class TableInfo:
         self.friends.update({friend.tablename: friend for friend in template.friends})
         self._templates.append(template)
 
+    def __repr__(self):
+        return f"<TableInfo fields={list(self.fields.keys())} friends={list(self.friends.keys())} templates={len(self._templates)}>"
+
 
 class ParseContext:
     current_parent_object = None

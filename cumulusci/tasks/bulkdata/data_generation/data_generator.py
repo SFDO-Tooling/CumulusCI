@@ -20,6 +20,12 @@ from .data_generator_runtime import output_batches
 # of it.
 
 
+class ExecutionSummary:
+    def __init__(self, parse_results, runtime_results):
+        self.tables = parse_results.tables
+        self.intertable_dependencies = runtime_results.intertable_dependencies
+
+
 def merge_options(option_definitions, user_options):
     options = {}
     for option in option_definitions:
@@ -51,6 +57,8 @@ def generate(open_yaml_file, count, cli_options, output_stream, mapping_file):
     output_stream.create_or_validate_tables(parse_result.tables)
 
     # now do the output
-    output_batches(output_stream, parse_result.templates, count, options)
+    runtime_context = output_batches(
+        output_stream, parse_result.templates, count, options
+    )
 
-    return parse_result
+    return ExecutionSummary(parse_result, runtime_context)

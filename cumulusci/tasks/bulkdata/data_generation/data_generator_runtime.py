@@ -40,6 +40,16 @@ class CounterGenerator:
         self.counters[name] += 1
 
 
+class Dependency:
+    def __init__(self, table_name_from, table_name_to, field_name):
+        self.table_name_from = table_name_from
+        self.table_name_to = table_name_to
+        self.field_name = field_name
+
+    def __repr__(self):
+        return f"<{self.__class__.__name__} ({self.table_name_from}, {self.field_name}) -> {self.table_name_to}>"
+
+
 class Globals:
     """Globally named objects and other aspects of global scope"""
 
@@ -47,7 +57,7 @@ class Globals:
         self.named_objects = {}
         self.id_manager = IdManager()
         self.last_seen_obj_of_type = {}
-        self.references = {}
+        self.intertable_dependencies = []
 
     def register_object(self, obj, nickname=None):
         """Register an object for lookup by object type and (optionally) Nickname"""
@@ -63,8 +73,31 @@ class Globals:
         """The globally named objects"""
         return {**self.named_objects, **self.last_seen_obj_of_type}
 
-    def register_intertable_reference(self, table_name_from, table_name_to):
-        self.references.setdefault(table_name_from, set()).add(table_name_to)
+    def register_intertable_reference(self, table_name_from, table_name_to, fieldname):
+        self.intertable_dependencies.append(
+            Dependency(table_name_from, table_name_to, fieldname)
+        )
+
+
+class JinjaTemplateEvaluatorFactory:
+    def __init__(self):
+        self.template_compiler = jinja2.Environment(
+            block_start_string="<%",
+            block_end_string="%>",
+            variable_start_string="<<",
+            variable_end_string=">>",
+        )
+
+    def get_evaluator(self, definition: str):
+        assert isinstance(definition, str), definition
+        if "<<" in definition:
+            try:
+                template = self.template_compiler.from_string(definition)
+                return DynamicEvaluator(template)
+            except jinja2.exceptions.TemplateSyntaxError as e:
+                raise DataGenSyntaxError(str(e), None, None) from e
+        else:
+            return lambda context: definition
 
 
 class Context:
@@ -73,6 +106,7 @@ class Context:
     current_id = None
     obj = None
     today = date.today()
+    template_evaluator_factory = JinjaTemplateEvaluatorFactory()
 
     def __init__(self, parent, current_table_name, output_stream=None, options=None):
         self.parent = parent
@@ -101,9 +135,9 @@ class Context:
         self.obj = obj
         self.globals.register_object(obj, name)
 
-    def register_intertable_reference(self, table_name_to):
+    def register_intertable_reference(self, table_name_from, table_name_to, fieldname):
         self.globals.register_intertable_reference(
-            self.current_table_name, table_name_to
+            table_name_from, table_name_to, fieldname
         )
 
     def field_vars(self):
@@ -145,30 +179,6 @@ class DynamicEvaluator:
         return self.template.render(**context.field_vars(), **context.field_funcs())
 
 
-class JinjaTemplateEvaluatorFactory:
-    def __init__(self):
-        self.template_compiler = jinja2.Environment(
-            block_start_string="<%",
-            block_end_string="%>",
-            variable_start_string="<<",
-            variable_end_string=">>",
-        )
-
-    def get_evaluator(self, definition: str):
-        assert isinstance(definition, str), definition
-        if "<<" in definition:
-            try:
-                template = self.template_compiler.from_string(definition)
-                return DynamicEvaluator(template)
-            except jinja2.exceptions.TemplateSyntaxError as e:
-                raise DataGenSyntaxError(str(e), None, None) from e
-        else:
-            return lambda context: definition
-
-
-template_evaluator_factory = JinjaTemplateEvaluatorFactory()
-
-
 def try_to_infer_type(val):
     try:
         return float(val)
@@ -208,3 +218,4 @@ def output_batches(output_stream, factories, number, options):
     for i in range(0, number):
         for factory in factories:
             factory.generate_rows(output_stream, context)
+    return context.globals

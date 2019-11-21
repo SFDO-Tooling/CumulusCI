@@ -56,13 +56,12 @@ def date_between(context, start_date, end_date):
 
 def reference(context, x):
     if hasattr(x, "id"):  # reference to an object with an id
-        context.register_intertable_reference(x._tablename)
-        target = x.id
+        target = x
     elif isinstance(x, str):  # name of an object
         obj = context.field_vars()[x]
         if not getattr(obj, "id"):
             raise DataGenError(f"Reference to incorrect object type {obj}", None, None)
-        target = obj.id
+        target = obj
     else:
         raise DataGenError(
             f"Can't get reference to object of type {type(x)}: {x}", None, None

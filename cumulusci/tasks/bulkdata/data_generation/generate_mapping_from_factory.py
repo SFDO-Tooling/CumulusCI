@@ -1,30 +1,44 @@
 from copy import deepcopy
+from warnings import warn
 
 
-def mapping_from_factory_templates(tables):
+def mapping_from_factory_templates(summary):
     """Use the outputs of the factory YAML and convert to Mapping.yml format"""
-    dependencies = build_dependencies(tables)
-    table_order = sort_dependencies(dependencies, tables)
-    mappings = mappings_from_sorted_tables(tables, table_order)
+    dependencies, reference_fields = build_dependencies(summary.intertable_dependencies)
+    table_order = sort_dependencies(dependencies, summary.tables)
+    mappings = mappings_from_sorted_tables(
+        summary.tables, table_order, reference_fields
+    )
     return mappings
 
 
-def build_dependencies(tables):
-    """Figure out which tables depend on which other ones (through foreign keys)"""
+def build_dependencies(intertable_dependencies):
+    """Figure out which tables depend on which other ones (through foreign keys)
+
+    intertable_dependencies is a list of Dependency objects.
+
+    Returns two things:
+        1. a dictionary allowing easy lookup of dependencies by parent table
+        2. a dictionary allowing lookups by (tablename, fieldname) pairs
+    """
     dependencies = {}
-    for table_name, table_info in tables.items():
-        for field in table_info.fields.values():
-            if field.target_table:
-                table_deps = dependencies.setdefault(table_name, set())
-                table_deps.add(field.target_table)
-    return dependencies
+    reference_fields = {}
+    for dep in intertable_dependencies:
+        table_deps = dependencies.setdefault(dep.table_name_from, set())
+        table_deps.add(dep)
+        reference_fields[(dep.table_name_from, dep.field_name)] = dep.table_name_to
+    return dependencies, reference_fields
 
 
-def _table_is_free(table, dependencies, sorted_tables):
-    """Check if every child of this table is already sorted"""
-    tables_this_table_depends_upon = dependencies.get(table, [])
+def _table_is_free(table_name, dependencies, sorted_tables):
+    """Check if every child of this table is already sorted
+
+    Look at the unit test test_table_is_free_simple to see some
+    usage examples.
+    """
+    tables_this_table_depends_upon = dependencies.get(table_name, {})
     for dependency in tables_this_table_depends_upon.copy():
-        if dependency in sorted_tables:
+        if dependency.table_name_to in sorted_tables:
             tables_this_table_depends_upon.remove(dependency)
 
     return len(tables_this_table_depends_upon) == 0
@@ -45,11 +59,12 @@ def sort_dependencies(dependencies, tables):
         sorted_tables.extend(leaf_tables)
         tables = [table for table in tables if table not in sorted_tables]
         if len(tables) == remaining:
-            raise Exception(f"Circular references: {tables}")
+            warn(f"Circular references: {tables}. Load mapping may fail!")
+            sorted_tables.extend(tables[0])
     return sorted_tables
 
 
-def mappings_from_sorted_tables(tables, table_order):
+def mappings_from_sorted_tables(tables, table_order, reference_fields):
     """Generate mapping.yml data structures. """
     mappings = {}
     for table_name in table_order:
@@ -57,12 +72,15 @@ def mappings_from_sorted_tables(tables, table_order):
         fields = {
             fieldname: fieldname
             for fieldname, fielddef in table.fields.items()
-            if not fielddef.target_table
+            if (table_name, fieldname) not in reference_fields.keys()
         }
         lookups = {
-            fieldname: {"table": fielddef.target_table, "key_field": fieldname}
+            fieldname: {
+                "table": reference_fields[(table_name, fieldname)],
+                "key_field": fieldname,
+            }
             for fieldname, fielddef in table.fields.items()
-            if fielddef.target_table
+            if (table_name, fieldname) in reference_fields.keys()
         }
         mappings[f"Insert {table_name}"] = {
             "sf_object": table_name,

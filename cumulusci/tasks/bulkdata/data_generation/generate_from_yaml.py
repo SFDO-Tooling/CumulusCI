@@ -73,7 +73,7 @@ class GenerateFromYaml(BaseGenerateDataTask):
     def generate_data(self, session, engine, base, num_records, current_batch_num):
         output_stream = SqlOutputStream.from_connection(session, engine, base)
         with open(self.yaml_file) as open_yaml_file:
-            parse_result = generate(
+            summary = generate(
                 open_yaml_file,
                 self.num_records,
                 self.vars,
@@ -83,9 +83,7 @@ class GenerateFromYaml(BaseGenerateDataTask):
             output_stream.close()
             if self.generate_mapping_file:
                 with open(self.generate_mapping_file, "w+") as f:
-                    yaml.safe_dump(
-                        mapping_from_factory_templates(parse_result.tables), f
-                    )
+                    yaml.safe_dump(mapping_from_factory_templates(summary), f)
                     f.close()
 
 
@@ -124,12 +122,12 @@ def generate_from_yaml(
     else:
         output_stream = DebugOutputStream()
     try:
-        parse_result = generate(
+        summary = generate(
             click.open_file(yaml_file), count, dict(option), output_stream, mapping_file
         )
         if generate_cci_mapping_file:
             with click.open_file(generate_cci_mapping_file, "w") as f:
-                yaml.safe_dump(mapping_from_factory_templates(parse_result.tables), f)
+                yaml.safe_dump(mapping_from_factory_templates(summary), f)
     except DataGenError as e:
         if verbose:
             raise e
