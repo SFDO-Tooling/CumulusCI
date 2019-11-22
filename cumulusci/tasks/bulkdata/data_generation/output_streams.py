@@ -96,4 +96,6 @@ def create_tables_from_inferred_fields(tables, engine, metadata):
 
         t = Table(table_name, metadata, id_column, *columns)
         if t.exists():
-            raise DataGenError(f"Table already exists: {table_name}", None, None)
+            raise DataGenError(
+                f"Table already exists: {table_name} in {engine.url}", None, None
+            )
