@@ -48,7 +48,7 @@ def generate(open_yaml_file, count, cli_options, output_stream, mapping_file):
     # parse the YAML and any it refers to
     parse_result = parse_generator(open_yaml_file)
 
-    # figure out how it relates to CLI options
+    # figure out how it relates to CLI-supplied generation variables
     options, extra_options = merge_options(parse_result.options, cli_options)
 
     if extra_options:
