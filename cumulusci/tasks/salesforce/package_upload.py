@@ -126,7 +126,7 @@ class PackageUpload(BaseSalesforceApiTask):
         table_title = "Failed Apex Tests"
         table_data = self._get_table_data(results)
         table = CliTable(table_data, table_title, wrap_cols=["Message", "Stacktrace"])
-        table.echo()
+        self.logger.error(table.table)
 
     def _get_table_data(self, results):
         """Returns table data compatible with CliTable class"""
