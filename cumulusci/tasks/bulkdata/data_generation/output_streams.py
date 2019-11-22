@@ -10,18 +10,17 @@ from .data_gen_exceptions import DataGenError
 
 class OutputStream(ABC):
     count = 0
-
-    def __init__(self):
-        self.count += 1
+    flush_limit = 1000
 
     def create_or_validate_tables(self, tables):
         pass
 
     def write_row(self, tablename, row):
         self.write_single_row(tablename, row)
-        if self.count > 1000:
+        if self.count > self.flush_limit:
             self.flush()
             self.count = 0
+        self.count += 1
 
     @abstractmethod
     def write_single_row(self, tablename, row):
