@@ -89,27 +89,26 @@ class CliTable:
         Automatically falls back to AsciiTable if there's an encoding error.
         """
         if plain or os.environ.get("TERM") == "dumb":
-            self.ascii_table()
-            return None
+            table = self.ascii_table()
+        else:
+            try:
+                table = self.pretty_table()
+            except UnicodeEncodeError:
+                table = self.ascii_table()
 
-        try:
-            self.pretty_table()
-        except UnicodeEncodeError:
-            self.ascii_table()
+        click.echo(table)
 
     def pretty_table(self):
         """Pretty prints a table."""
         self.table.inner_row_border = self.INNER_BORDER
-        click.echo(self.table.table)
-        click.echo("\n")
+        return self.table.table + "\n"
 
     def ascii_table(self):
         """Fallback for dumb terminals."""
         self.plain = AsciiTable(self.table.table_data, self._title)
         self.plain.inner_column_border = False
         self.plain.inner_row_border = False
-        click.echo(self.plain.table)
-        click.echo("\n")
+        return self.plain.table
 
     def _get_index_for_col_name(self, col_name):
         return self._header.index(col_name)

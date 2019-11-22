@@ -47,8 +47,7 @@ def pretty_output_win():
 ├───────────┼──────────────────────────────────────────────────────┼────────────┤
 │ saucelabs │ Configure connection for saucelabs tasks.            │ False      │
 │ sentry    │ Configure connection to sentry.io for error tracking │ False      │
-└───────────┴──────────────────────────────────────────────────────┴────────────┘
-""",
+└───────────┴──────────────────────────────────────────────────────┴────────────┘""",
         "org_list": u"""
 ┌─────────┬─────────┬─────────┬──────┬─────────┬─────────┬───────────────────────────────┐
 │ Org     │ Default │ Scratch │ Days │ Expired │ Config  │ Username                      │
@@ -106,7 +105,10 @@ def plain_output():
 @pytest.mark.parametrize("fixture_key", ["service_list", "org_list", "task_list_util"])
 def test_table_pretty_output(sample_data, pretty_output, fixture_key):
     instance = CliTable(sample_data[fixture_key])
-    assert pretty_output[fixture_key] == instance.table.table
+    instance.INNER_BORDER = False
+    table = instance.pretty_table()
+    expected = pretty_output[fixture_key] + "\n"
+    assert expected == table
 
 
 @pytest.mark.skipif(
@@ -122,10 +124,9 @@ def test_table_pretty_output_windows(sample_data, pretty_output_win, fixture_key
 @pytest.mark.parametrize("fixture_key", ["service_list", "org_list", "task_list_util"])
 def test_table_plain_output(sample_data, plain_output, fixture_key, capsys):
     instance = CliTable(sample_data[fixture_key])
-    instance.ascii_table()
-    captured = capsys.readouterr()
-    expected = plain_output[fixture_key] + "\n\n"
-    assert expected == captured.out
+    table = instance.ascii_table()
+    expected = plain_output[fixture_key].strip()
+    assert expected == table
 
 
 @pytest.mark.skipif(
@@ -139,7 +140,7 @@ def test_table_pretty_echo(sample_data, pretty_output, fixture_key, capsys):
     instance.echo(plain=False)
 
     captured = capsys.readouterr()
-    expected = pretty_output[fixture_key] + "\n\n\n"
+    expected = pretty_output[fixture_key] + "\n\n"
     assert expected == captured.out
 
 
@@ -148,7 +149,7 @@ def test_table_plain_echo(sample_data, plain_output, fixture_key, capsys):
     instance = CliTable(sample_data[fixture_key])
     instance.echo(plain=True)
     captured = capsys.readouterr()
-    expected = plain_output[fixture_key] + "\n\n"
+    expected = plain_output[fixture_key]
     assert expected == captured.out
 
 
@@ -161,7 +162,7 @@ def test_table_plain_fallback(sample_data, plain_output, capsys):
         instance.echo(plain=False)
         captured = capsys.readouterr()
         # append newlines because echo adds them to account for task tables
-        assert plain_output["service_list"] + "\n\n" == captured.out
+        assert plain_output["service_list"] == captured.out
 
 
 @pytest.mark.skipif(
