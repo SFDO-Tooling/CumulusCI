@@ -162,6 +162,9 @@ class Context:
     def fake(self, name):
         return str(getattr(faker_template_library, name))
 
+    def get_evaluator(self, definition: str):
+        return self.template_evaluator_factory.get_evaluator(definition)
+
 
 class DynamicEvaluator:
     def __init__(self, template):
@@ -192,6 +195,19 @@ def fix_exception(message, parentobj, e):
         raise e
     else:
         raise DataGenError(message, filename, line_num) from e
+
+
+class ObjectRow:
+    """Represents a single row
+
+    Uses __getattr__ so that the template evaluator can use dot-notation."""
+
+    def __init__(self, tablename, values=()):
+        self._tablename = tablename
+        self._values = values
+
+    def __getattr__(self, name):
+        return self._values[name]
 
 
 def output_batches(output_stream, factories, number, options):

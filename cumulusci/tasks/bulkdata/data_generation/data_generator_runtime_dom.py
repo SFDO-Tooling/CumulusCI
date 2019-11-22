@@ -1,6 +1,6 @@
 from abc import abstractmethod, ABC
 from datetime import date
-from .data_generator_runtime import Context, evaluate_function, fix_exception
+from .data_generator_runtime import Context, evaluate_function, fix_exception, ObjectRow
 
 import jinja2
 
@@ -15,28 +15,24 @@ from .data_gen_exceptions import (
 # roughly similar to the YAML structure but with domain-specific objects
 
 
-class ObjectRow:
-    """Represents a single row
-
-    Uses __getattr__ so that the template evaluator can use dot-notation."""
-
-    def __init__(self, tablename, values=()):
-        self._tablename = tablename
-        self._values = values
-
-    def __getattr__(self, name):
-        return self._values[name]
-
-
 class ObjectTemplate:
-    """A factory that generates rows"""
+    """A factory that generates rows.
+
+    The runtime equivalent of
+
+    - object: tablename
+      count: count_expr   # counts can be dynamic so they are expressions
+      fields: list of FieldFactories
+      friends: list of other ObjectTemplates
+      nickname: string
+    """
 
     def __init__(
         self,
         tablename: str,
         filename: str,
         line_num: int,
-        count_expr: str = None,
+        count_expr: str = None,  # counts can be dynamic so they are expressions
         fields: list = (),
         friends: list = (),
         nickname: str = None,
@@ -57,6 +53,7 @@ class ObjectTemplate:
         return [self._generate_row(storage, context) for i in range(count)]
 
     def _evaluate_count(self, context):
+        """Evaluate the count expression to an integer"""
         if not self.count_expr:
             return 1
         else:
@@ -101,6 +98,7 @@ class ObjectTemplate:
                 raise fix_exception(f"Problem rendering value", self, e) from e
 
     def _check_type(self, field, generated_value, context):
+        """Check the type of a field value"""
         allowed_types = (int, str, bool, date, float, type(None), ObjectRow)
         if not isinstance(generated_value, allowed_types):
             raise DataGenValueError(
@@ -110,6 +108,7 @@ class ObjectTemplate:
             )
 
     def replace_objects_with_ids(self, row, context):
+        """Before serializing we need to convert objects to flat ID integers."""
         writeable_row = {}
         for fieldname, fieldvalue in row.items():
             if isinstance(fieldvalue, ObjectRow):
@@ -123,18 +122,15 @@ class ObjectTemplate:
         return writeable_row
 
 
-def try_to_infer_type(val):
-    try:
-        return float(val)
-    except (ValueError, TypeError):
-        try:
-            return int(val)
-        except (ValueError, TypeError):
-            return val
-
-
 class FieldDefinition(ABC):
-    """Base class for things that render fields"""
+    """Base class for things that render fields
+
+    Abstract base class for everything that can fulfill the role of X in
+
+    - object: abc
+      fields:
+         fieldname: X
+    """
 
     @abstractmethod
     def render(self, context):
@@ -142,7 +138,14 @@ class FieldDefinition(ABC):
 
 
 class SimpleValue(FieldDefinition):
-    """A value with no sub-structure (although it could hold a template)"""
+    """A value with no sub-structure (although it could hold a template)
+
+    - object: abc
+      fields:
+         fieldname: XXXXX
+         fieldname2: <<XXXXX>>
+         fieldname3: 42
+    """
 
     def __init__(self, definition: str, filename: str, line_num: int):
         self.definition = definition
@@ -153,12 +156,11 @@ class SimpleValue(FieldDefinition):
         self._evaluator = None
 
     def evaluator(self, context):
+        """Populate the evaluator property once."""
         if self._evaluator is None:
             if isinstance(self.definition, str):
                 try:
-                    self._evaluator = context.template_evaluator_factory.get_evaluator(
-                        self.definition
-                    )
+                    self._evaluator = context.get_evaluator(self.definition)
                 except Exception as e:
                     fix_exception(f"Cannot parse value {self.definition}", self, e)
             else:
@@ -166,6 +168,7 @@ class SimpleValue(FieldDefinition):
         return self._evaluator
 
     def render(self, context):
+        """Render the value: rendering a template if necessary."""
         evaluator = self.evaluator(context)
         if evaluator:
             try:
@@ -176,26 +179,46 @@ class SimpleValue(FieldDefinition):
                 raise DataGenValueError(str(e), self.filename, self.line_num) from e
         else:
             val = self.definition
-        return try_to_infer_type(val)
+        return self.try_to_infer_type(val)
+
+    @staticmethod
+    def try_to_infer_type(val):
+        try:
+            return float(val)
+        except (ValueError, TypeError):
+            try:
+                return int(val)
+            except (ValueError, TypeError):
+                return val
 
     def __repr__(self):
         return f"<{self.__class__.__name__ , self.definition}>"
 
 
 class StructuredValue(FieldDefinition):
-    """A value with substructure which will call a handler function."""
+    """A value with substructure which will call a handler function.
+
+        - object: abc
+          fields:
+            fieldname:
+                - reference:
+                    foo
+                - random_number:
+                    min: 10
+                    max: 20
+"""
 
     def __init__(self, function_name, args, filename, line_num):
         self.function_name = function_name
         self.filename = filename
         self.line_num = line_num
-        if isinstance(args, list):
+        if isinstance(args, list):  # lists will represent your arguments
             self.args = args
             self.kwargs = {}
-        elif isinstance(args, dict):
+        elif isinstance(args, dict):  # dicts will represent named arguments
             self.args = []
             self.kwargs = args
-        else:
+        else:  # scalars will be turned into a one-argument list
             self.args = [args]
             self.kwargs = {}
 
@@ -231,11 +254,20 @@ class StructuredValue(FieldDefinition):
 
 
 class ReferenceValue(StructuredValue):
-    pass
+    """ - object: foo
+          fields:
+            - reference:
+                Y"""
 
 
 class ChildRecordValue(FieldDefinition):
-    """Represents an ObjectRow embedded in another ObjectRow"""
+    """Represents an ObjectRow embedded in another ObjectRow
+
+    - object: X
+      fields:
+        foo:
+            - object: Y    # this is the child record
+    """
 
     def __init__(self, sobj: object, filename: str, line_num: int):
         self.sobj = sobj
@@ -247,7 +279,12 @@ class ChildRecordValue(FieldDefinition):
 
 
 class FieldFactory:
-    """Represents a single data field (key, value) to be rendered"""
+    """Represents a single data field (name, value) to be rendered
+
+    - object:
+      fields:
+        name: value   # this part
+    """
 
     def __init__(self, name: str, definition: object, filename: str, line_num: int):
         self.name = name
