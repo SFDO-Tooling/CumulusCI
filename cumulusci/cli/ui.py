@@ -44,10 +44,10 @@ class CliTable:
         self._data = data
         self._header = data[0]
         self._title = title
-        self.table = SingleTable(self._data, self._title)
+        self._table = SingleTable(self._data, self._title)
 
         if wrap_cols:
-            self._table_wrapper(self.table, wrap_cols)
+            self._table_wrapper(self._table, wrap_cols)
         if bool_cols:
             for name in bool_cols:
                 self.stringify_boolean_col(col_name=name)
@@ -80,7 +80,7 @@ class CliTable:
         false_str = (
             click.style(false_str, fg="red") if false_str else self.PICTOGRAM_FALSE
         )
-        for row in self.table.table_data[1:]:
+        for row in self._table.table_data[1:]:
             row[col_index] = true_str if row[col_index] else false_str
 
     def echo(self, plain=False):
@@ -91,21 +91,24 @@ class CliTable:
         if plain or os.environ.get("TERM") == "dumb":
             table = self.ascii_table()
         else:
-            try:
-                table = self.pretty_table()
-            except UnicodeEncodeError:
-                table = self.ascii_table()
-
+            table = self.table
         click.echo(table)
+
+    @property
+    def table(self):
+        try:
+            return self.pretty_table()
+        except UnicodeEncodeError:
+            return self.ascii_table()
 
     def pretty_table(self):
         """Pretty prints a table."""
-        self.table.inner_row_border = self.INNER_BORDER
-        return self.table.table + "\n"
+        self._table.inner_row_border = self.INNER_BORDER
+        return self._table.table + "\n"
 
     def ascii_table(self):
         """Fallback for dumb terminals."""
-        self.plain = AsciiTable(self.table.table_data, self._title)
+        self.plain = AsciiTable(self._table.table_data, self._title)
         self.plain.inner_column_border = False
         self.plain.inner_row_border = False
         return self.plain.table
@@ -120,8 +123,8 @@ class CliTable:
         """
         for row_index in dim_rows:
             if row_index != 0:
-                self.table.table_data[row_index] = [
-                    self._dim_value(cell) for cell in self.table.table_data[row_index]
+                self._table.table_data[row_index] = [
+                    self._dim_value(cell) for cell in self._table.table_data[row_index]
                 ]
 
     def _dim_value(self, val):
