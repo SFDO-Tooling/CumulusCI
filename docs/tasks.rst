@@ -312,6 +312,8 @@ One, in `object_path`, includes the Object Name, Object Label, and Version Intro
 with one row per packaged object.
 The other, in `field_path`, includes Object Name, Field Name, Field Label, Field Type,
 Picklist Values (if any), Version Introduced.
+Both MDAPI and SFDX format releases are supported. However, only force-app/main/default
+is processed for SFDX projects.
 
 
 Options:
@@ -319,6 +321,7 @@ Options:
 
 * **object_path**: Path to a CSV file to contain an sObject-level data dictionary.
 * **field_path**: Path to a CSV file to contain an field-level data dictionary.
+* **release_prefix** *(required)*: The tag prefix used for releases. **Default: $project_config.project__git__prefix_release**
 
 get_installed_packages
 ==========================================
@@ -593,6 +596,7 @@ Options:
 ------------------------------------------
 
 * **definition_file**: sfdx scratch org definition file
+* **api_version**: API version used to deploy the settings
 
 publish_community
 ==========================================
@@ -1241,7 +1245,7 @@ the `User` object.
 Options:
 ------------------------------------------
 
-* **path** *(required)*: Location to write the mapping file **Default: datasets/generated_mapping.yml**
+* **path** *(required)*: Location to write the mapping file **Default: datasets/mapping.yml**
 * **namespace_prefix**: The namespace prefix to use **Default: $project_config.project__package__namespace**
 * **ignore**: Object API names, or fields in Object.Field format, to ignore
 
@@ -1255,9 +1259,9 @@ extract_dataset
 Options:
 ------------------------------------------
 
-* **database_url** *(required)*: A DATABASE_URL where the query output should be written **Default: sqlite:///datasets/sample.db**
+* **database_url**: A DATABASE_URL where the query output should be written
 * **mapping** *(required)*: The path to a yaml file containing mappings of the database fields to Salesforce object fields **Default: datasets/mapping.yml**
-* **sql_path**: If set, an SQL script will be generated at the path provided This is useful for keeping data in the repository and allowing diffs.
+* **sql_path**: If set, an SQL script will be generated at the path provided This is useful for keeping data in the repository and allowing diffs. **Default: datasets/sample.sql**
 
 load_dataset
 ==========================================
@@ -1269,9 +1273,21 @@ load_dataset
 Options:
 ------------------------------------------
 
-* **database_url** *(required)*: The database url to a database containing the test data to load **Default: sqlite:///datasets/sample.db**
+* **database_url**: The database url to a database containing the test data to load
 * **mapping** *(required)*: The path to a yaml file containing mappings of the database fields to Salesforce object fields **Default: datasets/mapping.yml**
 * **start_step**: If specified, skip steps before this one in the mapping
-* **sql_path**: If specified, a database will be created from an SQL script at the provided path
+* **sql_path**: If specified, a database will be created from an SQL script at the provided path **Default: datasets/sample.sql**
 * **ignore_row_errors**: If True, allow the load to continue even if individual rows fail to load.
+
+load_custom_settings
+==========================================
+
+**Description:** Load Custom Settings specified in a YAML file to the target org
+
+**Class::** cumulusci.tasks.salesforce.LoadCustomSettings
+
+Options:
+------------------------------------------
+
+* **settings_path** *(required)*: The path to a YAML settings file
 
