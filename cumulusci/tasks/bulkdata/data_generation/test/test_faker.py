@@ -5,7 +5,6 @@ from unittest import mock
 from cumulusci.tasks.bulkdata.data_generation.data_generator import generate
 
 write_row_path = "cumulusci.tasks.bulkdata.data_generation.output_streams.DebugOutputStream.write_row"
-faker_path = ""
 
 
 def row_values(write_row_mock, index, value):
