@@ -1,4 +1,5 @@
 import os
+from sys import stdout
 
 import yaml
 import click
@@ -107,10 +108,10 @@ def eval_arg(arg):
 @click.option("--dburl", type=str)
 @click.option("--mapping_file", type=click.Path(exists=True))
 @click.option("--option", nargs=2, type=(str, eval_arg), multiple=True)
-@click.option("--verbose/--no-verbose", default=False)
+@click.option("--debug/--no-debug", default=False)
 @click.option("--generate_cci_mapping_file", type=click.Path(exists=False))
 def generate_from_yaml(
-    yaml_file, count, option, dburl, mapping_file, verbose, generate_cci_mapping_file
+    yaml_file, count, option, dburl, mapping_file, debug, generate_cci_mapping_file
 ):
     if dburl:
         if mapping_file:
@@ -125,11 +126,13 @@ def generate_from_yaml(
         summary = generate(
             click.open_file(yaml_file), count, dict(option), output_stream, mapping_file
         )
+        if debug:
+            stdout.write(yaml.dump(summary))
         if generate_cci_mapping_file:
             with click.open_file(generate_cci_mapping_file, "w") as f:
                 yaml.safe_dump(mapping_from_factory_templates(summary), f)
     except DataGenError as e:
-        if verbose:
+        if debug:
             raise e
         else:
             click.echo("")
