@@ -6,4 +6,3 @@ source=cumulusci
 exclude_lines =
     pragma: no cover
     @abstract
-    def __repr__
