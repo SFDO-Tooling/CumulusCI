@@ -93,11 +93,9 @@ class BaseTask(object):
         # Handle default values
         for name, config in list(self.task_options.items()):
             if name not in self.options and "default" in config:
-                print("XXX1", name)
                 self.options[name] = config["default"]
 
             if "do_replacement" in config:
-                print("XXX2", name)
                 self.options[name] = self.options[name].format(
                     **{"project_config": self.project_config}
                 )
@@ -118,7 +116,6 @@ class BaseTask(object):
                 missing_required.append(name)
 
             elif config.get("type") and name in self.options:
-                print("XXX3", name)
                 datatype = config.get("type")
                 try:
                     self.options[name] = datatype.convert(
