@@ -9,8 +9,8 @@ from cumulusci.core.template_utils import FakerTemplateLibrary, faker_template_l
 from .template_funcs import template_funcs
 from .data_gen_exceptions import DataGenError, DataGenSyntaxError
 
-# Look in generate_from_yaml for entry points from CCI and command line.
-# Look in parse_factory_yaml for the "generate" entry point to the data generation subsystem
+
+# Runtime objects and algorithms used during the generation of rows.
 
 
 class IdManager:

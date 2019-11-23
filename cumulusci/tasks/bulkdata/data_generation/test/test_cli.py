@@ -6,9 +6,7 @@ from tempfile import NamedTemporaryFile
 import yaml
 from click.exceptions import ClickException
 
-from cumulusci.tasks.bulkdata.data_generation.generate_from_yaml import (
-    generate_from_yaml,
-)
+from cumulusci.tasks.bulkdata.data_generation.data_generator_cli import generate_cli
 from cumulusci.tasks.bulkdata.data_generation.data_gen_exceptions import DataGenError
 
 sample_yaml = Path(__file__).parent / "include_parent.yml"
@@ -20,7 +18,7 @@ write_row_path = "cumulusci.tasks.bulkdata.data_generation.output_streams.DebugO
 class TestGenerateFromCLI(unittest.TestCase):
     @mock.patch(write_row_path)
     def test_simple(self, write_row):
-        generate_from_yaml.callback(
+        generate_cli.callback(
             yaml_file=sample_yaml,
             count=1,
             option={},
@@ -37,7 +35,7 @@ class TestGenerateFromCLI(unittest.TestCase):
 
     @mock.patch(write_row_path)
     def test_counts(self, write_row):
-        generate_from_yaml.callback(
+        generate_cli.callback(
             yaml_file=sample_yaml,
             count=2,
             option={},
@@ -59,7 +57,7 @@ class TestGenerateFromCLI(unittest.TestCase):
     @mock.patch(write_row_path)
     def test_with_option(self, write_row):
         with self.assertWarns(UserWarning):
-            generate_from_yaml.callback(
+            generate_cli.callback(
                 yaml_file=sample_yaml,
                 count=1,
                 option={"xyzzy": "abcd"},
@@ -71,7 +69,7 @@ class TestGenerateFromCLI(unittest.TestCase):
     @mock.patch(write_row_path)
     def test_with_bad_dburl(self, write_row):
         with self.assertRaises(Exception):
-            generate_from_yaml.callback(
+            generate_cli.callback(
                 yaml_file=sample_yaml,
                 count=1,
                 option={},
@@ -83,7 +81,7 @@ class TestGenerateFromCLI(unittest.TestCase):
     @mock.patch(write_row_path)
     def test_with_debug_flags_on(self, write_row):
         with NamedTemporaryFile(suffix=".yml") as t:
-            generate_from_yaml.callback(
+            generate_cli.callback(
                 yaml_file=sample_yaml,
                 count=1,
                 option={},
@@ -98,7 +96,7 @@ class TestGenerateFromCLI(unittest.TestCase):
     def test_exception_with_debug_flags_on(self, write_row):
         with NamedTemporaryFile(suffix=".yml") as t:
             with self.assertRaises(DataGenError):
-                generate_from_yaml.callback(
+                generate_cli.callback(
                     yaml_file=bad_sample_yaml,
                     count=1,
                     option={},
@@ -112,7 +110,7 @@ class TestGenerateFromCLI(unittest.TestCase):
     def test_exception_with_debug_flags_off(self, write_row):
         with NamedTemporaryFile(suffix=".yml") as t:
             with self.assertRaises(ClickException):
-                generate_from_yaml.callback(
+                generate_cli.callback(
                     yaml_file=bad_sample_yaml,
                     count=1,
                     option={},
