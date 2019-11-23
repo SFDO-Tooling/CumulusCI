@@ -97,7 +97,7 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
 
     def _raise_org_not_found(self, name):
         raise OrgNotFound(
-            "Org information could not be found. Expected to find encrypted file at {self.project_local_dir}/{name}.org"
+            f"Org information could not be found. Expected to find encrypted file at {self.project_local_dir}/{name}.org"
         )
 
     def _raise_service_not_configured(self, name):

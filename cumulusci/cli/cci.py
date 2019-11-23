@@ -27,7 +27,6 @@ from cumulusci.core.config import ScratchOrgConfig
 from cumulusci.core.config import ServiceConfig
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.config import BaseGlobalConfig
-from cumulusci.utils import parse_api_datetime
 from cumulusci.core.exceptions import CumulusCIFailure
 from cumulusci.core.exceptions import CumulusCIUsageError
 from cumulusci.core.exceptions import OrgNotFound
@@ -41,6 +40,7 @@ from cumulusci.cli.config import get_installed_version
 from cumulusci.cli.ui import CliTable, CROSSMARK
 from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
 from cumulusci.utils import doc_task
+from cumulusci.utils import parse_api_datetime
 from cumulusci.utils import get_cci_upgrade_command
 from cumulusci.oauth.salesforce import CaptureSalesforceOAuth
 
@@ -771,7 +771,6 @@ def org_browser(config, org_name):
     org_config.refresh_oauth_token(config.keychain)
 
     webbrowser.open(org_config.start_url)
-
     # Save the org config in case it was modified
     config.keychain.set_org(org_config)
 
@@ -814,6 +813,13 @@ def org_connect(config, org_name, sandbox, login_url, default, global_org):
     oauth_dict = oauth_capture()
     org_config = OrgConfig(oauth_dict, org_name)
     org_config.load_userinfo()
+    org_config._load_orginfo()
+    if org_config.organization_sobject["TrialExpirationDate"] is None:
+        org_config.config["expires"] = "Persistent"
+    else:
+        org_config.config["expires"] = parse_api_datetime(
+            org_config.organization_sobject["TrialExpirationDate"]
+        ).date()
 
     config.keychain.set_org(org_config, global_org)
 
@@ -831,7 +837,6 @@ def org_connect(config, org_name, sandbox, login_url, default, global_org):
 )
 @pass_config
 def org_default(config, org_name, unset):
-
     if unset:
         config.keychain.unset_default_org()
         click.echo(f"{org_name} is no longer the default org.  No default org set.")
@@ -937,15 +942,13 @@ def org_info(config, org_name, print_json):
 @pass_config
 def org_list(config, plain):
     plain = plain or config.global_config.cli__plain_output
-    header = ["Name", "Default", "Username"]
+    header = ["Name", "Default", "Username", "Expires"]
     persistent_data = [header]
     scratch_data = [header[:2] + ["Days", "Expired", "Config", "Domain"]]
-
     org_configs = {
         org: config.project_config.keychain.get_org(org)
         for org in config.project_config.keychain.list_orgs()
     }
-
     rows_to_dim = []
     for org, org_config in org_configs.items():
         row = [org, org_config.default]
@@ -967,6 +970,7 @@ def org_list(config, plain):
                 "username", org_config.userinfo__preferred_username
             )
             row.append(username)
+            row.append(org_config.expires or "Unknown")
             persistent_data.append(row)
 
     rows_to_dim = [row_index for row_index, row in enumerate(scratch_data) if row[3]]
@@ -979,7 +983,7 @@ def org_list(config, plain):
     wrap_cols = ["Username"] if not plain else None
     persistent_table = CliTable(
         persistent_data,
-        title="Persistent Orgs",
+        title="Connected Orgs",
         wrap_cols=wrap_cols,
         bool_cols=["Default"],
     )
