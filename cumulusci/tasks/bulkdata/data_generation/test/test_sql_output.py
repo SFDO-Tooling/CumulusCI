@@ -30,6 +30,6 @@ class TestParseGenerator(unittest.TestCase):
             output_stream.flush_limit = 3
             real_flush = output_stream.flush
             output_stream.flush = mock_flush
-            generate(StringIO(yaml), 1, {}, output_stream, None)
+            generate(StringIO(yaml), 1, {}, output_stream)
             assert flush_count == 3
             output_stream.close()

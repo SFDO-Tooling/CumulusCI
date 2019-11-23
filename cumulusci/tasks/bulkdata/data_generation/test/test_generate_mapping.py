@@ -21,7 +21,7 @@ class TestGenerateMapping(unittest.TestCase):
                 child:
                   - object: Child
               """
-        summary = generate(StringIO(yaml), 1, {}, None, None)
+        summary = generate(StringIO(yaml), 1, {}, None)
         mapping = mapping_from_factory_templates(summary)
         assert len(mapping) == 2
         assert "Insert Parent" in mapping
@@ -42,7 +42,7 @@ class TestGenerateMapping(unittest.TestCase):
                         reference:
                           Parent
               """
-        summary = generate(StringIO(yaml), 1, {}, None, None)
+        summary = generate(StringIO(yaml), 1, {}, None)
         mapping = mapping_from_factory_templates(summary)
         assert len(mapping) == 2
         assert "Insert Parent" in mapping
@@ -63,7 +63,7 @@ class TestGenerateMapping(unittest.TestCase):
                   reference:
                     bubba
               """
-        summary = generate(StringIO(yaml), 1, {}, None, None)
+        summary = generate(StringIO(yaml), 1, {}, None)
         mapping = mapping_from_factory_templates(summary)
         assert len(mapping) == 2
         assert "Insert Target" in mapping
@@ -89,7 +89,7 @@ class TestGenerateMapping(unittest.TestCase):
                     alpha
               """
         with self.assertRaises(DataGenError):
-            generate(StringIO(yaml), 1, {}, None, None)
+            generate(StringIO(yaml), 1, {}, None)
 
     def test_circular_table_reference(self):
         yaml = """
@@ -102,7 +102,7 @@ class TestGenerateMapping(unittest.TestCase):
                 A:
                   - object: A
               """
-        summary = generate(StringIO(yaml), 1, {}, None, None)
+        summary = generate(StringIO(yaml), 1, {}, None)
         with pytest.warns(UserWarning, match="Circular"):
             mapping_from_factory_templates(summary)
 
@@ -125,7 +125,7 @@ class TestGenerateMapping(unittest.TestCase):
                             food:
                                 reference: CatFood
 """
-        summary = generate(StringIO(yaml), 1, {}, None, None)
+        summary = generate(StringIO(yaml), 1, {}, None)
         mapping = mapping_from_factory_templates(summary)
         assert len(mapping) == 3
         assert "Insert Person" in mapping
@@ -168,6 +168,9 @@ class TestBuildDependencies(unittest.TestCase):
             ("child", "daughter"): "grandchild",
             ("child", "son"): "grandchild",
         }
+
+        # test repr
+        [repr(o) for o in deps]
 
 
 class TestTableIsFree(unittest.TestCase):

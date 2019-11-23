@@ -21,7 +21,7 @@ class TestFaker(unittest.TestCase):
                 fake:
                     first_name
         """
-        generate(StringIO(yaml), 1, {}, None, None)
+        generate(StringIO(yaml), 1, {}, None)
         assert row_values(write_row_mock, 0, "first_name")
 
     @mock.patch(write_row_path)
@@ -32,7 +32,7 @@ class TestFaker(unittest.TestCase):
             first_name:
                 fake: first_name
         """
-        generate(StringIO(yaml), 1, {}, None, None)
+        generate(StringIO(yaml), 1, {}, None)
         assert row_values(write_row_mock, 0, "first_name")
 
     @mock.patch(write_row_path)
@@ -44,7 +44,7 @@ class TestFaker(unittest.TestCase):
                 fake.country_code:
                     representation: alpha-2
         """
-        generate(StringIO(yaml), 1, {}, None, None)
+        generate(StringIO(yaml), 1, {})
         assert len(row_values(write_row_mock, 0, "country")) == 2
 
     @mock.patch(write_row_path)
@@ -54,7 +54,7 @@ class TestFaker(unittest.TestCase):
           fields:
             country: <<fake.country_code(representation='alpha-2')>>
         """
-        generate(StringIO(yaml), 1, {}, None, None)
+        generate(StringIO(yaml), 1, {}, None)
         assert len(row_values(write_row_mock, 0, "country")) == 2
 
     @mock.patch(write_row_path)
@@ -64,7 +64,7 @@ class TestFaker(unittest.TestCase):
           fields:
             date: <<fake.date(pattern="%Y-%m-%d", end_datetime=None)>>
         """
-        generate(StringIO(yaml), 1, {}, None, None)
+        generate(StringIO(yaml), 1, {}, None)
         assert len(row_values(write_row_mock, 0, "date").split("-")) == 3
 
     @mock.patch(write_row_path)
@@ -77,7 +77,7 @@ class TestFaker(unittest.TestCase):
                     start_date: -10y
                     end_date: today
         """
-        generate(StringIO(yaml), 1, {}, None, None)
+        generate(StringIO(yaml), 1, {}, None)
         assert row_values(write_row_mock, 0, "date").year
 
     @mock.patch(write_row_path)
@@ -90,5 +90,5 @@ class TestFaker(unittest.TestCase):
                     start_date: today
                     end_date: 2000-01-01
         """
-        generate(StringIO(yaml), 1, {}, None, None)
+        generate(StringIO(yaml), 1, {}, None)
         assert row_values(write_row_mock, 0, "date") is None

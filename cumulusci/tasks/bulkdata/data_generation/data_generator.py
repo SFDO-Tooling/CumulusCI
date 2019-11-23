@@ -25,7 +25,11 @@ class ExecutionSummary:
 
     def __init__(self, parse_results, runtime_results):
         self.tables = parse_results.tables
+        self.dom = parse_results.templates
         self.intertable_dependencies = runtime_results.intertable_dependencies
+
+    def summarize_for_debugging(self):
+        return self.intertable_dependencies, self.dom
 
 
 def merge_options(option_definitions, user_options):
@@ -62,8 +66,10 @@ def merge_options(option_definitions, user_options):
     return options, extra_options
 
 
-def generate(open_yaml_file, count, cli_options, output_stream, mapping_file):
+def generate(open_yaml_file, count=1, cli_options=None, output_stream=None):
     """The main entry point to the package for Python applications."""
+    cli_options = cli_options or {}
+
     # Where are we going to put the rows?
     output_stream = output_stream or DebugOutputStream()
 

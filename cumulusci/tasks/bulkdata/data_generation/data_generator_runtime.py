@@ -30,9 +30,6 @@ class CounterGenerator:
     def __init__(self, parent=None):
         self.counters = defaultdict(lambda: 0)
 
-    def set_value(self, name, value):
-        self.counters[name] = value
-
     def get_value(self, name):
         return self.counters[name]
 
@@ -64,9 +61,6 @@ class Globals:
         if nickname:
             self.named_objects[nickname] = obj
         self.last_seen_obj_of_type[obj._tablename] = obj
-
-    def find_object_by_nickname(self, nickname):
-        return self.named_objects[nickname]
 
     @property
     def object_names(self):
@@ -111,6 +105,7 @@ class Context:
     def __init__(self, parent, current_table_name, output_stream=None, options=None):
         self.parent = parent
         self.current_table_name = current_table_name
+        options = options or {}
 
         if parent:
             self.counter_generator = CounterGenerator(parent.counter_generator)

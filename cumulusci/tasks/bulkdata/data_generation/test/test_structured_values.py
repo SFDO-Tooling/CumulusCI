@@ -22,6 +22,6 @@ write_row_path = "cumulusci.tasks.bulkdata.data_generation.output_streams.DebugO
 class TestStructuredValues(unittest.TestCase):
     @mock.patch(write_row_path)
     def test_structured_values(self, write_row):
-        generate(StringIO(structured_values_with_templates), 1, {}, None, None)
+        generate(StringIO(structured_values_with_templates), 1, {}, None)
         assert isinstance(write_row.mock_calls[0][1][1]["B"], int)
         assert 2 <= write_row.mock_calls[0][1][1]["B"] <= 8

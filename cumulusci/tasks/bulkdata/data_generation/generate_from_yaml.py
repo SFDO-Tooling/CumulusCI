@@ -108,10 +108,18 @@ def eval_arg(arg):
 @click.option("--dburl", type=str)
 @click.option("--mapping_file", type=click.Path(exists=True))
 @click.option("--option", nargs=2, type=(str, eval_arg), multiple=True)
-@click.option("--debug/--no-debug", default=False)
+@click.option(
+    "--debug-internals/--no-debug-internals", "debug_internals", default=False
+)
 @click.option("--generate_cci_mapping_file", type=click.Path(exists=False))
 def generate_from_yaml(
-    yaml_file, count, option, dburl, mapping_file, debug, generate_cci_mapping_file
+    yaml_file,
+    count,
+    option,
+    dburl=None,
+    mapping_file=None,
+    debug_internals=False,
+    generate_cci_mapping_file=None,
 ):
     if dburl:
         if mapping_file:
@@ -124,15 +132,16 @@ def generate_from_yaml(
         output_stream = DebugOutputStream()
     try:
         summary = generate(
-            click.open_file(yaml_file), count, dict(option), output_stream, mapping_file
+            click.open_file(yaml_file), count, dict(option), output_stream
         )
-        if debug:
-            stdout.write(yaml.dump(summary))
+        if debug_internals:
+            debuginfo = yaml.dump(summary.summarize_for_debugging(), sort_keys=False)
+            stdout.write(debuginfo)
         if generate_cci_mapping_file:
             with click.open_file(generate_cci_mapping_file, "w") as f:
                 yaml.safe_dump(mapping_from_factory_templates(summary), f)
     except DataGenError as e:
-        if debug:
+        if debug_internals:
             raise e
         else:
             click.echo("")
@@ -143,4 +152,4 @@ def generate_from_yaml(
 
 
 if __name__ == "__main__":
-    generate_from_yaml()
+    generate_from_yaml()  # pragma: no cover

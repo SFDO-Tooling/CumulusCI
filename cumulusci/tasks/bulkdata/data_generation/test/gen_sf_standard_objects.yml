@@ -4,6 +4,9 @@
   friends:
     - object: Contact
       include: SFStandardContact
+      fields:
+        AccountId:
+          reference: Account
       friends:
         - object: Opportunity
           include: SFStandardOpportunity

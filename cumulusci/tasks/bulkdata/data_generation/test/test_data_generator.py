@@ -39,7 +39,7 @@ class TestParseGenerator(unittest.TestCase):
           default: 16
         """
         with pytest.warns(UserWarning, match="qwerty"):
-            generate(StringIO(yaml), 1, {"qwerty": "EBCDIC"}, None, None)
+            generate(StringIO(yaml), 1, {"qwerty": "EBCDIC"})
 
     def test_missing_options_from_yaml(self):
         yaml = """
@@ -48,5 +48,5 @@ class TestParseGenerator(unittest.TestCase):
         - option: xyzzy
         """
         with self.assertRaises(DataGenNameError) as e:
-            generate(StringIO(yaml), 1, {"qwerty": "EBCDIC"}, None, None)
+            generate(StringIO(yaml), 1, {"qwerty": "EBCDIC"})
         assert "xyzzy" in str(e.exception)

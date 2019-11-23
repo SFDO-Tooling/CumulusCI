@@ -36,17 +36,17 @@ yaml3 = """
 class TestErrors(unittest.TestCase):
     def test_name_error(self):
         with self.assertRaises(DataGenNameError) as e:
-            generate(StringIO(yaml1), 1, {}, None, None)
+            generate(StringIO(yaml1), 1, {}, None)
         assert str(e.exception)[-2:] == ":3"
 
     def test_syntax_error(self):
         with self.assertRaises(DataGenSyntaxError) as e:
-            generate(StringIO(yaml2), 1, {}, None, None)
+            generate(StringIO(yaml2), 1, {}, None)
         assert str(e.exception)[-2:] == ":2"
 
     def test_funcname_error(self):
         with self.assertRaises(DataGenError) as e:
-            generate(StringIO(yaml3), 1, {}, None, None)
+            generate(StringIO(yaml3))
         assert "xyzzy" in str(e.exception)
         assert e.exception.line_num >= 5
 
@@ -60,7 +60,7 @@ class TestErrors(unittest.TestCase):
                 xyzzy: abcde                    #7
         """
         with self.assertRaises(DataGenError) as e:
-            generate(StringIO(yaml), 1, {}, None, None)
+            generate(StringIO(yaml))
         assert 4 > e.exception.line_num >= 2
 
     def test_extra_keys(self):
@@ -73,7 +73,7 @@ class TestErrors(unittest.TestCase):
                 xyzzy: abcde                    #7
         """
         with self.assertRaises(DataGenError) as e:
-            generate(StringIO(yaml), 1, {}, None, None)
+            generate(StringIO(yaml))
         assert 4 > e.exception.line_num >= 2
 
     def test_missing_field_value(self):
@@ -85,7 +85,7 @@ class TestErrors(unittest.TestCase):
                 name:
         """
         with self.assertRaises(DataGenError) as e:
-            generate(StringIO(yaml), 1, {}, None, None)
+            generate(StringIO(yaml))
         assert "name" in str(e.exception)
         assert "Field" in str(e.exception)
 
@@ -99,5 +99,5 @@ class TestErrors(unittest.TestCase):
                     fake:
         """
         with self.assertRaises(DataGenError) as e:
-            generate(StringIO(yaml), 1, {}, None, None)
+            generate(StringIO(yaml))
         assert "Field" in str(e.exception)

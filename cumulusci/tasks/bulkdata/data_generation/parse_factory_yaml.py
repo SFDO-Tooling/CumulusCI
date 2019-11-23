@@ -12,7 +12,6 @@ from .data_generator_runtime_dom import (
     ObjectTemplate,
     FieldFactory,
     SimpleValue,
-    ChildRecordValue,
     StructuredValue,
     ReferenceValue,
 )
@@ -167,9 +166,8 @@ def parse_field_value(name, field, context, allow_structured_values=True):
         )
     elif isinstance(field, dict) and field.get("object"):
         with context.change_current_parent_object(field):
-            return ChildRecordValue(
-                parse_object_template(field, context), **context.line_num()
-            )
+            return parse_object_template(field, context)
+
     elif isinstance(field, dict):
         return parse_structured_value(name, field, context)
 

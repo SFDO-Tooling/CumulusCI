@@ -32,18 +32,21 @@ class ObjectTemplate:
         tablename: str,
         filename: str,
         line_num: int,
+        nickname: str = None,
         count_expr: str = None,  # counts can be dynamic so they are expressions
         fields: list = (),
         friends: list = (),
-        nickname: str = None,
     ):
         self.tablename = tablename
+        self.nickname = nickname
+        self.count_expr = count_expr
         self.filename = filename
         self.line_num = line_num
-        self.count_expr = count_expr
         self.fields = fields
         self.friends = friends
-        self.nickname = nickname
+
+    def render(self, context):
+        return self.generate_rows(context.output_stream, context)[0]
 
     def generate_rows(self, storage, parent_context):
         """Generate several rows"""
@@ -148,9 +151,9 @@ class SimpleValue(FieldDefinition):
     """
 
     def __init__(self, definition: str, filename: str, line_num: int):
-        self.definition = definition
         self.filename = filename
         self.line_num = line_num
+        self.definition = definition
         assert isinstance(filename, str)
         assert isinstance(line_num, int), line_num
         self._evaluator = None
@@ -227,11 +230,17 @@ class StructuredValue(FieldDefinition):
             objname, method, *rest = self.function_name.split(".")
             if rest:
                 raise DataGenSyntaxError(
-                    f"Function names should have only one '.' in them: {self.function_name}"
+                    f"Function names should have only one '.' in them: {self.function_name}",
+                    self.filename,
+                    self.line_num,
                 )
             obj = context.field_vars().get(objname)
             if not obj:
-                raise DataGenNameError(f"Cannot find definition for: {objname}")
+                raise DataGenNameError(
+                    f"Cannot find definition for: {objname}",
+                    self.filename,
+                    self.line_num,
+                )
 
             func = getattr(obj, method)
             if not func:
@@ -244,7 +253,7 @@ class StructuredValue(FieldDefinition):
                 func = context.executable_blocks()[self.function_name]
             except KeyError:
                 raise DataGenNameError(
-                    f"Cannot find func named {self.function_name}",
+                    f"Cannot find function named {self.function_name} to handle field value",
                     self.filename,
                     self.line_num,
                 )
@@ -260,24 +269,6 @@ class ReferenceValue(StructuredValue):
                 Y"""
 
 
-class ChildRecordValue(FieldDefinition):
-    """Represents an ObjectRow embedded in another ObjectRow
-
-    - object: X
-      fields:
-        foo:
-            - object: Y    # this is the child record
-    """
-
-    def __init__(self, sobj: object, filename: str, line_num: int):
-        self.sobj = sobj
-        self.filename = filename
-        self.line_num = line_num
-
-    def render(self, context):
-        return self.sobj.generate_rows(context.output_stream, context)[0]
-
-
 class FieldFactory:
     """Represents a single data field (name, value) to be rendered
 
@@ -288,9 +279,9 @@ class FieldFactory:
 
     def __init__(self, name: str, definition: object, filename: str, line_num: int):
         self.name = name
-        self.definition = definition
         self.filename = filename
         self.line_num = line_num
+        self.definition = definition
 
     def generate_value(self, context):
         try:

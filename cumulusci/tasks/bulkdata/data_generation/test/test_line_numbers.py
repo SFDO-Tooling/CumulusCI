@@ -47,10 +47,10 @@ class TestLineNumbers(unittest.TestCase):
 
     def test_value_error_reporting(self):
         with self.assertRaises(DataGenValueError) as e:
-            generate(StringIO(yaml), 1, {}, None, None)
+            generate(StringIO(yaml), 1, {}, None)
         assert str(e.exception)[-2:] == ":8"
 
     def test_syntax_error_number_reporting(self):
         with self.assertRaises(DataGenSyntaxError) as e:
-            generate(StringIO(yaml_with_syntax_error), 1, {}, None, None)
+            generate(StringIO(yaml_with_syntax_error), 1, {})
         assert str(e.exception)[-2:] == ":8"

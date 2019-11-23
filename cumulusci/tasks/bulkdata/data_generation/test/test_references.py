@@ -53,7 +53,7 @@ write_row_path = "cumulusci.tasks.bulkdata.data_generation.output_streams.DebugO
 class TestReferences(unittest.TestCase):
     @mock.patch(write_row_path)
     def test_simple_parent(self, write_row):
-        generate(StringIO(simple_parent), 1, {}, None, None)
+        generate(StringIO(simple_parent), 1, {}, None)
 
         a_values = find_row("A", {}, write_row.mock_calls)
         b_values = find_row("B", {}, write_row.mock_calls)
@@ -66,7 +66,7 @@ class TestReferences(unittest.TestCase):
 
     @mock.patch(write_row_path)
     def test_simple_parent_list_child(self, write_row):
-        generate(StringIO(simple_parent_list), 1, {}, None, None)
+        generate(StringIO(simple_parent_list), 1, {}, None)
 
         a_values = find_row("A", {}, write_row.mock_calls)
         b_values = find_row("B", {}, write_row.mock_calls)
@@ -79,7 +79,7 @@ class TestReferences(unittest.TestCase):
 
     @mock.patch(write_row_path)
     def test_ancestor_reference(self, write_row):
-        generate(StringIO(ancestor_reference), 1, {}, None, None)
+        generate(StringIO(ancestor_reference), 1, {}, None)
 
         a_values = find_row("A", {}, write_row.mock_calls)
         c_values = find_row("C", {}, write_row.mock_calls)
@@ -89,7 +89,7 @@ class TestReferences(unittest.TestCase):
 
     @mock.patch(write_row_path)
     def test_reference_from_friend(self, write_row):
-        generate(StringIO(reference_from_friend), 1, {}, None, None)
+        generate(StringIO(reference_from_friend), 1, {}, None)
 
         a_values = find_row("A", {}, write_row.mock_calls)
         b_values = find_row("B", {}, write_row.mock_calls)

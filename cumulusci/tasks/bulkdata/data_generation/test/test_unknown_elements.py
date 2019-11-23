@@ -1,6 +1,5 @@
 from io import StringIO
 import unittest
-from unittest import mock
 
 from cumulusci.tasks.bulkdata.data_generation.data_generator import generate
 from cumulusci.tasks.bulkdata.data_generation.data_gen_exceptions import DataGenError
@@ -16,7 +15,7 @@ class TestFaker(unittest.TestCase):
                     first_name
         """
         with self.assertRaises(DataGenError):
-            generate(StringIO(yaml), 1, {}, None, None)
+            generate(StringIO(yaml), 1, {}, None)
 
     def test_secondary_field_unknown(self):
         yaml = """
@@ -27,4 +26,4 @@ class TestFaker(unittest.TestCase):
                     first_name
         """
         with self.assertRaises(DataGenError):
-            generate(StringIO(yaml), 1, {}, None, None)
+            generate(StringIO(yaml), 1, {}, None)

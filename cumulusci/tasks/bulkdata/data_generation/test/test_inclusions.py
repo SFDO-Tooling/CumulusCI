@@ -13,7 +13,7 @@ class TestReferences(unittest.TestCase):
     def test_included_file(self, write_row):
         include_parent = pathlib.Path(__file__).parent / "include_parent.yml"
         with open(include_parent) as f:
-            generate(f, 1, {}, None, None)
+            generate(f, 1, {}, None)
 
         write_row.assert_called_with(
             "Account",
@@ -25,4 +25,4 @@ class TestReferences(unittest.TestCase):
         failed_include = pathlib.Path(__file__).parent / "include_bad_parent.yml"
         with self.assertRaises(DataGenError):
             with open(failed_include) as f:
-                generate(f, 1, {}, None, None)
+                generate(f)
