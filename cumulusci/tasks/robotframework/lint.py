@@ -55,23 +55,23 @@ class RobotLint(BaseTask):
     task_options = {
         "configure": {
             "description": "List of rule configuration values, in the form of rule:args.",
-            "default": None,
+            "default": [],
         },
         "ignore": {
             "description": "List of rules to ignore. Use 'all' to ignore all rules",
-            "default": None,
+            "default": [],
         },
         "error": {
             "description": "List of rules to treat as errors. Use 'all' to affect all rules.",
-            "default": None,
+            "default": [],
         },
         "warning": {
             "description": "List of rules to treat as warnings. Use 'all' to affect all rules.",
-            "default": None,
+            "default": [],
         },
         "list": {
             "description": "If option is True, print a list of known rules instead of processing files.",
-            "default": None,
+            "default": False,
         },
         "path": {
             "description": "The path to one or more files or folders. "

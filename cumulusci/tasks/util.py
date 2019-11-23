@@ -4,6 +4,8 @@ import time
 import glob
 from xml.dom.minidom import parse
 
+import click
+
 from cumulusci.core.tasks import BaseTask
 from cumulusci.utils import download_extract_zip, findReplace, findReplaceRegex
 
@@ -40,16 +42,14 @@ class ListMetadataTypes(BaseTask):
             "description": (
                 "The project package.xml file."
                 + " Defaults to <project_root>/src/package.xml"
-            )
+            ),
+            "type": click.Path(
+                dir_okay=False, file_okay=True, readable=True, exists=True
+            ),
+            "default": "{project_config.repo_root}/src/package.xml",
+            "do_replacement": True,
         }
     }
-
-    def _init_options(self, kwargs):
-        super(ListMetadataTypes, self)._init_options(kwargs)
-        if "package_xml" not in self.options:
-            self.options["package_xml"] = os.path.join(
-                self.project_config.repo_root, "src", "package.xml"
-            )
 
     def _run_task(self):
         dom = parse(self.options["package_xml"])
@@ -70,7 +70,11 @@ class ListMetadataTypes(BaseTask):
 class Sleep(BaseTask):
     name = "Sleep"
     task_options = {
-        "seconds": {"description": "The number of seconds to sleep", "required": True}
+        "seconds": {
+            "description": "The number of seconds to sleep",
+            "required": True,
+            "type": click.INT,
+        }
     }
 
     def _run_task(self):
@@ -87,7 +91,8 @@ class Delete(BaseTask):
             "required": True,
         },
         "chdir": {
-            "description": "Change directories before deleting path(s).  This is useful if you have a common list of relative paths to delete that you want to call against different directories."
+            "description": "Change directories before deleting path(s).  This is useful if you have a common list of relative paths to delete that you want to call against different directories.",
+            "type": click.Path(exists=True, dir_okay=True, file_okay=False),
         },
     }
 
@@ -127,23 +132,19 @@ class FindReplace(BaseTask):
         "replace": {
             "description": "The string to replace matches with. Defaults to an empty string",
             "required": True,
+            "default": "",
         },
         "path": {"description": "The path to recursively search", "required": True},
         "file_pattern": {
             "description": "A UNIX like filename pattern used for matching filenames.  See python fnmatch docs for syntax.  Defaults to *",
             "required": True,
+            "default": "*",
         },
         "max": {
-            "description": "The max number of matches to replace.  Defaults to replacing all matches."
+            "description": "The max number of matches to replace.  Defaults to replacing all matches.",
+            "type": click.INT,
         },
     }
-
-    def _init_options(self, kwargs):
-        super(FindReplace, self)._init_options(kwargs)
-        if "replace" not in self.options:
-            self.options["replace"] = ""
-        if "file_pattern" not in self.options:
-            self.options["file_pattern"] = "*"
 
     def _run_task(self):
         kwargs = {}
@@ -178,10 +179,19 @@ class FindReplaceRegex(FindReplace):
 
 class CopyFile(BaseTask):
     task_options = {
-        "src": {"description": "The path to the source file to copy", "required": True},
+        "src": {
+            "description": "The path to the source file to copy",
+            "required": True,
+            "type": click.Path(
+                exists=True, file_okay=True, dir_okay=False, readable=True
+            ),
+        },
         "dest": {
             "description": "The destination path where the src file should be copied",
             "required": True,
+            "type": click.Path(
+                exists=False, file_okay=False, dir_okay=True, writable=True
+            ),
         },
     }
 
@@ -194,13 +204,12 @@ class LogLine(BaseTask):
     task_options = {
         "level": {"description": "The logger level to use", "required": True},
         "line": {"description": "A formatstring like line to log", "required": True},
-        "format_vars": {"description": "A Dict of format vars", "required": False},
+        "format_vars": {
+            "description": "A Dict of format vars",
+            "required": False,
+            "default": {},
+        },
     }
-
-    def _init_options(self, kwargs):
-        super(LogLine, self)._init_options(kwargs)
-        if "format_vars" not in self.options:
-            self.options["format_vars"] = {}
 
     def _run_task(self):
         log = getattr(self.logger, self.options["level"])

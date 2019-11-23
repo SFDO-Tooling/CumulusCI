@@ -8,6 +8,8 @@ import os
 import time
 import threading
 
+import click
+
 from cumulusci.utils import cd
 from cumulusci.core.exceptions import TaskRequiresSalesforceOrg
 from cumulusci.core.exceptions import TaskOptionsError
@@ -88,6 +90,18 @@ class BaseTask(object):
         if kwargs:
             self.options.update(kwargs)
 
+        # Handle default values
+        for name, config in list(self.task_options.items()):
+            if name not in self.options and "default" in config:
+                print("XXX1", name)
+                self.options[name] = config["default"]
+
+            if "do_replacement" in config:
+                print("XXX2", name)
+                self.options[name] = self.options[name].format(
+                    **{"project_config": self.project_config}
+                )
+
         # Handle dynamic lookup of project_config values via $project_config.attr
         for option, value in list(self.options.items()):
             try:
@@ -102,6 +116,16 @@ class BaseTask(object):
         for name, config in list(self.task_options.items()):
             if config.get("required") is True and name not in self.options:
                 missing_required.append(name)
+
+            elif config.get("type") and name in self.options:
+                print("XXX3", name)
+                datatype = config.get("type")
+                try:
+                    self.options[name] = datatype.convert(
+                        self.options[name], name, None
+                    )
+                except click.exceptions.UsageError as e:
+                    raise TaskOptionsError(str(e)) from e
 
         if missing_required:
             raise TaskOptionsError(

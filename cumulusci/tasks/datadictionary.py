@@ -2,6 +2,9 @@ import csv
 import xml.etree.ElementTree as ET
 
 from collections import defaultdict
+
+import click
+
 from cumulusci.tasks.github.base import BaseGithubTask
 from cumulusci.utils import download_extract_github_from_repo
 from distutils.version import LooseVersion
@@ -22,29 +25,23 @@ class GenerateDataDictionary(BaseGithubTask):
 
     task_options = {
         "object_path": {
-            "description": "Path to a CSV file to contain an sObject-level data dictionary."
+            "description": "Path to a CSV file to contain an sObject-level data dictionary.",
+            "type": click.Path(exists=False, file_okay=True, dir_okay=False),
+            "default": "{project_config.project__name} sObject Data Dictionary.csv",
+            "do_replacement": True,
         },
         "field_path": {
-            "description": "Path to a CSV file to contain an field-level data dictionary."
+            "description": "Path to a CSV file to contain an field-level data dictionary.",
+            "type": click.Path(exists=False, file_okay=True, dir_okay=False),
+            "default": "{project_config.project__name} Field Data Dictionary.csv",
+            "do_replacement": True,
         },
         "release_prefix": {
             "description": "The tag prefix used for releases.",
             "required": True,
+            "type": click.STRING,
         },
     }
-
-    def _init_options(self, kwargs):
-        super()._init_options(kwargs)
-
-        if self.options.get("object_path") is None:
-            self.options[
-                "object_path"
-            ] = f"{self.project_config.project__name} sObject Data Dictionary.csv"
-
-        if self.options.get("field_path") is None:
-            self.options[
-                "field_path"
-            ] = f"{self.project_config.project__name} Field Data Dictionary.csv"
 
     def _run_task(self):
         self.logger.info("Starting data dictionary generation")
