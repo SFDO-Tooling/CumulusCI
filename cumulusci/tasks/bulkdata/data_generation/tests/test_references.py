@@ -2,7 +2,7 @@ from io import StringIO
 import unittest
 from unittest import mock
 from cumulusci.tasks.bulkdata.data_generation.data_generator import generate
-from cumulusci.tasks.bulkdata.data_generation.test.test_parse_samples import find_row
+from cumulusci.tasks.bulkdata.data_generation.tests.test_parse_samples import find_row
 
 simple_parent = """                     #1
 - object: A                             #2
