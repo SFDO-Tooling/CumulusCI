@@ -60,7 +60,7 @@ def sort_dependencies(dependencies, tables):
         tables = [table for table in tables if table not in sorted_tables]
         if len(tables) == remaining:
             warn(f"Circular references: {tables}. Load mapping may fail!")
-            sorted_tables.extend(tables[0])
+            sorted_tables.append(tables[0])
     return sorted_tables
 
 
