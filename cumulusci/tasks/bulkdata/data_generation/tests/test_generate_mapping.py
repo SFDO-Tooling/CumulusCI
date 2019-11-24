@@ -148,6 +148,24 @@ class TestGenerateMapping(unittest.TestCase):
         assert mapping["Insert Animal"]["lookups"]["food"]["table"] == "PetFood"
         assert mapping["Insert Animal"]["lookups"]["food"]["key_field"] == "food"
 
+    def test_circular_references_2(self):
+        yaml = """- object: Person
+  count: 3
+  fields:
+    name:
+      fake: name
+    pet:
+      - object: Animal
+        fields:
+          name:
+            fake: first_name
+          owner:
+            reference: Person
+"""
+        summary = generate(StringIO(yaml), 1, {}, None)
+        with pytest.warns(UserWarning, match="Circular"):
+            mapping_from_factory_templates(summary)
+
 
 class TestBuildDependencies(unittest.TestCase):
     def test_build_dependencies_simple(self):
