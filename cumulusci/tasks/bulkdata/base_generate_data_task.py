@@ -25,7 +25,7 @@ class BaseGenerateDataTask(BaseTask, metaclass=ABCMeta):
     task_options = {
         "num_records": {
             "description": "How many records to generate: total number of opportunities.",
-            "required": True,
+            "required": False,
         },
         "mapping": {"description": "A mapping YAML file to use", "required": False},
         "database_url": {
