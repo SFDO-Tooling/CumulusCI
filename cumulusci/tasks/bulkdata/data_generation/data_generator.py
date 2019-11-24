@@ -1,9 +1,13 @@
 import warnings
 
-from .data_gen_exceptions import DataGenNameError
-from .output_streams import DebugOutputStream
-from .parse_factory_yaml import parse_generator
-from .data_generator_runtime import output_batches
+from cumulusci.tasks.bulkdata.data_generation.data_gen_exceptions import (
+    DataGenNameError,
+)
+from cumulusci.tasks.bulkdata.data_generation.output_streams import DebugOutputStream
+from cumulusci.tasks.bulkdata.data_generation.parse_factory_yaml import parse_generator
+from cumulusci.tasks.bulkdata.data_generation.data_generator_runtime import (
+    output_batches,
+)
 
 
 ### This tool is essentially a three stage interpreter.
@@ -93,6 +97,6 @@ def generate(open_yaml_file, count=1, cli_options=None, output_stream=None):
 
 
 if __name__ == "__main__":
-    from .data_generator_cli import generate_cli
+    from cumulusci.tasks.bulkdata.data_generation.data_generator_cli import generate_cli
 
     generate_cli()

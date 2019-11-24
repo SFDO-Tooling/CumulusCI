@@ -1,11 +1,19 @@
-from cumulusci.tasks.bulkdata.base_generate_data_task import (
-    create_table as create_table_from_mapping,
-)
+import os
 from abc import abstractmethod, ABC
+import json
+import csv
+from urllib.parse import urlparse
+from pathlib import Path
+from collections import namedtuple
+
 from sqlalchemy import create_engine, MetaData, Column, Integer, Table, Unicode
 from sqlalchemy.ext.automap import automap_base
 from sqlalchemy.orm import create_session
 from .data_gen_exceptions import DataGenError
+
+from cumulusci.tasks.bulkdata.base_generate_data_task import (
+    create_table as create_table_from_mapping,
+)
 
 
 class OutputStream(ABC):
@@ -26,11 +34,76 @@ class OutputStream(ABC):
     def write_single_row(self, tablename, row):
         pass
 
+    def close(self):
+        pass
+
 
 class DebugOutputStream(OutputStream):
     def write_single_row(self, tablename, row):
         values = ", ".join([f"{key}={value}" for key, value in row.items()])
         print(f"{tablename}({values})")
+
+
+CSVContext = namedtuple("CSVContext", ["dictwriter", "file"])
+
+
+class CSVOutputStream(OutputStream):
+    def __init__(self, url):
+        super().__init__()
+
+        parts = urlparse(url)
+        self.target_path = Path(parts.path)
+        if not os.path.exists(self.target_path):
+            os.makedirs(self.target_path)
+
+    def open_writer(self, table_name, table):
+        file = open(self.target_path / f"{table_name}.csv", "w")
+        writer = csv.DictWriter(file, list(table.fields.keys()) + ["id"])
+        writer.writeheader()
+        return CSVContext(dictwriter=writer, file=file)
+
+    def create_or_validate_tables(self, tables):
+        self.writers = {
+            table_name: self.open_writer(table_name, table)
+            for table_name, table in tables.items()
+        }
+
+    def write_single_row(self, tablename, row):
+        self.writers[tablename].dictwriter.writerow(row)
+
+    def close(self):
+        for context in self.writers.values():
+            context.file.close()
+
+        table_metadata = [
+            {"url": f"{table_name}.csv"} for table_name, writer in self.writers.items()
+        ]
+        csv_metadata = {
+            "@context": "http://www.w3.org/ns/csvw",
+            "tables": table_metadata,
+        }
+        csvw_filename = self.target_path / "csvw_metadata.json"
+        with open(csvw_filename, "w") as f:
+            json.dump(csv_metadata, f, indent=2)
+
+
+class JSONOutputStream(OutputStream):
+    def __init__(self, file):
+        super().__init__()
+        self.file = file
+        self.first_row = True
+
+    def write_single_row(self, tablename, row):
+        if self.first_row:
+            self.file.write("[")
+            self.first_row = False
+        else:
+            self.file.write(",\n")
+        values = {"_table": tablename, **row}
+        self.file.write(json.dumps(values))
+
+    def close(self):
+        self.file.write("]\n")
 
 
 class SqlOutputStream(OutputStream):
