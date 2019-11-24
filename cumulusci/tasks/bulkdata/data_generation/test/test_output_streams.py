@@ -94,24 +94,17 @@ class TestJSONOutputStream(unittest.TestCase):
             c: 3
         """
 
-        class FakeStdout:
-            def __init__(self):
-                self.data = ""
-
-            def write(self, data):
-                self.data += data
-
-        stdout = FakeStdout()
+        stdout = StringIO()
         output_stream = JSONOutputStream(stdout)
         generate(StringIO(yaml), 1, {}, output_stream)
         output_stream.close()
-        assert json.loads(stdout.data) == [
+        assert json.loads(stdout.getvalue()) == [
             {"_table": "foo", "a": "b", "c": 3.0, "id": 1},
             {"_table": "foo", "a": "b", "c": 3.0, "id": 2},
         ]
 
     def test_from_cli(self):
-        generate_cli
+        generate_cli.callback(yaml_file=sample_yaml, output_format="json")
 
 
 class TestCSVOutputStream(unittest.TestCase):
@@ -143,4 +136,12 @@ class TestCSVOutputStream(unittest.TestCase):
                 }
 
     def test_from_cli(self):
-        generate_cli.callback(yaml_file=sample_yaml)
+        with TemporaryDirectory() as t:
+            generate_cli.main(
+                [str(sample_yaml), "--dburl", f"csvfile://{t}/csvoutput"],
+                standalone_mode=False,
+            )
+            assert (Path(t) / "csvoutput" / "Account.csv").exists()
+            with open(Path(t) / "csvoutput" / "csvw_metadata.json") as f:
+                metadata = json.load(f)
+                assert {table["url"] for table in metadata["tables"]} == {"Account.csv"}

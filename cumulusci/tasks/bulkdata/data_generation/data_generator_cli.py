@@ -28,12 +28,16 @@ def eval_arg(arg):
 @click.option("--count", default=1)
 @click.option("--output-format", "output_format", type=click.Choice(["JSON", "json"]))
 @click.option("--dburl", type=str)
-@click.option("--mapping_file", type=click.Path(exists=True))
-@click.option("--option", nargs=2, type=(str, eval_arg), multiple=True)
+@click.option("--mapping-file", "mapping_file", type=click.Path(exists=True))
+@click.option("--option", nargs=2, type=eval_arg, multiple=True)
 @click.option(
     "--debug-internals/--no-debug-internals", "debug_internals", default=False
 )
-@click.option("--generate_cci_mapping_file", type=click.Path(exists=False))
+@click.option(
+    "--generate-cci-mapping-file",
+    "generate_cci_mapping_file",
+    type=click.Path(exists=False),
+)
 def generate_cli(
     yaml_file,
     count=1,
@@ -64,6 +68,8 @@ def generate_cli(
             output_stream = CSVOutputStream(dburl)
         else:
             output_stream = SqlOutputStream.from_url(dburl, mappings)
+    elif mapping_file:
+        raise click.ClickException("Mapping file can only be used with --dburl")
     elif output_format and output_format.lower() == "json":
         output_stream = JSONOutputStream(stdout)
     else:
@@ -87,8 +93,8 @@ def generate_cli(
             click.echo(
                 "An error occurred. If you would like to see a Python traceback, use the --verbose option."
             )
-            raise click.ClickException(e)
+            raise click.ClickException(str(e)) from e
 
 
-if __name__ == "__main__":
-    generate_cli()  # pragma: no cover
+if __name__ == "__main__":  # pragma: nocover
+    generate_cli()

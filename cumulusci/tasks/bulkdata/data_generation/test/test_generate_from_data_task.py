@@ -1,7 +1,7 @@
 import unittest
 from pathlib import Path
 
-from cumulusci.tasks.bulkdata.tests.test_bulkdata import _make_task
+from cumulusci.tasks.bulkdata.tests.test_bulkdata import _make_task, TaskOptionsError
 from cumulusci.tasks.bulkdata.data_generation.generate_from_yaml import GenerateFromYaml
 
 sample_yaml = Path(__file__).parent / "child.yml"
@@ -19,4 +19,27 @@ class TestGenerateFromDataTask(unittest.TestCase):
         _make_task(
             GenerateFromYaml,
             {"options": {"generator_yaml": sample_yaml, "num_records": 10}},
+        )
+
+    def test_inaccessible_generator_yaml(self):
+        with self.assertRaises(TaskOptionsError):
+            with open(sample_yaml, "r") as s:
+                yaml.safe_load(s)
+            _make_task(
+                GenerateFromYaml,
+                {
+                    "options": {
+                        "generator_yaml": sample_yaml / "junk",
+                        "num_records": 10,
+                    }
+                },
+            )
+
+    def test_vars(self):
+        # with self.assertRaises(TaskOptionsError):
+        with open(sample_yaml, "r") as s:
+            yaml.safe_load(s)
+        _make_task(
+            GenerateFromYaml,
+            {"options": {"generator_yaml": sample_yaml, "vars": "xyzzy:foo"}},
         )
