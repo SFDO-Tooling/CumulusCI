@@ -393,21 +393,6 @@ class TestBaseProjectConfig(unittest.TestCase):
 
             self.assertIsNotNone(config.repo_commit)
 
-    def test_use_sentry(self):
-        config = BaseProjectConfig(BaseGlobalConfig())
-        config.keychain = mock.Mock()
-        self.assertTrue(config.use_sentry)
-
-    @mock.patch("raven.Client")
-    def test_init_sentry(self, raven_client):
-        config = BaseProjectConfig(BaseGlobalConfig())
-        config.keychain = mock.Mock()
-        config.init_sentry()
-        self.assertEqual(
-            {"repo", "commit", "cci version", "branch"},
-            set(raven_client.call_args[1]["tags"].keys()),
-        )
-
     def test_get_latest_tag(self):
         config = BaseProjectConfig(
             BaseGlobalConfig(),

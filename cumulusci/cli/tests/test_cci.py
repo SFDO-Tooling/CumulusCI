@@ -30,7 +30,6 @@ from cumulusci.core.exceptions import OrgNotFound
 from cumulusci.core.exceptions import ScratchOrgException
 from cumulusci.core.exceptions import ServiceNotConfigured
 from cumulusci.core.exceptions import TaskNotFoundError
-from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.cli import cci
 from cumulusci.cli.config import CliRuntime
 from cumulusci.utils import temporary_dir
@@ -119,27 +118,6 @@ class TestCCI(unittest.TestCase):
 
         click.echo.assert_any_call("Error checking cci version:")
 
-    @mock.patch("pdb.post_mortem")
-    def test_handle_exception_debug(self, post_mortem):
-        cci.handle_exception_debug(config=None, debug=True)
-        post_mortem.assert_called()
-
-    def test_handle_exception_debug_throw(self):
-        throw = Exception()
-        try:
-            cci.handle_exception_debug(config=None, debug=False, throw_exception=throw)
-        except Exception as err:
-            self.assertIs(throw, err)
-        else:
-            self.fail("Expected exception to be thrown.")
-
-    @mock.patch("cumulusci.cli.cci.handle_sentry_event")
-    def test_handle_exception_debug_sentry(self, handle_sentry_event):
-        _marker = object()
-        with self.assertRaises(Exception):
-            cci.handle_exception_debug(config=_marker, debug=False)
-        handle_sentry_event.assert_called_once_with(_marker, None)
-
     def test_render_recursive(self):
         out = []
         with mock.patch("click.echo", out.append):
@@ -157,34 +135,13 @@ class TestCCI(unittest.TestCase):
             "\n".join(out),
         )
 
-    @mock.patch("cumulusci.cli.cci.webbrowser")
-    @mock.patch("cumulusci.cli.cci.click")
-    def test_handle_sentry_event(self, click, webbrowser):
-        config = mock.Mock()
-        click.confirm.return_value = True
-
-        cci.handle_sentry_event(config, False)
-
-        webbrowser.open.assert_called_once()
-
-    def test_handle_sentry_event_no_event(self):
-        config = mock.Mock()
-        config.project_config.sentry_event = None
-
-        cci.handle_sentry_event(config, True)
-
     def test_load_config__no_project(self):
         with temporary_dir():
             with self.assertRaises(SystemExit):
                 cci.load_config()
 
-    @mock.patch("cumulusci.cli.cci.init_logger")
-    @mock.patch("cumulusci.cli.cci.check_latest_version")
-    def test_main(self, check_latest_version, init_logger):
-        run_click_command(cci.main)
-
-        check_latest_version.assert_called_once()
-        init_logger.assert_called_once()
+    def test_cli(self):
+        run_click_command(cci.cli)
 
     @mock.patch(
         "cumulusci.cli.cci.get_latest_final_version",
@@ -1167,82 +1124,6 @@ class TestCCI(unittest.TestCase):
                 no_prompt=True,
             )
 
-    def test_task_run_usage_error(self):
-        config = mock.Mock()
-        config.get_org.return_value = (None, None)
-        config.project_config = BaseProjectConfig(
-            None,
-            config={
-                "tasks": {
-                    "test": {"class_path": "cumulusci.cli.tests.test_cci.DummyTask"}
-                }
-            },
-        )
-        DummyTask._run_task.side_effect = TaskOptionsError
-
-        with self.assertRaises(click.UsageError):
-            run_click_command(
-                cci.task_run,
-                config=config,
-                task_name="test",
-                org=None,
-                o=[("color", "blue")],
-                debug=False,
-                debug_before=False,
-                debug_after=False,
-                no_prompt=True,
-            )
-
-    def test_task_run_expected_failure(self):
-        config = mock.Mock()
-        config.get_org.return_value = (None, None)
-        config.project_config = BaseProjectConfig(
-            None,
-            config={
-                "tasks": {
-                    "test": {"class_path": "cumulusci.cli.tests.test_cci.DummyTask"}
-                }
-            },
-        )
-        DummyTask._run_task.side_effect = ScratchOrgException
-
-        with self.assertRaises(click.ClickException):
-            run_click_command(
-                cci.task_run,
-                config=config,
-                task_name="test",
-                org=None,
-                o=[("color", "blue")],
-                debug=False,
-                debug_before=False,
-                debug_after=False,
-                no_prompt=True,
-            )
-
-    @mock.patch("cumulusci.cli.cci.handle_sentry_event")
-    def test_task_run_unexpected_exception(self, handle_sentry_event):
-        config = mock.Mock()
-        config.get_org.return_value = (None, None)
-        config.project_config.get_task.return_value = TaskConfig(
-            {"class_path": "cumulusci.cli.tests.test_cci.DummyTask"}
-        )
-        DummyTask._run_task.side_effect = Exception
-
-        with self.assertRaises(Exception):
-            run_click_command(
-                cci.task_run,
-                config=config,
-                task_name="test",
-                org=None,
-                o=[("color", "blue")],
-                debug=False,
-                debug_before=False,
-                debug_after=False,
-                no_prompt=True,
-            )
-
-        handle_sentry_event.assert_called_once()
-
     @mock.patch("cumulusci.cli.cci.CliTable")
     def test_flow_list(self, cli_tbl):
         config = mock.Mock()
@@ -1336,100 +1217,6 @@ class TestCCI(unittest.TestCase):
                 skip=(),
                 no_prompt=True,
             )
-
-    def test_flow_run_usage_error(self):
-        org_config = mock.Mock(config={})
-        config = CliRuntime(
-            config={
-                "flows": {"test": {"steps": {1: {"task": "test_task"}}}},
-                "tasks": {
-                    "test_task": {
-                        "class_path": "cumulusci.cli.tests.test_cci.DummyTask",
-                        "description": "Test Task",
-                    }
-                },
-            },
-            load_keychain=False,
-        )
-        config.get_org = mock.Mock(return_value=("test", org_config))
-        DummyTask._run_task = mock.Mock(side_effect=TaskOptionsError)
-
-        with self.assertRaises(click.UsageError):
-            run_click_command(
-                cci.flow_run,
-                config=config,
-                flow_name="test",
-                org="test",
-                delete_org=False,
-                debug=False,
-                o=None,
-                skip=(),
-                no_prompt=True,
-            )
-
-    def test_flow_run_expected_failure(self):
-        org_config = mock.Mock(config={})
-        config = CliRuntime(
-            config={
-                "flows": {"test": {"steps": {1: {"task": "test_task"}}}},
-                "tasks": {
-                    "test_task": {
-                        "class_path": "cumulusci.cli.tests.test_cci.DummyTask",
-                        "description": "Test Task",
-                    }
-                },
-            },
-            load_keychain=False,
-        )
-        config.get_org = mock.Mock(return_value=("test", org_config))
-        DummyTask._run_task = mock.Mock(side_effect=ScratchOrgException("msg"))
-
-        with self.assertRaises(click.ClickException) as e:
-            run_click_command(
-                cci.flow_run,
-                config=config,
-                flow_name="test",
-                org="test",
-                delete_org=False,
-                debug=False,
-                o=None,
-                skip=(),
-                no_prompt=True,
-            )
-            assert "msg" in str(e)
-
-    @mock.patch("cumulusci.cli.cci.handle_sentry_event")
-    def test_flow_run_unexpected_exception(self, handle_sentry_event):
-        org_config = mock.Mock(config={})
-        config = CliRuntime(
-            config={
-                "flows": {"test": {"steps": {1: {"task": "test_task"}}}},
-                "tasks": {
-                    "test_task": {
-                        "class_path": "cumulusci.cli.tests.test_cci.DummyTask",
-                        "description": "Test Task",
-                    }
-                },
-            },
-            load_keychain=False,
-        )
-        config.get_org = mock.Mock(return_value=("test", org_config))
-        DummyTask._run_task = mock.Mock(side_effect=Exception)
-
-        with self.assertRaises(Exception):
-            run_click_command(
-                cci.flow_run,
-                config=config,
-                flow_name="test",
-                org="test",
-                delete_org=False,
-                debug=False,
-                o=None,
-                skip=(),
-                no_prompt=True,
-            )
-
-        handle_sentry_event.assert_called_once()
 
     @mock.patch("click.echo")
     def test_flow_run_org_delete_error(self, echo):

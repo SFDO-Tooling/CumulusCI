@@ -5,9 +5,11 @@ import code
 import functools
 import json
 import os
+import pdb
 import shutil
 import sys
 import time
+import traceback
 from datetime import datetime
 import webbrowser
 
@@ -27,10 +29,7 @@ from cumulusci.core.config import ScratchOrgConfig
 from cumulusci.core.config import ServiceConfig
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.config import BaseGlobalConfig
-from cumulusci.core.exceptions import CumulusCIFailure
-from cumulusci.core.exceptions import CumulusCIUsageError
 from cumulusci.core.exceptions import OrgNotFound
-from cumulusci.core.exceptions import ScratchOrgException
 from cumulusci.core.exceptions import ServiceNotConfigured
 from cumulusci.core.exceptions import FlowNotFoundError
 
@@ -120,21 +119,6 @@ def check_latest_version():
             )
 
 
-def handle_exception_debug(config, debug, throw_exception=None, no_prompt=None):
-    if debug:
-        import pdb
-        import traceback
-
-        traceback.print_exc()
-        pdb.post_mortem()
-    else:
-        if throw_exception:
-            raise throw_exception
-        else:
-            handle_sentry_event(config, no_prompt)
-            raise
-
-
 def render_recursive(data, indent=None):
     if indent is None:
         indent = 0
@@ -161,25 +145,6 @@ def render_recursive(data, indent=None):
                 click.echo(f"{indent_str}{key_str} {value}")
 
 
-def handle_sentry_event(config, no_prompt):
-    event = config.project_config.sentry_event
-    if not event:
-        return
-
-    sentry_config = config.project_config.keychain.get_service("sentry")
-    event_url = f"{config.project_config.sentry.remote.base_url}/{sentry_config.org_slug}/{sentry_config.project_slug}/?query={event}"
-    click.echo(
-        f"An error event was recorded in sentry.io and can be viewed at the url:\n{event_url}"
-    )
-
-    if not no_prompt and click.confirm(
-        click.style(
-            "Do you want to open a browser to view the error in sentry.io?", bold=True
-        )
-    ):
-        webbrowser.open(event_url)
-
-
 # hook for tests
 TEST_CONFIG = None
 
@@ -187,16 +152,12 @@ TEST_CONFIG = None
 def load_config(
     load_project_config=True, load_keychain=True, allow_global_keychain=False
 ):
-    try:
-        config = TEST_CONFIG or CliRuntime(
-            load_project_config=load_project_config,
-            load_keychain=load_keychain,
-            allow_global_keychain=allow_global_keychain,
-        )
-        config.check_cumulusci_version()
-    except click.UsageError as e:
-        click.echo(str(e))
-        sys.exit(1)
+    config = TEST_CONFIG or CliRuntime(
+        load_project_config=load_project_config,
+        load_keychain=load_keychain,
+        allow_global_keychain=allow_global_keychain,
+    )
+    config.check_cumulusci_version()
     return config
 
 
@@ -219,22 +180,50 @@ def pass_config(func=None, **config_kw):
 # Root command
 
 
-@click.group("main", help="")
 def main():
     """Main CumulusCI CLI entry point.
 
     This runs as the first step in processing any CLI command.
+
+    This wraps the `click` library in order to do some initialization and centralized error handling.
     """
-    # Avoid checking for updates if we've been asked to output JSON,
+    args = sys.argv
+    # Check for updates _unless_ we've been asked to output JSON,
     # or if we're going to check anyway as part of the `version` command.
-    is_version_command = len(sys.argv) > 1 and sys.argv[1] == "version"
-    if "--json" not in sys.argv and not is_version_command:
+    is_version_command = len(args) > 1 and args[1] == "version"
+    if "--json" not in args and not is_version_command:
         check_latest_version()
-    log_requests = "--debug" in sys.argv
-    init_logger(log_requests=log_requests)
+
+    # Configure logging
+    debug = "--debug" in args
+    if debug:
+        args.remove("--debug")
+    init_logger(log_requests=debug)
+
+    # Hand CLI processing over to click, but handle exceptions
+    try:
+        cli()
+    except Exception as e:
+        # Display the error
+        if debug:
+            traceback.print_exc()
+            pdb.post_mortem()
+        else:
+            click.echo(click.style(f"Error: {e}", fg="red"))
+            # XXX Capture stdout and offer to post to gist
+            # [needs access to keychain services...so preload config?]
+            # XXX errorsdb
+
+        # Return a non-zero exit code to indicate a problem
+        sys.exit(1)
 
 
-@main.command(name="version", help="Print the current version of CumulusCI")
+@click.group("main", help="")
+def cli():
+    """Top-level `click` command group."""
+
+
+@cli.command(name="version", help="Print the current version of CumulusCI")
 def version():
     click.echo("CumulusCI version: ", nl=False)
     click.echo(click.style(cumulusci.__version__, bold=True), nl=False)
@@ -259,7 +248,7 @@ def version():
     click.echo()
 
 
-@main.command(name="shell", help="Drop into a Python shell")
+@cli.command(name="shell", help="Drop into a Python shell")
 def shell():
     try:
         config = load_config(load_project_config=True, load_keychain=True)
@@ -272,29 +261,29 @@ def shell():
 # Top Level Groups
 
 
-@main.group(
+@cli.group(
     "project", help="Commands for interacting with project repository configurations"
 )
 def project():
     pass
 
 
-@main.group("org", help="Commands for connecting and interacting with Salesforce orgs")
+@cli.group("org", help="Commands for connecting and interacting with Salesforce orgs")
 def org():
     pass
 
 
-@main.group("task", help="Commands for finding and running tasks for a project")
+@cli.group("task", help="Commands for finding and running tasks for a project")
 def task():
     pass
 
 
-@main.group("flow", help="Commands for finding and running flows for a project")
+@cli.group("flow", help="Commands for finding and running flows for a project")
 def flow():
     pass
 
 
-@main.group("service", help="Commands for connecting services to the keychain")
+@cli.group("service", help="Commands for connecting services to the keychain")
 def service():
     pass
 
@@ -705,10 +694,7 @@ class ConnectServiceCommand(click.MultiCommand):
             validator_path = service_config.get("validator")
             if validator_path:
                 validator = import_global(validator_path)
-                try:
-                    validator(serv_conf)
-                except Exception as e:
-                    raise click.UsageError(str(e))
+                validator(serv_conf)
 
             config.keychain.set_service(name, ServiceConfig(serv_conf), project)
             if project:
@@ -876,11 +862,8 @@ def calculate_org_days(info):
 @click.option("print_json", "--json", is_flag=True, help="Print as JSON")
 @pass_config
 def org_info(config, org_name, print_json):
-    try:
-        org_name, org_config = config.get_org(org_name)
-        org_config.refresh_oauth_token(config.keychain)
-    except OrgNotFound as e:
-        raise click.ClickException(e)
+    org_name, org_config = config.get_org(org_name)
+    org_config.refresh_oauth_token(config.keychain)
 
     if print_json:
         click.echo(
@@ -1067,10 +1050,7 @@ def org_scratch_delete(config, org_name):
     if not org_config.scratch:
         raise click.UsageError(f"Org {org_name} is not a scratch org")
 
-    try:
-        org_config.delete_org()
-    except ScratchOrgException as e:
-        raise click.UsageError(str(e))
+    org_config.delete_org()
 
     config.keychain.set_org(org_config)
 
@@ -1157,10 +1137,7 @@ def task_doc(config):
 @click.argument("task_name")
 @pass_config()
 def task_info(config, task_name):
-    try:
-        task_config = config.project_config.get_task(task_name)
-    except CumulusCIUsageError as e:
-        raise click.UsageError(str(e))
+    task_config = config.project_config.get_task(task_name)
 
     doc = doc_task(task_name, task_config).encode()
     click.echo(rst2ansi(doc))
@@ -1201,10 +1178,7 @@ def task_run(config, task_name, org, o, debug, debug_before, debug_after, no_pro
 
     # Get necessary configs
     org, org_config = config.get_org(org, fail_if_missing=False)
-    try:
-        task_config = config.project_config.get_task(task_name)
-    except CumulusCIUsageError as e:
-        raise click.UsageError(str(e))
+    task_config = config.project_config.get_task(task_name)
 
     # Get the class to look up options
     class_path = task_config.class_path
@@ -1241,18 +1215,6 @@ def task_run(config, task_name, org, o, debug, debug_before, debug_after, no_pro
             import pdb
 
             pdb.set_trace()
-
-    except CumulusCIUsageError as e:
-        # Usage error; report with usage line and no traceback
-        exception = click.UsageError(str(e))
-        handle_exception_debug(config, debug, throw_exception=exception)
-    except (CumulusCIFailure, ScratchOrgException) as e:
-        # Expected failure; report without traceback
-        exception = click.ClickException(str(e) or e.__class__.__name__)
-        handle_exception_debug(config, debug, throw_exception=exception)
-    except Exception:
-        # Unexpected exception; log to sentry and raise
-        handle_exception_debug(config, debug, no_prompt=no_prompt)
     finally:
         config.alert(f"Task complete: {task_name}")
 
@@ -1346,14 +1308,6 @@ def flow_run(config, flow_name, org, delete_org, debug, o, skip, no_prompt):
     try:
         coordinator = config.get_flow(flow_name, options=options)
         coordinator.run(org_config)
-    except CumulusCIUsageError as e:
-        exception = click.UsageError(str(e))
-        handle_exception_debug(config, debug, throw_exception=exception)
-    except (CumulusCIFailure, ScratchOrgException) as e:
-        exception = click.ClickException(str(e) or e.__class__.__name__)
-        handle_exception_debug(config, debug, throw_exception=exception)
-    except Exception:
-        handle_exception_debug(config, debug, no_prompt=no_prompt)
     finally:
         config.alert(f"Flow Complete: {flow_name}")
 
@@ -1366,3 +1320,18 @@ def flow_run(config, flow_name, org, delete_org, debug, o, skip, no_prompt):
                 "Scratch org deletion failed.  Ignoring the error below to complete the flow:"
             )
             click.echo(str(e))
+
+
+# to do:
+# - test a test failure
+# - MetaCI
+#   - make sure traceback gets logged (by BuildFlow.run, I guess)
+#   - but not for failures
+#   - make sure contextual info is there for sentry
+#     - build
+#     - task path
+#     - repo
+#     - commit
+#     - branch
+#     - plan
+#     - org

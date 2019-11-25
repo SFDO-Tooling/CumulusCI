@@ -222,7 +222,7 @@ class TaskRunner(object):
         try:
             task()
         except Exception as e:
-            self.flow.logger.exception(f"Exception in task {self.step.task_name}")
+            self.flow.logger.error(f"Exception in task {self.step.path}")
             exc = e
         return StepResult(
             self.step.step_num,
