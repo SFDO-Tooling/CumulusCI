@@ -108,7 +108,7 @@ def generate_cli(
     elif mapping_file:
         raise click.ClickException("Mapping file can only be used with --dburl")
     elif output_format and output_format.lower() == "json":
-        output_stream = JSONOutputStream(output_file[0] or sys.stdout)
+        output_stream = JSONOutputStream(output_file[0] if output_file else sys.stdout)
     elif output_format:
         if not output_file:
             raise click.ClickException("--output-format specified but no --output-file")
