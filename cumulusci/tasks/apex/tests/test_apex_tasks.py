@@ -20,6 +20,7 @@ from cumulusci.core.exceptions import (
     ApexCompilationException,
     ApexException,
     ApexTestException,
+    CumulusCIException,
     SalesforceException,
     TaskOptionsError,
 )
@@ -245,6 +246,14 @@ class TestRunApexTests(MockLoggerMixin, unittest.TestCase):
             },
         )
 
+    def _mock_get_symboltable_failure(self):
+        url = (
+            self.base_tooling_url
+            + "query/?q=SELECT+SymbolTable+FROM+ApexClass+WHERE+Name%3D%27TestClass_TEST%27"
+        )
+
+        responses.add(responses.GET, url, json={"records": []})
+
     def _mock_tests_complete(self, job_id="JOB_ID1234567"):
         url = (
             self.base_tooling_url
@@ -324,6 +333,18 @@ class TestRunApexTests(MockLoggerMixin, unittest.TestCase):
         self._mock_get_symboltable()
         task = RunApexTests(self.project_config, self.task_config, self.org_config)
         with self.assertRaises(ApexTestException):
+            task()
+
+    @responses.activate
+    def test_run_task__failed_class_level_no_symboltable(self):
+        self._mock_apex_class_query()
+        self._mock_run_tests()
+        self._mock_get_failed_test_classes_failure()
+        self._mock_tests_complete()
+        self._mock_get_test_results()
+        self._mock_get_symboltable_failure()
+        task = RunApexTests(self.project_config, self.task_config, self.org_config)
+        with self.assertRaises(CumulusCIException):
             task()
 
     @responses.activate
