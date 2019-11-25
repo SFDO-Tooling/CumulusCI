@@ -9,10 +9,7 @@ import yaml
 from click.exceptions import ClickException
 from sqlalchemy import create_engine
 
-from cumulusci.tasks.bulkdata.data_generation.data_generator_cli import (
-    generate_cli,
-    eval_arg,
-)
+from cumulusci.tasks.bulkdata.data_generation.snowfakery import generate_cli, eval_arg
 from cumulusci.tasks.bulkdata.data_generation.data_gen_exceptions import DataGenError
 
 sample_yaml = Path(__file__).parent / "include_parent.yml"
@@ -164,7 +161,7 @@ class TestGenerateFromCLI(unittest.TestCase):
 
     def test_json(self):
         with mock.patch(
-            "cumulusci.tasks.bulkdata.data_generation.data_generator_cli.sys.stdout",
+            "cumulusci.tasks.bulkdata.data_generation.snowfakery.sys.stdout",
             new=StringIO(),
         ) as fake_out:
             generate_cli.main(

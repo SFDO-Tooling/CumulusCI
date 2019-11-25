@@ -11,7 +11,7 @@ from cumulusci.tasks.bulkdata.data_generation.output_streams import (
 )
 
 from cumulusci.tasks.bulkdata.data_generation.data_generator import generate
-from cumulusci.tasks.bulkdata.data_generation.data_generator_cli import generate_cli
+from cumulusci.tasks.bulkdata.data_generation.snowfakery import generate_cli
 
 
 sample_yaml = Path(__file__).parent / "include_parent.yml"

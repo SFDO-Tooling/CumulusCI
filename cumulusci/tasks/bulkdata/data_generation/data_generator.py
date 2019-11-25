@@ -97,6 +97,6 @@ def generate(open_yaml_file, count=1, cli_options=None, output_stream=None):
 
 
 if __name__ == "__main__":  # pragma: nocover
-    from cumulusci.tasks.bulkdata.data_generation.data_generator_cli import generate_cli
+    from cumulusci.tasks.bulkdata.data_generation.snowfakery import generate_cli
 
     generate_cli()
