@@ -79,9 +79,8 @@ class TestJSONOutputStream(unittest.TestCase):
             a: b
             c: 3
         """
-        from sys import stdout
 
-        output_stream = JSONOutputStream(stdout)
+        output_stream = JSONOutputStream(StringIO())
         generate(StringIO(yaml), 1, {}, output_stream)
         output_stream.close()
 
@@ -104,7 +103,9 @@ class TestJSONOutputStream(unittest.TestCase):
         ]
 
     def test_from_cli(self):
-        generate_cli.callback(yaml_file=sample_yaml, output_format="json")
+        generate_cli.callback(
+            yaml_file=sample_yaml, output_format="json", output_file=[StringIO()]
+        )
 
 
 class TestCSVOutputStream(unittest.TestCase):
