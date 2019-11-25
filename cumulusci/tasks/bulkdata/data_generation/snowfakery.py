@@ -148,5 +148,5 @@ def generate_cli(
             raise click.ClickException(str(e)) from e
 
 
-if __name__ == "__main__":  # pragma: nocover
+if __name__ == "__main__":  # pragma: no cover
     generate_cli()
