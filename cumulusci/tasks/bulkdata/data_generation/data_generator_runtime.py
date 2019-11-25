@@ -106,6 +106,7 @@ class Context:
         self.parent = parent
         self.current_table_name = current_table_name
         options = options or {}
+        self.field_values = {}
 
         if parent:
             self.counter_generator = CounterGenerator(parent.counter_generator)
@@ -135,6 +136,9 @@ class Context:
             table_name_from, table_name_to, fieldname
         )
 
+    def register_field(self, field_name, field_value):
+        self.field_values[field_name] = field_value
+
     def field_vars(self):
         return {
             "id": self.current_id,
@@ -145,6 +149,7 @@ class Context:
             "number": self.counter_generator.get_value(self.current_table_name),
             **self.options,
             **self.globals.object_names,
+            **self.field_values,
         }
 
     def field_funcs(self):

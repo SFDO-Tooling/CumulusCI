@@ -100,6 +100,7 @@ class ObjectTemplate:
             try:
                 row[field.name] = field.generate_value(context)
                 self._check_type(field, row[field.name], context)
+                context.register_field(field.name, row[field.name])
             except Exception as e:
                 raise fix_exception(f"Problem rendering value", self, e) from e
 
