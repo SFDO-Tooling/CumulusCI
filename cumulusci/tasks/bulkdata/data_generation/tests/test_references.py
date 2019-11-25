@@ -47,7 +47,7 @@ reference_from_friend = """             #1
                 reference: A            #7
     """
 
-write_row_path = "cumulusci.tasks.bulkdata.data_generation.output_streams.DebugOutputStream.write_row"
+write_row_path = "cumulusci.tasks.bulkdata.data_generation.output_streams.DebugOutputStream.write_single_row"
 
 
 class TestReferences(unittest.TestCase):
@@ -61,8 +61,8 @@ class TestReferences(unittest.TestCase):
         reference_b = a_values["B"]
         id_b = b_values["id"]
         reference_a = b_values["A_ref"]
-        assert id_a == reference_a
-        assert id_b == reference_b
+        assert f"A({id_a})" == reference_a
+        assert f"B({id_b})" == reference_b
 
     @mock.patch(write_row_path)
     def test_simple_parent_list_child(self, write_row):
@@ -74,8 +74,8 @@ class TestReferences(unittest.TestCase):
         reference_b = a_values["B"]
         id_b = b_values["id"]
         reference_a = b_values["A_ref"]
-        assert id_a == reference_a
-        assert id_b == reference_b
+        assert f"A({id_a})" == reference_a
+        assert f"B({id_b})" == reference_b
 
     @mock.patch(write_row_path)
     def test_ancestor_reference(self, write_row):
@@ -85,7 +85,7 @@ class TestReferences(unittest.TestCase):
         c_values = find_row("C", {}, write_row.mock_calls)
         id_a = a_values["id"]
         reference_a = c_values["A_ref"]
-        assert id_a == reference_a
+        assert f"A({id_a})" == reference_a
 
     @mock.patch(write_row_path)
     def test_reference_from_friend(self, write_row):
@@ -95,4 +95,4 @@ class TestReferences(unittest.TestCase):
         b_values = find_row("B", {}, write_row.mock_calls)
         id_a = a_values["id"]
         reference_a = b_values["A_ref"]
-        assert id_a == reference_a
+        assert f"A({id_a})" == reference_a

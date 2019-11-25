@@ -15,6 +15,8 @@ from cumulusci.tasks.bulkdata.base_generate_data_task import (
     create_table as create_table_from_mapping,
 )
 
+from cumulusci.tasks.bulkdata.data_generation.data_generator_runtime import ObjectRow
+
 
 class OutputStream(ABC):
     count = 0
@@ -23,8 +25,16 @@ class OutputStream(ABC):
     def create_or_validate_tables(self, tables):
         pass
 
-    def write_row(self, tablename, row):
-        self.write_single_row(tablename, row)
+    def flatten(self, field):
+        return field.id if isinstance(field, ObjectRow) else field
+
+    def write_row(self, tablename, row_with_references):
+
+        row_with_objects_represented_by_ids = {
+            fieldname: self.flatten(fieldvalue)
+            for fieldname, fieldvalue in row_with_references.items()
+        }
+        self.write_single_row(tablename, row_with_objects_represented_by_ids)
         if self.count > self.flush_limit:
             self.flush()
             self.count = 0
@@ -42,6 +52,11 @@ class DebugOutputStream(OutputStream):
     def write_single_row(self, tablename, row):
         values = ", ".join([f"{key}={value}" for key, value in row.items()])
         print(f"{tablename}({values})")
+
+    def flatten(self, field):
+        return (
+            f"{field._tablename}({field.id})" if isinstance(field, ObjectRow) else field
+        )
 
 
 CSVContext = namedtuple("CSVContext", ["dictwriter", "file"])

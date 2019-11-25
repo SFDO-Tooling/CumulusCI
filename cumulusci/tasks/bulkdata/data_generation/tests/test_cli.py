@@ -22,7 +22,7 @@ sample_mapping_yaml = (
 )
 sample_accounts_yaml = Path(__file__).parent / "gen_sf_standard_objects.yml"
 
-write_row_path = "cumulusci.tasks.bulkdata.data_generation.output_streams.DebugOutputStream.write_row"
+write_row_path = "cumulusci.tasks.bulkdata.data_generation.output_streams.DebugOutputStream.write_single_row"
 
 
 class TestGenerateFromCLI(unittest.TestCase):

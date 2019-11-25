@@ -82,8 +82,11 @@ class ObjectTemplate:
         self._generate_fields(context, row)
 
         try:
-            writeable_row = self.replace_objects_with_ids(row, context)
-            storage.write_row(self.tablename, writeable_row)
+            # both of these lines loop over the fields so they could maybe
+            # be combined but it kind of messes with the modularity of the
+            # code.
+            self.register_row_intertable_references(row, context)
+            storage.write_row(self.tablename, row)
 
         except Exception as e:
             raise DataGenError(str(e), self.filename, self.line_num) from e
@@ -110,19 +113,13 @@ class ObjectTemplate:
                 self.line_num,
             )
 
-    def replace_objects_with_ids(self, row, context):
+    def register_row_intertable_references(self, row, context):
         """Before serializing we need to convert objects to flat ID integers."""
-        writeable_row = {}
         for fieldname, fieldvalue in row.items():
             if isinstance(fieldvalue, ObjectRow):
-                writeable_row[fieldname] = fieldvalue.id
                 context.register_intertable_reference(
                     self.tablename, fieldvalue._tablename, fieldname
                 )
-            else:
-                writeable_row[fieldname] = fieldvalue
-
-        return writeable_row
 
 
 class FieldDefinition(ABC):
