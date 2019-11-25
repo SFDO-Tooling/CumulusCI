@@ -153,7 +153,7 @@ class TestGenerateFromCLI(unittest.TestCase):
             generate_cli.main(
                 [
                     str(sample_yaml),
-                    "--mapping-file",
+                    "--cci-mapping-file",
                     sample_mapping_yaml,
                     "--output-format",
                     "JSON",
@@ -164,7 +164,7 @@ class TestGenerateFromCLI(unittest.TestCase):
 
     def test_json(self):
         with mock.patch(
-            "cumulusci.tasks.bulkdata.data_generation.data_generator_cli.stdout",
+            "cumulusci.tasks.bulkdata.data_generation.data_generator_cli.sys.stdout",
             new=StringIO(),
         ) as fake_out:
             generate_cli.main(
@@ -184,7 +184,7 @@ class TestGenerateFromCLI(unittest.TestCase):
             url = f"sqlite:///{t}/foo.db"
             generate_cli.main(
                 [
-                    "--mapping-file",
+                    "--cci-mapping-file",
                     str(sample_mapping_yaml),
                     str(sample_accounts_yaml),
                     "--dburl",

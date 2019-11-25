@@ -204,6 +204,10 @@ class ObjectRow:
     def __getattr__(self, name):
         return self._values[name]
 
+    @property
+    def _name(self):
+        return self._values.get("name")
+
 
 def output_batches(output_stream, factories, number, options):
     """Generate 'number' batches to 'output_stream' """

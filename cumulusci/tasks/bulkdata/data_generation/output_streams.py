@@ -25,13 +25,16 @@ class OutputStream(ABC):
     def create_or_validate_tables(self, tables):
         pass
 
-    def flatten(self, field):
-        return field.id if isinstance(field, ObjectRow) else field
+    def flatten(self, sourcetable, fieldname, row, obj):
+        return obj.id
 
     def write_row(self, tablename, row_with_references):
-
         row_with_objects_represented_by_ids = {
-            fieldname: self.flatten(fieldvalue)
+            fieldname: (
+                self.flatten(tablename, fieldname, row_with_references, fieldvalue)
+                if isinstance(fieldvalue, ObjectRow)
+                else fieldvalue
+            )
             for fieldname, fieldvalue in row_with_references.items()
         }
         self.write_single_row(tablename, row_with_objects_represented_by_ids)
@@ -53,10 +56,8 @@ class DebugOutputStream(OutputStream):
         values = ", ".join([f"{key}={value}" for key, value in row.items()])
         print(f"{tablename}({values})")
 
-    def flatten(self, field):
-        return (
-            f"{field._tablename}({field.id})" if isinstance(field, ObjectRow) else field
-        )
+    def flatten(self, sourcetable, fieldname, row, obj):
+        return f"{obj._tablename}({obj.id})"
 
 
 CSVContext = namedtuple("CSVContext", ["dictwriter", "file"])
@@ -105,6 +106,7 @@ class CSVOutputStream(OutputStream):
 class JSONOutputStream(OutputStream):
     def __init__(self, file):
         super().__init__()
+        assert file
         self.file = file
         self.first_row = True
 
@@ -187,3 +189,75 @@ def create_tables_from_inferred_fields(tables, engine, metadata):
             raise DataGenError(
                 f"Table already exists: {table_name} in {engine.url}", None, None
             )
+
+
+class GraphvizOutputStream(OutputStream):
+    def __init__(self, file):
+        super().__init__()
+        import pygraphviz
+
+        self.G = pygraphviz.AGraph(strict=False, directed=True)
+        self.G.edge_attr["fontsize"] = "10"
+        self.G.node_attr["style"] = "filled"
+        self.G.node_attr["fillcolor"] = "#1798c1"
+        self.G.node_attr["fontcolor"] = "#FFFFFF"
+        self.G.node_attr["height"] = "0.75"
+        self.G.node_attr["width"] = "0.75"
+        self.G.node_attr["widshapeth"] = "circle"
+
+        self.file = file
+
+    def flatten(self, sourcetable, fieldname, source_row_dict, target_object_row):
+        source_node_name = self.generate_node_name(
+            sourcetable, source_row_dict.get("name"), source_row_dict.get("id")
+        )
+        target_node_name = self.generate_node_name(
+            target_object_row._tablename,
+            getattr(target_object_row, "name"),
+            target_object_row.id,
+        )
+        self.G.add_edge(
+            source_node_name, target_node_name, fieldname, label=f"    {fieldname}     "
+        )
+        return target_object_row
+
+    def generate_node_name(self, tablename, rowname, id):
+        rowname = rowname or ""
+        separator = ", " if rowname else ""
+        return f"{tablename}({id}{separator}{rowname})"
+
+    def write_single_row(self, tablename, row):
+        node_name = self.generate_node_name(tablename, row.get("name"), row["id"])
+        self.G.add_node(node_name)
+
+    def close(self):
+        self.file.write(self.G.string())
+
+
+class ImageOutputStream(GraphvizOutputStream):
+    def __init__(self, file, format="png"):
+        self.format = format
+        super().__init__(file)
+
+    def close(self):
+        self.G.draw(path=self.file, prog="dot", format=self.format)
+
+
+class MultiplexOutputStream(OutputStream):
+    def __init__(self, outputstreams):
+        self.outputstreams = outputstreams
+
+    def create_or_validate_tables(self, tables):
+        for stream in self.outputstreams:
+            stream.create_or_validate_tables(tables)
+
+    def write_row(self, tablename, row_with_references):
+        for stream in self.outputstreams:
+            stream.write_row(tablename, row_with_references)
+
+    def close(self):
+        for stream in self.outputstreams:
+            stream.close()
+
+    def write_single_row(self, tablename, row):
+        return super().write_single_row(tablename, row)
