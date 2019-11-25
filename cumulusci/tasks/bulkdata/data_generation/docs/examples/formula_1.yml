@@ -1,0 +1,7 @@
+- object: Sale
+  count: 2
+  fields:
+    per_item_price: <<random_number(20, 50)>>
+    number_of_items: 3
+    total: <<per_item_price * number_of_items>>
+    message: Thank you for buying $<<total>> items!

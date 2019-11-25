@@ -1,0 +1,15 @@
+- object: Person
+  count: 3
+  fields:
+    name:
+      fake: name
+    age:
+      random_number:
+        min: 12
+        max: 95
+  friends: # I get by with a little help from ...
+    - object: Animal
+      count: 2
+      fields:
+        name:
+          fake: first_name

@@ -1,0 +1,10 @@
+- object: Person
+  count: 3
+  fields:
+    customer_id:
+      counter: Person
+- object: Person
+  count: 3
+  fields:
+    customer_id:
+      counter: Person

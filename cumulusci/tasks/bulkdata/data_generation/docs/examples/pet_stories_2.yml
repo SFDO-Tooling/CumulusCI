@@ -1,0 +1,37 @@
+- object: PetFood
+  nickname: petschoice
+  fields:
+    name: Pets Choice
+    cost: $10
+- object: PetFood
+  nickname: vetschoice
+  fields:
+    name: Vets Choice
+    cost: $12
+
+- object: Person
+  count: 3
+  fields:
+    name:
+      fake: name
+    dog:
+      - object: Animal
+        nickname: dog
+        fields:
+          owner: Person
+          name:
+            fake: first_name
+          species: canine
+          food:
+            reference: petschoice
+
+    cat:
+      - object: Animal
+        fields:
+          owner: Person
+          name:
+            fake: first_name
+          species: feline
+          nemesis: dog
+          food:
+            reference: vetschoice
