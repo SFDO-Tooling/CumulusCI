@@ -10,6 +10,7 @@ tasks:
             developer-names: 
               - CumulusCI
               - Cumulus
+              - Test
     batch_apex_wait:
         description: Waits on a batch apex job to finish.
         class_path: cumulusci.tasks.apex.batch.BatchApexWait
