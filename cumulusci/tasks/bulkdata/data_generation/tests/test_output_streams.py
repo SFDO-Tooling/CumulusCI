@@ -3,6 +3,7 @@ from io import StringIO
 import json
 from pathlib import Path
 from tempfile import NamedTemporaryFile, TemporaryDirectory
+from contextlib import redirect_stdout
 
 from cumulusci.tasks.bulkdata.data_generation.output_streams import (
     SqlOutputStream,
@@ -40,7 +41,7 @@ class TestSqlOutputStream(unittest.TestCase):
             real_flush = output_stream.flush
             output_stream.flush = mock_flush
             generate(StringIO(yaml), 1, {}, output_stream)
-            assert flush_count == 3
+            assert flush_count == 5
             output_stream.close()
 
     def test_inferred_schema(self):
@@ -103,9 +104,12 @@ class TestJSONOutputStream(unittest.TestCase):
         ]
 
     def test_from_cli(self):
-        generate_cli.callback(
-            yaml_file=sample_yaml, output_format="json", output_file=[StringIO()]
-        )
+        x = StringIO()
+        with redirect_stdout(x):
+            generate_cli.callback(
+                yaml_file=sample_yaml, output_format="json", output_files=["-"]
+            )
+        # TODO: more validation!
 
 
 class TestCSVOutputStream(unittest.TestCase):

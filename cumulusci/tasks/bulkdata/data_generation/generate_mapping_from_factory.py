@@ -15,7 +15,7 @@ def mapping_from_factory_templates(summary):
 def build_dependencies(intertable_dependencies):
     """Figure out which tables depend on which other ones (through foreign keys)
 
-    intertable_dependencies is a list of Dependency objects.
+    intertable_dependencies is a dict with values of Dependency objects.
 
     Returns two things:
         1. a dictionary allowing easy lookup of dependencies by parent table

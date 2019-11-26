@@ -46,14 +46,15 @@ class ObjectTemplate:
         self.friends = friends
 
     def render(self, context):
-        return self.generate_rows(context.output_stream, context)[0]
+        return self.generate_rows(context.output_stream, context)
 
     def generate_rows(self, storage, parent_context):
         """Generate several rows"""
         context = Context(parent_context, self.tablename)
         count = self._evaluate_count(context)
         for i in range(count):
-            self._generate_row(storage, context)
+            rc = self._generate_row(storage, context)
+        return rc  # return last row
 
     def _evaluate_count(self, context):
         """Evaluate the count expression to an integer"""

@@ -19,7 +19,7 @@ from cumulusci.tasks.bulkdata.data_generation.data_generator_runtime import Obje
 
 
 class OutputStream(ABC):
-    count = 0
+    count = 1
     flush_limit = 1000
     commit_limit = 10000
 

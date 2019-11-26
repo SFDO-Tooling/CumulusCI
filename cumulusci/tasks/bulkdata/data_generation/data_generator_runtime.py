@@ -1,4 +1,4 @@
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 from functools import partial
 from datetime import date
 
@@ -37,14 +37,9 @@ class CounterGenerator:
         self.counters[name] += 1
 
 
-class Dependency:
-    def __init__(self, table_name_from, table_name_to, field_name):
-        self.table_name_from = table_name_from
-        self.table_name_to = table_name_to
-        self.field_name = field_name
-
-    def __repr__(self):
-        return f"<{self.__class__.__name__} ({self.table_name_from}, {self.field_name}) -> {self.table_name_to}>"
+Dependency = namedtuple(
+    "Dependency", ["table_name_from", "table_name_to", "field_name"]
+)
 
 
 class Globals:
@@ -54,7 +49,7 @@ class Globals:
         self.named_objects = {}
         self.id_manager = IdManager()
         self.last_seen_obj_of_type = {}
-        self.intertable_dependencies = defaultdict(dict)
+        self.intertable_dependencies = set()
 
     def register_object(self, obj, nickname=None):
         """Register an object for lookup by object type and (optionally) Nickname"""
@@ -68,9 +63,9 @@ class Globals:
         return {**self.named_objects, **self.last_seen_obj_of_type}
 
     def register_intertable_reference(self, table_name_from, table_name_to, fieldname):
-        self.intertable_dependencies[
-            (table_name_from, table_name_to, fieldname)
-        ] = Dependency(table_name_from, table_name_to, fieldname)
+        self.intertable_dependencies.add(
+            Dependency(table_name_from, table_name_to, fieldname)
+        )
 
 
 class JinjaTemplateEvaluatorFactory:
