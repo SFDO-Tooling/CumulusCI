@@ -29,7 +29,6 @@ class TestGenerateFromCLI(unittest.TestCase):
             yaml_file=sample_yaml,
             count=1,
             option={},
-            dburl=None,
             debug_internals=None,
             generate_cci_mapping_file=None,
         )
@@ -50,7 +49,6 @@ class TestGenerateFromCLI(unittest.TestCase):
             yaml_file=sample_yaml,
             count=2,
             option={},
-            dburl=None,
             debug_internals=None,
             generate_cci_mapping_file=None,
         )
@@ -72,7 +70,6 @@ class TestGenerateFromCLI(unittest.TestCase):
                 yaml_file=sample_yaml,
                 count=1,
                 option={"xyzzy": "abcd"},
-                dburl=None,
                 debug_internals=None,
                 generate_cci_mapping_file=None,
             )
@@ -96,7 +93,6 @@ class TestGenerateFromCLI(unittest.TestCase):
                 yaml_file=sample_yaml,
                 count=1,
                 option={},
-                dburl=None,
                 debug_internals=True,
                 generate_cci_mapping_file=t.name,
                 mapping_file=None,
@@ -111,7 +107,6 @@ class TestGenerateFromCLI(unittest.TestCase):
                     yaml_file=bad_sample_yaml,
                     count=1,
                     option={},
-                    dburl=None,
                     debug_internals=True,
                     generate_cci_mapping_file=t.name,
                 )
@@ -125,7 +120,6 @@ class TestGenerateFromCLI(unittest.TestCase):
                     yaml_file=bad_sample_yaml,
                     count=1,
                     option={},
-                    dburl=None,
                     debug_internals=False,
                     generate_cci_mapping_file=t.name,
                 )
@@ -200,5 +194,25 @@ class TestGenerateFromCLI(unittest.TestCase):
         with self.assertRaises(ClickException):
             generate_cli.main(
                 ["--mapping_file", str(sample_mapping_yaml), str(sample_yaml)],
+                standalone_mode=False,
+            )
+
+    def test_json_output_file(self):
+        with TemporaryDirectory() as t:
+            generate_cli.main(
+                [str(sample_yaml), "--output-file", Path(t) / "foo.json"],
+                standalone_mode=False,
+            )
+
+    def test_json_output_file_2(self):
+        with TemporaryDirectory() as t:
+            generate_cli.main(
+                [
+                    str(sample_yaml),
+                    "--output-format",
+                    "json",
+                    "--output-file",
+                    Path(t) / "foo.json",
+                ],
                 standalone_mode=False,
             )
