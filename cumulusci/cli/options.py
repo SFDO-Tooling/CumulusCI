@@ -1,40 +1,28 @@
 """Process environment variables and global configurations for some options.
 
 Returns option values in the following order of precedence:
-1. Environment variables
-2. Global configuration options
-3. Click Option
+1. Global configuration options
+2. Click Option
+3. Environment variables
+4. Click Option default value
 """
 
-import os
 
 from cumulusci.core.config import BaseGlobalConfig
 
 # CLI Environment Variables
-NO_PROMPT_ENV = "CUMULUSCI_NO_PROMPT"
-PLAIN_OUTPUT_ENV = "CUMULUSCI_PLAIN_OUTPUT"
+CCI_ENV_PREFIX = "CCI__"
+CLI_ENV_PREFIX = CCI_ENV_PREFIX + "CLI__"
+NO_PROMPT_ENV = CLI_ENV_PREFIX + "ALWAYS_RECREATE"
+PLAIN_OUTPUT_ENV = CLI_ENV_PREFIX + "PLAIN_OUTPUT"
 
 
-def no_prompt_callback(ctx, param, value):
-    """Process the "No Prompt". output global setting."""
-    print(param)
+def global_option_lookup(ctx, param, value):
+    """Process Click Option and return global config setting, if it exists."""
+    global_attr = param.envvar.replace(CCI_ENV_PREFIX, "").lower()
     global_config = BaseGlobalConfig()
-    global_value = global_config.cli__no_prompt
-    return _select_value(NO_PROMPT_ENV, global_value, value)
-
-
-def plain_output_callback(ctx, param, value):
-    """Process the Plain Table output global setting."""
-    global_config = BaseGlobalConfig()
-    global_value = global_config.cli__plain_output
-    return _select_value(PLAIN_OUTPUT_ENV, global_value, value)
-
-
-def _select_value(env_var, global_value, value):
-    """Returns the option value in the order of precedence."""
-    if env_var in os.environ:
-        return os.environ[env_var]
-    elif global_value is not None:
+    global_value = getattr(global_config, global_attr)
+    if global_value is not None:
         return global_value
     else:
         return value

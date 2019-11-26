@@ -37,7 +37,7 @@ from cumulusci.core.exceptions import FlowNotFoundError
 from cumulusci.core.utils import import_global
 from cumulusci.cli.config import CliRuntime
 from cumulusci.cli.config import get_installed_version
-from cumulusci.cli.options import no_prompt_callback, plain_output_callback
+from cumulusci.cli.options import global_option_lookup, NO_PROMPT_ENV, PLAIN_OUTPUT_ENV
 from cumulusci.cli.ui import CliTable, CROSSMARK
 from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
 from cumulusci.utils import doc_task
@@ -632,7 +632,8 @@ def project_dependencies(config):
     "--plain",
     is_flag=True,
     help="Print the table using plain ascii.",
-    callback=plain_output_callback,
+    callback=global_option_lookup,
+    envvar=PLAIN_OUTPUT_ENV,
 )
 @click.option("--json", "print_json", is_flag=True, help="Print a json string")
 @pass_config(allow_global_keychain=True)
@@ -738,7 +739,8 @@ def service_connect():
     "--plain",
     is_flag=True,
     help="Print the table using plain ascii.",
-    callback=plain_output_callback,
+    callback=global_option_lookup,
+    envvar=PLAIN_OUTPUT_ENV,
 )
 @pass_config(allow_global_keychain=True)
 def service_info(config, service_name, plain):
@@ -773,7 +775,8 @@ def service_info(config, service_name, plain):
     "--no-prompt",
     is_flag=True,
     help="Disables all prompts.  Set for non-interactive mode use such as calling from scripts or CI systems",
-    callback=no_prompt_callback,
+    callback=global_option_lookup,
+    envvar=NO_PROMPT_ENV,
 )
 @pass_config
 def org_browser(config, org_name, no_prompt):
@@ -891,7 +894,8 @@ def calculate_org_days(info):
     "--no-prompt",
     is_flag=True,
     help="Disables all prompts.  Set for non-interactive mode use such as calling from scripts or CI systems",
-    callback=no_prompt_callback,
+    callback=global_option_lookup,
+    envvar=NO_PROMPT_ENV,
 )
 @pass_config
 def org_info(config, org_name, print_json, no_prompt):
@@ -955,7 +959,8 @@ def org_info(config, org_name, print_json, no_prompt):
     "--plain",
     is_flag=True,
     help="Print the table using plain ascii.",
-    callback=plain_output_callback,
+    callback=global_option_lookup,
+    envvar=PLAIN_OUTPUT_ENV,
 )
 @pass_config
 def org_list(config, plain):
@@ -1132,7 +1137,8 @@ def org_shell(config, org_name):
     "--plain",
     is_flag=True,
     help="Print the table using plain ascii.",
-    callback=plain_output_callback,
+    callback=global_option_lookup,
+    envvar=PLAIN_OUTPUT_ENV,
 )
 @click.option("--json", "print_json", is_flag=True, help="Print a json string")
 @pass_config(load_keychain=False)
@@ -1222,7 +1228,8 @@ def task_info(config, task_name):
     "--no-prompt",
     is_flag=True,
     help="Disables all prompts.  Set for non-interactive mode use such as calling from scripts or CI systems",
-    callback=no_prompt_callback,
+    callback=global_option_lookup,
+    envvar=NO_PROMPT_ENV,
 )
 @pass_config
 def task_run(config, task_name, org, o, debug, debug_before, debug_after, no_prompt):
@@ -1293,7 +1300,8 @@ def task_run(config, task_name, org, o, debug, debug_before, debug_after, no_pro
     "--plain",
     is_flag=True,
     help="Print the table using plain ascii.",
-    callback=plain_output_callback,
+    callback=global_option_lookup,
+    envvar=PLAIN_OUTPUT_ENV,
 )
 @click.option("--json", "print_json", is_flag=True, help="Print a json string")
 @pass_config(load_keychain=False)
@@ -1358,7 +1366,8 @@ def flow_info(config, flow_name):
     "--no-prompt",
     is_flag=True,
     help="Disables all prompts.  Set for non-interactive mode use such as calling from scripts or CI systems",
-    callback=no_prompt_callback,
+    callback=global_option_lookup,
+    envvar=NO_PROMPT_ENV,
 )
 @pass_config
 def flow_run(config, flow_name, org, delete_org, debug, o, skip, no_prompt):
