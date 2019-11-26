@@ -6,7 +6,11 @@ import json
 import re
 
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
-from cumulusci.core.exceptions import TaskOptionsError, ApexTestException
+from cumulusci.core.exceptions import (
+    TaskOptionsError,
+    ApexTestException,
+    CumulusCIException,
+)
 from cumulusci.core.utils import process_bool_arg, process_list_arg, decode_to_unicode
 
 APEX_LIMITS = {
@@ -263,13 +267,17 @@ class RunApexTests(BaseSalesforceApiTask):
         )
         test_methods = []
 
-        if result["records"]:
+        try:
             methods = result["records"][0]["SymbolTable"]["methods"]
-            for m in methods:
-                for a in m["annotations"]:
-                    if a["name"].lower() in ["istest", "testmethod"]:
-                        test_methods.append(m["name"])
-                        break
+        except (TypeError, IndexError, KeyError):
+            raise CumulusCIException(
+                f"Unable to acquire symbol table for failed Apex class {class_name}"
+            )
+        for m in methods:
+            for a in m.get("annotations", []):
+                if a["name"].lower() in ["istest", "testmethod"]:
+                    test_methods.append(m["name"])
+                    break
 
         return test_methods
 
