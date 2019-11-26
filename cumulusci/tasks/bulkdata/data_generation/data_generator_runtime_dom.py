@@ -52,8 +52,8 @@ class ObjectTemplate:
         """Generate several rows"""
         context = Context(parent_context, self.tablename)
         count = self._evaluate_count(context)
-
-        return [self._generate_row(storage, context) for i in range(count)]
+        for i in range(count):
+            self._generate_row(storage, context)
 
     def _evaluate_count(self, context):
         """Evaluate the count expression to an integer"""

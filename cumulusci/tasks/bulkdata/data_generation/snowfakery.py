@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import sys
 from pathlib import Path
 
@@ -43,7 +44,7 @@ def eval_arg(arg):
     ),
 )
 @click.option(
-    "--output-file", "-o", "output_file", type=click.File("w+b"), multiple=True
+    "--output-file", "-o", "output_file", type=click.File("w+"), multiple=True
 )
 @click.option(
     "--option",

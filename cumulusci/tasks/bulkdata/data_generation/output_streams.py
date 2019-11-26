@@ -21,12 +21,19 @@ from cumulusci.tasks.bulkdata.data_generation.data_generator_runtime import Obje
 class OutputStream(ABC):
     count = 0
     flush_limit = 1000
+    commit_limit = 10000
 
     def create_or_validate_tables(self, tables):
         pass
 
     def flatten(self, sourcetable, fieldname, row, obj):
         return obj.id
+
+    def flush(self):
+        pass
+
+    def commit(self):
+        pass
 
     def write_row(self, tablename, row_with_references):
         row_with_objects_represented_by_ids = {
@@ -38,9 +45,12 @@ class OutputStream(ABC):
             for fieldname, fieldvalue in row_with_references.items()
         }
         self.write_single_row(tablename, row_with_objects_represented_by_ids)
-        if self.count > self.flush_limit:
+        if self.count % self.flush_limit == 0:
             self.flush()
-            self.count = 0
+
+        if self.count % self.commit_limit == 0:
+            self.commit()
+
         self.count += 1
 
     @abstractmethod
@@ -155,6 +165,9 @@ class SqlOutputStream(OutputStream):
 
     def flush(self):
         self.session.flush()
+
+    def commit(self):
+        self.session.commit()
 
     def close(self):
         self.session.commit()

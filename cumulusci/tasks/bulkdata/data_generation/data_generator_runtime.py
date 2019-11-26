@@ -54,7 +54,7 @@ class Globals:
         self.named_objects = {}
         self.id_manager = IdManager()
         self.last_seen_obj_of_type = {}
-        self.intertable_dependencies = []
+        self.intertable_dependencies = defaultdict(dict)
 
     def register_object(self, obj, nickname=None):
         """Register an object for lookup by object type and (optionally) Nickname"""
@@ -68,9 +68,9 @@ class Globals:
         return {**self.named_objects, **self.last_seen_obj_of_type}
 
     def register_intertable_reference(self, table_name_from, table_name_to, fieldname):
-        self.intertable_dependencies.append(
-            Dependency(table_name_from, table_name_to, fieldname)
-        )
+        self.intertable_dependencies[
+            (table_name_from, table_name_to, fieldname)
+        ] = Dependency(table_name_from, table_name_to, fieldname)
 
 
 class JinjaTemplateEvaluatorFactory:
@@ -212,6 +212,9 @@ class ObjectRow:
     @property
     def _name(self):
         return self._values.get("name")
+
+    def __getstate__(self):
+        return self.__dict__
 
 
 def output_batches(output_stream, factories, number, options):
