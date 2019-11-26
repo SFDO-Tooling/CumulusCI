@@ -91,11 +91,10 @@ class CliTable:
         if plain or os.environ.get("TERM") == "dumb":
             table = self.ascii_table()
         else:
-            table = self.table
+            table = str(self)
         click.echo(table)
 
-    @property
-    def table(self):
+    def __str__(self):
         try:
             return self.pretty_table()
         except UnicodeEncodeError:
