@@ -112,6 +112,16 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
                 "description": "An sfdc task",
                 "class_path": "cumulusci.core.tests.test_flowrunner._SfdcTask",
             },
+            "robot": {
+                "description": "pretends to run robot",
+                "class_path": "cumulusci.core.tests.test_flowrunner._TaskReturnsStuff",
+                "options": {
+                    "options": {
+                        "outputdir": "default outputdir",
+                        "logtitle": "default logtitle",
+                    }
+                },
+            },
         }
         self.project_config.config["flows"] = {
             "nested_flow": {
@@ -122,7 +132,26 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
                 "description": "A flow that runs inside another flow, and calls another flow",
                 "steps": {1: {"task": "pass_name"}, 2: {"flow": "nested_flow"}},
             },
+            "robot_flow": {
+                "steps": {
+                    1: {
+                        "task": "robot",
+                        "options": {"options": {"logtitle": "flow-specific logtitle"}},
+                    }
+                }
+            },
         }
+
+    def test_robot_options(self):
+        flow_config = self.project_config.get_flow("robot_flow")
+        flow = FlowCoordinator(self.project_config, flow_config, name="test_flow")
+        expected_options = {
+            "outputdir": "default outputdir",
+            "logtitle": "flow-specific logtitle",
+        }
+        self.assertEquals(
+            flow.steps[0].task_config["options"]["options"], expected_options
+        )
 
     def test_init(self):
         flow_config = FlowConfig({"steps": {"1": {"task": "pass_name"}}})
