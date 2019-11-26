@@ -17,7 +17,6 @@ import requests
 import responses
 
 import cumulusci
-from cumulusci.core.config import BaseGlobalConfig
 from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.config import OrgConfig
 from cumulusci.core.config import FlowConfig
@@ -29,17 +28,16 @@ from cumulusci.core.exceptions import FlowNotFoundError
 from cumulusci.core.exceptions import OrgNotFound
 from cumulusci.core.exceptions import ScratchOrgException
 from cumulusci.core.exceptions import ServiceNotConfigured
-from cumulusci.core.exceptions import TaskNotFoundError
 from cumulusci.cli import cci
-from cumulusci.cli.config import CliRuntime
+from cumulusci.cli.runtime import CliRuntime
 from cumulusci.utils import temporary_dir
 
 
 def run_click_command(cmd, *args, **kw):
-    """Run a click command with a mock context and injected CCI config object.
+    """Run a click command with a mock context and injected CCI runtime object.
     """
-    config = kw.pop("config", None)
-    with mock.patch("cumulusci.cli.cci.TEST_CONFIG", config):
+    runtime = kw.pop("runtime", mock.Mock())
+    with mock.patch("cumulusci.cli.cci.RUNTIME", runtime):
         with click.Context(command=mock.Mock()):
             return cmd.callback(*args, **kw)
 
@@ -135,11 +133,6 @@ class TestCCI(unittest.TestCase):
             "\n".join(out),
         )
 
-    def test_load_config__no_project(self):
-        with temporary_dir():
-            with self.assertRaises(SystemExit):
-                cci.load_config()
-
     def test_cli(self):
         run_click_command(cci.cli)
 
@@ -157,6 +150,7 @@ class TestCCI(unittest.TestCase):
         run_click_command(cci.shell)
         interact.assert_called_once()
         self.assertIn("config", interact.call_args[1]["local"])
+        self.assertIn("runtime", interact.call_args[1]["local"])
 
     @mock.patch("code.interact")
     def test_shell__no_project(self, interact):
@@ -289,36 +283,35 @@ class TestCCI(unittest.TestCase):
 
     @mock.patch("click.echo")
     def test_project_info(self, echo):
-        config = mock.Mock()
-        config.project_config.project = {"test": "test"}
+        runtime = mock.Mock()
+        runtime.project_config.project = {"test": "test"}
 
-        run_click_command(cci.project_info, config=config)
+        run_click_command(cci.project_info, runtime=runtime)
 
         echo.assert_called_once_with("\x1b[1mtest:\x1b[0m test")
 
     def test_project_dependencies(self):
         out = []
-        config = mock.Mock()
-        config.project_config.pretty_dependencies.return_value = ["test:"]
+        runtime = mock.Mock()
+        runtime.project_config.pretty_dependencies.return_value = ["test:"]
 
         with mock.patch("click.echo", out.append):
-            run_click_command(cci.project_dependencies, config=config)
+            run_click_command(cci.project_dependencies, runtime=runtime)
 
         self.assertEqual("test:", "".join(out))
 
     @mock.patch("cumulusci.cli.cci.CliTable")
     def test_service_list(self, cli_tbl):
-        config = mock.Mock()
-        config.is_global_keychain = False
-        config.project_config.services = {
+        runtime = mock.Mock()
+        runtime.project_config.services = {
             "bad": {"description": "Unconfigured Service"},
             "test": {"description": "Test Service"},
         }
-        config.keychain.list_services.return_value = ["test"]
-        config.global_config.cli__plain_output = None
+        runtime.keychain.list_services.return_value = ["test"]
+        runtime.global_config.cli__plain_output = None
 
         run_click_command(
-            cci.service_list, config=config, plain=False, print_json=False
+            cci.service_list, runtime=runtime, plain=False, print_json=False
         )
 
         cli_tbl.assert_called_with(
@@ -339,115 +332,109 @@ class TestCCI(unittest.TestCase):
             "bad": {"description": "Unconfigured Service"},
             "test": {"description": "Test Service"},
         }
-        config = mock.Mock()
-        config.is_global_keychain = False
-        config.project_config.services = services
-        config.keychain.list_services.return_value = ["test"]
-        config.global_config.cli__plain_output = None
+        runtime = mock.Mock()
+        runtime.project_config.services = services
+        runtime.keychain.list_services.return_value = ["test"]
+        runtime.global_config.cli__plain_output = None
 
-        run_click_command(cci.service_list, config=config, plain=False, print_json=True)
+        run_click_command(
+            cci.service_list, runtime=runtime, plain=False, print_json=True
+        )
 
         json_.assert_called_with(services)
 
     def test_service_connect_list(self):
         multi_cmd = cci.ConnectServiceCommand()
-        config = mock.Mock()
-        config.is_global_keychain = False
-        config.project_config.services = {"test": {}}
+        runtime = mock.Mock()
+        runtime.project_config.services = {"test": {}}
         ctx = mock.Mock()
 
-        with mock.patch("cumulusci.cli.cci.TEST_CONFIG", config):
+        with mock.patch("cumulusci.cli.cci.RUNTIME", runtime):
             result = multi_cmd.list_commands(ctx)
         self.assertEqual(["test"], result)
 
     def test_service_connect_list_global_keychain(self):
         multi_cmd = cci.ConnectServiceCommand()
-        config = mock.Mock()
-        config.is_global_keychain = True
-        config.global_config.services = {"test": {}}
+        runtime = mock.Mock()
+        runtime.project_config = None
+        runtime.global_config.services = {"test": {}}
         ctx = mock.Mock()
 
-        with mock.patch("cumulusci.cli.cci.TEST_CONFIG", config):
+        with mock.patch("cumulusci.cli.cci.RUNTIME", runtime):
             result = multi_cmd.list_commands(ctx)
         self.assertEqual(["test"], result)
 
     def test_service_connect(self):
         multi_cmd = cci.ConnectServiceCommand()
         ctx = mock.Mock()
-        config = mock.MagicMock()
-        config.is_global_keychain = False
-        config.project_config.services = {
+        runtime = mock.MagicMock()
+        runtime.project_config.services = {
             "test": {"attributes": {"attr": {"required": False}}}
         }
 
-        with mock.patch("cumulusci.cli.cci.TEST_CONFIG", config):
+        with mock.patch("cumulusci.cli.cci.RUNTIME", runtime):
             cmd = multi_cmd.get_command(ctx, "test")
             run_click_command(cmd, project=True)
 
-        config.keychain.set_service.assert_called_once()
+        runtime.keychain.set_service.assert_called_once()
 
         run_click_command(cmd, project=False)
 
     def test_service_connect_global_keychain(self):
         multi_cmd = cci.ConnectServiceCommand()
         ctx = mock.Mock()
-        config = mock.MagicMock()
-        config.is_global_keychain = True
-        config.global_config.services = {
+        runtime = mock.MagicMock()
+        runtime.project_config = None
+        runtime.global_config.services = {
             "test": {"attributes": {"attr": {"required": False}}}
         }
 
-        with mock.patch("cumulusci.cli.cci.TEST_CONFIG", config):
+        with mock.patch("cumulusci.cli.cci.RUNTIME", runtime):
             cmd = multi_cmd.get_command(ctx, "test")
             run_click_command(cmd, project=True)
 
-        config.keychain.set_service.assert_called_once()
+        runtime.keychain.set_service.assert_called_once()
 
         run_click_command(cmd, project=False)
 
     def test_service_connect_invalid_service(self):
         multi_cmd = cci.ConnectServiceCommand()
         ctx = mock.Mock()
-        config = mock.MagicMock()
-        config.is_global_keychain = False
-        config.project_config.services = {}
+        runtime = mock.MagicMock()
+        runtime.project_config.services = {}
 
-        with mock.patch("cumulusci.cli.cci.TEST_CONFIG", config):
+        with mock.patch("cumulusci.cli.cci.RUNTIME", runtime):
             with self.assertRaises(click.UsageError):
                 multi_cmd.get_command(ctx, "test")
 
     def test_service_connect_validator(self):
         multi_cmd = cci.ConnectServiceCommand()
         ctx = mock.Mock()
-        config = mock.MagicMock()
-        config.is_global_keychain = False
-        config.project_config.services = {
+        runtime = mock.MagicMock()
+        runtime.project_config.services = {
             "test": {
                 "attributes": {},
                 "validator": "cumulusci.cli.tests.test_cci.validate_service",
             }
         }
 
-        with mock.patch("cumulusci.cli.cci.TEST_CONFIG", config):
+        with mock.patch("cumulusci.cli.cci.RUNTIME", runtime):
             cmd = multi_cmd.get_command(ctx, "test")
-            try:
+            with self.assertRaises(Exception) as cm:
                 run_click_command(cmd, project=True)
-            except click.UsageError as e:
-                self.assertEqual("Validation failed", str(e))
-            else:
-                self.fail("Did not raise expected click.UsageError")
+            self.assertEqual("Validation failed", str(cm.exception))
 
     @mock.patch("cumulusci.cli.cci.CliTable")
     def test_service_info(self, cli_tbl):
         cli_tbl.table = mock.Mock()
         service_config = mock.Mock()
         service_config.config = {"description": "Test Service"}
-        config = mock.Mock()
-        config.keychain.get_service.return_value = service_config
-        config.global_config.cli__plain_output = None
+        runtime = mock.Mock()
+        runtime.keychain.get_service.return_value = service_config
+        runtime.global_config.cli__plain_output = None
 
         run_click_command(
-            cci.service_info, config=config, service_name="test", plain=False
+            cci.service_info, runtime=runtime, service_name="test", plain=False
         )
 
         cli_tbl.assert_called_with(
@@ -458,11 +445,11 @@ class TestCCI(unittest.TestCase):
 
     @mock.patch("click.echo")
     def test_service_info_not_configured(self, echo):
-        config = mock.Mock()
-        config.keychain.get_service.side_effect = ServiceNotConfigured
+        runtime = mock.Mock()
+        runtime.keychain.get_service.side_effect = ServiceNotConfigured
 
         run_click_command(
-            cci.service_info, config=config, service_name="test", plain=False
+            cci.service_info, runtime=runtime, service_name="test", plain=False
         )
 
         self.assertIn("not configured for this project", echo.call_args[0][0])
@@ -470,14 +457,14 @@ class TestCCI(unittest.TestCase):
     @mock.patch("webbrowser.open")
     def test_org_browser(self, browser_open):
         org_config = mock.Mock()
-        config = mock.Mock()
-        config.get_org.return_value = ("test", org_config)
+        runtime = mock.Mock()
+        runtime.get_org.return_value = ("test", org_config)
 
-        run_click_command(cci.org_browser, config=config, org_name="test")
+        run_click_command(cci.org_browser, runtime=runtime, org_name="test")
 
         org_config.refresh_oauth_token.assert_called_once()
         browser_open.assert_called_once()
-        config.keychain.set_org.assert_called_once_with(org_config)
+        runtime.keychain.set_org.assert_called_once_with(org_config)
 
     @mock.patch("cumulusci.cli.cci.CaptureSalesforceOAuth")
     @responses.activate
@@ -485,7 +472,7 @@ class TestCCI(unittest.TestCase):
         oauth.return_value = mock.Mock(
             return_value={"instance_url": "https://instance", "access_token": "BOGUS"}
         )
-        config = mock.Mock()
+        runtime = mock.Mock()
         responses.add(
             method="GET",
             url="https://instance/services/oauth2/userinfo",
@@ -504,7 +491,7 @@ class TestCCI(unittest.TestCase):
         )
         run_click_command(
             cci.org_connect,
-            config=config,
+            runtime=runtime,
             org_name="test",
             sandbox=False,
             login_url="https://login.salesforce.com",
@@ -512,11 +499,11 @@ class TestCCI(unittest.TestCase):
             global_org=False,
         )
 
-        config.check_org_overwrite.assert_called_once()
-        config.keychain.set_org.assert_called_once()
-        org_config = config.keychain.set_org.call_args[0][0]
+        runtime.check_org_overwrite.assert_called_once()
+        runtime.keychain.set_org.assert_called_once()
+        org_config = runtime.keychain.set_org.call_args[0][0]
         assert org_config.expires == "Persistent"
-        config.keychain.set_default_org.assert_called_once_with("test")
+        runtime.keychain.set_default_org.assert_called_once_with("test")
 
     @mock.patch("cumulusci.cli.cci.CaptureSalesforceOAuth")
     @responses.activate
@@ -524,7 +511,7 @@ class TestCCI(unittest.TestCase):
         oauth.return_value = mock.Mock(
             return_value={"instance_url": "https://instance", "access_token": "BOGUS"}
         )
-        config = mock.Mock()
+        runtime = mock.Mock()
         responses.add(
             method="GET",
             url="https://instance/services/oauth2/userinfo",
@@ -543,7 +530,7 @@ class TestCCI(unittest.TestCase):
         )
         run_click_command(
             cci.org_connect,
-            config=config,
+            runtime=runtime,
             org_name="test",
             sandbox=True,
             login_url="https://test.salesforce.com",
@@ -551,20 +538,20 @@ class TestCCI(unittest.TestCase):
             global_org=False,
         )
 
-        config.check_org_overwrite.assert_called_once()
-        config.keychain.set_org.assert_called_once()
-        org_config = config.keychain.set_org.call_args[0][0]
+        runtime.check_org_overwrite.assert_called_once()
+        runtime.keychain.set_org.assert_called_once()
+        org_config = runtime.keychain.set_org.call_args[0][0]
         assert org_config.expires == date(1970, 1, 1)
-        config.keychain.set_default_org.assert_called_once_with("test")
+        runtime.keychain.set_default_org.assert_called_once_with("test")
 
     def test_org_connect_connected_app_not_configured(self):
-        config = mock.Mock()
-        config.keychain.get_service.side_effect = ServiceNotConfigured
+        runtime = mock.Mock()
+        runtime.keychain.get_service.side_effect = ServiceNotConfigured
 
         with self.assertRaises(ServiceNotConfigured):
             run_click_command(
                 cci.org_connect,
-                config=config,
+                runtime=runtime,
                 org_name="test",
                 sandbox=True,
                 login_url="https://login.salesforce.com",
@@ -573,22 +560,24 @@ class TestCCI(unittest.TestCase):
             )
 
     def test_org_default(self):
-        config = mock.Mock()
+        runtime = mock.Mock()
 
-        run_click_command(cci.org_default, config=config, org_name="test", unset=False)
+        run_click_command(
+            cci.org_default, runtime=runtime, org_name="test", unset=False
+        )
 
-        config.keychain.set_default_org.assert_called_once_with("test")
+        runtime.keychain.set_default_org.assert_called_once_with("test")
 
     def test_org_default_unset(self):
-        config = mock.Mock()
+        runtime = mock.Mock()
 
-        run_click_command(cci.org_default, config=config, org_name="test", unset=True)
+        run_click_command(cci.org_default, runtime=runtime, org_name="test", unset=True)
 
-        config.keychain.unset_default_org.assert_called_once()
+        runtime.keychain.unset_default_org.assert_called_once()
 
     @mock.patch("sarge.Command")
     def test_org_import(self, cmd):
-        config = mock.Mock()
+        runtime = mock.Mock()
         result = b"""{
             "result": {
                 "createdDate": "1970-01-01T00:00:00.000Z",
@@ -609,9 +598,9 @@ class TestCCI(unittest.TestCase):
                 cci.org_import,
                 username_or_alias="test@test.org",
                 org_name="test",
-                config=config,
+                runtime=runtime,
             )
-            config.keychain.set_org.assert_called_once()
+            runtime.keychain.set_org.assert_called_once()
         self.assertTrue(
             "Imported scratch org: access, username: test@test.org" in "".join(out)
         )
@@ -643,12 +632,12 @@ class TestCCI(unittest.TestCase):
         org_config.config = {"days": 1, "default": True, "password": None}
         org_config.expires = date.today()
         org_config.latest_api_version = "42.0"
-        config = mock.Mock()
-        config.get_org.return_value = ("test", org_config)
+        runtime = mock.Mock()
+        runtime.get_org.return_value = ("test", org_config)
 
         with mock.patch("cumulusci.cli.cci.CliTable") as cli_tbl:
             run_click_command(
-                cci.org_info, config=config, org_name="test", print_json=False
+                cci.org_info, runtime=runtime, org_name="test", print_json=False
             )
             cli_tbl.assert_called_with(
                 [
@@ -661,7 +650,7 @@ class TestCCI(unittest.TestCase):
                 wrap_cols=["Value"],
             )
 
-        config.keychain.set_org.assert_called_once_with(org_config)
+        runtime.keychain.set_org.assert_called_once_with(org_config)
 
     def test_org_info_json(self):
         class Unserializable(object):
@@ -671,13 +660,13 @@ class TestCCI(unittest.TestCase):
         org_config = mock.Mock()
         org_config.config = {"test": "test", "unserializable": Unserializable()}
         org_config.expires = date.today()
-        config = mock.Mock()
-        config.get_org.return_value = ("test", org_config)
+        runtime = mock.Mock()
+        runtime.get_org.return_value = ("test", org_config)
 
         out = []
         with mock.patch("click.echo", out.append):
             run_click_command(
-                cci.org_info, config=config, org_name="test", print_json=True
+                cci.org_info, runtime=runtime, org_name="test", print_json=True
             )
 
         org_config.refresh_oauth_token.assert_called_once()
@@ -685,13 +674,13 @@ class TestCCI(unittest.TestCase):
             '{\n    "test": "test",\n    "unserializable": "<unserializable>"\n}',
             "".join(out),
         )
-        config.keychain.set_org.assert_called_once_with(org_config)
+        runtime.keychain.set_org.assert_called_once_with(org_config)
 
     @mock.patch("cumulusci.cli.cci.CliTable")
     def test_org_list(self, cli_tbl):
-        config = mock.Mock()
-        config.global_config.cli__plain_output = None
-        config.project_config.keychain.list_orgs.return_value = [
+        runtime = mock.Mock()
+        runtime.global_config.cli__plain_output = None
+        runtime.project_config.keychain.list_orgs.return_value = [
             "test0",
             "test1",
             "test2",
@@ -700,7 +689,7 @@ class TestCCI(unittest.TestCase):
             "test5",
             "test6",
         ]
-        config.project_config.keychain.get_org.side_effect = [
+        runtime.project_config.keychain.get_org.side_effect = [
             ScratchOrgConfig(
                 {
                     "default": True,
@@ -784,7 +773,7 @@ class TestCCI(unittest.TestCase):
             ),
         ]
 
-        run_click_command(cci.org_list, config=config, plain=False)
+        run_click_command(cci.org_list, runtime=runtime, plain=False)
 
         scratch_table_call = mock.call(
             [
@@ -816,48 +805,48 @@ class TestCCI(unittest.TestCase):
     def test_org_remove(self):
         org_config = mock.Mock()
         org_config.can_delete.return_value = True
-        config = mock.Mock()
-        config.keychain.get_org.return_value = org_config
+        runtime = mock.Mock()
+        runtime.keychain.get_org.return_value = org_config
 
         run_click_command(
-            cci.org_remove, config=config, org_name="test", global_org=False
+            cci.org_remove, runtime=runtime, org_name="test", global_org=False
         )
 
         org_config.delete_org.assert_called_once()
-        config.keychain.remove_org.assert_called_once_with("test", False)
+        runtime.keychain.remove_org.assert_called_once_with("test", False)
 
     @mock.patch("click.echo")
     def test_org_remove_delete_error(self, echo):
         org_config = mock.Mock()
         org_config.can_delete.return_value = True
         org_config.delete_org.side_effect = Exception
-        config = mock.Mock()
-        config.keychain.get_org.return_value = org_config
+        runtime = mock.Mock()
+        runtime.keychain.get_org.return_value = org_config
 
         run_click_command(
-            cci.org_remove, config=config, org_name="test", global_org=False
+            cci.org_remove, runtime=runtime, org_name="test", global_org=False
         )
 
         echo.assert_any_call("Deleting scratch org failed with error:")
 
     def test_org_remove_not_found(self):
-        config = mock.Mock()
-        config.keychain.get_org.side_effect = OrgNotFound
+        runtime = mock.Mock()
+        runtime.keychain.get_org.side_effect = OrgNotFound
 
         with self.assertRaises(click.ClickException) as cm:
             run_click_command(
-                cci.org_remove, config=config, org_name="test", global_org=False
+                cci.org_remove, runtime=runtime, org_name="test", global_org=False
             )
 
         self.assertEqual("Org test does not exist in the keychain", str(cm.exception))
 
     def test_org_scratch(self):
-        config = mock.Mock()
-        config.project_config.orgs__scratch = {"dev": {"orgName": "Dev"}}
+        runtime = mock.Mock()
+        runtime.project_config.orgs__scratch = {"dev": {"orgName": "Dev"}}
 
         run_click_command(
             cci.org_scratch,
-            config=config,
+            runtime=runtime,
             config_name="dev",
             org_name="test",
             default=True,
@@ -866,20 +855,20 @@ class TestCCI(unittest.TestCase):
             no_password=True,
         )
 
-        config.check_org_overwrite.assert_called_once()
-        config.keychain.create_scratch_org.assert_called_with(
+        runtime.check_org_overwrite.assert_called_once()
+        runtime.keychain.create_scratch_org.assert_called_with(
             "test", "dev", 7, set_password=False
         )
-        config.keychain.set_default_org.assert_called_with("test")
+        runtime.keychain.set_default_org.assert_called_with("test")
 
     def test_org_scratch_no_configs(self):
-        config = mock.Mock()
-        config.project_config.orgs__scratch = None
+        runtime = mock.Mock()
+        runtime.project_config.orgs__scratch = None
 
         with self.assertRaises(click.UsageError):
             run_click_command(
                 cci.org_scratch,
-                config=config,
+                runtime=runtime,
                 config_name="dev",
                 org_name="test",
                 default=True,
@@ -889,13 +878,13 @@ class TestCCI(unittest.TestCase):
             )
 
     def test_org_scratch_config_not_found(self):
-        config = mock.Mock()
-        config.project_config.orgs__scratch = {"bogus": {}}
+        runtime = mock.Mock()
+        runtime.project_config.orgs__scratch = {"bogus": {}}
 
         with self.assertRaises(click.UsageError):
             run_click_command(
                 cci.org_scratch,
-                config=config,
+                runtime=runtime,
                 config_name="dev",
                 org_name="test",
                 default=True,
@@ -906,30 +895,30 @@ class TestCCI(unittest.TestCase):
 
     def test_org_scratch_delete(self):
         org_config = mock.Mock()
-        config = mock.Mock()
-        config.keychain.get_org.return_value = org_config
+        runtime = mock.Mock()
+        runtime.keychain.get_org.return_value = org_config
 
-        run_click_command(cci.org_scratch_delete, config=config, org_name="test")
+        run_click_command(cci.org_scratch_delete, runtime=runtime, org_name="test")
 
         org_config.delete_org.assert_called_once()
-        config.keychain.set_org.assert_called_once_with(org_config)
+        runtime.keychain.set_org.assert_called_once_with(org_config)
 
     def test_org_scratch_delete_not_scratch(self):
         org_config = mock.Mock(scratch=False)
-        config = mock.Mock()
-        config.keychain.get_org.return_value = org_config
+        runtime = mock.Mock()
+        runtime.keychain.get_org.return_value = org_config
 
         with self.assertRaises(click.UsageError):
-            run_click_command(cci.org_scratch_delete, config=config, org_name="test")
+            run_click_command(cci.org_scratch_delete, runtime=runtime, org_name="test")
 
     def test_org_scratch_delete_error(self):
         org_config = mock.Mock()
         org_config.delete_org.side_effect = ScratchOrgException
-        config = mock.Mock()
-        config.keychain.get_org.return_value = org_config
+        runtime = mock.Mock()
+        runtime.keychain.get_org.return_value = org_config
 
-        with self.assertRaises(click.UsageError):
-            run_click_command(cci.org_scratch_delete, config=config, org_name="test")
+        with self.assertRaises(ScratchOrgException):
+            run_click_command(cci.org_scratch_delete, runtime=runtime, org_name="test")
 
     @mock.patch("cumulusci.cli.cci.get_simple_salesforce_connection")
     @mock.patch("code.interact")
@@ -937,27 +926,27 @@ class TestCCI(unittest.TestCase):
         org_config = mock.Mock()
         org_config.instance_url = "https://salesforce.com"
         org_config.access_token = "TEST"
-        config = mock.Mock()
-        config.get_org.return_value = ("test", org_config)
+        runtime = mock.Mock()
+        runtime.get_org.return_value = ("test", org_config)
 
-        run_click_command(cci.org_shell, config=config, org_name="test")
+        run_click_command(cci.org_shell, runtime=runtime, org_name="test")
 
         org_config.refresh_oauth_token.assert_called_once()
-        mock_sf.assert_called_once_with(config.project_config, org_config)
-        config.keychain.set_org.assert_called_once_with(org_config)
+        mock_sf.assert_called_once_with(runtime.project_config, org_config)
+        runtime.keychain.set_org.assert_called_once_with(org_config)
 
         mock_code.assert_called_once()
         self.assertIn("sf", mock_code.call_args[1]["local"])
 
     @mock.patch("cumulusci.cli.cci.CliTable")
     def test_task_list(self, cli_tbl):
-        config = mock.Mock()
-        config.global_config.cli__plain_output = None
-        config.project_config.list_tasks.return_value = [
+        runtime = mock.Mock()
+        runtime.global_config.cli__plain_output = None
+        runtime.project_config.list_tasks.return_value = [
             {"name": "test_task", "description": "Test Task", "group": "Test Group"}
         ]
 
-        run_click_command(cci.task_list, config=config, plain=False, print_json=False)
+        run_click_command(cci.task_list, runtime=runtime, plain=False, print_json=False)
 
         cli_tbl.assert_called_with(
             [["Task", "Description"], ["test_task", "Test Task"]],
@@ -972,43 +961,37 @@ class TestCCI(unittest.TestCase):
             "description": "Test Task",
             "group": "Test Group",
         }
-        config = mock.Mock()
-        config.global_config.cli__plain_output = None
-        config.project_config.list_tasks.return_value = [task_dicts]
+        runtime = mock.Mock()
+        runtime.global_config.cli__plain_output = None
+        runtime.project_config.list_tasks.return_value = [task_dicts]
 
-        run_click_command(cci.task_list, config=config, plain=False, print_json=True)
+        run_click_command(cci.task_list, runtime=runtime, plain=False, print_json=True)
 
         json_.assert_called_with([task_dicts])
 
     @mock.patch("cumulusci.cli.cci.doc_task")
     def test_task_doc(self, doc_task):
-        config = mock.Mock()
-        config.global_config.tasks = {"test": {}}
+        runtime = mock.Mock()
+        runtime.global_config.tasks = {"test": {}}
 
-        run_click_command(cci.task_doc, config=config)
+        run_click_command(cci.task_doc, runtime=runtime)
         doc_task.assert_called()
 
     @mock.patch("cumulusci.cli.cci.rst2ansi")
     @mock.patch("cumulusci.cli.cci.doc_task")
     def test_task_info(self, doc_task, rst2ansi):
-        config = mock.Mock()
-        config.project_config.tasks__test = {"options": {}}
+        runtime = mock.Mock()
+        runtime.project_config.tasks__test = {"options": {}}
 
-        run_click_command(cci.task_info, config=config, task_name="test")
+        run_click_command(cci.task_info, runtime=runtime, task_name="test")
 
         doc_task.assert_called_once()
         rst2ansi.assert_called_once()
 
-    def test_task_info__not_found(self):
-        config = mock.Mock()
-        config.project_config.get_task.side_effect = TaskNotFoundError
-        with self.assertRaises(click.UsageError):
-            run_click_command(cci.task_info, config=config, task_name="test")
-
     def test_task_run(self):
-        config = mock.Mock()
-        config.get_org.return_value = (None, None)
-        config.project_config = BaseProjectConfig(
+        runtime = mock.Mock()
+        runtime.get_org.return_value = (None, None)
+        runtime.project_config = BaseProjectConfig(
             None,
             config={
                 "tasks": {
@@ -1020,7 +1003,7 @@ class TestCCI(unittest.TestCase):
 
         run_click_command(
             cci.task_run,
-            config=config,
+            runtime=runtime,
             task_name="test",
             org=None,
             o=[("color", "blue")],
@@ -1032,35 +1015,17 @@ class TestCCI(unittest.TestCase):
 
         DummyTask._run_task.assert_called_once()
 
-    def test_task_run_not_found(self):
-        config = mock.Mock()
-        config.get_org.return_value = (None, None)
-        config.project_config = BaseProjectConfig(BaseGlobalConfig(), config={})
-
-        with self.assertRaises(click.UsageError):
-            run_click_command(
-                cci.task_run,
-                config=config,
-                task_name="test",
-                org=None,
-                o=[("color", "blue")],
-                debug=False,
-                debug_before=False,
-                debug_after=False,
-                no_prompt=True,
-            )
-
     def test_task_run_invalid_option(self):
-        config = mock.Mock()
-        config.get_org.return_value = (None, None)
-        config.project_config.get_task.return_value = TaskConfig(
+        runtime = mock.Mock()
+        runtime.get_org.return_value = (None, None)
+        runtime.project_config.get_task.return_value = TaskConfig(
             {"class_path": "cumulusci.cli.tests.test_cci.DummyTask"}
         )
 
         with self.assertRaises(click.UsageError):
             run_click_command(
                 cci.task_run,
-                config=config,
+                runtime=runtime,
                 task_name="test",
                 org=None,
                 o=[("bogus", "blue")],
@@ -1072,9 +1037,9 @@ class TestCCI(unittest.TestCase):
 
     @mock.patch("pdb.set_trace")
     def test_task_run_debug_before(self, set_trace):
-        config = mock.Mock()
-        config.get_org.return_value = (None, None)
-        config.project_config = BaseProjectConfig(
+        runtime = mock.Mock()
+        runtime.get_org.return_value = (None, None)
+        runtime.project_config = BaseProjectConfig(
             None,
             config={
                 "tasks": {
@@ -1087,7 +1052,7 @@ class TestCCI(unittest.TestCase):
         with self.assertRaises(SetTrace):
             run_click_command(
                 cci.task_run,
-                config=config,
+                runtime=runtime,
                 task_name="test",
                 org=None,
                 o=[("color", "blue")],
@@ -1099,9 +1064,9 @@ class TestCCI(unittest.TestCase):
 
     @mock.patch("pdb.set_trace")
     def test_task_run_debug_after(self, set_trace):
-        config = mock.Mock()
-        config.get_org.return_value = (None, None)
-        config.project_config = BaseProjectConfig(
+        runtime = mock.Mock()
+        runtime.get_org.return_value = (None, None)
+        runtime.project_config = BaseProjectConfig(
             None,
             config={
                 "tasks": {
@@ -1114,7 +1079,7 @@ class TestCCI(unittest.TestCase):
         with self.assertRaises(SetTrace):
             run_click_command(
                 cci.task_run,
-                config=config,
+                runtime=runtime,
                 task_name="test",
                 org=None,
                 o=[("color", "blue")],
@@ -1126,12 +1091,12 @@ class TestCCI(unittest.TestCase):
 
     @mock.patch("cumulusci.cli.cci.CliTable")
     def test_flow_list(self, cli_tbl):
-        config = mock.Mock()
-        config.project_config.list_flows.return_value = [
+        runtime = mock.Mock()
+        runtime.project_config.list_flows.return_value = [
             {"name": "test_flow", "description": "Test Flow"}
         ]
-        config.global_config.cli__plain_output = None
-        run_click_command(cci.flow_list, config=config, plain=False, print_json=False)
+        runtime.global_config.cli__plain_output = None
+        run_click_command(cci.flow_list, runtime=runtime, plain=False, print_json=False)
 
         cli_tbl.assert_called_with(
             [["Name", "Description"], ["test_flow", "Test Flow"]],
@@ -1142,33 +1107,33 @@ class TestCCI(unittest.TestCase):
     @mock.patch("json.dumps")
     def test_flow_list_json(self, json_):
         flows = [{"name": "test_flow", "description": "Test Flow"}]
-        config = mock.Mock()
-        config.project_config.list_flows.return_value = flows
-        config.global_config.cli__plain_output = None
+        runtime = mock.Mock()
+        runtime.project_config.list_flows.return_value = flows
+        runtime.global_config.cli__plain_output = None
 
-        run_click_command(cci.flow_list, config=config, plain=False, print_json=True)
+        run_click_command(cci.flow_list, runtime=runtime, plain=False, print_json=True)
 
         json_.assert_called_with(flows)
 
     @mock.patch("click.echo")
     def test_flow_info(self, echo):
-        config = mock.Mock()
+        runtime = mock.Mock()
         flow_config = FlowConfig({"description": "Test Flow", "steps": {}})
-        config.get_flow.return_value = FlowCoordinator(None, flow_config)
+        runtime.get_flow.return_value = FlowCoordinator(None, flow_config)
 
-        run_click_command(cci.flow_info, config=config, flow_name="test")
+        run_click_command(cci.flow_info, runtime=runtime, flow_name="test")
 
         echo.assert_called_with("Description: Test Flow")
 
     def test_flow_info__not_found(self):
-        config = mock.Mock()
-        config.get_flow.side_effect = FlowNotFoundError
+        runtime = mock.Mock()
+        runtime.get_flow.side_effect = FlowNotFoundError
         with self.assertRaises(click.UsageError):
-            run_click_command(cci.flow_info, config=config, flow_name="test")
+            run_click_command(cci.flow_info, runtime=runtime, flow_name="test")
 
     def test_flow_run(self):
         org_config = mock.Mock(scratch=True, config={})
-        config = CliRuntime(
+        runtime = CliRuntime(
             config={
                 "flows": {"test": {"steps": {1: {"task": "test_task"}}}},
                 "tasks": {
@@ -1180,12 +1145,12 @@ class TestCCI(unittest.TestCase):
             },
             load_keychain=False,
         )
-        config.get_org = mock.Mock(return_value=("test", org_config))
-        config.get_flow = mock.Mock()
+        runtime.get_org = mock.Mock(return_value=("test", org_config))
+        runtime.get_flow = mock.Mock()
 
         run_click_command(
             cci.flow_run,
-            config=config,
+            runtime=runtime,
             flow_name="test",
             org="test",
             delete_org=True,
@@ -1195,20 +1160,20 @@ class TestCCI(unittest.TestCase):
             no_prompt=True,
         )
 
-        config.get_flow.assert_called_once_with(
+        runtime.get_flow.assert_called_once_with(
             "test", options={"test_task": {"color": "blue"}}
         )
         org_config.delete_org.assert_called_once()
 
     def test_flow_run_delete_non_scratch(self,):
         org_config = mock.Mock(scratch=False)
-        config = mock.Mock()
-        config.get_org.return_value = ("test", org_config)
+        runtime = mock.Mock()
+        runtime.get_org.return_value = ("test", org_config)
 
         with self.assertRaises(click.UsageError):
             run_click_command(
                 cci.flow_run,
-                config=config,
+                runtime=runtime,
                 flow_name="test",
                 org="test",
                 delete_org=True,
@@ -1222,7 +1187,7 @@ class TestCCI(unittest.TestCase):
     def test_flow_run_org_delete_error(self, echo):
         org_config = mock.Mock(scratch=True, config={})
         org_config.delete_org.side_effect = Exception
-        config = CliRuntime(
+        runtime = CliRuntime(
             config={
                 "flows": {"test": {"steps": {1: {"task": "test_task"}}}},
                 "tasks": {
@@ -1234,12 +1199,12 @@ class TestCCI(unittest.TestCase):
             },
             load_keychain=False,
         )
-        config.get_org = mock.Mock(return_value=("test", org_config))
+        runtime.get_org = mock.Mock(return_value=("test", org_config))
         DummyTask._run_task = mock.Mock()
 
         run_click_command(
             cci.flow_run,
-            config=config,
+            runtime=runtime,
             flow_name="test",
             org="test",
             delete_org=True,
