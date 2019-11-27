@@ -161,7 +161,6 @@ class SqlOutputStream(OutputStream):
         model = self.metadata.tables[tablename]
         ins = model.insert().values(**row)
         self.session.execute(ins)
-        self.session.commit()
 
     def flush(self):
         self.session.flush()

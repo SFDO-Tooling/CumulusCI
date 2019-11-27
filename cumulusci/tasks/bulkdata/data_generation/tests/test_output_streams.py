@@ -66,8 +66,8 @@ class TestSqlOutputStream(unittest.TestCase):
             connection = engine.connect()
             result = connection.execute("select * from foo")
             assert tuple(dict(row) for row in result) == (
-                {"id": 1, "a": "1.0", "b": None, "c": "3.0", "d": None},
-                {"id": 2, "a": None, "b": "2.0", "c": None, "d": "4.0"},
+                {"id": 1, "a": "1", "b": None, "c": "3", "d": None},
+                {"id": 2, "a": None, "b": "2", "c": None, "d": "4"},
             )
 
 

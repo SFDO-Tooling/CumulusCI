@@ -1,6 +1,7 @@
 from abc import abstractmethod, ABC
 from datetime import date
 from .data_generator_runtime import Context, evaluate_function, fix_exception, ObjectRow
+from fastnumbers import fast_real
 
 import jinja2
 
@@ -181,17 +182,7 @@ class SimpleValue(FieldDefinition):
                 raise DataGenValueError(str(e), self.filename, self.line_num) from e
         else:
             val = self.definition
-        return self.try_to_infer_type(val)
-
-    @staticmethod
-    def try_to_infer_type(val):
-        try:
-            return float(val)
-        except (ValueError, TypeError):
-            try:
-                return int(val)
-            except (ValueError, TypeError):
-                return val
+        return fast_real(val) if isinstance(val, str) else val
 
     def __repr__(self):
         return f"<{self.__class__.__name__ , self.definition}>"
