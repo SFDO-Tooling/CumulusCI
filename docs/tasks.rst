@@ -2,6 +2,14 @@
 Tasks Reference
 ==========================================
 
+activate_process_builder
+==========================================
+
+**Description:** Takes a selected list of developer names and runs activating flows against these orgs
+
+**Class::** cumulusci.tasks.salesforce.ActivateProcessBuilderProcesses.ActivateProcessBuilderProcesses
+
+
 batch_apex_wait
 ==========================================
 
