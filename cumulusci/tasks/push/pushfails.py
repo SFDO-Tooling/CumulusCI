@@ -113,7 +113,7 @@ class ReportPushFailures(BaseSalesforceApiTask):
                     error.get("ErrorTitle") in ignore_errors
                     or error.get("ErrorType") in ignore_errors
                 ):
-                    continue  # pragma: nocover (skipped by compiler's optimizer)
+                    continue  # pragma: no cover (skipped by compiler's optimizer)
                 org = org_map.get(result["SubscriberOrganizationKey"]) or {}
                 w.writerow(
                     [
