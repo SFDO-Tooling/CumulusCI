@@ -290,7 +290,7 @@ Options
 
 Example: ::
 
-    cci task run extract_dataset -o mapping_path datasets/qa/mapping.yml -o sql_path datasets/qa/data.sql --org qa
+    cci task run load_dataset -o mapping datasets/qa/mapping.yml -o sql_path datasets/qa/data.sql --org qa
 
 
 ``generate_dataset_mapping``
