@@ -8,12 +8,13 @@ class ActivateProcessBuilderProcesses(BaseSalesforceApiTask):
     """
 
     def _run_task(self):
-        self.logger.info(self.options.get("developer-names"))
+        self.logger.info(
+            f'Allowing only rows with the following DeveloperNames {self.options.get("developer-names")}'
+        )
         self.logger.info("Querying flow definitions...")
         res = self.tooling.query(
             "SELECT Id,ActiveVersion.VersionNumber,LatestVersion.VersionNumber,DeveloperName FROM FlowDefinition"
         )
-        # print(vars(res))
         for listed_flow in res["records"]:
             if listed_flow["DeveloperName"] in self.options.get("developer-names"):
                 self.logger.info(f'Processing: {listed_flow["DeveloperName"]}')
@@ -31,5 +32,5 @@ class ActivateProcessBuilderProcesses(BaseSalesforceApiTask):
                 self.logger.info(response)
             else:
                 self.logger.info(
-                    f'Skipping DeveloperName: {listed_flow["DeveloperName"]}'
+                    f'Skipping DeveloperName: {listed_flow["DeveloperName"]} not in given developer-names list.'
                 )
