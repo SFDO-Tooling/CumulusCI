@@ -1,6 +1,7 @@
 import unittest
 from io import StringIO
 import json
+import datetime
 from pathlib import Path
 from tempfile import NamedTemporaryFile, TemporaryDirectory
 from contextlib import redirect_stdout
@@ -123,6 +124,31 @@ class TestJSONOutputStream(unittest.TestCase):
                 yaml_file=sample_yaml, output_format="json", output_files=["-"]
             )
         # TODO: more validation!
+
+    def test_dates(self):
+        yaml = """
+        - object: foo
+          fields:
+            y2k: <<date(year=2000, month=1, day=1)>>
+            party: <<datetime(year=1999, month=12, day=31, hour=23, minute=59, second=59)>>
+            randodate:
+                date_between:
+                    start_date: 2000-02-02
+                    end_date: 2010-01-01
+        """
+        stdout = StringIO()
+        output_stream = JSONOutputStream(stdout)
+        generate(StringIO(yaml), 1, {}, output_stream)
+        output_stream.close()
+        values = json.loads(stdout.getvalue())[0]
+        assert values["y2k"] == str(datetime.date(year=2000, month=1, day=1))
+        assert values["party"] == str(
+            datetime.datetime(
+                year=1999, month=12, day=31, hour=23, minute=59, second=59
+            )
+        )
+        assert len(values["randodate"].split("-")) == 3
+        assert values["randodate"].startswith("200")
 
 
 class TestCSVOutputStream(unittest.TestCase):

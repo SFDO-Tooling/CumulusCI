@@ -2,6 +2,7 @@ import os
 from abc import abstractmethod, ABC
 import json
 import csv
+import datetime
 from urllib.parse import urlparse
 from pathlib import Path
 from collections import namedtuple, defaultdict
@@ -18,10 +19,21 @@ from cumulusci.tasks.bulkdata.base_generate_data_task import (
 from cumulusci.tasks.bulkdata.data_generation.data_generator_runtime import ObjectRow
 
 
+def noop(x):
+    return x
+
+
 class OutputStream(ABC):
     count = 1
     flush_limit = 1000
     commit_limit = 10000
+    encoders = {
+        str: str,
+        int: int,
+        float: float,
+        datetime.date: noop,
+        datetime.datetime: noop,
+    }
 
     def create_or_validate_tables(self, tables):
         pass
@@ -35,16 +47,25 @@ class OutputStream(ABC):
     def commit(self):
         pass
 
+    def cleanup(self, field_name, field_value, sourcetable, row):
+        if isinstance(field_value, ObjectRow):
+            return self.flatten(sourcetable, field_name, row, field_value)
+        else:
+            encoder = self.encoders.get(type(field_value))
+            if not encoder:
+                raise TypeError(
+                    f"No encoder found for {type(field_value)} in {self.__class__.__name__}"
+                )
+            return encoder(field_value)
+
     def write_row(self, tablename, row_with_references):
-        row_with_objects_represented_by_ids = {
-            fieldname: (
-                self.flatten(tablename, fieldname, row_with_references, fieldvalue)
-                if isinstance(fieldvalue, ObjectRow)
-                else fieldvalue
+        row_cleaned_up_and_flattened = {
+            field_name: self.cleanup(
+                field_name, field_value, tablename, row_with_references
             )
-            for fieldname, fieldvalue in row_with_references.items()
+            for field_name, field_value in row_with_references.items()
         }
-        self.write_single_row(tablename, row_with_objects_represented_by_ids)
+        self.write_single_row(tablename, row_cleaned_up_and_flattened)
         if self.count % self.flush_limit == 0:
             self.flush()
 
@@ -119,8 +140,9 @@ class CSVOutputStream(OutputStream):
 
 
 class JSONOutputStream(OutputStream):
+    encoders = {**OutputStream.encoders, datetime.date: str, datetime.datetime: str}
+
     def __init__(self, file):
-        super().__init__()
         assert file
         self.file = file
         self.first_row = True

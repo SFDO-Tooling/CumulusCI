@@ -1,10 +1,13 @@
 import random
-from datetime import date
+from datetime import date, datetime
 from .data_gen_exceptions import DataGenError
 
 from faker import Faker
 
 fake = Faker()
+
+# It might make more sense to use context vars for context handling when
+# Python 3.6 is out of the support matrix.
 
 
 def choose(context, *values, on=None):
@@ -41,6 +44,14 @@ def parse_date(d):
             return date.fromisoformat(d)
         except Exception:
             pass
+
+
+def date_(context, *, year, month, day):
+    return date(year, month, day)
+
+
+def datetime_(context, *, year, month, day, hour=0, minute=0, second=0, microsecond=0):
+    return datetime(year, month, day, hour, minute, second, microsecond)
 
 
 def date_between(context, start_date, end_date):
@@ -82,4 +93,6 @@ template_funcs = {
     "date_between": date_between,
     "reference": reference,
     "counter": counter,
+    "date": date_,
+    "datetime": datetime_,
 }
