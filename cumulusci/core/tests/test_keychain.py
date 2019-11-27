@@ -39,14 +39,12 @@ class ProjectKeychainTestMixin(unittest.TestCase):
         self.project_config.config["services"] = {
             "connected_app": {"attributes": {"test": {"required": True}}},
             "github": {"attributes": {"name": {"required": True}, "password": {}}},
-            "mrbelvedere": {"attributes": {"mr": {"required": True}}},
             "not_configured": {"attributes": {"foo": {"required": True}}},
         }
         self.project_config.project__name = "TestProject"
         self.services = {
             "connected_app": ServiceConfig({"test": "value"}),
             "github": ServiceConfig({"name": "hub"}),
-            "mrbelvedere": ServiceConfig({"mr": "belvedere"}),
         }
         self.org_config = OrgConfig({"foo": "bar"}, "test")
         self.scratch_org_config = ScratchOrgConfig(
@@ -80,7 +78,6 @@ class ProjectKeychainTestMixin(unittest.TestCase):
         keychain.set_org(self.org_config)
         keychain.set_service("connected_app", self.services["connected_app"])
         keychain.set_service("github", self.services["github"])
-        keychain.set_service("mrbelvedere", self.services["mrbelvedere"])
         keychain.change_key(new_key)
         self.assertEqual(keychain.key, new_key)
         self.assertEqual(
@@ -90,10 +87,6 @@ class ProjectKeychainTestMixin(unittest.TestCase):
         self.assertEqual(
             keychain.get_service("github").config, self.services["github"].config
         )
-        self.assertEqual(
-            keychain.get_service("mrbelvedere").config,
-            self.services["mrbelvedere"].config,
-        )
         self.assertEqual(keychain.get_org("test").config, self.org_config.config)
 
     def test_set_service_github(self, project=False):
@@ -101,14 +94,6 @@ class ProjectKeychainTestMixin(unittest.TestCase):
         keychain.set_service("github", self.services["github"], project)
         self.assertEqual(
             keychain.get_service("github").config, self.services["github"].config
-        )
-
-    def test_set_service_mrbelvedere(self, project=False):
-        keychain = self.keychain_class(self.project_config, self.key)
-        keychain.set_service("mrbelvedere", self.services["mrbelvedere"], project)
-        self.assertEqual(
-            keychain.get_service("mrbelvedere").config,
-            self.services["mrbelvedere"].config,
         )
 
     def test_set_and_get_org(self, global_org=False):
@@ -257,10 +242,6 @@ class TestEnvironmentProjectKeychain(ProjectKeychainTestMixin):
             f"{self.keychain_class.service_var_prefix}github",
             json.dumps(self.services["github"].config),
         )
-        self.env.set(
-            f"{self.keychain_class.service_var_prefix}mrbelvedere",
-            json.dumps(self.services["mrbelvedere"].config),
-        )
 
     def tearDown(self):
         self.env.__exit__()
@@ -384,7 +365,6 @@ class TestEncryptedFileProjectKeychain(ProjectKeychainTestMixin):
         self.project_config.config["services"] = {
             "connected_app": {"attributes": {"test": {"required": True}}},
             "github": {"attributes": {"git": {"required": True}, "password": {}}},
-            "mrbelvedere": {"attributes": {"mr": {"required": True}}},
             "not_configured": {"attributes": {"foo": {"required": True}}},
         }
         self.project_config.project__name = "TestProject"
@@ -396,7 +376,6 @@ class TestEncryptedFileProjectKeychain(ProjectKeychainTestMixin):
         self.services = {
             "connected_app": ServiceConfig({"test": "value"}),
             "github": ServiceConfig({"git": "hub"}),
-            "mrbelvedere": ServiceConfig({"mr": "belvedere"}),
         }
         self.key = "0123456789123456"
 
@@ -436,9 +415,6 @@ class TestEncryptedFileProjectKeychain(ProjectKeychainTestMixin):
 
     def test_set_service_github_project(self):
         self.test_set_service_github(True)
-
-    def test_set_service_mrbelvedere_project(self):
-        self.test_set_service_mrbelvedere(True)
 
     def test_set_and_get_org_global(self):
         self.test_set_and_get_org(True)
