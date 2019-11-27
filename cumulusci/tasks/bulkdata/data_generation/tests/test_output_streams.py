@@ -5,6 +5,8 @@ from pathlib import Path
 from tempfile import NamedTemporaryFile, TemporaryDirectory
 from contextlib import redirect_stdout
 
+from sqlalchemy import create_engine
+
 from cumulusci.tasks.bulkdata.data_generation.output_streams import (
     SqlOutputStream,
     JSONOutputStream,
@@ -26,23 +28,35 @@ class TestSqlOutputStream(unittest.TestCase):
           fields:
             a: b
             c: 3
+        - object: bar
+          count: 1
         """
-        flush_count = 0
-        real_flush = None
 
-        def mock_flush():
-            nonlocal flush_count
-            flush_count += 1
-            real_flush()
+        class MockFlush:
+            def __init__(self, real_flush):
+                self.real_flush = real_flush
+                self.flush_count = 0
+
+            def __call__(self):
+                self.flush_count += 1
+                self.real_flush()
 
         with NamedTemporaryFile() as f:
-            output_stream = SqlOutputStream.from_url(f"sqlite:///{f.name}", None)
+            url = f"sqlite:///{f.name}"
+            output_stream = SqlOutputStream.from_url(url, None)
             output_stream.flush_limit = 3
             real_flush = output_stream.flush
-            output_stream.flush = mock_flush
+            output_stream.flush = MockFlush(real_flush)
             generate(StringIO(yaml), 1, {}, output_stream)
-            assert flush_count == 5
+            assert output_stream.flush.flush_count == 5
             output_stream.close()
+
+            engine = create_engine(url)
+            connection = engine.connect()
+            result = connection.execute("select * from foo")
+            assert len(list(result)) == 15
+            result = connection.execute("select * from bar")
+            assert len(list(result)) == 1
 
     def test_inferred_schema(self):
         yaml = """
@@ -60,7 +74,6 @@ class TestSqlOutputStream(unittest.TestCase):
             output_stream = SqlOutputStream.from_url(url, None)
             generate(StringIO(yaml), 1, {}, output_stream)
             output_stream.close()
-            from sqlalchemy import create_engine
 
             engine = create_engine(url)
             connection = engine.connect()

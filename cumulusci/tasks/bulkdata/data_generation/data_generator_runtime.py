@@ -204,6 +204,12 @@ class ObjectRow:
     def __getattr__(self, name):
         return self._values[name]
 
+    def __str__(self):
+        return str(self.id)
+
+    def __repr__(self):
+        return f"<ObjectRow {self._tablename} {self.id}>"
+
     @property
     def _name(self):
         return self._values.get("name")

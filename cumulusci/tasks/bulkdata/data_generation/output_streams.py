@@ -4,7 +4,7 @@ import json
 import csv
 from urllib.parse import urlparse
 from pathlib import Path
-from collections import namedtuple
+from collections import namedtuple, defaultdict
 
 from sqlalchemy import create_engine, MetaData, Column, Integer, Table, Unicode
 from sqlalchemy.ext.automap import automap_base
@@ -55,9 +55,14 @@ class OutputStream(ABC):
 
     @abstractmethod
     def write_single_row(self, tablename, row):
+        """Write a single row to the stream"""
         pass
 
     def close(self):
+        """Close any resources the stream opened.
+
+        Do not close file handles which were passed in!
+        """
         pass
 
 
@@ -133,6 +138,37 @@ class JSONOutputStream(OutputStream):
         self.file.write("]\n")
 
 
+class FallbackDict(dict):
+    """Make sure every row has the same records per SQLAlchemy's rules
+
+    According to the SQL Alchemy docs, every dictionary in a set must
+    have the same keys. This dict subclass "virtually" expands them
+    all to include missing columns.
+
+    This means that the INSERT statement will be more bloated but it
+    seems much more efficient than line-by-line inserts.
+    """
+
+    def __init__(self, sparse_dict, fallback_dict):
+        self.sparse_dict = sparse_dict
+        self.fallback_dict = fallback_dict
+
+    def __contains__(self, value):
+        # Fallback dict has a superset of keys by definition.
+        return value in self.fallback_dict
+
+    def __getitem__(self, name):
+        # Sparse dict has all of the "real" items
+        return self.sparse_dict.get(name, None)
+
+    def keys(self):
+        # Fallback dict has a superset of keys by definition.
+        return self.fallback_dict.keys()
+
+    def __bool__(self):
+        return True  # Rows are never empty. They always have an ID
+
+
 class SqlOutputStream(OutputStream):
     mappings = None
 
@@ -141,6 +177,8 @@ class SqlOutputStream(OutputStream):
         self = cls()
         self.mappings = mappings
         self.engine = create_engine(db_url)
+        self.buffered_rows = defaultdict(list)
+        self.table_info = {}
         self._init_db()
         return self
 
@@ -151,6 +189,8 @@ class SqlOutputStream(OutputStream):
         self.engine = engine
         self.base = base
         self._init_db()
+        self.buffered_rows = defaultdict(list)
+
         return self
 
     def _init_db(self):
@@ -158,18 +198,26 @@ class SqlOutputStream(OutputStream):
         self.metadata.bind = self.engine
 
     def write_single_row(self, tablename, row):
-        model = self.metadata.tables[tablename]
-        ins = model.insert().values(**row)
-        self.session.execute(ins)
+        # cache the value for later insert
+        self.buffered_rows[tablename].append(row)
 
     def flush(self):
+        for tablename, (insert_statement, fallback_dict) in self.table_info.items():
+            values = [
+                FallbackDict(row, fallback_dict)
+                for row in self.buffered_rows[tablename]
+            ]
+            if values:
+                self.session.execute(insert_statement, values)
+            self.buffered_rows[tablename] = []
         self.session.flush()
 
     def commit(self):
+        self.flush()
         self.session.commit()
 
     def close(self):
-        self.session.commit()
+        self.commit()
         self.session.close()
 
     def create_or_validate_tables(self, tables):
@@ -183,6 +231,15 @@ class SqlOutputStream(OutputStream):
         self.base = automap_base(bind=self.engine, metadata=self.metadata)
         self.base.prepare(self.engine, reflect=True)
         self.session = create_session(bind=self.engine, autocommit=False)
+
+        # Setup table info used by the write-buffering infrastructure
+        TableTuple = namedtuple("TableTuple", ["insert_statement", "fallback_dict"])
+
+        for tablename, model in self.metadata.tables.items():
+            self.table_info[tablename] = TableTuple(
+                insert_statement=model.insert(bind=self.engine, inline=True),
+                fallback_dict={key: None for key in tables[tablename].fields.keys()},
+            )
 
 
 def _validate_fields(mappings, tables):
