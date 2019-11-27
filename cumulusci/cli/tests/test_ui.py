@@ -118,7 +118,7 @@ def test_table_pretty_output(sample_data, pretty_output, fixture_key):
 @pytest.mark.parametrize("fixture_key", ["service_list"])
 def test_table_pretty_output_windows(sample_data, pretty_output_win, fixture_key):
     instance = CliTable(sample_data[fixture_key])
-    assert pretty_output_win[fixture_key].strip() == instance.table.table
+    assert pretty_output_win[fixture_key].strip() == instance.pretty_table()
 
 
 @pytest.mark.parametrize("fixture_key", ["service_list", "org_list", "task_list_util"])
