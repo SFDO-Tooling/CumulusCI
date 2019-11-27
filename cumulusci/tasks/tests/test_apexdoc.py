@@ -18,7 +18,8 @@ class TestGenerateApexDocs(unittest.TestCase):
         self.task_config = TaskConfig({"options": {"version": "1.0"}})
         self.org_config = OrgConfig({}, "test")
 
-    def test_task(self):
+    @mock.patch("urllib.request.urlretrieve")
+    def test_task(self, urlretrieve):
         task = GenerateApexDocs(self.project_config, self.task_config, self.org_config)
         task._run_command = mock.Mock()
         task()

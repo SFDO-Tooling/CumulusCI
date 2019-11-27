@@ -1,13 +1,20 @@
 import io
 import os
 from http.client import HTTPMessage
-from unittest.mock import Mock
+from unittest import mock
 
 from pytest import fixture
 from cumulusci.core.github import get_github_api
 
 
-class MockHttpResponse(Mock):
+@fixture(scope="session", autouse=True)
+def mock_sleep():
+    """Patch time.sleep to avoid delays in unit tests"""
+    with mock.patch("time.sleep"):
+        yield
+
+
+class MockHttpResponse(mock.Mock):
     def __init__(self, status):
         super(MockHttpResponse, self).__init__()
         self.status = status

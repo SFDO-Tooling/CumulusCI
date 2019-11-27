@@ -495,22 +495,11 @@ def log_progress(
 
 
 def random_alphanumeric_underscore(length):
-    if sys.version_info[0] >= 3:
-        import secrets
+    import secrets
 
-        # Ensure the string is the right length
-        byte_length = math.ceil((length * 3) / 4)
-        return secrets.token_urlsafe(byte_length).replace("-", "_")[:length]
-    else:
-        import random
-        import string
-
-        return "".join(
-            random.SystemRandom().choice(
-                "_" + string.ascii_uppercase + string.ascii_lowercase + string.digits
-            )
-            for _ in range(length)
-        )
+    # Ensure the string is the right length
+    byte_length = math.ceil((length * 3) / 4)
+    return secrets.token_urlsafe(byte_length).replace("-", "_")[:length]
 
 
 def get_cci_upgrade_command():

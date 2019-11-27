@@ -23,7 +23,6 @@ from jinja2 import Environment
 from jinja2 import PackageLoader
 
 import cumulusci
-from cumulusci.core.config import BaseConfig
 from cumulusci.core.config import OrgConfig
 from cumulusci.core.config import ScratchOrgConfig
 from cumulusci.core.config import ServiceConfig
@@ -123,9 +122,7 @@ def render_recursive(data, indent=None):
     if indent is None:
         indent = 0
     indent_str = " " * indent
-    if isinstance(data, BaseConfig):
-        render_recursive(data.config)
-    elif isinstance(data, list):
+    if isinstance(data, list):
         for item in data:
             if isinstance(item, (bytes, str)):
                 click.echo(f"{indent_str}- {item}")
@@ -170,14 +167,14 @@ def pass_runtime(func=None, require_project=True):
 # Root command
 
 
-def main():
+def main(args=None):
     """Main CumulusCI CLI entry point.
 
     This runs as the first step in processing any CLI command.
 
     This wraps the `click` library in order to do some initialization and centralized error handling.
     """
-    args = sys.argv
+    args = args or sys.argv
     # Check for updates _unless_ we've been asked to output JSON,
     # or if we're going to check anyway as part of the `version` command.
     is_version_command = len(args) > 1 and args[1] == "version"
@@ -794,8 +791,7 @@ def org_connect(runtime, org_name, sandbox, login_url, default, global_org):
             org_config.organization_sobject["TrialExpirationDate"]
         ).date()
 
-    if runtime.project_config is None:
-        global_org = True
+    global_org = global_org or runtime.project_config is None
     runtime.keychain.set_org(org_config, global_org)
 
     if default:
@@ -980,8 +976,7 @@ def org_remove(runtime, org_name, global_org):
             click.echo("Deleting scratch org failed with error:")
             click.echo(e)
 
-    if runtime.project_config is None:
-        global_org = True
+    global_org = global_org or runtime.project_config is None
     runtime.keychain.remove_org(org_name, global_org)
 
 

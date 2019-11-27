@@ -25,6 +25,7 @@ from cumulusci.core.config import TaskConfig
 from cumulusci.core.tasks import BaseTask
 from cumulusci.core.flowrunner import FlowCoordinator
 from cumulusci.core.exceptions import FlowNotFoundError
+from cumulusci.core.exceptions import NotInProject
 from cumulusci.core.exceptions import OrgNotFound
 from cumulusci.core.exceptions import ScratchOrgException
 from cumulusci.core.exceptions import ServiceNotConfigured
@@ -133,6 +134,38 @@ class TestCCI(unittest.TestCase):
             "\n".join(out),
         )
 
+    @mock.patch("cumulusci.cli.cci.init_logger")
+    @mock.patch("cumulusci.cli.cci.check_latest_version")
+    @mock.patch("cumulusci.cli.cci.CliRuntime")
+    @mock.patch("cumulusci.cli.cci.cli")
+    def test_main(self, cli, CliRuntime, check_latest_version, init_logger):
+        cci.main()
+
+        check_latest_version.assert_called_once()
+        init_logger.assert_called_once()
+        CliRuntime.assert_called_once()
+        cli.assert_called_once()
+
+    @mock.patch("cumulusci.cli.cci.init_logger")
+    @mock.patch("cumulusci.cli.cci.check_latest_version")
+    @mock.patch("cumulusci.cli.cci.CliRuntime")
+    @mock.patch("cumulusci.cli.cci.cli")
+    @mock.patch("pdb.post_mortem")
+    @mock.patch("sys.exit")
+    def test_main__debug(
+        self, sys_exit, post_mortem, cli, CliRuntime, check_latest_version, init_logger
+    ):
+        cli.side_effect = Exception
+
+        cci.main(["cci", "--debug"])
+
+        check_latest_version.assert_called_once()
+        init_logger.assert_called_once_with(log_requests=True)
+        CliRuntime.assert_called_once()
+        cli.assert_called_once()
+        post_mortem.assert_called_once()
+        sys_exit.assert_called_once()
+
     def test_cli(self):
         run_click_command(cci.cli)
 
@@ -144,6 +177,20 @@ class TestCCI(unittest.TestCase):
     def test_version(self, echo):
         run_click_command(cci.version)
         assert cumulusci.__version__ in echo.call_args_list[1][0][0]
+
+    @mock.patch(
+        "cumulusci.cli.cci.get_latest_final_version",
+        mock.Mock(return_value=pkg_resources.parse_version("100")),
+    )
+    @mock.patch("click.echo")
+    def test_version__latest(self, echo):
+        with mock.patch(
+            "cumulusci.cli.cci.get_latest_final_version", cci.get_installed_version
+        ):
+            run_click_command(cci.version)
+        assert (
+            "You have the latest version of CumulusCI." in echo.call_args_list[-2][0][0]
+        )
 
     @mock.patch("code.interact")
     def test_shell(self, interact):
@@ -171,6 +218,9 @@ class TestCCI(unittest.TestCase):
         with self.assertRaises(click.UsageError):
             cci.validate_project_name("with spaces")
 
+    def test_validate_project_name__valid(self):
+        assert cci.validate_project_name("valid") == "valid"
+
     @mock.patch("cumulusci.cli.cci.click")
     def test_project_init(self, click):
         with temporary_dir():
@@ -192,7 +242,11 @@ class TestCCI(unittest.TestCase):
             )
             click.confirm.side_effect = (True, True)  # is managed?  # extending?
 
-            run_click_command(cci.project_init)
+            runtime = CliRuntime(
+                config={"project": {"test": {"name_match": "%_TEST%"}}},
+                load_keychain=False,
+            )
+            run_click_command(cci.project_init, runtime=runtime)
 
             # Make sure expected files/dirs were created
             self.assertEqual(
@@ -289,6 +343,14 @@ class TestCCI(unittest.TestCase):
         run_click_command(cci.project_info, runtime=runtime)
 
         echo.assert_called_once_with("\x1b[1mtest:\x1b[0m test")
+
+    def test_project_info__outside_project(self):
+        runtime = mock.Mock()
+        runtime.project_config = None
+        runtime.project_config_error = NotInProject()
+        with temporary_dir():
+            with self.assertRaises(NotInProject):
+                run_click_command(cci.project_info, runtime=runtime)
 
     def test_project_dependencies(self):
         out = []
@@ -680,7 +742,7 @@ class TestCCI(unittest.TestCase):
     def test_org_list(self, cli_tbl):
         runtime = mock.Mock()
         runtime.global_config.cli__plain_output = None
-        runtime.project_config.keychain.list_orgs.return_value = [
+        runtime.keychain.list_orgs.return_value = [
             "test0",
             "test1",
             "test2",
@@ -689,7 +751,7 @@ class TestCCI(unittest.TestCase):
             "test5",
             "test6",
         ]
-        runtime.project_config.keychain.get_org.side_effect = [
+        runtime.keychain.get_org.side_effect = [
             ScratchOrgConfig(
                 {
                     "default": True,
@@ -860,6 +922,26 @@ class TestCCI(unittest.TestCase):
             "test", "dev", 7, set_password=False
         )
         runtime.keychain.set_default_org.assert_called_with("test")
+
+    def test_org_scratch__not_default(self):
+        runtime = mock.Mock()
+        runtime.project_config.orgs__scratch = {"dev": {"orgName": "Dev"}}
+
+        run_click_command(
+            cci.org_scratch,
+            runtime=runtime,
+            config_name="dev",
+            org_name="test",
+            default=False,
+            devhub="hub",
+            days=7,
+            no_password=True,
+        )
+
+        runtime.check_org_overwrite.assert_called_once()
+        runtime.keychain.create_scratch_org.assert_called_with(
+            "test", "dev", 7, set_password=False
+        )
 
     def test_org_scratch_no_configs(self):
         runtime = mock.Mock()

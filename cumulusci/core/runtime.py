@@ -1,3 +1,4 @@
+from abc import abstractmethod
 import sys
 
 from cumulusci.core.config import BaseGlobalConfig, BaseProjectConfig
@@ -33,6 +34,7 @@ class BaseCumulusCI(object):
         klass = self.get_global_config_class()
         return klass or self.global_config_class
 
+    @abstractmethod
     def get_global_config_class(self):
         return None
 
@@ -41,6 +43,7 @@ class BaseCumulusCI(object):
         klass = self.get_project_config_class()
         return klass or self.project_config_class
 
+    @abstractmethod
     def get_project_config_class(self):
         return None
 
@@ -49,6 +52,7 @@ class BaseCumulusCI(object):
         klass = self.get_keychain_class()
         return klass or self.keychain_class
 
+    @abstractmethod
     def get_keychain_class(self):
         return None
 
@@ -56,6 +60,7 @@ class BaseCumulusCI(object):
     def keychain_key(self):
         return self.get_keychain_key()
 
+    @abstractmethod
     def get_keychain_key(self):
         return None
 
