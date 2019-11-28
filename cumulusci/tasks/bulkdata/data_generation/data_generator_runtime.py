@@ -148,7 +148,13 @@ class Context:
         }
 
     def field_funcs(self):
-        funcs = {name: partial(func, self) for name, func in template_funcs.items()}
+        def curry(func):
+            rc = partial(func, self)
+            if hasattr(func, "lazy"):
+                rc.lazy = func.lazy
+            return rc
+
+        funcs = {name: curry(func) for name, func in template_funcs.items()}
         return {**funcs}
 
     def executable_blocks(self):
@@ -170,11 +176,12 @@ class DynamicEvaluator:
 
 
 def evaluate_function(func, args, kwargs, context):
-    args = [arg.render(context) if hasattr(arg, "render") else arg for arg in args]
-    kwargs = {
-        name: arg.render(context) if hasattr(arg, "render") else arg
-        for name, arg in kwargs.items()
-    }
+    if not hasattr(func, "lazy"):
+        args = [arg.render(context) if hasattr(arg, "render") else arg for arg in args]
+        kwargs = {
+            name: arg.render(context) if hasattr(arg, "render") else arg
+            for name, arg in kwargs.items()
+        }
     value = func(*args, **kwargs)
     return value
 
@@ -202,7 +209,10 @@ class ObjectRow:
         self._values = values
 
     def __getattr__(self, name):
-        return self._values[name]
+        try:
+            return self._values[name]
+        except KeyError:
+            raise AttributeError(name)
 
     def __str__(self):
         return str(self.id)
