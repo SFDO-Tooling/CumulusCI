@@ -45,6 +45,7 @@ class OutputStream(ABC):
             microsecond=x.microsecond,
             tzinfo=x.tzinfo,
         ),
+        type(None): noop,
     }
 
     def create_or_validate_tables(self, tables):
@@ -66,7 +67,8 @@ class OutputStream(ABC):
             encoder = self.encoders.get(type(field_value))
             if not encoder:
                 raise TypeError(
-                    f"No encoder found for {type(field_value)} in {self.__class__.__name__}"
+                    f"No encoder found for {type(field_value)} in {self.__class__.__name__} "
+                    f"for {field_name}, {field_value} in {sourcetable}"
                 )
             return encoder(field_value)
 
