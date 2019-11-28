@@ -22,6 +22,16 @@ sample_yaml = Path(__file__).parent / "include_parent.yml"
 
 
 class TestSqlOutputStream(unittest.TestCase):
+    def sql_tester_helper(self, yaml, query):
+        with NamedTemporaryFile() as f:
+            url = f"sqlite:///{f.name}"
+            output_stream = SqlOutputStream.from_url(url, None)
+            generate(StringIO(yaml), 1, {}, output_stream)
+            output_stream.close()
+            engine = create_engine(url)
+            connection = engine.connect()
+            return list(connection.execute(query))
+
     def test_flushes(self):
         yaml = """
         - object: foo
@@ -70,15 +80,8 @@ class TestSqlOutputStream(unittest.TestCase):
             b: 2
             d: 4
         """
-        with NamedTemporaryFile() as f:
-            url = f"sqlite:///{f.name}"
-            output_stream = SqlOutputStream.from_url(url, None)
-            generate(StringIO(yaml), 1, {}, output_stream)
-            output_stream.close()
-
-            engine = create_engine(url)
-            connection = engine.connect()
-            result = connection.execute("select * from foo")
+        with NamedTemporaryFile():
+            result = self.sql_tester_helper(yaml, "select * from foo")
             assert tuple(dict(row) for row in result) == (
                 {"id": 1, "a": "1", "b": None, "c": "3", "d": None},
                 {"id": 2, "a": None, "b": "2", "c": None, "d": "4"},
@@ -95,12 +98,15 @@ class TestSqlOutputStream(unittest.TestCase):
                     start_date: 2000-02-02
                     end_date: 2010-01-01
         """
-        with NamedTemporaryFile() as f:
-            url = f"sqlite:///{f.name}"
-            output_stream = SqlOutputStream.from_url(url, None)
-            generate(StringIO(yaml), 1, {}, output_stream)
-            output_stream.close()
-        # FIXME: More tests here.
+        values = self.sql_tester_helper(yaml, "select * from foo")[0]
+        assert values["y2k"] == str(datetime.date(year=2000, month=1, day=1))
+        assert values["party"] == str(
+            datetime.datetime(
+                year=1999, month=12, day=31, hour=23, minute=59, second=59
+            )
+        )
+        assert len(values["randodate"].split("-")) == 3
+        assert values["randodate"].startswith("200")
 
 
 class TestJSONOutputStream(unittest.TestCase):
@@ -223,5 +229,3 @@ class TestCSVOutputStream(unittest.TestCase):
             output_stream = CSVOutputStream(f"csv://{t}/csvoutput")
             generate(StringIO(yaml), 1, {}, output_stream)
             output_stream.close()
-
-            # FIXME: More tests
