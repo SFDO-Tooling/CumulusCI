@@ -2,6 +2,7 @@ from abc import abstractmethod, ABC
 from datetime import date
 from .data_generator_runtime import Context, evaluate_function, fix_exception, ObjectRow
 from fastnumbers import fast_real
+from contextlib import contextmanager
 
 import jinja2
 
@@ -51,11 +52,23 @@ class ObjectTemplate:
 
     def generate_rows(self, storage, parent_context):
         """Generate several rows"""
+        rc = None
         context = Context(parent_context, self.tablename)
         count = self._evaluate_count(context)
-        for i in range(count):
-            rc = self._generate_row(storage, context)
+        with self.exception_handling(f"Cannot generate {self.name}"):
+            for i in range(count):
+                rc = self._generate_row(storage, context)
+
         return rc  # return last row
+
+    @contextmanager
+    def exception_handling(self, message):
+        try:
+            yield
+        except DataGenError:
+            raise
+        except Exception as e:
+            raise DataGenError(message, str(e), self.filename, self.line_num)
 
     def _evaluate_count(self, context):
         """Evaluate the count expression to an integer"""
@@ -70,6 +83,13 @@ class ObjectTemplate:
                     self.count_expr.filename,
                     self.count_expr.line_num,
                 ) from e
+
+    @property
+    def name(self):
+        name = self.tablename
+        if self.nickname:
+            name += f" (self.nickname)"
+        return name
 
     def _generate_row(self, storage, context):
         """Generate an individual row"""
@@ -99,12 +119,10 @@ class ObjectTemplate:
     def _generate_fields(self, context, row):
         """Generate all of the fields of a row"""
         for field in self.fields:
-            try:
+            with self.exception_handling(f"Problem rendering value"):
                 row[field.name] = field.generate_value(context)
                 self._check_type(field, row[field.name], context)
                 context.register_field(field.name, row[field.name])
-            except Exception as e:
-                raise fix_exception(f"Problem rendering value", self, e) from e
 
     def _check_type(self, field, generated_value, context):
         """Check the type of a field value"""
@@ -196,9 +214,13 @@ class StructuredValue(FieldDefinition):
             fieldname:
                 - reference:
                     foo
+            fieldname2:
                 - random_number:
                     min: 10
                     max: 20
+            fieldname3:
+                - reference:
+                    ...
 """
 
     def __init__(self, function_name, args, filename, line_num):
@@ -250,6 +272,11 @@ class StructuredValue(FieldDefinition):
             value = evaluate_function(func, self.args, self.kwargs, context)
 
         return value
+
+    def __repr__(self):
+        return (
+            f"<StructuredValue: {self.function_name} (*{self.args}, **{self.kwargs})>"
+        )
 
 
 class ReferenceValue(StructuredValue):
