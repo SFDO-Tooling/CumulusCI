@@ -39,7 +39,12 @@ class TestDataGeneratorRuntimeDom(unittest.TestCase):
         assert x == 15
 
     def test_structured_value(self):
-        definition = StructuredValue("random_choice", ["abc", "def"], "abc.yml", 10)
+        definition = StructuredValue(
+            "random_choice",
+            [SimpleValue("abc", "", 1), SimpleValue("def", "", 1)],
+            "abc.yml",
+            10,
+        )
         repr(definition)
         f = FieldFactory("field", definition, "abc.yml", 10)
         x = f.generate_value(Context(None, None))

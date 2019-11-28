@@ -25,3 +25,17 @@ class TestStructuredValues(unittest.TestCase):
         generate(StringIO(structured_values_with_templates), 1, {}, None)
         assert isinstance(write_row.mock_calls[0][1][1]["B"], int)
         assert 2 <= write_row.mock_calls[0][1][1]["B"] <= 8
+
+    @mock.patch(write_row_path)
+    def test_lazy_random_choice(self, write_row):
+        yaml = """
+        - object : A
+          fields:
+            b:
+                random_choice:
+                    - object: C
+                    - object: D
+                    - object: E
+        """
+        generate(StringIO(yaml), 1, {}, None)
+        assert len(write_row.mock_calls) == 2, write_row.mock_calls

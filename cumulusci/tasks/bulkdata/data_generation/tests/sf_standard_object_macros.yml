@@ -51,9 +51,15 @@
         max: 200
     StageName:
       random_choice:
-        Closed Won: 60%
-        In Progress: 20%
-        New: 20%
+        - choice:
+            probability: 60%
+            pick: Closed Won
+        - choice:
+            probability: 20%
+            pick: In Progress
+        - choice:
+            probability: 60%
+            pick: New
 
 - macro: SFStandardContact
   fields:

@@ -45,16 +45,23 @@
       fields:
         type:
           random_choice:
-            Wooden Shield: 50%
-            Simple Weapon: 50%
-
+            - choice:
+                probability: 50%
+                pick: Wooden Shield
+            - choice:
+                probability: 50%
+                pick: Simple Weapon
     Weapon:
       object: Equipment
       fields:
         type:
           random_choice:
-            Scimitar: 50%
-            Melee Weapon: 50%
+            - choice:
+                probability: 50%
+                pick: Scimitar
+            - choice:
+                probability: 50%
+                pick: Melee Weapon
 
     Armour:
       object: Equipment
@@ -71,8 +78,12 @@
       fields:
         type:
           random_choice:
-            Sprig of mistletoe: 50%
-            Totem: 50%
+            - choice:
+                probability: 50%
+                pick: Sprig of mistletoe
+            - choice:
+                probability: 50%
+                pick: Totem
 
 - object: Fighter
   count: <<num_fighters>>
@@ -116,32 +127,48 @@
       fields:
         type:
           random_choice:
-            Chain Mail: 50%
-            Leather Armor: 50%
+            - choice:
+                probability: 50%
+                pick: Sprig of mistletoe
+            - choice:
+                probability: 50%
+                pick: Totem
 
     MartialWeapon:
       object: Equipment
       fields:
         type:
           random_choice:
-            Weapon and Shield: 50%
-            Two Weapons: 50%
+            - choice:
+                probability: 50%
+                pick: Weapon and Shield
+            - choice:
+                probability: 50%
+                pick: Two Weapons
 
     LightWeapon:
       object: Equipment
       fields:
         type:
           random_choice:
-            Crossbow: 50%
-            Two Handaxes: 50%
+            - choice:
+                probability: 50%
+                pick: Crossbow
+            - choice:
+                probability: 50%
+                pick: Two Handaxes
 
     Pack:
       object: Equipment
       fields:
         type:
           random_choice:
-            Dungoneers: 50%
-            Explorers: 50%
+            - choice:
+                probability: 50%
+                pick: Dungoneers
+            - choice:
+                probability: 50%
+                pick: Explorers
 
 - object: Paladin
   fields:
@@ -184,32 +211,48 @@
       fields:
         type:
           random_choice:
-            Chain Mail: 50%
-            Leather Armor: 50%
+            - choice:
+                probability: 50%
+                pick: Chain Mail
+            - choice:
+                probability: 50%
+                pick: Leather Armor
 
     MartialWeapon:
       object: Equipment
       fields:
         type:
           random_choice:
-            Weapon and Shield: 50%
-            Two Weapons: 50%
+            - choice:
+                probability: 50%
+                pick: Weapon and Shield
+            - choice:
+                probability: 50%
+                pick: Two Weapons
 
     LightWeapon:
       object: Equipment
       fields:
         type:
           random_choice:
-            Crossbow: 50%
-            Two Handaxes: 50%
+            - choice:
+                probability: 50%
+                pick: Crossbow
+            - choice:
+                probability: 50%
+                pick: Two Handaxes
 
     Pack:
       object: Equipment
       fields:
         type:
           random_choice:
-            Dungoneers: 50%
-            Explorers: 50%
+            - choice:
+                probability: 50%
+                pick: Dungoneers
+            - choice:
+                probability: 50%
+                pick: Explorers
 # - object: Ranger
 
 # - object: Bard

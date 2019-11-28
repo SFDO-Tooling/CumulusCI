@@ -29,6 +29,66 @@ class TestTemplateFuncs(unittest.TestCase):
             mock.call("Person", {"id": 2, "parent": 1}),
         ]
 
+    @mock.patch(write_row_path)
+    def test_unweighted_random_choice_object(self, write_row):
+        yaml = """
+        - object : A
+          fields:
+            b:
+                random_choice:
+                  - object: C
+                  - object: D
+                  - object: E
+        """
+        generate(StringIO(yaml), 1, {}, None)
+        assert len(write_row.mock_calls) == 2, write_row.mock_calls
+        # TODO CHECK MORE
+
+    @mock.patch(write_row_path)
+    def test_weighted_random_choice(self, write_row):
+        yaml = """
+        - object : A
+          fields:
+            b:
+                random_choice:
+                    - choice:
+                        probability: 50%
+                        pick:
+                        - object: C
+                    - choice:
+                        probability: 40%
+                        pick:
+                        - object: D
+                    - choice:
+                        probability: 10%
+                        pick:
+                        - object: E
+        """
+        generate(StringIO(yaml), 1, {}, None)
+        assert len(write_row.mock_calls) == 2, write_row.mock_calls
+        # TODO CHECK MORE
+
+    # @mock.patch(write_row_path)
+    # def test_weighted_random_choice_objects(self, write_row):
+    #     yaml = """
+    #     - object : A
+    #       fields:
+    #         b:
+    #             random_choice:
+    #                 -
+    #                   - 50%
+    #                   - object: C
+    #                 -
+    #                   - 40%:
+    #                   - object: D
+    #                 -
+    #                   - 30%:
+    #                   - object: E
+    #     """
+    #     generate(StringIO(yaml), 1, {}, None)
+    #     assert len(write_row.mock_calls) == 2, write_row.mock_calls
+    #     # TODO CHECK MORE
+
 
 #
 #     @mock.patch(write_row_path)

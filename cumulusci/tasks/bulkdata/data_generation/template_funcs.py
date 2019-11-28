@@ -10,6 +10,11 @@ fake = Faker()
 # Python 3.6 is out of the support matrix.
 
 
+def lazy(func):
+    func.lazy = True
+    return func
+
+
 def choose(context, *values, on=None):
     if not on:
         on = context.counter_generator.get_value(context.current_table_name)
@@ -20,22 +25,35 @@ def random_number(context, min, max):
     return random.randint(min, max)
 
 
+def parse_weight_str(context, weight_value):
+    weight_str = weight_value.render(context)
+    if not weight_str.endswith("%"):
+        raise ValueError(f"random_choice weight should end in '%': {weight_str}")
+    return int(weight_str.rstrip("%"))
+
+
 def weighted_choice(choices):
-    options = list(choices.keys())
-    if any(choices.values()):
-        weights = [int(weight.strip("%")) for weight in choices.values()]
-    else:
-        weights = None
+    weights = [weight for weight, value in choices]
+    options = [value for weight, value in choices]
     return random.choices(options, weights, k=1)[0]
 
 
-def random_choice(context, *choices, **kwargs):
-    if hasattr(choices, "keys"):
-        return weighted_choice(choices)
-    elif kwargs:
-        return weighted_choice(kwargs)
+@lazy
+def random_choice(context, *choices):
+    if not choices:
+        raise ValueError("No choices supplied!")
+
+    if getattr(choices[0], "function_name", None) == "choice":
+        choices = [choice.render(context) for choice in choices]
+        return weighted_choice(choices).render(context)
     else:
-        return random.choice(choices)
+        return random.choice(choices).render(context)
+
+
+@lazy
+def choice_wrapper(context, probability, pick):
+    probability = parse_weight_str(context, probability)
+    return probability, pick
 
 
 def parse_date(d):
@@ -88,6 +106,7 @@ def counter(context, name):
 template_funcs = {
     "int": lambda context, number: int(number),
     "choose": choose,
+    "choice": choice_wrapper,
     "random_number": random_number,
     "random_choice": random_choice,
     "date_between": date_between,
