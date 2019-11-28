@@ -84,6 +84,24 @@ class TestSqlOutputStream(unittest.TestCase):
                 {"id": 2, "a": None, "b": "2", "c": None, "d": "4"},
             )
 
+    def test_dates(self):
+        yaml = """
+        - object: foo
+          fields:
+            y2k: <<date(year=2000, month=1, day=1)>>
+            party: <<datetime(year=1999, month=12, day=31, hour=23, minute=59, second=59)>>
+            randodate:
+                date_between:
+                    start_date: 2000-02-02
+                    end_date: 2010-01-01
+        """
+        with NamedTemporaryFile() as f:
+            url = f"sqlite:///{f.name}"
+            output_stream = SqlOutputStream.from_url(url, None)
+            generate(StringIO(yaml), 1, {}, output_stream)
+            output_stream.close()
+        # FIXME: More tests here.
+
 
 class TestJSONOutputStream(unittest.TestCase):
     def test_json_output_real(self):
@@ -189,3 +207,21 @@ class TestCSVOutputStream(unittest.TestCase):
             with open(Path(t) / "csvoutput" / "csvw_metadata.json") as f:
                 metadata = json.load(f)
                 assert {table["url"] for table in metadata["tables"]} == {"Account.csv"}
+
+    def test_dates(self):
+        yaml = """
+        - object: foo
+          fields:
+            y2k: <<date(year=2000, month=1, day=1)>>
+            party: <<datetime(year=1999, month=12, day=31, hour=23, minute=59, second=59)>>
+            randodate:
+                date_between:
+                    start_date: 2000-02-02
+                    end_date: 2010-01-01
+        """
+        with TemporaryDirectory() as t:
+            output_stream = CSVOutputStream(f"csv://{t}/csvoutput")
+            generate(StringIO(yaml), 1, {}, output_stream)
+            output_stream.close()
+
+            # FIXME: More tests

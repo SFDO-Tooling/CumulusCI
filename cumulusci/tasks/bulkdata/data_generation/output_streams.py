@@ -17,6 +17,7 @@ from cumulusci.tasks.bulkdata.base_generate_data_task import (
 )
 
 from cumulusci.tasks.bulkdata.data_generation.data_generator_runtime import ObjectRow
+from faker.utils.datetime_safe import date as fake_date, datetime as fake_datetime
 
 
 def noop(x):
@@ -33,6 +34,17 @@ class OutputStream(ABC):
         float: float,
         datetime.date: noop,
         datetime.datetime: noop,
+        fake_date: lambda x: datetime.date(year=x.year, month=x.month, day=x.day),
+        fake_datetime: lambda x: datetime.datetime(
+            year=x.year,
+            month=x.month,
+            day=x.day,
+            hour=x.hour,
+            minute=x.minute,
+            second=x.second,
+            microsecond=x.microsecond,
+            tzinfo=x.tzinfo,
+        ),
     }
 
     def create_or_validate_tables(self, tables):
@@ -140,7 +152,13 @@ class CSVOutputStream(OutputStream):
 
 
 class JSONOutputStream(OutputStream):
-    encoders = {**OutputStream.encoders, datetime.date: str, datetime.datetime: str}
+    encoders = {
+        **OutputStream.encoders,
+        datetime.date: str,
+        datetime.datetime: str,
+        fake_date: str,
+        fake_datetime: str,
+    }
 
     def __init__(self, file):
         assert file
