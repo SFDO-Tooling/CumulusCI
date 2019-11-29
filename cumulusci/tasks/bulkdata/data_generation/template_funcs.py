@@ -1,6 +1,7 @@
 import random
 from datetime import date, datetime
 from .data_gen_exceptions import DataGenError
+from typing import Callable
 
 from faker import Faker
 
@@ -10,7 +11,7 @@ fake = Faker()
 # Python 3.6 is out of the support matrix.
 
 
-def lazy(func):
+def lazy(func: Callable) -> Callable:
     func.lazy = True
     return func
 
@@ -21,11 +22,11 @@ def choose(context, *values, on=None):
     return values[(on - 1) % len(values)]
 
 
-def random_number(context, min, max):
+def random_number(context, min: int, max: int) -> int:
     return random.randint(min, max)
 
 
-def parse_weight_str(context, weight_value):
+def parse_weight_str(context, weight_value) -> int:
     weight_str = weight_value.render(context)
     if not weight_str.endswith("%"):
         raise ValueError(f"random_choice weight should end in '%': {weight_str}")

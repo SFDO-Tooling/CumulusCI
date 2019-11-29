@@ -1,8 +1,16 @@
 from abc import abstractmethod, ABC
-from datetime import date
-from .data_generator_runtime import Context, evaluate_function, fix_exception, ObjectRow
-from fastnumbers import fast_real
+from datetime import date, datetime
+from .data_generator_runtime import (
+    evaluate_function,
+    fix_exception,
+    ObjectRow,
+    RuntimeContext,
+)
 from contextlib import contextmanager
+from typing import Union, Dict
+from numbers import Number
+
+from fastnumbers import fast_real
 
 import jinja2
 
@@ -16,6 +24,8 @@ from .data_gen_exceptions import (
 # objects that represent the hierarchy of a data generator.
 # roughly similar to the YAML structure but with domain-specific objects
 
+FieldValue = Union[str, None, date, datetime, Number, ObjectRow, tuple]
+
 
 class FieldDefinition(ABC):
     """Base class for things that render fields
@@ -28,7 +38,7 @@ class FieldDefinition(ABC):
     """
 
     @abstractmethod
-    def render(self, context: Context):
+    def render(self, context: RuntimeContext) -> FieldValue:
         pass
 
 
@@ -62,13 +72,15 @@ class ObjectTemplate:
         self.fields = fields
         self.friends = friends
 
-    def render(self, context: Context):
+    def render(self, context: RuntimeContext) -> ObjectRow:
         return self.generate_rows(context.output_stream, context)
 
-    def generate_rows(self, storage, parent_context: Context):
+    def generate_rows(
+        self, storage, parent_context: RuntimeContext
+    ) -> Union[ObjectRow, None]:
         """Generate several rows"""
         rc = None
-        context = Context(parent_context, self.tablename)
+        context = RuntimeContext(parent_context, self.tablename)
         count = self._evaluate_count(context)
         with self.exception_handling(f"Cannot generate {self.name}"):
             for i in range(count):
@@ -77,15 +89,15 @@ class ObjectTemplate:
         return rc  # return last row
 
     @contextmanager
-    def exception_handling(self, message):
+    def exception_handling(self, message: str):
         try:
             yield
         except DataGenError:
             raise
         except Exception as e:
-            raise DataGenError(message, str(e), self.filename, self.line_num)
+            raise DataGenError(f"{message} : {str(e)}", self.filename, self.line_num)
 
-    def _evaluate_count(self, context: Context):
+    def _evaluate_count(self, context: RuntimeContext) -> int:
         """Evaluate the count expression to an integer"""
         if not self.count_expr:
             return 1
@@ -100,13 +112,13 @@ class ObjectTemplate:
                 ) from e
 
     @property
-    def name(self):
+    def name(self) -> str:
         name = self.tablename
         if self.nickname:
             name += f" (self.nickname)"
         return name
 
-    def _generate_row(self, storage, context: Context):
+    def _generate_row(self, storage, context: RuntimeContext) -> ObjectRow:
         """Generate an individual row"""
         context.incr()
         row = {"id": context.generate_id()}
@@ -131,7 +143,7 @@ class ObjectTemplate:
             childobj.generate_rows(storage, context)
         return sobj
 
-    def _generate_fields(self, context: Context, row: dict):
+    def _generate_fields(self, context: RuntimeContext, row: Dict) -> None:
         """Generate all of the fields of a row"""
         for field in self.fields:
             with self.exception_handling(f"Problem rendering value"):
@@ -139,7 +151,7 @@ class ObjectTemplate:
                 self._check_type(field, row[field.name], context)
                 context.register_field(field.name, row[field.name])
 
-    def _check_type(self, field, generated_value, context: Context):
+    def _check_type(self, field, generated_value, context: RuntimeContext):
         """Check the type of a field value"""
         allowed_types = (int, str, bool, date, float, type(None), ObjectRow)
         if not isinstance(generated_value, allowed_types):
@@ -149,7 +161,9 @@ class ObjectTemplate:
                 self.line_num,
             )
 
-    def register_row_intertable_references(self, row: dict, context: Context):
+    def register_row_intertable_references(
+        self, row: dict, context: RuntimeContext
+    ) -> None:
         """Before serializing we need to convert objects to flat ID integers."""
         for fieldname, fieldvalue in row.items():
             if isinstance(fieldvalue, ObjectRow):
@@ -188,7 +202,7 @@ class SimpleValue(FieldDefinition):
                 self._evaluator = False
         return self._evaluator
 
-    def render(self, context):
+    def render(self, context: RuntimeContext) -> FieldValue:
         """Render the value: rendering a template if necessary."""
         evaluator = self.evaluator(context)
         if evaluator:
@@ -237,7 +251,7 @@ class StructuredValue(FieldDefinition):
             self.args = [args]
             self.kwargs = {}
 
-    def render(self, context):
+    def render(self, context: RuntimeContext) -> FieldValue:
         if "." in self.function_name:
             objname, method, *rest = self.function_name.split(".")
             if rest:
@@ -300,7 +314,7 @@ class FieldFactory:
         self.line_num = line_num
         self.definition = definition
 
-    def generate_value(self, context):
+    def generate_value(self, context) -> FieldValue:
         try:
             return self.definition.render(context)
         except Exception as e:

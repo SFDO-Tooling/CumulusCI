@@ -86,11 +86,11 @@ class JinjaTemplateEvaluatorFactory:
             except jinja2.exceptions.TemplateSyntaxError as e:
                 raise DataGenSyntaxError(str(e), None, None) from e
         else:
-            return lambda context: definition
+            return lambda RuntimeRuntimeContext: definition
 
 
-class Context:
-    """Current context object. Context objects form a linked list-based stack"""
+class RuntimeContext:
+    """Current context object. RuntimeContext objects form a linked list-based stack"""
 
     current_id = None
     obj = None
@@ -108,7 +108,7 @@ class Context:
             self.globals = parent.globals
             self.output_stream = parent.output_stream
             self.options = {**self.parent.options}
-        else:  # root Context
+        else:  # root RuntimeContext
             self.counter_generator = CounterGenerator()
             self.globals = Globals()
             self.output_stream = output_stream
@@ -230,7 +230,7 @@ class ObjectRow:
 
 def output_batches(output_stream, factories, number, options):
     """Generate 'number' batches to 'output_stream' """
-    context = Context(None, None, output_stream, options)
+    context = RuntimeContext(None, None, output_stream, options)
     for i in range(0, number):
         for factory in factories:
             factory.generate_rows(output_stream, context)
