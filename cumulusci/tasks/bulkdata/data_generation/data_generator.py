@@ -1,9 +1,13 @@
 import warnings
+from typing import IO, Tuple, Mapping, List, Dict
 
 from cumulusci.tasks.bulkdata.data_generation.data_gen_exceptions import (
     DataGenNameError,
 )
-from cumulusci.tasks.bulkdata.data_generation.output_streams import DebugOutputStream
+from cumulusci.tasks.bulkdata.data_generation.output_streams import (
+    DebugOutputStream,
+    OutputStream,
+)
 from cumulusci.tasks.bulkdata.data_generation.parse_factory_yaml import parse_generator
 from cumulusci.tasks.bulkdata.data_generation.data_generator_runtime import (
     output_batches,
@@ -36,7 +40,7 @@ class ExecutionSummary:
         return self.intertable_dependencies, self.dom
 
 
-def merge_options(option_definitions, user_options):
+def merge_options(option_definitions: List, user_options: Mapping) -> Tuple[Dict, set]:
     """Merge/compare options specified by end-user to those declared in YAML file.
 
     Takes options passed in from the command line or a config file and
@@ -70,7 +74,12 @@ def merge_options(option_definitions, user_options):
     return options, extra_options
 
 
-def generate(open_yaml_file, count=1, cli_options=None, output_stream=None):
+def generate(
+    open_yaml_file: IO[str],
+    count: int = 1,
+    cli_options: dict = None,
+    output_stream: OutputStream = None,
+) -> ExecutionSummary:
     """The main entry point to the package for Python applications."""
     cli_options = cli_options or {}
 
