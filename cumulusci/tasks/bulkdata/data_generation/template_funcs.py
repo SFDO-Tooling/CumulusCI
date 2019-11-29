@@ -1,5 +1,7 @@
 import random
 from datetime import date, datetime
+import dateutil
+
 from .data_gen_exceptions import DataGenError
 from typing import Callable, Any
 
@@ -57,12 +59,11 @@ def choice_wrapper(context, probability, pick):
     return probability, pick
 
 
-def parse_date(d):
-    if isinstance(d, str):
-        try:
-            return date.fromisoformat(d)
-        except Exception:
-            pass
+def parse_date(d: object) -> str:
+    try:
+        return dateutil.parser.parse(d)
+    except Exception:
+        pass
 
 
 def date_(context, *, year, month, day):
