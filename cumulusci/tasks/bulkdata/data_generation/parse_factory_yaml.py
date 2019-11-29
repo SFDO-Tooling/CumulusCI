@@ -3,6 +3,7 @@ from datetime import date
 from contextlib import contextmanager
 from collections import namedtuple
 from pathlib import Path
+from typing import IO, List, Dict, Union, Tuple
 
 import yaml
 from yaml.composer import Composer
@@ -45,12 +46,12 @@ class TableInfo:
         self.friends = {}
         self._templates = []
 
-    def register(self, template):
+    def register(self, template: ObjectTemplate) -> None:
         self.fields.update({field.name: field for field in template.fields})
         self.friends.update({friend.tablename: friend for friend in template.friends})
         self._templates.append(template)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<TableInfo fields={list(self.fields.keys())} friends={list(self.friends.keys())} templates={len(self._templates)}>"
 
 
@@ -63,7 +64,7 @@ class ParseContext:
         self.options = []
         self.object_infos = {}
 
-    def line_num(self, obj=None):
+    def line_num(self, obj=None) -> Dict:
         if not obj:
             obj = self.current_parent_object
             assert obj
@@ -87,7 +88,7 @@ class ParseContext:
         return self.line_num(self.current_parent_object)
 
     @contextmanager
-    def change_current_parent_object(self, obj):
+    def change_current_parent_object(self, obj: Dict):
         _old_parsed_template = self.current_parent_object
         self.current_parent_object = obj
         try:
@@ -99,7 +100,7 @@ class ParseContext:
         finally:
             self.current_parent_object = _old_parsed_template
 
-    def register_object(self, template):
+    def register_object(self, template: ObjectTemplate) -> None:
         """Register templates for later use.
 
         We register templates so we can get a list of all fields that can
@@ -110,11 +111,13 @@ class ParseContext:
         table_info.register(template)
 
 
-def removeline_numbers(dct):
+def removeline_numbers(dct: Dict) -> Dict:
     return {i: dct[i] for i in dct if i != "__line__"}
 
 
-def parse_structured_value_args(args, context):
+def parse_structured_value_args(
+    args, context: ParseContext
+) -> Union[List, Dict, SimpleValue]:
     """Structured values can be dicts or lists containing simple values or further structure."""
     if isinstance(args, dict):
         with context.change_current_parent_object(args):
@@ -124,12 +127,17 @@ def parse_structured_value_args(args, context):
                 if name != "__line__"
             }
     elif isinstance(args, list):
-        return [parse_field_value(i, arg, context, False) for i, arg in enumerate(args)]
+        return [
+            parse_field_value(f"List element {i}", arg, context, False)
+            for i, arg in enumerate(args)
+        ]
     else:
         return parse_field_value("", args, context, False)
 
 
-def parse_structured_value(name, field, context):
+def parse_structured_value(
+    name: str, field: Dict, context: ParseContext
+) -> StructuredValue:
     """Parse something that might look like:
 
     {'choose': ['Option1', 'Option2', 'Option3', 'Option4'], '__line__': 9}
@@ -155,22 +163,20 @@ def parse_structured_value(name, field, context):
         return StructuredValue(function_name, args, **context.line_num(field))
 
 
-def parse_field_value(name, field, context, allow_structured_values=True):
+def parse_field_value(
+    name: str, field, context: ParseContext, allow_structured_values=True
+) -> Union[SimpleValue, StructuredValue, ObjectTemplate]:
     if field is None:
         raise DataGenSyntaxError(
             f"Field should not be empty: {name}", **context.line_num(field)
         )
     if isinstance(field, (str, Number, date)):
-        return SimpleValue(
-            field, **(context.line_num(field) or context.line_num(field))
-        )
+        return SimpleValue(field, **(context.line_num(field) or context.line_num()))
     elif isinstance(field, dict) and field.get("object"):
         with context.change_current_parent_object(field):
             return parse_object_template(field, context)
-
     elif isinstance(field, dict):
         return parse_structured_value(name, field, context)
-
     elif isinstance(field, list) and len(field) == 1 and isinstance(field[0], dict):
         # unwrap a list of a single item in this context because it is
         # a mistake and we can infer their real meaning
@@ -182,7 +188,7 @@ def parse_field_value(name, field, context, allow_structured_values=True):
         )
 
 
-def parse_field(name, definition, context):
+def parse_field(name: str, definition, context: ParseContext) -> FieldFactory:
     assert name, name
     if definition is None:
         raise DataGenSyntaxError(
@@ -195,7 +201,7 @@ def parse_field(name, definition, context):
     )
 
 
-def parse_fields(fields, context):
+def parse_fields(fields: Dict, context: ParseContext) -> List[FieldFactory]:
     with context.change_current_parent_object(fields):
         if not isinstance(fields, dict):
             raise DataGenSyntaxError(
@@ -209,38 +215,38 @@ def parse_fields(fields, context):
         ]
 
 
-def parse_friends(friends, context):
+def parse_friends(friends: List, context: ParseContext) -> List[ObjectTemplate]:
     return parse_object_template_list(friends, context)
 
 
-def parse_count_expression(yaml_sobj, sobj_def, context):
+def parse_count_expression(yaml_sobj: Dict, sobj_def: Dict, context: ParseContext):
     sobj_def["count_expr"] = parse_field_value("count", yaml_sobj["count"], context)
 
 
-def include_macro(name, context):
+def include_macro(name: str, context: ParseContext) -> List[FieldFactory]:
     macro = context.macros.get(name)
     if not macro:
         raise DataGenNameError(f"Cannot find macro named {name}", **context.line_num())
-    parsed_macro = parse_element(macro, "macro", {"fields": dict}, {}, context)
+    parsed_macro = parse_element(macro, "macro", {"fields": Dict}, {}, context)
     fields = parsed_macro.fields
     return parse_fields(fields, context)
 
 
-def parse_inclusions(yaml_sobj, fields, context):
+def parse_inclusions(yaml_sobj: Dict, fields: List, context: ParseContext) -> None:
     inclusions = [x.strip() for x in yaml_sobj.get("include", "").split(",")]
     inclusions = filter(None, inclusions)
     for inclusion in inclusions:
         fields.extend(include_macro(inclusion, context))
 
 
-def parse_object_template(yaml_sobj, context):
+def parse_object_template(yaml_sobj: Dict, context: ParseContext) -> ObjectTemplate:
     parsed_template = parse_element(
         yaml_sobj,
         "object",
         {},
         {
-            "fields": dict,
-            "friends": list,
+            "fields": Dict,
+            "friends": List,
             "include": str,
             "nickname": str,
             "count": (str, int, dict),
@@ -269,7 +275,9 @@ def parse_object_template(yaml_sobj, context):
         return new_template
 
 
-def parse_object_template_list(object_templates, context):
+def parse_object_template_list(
+    object_templates: List[dict], context: ParseContext
+) -> List[ObjectTemplate]:
     parsed_object_templates = []
     for obj in object_templates:
         assert isinstance(obj, dict), obj
@@ -279,7 +287,9 @@ def parse_object_template_list(object_templates, context):
     return parsed_object_templates
 
 
-def yaml_safe_load_withline_numbers(filestream, filename):
+def yaml_safe_load_with_line_numbers(
+    filestream: IO[str], filename: str
+) -> Tuple[object, Dict]:
     loader = yaml.SafeLoader(filestream)
     line_numbers = {}
 
@@ -314,7 +324,13 @@ class DictValuesAsAttrs:
     pass
 
 
-def parse_element(dct, element_type, mandatory_keys, optional_keys, context):
+def parse_element(
+    dct: Dict,
+    element_type: str,
+    mandatory_keys: Dict,
+    optional_keys: Dict,
+    context: ParseContext,
+) -> DictValuesAsAttrs:
     expected_keys = {
         **mandatory_keys,
         **optional_keys,
@@ -351,7 +367,9 @@ def parse_element(dct, element_type, mandatory_keys, optional_keys, context):
         return rc_obj
 
 
-def relpath_from_inclusion_element(inclusion, context):
+def relpath_from_inclusion_element(
+    inclusion: Dict, context: ParseContext
+) -> Tuple[Path, LineTracker]:
     # should be a two-element dict: {'include_file': 'foo.yml', "__line__": 5}
     inclusion_parsed = parse_element(inclusion, "include_file", {}, {}, context)
     relpath = inclusion_parsed.include_file
@@ -360,7 +378,9 @@ def relpath_from_inclusion_element(inclusion, context):
     return Path(relpath), linenum
 
 
-def parse_included_file(parent_path: Path, inclusion, context):
+def parse_included_file(
+    parent_path: Path, inclusion: Dict, context: ParseContext
+) -> List[Dict]:
     relpath, linenum = relpath_from_inclusion_element(inclusion, context)
     inclusion_path = parent_path.parent / relpath
     # someday add a check that we don't go outside of the project dir
@@ -373,7 +393,7 @@ def parse_included_file(parent_path: Path, inclusion, context):
         return incl_objects
 
 
-def parse_included_files(path, data, context):
+def parse_included_files(path: Path, data: List, context: ParseContext):
     file_inclusions = [obj for obj in data if obj.get("include_file")]
 
     templates = []
@@ -382,7 +402,7 @@ def parse_included_files(path, data, context):
     return templates
 
 
-def categorize_top_level_objects(data, context):
+def categorize_top_level_objects(data: List, context: ParseContext):
     """Look at all of the top-level declarations and categorize them"""
     top_level_collections = {
         "option": [],
@@ -413,7 +433,7 @@ def categorize_top_level_objects(data, context):
     return top_level_collections
 
 
-def parse_top_level_elements(path, data, context):
+def parse_top_level_elements(path: Path, data: List, context: ParseContext):
     top_level_objects = categorize_top_level_objects(data, context)
     templates = []
     templates.extend(parse_included_files(path, data, context))
@@ -423,13 +443,13 @@ def parse_top_level_elements(path, data, context):
     return templates
 
 
-def parse_file(stream, context: ParseContext):
+def parse_file(stream: IO[str], context: ParseContext) -> List[Dict]:
     stream_name = getattr(stream, "name", None)
     if stream_name:
         path = Path(stream.name).absolute()
     else:
-        path = "<stream>"
-    data, line_numbers = yaml_safe_load_withline_numbers(stream, str(path))
+        path = Path("<stream>")
+    data, line_numbers = yaml_safe_load_with_line_numbers(stream, str(path))
     context.line_numbers.update(line_numbers)
 
     if not isinstance(data, list):
@@ -444,7 +464,7 @@ def parse_file(stream, context: ParseContext):
     return templates
 
 
-def parse_generator(stream):
+def parse_generator(stream: IO[str]) -> ParseResult:
     context = ParseContext()
     objects = parse_file(stream, context)
     templates = parse_object_template_list(objects, context)

@@ -17,6 +17,21 @@ from .data_gen_exceptions import (
 # roughly similar to the YAML structure but with domain-specific objects
 
 
+class FieldDefinition(ABC):
+    """Base class for things that render fields
+
+    Abstract base class for everything that can fulfill the role of X in
+
+    - object: abc
+      fields:
+         fieldname: X
+    """
+
+    @abstractmethod
+    def render(self, context: Context):
+        pass
+
+
 class ObjectTemplate:
     """A factory that generates rows.
 
@@ -35,7 +50,7 @@ class ObjectTemplate:
         filename: str,
         line_num: int,
         nickname: str = None,
-        count_expr: str = None,  # counts can be dynamic so they are expressions
+        count_expr: FieldDefinition = None,  # counts can be dynamic so they are expressions
         fields: list = (),
         friends: list = (),
     ):
@@ -47,10 +62,10 @@ class ObjectTemplate:
         self.fields = fields
         self.friends = friends
 
-    def render(self, context):
+    def render(self, context: Context):
         return self.generate_rows(context.output_stream, context)
 
-    def generate_rows(self, storage, parent_context):
+    def generate_rows(self, storage, parent_context: Context):
         """Generate several rows"""
         rc = None
         context = Context(parent_context, self.tablename)
@@ -70,7 +85,7 @@ class ObjectTemplate:
         except Exception as e:
             raise DataGenError(message, str(e), self.filename, self.line_num)
 
-    def _evaluate_count(self, context):
+    def _evaluate_count(self, context: Context):
         """Evaluate the count expression to an integer"""
         if not self.count_expr:
             return 1
@@ -91,7 +106,7 @@ class ObjectTemplate:
             name += f" (self.nickname)"
         return name
 
-    def _generate_row(self, storage, context):
+    def _generate_row(self, storage, context: Context):
         """Generate an individual row"""
         context.incr()
         row = {"id": context.generate_id()}
@@ -116,7 +131,7 @@ class ObjectTemplate:
             childobj.generate_rows(storage, context)
         return sobj
 
-    def _generate_fields(self, context, row):
+    def _generate_fields(self, context: Context, row: dict):
         """Generate all of the fields of a row"""
         for field in self.fields:
             with self.exception_handling(f"Problem rendering value"):
@@ -124,7 +139,7 @@ class ObjectTemplate:
                 self._check_type(field, row[field.name], context)
                 context.register_field(field.name, row[field.name])
 
-    def _check_type(self, field, generated_value, context):
+    def _check_type(self, field, generated_value, context: Context):
         """Check the type of a field value"""
         allowed_types = (int, str, bool, date, float, type(None), ObjectRow)
         if not isinstance(generated_value, allowed_types):
@@ -134,28 +149,13 @@ class ObjectTemplate:
                 self.line_num,
             )
 
-    def register_row_intertable_references(self, row, context):
+    def register_row_intertable_references(self, row: dict, context: Context):
         """Before serializing we need to convert objects to flat ID integers."""
         for fieldname, fieldvalue in row.items():
             if isinstance(fieldvalue, ObjectRow):
                 context.register_intertable_reference(
                     self.tablename, fieldvalue._tablename, fieldname
                 )
-
-
-class FieldDefinition(ABC):
-    """Base class for things that render fields
-
-    Abstract base class for everything that can fulfill the role of X in
-
-    - object: abc
-      fields:
-         fieldname: X
-    """
-
-    @abstractmethod
-    def render(self, context):
-        pass
 
 
 class SimpleValue(FieldDefinition):
@@ -168,7 +168,7 @@ class SimpleValue(FieldDefinition):
          fieldname3: 42
     """
 
-    def __init__(self, definition: str, filename: str, line_num: int):
+    def __init__(self, definition: (str, int), filename: str, line_num: int):
         self.filename = filename
         self.line_num = line_num
         self.definition = definition
