@@ -6,18 +6,20 @@ import datetime
 from urllib.parse import urlparse
 from pathlib import Path
 from collections import namedtuple, defaultdict
+from typing import Dict, Union, Optional, Mapping, Callable
 
 from sqlalchemy import create_engine, MetaData, Column, Integer, Table, Unicode
 from sqlalchemy.ext.automap import automap_base
 from sqlalchemy.orm import create_session
+
+from faker.utils.datetime_safe import date as fake_date, datetime as fake_datetime
+
 from .data_gen_exceptions import DataGenError
 
-from cumulusci.tasks.bulkdata.base_generate_data_task import (
-    create_table as create_table_from_mapping,
-)
+from ..base_generate_data_task import create_table as create_table_from_mapping
 
-from cumulusci.tasks.bulkdata.data_generation.data_generator_runtime import ObjectRow
-from faker.utils.datetime_safe import date as fake_date, datetime as fake_datetime
+from .data_generator_runtime import ObjectRow
+from .parse_factory_yaml import TableInfo
 
 
 def noop(x):
@@ -28,7 +30,7 @@ class OutputStream(ABC):
     count = 1
     flush_limit = 1000
     commit_limit = 10000
-    encoders = {
+    encoders: Mapping[type, Callable] = {
         str: str,
         int: int,
         float: float,
@@ -48,11 +50,17 @@ class OutputStream(ABC):
         type(None): noop,
     }
 
-    def create_or_validate_tables(self, tables):
+    def create_or_validate_tables(self, tables: Dict[str, TableInfo]) -> None:
         pass
 
-    def flatten(self, sourcetable, fieldname, row, obj):
-        return obj.id
+    def flatten(
+        self,
+        sourcetable: str,
+        fieldname: str,
+        source_row_dict: Dict,
+        target_object_row: ObjectRow,
+    ) -> Union[str, int]:
+        return target_object_row.id
 
     def flush(self):
         pass
@@ -72,7 +80,7 @@ class OutputStream(ABC):
                 )
             return encoder(field_value)
 
-    def write_row(self, tablename, row_with_references):
+    def write_row(self, tablename: str, row_with_references: Dict) -> None:
         row_cleaned_up_and_flattened = {
             field_name: self.cleanup(
                 field_name, field_value, tablename, row_with_references
@@ -89,11 +97,11 @@ class OutputStream(ABC):
         self.count += 1
 
     @abstractmethod
-    def write_single_row(self, tablename, row):
+    def write_single_row(self, tablename: str, row: Dict) -> None:
         """Write a single row to the stream"""
         pass
 
-    def close(self):
+    def close(self) -> None:
         """Close any resources the stream opened.
 
         Do not close file handles which were passed in!
@@ -102,12 +110,18 @@ class OutputStream(ABC):
 
 
 class DebugOutputStream(OutputStream):
-    def write_single_row(self, tablename, row):
+    def write_single_row(self, tablename: str, row: Dict) -> None:
         values = ", ".join([f"{key}={value}" for key, value in row.items()])
         print(f"{tablename}({values})")
 
-    def flatten(self, sourcetable, fieldname, row, obj):
-        return f"{obj._tablename}({obj.id})"
+    def flatten(
+        self,
+        sourcetable: str,
+        fieldname: str,
+        source_row_dict: Dict,
+        target_object_row: ObjectRow,
+    ) -> Union[str, int]:
+        return f"{target_object_row._tablename}({target_object_row.id})"
 
 
 CSVContext = namedtuple("CSVContext", ["dictwriter", "file"])
@@ -128,16 +142,16 @@ class CSVOutputStream(OutputStream):
         writer.writeheader()
         return CSVContext(dictwriter=writer, file=file)
 
-    def create_or_validate_tables(self, tables):
+    def create_or_validate_tables(self, tables: Dict[str, TableInfo]) -> None:
         self.writers = {
             table_name: self.open_writer(table_name, table)
             for table_name, table in tables.items()
         }
 
-    def write_single_row(self, tablename, row):
+    def write_single_row(self, tablename: str, row: Dict) -> None:
         self.writers[tablename].dictwriter.writerow(row)
 
-    def close(self):
+    def close(self) -> None:
         for context in self.writers.values():
             context.file.close()
 
@@ -154,7 +168,7 @@ class CSVOutputStream(OutputStream):
 
 
 class JSONOutputStream(OutputStream):
-    encoders = {
+    encoders: Mapping[type, Callable] = {
         **OutputStream.encoders,
         datetime.date: str,
         datetime.datetime: str,
@@ -167,7 +181,7 @@ class JSONOutputStream(OutputStream):
         self.file = file
         self.first_row = True
 
-    def write_single_row(self, tablename, row):
+    def write_single_row(self, tablename: str, row: Dict) -> None:
         if self.first_row:
             self.file.write("[")
             self.first_row = False
@@ -176,7 +190,7 @@ class JSONOutputStream(OutputStream):
         values = {"_table": tablename, **row}
         self.file.write(json.dumps(values))
 
-    def close(self):
+    def close(self) -> None:
         self.file.write("]\n")
 
 
@@ -214,6 +228,12 @@ class FallbackDict(dict):
 class SqlOutputStream(OutputStream):
     mappings = None
 
+    def __init__(self):
+        self.mappings = None
+        self.buffered_rows = None
+        self.engine = None
+        self.table_info = None
+
     @classmethod
     def from_url(cls, db_url, mappings):
         self = cls()
@@ -239,7 +259,7 @@ class SqlOutputStream(OutputStream):
         self.metadata = MetaData()
         self.metadata.bind = self.engine
 
-    def write_single_row(self, tablename, row):
+    def write_single_row(self, tablename: str, row: Dict) -> None:
         # cache the value for later insert
         self.buffered_rows[tablename].append(row)
 
@@ -258,11 +278,11 @@ class SqlOutputStream(OutputStream):
         self.flush()
         self.session.commit()
 
-    def close(self):
+    def close(self) -> None:
         self.commit()
         self.session.close()
 
-    def create_or_validate_tables(self, tables):
+    def create_or_validate_tables(self, tables: Dict[str, TableInfo]) -> None:
         if self.mappings:
             _validate_fields(self.mappings, tables)
             for mapping in self.mappings.values():
@@ -318,7 +338,13 @@ class GraphvizOutputStream(OutputStream):
 
         self.file = file
 
-    def flatten(self, sourcetable, fieldname, source_row_dict, target_object_row):
+    def flatten(
+        self,
+        sourcetable: str,
+        fieldname: str,
+        source_row_dict: Dict,
+        target_object_row: ObjectRow,
+    ) -> Union[str, int]:
         source_node_name = self.generate_node_name(
             sourcetable, source_row_dict.get("name"), source_row_dict.get("id")
         )
@@ -330,18 +356,20 @@ class GraphvizOutputStream(OutputStream):
         self.G.add_edge(
             source_node_name, target_node_name, fieldname, label=f"    {fieldname}     "
         )
-        return target_object_row
+        return ""
 
-    def generate_node_name(self, tablename, rowname, id):
+    def generate_node_name(
+        self, tablename: str, rowname, id: Optional[int] = None
+    ) -> str:
         rowname = rowname or ""
         separator = ", " if rowname else ""
         return f"{tablename}({id}{separator}{rowname})"
 
-    def write_single_row(self, tablename, row):
+    def write_single_row(self, tablename: str, row: Dict) -> None:
         node_name = self.generate_node_name(tablename, row.get("name"), row["id"])
         self.G.add_node(node_name)
 
-    def close(self):
+    def close(self) -> None:
         self.file.write(self.G.string())
 
 
@@ -350,7 +378,7 @@ class ImageOutputStream(GraphvizOutputStream):
         self.format = format
         super().__init__(file)
 
-    def close(self):
+    def close(self) -> None:
         self.G.draw(path=self.file, prog="dot", format=self.format)
 
 
@@ -358,17 +386,17 @@ class MultiplexOutputStream(OutputStream):
     def __init__(self, outputstreams):
         self.outputstreams = outputstreams
 
-    def create_or_validate_tables(self, tables):
+    def create_or_validate_tables(self, tables: Dict[str, TableInfo]) -> None:
         for stream in self.outputstreams:
             stream.create_or_validate_tables(tables)
 
-    def write_row(self, tablename, row_with_references):
+    def write_row(self, tablename: str, row_with_references: Dict) -> None:
         for stream in self.outputstreams:
             stream.write_row(tablename, row_with_references)
 
-    def close(self):
+    def close(self) -> None:
         for stream in self.outputstreams:
             stream.close()
 
-    def write_single_row(self, tablename, row):
+    def write_single_row(self, tablename: str, row: Dict) -> None:
         return super().write_single_row(tablename, row)

@@ -3,7 +3,7 @@ from datetime import date
 from contextlib import contextmanager
 from collections import namedtuple
 from pathlib import Path
-from typing import IO, List, Dict, Union, Tuple
+from typing import IO, List, Dict, Union, Tuple, Any, Iterable
 
 import yaml
 from yaml.composer import Composer
@@ -117,7 +117,7 @@ def removeline_numbers(dct: Dict) -> Dict:
 
 def parse_structured_value_args(
     args, context: ParseContext
-) -> Union[List, Dict, SimpleValue]:
+) -> Union[List, Dict, SimpleValue, StructuredValue, ObjectTemplate]:
     """Structured values can be dicts or lists containing simple values or further structure."""
     if isinstance(args, dict):
         with context.change_current_parent_object(args):
@@ -233,14 +233,16 @@ def include_macro(name: str, context: ParseContext) -> List[FieldFactory]:
 
 
 def parse_inclusions(yaml_sobj: Dict, fields: List, context: ParseContext) -> None:
-    inclusions = [x.strip() for x in yaml_sobj.get("include", "").split(",")]
+    inclusions: Iterable[str] = [
+        x.strip() for x in yaml_sobj.get("include", "").split(",")
+    ]
     inclusions = filter(None, inclusions)
     for inclusion in inclusions:
         fields.extend(include_macro(inclusion, context))
 
 
 def parse_object_template(yaml_sobj: Dict, context: ParseContext) -> ObjectTemplate:
-    parsed_template = parse_element(
+    parsed_template: Any = parse_element(
         yaml_sobj,
         "object",
         {},
@@ -258,6 +260,7 @@ def parse_object_template(yaml_sobj: Dict, context: ParseContext) -> ObjectTempl
     with context.change_current_parent_object(yaml_sobj):
         sobj_def = {}
         sobj_def["tablename"] = parsed_template.object
+        fields: List
         sobj_def["fields"] = fields = []
         parse_inclusions(yaml_sobj, fields, context)
         fields.extend(parse_fields(parsed_template.fields or {}, context))
@@ -291,7 +294,7 @@ def yaml_safe_load_with_line_numbers(
     filestream: IO[str], filename: str
 ) -> Tuple[object, Dict]:
     loader = yaml.SafeLoader(filestream)
-    line_numbers = {}
+    line_numbers: Dict[Any, LineTracker] = {}
 
     def compose_node(parent, index):
         # the line number where the previous token has ended (plus empty lines)
@@ -314,9 +317,9 @@ def yaml_safe_load_with_line_numbers(
             line_numbers[key] = SHARED_OBJECT
         return scalar
 
-    loader.compose_node = compose_node
-    loader.construct_mapping = construct_mapping
-    loader.construct_scalar = construct_scalar
+    loader.compose_node = compose_node  # type: ignore
+    loader.construct_mapping = construct_mapping  # type: ignore
+    loader.construct_scalar = construct_scalar  # type: ignore
     return loader.get_single_data(), line_numbers
 
 
@@ -330,14 +333,14 @@ def parse_element(
     mandatory_keys: Dict,
     optional_keys: Dict,
     context: ParseContext,
-) -> DictValuesAsAttrs:
+) -> Any:
     expected_keys = {
         **mandatory_keys,
         **optional_keys,
         "__line__": LineTracker,
         element_type: str,
     }
-    rc_obj = DictValuesAsAttrs()
+    rc_obj: Any = DictValuesAsAttrs()
     rc_obj.line_num = dct["__line__"]
     with context.change_current_parent_object(dct):
         for key in dct:
@@ -371,7 +374,7 @@ def relpath_from_inclusion_element(
     inclusion: Dict, context: ParseContext
 ) -> Tuple[Path, LineTracker]:
     # should be a two-element dict: {'include_file': 'foo.yml', "__line__": 5}
-    inclusion_parsed = parse_element(inclusion, "include_file", {}, {}, context)
+    inclusion_parsed: Any = parse_element(inclusion, "include_file", {}, {}, context)
     relpath = inclusion_parsed.include_file
     linenum = inclusion_parsed.line_num or LineTracker("unknown", -1)
     assert not relpath.startswith("/")  # only relative paths
@@ -404,7 +407,7 @@ def parse_included_files(path: Path, data: List, context: ParseContext):
 
 def categorize_top_level_objects(data: List, context: ParseContext):
     """Look at all of the top-level declarations and categorize them"""
-    top_level_collections = {
+    top_level_collections: Dict = {
         "option": [],
         "include_file": [],
         "macro": [],
@@ -435,7 +438,7 @@ def categorize_top_level_objects(data: List, context: ParseContext):
 
 def parse_top_level_elements(path: Path, data: List, context: ParseContext):
     top_level_objects = categorize_top_level_objects(data, context)
-    templates = []
+    templates: List[ObjectTemplate] = []
     templates.extend(parse_included_files(path, data, context))
     context.options.extend(top_level_objects["option"])
     context.macros.update({obj["macro"]: obj for obj in top_level_objects["macro"]})

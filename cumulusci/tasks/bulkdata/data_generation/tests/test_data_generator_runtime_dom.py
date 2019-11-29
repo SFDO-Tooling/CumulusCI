@@ -9,7 +9,7 @@ from cumulusci.tasks.bulkdata.data_generation.data_generator_runtime_dom import 
 )
 from cumulusci.tasks.bulkdata.data_generation.output_streams import DebugOutputStream
 
-x = RuntimeContext(None, None)
+x = RuntimeContext(None, "Foo")
 line = {"filename": "abc.yml", "line_num": 42}
 
 
@@ -19,7 +19,7 @@ class TestDataGeneratorRuntimeDom(unittest.TestCase):
         repr(definition)
         f = FieldFactory("field", definition, "abc.yml", 10)
         repr(f)
-        x = f.generate_value(RuntimeContext(None, None))
+        x = f.generate_value(RuntimeContext(None, "Foo"))
         assert x == "abc"
 
     def test_field_factory_int(self):
@@ -27,7 +27,7 @@ class TestDataGeneratorRuntimeDom(unittest.TestCase):
         repr(definition)
         f = FieldFactory("field", definition, "abc.yml", 10)
         repr(f)
-        x = f.generate_value(RuntimeContext(None, None))
+        x = f.generate_value(RuntimeContext(None, "Foo"))
         assert x == 5
 
     def test_field_factory_calculation(self):
@@ -35,7 +35,7 @@ class TestDataGeneratorRuntimeDom(unittest.TestCase):
         repr(definition)
         f = FieldFactory("field", definition, "abc.yml", 10)
         repr(f)
-        x = f.generate_value(RuntimeContext(None, None))
+        x = f.generate_value(RuntimeContext(None, "foo"))
         assert x == 15
 
     def test_structured_value(self):
@@ -47,20 +47,20 @@ class TestDataGeneratorRuntimeDom(unittest.TestCase):
         )
         repr(definition)
         f = FieldFactory("field", definition, "abc.yml", 10)
-        x = f.generate_value(RuntimeContext(None, None))
+        x = f.generate_value(RuntimeContext(None, "Foo"))
         assert x in ["abc", "def"]
 
     def test_render_empty_object_template(self):
         o = ObjectTemplate("abcd", filename="abc.yml", line_num=10)
-        o.generate_rows(DebugOutputStream(), RuntimeContext(None, None))
+        o.generate_rows(DebugOutputStream(), RuntimeContext(None, "Foo"))
 
     def test_fail_render_object_template(self):
         o = ObjectTemplate("abcd", filename="abc.yml", line_num=10)
         with self.assertRaises(DataGenError):
-            o.generate_rows(None, RuntimeContext(None, None))
+            o.generate_rows(None, RuntimeContext(None, "Foo"))
 
     def test_fail_render_weird_type(self):
-        with self.assertRaises(DataGenError):
+        with self.assertRaises((DataGenError, TypeError)):
             o = ObjectTemplate(
                 "abcd",
                 filename="abc.yml",
@@ -73,7 +73,7 @@ class TestDataGeneratorRuntimeDom(unittest.TestCase):
                     )
                 ],
             )
-            o.generate_rows(DebugOutputStream(), RuntimeContext(None, None))
+            o.generate_rows(DebugOutputStream(), RuntimeContext(None, "Foo"))
 
     def test_fail_render_weird_template(self):
         with self.assertRaises(DataGenError):
@@ -89,26 +89,26 @@ class TestDataGeneratorRuntimeDom(unittest.TestCase):
                     )
                 ],
             )
-            o.generate_rows(DebugOutputStream(), RuntimeContext(None, None))
+            o.generate_rows(DebugOutputStream(), RuntimeContext(None, "Foo"))
 
     def test_structured_value_errors(self):
         with self.assertRaises(DataGenError) as e:
             StructuredValue("this.that.foo", [], **line).render(
-                RuntimeContext(None, None)
+                RuntimeContext(None, "Foo")
             )
         assert "only one" in str(e.exception)
 
         with self.assertRaises(DataGenError) as e:
-            StructuredValue("bar", [], **line).render(RuntimeContext(None, None))
+            StructuredValue("bar", [], **line).render(RuntimeContext(None, "Foo"))
         assert "Cannot find func" in str(e.exception)
         assert "bar" in str(e.exception)
 
         with self.assertRaises(DataGenError) as e:
-            StructuredValue("xyzzy.abc", [], **line).render(RuntimeContext(None, None))
+            StructuredValue("xyzzy.abc", [], **line).render(RuntimeContext(None, "Foo"))
         assert "Cannot find defini" in str(e.exception)
         assert "xyzzy" in str(e.exception)
 
         with self.assertRaises(DataGenError) as e:
-            StructuredValue("this.abc", [], **line).render(RuntimeContext(None, None))
+            StructuredValue("this.abc", [], **line).render(RuntimeContext(None, "Foo"))
         assert "Cannot find defini" in str(e.exception)
         assert "abc" in str(e.exception)

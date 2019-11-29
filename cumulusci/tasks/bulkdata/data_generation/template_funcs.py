@@ -1,7 +1,7 @@
 import random
 from datetime import date, datetime
 from .data_gen_exceptions import DataGenError
-from typing import Callable
+from typing import Callable, Any
 
 from faker import Faker
 
@@ -11,7 +11,7 @@ fake = Faker()
 # Python 3.6 is out of the support matrix.
 
 
-def lazy(func: Callable) -> Callable:
+def lazy(func: Any) -> Callable:
     func.lazy = True
     return func
 

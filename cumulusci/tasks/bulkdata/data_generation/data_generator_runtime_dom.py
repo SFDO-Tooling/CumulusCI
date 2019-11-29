@@ -7,7 +7,7 @@ from .data_generator_runtime import (
     RuntimeContext,
 )
 from contextlib import contextmanager
-from typing import Union, Dict
+from typing import Union, Dict, Sequence, Optional, cast
 from numbers import Number
 
 from fastnumbers import fast_real
@@ -23,8 +23,9 @@ from .data_gen_exceptions import (
 
 # objects that represent the hierarchy of a data generator.
 # roughly similar to the YAML structure but with domain-specific objects
-
-FieldValue = Union[str, None, date, datetime, Number, ObjectRow, tuple]
+Scalar = Union[str, Number, date, datetime]
+FieldValue = Union[None, Scalar, ObjectRow, tuple]
+Definition = Union["ObjectTemplate", "SimpleValue", "StructuredValue"]
 
 
 class FieldDefinition(ABC):
@@ -36,6 +37,11 @@ class FieldDefinition(ABC):
       fields:
          fieldname: X
     """
+
+    def __init__(self):
+        self.definition = None
+        self.filename = None
+        self.line_num = None
 
     @abstractmethod
     def render(self, context: RuntimeContext) -> FieldValue:
@@ -61,8 +67,8 @@ class ObjectTemplate:
         line_num: int,
         nickname: str = None,
         count_expr: FieldDefinition = None,  # counts can be dynamic so they are expressions
-        fields: list = (),
-        friends: list = (),
+        fields: Sequence = (),
+        friends: Sequence = (),
     ):
         self.tablename = tablename
         self.nickname = nickname
@@ -72,12 +78,12 @@ class ObjectTemplate:
         self.fields = fields
         self.friends = friends
 
-    def render(self, context: RuntimeContext) -> ObjectRow:
+    def render(self, context: RuntimeContext) -> Optional[ObjectRow]:
         return self.generate_rows(context.output_stream, context)
 
     def generate_rows(
         self, storage, parent_context: RuntimeContext
-    ) -> Union[ObjectRow, None]:
+    ) -> Optional[ObjectRow]:
         """Generate several rows"""
         rc = None
         context = RuntimeContext(parent_context, self.tablename)
@@ -103,7 +109,7 @@ class ObjectTemplate:
             return 1
         else:
             try:
-                return int(float(self.count_expr.render(context)))
+                return int(float(cast(str, self.count_expr.render(context))))
             except (ValueError, TypeError) as e:
                 raise DataGenValueError(
                     f"Cannot evaluate {self.count_expr.definition} as number",
@@ -182,10 +188,10 @@ class SimpleValue(FieldDefinition):
          fieldname3: 42
     """
 
-    def __init__(self, definition: (str, int), filename: str, line_num: int):
+    def __init__(self, definition: Scalar, filename: str, line_num: int):
         self.filename = filename
         self.line_num = line_num
-        self.definition = definition
+        self.definition: Scalar = definition
         assert isinstance(filename, str)
         assert isinstance(line_num, int), line_num
         self._evaluator = None
@@ -271,7 +277,9 @@ class StructuredValue(FieldDefinition):
             func = getattr(obj, method)
             if not func:
                 raise DataGenNameError(
-                    f"Cannot find definition for: {method} on {objname}"
+                    f"Cannot find definition for: {method} on {objname}",
+                    self.filename,
+                    self.line_num,
                 )
             value = evaluate_function(func, self.args, self.kwargs, context)
         else:
@@ -308,7 +316,7 @@ class FieldFactory:
         name: value   # this part
     """
 
-    def __init__(self, name: str, definition: object, filename: str, line_num: int):
+    def __init__(self, name: str, definition: Definition, filename: str, line_num: int):
         self.name = name
         self.filename = filename
         self.line_num = line_num

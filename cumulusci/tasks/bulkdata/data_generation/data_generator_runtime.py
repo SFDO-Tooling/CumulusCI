@@ -2,6 +2,8 @@ from collections import defaultdict, namedtuple
 from functools import partial
 from datetime import date
 
+from typing import Optional, Dict, List, Sequence, Mapping, Any
+
 import jinja2
 
 from cumulusci.core.template_utils import FakerTemplateLibrary, faker_template_library
@@ -19,7 +21,7 @@ class IdManager:
     def __init__(self):
         self.last_used_ids = defaultdict(lambda: 0)
 
-    def generate_id(self, table_name):
+    def generate_id(self, table_name: str) -> int:
         self.last_used_ids[table_name] += 1
         return self.last_used_ids[table_name]
 
@@ -30,10 +32,10 @@ class CounterGenerator:
     def __init__(self, parent=None):
         self.counters = defaultdict(lambda: 0)
 
-    def get_value(self, name):
+    def get_value(self, name: str):
         return self.counters[name]
 
-    def incr(self, name):
+    def incr(self, name: str):
         self.counters[name] += 1
 
 
@@ -51,7 +53,7 @@ class Globals:
         self.last_seen_obj_of_type = {}
         self.intertable_dependencies = set()
 
-    def register_object(self, obj, nickname=None):
+    def register_object(self, obj, nickname: str = None):
         """Register an object for lookup by object type and (optionally) Nickname"""
         if nickname:
             self.named_objects[nickname] = obj
@@ -62,7 +64,9 @@ class Globals:
         """The globally named objects"""
         return {**self.named_objects, **self.last_seen_obj_of_type}
 
-    def register_intertable_reference(self, table_name_from, table_name_to, fieldname):
+    def register_intertable_reference(
+        self, table_name_from: str, table_name_to: str, fieldname: str
+    ):
         self.intertable_dependencies.add(
             Dependency(table_name_from, table_name_to, fieldname)
         )
@@ -93,21 +97,29 @@ class RuntimeContext:
     """Current context object. RuntimeContext objects form a linked list-based stack"""
 
     current_id = None
-    obj = None
+    obj: Optional["ObjectRow"] = None
     today = date.today()
     template_evaluator_factory = JinjaTemplateEvaluatorFactory()
 
-    def __init__(self, parent, current_table_name, output_stream=None, options=None):
+    def __init__(
+        self,
+        parent: Optional["RuntimeContext"],
+        current_table_name: Optional[str],
+        output_stream=None,
+        options=None,
+    ):
         self.parent = parent
         self.current_table_name = current_table_name
         options = options or {}
-        self.field_values = {}
+        self.field_values: Dict[str, Any] = {}
 
         if parent:
-            self.counter_generator = CounterGenerator(parent.counter_generator)
-            self.globals = parent.globals
-            self.output_stream = parent.output_stream
-            self.options = {**self.parent.options}
+            self.counter_generator: CounterGenerator = CounterGenerator(
+                parent.counter_generator
+            )
+            self.globals: Globals = parent.globals
+            self.output_stream: Any = parent.output_stream
+            self.options: Dict = {**parent.options}
         else:  # root RuntimeContext
             self.counter_generator = CounterGenerator()
             self.globals = Globals()
@@ -132,6 +144,7 @@ class RuntimeContext:
         )
 
     def register_field(self, field_name, field_value):
+        """Register each field value to be ready to inject them into template"""
         self.field_values[field_name] = field_value
 
     def field_vars(self):
@@ -175,7 +188,7 @@ class DynamicEvaluator:
         return self.template.render(**context.field_vars(), **context.field_funcs())
 
 
-def evaluate_function(func, args, kwargs, context):
+def evaluate_function(func, args: Sequence, kwargs: Mapping, context):
     if not hasattr(func, "lazy"):
         args = [arg.render(context) if hasattr(arg, "render") else arg for arg in args]
         kwargs = {
@@ -228,7 +241,9 @@ class ObjectRow:
         return self.__dict__
 
 
-def output_batches(output_stream, factories, number, options):
+def output_batches(
+    output_stream, factories: List, number: int, options: Dict
+) -> Globals:
     """Generate 'number' batches to 'output_stream' """
     context = RuntimeContext(None, None, output_stream, options)
     for i in range(0, number):
