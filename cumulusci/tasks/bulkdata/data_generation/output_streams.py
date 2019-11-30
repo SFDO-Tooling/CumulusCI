@@ -11,6 +11,7 @@ from typing import Dict, Union, Optional, Mapping, Callable
 from sqlalchemy import create_engine, MetaData, Column, Integer, Table, Unicode
 from sqlalchemy.ext.automap import automap_base
 from sqlalchemy.orm import create_session
+from sqlalchemy.engine import Engine
 
 from faker.utils.datetime_safe import date as fake_date, datetime as fake_datetime
 
@@ -228,31 +229,27 @@ class FallbackDict(dict):
 class SqlOutputStream(OutputStream):
     mappings = None
 
-    def __init__(self):
+    def __init__(self, engine: Engine, mappings: Optional[Dict]):
         self.mappings = None
-        self.buffered_rows = None
+        self.buffered_rows = defaultdict(list)
         self.engine = None
-        self.table_info = None
+        self.table_info = {}
+        self.mappings = mappings
+        self.engine = engine
+        self._init_db()
 
     @classmethod
-    def from_url(cls, db_url, mappings):
-        self = cls()
-        self.mappings = mappings
-        self.engine = create_engine(db_url)
-        self.buffered_rows = defaultdict(list)
-        self.table_info = {}
-        self._init_db()
+    def from_url(cls, db_url: str, mappings: Optional[Dict] = None):
+        self = cls(create_engine(db_url), mappings)
         return self
 
     @classmethod
-    def from_connection(cls, session, engine, base):
-        self = cls()
+    def from_connection(
+        cls, session, engine: Engine, base, mappings: Optional[Dict] = None
+    ):
+        self = cls(engine, mappings)
         self.session = session
-        self.engine = engine
         self.base = base
-        self._init_db()
-        self.buffered_rows = defaultdict(list)
-
         return self
 
     def _init_db(self):

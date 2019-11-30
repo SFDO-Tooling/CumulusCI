@@ -57,23 +57,21 @@ class GenerateFromYaml(BaseGenerateDataTask):
         """Generate all of the data"""
         if mapping_file_path:
             with open(mapping_file_path, "r") as f:
-                mappings = yaml.safe_load(f)
+                self.mappings = yaml.safe_load(f)
         else:
-            mappings = []
-        session, engine, base = self.init_db(db_url, mappings)
+            self.mappings = []
+        session, engine, base = self.init_db(db_url, self.mappings)
         self.generate_data(session, engine, base, num_records, current_batch_num)
         session.commit()
         session.close()
 
     def generate_data(self, session, engine, base, num_records, current_batch_num):
-        output_stream = SqlOutputStream.from_connection(session, engine, base)
+        output_stream = SqlOutputStream.from_connection(
+            session, engine, base, self.mappings
+        )
         with open(self.yaml_file) as open_yaml_file:
             summary = generate(
-                open_yaml_file,
-                self.num_records,
-                self.vars,
-                output_stream,
-                self.mapping_file,
+                open_yaml_file, self.num_records, self.vars, output_stream
             )
             output_stream.close()
             if self.generate_mapping_file:
