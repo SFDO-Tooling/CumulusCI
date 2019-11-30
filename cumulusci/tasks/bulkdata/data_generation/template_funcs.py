@@ -3,7 +3,7 @@ from datetime import date, datetime
 import dateutil
 
 from .data_gen_exceptions import DataGenError
-from typing import Callable, Any
+from typing import Callable, Any, Optional, Union
 
 from faker import Faker
 
@@ -59,14 +59,16 @@ def choice_wrapper(context, probability, pick):
     return probability, pick
 
 
-def parse_date(d: object) -> str:
+def parse_date(d: object) -> Optional[datetime]:
     try:
         return dateutil.parser.parse(d)
     except Exception:
         pass
 
 
-def date_(context, *, year, month, day):
+def date_(
+    context, *, year: Union[str, int], month: Union[str, int], day: Union[str, int]
+):
     return date(year, month, day)
 
 
