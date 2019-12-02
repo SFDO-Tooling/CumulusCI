@@ -13,3 +13,5 @@ class TestGenerateFromYamlTask(unittest.TestCase):
 
         cc_task = create_task(GenerateFromYaml, task_options)
         cc_task()
+
+    # FIXME: more tests
