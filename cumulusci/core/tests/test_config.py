@@ -1087,28 +1087,32 @@ class TestOrgConfig(unittest.TestCase):
         self.assertEqual(False, config.is_sandbox)
         self.assertIsNotNone(config.organization_sobject)
 
-    @mock.patch("cumulusci.core.config.OrgConfig._fetch_community_info")
-    def test_community_info(self, mock_fetch):
+    @responses.activate
+    def test_get_community_info__cached(self):
         """Verify that get_community_info returns data from the cache"""
         config = OrgConfig({}, "test")
         config._community_info_cache = {"Kōkua": {"name": "Kōkua"}}
         info = config.get_community_info("Kōkua")
         self.assertEqual(info["name"], "Kōkua")
-        mock_fetch.assert_not_called()
 
-    @mock.patch("cumulusci.core.config.OrgConfig._fetch_community_info")
-    def test_community_info_auto_refresh_cache(self, mock_fetch):
+    @responses.activate
+    def test_get_community_info__fetch_if_not_in_cache(self):
         """Verify that the internal cache is automatically refreshed
 
         The cache should be refreshed automatically if the requested community
         is not in the cache.
         """
-        mock_fetch.return_value = {"Kōkua": {"name": "Kōkua"}}
+        responses.add(
+            "GET",
+            "https://test/services/data/v45.0/connect/communities",
+            json={"communities": [{"name": "Kōkua"}]},
+        )
 
-        config = OrgConfig({}, "test")
+        config = OrgConfig(
+            {"instance_url": "https://test", "access_token": "TOKEN"}, "test"
+        )
         config._community_info_cache = {}
         info = config.get_community_info("Kōkua")
-        mock_fetch.assert_called()
         self.assertEqual(info["name"], "Kōkua")
 
     @mock.patch("cumulusci.core.config.OrgConfig._fetch_community_info")

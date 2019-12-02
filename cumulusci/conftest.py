@@ -24,7 +24,7 @@ class MockHttpResponse(mock.Mock):
         self.msg = HTTPMessage(io.BytesIO())
         self.closed = True
 
-    def read(self):
+    def read(self):  # pragma: no cover
         return b""
 
     def isclosed(self):

@@ -129,23 +129,9 @@ class StepSpec(object):
         skipstr = ""
         if self.skip:
             skipstr = "!SKIP! "
-        # XXX include project source name
         return (
             f"<{skipstr}StepSpec {self.step_num}:{self.task_name} {self.task_config}>"
         )
-
-    @property
-    def for_display(self):
-        """ Step details formatted for logging output. """
-        skip = ""
-        if self.skip:
-            skip = " [SKIP]"
-        result = f"{self.step_num}: {self.path}{skip}"
-
-        description = self.task_config.get("description")
-        if description:
-            result += f": {description}"
-        return result
 
 
 StepResult = namedtuple(

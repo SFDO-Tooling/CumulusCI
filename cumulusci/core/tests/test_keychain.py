@@ -364,6 +364,12 @@ class TestBaseEncryptedProjectKeychain(ProjectKeychainTestMixin):
         self.assertEqual(config.__class__, BaseConfig)
         self.assertEqual(config.config, {})
 
+    # def test_decrypt_config__py2_bytes(self):
+    #     keychain = self.keychain_class(self.project_config, self.key)
+    #     s =
+    #     config = keychain._decrypt_config(BaseConfig, s)
+    #     assert config["tést"] == "ünicode"
+
     def test_validate_key__not_set(self):
         with self.assertRaises(KeychainKeyNotFound):
             self.keychain_class(self.project_config, None)
