@@ -59,7 +59,7 @@ class GenerateFromYaml(BaseGenerateDataTask):
             with open(mapping_file_path, "r") as f:
                 self.mappings = yaml.safe_load(f)
         else:
-            self.mappings = []
+            self.mappings = {}
         session, engine, base = self.init_db(db_url, self.mappings)
         self.generate_data(session, engine, base, num_records, current_batch_num)
         session.commit()
