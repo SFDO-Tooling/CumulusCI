@@ -26,19 +26,6 @@ class IdManager:
         return self.last_used_ids[table_name]
 
 
-class CounterGenerator:
-    """Generate counters to allow users to make unique text and number fields."""
-
-    def __init__(self, parent=None):
-        self.counters = defaultdict(lambda: 0)
-
-    def get_value(self, name: str):
-        return self.counters[name]
-
-    def incr(self, name: str):
-        self.counters[name] += 1
-
-
 Dependency = namedtuple(
     "Dependency", ["table_name_from", "table_name_to", "field_name"]
 )
@@ -100,6 +87,7 @@ class RuntimeContext:
     obj: Optional["ObjectRow"] = None
     today = date.today()
     template_evaluator_factory = JinjaTemplateEvaluatorFactory()
+    counter = 0
 
     def __init__(
         self,
@@ -114,21 +102,17 @@ class RuntimeContext:
         self.field_values: Dict[str, Any] = {}
 
         if parent:
-            self.counter_generator: CounterGenerator = CounterGenerator(
-                parent.counter_generator
-            )
             self.globals: Globals = parent.globals
             self.output_stream: Any = parent.output_stream
             self.options: Dict = {**parent.options}
         else:  # root RuntimeContext
-            self.counter_generator = CounterGenerator()
             self.globals = Globals()
             self.output_stream = output_stream
             self.options = {**options}
 
     def incr(self):
         """Increments the local counter for an object type"""
-        self.counter_generator.incr(self.current_table_name)
+        self.counter += 1
 
     def generate_id(self):
         self.current_id = self.globals.id_manager.generate_id(self.current_table_name)
@@ -154,7 +138,7 @@ class RuntimeContext:
             "today": self.today,
             "fake": faker_template_library,
             "fake_i18n": lambda locale: FakerTemplateLibrary(locale),
-            "number": self.counter_generator.get_value(self.current_table_name),
+            "number": self.counter,
             **self.options,
             **self.globals.object_names,
             **self.field_values,
