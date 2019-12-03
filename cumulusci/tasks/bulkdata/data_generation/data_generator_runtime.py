@@ -83,7 +83,7 @@ class JinjaTemplateEvaluatorFactory:
 
     def get_evaluator(self, definition: str):
         assert isinstance(definition, str), definition
-        if "<<" in definition:
+        if "<<" in definition or "<%" in definition:
             try:
                 template = self.template_compiler.from_string(definition)
                 return DynamicEvaluator(template)
