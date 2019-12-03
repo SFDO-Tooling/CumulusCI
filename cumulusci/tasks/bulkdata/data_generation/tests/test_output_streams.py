@@ -108,6 +108,15 @@ class TestSqlOutputStream(unittest.TestCase):
         assert len(values["randodate"].split("-")) == 3
         assert values["randodate"].startswith("200")
 
+    def test_bool(self):
+        yaml = """
+        - object: foo
+          fields:
+            is_true: True
+            """
+        values = self.sql_tester_helper(yaml, "select * from foo")[0]
+        assert str(values["is_true"]) == "1"
+
 
 class TestJSONOutputStream(unittest.TestCase):
     def test_json_output_real(self):

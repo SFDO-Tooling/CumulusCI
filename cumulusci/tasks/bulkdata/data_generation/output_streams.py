@@ -49,6 +49,7 @@ class OutputStream(ABC):
             tzinfo=x.tzinfo,
         ),
         type(None): noop,
+        bool: int,
     }
 
     def create_or_validate_tables(self, tables: Dict[str, TableInfo]) -> None:
