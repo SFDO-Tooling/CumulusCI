@@ -3,7 +3,7 @@ from datetime import date, datetime
 import dateutil
 
 from .data_gen_exceptions import DataGenError
-from typing import Callable, Any, Optional, Union
+from typing import Callable, Any, Optional, Union, List, Tuple
 
 from faker import Faker
 
@@ -14,28 +14,33 @@ fake = Faker()
 
 
 def lazy(func: Any) -> Callable:
+    """A lazy function is one that expects its arguments to be unparsed"""
     func.lazy = True
     return func
 
 
-def choose(context, *values, on=None):
-    if not on:
-        on = context.counter_generator.get_value(context.current_table_name)
-    return values[(on - 1) % len(values)]
-
-
 def random_number(context, min: int, max: int) -> int:
+    """Pick a random number between min and max like Python's randint."""
     return random.randint(min, max)
 
 
 def parse_weight_str(context, weight_value) -> int:
+    """For constructs like:
+
+    - choice:
+        probability: 60%
+        pick: Closed Won
+
+    Convert the 60% to just 60.
+    """
     weight_str = weight_value.render(context)
-    if not weight_str.endswith("%"):
-        raise ValueError(f"random_choice weight should end in '%': {weight_str}")
-    return int(weight_str.rstrip("%"))
+    if isinstance(weight_str, str):
+        weight_str = weight_str.rstrip("%")
+    return int(weight_str)
 
 
-def weighted_choice(choices):
+def weighted_choice(choices: List[Tuple[int, object]]):
+    """Selects from choices based on their weights"""
     weights = [weight for weight, value in choices]
     options = [value for weight, value in choices]
     return random.choices(options, weights, k=1)[0]
@@ -43,18 +48,48 @@ def weighted_choice(choices):
 
 @lazy
 def random_choice(context, *choices):
+    """Template helper for random choices.
+
+    Supports structures like this:
+
+    random_choice:
+        - a
+        - b
+        - <<c>>
+
+    Or like this:
+
+    random_choice:
+        - choice:
+            pick: A
+            probability: 50%
+        - choice:
+            pick: A
+            probability: 50%
+
+    Probabilities are really just weights and don't need to
+    add up to 100.
+
+    Pick-items can have arbitrary internal complexity.
+
+    Pick-items are lazily evaluated.
+    """
     if not choices:
         raise ValueError("No choices supplied!")
 
     if getattr(choices[0], "function_name", None) == "choice":
         choices = [choice.render(context) for choice in choices]
-        return weighted_choice(choices).render(context)
+        rc = weighted_choice(choices)
     else:
-        return random.choice(choices).render(context)
+        rc = random.choice(choices)
+    if hasattr(rc, "render"):
+        rc = rc.render(context)
+    return rc
 
 
 @lazy
 def choice_wrapper(context, probability, pick):
+    """Supports the choice: sub-items in random_choice"""
     probability = parse_weight_str(context, probability)
     return probability, pick
 
@@ -69,14 +104,17 @@ def parse_date(d: object) -> Optional[datetime]:
 def date_(
     context, *, year: Union[str, int], month: Union[str, int], day: Union[str, int]
 ):
+    """A YAML-embeddable function to construct a date from strings or integers"""
     return date(year, month, day)
 
 
 def datetime_(context, *, year, month, day, hour=0, minute=0, second=0, microsecond=0):
+    """A YAML-embeddable function to construct a datetime from strings or integers"""
     return datetime(year, month, day, hour, minute, second, microsecond)
 
 
 def date_between(context, start_date, end_date):
+    """A YAML-embeddable function to pick a date between two ranges"""
     start_date = parse_date(start_date) or start_date
     end_date = parse_date(end_date) or end_date
     try:
@@ -88,6 +126,7 @@ def date_between(context, start_date, end_date):
 
 
 def reference(context, x):
+    """YAML-embeddable function to Reference another object."""
     if hasattr(x, "id"):  # reference to an object with an id
         target = x
     elif isinstance(x, str):  # name of an object
@@ -103,19 +142,13 @@ def reference(context, x):
     return target
 
 
-def counter(context, name):
-    return context.counter_generator.get_value(name)
-
-
 template_funcs = {
     "int": lambda context, number: int(number),
-    "choose": choose,
     "choice": choice_wrapper,
     "random_number": random_number,
     "random_choice": random_choice,
     "date_between": date_between,
     "reference": reference,
-    "counter": counter,
     "date": date_,
     "datetime": datetime_,
 }
