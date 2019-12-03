@@ -12,6 +12,6 @@
   count: 5
   fields:
     gender:
-      choose:
+      random_choice:
         - Rather Not Say
         - Non-binary

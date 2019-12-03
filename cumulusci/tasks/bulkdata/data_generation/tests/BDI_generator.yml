@@ -7,7 +7,7 @@
       CO1_Number__c: 1
       CO1_Date__c: <<today>>
       CO1_Picklist__c: 
-        choose: 
+        random_choice: 
           - Option1
           - Option2
           - Option3
@@ -27,7 +27,7 @@
       CO3_Phone__c: 123
       CO3_Date__c: <<today>>
       CO3_Picklist__c: 
-        choose: 
+        random_choice: 
             - Option1
             - Option2
             - Option3
