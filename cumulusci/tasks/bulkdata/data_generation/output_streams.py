@@ -82,12 +82,17 @@ class OutputStream(ABC):
                 )
             return encoder(field_value)
 
+    def should_output(self, value):
+        return not value.startswith("__")
+
     def write_row(self, tablename: str, row_with_references: Dict) -> None:
+        should_output = self.should_output
         row_cleaned_up_and_flattened = {
             field_name: self.cleanup(
                 field_name, field_value, tablename, row_with_references
             )
             for field_name, field_value in row_with_references.items()
+            if should_output(field_name)
         }
         self.write_single_row(tablename, row_cleaned_up_and_flattened)
         if self.count % self.flush_limit == 0:
