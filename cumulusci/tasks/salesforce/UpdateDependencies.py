@@ -13,7 +13,7 @@ from cumulusci.tasks.salesforce import BaseSalesforceMetadataApiTask
 from cumulusci.utils import download_extract_zip
 from cumulusci.utils import download_extract_github
 from cumulusci.utils import inject_namespace
-from cumulusci.utils import zip_strip_namespace
+from cumulusci.utils import strip_namespace
 from cumulusci.utils import process_text_in_zipfile
 from cumulusci.utils import tokenize_namespace
 
@@ -286,10 +286,13 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
                             "{}__".format(dependency["namespace_strip"])
                         )
                     )
-                    package_zip = zip_strip_namespace(
+                    package_zip = process_text_in_zipfile(
                         package_zip,
-                        namespace=dependency["namespace_strip"],
-                        logger=self.logger,
+                        functools.partial(
+                            strip_namespace,
+                            namespace=dependency["namespace_strip"],
+                            logger=self.logger,
+                        ),
                     )
 
                 package_zip = ZipfilePackageZipBuilder(package_zip)()

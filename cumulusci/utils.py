@@ -292,34 +292,24 @@ def inject_namespace(
     return name, content
 
 
-def zip_strip_namespace(zip_src, namespace, logger=None):
+def strip_namespace(name, content, namespace, logger=None):
     """ Given a namespace, strips 'namespace__' from all files and filenames
         in the zip
     """
     namespace_prefix = "{}__".format(namespace)
     lightning_namespace = "{}:".format(namespace)
-    zip_dest = zipfile.ZipFile(io.BytesIO(), "w", zipfile.ZIP_DEFLATED)
-    for name in zip_src.namelist():
-        orig_content = zip_src.read(name)
-        try:
-            orig_content = orig_content.decode("utf-8")
-        except UnicodeDecodeError:
-            # if we cannot decode the content, don't try and replace it.
-            new_content = orig_content
-        else:
-            new_content = orig_content.replace(namespace_prefix, "")
-            new_content = new_content.replace(lightning_namespace, "c:")
-            name = name.replace(namespace_prefix, "")  # not...sure...this..gets...used
-            if orig_content != new_content and logger:
-                logger.info(
-                    "  {file_name}: removed {namespace}".format(
-                        file_name=name, namespace=namespace_prefix
-                    )
-                )
-            new_content = new_content.encode("utf-8")
 
-        zip_dest.writestr(name, new_content)
-    return zip_dest
+    orig_content = content
+    new_content = orig_content.replace(namespace_prefix, "")
+    new_content = new_content.replace(lightning_namespace, "c:")
+    name = name.replace(namespace_prefix, "")
+    if orig_content != new_content and logger:
+        logger.info(
+            "  {file_name}: removed {namespace}".format(
+                file_name=name, namespace=namespace_prefix
+            )
+        )
+    return name, new_content
 
 
 def tokenize_namespace(name, content, namespace, logger=None):

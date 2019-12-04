@@ -13,7 +13,7 @@ from cumulusci.utils import cd
 from cumulusci.utils import temporary_dir
 from cumulusci.utils import zip_clean_metaxml
 from cumulusci.utils import inject_namespace
-from cumulusci.utils import zip_strip_namespace
+from cumulusci.utils import strip_namespace
 from cumulusci.utils import tokenize_namespace
 from cumulusci.utils import process_text_in_zipfile
 
@@ -144,8 +144,13 @@ class Deploy(BaseSalesforceMetadataApiTask):
                 ),
             )
         if self.options.get("namespace_strip"):
-            zipf = zip_strip_namespace(
-                zipf, self.options["namespace_strip"], logger=self.logger
+            zipf = process_text_in_zipfile(
+                zipf,
+                functools.partial(
+                    strip_namespace,
+                    namespace=self.options["namespace_strip"],
+                    logger=self.logger,
+                ),
             )
         return zipf
 

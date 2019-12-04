@@ -280,7 +280,7 @@ class RetrieveChanges(ListChanges, BaseSalesforceApiTask):
                 )
 
                 # Reinject namespace tokens
-                if self.options("namespace_tokenize"):
+                if self.options.get("namespace_tokenize"):
                     process_text_in_directory(
                         target,
                         functools.partial(

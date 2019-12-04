@@ -3,7 +3,7 @@ import functools
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.tasks.salesforce import BaseSalesforceMetadataApiTask
 from cumulusci.utils import inject_namespace
-from cumulusci.utils import zip_strip_namespace
+from cumulusci.utils import strip_namespace
 from cumulusci.utils import process_text_in_zipfile
 from cumulusci.utils import tokenize_namespace
 
@@ -63,8 +63,13 @@ class BaseRetrieveMetadata(BaseSalesforceMetadataApiTask):
                 ),
             )
         if self.options.get("namespace_strip"):
-            src_zip = zip_strip_namespace(
-                src_zip, self.options["namespace_strip"], logger=self.logger
+            src_zip = process_text_in_zipfile(
+                src_zip,
+                functools.partial(
+                    strip_namespace,
+                    namespace=self.options["namespace_strip"],
+                    logger=self.logger,
+                ),
             )
         return src_zip
 
