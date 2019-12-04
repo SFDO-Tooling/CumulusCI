@@ -2,3 +2,7 @@
 omit = */tests/*
     cumulusci/files/*
 source=cumulusci
+[report]
+exclude_lines =
+    pragma: no cover
+    @abstract

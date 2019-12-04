@@ -18,10 +18,10 @@ def init_logger(log_requests=False):
     """ Initialize the logger """
 
     logger = logging.getLogger(__name__.split(".")[0])
-    for handler in logger.handlers:  # pragma: nocover
+    for handler in logger.handlers:  # pragma: no cover
         logger.removeHandler(handler)
 
-    if os.name == "nt" and "colorama" in sys.modules:  # pragma: nocover
+    if os.name == "nt" and "colorama" in sys.modules:  # pragma: no cover
         colorama.init()
 
     formatter = coloredlogs.ColoredFormatter(fmt="%(asctime)s: %(message)s")

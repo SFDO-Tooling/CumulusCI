@@ -5,6 +5,7 @@ import tempfile
 import unittest
 
 import responses
+from copy import deepcopy
 from unittest.mock import MagicMock, patch
 from simple_salesforce import SalesforceGeneralError
 
@@ -19,6 +20,7 @@ from cumulusci.core.exceptions import (
     ApexCompilationException,
     ApexException,
     ApexTestException,
+    CumulusCIException,
     SalesforceException,
     TaskOptionsError,
 )
@@ -80,72 +82,78 @@ class TestRunApexTests(MockLoggerMixin, unittest.TestCase):
             responses.GET, url, match_querystring=True, json=expected_response
         )
 
-    def _get_mock_test_query_results(self, outcome, message):
-        return {
-            "done": True,
-            "records": [
-                {
-                    "attributes": {
-                        "type": "ApexTestResult",
-                        "url": "/services/data/v40.0/tooling/sobjects/ApexTestResult/07M41000009gbT3EAI",
-                    },
-                    "ApexClass": {
+    def _get_mock_test_query_results(self, methodnames, outcomes, messages):
+        record_base = {
+            "attributes": {
+                "type": "ApexTestResult",
+                "url": "/services/data/v40.0/tooling/sobjects/ApexTestResult/07M41000009gbT3EAI",
+            },
+            "ApexClass": {
+                "attributes": {
+                    "type": "ApexClass",
+                    "url": "/services/data/v40.0/tooling/sobjects/ApexClass/01p4100000Fu4Z0AAJ",
+                },
+                "Name": "EP_TaskDependency_TEST",
+            },
+            "ApexClassId": 1,
+            "ApexLogId": 1,
+            "TestTimestamp": "2017-07-18T20:36:04.000+0000",
+            "Id": "07M41000009gbT3EAI",
+            "Message": None,
+            "MethodName": None,
+            "Outcome": None,
+            "QueueItem": {
+                "attributes": {
+                    "type": "ApexTestQueueItem",
+                    "url": "/services/data/v40.0/tooling/sobjects/ApexTestQueueItem/70941000000q7VsAAI",
+                },
+                "Status": "Completed",
+                "ExtendedStatus": "(4/4)",
+            },
+            "RunTime": 1707,
+            "StackTrace": "1. ParentFunction\n2. ChildFunction",
+            "Status": "Completed",
+            "Name": "TestClass_TEST",
+            "ApexTestResults": {
+                "size": 1,
+                "totalSize": 1,
+                "done": True,
+                "queryLocator": None,
+                "entityTypeName": "ApexTestResultLimits",
+                "records": [
+                    {
                         "attributes": {
-                            "type": "ApexClass",
-                            "url": "/services/data/v40.0/tooling/sobjects/ApexClass/01p4100000Fu4Z0AAJ",
+                            "type": "ApexTestResultLimits",
+                            "url": "/services/data/v40.0/tooling/sobjects/ApexTestResultLimits/05n41000002Y7OQAA0",
                         },
-                        "Name": "EP_TaskDependency_TEST",
-                    },
-                    "ApexClassId": 1,
-                    "ApexLogId": 1,
-                    "TestTimestamp": "2017-07-18T20:36:04.000+0000",
-                    "Id": "07M41000009gbT3EAI",
-                    "Message": message,
-                    "MethodName": "TestMethod",
-                    "Outcome": outcome,
-                    "QueueItem": {
-                        "attributes": {
-                            "type": "ApexTestQueueItem",
-                            "url": "/services/data/v40.0/tooling/sobjects/ApexTestQueueItem/70941000000q7VsAAI",
-                        },
-                        "Status": "Completed",
-                        "ExtendedStatus": "(4/4)",
-                    },
-                    "RunTime": 1707,
-                    "StackTrace": "1. ParentFunction\n2. ChildFunction",
-                    "Status": "Completed",
-                    "Name": "TestClass_TEST",
-                    "ApexTestResults": {
-                        "size": 1,
-                        "totalSize": 1,
-                        "done": True,
-                        "queryLocator": None,
-                        "entityTypeName": "ApexTestResultLimits",
-                        "records": [
-                            {
-                                "attributes": {
-                                    "type": "ApexTestResultLimits",
-                                    "url": "/services/data/v40.0/tooling/sobjects/ApexTestResultLimits/05n41000002Y7OQAA0",
-                                },
-                                "Id": "05n41000002Y7OQAA0",
-                                "Callouts": 0,
-                                "AsyncCalls": 0,
-                                "DmlRows": 5,
-                                "Email": 0,
-                                "LimitContext": "SYNC",
-                                "LimitExceptions": None,
-                                "MobilePush": 0,
-                                "QueryRows": 20,
-                                "Sosl": 0,
-                                "Cpu": 471,
-                                "Dml": 4,
-                                "Soql": 5,
-                            }
-                        ],
-                    },
-                }
-            ],
+                        "Id": "05n41000002Y7OQAA0",
+                        "Callouts": 0,
+                        "AsyncCalls": 0,
+                        "DmlRows": 5,
+                        "Email": 0,
+                        "LimitContext": "SYNC",
+                        "LimitExceptions": None,
+                        "MobilePush": 0,
+                        "QueryRows": 20,
+                        "Sosl": 0,
+                        "Cpu": 471,
+                        "Dml": 4,
+                        "Soql": 5,
+                    }
+                ],
+            },
         }
+
+        return_value = {"done": True, "records": []}
+
+        for (method_name, outcome, message) in zip(methodnames, outcomes, messages):
+            this_result = deepcopy(record_base)
+            this_result["Message"] = message
+            this_result["Outcome"] = outcome
+            this_result["MethodName"] = method_name
+            return_value["records"].append(this_result)
+
+        return return_value
 
     def _get_mock_test_query_url(self, job_id):
         return (
@@ -155,15 +163,96 @@ class TestRunApexTests(MockLoggerMixin, unittest.TestCase):
             )
         )
 
+    def _get_mock_testqueueitem_status_query_url(self, job_id):
+        return (
+            self.base_tooling_url
+            + f"query/?q=SELECT+Id%2C+Status%2C+ExtendedStatus%2C+ApexClassId+FROM+ApexTestQueueItem+WHERE+ParentJobId+%3D+%27{job_id}%27+AND+Status+%3D+%27Failed%27"
+        )
+
     def _mock_get_test_results(
         self, outcome="Pass", message="Test Passed", job_id="JOB_ID1234567"
     ):
         url = self._get_mock_test_query_url(job_id)
 
-        expected_response = self._get_mock_test_query_results(outcome, message)
+        expected_response = self._get_mock_test_query_results(
+            ["TestMethod"], [outcome], [message]
+        )
         responses.add(
             responses.GET, url, match_querystring=True, json=expected_response
         )
+
+    def _mock_get_test_results_multiple(
+        self, method_names, outcomes, messages, job_id="JOB_ID1234567"
+    ):
+        url = self._get_mock_test_query_url(job_id)
+
+        expected_response = self._get_mock_test_query_results(
+            method_names, outcomes, messages
+        )
+        responses.add(
+            responses.GET, url, match_querystring=True, json=expected_response
+        )
+
+    def _mock_get_failed_test_classes(self, job_id="JOB_ID1234567"):
+        url = self._get_mock_testqueueitem_status_query_url(job_id)
+
+        responses.add(
+            responses.GET,
+            url,
+            match_querystring=True,
+            json={"totalSize": 0, "records": [], "done": True},
+        )
+
+    def _mock_get_failed_test_classes_failure(self, job_id="JOB_ID1234567"):
+        url = self._get_mock_testqueueitem_status_query_url(job_id)
+
+        responses.add(
+            responses.GET,
+            url,
+            match_querystring=True,
+            json={
+                "totalSize": 1,
+                "records": [
+                    {
+                        "Id": "0000000000000000",
+                        "ApexClassId": 1,
+                        "Status": "Failed",
+                        "ExtendedStatus": "Double-plus ungood",
+                    }
+                ],
+                "done": True,
+            },
+        )
+
+    def _mock_get_symboltable(self):
+        url = (
+            self.base_tooling_url
+            + "query/?q=SELECT+SymbolTable+FROM+ApexClass+WHERE+Name%3D%27TestClass_TEST%27"
+        )
+
+        responses.add(
+            responses.GET,
+            url,
+            json={
+                "records": [
+                    {
+                        "SymbolTable": {
+                            "methods": [
+                                {"name": "test1", "annotations": [{"name": "isTest"}]}
+                            ]
+                        }
+                    }
+                ]
+            },
+        )
+
+    def _mock_get_symboltable_failure(self):
+        url = (
+            self.base_tooling_url
+            + "query/?q=SELECT+SymbolTable+FROM+ApexClass+WHERE+Name%3D%27TestClass_TEST%27"
+        )
+
+        responses.add(responses.GET, url, json={"records": []})
 
     def _mock_tests_complete(self, job_id="JOB_ID1234567"):
         url = (
@@ -172,7 +261,11 @@ class TestRunApexTests(MockLoggerMixin, unittest.TestCase):
             + "ApexClassId+FROM+ApexTestQueueItem+WHERE+ParentJobId+%3D+%27"
             + "{}%27".format(job_id)
         )
-        expected_response = {"done": True, "records": [{"Status": "Completed"}]}
+        expected_response = {
+            "done": True,
+            "totalSize": 1,
+            "records": [{"Status": "Completed"}],
+        }
         responses.add(
             responses.GET, url, match_querystring=True, json=expected_response
         )
@@ -186,6 +279,7 @@ class TestRunApexTests(MockLoggerMixin, unittest.TestCase):
         )
         expected_response = {
             "done": True,
+            "totalSize": 1,
             "records": [{"Status": "Processing", "ApexClassId": 1}],
         }
         responses.add(
@@ -203,11 +297,12 @@ class TestRunApexTests(MockLoggerMixin, unittest.TestCase):
     def test_run_task(self):
         self._mock_apex_class_query()
         self._mock_run_tests()
+        self._mock_get_failed_test_classes()
         self._mock_tests_complete()
         self._mock_get_test_results()
         task = RunApexTests(self.project_config, self.task_config, self.org_config)
         task()
-        self.assertEqual(len(responses.calls), 4)
+        self.assertEqual(len(responses.calls), 5)
 
     @responses.activate
     def test_run_task__server_error(self):
@@ -221,6 +316,7 @@ class TestRunApexTests(MockLoggerMixin, unittest.TestCase):
     def test_run_task__failed(self):
         self._mock_apex_class_query()
         self._mock_run_tests()
+        self._mock_get_failed_test_classes()
         self._mock_tests_complete()
         self._mock_get_test_results("Fail")
         task = RunApexTests(self.project_config, self.task_config, self.org_config)
@@ -228,10 +324,36 @@ class TestRunApexTests(MockLoggerMixin, unittest.TestCase):
             task()
 
     @responses.activate
+    def test_run_task__failed_class_level(self):
+        self._mock_apex_class_query()
+        self._mock_run_tests()
+        self._mock_get_failed_test_classes_failure()
+        self._mock_tests_complete()
+        self._mock_get_test_results()
+        self._mock_get_symboltable()
+        task = RunApexTests(self.project_config, self.task_config, self.org_config)
+        with self.assertRaises(ApexTestException):
+            task()
+
+    @responses.activate
+    def test_run_task__failed_class_level_no_symboltable(self):
+        self._mock_apex_class_query()
+        self._mock_run_tests()
+        self._mock_get_failed_test_classes_failure()
+        self._mock_tests_complete()
+        self._mock_get_test_results()
+        self._mock_get_symboltable_failure()
+        task = RunApexTests(self.project_config, self.task_config, self.org_config)
+        with self.assertRaises(CumulusCIException):
+            task()
+
+    @responses.activate
     def test_run_task__retry_tests(self):
         self._mock_apex_class_query()
         self._mock_run_tests()
         self._mock_run_tests(body="JOBID_9999")
+        self._mock_get_failed_test_classes()
+        self._mock_get_failed_test_classes(job_id="JOBID_9999")
         self._mock_tests_complete()
         self._mock_tests_complete(job_id="JOBID_9999")
         self._mock_get_test_results("Fail", "UNABLE_TO_LOCK_ROW")
@@ -246,13 +368,50 @@ class TestRunApexTests(MockLoggerMixin, unittest.TestCase):
         }
         task = RunApexTests(self.project_config, task_config, self.org_config)
         task()
-        self.assertEqual(len(responses.calls), 7)
+        self.assertEqual(len(responses.calls), 9)
+
+    @responses.activate
+    def test_run_task__retry_tests_with_retry_always(self):
+        self._mock_apex_class_query()
+        self._mock_run_tests()
+        self._mock_run_tests(body="JOBID_9999")
+        self._mock_run_tests(body="JOBID_9990")
+        self._mock_get_failed_test_classes()
+        self._mock_get_failed_test_classes(job_id="JOBID_9999")
+        self._mock_get_failed_test_classes(job_id="JOBID_9990")
+        self._mock_tests_complete()
+        self._mock_tests_complete(job_id="JOBID_9999")
+        self._mock_tests_complete(job_id="JOBID_9990")
+        self._mock_get_test_results_multiple(
+            ["TestOne", "TestTwo"],
+            ["Fail", "Fail"],
+            ["UNABLE_TO_LOCK_ROW", "LimitException"],
+        )
+        self._mock_get_test_results_multiple(
+            ["TestOne"], ["Pass"], [""], job_id="JOBID_9999"
+        )
+        self._mock_get_test_results_multiple(
+            ["TestTwo"], ["Fail"], ["LimitException"], job_id="JOBID_9990"
+        )
+        task_config = TaskConfig()
+        task_config.config["options"] = {
+            "junit_output": "results_junit.xml",
+            "poll_interval": 1,
+            "test_name_match": "%_TEST",
+            "retry_failures": ["UNABLE_TO_LOCK_ROW"],
+            "retry_always": True,
+        }
+        task = RunApexTests(self.project_config, task_config, self.org_config)
+        with self.assertRaises(ApexTestException):
+            task()
 
     @responses.activate
     def test_run_task__retry_tests_fails(self):
         self._mock_apex_class_query()
         self._mock_run_tests()
         self._mock_run_tests(body="JOBID_9999")
+        self._mock_get_failed_test_classes()
+        self._mock_get_failed_test_classes(job_id="JOBID_9999")
         self._mock_tests_complete()
         self._mock_tests_complete(job_id="JOBID_9999")
         self._mock_get_test_results("Fail", "UNABLE_TO_LOCK_ROW")
@@ -274,6 +433,7 @@ class TestRunApexTests(MockLoggerMixin, unittest.TestCase):
         self._mock_apex_class_query()
         self._mock_run_tests()
         self._mock_tests_processing()
+        self._mock_get_failed_test_classes()
         self._mock_tests_complete()
         self._mock_get_test_results()
         task = RunApexTests(self.project_config, self.task_config, self.org_config)
@@ -319,15 +479,6 @@ class TestRunApexTests(MockLoggerMixin, unittest.TestCase):
                     "Message": "DUPLICATES_DETECTED",
                     "StackTrace": "test",
                     "Outcome": "Fail",
-                }
-            )
-        )
-        self.assertFalse(
-            task._is_retriable_failure(
-                {
-                    "Message": "UNABLE_TO_LOCK_ROW",
-                    "StackTrace": "test",
-                    "Outcome": "Pass",
                 }
             )
         )

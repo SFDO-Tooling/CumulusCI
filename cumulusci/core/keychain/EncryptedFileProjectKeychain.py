@@ -57,9 +57,9 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
 
     def _remove_org(self, name, global_org):
         if global_org:
-            full_path = os.path.join(self.config_local_dir, "{}.org".format(name))
+            full_path = os.path.join(self.config_local_dir, f"{name}.org")
         else:
-            full_path = os.path.join(self.project_local_dir, "{}.org".format(name))
+            full_path = os.path.join(self.project_local_dir, f"{name}.org")
         if not os.path.exists(full_path):
             kwargs = {"name": name}
             if not global_org:
@@ -79,31 +79,29 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
 
     def _set_encrypted_org(self, name, encrypted, global_org):
         if global_org:
-            filename = os.path.join(self.config_local_dir, "{}.org".format(name))
+            filename = os.path.join(self.config_local_dir, f"{name}.org")
         elif self.project_local_dir is None:
             return
         else:
-            filename = os.path.join(self.project_local_dir, "{}.org".format(name))
+            filename = os.path.join(self.project_local_dir, f"{name}.org")
         with open(filename, "wb") as f_org:
             f_org.write(encrypted)
 
     def _set_encrypted_service(self, name, encrypted, project):
         if project:
-            filename = os.path.join(self.project_local_dir, "{}.service".format(name))
+            filename = os.path.join(self.project_local_dir, f"{name}.service")
         else:
-            filename = os.path.join(self.config_local_dir, "{}.service".format(name))
+            filename = os.path.join(self.config_local_dir, f"{name}.service")
         with open(filename, "wb") as f_service:
             f_service.write(encrypted)
 
     def _raise_org_not_found(self, name):
         raise OrgNotFound(
-            "Org information could not be found. Expected to find encrypted file at {}/{}.org".format(
-                self.project_local_dir, name
-            )
+            f"Org information could not be found. Expected to find encrypted file at {self.project_local_dir}/{name}.org"
         )
 
     def _raise_service_not_configured(self, name):
         raise ServiceNotConfigured(
-            "'{}' service configuration could not be found. "
-            "Maybe you need to run: cci service connect {}".format(name, name)
+            f"'{name}' service configuration could not be found. "
+            f"Maybe you need to run: cci service connect {name}"
         )

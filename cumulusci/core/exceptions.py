@@ -77,7 +77,7 @@ class ConfigError(CumulusCIException):
         self.config_name = config_name
 
     def __str__(self):
-        return "{} for config {}".format(self.message, self.config_name)
+        return f"{self.message} for config {self.config_name}"
 
 
 class ConfigMergeError(ConfigError):
@@ -225,7 +225,7 @@ class ApexCompilationException(CumulusCIFailure):
 
     def __str__(self):
         line, problem = self.args
-        return "Apex compilation failed on line {}: {}".format(line, problem)
+        return f"Apex compilation failed on line {line}: {problem}"
 
 
 class ApexException(CumulusCIFailure):
@@ -234,7 +234,7 @@ class ApexException(CumulusCIFailure):
     def __str__(self):
         message, stacktrace = self.args
         stacktrace = "\n  ".join(stacktrace.splitlines())
-        return "Apex error: {}\n  Stacktrace:\n  {}".format(message, stacktrace)
+        return f"Apex error: {message}\n  Stacktrace:\n  {stacktrace}"
 
 
 class PushApiObjectNotFound(CumulusCIException):

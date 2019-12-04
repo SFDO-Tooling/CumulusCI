@@ -10,6 +10,7 @@ from cumulusci.core.sfdx import sfdx
 from cumulusci.core.config import FAILED_TO_CREATE_SCRATCH_ORG
 from cumulusci.core.config import OrgConfig
 from cumulusci.core.exceptions import ScratchOrgException
+from cumulusci.core.exceptions import ServiceNotConfigured
 
 nl = "\n"  # fstrings can't contain backslashes
 
@@ -173,9 +174,10 @@ class ScratchOrgConfig(OrgConfig):
             org_def_data = json.load(org_def)
             org_def_has_email = "adminEmail" in org_def_data
 
+        devhub = self._choose_devhub()
         options = {
             "config_file": self.config_file,
-            "devhub": f" --targetdevhubsername {self.devhub}" if self.devhub else "",
+            "devhub": f" --targetdevhubusername {devhub}" if devhub else "",
             "namespaced": " -n" if not self.namespaced else "",
             "days": f" --durationdays {self.days}" if self.days else "",
             "alias": sarge.shell_format(' -a "{0!s}"', self.sfdx_alias)
@@ -219,6 +221,22 @@ class ScratchOrgConfig(OrgConfig):
 
         # Flag that this org has been created
         self.config["created"] = True
+
+    def _choose_devhub(self):
+        """Determine which devhub to specify when calling sfdx, if any."""
+        # If a devhub was specified via `cci org scratch`, use it.
+        # (This will return None if "devhub" isn't set in the org config,
+        # in which case sfdx will use its defaultdevhubusername.)
+        devhub = self.devhub
+        if not devhub and self.keychain is not None:
+            # Otherwise see if one is configured via the "devhub" service
+            try:
+                devhub_service = self.keychain.get_service("devhub")
+            except ServiceNotConfigured:
+                pass
+            else:
+                devhub = devhub_service.username
+        return devhub
 
     def generate_password(self):
         """Generates an org password with the sfdx utility. """

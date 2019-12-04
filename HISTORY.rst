@@ -2,6 +2,56 @@
 History
 =======
 
+3.1.2 (2019-11-20)
+------------------
+
+Breaking changes:
+
+* We changed the default path for the mapping file created by the ``generate_dataset_mapping`` task to ``datasets/mapping.yml`` so that it matches the defaults for ``extract_dataset`` and ``load_dataset``
+
+* We changed the ``extract_dataset`` and ``load_dataset`` tasks to default to storing data in an SQL file, ``datasets/sample.sql``, instead of a binary SQLite database file.
+
+Changes:
+
+* ``run_tests`` can now detect and optionally retry two classes of concurrency issues with Apex unit tests. ``run_tests`` should always report an accurate total of test methods run, in parallel or serial mode.
+
+* Added the task ``generate_data_dictionary``. This task indexes the fields and objects created in each GitHub release for the project and generates a data dictionary in CSV format.
+
+* Added a ``devhub`` service. This can be used to switch a project to a non-default sfdx Dev Hub using ``cci service connect devhub --project``
+
+* Added a predefined ``qa`` scratch org. It uses the same scratch org definition file as the ``dev`` org, but makes it easier to spin up a second org for QA purposes without needing to first create it using ``cci org scratch``.
+
+* The ``database_url`` option for the ``extract_dataset`` and ``load_dataset`` tasks is no longer required. Either ``database_url`` or ``sql_path`` must be specified. If both are specified, the ``sql_path`` will be ignored.
+
+* Developers can now directly execute CumulusCI from the Python command line using ``python -m cumulusci`` or ``python cumulusci/__main__.py``
+
+Issues closed:
+
+* A problem with how ``run_tests`` performed Apex test retries when ``retry_always`` is set to True has been corrected.
+
+
+3.1.1 (2019-11-13)
+------------------
+
+New features:
+
+* After connecting an org with ``cci org connect``, the browser now shows the message
+  "Congratulations! Your authentication succeeded." instead of "OK"
+* External GitHub sources can now specify ``release: latest``, ``release: latest_beta``,
+  or ``release: previous`` instead of a commit, branch, or tag.
+* The ``execute_anon`` task has been revised to detect when a gack occurred during execution.
+
+Issues closed:
+
+* When importing a scratch org from sfdx using ``cci org import``, the org's ``days``
+  is now set correctly from the org's actual expiration date. (#1101)
+* The package API version from ``cumulusci.yml`` is now validated to make sure
+  it's in the "XX.0" format expected by the API. (#1134)
+* Fixed an error deploying new setting objects using the ``org_settings`` task in Winter '20.
+* Fixed a bug in processing preflight check tasks for MetaDeploy.
+* Fixed path handling in the ``update_admin_profile`` task when run in a cross-project flow.
+
+
 3.1.0 (2019-11-01)
 ------------------
 

@@ -212,6 +212,42 @@ simply the version of the field name in the original definition file.
 Adapting an originally-namespaced definition to load into a non-namespaced org follows the same
 pattern, but in reverse.
 
+Custom Settings
+===============
+
+Datasets don't support Custom Settings. However, a separate task is supplied to deploy Custom 
+Settings (both list and hierarchy) into an org: ``load_custom_settings``. The data for this
+task is defined in a YAML text file
+
+Each top-level YAML key should be the API name of a Custom Setting.
+List Custom Settings should contain a nested map of names to values.
+Hierarchy Custom settings should contain a list, each of which contains
+a `data` key and a `location` key. The `location` key may contain either
+`profile: <profile name>`, `user: name: <username>`, `user: email: <email>`,
+or `org`. 
+
+Example: ::
+
+    List__c:
+        Test:
+            MyField__c: 1
+        Test 2:
+            MyField__c: 2
+    Hierarchy__c:
+        -
+            location: org
+            data:
+                MyField__c: 1
+        -
+            location:
+                user:
+                    name: test@example.com
+            data:
+                MyField__c: 2"""
+
+CumulusCI will automatically resolve the ``location`` specified for Hierarchy Custom Settings
+to a ``SetupOwnerId``. Any Custom Settings existing in the target org with the specified
+name (List) or setup owner (Hierarchy) will be updated with the given data.
 
 Dataset Tasks
 =============
@@ -232,7 +268,7 @@ Options
 
 Example: ::
 
-    cci task run extract_dataset -o mapping_path datasets/qa/mapping.yml -o sql_path datasets/qa/data.sql --org qa
+    cci task run extract_dataset -o mapping datasets/qa/mapping.yml -o sql_path datasets/qa/data.sql --org qa
 
 ``load_dataset``
 ----------------
@@ -254,7 +290,7 @@ Options
 
 Example: ::
 
-    cci task run extract_dataset -o mapping_path datasets/qa/mapping.yml -o sql_path datasets/qa/data.sql --org qa
+    cci task run load_dataset -o mapping datasets/qa/mapping.yml -o sql_path datasets/qa/data.sql --org qa
 
 
 ``generate_dataset_mapping``
@@ -314,10 +350,20 @@ target records become available.
 Options
 +++++++
 
-* ``path``: Location to write the mapping file. Default: datasets/generated_mapping.yml
+* ``path``: Location to write the mapping file. Default: datasets/mapping.yml
 * ``ignore``: Object API names, or fields in Object.Field format, to ignore
 * ``namespace_prefix``: The namespace prefix to treat as belonging to the project, if any
 
 Example: ::
 
     cci task run generate_dataset_mapping --org qa -o namespace_prefix my_ns
+
+``load_custom_settings``
+--------------------------
+
+Load custom settings stored in YAML into an org.
+
+Options
++++++++
+
+* ``settings_path``: Location of the YAML settings file.
