@@ -3,6 +3,7 @@ import unittest
 from unittest import mock
 
 from cumulusci.tasks.bulkdata.data_generation.data_generator import generate
+from cumulusci.tasks.bulkdata.data_generation.data_gen_exceptions import DataGenError
 
 write_row_path = "cumulusci.tasks.bulkdata.data_generation.output_streams.DebugOutputStream.write_row"
 
@@ -93,6 +94,65 @@ class TestTemplateFuncs(unittest.TestCase):
         assert write_row.mock_calls == [
             mock.call("A", {"id": 1, "a": False, "b": True, "c": True, "d": "BBB"})
         ]
+
+    @mock.patch(write_row_path)
+    def test_conditional_error(self, write_row):
+        yaml = """
+        - object : A
+          fields:
+            a:
+                if:
+                    - choice:
+                        pick: AAA
+                    - choice:
+                        when: <<b>>
+                        pick: BBB
+        """
+        with self.assertRaises(DataGenError) as e:
+            generate(StringIO(yaml), 1, {}, None)
+        assert "when" in str(e.exception)
+
+    @mock.patch(write_row_path)
+    def test_conditional_fallthrough(self, write_row):
+        yaml = """
+        - object : A
+          fields:
+            x:
+                if:
+                    - choice:
+                        when: False
+                        pick: AAA
+                    - choice:
+                        pick: BBB
+        """
+        generate(StringIO(yaml), 1, {}, None)
+        assert write_row.mock_calls == [mock.call("A", {"id": 1, "x": "BBB"})]
+
+    @mock.patch(write_row_path)
+    def test_conditional_nested(self, write_row):
+        yaml = """
+        - object : A
+          fields:
+            a: True
+            b: False
+            c: True
+            x:
+                if:
+                    - choice:
+                        when: <<a>>
+                        pick:
+                          if:
+                            - choice:
+                                when: <<b>>
+                                pick: BBB
+                            - choice:
+                                when: <<c>>
+                                pick: CCC
+                    - choice:
+                        pick: DDD
+        """
+        generate(StringIO(yaml), 1, {}, None)
+        assert write_row.mock_calls[0][1][1]["x"] == "CCC"
 
     # @mock.patch(write_row_path)
     # def test_weighted_random_choice_objects(self, write_row):

@@ -92,8 +92,6 @@ def choice_wrapper(context, pick, probability=None, when=None):
     """Supports the choice: sub-items used in `random_choice`z or `if`"""
     if probability:
         probability = parse_weight_str(context, probability)
-    if not (probability or when):
-        raise ValueError("Choice should have `probabily` or `choice` property set")
     return probability or when, pick
 
 
@@ -167,15 +165,13 @@ def if_(context, *choices):
         raise ValueError("No choices supplied!")
 
     choices = [choice.render(context) for choice in choices]
-    print(
-        list(
-            (cond.render(context), choice)
-            for cond, choice in choices
-            if cond.render(context)
-        )
-    )
-    true_choices = (choice for cond, choice in choices if cond.render(context))
-    rc = next(true_choices, None)
+    for cond, choice in choices[:-1]:
+        if cond is None:
+            raise SyntaxError(
+                "Every choice except the last one should have a when-clause"
+            )
+    true_choices = (choice for cond, choice in choices if cond and cond.render(context))
+    rc = next(true_choices, choices[-1][-1])  # default to last choice
     if hasattr(rc, "render"):
         rc = rc.render(context)
     return rc
