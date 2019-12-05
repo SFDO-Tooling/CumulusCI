@@ -23,7 +23,16 @@ class ListChanges(BaseSalesforceApiTask):
     api_version = "47.0"
 
     task_options = {
-        "include": {"description": "Include changed components matching this string."},
+        "include": {
+            "description": "A comma-separated list of strings. "
+            "Components will be included if one of these strings "
+            "is part of either the metadata type or name. "
+            "Example: ``-o include CustomField,Admin`` matches both "
+            "``CustomField: Favorite_Color__c`` and ``Profile: Admin``"
+        },
+        "types": {
+            "description": "A comma-separated list of metadata types to include."
+        },
         "exclude": {"description": "Exclude changed components matching this string."},
         "snapshot": {
             "description": "If True, all matching items will be set to be ignored at their current revision number.  This will exclude them from the results unless a new edit is made."
@@ -32,7 +41,9 @@ class ListChanges(BaseSalesforceApiTask):
 
     def _init_options(self, kwargs):
         super(ListChanges, self)._init_options(kwargs)
-        self.options["include"] = process_list_arg(self.options.get("include", []))
+        self.options["include"] = process_list_arg(self.options.get("include", [])) + [
+            f"{mdtype}:" for mdtype in process_list_arg(self.options.get("types", []))
+        ]
         self.options["exclude"] = process_list_arg(self.options.get("exclude", []))
         self.options["snapshot"] = process_bool_arg(self.options.get("snapshot", False))
         self._include = self.options["include"]
