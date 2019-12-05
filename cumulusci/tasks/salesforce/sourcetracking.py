@@ -47,6 +47,7 @@ class ListChanges(BaseSalesforceApiTask):
         return os.path.join(parent_dir, "{}.json".format(self.org_config.name))
 
     def _load_snapshot(self):
+        """Load the snapshot of which component revisions have been retrieved."""
         self._snapshot = {}
         if os.path.isfile(self._snapshot_path):
             with open(self._snapshot_path, "r") as f:
@@ -57,7 +58,7 @@ class ListChanges(BaseSalesforceApiTask):
         changes = self._get_changes()
         if changes:
             self.logger.info(
-                "Found {} changed components in the scratch org.".format(len(changes))
+                f"Found {len(changes)} changed components in the scratch org."
             )
         else:
             self.logger.info("Found no changes.")
@@ -65,11 +66,9 @@ class ListChanges(BaseSalesforceApiTask):
         filtered, ignored = self._filter_changes(changes)
         if ignored:
             self.logger.info(
-                "Ignored {} changed components in the scratch org.".format(len(ignored))
+                f"Ignored {len(ignored)} changed components in the scratch org."
             )
-            self.logger.info(
-                "{} remaining changes after filtering.".format(len(filtered))
-            )
+            self.logger.info(f"{len(filtered)} remaining changes after filtering.")
 
         for change in filtered:
             self.logger.info("{MemberType}: {MemberName}".format(**change))
@@ -102,7 +101,7 @@ class ListChanges(BaseSalesforceApiTask):
         for change in changes:
             mdtype = change["MemberType"]
             name = change["MemberName"]
-            full_name = "{}: {}".format(mdtype, name)
+            full_name = f"{mdtype}: {name}"
             if (
                 self._include
                 and not any(re.search(s, full_name) for s in self._include)
@@ -113,6 +112,7 @@ class ListChanges(BaseSalesforceApiTask):
         return filtered, ignored
 
     def _store_snapshot(self, changes):
+        """Update the snapshot of which component revisions have been retrieved."""
         for change in changes:
             mdtype = change["MemberType"]
             name = change["MemberName"]
@@ -129,15 +129,17 @@ class ListChanges(BaseSalesforceApiTask):
         return os.path.join(parent_dir, "maxrevision.json")
 
     def _load_maxrevision(self):
+        """Load sfdx's maxrevision file."""
         if not os.path.exists(self._maxrevision_path):
             return -1
         with open(self._maxrevision_path, "r") as f:
             return json.load(f)
 
     def _store_maxrevision(self, value):
+        """Update sfdx's maxrevision file."""
         if value == -1:
             return
-        self.logger.info("Setting source tracking max revision to {}".format(value))
+        self.logger.info(f"Setting source tracking max revision to {value}")
         with open(self._maxrevision_path, "w") as f:
             json.dump(value, f)
 
@@ -158,6 +160,125 @@ retrieve_changes_task_options["namespace_tokenize"] = BaseRetrieveMetadata.task_
 ]
 
 
+def _write_manifest(changes, path, api_version):
+    """Write a package.xml for the specified changes and API version."""
+    type_members = defaultdict(list)
+    for change in changes:
+        type_members[change["MemberType"]].append(change["MemberName"])
+
+    generator = PackageXmlGenerator(
+        ".",
+        api_version,
+        types=[MetadataType(name, members) for name, members in type_members.items()],
+    )
+    package_xml = generator()
+    with open(os.path.join(path, "package.xml"), "w") as f:
+        f.write(package_xml)
+
+
+def retrieve_components(
+    components,
+    org_config,
+    target: str,
+    md_format: bool,
+    extra_package_xml_opts: dict,
+    namespace_tokenize: str,
+    api_version: str,
+):
+    """Retrieve specified components from an org into a target folder.
+
+    Retrieval is done using the sfdx force:source:retrieve command.
+
+    Set `md_format` to True if retrieving into a folder with a package
+    in metadata format. In this case the folder will be temporarily
+    converted to dx format for the retrieval and then converted back.
+    Retrievals to metadata format can also set `namespace_tokenize`
+    to a namespace prefix to replace it with a `%%%NAMESPACE%%%` token.
+    """
+
+    with contextlib.ExitStack() as stack:
+        if md_format:
+            # Create target if it doesn't exist
+            if not os.path.exists(target):
+                os.mkdir(target)
+                touch(os.path.join(target, "package.xml"))
+
+            # Inject namespace
+            if namespace_tokenize:
+                process_text_in_directory(
+                    target,
+                    functools.partial(
+                        inject_namespace, namespace=namespace_tokenize, managed=True
+                    ),
+                )
+
+            # Temporarily convert metadata format to DX format
+            stack.enter_context(temporary_dir())
+            os.mkdir("target")
+            # We need to create sfdx-project.json
+            # so that sfdx will recognize force-app as a package directory.
+            with open("sfdx-project.json", "w") as f:
+                json.dump(
+                    {"packageDirectories": [{"path": "force-app", "default": True}]}, f
+                )
+            sfdx(
+                "force:mdapi:convert",
+                log_note="Converting to DX format",
+                args=["-r", target, "-d", "force-app"],
+                check_return=True,
+            )
+
+        # Construct package.xml with components to retrieve, in its own tempdir
+        package_xml_path = stack.enter_context(temporary_dir(chdir=False))
+        _write_manifest(components, package_xml_path, api_version)
+
+        # Retrieve specified components in DX format
+        sfdx(
+            "force:source:retrieve",
+            access_token=org_config.access_token,
+            log_note="Retrieving components",
+            args=[
+                "-a",
+                str(api_version),
+                "-x",
+                os.path.join(package_xml_path, "package.xml"),
+                "-w",
+                "5",
+            ],
+            capture_output=False,
+            check_return=True,
+            env={"SFDX_INSTANCE_URL": org_config.instance_url},
+        )
+
+        if md_format:
+            # Convert back to metadata format
+            sfdx(
+                "force:source:convert",
+                log_note="Converting back to metadata format",
+                args=["-r", "force-app", "-d", target],
+                capture_output=False,
+                check_return=True,
+            )
+
+            # Reinject namespace tokens
+            if namespace_tokenize:
+                process_text_in_directory(
+                    target,
+                    functools.partial(tokenize_namespace, namespace=namespace_tokenize),
+                )
+
+            # Regenerate package.xml,
+            # to avoid reformatting or losing package name/scripts
+            package_xml_opts = {
+                "directory": target,
+                "api_version": api_version,
+                **extra_package_xml_opts,
+            }
+            package_xml = PackageXmlGenerator(**package_xml_opts)()
+            with open(os.path.join(target, "package.xml"), "w") as f:
+                f.write(package_xml)
+
+
 class RetrieveChanges(ListChanges, BaseSalesforceApiTask):
     task_options = retrieve_changes_task_options
 
@@ -165,6 +286,7 @@ class RetrieveChanges(ListChanges, BaseSalesforceApiTask):
         super(RetrieveChanges, self)._init_options(kwargs)
         self.options["snapshot"] = process_bool_arg(kwargs.get("snapshot", True))
 
+        # Check which directories are configured as dx packages
         package_directories = []
         default_package_directory = None
         if os.path.exists("sfdx-project.json"):
@@ -206,106 +328,29 @@ class RetrieveChanges(ListChanges, BaseSalesforceApiTask):
         if not filtered:
             self.logger.info("No changes to retrieve")
             return
+        for change in filtered:
+            self.logger.info("{MemberType}: {MemberName}".format(**change))
 
         target = os.path.realpath(self.options["path"])
-        with contextlib.ExitStack() as stack:
-            if self.md_format:
-                # Create target if it doesn't exist
-                if not os.path.exists(target):
-                    os.mkdir(target)
-                    touch(os.path.join(target, "package.xml"))
-
-                # Inject namespace
-                if self.options.get("namespace_tokenize"):
-                    process_text_in_directory(
-                        target,
-                        functools.partial(
-                            inject_namespace,
-                            namespace=self.options["namespace_tokenize"],
-                            managed=True,
-                        ),
-                    )
-
-                # Temporarily convert metadata format to DX format
-                stack.enter_context(temporary_dir())
-                os.mkdir("target")
-                # We need to create sfdx-project.json
-                # so that sfdx will recognize force-app as a package directory.
-                with open("sfdx-project.json", "w") as f:
-                    json.dump(
-                        {
-                            "packageDirectories": [
-                                {"path": "force-app", "default": True}
-                            ]
-                        },
-                        f,
-                    )
-                sfdx(
-                    "force:mdapi:convert",
-                    log_note="Converting to DX format",
-                    args=["-r", target, "-d", "force-app"],
-                    check_return=True,
-                )
-
-            # Construct package.xml with components to retrieve, in its own tempdir
-            package_xml_path = stack.enter_context(temporary_dir(chdir=False))
-            self._write_manifest(filtered, path=package_xml_path)
-
-            # Retrieve specified components in DX format
-            sfdx(
-                "force:source:retrieve",
-                access_token=self.org_config.access_token,
-                log_note="Retrieving components",
-                args=[
-                    "-a",
-                    str(self.options["api_version"]),
-                    "-x",
-                    os.path.join(package_xml_path, "package.xml"),
-                    "-w",
-                    "5",
-                ],
-                capture_output=False,
-                check_return=True,
-                env={"SFDX_INSTANCE_URL": self.org_config.instance_url},
+        package_xml_opts = {}
+        if self.options["path"] == "src":
+            package_xml_opts.update(
+                {
+                    "package_name": self.project_config.project__package__name,
+                    "install_class": self.project_config.project__package__install_class,
+                    "uninstall_class": self.project_config.project__package__uninstall_class,
+                }
             )
 
-            if self.md_format:
-                # Convert back to metadata format
-                sfdx(
-                    "force:source:convert",
-                    log_note="Converting back to metadata format",
-                    args=["-r", "force-app", "-d", target],
-                    capture_output=False,
-                    check_return=True,
-                )
-
-                # Reinject namespace tokens
-                if self.options.get("namespace_tokenize"):
-                    process_text_in_directory(
-                        target,
-                        functools.partial(
-                            tokenize_namespace,
-                            namespace=self.options["namespace_tokenize"],
-                        ),
-                    )
-
-                # Regenerate package.xml,
-                # to avoid reformatting or losing package name/scripts
-                package_xml_opts = {
-                    "directory": target,
-                    "api_version": self.options["api_version"],
-                }
-                if self.options["path"] == "src":
-                    package_xml_opts.update(
-                        {
-                            "package_name": self.project_config.project__package__name,
-                            "install_class": self.project_config.project__package__install_class,
-                            "uninstall_class": self.project_config.project__package__uninstall_class,
-                        }
-                    )
-                package_xml = PackageXmlGenerator(**package_xml_opts)()
-                with open(os.path.join(target, "package.xml"), "w") as f:
-                    f.write(package_xml)
+        retrieve_components(
+            filtered,
+            self.org_config,
+            target,
+            md_format=self.md_format,
+            namespace_tokenize=self.options.get("namespace_tokenize"),
+            api_version=self.options["api_version"],
+            extra_package_xml_opts=package_xml_opts,
+        )
 
         if self.options["snapshot"]:
             self.logger.info("Storing snapshot of changes")
@@ -318,23 +363,6 @@ class RetrieveChanges(ListChanges, BaseSalesforceApiTask):
                     change["RevisionNum"] or -1 for change in filtered
                 )
                 self._store_maxrevision(max(current_maxrevision, new_maxrevision))
-
-    def _write_manifest(self, changes, path):
-        type_members = defaultdict(list)
-        for change in changes:
-            type_members[change["MemberType"]].append(change["MemberName"])
-            self.logger.info("{MemberType}: {MemberName}".format(**change))
-
-        generator = PackageXmlGenerator(
-            ".",
-            self.options["api_version"],
-            types=[
-                MetadataType(name, members) for name, members in type_members.items()
-            ],
-        )
-        package_xml = generator()
-        with open(os.path.join(path, "package.xml"), "w") as f:
-            f.write(package_xml)
 
 
 class SnapshotChanges(ListChanges):
@@ -372,13 +400,6 @@ class MetadataType(object):
     def __call__(self):
         return (
             ["    <types>"]
-            + [
-                "        <members>{}</members>".format(member)
-                for member in self.members
-            ]
-            + ["        <name>{}</name>".format(self.metadata_type), "    </types>"]
+            + [f"        <members>{member}</members>" for member in self.members]
+            + [f"        <name>{self.metadata_type}</name>", "    </types>"]
         )
-
-
-# to do:
-# - unit tests

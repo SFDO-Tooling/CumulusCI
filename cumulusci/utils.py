@@ -187,6 +187,15 @@ def zip_subfolder(zip_src, path):
 
 
 def process_text_in_directory(path, process_file):
+    """Process each file in a directory using the `process_file` function.
+
+    `process_file` should be a function which accepts a filename and content as text
+    and returns a (possibly modified) filename and content.  The file will be
+    updated with the new content, and renamed if necessary.
+
+    Files with content that cannot be decoded as UTF-8 will be skipped.
+    """
+
     for path, dirs, files in os.walk(path):
         for orig_name in files:
             orig_path = os.path.join(path, orig_name)
@@ -205,6 +214,17 @@ def process_text_in_directory(path, process_file):
 
 
 def process_text_in_zipfile(zf, process_file):
+    """Process each file in a zip file using the `process_file` function.
+
+    Returns a new zip file.
+
+    `process_file` should be a function which accepts a filename and content as text
+    and returns a (possibly modified) filename and content.  The file will be
+    replaced with the new content, and renamed if necessary.
+
+    Files with content that cannot be decoded as UTF-8 will be skipped.
+    """
+
     new_zf = zipfile.ZipFile(io.BytesIO(), "w", zipfile.ZIP_DEFLATED)
     for name in zf.namelist():
         content = zf.read(name)
@@ -215,6 +235,7 @@ def process_text_in_zipfile(zf, process_file):
             pass
         else:
             name, content = process_file(name, content)
+        # writestr handles either bytes or text, and will implicitly encode text as utf-8
         new_zf.writestr(name, content)
     return new_zf
 
@@ -229,7 +250,7 @@ def inject_namespace(
     namespaced_org=None,
     logger=None,
 ):
-    """ Replaces %%%NAMESPACE%%% in file content and ___NAMESPACE___ in filename
+    """ Replaces %%%NAMESPACE%%% in file content and ___NAMESPACE___ in file name
         with either '' if no namespace is provided or 'namespace__' if provided.
     """
 
@@ -293,8 +314,7 @@ def inject_namespace(
 
 
 def strip_namespace(name, content, namespace, logger=None):
-    """ Given a namespace, strips 'namespace__' from all files and filenames
-        in the zip
+    """ Given a namespace, strips 'namespace__' from file name and content
     """
     namespace_prefix = "{}__".format(namespace)
     lightning_namespace = "{}:".format(namespace)
@@ -314,7 +334,7 @@ def strip_namespace(name, content, namespace, logger=None):
 
 def tokenize_namespace(name, content, namespace, logger=None):
     """ Given a namespace, replaces 'namespace__' with %%%NAMESPACE%%%
-    in file content and ___NAMESPACE___ in filename
+    in file content and ___NAMESPACE___ in file name
     """
     if not namespace:
         return name, content
