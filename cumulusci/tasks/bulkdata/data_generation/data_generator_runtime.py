@@ -5,6 +5,7 @@ from datetime import date
 from typing import Optional, Dict, List, Sequence, Mapping, Any
 
 import jinja2
+from jinja2 import nativetypes
 
 from cumulusci.core.template_utils import FakerTemplateLibrary, faker_template_library
 
@@ -61,7 +62,7 @@ class Globals:
 
 class JinjaTemplateEvaluatorFactory:
     def __init__(self):
-        self.template_compiler = jinja2.Environment(
+        self.template_compiler = nativetypes.NativeEnvironment(
             block_start_string="<%",
             block_end_string="%>",
             variable_start_string="<<",

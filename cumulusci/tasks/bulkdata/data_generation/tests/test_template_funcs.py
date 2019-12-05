@@ -21,12 +21,13 @@ class TestTemplateFuncs(unittest.TestCase):
         - object: Person
           count: 1
           fields:
-            parent: <<reference(daddy)>>
+            parent: <<reference(daddy).id>>
+            parent2: <<reference(daddy)>>
         """
         generate(StringIO(yaml), 1, {}, None)
         assert write_row_mock.mock_calls == [
             mock.call("Person", {"id": 1}),
-            mock.call("Person", {"id": 2, "parent": 1}),
+            mock.call("Person", {"id": 2, "parent": 1, "parent2": mock.ANY}),
         ]
 
     @mock.patch(write_row_path)
@@ -67,6 +68,31 @@ class TestTemplateFuncs(unittest.TestCase):
         generate(StringIO(yaml), 1, {}, None)
         assert len(write_row.mock_calls) == 2, write_row.mock_calls
         # TODO CHECK MORE
+
+    @mock.patch(write_row_path)
+    def test_conditional(self, write_row):
+        yaml = """
+        - object : A
+          fields:
+            a: False
+            b: True
+            c: True
+            d:
+                if:
+                    - choice:
+                        when: <<a>>
+                        pick: AAA
+                    - choice:
+                        when: <<b>>
+                        pick: BBB
+                    - choice:
+                        when: <<c>>
+                        pick: CCC
+        """
+        generate(StringIO(yaml), 1, {}, None)
+        assert write_row.mock_calls == [
+            mock.call("A", {"id": 1, "a": False, "b": True, "c": True, "d": "BBB"})
+        ]
 
     # @mock.patch(write_row_path)
     # def test_weighted_random_choice_objects(self, write_row):

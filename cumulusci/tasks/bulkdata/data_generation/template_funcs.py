@@ -88,10 +88,13 @@ def random_choice(context, *choices):
 
 
 @lazy
-def choice_wrapper(context, probability, pick):
-    """Supports the choice: sub-items in random_choice"""
-    probability = parse_weight_str(context, probability)
-    return probability, pick
+def choice_wrapper(context, pick, probability=None, when=None):
+    """Supports the choice: sub-items used in `random_choice`z or `if`"""
+    if probability:
+        probability = parse_weight_str(context, probability)
+    if not (probability or when):
+        raise ValueError("Choice should have `probabily` or `choice` property set")
+    return probability or when, pick
 
 
 def parse_date(d: object) -> Optional[datetime]:
@@ -142,6 +145,42 @@ def reference(context, x):
     return target
 
 
+@lazy
+def if_(context, *choices):
+    """Template helper for conditional choices.
+
+    Supports structures like this:
+
+    if:
+        - choice:
+            when: <<something>>
+            pick: A
+        - choice:
+            when: <<something>>
+            pick: B
+
+    Pick-items can have arbitrary internal complexity.
+
+    Pick-items are lazily evaluated.
+    """
+    if not choices:
+        raise ValueError("No choices supplied!")
+
+    choices = [choice.render(context) for choice in choices]
+    print(
+        list(
+            (cond.render(context), choice)
+            for cond, choice in choices
+            if cond.render(context)
+        )
+    )
+    true_choices = (choice for cond, choice in choices if cond.render(context))
+    rc = next(true_choices, None)
+    if hasattr(rc, "render"):
+        rc = rc.render(context)
+    return rc
+
+
 template_funcs = {
     "int": lambda context, number: int(number),
     "choice": choice_wrapper,
@@ -151,4 +190,5 @@ template_funcs = {
     "reference": reference,
     "date": date_,
     "datetime": datetime_,
+    "if": if_,
 }
