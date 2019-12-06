@@ -601,12 +601,74 @@ and then run this project's own ``dev_org`` flow.
 Source Tracking
 ===============
 
-The new tasks ``list_changes`` and ``retrieve_changes`` were built to interact with the source change tracking in scratch orgs.  Using these tasks, you can get a list of new changes made in the scratch org and retrieve those changes in Metadata API format.
+The ``list_changes`` and ``retrieve_changes`` tasks can be used to help find and retrieve metadata for components that have been changed in an org in Setup through clicks not code. This functionality relies on Salesforce's source tracking feature, so it is only available in scratch orgs.
 
-Creating retrieve_config_* Tasks
---------------------------------
+Setting up the Capture Scratch Org
+----------------------------------
 
-For each config directory, create a new task that wraps the retrieve_changes task using yaml like below:
+When you are ready to start making changes in an org that you want to capture, start by creating a snapshot, which will effectively set the source tracking to treat all current changes as already handled.  This will allow the ``list_changes`` and ``retrieve_changes`` tasks to detect any new metadata but ignore any prior changes.
+
+.. code-block:: console
+
+    cci task run snapshot_changes --org dev
+
+A number of the standard CumulusCI flows include the ``snapshot_changes`` as the final step. So if you have just set up a scratch org by running the ``dev_org``, ``dev_org_namespaced``, ``qa_org``, ``regression_org``, ``install_beta`` or ``install_prod`` flows, then you don't need to run ``snapshot_changes`` again.
+
+To check to make sure the snapshot was created correctly, you should see no changes listed when you run the ``list_changes`` task:
+
+.. code-block:: console
+
+    cci task run list_changes --org dev
+
+Listing Changes
+---------------
+
+Now, go make the changes in the org you want to capture as part of the dev config.
+You can check what components have changed with the ``list_changes`` command:
+
+.. code-block:: console
+
+    cci task run list_changes --org dev
+
+You can also include/exclude components from the list using the include/exclude options:
+
+.. code-block:: console
+
+    cci task run list_changes --org dev -o include "test.*,another_regex" -o exclude "something_to_exclude"
+
+The ``include`` and ``exclude`` patterns will be matched against both the metadata type and name of the component.
+
+You can also include all changed components of specific types:
+
+    cci task run list_changes --org dev -o types "CustomObject,CustomField"
+
+Retrieving Changes
+------------------
+
+When you are ready to capture the changes returned from ``list_changes``, run the ``retrieve_changes`` task::
+
+.. code-block:: console
+
+    cci task run retrieve_changes --org dev
+
+It accepts the same ``include``, ``exclude``, and ``types`` options for filtering the list of changed components, in case you don't want to retrieve everything.
+
+After the metadata has been retrieved, the snapshot will be updated so that the retrieved components will no longer be included in ``list_changes``. You can avoid this by setting the ``snapshot`` option to False.
+
+By default changes are retrieved into the ``src`` directory when using metadata source format,
+or the default sfdx package directory when using sfdx source format. You can retrieve into a different
+location using the ``path`` option:
+
+    cci task run retrieve_changes --org dev -o path unpackaged/config/qa
+
+Creating custom Retrieve Tasks
+------------------------------
+
+If you will be retrieving changes into a directory repeatedly,
+consider creating a custom task with the correct options
+so that you don't need to specify them on the command line each time.
+
+To do this, add YAML like this to your project's ``cumulusci.yml``::
 
 .. code-block:: yaml
 
@@ -618,53 +680,8 @@ For each config directory, create a new task that wraps the retrieve_changes tas
                 path: unpackaged/config/dev
                 namespace_tokenize: $project_config.project__package__namespace
 
-Setting up the Capture Scratch Org
-----------------------------------
+(If you're capturing post-install metadata that will remain unpackaged, it is best to do so starting with a managed installation of your package. This makes it possible to convert references to the package namespace into CumulusCI's namespace token strings, so that the retrieved metadata can be deployed on top of either managed installations or unmanaged deployments of the package. To set up an org with the latest managed beta release, use the ``install_beta`` flow.)
 
-When capturing post-install configuration, it is best to work with a managed version of the product.  This will ensure that namespace references are replaced by CumulusCI's namespace token strings, resulting in retrieved config metadata that works with both managed and unmanaged deployments.
-
-.. code-block:: console
-
-    cci flow run install_beta --org dev
-
-Starting a Snapshot
--------------------
-
-When you are ready to start making declarative changes you want to capture, start by creating a snapshot, which will effectively set the source tracking to treat all current changes as already handled.  This will mean the list_changes command will list any new metadata but ignore any phantom changes from before
-
-.. code-block:: console
-
-    cci task run list_changes --org dev -o snapshot True
-
-To check to make sure the snapshot was created correctly, you should see no changes listed when re-running list_changes
-
-.. code-block:: console
-
-    cci task run list_changes --org dev
-
-Retrieving Changes
-------------------
-
-Now, go make the changes in the org you want to capture as part of the dev config.  You can check what metadata has changed with the list_changes command
-
-.. code-block:: console
-
-    cci task run list_changes --org dev
-
-You can also include/exclude files from the list using the include/exclude options
-
-.. code-block:: console
-
-    cci task run list_changes --org dev -o include "test.*,another_regex" \
-                                        -o exclude "something_to_exclude"
-
-When you are ready to capture the changes returned from list_changes, run the custom retrieve task
-
-.. code-block:: console
-
-    cci task run retrieve_config_dev --org dev
-
-If you used include/exclude to narrow down the list of changes, you can pass the same -o include and -o exclude arguments to the retrieve_config_dev task
 
 Source Code Formats
 ===================
