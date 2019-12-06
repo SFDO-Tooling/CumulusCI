@@ -744,7 +744,7 @@ def service_info(config, service_name, plain):
         )
         wrap_cols = ["Value"] if not plain else None
         service_table = CliTable(service_data, title=service_name, wrap_cols=wrap_cols)
-        service_table.table.inner_heading_row_border = False
+        service_table._table.inner_heading_row_border = False
         service_table.echo(plain)
     except ServiceNotConfigured:
         click.echo(
