@@ -5,11 +5,7 @@ update_configs:
     update_schedule: "weekly"
     ignored_updates:
       - match:
-          # Waiting for Bryan to review newest version
-          dependency_name: "robotframework-seleniumlibrary"
-          version_requirement: "3.x"
-      - match:
-          # No published source tarbal for 0.74.3
+          # No published source tarball for 0.74.3
           dependency_name: "simple-salesforce"
           version_requirement: "0.74.2"
     
