@@ -9,7 +9,7 @@ pre-commit==1.20.0
 pytest==5.3.1
 pytest-cov==2.8.1
 responses==0.10.7
-Sphinx==2.2.1
+Sphinx==2.2.2
 testfixtures==6.10.3
 tox==3.14.1
 twine==3.1.1
