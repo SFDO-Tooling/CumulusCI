@@ -1,4 +1,5 @@
 import base64
+import functools
 import io
 import os
 import zipfile
@@ -11,9 +12,10 @@ from cumulusci.tasks.salesforce import BaseSalesforceMetadataApiTask
 from cumulusci.utils import cd
 from cumulusci.utils import temporary_dir
 from cumulusci.utils import zip_clean_metaxml
-from cumulusci.utils import zip_inject_namespace
-from cumulusci.utils import zip_strip_namespace
-from cumulusci.utils import zip_tokenize_namespace
+from cumulusci.utils import inject_namespace
+from cumulusci.utils import strip_namespace
+from cumulusci.utils import tokenize_namespace
+from cumulusci.utils import process_text_in_zipfile
 
 
 class Deploy(BaseSalesforceMetadataApiTask):
@@ -109,19 +111,17 @@ class Deploy(BaseSalesforceMetadataApiTask):
                     self.options["namespace_tokenize"]
                 )
             )
-            zipf = zip_tokenize_namespace(
-                zipf, self.options["namespace_tokenize"], logger=self.logger
+            zipf = process_text_in_zipfile(
+                zipf,
+                functools.partial(
+                    tokenize_namespace,
+                    namespace=self.options["namespace_tokenize"],
+                    logger=self.logger,
+                ),
             )
         if self.options.get("namespace_inject"):
-            kwargs = {}
-            kwargs["managed"] = not process_bool_arg(
-                self.options.get("unmanaged", True)
-            )
-            kwargs["namespaced_org"] = process_bool_arg(
-                self.options.get("namespaced_org", False)
-            )
-            kwargs["logger"] = self.logger
-            if kwargs["managed"]:
+            managed = not process_bool_arg(self.options.get("unmanaged", True))
+            if managed:
                 self.logger.info(
                     "Replacing namespace tokens from metadata with namespace prefix {}__".format(
                         self.options["namespace_inject"]
@@ -131,12 +131,26 @@ class Deploy(BaseSalesforceMetadataApiTask):
                 self.logger.info(
                     "Stripping namespace tokens from metadata for unmanaged deployment"
                 )
-            zipf = zip_inject_namespace(
-                zipf, self.options["namespace_inject"], **kwargs
+            zipf = process_text_in_zipfile(
+                zipf,
+                functools.partial(
+                    inject_namespace,
+                    namespace=self.options["namespace_inject"],
+                    managed=managed,
+                    namespaced_org=process_bool_arg(
+                        self.options.get("namespaced_org", False)
+                    ),
+                    logger=self.logger,
+                ),
             )
         if self.options.get("namespace_strip"):
-            zipf = zip_strip_namespace(
-                zipf, self.options["namespace_strip"], logger=self.logger
+            zipf = process_text_in_zipfile(
+                zipf,
+                functools.partial(
+                    strip_namespace,
+                    namespace=self.options["namespace_strip"],
+                    logger=self.logger,
+                ),
             )
         return zipf
 

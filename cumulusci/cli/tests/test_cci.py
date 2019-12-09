@@ -482,7 +482,7 @@ class TestCCI(unittest.TestCase):
 
     @mock.patch("cumulusci.cli.cci.CliTable")
     def test_service_info(self, cli_tbl):
-        cli_tbl.table = mock.Mock()
+        cli_tbl._table = mock.Mock()
         service_config = mock.Mock()
         service_config.config = {"description": "Test Service"}
         config = mock.Mock()

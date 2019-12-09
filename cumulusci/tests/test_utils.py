@@ -192,100 +192,98 @@ class TestUtils(unittest.TestCase):
         result = zf.read("test")
         self.assertEqual(b"test", result)
 
-    def test_zip_inject_namespace_managed(self):
-        logger = mock.Mock()
-        zf = zipfile.ZipFile(io.BytesIO(), "w")
-        zf.writestr(
-            "___NAMESPACE___test",
-            "%%%NAMESPACE%%%|%%%NAMESPACED_ORG%%%|%%%NAMESPACE_OR_C%%%|%%%NAMESPACED_ORG_OR_C%%%",
-        )
+    def test_process_text_in_directory__renamed_file(self):
+        with utils.temporary_dir():
+            with open("test1", "w") as f:
+                f.write("test")
 
-        zf = utils.zip_inject_namespace(zf, namespace="ns", managed=True, logger=logger)
-        result = zf.read("ns__test")
-        self.assertEqual(b"ns__||ns|c", result)
+            def process(name, content):
+                return "test2", "test"
 
-    def test_zip_inject_namespace_unmanaged(self):
-        zf = zipfile.ZipFile(io.BytesIO(), "w")
-        zf.writestr(
-            "___NAMESPACE___test",
-            "%%%NAMESPACE%%%|%%%NAMESPACED_ORG%%%|%%%NAMESPACE_OR_C%%%|%%%NAMESPACED_ORG_OR_C%%%",
-        )
+            utils.process_text_in_directory(".", process)
 
-        zf = utils.zip_inject_namespace(zf, namespace="ns")
-        result = zf.read("test")
-        self.assertEqual(b"||c|c", result)
+            with open("test2", "r") as f:
+                result = f.read()
+            assert result == "test"
 
-    def test_zip_inject_namespace_namespaced_org(self):
-        zf = zipfile.ZipFile(io.BytesIO(), "w")
-        zf.writestr(
-            "___NAMESPACE___test",
-            "%%%NAMESPACE%%%|%%%NAMESPACED_ORG%%%|%%%NAMESPACE_OR_C%%%|%%%NAMESPACED_ORG_OR_C%%%",
-        )
+    def test_process_text_in_directory__skips_binary(self):
+        contents = b"\x9c%%%NAMESPACE%%%"
+        with utils.temporary_dir():
+            with open("test", "wb") as f:
+                f.write(contents)
 
-        zf = utils.zip_inject_namespace(
-            zf, namespace="ns", managed=True, namespaced_org=True
-        )
-        result = zf.read("ns__test")
-        self.assertEqual(b"ns__|ns__|ns|ns", result)
+            def process(name, content):
+                return name, ""
 
-    def test_zip_inject_namespace__skips_binary(self):
+            utils.process_text_in_directory(".", process)
+
+            # assert contents were untouched
+            with open("test", "rb") as f:
+                result = f.read()
+            assert contents == result
+
+    def test_process_text_in_zipfile__skips_binary(self):
         contents = b"\x9c%%%NAMESPACE%%%"
         zf = zipfile.ZipFile(io.BytesIO(), "w")
         zf.writestr("test", contents)
 
-        zf = utils.zip_inject_namespace(
-            zf, namespace="ns", managed=True, namespaced_org=True
-        )
+        def process(name, content):
+            return name, ""
+
+        zf = utils.process_text_in_zipfile(zf, process)
         result = zf.read("test")
-        self.assertEqual(contents, result)
+        # assert contents were untouched
+        assert contents == result
 
-    def test_zip_strip_namespace(self):
-        zf = zipfile.ZipFile(io.BytesIO(), "w")
-        zf.writestr("ns__test", "ns__test ns:test")
-
-        zf = utils.zip_strip_namespace(zf, "ns")
-        result = zf.read("test")
-        self.assertEqual(b"test c:test", result)
-
-    def test_zip_strip_namespace__skips_binary(self):
-        contents = b"\x9cns__"
-        zf = zipfile.ZipFile(io.BytesIO(), "w")
-        zf.writestr("test", contents)
-
-        zf = utils.zip_strip_namespace(zf, "ns")
-        result = zf.read("test")
-        self.assertEqual(contents, result)
-
-    def test_zip_strip_namespace_logs(self):
-        zf = zipfile.ZipFile(io.BytesIO(), "w")
-        zf.writestr("ns__test", "ns__test ns:test")
-
+    def test_inject_namespace__managed(self):
         logger = mock.Mock()
-        zf = utils.zip_strip_namespace(zf, "ns", logger=logger)
+        name = "___NAMESPACE___test"
+        content = "%%%NAMESPACE%%%|%%%NAMESPACED_ORG%%%|%%%NAMESPACE_OR_C%%%|%%%NAMESPACED_ORG_OR_C%%%"
+
+        name, content = utils.inject_namespace(
+            name, content, namespace="ns", managed=True, logger=logger
+        )
+        assert name == "ns__test"
+        assert content == "ns__||ns|c"
+
+    def test_inject_namespace__unmanaged(self):
+        name = "___NAMESPACE___test"
+        content = "%%%NAMESPACE%%%|%%%NAMESPACED_ORG%%%|%%%NAMESPACE_OR_C%%%|%%%NAMESPACED_ORG_OR_C%%%"
+
+        name, content = utils.inject_namespace(name, content, namespace="ns")
+        assert name == "test"
+        assert content == "||c|c"
+
+    def test_inject_namespace__namespaced_org(self):
+        name = "___NAMESPACE___test"
+        content = "%%%NAMESPACE%%%|%%%NAMESPACED_ORG%%%|%%%NAMESPACE_OR_C%%%|%%%NAMESPACED_ORG_OR_C%%%"
+
+        name, content = utils.inject_namespace(
+            name, content, namespace="ns", managed=True, namespaced_org=True
+        )
+        assert name == "ns__test"
+        assert content == "ns__|ns__|ns|ns"
+
+    def test_strip_namespace(self):
+        logger = mock.Mock()
+        name, content = utils.strip_namespace(
+            name="ns__test", content="ns__test ns:test", namespace="ns", logger=logger
+        )
+        assert name == "test"
+        assert content == "test c:test"
         logger.info.assert_called_once()
 
-    def test_zip_tokenize_namespace(self):
-        zf = zipfile.ZipFile(io.BytesIO(), "w")
-        zf.writestr("ns__test", "ns__test ns:test")
+    def test_tokenize_namespace(self):
+        name, content = utils.tokenize_namespace(
+            name="ns__test", content="ns__test ns:test", namespace="ns"
+        )
+        assert name == "___NAMESPACE___test"
+        assert content == "%%%NAMESPACE%%%test %%%NAMESPACE_OR_C%%%test"
 
-        zf = utils.zip_tokenize_namespace(zf, "ns")
-        result = zf.read("___NAMESPACE___test")
-        self.assertEqual(b"%%%NAMESPACE%%%test %%%NAMESPACE_OR_C%%%test", result)
-
-    def test_zip_tokenize_namespace__skips_binary(self):
-        contents = b"\x9cns__"
-        zf = zipfile.ZipFile(io.BytesIO(), "w")
-        zf.writestr("test", contents)
-
-        zf = utils.zip_tokenize_namespace(zf, "ns")
-        result = zf.read("test")
-        self.assertEqual(contents, result)
-
-    def test_zip_tokenize_namespace_no_namespace(self):
-        zf = zipfile.ZipFile(io.BytesIO(), "w")
-        zf.writestr("test", "")
-        result = utils.zip_tokenize_namespace(zf, "")
-        self.assertIs(zf, result)
+    def test_tokenize_namespace__no_namespace(self):
+        name, content = utils.tokenize_namespace(name="test", content="", namespace="")
+        assert name is name
+        assert content is content
 
     def test_zip_clean_metaxml(self):
         logger = mock.Mock()
