@@ -866,6 +866,8 @@ def org_import(config, username_or_alias, org_name):
 def calculate_org_days(info):
     """Returns the difference in days between created_date (ISO 8601),
     and expiration_date (%Y-%m-%d)"""
+    if not info.get("created_date") or not info.get("expiration_date"):
+        return 1
     created_date = parse_api_datetime(info["created_date"]).date()
     expires_date = datetime.strptime(info["expiration_date"], "%Y-%m-%d").date()
     return abs((expires_date - created_date).days)
