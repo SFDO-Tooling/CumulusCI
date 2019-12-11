@@ -4,7 +4,7 @@ cumulusci:
 tasks:
     activate_process_builder:
         group: Salesforce Bulk API
-        description: "Takes a selected list of developer names and runs activating flows against these orgs"
+        description: "Activates Flows identified by a given list of Developer Names"
         class_path: cumulusci.tasks.salesforce.ActivateProcessBuilderProcesses.ActivateProcessBuilderProcesses
         options:
             developer-names: 
