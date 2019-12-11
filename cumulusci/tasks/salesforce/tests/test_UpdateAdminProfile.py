@@ -44,7 +44,7 @@ ADMIN_PROFILE_BEFORE = """<?xml version='1.0' encoding='utf-8'?>
     </tabVisibilities>
 </Profile>"""
 
-ADMIN_PROFILE_EXPECTED = """<?xml version='1.0' encoding='utf-8'?>
+ADMIN_PROFILE_EXPECTED = """<?xml version='1.0' encoding='UTF-8'?>
 <Profile xmlns="http://soap.sforce.com/2006/04/metadata">
     <applicationVisibilities>
         <application>npsp__Nonprofit_CRM</application>

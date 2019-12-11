@@ -1,13 +1,14 @@
 import glob
-from xml.sax.saxutils import escape
 
 import lxml.etree as ET
 
 from cumulusci.core.tasks import BaseTask
 from cumulusci.utils import cd
-
-
-xml_encoding = '<?xml version="1.0" encoding="UTF-8"?>\n'
+from cumulusci.utils.xml import (
+    elementtree_parse_file,
+    serialize_sf_style,
+    XML_ENCODING_DECL,
+)
 
 
 class RemoveElementsXPath(BaseTask):
@@ -46,7 +47,7 @@ class RemoveElementsXPath(BaseTask):
             self.logger.info("Changing directory to {}".format(self.chdir))
         with cd(self.chdir):
             for element in self.elements:
-                self._process_element(element, self.output_styles)
+                self._process_element(element, self.output_style)
 
     def _process_element(self, step, output_style):
         self.logger.info(
@@ -56,7 +57,7 @@ class RemoveElementsXPath(BaseTask):
             self.logger.info(f"Checking {f}")
             with open(f, "rb") as fp:
                 orig = fp.read()
-            root = ET.parse(f)
+            root = elementtree_parse_file(f)
             res = root.xpath(
                 step["xpath"],
                 namespaces={
@@ -69,10 +70,10 @@ class RemoveElementsXPath(BaseTask):
                 element.getparent().remove(element)
 
             if output_style.lower() == "salesforce":
-                processed = bytes(salesforce_encoding(root), "utf-8")
+                processed = bytes(serialize_sf_style(root), "utf-8")
             else:
                 processed = (
-                    bytes(xml_encoding, encoding="utf-8")
+                    bytes(XML_ENCODING_DECL, encoding="utf-8")
                     + ET.tostring(root, encoding="utf-8")
                     + b"\n"
                 )
@@ -81,33 +82,3 @@ class RemoveElementsXPath(BaseTask):
                 self.logger.info("Modified {}".format(f))
                 with open(f, "wb") as fp:
                     fp.write(processed)
-
-
-def salesforce_encoding(xdoc):
-    r = xml_encoding
-    xdoc.getroot().attrib["xmlns"] = "http://soap.sforce.com/2006/04/metadata"
-    for action, elem in ET.iterwalk(
-        xdoc, events=("start", "end", "start-ns", "end-ns", "comment")
-    ):
-        if action == "start-ns":
-            pass  # handle this nicely if SF starts using multiple namespaces
-        elif action == "start":
-            tag = elem.tag
-            if "}" in tag:
-                tag = tag.split("}")[1]
-            text = (
-                escape(elem.text, {"'": "&apos;", '"': "&quot;"})
-                if elem.text is not None
-                else ""
-            )
-            attrs = "".join([f' {k}="{v}"' for k, v in elem.attrib.items()])
-            r += f"<{tag}{attrs}>{text}"
-        elif action == "end":
-            tag = elem.tag
-            if "}" in tag:
-                tag = tag.split("}")[1]
-            tail = elem.tail if elem.tail else "\n"
-            r += f"</{tag}>{tail}"
-        elif action == "comment":
-            r += str(elem) + (elem.tail if elem.tail else "")
-    return r

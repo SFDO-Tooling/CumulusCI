@@ -10,7 +10,7 @@ from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.config import TaskConfig
 from cumulusci.tasks.metadata.modify import RemoveElementsXPath
 from cumulusci.utils import temporary_dir
-from cumulusci.tasks.metadata.modify import salesforce_encoding
+from cumulusci.tasks.metadata.modify import serialize_sf_style
 
 
 class TestRemoveElementsXPath(unittest.TestCase):
@@ -37,7 +37,7 @@ class TestRemoveElementsXPath(unittest.TestCase):
         )
         self.assertEqual('<?xml version="1.0" encoding="UTF-8"?>\n<root/>\n', result)
 
-    def test_salesforce_encoding(self):
+    def test_serialize_sf_style(self):
         result = self.run_xml_through_task(
             """<root><todelete /><a>"'</a></root>""",
             {
@@ -108,6 +108,6 @@ class TestRemoveElementsXPath(unittest.TestCase):
         for file in files:
             orig = open(file).read()
             tree = ET.parse(file)
-            out = salesforce_encoding(tree)
+            out = serialize_sf_style(tree)
             assert orig == out, file
             print("PASSED", file)

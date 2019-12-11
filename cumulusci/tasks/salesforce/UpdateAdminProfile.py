@@ -98,7 +98,10 @@ class UpdateAdminProfile(Deploy):
         self._set_record_types()
 
         self.tree.write(
-            path, "utf-8", xml_declaration=True, default_namespace=self.namespaces["sf"]
+            path,
+            encoding="utf-8",
+            xml_declaration=True,
+            # default_namespace=self.namespaces["sf"],
         )
 
     def _set_apps_visible(self):

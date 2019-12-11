@@ -7,7 +7,7 @@ import unittest
 import zipfile
 from datetime import datetime, timedelta
 
-from xml.etree import ElementTree as ET
+from lxml import etree as ET
 from unittest import mock
 import responses
 
@@ -71,17 +71,15 @@ class TestUtils(unittest.TestCase):
             logger.info.assert_called_once()
             self.assertEqual(os.listdir(d), ["bar"])
 
-    @mock.patch("xml.etree.ElementTree.parse")
+    @mock.patch("lxml.etree.parse")
     def test_elementtree_parse_file(self, mock_parse):
         _marker = object()
         mock_parse.return_value = _marker
         self.assertIs(utils.elementtree_parse_file("test_file"), _marker)
 
-    @mock.patch("xml.etree.ElementTree.parse")
+    @mock.patch("lxml.etree.parse")
     def test_elementtree_parse_file_error(self, mock_parse):
-        err = ET.ParseError()
-        err.msg = "it broke"
-        err.lineno = 1
+        err = ET.ParseError("it broke", 1, 1, 1)
         mock_parse.side_effect = err
         try:
             utils.elementtree_parse_file("test_file")
@@ -105,14 +103,12 @@ class TestUtils(unittest.TestCase):
             with open(path, "r") as f:
                 result = f.read()
             expected = """<?xml version='1.0' encoding='UTF-8'?>
-<root xmlns="http://soap.sforce.com/2006/04/metadata" />"""
+<root xmlns="http://soap.sforce.com/2006/04/metadata"/>"""
             self.assertEqual(expected, result)
 
-    @mock.patch("xml.etree.ElementTree.parse")
+    @mock.patch("lxml.etree.parse")
     def test_remove_xml_element_parse_error(self, mock_parse):
-        err = ET.ParseError()
-        err.msg = "it broke"
-        err.lineno = 1
+        err = ET.ParseError("it broke", 1, 1, 1)
         mock_parse.side_effect = err
         with utils.temporary_dir() as d:
             path = os.path.join(d, "test.xml")
@@ -126,6 +122,8 @@ class TestUtils(unittest.TestCase):
                 utils.removeXmlElement("tag", d, "*")
             except ET.ParseError as err:
                 self.assertEqual(str(err), "it broke (test.xml, line 1)")
+            except Exception as err:
+                self.fail(f"Expected ParseError, got {type(err)}")
             else:
                 self.fail("Expected ParseError")
 
