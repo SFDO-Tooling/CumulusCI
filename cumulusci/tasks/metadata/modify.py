@@ -8,6 +8,7 @@ from cumulusci.utils import cd
 
 
 xml_encoding = '<?xml version="1.0" encoding="UTF-8"?>\n'
+SF_NS = "http://soap.sforce.com/2006/04/metadata"
 
 
 class RemoveElementsXPath(BaseTask):
@@ -29,26 +30,21 @@ class RemoveElementsXPath(BaseTask):
         "chdir": {
             "description": "Change the current directory before running the replace"
         },
-        "output_style": {
-            "description": "Output style to use: 'salesforce' or 'simple'",
-            "required": False,
-        },
     }
 
     def _init_options(self, kwargs):
         super()._init_options(kwargs)
         self.chdir = self.options.get("chdir")
         self.elements = self.options["elements"]
-        self.output_style = self.options.get("output_style", "")
 
     def _run_task(self):
         if self.chdir:
             self.logger.info("Changing directory to {}".format(self.chdir))
         with cd(self.chdir):
             for element in self.elements:
-                self._process_element(element, self.output_style)
+                self._process_element(element)
 
-    def _process_element(self, step, output_style):
+    def _process_element(self, step):
         self.logger.info(
             "Removing elements matching {xpath} from {path}".format(**step)
         )
@@ -68,14 +64,7 @@ class RemoveElementsXPath(BaseTask):
             for element in res:
                 element.getparent().remove(element)
 
-            if output_style.lower() == "salesforce":
-                processed = bytes(salesforce_encoding(root), "utf-8")
-            else:
-                processed = (
-                    bytes(xml_encoding, encoding="utf-8")
-                    + ET.tostring(root, encoding="utf-8")
-                    + b"\n"
-                )
+            processed = bytes(salesforce_encoding(root), "utf-8")
 
             if orig != processed:
                 self.logger.info("Modified {}".format(f))
@@ -83,9 +72,14 @@ class RemoveElementsXPath(BaseTask):
                     fp.write(processed)
 
 
+def has_content(element):
+    return element.text or list(element)
+
+
 def salesforce_encoding(xdoc):
     r = xml_encoding
-    xdoc.getroot().attrib["xmlns"] = "http://soap.sforce.com/2006/04/metadata"
+    if SF_NS in xdoc.getroot().tag:
+        xdoc.getroot().attrib["xmlns"] = SF_NS
     for action, elem in ET.iterwalk(
         xdoc, events=("start", "end", "start-ns", "end-ns", "comment")
     ):
@@ -100,9 +94,13 @@ def salesforce_encoding(xdoc):
                 if elem.text is not None
                 else ""
             )
+
             attrs = "".join([f' {k}="{v}"' for k, v in elem.attrib.items()])
-            r += f"<{tag}{attrs}>{text}"
-        elif action == "end":
+            if not has_content(elem):
+                r += f"<{tag}{attrs}/>"
+            else:
+                r += f"<{tag}{attrs}>{text}"
+        elif action == "end" and has_content(elem):
             tag = elem.tag
             if "}" in tag:
                 tag = tag.split("}")[1]

@@ -33,16 +33,18 @@ class TestRemoveElementsXPath(unittest.TestCase):
 
     def test_run_task(self):
         result = self.run_xml_through_task(
-            "<root><todelete/></root>",
+            "<root>a<todelete/></root>",
             {"elements": [{"path": "test.xml", "xpath": "./todelete"}]},
         )
-        self.assertEqual('<?xml version="1.0" encoding="UTF-8"?>\n<root/>\n', result)
+        self.assertEqual(
+            '<?xml version="1.0" encoding="UTF-8"?>\n<root>a</root>\n', result
+        )
 
     def test_salesforce_encoding(self):
         result = self.run_xml_through_task(
-            """<root><todelete /><a>"'</a></root>""",
+            """<root  xmlns="http://soap.sforce.com/2006/04/metadata"><todelete /><a>"'</a></root>""",
             {
-                "elements": [{"path": "test.xml", "xpath": "todelete"}],
+                "elements": [{"path": "test.xml", "xpath": "ns:todelete"}],
                 "output_style": "salesforce",
             },
         )
@@ -91,7 +93,7 @@ class TestRemoveElementsXPath(unittest.TestCase):
             },
         )
         self.assertEqual(
-            '<?xml version="1.0" encoding="UTF-8"?>\n<root xmlns="http://soap.sforce.com/2006/04/metadata"><a><!-- Foo --></a>\n</root>\n',
+            '<?xml version="1.0" encoding="UTF-8"?>\n<root><a><!-- Foo --></a>\n</root>\n',
             result,
         )
 
