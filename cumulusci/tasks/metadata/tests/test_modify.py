@@ -1,11 +1,16 @@
 import os
 import unittest
+from glob import glob
+from pathlib import Path
+
+import lxml.etree as ET
 
 from cumulusci.core.config import BaseGlobalConfig
 from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.config import TaskConfig
 from cumulusci.tasks.metadata.modify import RemoveElementsXPath
 from cumulusci.utils import temporary_dir
+from cumulusci.tasks.metadata.modify import salesforce_encoding
 
 
 class TestRemoveElementsXPath(unittest.TestCase):
@@ -88,3 +93,21 @@ class TestRemoveElementsXPath(unittest.TestCase):
             '<?xml version="1.0" encoding="UTF-8"?>\n<root xmlns="http://soap.sforce.com/2006/04/metadata"><a><!-- Foo --></a>\n</root>\n',
             result,
         )
+
+    def test_roundtripping(self):
+        files = glob(str(Path(__file__).parent / "/sample_package.xml"))
+
+        #   If you fiddle with the salesforce encoder, the code below may be
+        #   useful to ensure that it faithfully round-trips, but it only works
+        #   if run in a directory with a parent-directory which contains a few
+        #   CCI projects which contain translations in them. At the time of
+        #   writing it roundtripped 421 files without a byte of difference.
+        #
+        # files = glob("../*/*/*ranslations/**ranslation", recursive=True)
+
+        for file in files:
+            orig = open(file).read()
+            tree = ET.parse(file)
+            out = salesforce_encoding(tree)
+            assert orig == out, file
+            print("PASSED", file)
