@@ -10,9 +10,7 @@ class ActivateFlowProcesses(BaseSalesforceApiTask):
     task_options = {
         "developer_names": {
             "description": (
-                "Query to find Apex test classes to run "
-                + '("%" is wildcard).  Defaults to '
-                + "project__test__name_match"
+                "Activates Flows identified by a given list of Developer Names"
             ),
             "required": True,
         },
