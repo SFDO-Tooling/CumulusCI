@@ -95,13 +95,14 @@ def salesforce_encoding(xdoc):
                 if elem.text is not None
                 else ""
             )
-            attrs = "".join([' %s="%s"' % (k, v) for k, v in elem.attrib.items()])
-            r += "<%s%s>%s" % (tag, attrs, text)
+            attrs = "".join([f' {k}="{v}"' for k, v in elem.attrib.items()])
+            r += f"<{tag}{attrs}>{text}"
         elif action == "end":
             tag = elem.tag
             if "}" in tag:
                 tag = tag.split("}")[1]
-            r += "</%s>%s" % (tag, elem.tail if elem.tail else "\n")
+            tail = elem.tail if elem.tail else "\n"
+            r += f"</{tag}>{tail}"
         elif action == "comment":
             r += str(elem) + (elem.tail if elem.tail else "")
     return r
