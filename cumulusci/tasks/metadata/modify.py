@@ -39,7 +39,7 @@ class RemoveElementsXPath(BaseTask):
         super()._init_options(kwargs)
         self.chdir = self.options.get("chdir")
         self.elements = self.options["elements"]
-        self.output_styles = self.options.get("output_style", "")
+        self.output_style = self.options.get("output_style", "")
 
     def _run_task(self):
         if self.chdir:
