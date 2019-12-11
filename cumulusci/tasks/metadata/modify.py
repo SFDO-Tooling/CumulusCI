@@ -46,7 +46,7 @@ class RemoveElementsXPath(BaseTask):
             self.logger.info("Changing directory to {}".format(self.chdir))
         with cd(self.chdir):
             for element in self.elements:
-                self._process_element(element, self.output_styles)
+                self._process_element(element, self.output_style)
 
     def _process_element(self, step, output_style):
         self.logger.info(

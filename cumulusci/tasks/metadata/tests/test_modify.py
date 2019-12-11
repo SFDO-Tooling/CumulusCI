@@ -2,6 +2,7 @@ import os
 import unittest
 from glob import glob
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
 import lxml.etree as ET
 
@@ -111,3 +112,12 @@ class TestRemoveElementsXPath(unittest.TestCase):
             out = salesforce_encoding(tree)
             assert orig == out, file
             print("PASSED", file)
+
+    def tests_filename_bad_xml(self):
+        with TemporaryDirectory() as d:
+            filename = d + "/foobar.notxml"
+            with open(filename, "w") as f:
+                f.write("<<<<")
+            with self.assertRaises(SyntaxError) as e:
+                ET.parse(filename)
+            assert "foobar.notxml" in str(e.exception)
