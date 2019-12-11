@@ -2,13 +2,11 @@ cumulusci:
     keychain: cumulusci.core.keychain.EncryptedFileProjectKeychain
     
 tasks:
-    activate_process_builder:
-        group: Salesforce Bulk API
-        description: "Activates Flows identified by a given list of Developer Names"
-        class_path: cumulusci.tasks.salesforce.ActivateProcessBuilderProcesses.ActivateProcessBuilderProcesses
-        options:
-            developer-names: 
-              - ServiceDelivery
+    activate_flow:
+        group: Metadata Transformations
+        description: Activates Flows identified by a given list of Developer Names
+        class_path: cumulusci.tasks.salesforce.ActivateFlowProcesses.ActivateFlowProcesses
+
     batch_apex_wait:
         description: Waits on a batch apex job to finish.
         class_path: cumulusci.tasks.apex.batch.BatchApexWait
