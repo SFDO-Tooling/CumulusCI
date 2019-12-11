@@ -7,6 +7,9 @@ from cumulusci.core.tasks import BaseTask
 from cumulusci.utils import cd
 
 
+xml_encoding = '<?xml version="1.0" encoding="UTF-8"?>\n'
+
+
 class RemoveElementsXPath(BaseTask):
     """Remove elements based on an XPath."""
 
@@ -66,11 +69,13 @@ class RemoveElementsXPath(BaseTask):
                 element.getparent().remove(element)
 
             if output_style.lower() == "salesforce":
-                xml_body = bytes(salesforce_encoding(root), "utf-8")
+                processed = bytes(salesforce_encoding(root), "utf-8")
             else:
-                xml_body = ET.tostring(root, encoding="utf-8") + b"\n"
-
-            processed = b'<?xml version="1.0" encoding="UTF-8"?>\n' + xml_body
+                processed = (
+                    bytes(xml_encoding, encoding="utf-8")
+                    + ET.tostring(root, encoding="utf-8")
+                    + b"\n"
+                )
 
             if orig != processed:
                 self.logger.info("Modified {}".format(f))
@@ -79,7 +84,7 @@ class RemoveElementsXPath(BaseTask):
 
 
 def salesforce_encoding(xdoc):
-    r = ""
+    r = xml_encoding
     xdoc.getroot().attrib["xmlns"] = "http://soap.sforce.com/2006/04/metadata"
     for action, elem in ET.iterwalk(
         xdoc, events=("start", "end", "start-ns", "end-ns", "comment")
