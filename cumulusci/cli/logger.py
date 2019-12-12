@@ -34,3 +34,34 @@ def init_logger(log_requests=False):
 
     if log_requests:
         requests.packages.urllib3.add_stderr_logger()
+
+
+class LogStream:
+    """Logs all input to a stream in a buffer, which can
+    be read from. All data passed to the stream's `write()`
+    is passed directly throurgh. This is how we capture everything
+    from stdout to create a gist (if the user chooses to).
+
+    Usage with stdout:
+        sys.stdout = LogStream(sys.stdout, io.StringIO())
+    """
+
+    def __init__(self, stream, buffer):
+        self.stream = stream
+        self.log = buffer
+
+    def write(self, data):
+        self.log.write(data)
+        self.stream.write(data)
+        self.flush()
+
+    def flush(self):
+        """Needed incase there are references to sys.stdout.flush()"""
+        self.stream.flush()
+
+    def read_log(self):
+        """Returns the contents of buffer, then flushes buffer"""
+        self.log.seek(0)
+        contents = self.log.read()
+        self.log.flush()
+        return contents

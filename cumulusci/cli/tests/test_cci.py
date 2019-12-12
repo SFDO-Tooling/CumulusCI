@@ -166,6 +166,50 @@ class TestCCI(unittest.TestCase):
         post_mortem.assert_called_once()
         sys_exit.assert_called_once()
 
+    @mock.patch("cumulusci.cli.cci.datetime")
+    @mock.patch("cumulusci.cli.cci.create_gist")
+    @mock.patch("cumulusci.cli.cci.get_github_api")
+    @mock.patch("cumulusci.cli.cci.init_logger")
+    @mock.patch("cumulusci.cli.cci.check_latest_version")
+    @mock.patch("cumulusci.cli.cci.CliRuntime")
+    @mock.patch("cumulusci.cli.cci.cli")
+    @mock.patch("sys.exit")
+    @mock.patch("sys.stdin", io.StringIO("y\n"))
+    def test_main__error_with_gist(
+        self,
+        sys_exit,
+        cli,
+        CliRuntime,
+        check_latest_version,
+        init_logger,
+        gh_api,
+        create_gist,
+        date,
+    ):
+        date.utcnow.return_value = "01/01/1970"
+        cli.side_effect = Exception
+        gh_api.return_value = mock.Mock()
+        expected_gist_url = "https://gist.github.com/1234567890abcdefghijkl"
+        create_gist.return_value = mock.Mock(html_url=expected_gist_url)
+
+        cci.main(["cci"])
+
+        check_latest_version.assert_called_once()
+        init_logger.assert_called_once_with(log_requests=False)
+        CliRuntime.assert_called_once()
+        cli.assert_called_once()
+
+        create_gist.assert_called_once_with(
+            gh_api(),
+            "CumulusCI Error Output",
+            {
+                f"cci_output_{date.utcnow.return_value}.txt": {
+                    "content": "cci\nError: \nWould you like to create a private GitHub Gist with details about this error? [y/N]: "
+                }
+            },
+        )
+        sys_exit.assert_called_once()
+
     def test_cli(self):
         run_click_command(cci.cli)
 
@@ -308,7 +352,7 @@ class TestCCI(unittest.TestCase):
             expected_tasks = {
                 "robot": {
                     "options": {
-                        "suites": u"robot/testproj/tests",
+                        "suites": "robot/testproj/tests",
                         "options": {"outputdir": "robot/testproj/results"},
                     }
                 },

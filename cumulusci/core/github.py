@@ -160,3 +160,13 @@ def find_previous_release(repo, prefix=None):
             most_recent = release
         else:
             return release
+
+
+def create_gist(github, description, files):
+    """Creates a gist with the given description an files.
+
+    github - an
+    description - str
+    files - A dict of files in the form of {filename:{'content': content},...}
+    """
+    return github.create_gist(description, files, public=False)

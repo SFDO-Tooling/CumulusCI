@@ -4,6 +4,7 @@ from urllib.parse import urlparse
 import code
 import functools
 import json
+import io
 import os
 import pdb
 import shutil
@@ -28,13 +29,16 @@ from cumulusci.core.config import ScratchOrgConfig
 from cumulusci.core.config import ServiceConfig
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.config import BaseGlobalConfig
+from cumulusci.core.github import create_gist, get_github_api
 from cumulusci.core.exceptions import OrgNotFound
 from cumulusci.core.exceptions import ServiceNotConfigured
 from cumulusci.core.exceptions import FlowNotFoundError
 
+
 from cumulusci.core.utils import import_global
 from cumulusci.cli.runtime import CliRuntime
 from cumulusci.cli.runtime import get_installed_version
+from cumulusci.cli.logger import LogStream
 from cumulusci.cli.ui import CliTable, CROSSMARK
 from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
 from cumulusci.utils import doc_task
@@ -164,9 +168,29 @@ def pass_runtime(func=None, require_project=True):
         return decorate(func)
 
 
+CCI_STDOUT_FILE = "cci_stdout.txt"
+
+
+def handle_gist_creation(args):
+    """Gather necessary content for gist creation,
+        assemble, and invoke creation method."""
+    description = "CumulusCI Error Output"
+    filename = f"cci_output_{datetime.utcnow()}.txt"
+    file_content = f"{''.join(args)}\n{sys.stdout.read_log()}"
+
+    gh = RUNTIME.keychain.get_service("github")
+    gist = create_gist(
+        get_github_api(gh.config["username"], gh.config["password"]),
+        description,
+        {filename: {"content": file_content}},
+    )
+
+    click.echo(f"Gist created: {gist.html_url}")
+
+
+#
 # Root command
-
-
+#
 def main(args=None):
     """Main CumulusCI CLI entry point.
 
@@ -174,6 +198,9 @@ def main(args=None):
 
     This wraps the `click` library in order to do some initialization and centralized error handling.
     """
+    # log stdout to a buffer as well as output to stdout
+    sys.stdout = LogStream(sys.stdout, io.StringIO())
+
     args = args or sys.argv
     # Check for updates _unless_ we've been asked to output JSON,
     # or if we're going to check anyway as part of the `version` command.
@@ -202,9 +229,11 @@ def main(args=None):
             pdb.post_mortem()
         else:
             click.echo(click.style(f"Error: {e}", fg="red"))
-            # XXX Capture stdout and offer to post to gist
-            # XXX errorsdb
-
+            if click.confirm(
+                "Would you like to create a private GitHub Gist with details about this error?"
+            ):
+                handle_gist_creation(args)
+        # TODO: errorsdb
         # Return a non-zero exit code to indicate a problem
         sys.exit(1)
 
