@@ -178,7 +178,7 @@ class ExtractData(BulkJobTaskMixin, BaseSalesforceApiTask):
                         conn, mapping["sf_id_table"], ["sf_id"], data_file_ids
                     )
 
-        if "RecordTypeId" in mapping["fields"]:
+        if "fields" in mapping and "RecordTypeId" in mapping["fields"]:
             self._extract_record_types(
                 mapping["sf_object"], mapping["record_type_table"], conn
             )
@@ -238,7 +238,7 @@ class ExtractData(BulkJobTaskMixin, BaseSalesforceApiTask):
 
         t = create_table(mapping, self.metadata)
 
-        if "RecordTypeId" in mapping["fields"]:
+        if "fields" in mapping and "RecordTypeId" in mapping["fields"]:
             # We're using Record Type Mapping support.
             mapping["record_type_table"] = mapping["sf_object"] + "_rt_mapping"
             # If multiple mappings point to the same table, don't recreate the table
