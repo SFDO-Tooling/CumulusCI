@@ -283,7 +283,8 @@ class TestScratchOrgConfig(unittest.TestCase):
             },
         )
         self.assertIs(info, config._scratch_info)
-        self.assertTrue(set(info.items()).issubset(set(config.config.items())))
+        for key in ("access_token", "instance_url", "org_id", "password", "username"):
+            assert key in config.config
         self.assertTrue(config._scratch_info_date)
 
     def test_scratch_info_memoized(self, Command):

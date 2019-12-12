@@ -71,16 +71,19 @@ class ScratchOrgConfig(OrgConfig):
             password = self.config.get("password")
 
         self._scratch_info = {
-            "created_date": org_info["result"]["createdDate"],
-            "expiration_date": org_info["result"]["expirationDate"],
             "instance_url": org_info["result"]["instanceUrl"],
             "access_token": org_info["result"]["accessToken"],
             "org_id": org_id,
             "username": org_info["result"]["username"],
             "password": password,
         }
-
         self.config.update(self._scratch_info)
+        self._scratch_info.update(
+            {
+                "created_date": org_info["result"].get("createdDate"),
+                "expiration_date": org_info["result"].get("expirationDate"),
+            }
+        )
 
         self._scratch_info_date = datetime.datetime.utcnow()
 
@@ -145,7 +148,7 @@ class ScratchOrgConfig(OrgConfig):
     @property
     def expired(self):
         """Check if an org has already expired"""
-        return bool(self.expires) and self.expires < datetime.datetime.now()
+        return bool(self.expires) and self.expires < datetime.datetime.utcnow()
 
     @property
     def expires(self):
@@ -155,7 +158,7 @@ class ScratchOrgConfig(OrgConfig):
     @property
     def days_alive(self):
         if self.date_created and not self.expired:
-            delta = datetime.datetime.now() - self.date_created
+            delta = datetime.datetime.utcnow() - self.date_created
             return delta.days + 1
 
     def create_org(self):
@@ -214,7 +217,7 @@ class ScratchOrgConfig(OrgConfig):
         for line in stderr:
             self.logger.error(line)
 
-        self.config["date_created"] = datetime.datetime.now()
+        self.config["date_created"] = datetime.datetime.utcnow()
 
         if self.config.get("set_password"):
             self.generate_password()

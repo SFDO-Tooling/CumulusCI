@@ -42,7 +42,8 @@ class CliRuntime(BaseCumulusCI):
         try:
             key_from_keyring = keyring.get_password("cumulusci", "CUMULUSCI_KEY")
             has_functioning_keychain = True
-        except Exception:
+        except Exception as e:
+            keychain_exception = e
             key_from_keyring = None
             has_functioning_keychain = False
         # If no key in environment or file, generate one
@@ -54,7 +55,8 @@ class CliRuntime(BaseCumulusCI):
                 raise KeychainKeyNotFound(
                     "Unable to store CumulusCI encryption key. "
                     "You can configure it manually by setting the CUMULUSCI_KEY "
-                    "environment variable to a random 16-character string."
+                    "environment variable to a random 16-character string. "
+                    f"ERROR: {keychain_exception}"
                 )
         if has_functioning_keychain and not key_from_keyring:
             keyring.set_password("cumulusci", "CUMULUSCI_KEY", key)
