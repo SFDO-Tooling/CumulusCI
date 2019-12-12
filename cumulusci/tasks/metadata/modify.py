@@ -64,11 +64,11 @@ class RemoveElementsXPath(BaseTask):
             for element in res:
                 element.getparent().remove(element)
 
-            processed = bytes(salesforce_encoding(root), "utf-8")
+            processed = salesforce_encoding(root)
 
             if orig != processed:
                 self.logger.info("Modified {}".format(f))
-                with open(f, "wb") as fp:
+                with open(f, "w", encoding="utf-8") as fp:
                     fp.write(processed)
 
 

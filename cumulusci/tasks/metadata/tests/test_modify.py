@@ -97,6 +97,18 @@ class TestRemoveElementsXPath(unittest.TestCase):
             result,
         )
 
+    def test_empty_element(self):
+        result = self.run_xml_through_task(
+            """<root><a/></root>""",
+            {
+                "elements": [{"path": "test.xml", "xpath": "todelete"}],
+                "output_style": "salesforce",
+            },
+        )
+        self.assertEqual(
+            '<?xml version="1.0" encoding="UTF-8"?>\n<root><a/></root>\n', result
+        )
+
     def test_roundtripping(self):
         files = glob(str(Path(__file__).parent / "/sample_package.xml"))
 
