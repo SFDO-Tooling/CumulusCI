@@ -1,3 +1,6 @@
+.. role:: raw-html(raw)
+    :format: html
+
 ==========================================
 Tasks Reference
 ==========================================
@@ -9,11 +12,31 @@ batch_apex_wait
 
 **Class::** cumulusci.tasks.apex.batch.BatchApexWait
 
-Options:
+Command Syntax
 ------------------------------------------
+``$ cci task run batch_apex_wait``
 
-* **class_name** *(required)*: Name of the Apex class to wait for.
-* **poll_interval**: Seconds to wait before polling for batch job completion. Defaults to 10 seconds.
+    [-o class_name TARGETCLASS] :raw-html:`<br />`
+    [-o poll_interval SECONDS]
+
+Options
+------------------------------------------
+``-o class_name TARGETCLASS`` :raw-html:`<br />`
+    *(required)* :raw-html:`<br />`
+    Name of the Apex class to wait for. :raw-html:`<br />`
+    Type: string
+  
+``-o poll_interval SECONDS``
+    Optional :raw-html:`<br />`
+    Number of seconds to wait before polling for batch job completion. :raw-html:`<br />`
+    Default value: 10 :raw-html:`<br />`
+    Type: Seconds
+    
+Help for batch_apex_wait
+------------------------------------------
+    Specify the amount of time in seconds to wait for a batch apex job to complete. :raw-html:`<br />`
+    Examples: :raw-html:`<br />`
+    ``cci task run batch_apex_wait -o class_name MyApexClass -o poll_interval 30``
 
 command
 ==========================================
