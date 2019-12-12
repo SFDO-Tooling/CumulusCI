@@ -168,9 +168,6 @@ def pass_runtime(func=None, require_project=True):
         return decorate(func)
 
 
-CCI_STDOUT_FILE = "cci_stdout.txt"
-
-
 def handle_gist_creation(args):
     """Gather necessary content for gist creation,
         assemble, and invoke creation method."""
