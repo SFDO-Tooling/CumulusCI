@@ -745,7 +745,8 @@ list_changes
 Options:
 ------------------------------------------
 
-* **include**: Include changed components matching this string.
+* **include**: A comma-separated list of strings. Components will be included if one of these strings is part of either the metadata type or name. Example: ``-o include CustomField,Admin`` matches both ``CustomField: Favorite_Color__c`` and ``Profile: Admin``
+* **types**: A comma-separated list of metadata types to include.
 * **exclude**: Exclude changed components matching this string.
 * **snapshot**: If True, all matching items will be set to be ignored at their current revision number.  This will exclude them from the results unless a new edit is made.
 
@@ -759,10 +760,11 @@ retrieve_changes
 Options:
 ------------------------------------------
 
-* **include**: Include changed components matching this string.
+* **include**: A comma-separated list of strings. Components will be included if one of these strings is part of either the metadata type or name. Example: ``-o include CustomField,Admin`` matches both ``CustomField: Favorite_Color__c`` and ``Profile: Admin``
+* **types**: A comma-separated list of metadata types to include.
 * **exclude**: Exclude changed components matching this string.
 * **snapshot**: If True, all matching items will be set to be ignored at their current revision number.  This will exclude them from the results unless a new edit is made.
-* **path** *(required)*: The path to write the retrieved metadata **Default: src**
+* **path**: The path to write the retrieved metadata
 * **api_version**: Override the default api version for the retrieve. Defaults to project__package__api_version
 * **namespace_tokenize**: If set, all namespace prefixes for the namespace specified are replaced with tokens for use with namespace_inject
 
@@ -776,10 +778,11 @@ retrieve_qa_config
 Options:
 ------------------------------------------
 
-* **include**: Include changed components matching this string.
+* **include**: A comma-separated list of strings. Components will be included if one of these strings is part of either the metadata type or name. Example: ``-o include CustomField,Admin`` matches both ``CustomField: Favorite_Color__c`` and ``Profile: Admin``
+* **types**: A comma-separated list of metadata types to include.
 * **exclude**: Exclude changed components matching this string.
 * **snapshot**: If True, all matching items will be set to be ignored at their current revision number.  This will exclude them from the results unless a new edit is made.
-* **path** *(required)*: The path to write the retrieved metadata **Default: unpackaged/config/qa**
+* **path**: The path to write the retrieved metadata **Default: unpackaged/config/qa**
 * **api_version**: Override the default api version for the retrieve. Defaults to project__package__api_version
 * **namespace_tokenize**: If set, all namespace prefixes for the namespace specified are replaced with tokens for use with namespace_inject **Default: $project_config.project__package__namespace**
 
