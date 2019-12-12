@@ -36,7 +36,7 @@ Help for batch_apex_wait
 ------------------------------------------
     Specify the amount of time in seconds to wait for a batch apex job to complete. :raw-html:`<br />`
     Examples: :raw-html:`<br />`
-    ``cci task run batch_apex_wait -o class_name MyApexClass -o poll_interval 30``
+    ``$ cci task run batch_apex_wait -o class_name MyApexClass -o poll_interval 30``
 
 command
 ==========================================
