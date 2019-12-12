@@ -2,6 +2,36 @@
 History
 =======
 
+3.2.0 (2019-12-11)
+------------------
+
+Breaking changes:
+
+* We upgraded the SeleniumLibrary for Robot Framework from version 3.3.1 to version 4.1.0. This includes the removal of some deprecated keywords. See the `SeleniumLibrary releases <https://github.com/robotframework/SeleniumLibrary/releases>`_ for links to detailed release notes.
+
+Changes:
+
+* The ``Persistent Orgs`` table shown by ``cci org list`` has been renamed to ``Connected Orgs`` since scratch orgs will be shown here if they were connected using ``cci org connect`` instead of created via the Salesforce CLI. This table now shows the org's expiration date, if known.
+
+* Improvements to the ``retrieve_changes`` task:
+
+  * The task now retrieves only the components that actually changed, not all components listed in ``package.xml`` in the target directory.
+
+  * Changes can now be retrieved into folders in DX source format.  The target directory defaults to ``src`` if the project is using ``mdapi`` format or the default entry in ``packageDirectories`` in ``sfdx-project.json`` if the project is using ``sfdx`` format. (Namespace tokenization is not supported in DX format, since there isn't currently a way to deploy DX format source including namespace tokens.)
+
+* Added a task, ``load_custom_settings``, to upload Custom Settings defined in YAML into a target org. See https://cumulusci.readthedocs.io/en/latest/bulk_data.html#custom-settings for more info.
+
+Issues closed:
+
+* Fixed an issue with how the package upload task logs Apex test failures to make sure they show up in MetaCI.
+
+* Fixed ``KeyError: createdDate`` error when trying to get scratch org info.
+
+* A rare issue where CumulusCI could fail to load the symbol table for a failed Apex test class is now caught and reported.
+
+* CumulusCI now displays the underlying error if it encounters a problem with storing its encryption key in the system keychain.
+
+
 3.1.2 (2019-11-20)
 ------------------
 
