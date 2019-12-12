@@ -101,6 +101,7 @@ class ExtractData(BulkJobTaskMixin, BaseSalesforceApiTask):
         soql = f"SELECT {field_list} FROM {sf_object}"
         if "record_type" in mapping:
             soql += f" WHERE RecordType.DeveloperName = '{mapping['record_type']}'"
+        soql += " ORDER BY Id"
         return soql
 
     def _run_query(self, soql, mapping):
