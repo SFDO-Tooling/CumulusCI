@@ -17,12 +17,8 @@ pycparser==2.19
 PyJWT==1.7.1
 python-dateutil==2.8.1
 pytz==2019.3
-<<<<<<< HEAD
-PyYAML==5.1.2
-=======
 PyYAML==5.2
 raven==6.10.0
->>>>>>> master
 requests[security]==2.22.0
 robotframework==3.1.2
 robotframework-seleniumlibrary==4.1.0
