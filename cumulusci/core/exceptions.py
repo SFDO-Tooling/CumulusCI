@@ -156,12 +156,6 @@ class FlowNotReadyError(CumulusCIException):
     pass
 
 
-class MrbelvedereError(CumulusCIException):
-    """ Raise for errors from mrbelvedere installer """
-
-    pass
-
-
 class ScratchOrgException(CumulusCIException):
     """ Raise for errors related to scratch orgs """
 
