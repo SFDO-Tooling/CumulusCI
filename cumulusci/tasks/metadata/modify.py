@@ -23,7 +23,7 @@ class RemoveElementsXPath(BaseTask):
                 "Use ns: to refer to the Salesforce namespace for metadata elements."
                 "for example: ./ns:Layout/ns:relatedLists (one-level) or //ns:relatedLists (recursive)"
                 "Many advanced examples are available here: "
-                "https://github.com/SalesforceFoundation/Cumulus/blob/26b585409720e2004f5b7785a56e57498796619f/cumulusci.yml#L342"
+                "https://github.com/SalesforceFoundation/NPSP/blob/26b585409720e2004f5b7785a56e57498796619f/cumulusci.yml#L342"
             )
         },
         "path": {
