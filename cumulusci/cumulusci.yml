@@ -414,6 +414,11 @@ tasks:
         description: Load Custom Settings specified in a YAML file to the target org
         class_path: cumulusci.tasks.salesforce.LoadCustomSettings
         group: 'Data Operations'
+    remove_metadata_xml_elements:
+        description: Remove specified XML elements from one or more metadata files
+        class_path: cumulusci.tasks.metadata.modify.RemoveElementsXPath
+        group: Salesforce Metadata
+
 
 flows:
     apex_docs:
