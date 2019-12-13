@@ -1362,6 +1362,18 @@ class TestCCI(unittest.TestCase):
 
         assert buffer_contents == expected_text
 
+    def test_strip_ansi_sequences(self):
+        plain_old_string = "This is [just a plain old string with some] [symbols]"
+
+        ansi_buff = io.StringIO("\033[31mGoodbye ANSI color sequences!\033[0m")
+        non_ansi_buff = io.StringIO(plain_old_string)
+
+        ansi_string_result = cci.strip_ansi_sequences(ansi_buff)
+        plain_string_result = cci.strip_ansi_sequences(non_ansi_buff)
+
+        assert ansi_string_result == "Goodbye ANSI color sequences!"
+        assert plain_string_result == plain_string_result
+
 
 class SetTrace(Exception):
     pass

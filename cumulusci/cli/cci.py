@@ -5,6 +5,7 @@ import code
 import functools
 import json
 import io
+import re
 import os
 import pdb
 import shutil
@@ -46,7 +47,6 @@ from cumulusci.utils import get_cci_upgrade_command
 from cumulusci.oauth.salesforce import CaptureSalesforceOAuth
 
 from .logger import init_logger
-import re
 
 
 @contextmanager
@@ -167,11 +167,27 @@ def pass_runtime(func=None, require_project=True):
         return decorate(func)
 
 
+def strip_ansi_sequences(buffer):
+    """Strip ANSI sequences from what's in buffer"""
+    ansi_escape = re.compile(
+        r"""
+        \x1B    # ESC
+        [@-_]   # 7-bit C1 Fe
+        [0-?]*  # Parameter bytes
+        [ -/]*  # Intermediate bytes
+        [@-~]   # Final byte
+    """,
+        re.VERBOSE,
+    )
+    buffer.seek(0)
+    return ansi_escape.sub("", buffer.read())
+
+
 def handle_gist_creation(args, stdout_buff):
     """Gather necessary content for gist creation,
         assemble, and invoke creation method."""
     stdout_buff.seek(0)
-    log_content = stdout_buff.read()
+    log_content = strip_ansi_sequences(stdout_buff)
     description = "CumulusCI Error Output"
     filename = f"cci_output_{datetime.utcnow()}.txt"
     file_content = f"{' '.join(args)}\n{log_content}"
