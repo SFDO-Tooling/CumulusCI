@@ -508,8 +508,7 @@ class FlowCoordinator(object):
             try:
                 task_class = import_global(task_config_dict["class_path"])
             except (ImportError, AttributeError):
-                # TODO: clean this up and raise a taskimporterror or something else correcter.
-                raise FlowConfigError("Task named {} has bad classpath")
+                raise FlowConfigError(f"Task named {name} has bad classpath")
 
             visited_steps.append(
                 StepSpec(

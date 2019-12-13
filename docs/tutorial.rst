@@ -28,7 +28,7 @@ Project Initialization
 The `cci` command is git repository aware. Changing directories from one local git repository to another will change the project context. Each project context isolates the following:
 
 * Orgs: Connected Salesforce Orgs are stored in a project specific keychain
-* Services: Named service connections such as Github, ApexTestsDB, and mrbelvedere
+* Services: Named service connections such as Github
 
 If you run the `cci` command from outside a git repository, it will generate an error.
 
@@ -74,15 +74,6 @@ If you run the `cci project info` command from inside a git repository that has 
         repo_url: https://github.com/SFDO-Tooling/CumulusCI-Test
     test:
         name_match: %_TEST%
-    apexdoc:
-        homepage: None
-        banner: None
-        version: 1.1.7
-        scope: global;public;private;testmethod;webService
-        branch: gh-pages
-        repo_dir: ApexDocumentation
-            namespace: pub
-            version: 1.5
 
 If you run the same command from inside a git repository that has not yet been set up for CumulusCI, you will get an error:
 
