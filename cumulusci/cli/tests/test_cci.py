@@ -5,6 +5,7 @@ from datetime import timedelta
 import io
 import json
 import os
+import sys
 import shutil
 import tempfile
 import time
@@ -733,6 +734,14 @@ class TestCCI(unittest.TestCase):
         actual_days = cci.calculate_org_days(info_14)
         assert 14 == actual_days
 
+        info_bad__no_created_date = {"expiration_date": "1970-01-15"}
+        actual_days = cci.calculate_org_days(info_bad__no_created_date)
+        assert 1 == actual_days
+
+        info_bad__no_expiration_date = {"created_date": "1970-01-01T12:34:56.000+0000"}
+        actual_days = cci.calculate_org_days(info_bad__no_expiration_date)
+        assert 1 == actual_days
+
     def test_org_info(self):
         org_config = mock.Mock()
         org_config.config = {"days": 1, "default": True, "password": None}
@@ -1343,6 +1352,15 @@ class TestCCI(unittest.TestCase):
         echo.assert_any_call(
             "Scratch org deletion failed.  Ignoring the error below to complete the flow:"
         )
+
+    def test_tee_stdout(self):
+        expected_text = "This is expected."
+        with cci.tee_stdout() as buffer:
+            sys.stdout.write(expected_text)
+            buffer.seek(0)
+            buffer_contents = buffer.read()
+
+        assert buffer_contents == expected_text
 
 
 class SetTrace(Exception):
