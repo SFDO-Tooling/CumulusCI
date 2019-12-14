@@ -77,11 +77,11 @@ def merge_options(option_definitions: List, user_options: Mapping) -> Tuple[Dict
 def generate(
     open_yaml_file: IO[str],
     count: int = 1,
-    cli_options: dict = None,
+    user_options: dict = None,
     output_stream: OutputStream = None,
 ) -> ExecutionSummary:
     """The main entry point to the package for Python applications."""
-    cli_options = cli_options or {}
+    user_options = user_options or {}
 
     # Where are we going to put the rows?
     output_stream = output_stream or DebugOutputStream()
@@ -90,7 +90,7 @@ def generate(
     parse_result = parse_generator(open_yaml_file)
 
     # figure out how it relates to CLI-supplied generation variables
-    options, extra_options = merge_options(parse_result.options, cli_options)
+    options, extra_options = merge_options(parse_result.options, user_options)
 
     if extra_options:
         warnings.warn(f"Warning: unknown options: {extra_options}")
