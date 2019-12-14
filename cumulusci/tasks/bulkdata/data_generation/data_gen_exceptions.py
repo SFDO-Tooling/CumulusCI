@@ -21,3 +21,16 @@ class DataGenNameError(DataGenError):
 
 class DataGenValueError(DataGenError):
     pass
+
+
+def fix_exception(message, parentobj, e):
+    """Add filename and linenumber to an exception if needed"""
+    filename, line_num = parentobj.filename, parentobj.line_num
+    if isinstance(e, DataGenError):
+        if not e.filename:
+            e.filename = filename
+        if not e.line_num:
+            e.line_num = line_num
+        raise e
+    else:
+        raise DataGenError(message, filename, line_num) from e

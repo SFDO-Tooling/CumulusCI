@@ -1,11 +1,6 @@
 from abc import abstractmethod, ABC
 from datetime import date, datetime
-from .data_generator_runtime import (
-    evaluate_function,
-    fix_exception,
-    ObjectRow,
-    RuntimeContext,
-)
+from .data_generator_runtime import evaluate_function, ObjectRow, RuntimeContext
 from contextlib import contextmanager
 from typing import Union, Dict, Sequence, Optional, cast
 from numbers import Number
@@ -19,6 +14,7 @@ from .data_gen_exceptions import (
     DataGenNameError,
     DataGenSyntaxError,
     DataGenValueError,
+    fix_exception,
 )
 
 # objects that represent the hierarchy of a data generator.
