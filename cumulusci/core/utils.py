@@ -94,7 +94,7 @@ def process_list_of_pairs_dict_arg(arg):
             subparts = key_value.split(":")
             if len(subparts) == 2:
                 key, value = subparts
-                if rc.get(key):
+                if key in rc:
                     raise TaskOptionsError(f"Var specified twice: {key}")
                 rc[key] = value
             else:
