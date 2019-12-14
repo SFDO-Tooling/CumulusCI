@@ -65,7 +65,9 @@ class TestFaker(unittest.TestCase):
             date: <<fake.date(pattern="%Y-%m-%d", end_datetime=None)>>
         """
         generate(StringIO(yaml), 1, {}, None)
-        assert len(row_values(write_row_mock, 0, "date").split("-")) == 3
+        date = row_values(write_row_mock, 0, "date")
+        assert type(date) == str, write_row_mock.mock_calls
+        assert len(date.split("-")) == 3, date
 
     @mock.patch(write_row_path)
     def test_fake_two_params_nested(self, write_row_mock):

@@ -1,11 +1,13 @@
 import random
 from datetime import date, datetime
 import dateutil
+from ast import literal_eval
 
-from .data_gen_exceptions import DataGenError
 from typing import Callable, Any, Optional, Union, List, Tuple
 
 from faker import Faker
+
+from .data_gen_exceptions import DataGenError
 
 fake = Faker()
 
@@ -31,7 +33,7 @@ def parse_weight_str(context, weight_value) -> int:
         probability: 60%
         pick: Closed Won
 
-    Convert the 60% to just 60.
+    Render and convert the 60% to just 60.
     """
     weight_str = weight_value.render(context)
     if isinstance(weight_str, str):
@@ -89,7 +91,7 @@ def random_choice(context, *choices):
 
 @lazy
 def choice_wrapper(context, pick, probability=None, when=None):
-    """Supports the choice: sub-items used in `random_choice`z or `if`"""
+    """Supports the choice: sub-items used in `random_choice` or `if`"""
     if probability:
         probability = parse_weight_str(context, probability)
     return probability or when, pick
@@ -143,6 +145,14 @@ def reference(context, x):
     return target
 
 
+def render_boolean(context, value) -> bool:
+    val = value.render(context)
+    if isinstance(val, str):
+        val = literal_eval(val)
+
+    return bool(val)
+
+
 @lazy
 def if_(context, *choices):
     """Template helper for conditional choices.
@@ -165,12 +175,14 @@ def if_(context, *choices):
         raise ValueError("No choices supplied!")
 
     choices = [choice.render(context) for choice in choices]
-    for cond, choice in choices[:-1]:
-        if cond is None:
+    for when, choice in choices[:-1]:
+        if when is None:
             raise SyntaxError(
                 "Every choice except the last one should have a when-clause"
             )
-    true_choices = (choice for cond, choice in choices if cond and cond.render(context))
+    true_choices = (
+        choice for when, choice in choices if when and render_boolean(context, when)
+    )
     rc = next(true_choices, choices[-1][-1])  # default to last choice
     if hasattr(rc, "render"):
         rc = rc.render(context)
