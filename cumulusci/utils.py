@@ -7,7 +7,6 @@ import re
 import shutil
 import sys
 import tempfile
-import textwrap
 import zipfile
 from datetime import datetime
 
@@ -382,35 +381,112 @@ def doc_task(task_name, task_config, project_config=None, org_config=None):
     from cumulusci.core.utils import import_global
 
     doc = []
-    doc.append("{}\n==========================================\n".format(task_name))
-    doc.append("**Description:** {}\n".format(task_config.description))
-    doc.append("**Class::** {}\n".format(task_config.class_path))
+    doc.append(f"**{task_name}**\n==========================================\n")
+    doc.append(f"**Description:** {task_config.description}\n")
+    doc.append(f"**Class:** {task_config.class_path}\n")
 
     task_class = import_global(task_config.class_path)
-    if "task_docs" in task_class.__dict__:
-        task_docs = textwrap.dedent(task_class.task_docs.strip("\n"))
-        doc.append(task_docs + "\n")
-    if task_class.task_options:
-        doc.append("Options:\n------------------------------------------\n")
-        defaults = task_config.options or {}
-        for name, option in list(task_class.task_options.items()):
-            default = defaults.get(name)
-            if default:
-                default = " **Default: {}**".format(default)
-            else:
-                default = ""
-            if option.get("required"):
-                doc.append(
-                    "* **{}** *(required)*: {}{}".format(
-                        name, option.get("description"), default
-                    )
-                )
-            else:
-                doc.append(
-                    "* **{}**: {}{}".format(name, option.get("description"), default)
-                )
+    task_options_info = get_task_options_info(task_config, task_class)
+
+    doc.append("Command Syntax\n------------------------------------------\n")
+    command_syntax = get_command_syntax(task_name, task_options_info)
+    doc.append(command_syntax)
+
+    task_options_doc = create_task_options_doc(task_options_info)
+    if task_options_doc:
+        doc.append("Options\n------------------------------------------\n")
+        doc.extend(task_options_doc)
+
+    task_help_doc = create_task_help_doc(task_config)
+    if task_help_doc:
+        doc.append(
+            f"Help for task {task_name}\n------------------------------------------\n"
+        )
+        doc.extend(task_help_doc)
 
     return "\n".join(doc)
+
+
+def get_command_syntax(task_name, task_option_info):
+    """Return an example command syntax string in .rst format"""
+    options = get_options_syntax(task_option_info)
+    return f"``$ cci task run {task_name}{options}``\n\n"
+
+
+def get_options_syntax(task_options_info):
+    """Given a list of option info, output a string of
+    option names separated by spaces. Place brackets ([]) around
+    anything that is optional (i.e. not required)"""
+    option_syntax = ""
+    for option in task_options_info:
+        option_syntax += (
+            f" {option['name']}" if option["required"] else f" [{option['name']}]"
+        )
+    return option_syntax
+
+
+def get_task_options_info(task_config, task_class):
+    """Gets the the following info for each option in the task
+    usage: example usage statement (i.e. -o name VALUE)
+    required: True/False
+    default: If a default value is present
+    description: Description string provided on the task option
+    option_type: A type string provided on the task option
+
+    Returns list of option dicts with required at the front of the map
+    """
+    required_options = []
+    optional_options = []
+    defaults = task_config.options or {}
+
+    for name, option in list(task_class.task_options.items()):
+        usage = option.get("usage") or f"-o {name} {str.upper(name.replace('_',''))}"
+        required = True if option.get("required") else False
+        default = defaults.get(name)
+        description = option.get("description")
+        option_type = option.get("type")
+
+        info = {
+            "usage": usage,
+            "name": name,
+            "required": required,
+            "defatult": default,
+            "description": description,
+            "option_type": option_type,
+        }
+        if required:
+            required_options.append(info)
+        else:
+            optional_options.append(info)
+
+    return [*required_options, *optional_options]
+
+
+def create_task_options_doc(task_options):
+    """Generate the 'Options' section for a given tasks documentation"""
+    doc = []
+    for option in task_options:
+        if option.get("usage"):
+            doc.append(f"\n``[{option.get('usage')}]``")
+
+        if option.get("required"):
+            doc.append(f"\t *Required*")
+        else:
+            doc.append(f"\t Optional")
+
+        if option.get("description"):
+            doc.append(f"\n\t {option.get('description')}")
+        if option.get("default"):
+            doc.append(f"\n\t  Default: {option.get('default')}")
+        if option.get("option_type"):
+            doc.append(f"\n\t Type: {option.get('option_type')}")
+
+    return doc
+
+
+def create_task_help_doc(task_config):
+    """Create documentation for the 'help' section of a task doc"""
+    return []
 
 
 def package_xml_from_dict(items, api_version, package_name=None):
