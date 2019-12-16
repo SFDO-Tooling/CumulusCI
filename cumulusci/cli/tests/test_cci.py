@@ -278,7 +278,7 @@ class TestCCI(unittest.TestCase):
                 "43.0",  # api_version
                 "mdapi",  # source_format
                 "3",  # extend other URL
-                "https://github.com/SalesforceFoundation/Cumulus",  # github_url
+                "https://github.com/SalesforceFoundation/NPSP",  # github_url
                 "default",  # git_default_branch
                 "work/",  # git_prefix_feature
                 "uat/",  # git_prefix_beta
@@ -334,7 +334,7 @@ class TestCCI(unittest.TestCase):
                 "43.0",  # api_version
                 "mdapi",  # source_format
                 "3",  # extend other URL
-                "https://github.com/SalesforceFoundation/Cumulus",  # github_url
+                "https://github.com/SalesforceFoundation/NPSP",  # github_url
                 "default",  # git_default_branch
                 "work/",  # git_prefix_feature
                 "uat/",  # git_prefix_beta

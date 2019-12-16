@@ -439,14 +439,14 @@ def project_init(runtime):
     ):
         click.echo("Please select from the following options:")
         click.echo("  1: EDA (https://github.com/SalesforceFoundation/EDA)")
-        click.echo("  2: NPSP (https://github.com/SalesforceFoundation/Cumulus)")
+        click.echo("  2: NPSP (https://github.com/SalesforceFoundation/NPSP)")
         click.echo(
             "  3: Github URL (provide a URL to a Github repository configured for CumulusCI)"
         )
         selection = click.prompt(click.style("Enter your selection", bold=True))
         github_url = {
             "1": "https://github.com/SalesforceFoundation/EDA",
-            "2": "https://github.com/SalesforceFoundation/Cumulus",
+            "2": "https://github.com/SalesforceFoundation/NPSP",
         }.get(selection)
         if github_url is None:
             print(selection)
