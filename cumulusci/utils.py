@@ -389,7 +389,7 @@ def doc_task(task_name, task_config, project_config=None, org_config=None):
     task_option_info = get_task_option_info(task_config, task_class)
 
     doc.append("Command Syntax\n------------------------------------------\n")
-    command_syntax = get_command_syntax(task_name, task_option_info)
+    command_syntax = get_command_syntax(task_name)
     doc.append(command_syntax)
 
     task_option_doc = create_task_options_doc(task_option_info)
@@ -407,22 +407,9 @@ def doc_task(task_name, task_config, project_config=None, org_config=None):
     return "\n".join(doc)
 
 
-def get_command_syntax(task_name, task_option_info):
+def get_command_syntax(task_name):
     """Return an example command syntax string in .rst format"""
-    options = get_options_syntax(task_option_info)
-    return f"``$ cci task run {task_name}{options}``\n\n"
-
-
-def get_options_syntax(task_option_info):
-    """Given a list of option info, output a string of
-    option names separated by spaces. Place brackets ([]) around
-    anything that is optional (i.e. not required)"""
-    option_syntax = ""
-    for option in task_option_info:
-        option_syntax += (
-            f" {option['name']}" if option["required"] else f" [{option['name']}]"
-        )
-    return option_syntax
+    return f"``$ cci task run {task_name}``\n\n"
 
 
 def get_task_option_info(task_config, task_class):
@@ -484,7 +471,7 @@ def create_task_options_doc(task_options):
         if option.get("required"):
             doc.append(f"\t *Required*")
         else:
-            doc.append(f"\t Optional")
+            doc.append(f"\t *Optional*")
 
         description = option.get("description")
         if description:
@@ -492,7 +479,7 @@ def create_task_options_doc(task_options):
 
         default = option.get("default")
         if default:
-            doc.append(f"\n\t  Default: {default}")
+            doc.append(f"\n\t Default: {default}")
 
         option_type = option.get("option_type")
         if option_type:

@@ -43,11 +43,6 @@ class FunTestTaskChild(FunTestTask):
 
 
 @pytest.fixture
-def task_options():
-    pass
-
-
-@pytest.fixture
 def task_config():
     return TaskConfig(
         {
@@ -203,34 +198,26 @@ class TestUtils:
 **Description:** Scoops icecream\n
 **Class:** cumulusci.tests.test_utils.FunTestTask\n
 Command Syntax\n------------------------------------------\n
-``$ cci task run scoop_icecream flavor [color] [size]``\n\n
+``$ cci task run scoop_icecream``\n\n
 Options\n------------------------------------------\n\n
 ``[-o flavor VANILLA]``
 \t *Required*\n
 \t What flavor\n
 \t Type: string\n
 ``[-o color COLOR]``
-\t Optional\n
+\t *Optional*\n
 \t What color\n
-\t  Default: black\n
+\t Default: black\n
 ``[-o size SIZE]``
-\t Optional\n
+\t *Optional*\n
 \t How big"""
         )
 
     def test_get_command_syntax(self, task_config):
-        option_info = utils.get_task_option_info(task_config, FunTestTask)
-
         task_name = "scoop_icecream"
-        cmd_syntax = utils.get_command_syntax(task_name, option_info)
+        cmd_syntax = utils.get_command_syntax(task_name)
 
-        assert (
-            cmd_syntax == "``$ cci task run scoop_icecream flavor [color] [size]``\n\n"
-        )
-
-    def test_get_options_syntax(self, option_info):
-        option_syntax = utils.get_options_syntax(option_info)
-        assert option_syntax == " option_one [option_two]"
+        assert cmd_syntax == "``$ cci task run scoop_icecream``\n\n"
 
     def test_get_task_options_info(self, task_config):
         option_info = utils.get_task_option_info(task_config, FunTestTask)
@@ -267,11 +254,11 @@ Options\n------------------------------------------\n\n
         assert option_one_doc == [
             "\t *Required*",
             "\n\t description",
-            "\n\t  Default: default",
+            "\n\t Default: default",
             "\n\t Type: option_type",
         ]
 
-        assert option_two_doc == ["\t Optional", "\n\t Brief description here."]
+        assert option_two_doc == ["\t *Optional*", "\n\t Brief description here."]
 
     @responses.activate
     def test_download_extract_zip(self):
