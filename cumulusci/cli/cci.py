@@ -4,7 +4,6 @@ from urllib.parse import urlparse
 import code
 import functools
 import json
-import io
 import re
 import os
 import pdb
@@ -14,8 +13,7 @@ import time
 import traceback
 from datetime import datetime
 import webbrowser
-
-from contextlib import contextmanager
+import contextlib
 
 import click
 import pkg_resources
@@ -41,15 +39,15 @@ from cumulusci.cli.runtime import CliRuntime
 from cumulusci.cli.runtime import get_installed_version
 from cumulusci.cli.ui import CliTable, CROSSMARK
 from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
-from cumulusci.utils import doc_task
+from cumulusci.utils import doc_task, tee_stdout
 from cumulusci.utils import parse_api_datetime
 from cumulusci.utils import get_cci_upgrade_command
 from cumulusci.oauth.salesforce import CaptureSalesforceOAuth
 
-from .logger import init_logger
+from .logger import init_logger, get_gist_logger
 
 
-@contextmanager
+@contextlib.contextmanager
 def timestamp_file():
     """Opens a file for tracking the time of the last version check"""
     config_dir = os.path.join(
@@ -167,57 +165,6 @@ def pass_runtime(func=None, require_project=True):
         return decorate(func)
 
 
-def strip_ansi_sequences(buffer):
-    """Strip ANSI sequences from what's in buffer"""
-    ansi_escape = re.compile(
-        r"""
-        \x1B    # ESC
-        [@-_]   # 7-bit C1 Fe
-        [0-?]*  # Parameter bytes
-        [ -/]*  # Intermediate bytes
-        [@-~]   # Final byte
-    """,
-        re.VERBOSE,
-    )
-    buffer.seek(0)
-    return ansi_escape.sub("", buffer.read())
-
-
-def handle_gist_creation(args, stdout_buff):
-    """Gather necessary content for gist creation,
-        assemble, and invoke creation method."""
-    stdout_buff.seek(0)
-    log_content = strip_ansi_sequences(stdout_buff)
-    description = "CumulusCI Error Output"
-    filename = f"cci_output_{datetime.utcnow()}.txt"
-    file_content = f"{' '.join(args)}\n{log_content}"
-
-    gh = RUNTIME.keychain.get_service("github")
-    gist = create_gist(
-        get_github_api(gh.config["username"], gh.config["password"]),
-        description,
-        {filename: {"content": file_content}},
-    )
-
-    click.echo(f"Gist created: {gist.html_url}")
-
-
-@contextmanager
-def tee_stdout():
-    real_write = sys.stdout.write
-    buffer = io.StringIO()
-
-    def write(s):
-        real_write(s)
-        buffer.write(s)
-
-    sys.stdout.write = write
-    try:
-        yield buffer
-    finally:
-        sys.stdout.write = real_write
-
-
 #
 # Root command
 #
@@ -228,25 +175,32 @@ def main(args=None):
 
     This wraps the `click` library in order to do some initialization and centralized error handling.
     """
-    args = args or sys.argv
-    # Check for updates _unless_ we've been asked to output JSON,
-    # or if we're going to check anyway as part of the `version` command.
-    is_version_command = len(args) > 1 and args[1] == "version"
-    if "--json" not in args and not is_version_command:
-        check_latest_version()
+    with contextlib.ExitStack() as stack:
+        args = args or sys.argv
+        # Check for updates _unless_ we've been asked to output JSON,
+        # or if we're going to check anyway as part of the `version` command.
+        is_version_command = len(args) > 1 and args[1] == "version"
+        if "--json" not in args and not is_version_command:
+            check_latest_version()
 
-    # Configure logging
-    debug = "--debug" in args
-    if debug:
-        args.remove("--debug")
-    init_logger(log_requests=debug)
+        # Load CCI config
+        global RUNTIME
+        RUNTIME = CliRuntime()
+        RUNTIME.check_cumulusci_version()
 
-    # Load CCI config
-    global RUNTIME
-    RUNTIME = CliRuntime()
-    RUNTIME.check_cumulusci_version()
+        # Configure logging
+        debug = "--debug" in args
+        if debug:
+            args.remove("--debug")
 
-    with tee_stdout() as buffer:
+        # Only create logfiles for commands
+        # that are not `cci gist`
+        is_gist_command = len(args) > 1 and args[1] == "gist"
+        if not is_gist_command:
+            logger = get_gist_logger(RUNTIME.project_config.repo_root)
+            stack.enter_context(tee_stdout(args, logger))
+
+        init_logger(log_requests=debug)
         # Hand CLI processing over to click, but handle exceptions
         try:
             cli()
@@ -257,10 +211,6 @@ def main(args=None):
                 pdb.post_mortem()
             else:
                 click.echo(click.style(f"Error: {e}", fg="red"))
-                if click.confirm(
-                    "Would you like to create a private GitHub Gist with details about this error?"
-                ):
-                    handle_gist_creation(args, buffer)
             # TODO: errorsdb
             # Return a non-zero exit code to indicate a problem
             sys.exit(1)
@@ -303,6 +253,47 @@ def shell(runtime):
     config = runtime
 
     code.interact(local=dict(globals(), **locals()))
+
+
+@cli.command(name="gist", help="Create a gist from the latest logfile")
+@pass_runtime(require_project=False)
+def gist(runtime):
+    host_info = os.uname()
+
+    info = []
+    info.append(f"CumulusCI version: {cumulusci.__version__}")
+    info.append(f"Python version: {sys.version.split()[0]} ({sys.executable})")
+    info.append(f"Environment Info: {host_info.sysname} / {host_info.machine}")
+    context_info = "\n".join(info)
+
+    repo_root = RUNTIME.project_config.repo_root
+    log_path = f"{repo_root}/.cci/cci.log" if repo_root else f"cci.log"
+
+    try:
+        last_cmd_log = open(log_path, "r")
+    except FileNotFoundError:
+        click.echo(
+            f"No logfile to open at path: {log_path}\nPlease ensure you're running this command from the same directory you were experiencing an issue."
+        )
+        sys.exit(1)
+
+    filename = f"cci_output_{datetime.utcnow()}.txt"
+    last_cmd_header = "\n\n\nLast Command Run\n================================\n"
+    files = {
+        filename: {"content": f"{context_info}{last_cmd_header}{last_cmd_log.read()}"}
+    }
+
+    try:
+        gh = RUNTIME.keychain.get_service("github")
+        gist = create_gist(
+            get_github_api(gh.config["username"], gh.config["password"]),
+            "CumulusCI Error Output",
+            files,
+        )
+    except Exception as e:
+        click.echo(f"Error occurred creating gist: {e}")
+    else:
+        click.echo(f"Gist created: {gist.html_url}")
 
 
 # Top Level Groups

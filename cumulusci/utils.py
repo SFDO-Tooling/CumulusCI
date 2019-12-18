@@ -553,3 +553,29 @@ def get_git_config(config_key):
     )
 
     return config_value if config_value and not p.returncode else None
+
+
+@contextlib.contextmanager
+def tee_stdout(args, logger):
+    """Tee stdout so that it's also routed to
+    a log file. Add the current command arguments
+    as the first item in the log."""
+    real_write = sys.stdout.write
+    logger.debug(" ".join(args))
+
+    def write(s):
+        output = strip_ansi_sequences(s)
+        logger.debug(output)
+        real_write(s)
+
+    sys.stdout.write = write
+    try:
+        yield
+    finally:
+        sys.stdout.write = real_write
+
+
+def strip_ansi_sequences(input):
+    """Strip ANSI sequences from what's in buffer"""
+    ansi_escape = re.compile(r"(\x9B|\x1B\[)[0-?]*[ -\/]*[@-~]")
+    return ansi_escape.sub("", input)

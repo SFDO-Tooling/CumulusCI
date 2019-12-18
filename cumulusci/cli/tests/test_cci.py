@@ -5,10 +5,10 @@ from datetime import timedelta
 import io
 import json
 import os
-import sys
 import shutil
 import tempfile
 import time
+import pytest
 import unittest
 
 import click
@@ -135,11 +135,15 @@ class TestCCI(unittest.TestCase):
             "\n".join(out),
         )
 
+    @mock.patch("cumulusci.cli.cci.get_gist_logger")
     @mock.patch("cumulusci.cli.cci.init_logger")
     @mock.patch("cumulusci.cli.cci.check_latest_version")
     @mock.patch("cumulusci.cli.cci.CliRuntime")
     @mock.patch("cumulusci.cli.cci.cli")
-    def test_main(self, cli, CliRuntime, check_latest_version, init_logger):
+    def test_main(
+        self, cli, CliRuntime, check_latest_version, init_logger, get_gist_logger
+    ):
+        get_gist_logger.return_value.debug = mock.Mock()
         cci.main()
 
         check_latest_version.assert_called_once()
@@ -147,6 +151,7 @@ class TestCCI(unittest.TestCase):
         CliRuntime.assert_called_once()
         cli.assert_called_once()
 
+    @mock.patch("cumulusci.cli.cci.get_gist_logger")
     @mock.patch("cumulusci.cli.cci.init_logger")
     @mock.patch("cumulusci.cli.cci.check_latest_version")
     @mock.patch("cumulusci.cli.cci.CliRuntime")
@@ -154,9 +159,17 @@ class TestCCI(unittest.TestCase):
     @mock.patch("pdb.post_mortem")
     @mock.patch("sys.exit")
     def test_main__debug(
-        self, sys_exit, post_mortem, cli, CliRuntime, check_latest_version, init_logger
+        self,
+        sys_exit,
+        post_mortem,
+        cli,
+        CliRuntime,
+        check_latest_version,
+        init_logger,
+        get_gist_logger,
     ):
         cli.side_effect = Exception
+        get_gist_logger.return_value.debug = mock.Mock()
 
         cci.main(["cci", "--debug"])
 
@@ -167,49 +180,91 @@ class TestCCI(unittest.TestCase):
         post_mortem.assert_called_once()
         sys_exit.assert_called_once()
 
+    @mock.patch("cumulusci.cli.cci.os")
+    @mock.patch("cumulusci.cli.cci.sys")
     @mock.patch("cumulusci.cli.cci.datetime")
     @mock.patch("cumulusci.cli.cci.create_gist")
     @mock.patch("cumulusci.cli.cci.get_github_api")
-    @mock.patch("cumulusci.cli.cci.init_logger")
-    @mock.patch("cumulusci.cli.cci.check_latest_version")
-    @mock.patch("cumulusci.cli.cci.CliRuntime")
-    @mock.patch("cumulusci.cli.cci.cli")
-    @mock.patch("sys.exit")
-    @mock.patch("sys.stdin", io.StringIO("y\n"))
-    def test_main__error_with_gist(
-        self,
-        sys_exit,
-        cli,
-        CliRuntime,
-        check_latest_version,
-        init_logger,
-        gh_api,
-        create_gist,
-        date,
-    ):
+    def test_gist(self, gh_api, create_gist, date, sys, os):
+
+        os.uname.return_value = mock.Mock(sysname="Rossian", machine="x68_46")
+        sys.version = "1.0.0 (default Jul 24 2019)"
+        sys.executable = "User/bob.ross/.pyenv/versions/cci-374/bin/python"
         date.utcnow.return_value = "01/01/1970"
-        cli.side_effect = Exception
         gh_api.return_value = mock.Mock()
         expected_gist_url = "https://gist.github.com/1234567890abcdefghijkl"
         create_gist.return_value = mock.Mock(html_url=expected_gist_url)
 
-        cci.main(["cci"])
+        expected_logfile_content = "Hello there, I'm a logfile."
+        with open("cci.log", "w") as f:
+            f.write(expected_logfile_content)
 
-        check_latest_version.assert_called_once()
-        init_logger.assert_called_once_with(log_requests=False)
-        CliRuntime.assert_called_once()
-        cli.assert_called_once()
+        runtime = mock.Mock()
+        runtime.project_config.repo_root = None
+        runtime.keychain.get_service.return_value.config = {
+            "username": "usrnm",
+            "password": "pwd",
+        }
+
+        run_click_command(cci.gist, runtime=runtime)
+
+        expected_content = f"""CumulusCI version: {cumulusci.__version__}
+Python version: {sys.version.split()[0]} ({sys.executable})
+Environment Info: Rossian / x68_46
+\n\nLast Command Run
+================================
+{expected_logfile_content}"""
+
+        expected_files = {"cci_output_01/01/1970.txt": {"content": expected_content}}
 
         create_gist.assert_called_once_with(
-            gh_api(),
-            "CumulusCI Error Output",
-            {
-                f"cci_output_{date.utcnow.return_value}.txt": {
-                    "content": "cci\nError: \nWould you like to create a private GitHub Gist with details about this error? [y/N]: "
-                }
-            },
+            gh_api(), "CumulusCI Error Output", expected_files
         )
-        sys_exit.assert_called_once()
+
+        os.remove("cci.log")
+
+    @mock.patch("cumulusci.cli.cci.click")
+    @mock.patch("cumulusci.cli.cci.os")
+    @mock.patch("cumulusci.cli.cci.sys")
+    @mock.patch("cumulusci.cli.cci.datetime")
+    @mock.patch("cumulusci.cli.cci.create_gist")
+    @mock.patch("cumulusci.cli.cci.get_github_api")
+    def test_gist__gist_creation_error(
+        self, gh_api, create_gist, date, sys, os_mock, click
+    ):
+
+        os_mock.uname.return_value = mock.Mock(sysname="Rossian", machine="x68_46")
+        sys.version = "1.0.0 (default Jul 24 2019)"
+        sys.executable = "User/bob.ross/.pyenv/versions/cci-374/bin/python"
+        date.utcnow.return_value = "01/01/1970"
+        gh_api.return_value = mock.Mock()
+        create_gist.side_effect = Exception
+
+        expected_logfile_content = "Hello there, I'm a logfile."
+        with open("cci.log", "w") as f:
+            f.write(expected_logfile_content)
+
+        runtime = mock.Mock()
+        runtime.project_config.repo_root = None
+        runtime.keychain.get_service.return_value.config = {
+            "username": "usrnm",
+            "password": "pwd",
+        }
+
+        run_click_command(cci.gist, runtime=runtime)
+        assert "Error occurred creating gist" in click.echo.call_args_list[0][0][0]
+
+        os.remove("cci.log")
+
+    @mock.patch("cumulusci.cli.cci.click")
+    @mock.patch("cumulusci.cli.cci.os")
+    @mock.patch("cumulusci.cli.cci.datetime")
+    @mock.patch("cumulusci.cli.cci.create_gist")
+    @mock.patch("cumulusci.cli.cci.get_github_api")
+    def test_gist__file_not_found(self, gh_api, create_gist, date, os, click):
+        with pytest.raises(SystemExit) as e:
+            run_click_command(cci.gist)
+            assert e.value.code != 0
 
     def test_cli(self):
         run_click_command(cci.cli)
@@ -1352,27 +1407,6 @@ class TestCCI(unittest.TestCase):
         echo.assert_any_call(
             "Scratch org deletion failed.  Ignoring the error below to complete the flow:"
         )
-
-    def test_tee_stdout(self):
-        expected_text = "This is expected."
-        with cci.tee_stdout() as buffer:
-            sys.stdout.write(expected_text)
-            buffer.seek(0)
-            buffer_contents = buffer.read()
-
-        assert buffer_contents == expected_text
-
-    def test_strip_ansi_sequences(self):
-        plain_old_string = "This is [just a plain old string with some] [symbols]"
-
-        ansi_buff = io.StringIO("\033[31mGoodbye ANSI color sequences!\033[0m")
-        non_ansi_buff = io.StringIO(plain_old_string)
-
-        ansi_string_result = cci.strip_ansi_sequences(ansi_buff)
-        plain_string_result = cci.strip_ansi_sequences(non_ansi_buff)
-
-        assert ansi_string_result == "Goodbye ANSI color sequences!"
-        assert plain_string_result == plain_string_result
 
 
 class SetTrace(Exception):

@@ -1,5 +1,6 @@
 """ CLI logger """
 import logging
+import logging.handlers
 import os
 import sys
 
@@ -34,3 +35,25 @@ def init_logger(log_requests=False):
 
     if log_requests:
         requests.packages.urllib3.add_stderr_logger()
+
+
+def get_gist_logger(repo_root):
+    """Determines the appropriate filepath for logfile
+    and name for the logger. Returns a logger with
+    RotatingFileHandler attached."""
+    if repo_root:
+        logfile_path = f"{repo_root}/.cci/cci.log"
+    else:
+        logfile_path = "cci.log"
+    return get_rot_file_logger("sys.stdout", logfile_path)
+
+
+def get_rot_file_logger(name, path):
+    """Returns a logger with a rotating file handler"""
+    logger = logging.getLogger(name)
+
+    handler = logging.handlers.RotatingFileHandler(path, backupCount=5)
+    handler.doRollover()  # rollover existing log files
+    logger.addHandler(handler)
+    logger.setLevel(logging.DEBUG)
+    return logger
