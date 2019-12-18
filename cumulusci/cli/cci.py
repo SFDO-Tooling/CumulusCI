@@ -203,7 +203,7 @@ def main(args=None):
         init_logger(log_requests=debug)
         # Hand CLI processing over to click, but handle exceptions
         try:
-            cli()
+            cli(standalone_mode=False)
         except Exception as e:
             # Display the error
             if debug:
