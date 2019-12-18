@@ -43,6 +43,9 @@ def get_gist_logger(repo_root):
     RotatingFileHandler attached."""
     if repo_root:
         logfile_path = f"{repo_root}/.cci/cci.log"
+        # create .cci/ if it doesn't exist
+        if not os.path.exists(os.path.dirname(logfile_path)):
+            os.makedirs(os.path.dirnmae(logfile_path))
     else:
         logfile_path = "cci.log"
     return get_rot_file_logger("sys.stdout", logfile_path)
