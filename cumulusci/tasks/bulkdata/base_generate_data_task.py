@@ -43,8 +43,7 @@ class BaseGenerateDataTask(BaseTask, metaclass=ABCMeta):
         self.current_batch_num = self.options.get("current_batch_number", 0)
         if not self.database_url:
             sqlite_path = "generated_data.db"
-            self.logger.info(
-                "No database URL: creating sqlite file %s" % sqlite_path)
+            self.logger.info("No database URL: creating sqlite file %s" % sqlite_path)
             self.database_url = "sqlite:///" + sqlite_path
 
         self.num_records = int(self.options.get("num_records", 1))
@@ -57,12 +56,17 @@ class BaseGenerateDataTask(BaseTask, metaclass=ABCMeta):
             self.current_batch_num,
         )
 
-    def _generate_data(self, db_url: str, mapping_file_path: str = None, num_records: int = None, current_batch_num=0):
+    def _generate_data(
+        self,
+        db_url: str,
+        mapping_file_path: str = None,
+        num_records: int = None,
+        current_batch_num=0,
+    ):
         """Generate all of the data"""
         mappings = self._read_mappings(mapping_file_path)
         session, engine, base = self.init_db(db_url, mappings)
-        self.generate_data(session, engine, base,
-                           num_records, current_batch_num)
+        self.generate_data(session, engine, base, num_records, current_batch_num)
         session.commit()
 
     def _read_mappings(self, mapping_file_path):
