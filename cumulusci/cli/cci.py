@@ -262,34 +262,27 @@ def shell(runtime):
 
 GIST_404_ERR_MSG = """A 404 error code was returned when trying to create your gist.
 Please ensure that your GitHub personal access token has the 'Create gists' scope."""
+CCI_LOG_NOT_FOUND_MSG = """No logfile to open at path: {log_path}
+Please ensure you're running this command from the same directory you were experiencing an issue."""
+LAST_CMD_HEADER = "\n\n\nLast Command Run\n================================\n"
 
 
 @cli.command(name="gist", help="Create a gist from the latest logfile")
 @pass_runtime(require_project=False)
 def gist(runtime):
-    host_info = os.uname()
-
-    info = []
-    info.append(f"CumulusCI version: {cumulusci.__version__}")
-    info.append(f"Python version: {sys.version.split()[0]} ({sys.executable})")
-    info.append(f"Environment Info: {host_info.sysname} / {host_info.machine}")
-    context_info = "\n".join(info)
-
     repo_root = RUNTIME.project_config.repo_root
     log_path = f"{repo_root}/.cci/cci.log" if repo_root else f"cci.log"
-
     try:
         last_cmd_log = open(log_path, "r")
     except FileNotFoundError:
-        click.echo(
-            f"No logfile to open at path: {log_path}\nPlease ensure you're running this command from the same directory you were experiencing an issue."
-        )
+        click.echo(CCI_LOG_NOT_FOUND_MSG)
         sys.exit(1)
 
     filename = f"cci_output_{datetime.utcnow()}.txt"
-    last_cmd_header = "\n\n\nLast Command Run\n================================\n"
     files = {
-        filename: {"content": f"{context_info}{last_cmd_header}{last_cmd_log.read()}"}
+        filename: {
+            "content": f"{get_context_info()}{LAST_CMD_HEADER}{last_cmd_log.read()}"
+        }
     }
 
     try:
@@ -304,9 +297,20 @@ def gist(runtime):
             click.echo(GIST_404_ERR_MSG)
         else:
             click.echo(f"An error occurred attempting to create your gist:\n{e}")
+            sys.exit(1)
     else:
         click.echo(f"Gist created: {gist.html_url}")
         webbrowser.open(gist.html_url)
+
+
+def get_context_info():
+    host_info = os.uname()
+
+    info = []
+    info.append(f"CumulusCI version: {cumulusci.__version__}")
+    info.append(f"Python version: {sys.version.split()[0]} ({sys.executable})")
+    info.append(f"Environment Info: {host_info.sysname} / {host_info.machine}")
+    return "\n".join(info)
 
 
 # Top Level Groups
