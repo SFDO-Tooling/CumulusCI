@@ -26,9 +26,10 @@ class ActivateFlowProcesses(BaseSalesforceApiTask):
             self.options.get(
                 "developer_names",
                 ["Auto_Populate_Date_And_Name_On_Program_Engagement", "ape"],
-                # **kwargs,
             )
         )
+
+    api_version = "43.0"
 
     def _run_task(self):
         self.logger.info(
@@ -49,6 +50,5 @@ class ActivateFlowProcesses(BaseSalesforceApiTask):
                     "activeVersionNumber": listed_flow["LatestVersion"]["VersionNumber"]
                 }
             }
-
             response = self.tooling._call_salesforce("PATCH", urlpath, json=data)
             self.logger.info(response)
