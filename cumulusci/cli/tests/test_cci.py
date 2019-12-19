@@ -178,7 +178,36 @@ class TestCCI(unittest.TestCase):
         CliRuntime.assert_called_once()
         cli.assert_called_once()
         post_mortem.assert_called_once()
-        sys_exit.assert_called_once()
+        sys_exit.assert_called_once_with(1)
+
+    @mock.patch("cumulusci.cli.cci.get_gist_logger")
+    @mock.patch("cumulusci.cli.cci.init_logger")
+    @mock.patch("cumulusci.cli.cci.check_latest_version")
+    @mock.patch("cumulusci.cli.cci.CliRuntime")
+    @mock.patch("cumulusci.cli.cci.cli")
+    @mock.patch("pdb.post_mortem")
+    @mock.patch("sys.exit")
+    def test_main__error(
+        self,
+        sys_exit,
+        post_mortem,
+        cli,
+        CliRuntime,
+        check_latest_version,
+        init_logger,
+        get_gist_logger,
+    ):
+        cli.side_effect = Exception
+        get_gist_logger.return_value.debug = mock.Mock()
+
+        cci.main(["cci", "org", "info"])
+
+        check_latest_version.assert_called_once()
+        init_logger.assert_called_once_with(log_requests=False)
+        CliRuntime.assert_called_once()
+        cli.assert_called_once()
+        post_mortem.call_count == 0
+        sys_exit.assert_called_once_with(1)
 
     @mock.patch("cumulusci.cli.cci.webbrowser")
     @mock.patch("cumulusci.cli.cci.os")
