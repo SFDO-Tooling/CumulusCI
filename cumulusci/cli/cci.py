@@ -165,8 +165,8 @@ def pass_runtime(func=None, require_project=True):
         return decorate(func)
 
 
-SUGGEST_GIT_GIST_COMMAND = """It looks like you may have run into error. Did you know `cci` has a command for sending this error to a GitHub gist?
-Just run `$ cci gist` and make sure that your GitHub access token as the 'create gist' scope."""
+SUGGEST_GIT_GIST_COMMAND = """\nIt looks like you may have run into error. Did you know cci has a command for sending this error to a GitHub gist?
+Just run `$ cci gist` and make sure that your GitHub access token as the 'create gist' scope.\n"""
 
 
 #
