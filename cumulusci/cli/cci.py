@@ -165,6 +165,10 @@ def pass_runtime(func=None, require_project=True):
         return decorate(func)
 
 
+SUGGEST_GIT_GIST_COMMAND = """It looks like you may have run into error. Did you know `cci` has a command for sending this error to a GitHub gist?
+Just run `$ cci gist` and make sure that your GitHub access token as the 'create gist' scope."""
+
+
 #
 # Root command
 #
@@ -211,6 +215,7 @@ def main(args=None):
                 pdb.post_mortem()
             else:
                 click.echo(click.style(f"Error: {e}", fg="red"))
+                click.echo(click.style(SUGGEST_GIT_GIST_COMMAND, fg="yellow"))
             # TODO: errorsdb
             # Return a non-zero exit code to indicate a problem
             sys.exit(1)
@@ -301,6 +306,7 @@ def gist(runtime):
             click.echo(f"An error occurred attempting to create your gist:\n{e}")
     else:
         click.echo(f"Gist created: {gist.html_url}")
+        webbrowser.open(gist.html_url)
 
 
 # Top Level Groups
