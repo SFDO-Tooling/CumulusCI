@@ -26,7 +26,7 @@ def init_logger(log_requests=False):
         colorama.init()
 
     formatter = coloredlogs.ColoredFormatter(fmt="%(asctime)s: %(message)s")
-    handler = logging.StreamHandler()
+    handler = logging.StreamHandler(stream=sys.stdout)
     handler.setLevel(logging.DEBUG)
     handler.setFormatter(formatter)
     logger.addHandler(handler)
