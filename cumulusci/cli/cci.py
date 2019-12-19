@@ -255,6 +255,10 @@ def shell(runtime):
     code.interact(local=dict(globals(), **locals()))
 
 
+GIST_404_ERR_MSG = """A 404 error code was returned when trying to create your gist.
+Please ensure that your GitHub personal access token has the 'Create gists' scope."""
+
+
 @cli.command(name="gist", help="Create a gist from the latest logfile")
 @pass_runtime(require_project=False)
 def gist(runtime):
@@ -291,7 +295,10 @@ def gist(runtime):
             files,
         )
     except Exception as e:
-        click.echo(f"Error occurred creating gist: {e}")
+        if e.response.status_code == 404:
+            click.echo(GIST_404_ERR_MSG)
+        else:
+            click.echo(f"An error occurred attempting to create your gist:\n{e}")
     else:
         click.echo(f"Gist created: {gist.html_url}")
 
