@@ -59,11 +59,12 @@ class CommitDir(object):
         tree_unchanged = self._summarize_changes(self.new_tree_list)
         if tree_unchanged:
             self.logger.warning("No changes found, aborting commit")
-            return
+            return self.parent_commit
 
         new_tree = self._create_tree(self.new_tree_list)
         new_commit = self._create_commit(commit_message, new_tree)
         self._update_head(new_commit)
+        return new_commit
 
     def _set_git_data(self, branch):
         # get ref to branch HEAD
@@ -173,13 +174,15 @@ class CommitDir(object):
             self.logger.info("[dry_run] Skipping creation of new commit")
         else:
             self.logger.info("Creating new commit")
-            new_commit = self.repo.create_commit(
-                message=commit_message,
-                tree=new_tree.sha,
-                parents=[self.parent_commit.sha],
-                author=self.author,
-                committer=self.author,
-            )
+            commit_info = {
+                "message": commit_message,
+                "tree": new_tree.sha,
+                "parents": [self.parent_commit.sha],
+            }
+            if self.author:
+                commit_info["author"] = self.author
+                commit_info["committer"] = self.author
+            new_commit = self.repo.create_commit(**commit_info)
             if not new_commit:
                 raise GithubException("Failed to create commit")
         return new_commit
