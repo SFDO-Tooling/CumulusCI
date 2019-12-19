@@ -180,12 +180,13 @@ class TestCCI(unittest.TestCase):
         post_mortem.assert_called_once()
         sys_exit.assert_called_once()
 
+    @mock.patch("cumulusci.cli.cci.webbrowser")
     @mock.patch("cumulusci.cli.cci.os")
     @mock.patch("cumulusci.cli.cci.sys")
     @mock.patch("cumulusci.cli.cci.datetime")
     @mock.patch("cumulusci.cli.cci.create_gist")
     @mock.patch("cumulusci.cli.cci.get_github_api")
-    def test_gist(self, gh_api, create_gist, date, sys, os):
+    def test_gist(self, gh_api, create_gist, date, sys, os, webbrowser):
 
         os.uname.return_value = mock.Mock(sysname="Rossian", machine="x68_46")
         sys.version = "1.0.0 (default Jul 24 2019)"
@@ -220,6 +221,7 @@ Environment Info: Rossian / x68_46
         create_gist.assert_called_once_with(
             gh_api(), "CumulusCI Error Output", expected_files
         )
+        webbrowser.open.assert_called_once_with(expected_gist_url)
 
         os.remove("cci.log")
 
@@ -238,7 +240,12 @@ Environment Info: Rossian / x68_46
         sys.executable = "User/bob.ross/.pyenv/versions/cci-374/bin/python"
         date.utcnow.return_value = "01/01/1970"
         gh_api.return_value = mock.Mock()
-        create_gist.side_effect = Exception
+
+        class ExceptionWithResponse(Exception, mock.Mock):
+            def __init__(self, status_code):
+                self.response = mock.Mock(status_code=status_code)
+
+        create_gist.side_effect = ExceptionWithResponse(503)
 
         expected_logfile_content = "Hello there, I'm a logfile."
         with open("cci.log", "w") as f:
@@ -252,7 +259,14 @@ Environment Info: Rossian / x68_46
         }
 
         run_click_command(cci.gist, runtime=runtime)
-        assert "Error occurred creating gist" in click.echo.call_args_list[0][0][0]
+        assert (
+            "An error occurred attempting to create your gist"
+            in click.echo.call_args_list[0][0][0]
+        )
+
+        create_gist.side_effect = ExceptionWithResponse(404)
+        run_click_command(cci.gist, runtime=runtime)
+        assert cci.GIST_404_ERR_MSG in click.echo.call_args_list[1][0][0]
 
         os.remove("cci.log")
 
