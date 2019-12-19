@@ -6,16 +6,9 @@ from .util import create_task
 from cumulusci.tasks.salesforce.ActivateFlowProcesses import ActivateFlowProcesses
 
 task_options = {
-    "developer_names": {
-        "description": (
-            "Activates Flows identified by a given list of Developer Names"
-        ),
-        "developer_names": [
-            "Auto_Populate_Date_And_Name_On_Program_Engagement",
-            "ape",
-        ],
-        "required": True,
-    },
+    "description": "Activates Flows identified by a given list of Developer Names",
+    "developer_names": ["Auto_Populate_Date_And_Name_On_Program_Engagement", "ape"],
+    "required": True,
 }
 
 

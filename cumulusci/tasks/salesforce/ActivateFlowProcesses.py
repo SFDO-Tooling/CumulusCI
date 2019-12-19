@@ -7,27 +7,12 @@ class ActivateFlowProcesses(BaseSalesforceApiTask):
     Activate the Flows with the supplied Developer Names
     """
 
-    task_options = {
-        "developer_names": {
-            "description": (
-                "Activates Flows identified by a given list of Developer Names"
-            ),
-            "developer_names": [
-                "Auto_Populate_Date_And_Name_On_Program_Engagement",
-                "ape",
-            ],
-            "required": True,
-        },
-    }
-
     def _init_options(self, kwargs):
         self.options = {}
         self.options["developer_names"] = process_list_arg(
-            self.options.get(
-                "developer_names",
-                ["Auto_Populate_Date_And_Name_On_Program_Engagement", "ape"],
-            )
+            self.task_config.options["developer_names"]
         )
+        print(self.task_config.options)
 
     api_version = "43.0"
 
