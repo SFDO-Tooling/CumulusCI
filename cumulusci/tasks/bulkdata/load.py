@@ -1,5 +1,9 @@
 import datetime
 import io
+from glob import glob
+from tempfile import TemporaryDirectory
+from csv import DictReader
+from pathlib import Path
 
 from collections import defaultdict
 from salesforce_bulk.util import IteratorBytesIO
@@ -18,6 +22,7 @@ from cumulusci.tasks.bulkdata.utils import (
 )
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.core.utils import process_bool_arg
+from cumulusci.tasks.bulkdata.base_generate_data_task import create_table as create_table_from_mapping
 
 from cumulusci.utils import os_friendly_path
 
@@ -42,6 +47,10 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
         "ignore_row_errors": {
             "description": "If True, allow the load to continue even if individual rows fail to load."
         },
+        "csv_folder": {
+            "description": "If specified, a database will be created from a folder of CSV files. "
+            "Each file's name determines its SObject and each file must have a header row matching column titles."
+        },
     }
 
     def _init_options(self, kwargs):
@@ -53,20 +62,35 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
         if self.options.get("database_url"):
             # prefer database_url if it's set
             self.options["sql_path"] = None
+            self.options["csv_folder"]
         elif self.options.get("sql_path"):
             self.options["sql_path"] = os_friendly_path(self.options["sql_path"])
             self.logger.info("Using in-memory sqlite database")
             self.options["database_url"] = "sqlite://"
+        elif self.options.get("csv_folder"):
+            self.options["csv_folder"] = os_friendly_path(self.options["csv_folder"])
         else:
             raise TaskOptionsError(
-                "You must set either the database_url or sql_path option."
+                "You must set either the database_url, sql_path or csv_folder options."
             )
 
     def _run_task(self):
-        self._init_mapping()
-        self._init_db()
-        self._expand_mapping()
+        with TemporaryDirectory() as t:
+            self._run_task_with_tempdir(t)
 
+    def _run_task_with_tempdir(self, tempdir):
+        try:
+            self._init_mapping()
+            self._init_db(tempdir)
+            self._expand_mapping()
+        finally:
+            try:
+                if self.session:
+                    self.session.close()
+            except Exception as e:
+                self.logger.warn(f"Could not close session due to {e}")
+
+    def _run_steps(self):
         start_step = self.options.get("start_step")
         started = False
         for name, mapping in self.mapping.items():
@@ -390,15 +414,52 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
                 cursor.close()
         # self.session.flush()
 
-    def _init_db(self):
-        # initialize the DB engine
-        self.engine = create_engine(self.options["database_url"])
+    def _csv_load(self):
+        filenames = Path(self.options['csv_folder']) / "*.csv"
+        files = glob(str(filenames))
+        if not files:
+            raise TaskOptionsError(f"Cannot find {filenames}")
 
-        # initialize the DB session
-        self.session = Session(self.engine)
+        conn = self.session.connection()
+        self.metadata = MetaData()
+        self.metadata.bind = self.engine
 
+        mappings_indexed_by_table = {mapping["table"]: mapping for mapping in self.mapping.values()}
+
+        for filename in files:
+            assert filename.endswith(".csv")
+            tablename = Path(filename).stem
+            mapping = mappings_indexed_by_table.get(tablename)
+            if not mapping:
+                mapping_file = self.options.get("mapping")
+                raise TaskOptionsError(f"Cannot find mapping for table {tablename} in {mapping_file}: {''.join(mappings_indexed_by_table.keys())}")
+
+            create_table_from_mapping(mapping, self.metadata)
+            with open(filename, encoding='utf-8') as f:
+                # also eats first row, which is good
+                columns = DictReader(f).fieldnames
+                print("COLUMNS", columns)
+
+                self._sql_bulk_insert_from_csv(
+                    conn,
+                    tablename,
+                    columns,
+                    f,
+                )
+
+    def _init_db(self, tempdir):
         if self.options.get("sql_path"):
+            # initialize the DB engine
+            self.engine = create_engine(self.options["database_url"])
+
+            # initialize the DB session
+            self.session = Session(self.engine)
+
             self._sqlite_load()
+        elif self.options.get("csv_folder"):
+            self.engine = create_engine("sqlite:///" + str(Path(tempdir) / "tempfile.db"))
+            self.session = Session(self.engine)
+            self._csv_load()
 
         # initialize DB metadata
         self.metadata = MetaData()

@@ -3,9 +3,9 @@ import io
 import requests
 import tempfile
 import time
-import unicodecsv
 import xml.etree.ElementTree as ET
 from contextlib import contextmanager
+import csv
 
 from sqlalchemy import types
 from sqlalchemy import event
@@ -117,10 +117,14 @@ class BulkJobTaskMixin(object):
             # For other db drivers we need to use standard SQL
             # -- this is optimized for ease of implementation
             # rather than performance and may need more work.
-            reader = unicodecsv.DictReader(data_file, columns)
+            reader = csv.DictReader(data_file, columns)
             table = self.metadata.tables[table]
             rows = list(reader)
             if rows:
+                print(rows)
+                print(table.insert())
+                print(table.columns)
+                print(table.insert().values(rows), __file__)
                 conn.execute(table.insert().values(rows))
         self.session.flush()
 
@@ -140,7 +144,7 @@ class BulkJobTaskMixin(object):
             f"SELECT Id, DeveloperName FROM RecordType WHERE SObjectType='{sobject}'"
         )
         data_file = io.BytesIO()
-        writer = unicodecsv.writer(data_file)
+        writer = csv.writer(data_file)
         for rt in self.sf.query(query)["records"]:
             writer.writerow([rt["Id"], rt["DeveloperName"]])
         data_file.seek(0)
