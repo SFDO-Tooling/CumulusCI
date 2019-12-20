@@ -41,7 +41,7 @@ class GenerateAndLoadData(BaseSalesforceApiTask):
     task_options = {
         "num_records": {
             "description": "How many records to generate. Precise calcuation depends on the generator.",
-            "required": True,
+            "required": False,
         },
         "batch_size": {
             "description": "How many records to create and load at a time.",
@@ -76,7 +76,7 @@ class GenerateAndLoadData(BaseSalesforceApiTask):
             self.mapping_file = None
 
         self.database_url = self.options.get("database_url")
-        self.num_records = int(self.options["num_records"])
+        self.num_records = int(self.options.get("num_records", 1))
         self.batch_size = int(self.options.get("batch_size", self.num_records))
         if self.batch_size <= 0:
             raise TaskOptionsError("Batch size should be greater than zero")

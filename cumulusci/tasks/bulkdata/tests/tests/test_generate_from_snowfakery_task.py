@@ -1,8 +1,10 @@
 import unittest
+from unittest import mock
 from pathlib import Path
+from tempfile import NamedTemporaryFile
 
 from cumulusci.tasks.bulkdata.tests.test_bulkdata import _make_task, TaskOptionsError
-from tempfile import NamedTemporaryFile
+from cumulusci.tasks.bulkdata import GenerateAndLoadData
 
 import yaml
 from sqlalchemy import create_engine
@@ -114,3 +116,16 @@ class TestGenerateFromDataTask(unittest.TestCase):
             )
             task()
             self.assertRowsCreated(database_url)
+
+    @mock.patch("cumulusci.tasks.bulkdata.GenerateAndLoadData._dataload")
+    def test_generate_and_load_from_snowfakery(self, dataload):
+        task = _make_task(
+            GenerateAndLoadData,
+            {
+                "options": {
+                    "generator_yaml": sample_yaml,
+                    "data_generation_task": "cumulusci.tasks.bulkdata.generate_from_yaml.GenerateFromYaml",
+                }
+            },
+        )
+        task()
