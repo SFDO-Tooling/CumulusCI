@@ -16,9 +16,7 @@ if snowfakery:
     sample_yaml = (
         Path(snowfakery.__file__).parent / "../tests/gen_npsp_standard_objects.yml"
     )
-    from cumulusci.tasks.bulkdata.data_generation.generate_from_yaml import (
-        GenerateFromYaml,
-    )
+    from cumulusci.tasks.bulkdata.generate_from_yaml import GenerateFromYaml
 
 vanilla_mapping_file = Path(__file__).parent / "../../tests/mapping_vanilla_sf.yml"
 
