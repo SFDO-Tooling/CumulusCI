@@ -8,8 +8,7 @@ tasks:
         class_path: cumulusci.tasks.salesforce.ActivateFlowProcesses.ActivateFlowProcesses
         options:
             developer_names:
-                - Auto_Populate_Date_And_Name_On_Program_Engagement
-                - ape
+                -
     batch_apex_wait:
         description: Waits on a batch apex job to finish.
         class_path: cumulusci.tasks.apex.batch.BatchApexWait

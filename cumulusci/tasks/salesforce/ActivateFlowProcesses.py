@@ -1,5 +1,6 @@
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.core.utils import process_list_arg
+import click
 
 
 class ActivateFlowProcesses(BaseSalesforceApiTask):
@@ -12,28 +13,34 @@ class ActivateFlowProcesses(BaseSalesforceApiTask):
         self.options["developer_names"] = process_list_arg(
             self.task_config.options["developer_names"]
         )
-        print(self.task_config.options)
 
     api_version = "43.0"
 
     def _run_task(self):
-        self.logger.info(
-            f"Activating the following Flows: {self.options['developer_names']}"
-        )
-        self.logger.info("Querying flow definitions...")
-        res = self.tooling.query(
-            "SELECT Id, ActiveVersion.VersionNumber, LatestVersion.VersionNumber, DeveloperName FROM FlowDefinition WHERE DeveloperName IN ({0})".format(
-                ",".join([f"'{n}'" for n in self.options.get("developer_names")])
+        if len(self.options["developer_names"]) > 0:
+            self.logger.info(
+                f"Activating the following Flows: {self.options['developer_names']}"
             )
-        )
-        for listed_flow in res["records"]:
-            self.logger.info(f'Processing: {listed_flow["DeveloperName"]}')
-            path = f"tooling/sobjects/FlowDefinition/{listed_flow['Id']}"
-            urlpath = self.sf.base_url + path
-            data = {
-                "Metadata": {
-                    "activeVersionNumber": listed_flow["LatestVersion"]["VersionNumber"]
+            self.logger.info("Querying flow definitions...")
+            res = self.tooling.query(
+                "SELECT Id, ActiveVersion.VersionNumber, LatestVersion.VersionNumber, DeveloperName FROM FlowDefinition WHERE DeveloperName IN ({0})".format(
+                    ",".join([f"'{n}'" for n in self.options.get("developer_names")])
+                )
+            )
+            for listed_flow in res["records"]:
+                self.logger.info(f'Processing: {listed_flow["DeveloperName"]}')
+                path = f"tooling/sobjects/FlowDefinition/{listed_flow['Id']}"
+                urlpath = self.sf.base_url + path
+                data = {
+                    "Metadata": {
+                        "activeVersionNumber": listed_flow["LatestVersion"][
+                            "VersionNumber"
+                        ]
+                    }
                 }
-            }
-            response = self.tooling._call_salesforce("PATCH", urlpath, json=data)
-            self.logger.info(response)
+                response = self.tooling._call_salesforce("PATCH", urlpath, json=data)
+                self.logger.info(response)
+        else:
+            click.echo(
+                "Error you are missing developer_names definition in your task cumulusci.yml file. Please pass in developer_names for your task configuration or use -o to developer_names as a commandline arg"
+            )

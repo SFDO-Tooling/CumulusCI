@@ -1,7 +1,7 @@
 import unittest
+from unittest import mock
 import json
 import responses
-
 from .util import create_task
 from cumulusci.tasks.salesforce.ActivateFlowProcesses import ActivateFlowProcesses
 
@@ -11,11 +11,16 @@ task_options = {
     "required": True,
 }
 
+task_no_developer_options = {
+    "description": "Activates Flows identified by a given list of Developer Names",
+    "developer_names": [],
+    "required": True,
+}
+
 
 class TestActivateFlowProcesses(unittest.TestCase):
     @responses.activate
     def test_activate_flow_processes(self):
-        task_options
         cc_task = create_task(ActivateFlowProcesses, task_options)
         record_id = "3001F0000009GFwQAM"
         activate_url = "{}/services/data/v43.0/tooling/sobjects/FlowDefinition/{}".format(
@@ -47,7 +52,6 @@ class TestActivateFlowProcesses(unittest.TestCase):
 class TestActivateMultipleFlowProcesses(unittest.TestCase):
     @responses.activate
     def test_activate_flow_processes(self):
-        task_options
         cc_task = create_task(ActivateFlowProcesses, task_options)
         record_id = "3001F0000009GFwQAM"
         activate_url = "{}/services/data/v43.0/tooling/sobjects/FlowDefinition/{}".format(
@@ -79,3 +83,12 @@ class TestActivateMultipleFlowProcesses(unittest.TestCase):
         responses.add(method=responses.PATCH, url=activate_url, status=204, json=data)
         cc_task()
         self.assertEqual(3, len(responses.calls))
+
+
+class TestNoDeveloperFlowProcesses(unittest.TestCase):
+    @responses.activate
+    def test_activate_flow_processes(self):
+        result = mock.Mock()
+        final = result.create_task(ActivateFlowProcesses, task_no_developer_options)
+        self.assertEqual(0, len(responses.calls))
+        final.assert_not_called()
