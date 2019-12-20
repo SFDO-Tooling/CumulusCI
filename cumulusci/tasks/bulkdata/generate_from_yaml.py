@@ -65,5 +65,7 @@ class GenerateFromYaml(BaseGenerateDataTask):
             output_stream.close()
             if self.generate_mapping_file:
                 with open(self.generate_mapping_file, "w+") as f:
-                    yaml.safe_dump(mapping_from_factory_templates(summary), f)
+                    yaml.safe_dump(
+                        mapping_from_factory_templates(summary), f, sort_keys=False
+                    )
                     f.close()
