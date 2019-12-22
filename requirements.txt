@@ -31,7 +31,7 @@ six==1.13.0
 SQLAlchemy==1.3.11
 terminaltables==3.1.0
 unicodecsv==0.14.1
-uritemplate==3.0.0
+uritemplate==3.0.1
 urllib3==1.25.7
 xmltodict==0.12.0
 robotframework-lint==1.0
