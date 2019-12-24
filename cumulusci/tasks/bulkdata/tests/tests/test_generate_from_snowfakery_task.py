@@ -7,12 +7,10 @@ from cumulusci.tasks.bulkdata.tests.test_bulkdata import _make_task, TaskOptions
 from cumulusci.tasks.bulkdata import GenerateAndLoadData
 
 import yaml
+import pytest
 from sqlalchemy import create_engine
 
-try:
-    import snowfakery
-except ImportError:
-    snowfakery = None
+snowfakery = pytest.importorskip("snowfakery")
 
 if snowfakery:
     sample_yaml = (
@@ -23,15 +21,26 @@ if snowfakery:
 vanilla_mapping_file = Path(__file__).parent / "../../tests/mapping_vanilla_sf.yml"
 
 
-@unittest.skipUnless(snowfakery, "Snowfakery not installed")
-class TestGenerateFromDataTask(unittest.TestCase):
-    def assertRowsCreated(self, database_url):
-        engine = create_engine(database_url)
-        connection = engine.connect()
-        accounts = connection.execute(f"select * from Account")
-        accounts = list(accounts)
-        assert accounts and accounts[0] and accounts[0][1]
+def assertRowsCreated(database_url):
+    engine = create_engine(database_url)
+    connection = engine.connect()
+    accounts = connection.execute(f"select * from Account")
+    accounts = list(accounts)
+    assert accounts and accounts[0] and accounts[0][1]
 
+
+class FakeLoadData:
+    called = False
+
+    def __call__(self, *args, task_config, **kwargs):
+        self.called = True
+        database_url = task_config.options["database_url"]
+        assertRowsCreated(database_url)
+
+        return lambda: ...
+
+
+class TestGenerateFromDataTask(unittest.TestCase):
     def test_no_options(self):
         with self.assertRaises(Exception):
             _make_task(GenerateFromYaml, {})
@@ -50,7 +59,7 @@ class TestGenerateFromDataTask(unittest.TestCase):
                 },
             )
             task()
-            self.assertRowsCreated(database_url)
+            assertRowsCreated(database_url)
 
     def test_inaccessible_generator_yaml(self):
         with self.assertRaises(TaskOptionsError):
@@ -80,7 +89,7 @@ class TestGenerateFromDataTask(unittest.TestCase):
                     },
                 )
                 task()
-                self.assertRowsCreated(database_url)
+                assertRowsCreated(database_url)
 
     def test_generate_mapping_file(self):
         with NamedTemporaryFile() as temp_mapping:
@@ -115,17 +124,19 @@ class TestGenerateFromDataTask(unittest.TestCase):
                 },
             )
             task()
-            self.assertRowsCreated(database_url)
+            assertRowsCreated(database_url)
 
-    @mock.patch("cumulusci.tasks.bulkdata.GenerateAndLoadData._dataload")
-    def test_generate_and_load_from_snowfakery(self, dataload):
-        task = _make_task(
-            GenerateAndLoadData,
-            {
-                "options": {
-                    "generator_yaml": sample_yaml,
-                    "data_generation_task": "cumulusci.tasks.bulkdata.generate_from_yaml.GenerateFromYaml",
-                }
-            },
-        )
-        task()
+    def test_generate_and_load_from_snowfakery(self):
+        f = FakeLoadData()
+        with mock.patch("cumulusci.tasks.bulkdata.load.LoadData.__new__", f):
+            task = _make_task(
+                GenerateAndLoadData,
+                {
+                    "options": {
+                        "generator_yaml": sample_yaml,
+                        "data_generation_task": "cumulusci.tasks.bulkdata.generate_from_yaml.GenerateFromYaml",
+                    }
+                },
+            )
+            task()
+            assert f.called
