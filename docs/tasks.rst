@@ -1,3 +1,5 @@
+Error checking cci version:
+HTTPSConnectionPool(host='pypi.org', port=443): Max retries exceeded with url: /pypi/cumulusci/json (Caused by NewConnectionError('<urllib3.connection.VerifiedHTTPSConnection object at 0x104fda350>: Failed to establish a new connection: [Errno 8] nodename nor servname provided, or not known'))
 ==========================================
 Tasks Reference
 ==========================================
@@ -48,22 +50,6 @@ Options:
 * **env**: Environment variables to set for command. Must be flat dict, either as python dict from YAML or as JSON string.
 * **pass_env** *(required)*: If False, the current environment variables will not be passed to the child process. Defaults to True
 * **interactive**: If True, the command will use stderr, stdout, and stdin of the main process.Defaults to False.
-
-commit_apex_docs
-==========================================
-
-**Description:** commit local ApexDocs to GitHub branch
-
-**Class::** cumulusci.tasks.github.CommitApexDocs
-
-Options:
-------------------------------------------
-
-* **branch**: Branch name; default=project__apexdoc__branch
-* **dir_local**: Local dir of ApexDocs (contains index.html). default=repo_root/ApexDocumentation
-* **dir_repo**: Location relative to repo root. default=project__apexdoc__repo_dir
-* **dry_run**: Execute a dry run if True (default=False)
-* **commit_message**: Message for commit; default="Update Apex docs"
 
 connected_app
 ==========================================
@@ -288,24 +274,6 @@ Options:
 * **apex**: A string of Apex to run (after the file, if specified).
 * **managed**: If True, will insert the project's namespace prefix.  Defaults to False or no namespace.
 * **namespaced**: If True, the tokens %%%NAMESPACED_RT%%% and %%%namespaced%%% will get replaced with the namespace prefix for Record Types.
-
-generate_apex_docs
-==========================================
-
-**Description:** Generate documentation for local code. Configure settings in cumulusci.yml/project/apexdoc - homepage, banner, branch, repo_dir
-
-**Class::** cumulusci.tasks.apexdoc.GenerateApexDocs
-
-Options:
-------------------------------------------
-
-* **tag**: The tag to use for links back to the repo. If not provided, source_url arg to ApexDoc is omitted.
-* **source_directory**: The folder location which contains your apex .cls classes. default=<RepoRoot>/src/classes/
-* **out_dir**: The folder location where documentation will be generated to. Defaults to project config value project/apexdoc/dir if present, otherwise uses repo root.
-* **home_page**: The full path to an html file that contains the contents for the home page's content area. Defaults to project config value project/apexdoc/homepage if present, otherwise is not used.
-* **banner_page**: The full path to an html file that contains the content for the banner section of each generated page. Defaults to project config value project/apexdoc/banner if present, otherwise is not used.
-* **scope**: A semicolon separated list of scopes to document. Defaults to project config value project/apexdoc/scope if present, otherwise allows ApexDoc to use its default (global;public;webService).
-* **version**: Version of ApexDoc to use. Defaults to project config value project/apexdoc/version.
 
 generate_data_dictionary
 ==========================================
@@ -564,18 +532,6 @@ Options:
 ------------------------------------------
 
 * **dir**: Base directory to search for ``*-meta.xml`` files
-
-mrbelvedere_publish
-==========================================
-
-**Description:** Publishes a release to the mrbelvedere web installer
-
-**Class::** cumulusci.tasks.mrbelvedere.MrbelvederePublish
-
-Options:
-------------------------------------------
-
-* **tag** *(required)*: The tag to publish to mrbelvedere
 
 metadeploy_publish
 ==========================================
