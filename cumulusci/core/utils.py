@@ -10,7 +10,7 @@ import glob
 import pytz
 import time
 
-from cumulusci.core.exceptions import ConfigMergeError
+from cumulusci.core.exceptions import ConfigMergeError, TaskOptionsError
 
 
 def import_global(path):
@@ -82,6 +82,26 @@ def process_list_arg(arg):
         for part in arg.split(","):
             args.append(part.strip())
         return args
+
+
+def process_list_of_pairs_dict_arg(arg):
+    """Process an arg in the format "aa:bb,cc:dd" """
+    if isinstance(arg, dict):
+        return arg
+    elif isinstance(arg, str):
+        rc = {}
+        for key_value in arg.split(","):
+            subparts = key_value.split(":")
+            if len(subparts) == 2:
+                key, value = subparts
+                if key in rc:
+                    raise TaskOptionsError(f"Var specified twice: {key}")
+                rc[key] = value
+            else:
+                raise TaskOptionsError(f"Var is not a name/value pair: {key_value}")
+        return rc
+    else:
+        raise TaskOptionsError(f"Arg is not a dict or string ({type(arg)}): {arg}")
 
 
 def decode_to_unicode(content):
