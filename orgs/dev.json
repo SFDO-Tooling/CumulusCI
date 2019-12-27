@@ -1,15 +1,21 @@
 {
   "orgName": "CumulusCI - Dev Workspace",
   "edition": "Developer",
-    "features": [
-        "Communities"
-    ],
+  "features": [
+    "Communities"
+  ],
   "settings": {
-    "orgPreferenceSettings": {
-      "s1DesktopEnabled": true
-      , "chatterEnabled": true
-      , "translation": true
-      ,  "networksEnabled": true
+    "lightningExperienceSettings": {
+      "enableS1DesktopEnabled": true
+    },
+    "chatterSettings": {
+      "enableChatter": true
+    },
+    "languageSettings": {
+      "enableTranslationWorkbench": true
+    },
+    "communitiesSettings": {
+      "enableNetworksEnabled": true
     }
   }
 }
