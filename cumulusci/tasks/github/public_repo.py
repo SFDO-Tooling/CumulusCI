@@ -120,7 +120,7 @@ class PublishRelease(BaseGithubTask):
             target_ref = self.target_repo.ref(f"tags/{tag_name}")
         except github3.exceptions.NotFoundError:
             pass
-        if target_ref:
+        else:
             message = "Ref for tag {tag_name} already exists in target repo"
             raise GithubException(message)
 
@@ -145,4 +145,3 @@ class PublishRelease(BaseGithubTask):
             name=self.options["version"],
             prerelease=release.prerelease,
         )
-
