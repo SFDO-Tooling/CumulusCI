@@ -1,5 +1,3 @@
-Error checking cci version:
-HTTPSConnectionPool(host='pypi.org', port=443): Max retries exceeded with url: /pypi/cumulusci/json (Caused by NewConnectionError('<urllib3.connection.VerifiedHTTPSConnection object at 0x104fda350>: Failed to establish a new connection: [Errno 8] nodename nor servname provided, or not known'))
 ==========================================
 Tasks Reference
 ==========================================
@@ -1249,4 +1247,19 @@ Options:
 ------------------------------------------
 
 * **settings_path** *(required)*: The path to a YAML settings file
+
+remove_metadata_xml_elements
+==========================================
+
+**Description:** Remove specified XML elements from one or more metadata files
+
+**Class::** cumulusci.tasks.metadata.modify.RemoveElementsXPath
+
+Options:
+------------------------------------------
+
+* **xpath**: An XPath specification of elements to remove. Supports the re: regexp function namespace. As in re:match(text(), '.*__c')Use ns: to refer to the Salesforce namespace for metadata elements.for example: ./ns:Layout/ns:relatedLists (one-level) or //ns:relatedLists (recursive)Many advanced examples are available here: https://github.com/SalesforceFoundation/NPSP/blob/26b585409720e2004f5b7785a56e57498796619f/cumulusci.yml#L342
+* **path**: A path to the files to change. Supports wildcards including ** for directory recursion. More info on the details: https://www.poftut.com/python-glob-function-to-match-path-directory-file-names-with-examples/ https://www.tutorialspoint.com/How-to-use-Glob-function-to-find-files-recursively-in-Python 
+* **elements**: A list of dictionaries containing path and xpath keys. Multiple dictionaries can be passed in the list to run multiple removal queries in the same task. This parameter is intended for usages invoked as part of a cumulusci.yml .
+* **chdir**: Change the current directory before running the replace
 
