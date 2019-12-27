@@ -107,7 +107,6 @@ class Command(BaseTask):
             stdout=sys.stdout if interactive_mode else subprocess.PIPE,
             stderr=sys.stderr if interactive_mode else subprocess.PIPE,
             stdin=sys.stdin if interactive_mode else subprocess.PIPE,
-            bufsize=1,
             shell=True,
             env=env,
             cwd=self.options.get("dir"),

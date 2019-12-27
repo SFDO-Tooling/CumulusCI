@@ -13,10 +13,6 @@ tasks:
         description: Run an arbitrary command
         class_path: cumulusci.tasks.command.Command
         group: Utilities
-    commit_apex_docs:
-        description: commit local ApexDocs to GitHub branch
-        class_path: cumulusci.tasks.github.CommitApexDocs
-        group: Release Management
     connected_app:
         description: Creates the Connected App needed to use persistent orgs in the CumulusCI keychain
         class_path: cumulusci.tasks.connectedapp.CreateConnectedApp
@@ -105,10 +101,6 @@ tasks:
         description: Execute anonymous apex via the tooling api.
         class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
         group: Salesforce
-    generate_apex_docs:
-        description: Generate documentation for local code. Configure settings in cumulusci.yml/project/apexdoc - homepage, banner, branch, repo_dir
-        class_path: cumulusci.tasks.apexdoc.GenerateApexDocs
-        group: Release Management
     generate_data_dictionary:
         description: Create a data dictionary for the project in CSV format.
         class_path: cumulusci.tasks.datadictionary.GenerateDataDictionary
@@ -187,10 +179,6 @@ tasks:
         description: Set the version for dependent packages
         class_path: cumulusci.tasks.metaxml.UpdateDependencies
         group: Salesforce Metadata
-    mrbelvedere_publish:
-        description: Publishes a release to the mrbelvedere web installer
-        class_path: cumulusci.tasks.mrbelvedere.MrbelvederePublish
-        group: Release Management
     metadeploy_publish:
         description: Publish a release to the MetaDeploy web installer
         class_path: cumulusci.tasks.metadeploy.Publish
@@ -417,16 +405,13 @@ tasks:
         description: Load Custom Settings specified in a YAML file to the target org
         class_path: cumulusci.tasks.salesforce.LoadCustomSettings
         group: 'Data Operations'
+    remove_metadata_xml_elements:
+        description: Remove specified XML elements from one or more metadata files
+        class_path: cumulusci.tasks.metadata.modify.RemoveElementsXPath
+        group: Salesforce Metadata
+
 
 flows:
-    apex_docs:
-        description: Generate and commit documentation using ApexDoc
-        steps:
-            1:
-                task: generate_apex_docs
-            2:
-                task: commit_apex_docs
-
     ci_beta:
         description: Install the latest beta version and runs apex tests from the managed package
         steps:
@@ -872,15 +857,6 @@ services:
       token:
         description: Your API token to the MetaDeploy site (get from SITE_URL/admin/authtoken/token)
         required: True
-  mrbelvedere:
-    description: Configure connection for mrbelvedere tasks, e.g. MrbelvederePublish
-    attributes:
-      base_url:
-        description: The base url for your mrbelvedere instance.
-        required: True
-      api_key:
-        description: The package api_key for the package in your mrbelvedere instance.
-        required: True
   apextestsdb:
     description: Configure connection for ApexTestsDB tasks, e.g. ApextestsdbUpload
     attributes:
@@ -953,9 +929,6 @@ project:
                     title: Deleted Metadata
     test:
         name_match: '%_TEST%'
-    apexdoc:
-        version: 1.1.7
-        scope: global;public;private;testmethod;webService
     dependencies:
 
 orgs:
