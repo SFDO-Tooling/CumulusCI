@@ -14,6 +14,11 @@ from snowfakery.generate_mapping_from_factory import mapping_from_factory_templa
 class GenerateDataFromYaml(BaseGenerateDataTask):
     """Generate sample data from a YAML template file."""
 
+    task_docs = """
+    Depends on the currently un-released Snowfakery tool from SFDO. Better documentation
+    will appear here when Snowfakery is publically available.
+    """
+
     task_options = {
         **BaseGenerateDataTask.task_options,
         "generator_yaml": {
