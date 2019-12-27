@@ -1,5 +1,4 @@
 import unittest
-from unittest import mock
 import json
 import responses
 from .util import create_task
@@ -20,8 +19,16 @@ task_no_developer_options = {
 
 class TestActivateFlowProcesses(unittest.TestCase):
     @responses.activate
-    def test_activate_flow_processes(self):
-        cc_task = create_task(ActivateFlowProcesses, task_options)
+    def test_half_activate_flow_processes(self):
+        cc_task = create_task(
+            ActivateFlowProcesses,
+            {
+                "developer_names": [
+                    "Auto_Populate_Date_And_Name_On_Program_Engagement",
+                    "ape",
+                ],
+            },
+        )
         record_id = "3001F0000009GFwQAM"
         activate_url = "{}/services/data/v43.0/tooling/sobjects/FlowDefinition/{}".format(
             cc_task.org_config.instance_url, record_id
@@ -48,11 +55,19 @@ class TestActivateFlowProcesses(unittest.TestCase):
         cc_task()
         self.assertEqual(2, len(responses.calls))
 
-
-class TestActivateMultipleFlowProcesses(unittest.TestCase):
     @responses.activate
-    def test_activate_flow_processes(self):
-        cc_task = create_task(ActivateFlowProcesses, task_options)
+    def test_both_activate_flow_processes(self):
+        cc_task = create_task(
+            ActivateFlowProcesses,
+            {
+                "description": "Activates Flows identified by a given list of Developer Names",
+                "developer_names": [
+                    "Auto_Populate_Date_And_Name_On_Program_Engagement",
+                    "ape",
+                ],
+                "required": True,
+            },
+        )
         record_id = "3001F0000009GFwQAM"
         activate_url = "{}/services/data/v43.0/tooling/sobjects/FlowDefinition/{}".format(
             cc_task.org_config.instance_url, record_id
@@ -85,10 +100,10 @@ class TestActivateMultipleFlowProcesses(unittest.TestCase):
         self.assertEqual(3, len(responses.calls))
 
 
-class TestNoDeveloperFlowProcesses(unittest.TestCase):
-    @responses.activate
-    def test_activate_flow_processes(self):
-        result = mock.Mock()
-        final = result.create_task(ActivateFlowProcesses, task_no_developer_options)
-        self.assertEqual(0, len(responses.calls))
-        final.assert_not_called()
+# class TestNoDeveloperFlowProcesses(unittest.TestCase):
+#     @responses.activate
+#     def test_activate_flow_processes(self):
+#         result = mock.Mock()
+#         final = result.create_task(ActivateFlowProcesses, task_no_developer_options)
+#         self.assertEqual(0, len(responses.calls))
+#         final.assert_not_called()
