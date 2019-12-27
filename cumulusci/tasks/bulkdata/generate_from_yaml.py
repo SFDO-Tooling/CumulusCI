@@ -11,7 +11,7 @@ from snowfakery.data_generator import generate
 from snowfakery.generate_mapping_from_factory import mapping_from_factory_templates
 
 
-class GenerateFromYaml(BaseGenerateDataTask):
+class GenerateDataFromYaml(BaseGenerateDataTask):
     """Generate sample data from a YAML template file."""
 
     task_options = {

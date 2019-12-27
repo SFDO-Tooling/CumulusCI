@@ -16,7 +16,7 @@ if snowfakery:
     sample_yaml = (
         Path(snowfakery.__file__).parent / "../tests/gen_npsp_standard_objects.yml"
     )
-    from cumulusci.tasks.bulkdata.generate_from_yaml import GenerateFromYaml
+    from cumulusci.tasks.bulkdata.generate_from_yaml import GenerateDataFromYaml
 
 vanilla_mapping_file = Path(__file__).parent / "../../tests/mapping_vanilla_sf.yml"
 
@@ -32,13 +32,13 @@ class TestGenerateFromDataTask(unittest.TestCase):
 
     def test_no_options(self):
         with self.assertRaises(Exception):
-            _make_task(GenerateFromYaml, {})
+            _make_task(GenerateDataFromYaml, {})
 
     def test_simple(self):
         with NamedTemporaryFile() as t:
             database_url = f"sqlite:///{t.name}"
             task = _make_task(
-                GenerateFromYaml,
+                GenerateDataFromYaml,
                 {
                     "options": {
                         "generator_yaml": sample_yaml,
@@ -53,7 +53,7 @@ class TestGenerateFromDataTask(unittest.TestCase):
     def test_inaccessible_generator_yaml(self):
         with self.assertRaises(TaskOptionsError):
             task = _make_task(
-                GenerateFromYaml,
+                GenerateDataFromYaml,
                 {
                     "options": {
                         "generator_yaml": sample_yaml / "junk",
@@ -68,7 +68,7 @@ class TestGenerateFromDataTask(unittest.TestCase):
             database_url = f"sqlite:///{t.name}"
             with self.assertWarns(UserWarning):
                 task = _make_task(
-                    GenerateFromYaml,
+                    GenerateDataFromYaml,
                     {
                         "options": {
                             "generator_yaml": sample_yaml,
@@ -85,7 +85,7 @@ class TestGenerateFromDataTask(unittest.TestCase):
             with NamedTemporaryFile() as temp_db:
                 database_url = f"sqlite:///{temp_db.name}"
                 task = _make_task(
-                    GenerateFromYaml,
+                    GenerateDataFromYaml,
                     {
                         "options": {
                             "generator_yaml": sample_yaml,
@@ -103,7 +103,7 @@ class TestGenerateFromDataTask(unittest.TestCase):
         with NamedTemporaryFile() as temp_db:
             database_url = f"sqlite:///{temp_db.name}"
             task = _make_task(
-                GenerateFromYaml,
+                GenerateDataFromYaml,
                 {
                     "options": {
                         "generator_yaml": sample_yaml,
