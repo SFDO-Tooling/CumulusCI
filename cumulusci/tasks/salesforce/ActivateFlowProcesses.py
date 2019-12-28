@@ -18,20 +18,21 @@ class ActivateFlowProcesses(BaseSalesforceApiTask):
     def _init_options(self, kwargs):
         super(ActivateFlowProcesses, self)._init_options(kwargs)
         self.options["developer_names"] = process_list_arg(
-            self.task_config.options["developer_names"]
+            # self.task_config.options["developer_names"]
+            self.options.get("developer_names")
         )
 
     api_version = "43.0"
 
     def _run_task(self):
-        if len(self.options["developer_names"]) > 0:
+        if self.options["developer_names"]:
             self.logger.info(
                 f"Activating the following Flows: {self.options['developer_names']}"
             )
             self.logger.info("Querying flow definitions...")
             result = self.tooling.query(
                 "SELECT Id, ActiveVersion.VersionNumber, LatestVersion.VersionNumber, DeveloperName FROM FlowDefinition WHERE DeveloperName IN ({0})".format(
-                    ",".join([f"'{n}'" for n in self.options.get("developer_names")])
+                    ",".join([f"'{n}'" for n in self.options["developer_names"]])
                 )
             )
             for listed_flow in result["records"]:
