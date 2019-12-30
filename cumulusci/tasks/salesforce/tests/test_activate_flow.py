@@ -1,11 +1,11 @@
-import unittest
+import unittest as test_activate_flow
 import json
 import responses
 from .util import create_task
 from cumulusci.tasks.salesforce.activate_flow import ActivateFlow
 
 
-class TestActivateFlow(unittest.TestCase):
+class TestActivateFlow(test_activate_flow.TestCase):
     @responses.activate
     def test_half_activate_flow_processes(self):
         cc_task = create_task(

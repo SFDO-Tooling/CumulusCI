@@ -20,6 +20,7 @@ class ActivateFlow(BaseSalesforceApiTask):
         self.options["developer_names"] = process_list_arg(
             self.options.get("developer_names")
         )
+        self.api_version = "43.0"
         if not self.options["developer_names"]:
             raise TaskOptionsError(
                 "Error you are missing developer_names definition in your task cumulusci.yml file. Please pass in developer_names for your task configuration or use -o to developer_names as a commandline argument"
@@ -46,3 +47,7 @@ class ActivateFlow(BaseSalesforceApiTask):
             }
             response = self.tooling._call_salesforce("PATCH", urlpath, json=data)
             self.logger.info(response)
+
+        self.logger.info(
+            "Error you are missing developer_names definition in your task cumulusci.yml file. Please pass in developer_names for your task configuration or use -o to developer_names as a commandline arg"
+        )
