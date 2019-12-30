@@ -47,7 +47,3 @@ class ActivateFlow(BaseSalesforceApiTask):
             }
             response = self.tooling._call_salesforce("PATCH", urlpath, json=data)
             self.logger.info(response)
-
-        self.logger.info(
-            "Error you are missing developer_names definition in your task cumulusci.yml file. Please pass in developer_names for your task configuration or use -o to developer_names as a commandline arg"
-        )
