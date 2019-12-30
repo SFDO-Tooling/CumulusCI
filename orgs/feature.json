@@ -2,10 +2,14 @@
   "orgName": "CumulusCI - Feature Test Org",
   "edition": "Developer",
   "settings": {
-    "orgPreferenceSettings": {
-      "s1DesktopEnabled": true
-      , "chatterEnabled": true
-      , "translation": true
+    "lightningExperienceSettings": {
+      "enableS1DesktopEnabled": true
+    },
+    "chatterSettings": {
+      "enableChatter": true
+    },
+    "languageSettings": {
+      "enableTranslationWorkbench": true
     }
   }
 }

@@ -1,8 +1,8 @@
 import os
+from tempfile import TemporaryDirectory, NamedTemporaryFile
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.tasks.bulkdata import LoadData
 from cumulusci.tasks.bulkdata.utils import generate_batches
-from cumulusci.utils import temporary_dir
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.utils import import_global
 from cumulusci.core.exceptions import TaskOptionsError
@@ -47,7 +47,7 @@ class GenerateAndLoadData(BaseSalesforceApiTask):
             "description": "How many records to create and load at a time.",
             "required": False,
         },
-        "mapping": {"description": "A mapping YAML file to use", "required": True},
+        "mapping": {"description": "A mapping YAML file to use", "required": False},
         "data_generation_task": {
             "description": "Fully qualified class path of a task to generate the data. Look at cumulusci.tasks.bulkdata.tests.dummy_data_factory to learn how to write them.",
             "required": True,
@@ -58,15 +58,23 @@ class GenerateAndLoadData(BaseSalesforceApiTask):
         },
         "database_url": {
             "description": "A URL to store the database (defaults to a transient SQLite file)",
-            "required": "",
+            "required": False,
+        },
+        "vars": {
+            "description": "Variables that the generate or load tasks might need."
         },
     }
 
     def _init_options(self, kwargs):
         super()._init_options(kwargs)
-        self.mapping_file = os.path.abspath(self.options["mapping"])
-        if not os.path.exists(self.mapping_file):
-            raise TaskOptionsError(f"{self.mapping_file} cannot be found.")
+        mapping_file = self.options.get("mapping", None)
+        if mapping_file:
+            self.mapping_file = os.path.abspath(mapping_file)
+            if not os.path.exists(self.mapping_file):
+                raise TaskOptionsError(f"{self.mapping_file} cannot be found.")
+        else:
+            self.mapping_file = None
+
         self.database_url = self.options.get("database_url")
         self.num_records = int(self.options["num_records"])
         self.batch_size = int(self.options.get("batch_size", self.num_records))
@@ -81,7 +89,7 @@ class GenerateAndLoadData(BaseSalesforceApiTask):
             )
 
     def _run_task(self):
-        with temporary_dir() as tempdir:
+        with TemporaryDirectory() as tempdir:
             for current_batch_size, index in generate_batches(
                 self.num_records, self.batch_size
             ):
@@ -123,5 +131,11 @@ class GenerateAndLoadData(BaseSalesforceApiTask):
             "num_records": batch_size,
             "current_batch_number": index,
         }
-        self._datagen(subtask_options)
-        self._dataload(subtask_options)
+
+        # some generator tasks can generate the mapping file instead of reading it
+        with NamedTemporaryFile(suffix="_mapping.yml") as generated_mapping_file:
+            subtask_options["generate_mapping_file"] = generated_mapping_file.name
+            self._datagen(subtask_options)
+            if not subtask_options.get("mapping"):
+                subtask_options["mapping"] = generated_mapping_file.name
+            self._dataload(subtask_options)
