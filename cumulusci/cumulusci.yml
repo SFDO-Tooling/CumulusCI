@@ -1,6 +1,6 @@
 cumulusci:
     keychain: cumulusci.core.keychain.EncryptedFileProjectKeychain
-    
+
 tasks:
     activate_flow:
         group: Metadata Transformations
