@@ -12,7 +12,7 @@ activate_flow
 Options:
 ------------------------------------------
 
-* **developer_names** *(required)*: List of DeveloperNames to query in SOQL **Default: ['Auto_Populate_Date_And_Name_On_Program_Engagement']**
+* **developer_names** *(required)*: List of DeveloperNames to query in SOQL
 
 batch_apex_wait
 ==========================================
