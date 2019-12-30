@@ -36,7 +36,9 @@ class ActivateFlow(BaseSalesforceApiTask):
                 ",".join([f"'{n}'" for n in self.options["developer_names"]])
             )
         )
+        results = []
         for listed_flow in result["records"]:
+            results.append(listed_flow["DeveloperName"])
             self.logger.info(f'Processing: {listed_flow["DeveloperName"]}')
             path = f"tooling/sobjects/FlowDefinition/{listed_flow['Id']}"
             urlpath = self.sf.base_url + path
@@ -47,3 +49,11 @@ class ActivateFlow(BaseSalesforceApiTask):
             }
             response = self.tooling._call_salesforce("PATCH", urlpath, json=data)
             self.logger.info(response)
+        excluded = []
+        for i in self.options["developer_names"]:
+            if i not in results:
+                excluded.append(i)
+        if len(excluded) > 0:
+            self.logger.warn(
+                f"The following developer names were not found: {excluded}"
+            )
