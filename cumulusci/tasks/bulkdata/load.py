@@ -55,8 +55,7 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
             self.options["sql_path"] = None
         elif self.options.get("sql_path"):
             self.options["sql_path"] = os_friendly_path(self.options["sql_path"])
-            self.logger.info("Using in-memory sqlite database")
-            self.options["database_url"] = "sqlite://"
+            self.options["database_url"] = None
         else:
             raise TaskOptionsError(
                 "You must set either the database_url or sql_path option."
@@ -392,7 +391,10 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
 
     def _init_db(self):
         # initialize the DB engine
-        self.engine = create_engine(self.options["database_url"])
+        database_url = self.options["database_url"] or "sqlite://"
+        if database_url == "sqlite://":
+            self.logger.info("Using in-memory SQLite database")
+        self.engine = create_engine(database_url)
 
         # initialize the DB session
         self.session = Session(self.engine)
