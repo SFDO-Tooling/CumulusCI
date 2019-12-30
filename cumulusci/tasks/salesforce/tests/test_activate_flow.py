@@ -1,11 +1,11 @@
-import unittest as test_activate_flow
+import unittest
 import json
 import responses
 from .util import create_task
 from cumulusci.tasks.salesforce.activate_flow import ActivateFlow
 
 
-class TestActivateFlow(test_activate_flow.TestCase):
+class TestActivateFlow(unittest.TestCase):
     @responses.activate
     def test_half_activate_flow_processes(self):
         cc_task = create_task(
@@ -48,7 +48,6 @@ class TestActivateFlow(test_activate_flow.TestCase):
         cc_task = create_task(
             ActivateFlow,
             {
-                "description": "Activates Flows identified by a given list of Developer Names",
                 "developer_names": [
                     "Auto_Populate_Date_And_Name_On_Program_Engagement",
                     "ape",
@@ -57,8 +56,12 @@ class TestActivateFlow(test_activate_flow.TestCase):
             },
         )
         record_id = "3001F0000009GFwQAM"
+        record_id2 = "3001F0000009GFwQAW"
         activate_url = "{}/services/data/v43.0/tooling/sobjects/FlowDefinition/{}".format(
             cc_task.org_config.instance_url, record_id
+        )
+        activate_url2 = "{}/services/data/v43.0/tooling/sobjects/FlowDefinition/{}".format(
+            cc_task.org_config.instance_url, record_id2
         )
         responses.add(
             method="GET",
@@ -72,7 +75,7 @@ class TestActivateFlow(test_activate_flow.TestCase):
                             "LatestVersion": {"VersionNumber": 1},
                         },
                         {
-                            "Id": record_id,
+                            "Id": record_id2,
                             "DeveloperName": "ape",
                             "LatestVersion": {"VersionNumber": 1},
                         },
@@ -83,6 +86,6 @@ class TestActivateFlow(test_activate_flow.TestCase):
         )
         data = {"Metadata": {"activeVersionNumber": 1}}
         responses.add(method=responses.PATCH, url=activate_url, status=204, json=data)
-        responses.add(method=responses.PATCH, url=activate_url, status=204, json=data)
+        responses.add(method=responses.PATCH, url=activate_url2, status=204, json=data)
         cc_task()
         self.assertEqual(3, len(responses.calls))
