@@ -89,3 +89,90 @@ class TestGenerateAndLoadData(unittest.TestCase):
 
         task()
         _dataload.assert_called_once()
+
+    def test_bad_mapping_file_path(self):
+        with self.assertRaises(TaskOptionsError):
+            _make_task(
+                GenerateAndLoadData,
+                {
+                    "options": {
+                        "num_records": 12,
+                        "mapping": "does_not_exist",
+                        "data_generation_task": "cumulusci.tasks.bulkdata.tests.dummy_data_factory.GenerateDummyData",
+                        "batch_size": 12,
+                    }
+                },
+            )
+
+    @mock.patch("cumulusci.tasks.bulkdata.GenerateAndLoadData._dataload")
+    def test_missing_mapping_file_when_needed(self, _dataload):
+        with self.assertRaises(TaskOptionsError):
+            task = _make_task(
+                GenerateAndLoadData,
+                {
+                    "options": {
+                        "num_records": 12,
+                        "data_generation_task": "cumulusci.tasks.bulkdata.tests.dummy_data_factory.GenerateDummyData",
+                        "batch_size": 12,
+                    }
+                },
+            )
+            task()
+
+    @mock.patch("cumulusci.tasks.bulkdata.GenerateAndLoadData._dataload")
+    def test_missing_mapping_file_path(self, _dataload):
+        task = _make_task(
+            GenerateAndLoadData,
+            {
+                "options": {
+                    "num_records": 12,
+                    "data_generation_task": "cumulusci.tasks.bulkdata.tests.mock_data_factory_without_mapping.GenerateDummyData",
+                    "batch_size": 12,
+                }
+            },
+        )
+        task()
+        calls = _dataload.mock_calls
+        assert calls[0][1][0]["generate_mapping_file"]
+
+    def test_conflicting_options(self):
+        with self.assertRaises(TaskOptionsError):
+            _make_task(
+                GenerateAndLoadData,
+                {
+                    "options": {
+                        "num_records": 12,
+                        "data_generation_task": "cumulusci.tasks.bulkdata.tests.dummy_data_factory.GenerateDummyData",
+                        "database_url": "not_a_real_url:///non-url",
+                        "batch_size": 24,
+                    }
+                },
+            )
+
+    def test_loader_subtask(self):
+        class MockLoadData:
+            def __init__(self, *args, **kwargs):
+                options = kwargs["task_config"].options
+                assert options["num_records"] == 12
+                assert options["database_url"].startswith("sqlite")
+                assert "mapping_vanilla_sf" in options["mapping"]
+
+            def __call__(self):
+                pass
+
+        mapping_file = os.path.join(os.path.dirname(__file__), "mapping_vanilla_sf.yml")
+
+        with mock.patch(
+            "cumulusci.tasks.bulkdata.generate_and_load_data.LoadData", MockLoadData
+        ):
+            task = _make_task(
+                GenerateAndLoadData,
+                {
+                    "options": {
+                        "num_records": 12,
+                        "data_generation_task": "cumulusci.tasks.bulkdata.tests.dummy_data_factory.GenerateDummyData",
+                        "mapping": mapping_file,
+                    }
+                },
+            )
+            task()

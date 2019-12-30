@@ -2,6 +2,31 @@
 History
 =======
 
+3.3.0 (2019-12-27)
+------------------
+
+Breaking changes:
+
+* Removed tasks which are no longer in use: ``mrbelvedere_publish``, ``generate_apex_docs``, and ``commit_apex_docs``.
+
+Changes:
+
+* Updated Robot Framework Salesforce library to support the Spring '20 release.
+
+* Added ``remove_metadata_xml_elements`` task which can be used to remove specified XML elements from metadata files.
+
+* Updated references to the NPSP repository to use its new name instead of Cumulus.
+
+Issues closed:
+
+* Fixed the error message shown when a task config has a bad ``class_path``.
+
+* Fixed a warning when running the command task in Python 3.8.
+
+* When the CumulusCI Robot Framework library calls Salesforce APIs, it will now automatically retry when it is safe to do so. It will also avoid reusing old connections that might have been closed.
+
+* Fixed the ``-o debug True`` option for the ``robot`` task.
+
 3.2.0 (2019-12-11)
 ------------------
 
