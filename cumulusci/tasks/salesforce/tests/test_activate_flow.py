@@ -2,26 +2,14 @@ import unittest
 import json
 import responses
 from .util import create_task
-from cumulusci.tasks.salesforce.ActivateFlowProcesses import ActivateFlowProcesses
-
-task_options = {
-    "description": "Activates Flows identified by a given list of Developer Names",
-    "developer_names": ["Auto_Populate_Date_And_Name_On_Program_Engagement", "ape"],
-    "required": True,
-}
-
-task_no_developer_options = {
-    "description": "Activates Flows identified by a given list of Developer Names",
-    "developer_names": [],
-    "required": True,
-}
+from cumulusci.tasks.salesforce.activate_flow import ActivateFlow
 
 
-class TestActivateFlowProcesses(unittest.TestCase):
+class TestActivateFlow(unittest.TestCase):
     @responses.activate
     def test_half_activate_flow_processes(self):
         cc_task = create_task(
-            ActivateFlowProcesses,
+            ActivateFlow,
             {
                 "developer_names": [
                     "Auto_Populate_Date_And_Name_On_Program_Engagement",
@@ -58,7 +46,7 @@ class TestActivateFlowProcesses(unittest.TestCase):
     @responses.activate
     def test_both_activate_flow_processes(self):
         cc_task = create_task(
-            ActivateFlowProcesses,
+            ActivateFlow,
             {
                 "description": "Activates Flows identified by a given list of Developer Names",
                 "developer_names": [
@@ -98,12 +86,3 @@ class TestActivateFlowProcesses(unittest.TestCase):
         responses.add(method=responses.PATCH, url=activate_url, status=204, json=data)
         cc_task()
         self.assertEqual(3, len(responses.calls))
-
-
-# class TestNoDeveloperFlowProcesses(unittest.TestCase):
-#     @responses.activate
-#     def test_activate_flow_processes(self):
-#         result = mock.Mock()
-#         final = result.create_task(ActivateFlowProcesses, task_no_developer_options)
-#         self.assertEqual(0, len(responses.calls))
-#         final.assert_not_called()
