@@ -20,8 +20,7 @@ class ActivateFlow(BaseSalesforceApiTask):
         self.options["developer_names"] = process_list_arg(
             self.options.get("developer_names")
         )
-        # api_version = "43.0"
-        if len(self.options["developer_names"]) < 1:
+        if not self.options["developer_names"]:
             raise TaskOptionsError(
                 "Error you are missing developer_names definition in your task cumulusci.yml file. Please pass in developer_names for your task configuration or use -o to developer_names as a commandline argument"
             )

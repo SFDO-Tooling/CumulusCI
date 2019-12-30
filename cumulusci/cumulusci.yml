@@ -5,7 +5,7 @@ tasks:
     activate_flow:
         group: Metadata Transformations
         description: Activates Flows identified by a given list of Developer Names
-        class_path: cumulusci.tasks.salesforce.ActivateFlowProcesses.ActivateFlowProcesses
+        class_path: cumulusci.tasks.salesforce.activate_flow.ActivateFlow
     batch_apex_wait:
         description: Waits on a batch apex job to finish.
         class_path: cumulusci.tasks.apex.batch.BatchApexWait
