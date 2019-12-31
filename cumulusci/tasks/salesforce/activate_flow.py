@@ -54,6 +54,6 @@ class ActivateFlow(BaseSalesforceApiTask):
             if i not in results:
                 excluded.append(i)
         if len(excluded) > 0:
-            self.logger.warn(
+            self.logger.warning(
                 f"The following developer names were not found: {excluded}"
             )
