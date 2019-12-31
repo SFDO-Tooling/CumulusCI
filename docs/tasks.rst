@@ -2,6 +2,18 @@
 Tasks Reference
 ==========================================
 
+activate_flow
+==========================================
+
+**Description:** Activates Flows identified by a given list of Developer Names
+
+**Class::** cumulusci.tasks.salesforce.activate_flow.ActivateFlow
+
+Options:
+------------------------------------------
+
+* **developer_names** *(required)*: List of DeveloperNames to query in SOQL
+
 batch_apex_wait
 ==========================================
 
