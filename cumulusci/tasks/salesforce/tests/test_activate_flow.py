@@ -52,8 +52,7 @@ class TestActivateFlow(unittest.TestCase):
                 "developer_names": [
                     "Auto_Populate_Date_And_Name_On_Program_Engagement",
                     "ape",
-                ],
-                "required": True,
+                ]
             },
         )
         record_id = "3001F0000009GFwQAM"
@@ -94,7 +93,5 @@ class TestActivateFlow(unittest.TestCase):
     @responses.activate
     def test_activate_no_flow_processes(self):
         with self.assertRaises(TaskOptionsError):
-            cc_task = create_task(
-                ActivateFlow, {"developer_names": [], "required": True}
-            )
+            cc_task = create_task(ActivateFlow, {"developer_names": []})
             cc_task()
