@@ -3,11 +3,12 @@ import json
 import responses
 from .util import create_task
 from cumulusci.tasks.salesforce.activate_flow import ActivateFlow
+from cumulusci.core.exceptions import TaskOptionsError
 
 
 class TestActivateFlow(unittest.TestCase):
     @responses.activate
-    def test_half_activate_flow_processes(self):
+    def test_activate_some_flow_processes(self):
         cc_task = create_task(
             ActivateFlow,
             {
@@ -44,7 +45,7 @@ class TestActivateFlow(unittest.TestCase):
         self.assertEqual(2, len(responses.calls))
 
     @responses.activate
-    def test_both_activate_flow_processes(self):
+    def test_activate_all_flow_processes(self):
         cc_task = create_task(
             ActivateFlow,
             {
@@ -89,3 +90,11 @@ class TestActivateFlow(unittest.TestCase):
         responses.add(method=responses.PATCH, url=activate_url2, status=204, json=data)
         cc_task()
         self.assertEqual(3, len(responses.calls))
+
+    @responses.activate
+    def test_activate_no_flow_processes(self):
+        with self.assertRaises(TaskOptionsError):
+            cc_task = create_task(
+                ActivateFlow, {"developer_names": [], "required": True}
+            )
+            cc_task()
