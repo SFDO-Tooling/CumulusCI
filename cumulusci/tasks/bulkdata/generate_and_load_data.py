@@ -1,5 +1,10 @@
 import os
 from tempfile import TemporaryDirectory, NamedTemporaryFile
+from pathlib import Path
+
+from sqlalchemy import MetaData, create_engine
+from sqlalchemy.ext.declarative import declarative_base
+
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.tasks.bulkdata import LoadData
 from cumulusci.tasks.bulkdata.utils import generate_batches
@@ -43,6 +48,10 @@ class GenerateAndLoadData(BaseSalesforceApiTask):
             "description": "How many records to generate. Precise calcuation depends on the generator.",
             "required": True,
         },
+        "num_records_tablename": {
+            "description": "A string representing which table to count records in.",
+            "required": True,
+        },
         "batch_size": {
             "description": "How many records to create and load at a time.",
             "required": False,
@@ -62,6 +71,9 @@ class GenerateAndLoadData(BaseSalesforceApiTask):
         },
         "vars": {
             "description": "Variables that the generate or load tasks might need."
+        },
+        "debug_dir": {
+            "description": "Store temporary DB files in debug_dir for easier debugging."
         },
     }
 
@@ -83,19 +95,20 @@ class GenerateAndLoadData(BaseSalesforceApiTask):
         self.class_path = self.options.get("data_generation_task")
         self.data_generation_task = import_global(self.class_path)
 
-        if self.database_url and self.batch_size != self.num_records:
-            raise TaskOptionsError(
-                "You may not specify both `database_url` and `batch_size` options."
-            )
+        self.debug_dir = self.options.get("debug_dir", None)
 
     def _run_task(self):
         with TemporaryDirectory() as tempdir:
             for current_batch_size, index in generate_batches(
                 self.num_records, self.batch_size
             ):
+                self.logger.info(
+                    f"Generating a bunch, current_bunch_size={current_batch_size} "
+                    f"current_bunch_size={index} total_records={self.num_records}"
+                )
                 self._generate_batch(
                     self.database_url,
-                    tempdir,
+                    self.debug_dir or tempdir,
                     self.mapping_file,
                     current_batch_size,
                     index,
@@ -121,15 +134,20 @@ class GenerateAndLoadData(BaseSalesforceApiTask):
         subtask()
 
     def _generate_batch(self, database_url, tempdir, mapping_file, batch_size, index):
+        """Generate a batch in database_url or a tempfile if it isn't specified."""
         if not database_url:
-            sqlite_path = os.path.join(tempdir, f"generated_data_{index}.db")
-            database_url = f"sqlite:///" + sqlite_path
+            sqlite_path = Path(tempdir) / "generated_data.db"
+            database_url = f"sqlite:///{sqlite_path}"
+
+        self.cleanup_object_tables(database_url)
+
         subtask_options = {
             **self.options,
             "mapping": mapping_file,
             "database_url": database_url,
             "num_records": batch_size,
             "current_batch_number": index,
+            "working_directory": tempdir,
         }
 
         # some generator tasks can generate the mapping file instead of reading it
@@ -139,3 +157,18 @@ class GenerateAndLoadData(BaseSalesforceApiTask):
             if not subtask_options.get("mapping"):
                 subtask_options["mapping"] = generated_mapping_file.name
             self._dataload(subtask_options)
+
+    def cleanup_object_tables(self, database_url):
+        """Delete all tables that do not relate to id->OID mapping"""
+        engine = create_engine(database_url)
+
+        metadata = MetaData(engine, reflect=True)
+        base = declarative_base()
+
+        tables_to_drop = [
+            table
+            for tablename, table in metadata.tables.items()
+            if not tablename.endswith("sf_ids")
+        ]
+        if tables_to_drop:
+            base.metadata.drop_all(bind=engine, tables=tables_to_drop)
