@@ -105,14 +105,14 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
     def _create_job(self, mapping):
         """Initiate a bulk insert or update and upload batches to run in parallel."""
         action = mapping["action"]
-
+        mode = mapping.get("bulk_mode", "Parallel")
         if action == "insert":
             job_id = self.bulk.create_insert_job(
-                mapping["sf_object"], contentType="CSV"
+                mapping["sf_object"], contentType="CSV", concurrency=mode
             )
         else:
             job_id = self.bulk.create_update_job(
-                mapping["sf_object"], contentType="CSV"
+                mapping["sf_object"], contentType="CSV", concurrency=mode
             )
 
         self.logger.info(f"  Created bulk job {job_id}")

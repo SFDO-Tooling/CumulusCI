@@ -245,7 +245,24 @@ class TestLoadDataWithSFIds(unittest.TestCase):
         task._create_job(mapping)
 
         task.bulk.create_update_job.assert_called_once_with(
-            "Account", contentType="CSV"
+            "Account", contentType="CSV", concurrency="Parallel"
+        )
+
+    def test_create_job__serial(self):
+        base_path = os.path.dirname(__file__)
+        mapping_path = os.path.join(base_path, self.mapping_file)
+        task = _make_task(
+            bulkdata.LoadData,
+            {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
+        )
+        task.bulk = mock.Mock()
+        task._get_batches = mock.Mock(return_value=[])
+        mapping = {"action": "update", "sf_object": "Account", "bulk_mode": "Serial"}
+
+        task._create_job(mapping)
+
+        task.bulk.create_update_job.assert_called_once_with(
+            "Account", contentType="CSV", concurrency="Serial"
         )
 
     def test_run_task__after_steps_failure(self):
