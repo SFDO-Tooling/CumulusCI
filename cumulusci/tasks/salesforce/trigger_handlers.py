@@ -32,7 +32,7 @@ class SetTDTMHandlerStatus(BaseSalesforceApiTask):
 
     def _init_options(self, kwargs):
         super(SetTDTMHandlerStatus, self)._init_options(kwargs)
-        self.options["handlers"] = process_list_arg(self.options.get("handlers"))
+        self.options["handlers"] = process_list_arg(self.options.get("handlers", []))
         self.options["active"] = process_bool_arg(self.options.get("active", False))
         self.options["restore"] = process_bool_arg(self.options.get("restore", False))
 
@@ -70,7 +70,7 @@ class SetTDTMHandlerStatus(BaseSalesforceApiTask):
             object_name = handler[f"{namespace}Object__c"]
             compound_name = f"{object_name}:{class_name}"
 
-            if any(
+            if not self.options["handlers"] or any(
                 [
                     class_name in self.options["handlers"],
                     object_name in self.options["handlers"],

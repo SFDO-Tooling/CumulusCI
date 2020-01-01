@@ -82,6 +82,56 @@ class test_trigger_handlers(unittest.TestCase):
         assert len(responses.calls) == 3
 
     @responses.activate
+    def test_set_status__all_handlers(self):
+        task = create_task(SetTDTMHandlerStatus, {"active": False, "namespace": "npsp"})
+        task.api_version = "47.0"
+        responses.add(
+            method="GET",
+            url=task.org_config.instance_url + "/services/data/v47.0/sobjects",
+            json={"sobjects": [{"name": "Trigger_Handler__c"}]},
+            status=200,
+        )
+        responses.add(
+            method="GET",
+            url=task.org_config.instance_url
+            + "/services/data/v47.0/query/?q=SELECT+Id%2C+Class__c%2C+Object__c%2C+Active__c+FROM+Trigger_Handler__c",
+            status=200,
+            json={
+                "records": [
+                    {
+                        "Id": "000000000000000",
+                        "Class__c": "TestTDTM",
+                        "Object__c": "Test__c",
+                        "Active__c": True,
+                    },
+                    {
+                        "Id": "000000000000001",
+                        "Class__c": "Test",
+                        "Object__c": "Test__c",
+                        "Active__c": True,
+                    },
+                ]
+            },
+        )
+        responses.add(
+            method="PATCH",
+            url=task.org_config.instance_url
+            + "/services/data/v47.0/sobjects/Trigger_Handler__c/000000000000000",
+            status=204,
+            json={"Active__c": False},
+        )
+        responses.add(
+            method="PATCH",
+            url=task.org_config.instance_url
+            + "/services/data/v47.0/sobjects/Trigger_Handler__c/000000000000001",
+            status=204,
+            json={"Active__c": False},
+        )
+        task()
+
+        assert len(responses.calls) == 4
+
+    @responses.activate
     def test_set_status_namespaced(self):
         task = create_task(
             SetTDTMHandlerStatus,
