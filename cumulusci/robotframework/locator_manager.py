@@ -66,10 +66,6 @@ def add_location_strategies():
         try:
             BuiltIn().log(f"adding location strategy for '{prefix}'", "DEBUG")
             if isinstance(strategy, dict):
-
-                def strategy(parent, locator, tag, constraints):
-                    locate_element(prefix, parent, locator, tag, constraints)
-
                 selenium.add_location_strategy(
                     prefix, functools.partial(locate_element, prefix)
                 )
