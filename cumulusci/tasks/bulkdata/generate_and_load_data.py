@@ -34,8 +34,12 @@ class GenerateAndLoadData(BaseSalesforceApiTask):
     Use 'batch_size' to specify how many records to generate and upload in every batch.
 
     By default it creates the data in a temporary file and then cleans it up later. Specify database_url if you
-    need more control than that. If you use database_url and batch_size together, latter batches will overwrite
+    need more control than that. Existing data tables will be emptied before being refilled.
+
+    If you use database_url and batch_size together, latter batches will overwrite
     earlier batches in the database and the first batch will replace tables if they exist.
+
+    A table mapping IDs to SFIds will persist across batches and will grow monotonically.
 
     If your generator class makes heavy use of Faker, you might be interested in this patch
     which frequently speeds Faker up. Adding that code to the bottom of your generator file may
@@ -149,6 +153,7 @@ class GenerateAndLoadData(BaseSalesforceApiTask):
             "num_records": batch_size,
             "current_batch_number": index,
             "working_directory": tempdir,
+            "reset_oids": False,
         }
 
         # some generator tasks can generate the mapping file instead of reading it
