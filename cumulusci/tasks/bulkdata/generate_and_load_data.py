@@ -104,8 +104,11 @@ class GenerateAndLoadData(BaseSalesforceApiTask):
         self.batch_size = int(self.options.get("batch_size", self.num_records))
         if self.batch_size <= 0:
             raise TaskOptionsError("Batch size should be greater than zero")
-        self.class_path = self.options.get("data_generation_task")
-        self.data_generation_task = import_global(self.class_path)
+        class_path = self.options.get("data_generation_task")
+        if class_path:
+            self.data_generation_task = import_global(class_path)
+        else:
+            raise TaskOptionsError("No data generation task specified")
 
         self.debug_dir = self.options.get("debug_dir", None)
         self.database_url = self.options.get("database_url")
