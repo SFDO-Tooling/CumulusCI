@@ -17,6 +17,7 @@ from SeleniumLibrary.errors import ElementNotFound, NoOpenBrowser
 from urllib3.exceptions import ProtocolError
 
 from cumulusci.core.template_utils import format_str
+from cumulusci.robotframework import locator_manager
 
 OID_REGEX = r"^(%2F)?([a-zA-Z0-9]{15,18})$"
 STATUS_KEY = ("status",)
@@ -80,6 +81,21 @@ class Salesforce(object):
     @property
     def cumulusci(self):
         return self.builtin.get_library_instance("cumulusci.robotframework.CumulusCI")
+
+    def initialize_location_strategies(self):
+        """Initialize the Salesforce location strategies 'text' and 'title'
+        plus any strategies registered by other keyword libraries
+
+        Note: This keyword is called automatically from Open Test Browser
+        """
+        locator_manager.register_locators("cci", lex_locators)
+        locator_manager.register_locators("text", "Salesforce.Locate Element by Text")
+        locator_manager.register_locators("title", "Salesforce.Locate Element by Title")
+
+        # This does the work of actually adding all of the above-registered
+        # location strategies, plus any that were registered by keyword
+        # libraries.
+        locator_manager.add_location_strategies()
 
     def get_latest_api_version(self):
         return self.cumulusci.org.latest_api_version
