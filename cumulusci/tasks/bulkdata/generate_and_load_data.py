@@ -104,7 +104,7 @@ class GenerateAndLoadData(BaseSalesforceApiTask):
             ):
                 self.logger.info(
                     f"Generating a bunch, current_bunch_size={current_batch_size} "
-                    f"current_bunch_size={index} total_records={self.num_records}"
+                    f"index={index} total_records={self.num_records}"
                 )
                 self._generate_batch(
                     self.database_url,

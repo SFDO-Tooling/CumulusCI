@@ -49,10 +49,10 @@ class GenerateDataFromYaml(BaseGenerateDataTask):
             "description": "Default path for temporary / working files"
         },
     }
+    stopping_criteria = None
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.stopping_criteria = None
         self.vars = {}
 
     def _init_options(self, kwargs):
