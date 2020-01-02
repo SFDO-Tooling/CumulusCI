@@ -107,7 +107,7 @@ class RobotTestDoc(BaseTask):
 class KeywordLogger(object):
     ROBOT_LISTENER_API_VERSION = 2
 
-    def start_keyword(name, attrs):
+    def start_keyword(self, name, attrs):
         sys.stdout.write("  {}  {}\n".format(attrs["kwname"], "  ".join(attrs["args"])))
         sys.stdout.flush()
 
