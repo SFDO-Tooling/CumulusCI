@@ -63,4 +63,3 @@ Test Error Handling
     ...     mapping=cumulusci/tasks/bulkdata/tests/mapping_vanilla_sf.yml
     ...     batch_size=5
     ...     database_url=sqlite:////tmp/foo.db
-    ...     data_generation_task=cumulusci.tasks.bulkdata.tests.dummy_data_factory.GenerateDummyData
