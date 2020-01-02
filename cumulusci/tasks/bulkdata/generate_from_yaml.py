@@ -1,5 +1,5 @@
 import os
-from typing import TextIO
+from typing import TextIO, Optional
 from pathlib import Path
 import shutil
 
@@ -52,8 +52,8 @@ class GenerateDataFromYaml(BaseGenerateDataTask):
     stopping_criteria = None
 
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
         self.vars = {}
+        super().__init__(*args, **kwargs)
 
     def _init_options(self, kwargs):
         super()._init_options(kwargs)
@@ -95,11 +95,12 @@ class GenerateDataFromYaml(BaseGenerateDataTask):
     def default_continuation_file_path(self):
         return Path(self.working_directory) / "continuation.yml"
 
-    def get_old_continuation_file(self) -> str:
+    def get_old_continuation_file(self) -> Optional[Path]:
         old_continuation_file = self.options.get("continuation_file")
 
         if old_continuation_file:
-            if not Path(old_continuation_file).exists():
+            old_continuation_file = Path(old_continuation_file)
+            if not old_continuation_file.exists():
                 raise TaskOptionsError(f"{old_continuation_file} does not exit")
         elif self.working_directory:
             path = self.default_continuation_file_path()
@@ -108,7 +109,7 @@ class GenerateDataFromYaml(BaseGenerateDataTask):
 
         return old_continuation_file
 
-    def open_new_continuation_file(self) -> TextIO:
+    def open_new_continuation_file(self) -> Optional[TextIO]:
         if self.options.get("generate_continuation_file"):
             new_continuation_file = open(
                 self.options["generate_continuation_file"], "w+"
