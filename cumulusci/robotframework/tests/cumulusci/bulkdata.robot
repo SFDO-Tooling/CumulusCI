@@ -57,7 +57,7 @@ Test Batching
     Assert Row Count  15  Contact  MailingStreet=Baker St.
 
 Test Error Handling
-    Run Keyword and Expect Error    Use a batch size divisible
+    Run Keyword and Expect Error    STARTS:TaskOptionsError
     ...  Run Task Class   cumulusci.tasks.bulkdata.generate_and_load_data.GenerateAndLoadData
     ...     num_records=20
     ...     mapping=cumulusci/tasks/bulkdata/tests/mapping_vanilla_sf.yml
