@@ -365,7 +365,13 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
             i += 1
 
     def _initialize_id_table(self, mapping, should_reset_table):
-        """Create an empty table to hold the inserted SF Ids"""
+        """initalize or find table to hold the inserted SF Ids
+
+        The table has a name like xxx_sf_ids and has just two columns, id and sf_id.
+
+        If the table already exists, should_reset_table determines whether to
+        drop and recreate it or not.
+        """
         id_table_name = f"{mapping['table']}_sf_ids"
 
         already_exists = id_table_name in self.metadata.tables

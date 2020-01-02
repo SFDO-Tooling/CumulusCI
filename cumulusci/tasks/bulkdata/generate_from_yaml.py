@@ -96,6 +96,10 @@ class GenerateDataFromYaml(BaseGenerateDataTask):
         return Path(self.working_directory) / "continuation.yml"
 
     def get_old_continuation_file(self) -> Optional[Path]:
+        """Use a continuation file if specified or look for one in the working directory
+
+        Return None if no file can be found.
+        """
         old_continuation_file = self.options.get("continuation_file")
 
         if old_continuation_file:
@@ -110,6 +114,10 @@ class GenerateDataFromYaml(BaseGenerateDataTask):
         return old_continuation_file
 
     def open_new_continuation_file(self) -> Optional[TextIO]:
+        """Create a continuation file based on config or working directory
+
+        Return None if there is no config nor working directory.
+        """
         if self.options.get("generate_continuation_file"):
             new_continuation_file = open(
                 self.options["generate_continuation_file"], "w+"
