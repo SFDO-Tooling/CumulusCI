@@ -163,3 +163,72 @@ class TestGenerateFromDataTask(unittest.TestCase):
             connection = engine.connect()
             records = list(connection.execute("select * from Account"))
             assert len(records) == 14 % 6  # leftovers
+
+    def test_mismatched_options(self):
+        with self.assertRaises(TaskOptionsError) as e:
+            task = _make_task(
+                GenerateDataFromYaml,
+                {"options": {"generator_yaml": sample_yaml, "num_records": 10}},
+            )
+            task()
+        assert "without num_records_tablename" in str(e.exception)
+
+    def test_with_continuation_file(self):
+        continuation_data = """
+!snowfakery_globals
+id_manager: !snowfakery_ids
+  last_used_ids:
+    Account: 5
+last_seen_obj_of_type:
+  Account: &id001 !snowfakery_objectrow
+    _tablename: Account
+    _values:
+      Name: Johnston incorporated
+      id: 5
+named_objects:
+  blah: blah
+        """
+
+        with NamedTemporaryFile() as temp_db:
+            database_url = f"sqlite:///{temp_db.name}"
+            with NamedTemporaryFile("w+") as continuation_file:
+                continuation_file.write(continuation_data)
+                continuation_file.flush()
+                task = _make_task(
+                    GenerateDataFromYaml,
+                    {
+                        "options": {
+                            "generator_yaml": sample_yaml,
+                            "database_url": database_url,
+                            "mapping": vanilla_mapping_file,
+                            "continuation_file": continuation_file.name,
+                            "generate_continuation_file": "/tmp/foo.yml",
+                        }
+                    },
+                )
+                task()
+                rows = self.assertRowsCreated(database_url)
+                assert dict(rows[0])["id"] == 6
+
+    def test_with_nonexistent_continuation_file(self):
+        with self.assertRaises(TaskOptionsError) as e:
+            with NamedTemporaryFile() as temp_db:
+                database_url = f"sqlite:///{temp_db.name}"
+                task = _make_task(
+                    GenerateDataFromYaml,
+                    {
+                        "options": {
+                            "generator_yaml": sample_yaml,
+                            "database_url": database_url,
+                            "mapping": vanilla_mapping_file,
+                            "continuation_file": "/tmp/foobar/baz/jazz/continuation.yml",
+                            "generate_continuation_file": "/tmp/foo.yml",
+                        }
+                    },
+                )
+                task()
+                rows = self.assertRowsCreated(database_url)
+                assert dict(rows[0])["id"] == 6
+
+        assert "jazz" in str(e.exception)
+        assert "does not exist" in str(e.exception)

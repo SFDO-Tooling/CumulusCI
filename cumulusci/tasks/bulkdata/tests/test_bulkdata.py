@@ -643,6 +643,24 @@ class TestLoadDataWithSFIds(unittest.TestCase):
         new_id_table = task.metadata.tables["test_sf_ids"]
         self.assertFalse(new_id_table is id_table)
 
+    def test_initialize_id_table__already_exists_and_should_not_reset_table(self):
+        base_path = os.path.dirname(__file__)
+        mapping_path = os.path.join(base_path, self.mapping_file)
+        task = _make_task(
+            bulkdata.LoadData,
+            {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
+        )
+        task.mapping = {}
+        task._init_db()
+        id_table = Table(
+            "test_sf_ids", task.metadata, Column("id", Unicode(255), primary_key=True)
+        )
+        id_table.create()
+        table_name = task._initialize_id_table({"table": "test"}, False)
+        assert table_name == "test_sf_ids"
+        new_id_table = task.metadata.tables["test_sf_ids"]
+        assert new_id_table is id_table
+
     def test_run_task__exception_failure(self):
         base_path = os.path.dirname(__file__)
         mapping_path = os.path.join(base_path, self.mapping_file)
