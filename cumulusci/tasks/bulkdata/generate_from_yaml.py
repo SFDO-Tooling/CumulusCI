@@ -105,7 +105,7 @@ class GenerateDataFromYaml(BaseGenerateDataTask):
         if old_continuation_file:
             old_continuation_file = Path(old_continuation_file)
             if not old_continuation_file.exists():
-                raise TaskOptionsError(f"{old_continuation_file} does not exit")
+                raise TaskOptionsError(f"{old_continuation_file} does not exist")
         elif self.working_directory:
             path = self.default_continuation_file_path()
             if path.exists():
