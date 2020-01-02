@@ -1275,3 +1275,35 @@ Options:
 * **elements**: A list of dictionaries containing path and xpath keys. Multiple dictionaries can be passed in the list to run multiple removal queries in the same task. This parameter is intended for usages invoked as part of a cumulusci.yml .
 * **chdir**: Change the current directory before running the replace
 
+disable_tdtm_trigger_handlers
+==========================================
+
+**Description:** Disable specified TDTM trigger handlers
+
+**Class::** cumulusci.tasks.salesforce.trigger_handlers.SetTDTMHandlerStatus
+
+Options:
+------------------------------------------
+
+* **handlers**: List of Trigger Handlers (by Class, Object, or 'Class:Object') to affect (defaults to all handlers).
+* **namespace**: The namespace of the Trigger Handler object ('eda' or 'npsp'). The task will apply the namespace if needed.
+* **active**: True or False to activate or deactivate trigger handlers.
+* **restore_file**: Path to the state file to store the current trigger handler state. **Default: trigger_status.yml**
+* **restore**: If True, restore the state of Trigger Handlers to that stored in the restore file.
+
+restore_tdtm_trigger_handlers
+==========================================
+
+**Description:** Restore status of TDTM trigger handlers
+
+**Class::** cumulusci.tasks.salesforce.trigger_handlers.SetTDTMHandlerStatus
+
+Options:
+------------------------------------------
+
+* **handlers**: List of Trigger Handlers (by Class, Object, or 'Class:Object') to affect (defaults to all handlers).
+* **namespace**: The namespace of the Trigger Handler object ('eda' or 'npsp'). The task will apply the namespace if needed.
+* **active**: True or False to activate or deactivate trigger handlers.
+* **restore_file**: Path to the state file to store the current trigger handler state. **Default: trigger_status.yml**
+* **restore**: If True, restore the state of Trigger Handlers to that stored in the restore file. **Default: True**
+
