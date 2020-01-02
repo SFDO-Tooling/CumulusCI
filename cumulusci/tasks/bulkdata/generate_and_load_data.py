@@ -163,7 +163,8 @@ class GenerateAndLoadData(BaseSalesforceApiTask):
         """Delete all tables that do not relate to id->OID mapping"""
         engine = create_engine(database_url)
 
-        metadata = MetaData(engine, reflect=True)
+        metadata = MetaData(engine)
+        metadata.reflect()
         base = declarative_base()
 
         tables_to_drop = [
