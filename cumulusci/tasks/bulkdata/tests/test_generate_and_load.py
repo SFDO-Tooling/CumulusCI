@@ -176,3 +176,32 @@ class TestGenerateAndLoadData(unittest.TestCase):
                 },
             )
             task()
+
+    def test_error_on_tables_exist(self):
+        class FakeEngine:
+            pass
+
+        class FakeMetadata:
+            tables = {"foo": mock.MagicMock}
+
+        def _setup_engine(*args, **kwargs):
+            return FakeEngine(), FakeMetadata()
+
+        with mock.patch(
+            "cumulusci.tasks.bulkdata.generate_and_load_data.GenerateAndLoadData._setup_engine",
+            _setup_engine,
+        ):
+            with self.assertRaises(TaskOptionsError):
+                task = _make_task(
+                    GenerateAndLoadData,
+                    {
+                        "options": {
+                            "num_records": 12,
+                            "data_generation_task": "cumulusci.tasks.bulkdata.tests.dummy_data_factory.GenerateDummyData",
+                            "batch_size": 12,
+                            "database_url": "not_a_real:///",
+                        }
+                    },
+                )
+
+                task()

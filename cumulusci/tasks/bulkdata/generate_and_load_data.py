@@ -3,7 +3,6 @@ from tempfile import TemporaryDirectory, NamedTemporaryFile
 from pathlib import Path
 
 from sqlalchemy import MetaData, create_engine
-from sqlalchemy.ext.declarative import declarative_base
 
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.tasks.bulkdata import LoadData
@@ -35,8 +34,13 @@ class GenerateAndLoadData(BaseSalesforceApiTask):
 
     By default it creates the data in a temporary file and then cleans it up later. Specify database_url if you
     need more control than that. Existing data tables will be emptied before being refilled.
+    Your database will be completely deleted!
 
     If you use database_url and batch_size together, latter batches will overwrite
+
+    If you use database_url and batch_size together, latter batches will overwrite
+    A table mapping IDs to SFIds will persist across batches and will grow monotonically.
+
     earlier batches in the database and the first batch will replace tables if they exist.
 
     A table mapping IDs to SFIds will persist across batches and will grow monotonically.
@@ -75,7 +79,10 @@ class GenerateAndLoadData(BaseSalesforceApiTask):
             "required": False,
         },
         "vars": {
-            "description": "Variables that the generate or load tasks might need."
+            "description": "Variables that the generate or load tasks might need.",
+        },
+        "replace_database": {
+            "description": "Confirmation that it is okay to delete the data in database_url",
         },
         "debug_dir": {
             "description": "Store temporary DB files in debug_dir for easier debugging."
@@ -101,6 +108,18 @@ class GenerateAndLoadData(BaseSalesforceApiTask):
         self.data_generation_task = import_global(self.class_path)
 
         self.debug_dir = self.options.get("debug_dir", None)
+        self.database_url = self.options.get("database_url")
+
+        if self.database_url:
+            engine, metadata = self._setup_engine(self.database_url)
+            tables = metadata.tables
+
+            if len(list(tables)) and not self.options.get("replace_database"):
+                raise TaskOptionsError(
+                    f"Database {self.database_url} has tables "
+                    f"({list(tables)}) "
+                    "but `replace_database` was not specified"
+                )
 
     def _run_task(self):
         with TemporaryDirectory() as tempdir:
@@ -144,11 +163,12 @@ class GenerateAndLoadData(BaseSalesforceApiTask):
             sqlite_path = Path(tempdir) / "generated_data.db"
             database_url = f"sqlite:///{sqlite_path}"
 
-        self.cleanup_object_tables(database_url)
+        self._cleanup_object_tables(*self._setup_engine(database_url))
 
         subtask_options = {
             **self.options,
             "mapping": mapping_file,
+            "reset_oids": False,
             "database_url": database_url,
             "num_records": batch_size,
             "current_batch_number": index,
@@ -164,18 +184,21 @@ class GenerateAndLoadData(BaseSalesforceApiTask):
                 subtask_options["mapping"] = generated_mapping_file.name
             self._dataload(subtask_options)
 
-    def cleanup_object_tables(self, database_url):
-        """Delete all tables that do not relate to id->OID mapping"""
+    def _setup_engine(self, database_url):
+        """Find all tables that do not relate to id->OID mapping"""
         engine = create_engine(database_url)
 
         metadata = MetaData(engine)
         metadata.reflect()
-        base = declarative_base()
+        return engine, metadata
 
+    def _cleanup_object_tables(self, engine, metadata):
+        """Delete all tables that do not relate to id->OID mapping"""
+        tables = metadata.tables
         tables_to_drop = [
             table
-            for tablename, table in metadata.tables.items()
+            for tablename, table in tables.items()
             if not tablename.endswith("sf_ids")
         ]
         if tables_to_drop:
-            base.metadata.drop_all(bind=engine, tables=tables_to_drop)
+            metadata.drop_all(tables=tables_to_drop)
