@@ -364,13 +364,13 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
                     raise BulkDataException(f"Error on row {i}: {row[3]}")
             i += 1
 
-    def _initialize_id_table(self, mapping, reset_table):
+    def _initialize_id_table(self, mapping, should_reset_table):
         """Create an empty table to hold the inserted SF Ids"""
         id_table_name = f"{mapping['table']}_sf_ids"
 
         already_exists = id_table_name in self.metadata.tables
 
-        if already_exists and not reset_table:
+        if already_exists and not should_reset_table:
             return id_table_name
 
         if not hasattr(self, "_initialized_id_tables"):
