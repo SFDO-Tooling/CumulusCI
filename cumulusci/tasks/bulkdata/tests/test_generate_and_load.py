@@ -135,7 +135,7 @@ class TestGenerateAndLoadData(unittest.TestCase):
         calls = _dataload.mock_calls
         assert calls[0][1][0]["generate_mapping_file"]
 
-    def test_conflicting_options(self):
+    def test_bad_options(self):
         with self.assertRaises(TaskOptionsError):
             _make_task(
                 GenerateAndLoadData,
@@ -144,7 +144,7 @@ class TestGenerateAndLoadData(unittest.TestCase):
                         "num_records": 12,
                         "data_generation_task": "cumulusci.tasks.bulkdata.tests.dummy_data_factory.GenerateDummyData",
                         "database_url": "not_a_real_url:///non-url",
-                        "batch_size": 24,
+                        "batch_size": -1,
                     }
                 },
             )
