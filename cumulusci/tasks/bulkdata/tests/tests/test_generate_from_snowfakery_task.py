@@ -202,7 +202,6 @@ named_objects:
                             "database_url": database_url,
                             "mapping": vanilla_mapping_file,
                             "continuation_file": continuation_file.name,
-                            "generate_continuation_file": "/tmp/foo.yml",
                         }
                     },
                 )
@@ -222,7 +221,6 @@ named_objects:
                             "database_url": database_url,
                             "mapping": vanilla_mapping_file,
                             "continuation_file": "/tmp/foobar/baz/jazz/continuation.yml",
-                            "generate_continuation_file": "/tmp/foo.yml",
                         }
                     },
                 )
