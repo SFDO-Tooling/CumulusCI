@@ -88,7 +88,7 @@ class Salesforce(object):
 
         Note: This keyword is called automatically from Open Test Browser
         """
-        locator_manager.register_locators("cci", lex_locators)
+        locator_manager.register_locators("sf", lex_locators)
         locator_manager.register_locators("text", "Salesforce.Locate Element by Text")
         locator_manager.register_locators("title", "Salesforce.Locate Element by Title")
 
