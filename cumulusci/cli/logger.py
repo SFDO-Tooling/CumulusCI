@@ -42,8 +42,8 @@ def get_gist_logger(repo_root):
     and name for the logger. Returns a logger with
     RotatingFileHandler attached."""
     if repo_root:
-        logfile_path = f"{repo_root}/.cci/cci.log"
-        # create .cci/ if it doesn't exist
+        logfile_path = "~/.cumulusci/logs/cci.log"
+        # create .cumulusic/logs if it doesn't exist
         os.makedirs(os.path.dirname(logfile_path), exist_ok=True)
     else:
         logfile_path = "cci.log"
