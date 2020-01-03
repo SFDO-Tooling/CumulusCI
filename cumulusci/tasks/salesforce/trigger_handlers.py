@@ -50,13 +50,16 @@ class SetTDTMHandlerStatus(BaseSalesforceApiTask):
         else:
             target_status = defaultdict(lambda: self.options["active"])
 
-        namespace = self.options.get("namespace", "npsp") + "__"
+        namespace = self.options.get("namespace", "") + "__"
         if f"{namespace}Trigger_Handler__c" in sobject_names:
             pass
         elif "Trigger_Handler__c" in sobject_names:
             namespace = ""
         else:
-            raise CumulusCIException("Unable to locate the Trigger Handler sObject")
+            raise CumulusCIException(
+                "Unable to locate the Trigger Handler sObject. "
+                "Ensure the namespace option is set correctly."
+            )
 
         proxy_obj = getattr(self.sf, f"{namespace}Trigger_Handler__c")
         trigger_handlers = self.sf.query(
