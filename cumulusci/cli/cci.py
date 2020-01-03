@@ -40,7 +40,7 @@ from cumulusci.cli.runtime import CliRuntime
 from cumulusci.cli.runtime import get_installed_version
 from cumulusci.cli.ui import CliTable, CROSSMARK
 from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
-from cumulusci.utils import doc_task, tee_stdout
+from cumulusci.utils import doc_task, tee_stdout_stderr
 from cumulusci.utils import parse_api_datetime
 from cumulusci.utils import get_cci_upgrade_command
 from cumulusci.oauth.salesforce import CaptureSalesforceOAuth
@@ -203,7 +203,7 @@ def main(args=None):
         is_gist_command = len(args) > 1 and args[1] == "gist"
         if not is_gist_command:
             logger = get_gist_logger(RUNTIME.project_config.repo_root)
-            stack.enter_context(tee_stdout(args, logger))
+            stack.enter_context(tee_stdout_stderr(args, logger))
 
         init_logger(log_requests=debug)
         # Hand CLI processing over to click, but handle exceptions
@@ -271,8 +271,7 @@ LAST_CMD_HEADER = "\n\n\nLast Command Run\n================================\n"
 @cli.command(name="gist", help="Create a GitHub gist from the latest logfile")
 @pass_runtime(require_project=False)
 def gist(runtime):
-    repo_root = RUNTIME.project_config.repo_root
-    log_path = f"{repo_root}/.cci/cci.log" if repo_root else f"cci.log"
+    log_path = "~/.cumulusci/logs/cci.log"
     try:
         last_cmd_log = open(log_path, "r")
     except FileNotFoundError:
