@@ -37,10 +37,6 @@ class GenerateAndLoadData(BaseSalesforceApiTask):
     Your database will be completely deleted!
 
     If you use database_url and batch_size together, latter batches will overwrite
-
-    If you use database_url and batch_size together, latter batches will overwrite
-    A table mapping IDs to SFIds will persist across batches and will grow monotonically.
-
     earlier batches in the database and the first batch will replace tables if they exist.
 
     A table mapping IDs to SFIds will persist across batches and will grow monotonically.
@@ -188,7 +184,7 @@ class GenerateAndLoadData(BaseSalesforceApiTask):
             self._dataload(subtask_options)
 
     def _setup_engine(self, database_url):
-        """Find all tables that do not relate to id->OID mapping"""
+        """Set up the database engine"""
         engine = create_engine(database_url)
 
         metadata = MetaData(engine)
