@@ -262,7 +262,7 @@ def shell(runtime):
 
 GIST_404_ERR_MSG = """A 404 error code was returned when trying to create your gist.
 Please ensure that your GitHub personal access token has the 'Create gists' scope."""
-CCI_LOG_NOT_FOUND_MSG = """No logfile to open at path: {log_path}
+CCI_LOG_NOT_FOUND_MSG = """No logfile to open at path: {}
 Please ensure you're running this command from the same directory you were experiencing an issue."""
 LAST_CMD_HEADER = "\n\n\nLast Command Run\n================================\n"
 
@@ -275,7 +275,7 @@ def gist(runtime):
     try:
         last_cmd_log = open(log_path, "r")
     except FileNotFoundError:
-        click.echo(CCI_LOG_NOT_FOUND_MSG)
+        click.echo(CCI_LOG_NOT_FOUND_MSG.format(log_path))
         sys.exit(1)
 
     filename = f"cci_output_{datetime.utcnow()}.txt"
