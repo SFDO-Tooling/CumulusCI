@@ -172,7 +172,6 @@ class GenerateAndLoadData(BaseSalesforceApiTask):
             "num_records": batch_size,
             "current_batch_number": index,
             "working_directory": tempdir,
-            "reset_oids": False,
         }
 
         # some generator tasks can generate the mapping file instead of reading it
