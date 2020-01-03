@@ -14,7 +14,7 @@ works like this:
    (eg: register_locators("npsp", {...})). These get added to
    LOCATORS
 
-2. Open Test Brower calls selenium's add_location_strategy for each
+2. Open Test Browser calls selenium's add_location_strategy for each
    registered set of locators. (Note: Location strategies cannot be added before a
    browser is open.
 
