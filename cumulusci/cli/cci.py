@@ -30,6 +30,7 @@ from cumulusci.core.config import TaskConfig
 from cumulusci.core.config import BaseGlobalConfig
 from cumulusci.core.github import create_gist, get_github_api
 from cumulusci.core.exceptions import OrgNotFound
+from cumulusci.core.exceptions import CumulusCIException
 from cumulusci.core.exceptions import ServiceNotConfigured
 from cumulusci.core.exceptions import FlowNotFoundError
 
@@ -275,8 +276,9 @@ def gist(runtime):
     try:
         last_cmd_log = open(log_path, "r")
     except FileNotFoundError:
-        click.echo(CCI_LOG_NOT_FOUND_MSG.format(log_path))
-        sys.exit(1)
+        error_msg = CCI_LOG_NOT_FOUND_MSG.format(log_path)
+        click.echo(error_msg)
+        raise CumulusCIException(error_msg)
 
     filename = f"cci_output_{datetime.utcnow()}.txt"
     files = {
