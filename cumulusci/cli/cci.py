@@ -641,12 +641,6 @@ def project_init(runtime):
             fg="green",
         )
     )
-    click.echo(
-        click.style(
-            "You can use the project edit command to edit the project's config file",
-            fg="yellow",
-        )
-    )
 
 
 @project.command(
