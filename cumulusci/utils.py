@@ -556,23 +556,33 @@ def get_git_config(config_key):
 
 
 @contextlib.contextmanager
-def tee_stdout(args, logger):
-    """Tee stdout so that it's also routed to
+def tee_stdout_stderr(args, logger):
+    """Tee stdout and stderr so that they're also routed to
     a log file. Add the current command arguments
     as the first item in the log."""
-    real_write = sys.stdout.write
+    real_stdout_write = sys.stdout.write
+    real_stderr_write = sys.stderr.write
+
+    # Add current command args as first line in logfile
     logger.debug(" ".join(args))
 
-    def write(s):
+    def stdout_write(s):
         output = strip_ansi_sequences(s)
         logger.debug(output)
-        real_write(s)
+        real_stdout_write(s)
 
-    sys.stdout.write = write
+    def stderr_write(s):
+        output = strip_ansi_sequences(s)
+        logger.debug(output)
+        real_stderr_write(s)
+
+    sys.stdout.write = stdout_write
+    sys.stderr.write = stderr_write
     try:
         yield
     finally:
-        sys.stdout.write = real_write
+        sys.stdout.write = real_stdout_write
+        sys.stderr.write = real_stderr_write
 
 
 def strip_ansi_sequences(input):
