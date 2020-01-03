@@ -267,7 +267,7 @@ Please ensure you're running this command from the same directory you were exper
 LAST_CMD_HEADER = "\n\n\nLast Command Run\n================================\n"
 
 
-@cli.command(name="gist", help="Create a gist from the latest logfile")
+@cli.command(name="gist", help="Create a GitHub gist from the latest logfile")
 @pass_runtime(require_project=False)
 def gist(runtime):
     repo_root = RUNTIME.project_config.repo_root
