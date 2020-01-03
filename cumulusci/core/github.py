@@ -163,7 +163,7 @@ def find_previous_release(repo, prefix=None):
 
 
 def create_gist(github, description, files):
-    """Creates a gist with the given description an files.
+    """Creates a gist with the given description and files.
 
     github - an
     description - str
