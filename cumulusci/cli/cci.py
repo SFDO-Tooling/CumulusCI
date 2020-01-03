@@ -166,7 +166,7 @@ def pass_runtime(func=None, require_project=True):
 
 
 SUGGEST_GIT_GIST_COMMAND = """\nIt looks like you may have run into error. Did you know cci has a command for sending this error to a GitHub gist?
-Just run `$ cci gist` and make sure that your GitHub access token as the 'create gist' scope.\n"""
+Just run `$ cci gist` and make sure that your GitHub access token has the 'create gist' scope.\n"""
 
 
 #
@@ -267,7 +267,7 @@ Please ensure you're running this command from the same directory you were exper
 LAST_CMD_HEADER = "\n\n\nLast Command Run\n================================\n"
 
 
-@cli.command(name="gist", help="Create a gist from the latest logfile")
+@cli.command(name="gist", help="Create a GitHub gist from the latest logfile")
 @pass_runtime(require_project=False)
 def gist(runtime):
     repo_root = RUNTIME.project_config.repo_root
