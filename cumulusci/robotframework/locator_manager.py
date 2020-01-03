@@ -16,7 +16,7 @@ works like this:
 
 2. Open Test Browser calls selenium's add_location_strategy for each
    registered set of locators. (Note: Location strategies cannot be added before a
-   browser is open.
+   browser is open).
 
 3. Keywords can use dot notation to refer to locators. A colon
    separates the prefix from the locator, and a locator from a
