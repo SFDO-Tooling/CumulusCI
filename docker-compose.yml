@@ -1,0 +1,19 @@
+version: "3"
+
+services:
+  cumulusci:
+    build:
+      context: .
+      args:
+        - BUILD_ENV=development
+        - CHROMEDRIVER_VERSION=79.0.3945.36
+      dockerfile: Dockerfile
+    command: |
+        /bin/bash -c 'while !</dev/tcp/postgres/5432; do echo "Waiting for postgres databaseto start..."; /bin/sleep 1; done; \
+        /bin/sleep 1; /bin/sh /app/docker/utility/start_server.sh;'
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    volumes:
+      - .:/app
