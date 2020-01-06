@@ -3,8 +3,8 @@ import logging
 import logging.handlers
 import os
 import sys
-
 import requests
+from pathlib import Path
 
 import coloredlogs
 
@@ -37,17 +37,15 @@ def init_logger(log_requests=False):
         requests.packages.urllib3.add_stderr_logger()
 
 
-def get_gist_logger(repo_root):
+def get_gist_logger():
     """Determines the appropriate filepath for logfile
     and name for the logger. Returns a logger with
     RotatingFileHandler attached."""
-    if repo_root:
-        logfile_path = "~/.cumulusci/logs/cci.log"
-        # create .cumulusic/logs if it doesn't exist
-        os.makedirs(os.path.dirname(logfile_path), exist_ok=True)
-    else:
-        logfile_path = "cci.log"
-    return get_rot_file_logger("sys.stdout", logfile_path)
+    logfile_dir = Path.home() / ".cumulusci/logs"
+    logfile_dir.mkdir(parents=True, exist_ok=True)
+    logfile_path = logfile_dir / "cci.log"
+
+    return get_rot_file_logger("stdout/stderr", logfile_path)
 
 
 def get_rot_file_logger(name, path):

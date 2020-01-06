@@ -30,6 +30,7 @@ from cumulusci.core.exceptions import NotInProject
 from cumulusci.core.exceptions import OrgNotFound
 from cumulusci.core.exceptions import ScratchOrgException
 from cumulusci.core.exceptions import ServiceNotConfigured
+from cumulusci.core.exceptions import CumulusCIException
 from cumulusci.cli import cci
 from cumulusci.cli.runtime import CliRuntime
 from cumulusci.utils import temporary_dir
@@ -226,7 +227,7 @@ class TestCCI(unittest.TestCase):
         create_gist.return_value = mock.Mock(html_url=expected_gist_url)
 
         expected_logfile_content = "Hello there, I'm a logfile."
-        with open("cci.log", "w") as f:
+        with open("~/.cumulusci/logs/cci.log", "w") as f:
             f.write(expected_logfile_content)
 
         runtime = mock.Mock()
@@ -299,15 +300,16 @@ Environment Info: Rossian / x68_46
 
         os.remove("cci.log")
 
+    @mock.patch("cumulusci.cli.cci.open")
     @mock.patch("cumulusci.cli.cci.click")
     @mock.patch("cumulusci.cli.cci.os")
     @mock.patch("cumulusci.cli.cci.datetime")
     @mock.patch("cumulusci.cli.cci.create_gist")
     @mock.patch("cumulusci.cli.cci.get_github_api")
-    def test_gist__file_not_found(self, gh_api, create_gist, date, os, click):
-        with pytest.raises(SystemExit) as e:
+    def test_gist__file_not_found(self, gh_api, create_gist, date, os, click, open):
+        open.side_effect = FileNotFoundError
+        with pytest.raises(CumulusCIException):
             run_click_command(cci.gist)
-            assert e.value.code != 0
 
     def test_cli(self):
         run_click_command(cci.cli)

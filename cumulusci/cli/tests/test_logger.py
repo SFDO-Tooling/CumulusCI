@@ -1,4 +1,5 @@
 from unittest.mock import patch
+from pathlib import Path
 from ..logger import init_logger, get_gist_logger, get_rot_file_logger
 
 
@@ -9,16 +10,15 @@ class TestLogger:
         init_logger(log_requests=True)
         requests.packages.urllib3.add_stderr_logger.assert_called_once()
 
+    @patch("cumulusci.cli.logger.Path.mkdir")
+    @patch("cumulusci.cli.logger.Path.home")
     @patch("cumulusci.cli.logger.get_rot_file_logger")
-    def test_get_gist_logger(self, file_logger):
-        repo_root = "path/to/repo/root"
-        get_gist_logger(repo_root)
-        file_logger.assert_called_once_with("sys.stdout", f"{repo_root}/.cci/cci.log")
-
-    @patch("cumulusci.cli.logger.get_rot_file_logger")
-    def test_get_gist_logger__no_repo_root(self, file_logger):
-        get_gist_logger(None)
-        file_logger.assert_called_once_with("sys.stdout", "cci.log")
+    def test_get_gist_logger(self, file_logger, home, mkdir):
+        home.return_value = Path("/Users/bob.ross")
+        get_gist_logger()
+        file_logger.assert_called_once_with(
+            "stdout/stderr", Path("/Users/bob.ross/.cumulusci/logs/cci.log")
+        )
 
     @patch("cumulusci.cli.logger.logging")
     def test_get_rot_file_logger(self, logging):

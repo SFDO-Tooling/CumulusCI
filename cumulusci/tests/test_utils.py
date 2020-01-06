@@ -492,13 +492,16 @@ Options:
         assert ansi_string_result == "Goodbye ANSI color sequences!"
         assert plain_string_result == plain_str
 
-    def test_tee_stdout(self):
+    def test_tee_stdout_stderr(self):
         args = ["cci", "test"]
         logger = mock.Mock()
-        expected_text = "This is expected."
-        with utils.tee_stdout(args, logger):
-            sys.stdout.write(expected_text)
+        expected_stdout_text = "This is expected stdout."
+        expected_stderr_text = "This is expected stderr."
+        with utils.tee_stdout_stderr(args, logger):
+            sys.stdout.write(expected_stdout_text)
+            sys.stderr.write(expected_stderr_text)
 
         logger.debug.call_count == 2
         logger.debug.call_args_list[0] == "cci test"
-        logger.debug.call_args_list[1] == expected_text
+        logger.debug.call_args_list[1] == expected_stdout_text
+        logger.debug.call_args_list[2] == expected_stderr_text

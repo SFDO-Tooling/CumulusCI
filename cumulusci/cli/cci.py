@@ -202,7 +202,7 @@ def main(args=None):
         # that are not `cci gist`
         is_gist_command = len(args) > 1 and args[1] == "gist"
         if not is_gist_command:
-            logger = get_gist_logger(RUNTIME.project_config.repo_root)
+            logger = get_gist_logger()
             stack.enter_context(tee_stdout_stderr(args, logger))
 
         init_logger(log_requests=debug)
@@ -266,12 +266,13 @@ Please ensure that your GitHub personal access token has the 'Create gists' scop
 CCI_LOG_NOT_FOUND_MSG = """No logfile to open at path: {}
 Please ensure you're running this command from the same directory you were experiencing an issue."""
 LAST_CMD_HEADER = "\n\n\nLast Command Run\n================================\n"
+CCI_LOGFILE_DIR_PATH = "~/.cumulusci/logs/"
 
 
 @cli.command(name="gist", help="Create a GitHub gist from the latest logfile")
 @pass_runtime(require_project=False)
 def gist(runtime):
-    log_path = "~/.cumulusci/logs/cci.log"
+    log_path = CCI_LOGFILE_DIR_PATH + "cci.log"
     try:
         last_cmd_log = open(log_path, "r")
     except FileNotFoundError:
