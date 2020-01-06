@@ -260,6 +260,7 @@ Environment Info: Rossian / x68_46
 
         os.remove(test_log_name)
 
+    @mock.patch("cumulusci.cli.cci.open")
     @mock.patch("cumulusci.cli.cci.click")
     @mock.patch("cumulusci.cli.cci.os")
     @mock.patch("cumulusci.cli.cci.sys")
@@ -267,7 +268,7 @@ Environment Info: Rossian / x68_46
     @mock.patch("cumulusci.cli.cci.create_gist")
     @mock.patch("cumulusci.cli.cci.get_github_api")
     def test_gist__gist_creation_error(
-        self, gh_api, create_gist, date, sys, os_mock, click
+        self, gh_api, create_gist, date, sys, os_mock, click, cci_open
     ):
 
         os_mock.uname.return_value = mock.Mock(sysname="Rossian", machine="x68_46")
@@ -283,8 +284,11 @@ Environment Info: Rossian / x68_46
         create_gist.side_effect = ExceptionWithResponse(503)
 
         expected_logfile_content = "Hello there, I'm a logfile."
-        with open("cci.log", "w") as f:
+        test_log_name = "cci.test.log"
+        with open(test_log_name, "w") as f:
             f.write(expected_logfile_content)
+
+        cci_open.return_value = open(test_log_name, "r")
 
         runtime = mock.Mock()
         runtime.project_config.repo_root = None
@@ -303,7 +307,7 @@ Environment Info: Rossian / x68_46
         run_click_command(cci.gist, runtime=runtime)
         assert cci.GIST_404_ERR_MSG in click.echo.call_args_list[1][0][0]
 
-        os.remove("cci.log")
+        os.remove(test_log_name)
 
     @mock.patch("cumulusci.cli.cci.open")
     @mock.patch("cumulusci.cli.cci.click")
