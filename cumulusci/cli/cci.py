@@ -14,6 +14,7 @@ import traceback
 from datetime import datetime
 import webbrowser
 import contextlib
+from pathlib import Path
 
 import click
 import pkg_resources
@@ -266,25 +267,23 @@ Please ensure that your GitHub personal access token has the 'Create gists' scop
 CCI_LOG_NOT_FOUND_MSG = """No logfile to open at path: {}
 Please ensure you're running this command from the same directory you were experiencing an issue."""
 LAST_CMD_HEADER = "\n\n\nLast Command Run\n================================\n"
-CCI_LOGFILE_DIR_PATH = "~/.cumulusci/logs/"
+CCI_LOGFILE_PATH = Path.home() / ".cumulusci/logs/cci.log"
 
 
 @cli.command(name="gist", help="Create a GitHub gist from the latest logfile")
 @pass_runtime(require_project=False)
 def gist(runtime):
-    log_path = CCI_LOGFILE_DIR_PATH + "cci.log"
     try:
-        last_cmd_log = open(log_path, "r")
+        last_cmd_log = open(CCI_LOGFILE_PATH, "r")
     except FileNotFoundError:
-        error_msg = CCI_LOG_NOT_FOUND_MSG.format(log_path)
+        error_msg = CCI_LOG_NOT_FOUND_MSG.format(CCI_LOGFILE_PATH)
         click.echo(error_msg)
         raise CumulusCIException(error_msg)
 
+    log_content = last_cmd_log.read()
     filename = f"cci_output_{datetime.utcnow()}.txt"
     files = {
-        filename: {
-            "content": f"{get_context_info()}{LAST_CMD_HEADER}{last_cmd_log.read()}"
-        }
+        filename: {"content": f"{get_context_info()}{LAST_CMD_HEADER}{log_content}"}
     }
 
     try:
