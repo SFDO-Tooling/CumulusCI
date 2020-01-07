@@ -17,6 +17,7 @@ from cumulusci.tasks.salesforce.ListCommunities import ListCommunities
 from cumulusci.tasks.salesforce.ListCommunityTemplates import ListCommunityTemplates
 from cumulusci.tasks.salesforce.PublishCommunity import PublishCommunity
 from cumulusci.tasks.salesforce.custom_settings import LoadCustomSettings
+from cumulusci.tasks.salesforce.trigger_handlers import SetTDTMHandlerStatus
 
 # inherit from BaseSalesforceMetadataApiTask
 from cumulusci.tasks.salesforce.BaseRetrieveMetadata import BaseRetrieveMetadata
@@ -90,4 +91,5 @@ flake8Hack = (
     UninstallLocalNamespacedBundles,
     UninstallPackagedIncremental,
     LoadCustomSettings,
+    SetTDTMHandlerStatus,
 )
