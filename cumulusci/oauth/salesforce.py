@@ -150,7 +150,6 @@ class CaptureSalesforceOAuth(object):
     def __call__(self):
         url = self._get_redirect_url()
         self._launch_browser(url)
-
         self._create_httpd()
         print(
             f"Spawning HTTP server at {self.callback_url} with timeout of {self.httpd.timeout} seconds.\n"
