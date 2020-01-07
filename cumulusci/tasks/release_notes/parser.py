@@ -37,6 +37,10 @@ class ChangeNotesLinesParser(BaseChangeNotesParser):
 
         line_added = False
         change_note = self._process_change_note(change_note)
+
+        if not change_note:
+            return False
+
         for line in change_note.splitlines():
             line = self._process_line(line)
 
