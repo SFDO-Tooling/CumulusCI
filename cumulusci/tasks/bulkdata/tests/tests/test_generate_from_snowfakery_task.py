@@ -4,13 +4,15 @@ from pathlib import Path
 from tempfile import NamedTemporaryFile
 
 from cumulusci.tasks.bulkdata.tests.test_bulkdata import _make_task, TaskOptionsError
-from cumulusci.tasks.bulkdata import GenerateAndLoadData
 
 import yaml
 from sqlalchemy import create_engine
 
 try:
     import snowfakery
+    from cumulusci.tasks.bulkdata.generate_and_load_data_from_yaml import (
+        GenerateAndLoadDataFromYaml,
+    )
 except ImportError:
     snowfakery = None
 
@@ -138,12 +140,14 @@ class TestGenerateFromDataTask(unittest.TestCase):
             task()
             assert len(self.assertRowsCreated(database_url)) == 11
 
-    @mock.patch("cumulusci.tasks.bulkdata.GenerateAndLoadData._dataload")
+    @mock.patch(
+        "cumulusci.tasks.bulkdata.generate_and_load_data_from_yaml.GenerateAndLoadDataFromYaml._dataload"
+    )
     def test_batching(self, _dataload):
         with NamedTemporaryFile() as t:
             database_url = f"sqlite:///{t.name}"
             task = _make_task(
-                GenerateAndLoadData,
+                GenerateAndLoadDataFromYaml,
                 {
                     "options": {
                         "generator_yaml": simple_yaml,
@@ -230,3 +234,21 @@ named_objects:
 
         assert "jazz" in str(e.exception)
         assert "does not exist" in str(e.exception)
+
+    def test_generate_continuation_file(self):
+        with NamedTemporaryFile() as temp_continuation_file:
+            with NamedTemporaryFile() as temp_db:
+                database_url = f"sqlite:///{temp_db.name}"
+                task = _make_task(
+                    GenerateDataFromYaml,
+                    {
+                        "options": {
+                            "generator_yaml": sample_yaml,
+                            "database_url": database_url,
+                            "generate_continuation_file": temp_continuation_file.name,
+                        }
+                    },
+                )
+                task()
+            mapping = yaml.safe_load(open(temp_continuation_file.name))
+            assert mapping  # internals of this file are not important to MetaCI
