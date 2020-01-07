@@ -72,6 +72,17 @@ class TestGenerateAndLoadData(unittest.TestCase):
             _make_task(GenerateAndLoadData, options)
 
     @mock.patch("cumulusci.tasks.bulkdata.GenerateAndLoadData._dataload")
+    def test_no_datageneration_task_specified(self, _dataload):
+        mapping_file = os.path.join(os.path.dirname(__file__), "mapping_vanilla_sf.yml")
+
+        options = {"options": {"num_records": 20, "mapping": mapping_file}}
+
+        with self.assertRaises(TaskOptionsError) as e:
+            _make_task(GenerateAndLoadData, options)
+
+        assert "No data generation task" in str(e.exception)
+
+    @mock.patch("cumulusci.tasks.bulkdata.GenerateAndLoadData._dataload")
     def test_batchsize_matches_numrecords(self, _dataload):
         mapping_file = os.path.join(os.path.dirname(__file__), "mapping_vanilla_sf.yml")
 
