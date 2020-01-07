@@ -4,15 +4,15 @@ from pathlib import Path
 from tempfile import NamedTemporaryFile
 
 from cumulusci.tasks.bulkdata.tests.test_bulkdata import _make_task, TaskOptionsError
-from cumulusci.tasks.bulkdata.generate_and_load_data_from_yaml import (
-    GenerateAndLoadDataFromYaml,
-)
 
 import yaml
 from sqlalchemy import create_engine
 
 try:
     import snowfakery
+    from cumulusci.tasks.bulkdata.generate_and_load_data_from_yaml import (
+        GenerateAndLoadDataFromYaml,
+    )
 except ImportError:
     snowfakery = None
 
