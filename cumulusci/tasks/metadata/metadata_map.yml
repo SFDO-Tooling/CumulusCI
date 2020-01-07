@@ -18,6 +18,10 @@ appMenus:
     - type: AppMenu
       class: MetadataFilenameParser
       extension: appMenu
+appointmentSchedulingPolicies:
+    - type: AppointmentSchedulingPolicy
+      class: MetadataFilenameParser
+      extension: policy
 approvalProcesses:
     - type: ApprovalProcess
       class: MetadataFilenameParser
@@ -274,6 +278,10 @@ networks:
     - type: Network
       class: MetadataFilenameParser
       extension: network
+notificationTypeConfig:
+    - type: NotificationTypeConfig
+      class: MetadataFilenameParser
+      extension: config
 notificationtypes:
     - type: CustomNotificationType
       class: MetadataFilenameParser
@@ -353,6 +361,10 @@ pathAssistants:
     - type: PathAssistant
       class: MetadataFilenameParser
       extension: pathAssistant
+paymentGatewayProviders:
+    - type: PaymentGatewayProvider
+      class: MetadataFilenameParser
+      extension: paymentGatewayProvider
 permissionsets:
     - type: PermissionSet
       class: MetadataFilenameParser
@@ -438,6 +450,11 @@ sharingRules:
       extension: sharingRules
       options:
             item_xpath: './sf:sharingCriteriaRules'
+    - type: SharingGuestRule
+      class: MetadataXmlElementParser
+      extension: sharingRules
+      options:
+            item_xpath: './sf:sharingGuestRules'
     - type: SharingOwnerRule
       class: MetadataXmlElementParser
       extension: sharingRules
@@ -484,6 +501,10 @@ testSuites:
     - type: ApexTestSuite
       class: MetadataFilenameParser
       extension: testSuite
+timeSheetTemplates:
+    - type: TimeSheetTemplate
+      class: MetadataFilenameParser
+      extension: timeSheetTemplate
 topicsForObjects:
     - type: TopicsForObjects
       class: MetadataFilenameParser
