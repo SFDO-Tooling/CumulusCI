@@ -12,7 +12,7 @@ Test Run Bulk Data Deletion With Error
     ${account_name} =  Generate Random String
     ${account_id} =  Salesforce Insert  Account
     ...  Name=${account_name}
-    ...  BillingStreet=Baker St.
+    ...  BillingStreet=Granville Ave., SFDO
 
     ${contract_id} =    Salesforce Insert  Contract
     ...  AccountId=${account_id}
@@ -29,5 +29,10 @@ Test Run Bulk Data Deletion With Error
     Run Keyword and Expect Error        *BulkDataException*
     ...     Run Task Class   cumulusci.tasks.bulkdata.delete.DeleteData
     ...         objects=Account
-    ...         where=BillingStreet='Baker St.'
+    ...         where=BillingStreet='Granville Ave., SFDO'
 
+    Salesforce Delete   Contract     ${contract_id}
+
+    Run Task Class   cumulusci.tasks.bulkdata.delete.DeleteData
+    ...         objects=Account
+    ...         where=BillingStreet='Granville Ave., SFDO'
