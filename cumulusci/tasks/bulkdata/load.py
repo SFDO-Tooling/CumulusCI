@@ -102,6 +102,8 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
         mapping["oid_as_pk"] = bool(mapping.get("fields", {}).get("Id"))
         job_id, local_ids_for_batch = self._create_job(mapping)
         result = self._wait_for_job(job_id, error_behaviour="return")
+        if result == "Failed":
+            errors = self.error_messages  # noQA   # Todo: what to do with these errors?
 
         self._process_job_results(mapping, job_id, local_ids_for_batch)
 
