@@ -72,11 +72,10 @@ class BulkJobTaskMixin(object):
         return self._parse_job_state(response.content)
 
     def _parse_job_state(self, xml):
+        ns = self.bulk.jobNS
         tree = ET.fromstring(xml)
-        statuses = [el.text for el in tree.iterfind(".//{%s}state" % self.bulk.jobNS)]
-        state_messages = [
-            el.text for el in tree.iterfind(".//{%s}stateMessage" % self.bulk.jobNS)
-        ]
+        statuses = [el.text for el in tree.iterfind(f".//{{{ns}}}state")]
+        state_messages = [el.text for el in tree.iterfind(f".//{{{ns}}}stateMessage")]
 
         if "Not Processed" in statuses:
             return "Aborted", None
@@ -84,6 +83,12 @@ class BulkJobTaskMixin(object):
             return "InProgress", None
         elif "Failed" in statuses:
             return "Failed", state_messages
+
+        failures = tree.find(f".//{{{ns}}}numberRecordsFailed")
+        if failures is not None:
+            num_failures = int(failures.text)
+            if num_failures:
+                return "Failed", [f"Failures detected: {num_failures}"]
 
         return "Completed", None
 
@@ -101,6 +106,7 @@ class BulkJobTaskMixin(object):
         if result == "Failed":
             for state_message in messages:
                 self.logger.error(f"Batch failure message: {state_message}")
+            raise BulkDataException("Job Error", messages)
 
         return result
 
