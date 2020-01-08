@@ -92,7 +92,16 @@ class BulkJobTaskMixin(object):
 
         return "Completed", None
 
-    def _wait_for_job(self, job_id):
+    def _wait_for_job(self, job_id, error_behaviour: str = "raise") -> str:
+        """With for job_id to finish.
+
+        If there are any row errors, error_behaviour says what happens.
+
+        If its "raise" (the default), then throw an exception.
+
+        If its "return" then return "fail" and set an instance variable: self.error_messages
+        """
+        assert error_behaviour in ("raise", "return")
         while True:
             job_status = self.bulk.job_status(job_id)
             self.logger.info(
@@ -106,7 +115,10 @@ class BulkJobTaskMixin(object):
         if result == "Failed":
             for state_message in messages:
                 self.logger.error(f"Batch failure message: {state_message}")
-            raise BulkDataException("Job Error", messages)
+            if error_behaviour == "raise":
+                raise BulkDataException("Job Error", messages)
+            else:
+                self.error_messages = messages
 
         return result
 
