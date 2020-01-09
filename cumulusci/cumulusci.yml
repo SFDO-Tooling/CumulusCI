@@ -2,6 +2,10 @@ cumulusci:
     keychain: cumulusci.core.keychain.EncryptedFileProjectKeychain
 
 tasks:
+    activate_flow:
+        group: Metadata Transformations
+        description: Activates Flows identified by a given list of Developer Names
+        class_path: cumulusci.tasks.salesforce.activate_flow.ActivateFlow
     batch_apex_wait:
         description: Waits on a batch apex job to finish.
         class_path: cumulusci.tasks.apex.batch.BatchApexWait
@@ -406,7 +410,20 @@ tasks:
         description: Remove specified XML elements from one or more metadata files
         class_path: cumulusci.tasks.metadata.modify.RemoveElementsXPath
         group: Salesforce Metadata
-
+    disable_tdtm_trigger_handlers:
+        class_path: cumulusci.tasks.salesforce.trigger_handlers.SetTDTMHandlerStatus
+        description: "Disable specified TDTM trigger handlers"
+        group: NPSP/EDA
+        options:
+            active: False
+            restore_file: trigger_status.yml
+    restore_tdtm_trigger_handlers:
+        class_path: cumulusci.tasks.salesforce.trigger_handlers.SetTDTMHandlerStatus
+        description: "Restore status of TDTM trigger handlers"
+        group: NPSP/EDA
+        options:
+            restore: True
+            restore_file: trigger_status.yml
 
 flows:
     ci_beta:
