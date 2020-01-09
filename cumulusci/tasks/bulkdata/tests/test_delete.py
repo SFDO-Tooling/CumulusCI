@@ -151,7 +151,7 @@ class TestDeleteData(unittest.TestCase):
             ),
         )
         self.assertEqual(
-            ("Failed", ["Failures detected: 200"]),
+            ("CompletedWithFailures", ["Failures detected: 200"]),
             task._parse_job_state(
                 '<root xmlns="http://ns">'
                 "  <batch><state>Completed</state></batch>"

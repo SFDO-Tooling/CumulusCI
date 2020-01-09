@@ -82,13 +82,13 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
 
             self.logger.info(f"Running Job: {name}")
             result = self._load_mapping(mapping)
-            if result != "Completed":
+            if not result.startswith("Completed"):
                 raise BulkDataException(f"Job {name} did not complete successfully")
             if name in self.after_steps:
                 for after_name, after_step in self.after_steps[name].items():
                     self.logger.info(f"Running post-load step: {after_name}")
                     result = self._load_mapping(after_step)
-                    if result != "Completed":
+                    if not result.startswith("Completed"):
                         raise BulkDataException(
                             f"Job {after_name} did not complete successfully"
                         )
@@ -102,7 +102,7 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
         mapping["oid_as_pk"] = bool(mapping.get("fields", {}).get("Id"))
         job_id, local_ids_for_batch = self._create_job(mapping)
         result = self._wait_for_job(job_id, error_behaviour="return")
-        if result == "Failed":
+        if result == "CompletedWithFailures":
             errors = self.error_messages  # noQA   # Todo: what to do with these errors?
 
         self._process_job_results(mapping, job_id, local_ids_for_batch)
