@@ -581,7 +581,10 @@ class TestApiDeploy(BaseTestMetadataApi):
 
     def _expected_envelope_start(self):
         return self.envelope_start.format(
-            package_zip=self.package_zip, purge_on_delete="false"
+            package_zip=self.package_zip,
+            check_only="false",
+            purge_on_delete="false",
+            test_level="NoTestRun",
         )
 
     def _response_call_success_result(self, response_result):
@@ -590,18 +593,57 @@ class TestApiDeploy(BaseTestMetadataApi):
     def _expected_call_success_result(self, response_result):
         return "Success"
 
-    def _create_instance(self, task, api_version=None, purge_on_delete=None):
+    def _create_instance(
+        self,
+        task,
+        api_version=None,
+        purge_on_delete=None,
+        check_only=None,
+        run_tests=None,
+    ):
         return self.api_class(
             task,
             self.package_zip,
             api_version=api_version,
             purge_on_delete=purge_on_delete,
+            check_only=check_only,
+            run_tests=run_tests,
         )
 
     def test_init_no_purge_on_delete(self):
         task = self._create_task()
         api = self._create_instance(task, purge_on_delete=False)
         self.assertEqual(api.purge_on_delete, "false")
+
+    def test_init_default_check_only(self):
+        task = self._create_task()
+        api = self._create_instance(task)
+        self.assertEqual(api.check_only, "false")
+
+    def test_init_no_check_only(self):
+        task = self._create_task()
+        api = self._create_instance(task, check_only=False)
+        self.assertEqual(api.check_only, "false")
+
+    def test_init_check_only(self):
+        task = self._create_task()
+        api = self._create_instance(task, check_only=True)
+        self.assertEqual(api.check_only, "true")
+
+    def test_init_default_run_tests(self):
+        task = self._create_task()
+        api = self._create_instance(task)
+        self.assertEqual(api.test_level, "NoTestRun")
+
+    def test_init_no_run_tests(self):
+        task = self._create_task()
+        api = self._create_instance(task, run_tests=False)
+        self.assertEqual(api.test_level, "NoTestRun")
+
+    def test_init_run_tests(self):
+        task = self._create_task()
+        api = self._create_instance(task, run_tests=True)
+        self.assertEqual(api.test_level, "RunLocalTests")
 
     def test_process_response_metadata_failure(self):
         task = self._create_task()

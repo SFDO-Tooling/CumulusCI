@@ -37,6 +37,12 @@ class Deploy(BaseSalesforceMetadataApiTask):
         "namespace_tokenize": {
             "description": "If set, all namespace prefixes for the namespace specified are replaced with tokens for use with namespace_inject"
         },
+        "check_only": {
+            "description": "If True, performs a test deployment (validation) of components without saving the components in the target org"
+        },
+        "run_tests": {
+            "description": "If True, all tests from the package are run during the deploy (along with local tests in salesforce org)"
+        },
         "static_resource_path": {
             "description": "The path where decompressed static resources are stored.  Any subdirectories found will be zipped and added to the staticresources directory of the build."
         },
@@ -56,7 +62,10 @@ class Deploy(BaseSalesforceMetadataApiTask):
 
         package_zip = self._get_package_zip(path)
         self.logger.info("Payload size: {} bytes".format(len(package_zip)))
-        return self.api_class(self, package_zip, purge_on_delete=False)
+        check_only = process_bool_arg(self.options.get("check_only", False))
+        run_tests = process_bool_arg(self.options.get("run_tests", False))
+        purge_on_delete = False
+        return self.api_class(self, package_zip, check_only, purge_on_delete, run_tests)
 
     def _include_directory(self, root_parts):
         # include the root directory, all non-lwc directories and sub-directories, and lwc component directories

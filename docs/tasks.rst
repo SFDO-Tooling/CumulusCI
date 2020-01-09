@@ -144,6 +144,8 @@ Options:
 * **namespace_inject**: If set, the namespace tokens in files and filenames are replaced with the namespace's prefix
 * **namespace_strip**: If set, all namespace prefixes for the namespace specified are stripped from files and filenames
 * **namespace_tokenize**: If set, all namespace prefixes for the namespace specified are replaced with tokens for use with namespace_inject
+* **check_only**: If True, performs a test deployment (validation) of components without saving the components in the target org
+* **run_tests**: If True, all tests from the package are run during the deploy (along with local tests in salesforce org)
 * **static_resource_path**: The path where decompressed static resources are stored.  Any subdirectories found will be zipped and added to the staticresources directory of the build.
 * **namespaced_org**: If True, the tokens %%%NAMESPACED_ORG%%% and ___NAMESPACED_ORG___ will get replaced with the namespace.  The default is false causing those tokens to get stripped and replaced with an empty string.  Set this if deploying to a namespaced scratch org or packaging org.
 * **clean_meta_xml**: Defaults to True which strips the <packageVersions/> element from all meta.xml files.  The packageVersion element gets added automatically by the target org and is set to whatever version is installed in the org.  To disable this, set this option to False
