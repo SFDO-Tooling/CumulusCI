@@ -51,6 +51,7 @@ def get_github_api_for_repo(keychain, owner, repo):
                 raise GithubException(
                     f"Could not access {owner}/{repo} using GitHub app. "
                     "Does the app need to be installed for this repository?"
+                    "\nUse the `cci service list` command to show what services are currently configured."
                 )
             INSTALLATIONS[(owner, repo)] = installation
         gh.login_as_app_installation(APP_KEY, APP_ID, installation.id)
