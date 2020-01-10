@@ -362,12 +362,20 @@ class ApiDeploy(BaseMetadataApiCall):
     soap_action_start = "deploy"
     soap_action_status = "checkDeployStatus"
 
-    def __init__(self, task, package_zip, purge_on_delete=None, api_version=None):
+    def __init__(
+        self,
+        task,
+        package_zip,
+        purge_on_delete=None,
+        api_version=None,
+        check_only=False,
+    ):
         super(ApiDeploy, self).__init__(task, api_version)
         if purge_on_delete is None:
             purge_on_delete = True
         self._set_purge_on_delete(purge_on_delete)
         self.package_zip = package_zip
+        self.check_only = check_only
 
     def _set_purge_on_delete(self, purge_on_delete):
         if not purge_on_delete or purge_on_delete == "false":
@@ -387,6 +395,7 @@ class ApiDeploy(BaseMetadataApiCall):
                 package_zip=self.package_zip,
                 purge_on_delete=self.purge_on_delete,
                 api_version=self.api_version,
+                check_only=self.check_only,
             )
 
     def _process_response(self, response):

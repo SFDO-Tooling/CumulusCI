@@ -46,6 +46,9 @@ class Deploy(BaseSalesforceMetadataApiTask):
         "clean_meta_xml": {
             "description": "Defaults to True which strips the <packageVersions/> element from all meta.xml files.  The packageVersion element gets added automatically by the target org and is set to whatever version is installed in the org.  To disable this, set this option to False"
         },
+        "check_only": {
+            "description": "Specifies the value of the CheckOnly flag during deployment. (default=False)"
+        },
     }
 
     namespaces = {"sf": "http://soap.sforce.com/2006/04/metadata"}
@@ -56,7 +59,10 @@ class Deploy(BaseSalesforceMetadataApiTask):
 
         package_zip = self._get_package_zip(path)
         self.logger.info("Payload size: {} bytes".format(len(package_zip)))
-        return self.api_class(self, package_zip, purge_on_delete=False)
+        check_only = process_bool_arg(self.options.get("check_only", False))
+        return self.api_class(
+            self, package_zip, purge_on_delete=False, check_only=check_only
+        )
 
     def _include_directory(self, root_parts):
         # include the root directory, all non-lwc directories and sub-directories, and lwc component directories
