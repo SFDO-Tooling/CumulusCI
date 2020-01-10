@@ -178,7 +178,8 @@ class BaseTestMetadataApi(unittest.TestCase):
 
     def _expected_envelope_start(self):
         return self.envelope_start.format(
-            api_version=self.project_config.project__package__api_version
+            api_version=self.project_config.project__package__api_version,
+            check_only=False,
         )
 
     def test_build_envelope_status(self):
