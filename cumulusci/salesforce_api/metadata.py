@@ -370,6 +370,7 @@ class ApiDeploy(BaseMetadataApiCall):
         api_version=None,
         check_only=False,
         test_level=None,
+        run_tests=None,
     ):
         super(ApiDeploy, self).__init__(task, api_version)
         if purge_on_delete is None:
@@ -378,6 +379,7 @@ class ApiDeploy(BaseMetadataApiCall):
         self.check_only = "true" if check_only else "false"
         self.test_level = test_level
         self.package_zip = package_zip
+        self.run_tests = run_tests or []
 
     def _set_purge_on_delete(self, purge_on_delete):
         if not purge_on_delete or purge_on_delete == "false":
@@ -396,11 +398,17 @@ class ApiDeploy(BaseMetadataApiCall):
             test_level = (
                 f"<testLevel>{self.test_level}</testLevel>" if self.test_level else ""
             )
+            run_tests = (
+                f"<runTests>{self.run_tests.join(',')}</runTests>"
+                if self.test_level == "RunSpecifiedTests"
+                else ""
+            )
             return self.soap_envelope_start.format(
                 package_zip=self.package_zip,
                 check_only=self.check_only,
                 purge_on_delete=self.purge_on_delete,
                 test_level=test_level,
+                run_tests=run_tests,
                 api_version=self.api_version,
             )
 

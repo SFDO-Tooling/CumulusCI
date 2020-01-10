@@ -585,6 +585,7 @@ class TestApiDeploy(BaseTestMetadataApi):
             check_only="false",
             purge_on_delete="false",
             test_level="",
+            run_tests="",
         )
 
     def _response_call_success_result(self, response_result):
@@ -600,6 +601,7 @@ class TestApiDeploy(BaseTestMetadataApi):
         purge_on_delete=None,
         check_only=None,
         test_level=None,
+        run_tests=None,
     ):
         return self.api_class(
             task,
@@ -608,6 +610,7 @@ class TestApiDeploy(BaseTestMetadataApi):
             purge_on_delete=purge_on_delete,
             check_only=check_only,
             test_level=test_level,
+            run_tests=run_tests,
         )
 
     def test_init_no_purge_on_delete(self):
@@ -634,6 +637,21 @@ class TestApiDeploy(BaseTestMetadataApi):
         task = self._create_task()
         api = self._create_instance(task, test_level="NoTestRun")
         self.assertEqual(api.test_level, "NoTestRun")
+
+    def test_init_default_run_tests(self):
+        task = self._create_task()
+        api = self._create_instance(task)
+        self.assertEqual(api.run_tests, [])
+
+    def test_init_run_tests__list(self):
+        task = self._create_task()
+        api = self._create_instance(task, run_tests=["TestA", "TestB"])
+        self.assertEqual(api.run_tests, ["TestA", "TestB"])
+
+    def test_init_run_tests__string(self):
+        task = self._create_task()
+        api = self._create_instance(task, run_tests="TestA,TestB")
+        self.assertEqual(api.run_tests, ["TestA", "TestB"])
 
     def test_process_response_metadata_failure(self):
         task = self._create_task()
