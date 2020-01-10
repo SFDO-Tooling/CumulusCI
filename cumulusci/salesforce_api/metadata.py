@@ -399,7 +399,7 @@ class ApiDeploy(BaseMetadataApiCall):
                 f"<testLevel>{self.test_level}</testLevel>" if self.test_level else ""
             )
             run_tests = (
-                f"<runTests>{self.run_tests.join(',')}</runTests>"
+                "\n".join(f"<runTests>{x}</runTests>" for x in self.run_tests)
                 if self.test_level == "RunSpecifiedTests"
                 else ""
             )

@@ -643,15 +643,23 @@ class TestApiDeploy(BaseTestMetadataApi):
         api = self._create_instance(task)
         self.assertEqual(api.run_tests, [])
 
-    def test_init_run_tests__list(self):
+    def test_init_run_tests(self):
         task = self._create_task()
         api = self._create_instance(task, run_tests=["TestA", "TestB"])
         self.assertEqual(api.run_tests, ["TestA", "TestB"])
 
-    def test_init_run_tests__string(self):
+    def test_build_envelope_status__run_specified_tests(self):
         task = self._create_task()
-        api = self._create_instance(task, run_tests="TestA,TestB")
-        self.assertEqual(api.run_tests, ["TestA", "TestB"])
+        api = self._create_instance(
+            task, run_tests=["TestA", "TestB"], test_level="RunSpecifiedTests"
+        )
+
+        api.package_zip = "Test"
+
+        envelope = api._build_envelope_start()
+        assert "<runTests>TestA</runTests>" in envelope
+        assert "<runTests>TestB</runTests>" in envelope
+        assert "RunSpecifiedTests" in envelope
 
     def test_process_response_metadata_failure(self):
         task = self._create_task()
