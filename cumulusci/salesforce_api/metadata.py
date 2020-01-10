@@ -366,17 +366,17 @@ class ApiDeploy(BaseMetadataApiCall):
         self,
         task,
         package_zip,
-        check_only=None,
         purge_on_delete=None,
-        run_tests=None,
         api_version=None,
+        check_only=False,
+        test_level=None,
     ):
         super(ApiDeploy, self).__init__(task, api_version)
         if purge_on_delete is None:
             purge_on_delete = True
         self._set_purge_on_delete(purge_on_delete)
-        self._set_check_only(check_only)
-        self._set_test_level(run_tests)
+        self.check_only = "true" if check_only else "false"
+        self.test_level = test_level
         self.package_zip = package_zip
 
     def _set_purge_on_delete(self, purge_on_delete):
@@ -391,29 +391,16 @@ class ApiDeploy(BaseMetadataApiCall):
         if org_type != "Developer Edition" and not is_sandbox:
             self.purge_on_delete = "false"
 
-    def _set_check_only(self, check_only):
-        if check_only is None:
-            self.check_only = "false"
-        elif not check_only or check_only == "false":
-            self.check_only = "false"
-        else:
-            self.check_only = "true"
-
-    def _set_test_level(self, run_tests):
-        if run_tests is None:
-            self.test_level = "NoTestRun"
-        elif not run_tests or run_tests == "false":
-            self.test_level = "NoTestRun"
-        else:
-            self.test_level = "RunLocalTests"
-
     def _build_envelope_start(self):
         if self.package_zip:
+            test_level = (
+                f"<testLevel>{self.test_level}</testLevel>" if self.test_level else ""
+            )
             return self.soap_envelope_start.format(
                 package_zip=self.package_zip,
                 check_only=self.check_only,
                 purge_on_delete=self.purge_on_delete,
-                test_level=self.test_level,
+                test_level=test_level,
                 api_version=self.api_version,
             )
 

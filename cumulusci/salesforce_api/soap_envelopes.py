@@ -17,8 +17,8 @@ DEPLOY = """<?xml version="1.0" encoding="utf-8"?>
         <purgeOnDelete>{purge_on_delete}</purgeOnDelete>
         <rollbackOnError>true</rollbackOnError>
         <runAllTests>false</runAllTests>
-        <testLevel>{test_level}</testLevel>
         <singlePackage>true</singlePackage>
+        {test_level}
       </DeployOptions>
     </deploy>
   </soap:Body>

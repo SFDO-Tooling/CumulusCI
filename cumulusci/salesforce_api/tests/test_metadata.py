@@ -584,7 +584,7 @@ class TestApiDeploy(BaseTestMetadataApi):
             package_zip=self.package_zip,
             check_only="false",
             purge_on_delete="false",
-            test_level="NoTestRun",
+            test_level="",
         )
 
     def _response_call_success_result(self, response_result):
@@ -599,7 +599,7 @@ class TestApiDeploy(BaseTestMetadataApi):
         api_version=None,
         purge_on_delete=None,
         check_only=None,
-        run_tests=None,
+        test_level=None,
     ):
         return self.api_class(
             task,
@@ -607,7 +607,7 @@ class TestApiDeploy(BaseTestMetadataApi):
             api_version=api_version,
             purge_on_delete=purge_on_delete,
             check_only=check_only,
-            run_tests=run_tests,
+            test_level=test_level,
         )
 
     def test_init_no_purge_on_delete(self):
@@ -620,30 +620,20 @@ class TestApiDeploy(BaseTestMetadataApi):
         api = self._create_instance(task)
         self.assertEqual(api.check_only, "false")
 
-    def test_init_no_check_only(self):
-        task = self._create_task()
-        api = self._create_instance(task, check_only=False)
-        self.assertEqual(api.check_only, "false")
-
     def test_init_check_only(self):
         task = self._create_task()
         api = self._create_instance(task, check_only=True)
         self.assertEqual(api.check_only, "true")
 
-    def test_init_default_run_tests(self):
+    def test_init_default_test_level(self):
         task = self._create_task()
         api = self._create_instance(task)
-        self.assertEqual(api.test_level, "NoTestRun")
+        self.assertEqual(api.test_level, None)
 
-    def test_init_no_run_tests(self):
+    def test_init_test_level(self):
         task = self._create_task()
-        api = self._create_instance(task, run_tests=False)
+        api = self._create_instance(task, test_level="NoTestRun")
         self.assertEqual(api.test_level, "NoTestRun")
-
-    def test_init_run_tests(self):
-        task = self._create_task()
-        api = self._create_instance(task, run_tests=True)
-        self.assertEqual(api.test_level, "RunLocalTests")
 
     def test_process_response_metadata_failure(self):
         task = self._create_task()
