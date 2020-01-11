@@ -1,9 +1,11 @@
-from unittest import mock
 import os
-import unittest
+from unittest import mock
+
+import pytest
 
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.tasks.salesforce import UpdateAdminProfile
+
 from .util import create_task
 
 ADMIN_PROFILE_BEFORE = """<?xml version='1.0' encoding='utf-8'?>
@@ -83,63 +85,62 @@ ADMIN_PROFILE_EXPECTED = """<?xml version='1.0' encoding='utf-8'?>
 </Profile>"""
 
 
-class TestUpdateAdminProfile(unittest.TestCase):
-    def test_run_task(self):
-        task = create_task(
-            UpdateAdminProfile,
-            {
-                "record_types": [
-                    {
-                        "record_type": "Account.HH_Account",
-                        "default": True,
-                        "person_account_default": True,
-                    }
-                ],
-                "namespaced_org": True,
-            },
-        )
+def test_run_task():
+    task = create_task(
+        UpdateAdminProfile,
+        {
+            "record_types": [
+                {
+                    "record_type": "Account.HH_Account",
+                    "default": True,
+                    "person_account_default": True,
+                }
+            ],
+            "namespaced_org": True,
+        },
+    )
 
-        def _retrieve_unpackaged():
-            profiles_path = os.path.join(task.tempdir, "profiles")
-            admin_profile_path = os.path.join(profiles_path, "Admin.profile")
-            os.mkdir(profiles_path)
-            with open(admin_profile_path, "w") as f:
-                f.write(ADMIN_PROFILE_BEFORE)
+    def _retrieve_unpackaged():
+        profiles_path = os.path.join(task.tempdir, "profiles")
+        admin_profile_path = os.path.join(profiles_path, "Admin.profile")
+        os.mkdir(profiles_path)
+        with open(admin_profile_path, "w") as f:
+            f.write(ADMIN_PROFILE_BEFORE)
 
-        def _check_result():
-            with open(
-                os.path.join(task.tempdir, "profiles", "Admin.profile"), "r"
-            ) as f:
-                result = f.read()
-            self.assertMultiLineEqual(ADMIN_PROFILE_EXPECTED, result)
+    def _check_result():
+        with open(os.path.join(task.tempdir, "profiles", "Admin.profile"), "r") as f:
+            result = f.read()
+        assert ADMIN_PROFILE_EXPECTED == result
 
-        task._retrieve_unpackaged = _retrieve_unpackaged
-        task._deploy_metadata = _check_result
+    task._retrieve_unpackaged = _retrieve_unpackaged
+    task._deploy_metadata = _check_result
+    task()
+
+
+def test_run_task__record_type_not_found():
+    task = create_task(
+        UpdateAdminProfile,
+        {"record_types": [{"record_type": "DOESNT_EXIST"}], "namespaced_org": True},
+    )
+
+    def _retrieve_unpackaged():
+        profiles_path = os.path.join(task.tempdir, "profiles")
+        admin_profile_path = os.path.join(profiles_path, "Admin.profile")
+        os.mkdir(profiles_path)
+        with open(admin_profile_path, "w") as f:
+            f.write(ADMIN_PROFILE_BEFORE)
+
+    task._retrieve_unpackaged = _retrieve_unpackaged
+    with pytest.raises(TaskOptionsError):
         task()
 
-    def test_run_task__record_type_not_found(self):
-        task = create_task(
-            UpdateAdminProfile,
-            {"record_types": [{"record_type": "DOESNT_EXIST"}], "namespaced_org": True},
-        )
 
-        def _retrieve_unpackaged():
-            profiles_path = os.path.join(task.tempdir, "profiles")
-            admin_profile_path = os.path.join(profiles_path, "Admin.profile")
-            os.mkdir(profiles_path)
-            with open(admin_profile_path, "w") as f:
-                f.write(ADMIN_PROFILE_BEFORE)
-
-        task._retrieve_unpackaged = _retrieve_unpackaged
-        with self.assertRaises(TaskOptionsError):
-            task()
-
-    @mock.patch("cumulusci.salesforce_api.metadata.ApiRetrieveUnpackaged.__call__")
-    def test_retrieve_unpackaged(self, ApiRetrieveUnpackaged):
-        task = create_task(UpdateAdminProfile)
-        task.tempdir = "/tmp"
-        task._retrieve_unpackaged()
-        ApiRetrieveUnpackaged.assert_called_once()
+@mock.patch("cumulusci.salesforce_api.metadata.ApiRetrieveUnpackaged.__call__")
+def test_retrieve_unpackaged(ApiRetrieveUnpackaged):
+    task = create_task(UpdateAdminProfile)
+    task.tempdir = "/tmp"
+    task._retrieve_unpackaged()
+    ApiRetrieveUnpackaged.assert_called_once()
 
 
 def test_deploy_metadata(tmpdir):
