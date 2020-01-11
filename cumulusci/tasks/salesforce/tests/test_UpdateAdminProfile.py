@@ -141,9 +141,11 @@ class TestUpdateAdminProfile(unittest.TestCase):
         task._retrieve_unpackaged()
         ApiRetrieveUnpackaged.assert_called_once()
 
-    def test_deploy_metadata(self):
-        task = create_task(UpdateAdminProfile)
-        task.tempdir = "/tmp"
-        task._get_api = mock.Mock()
-        task._deploy_metadata()
-        task._get_api.assert_called_once()
+
+def test_deploy_metadata(tmpdir):
+    task = create_task(UpdateAdminProfile)
+    task.tempdir = str(tmpdir)
+    tmpdir.mkdir("profiles")
+    task._get_api = mock.Mock()
+    task._deploy_metadata()
+    task._get_api.assert_called_once()

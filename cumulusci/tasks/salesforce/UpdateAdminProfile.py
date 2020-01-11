@@ -2,6 +2,7 @@ import os
 import shutil
 import tempfile
 
+from pathlib import Path
 from cumulusci.salesforce_api.metadata import ApiRetrieveUnpackaged
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.utils import process_bool_arg
@@ -175,6 +176,19 @@ class UpdateAdminProfile(Deploy):
             elem.find("sf:visibility", self.namespaces).text = "DefaultOn"
 
     def _deploy_metadata(self):
-        self.logger.info("Deploying updated Admin.profile from {}".format(self.tempdir))
-        api = self._get_api(path=self.tempdir)
+        deploy_dir = tempfile.mkdtemp()
+        self.logger.info(f"Deploying updated Admin.profile from {deploy_dir}")
+
+        target_profile_xml = Path(deploy_dir, "package.xml")
+        target_profile_xml.write_text(
+            """<?xml version="1.0" encoding="UTF-8"?><Package xmlns="http://soap.sforce.com/2006/04/metadata">
+        <types><members>Admin</members><name>Profile</name></types><version>39.0</version></Package>
+        """
+        )
+
+        source_profile_dir = Path(self.tempdir, "profiles")
+        target_profile_dir = Path(deploy_dir, "profiles")
+        source_profile_dir.replace(target_profile_dir)
+
+        api = self._get_api(path=deploy_dir)
         return api()
