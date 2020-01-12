@@ -19,6 +19,7 @@ DEPLOY = """<?xml version="1.0" encoding="utf-8"?>
         <runAllTests>false</runAllTests>
         <singlePackage>true</singlePackage>
         {test_level}
+        {run_tests}
       </DeployOptions>
     </deploy>
   </soap:Body>
