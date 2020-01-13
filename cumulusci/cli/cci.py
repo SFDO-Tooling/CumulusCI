@@ -218,6 +218,9 @@ def main(args=None):
             else:
                 click.echo(click.style(f"Error: {e}", fg="red"))
                 click.echo(click.style(SUGGEST_GIT_GIST_COMMAND, fg="yellow"))
+
+                with open(CCI_LOGFILE_PATH, "a") as log_file:
+                    traceback.print_exc(file=log_file)  # log stacktrace silently
             # TODO: errorsdb
             # Return a non-zero exit code to indicate a problem
             sys.exit(1)
