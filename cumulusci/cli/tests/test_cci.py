@@ -288,7 +288,7 @@ Environment Info: Rossian / x68_46
         with open(test_log_name, "w") as f:
             f.write(expected_logfile_content)
 
-        cci_open.return_value = open(test_log_name, "r")
+        cci_open.__enter__.return_value = open(test_log_name, "r")
 
         runtime = mock.Mock()
         runtime.project_config.repo_root = None
@@ -297,15 +297,17 @@ Environment Info: Rossian / x68_46
             "password": "pwd",
         }
 
-        run_click_command(cci.gist, runtime=runtime)
+        with self.assertRaises(CumulusCIException) as context:
+            run_click_command(cci.gist, runtime=runtime)
         assert (
             "An error occurred attempting to create your gist"
-            in click.echo.call_args_list[0][0][0]
+            in context.exception.args[0]
         )
 
         create_gist.side_effect = ExceptionWithResponse(404)
-        run_click_command(cci.gist, runtime=runtime)
-        assert cci.GIST_404_ERR_MSG in click.echo.call_args_list[1][0][0]
+        with self.assertRaises(CumulusCIException) as context:
+            run_click_command(cci.gist, runtime=runtime)
+        assert cci.GIST_404_ERR_MSG in context.exception.args[0]
 
         os.remove(test_log_name)
 

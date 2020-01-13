@@ -732,9 +732,9 @@ Caveats:
 * See `this link <https://ntotten.com/2018/05/11/convert-metadata-to-source-format-while-maintain-git-history/>`_ for some tips on preserving git history while converting your source format.
 
 
-GitHub Gists
-=============
-Use the ``cci gist`` command to send the log of your last ``cci`` command to a github gist so you can submit it for support if needed.
+Reporting Error Logs 
+====================
+Use the ``cci gist`` command to send the log of your last ``cci`` command to a GitHub gist so you can submit it for support if needed.
 
 For this feature to work you will need to ensure that your `github service is setup with the proper scopes <https://cumulusci.readthedocs.io/en/latest/tutorial.html#github-service>`_.
 
@@ -750,4 +750,4 @@ The URL for the gist is displayed on the terminal of the user as output, and a w
 
 **Logfiles**
 
-CumulusCI creates a logfile everytime a cci command is run. The only exception to this is when the cci gist command is run. Logfiles are stored under `~/.cumulusci/logs`.
+CumulusCI creates a logfile every time a cci command is run. The only exception to this is when the cci gist command is run. Logfiles are stored under `~/.cumulusci/logs`.

@@ -274,34 +274,36 @@ CCI_LOGFILE_PATH = Path.home() / ".cumulusci/logs/cci.log"
 @pass_runtime(require_project=False)
 def gist(runtime):
     try:
-        last_cmd_log = open(CCI_LOGFILE_PATH, "r")
+        with open(CCI_LOGFILE_PATH, "r") as last_cmd_log:
+            log_content = last_cmd_log.read()
+            filename = f"cci_output_{datetime.utcnow()}.txt"
+            files = {
+                filename: {
+                    "content": f"{get_context_info()}{LAST_CMD_HEADER}{log_content}"
+                }
+            }
+
+            try:
+                gh = RUNTIME.keychain.get_service("github")
+                gist = create_gist(
+                    get_github_api(gh.config["username"], gh.config["password"]),
+                    "CumulusCI Error Output",
+                    files,
+                )
+            except Exception as e:
+                if e.response.status_code == 404:
+                    raise CumulusCIException(GIST_404_ERR_MSG)
+                else:
+                    raise CumulusCIException(
+                        f"An error occurred attempting to create your gist:\n{e}"
+                    )
+            else:
+                click.echo(f"Gist created: {gist.html_url}")
+                webbrowser.open(gist.html_url)
     except FileNotFoundError:
         error_msg = CCI_LOG_NOT_FOUND_MSG.format(CCI_LOGFILE_PATH)
         click.echo(error_msg)
         raise CumulusCIException(error_msg)
-
-    log_content = last_cmd_log.read()
-    filename = f"cci_output_{datetime.utcnow()}.txt"
-    files = {
-        filename: {"content": f"{get_context_info()}{LAST_CMD_HEADER}{log_content}"}
-    }
-
-    try:
-        gh = RUNTIME.keychain.get_service("github")
-        gist = create_gist(
-            get_github_api(gh.config["username"], gh.config["password"]),
-            "CumulusCI Error Output",
-            files,
-        )
-    except Exception as e:
-        if e.response.status_code == 404:
-            click.echo(GIST_404_ERR_MSG)
-        else:
-            click.echo(f"An error occurred attempting to create your gist:\n{e}")
-            sys.exit(1)
-    else:
-        click.echo(f"Gist created: {gist.html_url}")
-        webbrowser.open(gist.html_url)
 
 
 def get_context_info():
@@ -1382,17 +1384,3 @@ def flow_run(runtime, flow_name, org, delete_org, debug, o, skip, no_prompt):
                 "Scratch org deletion failed.  Ignoring the error below to complete the flow:"
             )
             click.echo(str(e))
-
-
-# to do:
-# - MetaCI
-#   - make sure traceback gets logged (by BuildFlow.run, I guess)
-#   - but not for failures
-#   - make sure contextual info is there for sentry
-#     - build
-#     - task path
-#     - repo
-#     - commit
-#     - branch
-#     - plan
-#     - org
