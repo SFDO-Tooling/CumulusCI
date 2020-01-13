@@ -10,7 +10,7 @@ class TestRobotframeworkUtils(unittest.TestCase):
         self.mock_selib = robot_utils.BuiltIn().get_library_instance("SeleniumLibrary")
 
     def test_screenshot_decorator_fail(self):
-        """Verify that decorator captures screenshot on keyword failure"""
+        """Verify that the decorator will capture a screenshot on keyword failure"""
 
         @robot_utils.capture_screenshot_on_error
         def example_function():
