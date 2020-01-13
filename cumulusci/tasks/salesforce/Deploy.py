@@ -6,7 +6,8 @@ import zipfile
 
 import lxml.etree as ET
 
-from cumulusci.core.utils import process_bool_arg
+from cumulusci.core.exceptions import TaskOptionsError
+from cumulusci.core.utils import process_bool_arg, process_list_arg
 from cumulusci.salesforce_api.metadata import ApiDeploy
 from cumulusci.tasks.salesforce import BaseSalesforceMetadataApiTask
 from cumulusci.utils import cd
@@ -37,6 +38,15 @@ class Deploy(BaseSalesforceMetadataApiTask):
         "namespace_tokenize": {
             "description": "If set, all namespace prefixes for the namespace specified are replaced with tokens for use with namespace_inject"
         },
+        "check_only": {
+            "description": "If True, performs a test deployment (validation) of components without saving the components in the target org"
+        },
+        "test_level": {
+            "description": "Specifies which tests are run as part of a deployment. Valid values: NoTestRun, RunLocalTests, RunAllTestsInOrg, RunSpecifiedTests."
+        },
+        "specified_tests": {
+            "description": "Comma-separated list of test classes to run upon deployment. Applies only with test_level set to RunSpecifiedTests."
+        },
         "static_resource_path": {
             "description": "The path where decompressed static resources are stored.  Any subdirectories found will be zipped and added to the staticresources directory of the build."
         },
@@ -50,13 +60,43 @@ class Deploy(BaseSalesforceMetadataApiTask):
 
     namespaces = {"sf": "http://soap.sforce.com/2006/04/metadata"}
 
+    def _init_options(self, kwargs):
+        super(Deploy, self)._init_options(kwargs)
+
+        self.check_only = process_bool_arg(self.options.get("check_only", False))
+        self.test_level = self.options.get("test_level")
+        if self.test_level and self.test_level not in [
+            "NoTestRun",
+            "RunLocalTests",
+            "RunAllTestsInOrg",
+            "RunSpecifiedTests",
+        ]:
+            raise TaskOptionsError(
+                f"Specified test run level {self.test_level} is not valid."
+            )
+
+        self.specified_tests = process_list_arg(self.options.get("specified_tests", []))
+
+        if bool(self.specified_tests) != (self.test_level == "RunSpecifiedTests"):
+            raise TaskOptionsError(
+                f"The specified_tests option and test_level RunSpecifiedTests must be used together."
+            )
+
     def _get_api(self, path=None):
         if not path:
             path = self.task_config.options__path
 
         package_zip = self._get_package_zip(path)
         self.logger.info("Payload size: {} bytes".format(len(package_zip)))
-        return self.api_class(self, package_zip, purge_on_delete=False)
+
+        return self.api_class(
+            self,
+            package_zip,
+            purge_on_delete=False,
+            check_only=self.check_only,
+            test_level=self.test_level,
+            run_tests=self.specified_tests,
+        )
 
     def _include_directory(self, root_parts):
         # include the root directory, all non-lwc directories and sub-directories, and lwc component directories
