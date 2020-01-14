@@ -12,7 +12,7 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.action_chains import ActionChains
 
 from simple_salesforce import SalesforceResourceNotFound
-from cumulusci.robotframework.utils import selenium_retry
+from cumulusci.robotframework.utils import selenium_retry, capture_screenshot_on_error
 from SeleniumLibrary.errors import ElementNotFound, NoOpenBrowser
 from urllib3.exceptions import ProtocolError
 
@@ -178,14 +178,19 @@ class Salesforce(object):
         self._jsclick(locator)
         self.wait_until_modal_is_open()
 
+    @capture_screenshot_on_error
     def click_related_item_link(self, heading, title):
         """Clicks a link in the related list with the specified heading.
 
         This keyword will automatically call `Wait until loading is complete`
         """
+        self.builtin.set_log_level("DEBUG")
+        self.builtin.log("loading related list...", "DEBUG")
         self.load_related_list(heading)
         locator = lex_locators["record"]["related"]["link"].format(heading, title)
+        self.builtin.log("clicking...", "DEBUG")
         self._jsclick(locator)
+        self.builtin.log("waiting...", "DEBUG")
         self.wait_until_loading_is_complete()
 
     def click_related_item_popup_link(self, heading, title, link):
