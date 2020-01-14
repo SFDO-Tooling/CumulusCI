@@ -64,7 +64,7 @@ Test Populate ability to clear a field
     [Setup]  run keywords
     ...  go to object home     Opportunity
     ...  AND  click link            ${opportunity['Name']}
-    ...  AND  click button          title:Edit
+    ...  AND  click object button   Edit
     ...  AND  wait until modal is open
 
     ${60 days from now}=  Get Current Date  increment=60 days  result_format=%Y-%m-%d
