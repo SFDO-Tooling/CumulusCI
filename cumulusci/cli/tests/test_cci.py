@@ -267,6 +267,7 @@ Environment Info: Rossian / x68_46
         )
         webbrowser.open.assert_called_once_with(expected_gist_url)
 
+    @mock.patch("cumulusci.cli.cci.CCI_LOGFILE_PATH")
     @mock.patch("cumulusci.cli.cci.click")
     @mock.patch("cumulusci.cli.cci.os")
     @mock.patch("cumulusci.cli.cci.sys")
@@ -274,8 +275,12 @@ Environment Info: Rossian / x68_46
     @mock.patch("cumulusci.cli.cci.create_gist")
     @mock.patch("cumulusci.cli.cci.get_github_api")
     def test_gist__gist_creation_error(
-        self, gh_api, create_gist, date, sys, os_mock, click
+        self, gh_api, create_gist, date, sys, os_mock, click, logfile_path
     ):
+
+        expected_logfile_content = "Hello there, I'm a logfile."
+        logfile_path.is_file.return_value = True
+        logfile_path.read_text.return_value = expected_logfile_content
 
         os_mock.uname.return_value = mock.Mock(sysname="Rossian", machine="x68_46")
         sys.version = "1.0.0 (default Jul 24 2019)"
