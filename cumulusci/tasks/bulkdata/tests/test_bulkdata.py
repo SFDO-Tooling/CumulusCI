@@ -285,7 +285,7 @@ class TestLoadDataWithSFIds(unittest.TestCase):
         task._create_job(mapping)
 
         task.bulk.create_update_job.assert_called_once_with(
-            "Account", contentType="CSV", concurrency="Serial"
+            "Account", contentType="CSV", concurrency="serial"
         )
 
     def test_run_task__after_steps_failure(self):
@@ -387,8 +387,25 @@ class TestLoadDataWithSFIds(unittest.TestCase):
             _make_task(bulkdata.LoadData, {"options": {}})
 
     def test_init_options__invalid_bulk_mode(self):
-        with self.assertRaises(TaskOptionsError):
-            _make_task(bulkdata.LoadData, {"options": {"bulk_mode": "nonsense"}})
+        with self.assertRaises(TaskOptionsError) as e:
+            _make_task(
+                bulkdata.LoadData,
+                {"options": {"bulk_mode": "nonsense", "database_url": "foo://bar"}},
+            )
+        assert "Serial" in str(e.exception), e
+
+    def test_init_options__case_insensitive(self):
+        task = _make_task(
+            bulkdata.LoadData,
+            {
+                "options": {
+                    "bulk_mode": "SERIAL",
+                    "database_url": "foo://bar",
+                    "mapping": "foo.yml",
+                }
+            },
+        )
+        assert task.bulk_mode == "serial"
 
     def test_expand_mapping_creates_after_steps(self):
         base_path = os.path.dirname(__file__)
