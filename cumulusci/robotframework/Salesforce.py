@@ -720,6 +720,11 @@ class Salesforce(object):
         try:
             self.selenium.wait_until_page_contains_element(locator)
             self.wait_for_aura()
+            # this knowledge article recommends waiting a second. I don't
+            # like it, but it seems to help. We should do a wait instead,
+            # but I can't figure out what to wait on.
+            # https://help.salesforce.com/articleView?id=000352057&language=en_US&mode=1&type=1
+            time.sleep(1)
 
         except Exception:
             try:
