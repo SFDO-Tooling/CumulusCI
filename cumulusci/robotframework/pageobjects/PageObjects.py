@@ -289,6 +289,12 @@ class PageObjects(object):
             expected_heading = f"{pobj._page_type} {pobj._object_name}"
         pobj._wait_to_appear(expected_heading=expected_heading)
         self._set_current_page_object(pobj)
+        # Ideally we would wait for something, but I can't figure out
+        # what that would be. A knowledge article simply suggests
+        # to wait a second.
+        # https://help.salesforce.com/articleView?id=000352057&language=en_US&mode=1&type=1
+
+        self.builtin.sleep("1 second")
         return pobj
 
     @capture_screenshot_on_error
