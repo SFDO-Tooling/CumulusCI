@@ -192,9 +192,9 @@ class UpdateAdminProfile(Deploy):
         """
         )
 
-        retreived_profile_dir = Path(self.retrieve_dir, "profiles")
+        retrieved_profile_dir = Path(self.retrieve_dir, "profiles")
         target_profile_dir = Path(self.deploy_dir, "profiles")
-        retreived_profile_dir.replace(target_profile_dir)
+        retrieved_profile_dir.replace(target_profile_dir)
 
         api = self._get_api(path=self.deploy_dir)
         return api()
