@@ -21,6 +21,7 @@ from cumulusci.robotframework.CumulusCI import CumulusCI
 from cumulusci.robotframework.pageobjects.PageObjectLibrary import _PageObjectLibrary
 from cumulusci.robotframework.pageobjects import (
     ListingPage,
+    EditModal,
     NewModal,
     HomePage,
     DetailPage,
@@ -43,6 +44,7 @@ CORE_KEYWORDS = [
 
 BASE_REGISTRY = {
     ("Detail", ""): DetailPage,
+    ("Edit", ""): EditModal,
     ("Home", ""): HomePage,
     ("Listing", ""): ListingPage,
     ("New", ""): NewModal,
