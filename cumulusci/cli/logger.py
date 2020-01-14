@@ -41,7 +41,7 @@ def get_gist_logger():
     """Determines the appropriate filepath for logfile
     and name for the logger. Returns a logger with
     RotatingFileHandler attached."""
-    logfile_dir = Path.home() / ".cumulusci/logs"
+    logfile_dir = Path.home() / ".cumulusci" / "logs"
     logfile_dir.mkdir(parents=True, exist_ok=True)
     logfile_path = logfile_dir / "cci.log"
 
