@@ -182,7 +182,7 @@ class TestCCI(unittest.TestCase):
         post_mortem.assert_called_once()
         sys_exit.assert_called_once_with(1)
 
-    @mock.patch("cumulusci.cli.cci.open")
+    @mock.patch("cumulusci.cli.cci.CCI_LOGFILE_PATH")
     @mock.patch("cumulusci.cli.cci.get_gist_logger")
     @mock.patch("cumulusci.cli.cci.init_logger")
     @mock.patch("cumulusci.cli.cci.check_latest_version")
@@ -199,13 +199,11 @@ class TestCCI(unittest.TestCase):
         check_latest_version,
         init_logger,
         get_gist_logger,
-        cci_open,
+        logfile_path,
     ):
-        logfile = "test_cci.out"
-        with open(logfile, "w") as f:
-            f.write("This is only a test")
-
-        cci_open.__enter__.return_value = open(logfile, "r")
+        expected_logfile_content = "Hello there, I'm a logfile."
+        logfile_path.is_file.return_value = True
+        logfile_path.read_text.return_value = expected_logfile_content
 
         cli.side_effect = Exception
         get_gist_logger.return_value.debug = mock.Mock()
@@ -218,8 +216,6 @@ class TestCCI(unittest.TestCase):
         cli.assert_called_once()
         post_mortem.call_count == 0
         sys_exit.assert_called_once_with(1)
-
-        os.remove(logfile)
 
     @mock.patch("cumulusci.cli.cci.CCI_LOGFILE_PATH")
     @mock.patch("cumulusci.cli.cci.webbrowser")
