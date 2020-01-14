@@ -16,6 +16,7 @@ from unittest import mock
 import pkg_resources
 import requests
 import responses
+import github3
 
 import cumulusci
 from cumulusci.core.config import BaseProjectConfig
@@ -302,7 +303,11 @@ Environment Info: Rossian / x68_46
             in context.exception.args[0]
         )
 
-        create_gist.side_effect = ExceptionWithResponse(404)
+        class GitHubExceptionWithResponse(github3.exceptions.NotFoundError, mock.Mock):
+            def __init__(self, status_code):
+                self.response = mock.Mock(status_code=status_code)
+
+        create_gist.side_effect = GitHubExceptionWithResponse(404)
         with self.assertRaises(CumulusCIException) as context:
             run_click_command(cci.gist, runtime=runtime)
         assert cci.GIST_404_ERR_MSG in context.exception.args[0]

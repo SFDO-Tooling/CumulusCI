@@ -17,6 +17,7 @@ import contextlib
 from pathlib import Path
 
 import click
+import github3
 import pkg_resources
 import requests
 from rst2ansi import rst2ansi
@@ -295,13 +296,12 @@ def gist(runtime):
             "CumulusCI Error Output",
             files,
         )
+    except github3.exceptions.NotFoundError:
+        raise CumulusCIException(GIST_404_ERR_MSG)
     except Exception as e:
-        if hasattr(e, "response") and e.response.status_code == 404:
-            raise CumulusCIException(GIST_404_ERR_MSG)
-        else:
-            raise CumulusCIException(
-                f"An error occurred attempting to create your gist:\n{e}"
-            )
+        raise CumulusCIException(
+            f"An error occurred attempting to create your gist:\n{e}"
+        )
     else:
         click.echo(f"Gist created: {gist.html_url}")
         webbrowser.open(gist.html_url)
